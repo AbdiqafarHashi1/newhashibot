@@ -4,13 +4,21 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
   try {
+    const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
+    const suppliedSecret = req.headers.get("x-scanner-cron-secret") ?? "";
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const isServiceInvocation = authHeader === `Bearer ${serviceRole}`;
+    if (cronSecret && !isServiceInvocation && suppliedSecret !== cronSecret) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     const { data: cfg } = await supabase.from("scanner_config").select("*").eq("id", 1).maybeSingle();
 
