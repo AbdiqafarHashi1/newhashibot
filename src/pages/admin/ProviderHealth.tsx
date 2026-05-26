@@ -105,7 +105,7 @@ export default function ProviderHealth() {
   // Identify forex provider from provider_status table
   const forexProvider = providers.find(p => p.market_type === 'forex');
   const cryptoProvider = providers.find(p => p.provider_name === 'binance');
-  const isForexReal = forexProvider?.data_source_label === 'REAL DATA' || forexProvider?.provider_name === 'twelvedata';
+  const isForexReal = forexProvider?.data_source_label === 'REAL DATA';
   const forexProviderName = forexProvider?.provider_name ?? 'demo';
 
   return (

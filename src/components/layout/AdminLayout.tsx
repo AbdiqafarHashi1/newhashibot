@@ -6,11 +6,12 @@ import {
   PlusCircle, User, Settings, Clock, BarChart2, ListChecks,
   Radio, Link2, ShieldCheck, ClipboardList, Brain, Cpu, Layers, FlaskConical, PackageCheck
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 type NavItem =
   | { section: string }
-  | { to: string; label: string; icon: React.FC<{ size?: number; className?: string }> };
+  | { to: string; label: string; icon: LucideIcon };
 
 const adminNav: NavItem[] = [
   { section: 'Operations' },

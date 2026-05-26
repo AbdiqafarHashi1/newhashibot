@@ -4,6 +4,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { StrategyCandidate, ScannerRun, StrategyConfig, ModeConfig } from '../../lib/types';
 import { Brain, ChevronDown, ChevronUp, ArrowRight, CheckCircle, XCircle, AlertTriangle, Radio, Cpu, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 const REJECTION_COLORS: Record<string, string> = {
   insufficient_candles: 'text-zinc-500',
@@ -26,7 +27,7 @@ const REJECTION_COLORS: Record<string, string> = {
   low_score: 'text-red-400',
 };
 
-const MODE_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
+const MODE_ICONS: Record<string, LucideIcon> = {
   signal_mode: Radio,
   personal_mode: Cpu,
   prop_mode: Zap,

@@ -4,8 +4,9 @@ import { supabase } from '../../lib/supabase';
 import { ModeConfig, RiskProfile } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { Radio, Cpu, Zap, AlertTriangle, Shield, ToggleLeft, ToggleRight, ChevronDown, ChevronRight, Save } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const MODE_META: Record<string, { icon: React.FC<{ size?: number; className?: string }>; color: string; borderColor: string; description: string }> = {
+const MODE_META: Record<string, { icon: LucideIcon; color: string; borderColor: string; description: string }> = {
   signal_mode: {
     icon: Radio,
     color: 'text-blue-400',
