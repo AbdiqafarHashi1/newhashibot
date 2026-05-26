@@ -41,7 +41,7 @@ export default function SignalsManager() {
 
   async function sendToTelegram(sig: Signal) {
     if (!session) return;
-    const isDemo = sig.market_type === 'forex';
+    const isDemo = (sig.data_source ?? '').toUpperCase() !== 'REAL DATA';
     if (isDemo && !allowDemoTg) {
       flash('Demo data signal — Telegram sending is blocked. Enable "Allow demo Telegram sending" in Scanner Config.', 'err');
       return;
@@ -129,8 +129,8 @@ export default function SignalsManager() {
       ) : (
         <div className="space-y-2">
           {signals.map(sig => {
-            const isDemo = sig.market_type === 'forex';
-            const canSendTg = !isDemo || allowDemoTg;
+            const isHistoricalDemoForex = sig.market_type === 'forex' && (sig.data_source ?? '').toUpperCase() !== 'REAL DATA';
+            const canSendTg = !isHistoricalDemoForex || allowDemoTg;
 
             return (
               <div key={sig.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -142,8 +142,8 @@ export default function SignalsManager() {
                       {directionBadge(sig.direction)}
                       {gradeBadge(sig.grade)}
                       {statusBadge(sig.status)}
-                      <Badge variant={isDemo ? 'orange' : 'green'} className="text-xs">
-                        {isDemo ? 'DEMO DATA' : 'REAL DATA'}
+                      <Badge variant={isHistoricalDemoForex ? 'orange' : 'green'} className="text-xs">
+                        {isHistoricalDemoForex ? 'HISTORICAL DEMO FOREX SIGNAL' : 'REAL DATA'}
                       </Badge>
                       {sig.source === 'manual' && <Badge variant="cyan">MANUAL</Badge>}
                     </div>

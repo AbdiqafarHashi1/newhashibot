@@ -6,6 +6,14 @@ import { ProviderStatus, Symbol } from '../../lib/types';
 import { statusBadge, Badge } from '../../components/ui/Badge';
 import { Database, AlertTriangle, Info, CheckCircle, RefreshCw, Wifi } from 'lucide-react';
 
+interface ForexRuntimeConfig {
+  provider: string;
+  fallbacks: string[];
+  demo_fallback: boolean;
+  finnhub_api_key_set: boolean;
+  twelvedata_api_key_set: boolean;
+}
+
 interface ForexTestResult {
   ok: boolean;
   provider: string;
@@ -31,6 +39,7 @@ export default function ProviderHealth() {
   const [binanceResult, setBinanceResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [forexResult, setForexResult] = useState<ForexTestResult | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [runtimeConfig, setRuntimeConfig] = useState<ForexRuntimeConfig | null>(null);
 
   async function load() {
     setRefreshing(true);
@@ -40,6 +49,20 @@ export default function ProviderHealth() {
     ]);
     setProviders(p.data ?? []);
     setSymbols(s.data ?? []);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
+        method: 'POST',
+        headers: {
+          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ debug_provider_config: true }),
+      });
+      const json = await res.json();
+      if (json?.success) setRuntimeConfig(json as ForexRuntimeConfig);
+    } catch {
+      setRuntimeConfig(null);
+    }
     setLoading(false);
     setRefreshing(false);
   }
@@ -149,7 +172,7 @@ export default function ProviderHealth() {
               Controlled by <code className="bg-zinc-800 px-1 rounded font-mono">FOREX_DATA_PROVIDER</code> secret.
               Current:{' '}
               <strong className={isForexReal ? 'text-emerald-400' : 'text-orange-400'}>
-                {forexProviderName}
+                {runtimeConfig?.provider ?? forexProviderName}
               </strong>
               {forexProvider?.data_source_label && (
                 <span className={`ml-1.5 font-medium ${forexProvider.data_source_label === 'REAL DATA' ? 'text-emerald-400' : 'text-orange-400'}`}>
@@ -174,12 +197,21 @@ export default function ProviderHealth() {
           <div className="text-xs space-y-1.5 text-zinc-400">
             <div className="font-medium text-zinc-200 mb-2">Forex Provider Configuration</div>
             <div><code className="font-mono text-yellow-400">FOREX_DATA_PROVIDER=demo</code> — Seeded candles. No key needed. <span className="text-yellow-400 font-medium">DEMO DATA</span> label.</div>
-            <div><code className="font-mono text-emerald-400">FOREX_DATA_PROVIDER=twelvedata</code> + <code className="font-mono">TWELVEDATA_API_KEY=your_key</code> → <span className="text-emerald-400 font-medium">REAL DATA</span></div>
+            <div><code className="font-mono text-emerald-400">FOREX_DATA_PROVIDER=finnhub</code> + <code className="font-mono">FINNHUB_API_KEY=your_key</code> → <span className="text-emerald-400 font-medium">REAL DATA</span></div>
             <div><code className="font-mono text-blue-400">FOREX_DATA_PROVIDER=mt5_bridge</code> — Broker-matched candles via local Python bridge. <span className="text-blue-400 font-medium">REAL DATA</span></div>
             <div><code className="font-mono text-zinc-500">FOREX_DEMO_FALLBACK=false</code> — Skip symbol on provider failure instead of using demo silently.</div>
             <div className="text-zinc-500 italic mt-1">Set secrets in Supabase Dashboard → Edge Functions → Secrets, then run a scan to verify.</div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6 text-xs text-zinc-300 space-y-1">
+        <div className="font-medium text-zinc-200">Runtime Forex Config (Edge Function)</div>
+        <div>provider: <span className="font-mono">{runtimeConfig?.provider ?? 'unknown'}</span></div>
+        <div>fallbacks: <span className="font-mono">{runtimeConfig?.fallbacks?.join(', ') || 'none'}</span></div>
+        <div>demo fallback: <span className="font-mono">{String(runtimeConfig?.demo_fallback ?? false)}</span></div>
+        <div>FINNHUB_API_KEY set: <span className="font-mono">{String(runtimeConfig?.finnhub_api_key_set ?? false)}</span></div>
+        <div>TWELVEDATA_API_KEY set: <span className="font-mono">{String(runtimeConfig?.twelvedata_api_key_set ?? false)}</span></div>
       </div>
 
       {/* Test buttons */}

@@ -41,9 +41,15 @@ export default function ControlRoom() {
   const [actionMsg, setActionMsg] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const latestScheduledRun = runs.find((r) => r.run_type === 'scheduled');
+  const scheduledWindowMs = ((scannerConfig?.scan_interval_minutes ?? 5) * 2) * 60 * 1000;
+  const latestScheduledAtMs = latestScheduledRun?.started_at ? new Date(latestScheduledRun.started_at).getTime() : 0;
+  const cronDetectedByRun = Boolean(latestScheduledRun && Date.now() - latestScheduledAtMs <= scheduledWindowMs);
+  const cronActiveUi = Boolean(scannerConfig?.cron_job_active || cronDetectedByRun || (scannerConfig?.last_scheduled_scan_at && Date.now() - new Date(scannerConfig.last_scheduled_scan_at).getTime() <= scheduledWindowMs));
+
   const load = useCallback(async () => {
     const [runsRes, provRes, symRes, candRes, sigRes, candCountRes, cfgRes, userRes, modesRes, paperRes, riskRes] = await Promise.all([
-      supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(5),
+      supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(20),
       supabase.from('provider_status').select('*'),
       supabase.from('symbols').select('id', { count: 'exact' }).eq('is_active', true),
       supabase.from('candles').select('id', { count: 'exact' }),
@@ -244,8 +250,8 @@ export default function ControlRoom() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-zinc-500">Cron job:</span>
-          <span className={`text-xs font-medium ${scannerConfig?.cron_job_active ? 'text-emerald-400' : 'text-zinc-500'}`}>
-            {scannerConfig?.cron_job_active ? 'Configured' : 'Not set up'}
+          <span className={`text-xs font-medium ${cronActiveUi ? 'text-emerald-400' : 'text-zinc-500'}`}>
+            {cronActiveUi ? 'Configured' : 'Not set up'}
           </span>
         </div>
         <div className="flex items-center gap-2">
