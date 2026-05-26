@@ -434,17 +434,36 @@ async function fetchMT5BridgeCandles(symbol: string, tf: string, bridgeUrl: stri
 
 // ─── Forex provider router ────────────────────────────────────────────────────
 
+function parseBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
+  if (value === undefined) return defaultValue;
+  const v = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(v)) return true;
+  if (["0", "false", "no", "off"].includes(v)) return false;
+  return defaultValue;
+}
+
+function parseProviderFallbacks(value: string | undefined): string[] {
+  if (!value) return [];
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === "off" || normalized === "none" || normalized === "false") return [];
+  return normalized.split(",").map((v) => v.trim()).filter(Boolean);
+}
+
 async function fetchForexCandles(
   symbol: string, tf: string, limit = 110,
   supabase: ReturnType<typeof createClient>
 ): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null }> {
-  const provider = Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub";
+  const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
   const apiKey = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
   const bridgeUrl = Deno.env.get("MT5_BRIDGE_BASE_URL") ?? "";
   const bridgeSecret = Deno.env.get("MT5_BRIDGE_SECRET") ?? "";
-  const providerFallbacks = (Deno.env.get("FOREX_PROVIDER_FALLBACKS") ?? "").split(",").map((v) => v.trim()).filter(Boolean);
+  const providerFallbacks = parseProviderFallbacks(Deno.env.get("FOREX_PROVIDER_FALLBACKS"));
+  const demoFallback = parseBooleanEnv(Deno.env.get("FOREX_DEMO_FALLBACK"), provider === "demo");
+
+  const DEMO = (reason: string) => ({ candles: generateDemoCandles(symbol, "forex", tf, limit), source: "demo", data_source: "DEMO DATA", providerError: reason });
 
   if (provider === "off") return { candles: [], source: "off", data_source: "OFF", providerError: "FOREX_DATA_PROVIDER=off" };
+  if (provider === "demo") return DEMO("FOREX_DATA_PROVIDER=demo");
 
   if (provider === "twelvedata") {
     if (!apiKey) {
@@ -487,7 +506,7 @@ async function fetchForexCandles(
     return { candles, source: "mt5_bridge", data_source: "REAL DATA", providerError: null };
   }
 
-  const providers = [provider, ...providerFallbacks].filter((v, i, a) => a.indexOf(v) === i);
+  const providers = [provider, ...providerFallbacks].filter((v, i, a) => v !== "demo" && v !== "off" && a.indexOf(v) === i);
   for (const p of providers) {
     if (p === "finnhub") {
       const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
@@ -703,7 +722,8 @@ async function runScanPipeline(
   let telegramSent = 0, telegramBlocked = 0;
   const errors: string[] = [];
   let binanceOk = false, binanceFailed = false;
-  let twelvedataOk = false, twelvedataFailed = false;
+  let forexProviderSuccess = false, forexProviderFailed = false;
+  let forexProviderName = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
 
   const { data: symbols } = await supabase.from("symbols").select("*").eq("is_active", true);
   if (!symbols || symbols.length === 0) {
@@ -741,9 +761,12 @@ async function runScanPipeline(
           const result = await fetchForexCandles(sym.symbol, tf, 110, supabase);
           candles = result.candles;
           dataSource = result.data_source;
-          if (result.source === "twelvedata") {
-            if (result.providerError) { twelvedataFailed = true; errors.push(`[WARN] TwelveData ${sym.symbol} ${tf}: ${result.providerError}`); }
-            else twelvedataOk = true;
+          forexProviderName = result.source || forexProviderName;
+          if (result.providerError) {
+            forexProviderFailed = true;
+            errors.push(`[WARN] Forex ${result.source} ${sym.symbol} ${tf}: ${result.providerError}`);
+          } else {
+            forexProviderSuccess = dataSource === "REAL DATA";
           }
           // If no fallback allowed and provider errored, skip this symbol/timeframe
           if (dataSource === "PROVIDER_ERROR") { errors.push(`[SKIP] Forex provider error ${sym.symbol} ${tf}: ${result.providerError}`); continue; }
@@ -930,15 +953,14 @@ async function runScanPipeline(
     updated_at: now,
   }, { onConflict: "provider_name" });
 
-  const forexProvider = Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub";
-  const forexName = forexProvider;
+  const forexProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
   await supabase.from("provider_status").upsert({
-    provider_name: forexName, market_type: "forex",
-    status: twelvedataOk ? "active" : twelvedataFailed ? "rate_limited" : forexProvider === "off" ? "off" : "error",
-    last_success_at: twelvedataOk ? now : undefined,
-    last_error_at: twelvedataFailed ? now : undefined,
-    error_message: twelvedataFailed ? "TwelveData errors — see scanner errors for details" : (forexProvider === "off" ? "Forex provider disabled" : "Live forex provider failed"),
-    data_source_label: twelvedataOk ? "REAL DATA" : (forexProvider === "off" ? "OFF" : "PROVIDER_ERROR"),
+    provider_name: forexProviderName, market_type: "forex",
+    status: forexProviderSuccess ? "active" : forexProviderFailed ? "error" : forexProvider === "off" ? "off" : "unknown",
+    last_success_at: forexProviderSuccess ? now : undefined,
+    last_error_at: forexProviderFailed ? now : undefined,
+    error_message: forexProviderFailed ? "Forex provider errors — see scanner errors for details" : (forexProvider === "off" ? "Forex provider disabled" : "Waiting for forex run"),
+    data_source_label: forexProviderSuccess ? "REAL DATA" : (forexProvider === "off" ? "OFF" : "PROVIDER_ERROR"),
     updated_at: now,
   }, { onConflict: "provider_name" });
 
@@ -971,7 +993,7 @@ async function runScanPipeline(
     signals_created: signalsCreated, paper_intents_created: paperIntentsCreated,
     risk_blocked: riskBlockedCount, telegram_sent: telegramSent, telegram_blocked: telegramBlocked,
     active_modes: activeModes.map((m) => m.mode_slug),
-    forex_provider: forexProvider, forex_real_data: twelvedataOk,
+    forex_provider: forexProviderName, forex_real_data: forexProviderSuccess,
     forex_demo_fallback_used: false,
     errors: errors.slice(0, 10),
   };
@@ -990,6 +1012,19 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const runType = body.run_type_override === "scheduled" ? "scheduled" : "manual";
+    if (body.debug_provider_config === true) {
+      const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
+      const fallbacks = parseProviderFallbacks(Deno.env.get("FOREX_PROVIDER_FALLBACKS"));
+      const demoFallback = parseBooleanEnv(Deno.env.get("FOREX_DEMO_FALLBACK"), provider === "demo");
+      return new Response(JSON.stringify({
+        success: true,
+        provider,
+        fallbacks,
+        demo_fallback: demoFallback,
+        finnhub_api_key_set: Boolean(Deno.env.get("FINNHUB_API_KEY")),
+        twelvedata_api_key_set: Boolean(Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY")),
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
