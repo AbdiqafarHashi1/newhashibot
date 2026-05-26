@@ -108,6 +108,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const { data: existingSent } = await supabase.from("telegram_deliveries")
+      .select("id, created_at")
+      .eq("signal_id", signal_id)
+      .eq("delivery_type", delivery_type)
+      .eq("status", "sent")
+      .maybeSingle();
+    if (existingSent) {
+      await supabase.from("telegram_deliveries").insert({
+        signal_id, delivery_type, chat_id: targetChatId, status: "failed",
+        error_message: `duplicate_blocked_existing_sent:${existingSent.id}`,
+      });
+      return new Response(JSON.stringify({ skipped: true, reason: "duplicate_already_sent" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // Fetch signal
     const { data: signal, error: sigErr } = await supabase
       .from("signals")

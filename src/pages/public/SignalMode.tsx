@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { PublicLayout } from '../../components/layout/PublicLayout';
-import { CheckCircle, ArrowRight, Zap, Send, BarChart2, Radio } from 'lucide-react';
+import { CheckCircle, ArrowRight, Radio } from 'lucide-react';
 
 const features = [
   'Crypto signals use Binance public market data when available',

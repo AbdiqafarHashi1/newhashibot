@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { PublicLayout } from '../../components/layout/PublicLayout';
-import { ArrowRight, Zap, TrendingUp, Shield, Clock, BarChart2, Send } from 'lucide-react';
+import { ArrowRight, Zap, TrendingUp, Shield, BarChart2, Send } from 'lucide-react';
 
 const markets = [
   'BTCUSDT','ETHUSDT','SOLUSDT','XAUUSD',

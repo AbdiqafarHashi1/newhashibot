@@ -178,7 +178,7 @@ export default function ControlRoom() {
   const lastRun = runs[0];
   const cryptoProvider = providers.find(p => p.market_type === 'crypto');
   const forexProvider = providers.find(p => p.market_type === 'forex');
-  const isForexReal = forexProvider?.data_source_label === 'REAL DATA' || forexProvider?.provider_name === 'twelvedata';
+  const isForexReal = forexProvider?.data_source_label === 'REAL DATA';
   const isEnabled = scannerConfig?.is_enabled ?? false;
 
   const lastRunMinsAgo = lastRun

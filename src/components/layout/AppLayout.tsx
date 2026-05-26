@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Zap, LayoutDashboard, Radio, History, Settings,
+  Zap, LayoutDashboard, Radio, History,
   MessageCircle, LogOut, Menu, Eye, User, Cpu, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
