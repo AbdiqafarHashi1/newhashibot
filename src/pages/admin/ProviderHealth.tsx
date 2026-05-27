@@ -12,6 +12,7 @@ interface ForexRuntimeConfig {
   demo_fallback: boolean;
   finnhub_api_key_set: boolean;
   twelvedata_api_key_set: boolean;
+  effective_provider_order?: string[];
 }
 
 interface ForexTestResult {
@@ -27,6 +28,58 @@ interface ForexTestResult {
   data_source?: string;
   error?: string;
   fallback_used?: boolean;
+}
+
+function ProviderCard({ p, isHistorical }: { p: ProviderStatus; isHistorical: boolean }) {
+  const dsl = (p as unknown as Record<string, unknown>).data_source_label as string | undefined;
+  return (
+    <div className={`border rounded-xl overflow-hidden ${isHistorical ? 'bg-zinc-950 border-zinc-800/50 opacity-60' : 'bg-zinc-900 border-zinc-800'}`}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+        <div className="flex items-center gap-3">
+          <Database size={16} className={isHistorical ? 'text-zinc-700' : 'text-zinc-500'} />
+          <div>
+            <div className="font-medium capitalize flex items-center gap-2">
+              {p.provider_name}
+              {isHistorical && (
+                <span className="text-xs bg-zinc-800 text-zinc-500 border border-zinc-700 px-1.5 py-0.5 rounded">HISTORICAL — NOT CURRENT</span>
+              )}
+              {!isHistorical && p.provider_name === 'demo' && (
+                <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded">DEMO</span>
+              )}
+              {!isHistorical && dsl === 'REAL DATA' && (
+                <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">REAL DATA</span>
+              )}
+              {!isHistorical && dsl === 'PROVIDER_ERROR' && (
+                <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded">PROVIDER ERROR</span>
+              )}
+              {!isHistorical && dsl === 'DEMO DATA' && p.provider_name !== 'demo' && (
+                <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded">DEMO FALLBACK</span>
+              )}
+            </div>
+            <div className="text-xs text-zinc-500 capitalize">{p.market_type}</div>
+          </div>
+        </div>
+        {statusBadge(p.status)}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-zinc-800">
+        {[
+          { label: 'Status', value: p.status },
+          { label: 'Last Success', value: p.last_success_at ? new Date(p.last_success_at).toLocaleString() : 'Never' },
+          { label: 'Last Error', value: p.last_error_at ? new Date(p.last_error_at).toLocaleString() : 'None' },
+        ].map(({ label, value }) => (
+          <div key={label} className={`px-4 py-3 ${isHistorical ? 'bg-zinc-950' : 'bg-zinc-900'}`}>
+            <div className="text-xs text-zinc-500 mb-0.5">{label}</div>
+            <div className="text-xs text-zinc-400">{value}</div>
+          </div>
+        ))}
+      </div>
+      {p.error_message && (
+        <div className={`px-5 py-3 border-t ${isHistorical ? 'border-zinc-800/50' : p.provider_name === 'demo' ? 'bg-orange-500/5 border-orange-500/10' : 'bg-yellow-500/5 border-yellow-500/10'}`}>
+          <div className={`text-xs ${isHistorical ? 'text-zinc-600' : p.provider_name === 'demo' ? 'text-orange-400' : 'text-yellow-400'}`}>{p.error_message}</div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ProviderHealth() {
@@ -125,11 +178,18 @@ export default function ProviderHealth() {
     }
   }
 
-  // Identify forex provider from provider_status table
-  const forexProvider = providers.find(p => p.market_type === 'forex');
+  // Runtime config is the source of truth — DB rows are historical if they don't match
+  const runtimeProviderName = runtimeConfig?.provider ?? null;
   const cryptoProvider = providers.find(p => p.provider_name === 'binance');
-  const isForexReal = forexProvider?.data_source_label === 'REAL DATA';
-  const forexProviderName = forexProvider?.provider_name ?? 'demo';
+  // Current forex provider row = matches runtime config name (or first forex row if runtime unknown)
+  const currentForexRow = runtimeProviderName
+    ? providers.find(p => p.market_type === 'forex' && p.provider_name === runtimeProviderName)
+    : providers.find(p => p.market_type === 'forex');
+  const historicalForexRows = providers.filter(p =>
+    p.market_type === 'forex' && p.provider_name !== (runtimeProviderName ?? currentForexRow?.provider_name)
+  );
+  const isForexReal = runtimeConfig ? runtimeConfig.provider !== 'demo' && runtimeConfig.finnhub_api_key_set : currentForexRow?.data_source_label === 'REAL DATA';
+  const forexProviderName = runtimeProviderName ?? currentForexRow?.provider_name ?? 'unknown';
 
   return (
     <AdminLayout>
@@ -205,13 +265,48 @@ export default function ProviderHealth() {
         </div>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6 text-xs text-zinc-300 space-y-1">
-        <div className="font-medium text-zinc-200">Runtime Forex Config (Edge Function)</div>
-        <div>provider: <span className="font-mono">{runtimeConfig?.provider ?? 'unknown'}</span></div>
-        <div>fallbacks: <span className="font-mono">{runtimeConfig?.fallbacks?.join(', ') || 'none'}</span></div>
-        <div>demo fallback: <span className="font-mono">{String(runtimeConfig?.demo_fallback ?? false)}</span></div>
-        <div>FINNHUB_API_KEY set: <span className="font-mono">{String(runtimeConfig?.finnhub_api_key_set ?? false)}</span></div>
-        <div>TWELVEDATA_API_KEY set: <span className="font-mono">{String(runtimeConfig?.twelvedata_api_key_set ?? false)}</span></div>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
+        <div className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
+          <CheckCircle size={14} className="text-blue-400" />
+          Current Runtime Forex Provider
+          <span className="text-xs font-normal text-zinc-500 ml-1">(live from edge function — source of truth)</span>
+        </div>
+        {runtimeConfig ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+              <div className="text-zinc-500 mb-0.5">provider</div>
+              <div className="font-mono font-semibold text-zinc-100">{runtimeConfig.provider}</div>
+            </div>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+              <div className="text-zinc-500 mb-0.5">fallbacks</div>
+              <div className="font-mono text-zinc-300">{runtimeConfig.fallbacks?.join(', ') || 'none'}</div>
+            </div>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+              <div className="text-zinc-500 mb-0.5">demo fallback</div>
+              <div className={`font-mono font-semibold ${runtimeConfig.demo_fallback ? 'text-orange-400' : 'text-emerald-400'}`}>{String(runtimeConfig.demo_fallback)}</div>
+            </div>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+              <div className="text-zinc-500 mb-0.5">FINNHUB_API_KEY set</div>
+              <div className={`font-mono font-semibold ${runtimeConfig.finnhub_api_key_set ? 'text-emerald-400' : 'text-red-400'}`}>{String(runtimeConfig.finnhub_api_key_set)}</div>
+            </div>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+              <div className="text-zinc-500 mb-0.5">TWELVEDATA_API_KEY set</div>
+              <div className={`font-mono font-semibold ${runtimeConfig.twelvedata_api_key_set ? 'text-yellow-400' : 'text-zinc-400'}`}>{String(runtimeConfig.twelvedata_api_key_set)}</div>
+            </div>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+              <div className="text-zinc-500 mb-0.5">effective provider order</div>
+              <div className="font-mono text-zinc-300">[{(runtimeConfig.effective_provider_order ?? [runtimeConfig.provider]).join(', ')}]</div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-zinc-500 italic">Loading runtime config from edge function...</div>
+        )}
+        {runtimeConfig && currentForexRow?.status === 'error' && (
+          <div className="mt-3 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-300">
+            <span className="font-semibold">Runtime provider: {runtimeConfig.provider} — Status: failing fetch</span>
+            {currentForexRow.error_message && <div className="mt-0.5 text-red-400/80">{currentForexRow.error_message}</div>}
+          </div>
+        )}
       </div>
 
       {/* Test buttons */}
@@ -273,48 +368,24 @@ export default function ProviderHealth() {
               No provider status rows yet. Run a scan to populate.
             </div>
           ) : (
-            providers.map(p => (
-              <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-                  <div className="flex items-center gap-3">
-                    <Database size={16} className="text-zinc-500" />
-                    <div>
-                      <div className="font-medium capitalize flex items-center gap-2">
-                        {p.provider_name}
-                        {p.provider_name === 'demo' && (
-                          <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded">DEMO</span>
-                        )}
-                        {(p as unknown as Record<string,unknown>).data_source_label === 'REAL DATA' && (
-                          <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">REAL DATA</span>
-                        )}
-                        {(p as unknown as Record<string,unknown>).data_source_label === 'DEMO DATA' && p.provider_name !== 'demo' && (
-                          <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded">DEMO FALLBACK</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-zinc-500 capitalize">{p.market_type}</div>
-                    </div>
+            <>
+              {/* Current / active providers */}
+              {providers
+                .filter(p => !historicalForexRows.includes(p))
+                .map(p => <ProviderCard key={p.id} p={p} isHistorical={false} />)
+              }
+              {/* Historical forex rows — stale, not current runtime */}
+              {historicalForexRows.length > 0 && (
+                <>
+                  <div className="flex items-center gap-3 pt-2">
+                    <div className="h-px flex-1 bg-zinc-800" />
+                    <span className="text-xs text-zinc-600 font-medium uppercase tracking-widest">Historical provider rows — not current runtime</span>
+                    <div className="h-px flex-1 bg-zinc-800" />
                   </div>
-                  {statusBadge(p.status)}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-zinc-800">
-                  {[
-                    { label: 'Status', value: p.status },
-                    { label: 'Last Success', value: p.last_success_at ? new Date(p.last_success_at).toLocaleString() : 'Never' },
-                    { label: 'Last Error', value: p.last_error_at ? new Date(p.last_error_at).toLocaleString() : 'None' },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="bg-zinc-900 px-4 py-3">
-                      <div className="text-xs text-zinc-500 mb-0.5">{label}</div>
-                      <div className="text-xs text-zinc-300">{value}</div>
-                    </div>
-                  ))}
-                </div>
-                {p.error_message && (
-                  <div className={`px-5 py-3 border-t ${p.provider_name === 'demo' ? 'bg-orange-500/5 border-orange-500/10' : 'bg-yellow-500/5 border-yellow-500/10'}`}>
-                    <div className={`text-xs ${p.provider_name === 'demo' ? 'text-orange-400' : 'text-yellow-400'}`}>{p.error_message}</div>
-                  </div>
-                )}
-              </div>
-            ))
+                  {historicalForexRows.map(p => <ProviderCard key={p.id} p={p} isHistorical={true} />)}
+                </>
+              )}
+            </>
           )}
         </div>
       )}

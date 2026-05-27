@@ -384,8 +384,9 @@ async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 11
 }
 
 // ─── TwelveData ───────────────────────────────────────────────────────────────
+// TwelveData is only used when FOREX_DATA_PROVIDER=twelvedata or listed in FOREX_PROVIDER_FALLBACKS.
+// With FOREX_PROVIDER_FALLBACKS=off/none (default), this code path is never reached.
 
-// Map app symbols to TwelveData format. XAUUSD → XAU/USD is supported.
 const TD_SYMBOL_MAP: Record<string, string> = {
   EURUSD: "EUR/USD", GBPUSD: "GBP/USD", USDJPY: "USD/JPY", USDCHF: "USD/CHF",
   AUDUSD: "AUD/USD", NZDUSD: "NZD/USD", USDCAD: "USD/CAD", EURJPY: "EUR/JPY",
@@ -405,7 +406,6 @@ async function fetchTwelveDataCandles(symbol: string, tf: string, apiKey: string
     if (data.status === "error" || data.code) return { candles: null, error: `TwelveData: ${String(data.message ?? data.code)}` };
     const values = data.values as Array<Record<string, string>>;
     if (!Array.isArray(values) || values.length === 0) return { candles: null, error: `TwelveData: no values for ${tdSymbol} ${tf}` };
-    // API returns newest-first; reverse to oldest-first for indicator calculation
     return {
       candles: values.reverse().map((v) => ({
         symbol, market_type: "forex", timeframe: tf,
@@ -417,6 +417,122 @@ async function fetchTwelveDataCandles(symbol: string, tf: string, apiKey: string
       error: null,
     };
   } catch (e) { return { candles: null, error: e instanceof Error ? e.message : "TwelveData fetch failed" }; }
+}
+
+// ─── Finnhub ──────────────────────────────────────────────────────────────────
+
+// Finnhub requires exchange-prefixed symbols: OANDA:EUR_USD not EURUSD.
+// XAUUSD is not available on OANDA forex endpoint — skip cleanly.
+const FINNHUB_SYMBOL_MAP: Record<string, string> = {
+  EURUSD: "OANDA:EUR_USD",
+  GBPUSD: "OANDA:GBP_USD",
+  USDJPY: "OANDA:USD_JPY",
+  USDCHF: "OANDA:USD_CHF",
+  USDCAD: "OANDA:USD_CAD",
+  AUDUSD: "OANDA:AUD_USD",
+  NZDUSD: "OANDA:NZD_USD",
+  EURJPY: "OANDA:EUR_JPY",
+  GBPJPY: "OANDA:GBP_JPY",
+  EURGBP: "OANDA:EUR_GBP",
+};
+
+// Finnhub supported resolutions: 1, 5, 15, 30, 60, D, W, M
+// 4h is not natively supported — use 60 (1h) with 4x count and resample into 4h bars.
+function toFinnhubResolution(tf: string): { resolution: string; fetchCount: number; resampleTo4h: boolean } {
+  switch (tf) {
+    case "5m":  return { resolution: "5",  fetchCount: 120, resampleTo4h: false };
+    case "15m": return { resolution: "15", fetchCount: 120, resampleTo4h: false };
+    case "1h":  return { resolution: "60", fetchCount: 120, resampleTo4h: false };
+    case "4h":  return { resolution: "60", fetchCount: 480, resampleTo4h: true  };
+    case "1d":  return { resolution: "D",  fetchCount: 120, resampleTo4h: false };
+    default:    return { resolution: "15", fetchCount: 120, resampleTo4h: false };
+  }
+}
+
+function resampleTo4hCandles(candles: Candle[], symbol: string): Candle[] {
+  // Group 1h candles into 4h buckets (align to 4-hour UTC boundaries)
+  const buckets = new Map<number, Candle[]>();
+  for (const c of candles) {
+    const ts = new Date(c.open_time).getTime();
+    const bucketTs = Math.floor(ts / (4 * 3600 * 1000)) * (4 * 3600 * 1000);
+    if (!buckets.has(bucketTs)) buckets.set(bucketTs, []);
+    buckets.get(bucketTs)!.push(c);
+  }
+  const result: Candle[] = [];
+  for (const [bucketTs, group] of [...buckets.entries()].sort((a, b) => a[0] - b[0])) {
+    if (group.length === 0) continue;
+    result.push({
+      symbol,
+      market_type: "forex",
+      timeframe: "4h",
+      open_time: new Date(bucketTs).toISOString(),
+      open: group[0].open,
+      high: Math.max(...group.map(c => c.high)),
+      low: Math.min(...group.map(c => c.low)),
+      close: group[group.length - 1].close,
+      volume: group.reduce((s, c) => s + c.volume, 0),
+      source: "finnhub",
+    });
+  }
+  return result;
+}
+
+interface FinnhubFetchResult {
+  candles: Candle[] | null;
+  error: string | null;
+  mapped_symbol: string;
+  finnhub_s: string | null;
+  candle_count: number;
+  url_without_token: string;
+}
+
+async function fetchFinnhubForexCandles(
+  symbol: string, tf: string, apiKey: string,
+): Promise<FinnhubFetchResult> {
+  const mappedSymbol = FINNHUB_SYMBOL_MAP[symbol];
+  if (!mappedSymbol) {
+    return { candles: null, error: `unsupported_symbol: ${symbol} has no OANDA mapping`, mapped_symbol: symbol, finnhub_s: null, candle_count: 0, url_without_token: "" };
+  }
+
+  const { resolution, fetchCount, resampleTo4h } = toFinnhubResolution(tf);
+  const url = `https://finnhub.io/api/v1/forex/candle?symbol=${encodeURIComponent(mappedSymbol)}&resolution=${resolution}&count=${fetchCount}&token=REDACTED`;
+  const realUrl = `https://finnhub.io/api/v1/forex/candle?symbol=${encodeURIComponent(mappedSymbol)}&resolution=${resolution}&count=${fetchCount}&token=${apiKey}`;
+
+  try {
+    const res = await fetch(realUrl, { signal: AbortSignal.timeout(12000) });
+    if (!res.ok) {
+      return { candles: null, error: `Finnhub HTTP ${res.status}`, mapped_symbol: mappedSymbol, finnhub_s: null, candle_count: 0, url_without_token: url };
+    }
+
+    const j = await res.json() as Record<string, unknown>;
+    const s = j?.s as string | undefined;
+
+    if (s === "no_data") {
+      return { candles: null, error: `Finnhub no_data for ${mappedSymbol} ${tf} — market may be closed or symbol unavailable`, mapped_symbol: mappedSymbol, finnhub_s: "no_data", candle_count: 0, url_without_token: url };
+    }
+
+    if (s !== "ok" || !Array.isArray(j?.c) || (j.c as number[]).length === 0) {
+      const reason = s ? `Finnhub s=${s}` : "Finnhub unexpected response structure";
+      return { candles: null, error: reason, mapped_symbol: mappedSymbol, finnhub_s: s ?? null, candle_count: 0, url_without_token: url };
+    }
+
+    const c = j.c as number[], o = j.o as number[], h = j.h as number[], l = j.l as number[], t = j.t as number[], v = (j.v ?? []) as number[];
+
+    let candles: Candle[] = c.map((close, idx) => ({
+      symbol, market_type: "forex", timeframe: resampleTo4h ? "1h" : tf,
+      open_time: new Date(t[idx] * 1000).toISOString(),
+      open: Number(o[idx]), high: Number(h[idx]), low: Number(l[idx]),
+      close: Number(close), volume: Number(v[idx] ?? 0), source: "finnhub",
+    }));
+
+    if (resampleTo4h) {
+      candles = resampleTo4hCandles(candles, symbol);
+    }
+
+    return { candles, error: null, mapped_symbol: mappedSymbol, finnhub_s: "ok", candle_count: candles.length, url_without_token: url };
+  } catch (e) {
+    return { candles: null, error: e instanceof Error ? e.message : "Finnhub fetch failed", mapped_symbol: mappedSymbol, finnhub_s: null, candle_count: 0, url_without_token: url };
+  }
 }
 
 // ─── MT5 Bridge ───────────────────────────────────────────────────────────────
@@ -507,27 +623,53 @@ async function fetchForexCandles(
   }
 
   const providers = [provider, ...providerFallbacks].filter((v, i, a) => v !== "demo" && v !== "off" && a.indexOf(v) === i);
+  const debugLog: Record<string, unknown>[] = [];
+
   for (const p of providers) {
     if (p === "finnhub") {
       const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
-      if (!key) continue;
-      const r = await fetch(`https://finnhub.io/api/v1/forex/candle?symbol=OANDA:${symbol}&resolution=${({"5m":"5","15m":"15","1h":"60","4h":"240"} as Record<string,string>)[tf] ?? "15"}&count=${limit}&token=${key}`, { signal: AbortSignal.timeout(12000) });
-      if (r.ok) {
-        const j = await r.json() as any;
-        if (j?.s === "ok" && Array.isArray(j?.c) && j.c.length >= 52) {
-          const candles = j.c.map((close:number,idx:number) => ({ symbol, market_type: "forex", timeframe: tf, open_time: new Date((j.t[idx] as number)*1000).toISOString(), open: Number(j.o[idx]), high: Number(j.h[idx]), low: Number(j.l[idx]), close: Number(close), volume: Number(j.v?.[idx] ?? 0), source: "finnhub" }));
-          return { candles, source: "finnhub", data_source: "REAL DATA", providerError: null };
-        }
+      if (!key) {
+        debugLog.push({ provider: "finnhub", skipped: true, reason: "FINNHUB_API_KEY not set" });
+        continue;
+      }
+      const result = await fetchFinnhubForexCandles(symbol, tf, key);
+      debugLog.push({
+        provider: "finnhub",
+        input_symbol: symbol,
+        mapped_symbol: result.mapped_symbol,
+        timeframe: tf,
+        url_without_token: result.url_without_token,
+        finnhub_s: result.finnhub_s,
+        candle_count: result.candle_count,
+        error: result.error,
+      });
+      if (!result.error && result.candles && result.candles.length >= 52) {
+        return { candles: result.candles, source: "finnhub", data_source: "REAL DATA", providerError: null };
+      }
+      // Log detailed Finnhub failure but do NOT fall through to demo
+      if (result.error) {
+        await supabase.from("provider_status").upsert({
+          provider_name: "finnhub", market_type: "forex", status: "error",
+          last_error_at: new Date().toISOString(),
+          error_message: `${symbol} ${tf}: ${result.error} (mapped: ${result.mapped_symbol})`,
+          data_source_label: "PROVIDER_ERROR", updated_at: new Date().toISOString(),
+        }, { onConflict: "provider_name" });
       }
     }
     if (p === "twelvedata") {
       const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-      if (!key) continue;
+      if (!key) {
+        debugLog.push({ provider: "twelvedata", skipped: true, reason: "TWELVEDATA_API_KEY not set" });
+        continue;
+      }
       const { candles, error } = await fetchTwelveDataCandles(symbol, tf, key, limit);
+      debugLog.push({ provider: "twelvedata", symbol, tf, candle_count: candles?.length ?? 0, error });
       if (!error && candles && candles.length >= 52) return { candles, source: "twelvedata", data_source: "REAL DATA", providerError: null };
     }
   }
-  return { candles: [], source: provider, data_source: "PROVIDER_ERROR", providerError: `No live forex provider succeeded for ${symbol} ${tf}` };
+
+  const finalError = `No live forex provider succeeded for ${symbol} ${tf}` + (debugLog.length > 0 ? ` — ${JSON.stringify(debugLog)}` : "");
+  return { candles: [], source: provider, data_source: "PROVIDER_ERROR", providerError: finalError };
 }
 
 // ─── Telegram formatter ───────────────────────────────────────────────────────
@@ -954,12 +1096,13 @@ async function runScanPipeline(
   }, { onConflict: "provider_name" });
 
   const forexProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
+  // Always write the configured provider name (not the last-used one) so DB stays accurate
   await supabase.from("provider_status").upsert({
-    provider_name: forexProviderName, market_type: "forex",
+    provider_name: forexProvider, market_type: "forex",
     status: forexProviderSuccess ? "active" : forexProviderFailed ? "error" : forexProvider === "off" ? "off" : "unknown",
     last_success_at: forexProviderSuccess ? now : undefined,
     last_error_at: forexProviderFailed ? now : undefined,
-    error_message: forexProviderFailed ? "Forex provider errors — see scanner errors for details" : (forexProvider === "off" ? "Forex provider disabled" : "Waiting for forex run"),
+    error_message: forexProviderFailed ? errors.filter(e => e.includes("[WARN] Forex") || e.includes("[SKIP] Forex")).slice(0, 3).join(" | ") || "Forex provider errors" : (forexProvider === "off" ? "Forex provider disabled" : ""),
     data_source_label: forexProviderSuccess ? "REAL DATA" : (forexProvider === "off" ? "OFF" : "PROVIDER_ERROR"),
     updated_at: now,
   }, { onConflict: "provider_name" });
@@ -1016,14 +1159,44 @@ Deno.serve(async (req: Request) => {
       const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
       const fallbacks = parseProviderFallbacks(Deno.env.get("FOREX_PROVIDER_FALLBACKS"));
       const demoFallback = parseBooleanEnv(Deno.env.get("FOREX_DEMO_FALLBACK"), provider === "demo");
+      const effectiveOrder = [provider, ...fallbacks].filter(v => v !== "demo" && v !== "off");
       return new Response(JSON.stringify({
         success: true,
         provider,
         fallbacks,
         demo_fallback: demoFallback,
+        effective_provider_order: effectiveOrder,
         finnhub_api_key_set: Boolean(Deno.env.get("FINNHUB_API_KEY")),
         twelvedata_api_key_set: Boolean(Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY")),
+        finnhub_symbol_map_sample: { EURUSD: "OANDA:EUR_USD", GBPUSD: "OANDA:GBP_USD", USDJPY: "OANDA:USD_JPY" },
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (body.debug_forex_fetch === true) {
+      const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
+      const testSymbol = typeof body.symbol === "string" ? body.symbol : "EURUSD";
+      const testTf = typeof body.timeframe === "string" ? body.timeframe : "5m";
+      if (provider === "finnhub") {
+        const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
+        if (!key) {
+          return new Response(JSON.stringify({ success: false, error: "FINNHUB_API_KEY not set" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const result = await fetchFinnhubForexCandles(testSymbol, testTf, key);
+        const latestCandle = result.candles ? result.candles[result.candles.length - 1] : null;
+        return new Response(JSON.stringify({
+          success: !result.error,
+          provider: "finnhub",
+          input_symbol: testSymbol,
+          mapped_symbol: result.mapped_symbol,
+          timeframe: testTf,
+          url_without_token: result.url_without_token,
+          finnhub_s: result.finnhub_s,
+          candle_count: result.candle_count,
+          error: result.error,
+          latest_candle: latestCandle ? { open_time: latestCandle.open_time, open: latestCandle.open, high: latestCandle.high, low: latestCandle.low, close: latestCandle.close } : null,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ success: false, error: `debug_forex_fetch only supported for finnhub provider, current: ${provider}` }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
