@@ -68,7 +68,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex overflow-x-hidden">
       <aside className={`fixed inset-y-0 left-0 z-40 w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col transition-transform duration-200 ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="h-14 flex items-center px-5 border-b border-zinc-800 gap-2 shrink-0">
           <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
@@ -130,7 +130,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setSideOpen(false)} />
       )}
 
-      <div className="flex-1 md:ml-60 flex flex-col min-h-screen">
+      <div className="flex-1 md:ml-60 flex flex-col min-h-screen min-w-0">
         <header className="h-14 border-b border-zinc-800 flex items-center px-4 gap-3 sticky top-0 z-20 bg-zinc-950 shrink-0">
           <button onClick={() => setSideOpen(true)} className="md:hidden text-zinc-400 hover:text-white">
             <Menu size={20} />
@@ -139,7 +139,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           <span className="text-xs text-zinc-400 hidden sm:block">Signal Mode MVP</span>
           <span className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-1 rounded font-medium">ADMIN</span>
         </header>
-        <main className="flex-1 p-4 md:p-6" key={loc.pathname}>{children}</main>
+        <main className="flex-1 p-4 md:p-6 min-w-0 overflow-x-hidden" key={loc.pathname}>{children}</main>
       </div>
     </div>
   );

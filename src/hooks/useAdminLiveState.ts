@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { ScannerRun, ProviderStatus } from '../lib/types';
+import { callEdgeFunction, EdgeFunctionReachability } from '../lib/edgeFunctionStatus';
 
 export interface RuntimeProviderConfig {
   provider: string;
@@ -34,6 +35,9 @@ export interface AdminLiveState {
   cronStatusLabel: string;
   cronReason: string;
   cronJobName: string | null;
+  adminSchedulerActionStatus: EdgeFunctionReachability;
+  adminSchedulerActionMessage: string | null;
+  outcomeTrackingStatus: string;
   lastScheduledRunAgeMinutes: number | null;
   scheduleEnabled: boolean;
   scanIntervalMinutes: number;
@@ -48,6 +52,7 @@ export interface AdminLiveState {
   latestScheduledRun: ScannerRun | null;
   latestManualRun: ScannerRun | null;
   recentRuns: ScannerRun[];
+  recentScheduledRuns: ScannerRun[];
 
   // Providers
   providers: ProviderStatus[];
@@ -86,6 +91,9 @@ const DEFAULT_STATE: AdminLiveState = {
   cronStatusLabel: 'Not loaded',
   cronReason: 'Not yet loaded',
   cronJobName: null,
+  adminSchedulerActionStatus: 'unknown',
+  adminSchedulerActionMessage: null,
+  outcomeTrackingStatus: 'Not verified',
   lastScheduledRunAgeMinutes: null,
   scheduleEnabled: false,
   scanIntervalMinutes: 5,
@@ -98,6 +106,7 @@ const DEFAULT_STATE: AdminLiveState = {
   latestScheduledRun: null,
   latestManualRun: null,
   recentRuns: [],
+  recentScheduledRuns: [],
   providers: [],
   runtimeConfig: null,
   runtimeConfigError: null,
@@ -127,6 +136,9 @@ export function useAdminLiveState(session: { access_token: string } | null) {
 
     const [
       runsRes,
+      latestScheduledRunRes,
+      recentScheduledRunsRes,
+      latestManualRunRes,
       provRes,
       cfgRes,
       realSignalCountRes,
@@ -137,7 +149,10 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       outcomeTgRes,
       updateRes,
     ] = await Promise.all([
-      supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(20),
+      supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(50),
+      supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(10),
+      supabase.from('scanner_runs').select('*').ilike('run_type', 'manual').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('provider_status').select('*'),
       supabase.from('scanner_config').select('*').eq('id', 1).maybeSingle(),
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
@@ -150,33 +165,36 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     ]);
 
     const runs: ScannerRun[] = (runsRes.data ?? []) as ScannerRun[];
+    const recentScheduledRuns: ScannerRun[] = (recentScheduledRunsRes.data ?? []) as ScannerRun[];
     const cfg = cfgRes.data;
     const latestRun = runs[0] ?? null;
-    const latestScheduledRun = runs.find(r => r.run_type === 'scheduled') ?? null;
-    const latestManualRun = runs.find(r => r.run_type !== 'scheduled') ?? null;
+    const latestScheduledRun = (latestScheduledRunRes.data as ScannerRun | null) ?? runs.find(r => (r.run_type ?? '').toLowerCase() === 'scheduled') ?? null;
+    const latestManualRun = (latestManualRunRes.data as ScannerRun | null) ?? runs.find(r => (r.run_type ?? 'manual').toLowerCase() === 'manual') ?? null;
 
     const cronConfigured = cfg?.cron_job_active === true;
     const scheduleEnabled = cfg?.schedule_enabled ?? false;
     const scanIntervalMinutes = cfg?.scan_interval_minutes ?? 5;
-    const recentThresholdMinutes = Math.max(10, scanIntervalMinutes * 2);
+    const recentThresholdMinutes = 15;
     const lastScheduledRunAgeMinutes = latestScheduledRun
       ? Math.round((Date.now() - new Date(latestScheduledRun.started_at).getTime()) / 60000)
       : null;
-    const cronProven = scheduleEnabled && lastScheduledRunAgeMinutes !== null && lastScheduledRunAgeMinutes <= recentThresholdMinutes;
-    const cronStale = scheduleEnabled && lastScheduledRunAgeMinutes !== null && lastScheduledRunAgeMinutes > recentThresholdMinutes;
+    const cronProven = lastScheduledRunAgeMinutes !== null && lastScheduledRunAgeMinutes <= recentThresholdMinutes;
+    const cronStale = lastScheduledRunAgeMinutes !== null && lastScheduledRunAgeMinutes > recentThresholdMinutes;
 
     let cronStatusLabel = 'Not set up';
     let cronReason = '';
 
     if (cronProven) {
-      cronStatusLabel = 'Active';
+      cronStatusLabel = 'Proven / Active';
       cronReason = `Recent scheduled scanner_run found ${lastScheduledRunAgeMinutes}m ago`;
     } else if (cronStale) {
       cronStatusLabel = 'Stale';
       cronReason = `Last scheduled scanner_run was ${lastScheduledRunAgeMinutes}m ago; expected within ${recentThresholdMinutes}m`;
     } else if (cronConfigured) {
       cronStatusLabel = 'Configured, not proven';
-      cronReason = 'scanner_config.cron_job_active=true, but no recent scheduled scanner_run was found';
+      cronReason = latestScheduledRun
+        ? `Cron configured, but latest scheduled scanner_run is ${lastScheduledRunAgeMinutes}m old; expected within ${recentThresholdMinutes}m`
+        : 'scanner_config.cron_job_active=true, but no scheduled scanner_run proof was returned';
     } else if (!scheduleEnabled) {
       cronStatusLabel = 'Not set up';
       cronReason = 'Schedule disabled in Scanner Config';
@@ -232,6 +250,21 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       runtimeConfigError = e instanceof Error ? e.message : 'Network error fetching runtime config';
     }
 
+    let adminSchedulerActionStatus: EdgeFunctionReachability = 'unknown';
+    let adminSchedulerActionMessage: string | null = null;
+    if (session?.access_token) {
+      try {
+        const adminStatus = await callEdgeFunction('admin-scheduler-action', { action: 'status' }, session.access_token);
+        adminSchedulerActionStatus = adminStatus.reachability;
+        adminSchedulerActionMessage = adminStatus.message;
+      } catch (e) {
+        adminSchedulerActionStatus = 'unreachable';
+        adminSchedulerActionMessage = e instanceof Error ? e.message : 'admin-scheduler-action status check failed';
+      }
+    }
+
+    const outcomeTrackingStatus = outcomeTgRes.data || updateRes.data ? 'Active' : 'Not verified';
+
     const effectiveSignalEnableCrypto = (runtimeConfig?.signal_enable_crypto ?? true) && cfg?.scan_crypto_enabled !== false;
     const effectiveSignalEnableForex = (runtimeConfig?.signal_enable_forex ?? false) && cfg?.scan_forex_enabled === true;
     const effectiveMarketMode = effectiveSignalEnableCrypto && !effectiveSignalEnableForex
@@ -250,10 +283,13 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       cronStatusLabel,
       cronReason,
       cronJobName: cfg?.cron_job_name ?? null,
+      adminSchedulerActionStatus,
+      adminSchedulerActionMessage,
+      outcomeTrackingStatus,
       lastScheduledRunAgeMinutes,
       scheduleEnabled,
       scanIntervalMinutes,
-      lastScheduledRunAt: cfg?.last_scheduled_scan_at ?? null,
+      lastScheduledRunAt: latestScheduledRun?.started_at ?? cfg?.last_scheduled_scan_at ?? null,
       lastManualRunAt: cfg?.last_manual_scan_at ?? null,
       heartbeatStatus: cfg?.heartbeat_status ?? 'inactive',
       heartbeatUpdatedAt: cfg?.heartbeat_updated_at ?? null,
@@ -262,6 +298,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       latestScheduledRun,
       latestManualRun,
       recentRuns: runs,
+      recentScheduledRuns,
       providers: (provRes.data ?? []) as ProviderStatus[],
       runtimeConfig,
       runtimeConfigError,

@@ -45,6 +45,7 @@ export default function SignalsManager() {
   const [allowDemoTg, setAllowDemoTg] = useState(false);
   const [autoSendTg, setAutoSendTg] = useState(false);
   const [minAutoSendGrade, setMinAutoSendGrade] = useState('A');
+  const [telegramConfigPresent, setTelegramConfigPresent] = useState<boolean | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
@@ -56,12 +57,23 @@ export default function SignalsManager() {
     setAutoSendTg(cfgRes.data?.auto_send_telegram ?? false);
     setMinAutoSendGrade(cfgRes.data?.min_auto_send_grade ?? cfgRes.data?.min_signal_grade ?? 'A');
     setDeliveries(delivRes.data ?? []);
+    try {
+      const runtimeRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
+        method: 'POST',
+        headers: { ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ debug_provider_config: true }),
+      });
+      const runtimeJson = await runtimeRes.json();
+      setTelegramConfigPresent(Boolean(runtimeJson.telegram_enabled && runtimeJson.enable_signal_mode_output && runtimeJson.telegram_bot_token_set && (runtimeJson.telegram_default_channel_id_set || runtimeJson.telegram_chat_id_set)));
+    } catch {
+      setTelegramConfigPresent(null);
+    }
 
     let q = supabase.from('signals').select('*').order('created_at', { ascending: false }).limit(150);
     if (filter === 'active') q = q.in('status', ['waiting', 'active']).eq('market_type', 'crypto').eq('data_source', 'REAL DATA');
     else if (filter === 'real_data') q = q.eq('data_source', 'REAL DATA');
     else if (filter === 'real_forex') q = q.eq('data_source', 'REAL DATA').eq('market_type', 'forex');
-    else if (filter === 'real_crypto') q = q.eq('data_source', 'REAL DATA').eq('market_type', 'crypto').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit', 'tp2_hit', 'sl_hit', 'expired']);
+    else if (filter === 'real_crypto') q = q.eq('data_source', 'REAL DATA').eq('market_type', 'crypto').in('status', ['waiting', 'active', 'tp1_hit']);
     else if (filter === 'historical_demo') q = q.neq('data_source', 'REAL DATA');
     else if (filter === 'disabled_forex') q = q.eq('market_type', 'forex');
     else if (filter === 'sent_tg') { /* will filter by delivery below */ }
@@ -77,7 +89,7 @@ export default function SignalsManager() {
 
     setSignals(sigs as Signal[]);
     setLoading(false);
-  }, [filter]);
+  }, [filter, session]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -111,7 +123,8 @@ export default function SignalsManager() {
     const minGrade = String(minAutoSendGrade || 'A').toUpperCase();
 
     if (alreadySent) return { allowed: false, reason: 'already_sent' };
-    if (!autoSendTg) return { allowed: false, reason: 'telegram_not_configured' };
+    if (!autoSendTg) return { allowed: false, reason: 'auto_telegram_off' };
+    if (telegramConfigPresent === false) return { allowed: false, reason: 'missing_telegram_config' };
     if (sig.market_type === 'forex') return { allowed: false, reason: 'forex_disabled_for_mvp' };
     if (!isRealData && !allowDemoTg) return { allowed: false, reason: 'not_real_data' };
     if (!isApproved) return { allowed: false, reason: 'not_approved' };
@@ -119,6 +132,20 @@ export default function SignalsManager() {
     if (!hasValidRiskFields(sig)) return { allowed: false, reason: 'invalid_trade_fields' };
     if (['sl_hit', 'tp2_hit', 'expired', 'cancelled'].includes(sig.status)) return { allowed: false, reason: `terminal_status_${sig.status}` };
     return { allowed: true, reason: '' };
+  }
+
+  function sendBlockReasonLabel(reason: string) {
+    const labels: Record<string, string> = {
+      already_sent: 'duplicate / already sent',
+      auto_telegram_off: 'auto Telegram off',
+      missing_telegram_config: 'missing Telegram config',
+      not_approved: 'not approved',
+      low_grade: 'below grade',
+      invalid_trade_fields: 'invalid risk fields',
+      not_real_data: 'not real data',
+      forex_disabled_for_mvp: 'forex disabled',
+    };
+    return labels[reason] ?? reason.replace(/_/g, ' ');
   }
 
   async function sendToTelegram(sig: Signal) {
@@ -168,12 +195,12 @@ export default function SignalsManager() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold">Signals Manager</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Central pipeline — view, approve, update, and send signals to Telegram</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={load} disabled={loading}
             className="inline-flex items-center gap-1.5 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
@@ -210,10 +237,10 @@ export default function SignalsManager() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex gap-1.5 flex-wrap mb-5">
+      <div className="flex gap-1.5 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
         {FILTER_OPTIONS.map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               filter === f.key ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
             }`}>
             {f.label}
@@ -246,11 +273,11 @@ export default function SignalsManager() {
                 isHistoricalDemoForex ? 'border-orange-500/20' : isRealData ? 'border-zinc-800' : 'border-zinc-800'
               }`}>
                 <div className="p-4">
-                  <div className="flex items-start gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                     <div className="flex-1 min-w-0">
                       {/* Header badges */}
                       <div className="flex items-center gap-1.5 flex-wrap mb-2">
-                        <span className="font-mono font-bold text-sm text-zinc-100">{sig.symbol}</span>
+                        <span className="font-mono font-bold text-sm text-zinc-100 break-all">{sig.symbol}</span>
                         <span className="text-xs text-zinc-600">{sig.timeframe}</span>
                         {directionBadge(sig.direction)}
                         {gradeBadge(sig.grade)}
@@ -313,11 +340,11 @@ export default function SignalsManager() {
                       </div>
 
                       {/* Price levels */}
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs mb-1.5">
-                        <div><span className="text-zinc-600">Entry:</span> <span className="font-mono text-zinc-300">{Number(sig.entry_low).toFixed(5)}–{Number(sig.entry_high).toFixed(5)}</span></div>
-                        <div><span className="text-zinc-600">SL:</span> <span className="font-mono text-red-400">{Number(sig.stop_loss).toFixed(5)}</span></div>
-                        <div><span className="text-zinc-600">TP1:</span> <span className="font-mono text-cyan-400">{Number(sig.tp1).toFixed(5)}</span></div>
-                        <div><span className="text-zinc-600">TP2:</span> <span className="font-mono text-emerald-400">{Number(sig.tp2).toFixed(5)}</span></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs mb-1.5 min-w-0">
+                        <div><span className="text-zinc-600">Entry:</span> <span className="font-mono text-zinc-300 break-all">{Number(sig.entry_low).toFixed(5)}–{Number(sig.entry_high).toFixed(5)}</span></div>
+                        <div><span className="text-zinc-600">SL:</span> <span className="font-mono text-red-400 break-all">{Number(sig.stop_loss).toFixed(5)}</span></div>
+                        <div><span className="text-zinc-600">TP1:</span> <span className="font-mono text-cyan-400 break-all">{Number(sig.tp1).toFixed(5)}</span></div>
+                        <div><span className="text-zinc-600">TP2:</span> <span className="font-mono text-emerald-400 break-all">{Number(sig.tp2).toFixed(5)}</span></div>
                         <div><span className="text-zinc-600">R/R:</span> <span className="text-zinc-300">{sig.risk_reward}R · {sig.confidence_score}%</span></div>
                       </div>
                       <div className="text-xs text-zinc-600">
@@ -328,17 +355,17 @@ export default function SignalsManager() {
                       {!sendCheck.allowed && !tgStatus.sent && (
                         <div className="mt-1.5 text-xs text-zinc-600 flex items-center gap-1">
                           <XCircle size={10} className="text-zinc-700" />
-                          Initial TG not eligible: {sendCheck.reason}
+                          Initial TG blocked: {sendBlockReasonLabel(sendCheck.reason)}
                         </div>
                       )}
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col gap-1.5 shrink-0">
+                    <div className="flex sm:flex-col gap-1.5 shrink-0 flex-wrap">
                       <button
                         onClick={() => sendToTelegram(sig)}
                         disabled={sending === sig.id || !sendCheck.allowed || tgStatus.sent}
-                        title={!sendCheck.allowed ? sendCheck.reason : 'Send to Telegram'}
+                        title={!sendCheck.allowed ? sendBlockReasonLabel(sendCheck.reason) : 'Send to Telegram'}
                         className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                           tgStatus.sent
                             ? 'bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-default'
@@ -351,7 +378,7 @@ export default function SignalsManager() {
                           : tgStatus.sent
                             ? <CheckCircle size={11} />
                             : <Send size={11} />}
-                        {tgStatus.sent ? 'Already sent' : 'Send TG'}
+                        {tgStatus.sent ? 'TG sent' : 'Send TG'}
                       </button>
                       <select
                         value={sig.status}
