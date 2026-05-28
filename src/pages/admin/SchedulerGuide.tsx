@@ -48,6 +48,7 @@ export default function SchedulerGuide() {
 
   // Cron detection state
   const [cronDetected, setCronDetected] = useState<boolean | null>(null);
+  const [cronStatusLabel, setCronStatusLabel] = useState('Checking scheduler status...');
   const [cronReason, setCronReason] = useState('');
   const [lastScheduledRun, setLastScheduledRun] = useState<string | null>(null);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
@@ -62,25 +63,41 @@ export default function SchedulerGuide() {
     const cfg = cfgRes.data;
     const latestScheduled = scheduledRunRes.data;
 
-    setScheduleEnabled(cfg?.schedule_enabled ?? false);
-    setCronJobActive(cfg?.cron_job_active ?? false);
+    const scheduleOn = cfg?.schedule_enabled ?? false;
+    const configured = cfg?.cron_job_active ?? false;
+    const interval = cfg?.scan_interval_minutes ?? 5;
+    const recentThresholdMinutes = Math.max(10, interval * 2);
+    const minsAgo = latestScheduled ? Math.round((Date.now() - new Date(latestScheduled.started_at).getTime()) / 60000) : null;
+    const proven = scheduleOn && minsAgo !== null && minsAgo <= recentThresholdMinutes;
+    const stale = scheduleOn && minsAgo !== null && minsAgo > recentThresholdMinutes;
+
+    setScheduleEnabled(scheduleOn);
+    setCronJobActive(configured);
     setLastScheduledRun(latestScheduled?.started_at ?? cfg?.last_scheduled_scan_at ?? null);
 
-    if (cfg?.cron_job_active) {
+    if (proven) {
       setCronDetected(true);
-      setCronReason(`pg_cron job registered: ${cfg.cron_job_name ?? 'hashibot_scheduled_market_scanner_5m'}`);
+      setCronStatusLabel('Automatic scheduling detected and working');
+      setCronReason(`Real scheduled scanner_run found ${minsAgo} minute${minsAgo !== 1 ? 's' : ''} ago.`);
       setShowSetup(false);
-    } else if (latestScheduled) {
-      const minsAgo = Math.round((Date.now() - new Date(latestScheduled.started_at).getTime()) / 60000);
-      setCronDetected(true);
-      setCronReason(`Detected via scheduled run ${minsAgo} minute${minsAgo !== 1 ? 's' : ''} ago`);
-      setShowSetup(false);
-    } else if (cfg?.schedule_enabled) {
+    } else if (stale) {
       setCronDetected(false);
+      setCronStatusLabel('Automatic scheduling stale');
+      setCronReason(`Last scheduled scanner_run was ${minsAgo} minutes ago; expected within ${recentThresholdMinutes} minutes.`);
+      setShowSetup(false);
+    } else if (configured) {
+      setCronDetected(false);
+      setCronStatusLabel('Cron configured, not proven');
+      setCronReason('Cron is configured in DB, but no recent scheduled scanner run was found.');
+      setShowSetup(false);
+    } else if (scheduleOn) {
+      setCronDetected(false);
+      setCronStatusLabel('Automatic scheduling not yet configured');
       setCronReason('Schedule is enabled but no scheduled runs found yet. Set up the pg_cron job below.');
       setShowSetup(true);
     } else {
       setCronDetected(false);
+      setCronStatusLabel('Automatic scheduling not yet configured');
       setCronReason('Schedule is disabled in Scanner Config. Enable it first, then set up the cron job.');
       setShowSetup(true);
     }
@@ -112,7 +129,9 @@ export default function SchedulerGuide() {
       } else if (json.error) {
         setTestResult({ ok: false, msg: json.error });
       } else {
-        setTestResult({ ok: true, msg: `Scan complete. Symbols: ${json.symbols_scanned ?? '?'}, Signals: ${json.signals_created ?? '?'}, TG sent: ${json.telegram_sent ?? 0}` });
+        const body = json.proxied_body ?? json;
+        const outcome = json.outcome_tracking ?? {};
+        setTestResult({ ok: true, msg: `Scheduled wrapper proxied successfully. Run type: ${json.run_type ?? body.run_type ?? 'scheduled'}, Run ID: ${body.run_id ?? '?'}, Signals: ${body.signals_created ?? '?'}, TG sent: ${body.telegram_sent ?? 0}. Outcome checked: ${json.outcome_checked ? 'yes' : 'no'}, updates: ${json.outcomes_updated ?? outcome.signals_updated ?? 0}, outcome TG sent/skipped/failed: ${json.outcome_telegram_sent ?? outcome.telegram_sent ?? 0}/${json.outcome_telegram_skipped ?? outcome.telegram_skipped ?? 0}/${json.outcome_telegram_failed ?? outcome.telegram_failed ?? 0}. This manual wrapper test does not prove pg_cron fired by itself.` });
         await checkCronStatus();
       }
     } catch (e) {
@@ -147,11 +166,7 @@ export default function SchedulerGuide() {
             <div className={`text-sm font-semibold mb-1 ${
               cronDetected === true ? 'text-emerald-400' : cronDetected === false ? 'text-yellow-400' : 'text-zinc-400'
             }`}>
-              {cronDetected === true
-                ? 'Automatic scheduling detected and working'
-                : cronDetected === false
-                  ? 'Automatic scheduling not yet configured'
-                  : 'Checking scheduler status...'}
+              {cronStatusLabel}
             </div>
             <div className={`text-xs ${cronDetected === true ? 'text-emerald-300/80' : 'text-yellow-300/80'}`}>
               {cronReason}
@@ -171,10 +186,9 @@ export default function SchedulerGuide() {
 
         {/* Test button */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <div className="text-sm font-semibold mb-1">Test Scheduled Scan Now</div>
+          <div className="text-sm font-semibold mb-1">Manual Test of Scheduled Wrapper</div>
           <p className="text-xs text-zinc-500 mb-3">
-            Triggers the <code className="bg-zinc-800 px-1 rounded">scheduled-market-scanner</code> function directly.
-            Requires <strong className="text-zinc-300">Schedule Enabled</strong> to be ON in Scanner Config.
+            Manually calls the <code className="bg-zinc-800 px-1 rounded">scheduled-market-scanner</code> wrapper. This can prove the wrapper path writes <code className="bg-zinc-800 px-1 rounded">run_type='scheduled'</code>, but it does <strong className="text-zinc-300">not</strong> prove pg_cron fired by itself. Requires Schedule Enabled and cron auth setup.
           </p>
           <button
             onClick={testScheduledScan}
@@ -183,6 +197,13 @@ export default function SchedulerGuide() {
             <Play size={13} />
             {testing ? 'Running...' : 'Run Scheduled Scan Now'}
           </button>
+          <div className="mt-4 bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-500 space-y-1">
+            <div className="font-medium text-zinc-300">Truthful verification order</div>
+            <div>1. Click “Run Scheduled Scan Now” to test the wrapper manually.</div>
+            <div>2. Confirm the response includes Telegram proof fields.</div>
+            <div>3. Confirm the response includes outcome proof fields.</div>
+            <div>4. Wait for real pg_cron and verify a new <code className="bg-zinc-800 px-1 rounded">scanner_runs.run_type='scheduled'</code> row appears.</div>
+          </div>
           {testResult && (
             <div className={`mt-3 px-4 py-3 rounded-lg text-xs border ${testResult.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
               {testResult.msg}

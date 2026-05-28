@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Check if any admin exists
-    const { data: admins, count } = await supabase
+    const { count } = await supabase
       .from("profiles")
       .select("id", { count: "exact" })
       .eq("role", "admin");

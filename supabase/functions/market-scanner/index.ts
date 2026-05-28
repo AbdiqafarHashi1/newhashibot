@@ -34,6 +34,7 @@ interface ScannerConfig {
   prevent_duplicate_symbol_signals: boolean; active_timeframes: string[];
   allow_demo_telegram_sending: boolean; auto_send_telegram: boolean;
   min_auto_send_grade: string; scan_crypto_enabled: boolean; scan_forex_enabled: boolean;
+  signal_enable_crypto: boolean; signal_enable_forex: boolean;
   scan_interval_minutes: number; schedule_enabled: boolean;
 }
 
@@ -558,6 +559,29 @@ function parseBooleanEnv(value: string | undefined, defaultValue: boolean): bool
   return defaultValue;
 }
 
+function envBool(name: string, defaultValue: boolean): boolean {
+  return parseBooleanEnv(Deno.env.get(name) ?? undefined, defaultValue);
+}
+
+function signalMarketMode(cryptoEnabled: boolean, forexEnabled: boolean): string {
+  if (cryptoEnabled && !forexEnabled) return "crypto_only";
+  if (!cryptoEnabled && forexEnabled) return "forex_only";
+  if (cryptoEnabled && forexEnabled) return "crypto_and_forex";
+  return "disabled";
+}
+
+function forexDisabledSummary() {
+  return {
+    provider: "forex",
+    fallbacks: [] as string[],
+    demo_fallback: false,
+    effective_provider_order: [] as string[],
+    forex_provider_ignored: Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub",
+    forex_fallbacks_ignored: Deno.env.get("FOREX_PROVIDER_FALLBACKS") ?? "",
+    forex_demo_fallback_ignored: Deno.env.get("FOREX_DEMO_FALLBACK") ?? "",
+  };
+}
+
 function parseProviderFallbacks(value: string | undefined): string[] {
   if (!value) return [];
   const normalized = value.trim().toLowerCase();
@@ -697,15 +721,47 @@ function formatSignalMessage(signal: Record<string, unknown>, dataSource: string
     `*Strategy:* ${signal.strategy_name}`,
     `*Regime:* ${signal.regime}`,
     `*Confidence:* ${signal.confidence_score}%`,
-    `*Data Source:* ${dataLabel}`,
+    `*Data:* ${dataLabel}`,
     `*Reason:* ${signal.reason}`,
+    `*Timestamp:* ${new Date().toISOString()}`,
     ``,
-    `_⚠️ Not financial advice. Past performance does not guarantee future results._`,
+    `_Signal only. Manage risk. Not financial advice._`,
     `_HashiBot Trading Intelligence_`,
   ].join("\n");
 }
 
 // ─── Auto Telegram send ───────────────────────────────────────────────────────
+
+interface AutoTelegramResult {
+  sent: boolean;
+  status: "sent" | "skipped" | "failed";
+  blocked_reason: string;
+  delivery_id?: string;
+}
+
+function hasFiniteNumber(value: unknown): boolean {
+  return Number.isFinite(Number(value));
+}
+
+async function insertTelegramDelivery(
+  supabase: ReturnType<typeof createClient>,
+  signalId: string,
+  deliveryType: string,
+  chatId: string,
+  status: "sent" | "skipped" | "failed",
+  errorMessage: string,
+  telegramMessageId = "",
+): Promise<string | undefined> {
+  const { data } = await supabase.from("telegram_deliveries").insert({
+    signal_id: signalId,
+    delivery_type: deliveryType,
+    chat_id: chatId,
+    status,
+    telegram_message_id: telegramMessageId,
+    error_message: errorMessage,
+  }).select("id").maybeSingle();
+  return data?.id as string | undefined;
+}
 
 async function tryAutoSendTelegram(
   supabase: ReturnType<typeof createClient>,
@@ -713,42 +769,48 @@ async function tryAutoSendTelegram(
   signalRecord: Record<string, unknown>,
   dataSource: string,
   config: ScannerConfig,
-): Promise<{ sent: boolean; blocked_reason: string }> {
-  // Check master auto-send switch
-  if (!config.auto_send_telegram) return { sent: false, blocked_reason: "auto_send_disabled" };
+): Promise<AutoTelegramResult> {
+  const deliveryType = "auto_signal";
+  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+  const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID") ?? "";
+  const fail = async (status: "skipped" | "failed", reason: string, chat = chatId || "auto") => {
+    const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chat, status, reason);
+    return { sent: false, status, blocked_reason: reason, delivery_id: deliveryId };
+  };
 
-  // Check grade threshold
-  if (gradeIndex(String(signalRecord.grade ?? "")) < gradeIndex(config.min_auto_send_grade)) {
-    return { sent: false, blocked_reason: "grade_below_min_auto_send" };
+  if (!envBool("TELEGRAM_ENABLED", false)) return fail("skipped", "telegram_disabled_env");
+  if (!envBool("ENABLE_SIGNAL_MODE_OUTPUT", false)) return fail("skipped", "signal_mode_output_disabled");
+  if (!config.auto_send_telegram) return fail("skipped", "auto_send_disabled");
+  if (!config.signal_enable_crypto) return fail("skipped", "crypto_disabled");
+  if (!config.signal_enable_forex && signalRecord.market_type !== "crypto") return fail("skipped", "forex_disabled_for_mvp");
+  if (signalRecord.market_type !== "crypto") return fail("skipped", "non_crypto_signal");
+  if (dataSource !== "REAL DATA" || signalRecord.data_source !== "REAL DATA") return fail("skipped", "not_real_data");
+
+  const arb = signalRecord.arbitrator_decision as Record<string, unknown> | null;
+  if (arb && arb.final_decision !== "approved") return fail("skipped", `not_final_approved:${String(arb.final_decision ?? "unknown")}`);
+
+  const status = String(signalRecord.status ?? "");
+  if (!["waiting", "active", "new", "approved"].includes(status)) return fail("skipped", `status_not_sendable:${status}`);
+
+  const minGrade = config.min_auto_send_grade || config.min_signal_grade || "A";
+  if (gradeIndex(String(signalRecord.grade ?? "")) < gradeIndex(minGrade)) return fail("skipped", "grade_below_min_auto_send");
+
+  const hasEntry = hasFiniteNumber(signalRecord.entry_low) || hasFiniteNumber(signalRecord.entry_high);
+  if (!signalRecord.symbol || !signalRecord.direction || !hasEntry || !hasFiniteNumber(signalRecord.stop_loss) || !hasFiniteNumber(signalRecord.tp1)) {
+    return fail("skipped", "invalid_trade_fields");
   }
 
-  // Demo data safety gate
-  if (dataSource === "DEMO DATA" && !config.allow_demo_telegram_sending) {
-    return { sent: false, blocked_reason: "blocked_demo_telegram" };
-  }
+  if (!botToken || !chatId) return fail("failed", !botToken ? "TELEGRAM_BOT_TOKEN missing" : "TELEGRAM_DEFAULT_CHANNEL_ID missing", chatId || "not_configured");
 
-  // Never auto-send if PROVIDER_ERROR (skipped symbols)
-  if (dataSource === "PROVIDER_ERROR") return { sent: false, blocked_reason: "provider_error" };
-
-  // Duplicate check — never re-send if already successfully delivered
   const { data: existing } = await supabase
     .from("telegram_deliveries")
     .select("id")
     .eq("signal_id", signalId)
+    .in("delivery_type", ["auto_signal", "signal", "initial_signal"])
+    .eq("chat_id", chatId)
     .eq("status", "sent")
     .maybeSingle();
-  if (existing) return { sent: false, blocked_reason: "duplicate_already_sent" };
-
-  // Telegram credentials
-  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID");
-  if (!botToken || !chatId) {
-    await supabase.from("telegram_deliveries").insert({
-      signal_id: signalId, delivery_type: "auto_signal", chat_id: chatId ?? "not_configured",
-      status: "failed", error_message: !botToken ? "TELEGRAM_BOT_TOKEN missing" : "TELEGRAM_DEFAULT_CHANNEL_ID missing",
-    });
-    return { sent: false, blocked_reason: "telegram_not_configured" };
-  }
+  if (existing) return { sent: false, status: "skipped", blocked_reason: "already_sent", delivery_id: existing.id as string };
 
   const text = formatSignalMessage(signalRecord, dataSource);
   try {
@@ -760,24 +822,18 @@ async function tryAutoSendTelegram(
     });
     const tgData = await res.json() as { ok: boolean; result?: { message_id: number }; description?: string };
     if (tgData.ok) {
-      await supabase.from("telegram_deliveries").insert({
-        signal_id: signalId, delivery_type: "auto_signal", chat_id: chatId,
-        status: "sent", telegram_message_id: String(tgData.result?.message_id ?? ""), error_message: "",
-      });
-      return { sent: true, blocked_reason: "" };
-    } else {
-      const errMsg = tgData.description ?? "Telegram API error";
-      await supabase.from("telegram_deliveries").insert({
-        signal_id: signalId, delivery_type: "auto_signal", chat_id: chatId,
-        status: "failed", error_message: errMsg,
-      });
-      return { sent: false, blocked_reason: `telegram_api_error: ${errMsg}` };
+      const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chatId, "sent", "", String(tgData.result?.message_id ?? ""));
+      return { sent: true, status: "sent", blocked_reason: "", delivery_id: deliveryId };
     }
+    const errMsg = tgData.description ?? "Telegram API error";
+    const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chatId, "failed", errMsg);
+    return { sent: false, status: "failed", blocked_reason: `telegram_api_error: ${errMsg}`, delivery_id: deliveryId };
   } catch (e) {
-    return { sent: false, blocked_reason: `telegram_send_exception: ${e instanceof Error ? e.message : "unknown"}` };
+    const reason = `telegram_send_exception: ${e instanceof Error ? e.message : "unknown"}`;
+    const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chatId, "failed", reason);
+    return { sent: false, status: "failed", blocked_reason: reason, delivery_id: deliveryId };
   }
 }
-
 // ─── Heartbeat updater ────────────────────────────────────────────────────────
 
 async function updateHeartbeat(
@@ -861,11 +917,16 @@ async function runScanPipeline(
   let symbolsScanned = 0, candlesFetched = 0, candidatesFound = 0;
   let signalsCreated = 0, rejectedCount = 0, evaluationsCount = 0;
   let indicatorsCalc = 0, paperIntentsCreated = 0, riskBlockedCount = 0;
-  let telegramSent = 0, telegramBlocked = 0;
+  let telegramSent = 0, telegramSkipped = 0, telegramFailed = 0;
+  const telegramSkipReasons: Record<string, number> = {};
+  const telegramDeliveryIds: string[] = [];
   const errors: string[] = [];
   let binanceOk = false, binanceFailed = false;
   let forexProviderSuccess = false, forexProviderFailed = false;
-  let forexProviderName = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
+  let forexProviderName = config.signal_enable_forex ? (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase() : "forex";
+  let cryptoSymbolsScanned = 0, forexSkippedCount = 0;
+  const forexSkipReason = config.signal_enable_forex ? "" : "forex_disabled_for_mvp";
+  const marketMode = signalMarketMode(config.signal_enable_crypto, config.signal_enable_forex);
 
   const { data: symbols } = await supabase.from("symbols").select("*").eq("is_active", true);
   if (!symbols || symbols.length === 0) {
@@ -880,11 +941,12 @@ async function runScanPipeline(
   }
 
   for (const sym of symbols) {
-    // Respect crypto/forex toggle
-    if (sym.market_type === "crypto" && !config.scan_crypto_enabled) continue;
-    if (sym.market_type === "forex" && !config.scan_forex_enabled) continue;
+    // Respect effective market toggles before any provider function is called.
+    if (sym.market_type === "crypto" && !config.signal_enable_crypto) continue;
+    if (sym.market_type === "forex" && !config.signal_enable_forex) { forexSkippedCount++; continue; }
 
     symbolsScanned++;
+    if (sym.market_type === "crypto") cryptoSymbolsScanned++;
     for (const tf of config.active_timeframes) {
       if (tf === "4h" && sym.market_type === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
 
@@ -1062,17 +1124,11 @@ async function runScanPipeline(
               dataSource,
               config,
             );
-            if (tgResult.sent) { telegramSent++; }
-            else {
-              telegramBlocked++;
-              // Log blocked reason to telegram_deliveries for visibility
-              if (!["auto_send_disabled", "grade_below_min_auto_send", "duplicate_already_sent"].includes(tgResult.blocked_reason)) {
-                await supabase.from("telegram_deliveries").insert({
-                  signal_id: sigData.id, delivery_type: "auto_signal_blocked", chat_id: "auto",
-                  status: "failed", error_message: tgResult.blocked_reason,
-                });
-              }
-            }
+            if (tgResult.delivery_id) telegramDeliveryIds.push(tgResult.delivery_id);
+            if (tgResult.sent) telegramSent++;
+            else if (tgResult.status === "failed") telegramFailed++;
+            else telegramSkipped++;
+            if (tgResult.blocked_reason) telegramSkipReasons[tgResult.blocked_reason] = (telegramSkipReasons[tgResult.blocked_reason] ?? 0) + 1;
 
             break;
           }
@@ -1095,17 +1151,28 @@ async function runScanPipeline(
     updated_at: now,
   }, { onConflict: "provider_name" });
 
-  const forexProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
-  // Always write the configured provider name (not the last-used one) so DB stays accurate
-  await supabase.from("provider_status").upsert({
-    provider_name: forexProvider, market_type: "forex",
-    status: forexProviderSuccess ? "active" : forexProviderFailed ? "error" : forexProvider === "off" ? "off" : "unknown",
-    last_success_at: forexProviderSuccess ? now : undefined,
-    last_error_at: forexProviderFailed ? now : undefined,
-    error_message: forexProviderFailed ? errors.filter(e => e.includes("[WARN] Forex") || e.includes("[SKIP] Forex")).slice(0, 3).join(" | ") || "Forex provider errors" : (forexProvider === "off" ? "Forex provider disabled" : ""),
-    data_source_label: forexProviderSuccess ? "REAL DATA" : (forexProvider === "off" ? "OFF" : "PROVIDER_ERROR"),
-    updated_at: now,
-  }, { onConflict: "provider_name" });
+  if (!config.signal_enable_forex) {
+    await supabase.from("provider_status").upsert({
+      provider_name: "forex", market_type: "forex",
+      status: "disabled",
+      last_error_at: undefined,
+      error_message: "Forex disabled for MVP — future MT5/OANDA phase",
+      data_source_label: "DISABLED_FOR_MVP",
+      updated_at: now,
+    }, { onConflict: "provider_name" });
+  } else {
+    const forexProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
+    // Always write the configured provider name (not the last-used one) so DB stays accurate
+    await supabase.from("provider_status").upsert({
+      provider_name: forexProvider, market_type: "forex",
+      status: forexProviderSuccess ? "active" : forexProviderFailed ? "error" : forexProvider === "off" ? "off" : "unknown",
+      last_success_at: forexProviderSuccess ? now : undefined,
+      last_error_at: forexProviderFailed ? now : undefined,
+      error_message: forexProviderFailed ? errors.filter(e => e.includes("[WARN] Forex") || e.includes("[SKIP] Forex")).slice(0, 3).join(" | ") || "Forex provider errors" : (forexProvider === "off" ? "Forex provider disabled" : ""),
+      data_source_label: forexProviderSuccess ? "REAL DATA" : (forexProvider === "off" ? "OFF" : "PROVIDER_ERROR"),
+      updated_at: now,
+    }, { onConflict: "provider_name" });
+  }
 
   const durationMs = Date.now() - scanStart;
   const hasError = errors.length > 0;
@@ -1118,7 +1185,7 @@ async function runScanPipeline(
     indicators_calculated: indicatorsCalc, strategy_evaluations_count: evaluationsCount,
     rejected_candidates_count: rejectedCount,
     errors: errors.slice(0, 20), error_message: errors.slice(0, 5).join(" | "),
-    telegram_sent_count: telegramSent, telegram_blocked_count: telegramBlocked,
+    telegram_sent_count: telegramSent, telegram_blocked_count: telegramSkipped + telegramFailed,
   }).eq("id", runId);
 
   // Update heartbeat
@@ -1130,11 +1197,14 @@ async function runScanPipeline(
 
   return {
     success: true, run_id: runId, run_type: runType, duration_ms: durationMs,
+    market_mode: marketMode, signal_enable_crypto: config.signal_enable_crypto, signal_enable_forex: config.signal_enable_forex,
+    crypto_symbols_scanned: cryptoSymbolsScanned, forex_skipped_count: forexSkippedCount, forex_skip_reason: forexSkipReason, forex_provider_called: config.signal_enable_forex,
     symbols_scanned: symbolsScanned, candles_fetched: candlesFetched,
     indicators_calculated: indicatorsCalc, strategy_evaluations_count: evaluationsCount,
     candidates_found: candidatesFound, rejected_candidates_count: rejectedCount,
     signals_created: signalsCreated, paper_intents_created: paperIntentsCreated,
-    risk_blocked: riskBlockedCount, telegram_sent: telegramSent, telegram_blocked: telegramBlocked,
+    risk_blocked: riskBlockedCount, telegram_sent: telegramSent, telegram_blocked: telegramSkipped + telegramFailed, telegram_skipped: telegramSkipped, telegram_failed: telegramFailed,
+    telegram_skip_reasons: telegramSkipReasons, telegram_delivery_ids: telegramDeliveryIds,
     active_modes: activeModes.map((m) => m.mode_slug),
     forex_provider: forexProviderName, forex_real_data: forexProviderSuccess,
     forex_demo_fallback_used: false,
@@ -1156,23 +1226,41 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const runType = body.run_type_override === "scheduled" ? "scheduled" : "manual";
     if (body.debug_provider_config === true) {
+      const signalEnableCryptoEnv = envBool("SIGNAL_ENABLE_CRYPTO", true);
+      const signalEnableForexEnv = envBool("SIGNAL_ENABLE_FOREX", false);
+      const cryptoProvider = (Deno.env.get("CRYPTO_DATA_PROVIDER") ?? "binance").trim().toLowerCase();
       const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
       const fallbacks = parseProviderFallbacks(Deno.env.get("FOREX_PROVIDER_FALLBACKS"));
       const demoFallback = parseBooleanEnv(Deno.env.get("FOREX_DEMO_FALLBACK"), provider === "demo");
-      const effectiveOrder = [provider, ...fallbacks].filter(v => v !== "demo" && v !== "off");
+      const effectiveOrder = signalEnableForexEnv ? [provider, ...fallbacks].filter(v => v !== "demo" && v !== "off") : [];
       return new Response(JSON.stringify({
         success: true,
-        provider,
-        fallbacks,
-        demo_fallback: demoFallback,
+        provider: signalEnableForexEnv ? provider : "forex",
+        crypto_provider: cryptoProvider,
+        market_mode: signalMarketMode(signalEnableCryptoEnv, signalEnableForexEnv),
+        signal_enable_crypto: signalEnableCryptoEnv,
+        signal_enable_forex: signalEnableForexEnv,
+        forex_disabled_for_mvp: !signalEnableForexEnv,
+        ...(signalEnableForexEnv ? { provider, fallbacks, demo_fallback: demoFallback } : forexDisabledSummary()),
         effective_provider_order: effectiveOrder,
         finnhub_api_key_set: Boolean(Deno.env.get("FINNHUB_API_KEY")),
         twelvedata_api_key_set: Boolean(Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY")),
-        finnhub_symbol_map_sample: { EURUSD: "OANDA:EUR_USD", GBPUSD: "OANDA:GBP_USD", USDJPY: "OANDA:USD_JPY" },
+        telegram_enabled: envBool("TELEGRAM_ENABLED", false),
+        enable_signal_mode_output: envBool("ENABLE_SIGNAL_MODE_OUTPUT", false),
+        telegram_bot_token_set: Boolean(Deno.env.get("TELEGRAM_BOT_TOKEN")),
+        telegram_default_channel_id_set: Boolean(Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID")),
+        telegram_chat_id_set: Boolean(Deno.env.get("TELEGRAM_CHAT_ID")),
+        supabase_url_set: Boolean(Deno.env.get("SUPABASE_URL")),
+        supabase_service_role_key_set: Boolean(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),
+        scanner_cron_secret_set: Boolean(Deno.env.get("SCANNER_CRON_SECRET")),
+        finnhub_symbol_map_sample: signalEnableForexEnv ? { EURUSD: "OANDA:EUR_USD", GBPUSD: "OANDA:GBP_USD", USDJPY: "OANDA:USD_JPY" } : null,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (body.debug_forex_fetch === true) {
+      if (!envBool("SIGNAL_ENABLE_FOREX", false)) {
+        return new Response(JSON.stringify({ success: false, skipped: true, reason: "forex_disabled_for_mvp", provider_called: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
       const testSymbol = typeof body.symbol === "string" ? body.symbol : "EURUSD";
       const testTf = typeof body.timeframe === "string" ? body.timeframe : "5m";
@@ -1217,6 +1305,11 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Scanner disabled", reason: "is_enabled=false" }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const dbCryptoEnabled = configRow.scan_crypto_enabled !== false;
+    const dbForexEnabled = configRow.scan_forex_enabled === true;
+    const signalEnableCrypto = envBool("SIGNAL_ENABLE_CRYPTO", true) && dbCryptoEnabled;
+    const signalEnableForex = envBool("SIGNAL_ENABLE_FOREX", false) && dbForexEnabled;
+
     const config: ScannerConfig = {
       is_enabled: configRow.is_enabled ?? true,
       demo_mode_enabled: configRow.demo_mode_enabled ?? true,
@@ -1226,8 +1319,10 @@ Deno.serve(async (req: Request) => {
       allow_demo_telegram_sending: configRow.allow_demo_telegram_sending ?? false,
       auto_send_telegram: configRow.auto_send_telegram ?? false,
       min_auto_send_grade: configRow.min_auto_send_grade ?? "A",
-      scan_crypto_enabled: configRow.scan_crypto_enabled ?? true,
-      scan_forex_enabled: configRow.scan_forex_enabled ?? true,
+      scan_crypto_enabled: dbCryptoEnabled,
+      scan_forex_enabled: dbForexEnabled,
+      signal_enable_crypto: signalEnableCrypto,
+      signal_enable_forex: signalEnableForex,
       scan_interval_minutes: configRow.scan_interval_minutes ?? 5,
       schedule_enabled: configRow.schedule_enabled ?? false,
     };
