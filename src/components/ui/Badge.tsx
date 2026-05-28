@@ -40,6 +40,8 @@ export function directionBadge(dir: string) {
 
 export function statusBadge(status: string) {
   const map: Record<string, Variant> = {
+    new: 'gray',
+    approved: 'green',
     waiting: 'yellow',
     active: 'blue',
     tp1_hit: 'cyan',
@@ -53,6 +55,8 @@ export function statusBadge(status: string) {
     sent: 'green',
     failed: 'red',
     pending: 'yellow',
+    skipped: 'yellow',
+    disabled: 'gray',
     active_provider: 'green',
     not_configured: 'orange',
     unknown: 'gray',

@@ -105,7 +105,7 @@ export interface Signal {
   confidence_score: number;
   reason: string;
   invalidation: string;
-  status: 'waiting' | 'active' | 'tp1_hit' | 'tp2_hit' | 'sl_hit' | 'expired' | 'cancelled';
+  status: 'new' | 'approved' | 'waiting' | 'active' | 'tp1_hit' | 'tp2_hit' | 'sl_hit' | 'expired' | 'cancelled';
   source: 'scanner' | 'manual';
   mode_slug: string | null;
   arbitrator_decision: Record<string, unknown> | null;
@@ -216,7 +216,7 @@ export interface ProviderStatus {
   id: string;
   provider_name: string;
   market_type: string;
-  status: 'active' | 'error' | 'not_configured' | 'unknown';
+  status: 'active' | 'error' | 'not_configured' | 'unknown' | 'disabled' | 'inactive' | 'off';
   last_success_at: string | null;
   last_error_at: string | null;
   error_message: string;
@@ -229,7 +229,7 @@ export interface TelegramDelivery {
   signal_id: string | null;
   delivery_type: string;
   chat_id: string;
-  status: 'pending' | 'sent' | 'failed';
+  status: 'pending' | 'sent' | 'failed' | 'skipped';
   telegram_message_id: string;
   error_message: string;
   created_at: string;
@@ -316,4 +316,7 @@ export interface ScannerRun {
   run_type: 'manual' | 'scheduled';
   telegram_sent_count: number;
   telegram_blocked_count: number;
+  telegram_failed_count?: number;
+  market_mode?: string;
+  forex_skipped_count?: number;
 }

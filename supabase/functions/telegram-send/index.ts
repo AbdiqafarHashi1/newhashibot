@@ -30,12 +30,50 @@ function formatSignalMessage(signal: Record<string, unknown>): string {
     `*Strategy:* ${signal.strategy_name}`,
     `*Regime:* ${signal.regime}`,
     `*Confidence:* ${signal.confidence_score}%`,
+    `*Data:* ${signal.data_source === "REAL DATA" ? "✅ REAL DATA" : String(signal.data_source ?? "unknown")}`,
     `*Reason:* ${signal.reason}`,
     `*Invalidation:* ${signal.invalidation}`,
     `*Status:* ${String(signal.status).toUpperCase()}`,
+    `*Timestamp:* ${new Date().toISOString()}`,
     ``,
+    `_Signal only. Manage risk. Not financial advice._`,
     `_HashiBot Trading Intelligence_`,
   ].filter(Boolean).join("\n");
+}
+
+function parseBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
+  if (value === undefined) return defaultValue;
+  const v = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(v)) return true;
+  if (["0", "false", "no", "off"].includes(v)) return false;
+  return defaultValue;
+}
+
+function gradeIndex(g: string): number {
+  const order = ["none", "C", "B", "A", "A+"];
+  const idx = order.indexOf(g);
+  return idx === -1 ? 0 : idx;
+}
+
+function hasFiniteNumber(value: unknown): boolean {
+  return Number.isFinite(Number(value));
+}
+
+function signalSendBlockReason(signal: Record<string, unknown>, minGrade: string): string | null {
+  if (!parseBooleanEnv(Deno.env.get("TELEGRAM_ENABLED") ?? undefined, false)) return "telegram_disabled_env";
+  if (!parseBooleanEnv(Deno.env.get("ENABLE_SIGNAL_MODE_OUTPUT") ?? undefined, false)) return "signal_mode_output_disabled";
+  if (!parseBooleanEnv(Deno.env.get("SIGNAL_ENABLE_CRYPTO") ?? undefined, true)) return "crypto_disabled";
+  if (!parseBooleanEnv(Deno.env.get("SIGNAL_ENABLE_FOREX") ?? undefined, false) && signal.market_type !== "crypto") return "forex_disabled_for_mvp";
+  if (signal.market_type !== "crypto") return "non_crypto_signal";
+  if (signal.data_source !== "REAL DATA") return "not_real_data";
+  const arb = signal.arbitrator_decision as Record<string, unknown> | null;
+  if (arb && arb.final_decision !== "approved") return `not_final_approved:${String(arb.final_decision ?? "unknown")}`;
+  const status = String(signal.status ?? "");
+  if (!["waiting", "active", "new", "approved"].includes(status)) return `status_not_sendable:${status}`;
+  if (gradeIndex(String(signal.grade ?? "")) < gradeIndex(minGrade || "A")) return "grade_below_min_auto_send";
+  const hasEntry = hasFiniteNumber(signal.entry_low) || hasFiniteNumber(signal.entry_high);
+  if (!signal.symbol || !signal.direction || !hasEntry || !hasFiniteNumber(signal.stop_loss) || !hasFiniteNumber(signal.tp1)) return "invalid_trade_fields";
+  return null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -111,15 +149,16 @@ Deno.serve(async (req: Request) => {
     const { data: existingSent } = await supabase.from("telegram_deliveries")
       .select("id, created_at")
       .eq("signal_id", signal_id)
-      .eq("delivery_type", delivery_type)
+      .in("delivery_type", ["auto_signal", "signal", "initial_signal"])
+      .eq("chat_id", targetChatId)
       .eq("status", "sent")
       .maybeSingle();
     if (existingSent) {
       await supabase.from("telegram_deliveries").insert({
-        signal_id, delivery_type, chat_id: targetChatId, status: "failed",
-        error_message: `duplicate_blocked_existing_sent:${existingSent.id}`,
+        signal_id, delivery_type, chat_id: targetChatId, status: "skipped",
+        error_message: `already_sent:${existingSent.id}`,
       });
-      return new Response(JSON.stringify({ skipped: true, reason: "duplicate_already_sent" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: true, reason: "already_sent" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Fetch signal
@@ -134,6 +173,19 @@ Deno.serve(async (req: Request) => {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const { data: cfg } = await supabase.from("scanner_config").select("min_auto_send_grade,min_signal_grade").eq("id", 1).maybeSingle();
+    const blockReason = signalSendBlockReason(signal as Record<string, unknown>, cfg?.min_auto_send_grade || cfg?.min_signal_grade || "A");
+    if (blockReason) {
+      await supabase.from("telegram_deliveries").insert({
+        signal_id,
+        delivery_type,
+        chat_id: targetChatId,
+        status: "skipped",
+        error_message: blockReason,
+      });
+      return new Response(JSON.stringify({ skipped: true, reason: blockReason }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const text = formatSignalMessage(signal as Record<string, unknown>);

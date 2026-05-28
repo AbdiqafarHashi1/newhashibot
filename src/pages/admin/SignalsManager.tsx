@@ -11,19 +11,20 @@ interface TelegramDelivery {
   id: string;
   signal_id: string;
   delivery_type: string;
-  status: 'pending' | 'sent' | 'failed';
+  status: 'pending' | 'sent' | 'failed' | 'skipped';
   telegram_message_id: string;
   error_message: string;
   created_at: string;
 }
 
 const FILTER_OPTIONS = [
+  { key: 'real_crypto', label: 'Real Crypto' },
   { key: 'active', label: 'Active / Waiting' },
   { key: 'all', label: 'All' },
   { key: 'real_data', label: 'Real Data Only' },
   { key: 'real_forex', label: 'Real Forex' },
-  { key: 'real_crypto', label: 'Real Crypto' },
   { key: 'historical_demo', label: 'Historical Demo' },
+  { key: 'disabled_forex', label: 'Historical / Disabled Forex' },
   { key: 'sent_tg', label: 'Sent to TG' },
   { key: 'tp1_hit', label: 'TP1 Hit' },
   { key: 'tp2_hit', label: 'TP2 Hit' },
@@ -37,29 +38,32 @@ export default function SignalsManager() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [deliveries, setDeliveries] = useState<TelegramDelivery[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('active');
+  const [filter, setFilter] = useState('real_crypto');
   const [sending, setSending] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState<'ok' | 'err'>('ok');
   const [allowDemoTg, setAllowDemoTg] = useState(false);
   const [autoSendTg, setAutoSendTg] = useState(false);
+  const [minAutoSendGrade, setMinAutoSendGrade] = useState('A');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     const [cfgRes, delivRes] = await Promise.all([
-      supabase.from('scanner_config').select('allow_demo_telegram_sending,auto_send_telegram').eq('id', 1).maybeSingle(),
+      supabase.from('scanner_config').select('allow_demo_telegram_sending,auto_send_telegram,min_auto_send_grade,min_signal_grade').eq('id', 1).maybeSingle(),
       supabase.from('telegram_deliveries').select('*').order('created_at', { ascending: false }).limit(200),
     ]);
     setAllowDemoTg(cfgRes.data?.allow_demo_telegram_sending ?? false);
     setAutoSendTg(cfgRes.data?.auto_send_telegram ?? false);
+    setMinAutoSendGrade(cfgRes.data?.min_auto_send_grade ?? cfgRes.data?.min_signal_grade ?? 'A');
     setDeliveries(delivRes.data ?? []);
 
     let q = supabase.from('signals').select('*').order('created_at', { ascending: false }).limit(150);
-    if (filter === 'active') q = q.in('status', ['waiting', 'active']);
+    if (filter === 'active') q = q.in('status', ['waiting', 'active']).eq('market_type', 'crypto').eq('data_source', 'REAL DATA');
     else if (filter === 'real_data') q = q.eq('data_source', 'REAL DATA');
     else if (filter === 'real_forex') q = q.eq('data_source', 'REAL DATA').eq('market_type', 'forex');
-    else if (filter === 'real_crypto') q = q.eq('data_source', 'REAL DATA').eq('market_type', 'crypto');
+    else if (filter === 'real_crypto') q = q.eq('data_source', 'REAL DATA').eq('market_type', 'crypto').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit', 'tp2_hit', 'sl_hit', 'expired']);
     else if (filter === 'historical_demo') q = q.neq('data_source', 'REAL DATA');
+    else if (filter === 'disabled_forex') q = q.eq('market_type', 'forex');
     else if (filter === 'sent_tg') { /* will filter by delivery below */ }
     else if (filter !== 'all') q = q.eq('status', filter);
 
@@ -82,28 +86,38 @@ export default function SignalsManager() {
     setTimeout(() => setMsg(''), 6000);
   }
 
-  function getDeliveryForSignal(sigId: string): TelegramDelivery | null {
-    return deliveries.find(d => d.signal_id === sigId && d.status === 'sent') ?? null;
+  function getDeliveryStatusForSignal(sigId: string, kind: 'initial' | 'outcome' = 'initial'): { sent: boolean; failed: boolean; skipped: boolean; error?: string; created_at?: string; reason?: string; delivery_type?: string } {
+    const matches = deliveries.filter(d => d.signal_id === sigId && (kind === 'outcome' ? d.delivery_type.startsWith('outcome_') : !d.delivery_type.startsWith('outcome_')));
+    const sent = matches.find(d => d.status === 'sent');
+    if (sent) return { sent: true, failed: false, skipped: false, created_at: sent.created_at, delivery_type: sent.delivery_type };
+    const failed = matches.find(d => d.status === 'failed');
+    if (failed) return { sent: false, failed: true, skipped: false, error: failed.error_message, created_at: failed.created_at, delivery_type: failed.delivery_type };
+    const skipped = matches.find(d => d.status === 'skipped');
+    if (skipped) return { sent: false, failed: false, skipped: true, reason: skipped.error_message, created_at: skipped.created_at, delivery_type: skipped.delivery_type };
+    return { sent: false, failed: false, skipped: false };
   }
 
-  function getDeliveryStatusForSignal(sigId: string): { sent: boolean; failed: boolean; error?: string } {
-    const sent = deliveries.find(d => d.signal_id === sigId && d.status === 'sent');
-    if (sent) return { sent: true, failed: false };
-    const failed = deliveries.find(d => d.signal_id === sigId && d.status === 'failed');
-    if (failed) return { sent: false, failed: true, error: failed.error_message };
-    return { sent: false, failed: false };
+  const gradeRank: Record<string, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 };
+
+  function hasValidRiskFields(sig: Signal) {
+    return Boolean(sig.symbol && sig.direction && Number.isFinite(Number(sig.entry_low)) && Number.isFinite(Number(sig.stop_loss)) && Number.isFinite(Number(sig.tp1)));
   }
 
-  function canSendToTelegram(sig: Signal): { allowed: boolean; reason: string } {
+  function canSendToTelegram(sig: Signal, alreadySent = false): { allowed: boolean; reason: string } {
     const isRealData = (sig.data_source ?? '').toUpperCase() === 'REAL DATA';
     const arb = sig.arbitrator_decision as Record<string, unknown> | null;
     const isApproved = !arb || arb.final_decision === 'approved';
+    const grade = String(sig.grade ?? '').toUpperCase();
+    const minGrade = String(minAutoSendGrade || 'A').toUpperCase();
 
-    if (!isRealData && !allowDemoTg) return { allowed: false, reason: 'Demo data — not real' };
-    if (!isApproved) return { allowed: false, reason: `Blocked: ${arb?.final_decision ?? 'not approved'}` };
-    if (['sl_hit', 'tp2_hit', 'expired', 'cancelled'].includes(sig.status)) {
-      return { allowed: false, reason: `Signal already ${sig.status.replace(/_/g, ' ')}` };
-    }
+    if (alreadySent) return { allowed: false, reason: 'already_sent' };
+    if (!autoSendTg) return { allowed: false, reason: 'telegram_not_configured' };
+    if (sig.market_type === 'forex') return { allowed: false, reason: 'forex_disabled_for_mvp' };
+    if (!isRealData && !allowDemoTg) return { allowed: false, reason: 'not_real_data' };
+    if (!isApproved) return { allowed: false, reason: 'not_approved' };
+    if ((gradeRank[grade] ?? -1) < (gradeRank[minGrade] ?? gradeRank.A)) return { allowed: false, reason: 'low_grade' };
+    if (!hasValidRiskFields(sig)) return { allowed: false, reason: 'invalid_trade_fields' };
+    if (['sl_hit', 'tp2_hit', 'expired', 'cancelled'].includes(sig.status)) return { allowed: false, reason: `terminal_status_${sig.status}` };
     return { allowed: true, reason: '' };
   }
 
@@ -122,8 +136,11 @@ export default function SignalsManager() {
       if (data.success) {
         flash('Signal sent to Telegram.');
         await load();
+      } else if (data.skipped) {
+        flash(`Telegram skipped: ${data.reason ?? 'not sendable'}`, 'err');
+        await load();
       } else {
-        flash(`Send failed: ${data.error}`, 'err');
+        flash(`Send failed: ${data.error ?? 'unknown'}`, 'err');
       }
     } catch (e) {
       flash(`Error: ${e instanceof Error ? e.message : 'unknown'}`, 'err');
@@ -219,8 +236,9 @@ export default function SignalsManager() {
             const isHistoricalDemoForex = sig.market_type === 'forex' && !isRealData;
             const arb = sig.arbitrator_decision as Record<string, unknown> | null;
             const arbApproved = !arb || arb.final_decision === 'approved';
-            const tgStatus = getDeliveryStatusForSignal(sig.id);
-            const sendCheck = canSendToTelegram(sig);
+            const tgStatus = getDeliveryStatusForSignal(sig.id, 'initial');
+            const outcomeStatus = getDeliveryStatusForSignal(sig.id, 'outcome');
+            const sendCheck = canSendToTelegram(sig, tgStatus.sent);
             const isOpen = expanded[sig.id] ?? false;
 
             return (
@@ -255,9 +273,29 @@ export default function SignalsManager() {
                             <CheckCircle size={10} /> TG sent
                           </span>
                         )}
+                        {tgStatus.skipped && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-1.5 py-0.5 rounded">
+                            <XCircle size={10} /> TG skipped
+                          </span>
+                        )}
                         {tgStatus.failed && (
                           <span className="inline-flex items-center gap-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">
                             <XCircle size={10} /> TG failed
+                          </span>
+                        )}
+                        {outcomeStatus.sent && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                            <CheckCircle size={10} /> Outcome TG sent
+                          </span>
+                        )}
+                        {outcomeStatus.skipped && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-1.5 py-0.5 rounded">
+                            <XCircle size={10} /> Outcome TG skipped
+                          </span>
+                        )}
+                        {outcomeStatus.failed && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">
+                            <XCircle size={10} /> Outcome TG failed
                           </span>
                         )}
                         {/* Arbitrator */}
@@ -290,7 +328,7 @@ export default function SignalsManager() {
                       {!sendCheck.allowed && !tgStatus.sent && (
                         <div className="mt-1.5 text-xs text-zinc-600 flex items-center gap-1">
                           <XCircle size={10} className="text-zinc-700" />
-                          TG blocked: {sendCheck.reason}
+                          Initial TG not eligible: {sendCheck.reason}
                         </div>
                       )}
                     </div>
@@ -300,7 +338,7 @@ export default function SignalsManager() {
                       <button
                         onClick={() => sendToTelegram(sig)}
                         disabled={sending === sig.id || !sendCheck.allowed || tgStatus.sent}
-                        title={!sendCheck.allowed ? sendCheck.reason : tgStatus.sent ? 'Already sent' : 'Send to Telegram'}
+                        title={!sendCheck.allowed ? sendCheck.reason : 'Send to Telegram'}
                         className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                           tgStatus.sent
                             ? 'bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-default'
@@ -313,7 +351,7 @@ export default function SignalsManager() {
                           : tgStatus.sent
                             ? <CheckCircle size={11} />
                             : <Send size={11} />}
-                        {tgStatus.sent ? 'Sent' : 'Send TG'}
+                        {tgStatus.sent ? 'Already sent' : 'Send TG'}
                       </button>
                       <select
                         value={sig.status}
@@ -351,21 +389,33 @@ export default function SignalsManager() {
                           <div><span className="text-zinc-600">Mode:</span> <span className="text-zinc-300">{String(arb.selected_mode ?? '—')}</span></div>
                           <div><span className="text-zinc-600">Decision:</span> <span className={arbApproved ? 'text-emerald-400' : 'text-red-400'}>{String(arb.final_decision ?? '—')}</span></div>
                           <div><span className="text-zinc-600">Risk passed:</span> <span className={arb.risk_check_passed ? 'text-emerald-400' : 'text-red-400'}>{String(arb.risk_check_passed)}</span></div>
-                          {arb.risk_rejection_reason && <div><span className="text-zinc-600">Rejection:</span> <span className="text-red-400">{String(arb.risk_rejection_reason)}</span></div>}
+                          {Boolean(arb.risk_rejection_reason) && <div><span className="text-zinc-600">Rejection:</span> <span className="text-red-400">{String(arb.risk_rejection_reason)}</span></div>}
                           <div><span className="text-zinc-600">Score threshold:</span> <span className="text-zinc-300">{String(arb.score_threshold_used ?? '—')}</span></div>
                           <div><span className="text-zinc-600">Min R/R:</span> <span className="text-zinc-300">{String(arb.min_rr_used ?? '—')}</span></div>
                           <div><span className="text-zinc-600">Reason:</span> <span className="text-zinc-400">{String(arb.decision_reason ?? '—')}</span></div>
                         </div>
                       )}
                       {/* Telegram delivery detail */}
-                      {(tgStatus.sent || tgStatus.failed) && (
+                      {(tgStatus.sent || tgStatus.failed || tgStatus.skipped || outcomeStatus.sent || outcomeStatus.failed || outcomeStatus.skipped) && (
                         <div className="sm:col-span-2 space-y-1">
                           <div className="text-zinc-500 font-medium mb-1">Telegram Delivery</div>
                           {tgStatus.sent && (
-                            <div className="text-emerald-400 flex items-center gap-1"><CheckCircle size={11} /> Delivered successfully</div>
+                            <div className="text-emerald-400 flex items-center gap-1"><CheckCircle size={11} /> Initial signal delivered{tgStatus.created_at ? ` at ${new Date(tgStatus.created_at).toLocaleString()}` : ''}</div>
+                          )}
+                          {tgStatus.skipped && (
+                            <div className="text-yellow-400 flex items-center gap-1"><XCircle size={11} /> Initial signal skipped: {tgStatus.reason || 'not sent'}{tgStatus.created_at ? ` at ${new Date(tgStatus.created_at).toLocaleString()}` : ''}</div>
                           )}
                           {tgStatus.failed && (
-                            <div className="text-red-400 flex items-center gap-1"><XCircle size={11} /> {tgStatus.error}</div>
+                            <div className="text-red-400 flex items-center gap-1"><XCircle size={11} /> Initial signal failed: {tgStatus.error}{tgStatus.created_at ? ` at ${new Date(tgStatus.created_at).toLocaleString()}` : ''}</div>
+                          )}
+                          {outcomeStatus.sent && (
+                            <div className="text-emerald-400 flex items-center gap-1"><CheckCircle size={11} /> Outcome update delivered ({outcomeStatus.delivery_type}){outcomeStatus.created_at ? ` at ${new Date(outcomeStatus.created_at).toLocaleString()}` : ''}</div>
+                          )}
+                          {outcomeStatus.skipped && (
+                            <div className="text-yellow-400 flex items-center gap-1"><XCircle size={11} /> Outcome update skipped: {outcomeStatus.reason || 'not sent'}{outcomeStatus.created_at ? ` at ${new Date(outcomeStatus.created_at).toLocaleString()}` : ''}</div>
+                          )}
+                          {outcomeStatus.failed && (
+                            <div className="text-red-400 flex items-center gap-1"><XCircle size={11} /> Outcome update failed: {outcomeStatus.error}{outcomeStatus.created_at ? ` at ${new Date(outcomeStatus.created_at).toLocaleString()}` : ''}</div>
                           )}
                         </div>
                       )}

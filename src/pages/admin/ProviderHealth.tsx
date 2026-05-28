@@ -1,140 +1,214 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ProviderStatus, Symbol } from '../../lib/types';
-import { statusBadge, Badge } from '../../components/ui/Badge';
-import { Database, AlertTriangle, Info, CheckCircle, RefreshCw, Wifi } from 'lucide-react';
+import { ProviderStatus, Symbol as SymbolRow } from '../../lib/types';
+import { Badge, statusBadge } from '../../components/ui/Badge';
+import { AlertTriangle, CheckCircle, Database, Info, RefreshCw, Wifi } from 'lucide-react';
 
-interface ForexRuntimeConfig {
-  provider: string;
-  fallbacks: string[];
-  demo_fallback: boolean;
-  finnhub_api_key_set: boolean;
-  twelvedata_api_key_set: boolean;
+interface RuntimeConfig {
+  provider?: string;
+  fallbacks?: string[];
+  demo_fallback?: boolean;
+  finnhub_api_key_set?: boolean;
+  twelvedata_api_key_set?: boolean;
   effective_provider_order?: string[];
+  crypto_provider?: string;
+  market_mode?: string;
+  signal_enable_crypto?: boolean;
+  signal_enable_forex?: boolean;
+  forex_disabled_for_mvp?: boolean;
+  forex_provider_ignored?: string;
+  forex_fallbacks_ignored?: string;
+  forex_demo_fallback_ignored?: string;
+  telegram_enabled?: boolean;
+  enable_signal_mode_output?: boolean;
+  telegram_bot_token_set?: boolean;
+  telegram_default_channel_id_set?: boolean;
+  telegram_chat_id_set?: boolean;
+  supabase_url_set?: boolean;
+  supabase_service_role_key_set?: boolean;
+  scanner_cron_secret_set?: boolean;
 }
 
-interface ForexTestResult {
-  ok: boolean;
-  provider: string;
-  symbol?: string;
-  timeframe?: string;
-  candle_time?: string;
-  open?: number;
-  high?: number;
-  low?: number;
-  close?: number;
-  data_source?: string;
-  error?: string;
-  fallback_used?: boolean;
+interface ScannerConfigSummary {
+  auto_send_telegram?: boolean;
+  schedule_enabled?: boolean;
+  cron_job_active?: boolean;
 }
 
-function ProviderCard({ p, isHistorical }: { p: ProviderStatus; isHistorical: boolean }) {
-  const dsl = (p as unknown as Record<string, unknown>).data_source_label as string | undefined;
+interface ScannerRunSummary {
+  started_at?: string;
+  run_type?: string;
+}
+
+function safeLower(value: unknown) {
+  return typeof value === 'string' ? value.toLowerCase() : '';
+}
+
+function safeDate(value: unknown) {
+  if (!value) return '—';
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+}
+
+function providerLabel(p: Partial<ProviderStatus>) {
+  const name = typeof p.provider_name === 'string' && p.provider_name.trim() ? p.provider_name : 'Historical unknown provider row';
+  return name;
+}
+
+function isForexProviderRow(p: Partial<ProviderStatus>) {
+  const market = safeLower(p.market_type);
+  const name = safeLower(p.provider_name);
+  return market === 'forex' || ['forex', 'demo', 'finnhub', 'twelvedata', 'oanda', 'mt5_bridge'].includes(name);
+}
+
+function ProviderCard({ p, historical, forexDisabled }: { p: Partial<ProviderStatus>; historical: boolean; forexDisabled: boolean }) {
+  const label = providerLabel(p);
+  const market = typeof p.market_type === 'string' && p.market_type ? p.market_type : 'unknown';
+  const dsl = typeof p.data_source_label === 'string' ? p.data_source_label : '';
+  const status = typeof p.status === 'string' ? p.status : 'unknown';
+  const error = typeof p.error_message === 'string' ? p.error_message : '';
+  const historicalForexWarning = historical && isForexProviderRow(p) && error;
+
   return (
-    <div className={`border rounded-xl overflow-hidden ${isHistorical ? 'bg-zinc-950 border-zinc-800/50 opacity-60' : 'bg-zinc-900 border-zinc-800'}`}>
+    <div className={`border rounded-xl overflow-hidden ${historical ? 'bg-zinc-950 border-zinc-800/50 opacity-75' : 'bg-zinc-900 border-zinc-800'}`}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
         <div className="flex items-center gap-3">
-          <Database size={16} className={isHistorical ? 'text-zinc-700' : 'text-zinc-500'} />
+          <Database size={16} className={historical ? 'text-zinc-700' : 'text-zinc-500'} />
           <div>
-            <div className="font-medium capitalize flex items-center gap-2">
-              {p.provider_name}
-              {isHistorical && (
-                <span className="text-xs bg-zinc-800 text-zinc-500 border border-zinc-700 px-1.5 py-0.5 rounded">HISTORICAL — NOT CURRENT</span>
-              )}
-              {!isHistorical && p.provider_name === 'demo' && (
-                <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded">DEMO</span>
-              )}
-              {!isHistorical && dsl === 'REAL DATA' && (
-                <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">REAL DATA</span>
-              )}
-              {!isHistorical && dsl === 'PROVIDER_ERROR' && (
-                <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded">PROVIDER ERROR</span>
-              )}
-              {!isHistorical && dsl === 'DEMO DATA' && p.provider_name !== 'demo' && (
-                <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded">DEMO FALLBACK</span>
-              )}
+            <div className="font-medium capitalize flex items-center gap-2 flex-wrap">
+              {label}
+              {historical && <Badge variant="gray">Historical — not current MVP runtime</Badge>}
+              {!historical && dsl === 'REAL DATA' && <Badge variant="green">REAL DATA</Badge>}
+              {!historical && dsl === 'DISABLED_FOR_MVP' && <Badge variant="blue">Disabled for MVP</Badge>}
+              {!historical && dsl === 'PROVIDER_ERROR' && !forexDisabled && <Badge variant="red">Provider error</Badge>}
             </div>
-            <div className="text-xs text-zinc-500 capitalize">{p.market_type}</div>
+            <div className="text-xs text-zinc-500 capitalize">{market}</div>
           </div>
         </div>
-        {statusBadge(p.status)}
+        {statusBadge(status)}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-zinc-800">
         {[
-          { label: 'Status', value: p.status },
-          { label: 'Last Success', value: p.last_success_at ? new Date(p.last_success_at).toLocaleString() : 'Never' },
-          { label: 'Last Error', value: p.last_error_at ? new Date(p.last_error_at).toLocaleString() : 'None' },
-        ].map(({ label, value }) => (
-          <div key={label} className={`px-4 py-3 ${isHistorical ? 'bg-zinc-950' : 'bg-zinc-900'}`}>
-            <div className="text-xs text-zinc-500 mb-0.5">{label}</div>
-            <div className="text-xs text-zinc-400">{value}</div>
+          { label: 'Status', value: status },
+          { label: 'Last Success', value: safeDate(p.last_success_at) },
+          { label: 'Last Error', value: safeDate(p.last_error_at) },
+        ].map(item => (
+          <div key={item.label} className={`px-4 py-3 ${historical ? 'bg-zinc-950' : 'bg-zinc-900'}`}>
+            <div className="text-xs text-zinc-500 mb-0.5">{item.label}</div>
+            <div className="text-xs text-zinc-400">{item.value}</div>
           </div>
         ))}
       </div>
-      {p.error_message && (
-        <div className={`px-5 py-3 border-t ${isHistorical ? 'border-zinc-800/50' : p.provider_name === 'demo' ? 'bg-orange-500/5 border-orange-500/10' : 'bg-yellow-500/5 border-yellow-500/10'}`}>
-          <div className={`text-xs ${isHistorical ? 'text-zinc-600' : p.provider_name === 'demo' ? 'text-orange-400' : 'text-yellow-400'}`}>{p.error_message}</div>
+      {error && (
+        <div className={`px-5 py-3 border-t ${historicalForexWarning || forexDisabled ? 'border-zinc-800/50 bg-zinc-950' : 'bg-yellow-500/5 border-yellow-500/10'}`}>
+          <div className={`text-xs ${historicalForexWarning || forexDisabled ? 'text-zinc-500' : 'text-yellow-400'}`}>
+            {historicalForexWarning ? 'Historical forex warning — ignored while crypto-only MVP is active. ' : ''}{error}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+function Requirement({ label, ok, expected }: { label: string; ok: boolean; expected?: string }) {
+  return (
+    <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+      <div className="text-zinc-500 mb-0.5">{label}</div>
+      <div className={`font-mono font-semibold ${ok ? 'text-emerald-400' : 'text-yellow-400'}`}>{expected ?? String(ok)}</div>
+    </div>
+  );
+}
+
 export default function ProviderHealth() {
   const { session } = useAuth();
-  const [providers, setProviders] = useState<ProviderStatus[]>([]);
-  const [symbols, setSymbols] = useState<Symbol[]>([]);
+  const [providers, setProviders] = useState<Partial<ProviderStatus>[]>([]);
+  const [symbols, setSymbols] = useState<SymbolRow[]>([]);
+  const [cfg, setCfg] = useState<ScannerConfigSummary | null>(null);
+  const [latestScheduledRun, setLatestScheduledRun] = useState<ScannerRunSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [testingBinance, setTestingBinance] = useState(false);
-  const [testingForex, setTestingForex] = useState(false);
-  const [binanceResult, setBinanceResult] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [forexResult, setForexResult] = useState<ForexTestResult | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [runtimeConfig, setRuntimeConfig] = useState<ForexRuntimeConfig | null>(null);
+  const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig | null>(null);
+  const [runtimeConfigError, setRuntimeConfigError] = useState('');
+  const [loadWarning, setLoadWarning] = useState('');
+  const [testingBinance, setTestingBinance] = useState(false);
+  const [binanceResult, setBinanceResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setRefreshing(true);
-    const [p, s] = await Promise.all([
-      supabase.from('provider_status').select('*'),
-      supabase.from('symbols').select('*').order('market_type').order('symbol'),
-    ]);
-    setProviders(p.data ?? []);
-    setSymbols(s.data ?? []);
+    setLoadWarning('');
+    try {
+      const [p, s, cfgRes, scheduledRunRes] = await Promise.all([
+        supabase.from('provider_status').select('*'),
+        supabase.from('symbols').select('*').order('market_type').order('symbol'),
+        supabase.from('scanner_config').select('auto_send_telegram,schedule_enabled,cron_job_active').eq('id', 1).maybeSingle(),
+        supabase.from('scanner_runs').select('started_at,run_type').eq('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (p.error || s.error || cfgRes.error || scheduledRunRes.error) {
+        setLoadWarning(p.error?.message ?? s.error?.message ?? cfgRes.error?.message ?? scheduledRunRes.error?.message ?? 'Provider Health loaded with warnings.');
+      }
+      setProviders(Array.isArray(p.data) ? p.data : []);
+      setSymbols(Array.isArray(s.data) ? (s.data as SymbolRow[]) : []);
+      setCfg((cfgRes.data ?? null) as ScannerConfigSummary | null);
+      setLatestScheduledRun((scheduledRunRes.data ?? null) as ScannerRunSummary | null);
+    } catch (e) {
+      setLoadWarning(e instanceof Error ? e.message : 'Provider status query failed.');
+      setProviders([]);
+      setSymbols([]);
+    }
+
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: {
-          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ debug_provider_config: true }),
       });
-      const json = await res.json();
-      if (json?.success) setRuntimeConfig(json as ForexRuntimeConfig);
-    } catch {
+      const text = await res.text();
+      let json: Record<string, unknown> = {};
+      try {
+        json = JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        throw new Error('Runtime config response was not JSON');
+      }
+      if (res.ok && json?.success) {
+        setRuntimeConfig(json as RuntimeConfig);
+        setRuntimeConfigError('');
+      } else {
+        setRuntimeConfig(null);
+        setRuntimeConfigError(json?.error ? String(json.error) : 'Runtime config unavailable — scanner may still be running.');
+      }
+    } catch (e) {
       setRuntimeConfig(null);
+      setRuntimeConfigError(`Runtime config unavailable — scanner may still be running. ${e instanceof Error ? e.message : ''}`.trim());
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    setLoading(false);
-    setRefreshing(false);
-  }
+  }, [session]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   async function testBinance() {
     setTestingBinance(true);
     setBinanceResult(null);
     try {
       const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=2');
-      if (r.ok) {
-        const data = await r.json() as unknown[][];
-        const last = data[data.length - 1];
-        const ts = new Date(last[0] as number).toLocaleString();
-        setBinanceResult({ ok: true, msg: `Binance OK. Latest BTCUSDT 15m candle: ${ts} — Close: ${parseFloat(last[4] as string).toLocaleString()}` });
-      } else {
+      if (!r.ok) {
         setBinanceResult({ ok: false, msg: `Binance returned HTTP ${r.status}` });
+        return;
       }
+      const data = await r.json() as unknown;
+      if (!Array.isArray(data) || !Array.isArray(data[data.length - 1])) {
+        setBinanceResult({ ok: false, msg: 'Binance returned an unexpected payload.' });
+        return;
+      }
+      const last = data[data.length - 1] as unknown[];
+      const ts = new Date(Number(last[0])).toLocaleString();
+      setBinanceResult({ ok: true, msg: `Binance OK. Latest BTCUSDT 15m candle: ${ts} — Close: ${parseFloat(String(last[4])).toLocaleString()}` });
     } catch (e) {
       setBinanceResult({ ok: false, msg: `Binance unreachable: ${e instanceof Error ? e.message : 'unknown'}` });
     } finally {
@@ -142,61 +216,36 @@ export default function ProviderHealth() {
     }
   }
 
-  async function testForexProvider() {
-    if (!session) return;
-    setTestingForex(true);
-    setForexResult(null);
-    try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ test_forex_only: true }),
-      });
-      const json = await res.json();
-      if (json.forex_test) {
-        setForexResult(json.forex_test as ForexTestResult);
-      } else if (json.success) {
-        // Full scan ran — extract forex info from response
-        setForexResult({
-          ok: json.forex_real_data === true,
-          provider: json.forex_provider ?? 'unknown',
-          data_source: json.forex_real_data ? 'REAL DATA' : 'DEMO DATA',
-          fallback_used: json.forex_demo_fallback_used,
-        });
-        await load();
-      } else {
-        setForexResult({ ok: false, provider: 'unknown', error: json.error ?? 'Scanner returned error' });
-      }
-    } catch (e) {
-      setForexResult({ ok: false, provider: 'unknown', error: e instanceof Error ? e.message : 'Unknown error' });
-    } finally {
-      setTestingForex(false);
-    }
-  }
+  const forexDisabled = runtimeConfig?.signal_enable_forex === false || runtimeConfig?.forex_disabled_for_mvp !== false;
+  const marketMode = runtimeConfig?.market_mode ?? 'crypto_only';
+  const cryptoProviderName = runtimeConfig?.crypto_provider ?? 'binance';
+  const cryptoProviderRow = providers.find(p => safeLower(p.provider_name) === 'binance');
+  const cryptoActive = safeLower(cryptoProviderRow?.status) === 'active' || Boolean(cryptoProviderRow?.last_success_at);
+  const latestScheduledAge = latestScheduledRun?.started_at ? Math.round((Date.now() - new Date(latestScheduledRun.started_at).getTime()) / 60000) : null;
+  const cronDetected = latestScheduledAge !== null && latestScheduledAge <= 10;
+  const telegramConfigured = Boolean(runtimeConfig?.telegram_enabled && runtimeConfig.enable_signal_mode_output && runtimeConfig.telegram_bot_token_set && (runtimeConfig.telegram_default_channel_id_set || runtimeConfig.telegram_chat_id_set) && cfg?.auto_send_telegram !== false);
+  const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || safeLower(p.provider_name) === 'forex' || p.data_source_label === 'DISABLED_FOR_MVP');
+  const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && safeLower(p.provider_name) !== 'forex' && p.data_source_label !== 'DISABLED_FOR_MVP');
 
-  // Runtime config is the source of truth — DB rows are historical if they don't match
-  const runtimeProviderName = runtimeConfig?.provider ?? null;
-  const cryptoProvider = providers.find(p => p.provider_name === 'binance');
-  // Current forex provider row = matches runtime config name (or first forex row if runtime unknown)
-  const currentForexRow = runtimeProviderName
-    ? providers.find(p => p.market_type === 'forex' && p.provider_name === runtimeProviderName)
-    : providers.find(p => p.market_type === 'forex');
-  const historicalForexRows = providers.filter(p =>
-    p.market_type === 'forex' && p.provider_name !== (runtimeProviderName ?? currentForexRow?.provider_name)
-  );
-  const isForexReal = runtimeConfig ? runtimeConfig.provider !== 'demo' && runtimeConfig.finnhub_api_key_set : currentForexRow?.data_source_label === 'REAL DATA';
-  const forexProviderName = runtimeProviderName ?? currentForexRow?.provider_name ?? 'unknown';
+  const requiredEnv = useMemo(() => [
+    { label: 'SIGNAL_ENABLE_CRYPTO=true', ok: runtimeConfig?.signal_enable_crypto !== false, expected: String(runtimeConfig?.signal_enable_crypto ?? true) },
+    { label: 'SIGNAL_ENABLE_FOREX=false', ok: runtimeConfig?.signal_enable_forex === false || runtimeConfig?.signal_enable_forex === undefined, expected: String(runtimeConfig?.signal_enable_forex ?? false) },
+    { label: 'CRYPTO_DATA_PROVIDER=binance', ok: cryptoProviderName === 'binance', expected: cryptoProviderName },
+    { label: 'TELEGRAM_ENABLED=true', ok: runtimeConfig?.telegram_enabled === true, expected: String(runtimeConfig?.telegram_enabled ?? false) },
+    { label: 'ENABLE_SIGNAL_MODE_OUTPUT=true', ok: runtimeConfig?.enable_signal_mode_output === true, expected: String(runtimeConfig?.enable_signal_mode_output ?? false) },
+    { label: 'TELEGRAM_BOT_TOKEN present', ok: runtimeConfig?.telegram_bot_token_set === true },
+    { label: 'TELEGRAM_DEFAULT_CHANNEL_ID/CHAT_ID present', ok: runtimeConfig?.telegram_default_channel_id_set === true || runtimeConfig?.telegram_chat_id_set === true },
+    { label: 'SUPABASE_URL present', ok: runtimeConfig?.supabase_url_set === true },
+    { label: 'SUPABASE_SERVICE_ROLE_KEY present', ok: runtimeConfig?.supabase_service_role_key_set === true },
+    { label: 'SCANNER_CRON_SECRET present if used', ok: runtimeConfig?.scanner_cron_secret_set === true, expected: runtimeConfig?.scanner_cron_secret_set ? 'present' : 'only needed for cron-secret auth' },
+  ], [cryptoProviderName, runtimeConfig]);
 
   return (
     <AdminLayout>
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Provider Health</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Market data provider status — shows what is real vs demo</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Current crypto-only runtime truth plus historical provider rows</p>
         </div>
         <button onClick={load} disabled={refreshing}
           className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
@@ -205,196 +254,104 @@ export default function ProviderHealth() {
         </button>
       </div>
 
-      {/* Status cards */}
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <div className={`rounded-xl p-4 flex gap-3 border ${cryptoProvider?.status === 'active' ? 'bg-emerald-500/8 border-emerald-500/15' : 'bg-zinc-900 border-zinc-800'}`}>
-          <CheckCircle size={16} className="text-emerald-400 mt-0.5 shrink-0" />
+      {(loadWarning || runtimeConfigError) && (
+        <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
-            <div className="text-sm font-semibold text-zinc-200 mb-1">Crypto — Binance API</div>
-            <div className="text-xs text-zinc-400 leading-relaxed">
-              Public REST API — no key required.
-              {cryptoProvider?.status === 'active'
-                ? <span className="text-emerald-400 font-medium"> REAL DATA when reachable.</span>
-                : <span className="text-zinc-500"> Not yet confirmed. Run a scan or test below.</span>}
-            </div>
-            {cryptoProvider?.last_success_at && (
-              <div className="text-xs text-zinc-600 mt-1">Last success: {new Date(cryptoProvider.last_success_at).toLocaleString()}</div>
-            )}
+            {loadWarning && <div>{loadWarning}</div>}
+            {runtimeConfigError && <div>{runtimeConfigError}</div>}
           </div>
         </div>
-        <div className={`rounded-xl p-4 flex gap-3 border ${isForexReal ? 'bg-emerald-500/8 border-emerald-500/15' : 'bg-orange-500/8 border-orange-500/15'}`}>
-          <Info size={16} className={`mt-0.5 shrink-0 ${isForexReal ? 'text-emerald-400' : 'text-orange-400'}`} />
-          <div>
-            <div className="text-sm font-semibold text-zinc-200 mb-1">
-              Forex — {forexProviderName === 'demo' ? 'Demo Mode' : forexProviderName === 'twelvedata' ? 'Twelve Data' : forexProviderName}
-            </div>
-            <div className="text-xs text-zinc-400 leading-relaxed">
-              Controlled by <code className="bg-zinc-800 px-1 rounded font-mono">FOREX_DATA_PROVIDER</code> secret.
-              Current:{' '}
-              <strong className={isForexReal ? 'text-emerald-400' : 'text-orange-400'}>
-                {runtimeConfig?.provider ?? forexProviderName}
-              </strong>
-              {forexProvider?.data_source_label && (
-                <span className={`ml-1.5 font-medium ${forexProvider.data_source_label === 'REAL DATA' ? 'text-emerald-400' : 'text-orange-400'}`}>
-                  ({forexProvider.data_source_label})
-                </span>
-              )}
-            </div>
-            {forexProvider?.last_success_at && (
-              <div className="text-xs text-zinc-600 mt-1">Last success: {new Date(forexProvider.last_success_at).toLocaleString()}</div>
-            )}
-            {forexProvider?.error_message && (
-              <div className="text-xs text-red-400 mt-1 line-clamp-2">{forexProvider.error_message}</div>
-            )}
-          </div>
+      )}
+
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-emerald-500/8 border border-emerald-500/15 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Current Runtime Mode</div>
+          <div className="text-lg font-semibold text-emerald-400">{marketMode === 'crypto_only' ? 'Crypto-only' : marketMode}</div>
+          <div className="text-xs text-zinc-500 mt-1">Forex is sidelined for MVP.</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Crypto Provider</div>
+          <div className="text-lg font-semibold text-zinc-100 capitalize">{cryptoProviderName}</div>
+          <div className={cryptoActive ? 'text-xs text-emerald-400 mt-1' : 'text-xs text-zinc-500 mt-1'}>Crypto Status: {cryptoActive ? 'Active' : 'Unknown'}</div>
+        </div>
+        <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Forex</div>
+          <div className="text-lg font-semibold text-blue-400">Disabled for MVP</div>
+          <div className="text-xs text-zinc-500 mt-1">Future MT5/OANDA phase; old forex rows are historical.</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Telegram</div>
+          <div className={telegramConfigured ? 'text-lg font-semibold text-emerald-400' : 'text-lg font-semibold text-yellow-400'}>{telegramConfigured ? 'Enabled/configured' : 'Missing config or disabled'}</div>
+          <div className="text-xs text-zinc-500 mt-1">Requires env toggles, token/chat, and scanner_config auto-send.</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Schedule / Cron</div>
+          <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : 'text-lg font-semibold text-yellow-400'}>{cronDetected ? 'Cron active/detected' : 'Cron not detected'}</div>
+          <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · last ${latestScheduledAge}m ago` : ''}</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Runtime Config</div>
+          <div className={runtimeConfig ? 'text-lg font-semibold text-emerald-400' : 'text-lg font-semibold text-yellow-400'}>{runtimeConfig ? 'Available' : 'Unavailable'}</div>
+          <div className="text-xs text-zinc-500 mt-1">Runtime config unavailable — scanner may still be running.</div>
         </div>
       </div>
 
-      {/* Provider configuration guide */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
-        <div className="flex items-start gap-2">
-          <AlertTriangle size={14} className="text-yellow-400 mt-0.5 shrink-0" />
-          <div className="text-xs space-y-1.5 text-zinc-400">
-            <div className="font-medium text-zinc-200 mb-2">Forex Provider Configuration</div>
-            <div><code className="font-mono text-yellow-400">FOREX_DATA_PROVIDER=demo</code> — Seeded candles. No key needed. <span className="text-yellow-400 font-medium">DEMO DATA</span> label.</div>
-            <div><code className="font-mono text-emerald-400">FOREX_DATA_PROVIDER=finnhub</code> + <code className="font-mono">FINNHUB_API_KEY=your_key</code> → <span className="text-emerald-400 font-medium">REAL DATA</span></div>
-            <div><code className="font-mono text-blue-400">FOREX_DATA_PROVIDER=mt5_bridge</code> — Broker-matched candles via local Python bridge. <span className="text-blue-400 font-medium">REAL DATA</span></div>
-            <div><code className="font-mono text-zinc-500">FOREX_DEMO_FALLBACK=false</code> — Skip symbol on provider failure instead of using demo silently.</div>
-            <div className="text-zinc-500 italic mt-1">Set secrets in Supabase Dashboard → Edge Functions → Secrets, then run a scan to verify.</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
-        <div className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2">
-          <CheckCircle size={14} className="text-blue-400" />
-          Current Runtime Forex Provider
-          <span className="text-xs font-normal text-zinc-500 ml-1">(live from edge function — source of truth)</span>
-        </div>
-        {runtimeConfig ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-              <div className="text-zinc-500 mb-0.5">provider</div>
-              <div className="font-mono font-semibold text-zinc-100">{runtimeConfig.provider}</div>
-            </div>
-            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-              <div className="text-zinc-500 mb-0.5">fallbacks</div>
-              <div className="font-mono text-zinc-300">{runtimeConfig.fallbacks?.join(', ') || 'none'}</div>
-            </div>
-            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-              <div className="text-zinc-500 mb-0.5">demo fallback</div>
-              <div className={`font-mono font-semibold ${runtimeConfig.demo_fallback ? 'text-orange-400' : 'text-emerald-400'}`}>{String(runtimeConfig.demo_fallback)}</div>
-            </div>
-            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-              <div className="text-zinc-500 mb-0.5">FINNHUB_API_KEY set</div>
-              <div className={`font-mono font-semibold ${runtimeConfig.finnhub_api_key_set ? 'text-emerald-400' : 'text-red-400'}`}>{String(runtimeConfig.finnhub_api_key_set)}</div>
-            </div>
-            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-              <div className="text-zinc-500 mb-0.5">TWELVEDATA_API_KEY set</div>
-              <div className={`font-mono font-semibold ${runtimeConfig.twelvedata_api_key_set ? 'text-yellow-400' : 'text-zinc-400'}`}>{String(runtimeConfig.twelvedata_api_key_set)}</div>
-            </div>
-            <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-              <div className="text-zinc-500 mb-0.5">effective provider order</div>
-              <div className="font-mono text-zinc-300">[{(runtimeConfig.effective_provider_order ?? [runtimeConfig.provider]).join(', ')}]</div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-xs text-zinc-500 italic">Loading runtime config from edge function...</div>
-        )}
-        {runtimeConfig && currentForexRow?.status === 'error' && (
-          <div className="mt-3 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-300">
-            <span className="font-semibold">Runtime provider: {runtimeConfig.provider} — Status: failing fetch</span>
-            {currentForexRow.error_message && <div className="mt-0.5 text-red-400/80">{currentForexRow.error_message}</div>}
-          </div>
-        )}
-      </div>
-
-      {/* Test buttons */}
       <div className="grid md:grid-cols-2 gap-4 mb-6">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-sm font-semibold mb-1">Test Binance Connection</div>
+          <div className="text-sm font-semibold mb-1 flex items-center gap-2"><Wifi size={14} className="text-blue-400" /> Test Binance Connection</div>
           <p className="text-xs text-zinc-500 mb-3">Fetches 2 BTCUSDT 15m candles directly from Binance public API.</p>
           <button onClick={testBinance} disabled={testingBinance}
             className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50">
             {testingBinance ? <RefreshCw size={13} className="animate-spin" /> : <Wifi size={13} />}
             Test Binance
           </button>
-          {binanceResult && (
-            <div className={`mt-3 px-3 py-2.5 rounded-lg text-xs border ${binanceResult.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
-              {binanceResult.msg}
-            </div>
-          )}
+          {binanceResult && <div className={`mt-3 px-3 py-2.5 rounded-lg text-xs border ${binanceResult.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>{binanceResult.msg}</div>}
         </div>
-
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-sm font-semibold mb-1">Test Forex Provider</div>
-          <p className="text-xs text-zinc-500 mb-3">Triggers a scan and reports forex provider result (real vs demo, errors).</p>
-          <button onClick={testForexProvider} disabled={testingForex || !session}
-            className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50">
-            {testingForex ? <RefreshCw size={13} className="animate-spin" /> : <Database size={13} />}
-            Test Forex Provider
-          </button>
-          {forexResult && (
-            <div className={`mt-3 px-3 py-2.5 rounded-lg text-xs border ${forexResult.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-orange-500/10 border-orange-500/20 text-orange-300'}`}>
-              {forexResult.ok ? (
-                <div className="space-y-0.5">
-                  <div>Provider: <strong>{forexResult.provider}</strong></div>
-                  <div>Data source: <strong className="text-emerald-300">{forexResult.data_source}</strong></div>
-                  {forexResult.candle_time && <div>Latest candle: {forexResult.candle_time}</div>}
-                  {forexResult.close && <div>EUR/USD close: {forexResult.close}</div>}
-                </div>
-              ) : (
-                <div className="space-y-0.5">
-                  <div>Provider: <strong>{forexResult.provider}</strong></div>
-                  {forexResult.data_source && <div>Data source: <strong className="text-orange-300">{forexResult.data_source}</strong></div>}
-                  {forexResult.fallback_used && <div className="text-yellow-400">Demo fallback was used</div>}
-                  {forexResult.error && <div className="text-red-300">{forexResult.error}</div>}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="text-sm font-semibold mb-1 flex items-center gap-2"><Info size={14} className="text-blue-400" /> Forex Provider</div>
+          <p className="text-xs text-zinc-500 mb-3">Forex provider tests are disabled for the crypto-only MVP. No Finnhub, TwelveData, OANDA, MT5, or demo forex call should be made.</p>
+          <Badge variant="blue">Disabled for MVP — future MT5/OANDA phase</Badge>
         </div>
       </div>
 
-      {/* Provider status cards from DB */}
-      {loading ? (
-        <div className="flex items-center justify-center h-32">
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
+        <div className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2"><CheckCircle size={14} className="text-blue-400" /> Runtime Requirements</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          {requiredEnv.map(item => <Requirement key={item.label} label={item.label} ok={item.ok} expected={item.expected} />)}
         </div>
+        <div className="mt-3 text-xs text-zinc-500 leading-relaxed">
+          Ignored while <code className="bg-zinc-800 px-1 rounded">SIGNAL_ENABLE_FOREX=false</code>: FOREX_DATA_PROVIDER, FOREX_PROVIDER_FALLBACKS, FOREX_DEMO_FALLBACK, FINNHUB_API_KEY, TWELVEDATA_API_KEY, FOREX_DATA_API_KEY, MT5_BRIDGE_BASE_URL, MT5_BRIDGE_SECRET. Do not delete forex secrets if you plan to restore forex later.
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-32"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <div className="space-y-4 mb-8">
           {providers.length === 0 ? (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center text-sm text-zinc-600">
-              No provider status rows yet. Run a scan to populate.
-            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center text-sm text-zinc-600">No historical provider rows yet.</div>
           ) : (
             <>
-              {/* Current / active providers */}
-              {providers
-                .filter(p => !historicalForexRows.includes(p))
-                .map(p => <ProviderCard key={p.id} p={p} isHistorical={false} />)
-              }
-              {/* Historical forex rows — stale, not current runtime */}
-              {historicalForexRows.length > 0 && (
-                <>
-                  <div className="flex items-center gap-3 pt-2">
-                    <div className="h-px flex-1 bg-zinc-800" />
-                    <span className="text-xs text-zinc-600 font-medium uppercase tracking-widest">Historical provider rows — not current runtime</span>
-                    <div className="h-px flex-1 bg-zinc-800" />
-                  </div>
-                  {historicalForexRows.map(p => <ProviderCard key={p.id} p={p} isHistorical={true} />)}
-                </>
-              )}
+              <div className="text-xs text-zinc-500 uppercase tracking-widest">Current crypto-only runtime rows</div>
+              {(currentRuntimeProviders.length ? currentRuntimeProviders : providers.filter(p => !isForexProviderRow(p))).map((p, i) => <ProviderCard key={String(p.id ?? i)} p={p} historical={false} forexDisabled={forexDisabled} />)}
+              <div className="flex items-center gap-3 pt-2">
+                <div className="h-px flex-1 bg-zinc-800" />
+                <span className="text-xs text-zinc-600 font-medium uppercase tracking-widest">Historical forex/provider rows — not current MVP runtime</span>
+                <div className="h-px flex-1 bg-zinc-800" />
+              </div>
+              {historicalProviderRows.length === 0 ? (
+                <div className="bg-zinc-950 border border-zinc-800/50 rounded-xl p-4 text-xs text-zinc-600">No historical forex/provider rows yet.</div>
+              ) : historicalProviderRows.map((p, i) => <ProviderCard key={String(p.id ?? `hist-${i}`)} p={p} historical forexDisabled={forexDisabled} />)}
             </>
           )}
         </div>
       )}
 
-      {/* Symbol data source table */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
           <div className="text-sm font-semibold">Configured Symbols</div>
-          <div className="text-xs text-zinc-500">Provider and data source per symbol</div>
+          <div className="text-xs text-zinc-500">Crypto symbols active; forex symbols are dormant for MVP</div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -409,28 +366,16 @@ export default function ProviderHealth() {
               </tr>
             </thead>
             <tbody>
-              {symbols.map(s => (
+              {symbols.length === 0 ? (
+                <tr><td colSpan={6} className="px-5 py-6 text-center text-zinc-600">No symbols configured yet.</td></tr>
+              ) : symbols.map(s => (
                 <tr key={s.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                   <td className="px-5 py-2.5 font-mono font-semibold text-zinc-100">{s.symbol}</td>
                   <td className="px-5 py-2.5 text-zinc-400">{s.display_name}</td>
-                  <td className="px-5 py-2.5">
-                    <Badge variant={s.market_type === 'crypto' ? 'blue' : 'cyan'}>{s.market_type}</Badge>
-                  </td>
-                  <td className="px-5 py-2.5 text-zinc-400 capitalize">
-                    {s.market_type === 'crypto' ? 'binance' : forexProviderName}
-                  </td>
-                  <td className="px-5 py-2.5">
-                    {s.market_type === 'crypto' ? (
-                      <span className="text-xs text-emerald-400">REAL DATA (Binance API)</span>
-                    ) : isForexReal ? (
-                      <span className="text-xs text-emerald-400">REAL DATA ({forexProviderName})</span>
-                    ) : (
-                      <span className="text-xs text-orange-400">DEMO DATA (set FOREX_DATA_PROVIDER)</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-2.5">
-                    <Badge variant={s.is_active ? 'green' : 'gray'}>{s.is_active ? 'Active' : 'Inactive'}</Badge>
-                  </td>
+                  <td className="px-5 py-2.5"><Badge variant={s.market_type === 'crypto' ? 'blue' : 'cyan'}>{s.market_type}</Badge></td>
+                  <td className="px-5 py-2.5 text-zinc-400 capitalize">{s.market_type === 'crypto' ? 'binance' : 'disabled for MVP'}</td>
+                  <td className="px-5 py-2.5">{s.market_type === 'crypto' ? <span className="text-xs text-emerald-400">REAL DATA (Binance API)</span> : <span className="text-xs text-blue-400">DISABLED FOR MVP</span>}</td>
+                  <td className="px-5 py-2.5"><Badge variant={s.is_active ? 'green' : 'gray'}>{s.is_active ? 'Active' : 'Inactive'}</Badge></td>
                 </tr>
               ))}
             </tbody>
