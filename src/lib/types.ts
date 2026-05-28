@@ -317,6 +317,11 @@ export interface ScannerRun {
   telegram_sent_count: number;
   telegram_blocked_count: number;
   telegram_failed_count?: number;
+  outcome_checked?: boolean | null;
+  outcomes_updated?: number | null;
+  outcome_telegram_sent?: number | null;
+  outcome_telegram_skipped?: number | null;
+  outcome_telegram_failed?: number | null;
   market_mode?: string;
   forex_skipped_count?: number;
 }

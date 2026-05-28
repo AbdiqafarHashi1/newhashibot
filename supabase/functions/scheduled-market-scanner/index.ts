@@ -140,6 +140,8 @@ Deno.serve(async (req: Request) => {
       wrapper: "scheduled-market-scanner",
       proxied_status: proxy.status,
       run_type: "scheduled",
+      run_id: proxiedJson?.run_id ?? null,
+      proxied_success: proxiedJson?.success ?? proxy.ok,
       telegram_sent: proxiedJson?.telegram_sent ?? 0,
       telegram_skipped: proxiedJson?.telegram_skipped ?? 0,
       telegram_failed: proxiedJson?.telegram_failed ?? 0,

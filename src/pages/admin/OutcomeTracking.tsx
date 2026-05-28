@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { Play, RefreshCw, CheckCircle, AlertTriangle, Activity, XCircle } from 'lucide-react';
+import { callEdgeFunction, EdgeFunctionReachability } from '../../lib/edgeFunctionStatus';
 
 interface SignalUpdate {
   id: string;
@@ -65,6 +66,8 @@ export default function OutcomeTracking() {
   const { session } = useAuth();
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<OutcomeRunResult | null>(null);
+  const [rawRunResponse, setRawRunResponse] = useState<unknown>(null);
+  const [outcomeFunctionStatus, setOutcomeFunctionStatus] = useState<EdgeFunctionReachability>('unknown');
   const [runError, setRunError] = useState('');
   const [loadWarning, setLoadWarning] = useState('');
   const [activeSignals, setActiveSignals] = useState<SignalRow[]>([]);
@@ -87,6 +90,12 @@ export default function OutcomeTracking() {
       setActiveSignals((sigsRes.data ?? []) as SignalRow[]);
       setRecentUpdates((updatesRes.data ?? []) as (SignalUpdate & { signals?: { symbol: string; direction: string } })[]);
       setDeliveries((deliveryRes.data ?? []) as TelegramDelivery[]);
+      try {
+        const probe = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-signal-outcomes`, { method: 'OPTIONS' });
+        setOutcomeFunctionStatus(probe.status === 404 ? 'missing' : probe.ok ? 'deployed' : 'unknown');
+      } catch {
+        setOutcomeFunctionStatus('unreachable');
+      }
     } catch (e) {
       setLoadWarning(e instanceof Error ? e.message : 'Outcome data load failed');
     } finally {
@@ -102,13 +111,14 @@ export default function OutcomeTracking() {
     setRunResult(null);
     setRunError('');
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-signal-outcomes`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (!res.ok || data.success === false || data.error) {
-        setRunError(data.error ?? `Outcome check failed with HTTP ${res.status}`);
+      const result = await callEdgeFunction<OutcomeRunResult & { error?: string }>('evaluate-signal-outcomes', {}, session.access_token);
+      setOutcomeFunctionStatus(result.reachability);
+      setRawRunResponse(result.data ?? result.text);
+      const data = result.data;
+      if (result.reachability === 'missing') {
+        setRunError('Outcome function missing/deployment needed. Deploy supabase/functions/evaluate-signal-outcomes/index.ts.');
+      } else if (!result.ok || data?.success === false || data?.error) {
+        setRunError(data?.error ?? `Outcome check failed with HTTP ${result.status}`);
       } else {
         setRunResult(data);
         await load();
@@ -143,12 +153,12 @@ export default function OutcomeTracking() {
 
   return (
     <AdminLayout>
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold">Signal Outcome Tracking</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Crypto-only TP/SL/expiry evaluation against Binance latest price</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={load} disabled={loading}
             className="inline-flex items-center gap-1.5 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
@@ -168,6 +178,30 @@ export default function OutcomeTracking() {
         <span><strong>Price source:</strong> Binance latest ticker</span>
         <span><strong>Forex:</strong> Disabled for MVP — future MT5/OANDA phase</span>
       </div>
+
+      <div className="grid sm:grid-cols-3 gap-3 mb-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Outcome function</div>
+          <div className={outcomeFunctionStatus === 'deployed' ? 'text-sm font-semibold text-emerald-400' : outcomeFunctionStatus === 'missing' ? 'text-sm font-semibold text-red-400' : 'text-sm font-semibold text-yellow-400'}>
+            {outcomeFunctionStatus === 'deployed' ? 'deployed/verified' : outcomeFunctionStatus === 'missing' ? 'missing/deployment needed' : outcomeFunctionStatus}
+          </div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Open crypto signals</div>
+          <div className="text-sm font-semibold text-zinc-200">{activeSignals.length}</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Latest outcome TG</div>
+          <div className="text-sm font-semibold text-zinc-200">{deliveries[0] ? `${deliveries[0].status} (${new Date(deliveries[0].created_at).toLocaleString()})` : 'not verified'}</div>
+        </div>
+      </div>
+
+      {outcomeFunctionStatus === 'missing' && (
+        <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>Outcome function missing/deployment needed. Deploy supabase/functions/evaluate-signal-outcomes/index.ts.</span>
+        </div>
+      )}
 
       {loadWarning && (
         <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
@@ -192,6 +226,7 @@ export default function OutcomeTracking() {
           </div>
           {runResult.forex_skipped && <div className="mt-2 text-xs text-zinc-500">Forex skipped neutrally for MVP ({runResult.forex_skipped_count ?? 0} rows).</div>}
           {(runResult.telegram_skip_reasons?.length ?? 0) > 0 && <div className="mt-2 text-xs text-yellow-400">TG skip reasons: {runResult.telegram_skip_reasons?.join(', ')}</div>}
+          {rawRunResponse !== null && <pre className="mt-3 whitespace-pre-wrap break-words text-[11px] text-zinc-400 bg-zinc-950 border border-zinc-800 rounded-lg p-3 max-h-72 overflow-auto">{String(JSON.stringify(rawRunResponse, null, 2) ?? rawRunResponse)}</pre>}
           {(runResult.updates?.length ?? 0) > 0 && (
             <div className="mt-3 space-y-1">
               {runResult.updates?.map((u, i) => (
@@ -212,7 +247,7 @@ export default function OutcomeTracking() {
       {runError && (
         <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
           <AlertTriangle size={13} className="shrink-0" />
-          {runError}
+          <span className="break-words">{runError}</span>
         </div>
       )}
 
@@ -231,7 +266,7 @@ export default function OutcomeTracking() {
               {activeSignals.map(sig => {
                 const ageMins = Math.round((Date.now() - new Date(sig.created_at).getTime()) / 60000);
                 return (
-                  <div key={sig.id} className="px-5 py-3">
+                  <div key={sig.id} className="px-4 sm:px-5 py-3">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="font-mono font-bold text-sm text-zinc-100">{sig.symbol}</span>
                       <span className="text-xs text-zinc-600">{sig.timeframe}</span>
@@ -268,7 +303,7 @@ export default function OutcomeTracking() {
               {recentUpdates.map(u => {
                 const delivery = outcomeDelivery(u.signal_id, u.new_status);
                 return (
-                  <div key={u.id} className="px-5 py-3">
+                  <div key={u.id} className="px-4 sm:px-5 py-3">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className="font-mono font-bold text-sm text-zinc-100">{(u.signals as { symbol?: string } | undefined)?.symbol ?? u.signal_id.slice(0, 8)}</span>
                       <span className="text-xs text-zinc-600">{fromStatus(u)}</span>

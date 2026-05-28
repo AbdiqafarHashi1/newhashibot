@@ -25,6 +25,8 @@ export default function ControlRoom() {
   const [scanMsg, setScanMsg] = useState('');
   const [scanIsDemo, setScanIsDemo] = useState<boolean | null>(null);
   const [actionMsg, setActionMsg] = useState('');
+  const [runFilter, setRunFilter] = useState<'all' | 'manual' | 'scheduled'>('all');
+  const [showHistoricalForexWarnings, setShowHistoricalForexWarnings] = useState(false);
 
   const loadStats = useCallback(async () => {
     const [symRes, candRes, sigRes, candCountRes, userRes] = await Promise.all([
@@ -157,6 +159,10 @@ export default function ControlRoom() {
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? cryptoProvider?.provider_name ?? 'binance';
   const isForexReal = state.signalEnableForex && runtimeConfig?.provider !== 'demo' && runtimeConfig?.provider !== 'off' && runtimeConfig?.finnhub_api_key_set === true;
   const autoTgReady = state.autoSendTelegram && Boolean(runtimeConfig?.telegram_enabled && runtimeConfig?.enable_signal_mode_output && runtimeConfig?.telegram_bot_token_set && (runtimeConfig?.telegram_default_channel_id_set || runtimeConfig?.telegram_chat_id_set));
+  const filteredRecentRuns = recentRuns.filter(r => runFilter === 'all' || (r.run_type ?? 'manual') === runFilter);
+  const historicalForexWarningRuns = recentRuns.filter(r => /forex|finnhub|twelvedata|oanda|mt5|demo/i.test(r.error_message ?? ''));
+  const currentRunWarning = latestRun?.error_message && !/forex|finnhub|twelvedata|oanda|mt5|demo/i.test(latestRun.error_message) ? latestRun.error_message : '';
+  const adminActionMissing = state.adminSchedulerActionStatus === 'missing';
 
   const heartbeatColor =
     state.heartbeatStatus === 'healthy' ? 'text-emerald-400'
@@ -223,7 +229,7 @@ export default function ControlRoom() {
         />
         <BannerItem
           label="Cron job"
-          value={state.cronStatusLabel}
+          value={state.cronProven ? 'Proven / Active' : state.cronStatusLabel}
           color={cronColor}
           title={state.cronReason}
         />
@@ -239,9 +245,12 @@ export default function ControlRoom() {
         />
         <BannerItem
           label="Latest run"
-          value={latestRun?.run_type ?? '—'}
+          value={latestRun ? (latestRun.run_type === 'scheduled' ? 'scheduled (latest)' : latestRun.run_type) : '—'}
           color={latestRun?.run_type === 'scheduled' ? 'text-emerald-400' : latestRun ? 'text-blue-400' : 'text-zinc-500'}
         />
+        <BannerItem label="Latest manual" value={shortTimestamp(latestManualRun?.started_at)} color={latestManualRun ? 'text-blue-400' : 'text-zinc-500'} />
+        <BannerItem label="Latest scheduled" value={shortTimestamp(latestScheduledRun?.started_at)} color={latestScheduledRun ? 'text-emerald-400' : 'text-zinc-500'} />
+        <BannerItem label="Outcome tracking" value={state.outcomeTrackingStatus} color={state.outcomeTrackingStatus === 'Active' ? 'text-emerald-400' : 'text-zinc-500'} />
       </div>
 
       {!state.cronProven && state.scheduleEnabled && (
@@ -249,6 +258,37 @@ export default function ControlRoom() {
           <AlertTriangle size={13} className="shrink-0" />
           {state.cronReason}
           <Link to="/admin/scheduler" className="ml-auto underline shrink-0">Setup guide</Link>
+        </div>
+      )}
+
+      {adminActionMissing && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-xs border flex items-start gap-2 bg-yellow-500/10 border-yellow-500/20 text-yellow-200 break-words">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <div>
+            <div className="font-semibold">Admin scheduler action function is not deployed yet.</div>
+            <div>Deploy supabase/functions/admin-scheduler-action/index.ts in Supabase Edge Functions, then test again. This is a deployment status, not a cron failure.</div>
+          </div>
+        </div>
+      )}
+
+      {currentRunWarning && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-xs border flex items-start gap-2 bg-yellow-500/10 border-yellow-500/20 text-yellow-300 break-words">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>{currentRunWarning}</span>
+        </div>
+      )}
+
+      {historicalForexWarningRuns.length > 0 && (
+        <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+          <button onClick={() => setShowHistoricalForexWarnings(v => !v)} className="w-full px-4 py-3 text-left text-xs text-zinc-400 hover:text-zinc-200 flex items-center justify-between">
+            <span>Historical forex warnings ignored while crypto-only MVP is active ({historicalForexWarningRuns.length})</span>
+            <span>{showHistoricalForexWarnings ? 'Hide' : 'Show'}</span>
+          </button>
+          {showHistoricalForexWarnings && (
+            <div className="border-t border-zinc-800 p-4 space-y-2 text-xs text-zinc-500 break-words">
+              {historicalForexWarningRuns.slice(0, 5).map(r => <div key={r.id}>{new Date(r.started_at).toLocaleString()} — {r.error_message}</div>)}
+            </div>
+          )}
         </div>
       )}
 
@@ -471,7 +511,7 @@ Runtime Config
                   <span className="text-xs text-zinc-200">{value}</span>
                 </div>
               ))}
-              {latestRun.error_message && (
+              {latestRun.error_message && !/forex|finnhub|twelvedata|oanda|mt5|demo/i.test(latestRun.error_message) && (
                 <div className="px-5 py-2.5">
                   <div className="text-xs text-yellow-400 flex items-start gap-1.5">
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" />
@@ -493,7 +533,12 @@ Runtime Config
       {/* Recent runs table */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
-          <div className="text-sm font-semibold">Recent Scanner Runs</div>
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <div className="text-sm font-semibold shrink-0">Recent Scanner Runs</div>
+            {(['all', 'manual', 'scheduled'] as const).map(filter => (
+              <button key={filter} onClick={() => setRunFilter(filter)} className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-medium ${runFilter === filter ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'}`}>{filter}</button>
+            ))}
+          </div>
           <Link to="/admin/scheduler" className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1">
             <Clock size={11} /> Scheduling guide
           </Link>
@@ -502,7 +547,7 @@ Runtime Config
           <div className="flex items-center justify-center py-10">
             <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : recentRuns.length === 0 ? (
+        ) : filteredRecentRuns.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-zinc-600">No runs yet.</div>
         ) : (
           <table className="w-full text-xs">
@@ -518,11 +563,11 @@ Runtime Config
               </tr>
             </thead>
             <tbody>
-              {recentRuns.map(r => (
-                <tr key={r.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+              {filteredRecentRuns.map(r => (
+                <tr key={r.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${r.run_type === 'scheduled' ? 'bg-emerald-500/[0.03]' : ''}` }>
                   <td className="px-5 py-2.5 text-zinc-400">{new Date(r.started_at).toLocaleString()}</td>
                   <td className="px-5 py-2.5">
-                    <span className={`font-medium ${r.run_type === 'scheduled' ? 'text-emerald-400' : 'text-blue-400'}`}>{r.run_type}</span>
+                    <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${r.run_type === 'scheduled' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>{r.run_type}</span>
                   </td>
                   <td className="px-5 py-2.5">{statusBadge(r.status)}</td>
                   <td className="px-5 py-2.5 text-zinc-300">{r.symbols_scanned}</td>

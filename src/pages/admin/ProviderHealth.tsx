@@ -4,7 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProviderStatus, Symbol as SymbolRow } from '../../lib/types';
 import { Badge, statusBadge } from '../../components/ui/Badge';
-import { AlertTriangle, CheckCircle, Database, Info, RefreshCw, Wifi } from 'lucide-react';
+import { callEdgeFunction, EdgeFunctionReachability, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
+import { AlertTriangle, CheckCircle, Database, Info, RefreshCw, Wifi, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface RuntimeConfig {
   provider?: string;
@@ -134,6 +135,9 @@ export default function ProviderHealth() {
   const [loadWarning, setLoadWarning] = useState('');
   const [testingBinance, setTestingBinance] = useState(false);
   const [binanceResult, setBinanceResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [adminSchedulerStatus, setAdminSchedulerStatus] = useState<EdgeFunctionReachability>('unknown');
+  const [edgeFunctions, setEdgeFunctions] = useState<Record<string, string>>({});
+  const [showHistoricalRows, setShowHistoricalRows] = useState(false);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -158,6 +162,7 @@ export default function ProviderHealth() {
       setSymbols([]);
     }
 
+    let runtimeAvailable = false;
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
         method: 'POST',
@@ -175,6 +180,7 @@ export default function ProviderHealth() {
         throw new Error('Runtime config response was not JSON');
       }
       if (res.ok && json?.success) {
+        runtimeAvailable = true;
         setRuntimeConfig(json as RuntimeConfig);
         setRuntimeConfigError('');
       } else {
@@ -184,6 +190,21 @@ export default function ProviderHealth() {
     } catch (e) {
       setRuntimeConfig(null);
       setRuntimeConfigError(`Runtime config unavailable — scanner may still be running. ${e instanceof Error ? e.message : ''}`.trim());
+    }
+
+    try {
+      const adminStatus = await callEdgeFunction<{ edgeFunctions?: Record<string, { state?: string }> }>('admin-scheduler-action', { action: 'status' }, session?.access_token);
+      setAdminSchedulerStatus(adminStatus.reachability);
+      const ef = adminStatus.data?.edgeFunctions ?? {};
+      setEdgeFunctions({
+        market_scanner: ef.market_scanner?.state ?? (runtimeAvailable ? 'deployed' : 'unknown'),
+        scheduled_market_scanner: ef.scheduled_market_scanner?.state ?? 'unknown',
+        evaluate_signal_outcomes: ef.evaluate_signal_outcomes?.state ?? 'unknown',
+        admin_scheduler_action: adminStatus.reachability === 'missing' ? 'missing' : adminStatus.reachability === 'deployed' ? 'deployed' : adminStatus.reachability,
+      });
+    } catch {
+      setAdminSchedulerStatus('unreachable');
+      setEdgeFunctions(prev => ({ ...prev, admin_scheduler_action: 'unknown' }));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -222,7 +243,8 @@ export default function ProviderHealth() {
   const cryptoProviderRow = providers.find(p => safeLower(p.provider_name) === 'binance');
   const cryptoActive = safeLower(cryptoProviderRow?.status) === 'active' || Boolean(cryptoProviderRow?.last_success_at);
   const latestScheduledAge = latestScheduledRun?.started_at ? Math.round((Date.now() - new Date(latestScheduledRun.started_at).getTime()) / 60000) : null;
-  const cronDetected = latestScheduledAge !== null && latestScheduledAge <= 10;
+  const cronDetected = latestScheduledAge !== null && latestScheduledAge <= 15;
+  const schedulerLabel = cronDetected ? 'Proven' : cfg?.cron_job_active ? 'Configured, not proven' : 'Not configured';
   const telegramConfigured = Boolean(runtimeConfig?.telegram_enabled && runtimeConfig.enable_signal_mode_output && runtimeConfig.telegram_bot_token_set && (runtimeConfig.telegram_default_channel_id_set || runtimeConfig.telegram_chat_id_set) && cfg?.auto_send_telegram !== false);
   const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || safeLower(p.provider_name) === 'forex' || p.data_source_label === 'DISABLED_FOR_MVP');
   const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && safeLower(p.provider_name) !== 'forex' && p.data_source_label !== 'DISABLED_FOR_MVP');
@@ -264,7 +286,7 @@ export default function ProviderHealth() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-emerald-500/8 border border-emerald-500/15 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Current Runtime Mode</div>
           <div className="text-lg font-semibold text-emerald-400">{marketMode === 'crypto_only' ? 'Crypto-only' : marketMode}</div>
@@ -287,13 +309,27 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Schedule / Cron</div>
-          <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : 'text-lg font-semibold text-yellow-400'}>{cronDetected ? 'Cron active/detected' : 'Cron not detected'}</div>
+          <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : cfg?.cron_job_active ? 'text-lg font-semibold text-yellow-400' : 'text-lg font-semibold text-zinc-500'}>{schedulerLabel}</div>
           <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · last ${latestScheduledAge}m ago` : ''}</div>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Runtime Config</div>
-          <div className={runtimeConfig ? 'text-lg font-semibold text-emerald-400' : 'text-lg font-semibold text-yellow-400'}>{runtimeConfig ? 'Available' : 'Unavailable'}</div>
-          <div className="text-xs text-zinc-500 mt-1">Runtime config unavailable — scanner may still be running.</div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:col-span-2 lg:col-span-1">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Edge Functions</div>
+          <div className="grid grid-cols-1 gap-1 text-xs">
+            {[
+              ['market-scanner', edgeFunctions.market_scanner ?? (runtimeConfig ? 'deployed' : 'unknown')],
+              ['scheduled-market-scanner', edgeFunctions.scheduled_market_scanner ?? 'unknown'],
+              ['evaluate-signal-outcomes', edgeFunctions.evaluate_signal_outcomes ?? 'unknown'],
+              ['admin-scheduler-action', edgeFunctions.admin_scheduler_action ?? adminSchedulerStatus],
+            ].map(([name, state]) => (
+              <div key={name} className="flex items-center justify-between gap-3 min-w-0">
+                <span className="text-zinc-500 truncate">{name}</span>
+                <span className={state === 'deployed' ? 'text-emerald-400' : state === 'missing' ? 'text-red-400' : 'text-yellow-400'}>{state}</span>
+              </div>
+            ))}
+          </div>
+          {(edgeFunctions.admin_scheduler_action === 'missing' || adminSchedulerStatus === 'missing') && (
+            <div className="mt-2 text-xs text-yellow-300 break-words">{ADMIN_SCHEDULER_MISSING_MESSAGE} {ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS}</div>
+          )}
         </div>
       </div>
 
@@ -335,14 +371,19 @@ export default function ProviderHealth() {
             <>
               <div className="text-xs text-zinc-500 uppercase tracking-widest">Current crypto-only runtime rows</div>
               {(currentRuntimeProviders.length ? currentRuntimeProviders : providers.filter(p => !isForexProviderRow(p))).map((p, i) => <ProviderCard key={String(p.id ?? i)} p={p} historical={false} forexDisabled={forexDisabled} />)}
-              <div className="flex items-center gap-3 pt-2">
-                <div className="h-px flex-1 bg-zinc-800" />
-                <span className="text-xs text-zinc-600 font-medium uppercase tracking-widest">Historical forex/provider rows — not current MVP runtime</span>
-                <div className="h-px flex-1 bg-zinc-800" />
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                <button onClick={() => setShowHistoricalRows(v => !v)} className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left">
+                  <span className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Historical forex/provider rows — ignored while crypto-only MVP is active ({historicalProviderRows.length})</span>
+                  {showHistoricalRows ? <ChevronUp size={14} className="text-zinc-500" /> : <ChevronDown size={14} className="text-zinc-500" />}
+                </button>
+                {showHistoricalRows && (
+                  <div className="border-t border-zinc-800 p-3 space-y-3">
+                    {historicalProviderRows.length === 0 ? (
+                      <div className="bg-zinc-950 border border-zinc-800/50 rounded-xl p-4 text-xs text-zinc-600">No historical forex/provider rows yet.</div>
+                    ) : historicalProviderRows.map((p, i) => <ProviderCard key={String(p.id ?? `hist-${i}`)} p={p} historical forexDisabled={forexDisabled} />)}
+                  </div>
+                )}
               </div>
-              {historicalProviderRows.length === 0 ? (
-                <div className="bg-zinc-950 border border-zinc-800/50 rounded-xl p-4 text-xs text-zinc-600">No historical forex/provider rows yet.</div>
-              ) : historicalProviderRows.map((p, i) => <ProviderCard key={String(p.id ?? `hist-${i}`)} p={p} historical forexDisabled={forexDisabled} />)}
             </>
           )}
         </div>
@@ -354,7 +395,7 @@ export default function ProviderHealth() {
           <div className="text-xs text-zinc-500">Crypto symbols active; forex symbols are dormant for MVP</div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="border-b border-zinc-800 text-xs text-zinc-500">
                 <th className="text-left px-5 py-2.5">Symbol</th>

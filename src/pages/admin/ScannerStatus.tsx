@@ -21,17 +21,21 @@ function isHistoricalForexWarning(message?: string | null) {
 export default function ScannerStatus() {
   const [runs, setRuns] = useState<ScannerRunWithOutcome[]>([]);
   const [loading, setLoading] = useState(true);
+  const [runFilter, setRunFilter] = useState<'all' | 'manual' | 'scheduled'>('all');
 
   useEffect(() => {
     supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(100)
       .then(({ data }) => { setRuns((data ?? []) as ScannerRunWithOutcome[]); setLoading(false); });
   }, []);
 
-  const latestManualRun = runs.find(r => r.run_type !== 'scheduled') ?? null;
-  const latestScheduledRun = runs.find(r => r.run_type === 'scheduled') ?? null;
+  const latestManualRun = runs.find(r => (r.run_type ?? 'manual').toLowerCase() === 'manual') ?? null;
+  const latestScheduledRun = runs.find(r => (r.run_type ?? '').toLowerCase() === 'scheduled') ?? null;
+  const filteredRuns = runs.filter(r => runFilter === 'all' || (r.run_type ?? 'manual').toLowerCase() === runFilter);
   const scheduledAgeMinutes = latestScheduledRun ? Math.round((Date.now() - new Date(latestScheduledRun.started_at).getTime()) / 60000) : null;
-  const scheduledFresh = scheduledAgeMinutes !== null && scheduledAgeMinutes <= 10;
+  const scheduledFresh = scheduledAgeMinutes !== null && scheduledAgeMinutes <= 15;
   const scheduledLabel = scheduledFresh ? 'scheduled active' : latestScheduledRun ? 'scheduled stale' : 'scheduled not detected';
+  const recentScheduled30m = runs.filter(r => (r.run_type ?? '').toLowerCase() === 'scheduled' && (Date.now() - new Date(r.started_at).getTime()) <= 30 * 60000).length;
+  const latestRun = runs[0] ?? null;
 
   return (
     <AdminLayout>
@@ -41,7 +45,7 @@ export default function ScannerStatus() {
       </div>
 
       {!loading && (
-        <div className="grid md:grid-cols-4 gap-3 mb-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest manual run</div>
             <div className="text-sm text-zinc-200">{latestManualRun ? new Date(latestManualRun.started_at).toLocaleString() : '—'}</div>
@@ -54,12 +58,21 @@ export default function ScannerStatus() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled proof</div>
             <div className={`text-sm font-semibold ${scheduledFresh ? 'text-emerald-400' : latestScheduledRun ? 'text-yellow-400' : 'text-zinc-500'}`}>{scheduledLabel}</div>
-            <div className="text-xs text-zinc-600 mt-1">Active requires run_type='scheduled' within 10 minutes.</div>
+            <div className="text-xs text-zinc-600 mt-1">Active requires run_type='scheduled' within 15 minutes. 0-signal runs count.</div>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled last 30m</div>
+            <div className="text-sm font-semibold text-emerald-400">{recentScheduled30m}</div>
+            <div className="text-xs text-zinc-600 mt-1">0-signal scheduled runs count as proof.</div>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest Telegram S/K/F</div>
+            <div className="text-sm font-semibold text-zinc-200">{latestRun ? `${latestRun.telegram_sent_count ?? 0}/${latestRun.telegram_blocked_count ?? 0}/${latestRun.telegram_failed_count ?? 0}` : '—'}</div>
           </div>
           <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">MVP mode</div>
-            <div className="text-sm font-semibold text-blue-400">Crypto-only</div>
-            <div className="text-xs text-zinc-600 mt-1">Forex warnings below are historical unless a current crypto run fails.</div>
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest outcome</div>
+            <div className="text-sm font-semibold text-blue-400">{latestRun ? `${typeof latestRun.outcome_checked === 'boolean' ? (latestRun.outcome_checked ? 'checked' : 'not checked') : 'unknown'} / ${latestRun.outcomes_updated ?? 0} updated` : '—'}</div>
+            <div className="text-xs text-zinc-600 mt-1">Forex warnings are historical in crypto-only MVP.</div>
           </div>
         </div>
       )}
@@ -73,8 +86,22 @@ export default function ScannerStatus() {
           No scanner runs yet. Use the Control Room to run the scanner.
         </div>
       ) : (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-x-auto">
-          <table className="w-full text-sm min-w-[1100px]">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="border-b border-zinc-800 px-5 py-3 flex items-center gap-2">
+            {(['all', 'manual', 'scheduled'] as const).map(filter => (
+              <button
+                key={filter}
+                onClick={() => setRunFilter(filter)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${runFilter === filter ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'}`}>
+                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </button>
+            ))}
+            <span className="ml-auto text-xs text-zinc-500">Showing {filteredRuns.length} of {runs.length} runs</span>
+          </div>
+          {filteredRuns.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-zinc-500">No {runFilter} scanner runs found.</div>
+          ) : (
+          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[1100px]">
             <thead>
               <tr className="border-b border-zinc-800 text-xs text-zinc-500">
                 <th className="text-left px-5 py-3">Started</th>
@@ -91,7 +118,7 @@ export default function ScannerStatus() {
               </tr>
             </thead>
             <tbody>
-              {runs.map(r => {
+              {filteredRuns.map(r => {
                 const forexWarning = isHistoricalForexWarning(r.error_message);
                 return (
                   <tr key={r.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${r.run_type === 'scheduled' ? 'bg-emerald-500/[0.03]' : ''}` }>
@@ -109,7 +136,7 @@ export default function ScannerStatus() {
                       {r.error_message ? (
                         <div className={`flex items-start gap-1 text-xs ${forexWarning ? 'text-zinc-500' : 'text-red-400'}`}>
                           <AlertTriangle size={11} className="mt-0.5 shrink-0" />
-                          <span className="max-w-[260px]">{forexWarning ? 'Historical forex warning — ignored while crypto-only MVP is active. ' : ''}{r.error_message}</span>
+                          <span className="max-w-[260px] break-words">{forexWarning ? <span className="inline-flex rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-400 mr-1">historical forex warning ignored</span> : null}{forexWarning ? '' : r.error_message}</span>
                         </div>
                       ) : <span className="text-zinc-700">—</span>}
                     </td>
@@ -117,7 +144,8 @@ export default function ScannerStatus() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
+          )}
         </div>
       )}
     </AdminLayout>
