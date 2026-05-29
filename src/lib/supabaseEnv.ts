@@ -1,6 +1,8 @@
-export const LOGIN_DEBUG_BUILD_MARKER = 'login-auth-final-proof-v1';
+export const LOGIN_DEBUG_BUILD_MARKER = 'login-auth-public-fallback-v1';
 export const EXPECTED_SUPABASE_PROJECT_REF = 'uqiwbzfcntlcyyeewafc';
 export const EXPECTED_SUPABASE_ORIGIN = `https://${EXPECTED_SUPABASE_PROJECT_REF}.supabase.co`;
+export const SAFE_HASHIBOT_PUBLIC_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaXdiemZjbnRsY3l5ZXdhd2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDY1OTMsImV4cCI6MjA4ODM4MjU5M30.WIZuozSVEK2r8zpff0W_hK1PmXYRQtbblqEI-xbkzVY';
 
 export type FrontendSupabaseUrlSource =
   | 'VITE_HASHIBOT_SUPABASE_URL'
@@ -14,7 +16,7 @@ export type FrontendSupabaseKeySource =
   | 'VITE_PUBLIC_SUPABASE_ANON_KEY'
   | 'VITE_SUPABASE_PUBLISHABLE_KEY'
   | 'VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY'
-  | 'missing';
+  | 'SAFE_HASHIBOT_PUBLIC_SUPABASE_ANON_KEY';
 
 export type FrontendSupabaseKeyTypeGuess = 'jwt_anon' | 'publishable' | 'forbidden_secret' | 'unknown';
 export type FrontendSupabaseKeyProjectMatch = 'true' | 'false' | 'unknown';
@@ -30,6 +32,7 @@ interface SupabaseUrlParts {
 interface SelectedBrowserKey {
   source: FrontendSupabaseKeySource;
   key: string;
+  ignoredWrongProjectSources: Partial<Record<FrontendSupabaseKeySource, FrontendSupabaseDecodedKeyDebug>>;
 }
 
 export interface FrontendSupabaseDecodedKeyDebug {
@@ -70,6 +73,8 @@ export interface FrontendSupabaseDebugInfo {
   fallbackSupabaseUrlUsed: boolean;
   rawHashibotSupabaseAnonKeyPresent: boolean;
   rawSupabaseAnonKeyPresent: boolean;
+  rawSupabaseAnonKeyDecodedKey: FrontendSupabaseDecodedKeyDebug;
+  staleViteSupabaseAnonKeyIgnored: boolean;
   rawPublicSupabaseAnonKeyPresent: boolean;
   rawSupabasePublishableKeyPresent: boolean;
   rawPublicSupabasePublishableKeyPresent: boolean;
@@ -213,6 +218,13 @@ function getWrongProjectWarning(source: string, projectRef: string | null): stri
   return `${source} is present but points to wrong project ref ${projectRef ?? 'unknown'}; selected a higher-priority valid URL or safe fallback instead.`;
 }
 
+function isAllowedBrowserKey(key: string, keyTypeGuess = guessKeyType(key)): boolean {
+  if (keyTypeGuess === 'publishable') return true;
+  if (keyTypeGuess !== 'jwt_anon') return false;
+
+  return decodeKeyDebug(key, keyTypeGuess).projectMatch === 'true';
+}
+
 function selectBrowserKey(): SelectedBrowserKey {
   const orderedKeys: Array<[FrontendSupabaseKeySource, string | null]> = [
     ['VITE_HASHIBOT_SUPABASE_ANON_KEY', nonEmpty(import.meta.env.VITE_HASHIBOT_SUPABASE_ANON_KEY)],
@@ -221,12 +233,27 @@ function selectBrowserKey(): SelectedBrowserKey {
     ['VITE_SUPABASE_PUBLISHABLE_KEY', nonEmpty(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)],
     ['VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY', nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY)],
   ];
+  const ignoredWrongProjectSources: SelectedBrowserKey['ignoredWrongProjectSources'] = {};
 
   for (const [source, key] of orderedKeys) {
-    if (key) return { source, key };
+    if (!key) continue;
+
+    const keyTypeGuess = guessKeyType(key);
+    const decodedKey = decodeKeyDebug(key, keyTypeGuess);
+    if (isAllowedBrowserKey(key, keyTypeGuess)) {
+      return { source, key, ignoredWrongProjectSources };
+    }
+
+    if (decodedKey.projectMatch === 'false') {
+      ignoredWrongProjectSources[source] = decodedKey;
+    }
   }
 
-  return { source: 'missing', key: '' };
+  return {
+    source: 'SAFE_HASHIBOT_PUBLIC_SUPABASE_ANON_KEY',
+    key: SAFE_HASHIBOT_PUBLIC_SUPABASE_ANON_KEY,
+    ignoredWrongProjectSources,
+  };
 }
 
 export function toSupabaseEnvProofLog(debug: FrontendSupabaseDebugInfo) {
@@ -249,6 +276,8 @@ export function toSupabaseEnvProofLog(debug: FrontendSupabaseDebugInfo) {
     decodedKeyRole: debug.decodedKey.role,
     decodedKeyRef: debug.decodedKey.ref,
     decodedKeyIss: debug.decodedKey.iss,
+    rawViteAnonKeyDecodedRef: debug.rawSupabaseAnonKeyDecodedKey.ref,
+    staleViteAnonKeyIgnored: debug.staleViteSupabaseAnonKeyIgnored,
     keyProjectMatch: debug.keyProjectMatch,
   };
 }
@@ -287,13 +316,19 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
         : EXPECTED_SUPABASE_ORIGIN;
   const selectedParsed = parseSupabaseUrl(selectedUrl);
 
-  const { source: selectedKeySource, key: supabaseKey } = selectBrowserKey();
+  const { source: selectedKeySource, key: supabaseKey, ignoredWrongProjectSources } = selectBrowserKey();
   const keyTypeGuess = guessKeyType(supabaseKey);
   const decodedKey = decodeKeyDebug(supabaseKey, keyTypeGuess);
   const keyProjectMatch = decodedKey.projectMatch;
   const keyProjectMismatchError = keyProjectMatch === 'false'
     ? 'Selected browser key appears to belong to a different Supabase project.'
     : null;
+  const rawSupabaseAnonKey = nonEmpty(import.meta.env.VITE_SUPABASE_ANON_KEY);
+  const rawSupabaseAnonKeyTypeGuess = rawSupabaseAnonKey ? guessKeyType(rawSupabaseAnonKey) : 'unknown';
+  const rawSupabaseAnonKeyDecodedKey = rawSupabaseAnonKey
+    ? decodeKeyDebug(rawSupabaseAnonKey, rawSupabaseAnonKeyTypeGuess)
+    : { role: null, ref: null, iss: null, exp: null, projectMatch: 'unknown' as const };
+  const staleViteSupabaseAnonKeyIgnored = Boolean(ignoredWrongProjectSources.VITE_SUPABASE_ANON_KEY);
   const keyForbiddenError = keyTypeGuess === 'forbidden_secret'
     ? 'selected browser key appears to be a forbidden service-role/secret key'
     : null;
@@ -311,7 +346,9 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
   const viteWrongProject = Boolean(viteSupabaseUrl && !viteParsed.isExpectedProjectRef && !viteParsed.parseError);
   const hashibotWrongProject = Boolean(hashibotSupabaseUrl && !hashibotParsed.isExpectedProjectRef && !hashibotParsed.parseError);
   const publicWrongProject = Boolean(publicSupabaseUrl && !publicParsed.isExpectedProjectRef && !publicParsed.parseError);
-  const warningMessage = keyProjectMismatchError
+  const warningMessage = (staleViteSupabaseAnonKeyIgnored
+    ? 'VITE_SUPABASE_ANON_KEY is present but its decoded project ref does not match the selected Supabase project; selected a valid key or safe public fallback instead.'
+    : keyProjectMismatchError)
     ?? (viteWrongProject
       ? getWrongProjectWarning('VITE_SUPABASE_URL', viteParsed.projectRef)
       : hashibotWrongProject
@@ -349,7 +386,9 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
     staleViteSupabaseUrlIgnored: viteWrongProject,
     fallbackSupabaseUrlUsed: selectedUrlSource === 'safe_public_fallback',
     rawHashibotSupabaseAnonKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_HASHIBOT_SUPABASE_ANON_KEY)),
-    rawSupabaseAnonKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_SUPABASE_ANON_KEY)),
+    rawSupabaseAnonKeyPresent: Boolean(rawSupabaseAnonKey),
+    rawSupabaseAnonKeyDecodedKey,
+    staleViteSupabaseAnonKeyIgnored,
     rawPublicSupabaseAnonKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY)),
     rawSupabasePublishableKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)),
     rawPublicSupabasePublishableKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY)),
@@ -360,7 +399,7 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
     selectedSupabaseUrlHost: selectedParsed.host,
     selectedSupabaseUrlOrigin: selectedParsed.origin,
     frontendSupabaseUrlHost: selectedParsed.host,
-    managedSupabaseFallbackIgnored: true,
+    managedSupabaseFallbackIgnored: viteWrongProject || staleViteSupabaseAnonKeyIgnored,
     expectedSupabaseOrigin: EXPECTED_SUPABASE_ORIGIN,
     actualProjectRef: selectedProjectRef,
     projectRefMatches: projectRefMatch,
