@@ -73,7 +73,9 @@ export interface AdminLiveState {
   autoSendTelegram: boolean;
   latestTelegramDelivery: { status: string; created_at: string; error_message?: string; delivery_type?: string } | null;
   latestOutcomeDelivery: { status: string; created_at: string; error_message?: string; delivery_type?: string } | null;
-  latestSignalUpdate: { signal_id: string; new_status: string; created_at: string; reason?: string | null } | null;
+  latestSignalUpdate: { signal_id: string; new_status: string; created_at: string; reason?: string | null; message?: string | null } | null;
+  latestAutomaticOutcomeUpdate: { signal_id: string; new_status: string; created_at: string; reason?: string | null; message?: string | null } | null;
+  latestManualOutcomeUpdate: { signal_id: string; new_status: string; created_at: string; reason?: string | null; message?: string | null } | null;
 
   // Auto Telegram
   allowDemoTelegramSending: boolean;
@@ -122,6 +124,8 @@ const DEFAULT_STATE: AdminLiveState = {
   latestTelegramDelivery: null,
   latestOutcomeDelivery: null,
   latestSignalUpdate: null,
+  latestAutomaticOutcomeUpdate: null,
+  latestManualOutcomeUpdate: null,
   allowDemoTelegramSending: false,
   minAutoSendGrade: 'A',
   loading: true,
@@ -148,6 +152,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       tgRes,
       outcomeTgRes,
       updateRes,
+      autoUpdateRes,
+      manualUpdateRes,
     ] = await Promise.all([
       supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(50),
       supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
@@ -161,7 +167,9 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       supabase.from('signals').select('id', { count: 'exact', head: true }).neq('data_source', 'REAL DATA'),
       supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').ilike('message', '%source: scheduled-market-scanner%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').or('message.is.null,message.ilike.%source: manual_button%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     const runs: ScannerRun[] = (runsRes.data ?? []) as ScannerRun[];
@@ -263,7 +271,13 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       }
     }
 
-    const outcomeTrackingStatus = outcomeTgRes.data || updateRes.data ? 'Active' : 'Not verified';
+    const latestOutcomeAt = autoUpdateRes.data?.created_at ?? updateRes.data?.created_at ?? null;
+    const outcomeAgeMinutes = latestOutcomeAt ? Math.round((Date.now() - new Date(latestOutcomeAt).getTime()) / 60000) : null;
+    const outcomeTrackingStatus = outcomeAgeMinutes !== null && outcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
+      ? (autoUpdateRes.data ? 'Active (automatic)' : 'Active (manual)')
+      : outcomeTgRes.data || updateRes.data
+        ? 'Stale/manual only'
+        : 'Not verified';
 
     const effectiveSignalEnableCrypto = (runtimeConfig?.signal_enable_crypto ?? true) && cfg?.scan_crypto_enabled !== false;
     const effectiveSignalEnableForex = (runtimeConfig?.signal_enable_forex ?? false) && cfg?.scan_forex_enabled === true;
@@ -314,6 +328,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       latestTelegramDelivery: tgRes.data ?? null,
       latestOutcomeDelivery: outcomeTgRes.data ?? null,
       latestSignalUpdate: updateRes.data ?? null,
+      latestAutomaticOutcomeUpdate: autoUpdateRes.data ?? null,
+      latestManualOutcomeUpdate: manualUpdateRes.data ?? null,
       allowDemoTelegramSending: cfg?.allow_demo_telegram_sending ?? false,
       minAutoSendGrade: cfg?.min_auto_send_grade ?? 'A',
       loading: false,

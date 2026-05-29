@@ -301,7 +301,7 @@ export interface ScannerRun {
   id: string;
   started_at: string;
   finished_at: string | null;
-  status: 'running' | 'completed' | 'error';
+  status: 'running' | 'completed' | 'error' | 'failed';
   symbols_scanned: number;
   candles_fetched: number;
   candidates_found: number;

@@ -14,6 +14,7 @@ interface SignalUpdate {
   new_status: string;
   price: number | null;
   reason: string | null;
+  message: string | null;
   telegram_sent: boolean;
   created_at: string;
 }
@@ -73,23 +74,29 @@ export default function OutcomeTracking() {
   const [activeSignals, setActiveSignals] = useState<SignalRow[]>([]);
   const [recentUpdates, setRecentUpdates] = useState<(SignalUpdate & { signals?: { symbol: string; direction: string } })[]>([]);
   const [deliveries, setDeliveries] = useState<TelegramDelivery[]>([]);
+  const [latestAutoUpdate, setLatestAutoUpdate] = useState<SignalUpdate | null>(null);
+  const [latestManualUpdate, setLatestManualUpdate] = useState<SignalUpdate | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     setLoadWarning('');
     try {
-      const [sigsRes, updatesRes, deliveryRes] = await Promise.all([
+      const [sigsRes, updatesRes, deliveryRes, autoUpdateRes, manualUpdateRes] = await Promise.all([
         supabase.from('signals').select('*').eq('market_type', 'crypto').eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']).order('created_at', { ascending: false }).limit(50),
         supabase.from('signal_updates').select('*, signals(symbol, direction)').order('created_at', { ascending: false }).limit(30),
         supabase.from('telegram_deliveries').select('*').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(100),
+        supabase.from('signal_updates').select('*').ilike('message', '%source: scheduled-market-scanner%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('signal_updates').select('*').or('message.is.null,message.ilike.%source: manual_button%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
-      if (sigsRes.error || updatesRes.error || deliveryRes.error) {
-        setLoadWarning(sigsRes.error?.message ?? updatesRes.error?.message ?? deliveryRes.error?.message ?? 'Outcome data load warning');
+      if (sigsRes.error || updatesRes.error || deliveryRes.error || autoUpdateRes.error || manualUpdateRes.error) {
+        setLoadWarning(sigsRes.error?.message ?? updatesRes.error?.message ?? deliveryRes.error?.message ?? autoUpdateRes.error?.message ?? manualUpdateRes.error?.message ?? 'Outcome data load warning');
       }
       setActiveSignals((sigsRes.data ?? []) as SignalRow[]);
       setRecentUpdates((updatesRes.data ?? []) as (SignalUpdate & { signals?: { symbol: string; direction: string } })[]);
       setDeliveries((deliveryRes.data ?? []) as TelegramDelivery[]);
+      setLatestAutoUpdate((autoUpdateRes.data ?? null) as SignalUpdate | null);
+      setLatestManualUpdate((manualUpdateRes.data ?? null) as SignalUpdate | null);
       try {
         const probe = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-signal-outcomes`, { method: 'OPTIONS' });
         setOutcomeFunctionStatus(probe.status === 404 ? 'missing' : probe.ok ? 'deployed' : 'unknown');
@@ -111,7 +118,7 @@ export default function OutcomeTracking() {
     setRunResult(null);
     setRunError('');
     try {
-      const result = await callEdgeFunction<OutcomeRunResult & { error?: string }>('evaluate-signal-outcomes', {}, session.access_token);
+      const result = await callEdgeFunction<OutcomeRunResult & { error?: string }>('evaluate-signal-outcomes', { source: 'manual_button' }, session.access_token);
       setOutcomeFunctionStatus(result.reachability);
       setRawRunResponse(result.data ?? result.text);
       const data = result.data;
@@ -150,6 +157,7 @@ export default function OutcomeTracking() {
 
   const checked = runResult?.signals_checked ?? runResult?.scanned ?? 0;
   const changed = runResult?.signals_updated ?? runResult?.changed ?? 0;
+  const onlyManual = !latestAutoUpdate && Boolean(latestManualUpdate);
 
   return (
     <AdminLayout>
@@ -179,7 +187,7 @@ export default function OutcomeTracking() {
         <span><strong>Forex:</strong> Disabled for MVP — future MT5/OANDA phase</span>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3 mb-4">
+      <div className="grid sm:grid-cols-4 gap-3 mb-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Outcome function</div>
           <div className={outcomeFunctionStatus === 'deployed' ? 'text-sm font-semibold text-emerald-400' : outcomeFunctionStatus === 'missing' ? 'text-sm font-semibold text-red-400' : 'text-sm font-semibold text-yellow-400'}>
@@ -191,10 +199,25 @@ export default function OutcomeTracking() {
           <div className="text-sm font-semibold text-zinc-200">{activeSignals.length}</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Last automatic check</div>
+          <div className={`text-sm font-semibold ${latestAutoUpdate ? 'text-emerald-400' : 'text-yellow-400'}`}>{latestAutoUpdate ? new Date(latestAutoUpdate.created_at).toLocaleString() : 'not verified'}</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Last manual check</div>
+          <div className="text-sm font-semibold text-zinc-200">{latestManualUpdate ? new Date(latestManualUpdate.created_at).toLocaleString() : 'not verified'}</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Latest outcome TG</div>
           <div className="text-sm font-semibold text-zinc-200">{deliveries[0] ? `${deliveries[0].status} (${new Date(deliveries[0].created_at).toLocaleString()})` : 'not verified'}</div>
         </div>
       </div>
+
+      {onlyManual && (
+        <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>Outcome tracking currently has manual proof only. Wait for the next pg_cron scheduled scan; automatic proof appears when scheduled-market-scanner calls evaluate-signal-outcomes and writes a signal update.</span>
+        </div>
+      )}
 
       {outcomeFunctionStatus === 'missing' && (
         <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
@@ -316,6 +339,8 @@ export default function OutcomeTracking() {
                     <div className="text-xs text-zinc-600 flex gap-3 flex-wrap">
                       {u.price !== null && <span>Price: <span className="font-mono text-zinc-400">{Number(u.price).toFixed(5)}</span></span>}
                       <span>{u.reason ?? ''}</span>
+                      {u.message?.includes('source: scheduled-market-scanner') && <span className="text-emerald-400">automatic</span>}
+                      {u.message?.includes('source: manual_button') && <span className="text-yellow-400">manual</span>}
                       <span>{new Date(u.created_at).toLocaleString()}</span>
                       {delivery?.error_message && <span className="text-yellow-400 flex items-center gap-1"><XCircle size={10} /> {delivery.error_message}</span>}
                     </div>
