@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { isSupabaseClientEnabled, supabase, supabaseConfigErrorMessage } from '../lib/supabase';
-import { getFrontendSupabaseDebugInfo, getSupabaseClientConfig } from '../lib/supabaseEnv';
+import { getFrontendSupabaseDebugInfo, getSupabaseClientConfig, logSupabaseEnvProof } from '../lib/supabaseEnv';
 import { Profile } from '../lib/types';
 
 interface AuthContextValue {
@@ -150,17 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(email: string, password: string) {
     const debug = getFrontendSupabaseDebugInfo();
 
-    console.log('[HashiBot Login Debug]', {
-      marker: debug.marker,
-      selectedUrlOrigin: debug.selectedSupabaseUrlOrigin,
-      expectedProjectRef: debug.expectedProjectRef,
-      actualProjectRef: debug.actualProjectRef,
-      projectRefMatch: debug.projectRefMatches,
-      keySource: debug.selectedFrontendKeySource,
-      keyPresent: debug.keyPresent,
-      keyTypeGuess: debug.keyTypeGuess,
-      browserOrigin: debug.browserOrigin,
-    });
+    logSupabaseEnvProof(debug);
 
     const config = getSupabaseClientConfig();
     if (!config.hasValidConfig) {
