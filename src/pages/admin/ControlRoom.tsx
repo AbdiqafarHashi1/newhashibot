@@ -46,8 +46,13 @@ export default function ControlRoom() {
   }, []);
 
   useEffect(() => {
-    refresh();
-    loadStats();
+    void refresh();
+    void loadStats();
+    const id = window.setInterval(() => {
+      void refresh();
+      void loadStats();
+    }, 45_000);
+    return () => window.clearInterval(id);
   }, [refresh, loadStats]);
 
   async function runScanner() {
@@ -159,7 +164,9 @@ export default function ControlRoom() {
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? cryptoProvider?.provider_name ?? 'binance';
   const isForexReal = state.signalEnableForex && runtimeConfig?.provider !== 'demo' && runtimeConfig?.provider !== 'off' && runtimeConfig?.finnhub_api_key_set === true;
   const autoTgReady = state.autoSendTelegram && Boolean(runtimeConfig?.telegram_enabled && runtimeConfig?.enable_signal_mode_output && runtimeConfig?.telegram_bot_token_set && (runtimeConfig?.telegram_default_channel_id_set || runtimeConfig?.telegram_chat_id_set));
-  const filteredRecentRuns = recentRuns.filter(r => runFilter === 'all' || (r.run_type ?? 'manual') === runFilter);
+  const filteredRecentRuns = runFilter === 'scheduled'
+    ? state.recentScheduledRuns
+    : recentRuns.filter(r => runFilter === 'all' || (r.run_type ?? 'manual').toLowerCase() === runFilter);
   const historicalForexWarningRuns = recentRuns.filter(r => /forex|finnhub|twelvedata|oanda|mt5|demo/i.test(r.error_message ?? ''));
   const currentRunWarning = latestRun?.error_message && !/forex|finnhub|twelvedata|oanda|mt5|demo/i.test(latestRun.error_message) ? latestRun.error_message : '';
   const adminActionMissing = state.adminSchedulerActionStatus === 'missing';
@@ -250,7 +257,7 @@ export default function ControlRoom() {
         />
         <BannerItem label="Latest manual" value={shortTimestamp(latestManualRun?.started_at)} color={latestManualRun ? 'text-blue-400' : 'text-zinc-500'} />
         <BannerItem label="Latest scheduled" value={shortTimestamp(latestScheduledRun?.started_at)} color={latestScheduledRun ? 'text-emerald-400' : 'text-zinc-500'} />
-        <BannerItem label="Outcome tracking" value={state.outcomeTrackingStatus} color={state.outcomeTrackingStatus.startsWith('Active (automatic)') ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'} />
+        <BannerItem label="Outcome tracking" value={state.outcomeTrackingStatus} color={state.outcomeTrackingStatus === 'Automatic outcome active' ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'} />
       </div>
 
       {!state.cronProven && state.scheduleEnabled && (
@@ -357,7 +364,7 @@ export default function ControlRoom() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 md:col-span-3">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Outcome tracking proof</div>
-          <div className={`text-sm font-semibold ${state.outcomeTrackingStatus.startsWith('Active (automatic)') ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'}`}>{state.outcomeTrackingStatus}</div>
+          <div className={`text-sm font-semibold ${state.outcomeTrackingStatus === 'Automatic outcome active' ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'}`}>{state.outcomeTrackingStatus}</div>
           <div className="text-xs text-zinc-600 mt-1">Automatic: {shortTimestamp(state.latestAutomaticOutcomeUpdate?.created_at)} · Manual: {shortTimestamp(state.latestManualOutcomeUpdate?.created_at)} · Latest outcome TG: {state.latestOutcomeDelivery ? `${state.latestOutcomeDelivery.status} (${shortTimestamp(state.latestOutcomeDelivery.created_at)})` : '—'}</div>
         </div>
       </div>

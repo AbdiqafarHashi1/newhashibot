@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ScannerRun } from '../../lib/types';
 import { callEdgeFunction, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 
 const SQL_CRON = `-- Truthful pg_cron command for HashiBot crypto-only MVP
 -- Replace placeholders, then run in Supabase SQL Editor.
@@ -113,6 +114,7 @@ function runIdFrom(body: Record<string, unknown>) {
 
 export default function SchedulerGuide() {
   const { session } = useAuth();
+  const { state: liveState, refresh: refreshLiveState } = useAdminLiveState(session);
   const [copied, setCopied] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -145,7 +147,11 @@ export default function SchedulerGuide() {
     setLoadingStatus(false);
   }, [session?.access_token]);
 
-  useEffect(() => { checkCronStatus(); }, [checkCronStatus]);
+  useEffect(() => {
+    void checkCronStatus();
+    const id = window.setInterval(() => { void checkCronStatus(); }, 60_000);
+    return () => window.clearInterval(id);
+  }, [checkCronStatus]);
 
   function copy(text: string, id: string) {
     navigator.clipboard.writeText(text);
@@ -182,7 +188,7 @@ export default function SchedulerGuide() {
           ? `success=${metric(body.success)} · wrapper=${metric(body.wrapper)} · market_scanner_called=${metric(body.market_scanner_called)} · market_scanner_status=${metric(body.market_scanner_status ?? body.proxied_status ?? data?.proxied_status)} · run_id=${metric(runId)} · TG sent/skipped/failed=${metric(body.telegram_sent ?? proxied.telegram_sent, '0')}/${metric(body.telegram_skipped ?? proxied.telegram_skipped, '0')}/${metric(body.telegram_failed ?? proxied.telegram_failed, '0')} · outcome_called=${metric(body.outcome_called ?? body.outcome_checked)} · outcome_success=${metric(body.outcome_success)} · outcomes_updated=${metric(body.outcomes_updated ?? outcome.signals_updated, '0')} · outcome TG sent/skipped/failed=${metric(body.outcome_telegram_sent ?? outcome.telegram_sent, '0')}/${metric(body.outcome_telegram_skipped ?? outcome.telegram_skipped, '0')}/${metric(body.outcome_telegram_failed ?? outcome.telegram_failed, '0')}`
           : String(body.error ?? data?.error ?? (String(body.error ?? '').includes('SCANNER_CRON_SECRET') ? 'Cron secret warning: backend reported missing/invalid SCANNER_CRON_SECRET.' : 'Scheduled wrapper test failed')),
       });
-      await checkCronStatus();
+      await Promise.all([checkCronStatus(), refreshLiveState()]);
     } catch (e) {
       setTestResult({ ok: false, msg: e instanceof Error ? e.message : 'Unknown error' });
     }
@@ -190,46 +196,46 @@ export default function SchedulerGuide() {
   }
 
   const cfg = status?.config;
-  const latestScheduledRun = status?.latestScheduledRun ?? null;
-  const recentScheduledRuns = status?.recentScheduledRuns ?? [];
-  const proof = status?.proof;
-  const cronDetected = proof?.cronProven === true;
-  const cronJobActive = cfg?.cron_job_active === true;
-  const scheduleEnabled = cfg?.schedule_enabled === true;
-  const scheduledAge = status?.latestScheduledRunAgeMinutes ?? null;
-  const latestOutcomeAutoCheck = status?.latestOutcomeAutoCheck ?? null;
-  const cronStatusLabel = loadingStatus
+  const latestScheduledRun = liveState.latestScheduledRun;
+  const recentScheduledRuns = liveState.recentScheduledRuns;
+  const cronDetected = liveState.cronStatusLabel === 'Proven / Active';
+  const cronJobActive = liveState.cronConfigured || cfg?.cron_job_active === true;
+  const scheduleEnabled = liveState.scheduleEnabled || cfg?.schedule_enabled === true;
+  const scheduledAge = liveState.lastScheduledRunAgeMinutes;
+  const latestOutcomeAutoCheck = liveState.latestAutomaticOutcomeUpdate ?? status?.latestOutcomeAutoCheck ?? null;
+  const cronStatusLabel = liveState.loading || loadingStatus
     ? 'Checking scheduler status...'
     : cronDetected
       ? 'Automatic scheduling proven and running'
-      : cronJobActive
-        ? 'Cron configured, not proven'
-        : 'Automatic scheduling not yet configured';
-  const missing = proof?.missing ?? {};
-  const cronReason = cronDetected
-    ? `Real scheduled scanner_run proof found${scheduledAge !== null ? ` ${scheduledAge} minute${scheduledAge === 1 ? '' : 's'} ago` : ''}. Scheduled runs with 0 signals count as proof.`
-    : cronJobActive
-      ? `Missing recent proof within ${proof?.thresholdMinutes ?? 15} minutes: ${Object.entries(missing).filter(([, v]) => v).map(([k]) => k.replace(/_/g, ' ')).join(', ') || 'scheduled scanner_run'}.`
-      : scheduleEnabled
-        ? 'Schedule is enabled, but the pg_cron job has not been proven from scheduled scanner runs yet.'
-        : 'Schedule is disabled in Scanner Config. Enable it first, then set up the cron job.';
+      : liveState.cronStatusLabel;
+  const cronReason = liveState.cronReason;
+  const loadingAny = liveState.loading || loadingStatus;
 
   return (
     <AdminLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Scheduled Scanning Setup</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Configure and verify automatic scanner execution via pg_cron</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Scheduled Scanning Setup</h1>
+            <p className="text-sm text-zinc-500 mt-0.5">Configure and verify automatic scanner execution via pg_cron. Primary proof is the latest scanner_runs row where lower(run_type) = 'scheduled'.</p>
+          </div>
+          <button onClick={async () => { await Promise.all([refreshLiveState(), checkCronStatus()]); }} disabled={loadingAny}
+            className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
+            {loadingAny ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       <div className="max-w-5xl space-y-4">
         <div className={`rounded-xl p-5 border flex gap-3 ${cronDetected ? 'bg-emerald-500/10 border-emerald-500/20' : cronJobActive ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-zinc-900 border-zinc-800'}`}>
           {loadingStatus ? <div className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin mt-0.5 shrink-0" /> : cronDetected ? <CheckCircle size={16} className="text-emerald-400 mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />}
           <div className="flex-1">
-            <div className={`text-sm font-semibold mb-1 ${cronDetected ? 'text-emerald-400' : cronJobActive ? 'text-yellow-400' : 'text-zinc-400'}`}>{cronStatusLabel}</div>
+            <div className={`text-sm font-semibold mb-1 ${cronDetected ? 'text-emerald-400' : liveState.cronStale ? 'text-yellow-400' : cronJobActive ? 'text-blue-400' : 'text-zinc-400'}`}>{cronStatusLabel}</div>
             <div className={`text-xs ${cronDetected ? 'text-emerald-300/80' : 'text-yellow-300/80'}`}>{cronReason}</div>
             {latestScheduledRun && (
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3 text-xs">
                 <ProofDetail label="Latest scheduled run" value={new Date(latestScheduledRun.started_at).toLocaleString()} />
+                <ProofDetail label="Age" value={scheduledAge !== null ? `${scheduledAge}m` : '—'} />
                 <ProofDetail label="Status" value={latestScheduledRun.status} />
                 <ProofDetail label="Symbols scanned" value={metric(latestScheduledRun.symbols_scanned, '0')} />
                 <ProofDetail label="Signals created" value={metric(latestScheduledRun.signals_created, '0')} />
@@ -243,7 +249,7 @@ export default function SchedulerGuide() {
               <span>Cron job active: <span className={cronJobActive ? 'text-emerald-400' : 'text-zinc-400'}>{String(cronJobActive)}</span></span>
             </div>
           </div>
-          <button onClick={checkCronStatus} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">Recheck</button>
+          <button onClick={async () => { await Promise.all([refreshLiveState(), checkCronStatus()]); }} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">Recheck</button>
         </div>
 
         {status?.warnings?.admin_scheduler_action && (

@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { ScannerRun, ProviderStatus } from '../lib/types';
 import { callEdgeFunction, EdgeFunctionReachability } from '../lib/edgeFunctionStatus';
+import { ageMinutesFromStartedAt, schedulerProofReason, scheduledFreshnessLabel } from '../lib/adminSchedulerTruth';
 
 export interface RuntimeProviderConfig {
   provider: string;
@@ -134,8 +135,11 @@ const DEFAULT_STATE: AdminLiveState = {
 
 export function useAdminLiveState(session: { access_token: string } | null) {
   const [state, setState] = useState<AdminLiveState>(DEFAULT_STATE);
+  const refreshSeq = useRef(0);
 
   const refresh = useCallback(async () => {
+    const seq = refreshSeq.current + 1;
+    refreshSeq.current = seq;
     setState(prev => ({ ...prev, loading: true }));
 
     const [
@@ -157,7 +161,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     ] = await Promise.all([
       supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(50),
       supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(10),
+      supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(25),
       supabase.from('scanner_runs').select('*').ilike('run_type', 'manual').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('provider_status').select('*'),
       supabase.from('scanner_config').select('*').eq('id', 1).maybeSingle(),
@@ -176,41 +180,18 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     const recentScheduledRuns: ScannerRun[] = (recentScheduledRunsRes.data ?? []) as ScannerRun[];
     const cfg = cfgRes.data;
     const latestRun = runs[0] ?? null;
-    const latestScheduledRun = (latestScheduledRunRes.data as ScannerRun | null) ?? runs.find(r => (r.run_type ?? '').toLowerCase() === 'scheduled') ?? null;
-    const latestManualRun = (latestManualRunRes.data as ScannerRun | null) ?? runs.find(r => (r.run_type ?? 'manual').toLowerCase() === 'manual') ?? null;
+    const latestScheduledRun = (latestScheduledRunRes.data as ScannerRun | null) ?? null;
+    const latestManualRun = (latestManualRunRes.data as ScannerRun | null) ?? null;
 
     const cronConfigured = cfg?.cron_job_active === true;
     const scheduleEnabled = cfg?.schedule_enabled ?? false;
     const scanIntervalMinutes = cfg?.scan_interval_minutes ?? 5;
-    const recentThresholdMinutes = 15;
-    const lastScheduledRunAgeMinutes = latestScheduledRun
-      ? Math.round((Date.now() - new Date(latestScheduledRun.started_at).getTime()) / 60000)
-      : null;
-    const cronProven = lastScheduledRunAgeMinutes !== null && lastScheduledRunAgeMinutes <= recentThresholdMinutes;
-    const cronStale = lastScheduledRunAgeMinutes !== null && lastScheduledRunAgeMinutes > recentThresholdMinutes;
-
-    let cronStatusLabel = 'Not set up';
-    let cronReason = '';
-
-    if (cronProven) {
-      cronStatusLabel = 'Proven / Active';
-      cronReason = `Recent scheduled scanner_run found ${lastScheduledRunAgeMinutes}m ago`;
-    } else if (cronStale) {
-      cronStatusLabel = 'Stale';
-      cronReason = `Last scheduled scanner_run was ${lastScheduledRunAgeMinutes}m ago; expected within ${recentThresholdMinutes}m`;
-    } else if (cronConfigured) {
-      cronStatusLabel = 'Configured, not proven';
-      cronReason = latestScheduledRun
-        ? `Cron configured, but latest scheduled scanner_run is ${lastScheduledRunAgeMinutes}m old; expected within ${recentThresholdMinutes}m`
-        : 'scanner_config.cron_job_active=true, but no scheduled scanner_run proof was returned';
-    } else if (!scheduleEnabled) {
-      cronStatusLabel = 'Not set up';
-      cronReason = 'Schedule disabled in Scanner Config';
-    } else {
-      cronStatusLabel = 'Not set up';
-      cronReason = 'No scheduled scanner_runs found — set up pg_cron job';
-    }
-
+    const lastScheduledRunAgeMinutes = ageMinutesFromStartedAt(latestScheduledRun?.started_at ?? null);
+    const freshnessLabel = scheduledFreshnessLabel(latestScheduledRun);
+    const cronStatusLabel = freshnessLabel;
+    const cronReason = schedulerProofReason(latestScheduledRun);
+    const cronProven = freshnessLabel === 'Proven / Active' || freshnessLabel === 'Recently proven';
+    const cronStale = freshnessLabel === 'Stale';
     const cronDetected = cronProven;
 
     // Runtime provider config — fetch live from edge function
@@ -273,11 +254,13 @@ export function useAdminLiveState(session: { access_token: string } | null) {
 
     const latestOutcomeAt = autoUpdateRes.data?.created_at ?? updateRes.data?.created_at ?? null;
     const outcomeAgeMinutes = latestOutcomeAt ? Math.round((Date.now() - new Date(latestOutcomeAt).getTime()) / 60000) : null;
-    const outcomeTrackingStatus = outcomeAgeMinutes !== null && outcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
-      ? (autoUpdateRes.data ? 'Active (automatic)' : 'Active (manual)')
-      : outcomeTgRes.data || updateRes.data
-        ? 'Stale/manual only'
-        : 'Not verified';
+    const outcomeTrackingStatus = autoUpdateRes.data && outcomeAgeMinutes !== null && outcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
+      ? 'Automatic outcome active'
+      : outcomeAgeMinutes !== null && outcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
+        ? 'Active (manual)'
+        : outcomeTgRes.data || updateRes.data
+          ? 'Stale/manual only'
+          : 'Not verified';
 
     const effectiveSignalEnableCrypto = (runtimeConfig?.signal_enable_crypto ?? true) && cfg?.scan_crypto_enabled !== false;
     const effectiveSignalEnableForex = (runtimeConfig?.signal_enable_forex ?? false) && cfg?.scan_forex_enabled === true;
@@ -288,6 +271,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
         : !effectiveSignalEnableCrypto && effectiveSignalEnableForex
           ? 'forex_only'
           : 'disabled';
+
+    if (seq !== refreshSeq.current) return;
 
     setState({
       cronDetected,
@@ -335,7 +320,13 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       loading: false,
       loadedAt: new Date().toISOString(),
     });
-  }, [session]);
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    void refresh();
+    const id = window.setInterval(() => { void refresh(); }, 45_000);
+    return () => window.clearInterval(id);
+  }, [refresh]);
 
   return { state, refresh };
 }

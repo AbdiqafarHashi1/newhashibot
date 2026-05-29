@@ -3,6 +3,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProviderStatus, Symbol as SymbolRow } from '../../lib/types';
+import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 import { Badge, statusBadge } from '../../components/ui/Badge';
 import { callEdgeFunction, EdgeFunctionReachability, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
 import { AlertTriangle, CheckCircle, Database, Info, RefreshCw, Wifi, ChevronDown, ChevronUp } from 'lucide-react';
@@ -36,11 +37,6 @@ interface ScannerConfigSummary {
   auto_send_telegram?: boolean;
   schedule_enabled?: boolean;
   cron_job_active?: boolean;
-}
-
-interface ScannerRunSummary {
-  started_at?: string;
-  run_type?: string;
 }
 
 function safeLower(value: unknown) {
@@ -124,10 +120,10 @@ function Requirement({ label, ok, expected }: { label: string; ok: boolean; expe
 
 export default function ProviderHealth() {
   const { session } = useAuth();
+  const { state: liveState, refresh: refreshLiveState } = useAdminLiveState(session);
   const [providers, setProviders] = useState<Partial<ProviderStatus>[]>([]);
   const [symbols, setSymbols] = useState<SymbolRow[]>([]);
   const [cfg, setCfg] = useState<ScannerConfigSummary | null>(null);
-  const [latestScheduledRun, setLatestScheduledRun] = useState<ScannerRunSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig | null>(null);
@@ -143,19 +139,17 @@ export default function ProviderHealth() {
     setRefreshing(true);
     setLoadWarning('');
     try {
-      const [p, s, cfgRes, scheduledRunRes] = await Promise.all([
+      const [p, s, cfgRes] = await Promise.all([
         supabase.from('provider_status').select('*'),
         supabase.from('symbols').select('*').order('market_type').order('symbol'),
         supabase.from('scanner_config').select('auto_send_telegram,schedule_enabled,cron_job_active').eq('id', 1).maybeSingle(),
-        supabase.from('scanner_runs').select('started_at,run_type').eq('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
-      if (p.error || s.error || cfgRes.error || scheduledRunRes.error) {
-        setLoadWarning(p.error?.message ?? s.error?.message ?? cfgRes.error?.message ?? scheduledRunRes.error?.message ?? 'Provider Health loaded with warnings.');
+      if (p.error || s.error || cfgRes.error) {
+        setLoadWarning(p.error?.message ?? s.error?.message ?? cfgRes.error?.message ?? 'Provider Health loaded with warnings.');
       }
       setProviders(Array.isArray(p.data) ? p.data : []);
       setSymbols(Array.isArray(s.data) ? (s.data as SymbolRow[]) : []);
       setCfg((cfgRes.data ?? null) as ScannerConfigSummary | null);
-      setLatestScheduledRun((scheduledRunRes.data ?? null) as ScannerRunSummary | null);
     } catch (e) {
       setLoadWarning(e instanceof Error ? e.message : 'Provider status query failed.');
       setProviders([]);
@@ -211,7 +205,11 @@ export default function ProviderHealth() {
     }
   }, [session]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    void load();
+    const id = window.setInterval(() => { void load(); }, 45_000);
+    return () => window.clearInterval(id);
+  }, [load]);
 
   async function testBinance() {
     setTestingBinance(true);
@@ -242,9 +240,9 @@ export default function ProviderHealth() {
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? 'binance';
   const cryptoProviderRow = providers.find(p => safeLower(p.provider_name) === 'binance');
   const cryptoActive = safeLower(cryptoProviderRow?.status) === 'active' || Boolean(cryptoProviderRow?.last_success_at);
-  const latestScheduledAge = latestScheduledRun?.started_at ? Math.round((Date.now() - new Date(latestScheduledRun.started_at).getTime()) / 60000) : null;
-  const cronDetected = latestScheduledAge !== null && latestScheduledAge <= 15;
-  const schedulerLabel = cronDetected ? 'Proven' : cfg?.cron_job_active ? 'Configured, not proven' : 'Not configured';
+  const latestScheduledAge = liveState.lastScheduledRunAgeMinutes;
+  const cronDetected = liveState.cronStatusLabel === 'Proven / Active';
+  const schedulerLabel = liveState.cronStatusLabel;
   const telegramConfigured = Boolean(runtimeConfig?.telegram_enabled && runtimeConfig.enable_signal_mode_output && runtimeConfig.telegram_bot_token_set && (runtimeConfig.telegram_default_channel_id_set || runtimeConfig.telegram_chat_id_set) && cfg?.auto_send_telegram !== false);
   const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || safeLower(p.provider_name) === 'forex' || p.data_source_label === 'DISABLED_FOR_MVP');
   const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && safeLower(p.provider_name) !== 'forex' && p.data_source_label !== 'DISABLED_FOR_MVP');
@@ -269,9 +267,9 @@ export default function ProviderHealth() {
           <h1 className="text-2xl font-bold">Provider Health</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Current crypto-only runtime truth plus historical provider rows</p>
         </div>
-        <button onClick={load} disabled={refreshing}
+        <button onClick={async () => { await Promise.all([load(), refreshLiveState()]); }} disabled={refreshing || liveState.loading}
           className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
-          <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={12} className={refreshing || liveState.loading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </div>
@@ -309,8 +307,9 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Schedule / Cron</div>
-          <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : cfg?.cron_job_active ? 'text-lg font-semibold text-yellow-400' : 'text-lg font-semibold text-zinc-500'}>{schedulerLabel}</div>
-          <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · last ${latestScheduledAge}m ago` : ''}</div>
+          <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : liveState.cronStale ? 'text-lg font-semibold text-yellow-400' : cfg?.cron_job_active ? 'text-lg font-semibold text-blue-400' : 'text-lg font-semibold text-zinc-500'}>{schedulerLabel}</div>
+          <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · latest scheduled scanner_run ${latestScheduledAge}m ago` : ' · no scheduled scanner_run proof'}</div>
+          <div className="text-xs text-zinc-600 mt-1">{liveState.cronReason}</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:col-span-2 lg:col-span-1">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Edge Functions</div>
