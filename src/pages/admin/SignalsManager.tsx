@@ -6,6 +6,7 @@ import { Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { Send, RefreshCw, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { edgeFunctionUrl } from '../../lib/supabaseEnv';
 
 interface TelegramDelivery {
   id: string;
@@ -58,7 +59,7 @@ export default function SignalsManager() {
     setMinAutoSendGrade(cfgRes.data?.min_auto_send_grade ?? cfgRes.data?.min_signal_grade ?? 'A');
     setDeliveries(delivRes.data ?? []);
     try {
-      const runtimeRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
+      const runtimeRes = await fetch(edgeFunctionUrl('market-scanner'), {
         method: 'POST',
         headers: { ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}), 'Content-Type': 'application/json' },
         body: JSON.stringify({ debug_provider_config: true }),
@@ -154,7 +155,7 @@ export default function SignalsManager() {
     if (!check.allowed) { flash(check.reason, 'err'); return; }
     setSending(sig.id);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-send`, {
+      const res = await fetch(edgeFunctionUrl('telegram-send'), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ signal_id: sig.id }),

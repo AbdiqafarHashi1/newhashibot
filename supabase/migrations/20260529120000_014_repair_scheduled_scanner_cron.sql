@@ -28,6 +28,7 @@ ALTER TABLE public.scanner_runs ADD COLUMN IF NOT EXISTS outcomes_updated intege
 ALTER TABLE public.scanner_runs ADD COLUMN IF NOT EXISTS outcome_telegram_sent integer NOT NULL DEFAULT 0;
 ALTER TABLE public.scanner_runs ADD COLUMN IF NOT EXISTS outcome_telegram_skipped integer NOT NULL DEFAULT 0;
 ALTER TABLE public.scanner_runs ADD COLUMN IF NOT EXISTS outcome_telegram_failed integer NOT NULL DEFAULT 0;
+ALTER TABLE public.scanner_runs ADD COLUMN IF NOT EXISTS outcome_error text;
 
 DO $$
 DECLARE

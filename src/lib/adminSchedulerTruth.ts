@@ -16,52 +16,107 @@ export interface SchedulerProof {
 export const SCHEDULED_ACTIVE_MINUTES = 7;
 export const SCHEDULED_RECENT_MINUTES = 15;
 
-export const SCANNER_RUN_PROOF_COLUMNS = 'id,run_type,status,started_at,finished_at,symbols_scanned,signals_created,telegram_sent_count,error_message';
+export const SCANNER_RUN_PROOF_COLUMNS = 'id,run_type,source,triggered_by,is_automatic,status,started_at,finished_at,symbols_scanned,signals_created,telegram_sent_count,telegram_failed_count,error_message,outcome_checked,outcomes_updated,outcome_telegram_sent,outcome_telegram_failed,outcome_error';
 
 export const LATEST_SCHEDULED_PROOF_SQL = `select
   id,
   run_type,
+  source,
+  triggered_by,
+  is_automatic,
   status,
   started_at,
   finished_at,
   symbols_scanned,
   signals_created,
   telegram_sent_count,
-  error_message
+  telegram_failed_count,
+  error_message,
+  outcome_checked,
+  outcomes_updated,
+  outcome_telegram_sent,
+  outcome_telegram_failed,
+  outcome_error
 from scanner_runs
 where lower(run_type) = 'scheduled'
+  and (
+    source = 'pg_cron'
+    or triggered_by = 'pg_cron'
+    or is_automatic = true
+  )
 order by started_at desc
 limit 1;`;
 
 export const RECENT_SCHEDULED_PROOF_SQL = `select
   id,
   run_type,
+  source,
+  triggered_by,
+  is_automatic,
   status,
   started_at,
   finished_at,
   symbols_scanned,
   signals_created,
   telegram_sent_count,
-  error_message
+  telegram_failed_count,
+  error_message,
+  outcome_checked,
+  outcomes_updated,
+  outcome_telegram_sent,
+  outcome_telegram_failed,
+  outcome_error
 from scanner_runs
 where lower(run_type) = 'scheduled'
+  and (
+    source = 'pg_cron'
+    or triggered_by = 'pg_cron'
+    or is_automatic = true
+  )
 order by started_at desc
 limit 20;`;
 
 export const LATEST_MANUAL_PROOF_SQL = `select
   id,
   run_type,
+  source,
+  triggered_by,
+  is_automatic,
   status,
   started_at,
   finished_at,
   symbols_scanned,
   signals_created,
   telegram_sent_count,
-  error_message
+  telegram_failed_count,
+  error_message,
+  outcome_checked,
+  outcomes_updated,
+  outcome_telegram_sent,
+  outcome_telegram_failed,
+  outcome_error
 from scanner_runs
-where lower(run_type) = 'manual'
+where triggered_by = 'manual_button'
+   or source like '%manual%'
+   or lower(run_type) = 'manual'
 order by started_at desc
 limit 1;`;
+
+
+export const AUTOMATIC_SCHEDULER_PROOF_OR = 'source.eq.pg_cron,triggered_by.eq.pg_cron,is_automatic.eq.true';
+export const MANUAL_PROOF_OR = 'triggered_by.eq.manual_button,source.ilike.%manual%,run_type.ilike.manual';
+export const AUTOMATIC_OUTCOME_PROOF_OR = 'source.eq.scheduled_market_scanner,triggered_by.eq.pg_cron,is_automatic.eq.true';
+export const MANUAL_OUTCOME_PROOF_OR = 'source.eq.manual_outcome_button,triggered_by.eq.manual_button,message.ilike.%source: manual_button%';
+
+export function isAutomaticSchedulerRun(run: Pick<ScannerRun, 'run_type' | 'source' | 'triggered_by' | 'is_automatic'> | null | undefined): boolean {
+  if (!run || String(run.run_type ?? '').toLowerCase() !== 'scheduled') return false;
+  return run.source === 'pg_cron' || run.triggered_by === 'pg_cron' || run.is_automatic === true;
+}
+
+export function isManualRunProof(run: Pick<ScannerRun, 'run_type' | 'source' | 'triggered_by' | 'is_automatic'> | null | undefined): boolean {
+  if (!run) return false;
+  return run.triggered_by === 'manual_button' || String(run.source ?? '').includes('manual') || String(run.run_type ?? '').toLowerCase() === 'manual';
+}
 
 export function ageMinutesFromStartedAt(startedAt?: string | null): number | null {
   if (!startedAt) return null;

@@ -81,19 +81,19 @@ export default function ScannerStatus() {
             <div className="text-sm text-zinc-200">{latestManualRun ? new Date(latestManualRun.started_at).toLocaleString() : '—'}</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest scheduled run</div>
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest automatic scheduled run</div>
             <div className="text-sm text-zinc-200">{latestScheduledRun ? new Date(latestScheduledRun.started_at).toLocaleString() : '—'}</div>
             {scheduledAgeMinutes !== null && <div className="text-xs text-zinc-600 mt-1">Age: {scheduledAgeMinutes}m</div>}
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled proof</div>
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Automatic Scheduler Proof</div>
             <div className={`text-sm font-semibold ${scheduledFresh ? 'text-emerald-400' : latestScheduledRun ? 'text-yellow-400' : 'text-zinc-500'}`}>{scheduledLabel}</div>
             <div className="text-xs text-zinc-600 mt-1">{state.cronReason}</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled last 30m</div>
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Automatic scheduled last 30m</div>
             <div className="text-sm font-semibold text-emerald-400">{recentScheduled30m}</div>
-            <div className="text-xs text-zinc-600 mt-1">0-signal scheduled runs count as proof.</div>
+            <div className="text-xs text-zinc-600 mt-1">0-signal automatic scheduled rows count as proof.</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest Telegram S/K/F</div>

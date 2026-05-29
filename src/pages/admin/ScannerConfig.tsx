@@ -167,12 +167,12 @@ export default function ScannerConfig() {
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-xs text-zinc-500 flex items-center gap-1"><Calendar size={10} /> Last Scheduled Scan</div>
+                <div className="text-xs text-zinc-500 flex items-center gap-1"><Calendar size={10} /> Last Automatic Scheduled Scan</div>
                 <div className="text-xs text-zinc-300 mt-0.5">{fmtDate(liveState.latestScheduledRun?.started_at ?? config.last_scheduled_scan_at)}</div>
                 {liveState.latestScheduledRun && <div className="text-[11px] text-zinc-600 mt-0.5">Run ID: {liveState.latestScheduledRun.id} · Age: {liveState.schedulerProof.ageMinutes ?? '—'}m</div>}
               </div>
               <div>
-                <div className="text-xs text-zinc-500 flex items-center gap-1"><Clock size={10} /> Last Manual Scan</div>
+                <div className="text-xs text-zinc-500 flex items-center gap-1"><Clock size={10} /> Last Manual Test Scan</div>
                 <div className="text-xs text-zinc-300 mt-0.5">{fmtDate(liveState.latestManualRun?.started_at ?? config.last_manual_scan_at)}</div>
               </div>
             </div>
