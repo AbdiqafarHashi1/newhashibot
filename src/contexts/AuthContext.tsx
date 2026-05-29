@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { getFrontendSupabaseDebugInfo, getSupabaseClientConfig } from '../lib/supabaseEnv';
 import { Profile } from '../lib/types';
 
 interface AuthContextValue {
@@ -17,6 +18,17 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+
+function isAuthFetchFailure(error: unknown): boolean {
+  if (!error) return false;
+  const name = error instanceof Error ? error.name : '';
+  const message = error instanceof Error ? error.message : String(error);
+  return name === 'TypeError'
+    || /failed to fetch/i.test(message)
+    || /network/i.test(message)
+    || /fetch/i.test(message);
+}
 
 async function fetchOrCreateProfile(user: User): Promise<{ profile: Profile | null; error: string | null }> {
   const fetchPromise = supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
@@ -116,8 +128,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    const debug = getFrontendSupabaseDebugInfo();
+
+    console.log('[HashiBot Login Debug]', {
+      marker: debug.marker,
+      selectedUrlOrigin: debug.selectedSupabaseUrlOrigin,
+      expectedProjectRef: debug.expectedProjectRef,
+      actualProjectRef: debug.actualProjectRef,
+      projectRefMatch: debug.projectRefMatches,
+      keySource: debug.selectedFrontendKeySource,
+      keyPresent: debug.keyPresent,
+      keyTypeGuess: debug.keyTypeGuess,
+      browserOrigin: debug.browserOrigin,
+    });
+
+    const config = getSupabaseClientConfig();
+    if (!config.hasValidConfig) {
+      return { error: new Error(config.frontendEnvError ?? 'Supabase auth config is invalid') };
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (isAuthFetchFailure(error)) {
+        return { error: new Error('Supabase auth network/config fetch failed. Check selected URL/key in login debug.') };
+      }
+      return { error: error as Error | null };
+    } catch (err) {
+      if (isAuthFetchFailure(err)) {
+        return { error: new Error('Supabase auth network/config fetch failed. Check selected URL/key in login debug.') };
+      }
+      return { error: err as Error };
+    }
   }
 
   async function signUp(email: string, password: string, fullName: string) {
