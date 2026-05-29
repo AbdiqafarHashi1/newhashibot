@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { ScannerRun, ProviderStatus } from '../lib/types';
 import { callEdgeFunction, EdgeFunctionReachability } from '../lib/edgeFunctionStatus';
 import { SchedulerProof, buildSchedulerProof, SCANNER_RUN_PROOF_COLUMNS, safeSchedulerError } from '../lib/adminSchedulerTruth';
-import { FrontendSupabaseDebugInfo, getFrontendSupabaseDebugInfo } from '../lib/supabaseEnv';
+import { FrontendSupabaseDebugInfo, getFrontendSupabaseDebugInfo, getFrontendSupabaseUrl } from '../lib/supabaseEnv';
 
 export interface RuntimeProviderConfig {
   provider: string;
@@ -43,7 +43,7 @@ export interface AdminLiveState {
   schedulerQueryError: string | null;
   frontendSupabaseDebugInfo: FrontendSupabaseDebugInfo;
   lastRefreshAt: string | null;
-  schedulerQuerySource: 'live_supabase' | 'fallback';
+  schedulerQuerySource: 'live' | 'fallback';
   pollingEnabled: boolean;
   cronJobName: string | null;
   adminSchedulerActionStatus: EdgeFunctionReachability;
@@ -214,7 +214,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     const scheduleEnabled = cfg?.schedule_enabled ?? false;
     const scanIntervalMinutes = cfg?.scan_interval_minutes ?? 5;
     const frontendSupabaseDebugInfo = getFrontendSupabaseDebugInfo();
-    const schedulerQueryError = safeSchedulerError(latestAutomaticScheduledRunRes.error ?? latestRawScheduledRunRes.error ?? latestManualRunRes.error ?? null);
+    const schedulerQueryError = frontendSupabaseDebugInfo.frontendEnvError ?? safeSchedulerError(latestAutomaticScheduledRunRes.error ?? latestRawScheduledRunRes.error ?? latestManualRunRes.error ?? null);
     const schedulerProof = buildSchedulerProof(latestAutomaticScheduledRun, cfg?.cron_job_active === true || cfg?.schedule_enabled === true, {
       latestRawScheduledRun,
       queryError: schedulerQueryError,
@@ -231,7 +231,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     let runtimeConfig: RuntimeProviderConfig | null = null;
     let runtimeConfigError: string | null = null;
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const supabaseUrl = getFrontendSupabaseUrl();
       const res = await fetch(`${supabaseUrl}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: {
@@ -321,7 +321,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       schedulerQueryError,
       frontendSupabaseDebugInfo,
       lastRefreshAt: new Date().toISOString(),
-      schedulerQuerySource: schedulerQueryError ? 'fallback' : 'live_supabase',
+      schedulerQuerySource: schedulerQueryError ? 'fallback' : 'live',
       pollingEnabled: true,
       cronJobName: cfg?.cron_job_name ?? null,
       adminSchedulerActionStatus,

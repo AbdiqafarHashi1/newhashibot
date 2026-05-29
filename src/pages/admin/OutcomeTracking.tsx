@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { Play, RefreshCw, CheckCircle, AlertTriangle, Activity, XCircle } from 'lucide-react';
 import { callEdgeFunction, EdgeFunctionReachability } from '../../lib/edgeFunctionStatus';
+import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
 
 interface SignalUpdate {
   id: string;
@@ -98,7 +99,7 @@ export default function OutcomeTracking() {
       setLatestAutoUpdate((autoUpdateRes.data ?? null) as SignalUpdate | null);
       setLatestManualUpdate((manualUpdateRes.data ?? null) as SignalUpdate | null);
       try {
-        const probe = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-signal-outcomes`, { method: 'OPTIONS' });
+        const probe = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/evaluate-signal-outcomes`, { method: 'OPTIONS' });
         setOutcomeFunctionStatus(probe.status === 404 ? 'missing' : probe.ok ? 'deployed' : 'unknown');
       } catch {
         setOutcomeFunctionStatus('unreachable');

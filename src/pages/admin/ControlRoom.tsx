@@ -13,6 +13,7 @@ import {
   Wifi, RefreshCw, CalendarClock
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
 
 export default function ControlRoom() {
   const { session } = useAuth();
@@ -62,7 +63,7 @@ export default function ControlRoom() {
     setScanMsg('');
     setScanIsDemo(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
+      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       });
@@ -122,7 +123,7 @@ export default function ControlRoom() {
     setTestingProvider('forex');
     setActionMsg('');
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
+      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ debug_provider_config: true }),
@@ -144,7 +145,7 @@ export default function ControlRoom() {
     setTestingTg(true);
     setActionMsg('');
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-test`, {
+      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/telegram-test`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ send: true }),
