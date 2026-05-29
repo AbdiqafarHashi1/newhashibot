@@ -707,26 +707,26 @@ function formatSignalMessage(signal: Record<string, unknown>, dataSource: string
     : String(signal.entry_high ?? "N/A");
   const dataLabel = dataSource === "REAL DATA" ? "✅ REAL DATA" : "⚠️ DEMO DATA (not real)";
   return [
-    `🤖 *HASHIBOT ${grade} SIGNAL* ${gradeEmoji}`,
+    `🤖 HASHIBOT ${grade} SIGNAL ${gradeEmoji}`,
     ``,
-    `*Symbol:* ${signal.symbol}`,
-    `*Market:* ${String(signal.market_type ?? "").toUpperCase()}`,
-    `*Timeframe:* ${signal.timeframe}`,
-    `*Direction:* ${dirEmoji}`,
-    `*Entry:* ${entryRange}`,
-    `*Stop Loss:* ${Number(signal.stop_loss).toFixed(5)}`,
-    `*TP1:* ${Number(signal.tp1).toFixed(5)}`,
-    `*TP2:* ${Number(signal.tp2).toFixed(5)}`,
-    `*Risk/Reward:* ${Number(signal.risk_reward).toFixed(2)}R`,
-    `*Strategy:* ${signal.strategy_name}`,
-    `*Regime:* ${signal.regime}`,
-    `*Confidence:* ${signal.confidence_score}%`,
-    `*Data:* ${dataLabel}`,
-    `*Reason:* ${signal.reason}`,
-    `*Timestamp:* ${new Date().toISOString()}`,
+    `Symbol: ${signal.symbol}`,
+    `Market: ${String(signal.market_type ?? "").toUpperCase()}`,
+    `Timeframe: ${signal.timeframe}`,
+    `Direction: ${dirEmoji}`,
+    `Entry: ${entryRange}`,
+    `Stop Loss: ${Number(signal.stop_loss).toFixed(5)}`,
+    `TP1: ${Number(signal.tp1).toFixed(5)}`,
+    `TP2: ${Number(signal.tp2).toFixed(5)}`,
+    `Risk/Reward: ${Number(signal.risk_reward).toFixed(2)}R`,
+    `Strategy: ${signal.strategy_name}`,
+    `Regime: ${signal.regime}`,
+    `Confidence: ${signal.confidence_score}%`,
+    `Data: ${dataLabel}`,
+    `Reason: ${signal.reason}`,
+    `Timestamp: ${new Date().toISOString()}`,
     ``,
-    `_Signal only. Manage risk. Not financial advice._`,
-    `_HashiBot Trading Intelligence_`,
+    `Signal only. Manage risk. Not financial advice.`,
+    `HashiBot Trading Intelligence`,
   ].join("\n");
 }
 
@@ -817,7 +817,7 @@ async function tryAutoSendTelegram(
     const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown", disable_web_page_preview: true }),
+      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
       signal: AbortSignal.timeout(8000),
     });
     const tgData = await res.json() as { ok: boolean; result?: { message_id: number }; description?: string };
@@ -873,6 +873,7 @@ async function runScanPipeline(
   config: ScannerConfig,
   runType: "manual" | "scheduled",
   existingRunId?: string | null,
+  provenance: { source: string; triggered_by: string; is_automatic: boolean } = { source: "admin_manual_scan", triggered_by: "manual_button", is_automatic: false },
 ): Promise<Record<string, unknown>> {
   const scanStart = Date.now();
 
@@ -917,12 +918,15 @@ async function runScanPipeline(
     const { error: claimError } = await supabase.from("scanner_runs").update({
       status: "running",
       run_type: runType,
+      source: provenance.source,
+      triggered_by: provenance.triggered_by,
+      is_automatic: provenance.is_automatic,
       error_message: "market-scanner started from scheduled wrapper",
     }).eq("id", runId);
     if (claimError) throw new Error(`Unable to claim scanner_runs row ${runId}: ${claimError.message}`);
   } else {
     const { data: runData, error: runError } = await supabase.from("scanner_runs").insert({
-      status: "running", started_at: new Date().toISOString(), run_type: runType,
+      status: "running", started_at: new Date().toISOString(), run_type: runType, source: provenance.source, triggered_by: provenance.triggered_by, is_automatic: provenance.is_automatic,
     }).select().single();
     if (runError) throw new Error(`Unable to create scanner_runs row: ${runError.message}`);
     runId = runData?.id ?? "unknown";
@@ -1220,7 +1224,7 @@ async function runScanPipeline(
   );
 
   return {
-    success: true, run_id: runId, run_type: runType, duration_ms: durationMs,
+    success: true, run_id: runId, run_type: runType, source: provenance.source, triggered_by: provenance.triggered_by, is_automatic: provenance.is_automatic, duration_ms: durationMs,
     market_mode: marketMode, signal_enable_crypto: config.signal_enable_crypto, signal_enable_forex: config.signal_enable_forex,
     crypto_symbols_scanned: cryptoSymbolsScanned, forex_skipped_count: forexSkippedCount, forex_skip_reason: forexSkipReason, forex_provider_called: config.signal_enable_forex,
     symbols_scanned: symbolsScanned, candles_fetched: candlesFetched,
@@ -1358,8 +1362,17 @@ Deno.serve(async (req: Request) => {
     }
 
     const existingRunId = typeof body.scanner_run_id === "string" ? body.scanner_run_id : null;
+    const requestedSource = typeof body.source === "string" && body.source ? body.source : undefined;
+    const requestedTriggeredBy = typeof body.triggered_by === "string" && body.triggered_by ? body.triggered_by : undefined;
+    const provenance = runType === "scheduled"
+      ? {
+        source: requestedSource === "pg_cron" ? "pg_cron" : requestedSource ?? "admin_manual_scheduled_test",
+        triggered_by: requestedTriggeredBy === "pg_cron" || requestedSource === "pg_cron" || body.is_automatic === true ? "pg_cron" : requestedTriggeredBy ?? "manual_button",
+        is_automatic: requestedSource === "pg_cron" || requestedTriggeredBy === "pg_cron" || body.is_automatic === true,
+      }
+      : { source: requestedSource ?? "admin_manual_scan", triggered_by: requestedTriggeredBy ?? "manual_button", is_automatic: body.is_automatic === true };
     try {
-      const result = await runScanPipeline(supabase, config, runType, existingRunId);
+      const result = await runScanPipeline(supabase, config, runType, existingRunId, provenance);
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (scanError) {
       const message = scanError instanceof Error ? scanError.message : "Unknown scan pipeline error";
@@ -1368,9 +1381,12 @@ Deno.serve(async (req: Request) => {
           status: "failed",
           finished_at: new Date().toISOString(),
           error_message: `market-scanner exception: ${message}`.slice(0, 4000),
+          source: provenance.source,
+          triggered_by: provenance.triggered_by,
+          is_automatic: provenance.is_automatic,
         }).eq("id", existingRunId);
       }
-      return new Response(JSON.stringify({ success: false, run_id: existingRunId, run_type: runType, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: false, run_id: existingRunId, run_type: runType, source: provenance.source, triggered_by: provenance.triggered_by, is_automatic: provenance.is_automatic, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
   } catch (err) {

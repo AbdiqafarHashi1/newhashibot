@@ -314,6 +314,9 @@ export interface ScannerRun {
   created_at: string;
   // Phase 5A fields
   run_type: 'manual' | 'scheduled';
+  source?: string | null;
+  triggered_by?: string | null;
+  is_automatic?: boolean | null;
   telegram_sent_count: number;
   telegram_blocked_count: number;
   telegram_failed_count?: number;
@@ -322,6 +325,7 @@ export interface ScannerRun {
   outcome_telegram_sent?: number | null;
   outcome_telegram_skipped?: number | null;
   outcome_telegram_failed?: number | null;
+  outcome_error?: string | null;
   market_mode?: string;
   forex_skipped_count?: number;
 }

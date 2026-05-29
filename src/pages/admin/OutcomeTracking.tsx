@@ -5,6 +5,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { Play, RefreshCw, CheckCircle, AlertTriangle, Activity, XCircle } from 'lucide-react';
 import { callEdgeFunction, EdgeFunctionReachability } from '../../lib/edgeFunctionStatus';
+import { edgeFunctionUrl } from '../../lib/supabaseEnv';
+import { useAdminLiveState } from '../../hooks/useAdminLiveState';
+import { AUTOMATIC_OUTCOME_PROOF_OR, MANUAL_OUTCOME_PROOF_OR } from '../../lib/adminSchedulerTruth';
 
 interface SignalUpdate {
   id: string;
@@ -17,6 +20,9 @@ interface SignalUpdate {
   message: string | null;
   telegram_sent: boolean;
   created_at: string;
+  source?: string | null;
+  triggered_by?: string | null;
+  is_automatic?: boolean | null;
 }
 
 interface SignalRow {
@@ -34,6 +40,9 @@ interface SignalRow {
   entry_low: number;
   entry_high: number;
   created_at: string;
+  source?: string | null;
+  triggered_by?: string | null;
+  is_automatic?: boolean | null;
 }
 
 interface TelegramDelivery {
@@ -43,6 +52,9 @@ interface TelegramDelivery {
   status: 'sent' | 'failed' | 'skipped' | 'pending';
   error_message: string | null;
   created_at: string;
+  source?: string | null;
+  triggered_by?: string | null;
+  is_automatic?: boolean | null;
 }
 
 interface OutcomeRunResult {
@@ -65,6 +77,7 @@ interface OutcomeRunResult {
 
 export default function OutcomeTracking() {
   const { session } = useAuth();
+  const { state: liveState, refresh: refreshLiveState } = useAdminLiveState(session);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<OutcomeRunResult | null>(null);
   const [rawRunResponse, setRawRunResponse] = useState<unknown>(null);
@@ -86,8 +99,8 @@ export default function OutcomeTracking() {
         supabase.from('signals').select('*').eq('market_type', 'crypto').eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']).order('created_at', { ascending: false }).limit(50),
         supabase.from('signal_updates').select('*, signals(symbol, direction)').order('created_at', { ascending: false }).limit(30),
         supabase.from('telegram_deliveries').select('*').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(100),
-        supabase.from('signal_updates').select('*').ilike('message', '%source: scheduled-market-scanner%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('signal_updates').select('*').or('message.is.null,message.ilike.%source: manual_button%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('signal_updates').select('*').or(AUTOMATIC_OUTCOME_PROOF_OR).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('signal_updates').select('*').or(MANUAL_OUTCOME_PROOF_OR).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
       if (sigsRes.error || updatesRes.error || deliveryRes.error || autoUpdateRes.error || manualUpdateRes.error) {
         setLoadWarning(sigsRes.error?.message ?? updatesRes.error?.message ?? deliveryRes.error?.message ?? autoUpdateRes.error?.message ?? manualUpdateRes.error?.message ?? 'Outcome data load warning');
@@ -98,7 +111,7 @@ export default function OutcomeTracking() {
       setLatestAutoUpdate((autoUpdateRes.data ?? null) as SignalUpdate | null);
       setLatestManualUpdate((manualUpdateRes.data ?? null) as SignalUpdate | null);
       try {
-        const probe = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evaluate-signal-outcomes`, { method: 'OPTIONS' });
+        const probe = await fetch(edgeFunctionUrl('evaluate-signal-outcomes'), { method: 'OPTIONS' });
         setOutcomeFunctionStatus(probe.status === 404 ? 'missing' : probe.ok ? 'deployed' : 'unknown');
       } catch {
         setOutcomeFunctionStatus('unreachable');
@@ -118,7 +131,7 @@ export default function OutcomeTracking() {
     setRunResult(null);
     setRunError('');
     try {
-      const result = await callEdgeFunction<OutcomeRunResult & { error?: string }>('evaluate-signal-outcomes', { source: 'manual_button' }, session.access_token);
+      const result = await callEdgeFunction<OutcomeRunResult & { error?: string }>('evaluate-signal-outcomes', { source: 'manual_outcome_button', triggered_by: 'manual_button', is_automatic: false }, session.access_token);
       setOutcomeFunctionStatus(result.reachability);
       setRawRunResponse(result.data ?? result.text);
       const data = result.data;
@@ -128,7 +141,7 @@ export default function OutcomeTracking() {
         setRunError(data?.error ?? `Outcome check failed with HTTP ${result.status}`);
       } else {
         setRunResult(data);
-        await load();
+        await Promise.all([load(), refreshLiveState()]);
       }
     } catch (e) {
       setRunError(e instanceof Error ? e.message : 'Network error');
@@ -157,7 +170,9 @@ export default function OutcomeTracking() {
 
   const checked = runResult?.signals_checked ?? runResult?.scanned ?? 0;
   const changed = runResult?.signals_updated ?? runResult?.changed ?? 0;
-  const onlyManual = !latestAutoUpdate && Boolean(latestManualUpdate);
+  const automaticOutcomeTime = liveState.latestAutomaticOutcomeCheckAt ?? latestAutoUpdate?.created_at ?? null;
+  const manualOutcomeTime = liveState.latestManualOutcomeCheckAt ?? latestManualUpdate?.created_at ?? null;
+  const onlyManual = !automaticOutcomeTime && Boolean(manualOutcomeTime);
 
   return (
     <AdminLayout>
@@ -200,11 +215,11 @@ export default function OutcomeTracking() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Last automatic check</div>
-          <div className={`text-sm font-semibold ${latestAutoUpdate ? 'text-emerald-400' : 'text-yellow-400'}`}>{latestAutoUpdate ? new Date(latestAutoUpdate.created_at).toLocaleString() : 'not verified'}</div>
+          <div className={`text-sm font-semibold ${automaticOutcomeTime ? 'text-emerald-400' : 'text-yellow-400'}`}>{automaticOutcomeTime ? new Date(automaticOutcomeTime).toLocaleString() : 'not verified'}</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Last manual check</div>
-          <div className="text-sm font-semibold text-zinc-200">{latestManualUpdate ? new Date(latestManualUpdate.created_at).toLocaleString() : 'not verified'}</div>
+          <div className="text-sm font-semibold text-zinc-200">{manualOutcomeTime ? new Date(manualOutcomeTime).toLocaleString() : 'not verified'}</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Latest outcome TG</div>
@@ -215,7 +230,7 @@ export default function OutcomeTracking() {
       {onlyManual && (
         <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-          <span>Outcome tracking currently has manual proof only. Wait for the next pg_cron scheduled scan; automatic proof appears when scheduled-market-scanner calls evaluate-signal-outcomes and writes a signal update.</span>
+          <span>Outcome tracking currently has manual proof only. Wait for the next pg_cron scheduled scan; automatic proof appears when pg_cron calls scheduled-market-scanner, which calls evaluate-signal-outcomes with source=scheduled_market_scanner/triggered_by=pg_cron.</span>
         </div>
       )}
 
@@ -339,8 +354,8 @@ export default function OutcomeTracking() {
                     <div className="text-xs text-zinc-600 flex gap-3 flex-wrap">
                       {u.price !== null && <span>Price: <span className="font-mono text-zinc-400">{Number(u.price).toFixed(5)}</span></span>}
                       <span>{u.reason ?? ''}</span>
-                      {u.message?.includes('source: scheduled-market-scanner') && <span className="text-emerald-400">automatic</span>}
-                      {u.message?.includes('source: manual_button') && <span className="text-yellow-400">manual</span>}
+                      {(u.is_automatic === true || u.triggered_by === 'pg_cron' || u.source === 'scheduled_market_scanner') && <span className="text-emerald-400">automatic</span>}
+                      {(u.triggered_by === 'manual_button' || String(u.source ?? '').includes('manual')) && <span className="text-yellow-400">manual</span>}
                       <span>{new Date(u.created_at).toLocaleString()}</span>
                       {delivery?.error_message && <span className="text-yellow-400 flex items-center gap-1"><XCircle size={10} /> {delivery.error_message}</span>}
                     </div>

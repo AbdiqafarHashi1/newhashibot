@@ -245,7 +245,11 @@ Deno.serve(async (req: Request) => {
     );
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const source = typeof body.source === "string" && body.source ? body.source : "manual_button";
+    const requestedSource = typeof body.source === "string" && body.source ? body.source : "manual_outcome_button";
+    const requestedTriggeredBy = typeof body.triggered_by === "string" && body.triggered_by ? body.triggered_by : undefined;
+    const isAutomatic = requestedSource === "scheduled_market_scanner" || requestedTriggeredBy === "pg_cron" || body.is_automatic === true;
+    const source = isAutomatic ? "scheduled_market_scanner" : requestedSource === "manual_button" ? "manual_outcome_button" : requestedSource;
+    const triggeredBy = isAutomatic ? "pg_cron" : requestedTriggeredBy ?? "manual_button";
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -277,7 +281,9 @@ Deno.serve(async (req: Request) => {
     const out = {
       success: true,
       source,
-      automatic: source !== "manual_button",
+      triggered_by: triggeredBy,
+      is_automatic: isAutomatic,
+      automatic: isAutomatic,
       market_mode: marketMode,
       signals_checked: 0,
       signals_updated: 0,
@@ -379,7 +385,10 @@ Deno.serve(async (req: Request) => {
         previous_status: currentStatus,
         old_status: currentStatus,
         new_status: next,
-        message: `${eventLabel(next)} via ${reason} (source: ${source})`,
+        message: `${eventLabel(next)} via ${reason} (source: ${source}; triggered_by: ${triggeredBy}; is_automatic: ${isAutomatic})`,
+        source,
+        triggered_by: triggeredBy,
+        is_automatic: isAutomatic,
         price,
         reason,
         telegram_sent: telegramResult.sent,
