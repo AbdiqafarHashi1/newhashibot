@@ -157,7 +157,13 @@ export default function ControlRoom() {
     setTestingTg(false);
   }
 
-  const { latestRun, latestManualRun, latestScheduledRun, recentRuns, providers, runtimeConfig } = state;
+  const { latestManualRun, latestScheduledRun, recentRuns, providers, runtimeConfig } = state;
+  const latestRun = (() => {
+    const directLatest = state.latestRun;
+    if (!latestScheduledRun) return directLatest;
+    if (!directLatest) return latestScheduledRun;
+    return new Date(latestScheduledRun.started_at).getTime() > new Date(directLatest.started_at).getTime() ? latestScheduledRun : directLatest;
+  })();
   const cryptoProvider = providers.find(p => p.market_type === 'crypto' || p.provider_name === 'binance');
   const forexProvider = providers.find(p => p.market_type === 'forex');
   const liveForexProvider = runtimeConfig?.provider ?? forexProvider?.provider_name ?? 'unknown';
@@ -172,10 +178,15 @@ export default function ControlRoom() {
   const adminActionMissing = state.adminSchedulerActionStatus === 'missing';
 
   const heartbeatColor =
-    state.heartbeatStatus === 'healthy' ? 'text-emerald-400'
-    : state.heartbeatStatus === 'stale' ? 'text-yellow-400'
-    : state.heartbeatStatus === 'error' ? 'text-red-400'
+    state.schedulerProof.status === 'active' ? 'text-emerald-400'
+    : state.schedulerProof.status === 'recent' ? 'text-emerald-300'
+    : state.schedulerProof.status === 'stale' ? 'text-yellow-400'
     : 'text-zinc-500';
+  const heartbeatLabel =
+    state.schedulerProof.status === 'active' ? 'Healthy / proven'
+    : state.schedulerProof.status === 'recent' ? 'Recently proven'
+    : state.schedulerProof.status === 'stale' ? 'Stale'
+    : state.schedulerProof.label;
 
   const cronColor = state.cronProven
     ? 'text-emerald-400'
@@ -228,7 +239,7 @@ export default function ControlRoom() {
         <BannerItem label="Market Mode" value={state.marketMode === 'crypto_only' ? 'Crypto-only' : state.marketMode} color={state.marketMode === 'crypto_only' ? 'text-emerald-400' : 'text-yellow-400'} />
         <BannerItem label="Crypto" value={state.signalEnableCrypto ? 'Enabled' : 'Disabled'} color={state.signalEnableCrypto ? 'text-emerald-400' : 'text-zinc-500'} />
         <BannerItem label="Forex" value={state.signalEnableForex ? 'Enabled' : 'Disabled for MVP'} color={state.signalEnableForex ? 'text-emerald-400' : 'text-blue-400'} />
-        <BannerItem label="Heartbeat" value={state.heartbeatStatus.charAt(0).toUpperCase() + state.heartbeatStatus.slice(1)} color={heartbeatColor} />
+        <BannerItem label="Heartbeat" value={heartbeatLabel} color={heartbeatColor} title={state.cronReason} />
         <BannerItem
           label="Schedule"
           value={state.scheduleEnabled ? `ON (${state.scanIntervalMinutes}m)` : 'OFF'}
@@ -236,7 +247,7 @@ export default function ControlRoom() {
         />
         <BannerItem
           label="Cron job"
-          value={state.cronProven ? 'Proven / Active' : state.cronStatusLabel}
+          value={state.schedulerProof.label}
           color={cronColor}
           title={state.cronReason}
         />
@@ -352,6 +363,7 @@ export default function ControlRoom() {
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Cron proof</div>
           <div className={`text-sm font-semibold ${cronColor}`}>{state.cronStatusLabel}</div>
           <div className="text-xs text-zinc-600 mt-1">{state.cronReason}</div>
+          <div className="text-[11px] text-zinc-500 mt-1">0-signal scheduled runs count as proof; Telegram sends and outcomes are not required.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Last manual run</div>
@@ -360,7 +372,7 @@ export default function ControlRoom() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Last scheduled run</div>
           <div className={`text-sm ${latestScheduledRun ? 'text-zinc-200' : 'text-zinc-600'}`}>{shortTimestamp(latestScheduledRun?.started_at)}</div>
-          {state.lastScheduledRunAgeMinutes !== null && <div className="text-xs text-zinc-600 mt-1">Age: {state.lastScheduledRunAgeMinutes}m</div>}
+          {state.lastScheduledRunAgeMinutes !== null && <div className="text-xs text-zinc-600 mt-1">Age: {state.lastScheduledRunAgeMinutes}m · Run ID: {latestScheduledRun?.id}</div>}
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 md:col-span-3">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Outcome tracking proof</div>

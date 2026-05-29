@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { ScannerRun, ProviderStatus } from '../lib/types';
 import { callEdgeFunction, EdgeFunctionReachability } from '../lib/edgeFunctionStatus';
-import { ageMinutesFromStartedAt, schedulerProofReason, scheduledFreshnessLabel } from '../lib/adminSchedulerTruth';
+import { SchedulerProof, buildSchedulerProof, SCANNER_RUN_PROOF_COLUMNS } from '../lib/adminSchedulerTruth';
 
 export interface RuntimeProviderConfig {
   provider: string;
@@ -35,6 +35,7 @@ export interface AdminLiveState {
   cronStale: boolean;
   cronStatusLabel: string;
   cronReason: string;
+  schedulerProof: SchedulerProof;
   cronJobName: string | null;
   adminSchedulerActionStatus: EdgeFunctionReachability;
   adminSchedulerActionMessage: string | null;
@@ -93,6 +94,7 @@ const DEFAULT_STATE: AdminLiveState = {
   cronStale: false,
   cronStatusLabel: 'Not loaded',
   cronReason: 'Not yet loaded',
+  schedulerProof: buildSchedulerProof(null),
   cronJobName: null,
   adminSchedulerActionStatus: 'unknown',
   adminSchedulerActionMessage: null,
@@ -160,9 +162,9 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       manualUpdateRes,
     ] = await Promise.all([
       supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(50),
-      supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('scanner_runs').select('*').ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(25),
-      supabase.from('scanner_runs').select('*').ilike('run_type', 'manual').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(20),
+      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'manual').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('provider_status').select('*'),
       supabase.from('scanner_config').select('*').eq('id', 1).maybeSingle(),
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
@@ -186,12 +188,12 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     const cronConfigured = cfg?.cron_job_active === true;
     const scheduleEnabled = cfg?.schedule_enabled ?? false;
     const scanIntervalMinutes = cfg?.scan_interval_minutes ?? 5;
-    const lastScheduledRunAgeMinutes = ageMinutesFromStartedAt(latestScheduledRun?.started_at ?? null);
-    const freshnessLabel = scheduledFreshnessLabel(latestScheduledRun);
-    const cronStatusLabel = freshnessLabel;
-    const cronReason = schedulerProofReason(latestScheduledRun);
-    const cronProven = freshnessLabel === 'Proven / Active' || freshnessLabel === 'Recently proven';
-    const cronStale = freshnessLabel === 'Stale';
+    const schedulerProof = buildSchedulerProof(latestScheduledRun, cfg?.cron_job_active === true || cfg?.schedule_enabled === true);
+    const lastScheduledRunAgeMinutes = schedulerProof.ageMinutes;
+    const cronStatusLabel = schedulerProof.label;
+    const cronReason = schedulerProof.reason;
+    const cronProven = schedulerProof.status === 'active' || schedulerProof.status === 'recent';
+    const cronStale = schedulerProof.status === 'stale';
     const cronDetected = cronProven;
 
     // Runtime provider config — fetch live from edge function
@@ -281,6 +283,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       cronStale,
       cronStatusLabel,
       cronReason,
+      schedulerProof,
       cronJobName: cfg?.cron_job_name ?? null,
       adminSchedulerActionStatus,
       adminSchedulerActionMessage,
@@ -289,9 +292,9 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       scheduleEnabled,
       scanIntervalMinutes,
       lastScheduledRunAt: latestScheduledRun?.started_at ?? cfg?.last_scheduled_scan_at ?? null,
-      lastManualRunAt: cfg?.last_manual_scan_at ?? null,
-      heartbeatStatus: cfg?.heartbeat_status ?? 'inactive',
-      heartbeatUpdatedAt: cfg?.heartbeat_updated_at ?? null,
+      lastManualRunAt: latestManualRun?.started_at ?? cfg?.last_manual_scan_at ?? null,
+      heartbeatStatus: schedulerProof.status === 'active' ? 'healthy' : schedulerProof.status,
+      heartbeatUpdatedAt: schedulerProof.latestStartedAt ?? cfg?.heartbeat_updated_at ?? null,
       scannerEnabled: cfg?.is_enabled ?? false,
       latestRun,
       latestScheduledRun,
@@ -325,7 +328,10 @@ export function useAdminLiveState(session: { access_token: string } | null) {
   useEffect(() => {
     void refresh();
     const id = window.setInterval(() => { void refresh(); }, 45_000);
-    return () => window.clearInterval(id);
+    return () => {
+      refreshSeq.current += 1;
+      window.clearInterval(id);
+    };
   }, [refresh]);
 
   return { state, refresh };

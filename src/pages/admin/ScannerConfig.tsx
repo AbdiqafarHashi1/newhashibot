@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 import { Save, Activity, Clock, Calendar } from 'lucide-react';
 import { ScannerConfigRow } from '../../lib/types';
 
@@ -20,24 +21,27 @@ function fmtDate(iso: string | null): string {
   return new Date(iso).toLocaleString();
 }
 
-function HeartbeatPill({ status }: { status: ScannerConfigRow['heartbeat_status'] }) {
+function HeartbeatPill({ status }: { status: ScannerConfigRow['heartbeat_status'] | 'recent' | 'missing' }) {
   const cfg = {
-    healthy: { cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', dot: 'bg-emerald-400', label: 'Healthy' },
+    healthy: { cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', dot: 'bg-emerald-400', label: 'Healthy / proven' },
+    recent: { cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300', dot: 'bg-emerald-300', label: 'Recently proven' },
     stale: { cls: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400', dot: 'bg-yellow-400', label: 'Stale' },
+    missing: { cls: 'bg-zinc-700/50 border-zinc-700 text-zinc-400', dot: 'bg-zinc-500', label: 'Missing' },
     inactive: { cls: 'bg-zinc-700/50 border-zinc-700 text-zinc-400', dot: 'bg-zinc-500', label: 'Inactive' },
     error: { cls: 'bg-red-500/10 border-red-500/20 text-red-400', dot: 'bg-red-400', label: 'Error' },
   }[status] ?? { cls: 'bg-zinc-700/50 border-zinc-700 text-zinc-400', dot: 'bg-zinc-500', label: 'Unknown' };
 
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium ${cfg.cls}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${status === 'healthy' ? 'animate-pulse' : ''}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${status === 'healthy' || status === 'recent' ? 'animate-pulse' : ''}`} />
       {cfg.label}
     </span>
   );
 }
 
 export default function ScannerConfig() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
+  const { state: liveState } = useAdminLiveState(session);
   const [config, setConfig] = useState<ScannerConfigRow | null>(null);
   const [symbols, setSymbols] = useState<SymbolRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,19 +159,21 @@ export default function ScannerConfig() {
           <div className="px-5 py-4 grid grid-cols-2 gap-4">
             <div>
               <div className="text-xs text-zinc-500 mb-1.5">Status</div>
-              <HeartbeatPill status={config.heartbeat_status ?? 'inactive'} />
-              {config.heartbeat_updated_at && (
-                <div className="text-xs text-zinc-600 mt-1">Updated: {fmtDate(config.heartbeat_updated_at)}</div>
+              <HeartbeatPill status={liveState.schedulerProof.status === 'active' ? 'healthy' : liveState.schedulerProof.status} />
+              <div className="text-xs text-zinc-600 mt-1">{liveState.cronReason}</div>
+              {liveState.loadedAt && (
+                <div className="text-xs text-zinc-600 mt-1">Refreshed: {fmtDate(liveState.loadedAt)}</div>
               )}
             </div>
             <div className="space-y-2">
               <div>
                 <div className="text-xs text-zinc-500 flex items-center gap-1"><Calendar size={10} /> Last Scheduled Scan</div>
-                <div className="text-xs text-zinc-300 mt-0.5">{fmtDate(config.last_scheduled_scan_at)}</div>
+                <div className="text-xs text-zinc-300 mt-0.5">{fmtDate(liveState.latestScheduledRun?.started_at ?? config.last_scheduled_scan_at)}</div>
+                {liveState.latestScheduledRun && <div className="text-[11px] text-zinc-600 mt-0.5">Run ID: {liveState.latestScheduledRun.id} · Age: {liveState.schedulerProof.ageMinutes ?? '—'}m</div>}
               </div>
               <div>
                 <div className="text-xs text-zinc-500 flex items-center gap-1"><Clock size={10} /> Last Manual Scan</div>
-                <div className="text-xs text-zinc-300 mt-0.5">{fmtDate(config.last_manual_scan_at)}</div>
+                <div className="text-xs text-zinc-300 mt-0.5">{fmtDate(liveState.latestManualRun?.started_at ?? config.last_manual_scan_at)}</div>
               </div>
             </div>
           </div>
