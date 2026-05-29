@@ -17,6 +17,7 @@ export default function Login() {
   const [lastLoginErrorMessage, setLastLoginErrorMessage] = useState('none');
   const [loading, setLoading] = useState(false);
   const debug = getFrontendSupabaseDebugInfo();
+  const envConfigError = debug.errorMessage ?? debug.frontendEnvError;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -62,12 +63,18 @@ export default function Login() {
           browserOrigin={debug.browserOrigin}
           lastLoginErrorName={lastLoginErrorName}
           lastLoginErrorMessage={lastLoginErrorMessage}
-          envConfigError={debug.frontendEnvError}
+          envConfigError={envConfigError}
         />
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
           <h1 className="text-xl font-bold mb-1">Welcome back</h1>
           <p className="text-sm text-zinc-500 mb-6">Sign in to your HashiBot account</p>
+
+          {envConfigError && (
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-2 rounded-lg mb-4">
+              {envConfigError}
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-3 py-2 rounded-lg mb-4">
@@ -153,11 +160,11 @@ function LoginDebugPanel({
   envConfigError,
 }: LoginDebugPanelProps) {
   const rows = [
+    ['selected Supabase URL origin', selectedSupabaseUrlOrigin ?? 'missing'],
     ['selected Supabase URL source', selectedSupabaseUrlSource],
     ['raw env VITE_SUPABASE_URL present', String(viteSupabaseUrlPresent)],
     ['safe fallback used', String(fallbackSupabaseUrlUsed)],
     ['selected Supabase URL host', selectedSupabaseUrlHost ?? 'missing'],
-    ['selected Supabase URL origin', selectedSupabaseUrlOrigin ?? 'missing'],
     ['expected project ref', expectedProjectRef],
     ['actual project ref', actualProjectRef ?? 'missing'],
     ['project ref match', String(projectRefMatches)],

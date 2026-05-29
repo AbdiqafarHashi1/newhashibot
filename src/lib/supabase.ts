@@ -1,18 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
-import { getSupabaseClientConfig } from './supabaseEnv';
+import { EXPECTED_SUPABASE_ORIGIN, getSupabaseClientConfig } from './supabaseEnv';
 
 export const supabaseClientConfig = getSupabaseClientConfig();
-
-if (!supabaseClientConfig.projectRefMatches) {
-  throw new Error(supabaseClientConfig.frontendEnvError ?? 'Frontend Supabase project mismatch');
-}
+export const isSupabaseClientEnabled = supabaseClientConfig.hasValidConfig;
+export const supabaseConfigErrorMessage = supabaseClientConfig.frontendEnvError;
 
 if (supabaseClientConfig.frontendEnvError) {
   console.error(supabaseClientConfig.frontendEnvError);
 }
 
-// Keep the app renderable when only the browser key is missing so /login can show the safe debug panel.
-// Auth calls are guarded before use, so this inert value is never used for real login.
-const clientKey = supabaseClientConfig.supabaseKey || 'missing-browser-supabase-key-not-used-for-login';
+// Never allow malformed or mismatched frontend env to crash module import. When the
+// selected config is invalid, create an inert SDK client against the expected public
+// origin and guard auth/database calls before they run.
+const safeClientUrl = supabaseClientConfig.hasValidConfig
+  ? supabaseClientConfig.supabaseUrl
+  : EXPECTED_SUPABASE_ORIGIN;
+const safeClientKey = supabaseClientConfig.hasValidConfig
+  ? supabaseClientConfig.supabaseKey
+  : 'disabled-browser-supabase-client-config-invalid';
 
-export const supabase = createClient(supabaseClientConfig.supabaseUrl, clientKey);
+export const supabase = createClient(safeClientUrl, safeClientKey);
