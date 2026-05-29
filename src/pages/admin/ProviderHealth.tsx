@@ -308,7 +308,7 @@ export default function ProviderHealth() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Schedule / Cron</div>
           <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : liveState.cronStale ? 'text-lg font-semibold text-yellow-400' : cfg?.cron_job_active ? 'text-lg font-semibold text-blue-400' : 'text-lg font-semibold text-zinc-500'}>{schedulerLabel}</div>
-          <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · latest scheduled scanner_run ${latestScheduledAge}m ago` : ' · no scheduled scanner_run proof'}</div>
+          <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · latest automatic scheduled scanner_run ${latestScheduledAge}m ago` : ' · no automatic scheduled scanner_run proof'}</div>
           <div className="text-xs text-zinc-600 mt-1">{liveState.cronReason}</div>
           <div className="text-[11px] text-zinc-500 mt-1">Edge Function unknown status does not override scanner_runs proof.</div>
         </div>

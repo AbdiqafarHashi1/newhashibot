@@ -6,6 +6,7 @@ import { StatCard } from '../../components/ui/StatCard';
 import { statusBadge, Badge } from '../../components/ui/Badge';
 import { ScannerRun } from '../../lib/types';
 import { useAdminLiveState } from '../../hooks/useAdminLiveState';
+import { SchedulerProofDebug } from '../../components/admin/SchedulerProofDebug';
 import {
   Activity, Play, Database, AlertTriangle, Radio, BarChart2,
   Zap, Clock, Settings, StopCircle, Send, Users, CheckCircle,
@@ -229,6 +230,8 @@ export default function ControlRoom() {
         </div>
       </div>
 
+      <SchedulerProofDebug state={state} />
+
       {/* Live state banner */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-4 flex flex-wrap gap-x-5 gap-y-2 items-center">
         <div className="flex items-center gap-2">
@@ -244,6 +247,12 @@ export default function ControlRoom() {
           label="Schedule"
           value={state.scheduleEnabled ? `ON (${state.scanIntervalMinutes}m)` : 'OFF'}
           color={state.scheduleEnabled ? 'text-emerald-400' : 'text-zinc-500'}
+        />
+        <BannerItem
+          label="Cron Proof"
+          value={state.schedulerProof.label}
+          color={cronColor}
+          title={state.cronReason}
         />
         <BannerItem
           label="Cron job"

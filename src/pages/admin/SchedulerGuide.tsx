@@ -5,6 +5,7 @@ import { ScannerRun } from '../../lib/types';
 import { callEdgeFunction, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminLiveState } from '../../hooks/useAdminLiveState';
+import { SchedulerProofDebug } from '../../components/admin/SchedulerProofDebug';
 
 const SQL_CRON = `-- Truthful pg_cron command for HashiBot crypto-only MVP
 -- Replace placeholders, then run in Supabase SQL Editor.
@@ -50,12 +51,31 @@ SELECT jobid, jobname, schedule, active, command
 FROM cron.job
 WHERE jobname = 'hashibot_scheduled_market_scanner_5m';`;
 
-const SQL_CHECK = `-- Verify scheduled scanner rows (0 signals still proves cron ran)
-SELECT id, run_type, status, started_at, finished_at, symbols_scanned, signals_created, error_message
-FROM scanner_runs
-WHERE lower(run_type) = 'scheduled'
-ORDER BY started_at DESC
-LIMIT 10;
+const SQL_CHECK = `-- Verify automatic pg_cron scheduler proof (0 signals still proves cron ran)
+select
+  id,
+  run_type,
+  source,
+  triggered_by,
+  is_automatic,
+  status,
+  started_at,
+  finished_at,
+  symbols_scanned,
+  signals_created,
+  telegram_sent_count,
+  telegram_failed_count,
+  error_message
+from public.scanner_runs
+where lower(run_type) = 'scheduled'
+and (
+  source = 'pg_cron'
+  or triggered_by = 'pg_cron'
+  or is_automatic = true
+)
+order by started_at desc
+limit 1;
+
 
 -- Verify job is registered
 SELECT jobid, jobname, schedule, active FROM cron.job WHERE jobname = 'hashibot_scheduled_market_scanner_5m';
@@ -215,7 +235,7 @@ export default function SchedulerGuide() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Scheduled Scanning Setup</h1>
-            <p className="text-sm text-zinc-500 mt-0.5">Configure and verify automatic scanner execution via pg_cron. Primary proof is the latest scanner_runs row where lower(run_type) = 'scheduled'.</p>
+            <p className="text-sm text-zinc-500 mt-0.5">Configure and verify automatic scanner execution via pg_cron. Primary proof is the latest automatic pg_cron scanner_runs row where lower(run_type) = 'scheduled' and (source = 'pg_cron' or triggered_by = 'pg_cron' or is_automatic = true).</p>
           </div>
           <button onClick={async () => { await Promise.all([refreshLiveState(), checkCronStatus()]); }} disabled={loadingAny}
             className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
@@ -223,6 +243,8 @@ export default function SchedulerGuide() {
           </button>
         </div>
       </div>
+
+      <SchedulerProofDebug state={liveState} />
 
       <div className="max-w-5xl space-y-4">
         <div className={`rounded-xl p-5 border flex gap-3 ${cronDetected ? 'bg-emerald-500/10 border-emerald-500/20' : liveState.cronStale ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-zinc-900 border-zinc-800'}`}>
@@ -232,7 +254,7 @@ export default function SchedulerGuide() {
             <div className={`text-xs ${cronDetected ? 'text-emerald-300/80' : 'text-yellow-300/80'}`}>{cronReason}</div>
             {latestScheduledRun && (
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3 text-xs">
-                <ProofDetail label="Latest scheduled run" value={new Date(latestScheduledRun.started_at).toLocaleString()} />
+                <ProofDetail label="Latest automatic scheduled run" value={new Date(latestScheduledRun.started_at).toLocaleString()} />
                 <ProofDetail label="Age" value={scheduledAge !== null ? `${scheduledAge}m` : '—'} />
                 <ProofDetail label="Status" value={latestScheduledRun.status} />
                 <ProofDetail label="Symbols scanned" value={metric(latestScheduledRun.symbols_scanned, '0')} />

@@ -21,7 +21,7 @@ function fmtDate(iso: string | null): string {
   return new Date(iso).toLocaleString();
 }
 
-function HeartbeatPill({ status }: { status: ScannerConfigRow['heartbeat_status'] | 'recent' | 'missing' }) {
+function HeartbeatPill({ status }: { status: ScannerConfigRow['heartbeat_status'] | 'recent' | 'missing' | 'mismatch' }) {
   const cfg = {
     healthy: { cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', dot: 'bg-emerald-400', label: 'Healthy / proven' },
     recent: { cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300', dot: 'bg-emerald-300', label: 'Recently proven' },
@@ -29,6 +29,7 @@ function HeartbeatPill({ status }: { status: ScannerConfigRow['heartbeat_status'
     missing: { cls: 'bg-zinc-700/50 border-zinc-700 text-zinc-400', dot: 'bg-zinc-500', label: 'Missing' },
     inactive: { cls: 'bg-zinc-700/50 border-zinc-700 text-zinc-400', dot: 'bg-zinc-500', label: 'Inactive' },
     error: { cls: 'bg-red-500/10 border-red-500/20 text-red-400', dot: 'bg-red-400', label: 'Error' },
+    mismatch: { cls: 'bg-red-500/10 border-red-500/20 text-red-400', dot: 'bg-red-400', label: 'Project mismatch' },
   }[status] ?? { cls: 'bg-zinc-700/50 border-zinc-700 text-zinc-400', dot: 'bg-zinc-500', label: 'Unknown' };
 
   return (
@@ -167,7 +168,7 @@ export default function ScannerConfig() {
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-xs text-zinc-500 flex items-center gap-1"><Calendar size={10} /> Last Scheduled Scan</div>
+                <div className="text-xs text-zinc-500 flex items-center gap-1"><Calendar size={10} /> Last Automatic Scheduled Scan</div>
                 <div className="text-xs text-zinc-300 mt-0.5">{fmtDate(liveState.latestScheduledRun?.started_at ?? config.last_scheduled_scan_at)}</div>
                 {liveState.latestScheduledRun && <div className="text-[11px] text-zinc-600 mt-0.5">Run ID: {liveState.latestScheduledRun.id} · Age: {liveState.schedulerProof.ageMinutes ?? '—'}m</div>}
               </div>
