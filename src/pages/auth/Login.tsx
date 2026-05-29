@@ -1,8 +1,46 @@
-import { useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth, SafeAuthError } from '../../contexts/AuthContext';
 import { LOGIN_DEBUG_BUILD_MARKER, getFrontendSupabaseDebugInfo } from '../../lib/supabaseEnv';
+import { AuthConnectivityProbeResult, getAuthConnectivityProbeTarget, probeSupabaseAuthConnectivity } from '../../lib/supabase';
 import { Zap } from 'lucide-react';
+
+interface LastLoginErrorDetails {
+  name: string;
+  message: string;
+  status: string;
+  code: string;
+  causeMessage: string;
+}
+
+const emptyLoginError: LastLoginErrorDetails = {
+  name: 'none',
+  message: 'none',
+  status: 'none',
+  code: 'none',
+  causeMessage: 'none',
+};
+
+function formatSafeAuthError(error: SafeAuthError): string {
+  const details = [
+    error.message,
+    error.status ? `status=${error.status}` : null,
+    error.code ? `code=${error.code}` : null,
+    error.causeMessage ? `cause=${error.causeMessage}` : null,
+  ].filter(Boolean);
+
+  return details.join(' | ');
+}
+
+function toLastLoginErrorDetails(error: SafeAuthError): LastLoginErrorDetails {
+  return {
+    name: error.name || 'Error',
+    message: error.message || 'none',
+    status: error.status ? String(error.status) : 'none',
+    code: error.code ?? 'none',
+    causeMessage: error.causeMessage ?? 'none',
+  };
+}
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -13,33 +51,62 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [lastLoginErrorName, setLastLoginErrorName] = useState('none');
-  const [lastLoginErrorMessage, setLastLoginErrorMessage] = useState('none');
+  const [profileWarning, setProfileWarning] = useState('');
+  const [lastLoginError, setLastLoginError] = useState<LastLoginErrorDetails>(emptyLoginError);
+  const [lastUsedSameSelectedClient, setLastUsedSameSelectedClient] = useState('not-attempted');
+  const [authProbe, setAuthProbe] = useState<AuthConnectivityProbeResult>(() => ({
+    ...getAuthConnectivityProbeTarget(),
+    status: null,
+    ok: false,
+    errorName: 'not-run',
+    errorMessage: 'not-run',
+    isFetchFailure: false,
+  }));
   const [loading, setLoading] = useState(false);
   const debug = getFrontendSupabaseDebugInfo();
   const envConfigError = debug.errorMessage ?? debug.frontendEnvError;
   const envConfigWarning = debug.warningMessage;
 
+  async function runAuthProbe() {
+    const result = await probeSupabaseAuthConnectivity();
+    setAuthProbe(result);
+    return result;
+  }
+
+  useEffect(() => {
+    void runAuthProbe();
+  }, []);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
-    setLastLoginErrorName('none');
-    setLastLoginErrorMessage('none');
+    setProfileWarning('');
+    setLastLoginError(emptyLoginError);
+    setLastUsedSameSelectedClient('not-attempted');
     setLoading(true);
-    const { error } = await signIn(email, password);
+
+    await runAuthProbe();
+    const { error, profileError, usedSameSelectedClient } = await signIn(email, password);
+    setLastUsedSameSelectedClient(String(Boolean(usedSameSelectedClient)));
     setLoading(false);
+
     if (error) {
-      setLastLoginErrorName(error.name || 'Error');
-      setLastLoginErrorMessage(error.message);
-      setError(error.message);
-    } else {
-      nav(from, { replace: true });
+      setLastLoginError(toLastLoginErrorDetails(error));
+      setError(formatSafeAuthError(error));
+      return;
     }
+
+    if (profileError) {
+      setProfileWarning(`Auth succeeded but profile/admin loading failed: ${profileError}`);
+      return;
+    }
+
+    nav(from, { replace: true });
   }
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-2xl">
         <div className="flex justify-center mb-8">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
@@ -50,35 +117,27 @@ export default function Login() {
         </div>
 
         <LoginDebugPanel
-          rawHashibotUrlPresent={debug.hashibotSupabaseUrlPresent}
-          rawHashibotUrlHost={debug.hashibotSupabaseUrlHost}
-          rawHashibotUrlProjectRef={debug.hashibotSupabaseUrlProjectRef}
-          rawViteUrlPresent={debug.viteSupabaseUrlPresent}
-          rawViteUrlHost={debug.viteSupabaseUrlHost}
-          rawViteUrlProjectRef={debug.viteSupabaseUrlProjectRef}
-          selectedSupabaseUrlSource={debug.selectedSupabaseUrlSource}
-          selectedSupabaseUrlHost={debug.selectedSupabaseUrlHost}
-          selectedSupabaseUrlOrigin={debug.selectedSupabaseUrlOrigin}
-          selectedProjectRef={debug.selectedProjectRef}
-          expectedProjectRef={debug.expectedProjectRef}
-          projectRefMatches={debug.projectRefMatches}
-          selectedKeySource={debug.selectedFrontendKeySource}
-          keyPresent={debug.keyPresent}
-          keyTypeGuess={debug.keyTypeGuess}
-          browserOrigin={debug.browserOrigin}
-          lastLoginErrorName={lastLoginErrorName}
-          lastLoginErrorMessage={lastLoginErrorMessage}
+          debug={debug}
+          authProbe={authProbe}
+          lastLoginError={lastLoginError}
+          lastUsedSameSelectedClient={lastUsedSameSelectedClient}
           envConfigError={envConfigError}
           envConfigWarning={envConfigWarning}
         />
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm mx-auto">
           <h1 className="text-xl font-bold mb-1">Welcome back</h1>
           <p className="text-sm text-zinc-500 mb-6">Sign in to your HashiBot account</p>
 
           {(envConfigError || envConfigWarning) && (
             <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-2 rounded-lg mb-4">
               {envConfigError ?? envConfigWarning}
+            </div>
+          )}
+
+          {profileWarning && (
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-2 rounded-lg mb-4">
+              {profileWarning}
             </div>
           )}
 
@@ -131,70 +190,57 @@ export default function Login() {
 }
 
 interface LoginDebugPanelProps {
-  rawHashibotUrlPresent: boolean;
-  rawHashibotUrlHost: string | null;
-  rawHashibotUrlProjectRef: string | null;
-  rawViteUrlPresent: boolean;
-  rawViteUrlHost: string | null;
-  rawViteUrlProjectRef: string | null;
-  selectedSupabaseUrlSource: string;
-  selectedSupabaseUrlHost: string | null;
-  selectedSupabaseUrlOrigin: string | null;
-  selectedProjectRef: string | null;
-  expectedProjectRef: string;
-  projectRefMatches: boolean;
-  selectedKeySource: string;
-  keyPresent: boolean;
-  keyTypeGuess: string;
-  browserOrigin: string;
-  lastLoginErrorName: string;
-  lastLoginErrorMessage: string;
+  debug: ReturnType<typeof getFrontendSupabaseDebugInfo>;
+  authProbe: AuthConnectivityProbeResult;
+  lastLoginError: LastLoginErrorDetails;
+  lastUsedSameSelectedClient: string;
   envConfigError: string | null;
   envConfigWarning: string | null;
 }
 
 function LoginDebugPanel({
-  rawHashibotUrlPresent,
-  rawHashibotUrlHost,
-  rawHashibotUrlProjectRef,
-  rawViteUrlPresent,
-  rawViteUrlHost,
-  rawViteUrlProjectRef,
-  selectedSupabaseUrlSource,
-  selectedSupabaseUrlHost,
-  selectedSupabaseUrlOrigin,
-  selectedProjectRef,
-  expectedProjectRef,
-  projectRefMatches,
-  selectedKeySource,
-  keyPresent,
-  keyTypeGuess,
-  browserOrigin,
-  lastLoginErrorName,
-  lastLoginErrorMessage,
+  debug,
+  authProbe,
+  lastLoginError,
+  lastUsedSameSelectedClient,
   envConfigError,
   envConfigWarning,
 }: LoginDebugPanelProps) {
   const rows = [
-    ['raw VITE_HASHIBOT_SUPABASE_URL present', String(rawHashibotUrlPresent)],
-    ['raw VITE_HASHIBOT_SUPABASE_URL host', rawHashibotUrlHost ?? 'missing'],
-    ['raw VITE_HASHIBOT_SUPABASE_URL project ref', rawHashibotUrlProjectRef ?? 'missing'],
-    ['raw VITE_SUPABASE_URL present', String(rawViteUrlPresent)],
-    ['raw VITE_SUPABASE_URL host', rawViteUrlHost ?? 'missing'],
-    ['raw VITE_SUPABASE_URL project ref', rawViteUrlProjectRef ?? 'missing'],
-    ['selected Supabase URL source', selectedSupabaseUrlSource],
-    ['selected Supabase URL origin', selectedSupabaseUrlOrigin ?? 'missing'],
-    ['selected Supabase URL host', selectedSupabaseUrlHost ?? 'missing'],
-    ['selected project ref', selectedProjectRef ?? 'missing'],
-    ['expected project ref', expectedProjectRef],
-    ['project ref match', String(projectRefMatches)],
-    ['selected key source', selectedKeySource],
-    ['key present', String(keyPresent)],
-    ['key type guess', keyTypeGuess],
-    ['browser origin', browserOrigin],
-    ['last login error name/message', `${lastLoginErrorName}: ${lastLoginErrorMessage}`],
-    ['env/config warning', envConfigWarning ?? 'none'],
-    ['env/config error', envConfigError ?? 'none'],
+    ['selected Supabase URL source', debug.selectedSupabaseUrlSource],
+    ['selected Supabase URL origin', debug.selectedSupabaseUrlOrigin ?? 'missing'],
+    ['selected Supabase URL host', debug.selectedSupabaseUrlHost ?? 'missing'],
+    ['selected project ref', debug.selectedProjectRef ?? 'missing'],
+    ['expected project ref', debug.expectedProjectRef],
+    ['project ref match', String(debug.projectRefMatches)],
+    ['raw VITE_HASHIBOT_SUPABASE_URL present', String(debug.hashibotSupabaseUrlPresent)],
+    ['raw VITE_PUBLIC_SUPABASE_URL present', String(debug.publicSupabaseUrlPresent)],
+    ['raw VITE_SUPABASE_URL present', String(debug.viteSupabaseUrlPresent)],
+    ['raw VITE_SUPABASE_URL project ref if present', debug.viteSupabaseUrlProjectRef ?? 'missing'],
+    ['stale VITE_SUPABASE_URL ignored', String(debug.staleViteSupabaseUrlIgnored)],
+    ['selected browser key source', debug.selectedFrontendKeySource],
+    ['raw VITE_HASHIBOT_SUPABASE_ANON_KEY present', String(debug.rawHashibotSupabaseAnonKeyPresent)],
+    ['raw VITE_SUPABASE_ANON_KEY present', String(debug.rawSupabaseAnonKeyPresent)],
+    ['raw VITE_PUBLIC_SUPABASE_ANON_KEY present', String(debug.rawPublicSupabaseAnonKeyPresent)],
+    ['raw VITE_SUPABASE_PUBLISHABLE_KEY present', String(debug.rawSupabasePublishableKeyPresent)],
+    ['raw VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY present', String(debug.rawPublicSupabasePublishableKeyPresent)],
+    ['key present', String(debug.keyPresent)],
+    ['key type guess only', debug.keyTypeGuess],
+    ['decoded key role if JWT', debug.decodedKey.role ?? 'missing'],
+    ['decoded key ref/iss if available', `ref=${debug.decodedKey.ref ?? 'missing'} iss=${debug.decodedKey.iss ?? 'missing'}`],
+    ['decoded key exp if JWT', debug.decodedKey.exp ?? 'missing'],
+    ['key project match', debug.keyProjectMatch],
+    ['current browser origin', debug.browserOrigin],
+    ['env/config warning if any', envConfigWarning ?? 'none'],
+    ['env/config error if any', envConfigError ?? 'none'],
+    ['auth probe URL origin/path', `${authProbe.urlOrigin ?? 'missing'}${authProbe.urlPath}`],
+    ['auth probe status', authProbe.status === null ? 'none' : String(authProbe.status)],
+    ['auth probe ok', String(authProbe.ok)],
+    ['auth probe error name/message', `${authProbe.errorName ?? 'none'}: ${authProbe.errorMessage ?? 'none'}`],
+    ['auth probe CORS/fetch failure', String(authProbe.isFetchFailure)],
+    ['last login error name/message/status/code', `${lastLoginError.name}: ${lastLoginError.message} status=${lastLoginError.status} code=${lastLoginError.code}`],
+    ['last login error cause/message', lastLoginError.causeMessage],
+    ['whether signInWithPassword used the same selected Supabase client', lastUsedSameSelectedClient],
   ];
 
   return (
