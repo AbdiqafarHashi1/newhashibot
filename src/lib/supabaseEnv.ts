@@ -1,10 +1,10 @@
-export const LOGIN_DEBUG_BUILD_MARKER = 'login-env-proof-v1';
+export const LOGIN_DEBUG_BUILD_MARKER = 'login-env-proof-v2-correct-url';
 export const EXPECTED_SUPABASE_PROJECT_REF = 'uqiwbzfcntlcyyeewafc';
 export const EXPECTED_SUPABASE_ORIGIN = `https://${EXPECTED_SUPABASE_PROJECT_REF}.supabase.co`;
 
-export type FrontendSupabaseEnvSource =
+export type FrontendSupabaseUrlSource =
   | 'VITE_SUPABASE_URL'
-  | 'missing';
+  | 'safe_public_fallback';
 
 export type FrontendSupabaseKeySource =
   | 'VITE_SUPABASE_ANON_KEY'
@@ -15,7 +15,10 @@ export type FrontendSupabaseKeyTypeGuess = 'jwt_anon' | 'publishable' | 'unknown
 
 export interface FrontendSupabaseDebugInfo {
   marker: typeof LOGIN_DEBUG_BUILD_MARKER;
-  selectedFrontendEnvSource: FrontendSupabaseEnvSource;
+  selectedFrontendEnvSource: FrontendSupabaseUrlSource;
+  selectedSupabaseUrlSource: FrontendSupabaseUrlSource;
+  viteSupabaseUrlPresent: boolean;
+  fallbackSupabaseUrlUsed: boolean;
   selectedFrontendKeySource: FrontendSupabaseKeySource;
   selectedSupabaseUrlHost: string | null;
   selectedSupabaseUrlOrigin: string | null;
@@ -70,21 +73,12 @@ function guessKeyType(key: string): FrontendSupabaseKeyTypeGuess {
   return 'unknown';
 }
 
-function parseSupabaseUrl(url: string | null): {
+function parseSupabaseUrl(url: string): {
   host: string | null;
   origin: string | null;
   projectRef: string | null;
   error: string | null;
 } {
-  if (!url) {
-    return {
-      host: null,
-      origin: null,
-      projectRef: null,
-      error: 'Missing VITE_SUPABASE_URL',
-    };
-  }
-
   try {
     const parsed = new URL(url);
     const projectRef = parsed.hostname.endsWith('.supabase.co')
@@ -114,6 +108,10 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
   // Browser/Vite code intentionally reads only VITE_* variables. The legacy anon JWT
   // is preferred for browser auth; the publishable key is used only if the anon key is absent.
   const viteSupabaseUrl = nonEmpty(import.meta.env.VITE_SUPABASE_URL);
+  const selectedUrlSource: FrontendSupabaseUrlSource = viteSupabaseUrl
+    ? 'VITE_SUPABASE_URL'
+    : 'safe_public_fallback';
+  const supabaseUrl = viteSupabaseUrl ?? EXPECTED_SUPABASE_ORIGIN;
   const anonKey = nonEmpty(import.meta.env.VITE_SUPABASE_ANON_KEY);
   const publishableKey = nonEmpty(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
@@ -123,7 +121,7 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
       ? 'VITE_SUPABASE_PUBLISHABLE_KEY'
       : 'missing';
   const supabaseKey = anonKey ?? publishableKey ?? '';
-  const parsed = parseSupabaseUrl(viteSupabaseUrl);
+  const parsed = parseSupabaseUrl(supabaseUrl);
   const keyError = supabaseKey
     ? null
     : 'Missing VITE_SUPABASE_ANON_KEY or VITE_SUPABASE_PUBLISHABLE_KEY';
@@ -133,7 +131,10 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
 
   return {
     marker: LOGIN_DEBUG_BUILD_MARKER,
-    selectedFrontendEnvSource: viteSupabaseUrl ? 'VITE_SUPABASE_URL' : 'missing',
+    selectedFrontendEnvSource: selectedUrlSource,
+    selectedSupabaseUrlSource: selectedUrlSource,
+    viteSupabaseUrlPresent: Boolean(viteSupabaseUrl),
+    fallbackSupabaseUrlUsed: !viteSupabaseUrl,
     selectedFrontendKeySource: selectedKeySource,
     selectedSupabaseUrlHost: parsed.host,
     selectedSupabaseUrlOrigin: parsed.origin,
@@ -147,7 +148,7 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
     keyTypeGuess: guessKeyType(supabaseKey),
     browserOrigin: getBrowserOrigin(),
     frontendEnvError,
-    supabaseUrl: parsed.origin ?? viteSupabaseUrl ?? '',
+    supabaseUrl: parsed.origin ?? supabaseUrl,
     supabaseKey,
     hasValidConfig: frontendEnvError === null,
   };
@@ -158,6 +159,9 @@ export function getFrontendSupabaseDebugInfo(): FrontendSupabaseDebugInfo {
   return {
     marker: config.marker,
     selectedFrontendEnvSource: config.selectedFrontendEnvSource,
+    selectedSupabaseUrlSource: config.selectedSupabaseUrlSource,
+    viteSupabaseUrlPresent: config.viteSupabaseUrlPresent,
+    fallbackSupabaseUrlUsed: config.fallbackSupabaseUrlUsed,
     selectedFrontendKeySource: config.selectedFrontendKeySource,
     selectedSupabaseUrlHost: config.selectedSupabaseUrlHost,
     selectedSupabaseUrlOrigin: config.selectedSupabaseUrlOrigin,
@@ -176,8 +180,8 @@ export function getFrontendSupabaseDebugInfo(): FrontendSupabaseDebugInfo {
 
 export function getFrontendSupabaseUrl(): string {
   const config = getFrontendSupabaseConfig();
-  if (config.frontendEnvError) {
-    throw new Error(config.frontendEnvError);
+  if (!config.projectRefMatches) {
+    throw new Error(config.frontendEnvError ?? 'Frontend Supabase project mismatch');
   }
   return config.supabaseUrl;
 }
