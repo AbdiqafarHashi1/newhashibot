@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { isSupabaseClientEnabled, supabase, supabaseConfigErrorMessage } from '../lib/supabase';
 import { getFrontendSupabaseDebugInfo, getSupabaseClientConfig } from '../lib/supabaseEnv';
 import { Profile } from '../lib/types';
 
@@ -31,6 +31,10 @@ function isAuthFetchFailure(error: unknown): boolean {
 }
 
 async function fetchOrCreateProfile(user: User): Promise<{ profile: Profile | null; error: string | null }> {
+  if (!isSupabaseClientEnabled) {
+    return { profile: null, error: supabaseConfigErrorMessage ?? 'Supabase frontend config invalid' };
+  }
+
   const fetchPromise = supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
   const timeoutPromise = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('Profile fetch timed out')), 10000)
@@ -78,6 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshProfile() {
+    if (!isSupabaseClientEnabled) {
+      setProfile(null);
+      setProfileError(supabaseConfigErrorMessage ?? 'Supabase frontend config invalid');
+      return;
+    }
+
     if (user) {
       const { profile: p, error } = await fetchOrCreateProfile(user);
       setProfile(p);
@@ -86,6 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    if (!isSupabaseClientEnabled) {
+      initializedRef.current = true;
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setProfileError(supabaseConfigErrorMessage);
+      setLoading(false);
+      return;
+    }
+
     // Subscribe to auth state changes FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
@@ -144,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const config = getSupabaseClientConfig();
     if (!config.hasValidConfig) {
-      return { error: new Error(config.frontendEnvError ?? 'Supabase auth config is invalid') };
+      return { error: new Error(config.frontendEnvError ?? 'Supabase frontend config invalid') };
     }
 
     try {
@@ -162,6 +182,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, fullName: string) {
+    const config = getSupabaseClientConfig();
+    if (!config.hasValidConfig) {
+      return { error: new Error(config.frontendEnvError ?? 'Supabase frontend config invalid') };
+    }
+
     const { error } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: fullName } },
@@ -172,7 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     setProfile(null);
     setProfileError(null);
-    await supabase.auth.signOut();
+    if (isSupabaseClientEnabled) {
+      await supabase.auth.signOut();
+    }
   }
 
   return (
