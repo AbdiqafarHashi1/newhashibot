@@ -11,7 +11,6 @@ import {
   Zap, Clock, Settings, StopCircle, Send, Users, CheckCircle,
   Wifi, RefreshCw, CalendarClock
 } from 'lucide-react';
-import { edgeFunctionUrl } from '../../lib/supabaseEnv';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function ControlRoom() {
@@ -62,10 +61,9 @@ export default function ControlRoom() {
     setScanMsg('');
     setScanIsDemo(null);
     try {
-      const res = await fetch(edgeFunctionUrl('market-scanner'), {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'admin_manual_scan', triggered_by: 'manual_button', is_automatic: false }),
       });
       const data = await res.json();
       if (data.success) {
@@ -123,7 +121,7 @@ export default function ControlRoom() {
     setTestingProvider('forex');
     setActionMsg('');
     try {
-      const res = await fetch(edgeFunctionUrl('market-scanner'), {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ debug_provider_config: true }),
@@ -145,7 +143,7 @@ export default function ControlRoom() {
     setTestingTg(true);
     setActionMsg('');
     try {
-      const res = await fetch(edgeFunctionUrl('telegram-test'), {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-test`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ send: true }),
@@ -270,29 +268,7 @@ export default function ControlRoom() {
         />
         <BannerItem label="Latest manual" value={shortTimestamp(latestManualRun?.started_at)} color={latestManualRun ? 'text-blue-400' : 'text-zinc-500'} />
         <BannerItem label="Latest scheduled" value={shortTimestamp(latestScheduledRun?.started_at)} color={latestScheduledRun ? 'text-emerald-400' : 'text-zinc-500'} />
-        <BannerItem label="Outcome tracking" value={state.outcomeTrackingStatus} color={state.outcomeTrackingStatus === 'Automatic outcome active' ? 'text-emerald-400' : state.outcomeTrackingStatus.includes('Manual') ? 'text-yellow-400' : 'text-zinc-500'} />
-      </div>
-
-
-      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 mb-4">
-        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Admin Supabase Debug (non-secret)</div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
-          <DebugItem label="Frontend URL" value={state.frontendSupabase.url} />
-          <DebugItem label="Project ref" value={state.frontendSupabase.projectRef ?? 'unknown'} highlight={state.frontendSupabase.projectRef === 'uqiwbzfcntlcyyeewafc'} />
-          <DebugItem label="URL source" value={state.frontendSupabase.urlSource} />
-          <DebugItem label="Key source" value={state.frontendSupabase.anonKeySource} />
-          <DebugItem label="Auto scheduled id" value={state.schedulerProof.latestRunId ?? '—'} />
-          <DebugItem label="Auto scheduled at" value={shortTimestamp(state.schedulerProof.latestStartedAt)} />
-          <DebugItem label="Auto scheduled age" value={state.schedulerProof.ageMinutes === null ? '—' : `${state.schedulerProof.ageMinutes}m`} />
-          <DebugItem label="Auto provenance" value={latestScheduledRun ? `${latestScheduledRun.source ?? '—'} / ${latestScheduledRun.triggered_by ?? '—'} / ${latestScheduledRun.is_automatic === true}` : '—'} />
-          <DebugItem label="Manual run id" value={latestManualRun?.id ?? '—'} />
-          <DebugItem label="Manual provenance" value={latestManualRun ? `${latestManualRun.source ?? '—'} / ${latestManualRun.triggered_by ?? '—'} / ${latestManualRun.is_automatic === true}` : '—'} />
-          <DebugItem label="Auto outcome time" value={shortTimestamp(state.latestAutomaticOutcomeCheckAt)} />
-          <DebugItem label="Manual outcome time" value={shortTimestamp(state.latestManualOutcomeCheckAt)} />
-          <DebugItem label="Refreshed at" value={shortTimestamp(state.loadedAt)} />
-          <DebugItem label="Query source" value={state.latestScheduledQuerySource} highlight={state.latestScheduledQuerySource === 'live'} />
-          <DebugItem label="Query error" value={state.latestScheduledQueryError ?? 'none'} />
-        </div>
+        <BannerItem label="Outcome tracking" value={state.outcomeTrackingStatus} color={state.outcomeTrackingStatus === 'Automatic outcome active' ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'} />
       </div>
 
       {!state.cronProven && state.scheduleEnabled && (
@@ -384,24 +360,24 @@ export default function ControlRoom() {
       {/* Scheduler proof */}
       <div className="grid md:grid-cols-3 gap-3 mb-6">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Automatic Scheduler Proof</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Cron proof</div>
           <div className={`text-sm font-semibold ${cronColor}`}>{state.cronStatusLabel}</div>
           <div className="text-xs text-zinc-600 mt-1">{state.cronReason}</div>
           <div className="text-[11px] text-zinc-500 mt-1">0-signal scheduled runs count as proof; Telegram sends and outcomes are not required.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Manual Test Proof</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Last manual run</div>
           <div className="text-sm text-zinc-200">{shortTimestamp(latestManualRun?.started_at)}</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest automatic scheduled run</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Last scheduled run</div>
           <div className={`text-sm ${latestScheduledRun ? 'text-zinc-200' : 'text-zinc-600'}`}>{shortTimestamp(latestScheduledRun?.started_at)}</div>
           {state.lastScheduledRunAgeMinutes !== null && <div className="text-xs text-zinc-600 mt-1">Age: {state.lastScheduledRunAgeMinutes}m · Run ID: {latestScheduledRun?.id}</div>}
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 md:col-span-3">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Outcome Proof</div>
-          <div className={`text-sm font-semibold ${state.outcomeTrackingStatus === 'Automatic outcome active' ? 'text-emerald-400' : state.outcomeTrackingStatus.includes('Manual') ? 'text-yellow-400' : 'text-zinc-500'}`}>{state.outcomeTrackingStatus}</div>
-          <div className="text-xs text-zinc-600 mt-1">Automatic: {shortTimestamp(state.latestAutomaticOutcomeCheckAt)} · Manual: {shortTimestamp(state.latestManualOutcomeCheckAt)} · Latest outcome TG: {state.latestOutcomeDelivery ? `${state.latestOutcomeDelivery.status} (${shortTimestamp(state.latestOutcomeDelivery.created_at)})` : '—'}</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Outcome tracking proof</div>
+          <div className={`text-sm font-semibold ${state.outcomeTrackingStatus === 'Automatic outcome active' ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'}`}>{state.outcomeTrackingStatus}</div>
+          <div className="text-xs text-zinc-600 mt-1">Automatic: {shortTimestamp(state.latestAutomaticOutcomeUpdate?.created_at)} · Manual: {shortTimestamp(state.latestManualOutcomeUpdate?.created_at)} · Latest outcome TG: {state.latestOutcomeDelivery ? `${state.latestOutcomeDelivery.status} (${shortTimestamp(state.latestOutcomeDelivery.created_at)})` : '—'}</div>
         </div>
       </div>
 
@@ -637,16 +613,6 @@ function BannerItem({ label, value, color, title }: { label: string; value: stri
     <div className="flex items-center gap-1.5" title={title}>
       <span className="text-xs text-zinc-500">{label}:</span>
       <span className={`text-xs font-medium ${color}`}>{value}</span>
-    </div>
-  );
-}
-
-
-function DebugItem({ label, value, highlight }: { label: string; value: React.ReactNode; highlight?: boolean }) {
-  return (
-    <div className="rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-2 min-w-0">
-      <div className="text-[10px] uppercase tracking-wide text-zinc-600">{label}</div>
-      <div className={`mt-0.5 break-words font-mono ${highlight ? 'text-emerald-400' : 'text-zinc-300'}`}>{value}</div>
     </div>
   );
 }

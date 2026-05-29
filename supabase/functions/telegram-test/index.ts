@@ -61,12 +61,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const text = `🧪 HashiBot Telegram Connection Test\n\nTimestamp: ${new Date().toISOString()}\nStatus: Connection verified\n\nThis is an automated test from the HashiBot operator panel. No action required.`;
+    const text = `🧪 *HashiBot Telegram Connection Test*\n\nTimestamp: ${new Date().toISOString()}\nStatus: Connection verified\n\n_This is an automated test from the HashiBot operator panel. No action required._`;
 
     const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
     });
 
     const tgData = await tgRes.json() as {

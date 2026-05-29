@@ -2,8 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { ScannerRun, ProviderStatus } from '../lib/types';
 import { callEdgeFunction, EdgeFunctionReachability } from '../lib/edgeFunctionStatus';
-import { SchedulerProof, buildSchedulerProof, SCANNER_RUN_PROOF_COLUMNS, AUTOMATIC_SCHEDULER_PROOF_OR, MANUAL_PROOF_OR, AUTOMATIC_OUTCOME_PROOF_OR, MANUAL_OUTCOME_PROOF_OR } from '../lib/adminSchedulerTruth';
-import { edgeFunctionUrl, frontendSupabaseDebugInfo, FrontendSupabaseDebugInfo } from '../lib/supabaseEnv';
+import { SchedulerProof, buildSchedulerProof, SCANNER_RUN_PROOF_COLUMNS } from '../lib/adminSchedulerTruth';
 
 export interface RuntimeProviderConfig {
   provider: string;
@@ -56,9 +55,6 @@ export interface AdminLiveState {
   latestManualRun: ScannerRun | null;
   recentRuns: ScannerRun[];
   recentScheduledRuns: ScannerRun[];
-  recentManualRuns: ScannerRun[];
-  latestAutomaticOutcomeCheckAt: string | null;
-  latestManualOutcomeCheckAt: string | null;
 
   // Providers
   providers: ProviderStatus[];
@@ -89,9 +85,6 @@ export interface AdminLiveState {
 
   loading: boolean;
   loadedAt: string | null;
-  frontendSupabase: FrontendSupabaseDebugInfo;
-  latestScheduledQuerySource: 'live' | 'query_failed';
-  latestScheduledQueryError: string | null;
 }
 
 const DEFAULT_STATE: AdminLiveState = {
@@ -119,9 +112,6 @@ const DEFAULT_STATE: AdminLiveState = {
   latestManualRun: null,
   recentRuns: [],
   recentScheduledRuns: [],
-  recentManualRuns: [],
-  latestAutomaticOutcomeCheckAt: null,
-  latestManualOutcomeCheckAt: null,
   providers: [],
   runtimeConfig: null,
   runtimeConfigError: null,
@@ -143,9 +133,6 @@ const DEFAULT_STATE: AdminLiveState = {
   minAutoSendGrade: 'A',
   loading: true,
   loadedAt: null,
-  frontendSupabase: frontendSupabaseDebugInfo,
-  latestScheduledQuerySource: 'live',
-  latestScheduledQueryError: null,
 };
 
 export function useAdminLiveState(session: { access_token: string } | null) {
@@ -162,9 +149,6 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       latestScheduledRunRes,
       recentScheduledRunsRes,
       latestManualRunRes,
-      recentManualRunsRes,
-      latestAutomaticOutcomeRunRes,
-      latestManualOutcomeRunRes,
       provRes,
       cfgRes,
       realSignalCountRes,
@@ -178,12 +162,9 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       manualUpdateRes,
     ] = await Promise.all([
       supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(50),
-      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').or(AUTOMATIC_SCHEDULER_PROOF_OR).order('started_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').or(AUTOMATIC_SCHEDULER_PROOF_OR).order('started_at', { ascending: false }).limit(20),
-      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).or(MANUAL_PROOF_OR).order('started_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).or(MANUAL_PROOF_OR).order('started_at', { ascending: false }).limit(20),
-      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').or(AUTOMATIC_SCHEDULER_PROOF_OR).eq('outcome_checked', true).order('started_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).or(MANUAL_PROOF_OR).eq('outcome_checked', true).order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(20),
+      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'manual').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('provider_status').select('*'),
       supabase.from('scanner_config').select('*').eq('id', 1).maybeSingle(),
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
@@ -193,16 +174,14 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message,source,triggered_by,is_automatic').or(AUTOMATIC_OUTCOME_PROOF_OR).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message,source,triggered_by,is_automatic').or(MANUAL_OUTCOME_PROOF_OR).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').ilike('message', '%source: scheduled-market-scanner%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').or('message.is.null,message.ilike.%source: manual_button%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     const runs: ScannerRun[] = (runsRes.data ?? []) as ScannerRun[];
     const recentScheduledRuns: ScannerRun[] = (recentScheduledRunsRes.data ?? []) as ScannerRun[];
-    const recentManualRuns: ScannerRun[] = (recentManualRunsRes.data ?? []) as ScannerRun[];
     const cfg = cfgRes.data;
     const latestRun = runs[0] ?? null;
-    const latestScheduledQueryError = latestScheduledRunRes.error?.message ?? recentScheduledRunsRes.error?.message ?? recentManualRunsRes.error?.message ?? latestAutomaticOutcomeRunRes.error?.message ?? latestManualOutcomeRunRes.error?.message ?? null;
     const latestScheduledRun = (latestScheduledRunRes.data as ScannerRun | null) ?? null;
     const latestManualRun = (latestManualRunRes.data as ScannerRun | null) ?? null;
 
@@ -221,7 +200,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     let runtimeConfig: RuntimeProviderConfig | null = null;
     let runtimeConfigError: string | null = null;
     try {
-      const res = await fetch(edgeFunctionUrl('market-scanner'), {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const res = await fetch(`${supabaseUrl}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: {
           ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
@@ -274,19 +254,15 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       }
     }
 
-    const latestAutomaticOutcomeCheckAt = latestAutomaticOutcomeRunRes.data?.started_at ?? autoUpdateRes.data?.created_at ?? null;
-    const latestManualOutcomeCheckAt = latestManualOutcomeRunRes.data?.started_at ?? manualUpdateRes.data?.created_at ?? null;
-    const autoOutcomeAgeMinutes = latestAutomaticOutcomeCheckAt ? Math.round((Date.now() - new Date(latestAutomaticOutcomeCheckAt).getTime()) / 60000) : null;
-    const manualOutcomeAgeMinutes = latestManualOutcomeCheckAt ? Math.round((Date.now() - new Date(latestManualOutcomeCheckAt).getTime()) / 60000) : null;
-    const outcomeTrackingStatus = autoOutcomeAgeMinutes !== null && autoOutcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
+    const latestOutcomeAt = autoUpdateRes.data?.created_at ?? updateRes.data?.created_at ?? null;
+    const outcomeAgeMinutes = latestOutcomeAt ? Math.round((Date.now() - new Date(latestOutcomeAt).getTime()) / 60000) : null;
+    const outcomeTrackingStatus = autoUpdateRes.data && outcomeAgeMinutes !== null && outcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
       ? 'Automatic outcome active'
-      : manualOutcomeAgeMinutes !== null && manualOutcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
-        ? 'Manual outcome active'
-        : latestAutomaticOutcomeCheckAt
-          ? 'Automatic outcome stale'
-          : latestManualOutcomeCheckAt || outcomeTgRes.data || updateRes.data
-            ? 'Manual proof only'
-            : 'Not verified';
+      : outcomeAgeMinutes !== null && outcomeAgeMinutes <= Math.max(15, scanIntervalMinutes * 3)
+        ? 'Active (manual)'
+        : outcomeTgRes.data || updateRes.data
+          ? 'Stale/manual only'
+          : 'Not verified';
 
     const effectiveSignalEnableCrypto = (runtimeConfig?.signal_enable_crypto ?? true) && cfg?.scan_crypto_enabled !== false;
     const effectiveSignalEnableForex = (runtimeConfig?.signal_enable_forex ?? false) && cfg?.scan_forex_enabled === true;
@@ -325,9 +301,6 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       latestManualRun,
       recentRuns: runs,
       recentScheduledRuns,
-      recentManualRuns,
-      latestAutomaticOutcomeCheckAt,
-      latestManualOutcomeCheckAt,
       providers: (provRes.data ?? []) as ProviderStatus[],
       runtimeConfig,
       runtimeConfigError,
@@ -349,9 +322,6 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       minAutoSendGrade: cfg?.min_auto_send_grade ?? 'A',
       loading: false,
       loadedAt: new Date().toISOString(),
-      frontendSupabase: frontendSupabaseDebugInfo,
-      latestScheduledQuerySource: latestScheduledQueryError ? 'query_failed' : 'live',
-      latestScheduledQueryError,
     });
   }, [session?.access_token]);
 

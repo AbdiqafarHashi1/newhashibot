@@ -7,7 +7,6 @@ import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 import { Badge, statusBadge } from '../../components/ui/Badge';
 import { callEdgeFunction, EdgeFunctionReachability, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
 import { AlertTriangle, CheckCircle, Database, Info, RefreshCw, Wifi, ChevronDown, ChevronUp } from 'lucide-react';
-import { edgeFunctionUrl } from '../../lib/supabaseEnv';
 
 interface RuntimeConfig {
   provider?: string;
@@ -159,7 +158,7 @@ export default function ProviderHealth() {
 
     let runtimeAvailable = false;
     try {
-      const res = await fetch(edgeFunctionUrl('market-scanner'), {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: {
           ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
@@ -307,9 +306,9 @@ export default function ProviderHealth() {
           <div className="text-xs text-zinc-500 mt-1">Requires env toggles, token/chat, and scanner_config auto-send.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Automatic Schedule / Cron</div>
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Schedule / Cron</div>
           <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : liveState.cronStale ? 'text-lg font-semibold text-yellow-400' : cfg?.cron_job_active ? 'text-lg font-semibold text-blue-400' : 'text-lg font-semibold text-zinc-500'}>{schedulerLabel}</div>
-          <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · latest automatic scheduled scanner_run ${latestScheduledAge}m ago` : ' · no scheduled scanner_run proof'}</div>
+          <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · latest scheduled scanner_run ${latestScheduledAge}m ago` : ' · no scheduled scanner_run proof'}</div>
           <div className="text-xs text-zinc-600 mt-1">{liveState.cronReason}</div>
           <div className="text-[11px] text-zinc-500 mt-1">Edge Function unknown status does not override scanner_runs proof.</div>
         </div>

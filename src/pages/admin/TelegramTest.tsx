@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { Send, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { edgeFunctionUrl } from '../../lib/supabaseEnv';
 
 export default function TelegramTest() {
   const { session } = useAuth();
@@ -20,7 +19,7 @@ export default function TelegramTest() {
     setResult(null);
     try {
       const res = await fetch(
-        edgeFunctionUrl('telegram-test'),
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-test`,
         {
           method: 'POST',
           headers: {

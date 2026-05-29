@@ -62,10 +62,10 @@ async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
   const [cfgRes, latestRunRes, latestScheduledRes, scheduledRowsRes, latestManualRes, latestOutcomeAutoRes] = await Promise.all([
     supabase.from("scanner_config").select("cron_job_active,cron_job_name,schedule_enabled,last_scheduled_scan_at,scan_interval_minutes").eq("id", 1).maybeSingle(),
     supabase.from("scanner_runs").select("*").order("started_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("scanner_runs").select("*").ilike("run_type", "scheduled").or("source.eq.pg_cron,triggered_by.eq.pg_cron,is_automatic.eq.true").order("started_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("scanner_runs").select("*").ilike("run_type", "scheduled").or("source.eq.pg_cron,triggered_by.eq.pg_cron,is_automatic.eq.true").order("started_at", { ascending: false }).limit(10),
-    supabase.from("scanner_runs").select("*").or("triggered_by.eq.manual_button,source.ilike.%manual%,run_type.ilike.manual").order("started_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("signal_updates").select("id,signal_id,new_status,message,source,triggered_by,is_automatic,created_at").or("source.eq.scheduled_market_scanner,triggered_by.eq.pg_cron,is_automatic.eq.true").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("scanner_runs").select("*").ilike("run_type", "scheduled").order("started_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("scanner_runs").select("*").ilike("run_type", "scheduled").order("started_at", { ascending: false }).limit(10),
+    supabase.from("scanner_runs").select("*").ilike("run_type", "manual").order("started_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("signal_updates").select("id,signal_id,new_status,message,created_at").ilike("message", "%source: scheduled-market-scanner%").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   let latestNetHttpResponse: Record<string, unknown> | null = null;
@@ -153,9 +153,9 @@ async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
     statuses: {
       pg_cron_registered: Boolean(cfgRes.data?.cron_job_active),
       pg_cron_fired_recently: cronDetailProof,
-      scheduled_wrapper_callable: netHttpProof,
+      scheduled_wrapper_callable: scheduledRunProof || netHttpProof,
       admin_manual_scheduler_test_callable: true,
-      latest_automatic_scheduled_scanner_run_exists: Boolean(latestScheduledRun),
+      latest_scheduled_scanner_run_exists: Boolean(latestScheduledRun),
       latest_outcome_auto_check_exists: Boolean(latestOutcomeAutoRes.data),
       latest_outcome_auto_check_recent: latestOutcomeAutoAge !== null && latestOutcomeAutoAge <= 15,
     },
@@ -200,7 +200,7 @@ Deno.serve(async (req: Request) => {
       const proxy = await fetch(`${supabaseUrl}/functions/v1/scheduled-market-scanner`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ source: "admin_manual_scheduled_test", triggered_by: "manual_button", is_automatic: false }),
+        body: JSON.stringify({ source: "admin-scheduler-action" }),
       });
       const proxiedBody = await parseBody(proxy);
 

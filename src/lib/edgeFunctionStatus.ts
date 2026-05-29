@@ -1,4 +1,3 @@
-import { edgeFunctionUrl } from './supabaseEnv';
 export type EdgeFunctionReachability = 'deployed' | 'missing' | 'forbidden' | 'unreachable' | 'unknown';
 
 export interface EdgeFunctionCallResult<T = Record<string, unknown>> {
@@ -30,7 +29,8 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
   body: Record<string, unknown>,
   token?: string | null,
 ): Promise<EdgeFunctionCallResult<T>> {
-  const res = await fetch(edgeFunctionUrl(functionName), {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const res = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

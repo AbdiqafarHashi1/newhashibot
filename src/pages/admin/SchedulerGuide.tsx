@@ -8,7 +8,7 @@ import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 
 const SQL_CRON = `-- Truthful pg_cron command for HashiBot crypto-only MVP
 -- Replace placeholders, then run in Supabase SQL Editor.
--- pg_cron proof comes from fresh automatic scanner_runs rows only.
+-- pg_cron proof comes from fresh scanner_runs.run_type='scheduled' rows.
 -- net._http_response and cron.job_run_details are secondary diagnostics only.
 -- scanner_config.cron_job_active is config only, not proof.
 
@@ -51,10 +51,9 @@ FROM cron.job
 WHERE jobname = 'hashibot_scheduled_market_scanner_5m';`;
 
 const SQL_CHECK = `-- Verify scheduled scanner rows (0 signals still proves cron ran)
-SELECT id, run_type, source, triggered_by, is_automatic, status, started_at, finished_at, symbols_scanned, signals_created, error_message
+SELECT id, run_type, status, started_at, finished_at, symbols_scanned, signals_created, error_message
 FROM scanner_runs
 WHERE lower(run_type) = 'scheduled'
-  AND (source = 'pg_cron' OR triggered_by = 'pg_cron' OR is_automatic = true)
 ORDER BY started_at DESC
 LIMIT 10;
 
@@ -203,7 +202,7 @@ export default function SchedulerGuide() {
   const cronJobActive = liveState.cronConfigured || cfg?.cron_job_active === true;
   const scheduleEnabled = liveState.scheduleEnabled || cfg?.schedule_enabled === true;
   const scheduledAge = liveState.lastScheduledRunAgeMinutes;
-  const latestOutcomeAutoCheckAt = liveState.latestAutomaticOutcomeCheckAt ?? status?.latestOutcomeAutoCheck?.created_at ?? null;
+  const latestOutcomeAutoCheck = liveState.latestAutomaticOutcomeUpdate ?? status?.latestOutcomeAutoCheck ?? null;
   const cronStatusLabel = liveState.loading && !liveState.latestScheduledRun
     ? 'Checking scheduler status...'
     : liveState.schedulerProof.label;
@@ -216,7 +215,7 @@ export default function SchedulerGuide() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Scheduled Scanning Setup</h1>
-            <p className="text-sm text-zinc-500 mt-0.5">Configure and verify automatic scanner execution via pg_cron. Primary proof is the latest automatic scanner_runs row where lower(run_type) = 'scheduled' and source/triggered_by/is_automatic proves pg_cron.</p>
+            <p className="text-sm text-zinc-500 mt-0.5">Configure and verify automatic scanner execution via pg_cron. Primary proof is the latest scanner_runs row where lower(run_type) = 'scheduled'.</p>
           </div>
           <button onClick={async () => { await Promise.all([refreshLiveState(), checkCronStatus()]); }} disabled={loadingAny}
             className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
@@ -233,14 +232,14 @@ export default function SchedulerGuide() {
             <div className={`text-xs ${cronDetected ? 'text-emerald-300/80' : 'text-yellow-300/80'}`}>{cronReason}</div>
             {latestScheduledRun && (
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3 text-xs">
-                <ProofDetail label="Latest automatic scheduled run" value={new Date(latestScheduledRun.started_at).toLocaleString()} />
+                <ProofDetail label="Latest scheduled run" value={new Date(latestScheduledRun.started_at).toLocaleString()} />
                 <ProofDetail label="Age" value={scheduledAge !== null ? `${scheduledAge}m` : '—'} />
                 <ProofDetail label="Status" value={latestScheduledRun.status} />
                 <ProofDetail label="Symbols scanned" value={metric(latestScheduledRun.symbols_scanned, '0')} />
                 <ProofDetail label="Signals created" value={metric(latestScheduledRun.signals_created, '0')} />
                 <ProofDetail label="TG sent (not required)" value={String(latestScheduledRun.telegram_sent_count ?? 0)} />
                 <ProofDetail label="0-signal proof rule" value="0 signals still counts" />
-                <ProofDetail label="Latest auto outcome" value={latestOutcomeAutoCheckAt ? new Date(latestOutcomeAutoCheckAt).toLocaleString() : '—'} />
+                <ProofDetail label="Latest auto outcome" value={latestOutcomeAutoCheck?.created_at ? new Date(latestOutcomeAutoCheck.created_at).toLocaleString() : '—'} />
               </div>
             )}
             <div className="flex gap-3 mt-2 text-xs text-zinc-500">
@@ -289,7 +288,7 @@ export default function SchedulerGuide() {
             ['pg_cron fired recently (diagnostic)', status?.statuses?.pg_cron_fired_recently],
             ['scheduled wrapper callable (diagnostic)', status?.statuses?.scheduled_wrapper_callable],
             ['admin manual test callable', status?.warnings?.admin_scheduler_action ? false : status?.statuses?.admin_manual_scheduler_test_callable],
-            ['latest automatic scheduled run exists', status?.statuses?.latest_automatic_scheduled_scanner_run_exists],
+            ['latest scheduled run exists', status?.statuses?.latest_scheduled_scanner_run_exists],
             ['latest outcome auto-check', status?.statuses?.latest_outcome_auto_check_recent],
           ].map(([label, ok]) => (
             <div key={String(label)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 min-w-0">
@@ -300,9 +299,9 @@ export default function SchedulerGuide() {
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold">Recent automatic scheduled scanner runs</div>
+          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold">Recent scheduled scanner runs</div>
           {recentScheduledRuns.length === 0 ? (
-            <div className="px-5 py-6 text-sm text-zinc-500">No automatic scheduled scanner_runs were returned by the direct scanner_runs query.</div>
+            <div className="px-5 py-6 text-sm text-zinc-500">No scheduled scanner_runs were returned by the direct scanner_runs query.</div>
           ) : (
             <table className="w-full text-xs">
               <thead><tr className="border-b border-zinc-800 text-zinc-500"><th className="text-left px-5 py-2.5">Started</th><th className="text-left px-5 py-2.5">Finished</th><th className="text-left px-5 py-2.5">Status</th><th className="text-left px-5 py-2.5">Symbols</th><th className="text-left px-5 py-2.5">Signals</th><th className="text-left px-5 py-2.5">TG S/K/F</th></tr></thead>
@@ -322,7 +321,7 @@ export default function SchedulerGuide() {
               <p className="text-xs text-zinc-400">If the cron job doesn't exist yet, follow these steps in the Supabase SQL Editor.</p>
               <Step n={1} title="Enable pg_net extension"><p className="text-xs text-zinc-400 mb-3">pg_net allows SQL jobs to make HTTP requests.</p><CodeBlock code={SQL_NET} id="net" copied={copied} onCopy={copy} /></Step>
               <Step n={2} title="Schedule the Edge Function"><p className="text-xs text-zinc-400 mb-2">Replace the placeholders. Find values in Project Settings → API.</p><CodeBlock code={SQL_CRON} id="cron" copied={copied} onCopy={copy} /></Step>
-              <Step n={3} title="Verify the job and automatic scheduled rows"><CodeBlock code={SQL_CHECK} id="check" copied={copied} onCopy={copy} /></Step>
+              <Step n={3} title="Verify the job and scheduled rows"><CodeBlock code={SQL_CHECK} id="check" copied={copied} onCopy={copy} /></Step>
               <Step n={4} title="Enable Schedule in Scanner Config"><p className="text-xs text-zinc-400">Go to <strong className="text-zinc-300">Scanner Config → Scheduled Scanning</strong> and toggle <strong className="text-zinc-300">Schedule Enabled</strong> to ON. Without this, cron calls will be skipped.</p></Step>
             </div>
           )}

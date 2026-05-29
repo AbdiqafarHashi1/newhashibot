@@ -39,15 +39,12 @@ function compactError(prefix: string, detail: unknown) {
   return `${prefix}: ${text}`.slice(0, 1800);
 }
 
-async function createScheduledRun(supabase: SupabaseClient, source: string, triggeredBy: string, isAutomatic: boolean) {
+async function createScheduledRun(supabase: SupabaseClient, source: string) {
   const { data, error } = await supabase.from("scanner_runs").insert({
     status: "running",
     run_type: "scheduled",
-    source,
-    triggered_by: triggeredBy,
-    is_automatic: isAutomatic,
     started_at: new Date().toISOString(),
-    error_message: `scheduled-market-scanner accepted cron call (source=${source}, triggered_by=${triggeredBy}, is_automatic=${isAutomatic})`,
+    error_message: `scheduled-market-scanner accepted cron call (source=${source})`,
   }).select("id").single();
   if (error) throw new Error(`Unable to create scheduled scanner_runs proof row: ${error.message}`);
   return data?.id as string;
@@ -92,7 +89,6 @@ async function updateOutcomeProof(
     outcome_telegram_sent: proof.outcome_telegram_sent,
     outcome_telegram_skipped: proof.outcome_telegram_skipped,
     outcome_telegram_failed: proof.outcome_telegram_failed,
-    outcome_error: proof.outcome_error ?? null,
   };
   const { error } = await supabase.from("scanner_runs").update(optionalFields).eq("id", runId);
   if (error && !/schema cache|column|PGRST204/i.test(error.message)) {
@@ -115,17 +111,10 @@ Deno.serve(async (req: Request) => {
   let outcomeTracking: Record<string, unknown> | null = null;
   let runId: string | null = null;
   let supabaseForCatch: SupabaseClient | null = null;
-  let source = "pg_cron";
-  let triggeredBy = "pg_cron";
-  let isAutomatic = true;
 
   try {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const requestedSource = typeof body.source === "string" && body.source ? body.source : "pg_cron";
-    const requestedTriggeredBy = typeof body.triggered_by === "string" && body.triggered_by ? body.triggered_by : undefined;
-    isAutomatic = requestedSource === "pg_cron" || requestedTriggeredBy === "pg_cron" || body.is_automatic === true;
-    source = isAutomatic ? "pg_cron" : requestedSource;
-    triggeredBy = isAutomatic ? "pg_cron" : requestedTriggeredBy ?? "manual_button";
+    const source = typeof body.source === "string" && body.source ? body.source : "pg_cron";
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
@@ -148,7 +137,7 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, serviceRole);
     supabaseForCatch = supabase;
-    runId = await createScheduledRun(supabase, source, triggeredBy, isAutomatic);
+    runId = await createScheduledRun(supabase, source);
 
     const { data: cfg, error: cfgError } = await supabase.from("scanner_config").select("*").eq("id", 1).maybeSingle();
     appendWarning(warnings, cfgError?.message ? `scanner_config read warning: ${cfgError.message}` : undefined);
@@ -176,7 +165,7 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
         ...(cronSecret ? { "x-scanner-cron-secret": cronSecret } : {}),
       },
-      body: JSON.stringify({ run_type: "scheduled", source, triggered_by: triggeredBy, is_automatic: isAutomatic, market_mode: "crypto_only", scanner_run_id: runId }),
+      body: JSON.stringify({ run_type: "scheduled", source, market_mode: "crypto_only", scanner_run_id: runId }),
     });
     marketScannerStatus = proxy.status;
     const proxiedBody = await parseBody(proxy);
@@ -227,7 +216,7 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
           ...(cronSecret ? { "x-scanner-cron-secret": cronSecret } : {}),
         },
-        body: JSON.stringify({ source: isAutomatic ? "scheduled_market_scanner" : source, triggered_by: triggeredBy, is_automatic: isAutomatic, scanner_run_id: runId, run_type: "scheduled", market_mode: "crypto_only" }),
+        body: JSON.stringify({ source: "scheduled-market-scanner", scanner_run_id: runId, run_type: "scheduled", market_mode: "crypto_only" }),
       });
       outcomeStatus = outcomeRes.status;
       const outcomeBody = await parseBody(outcomeRes);
@@ -245,12 +234,10 @@ Deno.serve(async (req: Request) => {
       outcome_telegram_sent: numberMetric(outcomeTracking, "telegram_sent"),
       outcome_telegram_skipped: numberMetric(outcomeTracking, "telegram_skipped"),
       outcome_telegram_failed: numberMetric(outcomeTracking, "telegram_failed"),
-      outcome_error: null as string | null,
     };
+    await updateOutcomeProof(supabase, runId, proof, warnings);
 
     const outcomeError = outcomeSuccess ? null : warnings[warnings.length - 1] ?? "outcome_tracking_failed";
-    proof.outcome_error = outcomeError;
-    await updateOutcomeProof(supabase, runId, proof, warnings);
     if (outcomeError) await appendRunError(supabase, runId, `outcome_error: ${outcomeError}`, warnings);
 
     const telegramSent = numberMetric(proxiedJson, "telegram_sent");
@@ -262,9 +249,6 @@ Deno.serve(async (req: Request) => {
       success: true,
       wrapper: "scheduled-market-scanner",
       run_type: "scheduled",
-      source,
-      triggered_by: triggeredBy,
-      is_automatic: isAutomatic,
       run_id: runId,
       market_scanner_called: marketScannerCalled,
       market_scanner_success: marketScannerSuccess,
@@ -301,9 +285,6 @@ Deno.serve(async (req: Request) => {
       success: false,
       wrapper: "scheduled-market-scanner",
       run_type: "scheduled",
-      source,
-      triggered_by: triggeredBy,
-      is_automatic: isAutomatic,
       run_id: runId,
       market_scanner_called: marketScannerCalled,
       market_scanner_success: marketScannerSuccess,
