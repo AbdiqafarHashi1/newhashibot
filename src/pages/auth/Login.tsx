@@ -18,6 +18,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const debug = getFrontendSupabaseDebugInfo();
   const envConfigError = debug.errorMessage ?? debug.frontendEnvError;
+  const envConfigWarning = debug.warningMessage;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,13 +50,17 @@ export default function Login() {
         </div>
 
         <LoginDebugPanel
+          rawHashibotUrlPresent={debug.hashibotSupabaseUrlPresent}
+          rawHashibotUrlHost={debug.hashibotSupabaseUrlHost}
+          rawHashibotUrlProjectRef={debug.hashibotSupabaseUrlProjectRef}
+          rawViteUrlPresent={debug.viteSupabaseUrlPresent}
+          rawViteUrlHost={debug.viteSupabaseUrlHost}
+          rawViteUrlProjectRef={debug.viteSupabaseUrlProjectRef}
           selectedSupabaseUrlSource={debug.selectedSupabaseUrlSource}
-          viteSupabaseUrlPresent={debug.viteSupabaseUrlPresent}
-          fallbackSupabaseUrlUsed={debug.fallbackSupabaseUrlUsed}
           selectedSupabaseUrlHost={debug.selectedSupabaseUrlHost}
           selectedSupabaseUrlOrigin={debug.selectedSupabaseUrlOrigin}
+          selectedProjectRef={debug.selectedProjectRef}
           expectedProjectRef={debug.expectedProjectRef}
-          actualProjectRef={debug.actualProjectRef}
           projectRefMatches={debug.projectRefMatches}
           selectedKeySource={debug.selectedFrontendKeySource}
           keyPresent={debug.keyPresent}
@@ -64,15 +69,16 @@ export default function Login() {
           lastLoginErrorName={lastLoginErrorName}
           lastLoginErrorMessage={lastLoginErrorMessage}
           envConfigError={envConfigError}
+          envConfigWarning={envConfigWarning}
         />
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
           <h1 className="text-xl font-bold mb-1">Welcome back</h1>
           <p className="text-sm text-zinc-500 mb-6">Sign in to your HashiBot account</p>
 
-          {envConfigError && (
+          {(envConfigError || envConfigWarning) && (
             <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-2 rounded-lg mb-4">
-              {envConfigError}
+              {envConfigError ?? envConfigWarning}
             </div>
           )}
 
@@ -125,13 +131,17 @@ export default function Login() {
 }
 
 interface LoginDebugPanelProps {
+  rawHashibotUrlPresent: boolean;
+  rawHashibotUrlHost: string | null;
+  rawHashibotUrlProjectRef: string | null;
+  rawViteUrlPresent: boolean;
+  rawViteUrlHost: string | null;
+  rawViteUrlProjectRef: string | null;
   selectedSupabaseUrlSource: string;
-  viteSupabaseUrlPresent: boolean;
-  fallbackSupabaseUrlUsed: boolean;
   selectedSupabaseUrlHost: string | null;
   selectedSupabaseUrlOrigin: string | null;
+  selectedProjectRef: string | null;
   expectedProjectRef: string;
-  actualProjectRef: string | null;
   projectRefMatches: boolean;
   selectedKeySource: string;
   keyPresent: boolean;
@@ -140,16 +150,21 @@ interface LoginDebugPanelProps {
   lastLoginErrorName: string;
   lastLoginErrorMessage: string;
   envConfigError: string | null;
+  envConfigWarning: string | null;
 }
 
 function LoginDebugPanel({
+  rawHashibotUrlPresent,
+  rawHashibotUrlHost,
+  rawHashibotUrlProjectRef,
+  rawViteUrlPresent,
+  rawViteUrlHost,
+  rawViteUrlProjectRef,
   selectedSupabaseUrlSource,
-  viteSupabaseUrlPresent,
-  fallbackSupabaseUrlUsed,
   selectedSupabaseUrlHost,
   selectedSupabaseUrlOrigin,
+  selectedProjectRef,
   expectedProjectRef,
-  actualProjectRef,
   projectRefMatches,
   selectedKeySource,
   keyPresent,
@@ -158,21 +173,27 @@ function LoginDebugPanel({
   lastLoginErrorName,
   lastLoginErrorMessage,
   envConfigError,
+  envConfigWarning,
 }: LoginDebugPanelProps) {
   const rows = [
-    ['selected Supabase URL origin', selectedSupabaseUrlOrigin ?? 'missing'],
+    ['raw VITE_HASHIBOT_SUPABASE_URL present', String(rawHashibotUrlPresent)],
+    ['raw VITE_HASHIBOT_SUPABASE_URL host', rawHashibotUrlHost ?? 'missing'],
+    ['raw VITE_HASHIBOT_SUPABASE_URL project ref', rawHashibotUrlProjectRef ?? 'missing'],
+    ['raw VITE_SUPABASE_URL present', String(rawViteUrlPresent)],
+    ['raw VITE_SUPABASE_URL host', rawViteUrlHost ?? 'missing'],
+    ['raw VITE_SUPABASE_URL project ref', rawViteUrlProjectRef ?? 'missing'],
     ['selected Supabase URL source', selectedSupabaseUrlSource],
-    ['raw env VITE_SUPABASE_URL present', String(viteSupabaseUrlPresent)],
-    ['safe fallback used', String(fallbackSupabaseUrlUsed)],
+    ['selected Supabase URL origin', selectedSupabaseUrlOrigin ?? 'missing'],
     ['selected Supabase URL host', selectedSupabaseUrlHost ?? 'missing'],
+    ['selected project ref', selectedProjectRef ?? 'missing'],
     ['expected project ref', expectedProjectRef],
-    ['actual project ref', actualProjectRef ?? 'missing'],
     ['project ref match', String(projectRefMatches)],
     ['selected key source', selectedKeySource],
     ['key present', String(keyPresent)],
     ['key type guess', keyTypeGuess],
-    ['current browser origin', browserOrigin],
+    ['browser origin', browserOrigin],
     ['last login error name/message', `${lastLoginErrorName}: ${lastLoginErrorMessage}`],
+    ['env/config warning', envConfigWarning ?? 'none'],
     ['env/config error', envConfigError ?? 'none'],
   ];
 
