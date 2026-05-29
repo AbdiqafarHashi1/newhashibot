@@ -39,9 +39,15 @@ export function SchedulerProofDebug({ state }: { state: AdminLiveState }) {
 
   useEffect(() => {
     console.info('[HashiBot Scheduler Proof Debug v3]', {
+      selectedFrontendEnvSource: frontendSupabaseDebugInfo.selectedFrontendEnvSource,
+      selectedFrontendKeySource: frontendSupabaseDebugInfo.selectedFrontendKeySource,
+      frontendSupabaseUrlHost: frontendSupabaseDebugInfo.frontendSupabaseUrlHost,
       expectedProjectRef,
       actualProjectRef,
       projectRefMatches,
+      managedSupabaseFallbackIgnored: frontendSupabaseDebugInfo.managedSupabaseFallbackIgnored,
+      frontendEnvError: frontendSupabaseDebugInfo.frontendEnvError,
+      querySource: state.schedulerQuerySource,
       latestAutomaticScheduledRunId,
       latestAutomaticScheduledStartedAt,
       latestAutomaticScheduledAge,
@@ -54,9 +60,15 @@ export function SchedulerProofDebug({ state }: { state: AdminLiveState }) {
       queryError,
     });
   }, [
+    frontendSupabaseDebugInfo.selectedFrontendEnvSource,
+    frontendSupabaseDebugInfo.selectedFrontendKeySource,
+    frontendSupabaseDebugInfo.frontendSupabaseUrlHost,
     expectedProjectRef,
     actualProjectRef,
     projectRefMatches,
+    frontendSupabaseDebugInfo.managedSupabaseFallbackIgnored,
+    frontendSupabaseDebugInfo.frontendEnvError,
+    state.schedulerQuerySource,
     latestAutomaticScheduledRunId,
     latestAutomaticScheduledStartedAt,
     latestAutomaticScheduledAge,
@@ -76,10 +88,14 @@ export function SchedulerProofDebug({ state }: { state: AdminLiveState }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
           <div className="mb-2 font-semibold text-zinc-100">Frontend / Project</div>
-          <DebugRow label="frontend Supabase URL host">{frontendSupabaseDebugInfo.frontendSupabaseUrlHost}</DebugRow>
+          <DebugRow label="selected frontend env source">{frontendSupabaseDebugInfo.selectedFrontendEnvSource}</DebugRow>
+          <DebugRow label="selected frontend key source">{frontendSupabaseDebugInfo.selectedFrontendKeySource}</DebugRow>
+          <DebugRow label="selected frontend Supabase URL host">{frontendSupabaseDebugInfo.frontendSupabaseUrlHost}</DebugRow>
           <DebugRow label="expected project ref">{expectedProjectRef}</DebugRow>
           <DebugRow label="actual project ref">{actualProjectRef}</DebugRow>
           <DebugRow label="project ref match">{projectRefMatches}</DebugRow>
+          <DebugRow label="managed SUPABASE_* fallback ignored">{frontendSupabaseDebugInfo.managedSupabaseFallbackIgnored}</DebugRow>
+          <DebugRow label="frontend env error">{frontendSupabaseDebugInfo.frontendEnvError}</DebugRow>
         </div>
 
         <div className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">

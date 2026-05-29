@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClientConfig } from './supabaseEnv';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const { supabaseUrl, supabaseKey, frontendEnvError } = getSupabaseClientConfig();
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (frontendEnvError) {
+  console.error(frontendEnvError);
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);

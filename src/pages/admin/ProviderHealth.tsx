@@ -7,6 +7,7 @@ import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 import { Badge, statusBadge } from '../../components/ui/Badge';
 import { callEdgeFunction, EdgeFunctionReachability, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
 import { AlertTriangle, CheckCircle, Database, Info, RefreshCw, Wifi, ChevronDown, ChevronUp } from 'lucide-react';
+import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
 
 interface RuntimeConfig {
   provider?: string;
@@ -158,7 +159,7 @@ export default function ProviderHealth() {
 
     let runtimeAvailable = false;
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-scanner`, {
+      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: {
           ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
