@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { isSupabaseClientEnabled, supabase, supabaseConfigErrorMessage } from '../lib/supabase';
+import { isSupabaseClientEnabled, supabase, supabaseClientConfig, supabaseConfigErrorMessage } from '../lib/supabase';
 import { getFrontendSupabaseDebugInfo, getSupabaseClientConfig, logSupabaseEnvProof } from '../lib/supabaseEnv';
 import { Profile } from '../lib/types';
 
@@ -10,14 +10,49 @@ interface AuthContextValue {
   profile: Profile | null;
   profileError: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<AuthActionResult>;
+  signUp: (email: string, password: string, fullName: string) => Promise<AuthActionResult>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+export interface SafeAuthError extends Error {
+  status?: number | string;
+  code?: string;
+  causeMessage?: string;
+}
+
+interface AuthActionResult {
+  error: SafeAuthError | null;
+  profileError?: string | null;
+  usedSameSelectedClient?: boolean;
+}
+
+function getStringProperty(value: unknown, property: string): string | undefined {
+  if (!value || typeof value !== 'object' || !(property in value)) return undefined;
+  const propertyValue = (value as Record<string, unknown>)[property];
+  if (typeof propertyValue === 'string') return propertyValue;
+  if (typeof propertyValue === 'number') return String(propertyValue);
+  return undefined;
+}
+
+function toSafeAuthError(error: unknown, fallbackMessage = 'Supabase auth failed'): SafeAuthError {
+  const source = error instanceof Error ? error : new Error(error ? String(error) : fallbackMessage);
+  const safeError = new Error(source.message || fallbackMessage) as SafeAuthError;
+  safeError.name = source.name || 'Error';
+  safeError.status = getStringProperty(error, 'status');
+  safeError.code = getStringProperty(error, 'code');
+  const causeValue = error instanceof Error && 'cause' in error
+    ? (error as Error & { cause?: unknown }).cause
+    : undefined;
+  safeError.causeMessage = causeValue instanceof Error
+    ? causeValue.message
+    : getStringProperty(error, 'cause');
+  return safeError;
+}
 
 
 function isAuthFetchFailure(error: unknown): boolean {
@@ -75,10 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Track if initial session resolution has happened to prevent double-loading
   const initializedRef = useRef(false);
 
-  async function loadProfile(u: User) {
+  async function loadProfile(u: User): Promise<string | null> {
     const { profile: p, error } = await fetchOrCreateProfile(u);
     setProfile(p);
     setProfileError(error);
+    return error;
   }
 
   async function refreshProfile() {
@@ -147,41 +183,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function signIn(email: string, password: string) {
+  async function signIn(email: string, password: string): Promise<AuthActionResult> {
     const debug = getFrontendSupabaseDebugInfo();
 
     logSupabaseEnvProof(debug);
 
     const config = getSupabaseClientConfig();
     if (!config.hasValidConfig) {
-      return { error: new Error(config.frontendEnvError ?? 'Supabase frontend config invalid') };
+      return {
+        error: toSafeAuthError(new Error(config.frontendEnvError ?? 'Supabase frontend config invalid')),
+        usedSameSelectedClient: false,
+      };
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (isAuthFetchFailure(error)) {
-        return { error: new Error('Supabase auth network/config fetch failed. Check selected URL/key in login debug.') };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        const safeError = toSafeAuthError(error);
+        if (isAuthFetchFailure(error) && !safeError.message) {
+          safeError.message = 'Supabase auth fetch failed';
+        }
+        return { error: safeError, usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl };
       }
-      return { error: error as Error | null };
+
+      const postAuthProfileError = data.user ? await loadProfile(data.user) : null;
+      return { error: null, profileError: postAuthProfileError, usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl };
     } catch (err) {
-      if (isAuthFetchFailure(err)) {
-        return { error: new Error('Supabase auth network/config fetch failed. Check selected URL/key in login debug.') };
-      }
-      return { error: err as Error };
+      return { error: toSafeAuthError(err), usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl };
     }
   }
 
   async function signUp(email: string, password: string, fullName: string) {
     const config = getSupabaseClientConfig();
     if (!config.hasValidConfig) {
-      return { error: new Error(config.frontendEnvError ?? 'Supabase frontend config invalid') };
+      return { error: toSafeAuthError(new Error(config.frontendEnvError ?? 'Supabase frontend config invalid')) };
     }
 
     const { error } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: fullName } },
     });
-    return { error: error as Error | null };
+    return { error: error ? toSafeAuthError(error) : null };
   }
 
   async function signOut() {
