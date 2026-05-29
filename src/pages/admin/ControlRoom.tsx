@@ -250,7 +250,7 @@ export default function ControlRoom() {
         />
         <BannerItem label="Latest manual" value={shortTimestamp(latestManualRun?.started_at)} color={latestManualRun ? 'text-blue-400' : 'text-zinc-500'} />
         <BannerItem label="Latest scheduled" value={shortTimestamp(latestScheduledRun?.started_at)} color={latestScheduledRun ? 'text-emerald-400' : 'text-zinc-500'} />
-        <BannerItem label="Outcome tracking" value={state.outcomeTrackingStatus} color={state.outcomeTrackingStatus === 'Active' ? 'text-emerald-400' : 'text-zinc-500'} />
+        <BannerItem label="Outcome tracking" value={state.outcomeTrackingStatus} color={state.outcomeTrackingStatus.startsWith('Active (automatic)') ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'} />
       </div>
 
       {!state.cronProven && state.scheduleEnabled && (
@@ -354,6 +354,11 @@ export default function ControlRoom() {
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Last scheduled run</div>
           <div className={`text-sm ${latestScheduledRun ? 'text-zinc-200' : 'text-zinc-600'}`}>{shortTimestamp(latestScheduledRun?.started_at)}</div>
           {state.lastScheduledRunAgeMinutes !== null && <div className="text-xs text-zinc-600 mt-1">Age: {state.lastScheduledRunAgeMinutes}m</div>}
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 md:col-span-3">
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Outcome tracking proof</div>
+          <div className={`text-sm font-semibold ${state.outcomeTrackingStatus.startsWith('Active (automatic)') ? 'text-emerald-400' : state.outcomeTrackingStatus.startsWith('Active') ? 'text-yellow-400' : 'text-zinc-500'}`}>{state.outcomeTrackingStatus}</div>
+          <div className="text-xs text-zinc-600 mt-1">Automatic: {shortTimestamp(state.latestAutomaticOutcomeUpdate?.created_at)} · Manual: {shortTimestamp(state.latestManualOutcomeUpdate?.created_at)} · Latest outcome TG: {state.latestOutcomeDelivery ? `${state.latestOutcomeDelivery.status} (${shortTimestamp(state.latestOutcomeDelivery.created_at)})` : '—'}</div>
         </div>
       </div>
 
@@ -558,7 +563,7 @@ Runtime Config
                 <th className="text-left px-5 py-2.5">Status</th>
                 <th className="text-left px-5 py-2.5">Symbols</th>
                 <th className="text-left px-5 py-2.5">Signals</th>
-                <th className="text-left px-5 py-2.5">TG Sent / Skipped</th>
+                <th className="text-left px-5 py-2.5">TG Sent / Skipped / Failed</th>
                 <th className="text-left px-5 py-2.5">Duration</th>
               </tr>
             </thead>
@@ -572,7 +577,7 @@ Runtime Config
                   <td className="px-5 py-2.5">{statusBadge(r.status)}</td>
                   <td className="px-5 py-2.5 text-zinc-300">{r.symbols_scanned}</td>
                   <td className="px-5 py-2.5 text-zinc-300">{r.signals_created}</td>
-                  <td className="px-5 py-2.5 text-zinc-300">{r.telegram_sent_count ?? 0} / {r.telegram_blocked_count ?? 0}</td>
+                  <td className="px-5 py-2.5 text-zinc-300">{r.telegram_sent_count ?? 0} / {r.telegram_blocked_count ?? 0} / {r.telegram_failed_count ?? 0}</td>
                   <td className="px-5 py-2.5 text-zinc-400">{durationStr(r)}</td>
                 </tr>
               ))}

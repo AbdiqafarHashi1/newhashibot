@@ -59,12 +59,13 @@ async function probeFunction(supabaseUrl: string, functionName: string) {
 }
 
 async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
-  const [cfgRes, latestRunRes, latestScheduledRes, scheduledRowsRes, latestManualRes] = await Promise.all([
+  const [cfgRes, latestRunRes, latestScheduledRes, scheduledRowsRes, latestManualRes, latestOutcomeAutoRes] = await Promise.all([
     supabase.from("scanner_config").select("cron_job_active,cron_job_name,schedule_enabled,last_scheduled_scan_at,scan_interval_minutes").eq("id", 1).maybeSingle(),
     supabase.from("scanner_runs").select("*").order("started_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("scanner_runs").select("*").ilike("run_type", "scheduled").order("started_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("scanner_runs").select("*").ilike("run_type", "scheduled").order("started_at", { ascending: false }).limit(10),
     supabase.from("scanner_runs").select("*").ilike("run_type", "manual").order("started_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("signal_updates").select("id,signal_id,new_status,message,created_at").ilike("message", "%source: scheduled-market-scanner%").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   let latestNetHttpResponse: Record<string, unknown> | null = null;
@@ -112,6 +113,7 @@ async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
   const latestNetAge = minutesAgo(latestNetHttpResponse?.created);
   const latestCronAge = minutesAgo(latestCronRunDetail?.start_time);
   const latestScheduledAge = minutesAgo(latestScheduledRun?.started_at);
+  const latestOutcomeAutoAge = minutesAgo(latestOutcomeAutoRes.data?.created_at);
 
   const scheduledRunProof = latestScheduledAge !== null && latestScheduledAge <= 15;
   const netHttpProof = latestNetHttpResponse?.status_code === 200 && latestNetHttpResponse?.timed_out === false && latestNetAge !== null && latestNetAge <= 15;
@@ -123,6 +125,8 @@ async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
     latestScheduledRun,
     recentScheduledRuns: scheduledRowsRes.data ?? [],
     latestManualRun: latestManualRes.data ?? null,
+    latestOutcomeAutoCheck: latestOutcomeAutoRes.data ?? null,
+    latestOutcomeAutoCheckAgeMinutes: latestOutcomeAutoAge,
     latestScheduledRunAgeMinutes: latestScheduledAge,
     latestNetHttpResponse,
     latestCronRunDetail,
@@ -130,7 +134,9 @@ async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
       scheduledRunProof,
       netHttpProof,
       cronDetailProof,
-      cronProven: scheduledRunProof || netHttpProof || cronDetailProof,
+      // pg_cron is only proven by a fresh scanner_runs.run_type='scheduled' row.
+      // net._http_response and cron.job_run_details are secondary diagnostics.
+      cronProven: scheduledRunProof,
       thresholdMinutes: 15,
       missing: {
         scheduled_run: !scheduledRunProof,
@@ -150,6 +156,8 @@ async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
       scheduled_wrapper_callable: scheduledRunProof || netHttpProof,
       admin_manual_scheduler_test_callable: true,
       latest_scheduled_scanner_run_exists: Boolean(latestScheduledRun),
+      latest_outcome_auto_check_exists: Boolean(latestOutcomeAutoRes.data),
+      latest_outcome_auto_check_recent: latestOutcomeAutoAge !== null && latestOutcomeAutoAge <= 15,
     },
     warnings: {
       scanner_config: cfgRes.error?.message ?? null,
@@ -157,6 +165,7 @@ async function getSchedulerStatus(supabase: ReturnType<typeof createClient>) {
       latest_scheduled_run: latestScheduledRes.error?.message ?? null,
       recent_scheduled_runs: scheduledRowsRes.error?.message ?? null,
       latest_manual_run: latestManualRes.error?.message ?? null,
+      latest_outcome_auto_check: latestOutcomeAutoRes.error?.message ?? null,
       net_http_response: netHttpError,
       cron_run_detail: cronRunDetailError,
     },

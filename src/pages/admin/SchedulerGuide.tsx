@@ -5,32 +5,49 @@ import { ScannerRun } from '../../lib/types';
 import { callEdgeFunction, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
 import { useAuth } from '../../contexts/AuthContext';
 
-const SQL_CRON = `-- Run in Supabase SQL Editor after getting your Project URL and service role key
--- (Project Settings → API → Project URL + service_role key)
+const SQL_CRON = `-- Truthful pg_cron command for HashiBot crypto-only MVP
+-- Replace placeholders, then run in Supabase SQL Editor.
+-- pg_cron proof comes from fresh scanner_runs.run_type='scheduled' rows.
+-- net._http_response and cron.job_run_details are secondary diagnostics only.
+-- scanner_config.cron_job_active is config only, not proof.
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS pg_net;
+
+-- Remove stale jobs that may call old URLs or market-scanner directly.
+DO $$
+DECLARE existing_job record;
+BEGIN
+  FOR existing_job IN
+    SELECT jobid FROM cron.job
+    WHERE jobname IN ('hashibot_scheduled_market_scanner_5m', 'hashibot-scheduled-scanner')
+  LOOP
+    PERFORM cron.unschedule(existing_job.jobid);
+  END LOOP;
+END $$;
 
 SELECT cron.schedule(
   'hashibot_scheduled_market_scanner_5m',
   '*/5 * * * *',
   $$
   SELECT net.http_post(
-    url := 'YOUR_SUPABASE_URL/functions/v1/scheduled-market-scanner',
+    url := 'https://<PROJECT-REF>.supabase.co/functions/v1/scheduled-market-scanner',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer YOUR_SERVICE_ROLE_KEY'
+      'x-scanner-cron-secret', '<SCANNER_CRON_SECRET>'
     ),
-    body := '{}'::jsonb
+    body := '{"source":"pg_cron","run_type":"scheduled","market_mode":"crypto_only"}'::jsonb
   ) AS request_id;
   $$
 );
 
--- After running, mark cron job as active in scanner_config:
-UPDATE scanner_config SET cron_job_active = true, cron_job_name = 'hashibot_scheduled_market_scanner_5m' WHERE id = 1;
+UPDATE scanner_config
+SET cron_job_active = true, cron_job_name = 'hashibot_scheduled_market_scanner_5m'
+WHERE id = 1;
 
--- View jobs:
-SELECT jobid, jobname, schedule, active FROM cron.job;`;
+SELECT jobid, jobname, schedule, active, command
+FROM cron.job
+WHERE jobname = 'hashibot_scheduled_market_scanner_5m';`;
 
 const SQL_CHECK = `-- Verify scheduled scanner rows (0 signals still proves cron ran)
 SELECT id, run_type, status, started_at, finished_at, symbols_scanned, signals_created, error_message
@@ -42,8 +59,19 @@ LIMIT 10;
 -- Verify job is registered
 SELECT jobid, jobname, schedule, active FROM cron.job WHERE jobname = 'hashibot_scheduled_market_scanner_5m';
 
--- Check recent HTTP responses
-SELECT id, status_code, timed_out, created FROM net._http_response ORDER BY created DESC LIMIT 5;`;
+-- Check recent HTTP responses (secondary proof)
+SELECT id, status_code, timed_out, created, left(content::text, 500) AS content_sample
+FROM net._http_response
+ORDER BY created DESC
+LIMIT 5;
+
+-- Check cron execution details (secondary proof)
+SELECT j.jobname, d.status, d.start_time, d.end_time, d.return_message
+FROM cron.job_run_details d
+JOIN cron.job j ON j.jobid = d.jobid
+WHERE j.jobname = 'hashibot_scheduled_market_scanner_5m'
+ORDER BY d.start_time DESC
+LIMIT 10;`;
 
 const SQL_NET = `CREATE EXTENSION IF NOT EXISTS pg_net;`;
 
@@ -63,6 +91,8 @@ type SchedulerStatus = {
   recentScheduledRuns?: ScannerRun[];
   latestManualRun?: ScannerRun | null;
   latestRun?: ScannerRun | null;
+  latestOutcomeAutoCheck?: { created_at?: string; new_status?: string; message?: string } | null;
+  latestOutcomeAutoCheckAgeMinutes?: number | null;
   latestScheduledRunAgeMinutes?: number | null;
   proof?: SchedulerProof;
   statuses?: Record<string, boolean>;
@@ -149,7 +179,7 @@ export default function SchedulerGuide() {
         ok,
         json: data,
         msg: ok
-          ? `success=${metric(body.success)} · wrapper=${metric(body.wrapper)} · proxied_status=${metric(body.proxied_status ?? data?.proxied_status)} · run_id=${metric(runId)} · TG sent/skipped/failed=${metric(body.telegram_sent ?? proxied.telegram_sent, '0')}/${metric(body.telegram_skipped ?? proxied.telegram_skipped, '0')}/${metric(body.telegram_failed ?? proxied.telegram_failed, '0')} · outcome_checked=${metric(body.outcome_checked)} · outcomes_updated=${metric(body.outcomes_updated ?? outcome.signals_updated, '0')} · outcome TG sent/skipped/failed=${metric(body.outcome_telegram_sent ?? outcome.telegram_sent, '0')}/${metric(body.outcome_telegram_skipped ?? outcome.telegram_skipped, '0')}/${metric(body.outcome_telegram_failed ?? outcome.telegram_failed, '0')}`
+          ? `success=${metric(body.success)} · wrapper=${metric(body.wrapper)} · market_scanner_called=${metric(body.market_scanner_called)} · market_scanner_status=${metric(body.market_scanner_status ?? body.proxied_status ?? data?.proxied_status)} · run_id=${metric(runId)} · TG sent/skipped/failed=${metric(body.telegram_sent ?? proxied.telegram_sent, '0')}/${metric(body.telegram_skipped ?? proxied.telegram_skipped, '0')}/${metric(body.telegram_failed ?? proxied.telegram_failed, '0')} · outcome_called=${metric(body.outcome_called ?? body.outcome_checked)} · outcome_success=${metric(body.outcome_success)} · outcomes_updated=${metric(body.outcomes_updated ?? outcome.signals_updated, '0')} · outcome TG sent/skipped/failed=${metric(body.outcome_telegram_sent ?? outcome.telegram_sent, '0')}/${metric(body.outcome_telegram_skipped ?? outcome.telegram_skipped, '0')}/${metric(body.outcome_telegram_failed ?? outcome.telegram_failed, '0')}`
           : String(body.error ?? data?.error ?? (String(body.error ?? '').includes('SCANNER_CRON_SECRET') ? 'Cron secret warning: backend reported missing/invalid SCANNER_CRON_SECRET.' : 'Scheduled wrapper test failed')),
       });
       await checkCronStatus();
@@ -167,6 +197,7 @@ export default function SchedulerGuide() {
   const cronJobActive = cfg?.cron_job_active === true;
   const scheduleEnabled = cfg?.schedule_enabled === true;
   const scheduledAge = status?.latestScheduledRunAgeMinutes ?? null;
+  const latestOutcomeAutoCheck = status?.latestOutcomeAutoCheck ?? null;
   const cronStatusLabel = loadingStatus
     ? 'Checking scheduler status...'
     : cronDetected
@@ -203,7 +234,8 @@ export default function SchedulerGuide() {
                 <ProofDetail label="Symbols scanned" value={metric(latestScheduledRun.symbols_scanned, '0')} />
                 <ProofDetail label="Signals created" value={metric(latestScheduledRun.signals_created, '0')} />
                 <ProofDetail label="TG sent/skipped/failed" value={`${latestScheduledRun.telegram_sent_count ?? 0}/${latestScheduledRun.telegram_blocked_count ?? 0}/${latestScheduledRun.telegram_failed_count ?? 0}`} />
-                <ProofDetail label="Outcome checked" value={typeof latestScheduledRun.outcome_checked === 'boolean' ? (latestScheduledRun.outcome_checked ? 'yes' : 'no') : '—'} />
+                <ProofDetail label="Outcome checked" value={typeof latestScheduledRun.outcome_checked === 'boolean' ? (latestScheduledRun.outcome_checked ? 'yes' : 'no') : 'response/log proof'} />
+                <ProofDetail label="Latest auto outcome" value={latestOutcomeAutoCheck?.created_at ? new Date(latestOutcomeAutoCheck.created_at).toLocaleString() : '—'} />
               </div>
             )}
             <div className="flex gap-3 mt-2 text-xs text-zinc-500">
@@ -233,10 +265,10 @@ export default function SchedulerGuide() {
           </button>
           <div className="mt-4 bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-500 space-y-1">
             <div className="font-medium text-zinc-300">Truthful verification order</div>
-            <div>1. Click “Run Scheduled Scan Now” to test the wrapper manually.</div>
-            <div>2. Confirm the response includes success, wrapper, proxied_status, run_id, Telegram proof fields, and outcome proof fields.</div>
-            <div>3. Confirm a <code className="bg-zinc-800 px-1 rounded">scanner_runs.run_type='scheduled'</code> row appears.</div>
-            <div>4. Wait for real pg_cron and verify it creates fresh scheduled rows every 5 minutes.</div>
+            <div>1. This button is a wrapper test only — it is not pg_cron proof.</div>
+            <div>2. Confirm the response includes success, wrapper, market_scanner_called, run_id, Telegram proof fields, and outcome_called.</div>
+            <div>3. Wait for real pg_cron and verify it creates fresh <code className="bg-zinc-800 px-1 rounded">scanner_runs.run_type='scheduled'</code> rows every 5 minutes.</div>
+            <div>4. Treat <code className="bg-zinc-800 px-1 rounded">net._http_response</code> and <code className="bg-zinc-800 px-1 rounded">cron.job_run_details</code> as secondary diagnostics only.</div>
           </div>
           {testResult && (
             <div className={`mt-3 px-4 py-3 rounded-lg text-xs border ${testResult.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
@@ -253,6 +285,7 @@ export default function SchedulerGuide() {
             ['scheduled wrapper callable', status?.statuses?.scheduled_wrapper_callable],
             ['admin manual test callable', status?.warnings?.admin_scheduler_action ? false : status?.statuses?.admin_manual_scheduler_test_callable],
             ['latest scheduled run exists', status?.statuses?.latest_scheduled_scanner_run_exists],
+            ['latest outcome auto-check', status?.statuses?.latest_outcome_auto_check_recent],
           ].map(([label, ok]) => (
             <div key={String(label)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 min-w-0">
               <div className="text-[10px] uppercase tracking-wider text-zinc-500 break-words">{label}</div>

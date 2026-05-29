@@ -930,7 +930,7 @@ async function runScanPipeline(
 
   const { data: symbols } = await supabase.from("symbols").select("*").eq("is_active", true);
   if (!symbols || symbols.length === 0) {
-    await supabase.from("scanner_runs").update({ status: "error", finished_at: new Date().toISOString(), error_message: "No active symbols" }).eq("id", runId);
+    await supabase.from("scanner_runs").update({ status: "failed", finished_at: new Date().toISOString(), error_message: "No active symbols" }).eq("id", runId);
     throw new Error("No active symbols configured");
   }
 
@@ -1176,9 +1176,10 @@ async function runScanPipeline(
 
   const durationMs = Date.now() - scanStart;
   const hasError = errors.length > 0;
+  const runStatus = hasError && signalsCreated === 0 && candlesFetched === 0 ? "failed" : "completed";
 
   await supabase.from("scanner_runs").update({
-    status: hasError && signalsCreated === 0 && candlesFetched === 0 ? "error" : "completed",
+    status: runStatus,
     finished_at: new Date().toISOString(),
     symbols_scanned: symbolsScanned, candles_fetched: candlesFetched,
     candidates_found: candidatesFound, signals_created: signalsCreated,
@@ -1186,6 +1187,15 @@ async function runScanPipeline(
     rejected_candidates_count: rejectedCount,
     errors: errors.slice(0, 20), error_message: errors.slice(0, 5).join(" | "),
     telegram_sent_count: telegramSent, telegram_blocked_count: telegramSkipped + telegramFailed,
+  }).eq("id", runId);
+
+  // Optional proof columns exist in some deployments. Keep the base scanner_runs
+  // update above as source-of-truth and do not fail scans when these columns are absent.
+  await supabase.from("scanner_runs").update({
+    duration_ms: durationMs,
+    telegram_failed_count: telegramFailed,
+    market_mode: marketMode,
+    forex_skipped_count: forexSkippedCount,
   }).eq("id", runId);
 
   // Update heartbeat
@@ -1224,7 +1234,8 @@ Deno.serve(async (req: Request) => {
     );
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const runType = body.run_type_override === "scheduled" ? "scheduled" : "manual";
+    const requestedRunType = body.run_type ?? body.run_type_override;
+    const runType = requestedRunType === "scheduled" ? "scheduled" : "manual";
     if (body.debug_provider_config === true) {
       const signalEnableCryptoEnv = envBool("SIGNAL_ENABLE_CRYPTO", true);
       const signalEnableForexEnv = envBool("SIGNAL_ENABLE_FOREX", false);

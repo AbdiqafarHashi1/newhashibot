@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
 const TERMINAL = new Set(["tp2_hit", "sl_hit", "expired", "cancelled"]);
@@ -244,12 +244,17 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
+    const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+    const source = typeof body.source === "string" && body.source ? body.source : "manual_button";
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
+    const suppliedSecret = req.headers.get("x-scanner-cron-secret") ?? "";
     const isServiceInvocation = Boolean(serviceRole) && token === serviceRole;
+    const isCronSecretInvocation = Boolean(cronSecret) && suppliedSecret === cronSecret;
 
-    if (!isServiceInvocation) {
+    if (!isServiceInvocation && !isCronSecretInvocation) {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (!user) return jsonResponse({ success: false, error: "Unauthorized" }, 401);
     }
@@ -271,6 +276,8 @@ Deno.serve(async (req: Request) => {
 
     const out = {
       success: true,
+      source,
+      automatic: source !== "manual_button",
       market_mode: marketMode,
       signals_checked: 0,
       signals_updated: 0,
@@ -372,7 +379,7 @@ Deno.serve(async (req: Request) => {
         previous_status: currentStatus,
         old_status: currentStatus,
         new_status: next,
-        message: `${eventLabel(next)} via ${reason}`,
+        message: `${eventLabel(next)} via ${reason} (source: ${source})`,
         price,
         reason,
         telegram_sent: telegramResult.sent,
