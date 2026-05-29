@@ -1,7 +1,7 @@
 import { ScannerRun } from './types';
 
-export type SchedulerProofStatus = 'active' | 'recent' | 'stale' | 'missing';
-export type SchedulerProofLabel = 'Proven / Active' | 'Recently proven' | 'Stale' | 'Not configured' | 'Missing';
+export type SchedulerProofStatus = 'active' | 'recent' | 'stale' | 'missing' | 'error' | 'mismatch';
+export type SchedulerProofLabel = 'Proven / Active' | 'Recently proven' | 'Stale' | 'Not configured' | 'Missing' | 'Query failed' | 'Project mismatch';
 
 export interface SchedulerProof {
   status: SchedulerProofStatus;
@@ -16,17 +16,45 @@ export interface SchedulerProof {
 export const SCHEDULED_ACTIVE_MINUTES = 7;
 export const SCHEDULED_RECENT_MINUTES = 15;
 
-export const SCANNER_RUN_PROOF_COLUMNS = 'id,run_type,status,started_at,finished_at,symbols_scanned,signals_created,telegram_sent_count,error_message';
+export const SCANNER_RUN_PROOF_COLUMNS = 'id,run_type,source,triggered_by,is_automatic,status,started_at,finished_at,symbols_scanned,signals_created,telegram_sent_count,telegram_failed_count,error_message';
 
-export const LATEST_SCHEDULED_PROOF_SQL = `select
+export const AUTOMATIC_SCHEDULER_PROOF_SQL = `select
   id,
   run_type,
+  source,
+  triggered_by,
+  is_automatic,
   status,
   started_at,
   finished_at,
   symbols_scanned,
   signals_created,
   telegram_sent_count,
+  telegram_failed_count,
+  error_message
+from public.scanner_runs
+where lower(run_type) = 'scheduled'
+and (
+  source = 'pg_cron'
+  or triggered_by = 'pg_cron'
+  or is_automatic = true
+)
+order by started_at desc
+limit 1;`;
+
+export const LATEST_SCHEDULED_PROOF_SQL = `select
+  id,
+  run_type,
+  source,
+  triggered_by,
+  is_automatic,
+  status,
+  started_at,
+  finished_at,
+  symbols_scanned,
+  signals_created,
+  telegram_sent_count,
+  telegram_failed_count,
   error_message
 from scanner_runs
 where lower(run_type) = 'scheduled'
@@ -36,12 +64,16 @@ limit 1;`;
 export const RECENT_SCHEDULED_PROOF_SQL = `select
   id,
   run_type,
+  source,
+  triggered_by,
+  is_automatic,
   status,
   started_at,
   finished_at,
   symbols_scanned,
   signals_created,
   telegram_sent_count,
+  telegram_failed_count,
   error_message
 from scanner_runs
 where lower(run_type) = 'scheduled'
@@ -51,12 +83,16 @@ limit 20;`;
 export const LATEST_MANUAL_PROOF_SQL = `select
   id,
   run_type,
+  source,
+  triggered_by,
+  is_automatic,
   status,
   started_at,
   finished_at,
   symbols_scanned,
   signals_created,
   telegram_sent_count,
+  telegram_failed_count,
   error_message
 from scanner_runs
 where lower(run_type) = 'manual'
@@ -70,26 +106,67 @@ export function ageMinutesFromStartedAt(startedAt?: string | null): number | nul
   return Math.max(0, Math.round((Date.now() - startedMs) / 60000));
 }
 
-export function buildSchedulerProof(latestScheduledRun: Pick<ScannerRun, 'id' | 'started_at' | 'signals_created'> | null, configured = true): SchedulerProof {
-  const ageMinutes = ageMinutesFromStartedAt(latestScheduledRun?.started_at ?? null);
+export function safeSchedulerError(error?: { message?: string } | Error | string | null): string | null {
+  if (!error) return null;
+  const raw = typeof error === 'string' ? error : error.message;
+  if (!raw) return 'Unknown scheduler proof query error';
+  return raw.replace(/(apikey|authorization|bearer|token|secret|password|service_role|jwt)=?[^\s,;)]*/gi, '$1=[redacted]');
+}
+
+export function buildSchedulerProof(
+  latestAutomaticScheduledRun: Pick<ScannerRun, 'id' | 'started_at' | 'signals_created'> | null,
+  configured = true,
+  options: {
+    latestRawScheduledRun?: Pick<ScannerRun, 'id' | 'started_at'> | null;
+    queryError?: string | null;
+    projectRefMatches?: boolean;
+  } = {},
+): SchedulerProof {
+  const ageMinutes = ageMinutesFromStartedAt(latestAutomaticScheduledRun?.started_at ?? null);
   const refreshedAt = new Date().toISOString();
 
-  if (!latestScheduledRun || ageMinutes === null) {
-    const label: SchedulerProofLabel = configured ? 'Missing' : 'Not configured';
+  if (options.projectRefMatches === false) {
     return {
-      status: 'missing',
-      label,
+      status: 'mismatch',
+      label: 'Project mismatch',
       ageMinutes: null,
-      reason: configured
-        ? "No scanner_runs row found where lower(run_type) = 'scheduled'. scanner_config flags, Edge probes, net_http_response, and cron.job_run_details are diagnostics only."
-        : "No scheduled scanner_runs proof yet. scanner_config.cron_job_active is configuration only, not proof.",
+      reason: 'Frontend Supabase project mismatch.',
       latestRunId: null,
       latestStartedAt: null,
       refreshedAt,
     };
   }
 
-  const signalCount = latestScheduledRun.signals_created ?? 0;
+  if (options.queryError) {
+    return {
+      status: 'error',
+      label: 'Query failed',
+      ageMinutes: null,
+      reason: `Scheduler proof query failed: ${options.queryError}`,
+      latestRunId: null,
+      latestStartedAt: null,
+      refreshedAt,
+    };
+  }
+
+  if (!latestAutomaticScheduledRun || ageMinutes === null) {
+    const label: SchedulerProofLabel = configured ? 'Missing' : 'Not configured';
+    return {
+      status: 'missing',
+      label,
+      ageMinutes: null,
+      reason: options.latestRawScheduledRun
+        ? 'Raw scheduled rows exist, but automatic pg_cron provenance is missing.'
+        : configured
+          ? "No scanner_runs row found where lower(run_type) = 'scheduled' and (source = 'pg_cron' or triggered_by = 'pg_cron' or is_automatic = true). Manual rows, scanner_config flags, Edge probes, net_http_response, and cron.job_run_details are diagnostics only."
+          : 'No automatic scheduled scanner_runs proof yet. scanner_config.cron_job_active is configuration only, not proof.',
+      latestRunId: null,
+      latestStartedAt: null,
+      refreshedAt,
+    };
+  }
+
+  const signalCount = latestAutomaticScheduledRun.signals_created ?? 0;
   const signalText = signalCount === 0
     ? '0 signals still counts as scheduler proof'
     : `${signalCount} signal${signalCount === 1 ? '' : 's'} created`;
@@ -99,9 +176,9 @@ export function buildSchedulerProof(latestScheduledRun: Pick<ScannerRun, 'id' | 
       status: 'active',
       label: 'Proven / Active',
       ageMinutes,
-      reason: `Latest scheduled scanner_run started ${ageMinutes}m ago; ${signalText}. Telegram sends and outcome rows are not required for cron proof.`,
-      latestRunId: latestScheduledRun.id,
-      latestStartedAt: latestScheduledRun.started_at,
+      reason: `Latest automatic pg_cron scanner_run started ${ageMinutes}m ago; ${signalText}. Telegram sends and outcome rows are not required for scheduler proof.`,
+      latestRunId: latestAutomaticScheduledRun.id,
+      latestStartedAt: latestAutomaticScheduledRun.started_at,
       refreshedAt,
     };
   }
@@ -111,9 +188,9 @@ export function buildSchedulerProof(latestScheduledRun: Pick<ScannerRun, 'id' | 
       status: 'recent',
       label: 'Recently proven',
       ageMinutes,
-      reason: `Latest scheduled scanner_run started ${ageMinutes}m ago; recently proven; ${signalText}. Telegram sends and outcome rows are not required for cron proof.`,
-      latestRunId: latestScheduledRun.id,
-      latestStartedAt: latestScheduledRun.started_at,
+      reason: `Latest automatic pg_cron scanner_run started ${ageMinutes}m ago; recently proven; ${signalText}. Telegram sends and outcome rows are not required for scheduler proof.`,
+      latestRunId: latestAutomaticScheduledRun.id,
+      latestStartedAt: latestAutomaticScheduledRun.started_at,
       refreshedAt,
     };
   }
@@ -122,9 +199,9 @@ export function buildSchedulerProof(latestScheduledRun: Pick<ScannerRun, 'id' | 
     status: 'stale',
     label: 'Stale',
     ageMinutes,
-    reason: `Latest scheduled scanner_run started ${ageMinutes}m ago, older than ${SCHEDULED_RECENT_MINUTES}m; ${signalText}.`,
-    latestRunId: latestScheduledRun.id,
-    latestStartedAt: latestScheduledRun.started_at,
+    reason: `Automatic pg_cron proof is stale. Latest automatic run age: ${ageMinutes} minutes.`,
+    latestRunId: latestAutomaticScheduledRun.id,
+    latestStartedAt: latestAutomaticScheduledRun.started_at,
     refreshedAt,
   };
 }

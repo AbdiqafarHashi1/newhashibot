@@ -3,6 +3,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminLiveState } from '../../hooks/useAdminLiveState';
+import { SchedulerProofDebug } from '../../components/admin/SchedulerProofDebug';
 import { ScannerRun } from '../../lib/types';
 import { statusBadge } from '../../components/ui/Badge';
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
@@ -73,6 +74,8 @@ export default function ScannerStatus() {
           Refresh
         </button>
       </div>
+
+      <SchedulerProofDebug state={state} />
 
       {!loadingAny && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">

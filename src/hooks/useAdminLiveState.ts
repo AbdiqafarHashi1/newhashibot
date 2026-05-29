@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { ScannerRun, ProviderStatus } from '../lib/types';
 import { callEdgeFunction, EdgeFunctionReachability } from '../lib/edgeFunctionStatus';
-import { SchedulerProof, buildSchedulerProof, SCANNER_RUN_PROOF_COLUMNS } from '../lib/adminSchedulerTruth';
+import { SchedulerProof, buildSchedulerProof, SCANNER_RUN_PROOF_COLUMNS, safeSchedulerError } from '../lib/adminSchedulerTruth';
+import { FrontendSupabaseDebugInfo, getFrontendSupabaseDebugInfo } from '../lib/supabaseEnv';
 
 export interface RuntimeProviderConfig {
   provider: string;
@@ -36,6 +37,14 @@ export interface AdminLiveState {
   cronStatusLabel: string;
   cronReason: string;
   schedulerProof: SchedulerProof;
+  schedulerProofStatus: SchedulerProof['status'];
+  schedulerProofReason: string;
+  schedulerProofAgeMinutes: number | null;
+  schedulerQueryError: string | null;
+  frontendSupabaseDebugInfo: FrontendSupabaseDebugInfo;
+  lastRefreshAt: string | null;
+  schedulerQuerySource: 'live_supabase' | 'fallback';
+  pollingEnabled: boolean;
   cronJobName: string | null;
   adminSchedulerActionStatus: EdgeFunctionReachability;
   adminSchedulerActionMessage: string | null;
@@ -52,6 +61,8 @@ export interface AdminLiveState {
   scannerEnabled: boolean;
   latestRun: ScannerRun | null;
   latestScheduledRun: ScannerRun | null;
+  latestAutomaticScheduledRun: ScannerRun | null;
+  latestRawScheduledRun: ScannerRun | null;
   latestManualRun: ScannerRun | null;
   recentRuns: ScannerRun[];
   recentScheduledRuns: ScannerRun[];
@@ -95,6 +106,14 @@ const DEFAULT_STATE: AdminLiveState = {
   cronStatusLabel: 'Not loaded',
   cronReason: 'Not yet loaded',
   schedulerProof: buildSchedulerProof(null),
+  schedulerProofStatus: 'missing',
+  schedulerProofReason: 'Not yet loaded',
+  schedulerProofAgeMinutes: null,
+  schedulerQueryError: null,
+  frontendSupabaseDebugInfo: getFrontendSupabaseDebugInfo(),
+  lastRefreshAt: null,
+  schedulerQuerySource: 'fallback',
+  pollingEnabled: true,
   cronJobName: null,
   adminSchedulerActionStatus: 'unknown',
   adminSchedulerActionMessage: null,
@@ -109,6 +128,8 @@ const DEFAULT_STATE: AdminLiveState = {
   scannerEnabled: false,
   latestRun: null,
   latestScheduledRun: null,
+  latestAutomaticScheduledRun: null,
+  latestRawScheduledRun: null,
   latestManualRun: null,
   recentRuns: [],
   recentScheduledRuns: [],
@@ -146,7 +167,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
 
     const [
       runsRes,
-      latestScheduledRunRes,
+      latestAutomaticScheduledRunRes,
+      latestRawScheduledRunRes,
       recentScheduledRunsRes,
       latestManualRunRes,
       provRes,
@@ -162,6 +184,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       manualUpdateRes,
     ] = await Promise.all([
       supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(50),
+      supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').or('source.eq.pg_cron,triggered_by.eq.pg_cron,is_automatic.eq.true').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(20),
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'manual').order('started_at', { ascending: false }).limit(1).maybeSingle(),
@@ -182,13 +205,21 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     const recentScheduledRuns: ScannerRun[] = (recentScheduledRunsRes.data ?? []) as ScannerRun[];
     const cfg = cfgRes.data;
     const latestRun = runs[0] ?? null;
-    const latestScheduledRun = (latestScheduledRunRes.data as ScannerRun | null) ?? null;
+    const latestAutomaticScheduledRun = (latestAutomaticScheduledRunRes.data as ScannerRun | null) ?? null;
+    const latestRawScheduledRun = (latestRawScheduledRunRes.data as ScannerRun | null) ?? null;
+    const latestScheduledRun = latestAutomaticScheduledRun;
     const latestManualRun = (latestManualRunRes.data as ScannerRun | null) ?? null;
 
     const cronConfigured = cfg?.cron_job_active === true;
     const scheduleEnabled = cfg?.schedule_enabled ?? false;
     const scanIntervalMinutes = cfg?.scan_interval_minutes ?? 5;
-    const schedulerProof = buildSchedulerProof(latestScheduledRun, cfg?.cron_job_active === true || cfg?.schedule_enabled === true);
+    const frontendSupabaseDebugInfo = getFrontendSupabaseDebugInfo();
+    const schedulerQueryError = safeSchedulerError(latestAutomaticScheduledRunRes.error ?? latestRawScheduledRunRes.error ?? latestManualRunRes.error ?? null);
+    const schedulerProof = buildSchedulerProof(latestAutomaticScheduledRun, cfg?.cron_job_active === true || cfg?.schedule_enabled === true, {
+      latestRawScheduledRun,
+      queryError: schedulerQueryError,
+      projectRefMatches: frontendSupabaseDebugInfo.projectRefMatches,
+    });
     const lastScheduledRunAgeMinutes = schedulerProof.ageMinutes;
     const cronStatusLabel = schedulerProof.label;
     const cronReason = schedulerProof.reason;
@@ -284,6 +315,14 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       cronStatusLabel,
       cronReason,
       schedulerProof,
+      schedulerProofStatus: schedulerProof.status,
+      schedulerProofReason: schedulerProof.reason,
+      schedulerProofAgeMinutes: schedulerProof.ageMinutes,
+      schedulerQueryError,
+      frontendSupabaseDebugInfo,
+      lastRefreshAt: new Date().toISOString(),
+      schedulerQuerySource: schedulerQueryError ? 'fallback' : 'live_supabase',
+      pollingEnabled: true,
       cronJobName: cfg?.cron_job_name ?? null,
       adminSchedulerActionStatus,
       adminSchedulerActionMessage,
@@ -298,6 +337,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       scannerEnabled: cfg?.is_enabled ?? false,
       latestRun,
       latestScheduledRun,
+      latestAutomaticScheduledRun,
+      latestRawScheduledRun,
       latestManualRun,
       recentRuns: runs,
       recentScheduledRuns,
@@ -323,7 +364,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       loading: false,
       loadedAt: new Date().toISOString(),
     });
-  }, [session?.access_token]);
+  }, [session]);
 
   useEffect(() => {
     void refresh();
