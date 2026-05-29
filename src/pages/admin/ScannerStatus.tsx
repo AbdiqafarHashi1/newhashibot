@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 import { ScannerRun } from '../../lib/types';
 import { statusBadge } from '../../components/ui/Badge';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 
 type ScannerRunWithOutcome = ScannerRun & {
   outcome_checked?: boolean | null;
@@ -19,32 +21,53 @@ function isHistoricalForexWarning(message?: string | null) {
 }
 
 export default function ScannerStatus() {
+  const { session } = useAuth();
+  const { state, refresh } = useAdminLiveState(session);
   const [runs, setRuns] = useState<ScannerRunWithOutcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [runFilter, setRunFilter] = useState<'all' | 'manual' | 'scheduled'>('all');
 
-  useEffect(() => {
-    supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(100)
-      .then(({ data }) => { setRuns((data ?? []) as ScannerRunWithOutcome[]); setLoading(false); });
+  const loadRuns = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(100);
+    setRuns((data ?? []) as ScannerRunWithOutcome[]);
+    setLoading(false);
   }, []);
 
-  const latestManualRun = runs.find(r => (r.run_type ?? 'manual').toLowerCase() === 'manual') ?? null;
-  const latestScheduledRun = runs.find(r => (r.run_type ?? '').toLowerCase() === 'scheduled') ?? null;
-  const filteredRuns = runs.filter(r => runFilter === 'all' || (r.run_type ?? 'manual').toLowerCase() === runFilter);
-  const scheduledAgeMinutes = latestScheduledRun ? Math.round((Date.now() - new Date(latestScheduledRun.started_at).getTime()) / 60000) : null;
-  const scheduledFresh = scheduledAgeMinutes !== null && scheduledAgeMinutes <= 15;
-  const scheduledLabel = scheduledFresh ? 'scheduled active' : latestScheduledRun ? 'scheduled stale' : 'scheduled not detected';
-  const recentScheduled30m = runs.filter(r => (r.run_type ?? '').toLowerCase() === 'scheduled' && (Date.now() - new Date(r.started_at).getTime()) <= 30 * 60000).length;
-  const latestRun = runs[0] ?? null;
+  useEffect(() => {
+    void loadRuns();
+    const id = window.setInterval(() => { void loadRuns(); }, 45_000);
+    return () => window.clearInterval(id);
+  }, [loadRuns]);
+
+  const latestManualRun = state.latestManualRun as ScannerRunWithOutcome | null;
+  const latestScheduledRun = state.latestScheduledRun as ScannerRunWithOutcome | null;
+  const scheduledRows = (state.recentScheduledRuns.length ? state.recentScheduledRuns : runs.filter(r => (r.run_type ?? '').toLowerCase() === 'scheduled')) as ScannerRunWithOutcome[];
+  const filteredRuns = runFilter === 'scheduled'
+    ? scheduledRows
+    : runs.filter(r => runFilter === 'all' || (r.run_type ?? 'manual').toLowerCase() === runFilter);
+  const scheduledAgeMinutes = state.lastScheduledRunAgeMinutes;
+  const scheduledFresh = state.cronProven;
+  const scheduledLabel = state.cronStatusLabel.toLowerCase();
+  const recentScheduled30m = scheduledRows.filter(r => (Date.now() - new Date(r.started_at).getTime()) <= 30 * 60000).length;
+  const latestRun = state.latestRun ?? runs[0] ?? null;
+  const loadingAny = loading || state.loading;
 
   return (
     <AdminLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Scanner Status</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Crypto-only scanner run history, Telegram proof, and historical warning context</p>
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Scanner Status</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Crypto-only scanner run history, Telegram proof, and historical warning context</p>
+        </div>
+        <button onClick={async () => { await Promise.all([refresh(), loadRuns()]); }} disabled={loadingAny}
+          className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
+          <RefreshCw size={12} className={loadingAny ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
-      {!loading && (
+      {!loadingAny && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest manual run</div>
@@ -58,7 +81,7 @@ export default function ScannerStatus() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled proof</div>
             <div className={`text-sm font-semibold ${scheduledFresh ? 'text-emerald-400' : latestScheduledRun ? 'text-yellow-400' : 'text-zinc-500'}`}>{scheduledLabel}</div>
-            <div className="text-xs text-zinc-600 mt-1">Active requires run_type='scheduled' within 15 minutes. 0-signal runs count.</div>
+            <div className="text-xs text-zinc-600 mt-1">Active ≤7m, recent ≤15m from scanner_runs.started_at. 0-signal runs count.</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled last 30m</div>
@@ -77,11 +100,11 @@ export default function ScannerStatus() {
         </div>
       )}
 
-      {loading ? (
+      {loadingAny ? (
         <div className="flex items-center justify-center h-48">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : runs.length === 0 ? (
+      ) : runs.length === 0 && scheduledRows.length === 0 ? (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-10 text-center text-sm text-zinc-500">
           No scanner runs yet. Use the Control Room to run the scanner.
         </div>
