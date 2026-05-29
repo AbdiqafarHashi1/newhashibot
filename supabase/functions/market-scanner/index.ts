@@ -872,6 +872,7 @@ async function runScanPipeline(
   supabase: ReturnType<typeof createClient>,
   config: ScannerConfig,
   runType: "manual" | "scheduled",
+  existingRunId?: string | null,
 ): Promise<Record<string, unknown>> {
   const scanStart = Date.now();
 
@@ -908,11 +909,24 @@ async function runScanPipeline(
     consecutive_losses: 0, last_loss_at: null, daily_pnl_pct: 0, total_drawdown_pct: 0,
   };
 
-  // Create scanner run record
-  const { data: runData } = await supabase.from("scanner_runs").insert({
-    status: "running", started_at: new Date().toISOString(), run_type: runType,
-  }).select().single();
-  const runId: string = runData?.id ?? "unknown";
+  // Create or claim scanner run record. scheduled-market-scanner creates the
+  // scheduled proof row before proxying here so every valid cron invocation is
+  // visible even when this function later fails or times out.
+  let runId = typeof existingRunId === "string" && existingRunId ? existingRunId : "";
+  if (runId) {
+    const { error: claimError } = await supabase.from("scanner_runs").update({
+      status: "running",
+      run_type: runType,
+      error_message: "market-scanner started from scheduled wrapper",
+    }).eq("id", runId);
+    if (claimError) throw new Error(`Unable to claim scanner_runs row ${runId}: ${claimError.message}`);
+  } else {
+    const { data: runData, error: runError } = await supabase.from("scanner_runs").insert({
+      status: "running", started_at: new Date().toISOString(), run_type: runType,
+    }).select().single();
+    if (runError) throw new Error(`Unable to create scanner_runs row: ${runError.message}`);
+    runId = runData?.id ?? "unknown";
+  }
 
   let symbolsScanned = 0, candlesFetched = 0, candidatesFound = 0;
   let signalsCreated = 0, rejectedCount = 0, evaluationsCount = 0;
@@ -1343,8 +1357,21 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ skipped: true, reason: "schedule_disabled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const result = await runScanPipeline(supabase, config, runType);
-    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const existingRunId = typeof body.scanner_run_id === "string" ? body.scanner_run_id : null;
+    try {
+      const result = await runScanPipeline(supabase, config, runType, existingRunId);
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } catch (scanError) {
+      const message = scanError instanceof Error ? scanError.message : "Unknown scan pipeline error";
+      if (existingRunId) {
+        await supabase.from("scanner_runs").update({
+          status: "failed",
+          finished_at: new Date().toISOString(),
+          error_message: `market-scanner exception: ${message}`.slice(0, 4000),
+        }).eq("id", existingRunId);
+      }
+      return new Response(JSON.stringify({ success: false, run_id: existingRunId, run_type: runType, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

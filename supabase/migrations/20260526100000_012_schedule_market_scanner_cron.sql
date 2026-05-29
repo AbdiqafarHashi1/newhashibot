@@ -26,7 +26,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 
 DO $$
 DECLARE
-  job_id bigint;
+  job record;
   project_url text := current_setting('app.settings.supabase_url', true);
   cron_secret text := current_setting('app.settings.scanner_cron_secret', true);
   endpoint text;
@@ -39,10 +39,11 @@ BEGIN
     RAISE EXCEPTION 'Missing auth setting: set app.settings.scanner_cron_secret';
   END IF;
 
-  SELECT jobid INTO job_id FROM cron.job WHERE jobname = 'hashibot_scheduled_market_scanner_5m' LIMIT 1;
-  IF job_id IS NOT NULL THEN
-    PERFORM cron.unschedule(job_id);
-  END IF;
+  FOR job IN
+    SELECT jobid FROM cron.job WHERE jobname = 'hashibot_scheduled_market_scanner_5m'
+  LOOP
+    PERFORM cron.unschedule(job.jobid);
+  END LOOP;
 
   endpoint := rtrim(project_url, '/') || '/functions/v1/scheduled-market-scanner';
 
