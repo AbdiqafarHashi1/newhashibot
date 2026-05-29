@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getFrontendSupabaseDebugInfo } from '../../lib/supabaseEnv';
+import { LOGIN_DEBUG_BUILD_MARKER, getFrontendSupabaseDebugInfo } from '../../lib/supabaseEnv';
 import { Zap } from 'lucide-react';
 
 export default function Login() {
@@ -48,6 +48,9 @@ export default function Login() {
         </div>
 
         <LoginDebugPanel
+          selectedSupabaseUrlSource={debug.selectedSupabaseUrlSource}
+          viteSupabaseUrlPresent={debug.viteSupabaseUrlPresent}
+          fallbackSupabaseUrlUsed={debug.fallbackSupabaseUrlUsed}
           selectedSupabaseUrlHost={debug.selectedSupabaseUrlHost}
           selectedSupabaseUrlOrigin={debug.selectedSupabaseUrlOrigin}
           expectedProjectRef={debug.expectedProjectRef}
@@ -115,6 +118,9 @@ export default function Login() {
 }
 
 interface LoginDebugPanelProps {
+  selectedSupabaseUrlSource: string;
+  viteSupabaseUrlPresent: boolean;
+  fallbackSupabaseUrlUsed: boolean;
   selectedSupabaseUrlHost: string | null;
   selectedSupabaseUrlOrigin: string | null;
   expectedProjectRef: string;
@@ -130,6 +136,9 @@ interface LoginDebugPanelProps {
 }
 
 function LoginDebugPanel({
+  selectedSupabaseUrlSource,
+  viteSupabaseUrlPresent,
+  fallbackSupabaseUrlUsed,
   selectedSupabaseUrlHost,
   selectedSupabaseUrlOrigin,
   expectedProjectRef,
@@ -144,6 +153,9 @@ function LoginDebugPanel({
   envConfigError,
 }: LoginDebugPanelProps) {
   const rows = [
+    ['selected Supabase URL source', selectedSupabaseUrlSource],
+    ['raw env VITE_SUPABASE_URL present', String(viteSupabaseUrlPresent)],
+    ['safe fallback used', String(fallbackSupabaseUrlUsed)],
     ['selected Supabase URL host', selectedSupabaseUrlHost ?? 'missing'],
     ['selected Supabase URL origin', selectedSupabaseUrlOrigin ?? 'missing'],
     ['expected project ref', expectedProjectRef],
@@ -159,7 +171,7 @@ function LoginDebugPanel({
 
   return (
     <div className="bg-zinc-900 border border-blue-500/40 rounded-2xl p-4 mb-4 text-xs text-zinc-300">
-      <p className="font-mono text-blue-300 mb-3">LOGIN_DEBUG_BUILD_MARKER: login-env-proof-v1</p>
+      <p className="font-mono text-blue-300 mb-3">LOGIN_DEBUG_BUILD_MARKER: {LOGIN_DEBUG_BUILD_MARKER}</p>
       <div className="space-y-1.5">
         {rows.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[1fr_1.2fr] gap-2">
