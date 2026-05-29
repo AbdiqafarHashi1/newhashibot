@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,10 +26,14 @@ export default function ScannerStatus() {
   const [runs, setRuns] = useState<ScannerRunWithOutcome[]>([]);
   const [loading, setLoading] = useState(true);
   const [runFilter, setRunFilter] = useState<'all' | 'manual' | 'scheduled'>('all');
+  const loadSeq = useRef(0);
 
   const loadRuns = useCallback(async () => {
+    const seq = loadSeq.current + 1;
+    loadSeq.current = seq;
     setLoading(true);
     const { data } = await supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(100);
+    if (seq !== loadSeq.current) return;
     setRuns((data ?? []) as ScannerRunWithOutcome[]);
     setLoading(false);
   }, []);
@@ -37,18 +41,21 @@ export default function ScannerStatus() {
   useEffect(() => {
     void loadRuns();
     const id = window.setInterval(() => { void loadRuns(); }, 45_000);
-    return () => window.clearInterval(id);
+    return () => {
+      loadSeq.current += 1;
+      window.clearInterval(id);
+    };
   }, [loadRuns]);
 
   const latestManualRun = state.latestManualRun as ScannerRunWithOutcome | null;
   const latestScheduledRun = state.latestScheduledRun as ScannerRunWithOutcome | null;
-  const scheduledRows = (state.recentScheduledRuns.length ? state.recentScheduledRuns : runs.filter(r => (r.run_type ?? '').toLowerCase() === 'scheduled')) as ScannerRunWithOutcome[];
+  const scheduledRows = state.recentScheduledRuns as ScannerRunWithOutcome[];
   const filteredRuns = runFilter === 'scheduled'
     ? scheduledRows
     : runs.filter(r => runFilter === 'all' || (r.run_type ?? 'manual').toLowerCase() === runFilter);
   const scheduledAgeMinutes = state.lastScheduledRunAgeMinutes;
   const scheduledFresh = state.cronProven;
-  const scheduledLabel = state.cronStatusLabel.toLowerCase();
+  const scheduledLabel = state.schedulerProof.label;
   const recentScheduled30m = scheduledRows.filter(r => (Date.now() - new Date(r.started_at).getTime()) <= 30 * 60000).length;
   const latestRun = state.latestRun ?? runs[0] ?? null;
   const loadingAny = loading || state.loading;
@@ -81,7 +88,7 @@ export default function ScannerStatus() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled proof</div>
             <div className={`text-sm font-semibold ${scheduledFresh ? 'text-emerald-400' : latestScheduledRun ? 'text-yellow-400' : 'text-zinc-500'}`}>{scheduledLabel}</div>
-            <div className="text-xs text-zinc-600 mt-1">Active ≤7m, recent ≤15m from scanner_runs.started_at. 0-signal runs count.</div>
+            <div className="text-xs text-zinc-600 mt-1">{state.cronReason}</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Scheduled last 30m</div>
@@ -119,7 +126,7 @@ export default function ScannerStatus() {
                 {filter.charAt(0).toUpperCase() + filter.slice(1)}
               </button>
             ))}
-            <span className="ml-auto text-xs text-zinc-500">Showing {filteredRuns.length} of {runs.length} runs</span>
+            <span className="ml-auto text-xs text-zinc-500">Showing {filteredRuns.length} {runFilter === 'scheduled' ? 'direct scheduled' : `of ${runs.length}`} runs</span>
           </div>
           {filteredRuns.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-zinc-500">No {runFilter} scanner runs found.</div>

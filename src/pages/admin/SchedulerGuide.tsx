@@ -138,14 +138,14 @@ export default function SchedulerGuide() {
       } else {
         const data = result.data;
         setStatus(data ?? null);
-        setShowSetup(!(data?.proof?.cronProven ?? false) && !(data?.config?.cron_job_active ?? false));
+        setShowSetup(liveState.schedulerProof.status === 'missing' && !(data?.config?.cron_job_active ?? false));
       }
     } catch (e) {
       setStatus({ success: false, warnings: { admin_scheduler_action: e instanceof Error ? e.message : 'Admin scheduler action status check failed.' } });
       setShowSetup(false);
     }
     setLoadingStatus(false);
-  }, [session?.access_token]);
+  }, [liveState.schedulerProof.status, session?.access_token]);
 
   useEffect(() => {
     void checkCronStatus();
@@ -198,16 +198,14 @@ export default function SchedulerGuide() {
   const cfg = status?.config;
   const latestScheduledRun = liveState.latestScheduledRun;
   const recentScheduledRuns = liveState.recentScheduledRuns;
-  const cronDetected = liveState.cronStatusLabel === 'Proven / Active';
+  const cronDetected = liveState.cronProven;
   const cronJobActive = liveState.cronConfigured || cfg?.cron_job_active === true;
   const scheduleEnabled = liveState.scheduleEnabled || cfg?.schedule_enabled === true;
   const scheduledAge = liveState.lastScheduledRunAgeMinutes;
   const latestOutcomeAutoCheck = liveState.latestAutomaticOutcomeUpdate ?? status?.latestOutcomeAutoCheck ?? null;
-  const cronStatusLabel = liveState.loading || loadingStatus
+  const cronStatusLabel = liveState.loading && !liveState.latestScheduledRun
     ? 'Checking scheduler status...'
-    : cronDetected
-      ? 'Automatic scheduling proven and running'
-      : liveState.cronStatusLabel;
+    : liveState.schedulerProof.label;
   const cronReason = liveState.cronReason;
   const loadingAny = liveState.loading || loadingStatus;
 
@@ -227,8 +225,8 @@ export default function SchedulerGuide() {
       </div>
 
       <div className="max-w-5xl space-y-4">
-        <div className={`rounded-xl p-5 border flex gap-3 ${cronDetected ? 'bg-emerald-500/10 border-emerald-500/20' : cronJobActive ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-zinc-900 border-zinc-800'}`}>
-          {loadingStatus ? <div className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin mt-0.5 shrink-0" /> : cronDetected ? <CheckCircle size={16} className="text-emerald-400 mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />}
+        <div className={`rounded-xl p-5 border flex gap-3 ${cronDetected ? 'bg-emerald-500/10 border-emerald-500/20' : liveState.cronStale ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-zinc-900 border-zinc-800'}`}>
+          {loadingStatus && !liveState.latestScheduledRun ? <div className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin mt-0.5 shrink-0" /> : cronDetected ? <CheckCircle size={16} className="text-emerald-400 mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />}
           <div className="flex-1">
             <div className={`text-sm font-semibold mb-1 ${cronDetected ? 'text-emerald-400' : liveState.cronStale ? 'text-yellow-400' : cronJobActive ? 'text-blue-400' : 'text-zinc-400'}`}>{cronStatusLabel}</div>
             <div className={`text-xs ${cronDetected ? 'text-emerald-300/80' : 'text-yellow-300/80'}`}>{cronReason}</div>
@@ -239,8 +237,8 @@ export default function SchedulerGuide() {
                 <ProofDetail label="Status" value={latestScheduledRun.status} />
                 <ProofDetail label="Symbols scanned" value={metric(latestScheduledRun.symbols_scanned, '0')} />
                 <ProofDetail label="Signals created" value={metric(latestScheduledRun.signals_created, '0')} />
-                <ProofDetail label="TG sent/skipped/failed" value={`${latestScheduledRun.telegram_sent_count ?? 0}/${latestScheduledRun.telegram_blocked_count ?? 0}/${latestScheduledRun.telegram_failed_count ?? 0}`} />
-                <ProofDetail label="Outcome checked" value={typeof latestScheduledRun.outcome_checked === 'boolean' ? (latestScheduledRun.outcome_checked ? 'yes' : 'no') : 'response/log proof'} />
+                <ProofDetail label="TG sent (not required)" value={String(latestScheduledRun.telegram_sent_count ?? 0)} />
+                <ProofDetail label="0-signal proof rule" value="0 signals still counts" />
                 <ProofDetail label="Latest auto outcome" value={latestOutcomeAutoCheck?.created_at ? new Date(latestOutcomeAutoCheck.created_at).toLocaleString() : '—'} />
               </div>
             )}
@@ -287,15 +285,15 @@ export default function SchedulerGuide() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {[
             ['pg_cron registered', status?.statuses?.pg_cron_registered],
-            ['pg_cron fired recently', status?.statuses?.pg_cron_fired_recently],
-            ['scheduled wrapper callable', status?.statuses?.scheduled_wrapper_callable],
+            ['pg_cron fired recently (diagnostic)', status?.statuses?.pg_cron_fired_recently],
+            ['scheduled wrapper callable (diagnostic)', status?.statuses?.scheduled_wrapper_callable],
             ['admin manual test callable', status?.warnings?.admin_scheduler_action ? false : status?.statuses?.admin_manual_scheduler_test_callable],
             ['latest scheduled run exists', status?.statuses?.latest_scheduled_scanner_run_exists],
             ['latest outcome auto-check', status?.statuses?.latest_outcome_auto_check_recent],
           ].map(([label, ok]) => (
             <div key={String(label)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 min-w-0">
               <div className="text-[10px] uppercase tracking-wider text-zinc-500 break-words">{label}</div>
-              <div className={`mt-1 text-sm font-semibold ${ok ? 'text-emerald-400' : 'text-yellow-400'}`}>{ok ? 'yes' : 'not verified'}</div>
+              <div className={`mt-1 text-sm font-semibold ${ok ? 'text-emerald-400' : 'text-zinc-400'}`}>{ok ? 'yes' : 'not verified from UI'}</div>
             </div>
           ))}
         </div>
@@ -303,7 +301,7 @@ export default function SchedulerGuide() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
           <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold">Recent scheduled scanner runs</div>
           {recentScheduledRuns.length === 0 ? (
-            <div className="px-5 py-6 text-sm text-zinc-500">No scheduled scanner_runs were returned by the admin proof helper.</div>
+            <div className="px-5 py-6 text-sm text-zinc-500">No scheduled scanner_runs were returned by the direct scanner_runs query.</div>
           ) : (
             <table className="w-full text-xs">
               <thead><tr className="border-b border-zinc-800 text-zinc-500"><th className="text-left px-5 py-2.5">Started</th><th className="text-left px-5 py-2.5">Finished</th><th className="text-left px-5 py-2.5">Status</th><th className="text-left px-5 py-2.5">Symbols</th><th className="text-left px-5 py-2.5">Signals</th><th className="text-left px-5 py-2.5">TG S/K/F</th></tr></thead>

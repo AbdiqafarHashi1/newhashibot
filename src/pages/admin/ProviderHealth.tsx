@@ -241,8 +241,8 @@ export default function ProviderHealth() {
   const cryptoProviderRow = providers.find(p => safeLower(p.provider_name) === 'binance');
   const cryptoActive = safeLower(cryptoProviderRow?.status) === 'active' || Boolean(cryptoProviderRow?.last_success_at);
   const latestScheduledAge = liveState.lastScheduledRunAgeMinutes;
-  const cronDetected = liveState.cronStatusLabel === 'Proven / Active';
-  const schedulerLabel = liveState.cronStatusLabel;
+  const cronDetected = liveState.cronProven;
+  const schedulerLabel = liveState.schedulerProof.label;
   const telegramConfigured = Boolean(runtimeConfig?.telegram_enabled && runtimeConfig.enable_signal_mode_output && runtimeConfig.telegram_bot_token_set && (runtimeConfig.telegram_default_channel_id_set || runtimeConfig.telegram_chat_id_set) && cfg?.auto_send_telegram !== false);
   const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || safeLower(p.provider_name) === 'forex' || p.data_source_label === 'DISABLED_FOR_MVP');
   const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && safeLower(p.provider_name) !== 'forex' && p.data_source_label !== 'DISABLED_FOR_MVP');
@@ -310,6 +310,7 @@ export default function ProviderHealth() {
           <div className={cronDetected ? 'text-lg font-semibold text-emerald-400' : liveState.cronStale ? 'text-lg font-semibold text-yellow-400' : cfg?.cron_job_active ? 'text-lg font-semibold text-blue-400' : 'text-lg font-semibold text-zinc-500'}>{schedulerLabel}</div>
           <div className="text-xs text-zinc-500 mt-1">Schedule: {cfg?.schedule_enabled ? 'ON' : 'OFF'} · Flag: {cfg?.cron_job_active ? 'ON' : 'OFF'}{latestScheduledAge !== null ? ` · latest scheduled scanner_run ${latestScheduledAge}m ago` : ' · no scheduled scanner_run proof'}</div>
           <div className="text-xs text-zinc-600 mt-1">{liveState.cronReason}</div>
+          <div className="text-[11px] text-zinc-500 mt-1">Edge Function unknown status does not override scanner_runs proof.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:col-span-2 lg:col-span-1">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Edge Functions</div>
@@ -322,7 +323,7 @@ export default function ProviderHealth() {
             ].map(([name, state]) => (
               <div key={name} className="flex items-center justify-between gap-3 min-w-0">
                 <span className="text-zinc-500 truncate">{name}</span>
-                <span className={state === 'deployed' ? 'text-emerald-400' : state === 'missing' ? 'text-red-400' : 'text-yellow-400'}>{state}</span>
+                <span className={state === 'deployed' ? 'text-emerald-400' : state === 'missing' ? 'text-red-400' : 'text-zinc-400'}>{state === 'unknown' ? 'not verified from UI' : state}</span>
               </div>
             ))}
           </div>
