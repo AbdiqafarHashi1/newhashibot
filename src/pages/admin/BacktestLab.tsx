@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   Upload, Play, Trash2, AlertTriangle, Clock,
   BarChart2, RefreshCw, ChevronDown, ChevronUp, Info, Settings,
-  TrendingUp, TrendingDown, Minus, FileText,
+  TrendingUp, TrendingDown, Minus, FileText, Calendar, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,10 +39,19 @@ interface BtMetrics {
   evaluations: number; candidates: number; rejected: number;
 }
 
+interface CsvInfo {
+  totalRows: number;
+  skippedRows: number;
+  firstTime: string;
+  lastTime: string;
+  inferredTf: string;
+}
+
 // ─── Default params by strategy and mode ─────────────────────────────────────
 
 type Mode = 'conservative' | 'balanced' | 'aggressive';
 type Strategy = 'MicroScalper' | 'CompressionBreakout' | 'SwingContinuation';
+type RangePreset = 'full' | '7d' | '30d' | '60d' | '90d' | 'custom';
 
 interface ParamSet {
   min_score: number; min_rr: number;
@@ -444,35 +453,74 @@ function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number,
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
 
-function parseCSV(text: string): { candles: BtCandle[]; error: string | null } {
+function inferTimeframe(candles: BtCandle[]): string {
+  if (candles.length < 2) return 'unknown';
+  const diffs: number[] = [];
+  const sample = Math.min(candles.length - 1, 20);
+  for (let i = candles.length - sample; i < candles.length; i++) {
+    const ms = new Date(candles[i].time).getTime() - new Date(candles[i - 1].time).getTime();
+    if (ms > 0) diffs.push(ms);
+  }
+  if (diffs.length === 0) return 'unknown';
+  diffs.sort((a, b) => a - b);
+  const medianMs = diffs[Math.floor(diffs.length / 2)];
+  const mins = Math.round(medianMs / 60000);
+  if (mins <= 1)   return '1m';
+  if (mins <= 3)   return '3m';
+  if (mins <= 5)   return '5m';
+  if (mins <= 15)  return '15m';
+  if (mins <= 30)  return '30m';
+  if (mins <= 60)  return '1h';
+  if (mins <= 240) return '4h';
+  if (mins <= 1440) return '1d';
+  return `${mins}m`;
+}
+
+function parseCSV(text: string): { candles: BtCandle[]; skippedRows: number; error: string | null } {
   const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return { candles: [], error: 'CSV must have a header row and at least one data row' };
+  if (lines.length < 2) return { candles: [], skippedRows: 0, error: 'CSV must have a header row and at least one data row' };
   const header = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/['"]/g, ''));
 
   const timeColName = ['time', 'open_time', 'datetime', 'date', 'timestamp'].find(c => header.includes(c));
   const oi = header.indexOf('open'), hi = header.indexOf('high'), li = header.indexOf('low'), ci = header.indexOf('close');
   const vi = header.indexOf('volume');
-  if (!timeColName) return { candles: [], error: 'Missing time column (expected: time, open_time, datetime, date, or timestamp)' };
-  if ([oi, hi, li, ci].some(x => x < 0)) return { candles: [], error: 'Missing required columns: open, high, low, close' };
+  if (!timeColName) return { candles: [], skippedRows: 0, error: 'Missing time column (expected: time, open_time, datetime, date, or timestamp)' };
+  if ([oi, hi, li, ci].some(x => x < 0)) return { candles: [], skippedRows: 0, error: 'Missing required columns: open, high, low, close' };
 
   const ti = header.indexOf(timeColName);
   const candles: BtCandle[] = [];
   const errs: string[] = [];
+  let skippedRows = 0;
 
   for (let r = 1; r < lines.length; r++) {
     const cols = lines[r].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
-    if (cols.length < 4 || cols.every(c => !c)) continue;
+    if (cols.length < 4 || cols.every(c => !c)) { skippedRows++; continue; }
     const d = new Date(cols[ti] ?? '');
-    if (isNaN(d.getTime())) { errs.push(`Row ${r + 1}: invalid time "${cols[ti]}"`); if (errs.length >= 3) break; continue; }
+    if (isNaN(d.getTime())) {
+      skippedRows++;
+      if (errs.length < 3) errs.push(`Row ${r + 1}: invalid time "${cols[ti]}"`);
+      continue;
+    }
     const [open, high, low, close] = [oi, hi, li, ci].map(idx => parseFloat(cols[idx] ?? ''));
-    if ([open, high, low, close].some(isNaN)) { errs.push(`Row ${r + 1}: non-numeric OHLC`); if (errs.length >= 3) break; continue; }
+    if ([open, high, low, close].some(isNaN)) {
+      skippedRows++;
+      if (errs.length < 3) errs.push(`Row ${r + 1}: non-numeric OHLC`);
+      continue;
+    }
     candles.push({ time: d.toISOString(), open, high, low, close, volume: vi >= 0 ? (parseFloat(cols[vi] ?? '0') || 0) : 0 });
   }
 
-  if (errs.length > 0) return { candles: [], error: errs.join('; ') };
-  if (candles.length < 60) return { candles: [], error: `Need at least 60 candles. Parsed: ${candles.length}` };
+  if (errs.length > 0 && candles.length === 0) return { candles: [], skippedRows, error: errs.join('; ') };
+  if (candles.length < 60) return { candles: [], skippedRows, error: `Need at least 60 candles. Parsed: ${candles.length}` };
   candles.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-  return { candles, error: null };
+  return { candles, skippedRows, error: null };
+}
+
+// ─── Date helpers ─────────────────────────────────────────────────────────────
+
+function toDatetimeLocal(iso: string): string {
+  // Converts ISO to "YYYY-MM-DDTHH:mm" for datetime-local input
+  return iso.slice(0, 16);
 }
 
 // ─── Small UI helpers ─────────────────────────────────────────────────────────
@@ -513,18 +561,26 @@ function ParamRow({ label, field, value, onChange, step = 0.01, min }: {
   );
 }
 
+const TRADES_PER_PAGE = 50;
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function BacktestLab() {
   const { profile } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // CSV / candle state
-  const [candles, setCandles] = useState<BtCandle[] | null>(null);
+  // Raw parsed candles (full dataset)
+  const [allCandles, setAllCandles] = useState<BtCandle[] | null>(null);
+  const [csvInfo, setCsvInfo] = useState<CsvInfo | null>(null);
   const [csvFileName, setCsvFileName] = useState('');
   const [csvSymbol, setCsvSymbol] = useState('');
   const [csvTimeframe, setCsvTimeframe] = useState('15m');
   const [uploadMsg, setUploadMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Date range
+  const [rangePreset, setRangePreset] = useState<RangePreset>('full');
+  const [rangeStart, setRangeStart] = useState('');
+  const [rangeEnd, setRangeEnd] = useState('');
 
   // Config
   const [strategy, setStrategy] = useState<Strategy>('MicroScalper');
@@ -539,10 +595,15 @@ export default function BacktestLab() {
   const [metrics, setMetrics] = useState<BtMetrics | null>(null);
   const [showTrades, setShowTrades] = useState(true);
   const [tradeSort, setTradeSort] = useState<'time' | 'r'>('time');
+  const [tradePage, setTradePage] = useState(0);
+  const [resultsStale, setResultsStale] = useState(false);
 
   // Saved datasets list
   const [datasets, setDatasets] = useState<ReplayDataset[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Confirmation dialog state
+  const [confirmPending, setConfirmPending] = useState(false);
 
   const loadDatasets = useCallback(async () => {
     const { data } = await supabase.from('replay_datasets').select('*').order('created_at', { ascending: false });
@@ -553,34 +614,89 @@ export default function BacktestLab() {
   // When strategy or mode changes, reload defaults
   useEffect(() => { setParams(DEFAULTS[strategy][mode]); }, [strategy, mode]);
 
+  // Mark results stale when config changes after a run
+  useEffect(() => {
+    if (metrics) setResultsStale(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strategy, mode, params, rangeStart, rangeEnd, rangePreset, csvTimeframe]);
+
   function setParam(k: keyof ParamSet, v: number) {
     setParams(prev => ({ ...prev, [k]: v }));
   }
+
+  // Apply preset to range inputs
+  function applyPreset(preset: RangePreset, candles: BtCandle[]) {
+    setRangePreset(preset);
+    if (preset === 'full') {
+      setRangeStart('');
+      setRangeEnd('');
+    } else if (preset === 'custom') {
+      // leave inputs as-is
+    } else {
+      const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '60d': 60, '90d': 90 };
+      const days = daysMap[preset] ?? 30;
+      const last = new Date(candles[candles.length - 1].time);
+      const start = new Date(last.getTime() - days * 86400000);
+      setRangeStart(toDatetimeLocal(start.toISOString()));
+      setRangeEnd(toDatetimeLocal(last.toISOString()));
+    }
+  }
+
+  // Derive selected candles from allCandles + date range
+  const selectedCandles: BtCandle[] = (() => {
+    if (!allCandles) return [];
+    if (rangePreset === 'full' || (!rangeStart && !rangeEnd)) return allCandles;
+    const startMs = rangeStart ? new Date(rangeStart).getTime() : 0;
+    const endMs = rangeEnd ? new Date(rangeEnd).getTime() : Infinity;
+    return allCandles.filter(c => {
+      const t = new Date(c.time).getTime();
+      return t >= startMs && t <= endMs;
+    });
+  })();
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCsvFileName(file.name);
     setUploadMsg(null);
+    setAllCandles(null);
+    setCsvInfo(null);
+    setRangePreset('full');
+    setRangeStart('');
+    setRangeEnd('');
+
     const reader = new FileReader();
     reader.onload = ev => {
-      const { candles: parsed, error } = parseCSV(ev.target?.result as string);
-      if (error) { setUploadMsg({ ok: false, text: error }); setCandles(null); }
-      else {
-        setCandles(parsed);
-        setUploadMsg({ ok: true, text: `${parsed.length.toLocaleString()} candles parsed · ${new Date(parsed[0].time).toLocaleDateString()} → ${new Date(parsed[parsed.length - 1].time).toLocaleDateString()}` });
+      const { candles: parsed, skippedRows, error } = parseCSV(ev.target?.result as string);
+      if (error) {
+        setUploadMsg({ ok: false, text: error });
+        setAllCandles(null);
+        setCsvInfo(null);
+      } else {
+        const inf = inferTimeframe(parsed);
+        setAllCandles(parsed);
+        setCsvInfo({
+          totalRows: parsed.length,
+          skippedRows,
+          firstTime: parsed[0].time,
+          lastTime: parsed[parsed.length - 1].time,
+          inferredTf: inf,
+        });
+        // Auto-set timeframe if detected and recognized
+        if (['5m', '15m', '1h', '4h'].includes(inf)) setCsvTimeframe(inf);
+        setUploadMsg({ ok: true, text: `${parsed.length.toLocaleString()} candles parsed${skippedRows > 0 ? ` · ${skippedRows} rows skipped` : ''}` });
       }
     };
     reader.readAsText(file);
   }
 
   async function saveDataset() {
-    if (!candles || !csvSymbol.trim()) { setUploadMsg({ ok: false, text: 'Enter a symbol name before saving' }); return; }
+    if (!allCandles || !csvSymbol.trim()) { setUploadMsg({ ok: false, text: 'Enter a symbol name before saving' }); return; }
     const { error } = await supabase.from('replay_datasets').insert({
       name: `${csvSymbol.toUpperCase()} ${csvTimeframe} — ${csvFileName}`,
       symbol: csvSymbol.toUpperCase(), market_type: 'crypto',
       timeframe: csvTimeframe, source: 'csv_upload',
-      file_name: csvFileName, row_count: candles.length, uploaded_by: profile?.id,
+      file_name: csvFileName, row_count: allCandles.length, uploaded_by: profile?.id,
     });
     if (error) setUploadMsg({ ok: false, text: `Save failed: ${error.message}` });
     else { setUploadMsg({ ok: true, text: 'Dataset saved to history' }); await loadDatasets(); }
@@ -593,11 +709,10 @@ export default function BacktestLab() {
     setDeleting(null);
   }
 
-  function runBacktestLocal() {
-    if (!candles) return;
+  function executeRun(candles: BtCandle[]) {
     setRunning(true); setProgress(10); setTrades(null); setMetrics(null);
+    setResultsStale(false); setTradePage(0); setConfirmPending(false);
 
-    // Use setTimeout to let the progress paint before the synchronous backtest loop
     setTimeout(() => {
       setProgress(30);
       try {
@@ -613,11 +728,35 @@ export default function BacktestLab() {
     }, 40);
   }
 
+  function runBacktestLocal() {
+    if (!allCandles) return;
+    const candles = selectedCandles.length >= 60 ? selectedCandles : allCandles;
+    const count = candles.length;
+
+    if (count > 50000) {
+      setUploadMsg({ ok: false, text: `${count.toLocaleString()} candles selected exceeds the 50,000 browser limit. Narrow the date range and try again.` });
+      return;
+    }
+    if (count > 20000 && !confirmPending) {
+      setConfirmPending(true);
+      return;
+    }
+    executeRun(candles);
+  }
+
   const sortedTrades = trades
     ? (tradeSort === 'r' ? [...trades].sort((a, b) => b.pnl_r - a.pnl_r) : trades)
     : [];
 
+  const totalPages = Math.ceil(sortedTrades.length / TRADES_PER_PAGE);
+  const visibleTrades = sortedTrades.slice(tradePage * TRADES_PER_PAGE, (tradePage + 1) * TRADES_PER_PAGE);
+
   const tfLabel = (tf: string) => ({ '5m': '5 min', '15m': '15 min', '1h': '1 Hour', '4h': '4 Hour' }[tf] ?? tf);
+
+  const selectedCount = selectedCandles.length;
+  const sizeWarning = selectedCount > 10000 && selectedCount <= 20000;
+  const sizeConfirm = selectedCount > 20000 && selectedCount <= 50000;
+  const sizeBlock   = selectedCount > 50000;
 
   return (
     <AdminLayout>
@@ -660,8 +799,35 @@ export default function BacktestLab() {
                 <Upload size={13} />{csvFileName || 'Choose CSV File'}
               </button>
 
-              {candles && (
+              {allCandles && csvInfo && (
                 <div className="space-y-2.5">
+                  {/* CSV Info Panel */}
+                  <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg px-3 py-2.5 text-xs space-y-1">
+                    <div className="text-zinc-400 font-medium mb-1.5">CSV Info</div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Total candles</span>
+                      <span className="text-zinc-200 font-medium">{csvInfo.totalRows.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">First bar</span>
+                      <span className="text-zinc-200">{new Date(csvInfo.firstTime).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Last bar</span>
+                      <span className="text-zinc-200">{new Date(csvInfo.lastTime).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Inferred TF</span>
+                      <span className="text-sky-300 font-medium">{csvInfo.inferredTf}</span>
+                    </div>
+                    {csvInfo.skippedRows > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Skipped rows</span>
+                        <span className="text-amber-400">{csvInfo.skippedRows}</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1">Symbol</label>
@@ -678,14 +844,6 @@ export default function BacktestLab() {
                     </div>
                   </div>
 
-                  {/* Candle preview */}
-                  <div className="bg-zinc-800/50 rounded-lg px-3 py-2 text-xs text-zinc-400 space-y-0.5">
-                    <div className="flex justify-between"><span>Candles</span><span className="text-zinc-200 font-medium">{candles.length.toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span>First</span><span className="text-zinc-200">{new Date(candles[0].time).toLocaleDateString()}</span></div>
-                    <div className="flex justify-between"><span>Last</span><span className="text-zinc-200">{new Date(candles[candles.length - 1].time).toLocaleDateString()}</span></div>
-                    <div className="flex justify-between"><span>Sample close</span><span className="text-zinc-200">{candles[candles.length - 1].close}</span></div>
-                  </div>
-
                   <button onClick={saveDataset}
                     className="w-full flex items-center justify-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                     <FileText size={12} /> Save to History
@@ -700,6 +858,70 @@ export default function BacktestLab() {
               )}
             </div>
           </div>
+
+          {/* Date Range */}
+          {allCandles && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+              <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                <Calendar size={13} className="text-zinc-500" /> Date Range
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                {/* Quick presets */}
+                <div className="flex flex-wrap gap-1.5">
+                  {(['full', '7d', '30d', '60d', '90d'] as RangePreset[]).map(p => (
+                    <button key={p} onClick={() => applyPreset(p, allCandles)}
+                      className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${rangePreset === p ? 'bg-sky-600/20 border-sky-500/50 text-sky-300' : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'}`}>
+                      {p === 'full' ? 'Full Dataset' : p === '7d' ? 'Last 7d' : p === '30d' ? 'Last 30d' : p === '60d' ? 'Last 60d' : 'Last 90d'}
+                    </button>
+                  ))}
+                  <button onClick={() => setRangePreset('custom')}
+                    className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${rangePreset === 'custom' ? 'bg-sky-600/20 border-sky-500/50 text-sky-300' : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'}`}>
+                    Custom
+                  </button>
+                </div>
+
+                {/* Custom date inputs */}
+                {(rangePreset === 'custom' || rangePreset !== 'full') && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1">Start</label>
+                      <input type="datetime-local" value={rangeStart}
+                        onChange={e => { setRangeStart(e.target.value); setRangePreset('custom'); }}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1">End</label>
+                      <input type="datetime-local" value={rangeEnd}
+                        onChange={e => { setRangeEnd(e.target.value); setRangePreset('custom'); }}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected candle count */}
+                <div className={`flex items-center justify-between text-xs px-2.5 py-2 rounded-lg border ${
+                  sizeBlock   ? 'bg-red-500/10 border-red-500/30 text-red-300' :
+                  sizeConfirm ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
+                  sizeWarning ? 'bg-yellow-500/8 border-yellow-500/20 text-yellow-300' :
+                  'bg-zinc-800/50 border-zinc-700/50 text-zinc-400'
+                }`}>
+                  <span>Selected candles</span>
+                  <span className="font-medium">{selectedCount.toLocaleString()}</span>
+                </div>
+
+                {sizeBlock && (
+                  <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
+                    Too many candles for browser simulation (max 50,000). Narrow the date range.
+                  </div>
+                )}
+                {sizeWarning && !sizeConfirm && !sizeBlock && (
+                  <div className="text-xs text-yellow-300 bg-yellow-500/8 border border-yellow-500/20 rounded-lg px-3 py-2">
+                    Large dataset — simulation may take a few seconds.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Strategy + Mode */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
@@ -791,14 +1013,45 @@ export default function BacktestLab() {
             )}
           </div>
 
+          {/* Confirmation dialog for 20k–50k candles */}
+          {confirmPending && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-5 py-4 space-y-3">
+              <div className="flex gap-2">
+                <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium text-amber-300">Large dataset — {selectedCount.toLocaleString()} candles</div>
+                  <div className="text-xs text-zinc-400 mt-1">This may take 10–30 seconds and could slow your browser. Continue?</div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => executeRun(selectedCandles.length >= 60 ? selectedCandles : allCandles!)}
+                  className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-xs py-2 rounded-lg font-medium transition-colors">
+                  Run anyway
+                </button>
+                <button onClick={() => setConfirmPending(false)}
+                  className="flex-1 border border-zinc-700 text-zinc-400 hover:text-white text-xs py-2 rounded-lg transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Run button */}
-          <button
-            onClick={runBacktestLocal}
-            disabled={!candles || running}
-            className="w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-sky-900/30">
-            {running ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-            {running ? 'Running backtest...' : candles ? `Run Backtest (${candles.length.toLocaleString()} candles)` : 'Upload CSV to run'}
-          </button>
+          {!confirmPending && (
+            <button
+              onClick={runBacktestLocal}
+              disabled={!allCandles || running || sizeBlock}
+              className="w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-sky-900/30">
+              {running ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+              {running
+                ? 'Running backtest...'
+                : !allCandles
+                  ? 'Upload CSV to run'
+                  : sizeBlock
+                    ? 'Too many candles — narrow range'
+                    : `Run Backtest (${selectedCount > 0 ? selectedCount.toLocaleString() : (allCandles?.length ?? 0).toLocaleString()} candles)`}
+            </button>
+          )}
 
           {running && (
             <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden -mt-2">
@@ -825,137 +1078,178 @@ export default function BacktestLab() {
           )}
 
           {metrics && (
-            <>
-              {/* Summary cards */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
-                  <BarChart2 size={13} className="text-zinc-500" />
-                  Results — {strategy} · {mode} · {csvTimeframe}
-                  <span className="ml-auto text-xs bg-amber-500/15 text-amber-400 border border-amber-500/25 px-1.5 py-0.5 rounded">SIMULATION</span>
+            <div className="relative">
+              {/* Stale overlay */}
+              {resultsStale && (
+                <div className="absolute inset-0 z-10 bg-zinc-950/70 rounded-xl flex flex-col items-center justify-center gap-2 backdrop-blur-sm">
+                  <AlertTriangle size={22} className="text-amber-400" />
+                  <div className="text-sm font-medium text-amber-300">Results are stale</div>
+                  <div className="text-xs text-zinc-400">Config or date range changed — re-run to refresh</div>
+                  <button onClick={() => { setResultsStale(false); runBacktestLocal(); }}
+                    disabled={sizeBlock || running}
+                    className="mt-2 flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs px-4 py-2 rounded-lg font-medium transition-colors">
+                    <RefreshCw size={11} /> Re-run now
+                  </button>
                 </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-px bg-zinc-800">
-                  <MetricCell label="Total Trades" value={String(metrics.totalTrades)} />
-                  <MetricCell label="Wins (TP1+TP2)" value={String(metrics.wins)} highlight={metrics.wins > metrics.losses ? 'text-emerald-400' : 'text-zinc-100'} />
-                  <MetricCell label="TP1 Hits" value={String(metrics.tp1Hits)} />
-                  <MetricCell label="TP2 Hits" value={String(metrics.tp2Hits)} highlight="text-emerald-400" />
-                  <MetricCell label="SL Hits" value={String(metrics.losses)} highlight={metrics.losses > 0 ? 'text-red-400' : 'text-zinc-100'} />
-                  <MetricCell label="Expired" value={String(metrics.expired)} highlight="text-zinc-500" />
-                  <MetricCell label="Win Rate"
-                    value={metrics.totalTrades > 0 ? `${metrics.winRate}%` : 'N/A'}
-                    highlight={metrics.winRate >= 50 ? 'text-emerald-400' : metrics.winRate > 0 ? 'text-yellow-400' : 'text-zinc-100'} />
-                  <MetricCell label="Profit Factor"
-                    value={metrics.totalTrades > 0 ? String(metrics.profitFactor) : 'N/A'}
-                    highlight={metrics.profitFactor >= 1.5 ? 'text-emerald-400' : metrics.profitFactor >= 1.0 ? 'text-yellow-400' : 'text-red-400'} />
-                  <MetricCell label="Total R"
-                    value={metrics.totalTrades > 0 ? `${metrics.totalR > 0 ? '+' : ''}${metrics.totalR}R` : 'N/A'}
-                    highlight={metrics.totalR > 0 ? 'text-emerald-400' : metrics.totalR < 0 ? 'text-red-400' : 'text-zinc-100'} />
-                  <MetricCell label="Avg R/Trade"
-                    value={metrics.totalTrades > 0 ? `${metrics.avgR > 0 ? '+' : ''}${metrics.avgR}R` : 'N/A'}
-                    highlight={metrics.avgR > 0 ? 'text-emerald-400' : metrics.avgR < 0 ? 'text-red-400' : 'text-zinc-100'} />
-                  <MetricCell label="Avg Win" value={metrics.wins > 0 ? `+${metrics.avgWin}R` : 'N/A'} highlight="text-emerald-400" />
-                  <MetricCell label="Avg Loss" value={metrics.losses > 0 ? `${metrics.avgLoss}R` : 'N/A'} highlight="text-red-400" />
-                  <MetricCell label="Best Trade" value={metrics.totalTrades > 0 ? `+${metrics.bestTrade}R` : 'N/A'} highlight="text-emerald-400" />
-                  <MetricCell label="Worst Trade" value={metrics.totalTrades > 0 ? `${metrics.worstTrade}R` : 'N/A'} highlight="text-red-400" />
-                  <MetricCell label="Max Consec Wins" value={String(metrics.maxConsecWins)} />
-                  <MetricCell label="Max Consec Losses" value={String(metrics.maxConsecLosses)} />
-                  <MetricCell label="Max Drawdown R" value={metrics.totalTrades > 0 ? `${metrics.maxDrawdown}R` : 'N/A'} highlight="text-red-400" />
-                  <MetricCell label="Evaluations" value={metrics.evaluations.toLocaleString()} />
-                  <MetricCell label="Candidates" value={String(metrics.candidates)} />
-                  <MetricCell label="Rejected" value={String(metrics.rejected)} />
-                </div>
-              </div>
+              )}
 
-              {/* Equity bar */}
-              {metrics.totalTrades > 0 && (() => {
-                const maxAbs = Math.max(Math.abs(metrics.totalR), 0.1);
-                const pct = Math.min(Math.abs(metrics.totalR) / maxAbs, 1) * 100;
-                return (
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4">
-                    <div className="flex justify-between text-xs text-zinc-500 mb-2">
-                      <span>Net R result</span>
-                      <span className={metrics.totalR >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        {metrics.totalR > 0 ? '+' : ''}{metrics.totalR}R
-                      </span>
-                    </div>
-                    <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${metrics.totalR >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Trade table */}
-              {trades && trades.length > 0 && (
+              <div className="space-y-4">
+                {/* Summary cards */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                  <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <Clock size={13} className="text-zinc-500" /> Trades ({trades.length})
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select value={tradeSort} onChange={e => setTradeSort(e.target.value as 'time' | 'r')}
-                        className="bg-zinc-800 border border-zinc-700 rounded text-xs px-2 py-1 text-zinc-400 focus:outline-none focus:border-sky-500">
-                        <option value="time">Sort: Time</option>
-                        <option value="r">Sort: R (best)</option>
-                      </select>
-                      <button onClick={() => setShowTrades(s => !s)} className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
-                        {showTrades ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                        {showTrades ? 'Hide' : 'Show'}
-                      </button>
-                    </div>
+                  <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                    <BarChart2 size={13} className="text-zinc-500" />
+                    Results — {strategy} · {mode} · {csvTimeframe}
+                    <span className="ml-auto text-xs bg-amber-500/15 text-amber-400 border border-amber-500/25 px-1.5 py-0.5 rounded">SIMULATION</span>
                   </div>
-                  {showTrades && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-zinc-800 text-zinc-500">
-                            {['Entry Time', 'Dir', 'Grade', 'Entry', 'SL', 'TP1', 'TP2', 'Result', 'PnL R', 'Bars'].map(h => (
-                              <th key={h} className="text-left px-3 py-2 whitespace-nowrap">{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedTrades.slice(0, 200).map((t, i) => (
-                            <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                              <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{new Date(t.entryTime).toLocaleString()}</td>
-                              <td className="px-3 py-2">
-                                <span className={`inline-flex items-center gap-0.5 ${t.direction === 'buy' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                  {t.direction === 'buy' ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                                  {t.direction.toUpperCase()}
-                                </span>
-                              </td>
-                              <td className={`px-3 py-2 font-medium ${GRADE_COLOR[t.grade] ?? 'text-zinc-400'}`}>{t.grade}</td>
-                              <td className="px-3 py-2 text-zinc-300 tabular-nums">{t.entry.toFixed(4)}</td>
-                              <td className="px-3 py-2 text-red-400/80 tabular-nums">{t.stop_loss.toFixed(4)}</td>
-                              <td className="px-3 py-2 text-zinc-400 tabular-nums">{t.tp1.toFixed(4)}</td>
-                              <td className="px-3 py-2 text-zinc-400 tabular-nums">{t.tp2.toFixed(4)}</td>
-                              <td className={`px-3 py-2 font-medium whitespace-nowrap ${RESULT_COLOR[t.result] ?? 'text-zinc-400'}`}>
-                                {t.result === 'tp2_hit' ? '✓ TP2' : t.result === 'tp1_hit' ? '✓ TP1' : t.result === 'sl_hit' ? '✗ SL' : '— exp'}
-                              </td>
-                              <td className="px-3 py-2 tabular-nums"><PnlSpan r={t.pnl_r} /></td>
-                              <td className="px-3 py-2 text-zinc-500 tabular-nums">{t.durationBars}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {trades.length > 200 && (
-                        <div className="px-4 py-2 text-xs text-zinc-600 border-t border-zinc-800">Showing 200 of {trades.length} trades</div>
-                      )}
-                    </div>
-                  )}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-px bg-zinc-800">
+                    <MetricCell label="Total Trades" value={String(metrics.totalTrades)} />
+                    <MetricCell label="Wins (TP1+TP2)" value={String(metrics.wins)} highlight={metrics.wins > metrics.losses ? 'text-emerald-400' : 'text-zinc-100'} />
+                    <MetricCell label="TP1 Hits" value={String(metrics.tp1Hits)} />
+                    <MetricCell label="TP2 Hits" value={String(metrics.tp2Hits)} highlight="text-emerald-400" />
+                    <MetricCell label="SL Hits" value={String(metrics.losses)} highlight={metrics.losses > 0 ? 'text-red-400' : 'text-zinc-100'} />
+                    <MetricCell label="Expired" value={String(metrics.expired)} highlight="text-zinc-500" />
+                    <MetricCell label="Win Rate"
+                      value={metrics.totalTrades > 0 ? `${metrics.winRate}%` : 'N/A'}
+                      highlight={metrics.winRate >= 50 ? 'text-emerald-400' : metrics.winRate > 0 ? 'text-yellow-400' : 'text-zinc-100'} />
+                    <MetricCell label="Profit Factor"
+                      value={metrics.totalTrades > 0 ? String(metrics.profitFactor) : 'N/A'}
+                      highlight={metrics.profitFactor >= 1.5 ? 'text-emerald-400' : metrics.profitFactor >= 1.0 ? 'text-yellow-400' : 'text-red-400'} />
+                    <MetricCell label="Total R"
+                      value={metrics.totalTrades > 0 ? `${metrics.totalR > 0 ? '+' : ''}${metrics.totalR}R` : 'N/A'}
+                      highlight={metrics.totalR > 0 ? 'text-emerald-400' : metrics.totalR < 0 ? 'text-red-400' : 'text-zinc-100'} />
+                    <MetricCell label="Avg R/Trade"
+                      value={metrics.totalTrades > 0 ? `${metrics.avgR > 0 ? '+' : ''}${metrics.avgR}R` : 'N/A'}
+                      highlight={metrics.avgR > 0 ? 'text-emerald-400' : metrics.avgR < 0 ? 'text-red-400' : 'text-zinc-100'} />
+                    <MetricCell label="Avg Win" value={metrics.wins > 0 ? `+${metrics.avgWin}R` : 'N/A'} highlight="text-emerald-400" />
+                    <MetricCell label="Avg Loss" value={metrics.losses > 0 ? `${metrics.avgLoss}R` : 'N/A'} highlight="text-red-400" />
+                    <MetricCell label="Best Trade" value={metrics.totalTrades > 0 ? `+${metrics.bestTrade}R` : 'N/A'} highlight="text-emerald-400" />
+                    <MetricCell label="Worst Trade" value={metrics.totalTrades > 0 ? `${metrics.worstTrade}R` : 'N/A'} highlight="text-red-400" />
+                    <MetricCell label="Max Consec Wins" value={String(metrics.maxConsecWins)} />
+                    <MetricCell label="Max Consec Losses" value={String(metrics.maxConsecLosses)} />
+                    <MetricCell label="Max Drawdown R" value={metrics.totalTrades > 0 ? `${metrics.maxDrawdown}R` : 'N/A'} highlight="text-red-400" />
+                    <MetricCell label="Evaluations" value={metrics.evaluations.toLocaleString()} />
+                    <MetricCell label="Candidates" value={String(metrics.candidates)} />
+                    <MetricCell label="Rejected" value={String(metrics.rejected)} />
+                  </div>
                 </div>
-              )}
 
-              {metrics.totalTrades === 0 && (
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center">
-                  <Minus size={28} className="text-zinc-700 mx-auto mb-3" />
-                  <div className="text-sm text-zinc-500">No trades generated</div>
-                  <div className="text-xs text-zinc-600 mt-1">Try a lower min_score, loosen distance guards, or use a longer CSV</div>
-                </div>
-              )}
-            </>
+                {/* Equity bar */}
+                {metrics.totalTrades > 0 && (() => {
+                  const maxAbs = Math.max(Math.abs(metrics.totalR), 0.1);
+                  const pct = Math.min(Math.abs(metrics.totalR) / maxAbs, 1) * 100;
+                  return (
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4">
+                      <div className="flex justify-between text-xs text-zinc-500 mb-2">
+                        <span>Net R result</span>
+                        <span className={metrics.totalR >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          {metrics.totalR > 0 ? '+' : ''}{metrics.totalR}R
+                        </span>
+                      </div>
+                      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${metrics.totalR >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Trade table */}
+                {trades && trades.length > 0 && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                    <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <Clock size={13} className="text-zinc-500" /> Trades ({trades.length})
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select value={tradeSort} onChange={e => { setTradeSort(e.target.value as 'time' | 'r'); setTradePage(0); }}
+                          className="bg-zinc-800 border border-zinc-700 rounded text-xs px-2 py-1 text-zinc-400 focus:outline-none focus:border-sky-500">
+                          <option value="time">Sort: Time</option>
+                          <option value="r">Sort: R (best)</option>
+                        </select>
+                        <button onClick={() => setShowTrades(s => !s)} className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+                          {showTrades ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          {showTrades ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+                    {showTrades && (
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-zinc-800 text-zinc-500">
+                                {['Entry Time', 'Dir', 'Grade', 'Entry', 'SL', 'TP1', 'TP2', 'Result', 'PnL R', 'Bars'].map(h => (
+                                  <th key={h} className="text-left px-3 py-2 whitespace-nowrap">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {visibleTrades.map((t, i) => (
+                                <tr key={tradePage * TRADES_PER_PAGE + i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                                  <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{new Date(t.entryTime).toLocaleString()}</td>
+                                  <td className="px-3 py-2">
+                                    <span className={`inline-flex items-center gap-0.5 ${t.direction === 'buy' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                      {t.direction === 'buy' ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                      {t.direction.toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className={`px-3 py-2 font-medium ${GRADE_COLOR[t.grade] ?? 'text-zinc-400'}`}>{t.grade}</td>
+                                  <td className="px-3 py-2 text-zinc-300 tabular-nums">{t.entry.toFixed(4)}</td>
+                                  <td className="px-3 py-2 text-red-400/80 tabular-nums">{t.stop_loss.toFixed(4)}</td>
+                                  <td className="px-3 py-2 text-zinc-400 tabular-nums">{t.tp1.toFixed(4)}</td>
+                                  <td className="px-3 py-2 text-zinc-400 tabular-nums">{t.tp2.toFixed(4)}</td>
+                                  <td className={`px-3 py-2 font-medium whitespace-nowrap ${RESULT_COLOR[t.result] ?? 'text-zinc-400'}`}>
+                                    {t.result === 'tp2_hit' ? '✓ TP2' : t.result === 'tp1_hit' ? '✓ TP1' : t.result === 'sl_hit' ? '✗ SL' : '— exp'}
+                                  </td>
+                                  <td className="px-3 py-2 tabular-nums"><PnlSpan r={t.pnl_r} /></td>
+                                  <td className="px-3 py-2 text-zinc-500 tabular-nums">{t.durationBars}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                          <div className="border-t border-zinc-800 px-4 py-2.5 flex items-center justify-between text-xs text-zinc-500">
+                            <span>Page {tradePage + 1} of {totalPages} · {trades.length} trades</span>
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => setTradePage(p => Math.max(0, p - 1))} disabled={tradePage === 0}
+                                className="p-1 rounded hover:bg-zinc-800 disabled:opacity-30 transition-colors">
+                                <ChevronLeft size={13} />
+                              </button>
+                              {Array.from({ length: Math.min(totalPages, 7) }, (_, idx) => {
+                                const pg = totalPages <= 7 ? idx : tradePage < 4 ? idx : tradePage > totalPages - 5 ? totalPages - 7 + idx : tradePage - 3 + idx;
+                                return (
+                                  <button key={pg} onClick={() => setTradePage(pg)}
+                                    className={`w-6 h-6 rounded text-center transition-colors ${pg === tradePage ? 'bg-sky-600 text-white' : 'hover:bg-zinc-800 text-zinc-500'}`}>
+                                    {pg + 1}
+                                  </button>
+                                );
+                              })}
+                              <button onClick={() => setTradePage(p => Math.min(totalPages - 1, p + 1))} disabled={tradePage === totalPages - 1}
+                                className="p-1 rounded hover:bg-zinc-800 disabled:opacity-30 transition-colors">
+                                <ChevronRight size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {metrics.totalTrades === 0 && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center">
+                    <Minus size={28} className="text-zinc-700 mx-auto mb-3" />
+                    <div className="text-sm text-zinc-500">No trades generated</div>
+                    <div className="text-xs text-zinc-600 mt-1">Try a lower min_score, loosen distance guards, or use a longer CSV</div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
