@@ -36,7 +36,7 @@ function formatSignalMessage(signal: Record<string, unknown>): string {
     `*Status:* ${String(signal.status).toUpperCase()}`,
     `*Timestamp:* ${new Date().toISOString()}`,
     ``,
-    `_Signal only. Manage risk. Not financial advice._`,
+    `_Signal Mode only. Not financial advice._`,
     `_HashiBot Trading Intelligence_`,
   ].filter(Boolean).join("\n");
 }
@@ -62,9 +62,10 @@ function hasFiniteNumber(value: unknown): boolean {
 function signalSendBlockReason(signal: Record<string, unknown>, minGrade: string): string | null {
   if (!parseBooleanEnv(Deno.env.get("TELEGRAM_ENABLED") ?? undefined, false)) return "telegram_disabled_env";
   if (!parseBooleanEnv(Deno.env.get("ENABLE_SIGNAL_MODE_OUTPUT") ?? undefined, false)) return "signal_mode_output_disabled";
-  if (!parseBooleanEnv(Deno.env.get("SIGNAL_ENABLE_CRYPTO") ?? undefined, true)) return "crypto_disabled";
-  if (!parseBooleanEnv(Deno.env.get("SIGNAL_ENABLE_FOREX") ?? undefined, false) && signal.market_type !== "crypto") return "forex_disabled_for_mvp";
-  if (signal.market_type !== "crypto") return "non_crypto_signal";
+  const marketType = String(signal.market_type ?? "").toLowerCase();
+  if (marketType === "crypto" && !parseBooleanEnv(Deno.env.get("SIGNAL_ENABLE_CRYPTO") ?? undefined, true)) return "crypto_disabled";
+  if (marketType === "forex" && !parseBooleanEnv(Deno.env.get("SIGNAL_ENABLE_FOREX") ?? undefined, false)) return "forex_disabled";
+  if (!["crypto", "forex"].includes(marketType)) return "unsupported_market_type";
   if (signal.data_source !== "REAL DATA") return "not_real_data";
   const arb = signal.arbitrator_decision as Record<string, unknown> | null;
   if (arb && arb.final_decision !== "approved") return `not_final_approved:${String(arb.final_decision ?? "unknown")}`;

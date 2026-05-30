@@ -32,6 +32,7 @@ interface PerformanceSummary {
 }
 
 interface StrategyRow {
+  market_type?: string | null;
   strategy_name: string | null;
   total_signals: number;
   closed_trades: number;
@@ -61,6 +62,7 @@ interface SignalAnalyticsRow {
   timeframe: string;
   direction: string;
   grade: string;
+  market_type: string;
   data_source: string | null;
   current_status: string;
   outcome_category: string;
@@ -76,6 +78,7 @@ interface SignalAnalyticsRow {
 }
 
 interface Filters {
+  market: string;
   strategy: string;
   symbol: string;
   timeframe: string;
@@ -162,7 +165,7 @@ export default function Performance() {
   const [summary, setSummary] = useState<PerformanceSummary | null>(null);
   const [strategies, setStrategies] = useState<StrategyRow[]>([]);
   const [signals, setSignals] = useState<SignalAnalyticsRow[]>([]);
-  const [filters, setFilters] = useState<Filters>({ strategy: '', symbol: '', timeframe: '', direction: '', grade: '', outcome: '' });
+  const [filters, setFilters] = useState<Filters>({ market: 'crypto', strategy: '', symbol: '', timeframe: '', direction: '', grade: '', outcome: '' });
 
   // Dynamic filter options derived from loaded data
   const [filterOpts, setFilterOpts] = useState<{ strategies: string[]; symbols: string[]; timeframes: string[]; directions: string[]; grades: string[] }>({
@@ -174,10 +177,10 @@ export default function Performance() {
     setError('');
     try {
       const [summaryRes, stratRes, sigRes] = await Promise.all([
-        supabase.from('signal_performance_summary_view').select('*').maybeSingle(),
-        supabase.from('strategy_performance_view').select('*'),
+        supabase.from('signal_performance_summary_by_market_view').select('*'),
+        supabase.from('strategy_performance_by_market_view').select('*'),
         supabase.from('signal_analytics_view')
-          .select('signal_id,strategy_name,symbol,timeframe,direction,grade,data_source,current_status,outcome_category,r_result,close_price,closed_at,duration_minutes,created_at,entry_price,stop_loss,tp1,tp2')
+          .select('signal_id,strategy_name,symbol,market_type,timeframe,direction,grade,data_source,current_status,outcome_category,r_result,close_price,closed_at,duration_minutes,created_at,entry_price,stop_loss,tp1,tp2')
           .eq('data_source', 'REAL DATA')
           .neq('outcome_category', 'CANCELLED')
           .order('created_at', { ascending: false })
@@ -188,8 +191,9 @@ export default function Performance() {
       if (stratRes.error) throw new Error(stratRes.error.message);
       if (sigRes.error) throw new Error(sigRes.error.message);
 
-      setSummary((summaryRes.data ?? null) as PerformanceSummary | null);
-      const stratData = (stratRes.data ?? []) as StrategyRow[];
+      const summaries = (summaryRes.data ?? []) as (PerformanceSummary & { market_type?: string | null })[];
+      setSummary((summaries.find(row => row.market_type === filters.market) ?? null) as PerformanceSummary | null);
+      const stratData = ((stratRes.data ?? []) as StrategyRow[]).filter(row => row.market_type === filters.market);
       setStrategies(stratData);
       const sigData = (sigRes.data ?? []) as SignalAnalyticsRow[];
       setSignals(sigData);
@@ -207,7 +211,7 @@ export default function Performance() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters.market]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -217,6 +221,7 @@ export default function Performance() {
 
   // Apply filters to signals table
   const filteredSignals = signals.filter(s => {
+    if (filters.market && s.market_type !== filters.market) return false;
     if (filters.strategy && (s.strategy_name ?? 'unnamed') !== filters.strategy) return false;
     if (filters.symbol && s.symbol !== filters.symbol) return false;
     if (filters.timeframe && s.timeframe !== filters.timeframe) return false;
@@ -237,7 +242,7 @@ export default function Performance() {
             <BarChart2 size={22} className="text-blue-400" />
             Signal Performance
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Crypto REAL DATA signals — live from analytics views</p>
+          <p className="text-sm text-zinc-500 mt-0.5">REAL DATA signals by market — crypto and forex never mixed without the market filter</p>
         </div>
         <button
           onClick={load}
@@ -289,7 +294,7 @@ export default function Performance() {
 
       {!loading && !summary && (
         <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
-          No REAL DATA crypto signals tracked yet. Run the scanner to generate signals.
+          No REAL DATA signals tracked for this market yet. Run the scanner to generate signals.
         </div>
       )}
 
@@ -363,6 +368,7 @@ export default function Performance() {
       {/* ── Filters ── */}
       <section className="mb-4">
         <div className="flex flex-wrap items-end gap-3">
+          <FilterSelect label="Market" value={filters.market} onChange={v => setFilter('market', v)} options={['crypto', 'forex']} />
           <FilterSelect label="Strategy" value={filters.strategy} onChange={v => setFilter('strategy', v)} options={filterOpts.strategies} />
           <FilterSelect label="Symbol" value={filters.symbol} onChange={v => setFilter('symbol', v)} options={filterOpts.symbols} />
           <FilterSelect label="Timeframe" value={filters.timeframe} onChange={v => setFilter('timeframe', v)} options={filterOpts.timeframes} />
@@ -371,7 +377,7 @@ export default function Performance() {
           <FilterSelect label="Outcome" value={filters.outcome} onChange={v => setFilter('outcome', v)} options={['OPEN', 'WIN', 'LOSS', 'EXPIRED']} />
           {activeFilterCount > 0 && (
             <button
-              onClick={() => setFilters({ strategy: '', symbol: '', timeframe: '', direction: '', grade: '', outcome: '' })}
+              onClick={() => setFilters({ market: 'crypto', strategy: '', symbol: '', timeframe: '', direction: '', grade: '', outcome: '' })}
               className="text-xs text-zinc-500 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 px-2 py-1.5 rounded-lg transition-colors"
             >
               Clear ({activeFilterCount})
@@ -393,7 +399,7 @@ export default function Performance() {
           </div>
         ) : filteredSignals.length === 0 ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
-            {activeFilterCount > 0 ? 'No signals match the current filters.' : 'No REAL DATA crypto signals found.'}
+            {activeFilterCount > 0 ? 'No signals match the current filters.' : 'No REAL DATA signals found for this market.'}
           </div>
         ) : (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
@@ -402,6 +408,7 @@ export default function Performance() {
                 <thead>
                   <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
                     <th className="text-left px-4 py-3 font-medium">Symbol</th>
+                    <th className="text-left px-3 py-3 font-medium">Market</th>
                     <th className="text-left px-3 py-3 font-medium">Strategy</th>
                     <th className="text-left px-3 py-3 font-medium">TF</th>
                     <th className="text-left px-3 py-3 font-medium">Dir</th>
@@ -417,6 +424,7 @@ export default function Performance() {
                   {filteredSignals.map(sig => (
                     <tr key={sig.signal_id} className="hover:bg-zinc-800/30 transition-colors">
                       <td className="px-4 py-3 font-mono font-bold text-zinc-100">{sig.symbol}</td>
+                      <td className="px-3 py-3 text-zinc-400 uppercase">{sig.market_type}</td>
                       <td className="px-3 py-3 text-zinc-400 max-w-[120px]">
                         <span className="truncate block" title={sig.strategy_name ?? undefined}>
                           {sig.strategy_name ?? <span className="text-zinc-600 italic">—</span>}
@@ -456,13 +464,13 @@ export default function Performance() {
       {/* Footer note */}
       <div className="mt-6 text-xs text-zinc-600 leading-relaxed">
         <span className="font-medium text-zinc-500">Data notes:</span>{' '}
-        All stats are from <code className="bg-zinc-800 px-1 rounded">signal_performance_summary_view</code>,{' '}
-        <code className="bg-zinc-800 px-1 rounded">strategy_performance_view</code>, and{' '}
+        All stats are from <code className="bg-zinc-800 px-1 rounded">signal_performance_summary_by_market_view</code>,{' '}
+        <code className="bg-zinc-800 px-1 rounded">strategy_performance_by_market_view</code>, and{' '}
         <code className="bg-zinc-800 px-1 rounded">signal_analytics_view</code>.
         Open signals are excluded from win/loss/PF calculations.
         Profit factor = ∞ when no losses exist.
         R uses entry midpoint and SL distance as 1R.
-        Crypto REAL DATA only — forex excluded for MVP.
+        Use the Market filter to view crypto and forex separately; metrics are not intentionally mixed.
       </div>
     </AdminLayout>
   );

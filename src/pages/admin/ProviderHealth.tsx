@@ -20,7 +20,7 @@ interface RuntimeConfig {
   market_mode?: string;
   signal_enable_crypto?: boolean;
   signal_enable_forex?: boolean;
-  forex_disabled_for_mvp?: boolean;
+  forex_disabled?: boolean;
   forex_provider_ignored?: string;
   forex_fallbacks_ignored?: string;
   forex_demo_fallback_ignored?: string;
@@ -77,9 +77,9 @@ function ProviderCard({ p, historical, forexDisabled }: { p: Partial<ProviderSta
           <div>
             <div className="font-medium capitalize flex items-center gap-2 flex-wrap">
               {label}
-              {historical && <Badge variant="gray">Historical — not current MVP runtime</Badge>}
+              {historical && <Badge variant="gray">Historical provider row</Badge>}
               {!historical && dsl === 'REAL DATA' && <Badge variant="green">REAL DATA</Badge>}
-              {!historical && dsl === 'DISABLED_FOR_MVP' && <Badge variant="blue">Disabled for MVP</Badge>}
+              {!historical && (dsl === 'DISABLED_FOR_MVP' || dsl === 'DISABLED') && <Badge variant="blue">Disabled</Badge>}
               {!historical && dsl === 'PROVIDER_ERROR' && !forexDisabled && <Badge variant="red">Provider error</Badge>}
             </div>
             <div className="text-xs text-zinc-500 capitalize">{market}</div>
@@ -102,7 +102,7 @@ function ProviderCard({ p, historical, forexDisabled }: { p: Partial<ProviderSta
       {error && (
         <div className={`px-5 py-3 border-t ${historicalForexWarning || forexDisabled ? 'border-zinc-800/50 bg-zinc-950' : 'bg-yellow-500/5 border-yellow-500/10'}`}>
           <div className={`text-xs ${historicalForexWarning || forexDisabled ? 'text-zinc-500' : 'text-yellow-400'}`}>
-            {historicalForexWarning ? 'Historical forex warning — ignored while crypto-only MVP is active. ' : ''}{error}
+            {historicalForexWarning ? 'Historical forex warning. ' : ''}{error}
           </div>
         </div>
       )}
@@ -237,7 +237,7 @@ export default function ProviderHealth() {
     }
   }
 
-  const forexDisabled = runtimeConfig?.signal_enable_forex === false || runtimeConfig?.forex_disabled_for_mvp !== false;
+  const forexDisabled = runtimeConfig?.signal_enable_forex === false || runtimeConfig?.forex_disabled !== false;
   const marketMode = runtimeConfig?.market_mode ?? 'crypto_only';
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? 'binance';
   const cryptoProviderRow = providers.find(p => safeLower(p.provider_name) === 'binance');
@@ -246,12 +246,13 @@ export default function ProviderHealth() {
   const cronDetected = liveState.cronProven;
   const schedulerLabel = liveState.schedulerProof.label;
   const telegramConfigured = Boolean(runtimeConfig?.telegram_enabled && runtimeConfig.enable_signal_mode_output && runtimeConfig.telegram_bot_token_set && (runtimeConfig.telegram_default_channel_id_set || runtimeConfig.telegram_chat_id_set) && cfg?.auto_send_telegram !== false);
-  const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || safeLower(p.provider_name) === 'forex' || p.data_source_label === 'DISABLED_FOR_MVP');
-  const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && safeLower(p.provider_name) !== 'forex' && p.data_source_label !== 'DISABLED_FOR_MVP');
+  const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || ['forex', 'finnhub'].includes(safeLower(p.provider_name)) || ['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
+  const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && !['forex', 'finnhub'].includes(safeLower(p.provider_name)) && !['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
 
   const requiredEnv = useMemo(() => [
     { label: 'SIGNAL_ENABLE_CRYPTO=true', ok: runtimeConfig?.signal_enable_crypto !== false, expected: String(runtimeConfig?.signal_enable_crypto ?? true) },
-    { label: 'SIGNAL_ENABLE_FOREX=false', ok: runtimeConfig?.signal_enable_forex === false || runtimeConfig?.signal_enable_forex === undefined, expected: String(runtimeConfig?.signal_enable_forex ?? false) },
+    { label: 'SIGNAL_ENABLE_FOREX optional', ok: true, expected: String(runtimeConfig?.signal_enable_forex ?? false) },
+    { label: 'FINNHUB_API_KEY present when forex enabled', ok: runtimeConfig?.signal_enable_forex ? runtimeConfig?.finnhub_api_key_set === true : true, expected: runtimeConfig?.signal_enable_forex ? String(runtimeConfig?.finnhub_api_key_set ?? false) : 'only needed when forex enabled' },
     { label: 'CRYPTO_DATA_PROVIDER=binance', ok: cryptoProviderName === 'binance', expected: cryptoProviderName },
     { label: 'TELEGRAM_ENABLED=true', ok: runtimeConfig?.telegram_enabled === true, expected: String(runtimeConfig?.telegram_enabled ?? false) },
     { label: 'ENABLE_SIGNAL_MODE_OUTPUT=true', ok: runtimeConfig?.enable_signal_mode_output === true, expected: String(runtimeConfig?.enable_signal_mode_output ?? false) },
@@ -267,7 +268,7 @@ export default function ProviderHealth() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Provider Health</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Current crypto-only runtime truth plus historical provider rows</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Current crypto/forex provider runtime truth plus historical provider rows</p>
         </div>
         <button onClick={async () => { await Promise.all([load(), refreshLiveState()]); }} disabled={refreshing || liveState.loading}
           className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
@@ -290,7 +291,7 @@ export default function ProviderHealth() {
         <div className="bg-emerald-500/8 border border-emerald-500/15 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Current Runtime Mode</div>
           <div className="text-lg font-semibold text-emerald-400">{marketMode === 'crypto_only' ? 'Crypto-only' : marketMode}</div>
-          <div className="text-xs text-zinc-500 mt-1">Forex is sidelined for MVP.</div>
+          <div className="text-xs text-zinc-500 mt-1">Forex is separately gated and signal-only.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Crypto Provider</div>
@@ -299,7 +300,7 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Forex</div>
-          <div className="text-lg font-semibold text-blue-400">Disabled for MVP</div>
+          <div className="text-lg font-semibold text-blue-400">Disabled</div>
           <div className="text-xs text-zinc-500 mt-1">Future MT5/OANDA phase; old forex rows are historical.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -348,8 +349,8 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-sm font-semibold mb-1 flex items-center gap-2"><Info size={14} className="text-blue-400" /> Forex Provider</div>
-          <p className="text-xs text-zinc-500 mb-3">Forex provider tests are disabled for the crypto-only MVP. No Finnhub, TwelveData, OANDA, MT5, or demo forex call should be made.</p>
-          <Badge variant="blue">Disabled for MVP — future MT5/OANDA phase</Badge>
+          <p className="text-xs text-zinc-500 mb-3">C2 forex uses Finnhub only, real-data signal mode only. No demo fallback or broker execution is used.</p>
+          <Badge variant="blue">Finnhub only — signal mode</Badge>
         </div>
       </div>
 
@@ -387,7 +388,7 @@ export default function ProviderHealth() {
               {(currentRuntimeProviders.length ? currentRuntimeProviders : providers.filter(p => !isForexProviderRow(p))).map((p, i) => <ProviderCard key={String(p.id ?? i)} p={p} historical={false} forexDisabled={forexDisabled} />)}
               <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
                 <button onClick={() => setShowHistoricalRows(v => !v)} className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left">
-                  <span className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Historical forex/provider rows — ignored while crypto-only MVP is active ({historicalProviderRows.length})</span>
+                  <span className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Historical forex/provider rows ({historicalProviderRows.length})</span>
                   {showHistoricalRows ? <ChevronUp size={14} className="text-zinc-500" /> : <ChevronDown size={14} className="text-zinc-500" />}
                 </button>
                 {showHistoricalRows && (
@@ -406,7 +407,7 @@ export default function ProviderHealth() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
           <div className="text-sm font-semibold">Configured Symbols</div>
-          <div className="text-xs text-zinc-500">Crypto symbols active; forex symbols are dormant for MVP</div>
+          <div className="text-xs text-zinc-500">Crypto plus C2 forex symbols; forex requires separate enablement</div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[760px]">
@@ -428,8 +429,8 @@ export default function ProviderHealth() {
                   <td className="px-5 py-2.5 font-mono font-semibold text-zinc-100">{s.symbol}</td>
                   <td className="px-5 py-2.5 text-zinc-400">{s.display_name}</td>
                   <td className="px-5 py-2.5"><Badge variant={s.market_type === 'crypto' ? 'blue' : 'cyan'}>{s.market_type}</Badge></td>
-                  <td className="px-5 py-2.5 text-zinc-400 capitalize">{s.market_type === 'crypto' ? 'binance' : 'disabled for MVP'}</td>
-                  <td className="px-5 py-2.5">{s.market_type === 'crypto' ? <span className="text-xs text-emerald-400">REAL DATA (Binance API)</span> : <span className="text-xs text-blue-400">DISABLED FOR MVP</span>}</td>
+                  <td className="px-5 py-2.5 text-zinc-400 capitalize">{s.market_type === 'crypto' ? 'binance' : 'finnhub'}</td>
+                  <td className="px-5 py-2.5">{s.market_type === 'crypto' ? <span className="text-xs text-emerald-400">REAL DATA (Binance API)</span> : <span className="text-xs text-cyan-400">REAL DATA only when forex enabled</span>}</td>
                   <td className="px-5 py-2.5"><Badge variant={s.is_active ? 'green' : 'gray'}>{s.is_active ? 'Active' : 'Inactive'}</Badge></td>
                 </tr>
               ))}

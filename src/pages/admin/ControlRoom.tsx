@@ -252,7 +252,7 @@ export default function ControlRoom() {
         <BannerItem label="Scanner" value={state.scannerEnabled ? 'Enabled' : 'Disabled'} color={state.scannerEnabled ? 'text-emerald-400' : 'text-zinc-500'} />
         <BannerItem label="Market Mode" value={state.marketMode === 'crypto_only' ? 'Crypto-only' : state.marketMode} color={state.marketMode === 'crypto_only' ? 'text-emerald-400' : 'text-yellow-400'} />
         <BannerItem label="Crypto" value={state.signalEnableCrypto ? 'Enabled' : 'Disabled'} color={state.signalEnableCrypto ? 'text-emerald-400' : 'text-zinc-500'} />
-        <BannerItem label="Forex" value={state.signalEnableForex ? 'Enabled' : 'Disabled for MVP'} color={state.signalEnableForex ? 'text-emerald-400' : 'text-blue-400'} />
+        <BannerItem label="Forex" value={state.signalEnableForex ? 'Enabled' : 'Disabled'} color={state.signalEnableForex ? 'text-emerald-400' : 'text-blue-400'} />
         <BannerItem label="Heartbeat" value={heartbeatLabel} color={heartbeatColor} title={state.cronReason} />
         <BannerItem
           label="Schedule"
@@ -313,7 +313,7 @@ export default function ControlRoom() {
       {historicalForexWarningRuns.length > 0 && (
         <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
           <button onClick={() => setShowHistoricalForexWarnings(v => !v)} className="w-full px-4 py-3 text-left text-xs text-zinc-400 hover:text-zinc-200 flex items-center justify-between">
-            <span>Historical forex warnings ignored while crypto-only MVP is active ({historicalForexWarningRuns.length})</span>
+            <span>Historical forex warnings ({historicalForexWarningRuns.length})</span>
             <span>{showHistoricalForexWarnings ? 'Hide' : 'Show'}</span>
           </button>
           {showHistoricalForexWarnings && (
@@ -367,7 +367,7 @@ export default function ControlRoom() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
           <div className={`text-2xl font-bold ${state.signalEnableForex ? 'text-cyan-400' : 'text-blue-400'}`}>{state.signalEnableForex ? state.latestRealForexSignalCount : 'OFF'}</div>
-          <div className="text-xs text-zinc-500 mt-1">{state.signalEnableForex ? 'Active Real Forex' : 'Forex Disabled for MVP'}</div>
+          <div className="text-xs text-zinc-500 mt-1">{state.signalEnableForex ? 'Active Real Forex' : 'Forex Disabled'}</div>
         </div>
       </div>
 
@@ -495,7 +495,7 @@ export default function ControlRoom() {
               <div className="flex flex-wrap gap-3 text-xs">
                 <span>Market: <span className="font-mono font-medium text-emerald-400">{runtimeConfig.market_mode ?? 'crypto_only'}</span></span>
                 <span>Crypto: <span className="font-mono text-emerald-400">{runtimeConfig.crypto_provider ?? 'binance'}</span></span>
-                <span>Forex: <span className="font-mono text-blue-400">disabled for MVP</span></span>
+                <span>Forex: <span className={`font-mono ${state.signalEnableForex ? 'text-emerald-400' : 'text-blue-400'}`}>{state.signalEnableForex ? `${runtimeConfig.provider ?? 'finnhub'} enabled` : 'disabled'}</span></span>
                 <span>TG config: <span className={`font-mono ${autoTgReady ? 'text-emerald-400' : 'text-yellow-400'}`}>{autoTgReady ? 'ready' : 'check env/config'}</span></span>
               </div>
             </div>
@@ -515,12 +515,12 @@ export default function ControlRoom() {
               <div>
                 <span className="text-sm">Forex</span>
                 <span className={`text-xs ml-2 ${isForexReal ? 'text-emerald-500/70' : state.signalEnableForex ? 'text-orange-500/70' : 'text-blue-500/70'}`}>
-                  {state.signalEnableForex ? `${liveForexProvider} — ${isForexReal ? 'real data' : 'demo/not configured'}` : 'disabled for MVP'}
+                  {state.signalEnableForex ? `${liveForexProvider} — ${isForexReal ? 'real data' : 'provider error/not configured'}` : 'disabled'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 {state.signalEnableForex ? (forexProvider ? statusBadge(forexProvider.status) : statusBadge('unknown')) : <Badge variant="cyan">DISABLED</Badge>}
-                <Badge variant={state.signalEnableForex ? (isForexReal ? 'green' : 'orange') : 'cyan'}>{state.signalEnableForex ? (isForexReal ? 'REAL' : 'DEMO') : 'MVP'}</Badge>
+                <Badge variant={state.signalEnableForex ? (isForexReal ? 'green' : 'orange') : 'cyan'}>{state.signalEnableForex ? (isForexReal ? 'REAL' : 'ERROR') : 'OFF'}</Badge>
               </div>
             </div>
           </div>
