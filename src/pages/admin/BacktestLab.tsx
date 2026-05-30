@@ -3,126 +3,77 @@ import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  Upload, Play, Trash2, CheckCircle, AlertTriangle, Clock,
-  BarChart2, RefreshCw, ChevronDown, ChevronUp, Info
+  Upload, Play, Trash2, AlertTriangle, Clock,
+  BarChart2, RefreshCw, ChevronDown, ChevronUp, Info, Settings,
+  TrendingUp, TrendingDown, Minus, FileText,
 } from 'lucide-react';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ReplayDataset {
-  id: string;
-  name: string;
-  symbol: string;
-  market_type: string;
-  timeframe: string;
-  file_name: string;
-  row_count: number;
-  created_at: string;
+  id: string; name: string; symbol: string; market_type: string;
+  timeframe: string; file_name: string; row_count: number; created_at: string;
 }
 
-interface ReplayRun {
-  id: string;
-  dataset_id: string;
-  mode_slug: string;
-  strategy_names: string[];
-  status: 'draft' | 'running' | 'completed' | 'failed' | 'cancelled';
-  candles_processed: number;
-  evaluations_count: number;
-  candidates_count: number;
-  rejected_count: number;
-  signals_created: number;
-  simulated_trades_count: number;
-  result_summary: Record<string, unknown> | null;
-  error_message: string;
-  created_at: string;
-  updated_at: string;
+interface BtCandle {
+  time: string; open: number; high: number; low: number; close: number; volume: number;
 }
 
-interface ReplaySignalView {
-  id: string;
-  symbol: string;
-  timeframe: string;
-  strategy_name: string;
-  direction: string;
-  entry_low: number | null;
-  entry_high: number | null;
-  stop_loss: number | null;
-  tp1: number | null;
-  tp2: number | null;
-  grade: string;
-  confidence_score: number;
-  created_at_candle_time: string | null;
-  status: string;
-  pnl_r: number | null;
-  reason: string;
+interface BtTrade {
+  entryIndex: number; entryTime: string; strategy: string; direction: 'buy' | 'sell';
+  entry: number; entry_low: number; entry_high: number;
+  stop_loss: number; tp1: number; tp2: number;
+  result: 'tp2_hit' | 'tp1_hit' | 'sl_hit' | 'expired';
+  exitIndex: number | null; exitTime: string | null; exitPrice: number | null;
+  pnl_r: number; durationBars: number;
+  grade: string; score: number; reason: string;
 }
 
-interface ParsedCandle {
-  time: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
+interface BtMetrics {
+  totalTrades: number; wins: number; tp1Hits: number; tp2Hits: number;
+  losses: number; expired: number;
+  winRate: number; profitFactor: number;
+  totalR: number; avgR: number; avgWin: number; avgLoss: number;
+  bestTrade: number; worstTrade: number;
+  maxConsecWins: number; maxConsecLosses: number; maxDrawdown: number;
+  evaluations: number; candidates: number; rejected: number;
 }
 
-// ── CSV Parser ───────────────────────────────────────────────────────────────
+// ─── Default params by strategy and mode ─────────────────────────────────────
 
-function parseCSV(text: string): { candles: ParsedCandle[]; error: string | null } {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return { candles: [], error: 'CSV must have at least a header row and one data row' };
+type Mode = 'conservative' | 'balanced' | 'aggressive';
+type Strategy = 'MicroScalper' | 'CompressionBreakout' | 'SwingContinuation';
 
-  const header = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/['"]/g, ''));
-
-  const timeColName = ['time', 'open_time', 'datetime', 'date', 'timestamp'].find(c => header.includes(c));
-  const openCol = header.indexOf('open');
-  const highCol = header.indexOf('high');
-  const lowCol = header.indexOf('low');
-  const closeCol = header.indexOf('close');
-  const volCol = header.indexOf('volume');
-
-  if (!timeColName) return { candles: [], error: 'CSV must have a time/open_time/datetime column' };
-  if (openCol < 0 || highCol < 0 || lowCol < 0 || closeCol < 0) {
-    return { candles: [], error: 'CSV must have open, high, low, close columns' };
-  }
-
-  const timeIdx = header.indexOf(timeColName);
-  const candles: ParsedCandle[] = [];
-  const errors: string[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
-    if (cols.length < 4) continue;
-    const rawTime = cols[timeIdx] ?? '';
-    const d = new Date(rawTime);
-    if (isNaN(d.getTime())) {
-      errors.push(`Row ${i + 1}: invalid time "${rawTime}"`);
-      if (errors.length >= 3) break;
-      continue;
-    }
-    const open = parseFloat(cols[openCol]);
-    const high = parseFloat(cols[highCol]);
-    const low = parseFloat(cols[lowCol]);
-    const close = parseFloat(cols[closeCol]);
-    if ([open, high, low, close].some(isNaN)) {
-      errors.push(`Row ${i + 1}: non-numeric OHLC`);
-      if (errors.length >= 3) break;
-      continue;
-    }
-    candles.push({
-      time: d.toISOString(), open, high, low, close,
-      volume: volCol >= 0 ? parseFloat(cols[volCol] ?? '0') || 0 : 0,
-    });
-  }
-
-  if (errors.length > 0) return { candles: [], error: errors.join('; ') };
-  if (candles.length < 60) return { candles: [], error: `Need at least 60 candles for strategy evaluation. Parsed: ${candles.length}` };
-  return { candles, error: null };
+interface ParamSet {
+  min_score: number; min_rr: number;
+  min_stop_distance_pct: number; min_tp1_distance_pct: number; min_tp2_distance_pct: number;
+  max_bars_in_trade: number;
+  ema_fast: number; ema_slow: number; rsi_len: number; atr_len: number;
+  rsi_buy_min: number; rsi_sell_max: number;
+  stop_atr_mult: number; tp1_r: number; tp2_r: number;
+  box_lookback: number; min_box_bars: number; max_box_atr_range: number;
+  breakout_buffer_atr: number; pullback_bars: number;
 }
 
-// ── In-browser replay engine ──────────────────────────────────────────────────
+const DEFAULTS: Record<Strategy, Record<Mode, ParamSet>> = {
+  MicroScalper: {
+    conservative: { min_score: 78, min_rr: 1.4, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.45, max_bars_in_trade: 20, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 55, rsi_sell_max: 45, stop_atr_mult: 1.5, tp1_r: 1.3, tp2_r: 2.0, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    balanced:     { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.18, min_tp1_distance_pct: 0.25, min_tp2_distance_pct: 0.40, max_bars_in_trade: 24, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.2, tp2_r: 1.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    aggressive:   { min_score: 68, min_rr: 1.0, min_stop_distance_pct: 0.15, min_tp1_distance_pct: 0.20, min_tp2_distance_pct: 0.32, max_bars_in_trade: 30, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.2, tp1_r: 1.0, tp2_r: 1.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+  },
+  CompressionBreakout: {
+    conservative: { min_score: 80, min_rr: 1.6, min_stop_distance_pct: 0.30, min_tp1_distance_pct: 0.40, min_tp2_distance_pct: 0.70, max_bars_in_trade: 40, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.5, tp1_r: 1.4, tp2_r: 2.8, box_lookback: 60, min_box_bars: 16, max_box_atr_range: 1.6, breakout_buffer_atr: 0.14, pullback_bars: 5 },
+    balanced:     { min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    aggressive:   { min_score: 68, min_rr: 1.1, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.50, max_bars_in_trade: 60, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.3, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 40, min_box_bars: 12, max_box_atr_range: 2.0, breakout_buffer_atr: 0.10, pullback_bars: 5 },
+  },
+  SwingContinuation: {
+    conservative: { min_score: 80, min_rr: 1.8, min_stop_distance_pct: 0.50, min_tp1_distance_pct: 0.80, min_tp2_distance_pct: 1.30, max_bars_in_trade: 80, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.8, tp1_r: 1.7, tp2_r: 2.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 4 },
+    balanced:     { min_score: 76, min_rr: 1.5, min_stop_distance_pct: 0.45, min_tp1_distance_pct: 0.70, min_tp2_distance_pct: 1.20, max_bars_in_trade: 96, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.6, tp1_r: 1.5, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    aggressive:   { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.35, min_tp1_distance_pct: 0.55, min_tp2_distance_pct: 0.95, max_bars_in_trade: 120, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 48, rsi_sell_max: 52, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.2, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 6 },
+  },
+};
 
-interface CandleForReplay { open: number; high: number; low: number; close: number; volume: number; time: string; }
+// ─── Indicator helpers ────────────────────────────────────────────────────────
 
 function calcEMA(values: number[], period: number): number {
   if (values.length < period) return values[values.length - 1] ?? 0;
@@ -132,18 +83,17 @@ function calcEMA(values: number[], period: number): number {
   return ema;
 }
 
-function calcATR(candles: CandleForReplay[], period = 14): number {
+function calcATR(candles: BtCandle[], period: number): number {
   if (candles.length < period + 1) return 0;
   const trs: number[] = [];
   for (let i = 1; i < candles.length; i++) {
-    const { high: h, low: l } = candles[i];
-    const pc = candles[i - 1].close;
+    const { high: h, low: l } = candles[i], pc = candles[i - 1].close;
     trs.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
   }
   return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
 }
 
-function calcRSI(closes: number[], period = 14): number {
+function calcRSI(closes: number[], period: number): number {
   if (closes.length < period + 2) return 50;
   let gains = 0, losses = 0;
   for (let i = closes.length - period; i < closes.length; i++) {
@@ -155,547 +105,867 @@ function calcRSI(closes: number[], period = 14): number {
   return 100 - 100 / (1 + rs);
 }
 
-interface SignalDraft {
-  index: number; candle_time: string;
-  strategy: string; direction: string;
-  entry_low: number; entry_high: number;
-  stop_loss: number; tp1: number; tp2: number;
-  grade: string; score: number; reason: string;
-  status: string; outcome_index: number | null; pnl_r: number | null;
+function momentumScore(closes: number[], lookback = 3): number {
+  if (closes.length < lookback + 1) return 0;
+  const sl = closes.slice(-lookback - 1);
+  let up = 0, dn = 0;
+  for (let i = 1; i < sl.length; i++) { if (sl[i] > sl[i - 1]) up++; else if (sl[i] < sl[i - 1]) dn++; }
+  return (up - dn) / lookback;
 }
 
-interface ReplayEngineResult {
-  signals: SignalDraft[];
-  evaluations: number;
-  candidates: number;
-  rejected: number;
+function regime(ema20: number, ema50: number, rsi: number, rcr: number, atrPct: number): string {
+  if (ema20 > ema50 * 1.002 && rsi > 52) return 'trend_up';
+  if (ema20 < ema50 * 0.998 && rsi < 48) return 'trend_down';
+  if (rcr < 0.55) return 'compression';
+  if (atrPct > 2.0) return 'expansion';
+  if (rsi > 45 && rsi < 55) return 'ranging';
+  return 'unclear';
 }
 
-function runReplayEngine(
-  candles: CandleForReplay[],
-  strategy: string,
-  timeframe: string,
-): ReplayEngineResult {
-  const signals: SignalDraft[] = [];
+// ─── Distance guard ───────────────────────────────────────────────────────────
+
+function passesDistanceGuard(
+  entry: number, sl: number, tp1: number, tp2: number, score: number, rr: number, p: ParamSet,
+): { ok: boolean; reason: string } {
+  if (entry <= 0 || sl <= 0 || tp1 <= 0 || tp2 <= 0) return { ok: false, reason: 'distance_too_tight' };
+  const slPct  = (Math.abs(entry - sl)  / entry) * 100;
+  const tp1Pct = (Math.abs(tp1 - entry) / entry) * 100;
+  const tp2Pct = (Math.abs(tp2 - entry) / entry) * 100;
+  if (slPct  < p.min_stop_distance_pct)  return { ok: false, reason: 'sl_too_close' };
+  if (tp1Pct < p.min_tp1_distance_pct)   return { ok: false, reason: 'tp1_too_close' };
+  if (tp2Pct < p.min_tp2_distance_pct)   return { ok: false, reason: 'tp2_too_close' };
+  if (rr     < p.min_rr)                 return { ok: false, reason: 'rr_too_low' };
+  if (score  < p.min_score)              return { ok: false, reason: 'confidence_too_low' };
+  return { ok: true, reason: '' };
+}
+
+// ─── Strategy evaluators ──────────────────────────────────────────────────────
+
+interface EvalOut {
+  ok: boolean; direction: 'buy' | 'sell';
+  entry: number; entry_low: number; entry_high: number;
+  sl: number; tp1: number; tp2: number;
+  grade: string; score: number; rr: number; reason: string;
+}
+
+const FAIL = (): EvalOut => ({ ok: false, direction: 'buy', entry: 0, entry_low: 0, entry_high: 0, sl: 0, tp1: 0, tp2: 0, grade: 'reject', score: 0, rr: 0, reason: '' });
+
+function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
+  if (!['5m', '15m'].includes(tf)) return FAIL();
+  if (window.length < 60) return FAIL();
+  const closes = window.map(c => c.close);
+  const ema20 = calcEMA(closes, p.ema_fast); const ema50 = calcEMA(closes, p.ema_slow);
+  const atr = calcATR(window, p.atr_len); const rsi = calcRSI(closes, p.rsi_len);
+  const last = window[window.length - 1]; const prev = window[window.length - 2];
+  const price = last.close;
+  const atrPct = price > 0 ? (atr / price) * 100 : 0;
+  const bodyRatio = atr > 0 ? Math.abs(last.close - last.open) / atr : 0;
+
+  if (atrPct < 0.10 || atrPct > 3.0 || bodyRatio < 0.30) return FAIL();
+
+  const olderHi = window.length > 50 ? Math.max(...window.slice(-50, -20).map(c => c.high)) : Math.max(...window.slice(-20).map(c => c.high));
+  const olderLo = window.length > 50 ? Math.min(...window.slice(-50, -20).map(c => c.low))  : Math.min(...window.slice(-20).map(c => c.low));
+  const recentHi = Math.max(...window.slice(-20).map(c => c.high));
+  const recentLo = Math.min(...window.slice(-20).map(c => c.low));
+  const rcr = (olderHi - olderLo) > 0 ? (recentHi - recentLo) / (olderHi - olderLo) : 1;
+  const reg = regime(ema20, ema50, rsi, rcr, atrPct);
+  const mom = momentumScore(closes, 3);
+
+  let score = 50, direction: 'buy' | 'sell' | null = null;
+  if (ema20 > ema50 && rsi >= p.rsi_buy_min && price > ema20) {
+    direction = 'buy'; score += 15;
+    if (reg === 'trend_up') score += 10;
+    if (mom > 0.2) score += 8; else return FAIL();
+    if (rsi >= 58) score += 8; else score += 3;
+    if (prev.close < ema20 && price > ema20) score += 7;
+    score += last.close > last.open ? 5 : -3;
+  } else if (ema20 < ema50 && rsi <= p.rsi_sell_max && price < ema20) {
+    direction = 'sell'; score += 15;
+    if (reg === 'trend_down') score += 10;
+    if (mom < -0.2) score += 8; else return FAIL();
+    if (rsi <= 42) score += 8; else score += 3;
+    if (prev.close > ema20 && price < ema20) score += 7;
+    score += last.close < last.open ? 5 : -3;
+  } else return FAIL();
+
+  const sl  = direction === 'buy' ? price - atr * p.stop_atr_mult : price + atr * p.stop_atr_mult;
+  const tp1 = direction === 'buy' ? price + atr * p.tp1_r         : price - atr * p.tp1_r;
+  const tp2 = direction === 'buy' ? price + atr * p.tp2_r         : price - atr * p.tp2_r;
+  const risk = Math.abs(price - sl);
+  const rr = risk > 0 ? parseFloat((Math.abs(tp2 - price) / risk).toFixed(2)) : 0;
+  if (rr >= 2.5) score += 10; else if (rr >= 1.8) score += 5;
+  const final_score = Math.min(Math.max(score, 0), 100);
+  const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
+  const entry_low = price * 0.9998, entry_high = price * 1.0002;
+  return { ok: true, direction, entry: price, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `MS ${direction}: score=${final_score}, rsi=${rsi.toFixed(1)}, regime=${reg}` };
+}
+
+function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
+  if (!['15m', '1h'].includes(tf)) return FAIL();
+  const boxLookback = p.box_lookback, minBoxBars = p.min_box_bars;
+  if (window.length < boxLookback + 5) return FAIL();
+  const closes = window.map(c => c.close);
+  const atr = calcATR(window, p.atr_len);
+  if (atr <= 0) return FAIL();
+  const rsi = calcRSI(closes, p.rsi_len);
+  const last = window[window.length - 1]; const price = last.close;
+  const boxSlice = window.slice(-(boxLookback + 1), -1);
+  if (boxSlice.length < minBoxBars) return FAIL();
+  const boxHigh = Math.max(...boxSlice.map(c => c.high));
+  const boxLow  = Math.min(...boxSlice.map(c => c.low));
+  const boxRange = boxHigh - boxLow;
+  if (boxRange > atr * p.max_box_atr_range) return FAIL();
+  const barsInside = boxSlice.filter(c => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
+  if (barsInside < minBoxBars) return FAIL();
+
+  const boxMid = (boxHigh + boxLow) / 2;
+  const bfh = boxSlice.slice(0, Math.floor(boxSlice.length / 2));
+  const bsh = boxSlice.slice(Math.floor(boxSlice.length / 2));
+  const fa = bfh.reduce((s, c) => s + c.close, 0) / (bfh.length || 1);
+  const sa = bsh.reduce((s, c) => s + c.close, 0) / (bsh.length || 1);
+  const drift = Math.abs(sa - fa) / (boxRange || 1);
+  if (drift < 0.10 && Math.abs(fa - boxMid) / (boxRange || 1) < 0.15 && Math.abs(sa - boxMid) / (boxRange || 1) < 0.15) return FAIL();
+
+  const buf = atr * p.breakout_buffer_atr;
+  const up = last.close > boxHigh + buf && last.close > last.open;
+  const dn = last.close < boxLow  - buf && last.close < last.open;
+  if (!up && !dn) return FAIL();
+
+  const hist = window.slice(-(49), -1);
+  const avgRange = hist.reduce((s, c) => s + (c.high - c.low), 0) / (hist.length || 1);
+  const expansion = avgRange > 0 ? (last.high - last.low) / avgRange : 1;
+  if (expansion < 1.1) return FAIL();
+
+  const brkDist = up ? last.close - boxHigh : boxLow - last.close;
+  if (brkDist < buf * 0.6) return FAIL();
+
+  const mom = momentumScore(closes, 3);
+  if (up && mom < 0) return FAIL();
+  if (dn && mom > 0) return FAIL();
+
+  const direction: 'buy' | 'sell' = up ? 'buy' : 'sell';
+  let score = 50;
+  const cq = barsInside / Math.max(boxLookback, 1);
+  if (cq > 0.80) score += 12; else if (cq > 0.60) score += 7; else score += 2;
+  if (expansion > 2.0) score += 12; else if (expansion > 1.5) score += 8; else score += 4;
+  if ((brkDist / atr) > 0.6) score += 8; else score += 2;
+  if (direction === 'buy'  && rsi > 55) score += 6;
+  if (direction === 'sell' && rsi < 45) score += 6;
+  if (mom !== 0) score += 4;
+
+  const entry_low  = direction === 'buy'  ? boxHigh          : boxLow - atr * 0.35;
+  const entry_high = direction === 'buy'  ? boxHigh + atr * 0.35 : boxLow;
+  const entry = (entry_low + entry_high) / 2;
+  const sl  = direction === 'buy'  ? boxLow  - atr * p.stop_atr_mult : boxHigh + atr * p.stop_atr_mult;
+  const tp1 = direction === 'buy'  ? price   + atr * p.tp1_r         : price   - atr * p.tp1_r;
+  const tp2 = direction === 'buy'  ? price   + atr * p.tp2_r         : price   - atr * p.tp2_r;
+  const risk = Math.abs(entry - sl);
+  const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
+  if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 6;
+  const final_score = Math.min(Math.max(score, 0), 100);
+  const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
+  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `CB ${direction}: cq=${cq.toFixed(2)}, exp=${expansion.toFixed(2)}x, box=${boxLow.toFixed(4)}-${boxHigh.toFixed(4)}` };
+}
+
+function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
+  if (!['15m', '1h'].includes(tf)) return FAIL();
+  if (window.length < 60) return FAIL();
+  const closes = window.map(c => c.close);
+  const ema20 = calcEMA(closes, p.ema_fast); const ema50 = calcEMA(closes, p.ema_slow);
+  const atr = calcATR(window, p.atr_len); const rsi = calcRSI(closes, p.rsi_len);
+  const last = window[window.length - 1]; const price = last.close;
+  const atrPct = price > 0 ? (atr / price) * 100 : 0;
+  if (atrPct < 0.15 || atrPct > 4.0) return FAIL();
+
+  const emaBull = ema20 > ema50 * 1.003; const emaBear = ema20 < ema50 * 0.997;
+  if (!emaBull && !emaBear) return FAIL();
+
+  const olderHi = window.length > 50 ? Math.max(...window.slice(-50, -20).map(c => c.high)) : Math.max(...window.slice(-20).map(c => c.high));
+  const olderLo = window.length > 50 ? Math.min(...window.slice(-50, -20).map(c => c.low))  : Math.min(...window.slice(-20).map(c => c.low));
+  const recentHi = Math.max(...window.slice(-20).map(c => c.high));
+  const recentLo = Math.min(...window.slice(-20).map(c => c.low));
+  const rcr = (olderHi - olderLo) > 0 ? (recentHi - recentLo) / (olderHi - olderLo) : 1;
+  const reg = regime(ema20, ema50, rsi, rcr, atrPct);
+  if (['ranging', 'unclear'].includes(reg)) return FAIL();
+
+  const pbWindow = window.slice(-(p.pullback_bars + 1), -1);
+  const pbLow  = Math.min(...pbWindow.map(c => c.low));
+  const pbHigh = Math.max(...pbWindow.map(c => c.high));
+  const mom = momentumScore(closes, 3);
+
+  let score = 50, direction: 'buy' | 'sell' | null = null;
+  if (emaBull && rsi >= p.rsi_buy_min && price > ema20) {
+    if (pbLow > ema20 * 1.008 || price <= ema20) return FAIL();
+    if (mom <= 0 || rsi < 48) return FAIL();
+    direction = 'buy';
+  } else if (emaBear && rsi <= p.rsi_sell_max && price < ema20) {
+    if (pbHigh < ema20 * 0.992 || price >= ema20) return FAIL();
+    if (mom >= 0 || rsi > 52) return FAIL();
+    direction = 'sell';
+  } else return FAIL();
+
+  const emaSep = Math.abs(ema20 - ema50) / ema50;
+  if (emaSep > 0.01) score += 12; else if (emaSep > 0.005) score += 8; else score += 3;
+  if ((direction === 'buy' && reg === 'trend_up') || (direction === 'sell' && reg === 'trend_down')) score += 10;
+  const ms = Math.abs(mom);
+  if (ms > 0.5) score += 8; else if (ms > 0.2) score += 5;
+  if ((direction === 'buy' && rsi >= 58) || (direction === 'sell' && rsi <= 42)) score += 7; else score += 3;
+  if ((direction === 'buy' && last.close > last.open) || (direction === 'sell' && last.close < last.open)) score += 5;
+
+  const structLow  = direction === 'buy'  ? Math.min(pbLow,  price - atr * p.stop_atr_mult) : 0;
+  const structHigh = direction === 'sell' ? Math.max(pbHigh, price + atr * p.stop_atr_mult) : 0;
+  const sl  = direction === 'buy'  ? structLow  - atr * 0.3 : structHigh + atr * 0.3;
+  const tp1 = direction === 'buy'  ? price + atr * p.tp1_r  : price - atr * p.tp1_r;
+  const tp2 = direction === 'buy'  ? price + atr * p.tp2_r  : price - atr * p.tp2_r;
+  const entry_low = price * 0.9997, entry_high = price * 1.0003, entry = price;
+  const risk = Math.abs(entry - sl);
+  const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
+  if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 5;
+  const final_score = Math.min(Math.max(score, 0), 100);
+  const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
+  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `SW ${direction}: ema_sep=${(emaSep * 100).toFixed(2)}%, rsi=${rsi.toFixed(1)}, regime=${reg}` };
+}
+
+// ─── Backtest engine ──────────────────────────────────────────────────────────
+
+function runBacktest(
+  candles: BtCandle[], strategy: Strategy, tf: string, p: ParamSet,
+): { trades: BtTrade[]; evaluations: number; candidates: number; rejected: number } {
+  const trades: BtTrade[] = [];
+  const MIN_WIN = 65;
   let evaluations = 0, candidates = 0, rejected = 0;
-  const MIN_WINDOW = 60;
+  let inTrade = false;
+  let tradeEndIndex = -1;
 
-  for (let i = MIN_WINDOW; i < candles.length; i++) {
+  const evalFn = strategy === 'MicroScalper' ? evalMS : strategy === 'CompressionBreakout' ? evalCB : evalSW;
+
+  for (let i = MIN_WIN; i < candles.length; i++) {
+    if (inTrade && i <= tradeEndIndex) continue;
+    inTrade = false;
+
     const window = candles.slice(0, i + 1);
-    const closes = window.map(c => c.close);
-    const ema20 = calcEMA(closes, 20);
-    const ema50 = calcEMA(closes, 50);
-    const atr = calcATR(window, 14);
-    const rsi = calcRSI(closes, 14);
-    const last = window[window.length - 1];
-    const prev = window[window.length - 2];
-    const price = last.close;
-    const body_size = Math.abs(last.close - last.open);
-    const atr_pct = price > 0 ? (atr / price) * 100 : 0;
+    evaluations++;
+    const ev = evalFn(window, p, tf);
+    if (!ev.ok || ev.grade === 'reject') { rejected++; continue; }
 
-    const olderCandles = window.slice(-50, -20);
-    const olderHigh = olderCandles.length > 0 ? Math.max(...olderCandles.map(c => c.high)) : Math.max(...window.map(c => c.high).slice(-20));
-    const olderLow = olderCandles.length > 0 ? Math.min(...olderCandles.map(c => c.low)) : Math.min(...window.map(c => c.low).slice(-20));
-    const recentHigh = Math.max(...window.map(c => c.high).slice(-20));
-    const recentLow = Math.min(...window.map(c => c.low).slice(-20));
-    const olderRange = olderHigh - olderLow;
-    const rcr = olderRange > 0 ? (recentHigh - recentLow) / olderRange : 1;
+    const guard = passesDistanceGuard(ev.entry, ev.sl, ev.tp1, ev.tp2, ev.score, ev.rr, p);
+    if (!guard.ok) { rejected++; continue; }
+    candidates++;
 
-    let regime = 'unclear';
-    if (ema20 > ema50 * 1.002 && rsi > 52) regime = 'trend_up';
-    else if (ema20 < ema50 * 0.998 && rsi < 48) regime = 'trend_down';
-    else if (rcr < 0.55) regime = 'compression';
-    else if (atr_pct > 2.0) regime = 'expansion';
-    else if (rsi > 45 && rsi < 55) regime = 'ranging';
+    // Simulate outcome from i+1 forward, max max_bars_in_trade bars
+    const last = candles[i];
+    let result: BtTrade['result'] = 'expired';
+    let exitIndex: number | null = null;
+    let exitPrice: number | null = null;
+    const maxEnd = Math.min(i + p.max_bars_in_trade, candles.length - 1);
 
-    const mom3 = window.slice(-4);
-    let up = 0, dn = 0;
-    for (let j = 1; j < mom3.length; j++) {
-      if (mom3[j].close > mom3[j - 1].close) up++;
-      else if (mom3[j].close < mom3[j - 1].close) dn++;
-    }
-    const momentumScore = (up - dn) / 3;
-
-    let sig: SignalDraft | null = null;
-
-    if (strategy === 'MicroScalper' && ['5m', '15m'].includes(timeframe)) {
-      evaluations++;
-      if (atr_pct >= 0.05 && atr_pct <= 3.0 && atr > 0 && body_size / atr >= 0.25) {
-        let score = 50;
-        let direction: 'buy' | 'sell' | null = null;
-        if (ema20 > ema50 && rsi >= 52 && price > ema20) {
-          direction = 'buy';
-          score += 15;
-          if (regime === 'trend_up') score += 10;
-          if (momentumScore > 0.2) score += 8; else { rejected++; continue; }
-          if (rsi >= 58) score += 8; else score += 3;
-          if (prev.close < ema20 && price > ema20) score += 7;
-          if (last.close > last.open) score += 5; else score -= 3;
-        } else if (ema20 < ema50 && rsi <= 48 && price < ema20) {
-          direction = 'sell';
-          score += 15;
-          if (regime === 'trend_down') score += 10;
-          if (momentumScore < -0.2) score += 8; else { rejected++; continue; }
-          if (rsi <= 42) score += 8; else score += 3;
-          if (prev.close > ema20 && price < ema20) score += 7;
-          if (last.close < last.open) score += 5; else score -= 3;
-        } else { rejected++; continue; }
-
-        if (score >= 75) {
-          candidates++;
-          const stop_loss = direction === 'buy' ? price - atr * 1.2 : price + atr * 1.2;
-          const tp1 = direction === 'buy' ? price + atr * 0.9 : price - atr * 0.9;
-          const tp2 = direction === 'buy' ? price + atr * 1.5 : price - atr * 1.5;
-          const risk = Math.abs(price - stop_loss);
-          if (risk > 0 && Math.abs(tp2 - price) / risk >= 1.2) {
-            const grade = score >= 85 ? 'A+' : score >= 75 ? 'A' : 'B';
-            sig = { index: i, candle_time: last.time, strategy: 'MicroScalper', direction, entry_low: price * 0.9998, entry_high: price * 1.0002, stop_loss, tp1, tp2, grade, score, reason: `MicroScalper ${direction}: score=${score}`, status: 'waiting', outcome_index: null, pnl_r: null };
-          } else { rejected++; }
-        } else { rejected++; }
-      } else { rejected++; }
-    } else if (strategy === 'CompressionBreakout' && ['15m', '1h'].includes(timeframe)) {
-      evaluations++;
-      const boxLookback = 32;
-      if (window.length >= boxLookback + 5) {
-        const boxCandles = window.slice(-(boxLookback + 1), -1);
-        const boxHigh = Math.max(...boxCandles.map(c => c.high));
-        const boxLow = Math.min(...boxCandles.map(c => c.low));
-        const boxRange = boxHigh - boxLow;
-        if (atr > 0 && boxRange <= atr * 2.0) {
-          const barsInside = boxCandles.filter(c => c.high <= boxHigh * 1.001 && c.low >= boxLow * 0.999).length;
-          if (barsInside >= 14) {
-            const buffer = atr * 0.10;
-            const breakoutUp = last.close > boxHigh + buffer && last.close > last.open;
-            const breakoutDn = last.close < boxLow - buffer && last.close < last.open;
-            if (breakoutUp || breakoutDn) {
-              const hist = window.slice(-49, -1);
-              const avgRange = hist.reduce((s, c) => s + (c.high - c.low), 0) / (hist.length || 1);
-              const expansion = avgRange > 0 ? (last.high - last.low) / avgRange : 1;
-              if (expansion >= 1.05) {
-                const direction: 'buy' | 'sell' = breakoutUp ? 'buy' : 'sell';
-                let score = 50;
-                const cq = barsInside / boxLookback;
-                if (cq > 0.8) score += 12; else if (cq > 0.6) score += 7; else score += 2;
-                if (expansion > 2.0) score += 12; else if (expansion > 1.5) score += 8; else score += 4;
-                if (direction === 'buy' && rsi > 55) score += 6;
-                else if (direction === 'sell' && rsi < 45) score += 6;
-                if (score >= 78) {
-                  candidates++;
-                  const stop_loss = direction === 'buy' ? boxLow - atr * 1.2 : boxHigh + atr * 1.2;
-                  const tp1 = direction === 'buy' ? price + atr * 1.2 : price - atr * 1.2;
-                  const tp2 = direction === 'buy' ? price + atr * 2.5 : price - atr * 2.5;
-                  const risk = Math.abs(price - stop_loss);
-                  if (risk > 0 && Math.abs(tp2 - price) / risk >= 1.5) {
-                    const grade = score >= 85 ? 'A+' : score >= 78 ? 'A' : 'B';
-                    sig = { index: i, candle_time: last.time, strategy: 'CompressionBreakout', direction, entry_low: direction === 'buy' ? boxHigh : boxLow - atr * 0.3, entry_high: direction === 'buy' ? boxHigh + atr * 0.3 : boxLow, stop_loss, tp1, tp2, grade, score, reason: `CompressionBreakout ${direction}: comp=${cq.toFixed(2)}, exp=${expansion.toFixed(2)}x`, status: 'waiting', outcome_index: null, pnl_r: null };
-                  } else { rejected++; }
-                } else { rejected++; }
-              } else { rejected++; }
-            } else { rejected++; }
-          } else { rejected++; }
-        } else { rejected++; }
-      } else { rejected++; }
-    }
-
-    if (sig) {
-      // Simulate outcome
-      const maxBars = 50;
-      const entryPrice = (sig.entry_low + sig.entry_high) / 2;
-      const risk = Math.abs(entryPrice - sig.stop_loss);
-      let outcome = 'expired';
-      let outcome_index: number | null = null;
-      let pnl_r: number | null = null;
-
-      for (let j = i + 1; j < Math.min(i + maxBars, candles.length); j++) {
-        const c = candles[j];
-        if (sig.direction === 'buy') {
-          if (c.low <= sig.stop_loss) { outcome = 'sl_hit'; outcome_index = j; pnl_r = -1; break; }
-          if (c.high >= sig.tp2) { outcome = 'tp2_hit'; outcome_index = j; pnl_r = risk > 0 ? (sig.tp2 - entryPrice) / risk : 0; break; }
-          if (c.high >= sig.tp1) { outcome = 'tp1_hit'; outcome_index = j; pnl_r = risk > 0 ? (sig.tp1 - entryPrice) / risk : 0; break; }
-        } else {
-          if (c.high >= sig.stop_loss) { outcome = 'sl_hit'; outcome_index = j; pnl_r = -1; break; }
-          if (c.low <= sig.tp2) { outcome = 'tp2_hit'; outcome_index = j; pnl_r = risk > 0 ? (entryPrice - sig.tp2) / risk : 0; break; }
-          if (c.low <= sig.tp1) { outcome = 'tp1_hit'; outcome_index = j; pnl_r = risk > 0 ? (entryPrice - sig.tp1) / risk : 0; break; }
-        }
+    for (let j = i + 1; j <= maxEnd; j++) {
+      const c = candles[j];
+      if (ev.direction === 'buy') {
+        if (c.low <= ev.sl)  { result = 'sl_hit';  exitIndex = j; exitPrice = ev.sl;  break; }
+        if (c.high >= ev.tp2){ result = 'tp2_hit'; exitIndex = j; exitPrice = ev.tp2; break; }
+        if (c.high >= ev.tp1){ result = 'tp1_hit'; exitIndex = j; exitPrice = ev.tp1; break; }
+      } else {
+        if (c.high >= ev.sl) { result = 'sl_hit';  exitIndex = j; exitPrice = ev.sl;  break; }
+        if (c.low <= ev.tp2) { result = 'tp2_hit'; exitIndex = j; exitPrice = ev.tp2; break; }
+        if (c.low <= ev.tp1) { result = 'tp1_hit'; exitIndex = j; exitPrice = ev.tp1; break; }
       }
-      sig.status = outcome;
-      sig.outcome_index = outcome_index;
-      sig.pnl_r = pnl_r;
-      signals.push(sig);
     }
+
+    const risk = Math.abs(ev.entry - ev.sl);
+    let pnl_r = 0;
+    if (result === 'sl_hit')  pnl_r = -1;
+    else if (result === 'tp2_hit') pnl_r = risk > 0 ? parseFloat((Math.abs(ev.tp2 - ev.entry) / risk).toFixed(2)) : 0;
+    else if (result === 'tp1_hit') pnl_r = risk > 0 ? parseFloat((Math.abs(ev.tp1 - ev.entry) / risk).toFixed(2)) : 0;
+    else pnl_r = 0; // expired
+
+    const durationBars = exitIndex !== null ? exitIndex - i : p.max_bars_in_trade;
+    trades.push({
+      entryIndex: i, entryTime: last.time, strategy, direction: ev.direction,
+      entry: ev.entry, entry_low: ev.entry_low, entry_high: ev.entry_high,
+      stop_loss: ev.sl, tp1: ev.tp1, tp2: ev.tp2,
+      result, exitIndex, exitTime: exitIndex !== null ? (candles[exitIndex]?.time ?? null) : null,
+      exitPrice, pnl_r, durationBars, grade: ev.grade, score: ev.score, reason: ev.reason,
+    });
+
+    tradeEndIndex = exitIndex ?? maxEnd;
+    inTrade = true;
   }
 
-  return { signals, evaluations, candidates, rejected };
+  return { trades, evaluations, candidates, rejected };
 }
 
-// ── Colours ───────────────────────────────────────────────────────────────────
-const STATUS_COLORS: Record<string, string> = {
+// ─── Metrics calculator ───────────────────────────────────────────────────────
+
+function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number): BtMetrics {
+  const wins   = trades.filter(t => t.result === 'tp1_hit' || t.result === 'tp2_hit');
+  const losses = trades.filter(t => t.result === 'sl_hit');
+  const exps   = trades.filter(t => t.result === 'expired');
+  const totalR = trades.reduce((s, t) => s + t.pnl_r, 0);
+  const avgR   = trades.length > 0 ? totalR / trades.length : 0;
+  const avgWin  = wins.length  > 0 ? wins.reduce((s, t)   => s + t.pnl_r, 0) / wins.length  : 0;
+  const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + t.pnl_r, 0) / losses.length : 0;
+  const bestTrade  = trades.length > 0 ? Math.max(...trades.map(t => t.pnl_r)) : 0;
+  const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.pnl_r)) : 0;
+  const grossWin  = wins.reduce((s, t)   => s + t.pnl_r, 0);
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl_r, 0));
+  const profitFactor = grossLoss > 0 ? parseFloat((grossWin / grossLoss).toFixed(2)) : (grossWin > 0 ? 999 : 0);
+  const winRate = trades.length > 0 ? (wins.length / trades.length) * 100 : 0;
+
+  let maxCW = 0, maxCL = 0, cw = 0, cl = 0;
+  for (const t of trades) {
+    if (t.result === 'tp1_hit' || t.result === 'tp2_hit') { cw++; cl = 0; maxCW = Math.max(maxCW, cw); }
+    else if (t.result === 'sl_hit') { cl++; cw = 0; maxCL = Math.max(maxCL, cl); }
+    else { cw = 0; cl = 0; }
+  }
+
+  // Max drawdown: running equity curve from R
+  let peak = 0, equity = 0, maxDD = 0;
+  for (const t of trades) {
+    equity += t.pnl_r;
+    if (equity > peak) peak = equity;
+    const dd = peak - equity;
+    if (dd > maxDD) maxDD = dd;
+  }
+
+  return {
+    totalTrades: trades.length, wins: wins.length,
+    tp1Hits: trades.filter(t => t.result === 'tp1_hit').length,
+    tp2Hits: trades.filter(t => t.result === 'tp2_hit').length,
+    losses: losses.length, expired: exps.length,
+    winRate: parseFloat(winRate.toFixed(1)), profitFactor,
+    totalR: parseFloat(totalR.toFixed(2)), avgR: parseFloat(avgR.toFixed(2)),
+    avgWin: parseFloat(avgWin.toFixed(2)), avgLoss: parseFloat(avgLoss.toFixed(2)),
+    bestTrade: parseFloat(bestTrade.toFixed(2)), worstTrade: parseFloat(worstTrade.toFixed(2)),
+    maxConsecWins: maxCW, maxConsecLosses: maxCL, maxDrawdown: parseFloat(maxDD.toFixed(2)),
+    evaluations, candidates, rejected,
+  };
+}
+
+// ─── CSV parser ───────────────────────────────────────────────────────────────
+
+function parseCSV(text: string): { candles: BtCandle[]; error: string | null } {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return { candles: [], error: 'CSV must have a header row and at least one data row' };
+  const header = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/['"]/g, ''));
+
+  const timeColName = ['time', 'open_time', 'datetime', 'date', 'timestamp'].find(c => header.includes(c));
+  const oi = header.indexOf('open'), hi = header.indexOf('high'), li = header.indexOf('low'), ci = header.indexOf('close');
+  const vi = header.indexOf('volume');
+  if (!timeColName) return { candles: [], error: 'Missing time column (expected: time, open_time, datetime, date, or timestamp)' };
+  if ([oi, hi, li, ci].some(x => x < 0)) return { candles: [], error: 'Missing required columns: open, high, low, close' };
+
+  const ti = header.indexOf(timeColName);
+  const candles: BtCandle[] = [];
+  const errs: string[] = [];
+
+  for (let r = 1; r < lines.length; r++) {
+    const cols = lines[r].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+    if (cols.length < 4 || cols.every(c => !c)) continue;
+    const d = new Date(cols[ti] ?? '');
+    if (isNaN(d.getTime())) { errs.push(`Row ${r + 1}: invalid time "${cols[ti]}"`); if (errs.length >= 3) break; continue; }
+    const [open, high, low, close] = [oi, hi, li, ci].map(idx => parseFloat(cols[idx] ?? ''));
+    if ([open, high, low, close].some(isNaN)) { errs.push(`Row ${r + 1}: non-numeric OHLC`); if (errs.length >= 3) break; continue; }
+    candles.push({ time: d.toISOString(), open, high, low, close, volume: vi >= 0 ? (parseFloat(cols[vi] ?? '0') || 0) : 0 });
+  }
+
+  if (errs.length > 0) return { candles: [], error: errs.join('; ') };
+  if (candles.length < 60) return { candles: [], error: `Need at least 60 candles. Parsed: ${candles.length}` };
+  candles.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  return { candles, error: null };
+}
+
+// ─── Small UI helpers ─────────────────────────────────────────────────────────
+
+const RESULT_COLOR: Record<string, string> = {
   tp2_hit: 'text-emerald-400', tp1_hit: 'text-green-400',
   sl_hit: 'text-red-400', expired: 'text-zinc-500',
-  waiting: 'text-blue-400', cancelled: 'text-zinc-600',
 };
-const GRADE_COLORS: Record<string, string> = { 'A+': 'text-emerald-400', A: 'text-blue-400', B: 'text-yellow-400' };
+const GRADE_COLOR: Record<string, string> = { 'A+': 'text-emerald-400', A: 'text-sky-400', B: 'text-yellow-400' };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function PnlSpan({ r }: { r: number }) {
+  const cls = r > 0 ? 'text-emerald-400' : r < 0 ? 'text-red-400' : 'text-zinc-500';
+  return <span className={cls}>{r > 0 ? '+' : ''}{r.toFixed(2)}R</span>;
+}
+
+function MetricCell({ label, value, highlight }: { label: string; value: string; highlight?: string }) {
+  return (
+    <div className="bg-zinc-900 px-4 py-3">
+      <div className="text-xs text-zinc-500 mb-0.5">{label}</div>
+      <div className={`text-sm font-semibold ${highlight ?? 'text-zinc-100'}`}>{value}</div>
+    </div>
+  );
+}
+
+function ParamRow({ label, field, value, onChange, step = 0.01, min }: {
+  label: string; field: keyof ParamSet; value: number;
+  onChange: (k: keyof ParamSet, v: number) => void; step?: number; min?: number;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <label className="text-xs text-zinc-400 w-44 shrink-0">{label}</label>
+      <input
+        type="number" step={step} min={min ?? 0} value={value}
+        onChange={e => onChange(field, parseFloat(e.target.value) || 0)}
+        className="w-24 bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+      />
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function BacktestLab() {
   const { profile } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [datasets, setDatasets] = useState<ReplayDataset[]>([]);
-  const [runs, setRuns] = useState<ReplayRun[]>([]);
-  const [selectedDataset, setSelectedDataset] = useState<string>('');
-  const [selectedStrategy, setSelectedStrategy] = useState('MicroScalper');
-  const [selectedMode, setSelectedMode] = useState('signal_mode');
-  const [selectedTimeframe, setSelectedTimeframe] = useState('15m');
-  const [uploadStatus, setUploadStatus] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [running, setRunning] = useState(false);
-  const [runProgress, setRunProgress] = useState(0);
-  const [activeRun, setActiveRun] = useState<ReplayRun | null>(null);
-  const [runSignals, setRunSignals] = useState<ReplaySignalView[]>([]);
-  const [showSignals, setShowSignals] = useState(false);
-  const [parsedCandles, setParsedCandles] = useState<ParsedCandle[] | null>(null);
+
+  // CSV / candle state
+  const [candles, setCandles] = useState<BtCandle[] | null>(null);
   const [csvFileName, setCsvFileName] = useState('');
   const [csvSymbol, setCsvSymbol] = useState('');
-  const [csvMarketType, setCsvMarketType] = useState('crypto');
+  const [csvTimeframe, setCsvTimeframe] = useState('15m');
+  const [uploadMsg, setUploadMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Config
+  const [strategy, setStrategy] = useState<Strategy>('MicroScalper');
+  const [mode, setMode] = useState<Mode>('balanced');
+  const [params, setParams] = useState<ParamSet>(DEFAULTS.MicroScalper.balanced);
+  const [showParams, setShowParams] = useState(false);
+
+  // Results
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [trades, setTrades] = useState<BtTrade[] | null>(null);
+  const [metrics, setMetrics] = useState<BtMetrics | null>(null);
+  const [showTrades, setShowTrades] = useState(true);
+  const [tradeSort, setTradeSort] = useState<'time' | 'r'>('time');
+
+  // Saved datasets list
+  const [datasets, setDatasets] = useState<ReplayDataset[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const [d, r] = await Promise.all([
-      supabase.from('replay_datasets').select('*').order('created_at', { ascending: false }),
-      supabase.from('replay_runs').select('*').order('created_at', { ascending: false }).limit(20),
-    ]);
-    setDatasets((d.data ?? []) as ReplayDataset[]);
-    setRuns((r.data ?? []) as ReplayRun[]);
+  const loadDatasets = useCallback(async () => {
+    const { data } = await supabase.from('replay_datasets').select('*').order('created_at', { ascending: false });
+    setDatasets((data ?? []) as ReplayDataset[]);
   }, []);
+  useEffect(() => { loadDatasets(); }, [loadDatasets]);
 
-  useEffect(() => { load(); }, [load]);
+  // When strategy or mode changes, reload defaults
+  useEffect(() => { setParams(DEFAULTS[strategy][mode]); }, [strategy, mode]);
+
+  function setParam(k: keyof ParamSet, v: number) {
+    setParams(prev => ({ ...prev, [k]: v }));
+  }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCsvFileName(file.name);
-    setUploadStatus(null);
+    setUploadMsg(null);
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const { candles, error } = parseCSV(text);
-      if (error) { setUploadStatus({ ok: false, msg: error }); setParsedCandles(null); }
-      else { setUploadStatus({ ok: true, msg: `Valid CSV — ${candles.length} candles parsed. Fill in symbol and save.` }); setParsedCandles(candles); }
+    reader.onload = ev => {
+      const { candles: parsed, error } = parseCSV(ev.target?.result as string);
+      if (error) { setUploadMsg({ ok: false, text: error }); setCandles(null); }
+      else {
+        setCandles(parsed);
+        setUploadMsg({ ok: true, text: `${parsed.length.toLocaleString()} candles parsed · ${new Date(parsed[0].time).toLocaleDateString()} → ${new Date(parsed[parsed.length - 1].time).toLocaleDateString()}` });
+      }
     };
     reader.readAsText(file);
   }
 
   async function saveDataset() {
-    if (!parsedCandles || !csvSymbol) { setUploadStatus({ ok: false, msg: 'Enter symbol name before saving' }); return; }
-    const { data, error } = await supabase.from('replay_datasets').insert({
-      name: `${csvSymbol.toUpperCase()} ${selectedTimeframe} — ${csvFileName}`,
-      symbol: csvSymbol.toUpperCase(), market_type: csvMarketType,
-      timeframe: selectedTimeframe, source: 'csv_upload',
-      file_name: csvFileName, row_count: parsedCandles.length, uploaded_by: profile?.id,
-    }).select().maybeSingle();
-    if (error) { setUploadStatus({ ok: false, msg: `Save failed: ${error.message}` }); }
-    else if (data) {
-      setUploadStatus({ ok: true, msg: `Dataset saved: ${(data as ReplayDataset).name}` });
-      setSelectedDataset(data.id); await load();
-    }
-  }
-
-  async function runReplayForDataset() {
-    if (!selectedDataset || !parsedCandles) { setUploadStatus({ ok: false, msg: 'Upload a CSV first' }); return; }
-    const dataset = datasets.find(d => d.id === selectedDataset);
-    const symbol = dataset?.symbol ?? csvSymbol ?? 'UNKNOWN';
-    const timeframe = dataset?.timeframe ?? selectedTimeframe;
-
-    setRunning(true); setRunProgress(0); setActiveRun(null); setRunSignals([]);
-
-    const { data: runData } = await supabase.from('replay_runs').insert({
-      dataset_id: selectedDataset, mode_slug: selectedMode,
-      strategy_names: [selectedStrategy], status: 'running', candles_processed: 0,
-    }).select().maybeSingle();
-    if (!runData) { setRunning(false); return; }
-    const runId = (runData as ReplayRun).id;
-
-    const candlesForReplay: CandleForReplay[] = parsedCandles.map(c => ({
-      open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume, time: c.time,
-    }));
-
-    const progressInterval = setInterval(() => setRunProgress(p => Math.min(p + 4, 88)), 80);
-    const result = runReplayEngine(candlesForReplay, selectedStrategy, timeframe);
-    clearInterval(progressInterval);
-    setRunProgress(95);
-
-    if (result.signals.length > 0) {
-      await supabase.from('replay_signals').insert(result.signals.map(s => ({
-        replay_run_id: runId, symbol, timeframe, strategy_name: s.strategy,
-        direction: s.direction, entry_low: s.entry_low, entry_high: s.entry_high,
-        stop_loss: s.stop_loss, tp1: s.tp1, tp2: s.tp2,
-        grade: s.grade, confidence_score: s.score, created_at_index: s.index,
-        created_at_candle_time: s.candle_time, status: s.status,
-        outcome_index: s.outcome_index,
-        outcome_candle_time: s.outcome_index !== null ? (candlesForReplay[s.outcome_index]?.time ?? null) : null,
-        pnl_r: s.pnl_r, reason: s.reason,
-      })));
-    }
-
-    const wins = result.signals.filter(s => s.status === 'tp1_hit' || s.status === 'tp2_hit').length;
-    const losses = result.signals.filter(s => s.status === 'sl_hit').length;
-    const totalR = result.signals.reduce((sum, s) => sum + (s.pnl_r ?? 0), 0);
-    const summary = {
-      candles_processed: candlesForReplay.length, evaluations: result.evaluations,
-      candidates: result.candidates, rejected: result.rejected,
-      signals_created: result.signals.length, wins, losses,
-      win_rate_pct: result.signals.length > 0 ? parseFloat(((wins / result.signals.length) * 100).toFixed(1)) : 0,
-      tp1_hits: result.signals.filter(s => s.status === 'tp1_hit').length,
-      tp2_hits: result.signals.filter(s => s.status === 'tp2_hit').length,
-      sl_hits: result.signals.filter(s => s.status === 'sl_hit').length,
-      expired_count: result.signals.filter(s => s.status === 'expired').length,
-      total_r: parseFloat(totalR.toFixed(2)),
-      avg_r_per_trade: result.signals.length > 0 ? parseFloat((totalR / result.signals.length).toFixed(2)) : 0,
-    };
-
-    await supabase.from('replay_runs').update({
-      status: 'completed', candles_processed: candlesForReplay.length,
-      evaluations_count: result.evaluations, candidates_count: result.candidates,
-      rejected_count: result.rejected, signals_created: result.signals.length,
-      result_summary: summary, updated_at: new Date().toISOString(),
-    }).eq('id', runId);
-
-    setRunProgress(100);
-    setRunSignals(result.signals.map((s, idx) => ({
-      id: String(idx), symbol, timeframe, strategy_name: s.strategy,
-      direction: s.direction, entry_low: s.entry_low, entry_high: s.entry_high,
-      stop_loss: s.stop_loss, tp1: s.tp1, tp2: s.tp2,
-      grade: s.grade, confidence_score: s.score,
-      created_at_candle_time: s.candle_time,
-      status: s.status, pnl_r: s.pnl_r, reason: s.reason,
-    })));
-
-    await load();
-    const { data: freshRun } = await supabase.from('replay_runs').select('*').eq('id', runId).maybeSingle();
-    if (freshRun) setActiveRun(freshRun as ReplayRun);
-    setRunning(false); setShowSignals(true);
+    if (!candles || !csvSymbol.trim()) { setUploadMsg({ ok: false, text: 'Enter a symbol name before saving' }); return; }
+    const { error } = await supabase.from('replay_datasets').insert({
+      name: `${csvSymbol.toUpperCase()} ${csvTimeframe} — ${csvFileName}`,
+      symbol: csvSymbol.toUpperCase(), market_type: 'crypto',
+      timeframe: csvTimeframe, source: 'csv_upload',
+      file_name: csvFileName, row_count: candles.length, uploaded_by: profile?.id,
+    });
+    if (error) setUploadMsg({ ok: false, text: `Save failed: ${error.message}` });
+    else { setUploadMsg({ ok: true, text: 'Dataset saved to history' }); await loadDatasets(); }
   }
 
   async function deleteDataset(id: string) {
     setDeleting(id);
     await supabase.from('replay_datasets').delete().eq('id', id);
-    await load();
-    if (selectedDataset === id) setSelectedDataset('');
+    await loadDatasets();
     setDeleting(null);
   }
 
-  const summary = activeRun?.result_summary as Record<string, unknown> | null;
+  function runBacktestLocal() {
+    if (!candles) return;
+    setRunning(true); setProgress(10); setTrades(null); setMetrics(null);
+
+    // Use setTimeout to let the progress paint before the synchronous backtest loop
+    setTimeout(() => {
+      setProgress(30);
+      try {
+        const { trades: t, evaluations, candidates, rejected } = runBacktest(candles, strategy, csvTimeframe, params);
+        setProgress(90);
+        const m = calcMetrics(t, evaluations, candidates, rejected);
+        setTrades(t); setMetrics(m); setProgress(100); setShowTrades(true);
+      } catch (err) {
+        setUploadMsg({ ok: false, text: `Backtest error: ${err instanceof Error ? err.message : 'unknown'}` });
+      } finally {
+        setRunning(false);
+      }
+    }, 40);
+  }
+
+  const sortedTrades = trades
+    ? (tradeSort === 'r' ? [...trades].sort((a, b) => b.pnl_r - a.pnl_r) : trades)
+    : [];
+
+  const tfLabel = (tf: string) => ({ '5m': '5 min', '15m': '15 min', '1h': '1 Hour', '4h': '4 Hour' }[tf] ?? tf);
 
   return (
     <AdminLayout>
+      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Replay / Testnet Lab</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Upload historical candle CSVs and replay strategies to test signal generation logic</p>
+        <h1 className="text-2xl font-bold">Backtest Lab</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">Upload OHLCV CSV · choose strategy · tune parameters · run simulation</p>
       </div>
 
-      <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4 flex gap-3 mb-6">
-        <Info size={15} className="text-blue-400 mt-0.5 shrink-0" />
-        <div className="text-xs text-zinc-400 leading-relaxed">
-          <strong className="text-zinc-200">Replay/Testnet uses uploaded historical candles.</strong>{' '}
-          No broker trades, no live data, no Binance connection. Results labeled{' '}
-          <strong className="text-yellow-400">REPLAY DATA</strong>. The replay engine runs the same strategy logic as the live scanner.
-        </div>
+      <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl p-3.5 flex gap-2.5 mb-6">
+        <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+        <p className="text-xs text-zinc-400 leading-relaxed">
+          <strong className="text-amber-300">Backtest results are historical simulation only and do not guarantee future performance.</strong>{' '}
+          All trades are virtual. No live signals, Telegram messages, or account activity are generated.
+        </p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
-        {/* Upload */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
-            <Upload size={14} className="text-zinc-500" /> Upload CSV Dataset
-          </div>
-          <div className="px-5 py-4 space-y-4">
-            <p className="text-xs text-zinc-500">
-              Required: <code className="bg-zinc-800 px-1 rounded">time</code> · <code className="bg-zinc-800 px-1 rounded">open</code> · <code className="bg-zinc-800 px-1 rounded">high</code> · <code className="bg-zinc-800 px-1 rounded">low</code> · <code className="bg-zinc-800 px-1 rounded">close</code>. Optional: volume. Min 60 rows.
-            </p>
-            <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFileSelect} />
-            <button onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2.5 rounded-lg text-sm transition-colors">
-              <Upload size={13} />{csvFileName || 'Choose CSV File'}
-            </button>
+      <div className="grid lg:grid-cols-5 gap-6 mb-6">
 
-            {parsedCandles && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">Symbol</label>
-                    <input type="text" placeholder="e.g. BTCUSDT" value={csvSymbol}
-                      onChange={e => setCsvSymbol(e.target.value)}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">Market Type</label>
-                    <select value={csvMarketType} onChange={e => setCsvMarketType(e.target.value)}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                      <option value="crypto">Crypto</option>
-                      <option value="forex">Forex</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Timeframe</label>
-                  <select value={selectedTimeframe} onChange={e => setSelectedTimeframe(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                    {['5m', '15m', '1h', '4h'].map(tf => <option key={tf} value={tf}>{tf}</option>)}
-                  </select>
-                </div>
-                <button onClick={saveDataset}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                  <CheckCircle size={13} /> Save Dataset ({parsedCandles.length} candles)
-                </button>
-              </div>
-            )}
-            {uploadStatus && (
-              <div className={`px-3 py-2.5 rounded-lg text-xs border ${uploadStatus.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
-                {uploadStatus.msg}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* LEFT: Upload + Config */}
+        <div className="lg:col-span-2 space-y-4">
 
-        {/* Run config */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
-            <Play size={14} className="text-zinc-500" /> Configure &amp; Run Replay
-          </div>
-          <div className="px-5 py-4 space-y-4">
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Dataset</label>
-              <select value={selectedDataset} onChange={e => setSelectedDataset(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                <option value="">— Select dataset —</option>
-                {datasets.map(d => <option key={d.id} value={d.id}>{d.name} ({d.row_count} candles)</option>)}
-              </select>
+          {/* CSV Upload */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+              <Upload size={13} className="text-zinc-500" /> Upload CSV
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="px-5 py-4 space-y-3.5">
+              <p className="text-xs text-zinc-500">
+                Required columns: <code className="bg-zinc-800 px-1 rounded text-zinc-300">time</code>{' '}
+                <code className="bg-zinc-800 px-1 rounded text-zinc-300">open</code>{' '}
+                <code className="bg-zinc-800 px-1 rounded text-zinc-300">high</code>{' '}
+                <code className="bg-zinc-800 px-1 rounded text-zinc-300">low</code>{' '}
+                <code className="bg-zinc-800 px-1 rounded text-zinc-300">close</code>. Optional: volume. Min 60 rows.
+              </p>
+
+              <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFileSelect} />
+              <button onClick={() => fileRef.current?.click()}
+                className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors w-full justify-center">
+                <Upload size={13} />{csvFileName || 'Choose CSV File'}
+              </button>
+
+              {candles && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs text-zinc-400 mb-1">Symbol</label>
+                      <input type="text" placeholder="e.g. BTCUSDT" value={csvSymbol}
+                        onChange={e => setCsvSymbol(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-sky-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-400 mb-1">Timeframe</label>
+                      <select value={csvTimeframe} onChange={e => setCsvTimeframe(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+                        {['5m', '15m', '1h', '4h'].map(tf => <option key={tf} value={tf}>{tfLabel(tf)}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Candle preview */}
+                  <div className="bg-zinc-800/50 rounded-lg px-3 py-2 text-xs text-zinc-400 space-y-0.5">
+                    <div className="flex justify-between"><span>Candles</span><span className="text-zinc-200 font-medium">{candles.length.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>First</span><span className="text-zinc-200">{new Date(candles[0].time).toLocaleDateString()}</span></div>
+                    <div className="flex justify-between"><span>Last</span><span className="text-zinc-200">{new Date(candles[candles.length - 1].time).toLocaleDateString()}</span></div>
+                    <div className="flex justify-between"><span>Sample close</span><span className="text-zinc-200">{candles[candles.length - 1].close}</span></div>
+                  </div>
+
+                  <button onClick={saveDataset}
+                    className="w-full flex items-center justify-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <FileText size={12} /> Save to History
+                  </button>
+                </div>
+              )}
+
+              {uploadMsg && (
+                <div className={`px-3 py-2 rounded-lg text-xs border ${uploadMsg.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'}`}>
+                  {uploadMsg.text}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Strategy + Mode */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+              <Settings size={13} className="text-zinc-500" /> Strategy &amp; Mode
+            </div>
+            <div className="px-5 py-4 space-y-3.5">
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">Strategy</label>
-                <select value={selectedStrategy} onChange={e => setSelectedStrategy(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                  <option value="MicroScalper">MicroScalper</option>
-                  <option value="CompressionBreakout">CompressionBreakout</option>
-                </select>
+                <div className="flex gap-2">
+                  {(['MicroScalper', 'CompressionBreakout', 'SwingContinuation'] as Strategy[]).map(s => (
+                    <button key={s} onClick={() => setStrategy(s)}
+                      className={`flex-1 text-xs py-2 px-2 rounded-lg border transition-colors ${strategy === s ? 'bg-sky-600/20 border-sky-500/50 text-sky-300' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>
+                      {s === 'MicroScalper' ? 'Micro' : s === 'CompressionBreakout' ? 'Breakout' : 'Swing'}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-1.5 text-xs text-zinc-600">
+                  {strategy === 'MicroScalper' && 'Short-term momentum · 5m/15m · EMA + RSI'}
+                  {strategy === 'CompressionBreakout' && 'Range compression + expansion · 15m/1h'}
+                  {strategy === 'SwingContinuation' && 'Trend pullback reclaim · 15m/1h · wider SL/TP'}
+                </div>
               </div>
+
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Mode</label>
-                <select value={selectedMode} onChange={e => setSelectedMode(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                  <option value="signal_mode">Signal Mode</option>
-                  <option value="personal_mode">Personal Mode</option>
-                  <option value="prop_mode">Prop Mode</option>
-                </select>
+                <label className="block text-xs text-zinc-400 mb-1.5">Mode (loads default parameters)</label>
+                <div className="flex gap-2">
+                  {(['conservative', 'balanced', 'aggressive'] as Mode[]).map(m => (
+                    <button key={m} onClick={() => setMode(m)}
+                      className={`flex-1 text-xs py-2 px-2 rounded-lg border capitalize transition-colors ${mode === m ? 'bg-sky-600/20 border-sky-500/50 text-sky-300' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-            {!parsedCandles && selectedDataset && (
-              <div className="bg-yellow-500/8 border border-yellow-500/15 rounded-lg px-3 py-2.5 text-xs text-yellow-400">
-                Re-upload the CSV file to run a new replay for this dataset.
+          </div>
+
+          {/* Editable parameters */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowParams(v => !v)}
+              className="w-full border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center justify-between hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center gap-2"><Settings size={13} className="text-zinc-500" /> Parameters</div>
+              {showParams ? <ChevronUp size={13} className="text-zinc-500" /> : <ChevronDown size={13} className="text-zinc-500" />}
+            </button>
+            {showParams && (
+              <div className="px-5 py-4 space-y-2.5">
+                <div className="text-xs text-zinc-600 mb-3">Editing overrides mode defaults. Mode buttons reset to defaults.</div>
+
+                <div className="text-xs font-medium text-zinc-400 mb-1">Quality Gates</div>
+                <ParamRow label="Min Score" field="min_score" value={params.min_score} onChange={setParam} step={1} min={0} />
+                <ParamRow label="Min R:R" field="min_rr" value={params.min_rr} onChange={setParam} />
+                <ParamRow label="Min SL Distance %" field="min_stop_distance_pct" value={params.min_stop_distance_pct} onChange={setParam} />
+                <ParamRow label="Min TP1 Distance %" field="min_tp1_distance_pct" value={params.min_tp1_distance_pct} onChange={setParam} />
+                <ParamRow label="Min TP2 Distance %" field="min_tp2_distance_pct" value={params.min_tp2_distance_pct} onChange={setParam} />
+                <ParamRow label="Max Bars in Trade" field="max_bars_in_trade" value={params.max_bars_in_trade} onChange={setParam} step={1} min={1} />
+
+                <div className="border-t border-zinc-800 my-2" />
+                <div className="text-xs font-medium text-zinc-400 mb-1">Indicators</div>
+                <ParamRow label="EMA Fast" field="ema_fast" value={params.ema_fast} onChange={setParam} step={1} min={2} />
+                <ParamRow label="EMA Slow" field="ema_slow" value={params.ema_slow} onChange={setParam} step={1} min={2} />
+                <ParamRow label="RSI Length" field="rsi_len" value={params.rsi_len} onChange={setParam} step={1} min={2} />
+                <ParamRow label="ATR Length" field="atr_len" value={params.atr_len} onChange={setParam} step={1} min={1} />
+
+                <div className="border-t border-zinc-800 my-2" />
+                <div className="text-xs font-medium text-zinc-400 mb-1">Entry / Exit</div>
+                <ParamRow label="RSI Buy Min" field="rsi_buy_min" value={params.rsi_buy_min} onChange={setParam} step={1} />
+                <ParamRow label="RSI Sell Max" field="rsi_sell_max" value={params.rsi_sell_max} onChange={setParam} step={1} />
+                <ParamRow label="Stop ATR Mult" field="stop_atr_mult" value={params.stop_atr_mult} onChange={setParam} />
+                <ParamRow label="TP1 R Mult" field="tp1_r" value={params.tp1_r} onChange={setParam} />
+                <ParamRow label="TP2 R Mult" field="tp2_r" value={params.tp2_r} onChange={setParam} />
+
+                {strategy === 'CompressionBreakout' && (<>
+                  <div className="border-t border-zinc-800 my-2" />
+                  <div className="text-xs font-medium text-zinc-400 mb-1">CompressionBreakout</div>
+                  <ParamRow label="Box Lookback" field="box_lookback" value={params.box_lookback} onChange={setParam} step={1} min={10} />
+                  <ParamRow label="Min Box Bars" field="min_box_bars" value={params.min_box_bars} onChange={setParam} step={1} min={4} />
+                  <ParamRow label="Max Box ATR Range" field="max_box_atr_range" value={params.max_box_atr_range} onChange={setParam} />
+                  <ParamRow label="Breakout Buffer ATR" field="breakout_buffer_atr" value={params.breakout_buffer_atr} onChange={setParam} />
+                </>)}
+
+                {strategy === 'SwingContinuation' && (<>
+                  <div className="border-t border-zinc-800 my-2" />
+                  <div className="text-xs font-medium text-zinc-400 mb-1">SwingContinuation</div>
+                  <ParamRow label="Pullback Bars" field="pullback_bars" value={params.pullback_bars} onChange={setParam} step={1} min={1} />
+                </>)}
               </div>
             )}
-            {running && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span>Running replay...</span>
-                  <span>{runProgress}%</span>
-                </div>
-                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full transition-all duration-300" style={{ width: `${runProgress}%` }} />
-                </div>
-              </div>
-            )}
-            <button onClick={runReplayForDataset} disabled={running || !selectedDataset || !parsedCandles}
-              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-              {running ? <RefreshCw size={13} className="animate-spin" /> : <Play size={13} />}
-              {running ? 'Running Replay...' : 'Run Replay'}
-            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Results */}
-      {activeRun && summary && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
-          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
-            <BarChart2 size={14} className="text-zinc-500" />
-            Replay Results
-            <span className="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 px-1.5 py-0.5 rounded ml-2">REPLAY DATA</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-zinc-800">
-            {[
-              { label: 'Candles Processed', value: String(summary.candles_processed ?? 0) },
-              { label: 'Evaluations', value: String(summary.evaluations ?? 0) },
-              { label: 'Signals Created', value: String(summary.signals_created ?? 0) },
-              { label: 'Win Rate', value: (summary.signals_created && Number(summary.signals_created) > 0) ? `${summary.win_rate_pct}%` : 'N/A' },
-              { label: 'TP1 Hits', value: String(summary.tp1_hits ?? 0) },
-              { label: 'TP2 Hits', value: String(summary.tp2_hits ?? 0) },
-              { label: 'SL Hits', value: String(summary.sl_hits ?? 0) },
-              { label: 'Expired', value: String(summary.expired_count ?? 0) },
-              { label: 'Total R', value: (summary.signals_created && Number(summary.signals_created) > 0) ? `${Number(summary.total_r) > 0 ? '+' : ''}${Number(summary.total_r).toFixed(2)}R` : 'N/A' },
-              { label: 'Avg R/Trade', value: (summary.signals_created && Number(summary.signals_created) > 0) ? `${Number(summary.avg_r_per_trade) > 0 ? '+' : ''}${Number(summary.avg_r_per_trade).toFixed(2)}R` : 'N/A' },
-              { label: 'Candidates', value: String(summary.candidates ?? 0) },
-              { label: 'Rejected', value: String(summary.rejected ?? 0) },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-zinc-900 px-4 py-3">
-                <div className="text-xs text-zinc-500 mb-0.5">{label}</div>
-                <div className="text-sm font-medium text-zinc-200">{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          {/* Run button */}
+          <button
+            onClick={runBacktestLocal}
+            disabled={!candles || running}
+            className="w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-sky-900/30">
+            {running ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+            {running ? 'Running backtest...' : candles ? `Run Backtest (${candles.length.toLocaleString()} candles)` : 'Upload CSV to run'}
+          </button>
 
-      {/* Signals table */}
-      {runSignals.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
-          <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
-            <div className="text-sm font-semibold">Replay Signals ({runSignals.length})</div>
-            <button onClick={() => setShowSignals(s => !s)} className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-              {showSignals ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              {showSignals ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {showSignals && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-500">
-                    {['Candle Time', 'Strategy', 'Dir', 'Grade', 'Score', 'Outcome', 'PnL (R)'].map(h => (
-                      <th key={h} className="text-left px-4 py-2">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {runSignals.slice(0, 100).map((s, i) => (
-                    <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                      <td className="px-4 py-2 text-zinc-400">{s.created_at_candle_time ? new Date(s.created_at_candle_time).toLocaleString() : '—'}</td>
-                      <td className="px-4 py-2 text-zinc-300">{s.strategy_name}</td>
-                      <td className="px-4 py-2"><span className={s.direction === 'buy' ? 'text-emerald-400' : 'text-red-400'}>{s.direction?.toUpperCase()}</span></td>
-                      <td className={`px-4 py-2 font-medium ${GRADE_COLORS[s.grade] ?? 'text-zinc-400'}`}>{s.grade}</td>
-                      <td className="px-4 py-2 text-zinc-300">{s.confidence_score}</td>
-                      <td className={`px-4 py-2 font-medium ${STATUS_COLORS[s.status] ?? 'text-zinc-400'}`}>{s.status}</td>
-                      <td className={`px-4 py-2 font-medium ${s.pnl_r !== null && s.pnl_r > 0 ? 'text-emerald-400' : s.pnl_r !== null && s.pnl_r < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-                        {s.pnl_r !== null ? `${s.pnl_r > 0 ? '+' : ''}${s.pnl_r.toFixed(2)}R` : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {runSignals.length > 100 && (
-                <div className="px-4 py-2 text-xs text-zinc-600 border-t border-zinc-800">Showing 100 of {runSignals.length} signals</div>
-              )}
+          {running && (
+            <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden -mt-2">
+              <div className="h-full bg-sky-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
           )}
         </div>
-      )}
+
+        {/* RIGHT: Metrics */}
+        <div className="lg:col-span-3 space-y-4">
+          {!metrics && !running && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl flex flex-col items-center justify-center py-20 text-center">
+              <BarChart2 size={36} className="text-zinc-700 mb-3" />
+              <div className="text-sm text-zinc-500 font-medium">No results yet</div>
+              <div className="text-xs text-zinc-600 mt-1">Upload a CSV and run the backtest to see metrics</div>
+            </div>
+          )}
+
+          {running && !metrics && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl flex flex-col items-center justify-center py-20">
+              <RefreshCw size={28} className="text-sky-500 animate-spin mb-3" />
+              <div className="text-sm text-zinc-400">Simulating trades...</div>
+            </div>
+          )}
+
+          {metrics && (
+            <>
+              {/* Summary cards */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                  <BarChart2 size={13} className="text-zinc-500" />
+                  Results — {strategy} · {mode} · {csvTimeframe}
+                  <span className="ml-auto text-xs bg-amber-500/15 text-amber-400 border border-amber-500/25 px-1.5 py-0.5 rounded">SIMULATION</span>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-px bg-zinc-800">
+                  <MetricCell label="Total Trades" value={String(metrics.totalTrades)} />
+                  <MetricCell label="Wins (TP1+TP2)" value={String(metrics.wins)} highlight={metrics.wins > metrics.losses ? 'text-emerald-400' : 'text-zinc-100'} />
+                  <MetricCell label="TP1 Hits" value={String(metrics.tp1Hits)} />
+                  <MetricCell label="TP2 Hits" value={String(metrics.tp2Hits)} highlight="text-emerald-400" />
+                  <MetricCell label="SL Hits" value={String(metrics.losses)} highlight={metrics.losses > 0 ? 'text-red-400' : 'text-zinc-100'} />
+                  <MetricCell label="Expired" value={String(metrics.expired)} highlight="text-zinc-500" />
+                  <MetricCell label="Win Rate"
+                    value={metrics.totalTrades > 0 ? `${metrics.winRate}%` : 'N/A'}
+                    highlight={metrics.winRate >= 50 ? 'text-emerald-400' : metrics.winRate > 0 ? 'text-yellow-400' : 'text-zinc-100'} />
+                  <MetricCell label="Profit Factor"
+                    value={metrics.totalTrades > 0 ? String(metrics.profitFactor) : 'N/A'}
+                    highlight={metrics.profitFactor >= 1.5 ? 'text-emerald-400' : metrics.profitFactor >= 1.0 ? 'text-yellow-400' : 'text-red-400'} />
+                  <MetricCell label="Total R"
+                    value={metrics.totalTrades > 0 ? `${metrics.totalR > 0 ? '+' : ''}${metrics.totalR}R` : 'N/A'}
+                    highlight={metrics.totalR > 0 ? 'text-emerald-400' : metrics.totalR < 0 ? 'text-red-400' : 'text-zinc-100'} />
+                  <MetricCell label="Avg R/Trade"
+                    value={metrics.totalTrades > 0 ? `${metrics.avgR > 0 ? '+' : ''}${metrics.avgR}R` : 'N/A'}
+                    highlight={metrics.avgR > 0 ? 'text-emerald-400' : metrics.avgR < 0 ? 'text-red-400' : 'text-zinc-100'} />
+                  <MetricCell label="Avg Win" value={metrics.wins > 0 ? `+${metrics.avgWin}R` : 'N/A'} highlight="text-emerald-400" />
+                  <MetricCell label="Avg Loss" value={metrics.losses > 0 ? `${metrics.avgLoss}R` : 'N/A'} highlight="text-red-400" />
+                  <MetricCell label="Best Trade" value={metrics.totalTrades > 0 ? `+${metrics.bestTrade}R` : 'N/A'} highlight="text-emerald-400" />
+                  <MetricCell label="Worst Trade" value={metrics.totalTrades > 0 ? `${metrics.worstTrade}R` : 'N/A'} highlight="text-red-400" />
+                  <MetricCell label="Max Consec Wins" value={String(metrics.maxConsecWins)} />
+                  <MetricCell label="Max Consec Losses" value={String(metrics.maxConsecLosses)} />
+                  <MetricCell label="Max Drawdown R" value={metrics.totalTrades > 0 ? `${metrics.maxDrawdown}R` : 'N/A'} highlight="text-red-400" />
+                  <MetricCell label="Evaluations" value={metrics.evaluations.toLocaleString()} />
+                  <MetricCell label="Candidates" value={String(metrics.candidates)} />
+                  <MetricCell label="Rejected" value={String(metrics.rejected)} />
+                </div>
+              </div>
+
+              {/* Equity bar */}
+              {metrics.totalTrades > 0 && (() => {
+                const maxAbs = Math.max(Math.abs(metrics.totalR), 0.1);
+                const pct = Math.min(Math.abs(metrics.totalR) / maxAbs, 1) * 100;
+                return (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4">
+                    <div className="flex justify-between text-xs text-zinc-500 mb-2">
+                      <span>Net R result</span>
+                      <span className={metrics.totalR >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                        {metrics.totalR > 0 ? '+' : ''}{metrics.totalR}R
+                      </span>
+                    </div>
+                    <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${metrics.totalR >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Trade table */}
+              {trades && trades.length > 0 && (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                  <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <Clock size={13} className="text-zinc-500" /> Trades ({trades.length})
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select value={tradeSort} onChange={e => setTradeSort(e.target.value as 'time' | 'r')}
+                        className="bg-zinc-800 border border-zinc-700 rounded text-xs px-2 py-1 text-zinc-400 focus:outline-none focus:border-sky-500">
+                        <option value="time">Sort: Time</option>
+                        <option value="r">Sort: R (best)</option>
+                      </select>
+                      <button onClick={() => setShowTrades(s => !s)} className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+                        {showTrades ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        {showTrades ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+                  {showTrades && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-zinc-800 text-zinc-500">
+                            {['Entry Time', 'Dir', 'Grade', 'Entry', 'SL', 'TP1', 'TP2', 'Result', 'PnL R', 'Bars'].map(h => (
+                              <th key={h} className="text-left px-3 py-2 whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedTrades.slice(0, 200).map((t, i) => (
+                            <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                              <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{new Date(t.entryTime).toLocaleString()}</td>
+                              <td className="px-3 py-2">
+                                <span className={`inline-flex items-center gap-0.5 ${t.direction === 'buy' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                  {t.direction === 'buy' ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                  {t.direction.toUpperCase()}
+                                </span>
+                              </td>
+                              <td className={`px-3 py-2 font-medium ${GRADE_COLOR[t.grade] ?? 'text-zinc-400'}`}>{t.grade}</td>
+                              <td className="px-3 py-2 text-zinc-300 tabular-nums">{t.entry.toFixed(4)}</td>
+                              <td className="px-3 py-2 text-red-400/80 tabular-nums">{t.stop_loss.toFixed(4)}</td>
+                              <td className="px-3 py-2 text-zinc-400 tabular-nums">{t.tp1.toFixed(4)}</td>
+                              <td className="px-3 py-2 text-zinc-400 tabular-nums">{t.tp2.toFixed(4)}</td>
+                              <td className={`px-3 py-2 font-medium whitespace-nowrap ${RESULT_COLOR[t.result] ?? 'text-zinc-400'}`}>
+                                {t.result === 'tp2_hit' ? '✓ TP2' : t.result === 'tp1_hit' ? '✓ TP1' : t.result === 'sl_hit' ? '✗ SL' : '— exp'}
+                              </td>
+                              <td className="px-3 py-2 tabular-nums"><PnlSpan r={t.pnl_r} /></td>
+                              <td className="px-3 py-2 text-zinc-500 tabular-nums">{t.durationBars}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {trades.length > 200 && (
+                        <div className="px-4 py-2 text-xs text-zinc-600 border-t border-zinc-800">Showing 200 of {trades.length} trades</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {metrics.totalTrades === 0 && (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center">
+                  <Minus size={28} className="text-zinc-700 mx-auto mb-3" />
+                  <div className="text-sm text-zinc-500">No trades generated</div>
+                  <div className="text-xs text-zinc-600 mt-1">Try a lower min_score, loosen distance guards, or use a longer CSV</div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Saved datasets */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
-        <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold">Saved Datasets</div>
-        {datasets.length === 0 ? (
-          <div className="px-5 py-6 text-sm text-zinc-600 text-center">No datasets yet. Upload a CSV above.</div>
-        ) : (
+      {datasets.length > 0 && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+            <FileText size={13} className="text-zinc-500" /> Saved Datasets
+          </div>
           <div className="divide-y divide-zinc-800">
             {datasets.map(d => (
               <div key={d.id} className="flex items-center justify-between px-5 py-3 gap-3">
@@ -703,71 +973,23 @@ export default function BacktestLab() {
                   <div className="text-sm font-medium text-zinc-200">{d.name}</div>
                   <div className="text-xs text-zinc-500 mt-0.5">{d.symbol} · {d.market_type} · {d.timeframe} · {d.row_count.toLocaleString()} rows · {new Date(d.created_at).toLocaleDateString()}</div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => setSelectedDataset(d.id)}
-                    className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${selectedDataset === d.id ? 'bg-blue-600/20 border-blue-500/50 text-blue-400' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>
-                    {selectedDataset === d.id ? 'Selected' : 'Select'}
-                  </button>
-                  <button onClick={() => deleteDataset(d.id)} disabled={deleting === d.id}
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-600 hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50">
-                    {deleting === d.id ? <RefreshCw size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                  </button>
-                </div>
+                <button onClick={() => deleteDataset(d.id)} disabled={deleting === d.id}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-600 hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50">
+                  {deleting === d.id ? <RefreshCw size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                </button>
               </div>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Run history */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
-          <Clock size={14} className="text-zinc-500" /> Replay Run History
         </div>
-        {runs.length === 0 ? (
-          <div className="px-5 py-6 text-sm text-zinc-600 text-center">No replay runs yet.</div>
-        ) : (
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-zinc-800 text-zinc-500">
-                {['Date', 'Strategy', 'Mode', 'Status', 'Candles', 'Signals', 'Total R'].map(h => (
-                  <th key={h} className="text-left px-5 py-2.5">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map(r => {
-                const rs = r.result_summary as Record<string, unknown> | null;
-                return (
-                  <tr key={r.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 cursor-pointer"
-                    onClick={() => { setActiveRun(r); setShowSignals(false); }}>
-                    <td className="px-5 py-2.5 text-zinc-400">{new Date(r.created_at).toLocaleDateString()}</td>
-                    <td className="px-5 py-2.5 text-zinc-300">{(r.strategy_names ?? []).join(', ')}</td>
-                    <td className="px-5 py-2.5 text-zinc-400">{r.mode_slug}</td>
-                    <td className={`px-5 py-2.5 font-medium ${r.status === 'completed' ? 'text-emerald-400' : r.status === 'failed' ? 'text-red-400' : r.status === 'running' ? 'text-blue-400' : 'text-zinc-500'}`}>{r.status}</td>
-                    <td className="px-5 py-2.5 text-zinc-300">{r.candles_processed}</td>
-                    <td className="px-5 py-2.5 text-zinc-300">{r.signals_created}</td>
-                    <td className="px-5 py-2.5">
-                      {rs?.total_r != null ? (
-                        <span className={Number(rs.total_r) >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                          {Number(rs.total_r) > 0 ? '+' : ''}{Number(rs.total_r).toFixed(2)}R
-                        </span>
-                      ) : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+      )}
 
-      <div className="mt-4 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+      {/* Info */}
+      <div className="mt-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
         <div className="flex items-start gap-2">
-          <AlertTriangle size={13} className="text-yellow-400 mt-0.5 shrink-0" />
-          <div className="text-xs text-zinc-500 space-y-1">
-            <div className="font-medium text-zinc-400">Codex TODO: Replay enhancements</div>
-            <div>Current: in-browser replay runs exact strategy logic. Future: server-side edge function for large datasets (&gt;10k candles), multi-strategy runs, equity curve chart, per-strategy breakdown, CSV export.</div>
+          <Info size={13} className="text-zinc-600 mt-0.5 shrink-0" />
+          <div className="text-xs text-zinc-600 space-y-1">
+            <div>All backtests run entirely in your browser. No data leaves the page except optional dataset metadata saved to Supabase. No Telegram messages, live signals, or account activity are ever generated.</div>
+            <div>Backtest uses bar-close simulation (entry/exit at exact levels, no slippage). One trade at a time; next entry is only evaluated after current trade closes or expires.</div>
           </div>
         </div>
       </div>
