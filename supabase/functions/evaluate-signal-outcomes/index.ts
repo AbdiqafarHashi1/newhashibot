@@ -76,6 +76,48 @@ async function binancePrice(symbol: string): Promise<number | null> {
   }
 }
 
+const FINNHUB_SYMBOL_MAP: Record<string, string> = {
+  EURUSD: "OANDA:EUR_USD",
+  GBPUSD: "OANDA:GBP_USD",
+  USDJPY: "OANDA:USD_JPY",
+};
+
+function normalizeForexSymbol(symbol: string): string {
+  return symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+}
+
+async function finnhubForexPrice(symbol: string): Promise<number | null> {
+  const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
+  if (!key) return null;
+  const normalized = normalizeForexSymbol(symbol);
+  const mapped = FINNHUB_SYMBOL_MAP[normalized];
+  if (!mapped) return null;
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(mapped)}&token=${key}`, {
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!res.ok) return null;
+    const j = await res.json() as { c?: number; bid?: number; ask?: number };
+    const direct = Number(j.c);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const bid = Number(j.bid), ask = Number(j.ask);
+    if (Number.isFinite(bid) && Number.isFinite(ask) && bid > 0 && ask > 0) return (bid + ask) / 2;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function latestPrice(sig: SignalRow): Promise<{ price: number | null; source: string; reason?: string }> {
+  const marketType = String(sig.market_type ?? "").toLowerCase();
+  if (marketType === "crypto") return { price: await binancePrice(sig.symbol), source: "binance_latest_price" };
+  if (marketType === "forex") {
+    if (!parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return { price: null, source: "finnhub_forex_quote", reason: "forex_disabled" };
+    return { price: await finnhubForexPrice(sig.symbol), source: "finnhub_forex_quote" };
+  }
+  return { price: null, source: "unsupported", reason: "unsupported_market_type" };
+}
+
 function getOutcomeForSignal(sig: SignalRow, price: number): { next_status: string; reason: string } {
   const direction = String(sig.direction ?? "").toLowerCase();
   const status = String(sig.status ?? "waiting");
@@ -143,7 +185,7 @@ function formatOutcomeMessage(sig: SignalRow, newStatus: string, price: number |
     "📣 HashiBot Signal Update",
     "",
     `Symbol: ${sig.symbol}`,
-    "Market: Crypto",
+    `Market: ${String(sig.market_type ?? "unknown").toUpperCase()}`,
     `Event: ${eventLabel(newStatus)}`,
     `Direction: ${String(sig.direction ?? "unknown").toUpperCase()}`,
     `Entry: ${entry !== null ? entry.toFixed(5) : "—"}`,
@@ -154,7 +196,7 @@ function formatOutcomeMessage(sig: SignalRow, newStatus: string, price: number |
     `Original Signal Time: ${sig.created_at ? new Date(sig.created_at).toISOString() : "—"}`,
     `Update Time: ${new Date().toISOString()}`,
     "",
-    "Disclaimer: Signal only. Manage risk.",
+    "Disclaimer: Signal Mode only. Not financial advice.",
   ].join("\n");
 }
 
@@ -194,7 +236,9 @@ async function sendOutcomeNotification(
 
   if (!parseBooleanEnv("TELEGRAM_ENABLED", false)) return skip("telegram_disabled_env");
   if (!parseBooleanEnv("ENABLE_SIGNAL_MODE_OUTPUT", false)) return skip("signal_mode_output_disabled");
-  if (String(sig.market_type ?? "").toLowerCase() !== "crypto") return skip("non_crypto_signal");
+  const marketType = String(sig.market_type ?? "").toLowerCase();
+  if (marketType === "forex" && !parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return skip("forex_disabled");
+  if (!["crypto", "forex"].includes(marketType)) return skip("unsupported_market_type");
   if (String(sig.data_source ?? "").toUpperCase() !== "REAL DATA") return skip("not_real_data");
 
   const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
@@ -292,25 +336,25 @@ Deno.serve(async (req: Request) => {
       expired: 0,
       skipped: 0,
       skipped_reasons: [] as string[],
-      price_source: "binance_latest_price",
+      price_source: signalEnableForex ? "binance_latest_price+finnhub_forex_quote" : "binance_latest_price",
       price_source_limitation: "Latest ticker price is used; intrabar TP/SL ordering is not inferred.",
     };
-
-    if (!signalEnableCrypto) {
-      out.skipped_reasons.push("crypto_disabled");
-      return jsonResponse(out);
-    }
 
     for (const sig of ((signals ?? []) as SignalRow[])) {
       const currentStatus = String(sig.status ?? "waiting");
       if (TERMINAL.has(currentStatus)) continue;
 
       const marketType = String(sig.market_type ?? "").toLowerCase();
-      if (marketType === "forex") {
+      if (marketType === "crypto" && !signalEnableCrypto) {
+        out.skipped++;
+        out.skipped_reasons.push("crypto_disabled");
+        continue;
+      }
+      if (marketType === "forex" && !signalEnableForex) {
         out.forex_skipped_count++;
         continue;
       }
-      if (marketType !== "crypto") {
+      if (!["crypto", "forex"].includes(marketType)) {
         out.skipped++;
         out.skipped_reasons.push("unsupported_market_type");
         continue;
@@ -337,10 +381,11 @@ Deno.serve(async (req: Request) => {
         reason = expiry.reason;
         out.expired++;
       } else {
-        price = await binancePrice(sig.symbol);
+        const priceResult = await latestPrice(sig);
+        price = priceResult.price;
         if (price === null) {
           out.price_unavailable++;
-          out.skipped_reasons.push("price_unavailable");
+          out.skipped_reasons.push(priceResult.reason ?? `${marketType}_price_unavailable`);
           continue;
         }
         const outcome = getOutcomeForSignal(sig, price);

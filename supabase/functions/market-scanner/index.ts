@@ -517,6 +517,48 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
 
 function gradeIndex(g: string): number { return g === "A+" ? 3 : g === "A" ? 2 : g === "B" ? 1 : 0; }
 
+const C2_FOREX_PROVIDER = "finnhub";
+const C2_FOREX_SYMBOLS = new Set(["EURUSD", "GBPUSD", "USDJPY"]);
+
+function normalizeSymbol(symbol: string): string {
+  return symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+}
+
+function normalizeRejectionReason(reason: string, marketType = "crypto"): string {
+  const map: Record<string, string> = {
+    risk_reward_too_low: "rr_too_low",
+    score_below_min: "confidence_too_low",
+    distance_too_tight: "spread_or_distance_too_tight",
+    sl_too_close: "spread_or_distance_too_tight",
+    tp1_too_close: "spread_or_distance_too_tight",
+    tp2_too_close: "spread_or_distance_too_tight",
+    candle_body_too_small: "momentum_failed",
+    momentum_too_weak: "momentum_failed",
+    rsi_not_confirmed: "momentum_failed",
+    unclear_trend: "trend_filter_failed",
+    range_not_compressed: "volatility_too_low",
+    breakout_not_confirmed: "momentum_failed",
+    chop_detected: "trend_filter_failed",
+    wrong_timeframe: "trend_filter_failed",
+  };
+  const normalized = map[reason] ?? reason;
+  if (marketType === "forex") {
+    const allowed = new Set([
+      "provider_failed", "unsupported_symbol", "insufficient_candles",
+      "spread_or_distance_too_tight", "volatility_too_low", "trend_filter_failed",
+      "momentum_failed", "rr_too_low", "confidence_too_low",
+      "duplicate_active_signal", "arbitration_blocked",
+    ]);
+    return allowed.has(normalized) ? normalized : "trend_filter_failed";
+  }
+  return normalized;
+}
+
+function forexTimeframes(): string[] {
+  const raw = Deno.env.get("FOREX_ACTIVE_TIMEFRAMES") ?? "15m,1h";
+  return raw.split(",").map((v) => v.trim()).filter(Boolean);
+}
+
 // ─── Distance guard ───────────────────────────────────────────────────────────
 
 interface DistanceGuardResult {
@@ -622,6 +664,8 @@ async function createPaperIntent(
 
 // ─── Demo candle generator ────────────────────────────────────────────────────
 
+// C2 keeps this historical helper unused: forex demo fallback is forbidden.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateDemoCandles(symbol: string, market_type: string, timeframe: string, count = 110): Candle[] {
   const seedPrices: Record<string, number> = {
     BTCUSDT: 67000, ETHUSDT: 3500, SOLUSDT: 155, BNBUSDT: 580,
@@ -674,6 +718,8 @@ const TD_SYMBOL_MAP: Record<string, string> = {
 function toTDSymbol(s: string): string { return TD_SYMBOL_MAP[s] ?? `${s.slice(0, 3)}/${s.slice(3)}`; }
 function toTDInterval(tf: string): string { return ({ "5m": "5min", "15m": "15min", "1h": "1h", "4h": "4h" } as Record<string, string>)[tf] ?? "15min"; }
 
+// C2 uses Finnhub only; TwelveData is intentionally inactive.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function fetchTwelveDataCandles(symbol: string, tf: string, apiKey: string, limit = 110): Promise<{ candles: Candle[] | null; error: string | null }> {
   const tdSymbol = toTDSymbol(symbol);
   try {
@@ -815,6 +861,8 @@ async function fetchFinnhubForexCandles(
 
 // ─── MT5 Bridge ───────────────────────────────────────────────────────────────
 
+// C2 is signal-only; MT5 bridge execution/data path is intentionally inactive.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function fetchMT5BridgeCandles(symbol: string, tf: string, bridgeUrl: string, secret: string, limit = 110): Promise<{ candles: Candle[] | null; error: string | null }> {
   try {
     const res = await fetch(`${bridgeUrl}/candles?symbol=${symbol}&timeframe=${tf}&limit=${limit}`, { headers: { "x-bridge-secret": secret }, signal: AbortSignal.timeout(10000) });
@@ -859,6 +907,8 @@ function forexDisabledSummary() {
   };
 }
 
+// C2 uses a single provider path with no fallback chain.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseProviderFallbacks(value: string | undefined): string[] {
   if (!value) return [];
   const normalized = value.trim().toLowerCase();
@@ -867,110 +917,66 @@ function parseProviderFallbacks(value: string | undefined): string[] {
 }
 
 async function fetchForexCandles(
-  symbol: string, tf: string, limit = 110,
+  symbol: string, tf: string,
   supabase: ReturnType<typeof createClient>
 ): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null }> {
-  const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
-  const apiKey = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-  const bridgeUrl = Deno.env.get("MT5_BRIDGE_BASE_URL") ?? "";
-  const bridgeSecret = Deno.env.get("MT5_BRIDGE_SECRET") ?? "";
-  const providerFallbacks = parseProviderFallbacks(Deno.env.get("FOREX_PROVIDER_FALLBACKS"));
-  const demoFallback = parseBooleanEnv(Deno.env.get("FOREX_DEMO_FALLBACK"), provider === "demo");
+  const configuredProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? C2_FOREX_PROVIDER).trim().toLowerCase();
+  const now = new Date().toISOString();
 
-  const DEMO = (reason: string) => ({ candles: generateDemoCandles(symbol, "forex", tf, limit), source: "demo", data_source: "DEMO DATA", providerError: reason });
-
-  if (provider === "off") return { candles: [], source: "off", data_source: "OFF", providerError: "FOREX_DATA_PROVIDER=off" };
-  if (provider === "demo") return DEMO("FOREX_DATA_PROVIDER=demo");
-
-  if (provider === "twelvedata") {
-    if (!apiKey) {
-      const msg = "TWELVEDATA_API_KEY not configured";
-      await supabase.from("provider_status").upsert({
-        provider_name: "twelvedata", market_type: "forex", status: "error",
-        last_error_at: new Date().toISOString(), error_message: msg,
-        data_source_label: "DEMO DATA", updated_at: new Date().toISOString(),
-      }, { onConflict: "provider_name" });
-      if (!demoFallback) return { candles: [], source: "twelvedata", data_source: "PROVIDER_ERROR", providerError: msg };
-      return DEMO(msg);
-    }
-    const { candles, error } = await fetchTwelveDataCandles(symbol, tf, apiKey, limit);
-    if (error || !candles || candles.length < 52) {
-      const msg = error ?? "TwelveData: insufficient candles";
-      await supabase.from("provider_status").upsert({
-        provider_name: "twelvedata", market_type: "forex", status: "error",
-        last_error_at: new Date().toISOString(), error_message: `${symbol} ${tf}: ${msg}`,
-        data_source_label: "DEMO DATA", updated_at: new Date().toISOString(),
-      }, { onConflict: "provider_name" });
-      // If fallback=false, skip this symbol entirely — do not silently use demo
-      if (!demoFallback) return { candles: [], source: "twelvedata", data_source: "PROVIDER_ERROR", providerError: msg };
-      return DEMO(msg);
-    }
-    return { candles, source: "twelvedata", data_source: "REAL DATA", providerError: null };
+  if (configuredProvider === "off") {
+    const msg = "FOREX_DATA_PROVIDER=off";
+    await supabase.from("provider_status").upsert({
+      provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "off",
+      last_error_at: now, error_message: msg, data_source_label: "OFF", updated_at: now,
+    }, { onConflict: "provider_name" });
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg };
   }
 
-  if (provider === "mt5_bridge") {
-    if (!bridgeUrl || !bridgeSecret) {
-      const msg = "MT5_BRIDGE_BASE_URL or MT5_BRIDGE_SECRET not configured";
-      if (!demoFallback) return { candles: [], source: "mt5_bridge", data_source: "PROVIDER_ERROR", providerError: msg };
-      return DEMO(msg);
-    }
-    const { candles, error } = await fetchMT5BridgeCandles(symbol, tf, bridgeUrl, bridgeSecret, limit);
-    if (error || !candles || candles.length < 52) {
-      const msg = error ?? "MT5Bridge: insufficient candles";
-      if (!demoFallback) return { candles: [], source: "mt5_bridge", data_source: "PROVIDER_ERROR", providerError: msg };
-      return DEMO(msg);
-    }
-    return { candles, source: "mt5_bridge", data_source: "REAL DATA", providerError: null };
+  // C2 intentionally uses one real provider path only: Finnhub forex candles.
+  // Demo, MT5 bridge, TwelveData, and fallback chains are ignored here so forex
+  // cannot silently produce demo/fake Telegram-eligible signals.
+  if (configuredProvider !== C2_FOREX_PROVIDER) {
+    const msg = `C2 forex signal mode uses ${C2_FOREX_PROVIDER} only; configured provider '${configuredProvider}' ignored`;
+    await supabase.from("provider_status").upsert({
+      provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
+      last_error_at: now, error_message: msg, data_source_label: "PROVIDER_ERROR", updated_at: now,
+    }, { onConflict: "provider_name" });
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg };
   }
 
-  const providers = [provider, ...providerFallbacks].filter((v, i, a) => v !== "demo" && v !== "off" && a.indexOf(v) === i);
-  const debugLog: Record<string, unknown>[] = [];
-
-  for (const p of providers) {
-    if (p === "finnhub") {
-      const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
-      if (!key) {
-        debugLog.push({ provider: "finnhub", skipped: true, reason: "FINNHUB_API_KEY not set" });
-        continue;
-      }
-      const result = await fetchFinnhubForexCandles(symbol, tf, key);
-      debugLog.push({
-        provider: "finnhub",
-        input_symbol: symbol,
-        mapped_symbol: result.mapped_symbol,
-        timeframe: tf,
-        url_without_token: result.url_without_token,
-        finnhub_s: result.finnhub_s,
-        candle_count: result.candle_count,
-        error: result.error,
-      });
-      if (!result.error && result.candles && result.candles.length >= 52) {
-        return { candles: result.candles, source: "finnhub", data_source: "REAL DATA", providerError: null };
-      }
-      // Log detailed Finnhub failure but do NOT fall through to demo
-      if (result.error) {
-        await supabase.from("provider_status").upsert({
-          provider_name: "finnhub", market_type: "forex", status: "error",
-          last_error_at: new Date().toISOString(),
-          error_message: `${symbol} ${tf}: ${result.error} (mapped: ${result.mapped_symbol})`,
-          data_source_label: "PROVIDER_ERROR", updated_at: new Date().toISOString(),
-        }, { onConflict: "provider_name" });
-      }
-    }
-    if (p === "twelvedata") {
-      const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-      if (!key) {
-        debugLog.push({ provider: "twelvedata", skipped: true, reason: "TWELVEDATA_API_KEY not set" });
-        continue;
-      }
-      const { candles, error } = await fetchTwelveDataCandles(symbol, tf, key, limit);
-      debugLog.push({ provider: "twelvedata", symbol, tf, candle_count: candles?.length ?? 0, error });
-      if (!error && candles && candles.length >= 52) return { candles, source: "twelvedata", data_source: "REAL DATA", providerError: null };
-    }
+  const normalized = normalizeSymbol(symbol);
+  if (!C2_FOREX_SYMBOLS.has(normalized)) {
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_symbol: ${symbol}` };
   }
 
-  const finalError = `No live forex provider succeeded for ${symbol} ${tf}` + (debugLog.length > 0 ? ` — ${JSON.stringify(debugLog)}` : "");
-  return { candles: [], source: provider, data_source: "PROVIDER_ERROR", providerError: finalError };
+  const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
+  if (!key) {
+    const msg = "FINNHUB_API_KEY not set";
+    await supabase.from("provider_status").upsert({
+      provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
+      last_error_at: now, error_message: msg, data_source_label: "PROVIDER_ERROR", updated_at: now,
+    }, { onConflict: "provider_name" });
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg };
+  }
+
+  const result = await fetchFinnhubForexCandles(normalized, tf, key);
+  if (!result.error && result.candles && result.candles.length >= 55) {
+    await supabase.from("provider_status").upsert({
+      provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "active",
+      last_success_at: now, error_message: "", data_source_label: "REAL DATA",
+      last_candles_count: result.candles.length, updated_at: now,
+    }, { onConflict: "provider_name" });
+    return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null };
+  }
+
+  const msg = result.error ?? `insufficient_candles: ${result.candle_count}`;
+  await supabase.from("provider_status").upsert({
+    provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
+    last_error_at: now,
+    error_message: `${normalized} ${tf}: ${msg} (mapped: ${result.mapped_symbol})`,
+    data_source_label: "PROVIDER_ERROR", last_candles_count: result.candle_count, updated_at: now,
+  }, { onConflict: "provider_name" });
+  return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg };
 }
 
 // ─── Telegram formatter ───────────────────────────────────────────────────────
@@ -1002,7 +1008,7 @@ function formatSignalMessage(signal: Record<string, unknown>, dataSource: string
     `*Reason:* ${signal.reason}`,
     `*Timestamp:* ${new Date().toISOString()}`,
     ``,
-    `_Signal only. Manage risk. Not financial advice._`,
+    `_Signal Mode only. Not financial advice._`,
     `_HashiBot Trading Intelligence_`,
   ].join("\n");
 }
@@ -1058,9 +1064,11 @@ async function tryAutoSendTelegram(
   if (!envBool("TELEGRAM_ENABLED", false)) return fail("skipped", "telegram_disabled_env");
   if (!envBool("ENABLE_SIGNAL_MODE_OUTPUT", false)) return fail("skipped", "signal_mode_output_disabled");
   if (!config.auto_send_telegram) return fail("skipped", "auto_send_disabled");
-  if (!config.signal_enable_crypto) return fail("skipped", "crypto_disabled");
-  if (!config.signal_enable_forex && signalRecord.market_type !== "crypto") return fail("skipped", "forex_disabled_for_mvp");
-  if (signalRecord.market_type !== "crypto") return fail("skipped", "non_crypto_signal");
+  const marketType = String(signalRecord.market_type ?? "").toLowerCase();
+  if (marketType === "crypto" && !config.signal_enable_crypto) return fail("skipped", "crypto_disabled");
+  if (marketType === "forex" && !config.signal_enable_forex) return fail("skipped", "forex_disabled_for_mvp");
+  if (!["crypto", "forex"].includes(marketType)) return fail("skipped", "unsupported_market_type");
+  if (marketType === "forex" && !envBool("SIGNAL_ENABLE_FOREX", false)) return fail("skipped", "forex_env_disabled");
   if (dataSource !== "REAL DATA" || signalRecord.data_source !== "REAL DATA") return fail("skipped", "not_real_data");
 
   const arb = signalRecord.arbitrator_decision as Record<string, unknown> | null;
@@ -1158,20 +1166,21 @@ async function runScanPipeline(
   const { data: strategyConfigs } = await supabase.from("strategy_configs").select("strategy_name,enabled,signal_style,risk_mode,min_score,min_rr,min_stop_distance_pct,min_tp1_distance_pct,min_tp2_distance_pct,max_bars_in_trade,allowed_symbols,allowed_timeframes,params");
   const getStratCfg = (name: string): StrategyConfig => {
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
+    const isForex = name.startsWith("Forex");
     return {
       strategy_name: name,
       enabled:               (cfg?.enabled as boolean)                      ?? true,
-      signal_style:          (cfg?.signal_style as string)                  ?? "scalper",
-      risk_mode:             (cfg?.risk_mode as string)                     ?? "balanced",
-      min_score:             (cfg?.min_score as number)                     ?? 75,
-      min_rr:                (cfg?.min_rr as number)                        ?? 1.2,
-      min_stop_distance_pct: (cfg?.min_stop_distance_pct as number)         ?? 0.18,
-      min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? 0.25,
-      min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? 0.40,
-      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)              ?? 32,
-      allowed_symbols:       (cfg?.allowed_symbols as string[])              ?? [],
-      allowed_timeframes:    (cfg?.allowed_timeframes as string[])           ?? [],
-      params:                (cfg?.params as Record<string, number>)         ?? {},
+      signal_style:          (cfg?.signal_style as string)                  ?? (isForex ? "forex_signal" : "scalper"),
+      risk_mode:             (cfg?.risk_mode as string)                     ?? (isForex ? "conservative" : "balanced"),
+      min_score:             (cfg?.min_score as number)                     ?? (isForex ? 78 : 75),
+      min_rr:                (cfg?.min_rr as number)                        ?? (isForex ? 1.4 : 1.2),
+      min_stop_distance_pct: (cfg?.min_stop_distance_pct as number)         ?? (isForex ? 0.08 : 0.18),
+      min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? (isForex ? 0.10 : 0.25),
+      min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? (isForex ? 0.16 : 0.40),
+      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (isForex ? 48 : 32),
+      allowed_symbols:       (cfg?.allowed_symbols as string[])             ?? (isForex ? [...C2_FOREX_SYMBOLS] : []),
+      allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isForex ? forexTimeframes() : []),
+      params:                (cfg?.params as Record<string, number>)        ?? {},
     };
   };
 
@@ -1239,10 +1248,21 @@ async function runScanPipeline(
   const errors: string[] = [];
   let binanceOk = false, binanceFailed = false;
   let forexProviderSuccess = false, forexProviderFailed = false;
-  let forexProviderName = config.signal_enable_forex ? (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase() : "forex";
+  let forexProviderName = config.signal_enable_forex ? C2_FOREX_PROVIDER : "forex";
   let cryptoSymbolsScanned = 0, forexSkippedCount = 0;
   const forexSkipReason = config.signal_enable_forex ? "" : "forex_disabled_for_mvp";
   const marketMode = signalMarketMode(config.signal_enable_crypto, config.signal_enable_forex);
+
+  async function recordForexRejection(symbol: string, timeframe: string, reason: string, dataSource = "PROVIDER_ERROR", detail = "") {
+    rejectedCount++;
+    await supabase.from("strategy_candidates").insert({
+      scanner_run_id: runId, symbol, market_type: "forex", timeframe,
+      strategy_name: "ForexProviderGate", direction: "none",
+      confidence_score: 0, grade: "reject", reason: detail,
+      rejection_reason: normalizeRejectionReason(reason, "forex"),
+      status: "rejected", data_source: dataSource, score_breakdown: {},
+    });
+  }
 
   const { data: symbols } = await supabase.from("symbols").select("*").eq("is_active", true);
   if (!symbols || symbols.length === 0) {
@@ -1261,16 +1281,28 @@ async function runScanPipeline(
     if (sym.market_type === "crypto" && !config.signal_enable_crypto) continue;
     if (sym.market_type === "forex" && !config.signal_enable_forex) { forexSkippedCount++; continue; }
 
+    const normalizedSymbol = normalizeSymbol(String(sym.symbol));
+    const marketType = String(sym.market_type ?? "").toLowerCase();
+
+    if (marketType === "forex" && !C2_FOREX_SYMBOLS.has(normalizedSymbol)) {
+      forexSkippedCount++;
+      for (const tf of forexTimeframes()) {
+        await recordForexRejection(normalizedSymbol, tf, "unsupported_symbol", "PROVIDER_ERROR", "C2 initial forex set supports EURUSD, GBPUSD, and USDJPY only; XAUUSD is skipped until provider support is verified.");
+      }
+      continue;
+    }
+
     symbolsScanned++;
-    if (sym.market_type === "crypto") cryptoSymbolsScanned++;
-    for (const tf of config.active_timeframes) {
-      if (tf === "4h" && sym.market_type === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
+    if (marketType === "crypto") cryptoSymbolsScanned++;
+    const timeframesToScan = marketType === "forex" ? forexTimeframes() : config.active_timeframes;
+    for (const tf of timeframesToScan) {
+      if (tf === "4h" && marketType === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
 
       let candles: Candle[] | null = null;
       let dataSource = "PROVIDER_ERROR";
 
       try {
-        if (sym.market_type === "crypto") {
+        if (marketType === "crypto") {
           const fetched = await fetchBinanceCandles(sym.symbol, tf, 110);
           if (fetched && fetched.length >= 55) { candles = fetched; dataSource = "REAL DATA"; binanceOk = true; }
           else {
@@ -1278,7 +1310,7 @@ async function runScanPipeline(
             errors.push(`[SKIP] Binance failed ${sym.symbol} ${tf}`); continue;
           }
         } else {
-          const result = await fetchForexCandles(sym.symbol, tf, 110, supabase);
+          const result = await fetchForexCandles(sym.symbol, tf, supabase);
           candles = result.candles;
           dataSource = result.data_source;
           forexProviderName = result.source || forexProviderName;
@@ -1289,10 +1321,18 @@ async function runScanPipeline(
             forexProviderSuccess = dataSource === "REAL DATA";
           }
           // If no fallback allowed and provider errored, skip this symbol/timeframe
-          if (dataSource === "PROVIDER_ERROR") { errors.push(`[SKIP] Forex provider error ${sym.symbol} ${tf}: ${result.providerError}`); continue; }
+          if (dataSource === "PROVIDER_ERROR") {
+            const reason = String(result.providerError ?? "provider_failed").startsWith("unsupported_symbol") ? "unsupported_symbol" : "provider_failed";
+            await recordForexRejection(normalizedSymbol, tf, reason, dataSource, String(result.providerError ?? ""));
+            errors.push(`[SKIP] Forex provider error ${sym.symbol} ${tf}: ${result.providerError}`);
+            continue;
+          }
         }
 
-        if (!candles || candles.length < 55) continue;
+        if (!candles || candles.length < 55) {
+          if (marketType === "forex") await recordForexRejection(normalizedSymbol, tf, "insufficient_candles", dataSource, `Only ${candles?.length ?? 0} candles returned`);
+          continue;
+        }
         candlesFetched += candles.length;
 
         await supabase.from("candles").upsert(candles.map((c) => ({
@@ -1311,13 +1351,24 @@ async function runScanPipeline(
           volatility_state: ind.volatility_state, regime: ind.regime,
         }, { onConflict: "symbol,timeframe,candle_time" });
 
-        const msConfig  = getStratCfg("MicroScalper");
-        const cbConfig  = getStratCfg("CompressionBreakout");
-        const swConfig  = getStratCfg("SwingContinuation");
         const allEvals: Array<{ name: string; result: EvalResult; cfg: StrategyConfig }> = [];
-        if (msConfig.enabled) allEvals.push({ name: "MicroScalper",       cfg: msConfig, result: evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr }) });
-        if (cbConfig.enabled) allEvals.push({ name: "CompressionBreakout", cfg: cbConfig, result: evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr }) });
-        if (swConfig.enabled) allEvals.push({ name: "SwingContinuation",   cfg: swConfig, result: evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr }) });
+        if (marketType === "forex") {
+          const fxMsConfig = getStratCfg("ForexMicroScalper");
+          const fxSwConfig = getStratCfg("ForexSwingContinuation");
+          if (fxMsConfig.enabled && (fxMsConfig.allowed_timeframes.length === 0 || fxMsConfig.allowed_timeframes.includes(tf))) {
+            allEvals.push({ name: "ForexMicroScalper", cfg: fxMsConfig, result: evalMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }) });
+          }
+          if (fxSwConfig.enabled && (fxSwConfig.allowed_timeframes.length === 0 || fxSwConfig.allowed_timeframes.includes(tf))) {
+            allEvals.push({ name: "ForexSwingContinuation", cfg: fxSwConfig, result: evalSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }) });
+          }
+        } else {
+          const msConfig  = getStratCfg("MicroScalper");
+          const cbConfig  = getStratCfg("CompressionBreakout");
+          const swConfig  = getStratCfg("SwingContinuation");
+          if (msConfig.enabled) allEvals.push({ name: "MicroScalper",       cfg: msConfig, result: evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr }) });
+          if (cbConfig.enabled) allEvals.push({ name: "CompressionBreakout", cfg: cbConfig, result: evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr }) });
+          if (swConfig.enabled) allEvals.push({ name: "SwingContinuation",   cfg: swConfig, result: evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr }) });
+        }
 
         // ── Pre-arbitration: collect passing candidates, pick the best one ──
         // All evaluations are recorded as candidates. Among those that pass
@@ -1329,12 +1380,12 @@ async function runScanPipeline(
 
           const candidateRow = {
             scanner_run_id: runId, symbol: sym.symbol, market_type: sym.market_type, timeframe: tf,
-            strategy_name: ev.name, direction: r.direction || null,
+            strategy_name: ev.name, direction: r.direction || "none",
             entry_low: r.entry_low || null, entry_high: r.entry_high || null,
             stop_loss: r.stop_loss || null, tp1: r.tp1 || null, tp2: r.tp2 || null,
             risk_reward: r.risk_reward || null, regime: ind.regime,
             confidence_score: r.confidence_score, grade: r.grade,
-            reason: r.reason, rejection_reason: r.rejection_reason,
+            reason: r.reason, rejection_reason: normalizeRejectionReason(r.rejection_reason, marketType),
             status: r.status, data_source: dataSource, score_breakdown: r.score_breakdown,
           };
 
@@ -1346,7 +1397,7 @@ async function runScanPipeline(
           // Distance guard
           const guard = checkDistanceGuards(r, ev.cfg);
           if (!guard.passed) {
-            await supabase.from("strategy_candidates").update({ status: "rejected", rejection_reason: guard.rejection_reason }).eq("id", cData.id);
+            await supabase.from("strategy_candidates").update({ status: "rejected", rejection_reason: normalizeRejectionReason(guard.rejection_reason, marketType) }).eq("id", cData.id);
             rejectedCount++;
             continue;
           }
@@ -1395,7 +1446,7 @@ async function runScanPipeline(
           if (dataSource !== "REAL DATA") continue;
 
           // ── Mode-aware arbitrator ─────────────────────────────────────────
-          const modesToRun = activeModes.length > 0 ? activeModes.map((m) => m.mode_slug) : ["signal_mode"];
+          const modesToRun = marketType === "forex" ? ["signal_mode"] : (activeModes.length > 0 ? activeModes.map((m) => m.mode_slug) : ["signal_mode"]);
           let signalCreatedForThisCandidate = false;
 
           for (const modeSlug of modesToRun) {
@@ -1510,23 +1561,21 @@ async function runScanPipeline(
 
   if (!config.signal_enable_forex) {
     await supabase.from("provider_status").upsert({
-      provider_name: "forex", market_type: "forex",
+      provider_name: C2_FOREX_PROVIDER, market_type: "forex",
       status: "disabled",
       last_error_at: undefined,
-      error_message: "Forex disabled for MVP — future MT5/OANDA phase",
-      data_source_label: "DISABLED_FOR_MVP",
+      error_message: "Forex disabled; set SIGNAL_ENABLE_FOREX=true and scanner_config.scan_forex_enabled=true to enable C2 Finnhub signal mode",
+      data_source_label: "DISABLED",
       updated_at: now,
     }, { onConflict: "provider_name" });
   } else {
-    const forexProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
-    // Always write the configured provider name (not the last-used one) so DB stays accurate
     await supabase.from("provider_status").upsert({
-      provider_name: forexProvider, market_type: "forex",
-      status: forexProviderSuccess ? "active" : forexProviderFailed ? "error" : forexProvider === "off" ? "off" : "unknown",
+      provider_name: C2_FOREX_PROVIDER, market_type: "forex",
+      status: forexProviderSuccess ? "active" : forexProviderFailed ? "error" : "unknown",
       last_success_at: forexProviderSuccess ? now : undefined,
       last_error_at: forexProviderFailed ? now : undefined,
-      error_message: forexProviderFailed ? errors.filter(e => e.includes("[WARN] Forex") || e.includes("[SKIP] Forex")).slice(0, 3).join(" | ") || "Forex provider errors" : (forexProvider === "off" ? "Forex provider disabled" : ""),
-      data_source_label: forexProviderSuccess ? "REAL DATA" : (forexProvider === "off" ? "OFF" : "PROVIDER_ERROR"),
+      error_message: forexProviderFailed ? errors.filter(e => e.includes("[WARN] Forex") || e.includes("[SKIP] Forex")).slice(0, 3).join(" | ") || "Forex provider errors" : "",
+      data_source_label: forexProviderSuccess ? "REAL DATA" : "PROVIDER_ERROR",
       updated_at: now,
     }, { onConflict: "provider_name" });
   }
@@ -1601,19 +1650,18 @@ Deno.serve(async (req: Request) => {
       const signalEnableCryptoEnv = envBool("SIGNAL_ENABLE_CRYPTO", true);
       const signalEnableForexEnv = envBool("SIGNAL_ENABLE_FOREX", false);
       const cryptoProvider = (Deno.env.get("CRYPTO_DATA_PROVIDER") ?? "binance").trim().toLowerCase();
-      const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
-      const fallbacks = parseProviderFallbacks(Deno.env.get("FOREX_PROVIDER_FALLBACKS"));
-      const demoFallback = parseBooleanEnv(Deno.env.get("FOREX_DEMO_FALLBACK"), provider === "demo");
-      const effectiveOrder = signalEnableForexEnv ? [provider, ...fallbacks].filter(v => v !== "demo" && v !== "off") : [];
+      const configuredProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? C2_FOREX_PROVIDER).trim().toLowerCase();
+      const effectiveOrder = signalEnableForexEnv ? [C2_FOREX_PROVIDER] : [];
       return new Response(JSON.stringify({
         success: true,
-        provider: signalEnableForexEnv ? provider : "forex",
+        provider: signalEnableForexEnv ? C2_FOREX_PROVIDER : "forex",
         crypto_provider: cryptoProvider,
         market_mode: signalMarketMode(signalEnableCryptoEnv, signalEnableForexEnv),
         signal_enable_crypto: signalEnableCryptoEnv,
         signal_enable_forex: signalEnableForexEnv,
+        forex_disabled: !signalEnableForexEnv,
         forex_disabled_for_mvp: !signalEnableForexEnv,
-        ...(signalEnableForexEnv ? { provider, fallbacks, demo_fallback: demoFallback } : forexDisabledSummary()),
+        ...(signalEnableForexEnv ? { configured_provider: configuredProvider, fallbacks: [] as string[], demo_fallback: false, c2_provider_policy: "finnhub_only_no_demo_fallback" } : forexDisabledSummary()),
         effective_provider_order: effectiveOrder,
         finnhub_api_key_set: Boolean(Deno.env.get("FINNHUB_API_KEY")),
         twelvedata_api_key_set: Boolean(Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY")),
@@ -1633,9 +1681,9 @@ Deno.serve(async (req: Request) => {
       if (!envBool("SIGNAL_ENABLE_FOREX", false)) {
         return new Response(JSON.stringify({ success: false, skipped: true, reason: "forex_disabled_for_mvp", provider_called: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const provider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? "finnhub").trim().toLowerCase();
-      const testSymbol = typeof body.symbol === "string" ? body.symbol : "EURUSD";
-      const testTf = typeof body.timeframe === "string" ? body.timeframe : "5m";
+      const provider = C2_FOREX_PROVIDER;
+      const testSymbol = normalizeSymbol(typeof body.symbol === "string" ? body.symbol : "EURUSD");
+      const testTf = typeof body.timeframe === "string" ? body.timeframe : "15m";
       if (provider === "finnhub") {
         const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
         if (!key) {

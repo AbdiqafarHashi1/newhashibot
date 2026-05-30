@@ -126,7 +126,6 @@ export default function SignalsManager() {
     if (alreadySent) return { allowed: false, reason: 'already_sent' };
     if (!autoSendTg) return { allowed: false, reason: 'auto_telegram_off' };
     if (telegramConfigPresent === false) return { allowed: false, reason: 'missing_telegram_config' };
-    if (sig.market_type === 'forex') return { allowed: false, reason: 'forex_disabled_for_mvp' };
     if (!isRealData && !allowDemoTg) return { allowed: false, reason: 'not_real_data' };
     if (!isApproved) return { allowed: false, reason: 'not_approved' };
     if ((gradeRank[grade] ?? -1) < (gradeRank[minGrade] ?? gradeRank.A)) return { allowed: false, reason: 'low_grade' };
@@ -145,6 +144,7 @@ export default function SignalsManager() {
       invalid_trade_fields: 'invalid risk fields',
       not_real_data: 'not real data',
       forex_disabled_for_mvp: 'forex disabled',
+      forex_disabled: 'forex disabled',
     };
     return labels[reason] ?? reason.replace(/_/g, ' ');
   }
