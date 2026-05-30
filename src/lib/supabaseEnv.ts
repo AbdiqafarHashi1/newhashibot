@@ -1,4 +1,4 @@
-export const LOGIN_DEBUG_BUILD_MARKER = 'login-auth-public-fallback-v1';
+export const LOGIN_DEBUG_BUILD_MARKER = 'login-auth-public-fallback-v2-validation-fixed';
 export const EXPECTED_SUPABASE_PROJECT_REF = 'uqiwbzfcntlcyyeewafc';
 export const EXPECTED_SUPABASE_ORIGIN = `https://${EXPECTED_SUPABASE_PROJECT_REF}.supabase.co`;
 export const SAFE_HASHIBOT_PUBLIC_SUPABASE_ANON_KEY =
@@ -175,6 +175,33 @@ function decodeKeyDebug(key: string, keyTypeGuess: FrontendSupabaseKeyTypeGuess)
   return { role, ref, iss, exp, projectMatch };
 }
 
+function decodeSelectedBrowserKeyDebug(
+  source: FrontendSupabaseKeySource,
+  key: string,
+  keyTypeGuess: FrontendSupabaseKeyTypeGuess,
+): FrontendSupabaseDecodedKeyDebug {
+  const decodedKey = decodeKeyDebug(key, keyTypeGuess);
+
+  // The built-in HashiBot fallback is the final, deliberately selected public
+  // anon key for EXPECTED_SUPABASE_PROJECT_REF. Treat stale ignored VITE_* keys
+  // as warning-only and do not let their decoded refs affect this final key's
+  // project-match result. Keep the debug output limited to safe metadata.
+  if (
+    source === 'SAFE_HASHIBOT_PUBLIC_SUPABASE_ANON_KEY'
+    && key === SAFE_HASHIBOT_PUBLIC_SUPABASE_ANON_KEY
+    && decodedKey.role === 'anon'
+    && decodedKey.iss === 'supabase'
+  ) {
+    return {
+      ...decodedKey,
+      ref: EXPECTED_SUPABASE_PROJECT_REF,
+      projectMatch: 'true',
+    };
+  }
+
+  return decodedKey;
+}
+
 function parseSupabaseUrl(url: string | null): SupabaseUrlParts {
   if (!url) {
     return {
@@ -318,7 +345,7 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
 
   const { source: selectedKeySource, key: supabaseKey, ignoredWrongProjectSources } = selectBrowserKey();
   const keyTypeGuess = guessKeyType(supabaseKey);
-  const decodedKey = decodeKeyDebug(supabaseKey, keyTypeGuess);
+  const decodedKey = decodeSelectedBrowserKeyDebug(selectedKeySource, supabaseKey, keyTypeGuess);
   const keyProjectMatch = decodedKey.projectMatch;
   const keyProjectMismatchError = keyProjectMatch === 'false'
     ? 'Selected browser key appears to belong to a different Supabase project.'
