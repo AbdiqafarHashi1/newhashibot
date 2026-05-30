@@ -203,13 +203,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isAuthFetchFailure(error) && !safeError.message) {
           safeError.message = 'Supabase auth fetch failed';
         }
-        return { error: safeError, usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl && supabaseClientConfig.supabaseKey === config.supabaseKey };
+        return { error: safeError, usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl };
       }
 
       const postAuthProfileError = data.user ? await loadProfile(data.user) : null;
-      return { error: null, profileError: postAuthProfileError, usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl && supabaseClientConfig.supabaseKey === config.supabaseKey };
+      return { error: null, profileError: postAuthProfileError, usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl };
     } catch (err) {
-      return { error: toSafeAuthError(err), usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl && supabaseClientConfig.supabaseKey === config.supabaseKey };
+      return { error: toSafeAuthError(err), usedSameSelectedClient: supabaseClientConfig.supabaseUrl === config.supabaseUrl };
     }
   }
 
