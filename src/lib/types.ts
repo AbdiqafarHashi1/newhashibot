@@ -1,3 +1,48 @@
+export interface Package {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  currency: string;
+  duration_days: number | null;
+  active: boolean;
+  features: string[];
+  telegram_access_required: boolean;
+  description: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PaymentStatus = 'pending' | 'paid' | 'expired' | 'cancelled';
+export type AccessStatus = 'active' | 'inactive' | 'expired';
+export type TelegramStatus = 'not_invited' | 'invited' | 'joined' | 'removed';
+
+export interface CustomerSubscription {
+  id: string;
+  user_id: string | null;
+  profile_id: string | null;
+  email: string;
+  full_name: string;
+  package_id: string | null;
+  package_name: string;
+  payment_status: PaymentStatus;
+  access_status: AccessStatus;
+  amount_paid: number | null;
+  currency: string;
+  payment_reference: string;
+  payment_method: string;
+  starts_at: string | null;
+  expires_at: string | null;
+  telegram_status: TelegramStatus;
+  telegram_username: string;
+  telegram_chat_id: string;
+  notes: string;
+  admin_note: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AccessRequest {
   id: string;
   user_id: string;

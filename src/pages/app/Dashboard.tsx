@@ -3,81 +3,51 @@ import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Signal, UserAccess, AccessRequest, TelegramLink } from '../../lib/types';
+import { Signal, TelegramLink, CustomerSubscription } from '../../lib/types';
 import { StatCard } from '../../components/ui/StatCard';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
-import { Radio, ArrowRight, Lock, MessageCircle, AlertTriangle, History, CheckCircle, Send } from 'lucide-react';
-
-type RequestFormState = {
-  phone: string;
-  telegram_username: string;
-  telegram_chat_id: string;
-  payment_method: string;
-  notes: string;
-};
+import {
+  Radio, ArrowRight, Lock, MessageCircle, AlertTriangle, History,
+  CheckCircle, Send, Package, Clock, CreditCard, ShieldCheck,
+} from 'lucide-react';
 
 export default function Dashboard() {
   const { profile, user } = useAuth();
-  const [access, setAccess] = useState<UserAccess | null>(null);
+  const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [tgLink, setTgLink] = useState<TelegramLink | null>(null);
-  const [accessRequest, setAccessRequest] = useState<AccessRequest | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showRequestForm, setShowRequestForm] = useState(false);
-  const [form, setForm] = useState<RequestFormState>({
-    phone: '', telegram_username: '', telegram_chat_id: '', payment_method: 'manual', notes: '',
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [submitMsg, setSubmitMsg] = useState('');
 
   async function load() {
-    const [accessRes, sigRes, tgRes, reqRes] = await Promise.all([
-      supabase.from('user_access').select('*').eq('product_slug', 'signal_mode').maybeSingle(),
+    if (!user) return;
+    const [subRes, sigRes, tgRes] = await Promise.all([
+      supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('signals').select('*').in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(5),
-      supabase.from('telegram_links').select('*').maybeSingle(),
-      supabase.from('access_requests').select('*').eq('product_slug', 'signal_mode').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('telegram_links').select('*').eq('user_id', user.id).maybeSingle(),
     ]);
-    setAccess(accessRes.data ?? null);
+    setSub(subRes.data ?? null);
     setSignals(sigRes.data ?? []);
-    setTgLink((tgRes.data as TelegramLink | null));
-    setAccessRequest((reqRes.data as AccessRequest | null));
+    setTgLink(tgRes.data ?? null);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user]);
 
-  const hasAccess = access?.status === 'active';
+  const hasAccess = sub?.access_status === 'active';
+  const isPaid = sub?.payment_status === 'paid';
+  const isExpired = sub?.access_status === 'expired' || sub?.payment_status === 'expired';
+  const hasPending = sub?.payment_status === 'pending';
 
-  async function submitAccessRequest(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user || !profile) return;
-    setSubmitting(true);
-    setSubmitMsg('');
-    const { error } = await supabase.from('access_requests').insert({
-      user_id: user.id,
-      product_slug: 'signal_mode',
-      full_name: profile.full_name,
-      email: profile.email,
-      phone: form.phone,
-      telegram_username: form.telegram_username,
-      telegram_chat_id: form.telegram_chat_id,
-      payment_method: form.payment_method,
-      notes: form.notes,
-    });
-    if (error) {
-      setSubmitMsg(`Error: ${error.message}`);
-    } else {
-      setSubmitMsg('Request submitted. An admin will review and activate your access.');
-      setShowRequestForm(false);
-      await load();
-    }
-    setSubmitting(false);
-  }
+  // Expiry warning: active but expires within 7 days
+  const expiresInDays = sub?.expires_at
+    ? Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86400000)
+    : null;
+  const expiringWarning = hasAccess && expiresInDays !== null && expiresInDays <= 7 && expiresInDays >= 0;
 
   if (loading) return (
     <AppLayout>
       <div className="flex items-center justify-center h-64">
-        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
       </div>
     </AppLayout>
   );
@@ -92,133 +62,154 @@ export default function Dashboard() {
       {/* Status cards */}
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
         <StatCard
-          label="Signal Mode"
-          value={hasAccess ? 'Active' : 'No Access'}
-          color={hasAccess ? 'green' : 'gray'}
-          icon={<Radio size={16} />}
-          sub={access?.expires_at ? `Expires ${new Date(access.expires_at).toLocaleDateString()}` : hasAccess ? 'No expiry set' : 'Contact admin for access'}
+          label="Subscription"
+          value={sub?.package_name || (hasAccess ? 'Active' : 'No Plan')}
+          color={hasAccess ? 'green' : hasPending ? 'yellow' : 'gray'}
+          icon={<Package size={16} />}
+          sub={
+            hasAccess && sub?.expires_at
+              ? `Expires ${new Date(sub.expires_at).toLocaleDateString()}`
+              : hasAccess
+                ? 'No expiry set'
+                : hasPending
+                  ? 'Payment pending — contact admin'
+                  : 'Contact admin to get access'
+          }
         />
         <StatCard
           label="Active Signals"
-          value={signals.length}
+          value={hasAccess ? signals.length : '—'}
           color="blue"
           icon={<Radio size={16} />}
-          sub="Waiting or active setups"
+          sub={hasAccess ? 'Waiting or active setups' : 'Requires active access'}
         />
         <StatCard
           label="Telegram"
-          value={tgLink ? tgLink.status.charAt(0).toUpperCase() + tgLink.status.slice(1) : 'Not set up'}
-          color={tgLink?.status === 'connected' ? 'green' : tgLink?.status === 'pending' ? 'yellow' : 'gray'}
+          value={tgLink ? tgLink.status.charAt(0).toUpperCase() + tgLink.status.slice(1) : (sub?.telegram_status === 'joined' ? 'Joined' : 'Not set up')}
+          color={
+            tgLink?.status === 'connected' || sub?.telegram_status === 'joined' ? 'green'
+            : sub?.telegram_status === 'invited' ? 'yellow'
+            : 'gray'
+          }
           icon={<MessageCircle size={16} />}
-          sub={tgLink?.telegram_username ? `@${tgLink.telegram_username}` : 'Set up Telegram for alerts'}
+          sub={
+            sub?.telegram_status === 'joined' ? 'Signal group member'
+            : sub?.telegram_status === 'invited' ? 'Invite sent — join the group'
+            : tgLink?.telegram_username ? `@${tgLink.telegram_username}`
+            : 'Telegram alerts not yet active'
+          }
         />
       </div>
 
-      {/* No access state */}
+      {/* Expiry warning */}
+      {expiringWarning && (
+        <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3 flex items-start gap-3 mb-6">
+          <Clock size={14} className="text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <span className="font-medium text-amber-300">Your access expires in {expiresInDays} day{expiresInDays !== 1 ? 's' : ''}.</span>
+            <span className="text-zinc-400 ml-1">Contact admin to renew your subscription.</span>
+          </div>
+        </div>
+      )}
+
+      {/* No access / gated state */}
       {!hasAccess && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <Lock size={24} className="text-zinc-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h2 className="font-semibold mb-1">Signal Mode access required</h2>
-              <p className="text-sm text-zinc-500 mb-3">
-                You do not have active Signal Mode access. Submit a request below and an admin will activate your account.
-                Automated payments are coming in a future update.
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
+          <div className="px-6 py-5 border-b border-zinc-800 flex items-center gap-3">
+            <Lock size={18} className="text-zinc-600 shrink-0" />
+            <div>
+              <h2 className="font-semibold text-sm">
+                {isExpired ? 'Subscription expired' : hasPending ? 'Payment pending' : 'Signal access required'}
+              </h2>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                {isExpired
+                  ? 'Your subscription has expired. Contact admin to renew.'
+                  : hasPending
+                    ? 'Your payment is being reviewed. Access will be unlocked once confirmed.'
+                    : 'You do not have an active subscription. Contact admin or see pricing below.'}
               </p>
-
-              {accessRequest ? (
-                <div className={`rounded-lg border p-3 flex items-start gap-2 ${
-                  accessRequest.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/20'
-                  : accessRequest.status === 'approved' || accessRequest.status === 'converted_to_access' ? 'bg-emerald-500/10 border-emerald-500/20'
-                  : 'bg-red-500/10 border-red-500/20'
-                }`}>
-                  {accessRequest.status === 'pending'
-                    ? <CheckCircle size={14} className="text-yellow-400 mt-0.5 shrink-0" />
-                    : <CheckCircle size={14} className="text-emerald-400 mt-0.5 shrink-0" />}
-                  <div>
-                    <div className="text-sm font-medium flex items-center gap-2">
-                      Access Request {statusBadge(accessRequest.status)}
-                    </div>
-                    <div className="text-xs text-zinc-500 mt-0.5">
-                      Submitted {new Date(accessRequest.created_at).toLocaleDateString()}
-                      {accessRequest.admin_note && <span className="ml-2 italic">Admin: {accessRequest.admin_note}</span>}
-                    </div>
-                    {accessRequest.status === 'rejected' && (
-                      <button onClick={() => setShowRequestForm(true)} className="text-xs text-blue-400 hover:text-blue-300 mt-1">
-                        Submit a new request
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-3 flex-wrap">
-                  <button
-                    onClick={() => setShowRequestForm(!showRequestForm)}
-                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    <Send size={14} /> Request Signal Access
-                  </button>
-                  <Link to="/app/telegram"
-                    className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors">
-                    <MessageCircle size={14} /> Submit Telegram Details
-                  </Link>
-                </div>
-              )}
-
-              {submitMsg && (
-                <div className={`mt-3 text-xs px-3 py-2 rounded-lg border ${
-                  submitMsg.startsWith('Error') ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                }`}>
-                  {submitMsg}
-                </div>
-              )}
-
-              {/* Access request form */}
-              {showRequestForm && !accessRequest && (
-                <form onSubmit={submitAccessRequest} className="mt-4 space-y-3 bg-zinc-800/30 rounded-xl p-4 border border-zinc-700/50">
-                  <div className="text-sm font-medium mb-2">Signal Mode Access Request</div>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-zinc-500 mb-1">Phone (optional)</label>
-                      <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                        placeholder="+254 712 345 678"
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-zinc-500 mb-1">Telegram Username (optional)</label>
-                      <input type="text" value={form.telegram_username} onChange={e => setForm(f => ({ ...f, telegram_username: e.target.value }))}
-                        placeholder="@yourusername"
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-zinc-500 mb-1">Payment Method</label>
-                      <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value }))}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-blue-500">
-                        <option value="manual">Manual / Admin approval</option>
-                        <option value="mpesa">M-Pesa</option>
-                        <option value="card_future">Card (coming soon)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-zinc-500 mb-1">Notes (optional)</label>
-                      <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                        placeholder="Any info for admin..."
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500" />
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <button type="submit" disabled={submitting}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                      {submitting ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Send size={14} />}
-                      Submit Request
-                    </button>
-                    <button type="button" onClick={() => setShowRequestForm(false)}
-                      className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-100 border border-zinc-700 hover:border-zinc-500 transition-colors">
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
+          </div>
+
+          {/* Subscription info if exists */}
+          {sub && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-800 border-b border-zinc-800">
+              {[
+                { label: 'Package', value: sub.package_name || '—' },
+                { label: 'Payment', value: sub.payment_status.charAt(0).toUpperCase() + sub.payment_status.slice(1) },
+                { label: 'Access', value: sub.access_status.charAt(0).toUpperCase() + sub.access_status.slice(1) },
+                { label: 'Expires', value: sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : '—' },
+              ].map(c => (
+                <div key={c.label} className="bg-zinc-900 px-4 py-3">
+                  <div className="text-xs text-zinc-600">{c.label}</div>
+                  <div className="text-sm font-medium text-zinc-200 mt-0.5">{c.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="px-6 py-4 flex flex-wrap gap-3">
+            <Link to="/pricing"
+              className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Package size={14} /> View Packages
+            </Link>
+            <Link to="/app/telegram"
+              className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors">
+              <MessageCircle size={14} /> Telegram Setup
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Active subscription info panel */}
+      {hasAccess && sub && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
+          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+            <ShieldCheck size={14} className="text-emerald-500" /> Your Subscription
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-zinc-800">
+            {[
+              { label: 'Package', value: sub.package_name || '—', color: 'text-zinc-100' },
+              { label: 'Payment', value: isPaid ? 'Paid' : sub.payment_status, color: isPaid ? 'text-emerald-400' : 'text-yellow-400' },
+              { label: 'Expires', value: sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : 'No expiry', color: expiringWarning ? 'text-amber-400' : 'text-zinc-100' },
+              { label: 'Telegram', value: sub.telegram_status === 'joined' ? 'In group' : sub.telegram_status === 'invited' ? 'Invite sent' : 'Not invited', color: sub.telegram_status === 'joined' ? 'text-emerald-400' : sub.telegram_status === 'invited' ? 'text-sky-400' : 'text-zinc-500' },
+            ].map(c => (
+              <div key={c.label} className="bg-zinc-900 px-4 py-3">
+                <div className="text-xs text-zinc-500">{c.label}</div>
+                <div className={`text-sm font-semibold mt-0.5 ${c.color}`}>{c.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Telegram invite instructions */}
+          <div className="px-5 py-4 border-t border-zinc-800">
+            {sub.telegram_status === 'not_invited' && (
+              <div className="flex items-start gap-3">
+                <MessageCircle size={14} className="text-zinc-600 mt-0.5 shrink-0" />
+                <div className="text-xs text-zinc-500">
+                  <span className="font-medium text-zinc-300">Telegram group invite pending.</span>{' '}
+                  Your admin will send an invite link once your access is confirmed.
+                </div>
+              </div>
+            )}
+            {sub.telegram_status === 'invited' && (
+              <div className="flex items-start gap-3 bg-sky-500/8 border border-sky-500/20 rounded-lg px-4 py-3">
+                <Send size={14} className="text-sky-400 mt-0.5 shrink-0" />
+                <div className="text-xs">
+                  <div className="font-medium text-sky-300 mb-0.5">Telegram invite sent!</div>
+                  <div className="text-zinc-400">Check your Telegram for an invite link. Join the group to receive live signal alerts. Contact admin if you did not receive it.</div>
+                </div>
+              </div>
+            )}
+            {sub.telegram_status === 'joined' && (
+              <div className="flex items-start gap-3 bg-emerald-500/8 border border-emerald-500/20 rounded-lg px-4 py-3">
+                <CheckCircle size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                <div className="text-xs">
+                  <div className="font-medium text-emerald-300 mb-0.5">You are in the Telegram signal group.</div>
+                  <div className="text-zinc-400">Live signal alerts will be delivered to the group. Make sure notifications are on.</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -229,7 +220,7 @@ export default function Dashboard() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">Recent Active Signals</h2>
-              <Link to="/app/signals" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              <Link to="/app/signals" className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1">
                 View all <ArrowRight size={12} />
               </Link>
             </div>
@@ -271,24 +262,24 @@ export default function Dashboard() {
           {/* Shortcuts */}
           <div className="grid sm:grid-cols-3 gap-3 mb-6">
             <Link to="/app/history" className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 flex items-center gap-3 transition-colors group">
-              <History size={16} className="text-zinc-500 group-hover:text-blue-400 transition-colors" />
+              <History size={16} className="text-zinc-500 group-hover:text-sky-400 transition-colors" />
               <div>
                 <div className="text-sm font-medium">Signal History</div>
                 <div className="text-xs text-zinc-600">Completed &amp; closed signals</div>
               </div>
             </Link>
             <Link to="/app/telegram" className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 flex items-center gap-3 transition-colors group">
-              <MessageCircle size={16} className="text-zinc-500 group-hover:text-blue-400 transition-colors" />
+              <MessageCircle size={16} className="text-zinc-500 group-hover:text-sky-400 transition-colors" />
               <div>
                 <div className="text-sm font-medium">Telegram Setup</div>
-                <div className="text-xs text-zinc-600">{tgLink?.status === 'connected' ? 'Connected' : 'Not connected yet'}</div>
+                <div className="text-xs text-zinc-600">{tgLink?.status === 'connected' ? 'Connected' : sub?.telegram_status === 'joined' ? 'In signal group' : 'Not connected yet'}</div>
               </div>
             </Link>
             <Link to="/app/account" className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 flex items-center gap-3 transition-colors group">
-              <Radio size={16} className="text-zinc-500 group-hover:text-blue-400 transition-colors" />
+              <CreditCard size={16} className="text-zinc-500 group-hover:text-sky-400 transition-colors" />
               <div>
-                <div className="text-sm font-medium">Account &amp; EA</div>
-                <div className="text-xs text-zinc-600">Access, EA status, account info</div>
+                <div className="text-sm font-medium">Account</div>
+                <div className="text-xs text-zinc-600">Subscription &amp; billing details</div>
               </div>
             </Link>
           </div>

@@ -38,6 +38,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/telegram-links',  label: 'Telegram Links',      icon: Link2 },
   { to: '/admin/telegram',        label: 'Telegram Logs',       icon: FileText },
   { section: 'Admin' },
+  { to: '/admin/customers',       label: 'Customers',           icon: ShieldCheck },
   { to: '/admin/users',           label: 'Users / Subscribers', icon: Users },
   { to: '/admin/access-requests', label: 'Access Requests',     icon: ClipboardList },
   { to: '/admin/audit',           label: 'Audit Logs',          icon: FileText },

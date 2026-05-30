@@ -50,6 +50,7 @@ import Modes from './pages/admin/Modes';
 import BacktestLab from './pages/admin/BacktestLab';
 import Handoff from './pages/admin/Handoff';
 import Performance from './pages/admin/Performance';
+import Customers from './pages/admin/Customers';
 
 // Smart redirect after login based on role
 function AuthRedirect() {
@@ -118,6 +119,7 @@ function App() {
           <Route path="/admin/telegram-links"   element={<RequireAdmin><TelegramLinks /></RequireAdmin>} />
           <Route path="/admin/telegram-requests" element={<RequireAdmin><TelegramLinks /></RequireAdmin>} />
           <Route path="/admin/users"            element={<RequireAdmin><UsersAccess /></RequireAdmin>} />
+          <Route path="/admin/customers"        element={<RequireAdmin><Customers /></RequireAdmin>} />
           <Route path="/admin/access-requests"  element={<RequireAdmin><AccessRequests /></RequireAdmin>} />
           <Route path="/admin/audit"            element={<RequireAdmin><AuditLogs /></RequireAdmin>} />
           <Route path="/admin/scheduler"          element={<RequireAdmin><SchedulerGuide /></RequireAdmin>} />
