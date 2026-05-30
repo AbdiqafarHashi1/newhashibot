@@ -43,6 +43,9 @@ async function createScheduledRun(supabase: SupabaseClient, source: string) {
   const { data, error } = await supabase.from("scanner_runs").insert({
     status: "running",
     run_type: "scheduled",
+    source: source,
+    triggered_by: "pg_cron",
+    is_automatic: true,
     started_at: new Date().toISOString(),
     error_message: `scheduled-market-scanner accepted cron call (source=${source})`,
   }).select("id").single();

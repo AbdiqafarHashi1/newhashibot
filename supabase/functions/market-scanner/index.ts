@@ -873,6 +873,7 @@ async function runScanPipeline(
   config: ScannerConfig,
   runType: "manual" | "scheduled",
   existingRunId?: string | null,
+  runSource?: string,
 ): Promise<Record<string, unknown>> {
   const scanStart = Date.now();
 
@@ -914,15 +915,24 @@ async function runScanPipeline(
   // visible even when this function later fails or times out.
   let runId = typeof existingRunId === "string" && existingRunId ? existingRunId : "";
   if (runId) {
+    const isAutomaticClaim = runType === "scheduled";
+    const claimSource = runSource ?? (isAutomaticClaim ? "pg_cron" : "admin_manual");
     const { error: claimError } = await supabase.from("scanner_runs").update({
       status: "running",
       run_type: runType,
+      source: claimSource,
+      triggered_by: isAutomaticClaim ? "pg_cron" : "admin",
+      is_automatic: isAutomaticClaim,
       error_message: "market-scanner started from scheduled wrapper",
     }).eq("id", runId);
     if (claimError) throw new Error(`Unable to claim scanner_runs row ${runId}: ${claimError.message}`);
   } else {
+    const isAutomatic = runType === "scheduled";
+    const source = runSource ?? (isAutomatic ? "pg_cron" : "admin_manual");
+    const triggeredBy = isAutomatic ? "pg_cron" : "admin";
     const { data: runData, error: runError } = await supabase.from("scanner_runs").insert({
       status: "running", started_at: new Date().toISOString(), run_type: runType,
+      source, triggered_by: triggeredBy, is_automatic: isAutomatic,
     }).select().single();
     if (runError) throw new Error(`Unable to create scanner_runs row: ${runError.message}`);
     runId = runData?.id ?? "unknown";
@@ -1358,8 +1368,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const existingRunId = typeof body.scanner_run_id === "string" ? body.scanner_run_id : null;
+    const runSource = typeof body.source === "string" && body.source ? body.source : undefined;
     try {
-      const result = await runScanPipeline(supabase, config, runType, existingRunId);
+      const result = await runScanPipeline(supabase, config, runType, existingRunId, runSource);
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (scanError) {
       const message = scanError instanceof Error ? scanError.message : "Unknown scan pipeline error";

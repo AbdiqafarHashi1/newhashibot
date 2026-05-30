@@ -1,4 +1,4 @@
-export const LOGIN_DEBUG_BUILD_MARKER = 'login-auth-final-proof-v1';
+export const LOGIN_DEBUG_BUILD_MARKER = 'bolt-end-to-end-auth-fix-v1';
 export const EXPECTED_SUPABASE_PROJECT_REF = 'uqiwbzfcntlcyyeewafc';
 export const EXPECTED_SUPABASE_ORIGIN = `https://${EXPECTED_SUPABASE_PROJECT_REF}.supabase.co`;
 
@@ -303,7 +303,21 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
   const selectedUrlError = selectedParsed.isExpectedProjectRef
     ? null
     : `selected Supabase URL project ref mismatch: expected ${EXPECTED_SUPABASE_PROJECT_REF}, got ${selectedParsed.projectRef ?? 'unknown'}`;
-  const rawError = selectedParsed.parseError ?? selectedUrlError ?? keyForbiddenError ?? keyProjectMismatchError ?? keyError;
+
+  // Key project mismatch is a WARNING only when the selected URL is correct.
+  // The Supabase server validates the JWT — a key whose embedded ref claim points
+  // to a different project will be rejected by the auth server, not silently accepted.
+  // We do NOT block the client here; we surface the mismatch as a visible warning
+  // so the operator knows to replace the stale key, while still allowing login attempts
+  // against the correct URL (which will surface the real auth error if the key is wrong).
+  const urlIsCorrect = selectedParsed.isExpectedProjectRef;
+  const rawError = selectedParsed.parseError
+    ?? selectedUrlError
+    ?? keyForbiddenError
+    ?? keyError
+    // Only block on key project mismatch if the URL itself is also wrong — when
+    // the URL is correct, the server will reject a mismatched key with a real error.
+    ?? (!urlIsCorrect ? keyProjectMismatchError : null);
   const errorMessage = formatConfigError(rawError);
   const selectedProjectRef = selectedParsed.projectRef;
   const projectRefMatch = selectedProjectRef === EXPECTED_SUPABASE_PROJECT_REF;
@@ -311,14 +325,16 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
   const viteWrongProject = Boolean(viteSupabaseUrl && !viteParsed.isExpectedProjectRef && !viteParsed.parseError);
   const hashibotWrongProject = Boolean(hashibotSupabaseUrl && !hashibotParsed.isExpectedProjectRef && !hashibotParsed.parseError);
   const publicWrongProject = Boolean(publicSupabaseUrl && !publicParsed.isExpectedProjectRef && !publicParsed.parseError);
-  const warningMessage = keyProjectMismatchError
-    ?? (viteWrongProject
-      ? getWrongProjectWarning('VITE_SUPABASE_URL', viteParsed.projectRef)
-      : hashibotWrongProject
-        ? getWrongProjectWarning('VITE_HASHIBOT_SUPABASE_URL', hashibotParsed.projectRef)
-        : publicWrongProject
-          ? getWrongProjectWarning('VITE_PUBLIC_SUPABASE_URL', publicParsed.projectRef)
-          : null);
+  const warningMessage = (urlIsCorrect && keyProjectMismatchError)
+    ? `${keyProjectMismatchError} URL is correct (${EXPECTED_SUPABASE_PROJECT_REF}); login will fail if key belongs to wrong project. Replace VITE_SUPABASE_ANON_KEY with the anon key for ${EXPECTED_SUPABASE_PROJECT_REF}.`
+    : keyProjectMismatchError
+      ?? (viteWrongProject
+        ? getWrongProjectWarning('VITE_SUPABASE_URL', viteParsed.projectRef)
+        : hashibotWrongProject
+          ? getWrongProjectWarning('VITE_HASHIBOT_SUPABASE_URL', hashibotParsed.projectRef)
+          : publicWrongProject
+            ? getWrongProjectWarning('VITE_PUBLIC_SUPABASE_URL', publicParsed.projectRef)
+            : null);
 
   return {
     marker: LOGIN_DEBUG_BUILD_MARKER,
