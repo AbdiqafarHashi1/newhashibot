@@ -20,6 +20,7 @@ export default function ControlRoom() {
   const { state, refresh } = useAdminLiveState(session);
 
   const [stats, setStats] = useState({ symbols: 0, candles: 0, signals: 0, candidates: 0, users: 0 });
+  const [lastForexScanRun, setLastForexScanRun] = useState<ScannerRun | null>(null);
   const [scanning, setScanning] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [testingProvider, setTestingProvider] = useState('');
@@ -32,12 +33,13 @@ export default function ControlRoom() {
   const [showSchedulerProof, setShowSchedulerProof] = useState(false);
 
   const loadStats = useCallback(async () => {
-    const [symRes, candRes, sigRes, candCountRes, userRes] = await Promise.all([
+    const [symRes, candRes, sigRes, candCountRes, userRes, forexRunRes] = await Promise.all([
       supabase.from('symbols').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('candles').select('id', { count: 'exact', head: true }),
       supabase.from('signals').select('id', { count: 'exact', head: true }).in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
       supabase.from('strategy_candidates').select('id', { count: 'exact', head: true }),
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('scanner_runs').select('*').gt('forex_symbols_scanned', 0).order('started_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setStats({
       symbols: symRes.count ?? 0,
@@ -46,6 +48,7 @@ export default function ControlRoom() {
       candidates: candCountRes.count ?? 0,
       users: userRes.count ?? 0,
     });
+    setLastForexScanRun((forexRunRes.data as ScannerRun | null) ?? null);
   }, []);
 
   useEffect(() => {
@@ -74,7 +77,10 @@ export default function ControlRoom() {
         const dur = data.duration_ms ? ` (${(data.duration_ms / 1000).toFixed(1)}s)` : '';
         const paperStr = data.paper_intents_created ? `, Paper: ${data.paper_intents_created}` : '';
         const tgStr = `, TG sent/skipped/failed: ${data.telegram_sent ?? 0}/${data.telegram_skipped ?? 0}/${data.telegram_failed ?? 0}`;
-        setScanMsg(`Scan complete${dur}. Symbols: ${data.symbols_scanned}, Candles: ${data.candles_fetched}, Signals: ${data.signals_created}${paperStr}${tgStr}${data.errors?.length ? ` — ${data.errors.length} warning(s)` : ''}`);
+        const forexRateLimitStr = data.forex_skipped_rate_limit
+          ? ` — Forex skipped: rate limit${data.forex_next_allowed_scan_at ? ` until ${new Date(data.forex_next_allowed_scan_at).toLocaleString()}` : ''}`
+          : '';
+        setScanMsg(`Scan complete${dur}. Crypto/Forex scanned: ${data.crypto_symbols_scanned ?? data.scanned_crypto_count ?? '—'}/${data.forex_symbols_scanned ?? data.scanned_forex_count ?? '—'}, Candles: ${data.candles_fetched}, Signals: ${data.signals_created}${forexRateLimitStr}${paperStr}${tgStr}${data.errors?.length ? ` — ${data.errors.length} warning(s)` : ''}`);
       } else {
         setScanMsg(`Error: ${data.error}`);
       }
@@ -131,7 +137,7 @@ export default function ControlRoom() {
       });
       const data = await res.json();
       if (data.success) {
-        setActionMsg(`Forex provider: ${data.provider} | Fallbacks: ${data.fallbacks?.join(', ') || 'none'} | Demo fallback: ${data.demo_fallback} | Finnhub key: ${data.finnhub_api_key_set}`);
+        setActionMsg(`Forex provider: ${data.provider} | Fallbacks: ${data.fallbacks?.join(', ') || 'none'} | Demo fallback: ${data.demo_fallback} | TwelveData key: ${data.twelvedata_api_key_set}`);
       } else {
         setActionMsg(`Forex config error: ${data.error}`);
       }
@@ -171,8 +177,10 @@ export default function ControlRoom() {
   const forexProvider = providers.find(p => p.market_type === 'forex');
   const liveForexProvider = runtimeConfig?.provider ?? forexProvider?.provider_name ?? 'unknown';
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? cryptoProvider?.provider_name ?? 'binance';
-  const isForexReal = state.signalEnableForex && runtimeConfig?.provider !== 'demo' && runtimeConfig?.provider !== 'off' && runtimeConfig?.finnhub_api_key_set === true;
+  const isForexReal = state.signalEnableForex && runtimeConfig?.provider === 'twelvedata' && runtimeConfig?.twelvedata_api_key_set === true && forexProvider?.data_source_label === 'REAL DATA';
   const autoTgReady = state.autoSendTelegram && Boolean(runtimeConfig?.telegram_enabled && runtimeConfig?.enable_signal_mode_output && runtimeConfig?.telegram_bot_token_set && (runtimeConfig?.telegram_default_channel_id_set || runtimeConfig?.telegram_chat_id_set));
+  const lastForexScanTime = latestRun?.forex_symbols_scanned ? latestRun.started_at : lastForexScanRun?.started_at;
+  const nextAllowedForexScanTime = latestRun?.forex_next_allowed_scan_at ?? lastForexScanRun?.forex_next_allowed_scan_at;
   const filteredRecentRuns = runFilter === 'scheduled'
     ? state.recentScheduledRuns
     : recentRuns.filter(r => runFilter === 'all' || (r.run_type ?? 'manual').toLowerCase() === runFilter);
@@ -495,7 +503,7 @@ export default function ControlRoom() {
               <div className="flex flex-wrap gap-3 text-xs">
                 <span>Market: <span className="font-mono font-medium text-emerald-400">{runtimeConfig.market_mode ?? 'crypto_only'}</span></span>
                 <span>Crypto: <span className="font-mono text-emerald-400">{runtimeConfig.crypto_provider ?? 'binance'}</span></span>
-                <span>Forex: <span className={`font-mono ${state.signalEnableForex ? 'text-emerald-400' : 'text-blue-400'}`}>{state.signalEnableForex ? `${runtimeConfig.provider ?? 'finnhub'} enabled` : 'disabled'}</span></span>
+                <span>Forex: <span className={`font-mono ${state.signalEnableForex ? 'text-emerald-400' : 'text-blue-400'}`}>{state.signalEnableForex ? `${runtimeConfig.provider ?? 'twelvedata'} enabled` : 'disabled'}</span></span>
                 <span>TG config: <span className={`font-mono ${autoTgReady ? 'text-emerald-400' : 'text-yellow-400'}`}>{autoTgReady ? 'ready' : 'check env/config'}</span></span>
               </div>
             </div>
@@ -539,6 +547,10 @@ export default function ControlRoom() {
                 { label: 'Started', value: new Date(latestRun.started_at).toLocaleString() },
                 { label: 'Duration', value: durationStr(latestRun) },
                 { label: 'Symbols / Signals', value: `${latestRun.symbols_scanned} / ${latestRun.signals_created}` },
+                { label: 'Crypto / Forex scanned', value: `${latestRun.crypto_symbols_scanned ?? '—'} / ${latestRun.forex_symbols_scanned ?? (latestRun.forex_skipped_count !== undefined ? 0 : '—')}` },
+                { label: 'Last forex scan', value: lastForexScanTime ? new Date(lastForexScanTime).toLocaleString() : '—' },
+                { label: 'Next allowed forex', value: nextAllowedForexScanTime ? new Date(nextAllowedForexScanTime).toLocaleString() : '—' },
+                { label: 'Forex rate limit / calls', value: `${latestRun.forex_skipped_rate_limit ? 'skipped rate limit' : latestRun.forex_budget_limited ? 'budget limited' : 'not rate-limited'} / ${latestRun.forex_provider_calls_attempted ?? 0} calls` },
                 { label: 'TG sent / skipped / failed', value: `${latestRun.telegram_sent_count ?? 0} / ${latestRun.telegram_skipped_count ?? latestRun.telegram_blocked_count ?? 0} / ${latestRun.telegram_failed_count ?? 0}` },
                 { label: 'Latest entry TG delivery', value: state.latestTelegramDelivery ? `${state.latestTelegramDelivery.status}${state.latestTelegramDelivery.error_message ? ` — ${state.latestTelegramDelivery.error_message}` : ''}` : '—' },
                 { label: 'Latest outcome update', value: state.latestSignalUpdate ? `${state.latestSignalUpdate.new_status.replace(/_/g, ' ')} (${new Date(state.latestSignalUpdate.created_at).toLocaleString()})` : '—' },

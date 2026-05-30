@@ -243,8 +243,8 @@ export default function Dashboard() {
                         {directionBadge(sig.direction)}
                         {gradeBadge(sig.grade)}
                         {statusBadge(sig.status)}
-                        <Badge variant={sig.market_type === 'crypto' ? 'blue' : 'orange'} className="text-xs">
-                          {sig.market_type === 'crypto' ? 'REAL DATA' : 'DEMO DATA'}
+                        <Badge variant={sig.data_source === 'REAL DATA' ? 'green' : 'orange'} className="text-xs">
+                          {sig.data_source === 'REAL DATA' ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}
                         </Badge>
                       </div>
                       <div className="text-xs text-zinc-500">{sig.strategy_name} · {sig.regime}</div>

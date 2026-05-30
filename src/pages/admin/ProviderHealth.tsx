@@ -15,6 +15,9 @@ interface RuntimeConfig {
   demo_fallback?: boolean;
   finnhub_api_key_set?: boolean;
   twelvedata_api_key_set?: boolean;
+  forex_symbol_map_sample?: Record<string, string> | null;
+  forex_scan_min_interval_minutes?: number;
+  forex_max_provider_calls_per_scan?: number;
   effective_provider_order?: string[];
   crypto_provider?: string;
   market_mode?: string;
@@ -32,6 +35,32 @@ interface RuntimeConfig {
   supabase_url_set?: boolean;
   supabase_service_role_key_set?: boolean;
   scanner_cron_secret_set?: boolean;
+}
+
+
+interface ForexProviderTestRow {
+  provider: string;
+  input_symbol: string;
+  mapped_symbol: string;
+  symbol_format_used: string;
+  http_status: number | null;
+  first_candle_time: string | null;
+  last_candle_time: string | null;
+  candle_count: number;
+  quote_latest_price: number | null;
+  classified_status: string;
+  error?: string | null;
+}
+
+interface ForexProviderTestResult {
+  success: boolean;
+  provider: string;
+  creates_candidates?: boolean;
+  skipped?: boolean;
+  reason?: string;
+  error?: string;
+  classified_status?: string;
+  results?: ForexProviderTestRow[];
 }
 
 interface ScannerConfigSummary {
@@ -132,6 +161,8 @@ export default function ProviderHealth() {
   const [loadWarning, setLoadWarning] = useState('');
   const [testingBinance, setTestingBinance] = useState(false);
   const [binanceResult, setBinanceResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testingForex, setTestingForex] = useState(false);
+  const [forexTestResult, setForexTestResult] = useState<ForexProviderTestResult | null>(null);
   const [adminSchedulerStatus, setAdminSchedulerStatus] = useState<EdgeFunctionReachability>('unknown');
   const [edgeFunctions, setEdgeFunctions] = useState<Record<string, string>>({});
   const [showHistoricalRows, setShowHistoricalRows] = useState(false);
@@ -237,6 +268,26 @@ export default function ProviderHealth() {
     }
   }
 
+
+  async function testForexProvider() {
+    if (!session) return;
+    setTestingForex(true);
+    setForexTestResult(null);
+    try {
+      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/market-scanner`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ debug_forex_provider_test: true, timeframe: '15m' }),
+      });
+      const json = await res.json() as ForexProviderTestResult;
+      setForexTestResult(json);
+    } catch (e) {
+      setForexTestResult({ success: false, provider: runtimeConfig?.provider ?? 'twelvedata', error: e instanceof Error ? e.message : 'unknown' });
+    } finally {
+      setTestingForex(false);
+    }
+  }
+
   const forexDisabled = runtimeConfig?.signal_enable_forex === false || runtimeConfig?.forex_disabled !== false;
   const marketMode = runtimeConfig?.market_mode ?? 'crypto_only';
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? 'binance';
@@ -246,13 +297,15 @@ export default function ProviderHealth() {
   const cronDetected = liveState.cronProven;
   const schedulerLabel = liveState.schedulerProof.label;
   const telegramConfigured = Boolean(runtimeConfig?.telegram_enabled && runtimeConfig.enable_signal_mode_output && runtimeConfig.telegram_bot_token_set && (runtimeConfig.telegram_default_channel_id_set || runtimeConfig.telegram_chat_id_set) && cfg?.auto_send_telegram !== false);
-  const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || ['forex', 'finnhub'].includes(safeLower(p.provider_name)) || ['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
-  const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && !['forex', 'finnhub'].includes(safeLower(p.provider_name)) && !['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
+  const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || ['forex', 'twelvedata'].includes(safeLower(p.provider_name)) || ['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
+  const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && !['forex', 'twelvedata'].includes(safeLower(p.provider_name)) && !['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
 
   const requiredEnv = useMemo(() => [
     { label: 'SIGNAL_ENABLE_CRYPTO=true', ok: runtimeConfig?.signal_enable_crypto !== false, expected: String(runtimeConfig?.signal_enable_crypto ?? true) },
     { label: 'SIGNAL_ENABLE_FOREX optional', ok: true, expected: String(runtimeConfig?.signal_enable_forex ?? false) },
-    { label: 'FINNHUB_API_KEY present when forex enabled', ok: runtimeConfig?.signal_enable_forex ? runtimeConfig?.finnhub_api_key_set === true : true, expected: runtimeConfig?.signal_enable_forex ? String(runtimeConfig?.finnhub_api_key_set ?? false) : 'only needed when forex enabled' },
+    { label: 'TWELVEDATA_API_KEY present when forex enabled', ok: runtimeConfig?.signal_enable_forex ? runtimeConfig?.twelvedata_api_key_set === true : true, expected: runtimeConfig?.signal_enable_forex ? String(runtimeConfig?.twelvedata_api_key_set ?? false) : 'only needed when forex enabled' },
+    { label: 'FOREX_SCAN_MIN_INTERVAL_MINUTES', ok: true, expected: String(runtimeConfig?.forex_scan_min_interval_minutes ?? 60) },
+    { label: 'FOREX_MAX_PROVIDER_CALLS_PER_SCAN', ok: true, expected: String(runtimeConfig?.forex_max_provider_calls_per_scan ?? 6) },
     { label: 'CRYPTO_DATA_PROVIDER=binance', ok: cryptoProviderName === 'binance', expected: cryptoProviderName },
     { label: 'TELEGRAM_ENABLED=true', ok: runtimeConfig?.telegram_enabled === true, expected: String(runtimeConfig?.telegram_enabled ?? false) },
     { label: 'ENABLE_SIGNAL_MODE_OUTPUT=true', ok: runtimeConfig?.enable_signal_mode_output === true, expected: String(runtimeConfig?.enable_signal_mode_output ?? false) },
@@ -300,8 +353,8 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Forex</div>
-          <div className="text-lg font-semibold text-blue-400">Disabled</div>
-          <div className="text-xs text-zinc-500 mt-1">Future MT5/OANDA phase; old forex rows are historical.</div>
+          <div className={`text-lg font-semibold ${forexDisabled ? 'text-blue-400' : 'text-emerald-400'}`}>{forexDisabled ? 'Disabled' : `${runtimeConfig?.provider ?? 'twelvedata'} enabled`}</div>
+          <div className="text-xs text-zinc-500 mt-1">Signal-only real-data path. Current provider status is separate from historical rows.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Telegram</div>
@@ -349,8 +402,26 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-sm font-semibold mb-1 flex items-center gap-2"><Info size={14} className="text-blue-400" /> Forex Provider</div>
-          <p className="text-xs text-zinc-500 mb-3">C2 forex uses Finnhub only, real-data signal mode only. No demo fallback or broker execution is used.</p>
-          <Badge variant="blue">Finnhub only — signal mode</Badge>
+          <p className="text-xs text-zinc-500 mb-3">Tests EURUSD, GBPUSD, and USDJPY directly against the configured TwelveData real-data candle/price endpoints. This does not create candidates or signals, but it does consume provider credits.</p>
+          <button onClick={testForexProvider} disabled={testingForex || !session}
+            className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50">
+            {testingForex ? <RefreshCw size={13} className="animate-spin" /> : <Wifi size={13} />}
+            Test Forex Provider
+          </button>
+          {forexTestResult && (
+            <div className={`mt-3 rounded-lg border p-3 text-xs ${forexTestResult.success ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300'}`}>
+              <div className="font-semibold mb-2">{forexTestResult.provider} — {forexTestResult.success ? 'real-data OK' : forexTestResult.skipped ? `skipped: ${forexTestResult.reason}` : `blocked: ${forexTestResult.classified_status ?? forexTestResult.error ?? 'provider_error'}`}</div>
+              {forexTestResult.results?.map(row => (
+                <div key={row.input_symbol} className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-zinc-300">
+                  <span>Symbol</span><span className="font-mono">{row.input_symbol} → {row.mapped_symbol}</span>
+                  <span>HTTP / Status</span><span className="font-mono">{row.http_status ?? 'n/a'} / {row.classified_status}</span>
+                  <span>Candles</span><span className="font-mono">{row.candle_count} ({safeDate(row.first_candle_time)} → {safeDate(row.last_candle_time)})</span>
+                  <span>Latest price</span><span className="font-mono">{row.quote_latest_price ?? '—'}</span>
+                  {row.error && <><span>Error</span><span className="font-mono break-words">{row.error}</span></>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -370,7 +441,7 @@ export default function ProviderHealth() {
               {requiredEnv.map(item => <Requirement key={item.label} label={item.label} ok={item.ok} expected={item.expected} />)}
             </div>
             <div className="mt-3 text-xs text-zinc-500 leading-relaxed">
-              Ignored while <code className="bg-zinc-800 px-1 rounded">SIGNAL_ENABLE_FOREX=false</code>: FOREX_DATA_PROVIDER, FOREX_PROVIDER_FALLBACKS, FOREX_DEMO_FALLBACK, FINNHUB_API_KEY, TWELVEDATA_API_KEY, FOREX_DATA_API_KEY, MT5_BRIDGE_BASE_URL, MT5_BRIDGE_SECRET. Do not delete forex secrets if you plan to restore forex later.
+              Ignored while <code className="bg-zinc-800 px-1 rounded">SIGNAL_ENABLE_FOREX=false</code>: FOREX_DATA_PROVIDER, FOREX_PROVIDER_FALLBACKS, FOREX_DEMO_FALLBACK, TWELVEDATA_API_KEY, FOREX_DATA_API_KEY, FINNHUB_API_KEY, MT5_BRIDGE_BASE_URL, MT5_BRIDGE_SECRET. TwelveData is the only active forex scanner provider; Finnhub is diagnostic only.
             </div>
           </div>
         )}
@@ -384,7 +455,7 @@ export default function ProviderHealth() {
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center text-sm text-zinc-600">No historical provider rows yet.</div>
           ) : (
             <>
-              <div className="text-xs text-zinc-500 uppercase tracking-widest">Current crypto-only runtime rows</div>
+              <div className="text-xs text-zinc-500 uppercase tracking-widest">Current runtime provider rows</div>
               {(currentRuntimeProviders.length ? currentRuntimeProviders : providers.filter(p => !isForexProviderRow(p))).map((p, i) => <ProviderCard key={String(p.id ?? i)} p={p} historical={false} forexDisabled={forexDisabled} />)}
               <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
                 <button onClick={() => setShowHistoricalRows(v => !v)} className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left">
@@ -429,7 +500,7 @@ export default function ProviderHealth() {
                   <td className="px-5 py-2.5 font-mono font-semibold text-zinc-100">{s.symbol}</td>
                   <td className="px-5 py-2.5 text-zinc-400">{s.display_name}</td>
                   <td className="px-5 py-2.5"><Badge variant={s.market_type === 'crypto' ? 'blue' : 'cyan'}>{s.market_type}</Badge></td>
-                  <td className="px-5 py-2.5 text-zinc-400 capitalize">{s.market_type === 'crypto' ? 'binance' : 'finnhub'}</td>
+                  <td className="px-5 py-2.5 text-zinc-400 capitalize">{s.market_type === 'crypto' ? 'binance' : 'twelvedata'}</td>
                   <td className="px-5 py-2.5">{s.market_type === 'crypto' ? <span className="text-xs text-emerald-400">REAL DATA (Binance API)</span> : <span className="text-xs text-cyan-400">REAL DATA only when forex enabled</span>}</td>
                   <td className="px-5 py-2.5"><Badge variant={s.is_active ? 'green' : 'gray'}>{s.is_active ? 'Active' : 'Inactive'}</Badge></td>
                 </tr>

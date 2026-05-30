@@ -31,7 +31,7 @@ export default function SignalDetail() {
     </AppLayout>
   );
 
-  const isDemo = signal.market_type === 'forex';
+  const isRealData = signal.data_source === 'REAL DATA';
 
   return (
     <AppLayout>
@@ -44,12 +44,12 @@ export default function SignalDetail() {
           {directionBadge(signal.direction)}
           {gradeBadge(signal.grade)}
           {statusBadge(signal.status)}
-          <Badge variant={isDemo ? 'orange' : 'green'}>{isDemo ? 'DEMO DATA' : 'REAL DATA'}</Badge>
+          <Badge variant={isRealData ? 'green' : 'orange'}>{isRealData ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}</Badge>
         </div>
-        {isDemo && (
+        {!isRealData && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-orange-400/80">
             <AlertTriangle size={11} />
-            This is a forex signal using demo/seeded data. Prices are not real market values.
+            This signal is not marked REAL DATA. Forex signals must come from the verified provider path before they are actionable.
           </div>
         )}
       </div>
@@ -105,7 +105,7 @@ export default function SignalDetail() {
               { label: 'Regime',      value: signal.regime },
               { label: 'Confidence',  value: `${signal.confidence_score}%` },
               { label: 'Source',      value: signal.source },
-              { label: 'Data Source', value: <Badge variant={isDemo ? 'orange' : 'green'}>{isDemo ? 'DEMO DATA' : 'REAL DATA'}</Badge> },
+              { label: 'Data Source', value: <Badge variant={isRealData ? 'green' : 'orange'}>{isRealData ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}</Badge> },
               { label: 'Created',     value: new Date(signal.created_at).toLocaleString() },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between px-5 py-3 gap-4">

@@ -289,7 +289,7 @@ export default function SignalsManager() {
                         ) : isHistoricalDemoForex ? (
                           <Badge variant="orange">HISTORICAL DEMO FOREX</Badge>
                         ) : (
-                          <Badge variant="orange">DEMO DATA</Badge>
+                          <Badge variant="orange">PROVIDER UNVERIFIED</Badge>
                         )}
                         {/* Market type */}
                         <Badge variant={sig.market_type === 'crypto' ? 'blue' : 'cyan'}>

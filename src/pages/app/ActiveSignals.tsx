@@ -42,7 +42,7 @@ export default function ActiveSignals() {
       ) : (
         <div className="space-y-2">
           {signals.map(sig => {
-            const isDemo = sig.market_type === 'forex';
+            const isRealData = sig.data_source === 'REAL DATA';
             return (
               <Link key={sig.id} to={`/app/signals/${sig.id}`}
                 className="block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 transition-colors">
@@ -54,8 +54,8 @@ export default function ActiveSignals() {
                       {directionBadge(sig.direction)}
                       {gradeBadge(sig.grade)}
                       {statusBadge(sig.status)}
-                      <Badge variant={isDemo ? 'orange' : 'green'} className="text-xs">
-                        {isDemo ? 'DEMO DATA' : 'REAL DATA'}
+                      <Badge variant={isRealData ? 'green' : 'orange'} className="text-xs">
+                        {isRealData ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">

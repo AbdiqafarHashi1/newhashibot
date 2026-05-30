@@ -76,33 +76,31 @@ async function binancePrice(symbol: string): Promise<number | null> {
   }
 }
 
-const FINNHUB_SYMBOL_MAP: Record<string, string> = {
-  EURUSD: "OANDA:EUR_USD",
-  GBPUSD: "OANDA:GBP_USD",
-  USDJPY: "OANDA:USD_JPY",
+const TWELVEDATA_SYMBOL_MAP: Record<string, string> = {
+  EURUSD: "EUR/USD",
+  GBPUSD: "GBP/USD",
+  USDJPY: "USD/JPY",
 };
 
 function normalizeForexSymbol(symbol: string): string {
   return symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 }
 
-async function finnhubForexPrice(symbol: string): Promise<number | null> {
-  const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
+async function twelveDataForexPrice(symbol: string): Promise<number | null> {
+  const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
   if (!key) return null;
   const normalized = normalizeForexSymbol(symbol);
-  const mapped = FINNHUB_SYMBOL_MAP[normalized];
+  const mapped = TWELVEDATA_SYMBOL_MAP[normalized];
   if (!mapped) return null;
   try {
-    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(mapped)}&token=${key}`, {
+    const res = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(mapped)}&apikey=${key}&format=JSON`, {
       signal: AbortSignal.timeout(7000),
     });
     if (!res.ok) return null;
-    const j = await res.json() as { c?: number; bid?: number; ask?: number };
-    const direct = Number(j.c);
-    if (Number.isFinite(direct) && direct > 0) return direct;
-    const bid = Number(j.bid), ask = Number(j.ask);
-    if (Number.isFinite(bid) && Number.isFinite(ask) && bid > 0 && ask > 0) return (bid + ask) / 2;
-    return null;
+    const j = await res.json() as { price?: string; status?: string; code?: number };
+    if (j.status === "error" || j.code) return null;
+    const price = Number(j.price);
+    return Number.isFinite(price) && price > 0 ? price : null;
   } catch {
     return null;
   }
@@ -112,8 +110,8 @@ async function latestPrice(sig: SignalRow): Promise<{ price: number | null; sour
   const marketType = String(sig.market_type ?? "").toLowerCase();
   if (marketType === "crypto") return { price: await binancePrice(sig.symbol), source: "binance_latest_price" };
   if (marketType === "forex") {
-    if (!parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return { price: null, source: "finnhub_forex_quote", reason: "forex_disabled" };
-    return { price: await finnhubForexPrice(sig.symbol), source: "finnhub_forex_quote" };
+    if (!parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return { price: null, source: "twelvedata_forex_price", reason: "forex_disabled" };
+    return { price: await twelveDataForexPrice(sig.symbol), source: "twelvedata_forex_price" };
   }
   return { price: null, source: "unsupported", reason: "unsupported_market_type" };
 }
@@ -336,7 +334,7 @@ Deno.serve(async (req: Request) => {
       expired: 0,
       skipped: 0,
       skipped_reasons: [] as string[],
-      price_source: signalEnableForex ? "binance_latest_price+finnhub_forex_quote" : "binance_latest_price",
+      price_source: signalEnableForex ? "binance_latest_price+twelvedata_forex_price" : "binance_latest_price",
       price_source_limitation: "Latest ticker price is used; intrabar TP/SL ordering is not inferred.",
     };
 

@@ -34,7 +34,7 @@ const sections: Section[] = [
   {
     title: 'What Uses Demo / Fallback Data',
     items: [
-      { label: 'Forex candles (default)', status: 'demo', note: 'Default is demo/seeded data. Set FOREX_DATA_PROVIDER=twelvedata + TWELVEDATA_API_KEY to get real data.' },
+      { label: 'Forex candles (default)', status: 'demo', note: 'Forex signal mode uses TwelveData only when explicitly enabled; no demo fallback is allowed.' },
       { label: 'Forex demo fallback', status: 'demo', note: 'If FOREX_DEMO_FALLBACK=false and provider fails, symbol is skipped (PROVIDER_ERROR). With =true, demo data fills in.' },
       { label: 'Auto Telegram (default OFF)', status: 'demo', note: 'auto_send_telegram defaults to false. Enable in Scanner Config after verifying Telegram setup.' },
       { label: 'Demo mode Telegram block (default)', status: 'demo', note: 'allow_demo_telegram_sending defaults to false. Prevents live sends from demo scan data.' },
@@ -45,7 +45,7 @@ const sections: Section[] = [
     items: [
       { label: 'pg_cron scheduled scanning', status: 'manual', note: 'Extensions enabled. Run SQL in Scheduler Guide to register the cron job. Then toggle cron_job_active in scanner_config.' },
       { label: 'Telegram bot token', status: 'manual', note: 'Set TELEGRAM_BOT_TOKEN as Supabase Edge Function secret. Use Telegram Verify page to test.' },
-      { label: 'Twelve Data API key (forex)', status: 'manual', note: 'Set TWELVEDATA_API_KEY (or FOREX_DATA_API_KEY) as Edge Function secret. Set FOREX_DATA_PROVIDER=twelvedata.' },
+      { label: 'Twelve Data API key (forex)', status: 'manual', note: 'Set TWELVEDATA_API_KEY (or FOREX_DATA_API_KEY) as Edge Function secret. Set SIGNAL_ENABLE_FOREX=true and scanner_config.scan_forex_enabled=true to opt in.' },
       { label: 'Subscriber Telegram chat IDs', status: 'manual', note: 'Users link their Telegram via /app/telegram. Admin approves in Telegram Links page.' },
       { label: 'Admin account', status: 'manual', note: 'Create via /admin/setup. First admin bootstrapped using admin-bootstrap edge function.' },
     ],
@@ -65,7 +65,7 @@ const REQUIRED_SECRETS = `# Required Edge Function Secrets
 
 TELEGRAM_BOT_TOKEN=          # From @BotFather on Telegram
 TWELVEDATA_API_KEY=           # Twelve Data API key (for real forex candles)
-FOREX_DATA_PROVIDER=          # Set to "twelvedata" for real forex; omit for demo
+FOREX_DATA_PROVIDER=twelvedata # Single real forex provider; no demo fallback
 FOREX_DEMO_FALLBACK=          # Set to "false" to skip on provider error; "true" to fall back to demo`;
 
 const CRON_SQL = `-- Run in Supabase SQL Editor (Settings → Database → SQL Editor)
@@ -224,7 +224,7 @@ export default function Handoff() {
               <li><span className="text-zinc-300">MT5 bridge integration</span> — Connect execution_orders to a real WebSocket MT5 bridge. Table schema is ready.</li>
               <li><span className="text-zinc-300">Real-time outcome evaluation</span> — evaluate-signal-outcomes function needs a price feed integration (Binance WebSocket or REST poll) to auto-mark TP/SL hits.</li>
               <li><span className="text-zinc-300">Live testnet trading</span> — Connect to MT5 demo account via bridge. Paper execution intent table is ready; just needs bridge response handling.</li>
-              <li><span className="text-zinc-300">Forex real candles (Twelve Data)</span> — Set TWELVEDATA_API_KEY + FOREX_DATA_PROVIDER=twelvedata. Scanner auto-routes. No code changes needed.</li>
+              <li><span className="text-zinc-300">Forex real candles (TwelveData)</span> — Set TWELVEDATA_API_KEY or FOREX_DATA_API_KEY and opt in with SIGNAL_ENABLE_FOREX=true plus scanner_config.scan_forex_enabled=true. No demo fallback.</li>
               <li><span className="text-zinc-300">Public-facing results page</span> — /results page exists as static. Wire it to real signal outcomes once evaluate-signal-outcomes is integrated.</li>
               <li><span className="text-zinc-300">Subscription billing</span> — Add Stripe integration for paid subscriber access management. user_access table is ready for status tracking.</li>
             </ol>
