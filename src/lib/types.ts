@@ -373,5 +373,16 @@ export interface ScannerRun {
   outcome_telegram_skipped?: number | null;
   outcome_telegram_failed?: number | null;
   market_mode?: string;
+  crypto_symbols_scanned?: number;
+  forex_symbols_scanned?: number;
+  scanned_crypto_count?: number;
+  scanned_forex_count?: number;
   forex_skipped_count?: number;
+  forex_skipped_rate_limit?: boolean;
+  forex_budget_limited?: boolean;
+  forex_provider_calls_attempted?: number;
+  forex_provider_calls_planned?: number;
+  forex_provider_call_limit?: number;
+  last_forex_scan_at?: string | null;
+  forex_next_allowed_scan_at?: string | null;
 }

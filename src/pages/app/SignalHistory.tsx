@@ -75,13 +75,13 @@ export default function SignalHistory() {
             </thead>
             <tbody>
               {signals.map(sig => {
-                const isDemo = sig.market_type === 'forex';
+                const isRealData = sig.data_source === 'REAL DATA';
                 return (
                   <tr key={sig.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <Link to={`/app/signals/${sig.id}`} className="font-mono font-semibold hover:text-blue-400 transition-colors">{sig.symbol}</Link>
-                        <Badge variant={isDemo ? 'orange' : 'green'} className="text-xs">{isDemo ? 'DEMO' : 'REAL'}</Badge>
+                        <Badge variant={isRealData ? 'green' : 'orange'} className="text-xs">{isRealData ? 'REAL' : 'UNVERIFIED'}</Badge>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-zinc-500">{sig.timeframe}</td>

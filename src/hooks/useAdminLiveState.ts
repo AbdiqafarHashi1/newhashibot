@@ -18,6 +18,8 @@ export interface RuntimeProviderConfig {
   signal_enable_crypto?: boolean;
   signal_enable_forex?: boolean;
   forex_disabled?: boolean;
+  forex_scan_min_interval_minutes?: number;
+  forex_max_provider_calls_per_scan?: number;
   telegram_enabled?: boolean;
   enable_signal_mode_output?: boolean;
   telegram_bot_token_set?: boolean;
@@ -256,6 +258,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
           signal_enable_crypto: Boolean(json.signal_enable_crypto ?? true),
           signal_enable_forex: Boolean(json.signal_enable_forex ?? false),
           forex_disabled: Boolean((json.forex_disabled ?? json.forex_disabled_for_mvp) ?? json.signal_enable_forex === false),
+          forex_scan_min_interval_minutes: typeof json.forex_scan_min_interval_minutes === 'number' ? json.forex_scan_min_interval_minutes : 60,
+          forex_max_provider_calls_per_scan: typeof json.forex_max_provider_calls_per_scan === 'number' ? json.forex_max_provider_calls_per_scan : 6,
           telegram_enabled: Boolean(json.telegram_enabled),
           enable_signal_mode_output: Boolean(json.enable_signal_mode_output),
           telegram_bot_token_set: Boolean(json.telegram_bot_token_set),
