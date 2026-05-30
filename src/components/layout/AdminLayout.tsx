@@ -4,7 +4,7 @@ import {
   Zap, LayoutDashboard, Users, LogOut, Menu, Activity,
   Database, Send, FileText, CheckCircle, AlertTriangle,
   PlusCircle, User, Settings, Clock, BarChart2, ListChecks,
-  Radio, Link2, ShieldCheck, ClipboardList, Brain, Cpu, Layers, FlaskConical, PackageCheck
+  Radio, Link2, ShieldCheck, ClipboardList, Brain, Cpu, Layers, FlaskConical, PackageCheck, TrendingUp
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,6 +32,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/candidates',      label: 'Candidate Setups',    icon: CheckCircle },
   { to: '/admin/rejected',        label: 'Rejected Setups',     icon: AlertTriangle },
   { to: '/admin/outcomes',        label: 'Outcome Tracking',    icon: BarChart2 },
+  { to: '/admin/performance',     label: 'Performance Stats',   icon: TrendingUp },
   { section: 'Telegram' },
   { to: '/admin/telegram-test',   label: 'Telegram Verify',     icon: Send },
   { to: '/admin/telegram-links',  label: 'Telegram Links',      icon: Link2 },
