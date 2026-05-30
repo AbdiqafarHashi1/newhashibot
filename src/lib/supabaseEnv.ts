@@ -1,5 +1,5 @@
-export const LOGIN_DEBUG_BUILD_MARKER = 'bolt-end-to-end-auth-fix-v1';
-export const EXPECTED_SUPABASE_PROJECT_REF = 'uqiwbzfcntlcyyeewafc';
+export const LOGIN_DEBUG_BUILD_MARKER = 'final-correct-cyyewawfc-env-reset-v1';
+export const EXPECTED_SUPABASE_PROJECT_REF = 'uqiwbzfcntlcyyewawfc';
 export const EXPECTED_SUPABASE_ORIGIN = `https://${EXPECTED_SUPABASE_PROJECT_REF}.supabase.co`;
 
 export type FrontendSupabaseUrlSource =

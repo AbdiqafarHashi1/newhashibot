@@ -148,8 +148,8 @@ function buildChecks(d: ChecklistData): CheckItem[] {
       label: 'Frontend URL points to correct Supabase project',
       detail: d.urlIsCorrect
         ? `URL resolves to project ref: ${d.urlProjectRef}`
-        : `URL points to wrong project ref: ${d.urlProjectRef ?? 'unknown'}. Expected: uqiwbzfcntlcyyeewafc`,
-      instruction: 'VITE_HASHIBOT_SUPABASE_URL or VITE_SUPABASE_URL must point to https://uqiwbzfcntlcyyeewafc.supabase.co',
+        : `URL points to wrong project ref: ${d.urlProjectRef ?? 'unknown'}. Expected: uqiwbzfcntlcyyewawfc`,
+      instruction: 'VITE_HASHIBOT_SUPABASE_URL or VITE_SUPABASE_URL must point to https://uqiwbzfcntlcyyewawfc.supabase.co',
       status: d.urlIsCorrect ? 'pass' : 'fail',
     },
     {
@@ -311,20 +311,20 @@ function buildChecks(d: ChecklistData): CheckItem[] {
         : d.urlIsCorrect
           ? `Frontend URL is correct (${d.urlProjectRef}) but no admin profile found.`
           : `Frontend URL project ref mismatch: ${d.urlProjectRef ?? 'unknown'}`,
-      instruction: 'The frontend must connect to project uqiwbzfcntlcyyeewafc. Confirm login works and admin data is visible.',
+      instruction: 'The frontend must connect to project uqiwbzfcntlcyyewawfc. Confirm login works and admin data is visible.',
       link: { to: '/admin/control-room', label: 'Control Room' },
       status: d.urlIsCorrect && d.adminCount > 0 ? 'pass' : 'fail',
     },
     {
       id: '17',
       label: 'Scanner URL in browser matches Supabase project (no stale old project)',
-      detail: supabaseUrlInBrowser.includes('uqiwbzfcntlcyyeewafc')
+      detail: supabaseUrlInBrowser.includes('uqiwbzfcntlcyyewawfc')
         ? `Browser URL: ${supabaseUrlInBrowser} — correct project.`
         : supabaseUrlInBrowser
           ? `Browser URL: ${supabaseUrlInBrowser} — may be stale/wrong project.`
           : 'No Supabase URL found in browser env.',
-      instruction: 'Both VITE_SUPABASE_URL and VITE_HASHIBOT_SUPABASE_URL should point to uqiwbzfcntlcyyeewafc. Stale zkdwovzagqbfdtxtovli refs must not be used.',
-      status: supabaseUrlInBrowser.includes('uqiwbzfcntlcyyeewafc') ? 'pass' : 'fail',
+      instruction: 'Both VITE_SUPABASE_URL and VITE_HASHIBOT_SUPABASE_URL should point to uqiwbzfcntlcyyewawfc. Stale refs must not be used.',
+      status: supabaseUrlInBrowser.includes('uqiwbzfcntlcyyewawfc') ? 'pass' : 'fail',
     },
   ];
 }
