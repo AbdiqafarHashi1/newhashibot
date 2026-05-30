@@ -29,6 +29,7 @@ export default function ControlRoom() {
   const [actionMsg, setActionMsg] = useState('');
   const [runFilter, setRunFilter] = useState<'all' | 'manual' | 'scheduled'>('all');
   const [showHistoricalForexWarnings, setShowHistoricalForexWarnings] = useState(false);
+  const [showSchedulerProof, setShowSchedulerProof] = useState(false);
 
   const loadStats = useCallback(async () => {
     const [symRes, candRes, sigRes, candCountRes, userRes] = await Promise.all([
@@ -231,7 +232,16 @@ export default function ControlRoom() {
         </div>
       </div>
 
-      <SchedulerProofDebug state={state} />
+      <div className="mb-4">
+        <button
+          onClick={() => setShowSchedulerProof(v => !v)}
+          className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1.5"
+        >
+          <span>{showSchedulerProof ? '▾' : '▸'}</span>
+          {showSchedulerProof ? 'Hide' : 'Show'} scheduler proof / diagnostics
+        </button>
+        {showSchedulerProof && <div className="mt-2"><SchedulerProofDebug state={state} /></div>}
+      </div>
 
       {/* Live state banner */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-4 flex flex-wrap gap-x-5 gap-y-2 items-center">

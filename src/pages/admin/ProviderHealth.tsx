@@ -135,6 +135,7 @@ export default function ProviderHealth() {
   const [adminSchedulerStatus, setAdminSchedulerStatus] = useState<EdgeFunctionReachability>('unknown');
   const [edgeFunctions, setEdgeFunctions] = useState<Record<string, string>>({});
   const [showHistoricalRows, setShowHistoricalRows] = useState(false);
+  const [showRequirements, setShowRequirements] = useState(false);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -352,14 +353,26 @@ export default function ProviderHealth() {
         </div>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
-        <div className="text-sm font-semibold text-zinc-200 mb-3 flex items-center gap-2"><CheckCircle size={14} className="text-blue-400" /> Runtime Requirements</div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-          {requiredEnv.map(item => <Requirement key={item.label} label={item.label} ok={item.ok} expected={item.expected} />)}
-        </div>
-        <div className="mt-3 text-xs text-zinc-500 leading-relaxed">
-          Ignored while <code className="bg-zinc-800 px-1 rounded">SIGNAL_ENABLE_FOREX=false</code>: FOREX_DATA_PROVIDER, FOREX_PROVIDER_FALLBACKS, FOREX_DEMO_FALLBACK, FINNHUB_API_KEY, TWELVEDATA_API_KEY, FOREX_DATA_API_KEY, MT5_BRIDGE_BASE_URL, MT5_BRIDGE_SECRET. Do not delete forex secrets if you plan to restore forex later.
-        </div>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
+        <button
+          onClick={() => setShowRequirements(v => !v)}
+          className="w-full px-4 py-3 flex items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
+            <CheckCircle size={14} className="text-blue-400" /> Runtime Requirements
+          </div>
+          {showRequirements ? <ChevronUp size={14} className="text-zinc-500" /> : <ChevronDown size={14} className="text-zinc-500" />}
+        </button>
+        {showRequirements && (
+          <div className="border-t border-zinc-800 p-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              {requiredEnv.map(item => <Requirement key={item.label} label={item.label} ok={item.ok} expected={item.expected} />)}
+            </div>
+            <div className="mt-3 text-xs text-zinc-500 leading-relaxed">
+              Ignored while <code className="bg-zinc-800 px-1 rounded">SIGNAL_ENABLE_FOREX=false</code>: FOREX_DATA_PROVIDER, FOREX_PROVIDER_FALLBACKS, FOREX_DEMO_FALLBACK, FINNHUB_API_KEY, TWELVEDATA_API_KEY, FOREX_DATA_API_KEY, MT5_BRIDGE_BASE_URL, MT5_BRIDGE_SECRET. Do not delete forex secrets if you plan to restore forex later.
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
