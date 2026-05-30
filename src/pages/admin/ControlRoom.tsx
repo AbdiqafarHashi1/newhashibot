@@ -250,13 +250,7 @@ export default function ControlRoom() {
           color={state.scheduleEnabled ? 'text-emerald-400' : 'text-zinc-500'}
         />
         <BannerItem
-          label="Cron Proof"
-          value={state.schedulerProof.label}
-          color={cronColor}
-          title={state.cronReason}
-        />
-        <BannerItem
-          label="Cron job"
+          label="Cron proof"
           value={state.schedulerProof.label}
           color={cronColor}
           title={state.cronReason}
@@ -437,7 +431,7 @@ export default function ControlRoom() {
               disabled={testingProvider === 'forex'}
               className="flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50">
               {testingProvider === 'forex' ? <RefreshCw size={14} className="animate-spin" /> : <Wifi size={14} />}
-Runtime Config
+              Runtime Config
             </button>
           </div>
         </div>
@@ -535,8 +529,8 @@ Runtime Config
                 { label: 'Started', value: new Date(latestRun.started_at).toLocaleString() },
                 { label: 'Duration', value: durationStr(latestRun) },
                 { label: 'Symbols / Signals', value: `${latestRun.symbols_scanned} / ${latestRun.signals_created}` },
-                { label: 'TG sent / skipped / failed', value: `${latestRun.telegram_sent_count ?? 0} / ${latestRun.telegram_blocked_count ?? 0} / ${latestRun.telegram_failed_count ?? 0}` },
-                { label: 'Latest TG delivery', value: state.latestTelegramDelivery ? `${state.latestTelegramDelivery.status}${state.latestTelegramDelivery.error_message ? ` — ${state.latestTelegramDelivery.error_message}` : ''}` : '—' },
+                { label: 'TG sent / skipped / failed', value: `${latestRun.telegram_sent_count ?? 0} / ${latestRun.telegram_skipped_count ?? latestRun.telegram_blocked_count ?? 0} / ${latestRun.telegram_failed_count ?? 0}` },
+                { label: 'Latest entry TG delivery', value: state.latestTelegramDelivery ? `${state.latestTelegramDelivery.status}${state.latestTelegramDelivery.error_message ? ` — ${state.latestTelegramDelivery.error_message}` : ''}` : '—' },
                 { label: 'Latest outcome update', value: state.latestSignalUpdate ? `${state.latestSignalUpdate.new_status.replace(/_/g, ' ')} (${new Date(state.latestSignalUpdate.created_at).toLocaleString()})` : '—' },
                 { label: 'Outcome TG delivery', value: state.latestOutcomeDelivery ? `${state.latestOutcomeDelivery.status}${state.latestOutcomeDelivery.error_message ? ` — ${state.latestOutcomeDelivery.error_message}` : ''}` : '—' },
               ] as { label: string; value: React.ReactNode }[]).map(({ label, value }) => (
@@ -606,7 +600,7 @@ Runtime Config
                   <td className="px-5 py-2.5">{statusBadge(r.status)}</td>
                   <td className="px-5 py-2.5 text-zinc-300">{r.symbols_scanned}</td>
                   <td className="px-5 py-2.5 text-zinc-300">{r.signals_created}</td>
-                  <td className="px-5 py-2.5 text-zinc-300">{r.telegram_sent_count ?? 0} / {r.telegram_blocked_count ?? 0} / {r.telegram_failed_count ?? 0}</td>
+                  <td className="px-5 py-2.5 text-zinc-300">{r.telegram_sent_count ?? 0} / {r.telegram_skipped_count ?? r.telegram_blocked_count ?? 0} / {r.telegram_failed_count ?? 0}</td>
                   <td className="px-5 py-2.5 text-zinc-400">{durationStr(r)}</td>
                 </tr>
               ))}

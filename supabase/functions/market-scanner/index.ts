@@ -942,6 +942,7 @@ async function runScanPipeline(
   let signalsCreated = 0, rejectedCount = 0, evaluationsCount = 0;
   let indicatorsCalc = 0, paperIntentsCreated = 0, riskBlockedCount = 0;
   let telegramSent = 0, telegramSkipped = 0, telegramFailed = 0;
+  let duplicateSymbolBlocked = 0;
   const telegramSkipReasons: Record<string, number> = {};
   const telegramDeliveryIds: string[] = [];
   const errors: string[] = [];
@@ -1050,6 +1051,7 @@ async function runScanPipeline(
           if (config.prevent_duplicate_symbol_signals && activeSymbolSet.has(sym.symbol)) {
             await supabase.from("strategy_candidates").update({ status: "rejected", rejection_reason: "duplicate_active_signal" }).eq("id", cData.id);
             rejectedCount++;
+            duplicateSymbolBlocked++;
             continue;
           }
 
@@ -1210,7 +1212,10 @@ async function runScanPipeline(
     indicators_calculated: indicatorsCalc, strategy_evaluations_count: evaluationsCount,
     rejected_candidates_count: rejectedCount,
     errors: errors.slice(0, 20), error_message: errors.slice(0, 5).join(" | "),
-    telegram_sent_count: telegramSent, telegram_blocked_count: telegramSkipped + telegramFailed,
+    telegram_sent_count: telegramSent,
+    telegram_skipped_count: telegramSkipped,
+    telegram_blocked_count: telegramSkipped + telegramFailed,
+    duplicate_symbol_blocked: duplicateSymbolBlocked,
   }).eq("id", runId);
 
   // Optional proof columns exist in some deployments. Keep the base scanner_runs
@@ -1239,6 +1244,7 @@ async function runScanPipeline(
     signals_created: signalsCreated, paper_intents_created: paperIntentsCreated,
     risk_blocked: riskBlockedCount, telegram_sent: telegramSent, telegram_blocked: telegramSkipped + telegramFailed, telegram_skipped: telegramSkipped, telegram_failed: telegramFailed,
     telegram_skip_reasons: telegramSkipReasons, telegram_delivery_ids: telegramDeliveryIds,
+    duplicate_symbol_blocked: duplicateSymbolBlocked,
     active_modes: activeModes.map((m) => m.mode_slug),
     forex_provider: forexProviderName, forex_real_data: forexProviderSuccess,
     forex_demo_fallback_used: false,

@@ -319,7 +319,9 @@ export interface ScannerRun {
   is_automatic?: boolean | null;
   telegram_sent_count: number;
   telegram_blocked_count: number;
+  telegram_skipped_count?: number;
   telegram_failed_count?: number;
+  duplicate_symbol_blocked?: number;
   outcome_checked?: boolean | null;
   outcomes_updated?: number | null;
   outcome_telegram_sent?: number | null;
