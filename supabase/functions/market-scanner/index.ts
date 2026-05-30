@@ -38,6 +38,22 @@ interface ScannerConfig {
   scan_interval_minutes: number; schedule_enabled: boolean;
 }
 
+interface StrategyConfig {
+  strategy_name: string;
+  enabled: boolean;
+  signal_style: string;
+  risk_mode: string;
+  min_score: number;
+  min_rr: number;
+  min_stop_distance_pct: number;
+  min_tp1_distance_pct: number;
+  min_tp2_distance_pct: number;
+  max_bars_in_trade: number;
+  allowed_symbols: string[];
+  allowed_timeframes: string[];
+  params: Record<string, number>;
+}
+
 interface RiskProfile {
   mode_slug: string; equity_start: number;
   risk_per_trade_pct: number; max_risk_per_trade_pct: number;
@@ -301,6 +317,44 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
 // ─── Grade index ──────────────────────────────────────────────────────────────
 
 function gradeIndex(g: string): number { return g === "A+" ? 3 : g === "A" ? 2 : g === "B" ? 1 : 0; }
+
+// ─── Distance guard ───────────────────────────────────────────────────────────
+
+interface DistanceGuardResult {
+  passed: boolean;
+  rejection_reason: string;
+  sl_pct: number;
+  tp1_pct: number;
+  tp2_pct: number;
+  rr: number;
+}
+
+function checkDistanceGuards(
+  r: EvalResult,
+  cfg: StrategyConfig,
+): DistanceGuardResult {
+  const entry = r.entry_high > 0 && r.entry_low > 0
+    ? (r.entry_low + r.entry_high) / 2
+    : r.entry_high || r.entry_low;
+
+  if (entry <= 0 || r.stop_loss <= 0 || r.tp1 <= 0 || r.tp2 <= 0) {
+    return { passed: false, rejection_reason: "distance_too_tight", sl_pct: 0, tp1_pct: 0, tp2_pct: 0, rr: 0 };
+  }
+
+  const sl_pct  = (Math.abs(entry - r.stop_loss) / entry) * 100;
+  const tp1_pct = (Math.abs(r.tp1 - entry) / entry) * 100;
+  const tp2_pct = (Math.abs(r.tp2 - entry) / entry) * 100;
+  const risk    = Math.abs(entry - r.stop_loss);
+  const rr      = risk > 0 ? Math.abs(r.tp2 - entry) / risk : 0;
+
+  if (sl_pct  < cfg.min_stop_distance_pct)  return { passed: false, rejection_reason: "sl_too_close",   sl_pct, tp1_pct, tp2_pct, rr };
+  if (tp1_pct < cfg.min_tp1_distance_pct)   return { passed: false, rejection_reason: "tp1_too_close",  sl_pct, tp1_pct, tp2_pct, rr };
+  if (tp2_pct < cfg.min_tp2_distance_pct)   return { passed: false, rejection_reason: "tp2_too_close",  sl_pct, tp1_pct, tp2_pct, rr };
+  if (rr      < cfg.min_rr)                 return { passed: false, rejection_reason: "rr_too_low",     sl_pct, tp1_pct, tp2_pct, rr };
+  if (r.confidence_score < cfg.min_score)   return { passed: false, rejection_reason: "confidence_too_low", sl_pct, tp1_pct, tp2_pct, rr };
+
+  return { passed: true, rejection_reason: "", sl_pct, tp1_pct, tp2_pct, rr };
+}
 
 // ─── Risk Engine ──────────────────────────────────────────────────────────────
 
@@ -877,11 +931,25 @@ async function runScanPipeline(
 ): Promise<Record<string, unknown>> {
   const scanStart = Date.now();
 
-  // Load strategy configs
-  const { data: strategyConfigs } = await supabase.from("strategy_configs").select("*");
-  const getStratCfg = (name: string) => {
+  // Load strategy configs (includes 018 distance-guard columns)
+  const { data: strategyConfigs } = await supabase.from("strategy_configs").select("strategy_name,enabled,signal_style,risk_mode,min_score,min_rr,min_stop_distance_pct,min_tp1_distance_pct,min_tp2_distance_pct,max_bars_in_trade,allowed_symbols,allowed_timeframes,params");
+  const getStratCfg = (name: string): StrategyConfig => {
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
-    return { enabled: cfg?.enabled ?? true, min_score: (cfg?.min_score as number) ?? 75, min_rr: (cfg?.min_rr as number) ?? 1.2, allowed_timeframes: (cfg?.allowed_timeframes as string[]) ?? [], params: (cfg?.params as Record<string, number>) ?? {} };
+    return {
+      strategy_name: name,
+      enabled:               (cfg?.enabled as boolean)                      ?? true,
+      signal_style:          (cfg?.signal_style as string)                  ?? "scalper",
+      risk_mode:             (cfg?.risk_mode as string)                     ?? "balanced",
+      min_score:             (cfg?.min_score as number)                     ?? 75,
+      min_rr:                (cfg?.min_rr as number)                        ?? 1.2,
+      min_stop_distance_pct: (cfg?.min_stop_distance_pct as number)         ?? 0.18,
+      min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? 0.25,
+      min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? 0.40,
+      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)              ?? 32,
+      allowed_symbols:       (cfg?.allowed_symbols as string[])              ?? [],
+      allowed_timeframes:    (cfg?.allowed_timeframes as string[])           ?? [],
+      params:                (cfg?.params as Record<string, number>)         ?? {},
+    };
   };
 
   // Load mode configs and risk profiles
@@ -1022,9 +1090,9 @@ async function runScanPipeline(
 
         const msConfig = getStratCfg("MicroScalper");
         const cbConfig = getStratCfg("CompressionBreakout");
-        const evaluations: Array<{ name: string; result: EvalResult }> = [];
-        if (msConfig.enabled) evaluations.push({ name: "MicroScalper", result: evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr }) });
-        if (cbConfig.enabled) evaluations.push({ name: "CompressionBreakout", result: evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr }) });
+        const evaluations: Array<{ name: string; result: EvalResult; cfg: StrategyConfig }> = [];
+        if (msConfig.enabled) evaluations.push({ name: "MicroScalper", cfg: msConfig, result: evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr }) });
+        if (cbConfig.enabled) evaluations.push({ name: "CompressionBreakout", cfg: cbConfig, result: evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr }) });
 
         for (const ev of evaluations) {
           evaluationsCount++;
@@ -1045,6 +1113,15 @@ async function runScanPipeline(
           if (!cData) continue;
 
           if (r.status === "rejected") { rejectedCount++; continue; }
+
+          // ── Distance guard (018 fields: min_stop/tp1/tp2_distance_pct, min_rr, min_score) ──
+          const guard = checkDistanceGuards(r, ev.cfg);
+          if (!guard.passed) {
+            await supabase.from("strategy_candidates").update({ status: "rejected", rejection_reason: guard.rejection_reason }).eq("id", cData.id);
+            rejectedCount++;
+            continue;
+          }
+
           candidatesFound++;
 
           // Duplicate gate
