@@ -3,7 +3,9 @@ export interface Package {
   name: string;
   slug: string;
   price: number;
+  price_kes?: number | null;
   currency: string;
+  billing_period?: string | null;
   duration_days: number | null;
   active: boolean;
   features: string[];
@@ -14,7 +16,7 @@ export interface Package {
   updated_at: string;
 }
 
-export type PaymentStatus = 'pending' | 'paid' | 'expired' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'cancelled';
 export type AccessStatus = 'active' | 'inactive' | 'expired';
 export type TelegramStatus = 'not_invited' | 'invited' | 'joined' | 'removed';
 

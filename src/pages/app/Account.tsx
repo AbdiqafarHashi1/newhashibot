@@ -220,7 +220,7 @@ export default function Account() {
                   <Badge variant="gray">Coming soon</Badge>
                   <Lock size={12} className="text-zinc-600" />
                 </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Automated MT5 execution for personal accounts. Configure risk per account and let HashiBot execute signals automatically within your limits.</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">Personal Mode setup waitlist for future account automation. Execution is not live and no orders are placed from this app.</p>
               </div>
             </div>
             <div className="rounded-xl border bg-zinc-900 border-zinc-800 p-5 flex items-start gap-3">
@@ -233,7 +233,7 @@ export default function Account() {
                   <Badge variant="gray">Coming soon</Badge>
                   <Lock size={12} className="text-zinc-600" />
                 </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Purpose-built for funded challenge accounts. Conservative scoring, strict drawdown control, and challenge-compliant position sizing.</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">Prop Mode setup waitlist for future funded-account workflows. Execution is not live and no orders are placed from this app.</p>
               </div>
             </div>
           </div>

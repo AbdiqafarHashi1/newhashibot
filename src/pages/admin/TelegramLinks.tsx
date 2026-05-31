@@ -5,6 +5,13 @@ import { statusBadge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { MessageCircle, CheckCircle, XCircle } from 'lucide-react';
 
+interface CustomerAccessSummary {
+  package_name: string;
+  access_status: string;
+  payment_status: string;
+  expires_at: string | null;
+}
+
 interface TelegramLinkRow {
   id: string;
   user_id: string;
@@ -15,6 +22,7 @@ interface TelegramLinkRow {
   created_at: string;
   updated_at: string;
   profile?: { email: string; full_name: string };
+  subscription?: CustomerAccessSummary | null;
 }
 
 export default function TelegramLinks() {
@@ -25,11 +33,12 @@ export default function TelegramLinks() {
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
 
   async function load() {
-    const { data } = await supabase
-      .from('telegram_links')
-      .select('*, profile:profiles(email, full_name)')
-      .order('created_at', { ascending: false });
-    setLinks((data ?? []) as TelegramLinkRow[]);
+    const [{ data: linkData }, { data: subData }] = await Promise.all([
+      supabase.from('telegram_links').select('*, profile:profiles(email, full_name)').order('created_at', { ascending: false }),
+      supabase.from('customer_subscriptions').select('user_id, package_name, access_status, payment_status, expires_at'),
+    ]);
+    const subsByUser = new Map((subData ?? []).map(s => [s.user_id, s]));
+    setLinks(((linkData ?? []) as TelegramLinkRow[]).map(link => ({ ...link, subscription: subsByUser.get(link.user_id) ?? null })));
     setLoading(false);
   }
 
@@ -62,7 +71,7 @@ export default function TelegramLinks() {
     <AdminLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Telegram Links</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Manage subscriber Telegram connection requests</p>
+        <p className="text-sm text-zinc-500 mt-0.5">Manage pending Telegram submissions and mark manual Signal Room invites handled</p>
       </div>
 
       {msg && (
@@ -136,7 +145,15 @@ function LinkCard({ link, noteInputs, setNoteInputs, setStatus }: {
               Username: <span className="text-zinc-300">{link.telegram_username || '—'}</span>
             </div>
             <div className="text-zinc-500">
-              Chat ID: <span className="text-zinc-300 font-mono">{link.telegram_chat_id || '—'}</span>
+              Chat ID / Link: <span className="text-zinc-300 font-mono">{link.telegram_chat_id || '—'}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-2 text-xs">
+            <div className="text-zinc-500">
+              Package: <span className="text-zinc-300">{link.subscription?.package_name || '—'}</span>
+            </div>
+            <div className="text-zinc-500">
+              Access: <span className="text-zinc-300">{link.subscription ? `${link.subscription.access_status} / ${link.subscription.payment_status}` : '—'}</span>
             </div>
           </div>
           <div className="text-xs text-zinc-600 mt-1">
@@ -159,7 +176,7 @@ function LinkCard({ link, noteInputs, setNoteInputs, setStatus }: {
                 <button
                   onClick={() => setStatus(link.id, link.user_id, 'connected')}
                   className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-colors">
-                  <CheckCircle size={12} /> Connect
+                  <CheckCircle size={12} /> Mark handled
                 </button>
               )}
               <button

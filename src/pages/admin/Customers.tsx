@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { CustomerSubscription, Package, PaymentStatus, AccessStatus, TelegramStatus } from '../../lib/types';
-import { Users, Plus, Search, RefreshCw, ChevronDown, ChevronUp, CreditCard as Edit3, Check, X, MessageCircle, CreditCard, Clock, UserCheck, UserX } from 'lucide-react';
+import { Users, Plus, Search, RefreshCw, ChevronDown, ChevronUp, CreditCard as Edit3, Check, X, MessageCircle, CreditCard, Clock, UserCheck, UserX, Copy, CalendarPlus } from 'lucide-react';
 
 // ─── Status badge helpers ─────────────────────────────────────────────────────
 
@@ -10,6 +10,7 @@ function paymentBadge(s: PaymentStatus) {
   const map: Record<PaymentStatus, string> = {
     paid: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
     pending: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/25',
+    failed: 'bg-red-500/15 text-red-400 border-red-500/25',
     expired: 'bg-zinc-500/15 text-zinc-500 border-zinc-600/25',
     cancelled: 'bg-red-500/15 text-red-400 border-red-500/25',
   };
@@ -104,7 +105,7 @@ function EditRow({ sub, packages, onSave, onClose }: EditRowProps) {
           <div>
             <label className={labelCls}>Payment Status</label>
             <select value={draft.payment_status} onChange={e => set('payment_status', e.target.value as PaymentStatus)} className={selectCls}>
-              {(['pending', 'paid', 'expired', 'cancelled'] as PaymentStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
+              {(['pending', 'paid', 'failed', 'expired', 'cancelled'] as PaymentStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
@@ -237,7 +238,7 @@ function NewCustomerForm({ packages, onSaved, onClose }: NewCustomerFormProps) {
         <div>
           <label className={labelCls}>Payment Status</label>
           <select value={form.payment_status} onChange={e => setForm(p => ({ ...p, payment_status: e.target.value as PaymentStatus }))} className={selectCls}>
-            {(['pending', 'paid', 'expired', 'cancelled'] as PaymentStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
+            {(['pending', 'paid', 'failed', 'expired', 'cancelled'] as PaymentStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div>
@@ -314,11 +315,23 @@ export default function Customers() {
 
   const filtered = subs.filter(s => {
     const q = search.toLowerCase();
-    const matchesSearch = !q || s.email.toLowerCase().includes(q) || s.full_name.toLowerCase().includes(q) || s.package_name.toLowerCase().includes(q);
+    const matchesSearch = !q || s.email.toLowerCase().includes(q) || s.full_name.toLowerCase().includes(q) || s.package_name.toLowerCase().includes(q) || s.telegram_username.toLowerCase().includes(q);
     const matchesAccess = filterAccess === 'all' || s.access_status === filterAccess;
     const matchesPayment = filterPayment === 'all' || s.payment_status === filterPayment;
     return matchesSearch && matchesAccess && matchesPayment;
   });
+
+
+  function copyText(value: string) {
+    if (!value) return;
+    void navigator.clipboard?.writeText(value);
+  }
+
+  function extendBy30Days(s: CustomerSubscription) {
+    const base = s.expires_at && new Date(s.expires_at).getTime() > Date.now() ? new Date(s.expires_at) : new Date();
+    base.setDate(base.getDate() + 30);
+    return handleSave(s.id, { expires_at: base.toISOString(), access_status: 'active', payment_status: 'paid', updated_at: new Date().toISOString() });
+  }
 
   const stats = {
     total: subs.length,
@@ -370,6 +383,7 @@ export default function Customers() {
           <option value="all">All Payments</option>
           <option value="paid">Paid</option>
           <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
           <option value="expired">Expired</option>
           <option value="cancelled">Cancelled</option>
         </select>
@@ -408,7 +422,7 @@ export default function Customers() {
                   <th className="px-4 py-3">Access</th>
                   <th className="px-4 py-3">Telegram</th>
                   <th className="px-4 py-3">Expires</th>
-                  <th className="px-4 py-3">Added</th>
+                  <th className="px-4 py-3">Created / Last login</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -427,7 +441,7 @@ export default function Customers() {
                       <td className="px-4 py-3 text-zinc-500">
                         {s.expires_at ? new Date(s.expires_at).toLocaleDateString() : <span className="text-zinc-700">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-zinc-600">{new Date(s.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-zinc-600"><div>{new Date(s.created_at).toLocaleDateString()}</div><div className="text-zinc-700">Last login unavailable</div></td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1.5">
                           <button onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
@@ -444,8 +458,13 @@ export default function Customers() {
                             <UserCheck size={13} />
                           </button>
                           <button
-                            onClick={() => handleSave(s.id, { access_status: 'inactive', updated_at: new Date().toISOString() })}
-                            className="p-1.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-red-400 transition-colors" title="Revoke access">
+                            onClick={() => extendBy30Days(s)}
+                            className="p-1.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-sky-400 transition-colors" title="Extend by 30 days">
+                            <CalendarPlus size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleSave(s.id, { access_status: 'expired', payment_status: 'expired', expires_at: new Date().toISOString(), updated_at: new Date().toISOString() })}
+                            className="p-1.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-red-400 transition-colors" title="Expire access">
                             <UserX size={13} />
                           </button>
                         </div>
@@ -459,7 +478,7 @@ export default function Customers() {
                           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mb-3">
                             <div>
                               <div className="text-zinc-600 mb-0.5">Telegram Username</div>
-                              <div className="text-zinc-300">{s.telegram_username || '—'}</div>
+                              <div className="text-zinc-300 flex items-center gap-1.5">{s.telegram_username || '—'}{s.telegram_username && <button onClick={() => copyText(s.telegram_username)} className="text-zinc-600 hover:text-zinc-300" title="Copy Telegram"><Copy size={10} /></button>}</div>
                             </div>
                             <div>
                               <div className="text-zinc-600 mb-0.5">Amount Paid</div>

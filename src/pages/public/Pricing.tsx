@@ -7,47 +7,49 @@ import { CheckCircle, ArrowRight, Lock, MessageCircle, Zap } from 'lucide-react'
 
 const STATIC_PACKAGES: Package[] = [
   {
-    id: 'free_preview', name: 'Free Preview', slug: 'free_preview', price: 0, currency: 'USD',
+    id: 'free_preview', name: 'Free Preview', slug: 'free_preview', price: 0, price_kes: 0, currency: 'KES', billing_period: 'preview',
     duration_days: 7, active: true, telegram_access_required: false, sort_order: 0,
-    description: 'One week free access to see HashiBot signals in action.',
-    features: ['7-day free access', 'Signal dashboard (read-only)', 'View live crypto signals', 'No Telegram delivery', 'Upgrade to unlock alerts'],
+    description: 'Preview the customer dashboard and submit Telegram details before paid access.',
+    features: ['Dashboard preview', 'Submit Telegram details', 'Manual upgrade path', 'No full active signal details'],
     created_at: '', updated_at: '',
   },
   {
-    id: 'crypto_signal_room', name: 'Crypto Signal Room', slug: 'crypto_signal_room', price: 29, currency: 'USD',
+    id: 'crypto_signal_room', name: 'Crypto Signal Room', slug: 'crypto_signal_room', price: 5000, price_kes: 5000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 1,
-    description: 'Monthly access to the live crypto signal room with Telegram delivery.',
-    features: ['30-day rolling access', 'Live BTC, ETH, SOL and 7+ more', 'A and A+ grade signals', 'Telegram group alerts', 'Signal dashboard & history', 'Entry zone, SL, TP1, TP2'],
+    description: 'Monthly access to live crypto Signal Mode, history, risk guidance, and manual Telegram onboarding.',
+    features: ['30-day rolling access', 'Live crypto Signal Mode', 'Active signals and details', 'Telegram Signal Room after approval', 'Signal dashboard & history', 'Risk/leverage guidance'],
     created_at: '', updated_at: '',
   },
   {
-    id: 'premium_crypto_signals', name: 'Premium Crypto Signals', slug: 'premium_crypto_signals', price: 49, currency: 'USD',
+    id: 'premium_crypto_signals', name: 'Premium Crypto Signals', slug: 'premium_crypto_signals', price: 0, currency: 'KES', billing_period: 'contact admin',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 2,
-    description: 'Premium plan with all markets, priority alerts, and full analytics.',
-    features: ['Everything in Crypto Signal Room', '20 crypto markets', 'Regime & confidence scoring', 'Priority Telegram alerts', 'Full signal history and analytics', 'Early access to new features'],
+    description: 'Placeholder premium crypto package. Contact admin for availability and pricing.',
+    features: ['Contact admin for pricing', 'Expanded crypto coverage planned', 'Full signal history and analytics', 'No guaranteed profit claims'],
     created_at: '', updated_at: '',
   },
   {
-    id: 'personal_mode_setup', name: 'Personal Mode Setup', slug: 'personal_mode_setup', price: 149, currency: 'USD',
+    id: 'personal_mode_setup', name: 'Personal Mode Setup', slug: 'personal_mode_setup', price: 0, currency: 'KES', billing_period: 'coming soon',
     duration_days: null, active: false, telegram_access_required: false, sort_order: 3,
-    description: 'One-time setup of the Personal EA for MT5 auto-execution (coming soon).',
-    features: ['MT5 auto-execution (coming soon)', 'Custom risk configuration', 'Personal account only', 'Setup & onboarding call', 'Ongoing signal delivery'],
+    description: 'Coming soon setup waitlist. Execution is not live and no orders are placed.',
+    features: ['Coming soon', 'Setup waitlist only', 'Execution is not live', 'No order placement'],
     created_at: '', updated_at: '',
   },
   {
-    id: 'prop_mode_setup', name: 'Prop Mode Setup', slug: 'prop_mode_setup', price: 199, currency: 'USD',
+    id: 'prop_mode_setup', name: 'Prop Mode Setup', slug: 'prop_mode_setup', price: 0, currency: 'KES', billing_period: 'coming soon',
     duration_days: null, active: false, telegram_access_required: false, sort_order: 4,
-    description: 'One-time setup of the Prop EA for funded account trading (coming soon).',
-    features: ['Built for funded accounts (coming soon)', 'FTMO & MyFundedFX support', 'Drawdown-aware position sizing', 'Conservative regime filters', 'Setup & onboarding call'],
+    description: 'Coming soon setup waitlist. Prop execution is not live and no orders are placed.',
+    features: ['Coming soon', 'Setup waitlist only', 'Execution is not live', 'No order placement'],
     created_at: '', updated_at: '',
   },
 ];
 
 function priceLabel(pkg: Package) {
-  if (pkg.price === 0) return { main: 'Free', period: pkg.duration_days ? `${pkg.duration_days}-day trial` : '' };
   if (!pkg.active) return { main: 'Coming Soon', period: '' };
-  const period = pkg.duration_days ? `/month` : ' one-time';
-  return { main: `$${pkg.price}`, period };
+  if (pkg.slug === 'premium_crypto_signals') return { main: 'Contact admin', period: '' };
+  if (pkg.price === 0) return { main: 'Free', period: pkg.duration_days ? `${pkg.duration_days}-day preview` : '' };
+  const amount = pkg.price_kes ?? pkg.price;
+  const period = pkg.billing_period === 'monthly' || pkg.duration_days === 30 ? `/month` : '';
+  return { main: pkg.currency === 'KES' ? `${Number(amount).toLocaleString()} KES` : `${pkg.currency} ${Number(amount).toLocaleString()}`, period };
 }
 
 export default function Pricing() {
@@ -77,7 +79,7 @@ export default function Pricing() {
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
         <p className="text-zinc-400 max-w-lg mx-auto text-sm leading-relaxed">
-          Access HashiBot's live crypto signal engine. No hidden fees. Admin activates access after payment confirmation.
+          Access HashiBot's live crypto Signal Mode. Crypto Signal Room starts at 5,000 KES/month, with admin activation after manual payment confirmation.
         </p>
       </section>
 
@@ -125,7 +127,7 @@ export default function Pricing() {
 
                   <Link to="/register"
                     className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${isHighlight ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white'}`}>
-                    {pkg.price === 0 ? 'Start Free Trial' : 'Get Access'} <ArrowRight size={14} />
+                    {pkg.price === 0 ? 'Contact Admin' : 'Get Access'} <ArrowRight size={14} />
                   </Link>
                 </div>
               </div>
