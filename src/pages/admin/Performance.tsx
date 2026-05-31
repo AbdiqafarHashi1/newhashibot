@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
-import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2 } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,6 +87,11 @@ interface Filters {
   outcome: string;
 }
 
+interface ResetCountRow {
+  table_name: string;
+  deleted_count: number;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmtR(n: number | null | undefined) {
@@ -113,6 +118,8 @@ function fmtDuration(mins: number | null | undefined) {
   if (mins < 1440) return `${(mins / 60).toFixed(1)}h`;
   return `${(mins / 1440).toFixed(1)}d`;
 }
+
+const RESET_CONFIRMATION_TEXT = 'RESET TRADING HISTORY';
 
 const OUTCOME_COLORS: Record<string, string> = {
   WIN: 'text-emerald-400',
@@ -166,6 +173,10 @@ export default function Performance() {
   const [strategies, setStrategies] = useState<StrategyRow[]>([]);
   const [signals, setSignals] = useState<SignalAnalyticsRow[]>([]);
   const [filters, setFilters] = useState<Filters>({ market: 'crypto', strategy: '', symbol: '', timeframe: '', direction: '', grade: '', outcome: '' });
+  const [resetInput, setResetInput] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string } | null>(null);
 
   // Dynamic filter options derived from loaded data
   const [filterOpts, setFilterOpts] = useState<{ strategies: string[]; symbols: string[]; timeframes: string[]; directions: string[]; grades: string[] }>({
@@ -219,6 +230,28 @@ export default function Performance() {
     setFilters(f => ({ ...f, [key]: val }));
   }
 
+  async function handleResetTradingHistory() {
+    if (resetInput !== RESET_CONFIRMATION_TEXT || resetting) return;
+
+    setResetting(true);
+    setResetError('');
+    try {
+      const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history');
+      if (rpcError) throw new Error(rpcError.message);
+
+      setResetResult({
+        rows: (data ?? []) as ResetCountRow[],
+        timestamp: new Date().toISOString(),
+      });
+      setResetInput('');
+      await load();
+    } catch (e) {
+      setResetError(e instanceof Error ? e.message : 'Failed to reset trading history');
+    } finally {
+      setResetting(false);
+    }
+  }
+
   // Apply filters to signals table
   const filteredSignals = signals.filter(s => {
     if (filters.market && s.market_type !== filters.market) return false;
@@ -232,6 +265,9 @@ export default function Performance() {
   });
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const hasTrackedSignals = signals.length > 0;
+  const hasClosedSignals = (summary?.closed_trades ?? 0) > 0;
+  const showBaselineEmptyState = !loading && !hasTrackedSignals && activeFilterCount === 1 && Boolean(filters.market);
 
   return (
     <AdminLayout>
@@ -260,6 +296,55 @@ export default function Performance() {
         </div>
       )}
 
+      {/* ── Reset Danger Zone ── */}
+      <section className="mb-8 bg-red-950/20 border border-red-900/60 rounded-xl p-4">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <h2 className="text-sm font-semibold text-red-300 uppercase tracking-wider flex items-center gap-2">
+              <AlertTriangle size={16} /> Danger Zone
+            </h2>
+            <h3 className="text-base font-semibold text-zinc-100 mt-2">Reset trading history</h3>
+            <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
+              This clears old signals, candidates, outcomes, and linked performance history only. It does not delete symbols,
+              strategy configs, scanner settings, users, packages, or access records. New signals will populate this page
+              normally after scanner runs.
+            </p>
+            <p className="text-xs text-zinc-500 mt-3">
+              Type <span className="font-mono text-red-200">{RESET_CONFIRMATION_TEXT}</span> to enable this manual reset.
+            </p>
+          </div>
+          <div className="w-full lg:w-80 space-y-2">
+            <input
+              value={resetInput}
+              onChange={e => setResetInput(e.target.value)}
+              placeholder={RESET_CONFIRMATION_TEXT}
+              className="w-full bg-zinc-950 border border-zinc-700 focus:border-red-500 text-zinc-100 text-xs rounded-lg px-3 py-2 outline-none"
+              disabled={resetting}
+            />
+            <button
+              onClick={handleResetTradingHistory}
+              disabled={resetInput !== RESET_CONFIRMATION_TEXT || resetting}
+              className="w-full inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+            >
+              {resetting && <RefreshCw size={12} className="animate-spin" />}
+              Reset trading history
+            </button>
+            {resetError && <div className="text-xs text-red-300 bg-red-950/50 border border-red-900/50 rounded-lg px-3 py-2">{resetError}</div>}
+            {resetResult && (
+              <div className="text-xs text-zinc-400 bg-zinc-950/70 border border-zinc-800 rounded-lg px-3 py-2 space-y-1">
+                <div className="font-medium text-emerald-300">Reset completed at {new Date(resetResult.timestamp).toLocaleString()}.</div>
+                {resetResult.rows.map(row => (
+                  <div key={row.table_name} className="flex justify-between gap-3">
+                    <span className="font-mono">{row.table_name}</span>
+                    <span>{row.deleted_count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {loading && !summary && (
         <div className="flex items-center justify-center py-20">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -267,7 +352,7 @@ export default function Performance() {
       )}
 
       {/* ── Overall Performance Cards ── */}
-      {summary && (
+      {summary && hasClosedSignals && (
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Overall Performance</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-3">
@@ -292,9 +377,20 @@ export default function Performance() {
         </section>
       )}
 
+      {summary && !hasClosedSignals && hasTrackedSignals && (
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Overall Performance</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <StatCard label="Total Signals" value={summary.total_signals} sub={`${summary.open_trades} open · 0 closed`} />
+            <StatCard label="Closed Trades" value="0" sub="Performance metrics begin after outcomes close." />
+            <StatCard label="Open Trades" value={summary.open_trades} sub="Awaiting TP/SL/expiry outcomes." />
+          </div>
+        </section>
+      )}
+
       {!loading && !summary && (
         <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
-          No REAL DATA signals tracked for this market yet. Run the scanner to generate signals.
+          No tracked signals in this baseline yet. Run the scanner to begin collecting fresh results.
         </div>
       )}
 
@@ -399,7 +495,7 @@ export default function Performance() {
           </div>
         ) : filteredSignals.length === 0 ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
-            {activeFilterCount > 0 ? 'No signals match the current filters.' : 'No REAL DATA signals found for this market.'}
+            {activeFilterCount > 0 && !showBaselineEmptyState ? 'No signals match the current filters.' : 'No tracked signals in this baseline yet. Run the scanner to begin collecting fresh results.'}
           </div>
         ) : (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
