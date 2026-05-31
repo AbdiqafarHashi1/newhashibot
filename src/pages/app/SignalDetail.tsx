@@ -2,21 +2,31 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { supabase } from '../../lib/supabase';
-import { Signal } from '../../lib/types';
+import { CustomerSubscription, Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Lock, MessageCircle } from 'lucide-react';
 import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
+import { useAuth } from '../../contexts/AuthContext';
+import { accessStateDescription, accessStateLabel, getCustomerAccessState, hasFullSignalAccess } from '../../lib/customerAccess';
 
 export default function SignalDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [signal, setSignal] = useState<Signal | null>(null);
+  const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
-    supabase.from('signals').select('*').eq('id', id).maybeSingle()
-      .then(({ data }) => { setSignal(data); setLoading(false); });
-  }, [id]);
+    if (!id || !user) return;
+    Promise.all([
+      supabase.from('signals').select('*').eq('id', id).maybeSingle(),
+      supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+    ]).then(([signalRes, subRes]) => {
+      setSignal(signalRes.data);
+      setSub(subRes.data ?? null);
+      setLoading(false);
+    });
+  }, [id, user]);
 
   if (loading) return (
     <AppLayout>
@@ -33,6 +43,34 @@ export default function SignalDetail() {
   );
 
   const isRealData = signal.data_source === 'REAL DATA';
+  const accessState = getCustomerAccessState(sub);
+  const hasAccess = hasFullSignalAccess(sub);
+
+  if (!hasAccess) return (
+    <AppLayout>
+      <div className="mb-6">
+        <Link to="/app/signals" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-100 mb-4 transition-colors">
+          <ArrowLeft size={14} /> Back to Signals
+        </Link>
+        <h1 className="text-2xl font-bold">Signal details locked</h1>
+      </div>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center max-w-xl">
+        <Lock size={28} className="text-zinc-700 mx-auto mb-3" />
+        <div className="flex items-center gap-2 justify-center mb-2">
+          <span className="font-mono font-semibold">{signal.symbol}</span>
+          {directionBadge(signal.direction)}
+          {gradeBadge(signal.grade)}
+          {statusBadge(signal.status)}
+        </div>
+        <div className="text-sm font-semibold mb-1">{accessStateLabel(accessState)}</div>
+        <p className="text-sm text-zinc-500 mb-5">{accessStateDescription(accessState)}</p>
+        <div className="flex gap-2 justify-center flex-wrap">
+          <Link to="/pricing" className="bg-sky-600 hover:bg-sky-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Renew / Choose package</Link>
+          <Link to="/app/telegram" className="inline-flex items-center gap-1.5 border border-zinc-700 text-zinc-300 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors"><MessageCircle size={13} /> Submit Telegram</Link>
+        </div>
+      </div>
+    </AppLayout>
+  );
 
   return (
     <AppLayout>
