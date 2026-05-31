@@ -30,7 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
       <aside className={`fixed inset-y-0 left-0 z-40 w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col transition-transform duration-200 ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="h-16 flex items-center px-5 border-b border-zinc-800">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/app/dashboard" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
               <Zap size={14} className="text-white" />
             </div>

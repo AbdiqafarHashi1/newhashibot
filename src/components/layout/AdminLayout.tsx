@@ -72,7 +72,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex overflow-x-hidden">
       <aside className={`fixed inset-y-0 left-0 z-40 w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col transition-transform duration-200 ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="h-14 flex items-center px-5 border-b border-zinc-800 gap-2 shrink-0">
+        <Link to="/admin/control-room" className="h-14 flex items-center px-5 border-b border-zinc-800 gap-2 shrink-0 hover:bg-zinc-800/40 transition-colors">
           <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
             <Zap size={14} className="text-white" />
           </div>
@@ -80,7 +80,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             <div className="text-sm font-bold leading-none">HashiBot</div>
             <div className="text-xs text-zinc-500 leading-none mt-0.5">Operator Panel</div>
           </div>
-        </div>
+        </Link>
 
         <nav ref={navRef} className="flex-1 px-3 py-3 flex flex-col gap-0.5 overflow-y-auto">
           {adminNav.map((item, i) => {
