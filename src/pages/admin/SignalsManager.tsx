@@ -4,6 +4,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
+import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
 import { useAuth } from '../../contexts/AuthContext';
 import { Send, RefreshCw, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
@@ -410,6 +411,9 @@ export default function SignalsManager() {
                         <div><span className="text-zinc-600">Reason:</span> <span className="text-zinc-400">{sig.reason || '—'}</span></div>
                         <div><span className="text-zinc-600">Invalidation:</span> <span className="text-zinc-400">{sig.invalidation || '—'}</span></div>
                         <div><span className="text-zinc-600">Updated:</span> <span className="text-zinc-400">{new Date(sig.updated_at).toLocaleString()}</span></div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <RiskGuidanceDetail signal={sig} admin />
                       </div>
                       {arb && (
                         <div className="space-y-1">

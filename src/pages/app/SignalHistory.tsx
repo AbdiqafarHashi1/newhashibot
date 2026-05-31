@@ -69,6 +69,7 @@ export default function SignalHistory() {
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Source</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">R/R</th>
+                <th className="text-left px-4 py-3">Guidance</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Strategy</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Date</th>
               </tr>
@@ -90,6 +91,14 @@ export default function SignalHistory() {
                     <td className="px-4 py-3">{statusBadge(sig.status)}</td>
                     <td className="px-4 py-3 text-zinc-500 capitalize hidden sm:table-cell">{sig.source}</td>
                     <td className="px-4 py-3 text-zinc-400 hidden md:table-cell">{sig.risk_reward}R</td>
+                    <td className="px-4 py-3 text-xs text-zinc-400">
+                      {sig.recommended_risk_pct != null && sig.suggested_leverage_min != null && sig.suggested_leverage_max != null ? (
+                        <div>
+                          <div>{Number(sig.recommended_risk_pct).toFixed(2)}% risk</div>
+                          <div className="text-zinc-600">{Number(sig.suggested_leverage_min).toFixed(0)}x–{Number(sig.suggested_leverage_max).toFixed(0)}x · guidance only</div>
+                        </div>
+                      ) : '—'}
+                    </td>
                     <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell">{sig.strategy_name}</td>
                     <td className="px-4 py-3 text-zinc-600 hidden lg:table-cell">{new Date(sig.created_at).toLocaleDateString()}</td>
                   </tr>

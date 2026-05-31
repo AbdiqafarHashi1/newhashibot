@@ -157,6 +157,17 @@ export interface Signal {
   risk_profile_snapshot: Record<string, unknown> | null;
   paper_execution_intent_id: string | null;
   data_source: string | null;
+  capital_mode: string | null;
+  risk_profile: string | null;
+  strategy_risk_class: string | null;
+  recommended_risk_pct: number | null;
+  suggested_leverage_min: number | null;
+  suggested_leverage_max: number | null;
+  leverage_cap: number | null;
+  position_sizing_note: string | null;
+  strategy_specific_warning: string | null;
+  risk_warning: string | null;
+  recommendation_source: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -314,8 +325,14 @@ export interface StrategyConfig {
   market_type: string;
   allowed_symbols: string[];
   allowed_timeframes: string[];
+  signal_style: string;
+  risk_mode: string;
   min_score: number;
   min_rr: number;
+  min_stop_distance_pct: number;
+  min_tp1_distance_pct: number;
+  min_tp2_distance_pct: number;
+  max_bars_in_trade: number;
   max_active_signals: number;
   one_active_signal_per_symbol: boolean;
   params: Record<string, number>;
