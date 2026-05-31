@@ -1,6 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Zap } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -15,6 +16,80 @@ export function PublicLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const loc = useLocation();
+  const nav = useNavigate();
+  const { session, loading, isAdmin, signOut } = useAuth();
+  const isLoggedIn = Boolean(session);
+
+  async function handleSignOut() {
+    await signOut();
+    setOpen(false);
+    nav('/');
+  }
+
+  const accountLinks = loading ? null : isLoggedIn ? (
+    <>
+      {isAdmin ? (
+        <Link to="/admin/control-room" className="text-sm text-orange-300 hover:text-orange-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-orange-500/10">
+          Admin Panel
+        </Link>
+      ) : (
+        <Link to="/app/dashboard" className="text-sm text-zinc-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
+          Dashboard
+        </Link>
+      )}
+      <Link to="/app/account" className="text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
+        Account
+      </Link>
+      <button onClick={handleSignOut} className="text-sm text-zinc-400 hover:text-red-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
+        Sign Out
+      </button>
+    </>
+  ) : (
+    <>
+      <Link to="/login" className="text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
+        Login
+      </Link>
+      <Link
+        to="/register"
+        className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg shadow-blue-600/20"
+      >
+        Get Access
+      </Link>
+    </>
+  );
+
+  const mobileAccountLinks = loading ? null : isLoggedIn ? (
+    <>
+      {isAdmin ? (
+        <Link to="/admin/control-room" onClick={() => setOpen(false)} className="text-sm text-orange-300 hover:text-orange-200 py-2 px-3 rounded-lg hover:bg-orange-500/10 transition-colors">
+          Admin Panel
+        </Link>
+      ) : (
+        <Link to="/app/dashboard" onClick={() => setOpen(false)} className="text-sm text-zinc-300 hover:text-white py-2 px-3 rounded-lg hover:bg-zinc-800/60 transition-colors">
+          Dashboard
+        </Link>
+      )}
+      <Link to="/app/account" onClick={() => setOpen(false)} className="text-sm text-zinc-400 hover:text-white py-2 px-3 rounded-lg hover:bg-zinc-800/60 transition-colors">
+        Account
+      </Link>
+      <button onClick={handleSignOut} className="text-left text-sm text-zinc-400 hover:text-red-300 py-2 px-3 rounded-lg hover:bg-zinc-800/60 transition-colors">
+        Sign Out
+      </button>
+    </>
+  ) : (
+    <>
+      <Link to="/login" onClick={() => setOpen(false)} className="text-sm text-zinc-400 hover:text-white py-2 px-3 rounded-lg hover:bg-zinc-800/60 transition-colors">
+        Login
+      </Link>
+      <Link
+        to="/register"
+        onClick={() => setOpen(false)}
+        className="text-sm bg-blue-600 text-white px-4 py-2.5 rounded-lg text-center font-medium"
+      >
+        Get Access
+      </Link>
+    </>
+  );
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -50,15 +125,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg shadow-blue-600/20"
-            >
-              Get Access
-            </Link>
+            {accountLinks}
           </div>
 
           <button onClick={() => setOpen(!open)} className="md:hidden text-zinc-400 hover:text-white p-1">
@@ -81,16 +148,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
               </Link>
             ))}
             <div className="pt-3 mt-1 border-t border-zinc-800 flex flex-col gap-2">
-              <Link to="/login" onClick={() => setOpen(false)} className="text-sm text-zinc-400 hover:text-white py-2 px-3 rounded-lg hover:bg-zinc-800/60 transition-colors">
-                Login
-              </Link>
-              <Link
-                to="/register"
-                onClick={() => setOpen(false)}
-                className="text-sm bg-blue-600 text-white px-4 py-2.5 rounded-lg text-center font-medium"
-              >
-                Get Access
-              </Link>
+              {mobileAccountLinks}
             </div>
           </div>
         )}
@@ -127,7 +185,13 @@ export function PublicLayout({ children }: { children: ReactNode }) {
               <div className="space-y-2">
                 <Link to="/results" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Results</Link>
                 <Link to="/faq" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">FAQ</Link>
-                <Link to="/login" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Login</Link>
+                {isLoggedIn ? (
+                  <Link to={isAdmin ? '/admin/control-room' : '/app/dashboard'} className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
+                    {isAdmin ? 'Admin Panel' : 'Dashboard'}
+                  </Link>
+                ) : (
+                  <Link to="/login" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Login</Link>
+                )}
               </div>
             </div>
           </div>
