@@ -7,6 +7,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+
+function titleCaseMode(value: unknown): string {
+  return String(value ?? "signal_mode")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function formatRiskGuidanceLines(signal: Record<string, unknown>): string[] {
+  const riskPct = Number(signal.recommended_risk_pct);
+  const levMin = Number(signal.suggested_leverage_min);
+  const levMax = Number(signal.suggested_leverage_max);
+  const cap = Number(signal.leverage_cap);
+  if (!Number.isFinite(riskPct) || !Number.isFinite(levMin) || !Number.isFinite(levMax)) return [];
+  return [
+    `*Risk Guidance:*`,
+    `• Capital Mode: ${titleCaseMode(signal.capital_mode ?? signal.mode_slug ?? "signal_mode")}`,
+    `• Risk Profile: ${titleCaseMode(signal.risk_profile ?? "balanced")}`,
+    `• Suggested Risk: ${riskPct.toFixed(2)}% of account`,
+    `• Suggested Leverage: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x`,
+    Number.isFinite(cap) ? `• Max Leverage Cap: ${cap.toFixed(0)}x` : null,
+    signal.strategy_specific_warning ? `• Note: ${signal.strategy_specific_warning}` : null,
+    `• Warning: ${signal.risk_warning || "Signal only. Manage risk. Not financial advice."}`,
+  ].filter(Boolean) as string[];
+}
+
 function formatSignalMessage(signal: Record<string, unknown>): string {
   const gradeEmoji = signal.grade === "A+" ? "⭐⭐⭐" : signal.grade === "A" ? "⭐⭐" : "⭐";
   const dirEmoji = signal.direction === "buy" ? "🟢 BUY" : "🔴 SELL";
@@ -34,6 +59,9 @@ function formatSignalMessage(signal: Record<string, unknown>): string {
     `*Reason:* ${signal.reason}`,
     `*Invalidation:* ${signal.invalidation}`,
     `*Status:* ${String(signal.status).toUpperCase()}`,
+    ``,
+    ...formatRiskGuidanceLines(signal),
+    ``,
     `*Timestamp:* ${new Date().toISOString()}`,
     ``,
     `_Signal Mode only. Not financial advice._`,

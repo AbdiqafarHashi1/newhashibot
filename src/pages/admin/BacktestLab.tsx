@@ -60,25 +60,27 @@ interface ParamSet {
   ema_fast: number; ema_slow: number; rsi_len: number; atr_len: number;
   rsi_buy_min: number; rsi_sell_max: number;
   stop_atr_mult: number; tp1_r: number; tp2_r: number;
+  min_atr_pct: number; max_atr_pct: number; min_body_atr: number; momentum_lookback: number;
   box_lookback: number; min_box_bars: number; max_box_atr_range: number;
+  atr_expansion_lookback: number; min_atr_expansion: number;
   breakout_buffer_atr: number; pullback_bars: number;
 }
 
 const DEFAULTS: Record<Strategy, Record<Mode, ParamSet>> = {
   MicroScalper: {
-    conservative: { min_score: 78, min_rr: 1.4, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.45, max_bars_in_trade: 20, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 55, rsi_sell_max: 45, stop_atr_mult: 1.5, tp1_r: 1.3, tp2_r: 2.0, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
-    balanced:     { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.18, min_tp1_distance_pct: 0.25, min_tp2_distance_pct: 0.40, max_bars_in_trade: 24, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.2, tp2_r: 1.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
-    aggressive:   { min_score: 68, min_rr: 1.0, min_stop_distance_pct: 0.15, min_tp1_distance_pct: 0.20, min_tp2_distance_pct: 0.32, max_bars_in_trade: 30, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.2, tp1_r: 1.0, tp2_r: 1.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    conservative: { min_score: 78, min_rr: 1.4, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.45, max_bars_in_trade: 20, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 55, rsi_sell_max: 45, stop_atr_mult: 1.5, tp1_r: 1.3, tp2_r: 2.0, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    balanced:     { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.18, min_tp1_distance_pct: 0.25, min_tp2_distance_pct: 0.40, max_bars_in_trade: 24, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.2, tp2_r: 1.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    aggressive:   { min_score: 68, min_rr: 1.0, min_stop_distance_pct: 0.15, min_tp1_distance_pct: 0.20, min_tp2_distance_pct: 0.32, max_bars_in_trade: 30, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.2, tp1_r: 1.0, tp2_r: 1.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
   },
   CompressionBreakout: {
-    conservative: { min_score: 80, min_rr: 1.6, min_stop_distance_pct: 0.30, min_tp1_distance_pct: 0.40, min_tp2_distance_pct: 0.70, max_bars_in_trade: 40, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.5, tp1_r: 1.4, tp2_r: 2.8, box_lookback: 60, min_box_bars: 16, max_box_atr_range: 1.6, breakout_buffer_atr: 0.14, pullback_bars: 5 },
-    balanced:     { min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
-    aggressive:   { min_score: 68, min_rr: 1.1, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.50, max_bars_in_trade: 60, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.3, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 40, min_box_bars: 12, max_box_atr_range: 2.0, breakout_buffer_atr: 0.10, pullback_bars: 5 },
+    conservative: { min_score: 80, min_rr: 1.6, min_stop_distance_pct: 0.30, min_tp1_distance_pct: 0.40, min_tp2_distance_pct: 0.70, max_bars_in_trade: 40, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.5, tp1_r: 1.4, tp2_r: 2.8, box_lookback: 60, min_box_bars: 16, max_box_atr_range: 1.6, atr_expansion_lookback: 48, min_atr_expansion: 1.2, breakout_buffer_atr: 0.14, pullback_bars: 5 },
+    balanced:     { min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    aggressive:   { min_score: 68, min_rr: 1.1, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.50, max_bars_in_trade: 60, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.3, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 40, min_box_bars: 12, max_box_atr_range: 2.0, atr_expansion_lookback: 48, min_atr_expansion: 1.05, breakout_buffer_atr: 0.10, pullback_bars: 5 },
   },
   SwingContinuation: {
-    conservative: { min_score: 80, min_rr: 1.8, min_stop_distance_pct: 0.50, min_tp1_distance_pct: 0.80, min_tp2_distance_pct: 1.30, max_bars_in_trade: 80, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.8, tp1_r: 1.7, tp2_r: 2.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 4 },
-    balanced:     { min_score: 76, min_rr: 1.5, min_stop_distance_pct: 0.45, min_tp1_distance_pct: 0.70, min_tp2_distance_pct: 1.20, max_bars_in_trade: 96, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.6, tp1_r: 1.5, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 5 },
-    aggressive:   { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.35, min_tp1_distance_pct: 0.55, min_tp2_distance_pct: 0.95, max_bars_in_trade: 120, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 48, rsi_sell_max: 52, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.2, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, breakout_buffer_atr: 0.12, pullback_bars: 6 },
+    conservative: { min_score: 80, min_rr: 1.8, min_stop_distance_pct: 0.50, min_tp1_distance_pct: 0.80, min_tp2_distance_pct: 1.30, max_bars_in_trade: 80, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.8, tp1_r: 1.7, tp2_r: 2.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 4 },
+    balanced:     { min_score: 76, min_rr: 1.5, min_stop_distance_pct: 0.45, min_tp1_distance_pct: 0.70, min_tp2_distance_pct: 1.20, max_bars_in_trade: 96, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.6, tp1_r: 1.5, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    aggressive:   { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.35, min_tp1_distance_pct: 0.55, min_tp2_distance_pct: 0.95, max_bars_in_trade: 120, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 48, rsi_sell_max: 52, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.2, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 6 },
   },
 };
 
@@ -170,7 +172,7 @@ function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const atrPct = price > 0 ? (atr / price) * 100 : 0;
   const bodyRatio = atr > 0 ? Math.abs(last.close - last.open) / atr : 0;
 
-  if (atrPct < 0.10 || atrPct > 3.0 || bodyRatio < 0.30) return FAIL();
+  if (atrPct < p.min_atr_pct || atrPct > p.max_atr_pct || bodyRatio < p.min_body_atr) return FAIL();
 
   const olderHi = window.length > 50 ? Math.max(...window.slice(-50, -20).map(c => c.high)) : Math.max(...window.slice(-20).map(c => c.high));
   const olderLo = window.length > 50 ? Math.min(...window.slice(-50, -20).map(c => c.low))  : Math.min(...window.slice(-20).map(c => c.low));
@@ -178,7 +180,7 @@ function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const recentLo = Math.min(...window.slice(-20).map(c => c.low));
   const rcr = (olderHi - olderLo) > 0 ? (recentHi - recentLo) / (olderHi - olderLo) : 1;
   const reg = regime(ema20, ema50, rsi, rcr, atrPct);
-  const mom = momentumScore(closes, 3);
+  const mom = momentumScore(closes, p.momentum_lookback);
 
   let score = 50, direction: 'buy' | 'sell' | null = null;
   if (ema20 > ema50 && rsi >= p.rsi_buy_min && price > ema20) {
@@ -240,15 +242,15 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const dn = last.close < boxLow  - buf && last.close < last.open;
   if (!up && !dn) return FAIL();
 
-  const hist = window.slice(-(49), -1);
+  const hist = window.slice(-(p.atr_expansion_lookback + 1), -1);
   const avgRange = hist.reduce((s, c) => s + (c.high - c.low), 0) / (hist.length || 1);
   const expansion = avgRange > 0 ? (last.high - last.low) / avgRange : 1;
-  if (expansion < 1.1) return FAIL();
+  if (expansion < p.min_atr_expansion) return FAIL();
 
   const brkDist = up ? last.close - boxHigh : boxLow - last.close;
   if (brkDist < buf * 0.6) return FAIL();
 
-  const mom = momentumScore(closes, 3);
+  const mom = momentumScore(closes, p.momentum_lookback);
   if (up && mom < 0) return FAIL();
   if (dn && mom > 0) return FAIL();
 
@@ -284,7 +286,7 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const atr = calcATR(window, p.atr_len); const rsi = calcRSI(closes, p.rsi_len);
   const last = window[window.length - 1]; const price = last.close;
   const atrPct = price > 0 ? (atr / price) * 100 : 0;
-  if (atrPct < 0.15 || atrPct > 4.0) return FAIL();
+  if (atrPct < p.min_atr_pct || atrPct > p.max_atr_pct) return FAIL();
 
   const emaBull = ema20 > ema50 * 1.003; const emaBear = ema20 < ema50 * 0.997;
   if (!emaBull && !emaBear) return FAIL();
@@ -300,7 +302,7 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const pbWindow = window.slice(-(p.pullback_bars + 1), -1);
   const pbLow  = Math.min(...pbWindow.map(c => c.low));
   const pbHigh = Math.max(...pbWindow.map(c => c.high));
-  const mom = momentumScore(closes, 3);
+  const mom = momentumScore(closes, p.momentum_lookback);
 
   let score = 50, direction: 'buy' | 'sell' | null = null;
   if (emaBull && rsi >= p.rsi_buy_min && price > ema20) {

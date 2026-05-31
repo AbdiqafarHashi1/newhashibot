@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
 
 export default function SignalDetail() {
   const { id } = useParams();
@@ -87,6 +88,8 @@ export default function SignalDetail() {
             </div>
           </div>
         </div>
+
+        <RiskGuidanceDetail signal={signal} />
 
         {/* Signal details */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">

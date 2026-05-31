@@ -169,6 +169,7 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
   const min_body_atr = params.min_body_atr ?? 0.25, stop_atr_mult = params.stop_atr_mult ?? 1.2;
   const tp1_r = params.tp1_r ?? 0.9, tp2_r = params.tp2_r ?? 1.5;
   const min_rr = params.min_rr ?? 1.2, min_score = params.min_score ?? 75;
+  const momentum_lookback = Math.max(1, Math.floor(params.momentum_lookback ?? 3));
 
   const REJECTED = (r: string): EvalResult => ({ status: "rejected", direction: "", entry_low: 0, entry_high: 0, stop_loss: 0, tp1: 0, tp2: 0, risk_reward: 0, confidence_score: 0, grade: "reject", reason: "", rejection_reason: r, score_breakdown: {} });
 
@@ -180,6 +181,8 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
 
   const last = candles[candles.length - 1], prev = candles[candles.length - 2];
   const price = last.close;
+  const closes = candles.map((c) => c.close);
+  const momentumScore = calcMomentumScore(closes, momentum_lookback);
   const score_breakdown: Record<string, number> = { base: 50 };
   let score = 50, direction: "buy" | "sell" | null = null;
 
@@ -187,7 +190,7 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
     direction = "buy";
     score_breakdown["ema_bull"] = 15; score += 15;
     if (ind.regime === "trend_up") { score_breakdown["regime_bonus"] = 10; score += 10; }
-    if (ind.momentum_score > 0.2) { score_breakdown["momentum_ok"] = 8; score += 8; }
+    if (momentumScore > 0.2) { score_breakdown["momentum_ok"] = 8; score += 8; }
     else return REJECTED("momentum_too_weak");
     if (ind.rsi14 >= 58) { score_breakdown["rsi_strong"] = 8; score += 8; }
     else { score_breakdown["rsi_ok"] = 3; score += 3; }
@@ -198,7 +201,7 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
     direction = "sell";
     score_breakdown["ema_bear"] = 15; score += 15;
     if (ind.regime === "trend_down") { score_breakdown["regime_bonus"] = 10; score += 10; }
-    if (ind.momentum_score < -0.2) { score_breakdown["momentum_ok"] = 8; score += 8; }
+    if (momentumScore < -0.2) { score_breakdown["momentum_ok"] = 8; score += 8; }
     else return REJECTED("momentum_too_weak");
     if (ind.rsi14 <= 42) { score_breakdown["rsi_strong"] = 8; score += 8; }
     else { score_breakdown["rsi_ok"] = 3; score += 3; }
@@ -206,7 +209,7 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
     if (last.close < last.open) { score_breakdown["bear_candle"] = 5; score += 5; }
     else { score_breakdown["mixed_candle"] = -3; score -= 3; }
   } else {
-    if (ind.momentum_score === 0) return REJECTED("momentum_too_weak");
+    if (momentumScore === 0) return REJECTED("momentum_too_weak");
     return REJECTED("rsi_not_confirmed");
   }
 
@@ -646,6 +649,223 @@ function runRiskCheck(rp: RiskProfile, state: RiskState, modeSlug: string): { pa
     if (minsAgo < rp.cooldown_minutes_after_loss) return { passed: false, reason: `cooldown_active_${Math.ceil(rp.cooldown_minutes_after_loss - minsAgo)}min_remaining`, daily_lock: false, cooldown: true };
   }
   return { passed: true, reason: "", daily_lock: false, cooldown: false };
+}
+
+
+interface RiskLeverageRecommendation {
+  capital_mode: string;
+  risk_profile: string;
+  strategy_risk_class: string;
+  recommended_risk_pct: number;
+  suggested_leverage_min: number;
+  suggested_leverage_max: number;
+  leverage_cap: number;
+  position_sizing_note: string;
+  strategy_specific_warning: string;
+  risk_warning: string;
+  recommendation_source: string;
+}
+
+interface RiskLeverageSignalContext {
+  market_type: string;
+  strategy_name: string;
+  grade: string;
+  confidence_score: number;
+  risk_reward: number;
+  entry_low: number;
+  entry_high: number;
+  stop_loss: number;
+}
+
+type CapitalModeSlug = "signal_mode" | "personal_mode" | "prop_mode";
+type RiskProfileSlug = "conservative" | "balanced" | "aggressive";
+
+interface StrategyRiskRule {
+  riskClass: string;
+  signalRisk: Record<RiskProfileSlug, number>;
+  personalBase: [number, number];
+  personalAPlusMax: number;
+  propBase: [number, number];
+  propAPlusMax: number;
+  leverage: Record<CapitalModeSlug, { normal: [number, number]; aPlusMax: number }>;
+  warning: string;
+}
+
+const STRATEGY_RISK_RULES: Record<string, StrategyRiskRule> = {
+  MicroScalper: {
+    riskClass: "frequent_scalper",
+    signalRisk: { conservative: 0.25, balanced: 0.4, aggressive: 0.5 },
+    personalBase: [0.35, 0.5], personalAPlusMax: 0.75,
+    propBase: [0.15, 0.25], propAPlusMax: 0.3,
+    leverage: {
+      signal_mode: { normal: [2, 4], aPlusMax: 4 },
+      personal_mode: { normal: [3, 5], aPlusMax: 6 },
+      prop_mode: { normal: [1, 2], aPlusMax: 3 },
+    },
+    warning: "Frequent strategy. Avoid stacking multiple correlated signals.",
+  },
+  CompressionBreakout: {
+    riskClass: "expansion_breakout",
+    signalRisk: { conservative: 0.35, balanced: 0.5, aggressive: 0.75 },
+    personalBase: [0.5, 0.5], personalAPlusMax: 1.0,
+    propBase: [0.25, 0.25], propAPlusMax: 0.4,
+    leverage: {
+      signal_mode: { normal: [2, 5], aPlusMax: 5 },
+      personal_mode: { normal: [3, 5], aPlusMax: 8 },
+      prop_mode: { normal: [1, 2], aPlusMax: 4 },
+    },
+    warning: "Breakout/fakeout risk. Wait for clean invalidation and avoid chasing after entry zone.",
+  },
+  SwingContinuation: {
+    riskClass: "swing_continuation",
+    signalRisk: { conservative: 0.25, balanced: 0.4, aggressive: 0.6 },
+    personalBase: [0.35, 0.5], personalAPlusMax: 0.75,
+    propBase: [0.2, 0.3], propAPlusMax: 0.4,
+    leverage: {
+      signal_mode: { normal: [1, 3], aPlusMax: 3 },
+      personal_mode: { normal: [2, 4], aPlusMax: 5 },
+      prop_mode: { normal: [1, 2], aPlusMax: 3 },
+    },
+    warning: "Longer hold and wider stop. Avoid over-leverage.",
+  },
+  ForexMicroScalper: {
+    riskClass: "forex_conservative_scalper",
+    signalRisk: { conservative: 0.15, balanced: 0.25, aggressive: 0.35 },
+    personalBase: [0.25, 0.4], personalAPlusMax: 0.5,
+    propBase: [0.1, 0.2], propAPlusMax: 0.25,
+    leverage: {
+      signal_mode: { normal: [1, 3], aPlusMax: 3 },
+      personal_mode: { normal: [2, 4], aPlusMax: 5 },
+      prop_mode: { normal: [1, 2], aPlusMax: 3 },
+    },
+    warning: "Forex spread/session risk. Use lower risk until live results are proven.",
+  },
+  ForexSwingContinuation: {
+    riskClass: "forex_conservative_swing",
+    signalRisk: { conservative: 0.15, balanced: 0.25, aggressive: 0.35 },
+    personalBase: [0.25, 0.5], personalAPlusMax: 0.6,
+    propBase: [0.1, 0.25], propAPlusMax: 0.3,
+    leverage: {
+      signal_mode: { normal: [1, 3], aPlusMax: 3 },
+      personal_mode: { normal: [2, 4], aPlusMax: 5 },
+      prop_mode: { normal: [1, 2], aPlusMax: 3 },
+    },
+    warning: "Longer hold, session/news exposure, and spread risk. Keep leverage conservative.",
+  },
+};
+
+function normalizeCapitalMode(modeSlug: string | undefined): CapitalModeSlug {
+  return modeSlug === "personal_mode" || modeSlug === "prop_mode" ? modeSlug : "signal_mode";
+}
+
+function normalizeRiskProfile(raw: unknown): RiskProfileSlug {
+  const value = String(raw ?? "balanced").toLowerCase();
+  if (value === "conservative" || value === "aggressive") return value;
+  return "balanced";
+}
+
+function roundRecommendation(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function entryMidpoint(ctx: RiskLeverageSignalContext): number {
+  if (ctx.entry_low > 0 && ctx.entry_high > 0) return (ctx.entry_low + ctx.entry_high) / 2;
+  return ctx.entry_high > 0 ? ctx.entry_high : ctx.entry_low;
+}
+
+function buildRiskLeverageRecommendation(
+  signalContext: RiskLeverageSignalContext,
+  strategyConfig: StrategyConfig,
+  modeConfig?: ModeConfig,
+): RiskLeverageRecommendation {
+  const capitalMode = normalizeCapitalMode(modeConfig?.mode_slug ?? "signal_mode");
+  const marketType = String(signalContext.market_type ?? "crypto").toLowerCase();
+  const rule = STRATEGY_RISK_RULES[signalContext.strategy_name] ?? (marketType === "forex" ? STRATEGY_RISK_RULES.ForexSwingContinuation : STRATEGY_RISK_RULES.SwingContinuation);
+
+  let riskProfile = normalizeRiskProfile(strategyConfig.risk_mode);
+  if (capitalMode === "prop_mode") riskProfile = "conservative";
+  if (marketType === "forex" && riskProfile === "aggressive") riskProfile = "balanced";
+  if (signalContext.confidence_score < 80 && riskProfile === "aggressive") riskProfile = "balanced";
+  if (signalContext.risk_reward < 1.3) riskProfile = "conservative";
+
+  const hardRiskCap = capitalMode === "prop_mode" ? 0.4 : capitalMode === "personal_mode" ? 1.0 : 1.0;
+  const hardLeverageCap = capitalMode === "prop_mode" ? 4 : capitalMode === "personal_mode" ? 10 : (marketType === "forex" ? 3 : 6);
+  const canAPlusAdjust = signalContext.grade === "A+" && signalContext.confidence_score >= 85 && signalContext.risk_reward >= 1.3;
+
+  let riskPct = rule.signalRisk[riskProfile];
+  if (capitalMode === "personal_mode") {
+    riskPct = riskProfile === "conservative" ? rule.personalBase[0] : riskProfile === "balanced" ? rule.personalBase[1] : rule.personalAPlusMax;
+    if (canAPlusAdjust) riskPct = Math.min(rule.personalAPlusMax, riskPct + 0.1);
+  } else if (capitalMode === "prop_mode") {
+    riskPct = riskProfile === "conservative" ? rule.propBase[0] : riskProfile === "balanced" ? rule.propBase[1] : rule.propAPlusMax;
+    if (canAPlusAdjust) riskPct = Math.min(rule.propAPlusMax, riskPct + 0.05);
+  } else if (canAPlusAdjust && riskProfile !== "conservative") {
+    riskPct = Math.min(hardRiskCap, riskPct + 0.05);
+  }
+
+  const levRule = rule.leverage[capitalMode];
+  let leverageMin = levRule.normal[0];
+  let leverageMax = canAPlusAdjust ? Math.max(levRule.normal[1], levRule.aPlusMax) : levRule.normal[1];
+
+  const entry = entryMidpoint(signalContext);
+  const stopPct = entry > 0 ? Math.abs(entry - signalContext.stop_loss) / entry * 100 : 0;
+  const wideStopThreshold = marketType === "forex" ? 0.45 : signalContext.strategy_name.includes("Swing") ? 1.25 : 0.8;
+  const veryWideStopThreshold = marketType === "forex" ? 0.75 : signalContext.strategy_name.includes("Swing") ? 2.0 : 1.5;
+  const riskWarnings: string[] = ["Signal only. Manage risk. Not financial advice."];
+
+  if (marketType === "forex") {
+    leverageMax = Math.min(leverageMax, 3);
+    if (riskProfile === "aggressive") riskProfile = "balanced";
+    riskWarnings.push("Forex leverage guidance is intentionally conservative until more live results are available.");
+  }
+
+  if (stopPct >= veryWideStopThreshold) {
+    leverageMax = Math.min(leverageMax, Math.max(leverageMin, 2));
+    riskPct *= 0.75;
+    riskWarnings.push(`Wide stop distance (${stopPct.toFixed(2)}%) reduced leverage guidance.`);
+  } else if (stopPct >= wideStopThreshold) {
+    leverageMax = Math.max(leverageMin, leverageMax - 1);
+    riskWarnings.push(`Wider stop distance (${stopPct.toFixed(2)}%) keeps leverage guidance lower.`);
+  }
+
+  if (signalContext.confidence_score < 80) {
+    riskPct = Math.min(riskPct, rule.signalRisk[riskProfile === "conservative" ? "conservative" : "balanced"]);
+    leverageMax = Math.min(leverageMax, levRule.normal[1]);
+    riskWarnings.push("Confidence below 80 prevents aggressive guidance.");
+  }
+
+  if (signalContext.risk_reward < 1.3) {
+    riskPct = Math.min(riskPct, rule.signalRisk.conservative);
+    leverageMax = leverageMin;
+    riskWarnings.push("R/R below 1.3 forces conservative guidance.");
+  }
+
+  riskPct = roundRecommendation(clamp(riskPct, 0.05, hardRiskCap));
+  leverageMin = roundRecommendation(clamp(leverageMin, 1, hardLeverageCap));
+  leverageMax = roundRecommendation(clamp(Math.max(leverageMax, leverageMin), leverageMin, hardLeverageCap));
+
+  if (capitalMode === "signal_mode" && riskPct > 1) riskWarnings.push("Guidance would exceed 1%, so it was capped.");
+  if (capitalMode === "personal_mode" && riskPct >= 1) riskWarnings.push("Personal guidance is capped at the 1% hard-risk limit.");
+  if (capitalMode === "prop_mode" && riskPct >= 0.4) riskWarnings.push("Prop guidance is capped at the 0.4% hard-risk limit.");
+
+  const modeLabel = capitalMode.replace(/_/g, " ");
+  return {
+    capital_mode: capitalMode,
+    risk_profile: riskProfile,
+    strategy_risk_class: rule.riskClass,
+    recommended_risk_pct: riskPct,
+    suggested_leverage_min: leverageMin,
+    suggested_leverage_max: leverageMax,
+    leverage_cap: hardLeverageCap,
+    position_sizing_note: `${modeLabel}: suggested ${riskPct}% account risk. Size position from entry-to-stop distance; guidance only, no execution.`,
+    strategy_specific_warning: rule.warning,
+    risk_warning: riskWarnings.join(" "),
+    recommendation_source: "strategy_risk_engine_v1",
+  };
 }
 
 // ─── Paper execution intent creator ──────────────────────────────────────────
@@ -1175,6 +1395,31 @@ async function fetchForexLatestPrice(symbol: string): Promise<ForexLatestPriceRe
 
 // ─── Telegram formatter ───────────────────────────────────────────────────────
 
+
+function titleCaseMode(value: unknown): string {
+  return String(value ?? "signal_mode")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function formatRiskGuidanceLines(signal: Record<string, unknown>): string[] {
+  const riskPct = Number(signal.recommended_risk_pct);
+  const levMin = Number(signal.suggested_leverage_min);
+  const levMax = Number(signal.suggested_leverage_max);
+  const cap = Number(signal.leverage_cap);
+  if (!Number.isFinite(riskPct) || !Number.isFinite(levMin) || !Number.isFinite(levMax)) return [];
+  return [
+    `*Risk Guidance:*`,
+    `• Capital Mode: ${titleCaseMode(signal.capital_mode ?? signal.mode_slug ?? "signal_mode")}`,
+    `• Risk Profile: ${titleCaseMode(signal.risk_profile ?? "balanced")}`,
+    `• Suggested Risk: ${riskPct.toFixed(2)}% of account`,
+    `• Suggested Leverage: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x`,
+    Number.isFinite(cap) ? `• Max Leverage Cap: ${cap.toFixed(0)}x` : null,
+    signal.strategy_specific_warning ? `• Note: ${signal.strategy_specific_warning}` : null,
+    `• Warning: ${signal.risk_warning || "Signal only. Manage risk. Not financial advice."}`,
+  ].filter(Boolean) as string[];
+}
+
 function formatSignalMessage(signal: Record<string, unknown>, dataSource: string): string {
   const grade = String(signal.grade ?? "");
   const gradeEmoji = grade === "A+" ? "⭐⭐⭐" : grade === "A" ? "⭐⭐" : "⭐";
@@ -1200,6 +1445,9 @@ function formatSignalMessage(signal: Record<string, unknown>, dataSource: string
     `*Confidence:* ${signal.confidence_score}%`,
     `*Data:* ${dataLabel}`,
     `*Reason:* ${signal.reason}`,
+    ``,
+    ...formatRiskGuidanceLines(signal),
+    ``,
     `*Timestamp:* ${new Date().toISOString()}`,
     ``,
     `_Signal Mode only. Not financial advice._`,
@@ -1686,6 +1934,16 @@ async function runScanPipeline(
 
             const modeMinScore = (overrides.min_score as number) ?? rp.score_threshold_override ?? 75;
             const modeMinRR = rp.min_rr_override ?? 1.2;
+            const riskLeverageRecommendation = buildRiskLeverageRecommendation({
+              market_type: sym.market_type,
+              strategy_name: ev.name,
+              grade: r.grade,
+              confidence_score: r.confidence_score,
+              risk_reward: r.risk_reward,
+              entry_low: r.entry_low,
+              entry_high: r.entry_high,
+              stop_loss: r.stop_loss,
+            }, ev.cfg, modeConfig);
 
             if (r.confidence_score < modeMinScore) continue;
             if ((r.risk_reward ?? 0) < modeMinRR) continue;
@@ -1716,6 +1974,7 @@ async function runScanPipeline(
                 status: "cancelled", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
                 arbitrator_decision: arbitratorDecision,
                 risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason },
+                ...riskLeverageRecommendation,
               });
               continue;
             }
@@ -1732,6 +1991,7 @@ async function runScanPipeline(
               status: "waiting", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
               arbitrator_decision: arbitratorDecision,
               risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct },
+              ...riskLeverageRecommendation,
             }).select("*").single();
 
             if (!sigData) continue;
