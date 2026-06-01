@@ -29,6 +29,19 @@ interface EvalResult {
   rejection_reason: string; score_breakdown: Record<string, number | string | boolean>;
 }
 
+type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "ForexMicroScalper" | "ForexSwingContinuation";
+
+interface StrategyEvaluationStats {
+  evaluated: number;
+  accepted: number;
+  rejected: number;
+  arbitration_blocked: number;
+  duplicate_active_signal: number;
+  runtime_errors: number;
+  skipped: number;
+  skip_reasons: Record<string, number>;
+}
+
 interface ScannerConfig {
   is_enabled: boolean; demo_mode_enabled: boolean; min_signal_grade: string;
   prevent_duplicate_symbol_signals: boolean; active_timeframes: string[];
@@ -185,6 +198,20 @@ function strategyZeroReject(reason: string): EvalResult {
     status: "rejected", direction: "", entry_low: 0, entry_high: 0, stop_loss: 0, tp1: 0, tp2: 0,
     risk_reward: 0, confidence_score: 0, grade: "reject", reason, rejection_reason: reason,
     score_breakdown: { primary_failed_gate: reason },
+  };
+}
+
+function strategyRuntimeReject(strategyName: string, error: unknown): EvalResult {
+  const message = error instanceof Error ? error.message : String(error ?? "unknown runtime error");
+  return {
+    status: "rejected", direction: "none", entry_low: 0, entry_high: 0, stop_loss: 0, tp1: 0, tp2: 0,
+    risk_reward: 0, confidence_score: 0, grade: "reject", reason: `${strategyName} runtime error: ${message}`,
+    rejection_reason: "runtime_error",
+    score_breakdown: {
+      primary_failed_gate: "runtime_error",
+      runtime_error: true,
+      error_message: message.slice(0, 300),
+    },
   };
 }
 
@@ -724,6 +751,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   const trendQualityPass = trendScore >= 45 || (crypto_behavior_tuning && emaSlopeScore >= 55 && directionalSpread > -0.08 && priceVsEma > 0 && rsiScore >= 40);
   const reclaimByQuality = crypto_behavior_tuning && pullbackScore >= 68 && momentumScore >= 45 && priceVsEma > -0.05;
   reclaimConfirmed = strictReclaimConfirmed || reclaimByQuality;
+  const reclaimQualityPass = reclaimConfirmed;
   let volatilityScore = 85;
   if (atrPct < min_atr_pct) volatilityScore = clampScore((atrPct / Math.max(min_atr_pct, 0.01)) * 55);
   else if (atrPct > max_atr_pct) volatilityScore = clampScore(Math.max(20, 80 - ((atrPct - max_atr_pct) / Math.max(max_atr_pct, 0.01)) * 80));
@@ -986,7 +1014,7 @@ function normalizeRejectionReason(reason: string, marketType = "crypto"): string
       "unsupported_timeframe", "insufficient_candles", "invalid_atr_or_price", "invalid_candles",
       "spread_or_distance_too_tight", "distance_guard_failed", "volatility_too_low", "volatility_too_high",
       "trend_filter_failed", "pullback_not_ready", "reclaim_not_confirmed", "momentum_failed",
-      "rr_too_low", "confidence_too_low", "score_below_min", "forex_budget_limited", "duplicate_active_signal", "arbitration_blocked",
+      "rr_too_low", "confidence_too_low", "score_below_min", "forex_budget_limited", "duplicate_active_signal", "arbitration_blocked", "runtime_error",
     ]);
     return allowed.has(normalized) ? normalized : "trend_filter_failed";
   }
@@ -2423,6 +2451,30 @@ async function runScanPipeline(
   let lastForexScanAt: string | null = null, nextAllowedForexScanAt: string | null = null;
   let forexSkipReason = config.signal_enable_forex ? "" : "forex_disabled_for_mvp";
   let forexProviderCacheHits = 0;
+  const strategyNames: StrategyName[] = ["MicroScalper", "CompressionBreakout", "SwingContinuation", "ForexMicroScalper", "ForexSwingContinuation"];
+  const strategyEvaluationSummary = Object.fromEntries(strategyNames.map((name) => [name, {
+    evaluated: 0,
+    accepted: 0,
+    rejected: 0,
+    arbitration_blocked: 0,
+    duplicate_active_signal: 0,
+    runtime_errors: 0,
+    skipped: 0,
+    skip_reasons: {},
+  }])) as Record<StrategyName, StrategyEvaluationStats>;
+  const incrementStrategyStat = (name: string, key: keyof Omit<StrategyEvaluationStats, "skip_reasons">) => {
+    const stats = strategyEvaluationSummary[name as StrategyName];
+    if (stats) stats[key]++;
+  };
+  const recordStrategySkip = (name: StrategyName, reason: string) => {
+    const stats = strategyEvaluationSummary[name];
+    stats.skipped++;
+    stats.skip_reasons[reason] = (stats.skip_reasons[reason] ?? 0) + 1;
+  };
+  const recordStrategyError = (name: StrategyName, symbol: string, timeframe: string, error: unknown) => {
+    incrementStrategyStat(name, "runtime_errors");
+    errors.push(`[ERROR] ${name} ${symbol} ${timeframe}: ${error instanceof Error ? error.message : String(error ?? "unknown")}`);
+  };
   const forexFetchCache = new Map<string, { candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }>();
   const forexProviderRejectionKeys = new Set<string>();
   const marketMode = signalMarketMode(config.signal_enable_crypto, config.signal_enable_forex);
@@ -2602,24 +2654,31 @@ async function runScanPipeline(
           volatility_state: ind.volatility_state, regime: ind.regime,
         }, { onConflict: "symbol,timeframe,candle_time" });
 
-        const allEvals: Array<{ name: string; result: EvalResult; cfg: StrategyConfig }> = [];
+        const allEvals: Array<{ name: StrategyName; result: EvalResult; cfg: StrategyConfig }> = [];
+        const timeframeAllowed = (cfg: StrategyConfig) => cfg.allowed_timeframes.length === 0 || cfg.allowed_timeframes.includes(tf);
+        const evaluateStrategy = (name: StrategyName, cfg: StrategyConfig, evaluator: () => EvalResult) => {
+          if (!cfg.enabled) { recordStrategySkip(name, "strategy_disabled"); return; }
+          if (!timeframeAllowed(cfg)) { recordStrategySkip(name, `timeframe_not_allowed:${tf}`); return; }
+          try {
+            allEvals.push({ name, cfg, result: evaluator() });
+          } catch (strategyErr) {
+            recordStrategyError(name, sym.symbol, tf, strategyErr);
+            allEvals.push({ name, cfg, result: strategyRuntimeReject(name, strategyErr) });
+          }
+        };
+
         if (marketType === "forex") {
           const fxMsConfig = getStratCfg("ForexMicroScalper");
           const fxSwConfig = getStratCfg("ForexSwingContinuation");
-          if (fxMsConfig.enabled && (fxMsConfig.allowed_timeframes.length === 0 || fxMsConfig.allowed_timeframes.includes(tf))) {
-            allEvals.push({ name: "ForexMicroScalper", cfg: fxMsConfig, result: evalForexMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }) });
-          }
-          if (fxSwConfig.enabled && (fxSwConfig.allowed_timeframes.length === 0 || fxSwConfig.allowed_timeframes.includes(tf))) {
-            allEvals.push({ name: "ForexSwingContinuation", cfg: fxSwConfig, result: evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }) });
-          }
+          evaluateStrategy("ForexMicroScalper", fxMsConfig, () => evalForexMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }));
+          evaluateStrategy("ForexSwingContinuation", fxSwConfig, () => evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }));
         } else {
           const msConfig  = getStratCfg("MicroScalper");
           const cbConfig  = getStratCfg("CompressionBreakout");
           const swConfig  = getStratCfg("SwingContinuation");
-          const timeframeAllowed = (cfg: StrategyConfig) => cfg.allowed_timeframes.length === 0 || cfg.allowed_timeframes.includes(tf);
-          if (msConfig.enabled && timeframeAllowed(msConfig)) allEvals.push({ name: "MicroScalper",       cfg: msConfig, result: evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr, crypto_behavior_tuning: 1 }) });
-          if (cbConfig.enabled && timeframeAllowed(cbConfig)) allEvals.push({ name: "CompressionBreakout", cfg: cbConfig, result: evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, crypto_behavior_tuning: 1 }) });
-          if (swConfig.enabled && timeframeAllowed(swConfig)) allEvals.push({ name: "SwingContinuation",   cfg: swConfig, result: evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, crypto_behavior_tuning: 1 }) });
+          evaluateStrategy("MicroScalper", msConfig, () => evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr, crypto_behavior_tuning: 1 }));
+          evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, crypto_behavior_tuning: 1 }));
+          evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, crypto_behavior_tuning: 1 }));
         }
 
         // ── Pre-arbitration: collect passing candidates, pick the best one ──
@@ -2628,6 +2687,7 @@ async function runScanPipeline(
         const passingEntries: EvalEntry[] = [];
         for (const ev of allEvals) {
           evaluationsCount++;
+          incrementStrategyStat(ev.name, "evaluated");
           const r = ev.result;
 
           const candidateRow = {
@@ -2644,7 +2704,7 @@ async function runScanPipeline(
           const { data: cData } = await supabase.from("strategy_candidates").insert(candidateRow).select("id").single();
           if (!cData) continue;
 
-          if (r.status === "rejected") { rejectedCount++; continue; }
+          if (r.status === "rejected") { incrementStrategyStat(ev.name, "rejected"); rejectedCount++; continue; }
 
           // Distance guard
           const guard = checkDistanceGuards(r, ev.cfg);
@@ -2663,6 +2723,7 @@ async function runScanPipeline(
               rejection_reason: normalizeRejectionReason(guard.rejection_reason, marketType),
               score_breakdown: guardedBreakdown,
             }).eq("id", cData.id);
+            incrementStrategyStat(ev.name, "rejected");
             rejectedCount++;
             continue;
           }
@@ -2699,13 +2760,17 @@ async function runScanPipeline(
                 ...(r.score_breakdown ?? {}),
                 primary_failed_gate: "arbitration_blocked",
                 arbitration_blocked: true,
-                better_candidate_selected: selectedStrategyName,
+                better_candidate_selected: true,
                 lower_quality_than_selected: true,
                 arbitration_score: arbitrationScore(ev),
+                selected_strategy: selectedStrategyName,
                 selected_arbitration_score: selectedArbitrationScore,
+                candidate_arbitration_score: arbitrationScore(ev),
                 arbitration_candidates: arbitrationCandidates,
               },
             }).eq("id", cId);
+            incrementStrategyStat(ev.name, "arbitration_blocked");
+            incrementStrategyStat(ev.name, "rejected");
             rejectedCount++;
             continue;
           }
@@ -2715,7 +2780,10 @@ async function runScanPipeline(
               ...(r.score_breakdown ?? {}),
               primary_failed_gate: r.score_breakdown?.primary_failed_gate ?? "passed",
               arbitration_selected: true,
+              selected_strategy: selectedStrategyName,
               arbitration_score: selectedArbitrationScore,
+              selected_arbitration_score: selectedArbitrationScore,
+              candidate_arbitration_score: selectedArbitrationScore,
               arbitration_candidates: arbitrationCandidates,
             },
           }).eq("id", cId);
@@ -2733,14 +2801,21 @@ async function runScanPipeline(
                 primary_failed_gate: "duplicate_active_signal",
                 duplicate_active_signal: true,
                 arbitration_selected: true,
+                selected_strategy: selectedStrategyName,
                 arbitration_score: selectedArbitrationScore,
+                selected_arbitration_score: selectedArbitrationScore,
+                candidate_arbitration_score: selectedArbitrationScore,
                 arbitration_candidates: arbitrationCandidates,
               },
             }).eq("id", cId);
+            incrementStrategyStat(ev.name, "duplicate_active_signal");
+            incrementStrategyStat(ev.name, "rejected");
             rejectedCount++;
             duplicateSymbolBlocked++;
             continue;
           }
+
+          incrementStrategyStat(ev.name, "accepted");
 
           // Grade gate
           if (gradeIndex(r.grade) < gradeIndex(config.min_signal_grade)) {
@@ -2947,6 +3022,7 @@ async function runScanPipeline(
     forex_next_allowed_scan_at: forexSymbolsScanned > 0
       ? new Date(Date.now() + (forexThrottle?.minIntervalMinutes ?? intEnv("FOREX_SCAN_MIN_INTERVAL_MINUTES", 60, 1)) * 60_000).toISOString()
       : nextAllowedForexScanAt,
+    strategy_evaluation_summary: strategyEvaluationSummary,
   }).eq("id", runId);
 
   // Update heartbeat
@@ -2970,6 +3046,7 @@ async function runScanPipeline(
     active_modes: activeModes.map((m) => m.mode_slug),
     forex_provider: forexProviderName, forex_real_data: forexProviderSuccess, forex_provider_cache_hits: forexProviderCacheHits, forex_budget: forexBudget ? { max_pairs: forexBudget.maxPairs, max_timeframes: forexBudget.maxTimeframes, allowed_pairs: forexBudget.allowedPairs.size, planned_pairs: forexBudget.plannedPairs, planned_timeframes: forexBudget.plannedTimeframes } : null,
     forex_demo_fallback_used: false,
+    strategy_evaluation_summary: strategyEvaluationSummary,
     errors: errors.slice(0, 10),
   };
 }

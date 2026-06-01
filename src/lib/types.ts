@@ -396,6 +396,17 @@ export interface ExecutionOrder {
   updated_at: string;
 }
 
+export interface StrategyEvaluationStats {
+  evaluated?: number;
+  accepted?: number;
+  rejected?: number;
+  arbitration_blocked?: number;
+  duplicate_active_signal?: number;
+  runtime_errors?: number;
+  skipped?: number;
+  skip_reasons?: Record<string, number>;
+}
+
 export interface ScannerRun {
   id: string;
   started_at: string;
@@ -439,4 +450,5 @@ export interface ScannerRun {
   forex_provider_call_limit?: number;
   last_forex_scan_at?: string | null;
   forex_next_allowed_scan_at?: string | null;
+  strategy_evaluation_summary?: Record<string, StrategyEvaluationStats> | null;
 }
