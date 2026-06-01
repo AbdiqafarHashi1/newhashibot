@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
+import { DEFAULT_CAPITAL_ASSUMPTIONS, estimateCapitalFromR, formatMoney, formatPct, validCapitalAssumptions, CapitalAssumptions } from '../../lib/capitalAnalytics';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Upload, Play, Trash2, AlertTriangle, Clock,
@@ -606,6 +607,7 @@ export default function BacktestLab() {
 
   // Confirmation dialog state
   const [confirmPending, setConfirmPending] = useState(false);
+  const [capitalAssumptions, setCapitalAssumptions] = useState<CapitalAssumptions>(DEFAULT_CAPITAL_ASSUMPTIONS);
 
   const loadDatasets = useCallback(async () => {
     const { data } = await supabase.from('replay_datasets').select('*').order('created_at', { ascending: false });
@@ -752,6 +754,8 @@ export default function BacktestLab() {
 
   const totalPages = Math.ceil(sortedTrades.length / TRADES_PER_PAGE);
   const visibleTrades = sortedTrades.slice(tradePage * TRADES_PER_PAGE, (tradePage + 1) * TRADES_PER_PAGE);
+
+  const backtestCapital = estimateCapitalFromR(trades?.map(t => t.pnl_r) ?? [], capitalAssumptions);
 
   const tfLabel = (tf: string) => ({ '5m': '5 min', '15m': '15 min', '1h': '1 Hour', '4h': '4 Hour' }[tf] ?? tf);
 
@@ -1096,6 +1100,28 @@ export default function BacktestLab() {
               )}
 
               <div className="space-y-4">
+
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-zinc-200">Capital assumptions</div>
+                      <p className="text-xs text-zinc-500 mt-1">Display-only simulation math. Strategy rules and fills are unchanged.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <label className="text-xs text-zinc-500">Starting capital
+                        <input type="number" min="1" step="50" value={capitalAssumptions.startingCapital}
+                          onChange={e => setCapitalAssumptions(a => validCapitalAssumptions({ ...a, startingCapital: Number(e.target.value) }))}
+                          className="mt-1 block w-32 bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 py-1.5 outline-none focus:border-blue-500" />
+                      </label>
+                      <label className="text-xs text-zinc-500">Risk / trade %
+                        <input type="number" min="0.01" step="0.05" value={capitalAssumptions.riskPct}
+                          onChange={e => setCapitalAssumptions(a => validCapitalAssumptions({ ...a, riskPct: Number(e.target.value) }))}
+                          className="mt-1 block w-28 bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 py-1.5 outline-none focus:border-blue-500" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Summary cards */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
                   <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
@@ -1129,6 +1155,9 @@ export default function BacktestLab() {
                     <MetricCell label="Max Consec Wins" value={String(metrics.maxConsecWins)} />
                     <MetricCell label="Max Consec Losses" value={String(metrics.maxConsecLosses)} />
                     <MetricCell label="Max Drawdown R" value={metrics.totalTrades > 0 ? `${metrics.maxDrawdown}R` : 'N/A'} highlight="text-red-400" />
+                    <MetricCell label="Est. P/L" value={metrics.totalTrades > 0 ? `${formatPct(backtestCapital.totalReturnPct, true)} / ${formatMoney(backtestCapital.estimatedPnl)}` : 'N/A'} highlight={(backtestCapital.estimatedPnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+                    <MetricCell label="Final Capital" value={metrics.totalTrades > 0 ? formatMoney(backtestCapital.estimatedFinalCapital) : 'N/A'} />
+                    <MetricCell label="Max DD Est." value={metrics.totalTrades > 0 ? `${formatPct(backtestCapital.maxDrawdownPct)} / ${formatMoney(backtestCapital.maxDrawdownAmount)}` : 'N/A'} highlight="text-red-400" />
                     <MetricCell label="Evaluations" value={metrics.evaluations.toLocaleString()} />
                     <MetricCell label="Candidates" value={String(metrics.candidates)} />
                     <MetricCell label="Rejected" value={String(metrics.rejected)} />
@@ -1142,7 +1171,7 @@ export default function BacktestLab() {
                   return (
                     <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4">
                       <div className="flex justify-between text-xs text-zinc-500 mb-2">
-                        <span>Net R result</span>
+                        <span>Net R result · {formatPct(backtestCapital.totalReturnPct, true)} / {formatMoney(backtestCapital.estimatedPnl)} on {formatMoney(capitalAssumptions.startingCapital)}</span>
                         <span className={metrics.totalR >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                           {metrics.totalR > 0 ? '+' : ''}{metrics.totalR}R
                         </span>

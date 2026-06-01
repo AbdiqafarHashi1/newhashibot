@@ -9,6 +9,20 @@ import { RiskGuidanceCompact } from '../../components/ui/RiskGuidance';
 import { useAuth } from '../../contexts/AuthContext';
 import { accessStateDescription, accessStateLabel, getCustomerAccessState, hasFullSignalAccess } from '../../lib/customerAccess';
 
+
+function priceDecimals(signal: Signal) {
+  if (signal.market_type === 'forex') {
+    return signal.symbol.replace(/[^A-Za-z0-9]/g, '').toUpperCase().endsWith('JPY') ? 3 : 5;
+  }
+  const price = Number(signal.entry_high ?? signal.entry_low ?? signal.tp1);
+  return Number.isFinite(price) && price >= 100 ? 2 : 5;
+}
+
+function fmtSignalPrice(signal: Signal, value: number | null | undefined) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toFixed(priceDecimals(signal)) : '—';
+}
+
 export default function ActiveSignals() {
   const { user } = useAuth();
   const [signals, setSignals] = useState<Signal[]>([]);
@@ -90,15 +104,15 @@ export default function ActiveSignals() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                       <div>
                         <div className="text-zinc-600 mb-0.5">Entry</div>
-                        <div className="text-zinc-300 font-mono">{Number(sig.entry_low).toFixed(5)}–{Number(sig.entry_high).toFixed(5)}</div>
+                        <div className="text-zinc-300 font-mono">{fmtSignalPrice(sig, sig.entry_low)}–{fmtSignalPrice(sig, sig.entry_high)}</div>
                       </div>
                       <div>
                         <div className="text-zinc-600 mb-0.5">Stop Loss</div>
-                        <div className="text-red-400 font-mono">{Number(sig.stop_loss).toFixed(5)}</div>
+                        <div className="text-red-400 font-mono">{fmtSignalPrice(sig, sig.stop_loss)}</div>
                       </div>
                       <div>
                         <div className="text-zinc-600 mb-0.5">TP1 / TP2</div>
-                        <div className="text-blue-400 font-mono">{Number(sig.tp1).toFixed(5)} / {Number(sig.tp2).toFixed(5)}</div>
+                        <div className="text-blue-400 font-mono">{fmtSignalPrice(sig, sig.tp1)} / {fmtSignalPrice(sig, sig.tp2)}</div>
                       </div>
                       <div>
                         <div className="text-zinc-600 mb-0.5">R/R · Confidence</div>

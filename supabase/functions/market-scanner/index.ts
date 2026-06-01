@@ -1853,6 +1853,91 @@ async function fetchForexLatestPrice(symbol: string): Promise<ForexLatestPriceRe
 // ─── Telegram formatter ───────────────────────────────────────────────────────
 
 
+
+function tradeManagementPlan(signal: Record<string, unknown>): Record<string, unknown> {
+  const strategy = String(signal.strategy_name ?? "");
+  const marketType = String(signal.market_type ?? "").toLowerCase();
+  const isForex = marketType === "forex";
+  const riskPct = Number(signal.recommended_risk_pct);
+  const riskGuidance = Number.isFinite(riskPct)
+    ? `Keep position risk near ${riskPct.toFixed(2)}% of account unless your plan is lower.`
+    : "Default guidance: risk no more than 0.50% of account per signal.";
+  const levMin = Number(signal.suggested_leverage_min);
+  const levMax = Number(signal.suggested_leverage_max);
+  const exposureGuidance = isForex
+    ? "Use effective exposure / lot size that keeps loss at the planned risk; account for spread and slippage."
+    : Number.isFinite(levMin) && Number.isFinite(levMax)
+      ? `Effective leverage guidance: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x maximum only if stop-risk stays within plan.`
+      : "Use effective leverage only if stop-risk stays within the planned account risk.";
+
+  if (strategy.includes("MicroScalper")) {
+    return {
+      tp1PartialPct: 50,
+      breakEvenRule: "Move stop to break-even after TP1 is tagged or price reaches roughly +0.75R to +1R.",
+      trailingStopRule: "After TP1, trail tightly behind the latest micro swing or fast EMA; do not widen the stop.",
+      timeStopRule: "Expire quickly if entry is not triggered or momentum stalls within the expected scalping window.",
+      invalidationNote: "Invalid if price closes beyond the stop or momentum immediately reverses through the entry zone.",
+      strategyNote: "Scalper profile: take faster TP1, reduce exposure on correlated stacked signals, and avoid chasing late entries.",
+      riskGuidance, exposureGuidance,
+      signalOnlyWarning: "Signal guidance only — no broker, MT5, or order execution is performed.",
+    };
+  }
+  if (strategy.includes("CompressionBreakout")) {
+    return {
+      tp1PartialPct: 40,
+      breakEvenRule: "Move stop to break-even after TP1 or after breakout acceptance/retest confirmation.",
+      trailingStopRule: "Trail only after volatility expands; allow normal retest room before tightening.",
+      timeStopRule: "Expire if breakout follow-through does not arrive within the expected bars/time for this timeframe.",
+      invalidationNote: "Watch for fakeouts: invalid if price closes back inside the compression box or beyond the stop.",
+      strategyNote: "Breakout profile: allow retest room, avoid early stop tightening, and require momentum expansion for runners.",
+      riskGuidance, exposureGuidance,
+      signalOnlyWarning: "Signal guidance only — no broker, MT5, or order execution is performed.",
+    };
+  }
+  if (strategy.includes("SwingContinuation")) {
+    return {
+      tp1PartialPct: 35,
+      breakEvenRule: "Move stop to break-even more slowly: after TP1 confirms or trend structure advances in your favor.",
+      trailingStopRule: "Use wider trailing behind higher-timeframe swing structure; keep TP2 as the runner target.",
+      timeStopRule: "Use a longer time stop than scalps; expire if continuation does not develop within the swing window.",
+      invalidationNote: "Invalid if trend structure fails, key pullback level breaks, or price closes beyond the stop.",
+      strategyNote: "Swing continuation profile: wider hold, slower break-even, and TP2 runner logic are preferred.",
+      riskGuidance, exposureGuidance,
+      signalOnlyWarning: "Signal guidance only — no broker, MT5, or order execution is performed.",
+    };
+  }
+  return {
+    tp1PartialPct: 40,
+    breakEvenRule: "Consider break-even only after TP1 or clear confirmation in your favor.",
+    trailingStopRule: "Trail only after meaningful follow-through; never widen the original stop.",
+    timeStopRule: "Expire if the setup does not trigger or follow through within your plan.",
+    invalidationNote: String(signal.invalidation ?? "Invalid if price closes beyond the stop loss."),
+    strategyNote: "Manage according to signal-mode rules.",
+    riskGuidance, exposureGuidance,
+    signalOnlyWarning: "Signal guidance only — no broker, MT5, or order execution is performed.",
+  };
+}
+
+function existingOrDerivedTradeManagement(signal: Record<string, unknown>): Record<string, unknown> {
+  const snapshot = signal.risk_profile_snapshot as Record<string, unknown> | null;
+  if (snapshot && typeof snapshot === "object" && snapshot.trade_management && typeof snapshot.trade_management === "object") {
+    return snapshot.trade_management as Record<string, unknown>;
+  }
+  return tradeManagementPlan(signal);
+}
+
+function formatTradeManagementLines(signal: Record<string, unknown>): string[] {
+  const plan = existingOrDerivedTradeManagement(signal);
+  return [
+    `*Management:*`,
+    `• TP1 Partial: ~${plan.tp1PartialPct ?? 40}%`,
+    `• BE: ${plan.breakEvenRule}`,
+    `• Trail: ${plan.trailingStopRule}`,
+    `• Expiry: ${plan.timeStopRule}`,
+    `• Signal-only: no broker/MT5/order execution.`,
+  ];
+}
+
 function titleCaseMode(value: unknown): string {
   return String(value ?? "signal_mode")
     .replace(/_/g, " ")
@@ -1941,6 +2026,8 @@ function formatForexSignalMessage(signal: Record<string, unknown>, dataSource: s
     `• TP2: ${forexPriceForMessage(symbol, signal.tp2)}${tp2Pips ? ` (${tp2Pips})` : ""}`,
     `• Risk/Reward: ${Number(signal.risk_reward).toFixed(2)}R`,
     ``,
+    ...formatTradeManagementLines(signal),
+    ``,
     `*Forex Reasoning:*`,
     `• ${reasoning}`,
     `• Scores: trend=${breakdown.trend_score ?? "n/a"}, momentum=${breakdown.momentum_score ?? "n/a"}, volatility=${breakdown.volatility_score ?? "n/a"}${breakdown.pullback_score !== undefined ? `, pullback=${breakdown.pullback_score}${reclaim}` : ""}, RR=${Number(signal.risk_reward).toFixed(2)}R.`,
@@ -1976,6 +2063,9 @@ function formatSignalMessage(signal: Record<string, unknown>, dataSource: string
     `*TP1:* ${Number(signal.tp1).toFixed(5)}`,
     `*TP2:* ${Number(signal.tp2).toFixed(5)}`,
     `*Risk/Reward:* ${Number(signal.risk_reward).toFixed(2)}R`,
+    ``,
+    ...formatTradeManagementLines(signal),
+    ``,
     `*Strategy:* ${signal.strategy_name}`,
     `*Regime:* ${signal.regime}`,
     `*Confidence:* ${signal.confidence_score}%`,
@@ -2549,6 +2639,17 @@ async function runScanPipeline(
             if ((r.risk_reward ?? 0) < modeMinRR) continue;
 
             const riskCheck = runRiskCheck(rp, riskState, modeSlug);
+            const managementInput = {
+              symbol: sym.symbol, market_type: sym.market_type, timeframe: tf, direction: r.direction,
+              entry_low: r.entry_low, entry_high: r.entry_high, stop_loss: r.stop_loss, tp1: r.tp1, tp2: r.tp2,
+              risk_reward: r.risk_reward, strategy_name: ev.name, regime: ind.regime,
+              recommended_risk_pct: riskLeverageRecommendation.recommended_risk_pct,
+              suggested_leverage_min: riskLeverageRecommendation.suggested_leverage_min,
+              suggested_leverage_max: riskLeverageRecommendation.suggested_leverage_max,
+              leverage_cap: riskLeverageRecommendation.leverage_cap,
+              invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
+            };
+            const tradeManagement = tradeManagementPlan(managementInput);
 
             const arbitratorDecision: ArbitratorDecision = {
               selected_mode: modeSlug, risk_check_passed: riskCheck.passed,
@@ -2573,7 +2674,7 @@ async function runScanPipeline(
                 invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
                 status: "cancelled", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
                 arbitrator_decision: arbitratorDecision,
-                risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: r.score_breakdown },
+                risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: r.score_breakdown, trade_management: tradeManagement },
                 ...riskLeverageRecommendation,
               });
               continue;
@@ -2590,7 +2691,7 @@ async function runScanPipeline(
               invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
               status: "waiting", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
               arbitrator_decision: arbitratorDecision,
-              risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: r.score_breakdown },
+              risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: r.score_breakdown, trade_management: tradeManagement },
               ...riskLeverageRecommendation,
             }).select("*").single();
 
