@@ -79,6 +79,7 @@ interface ArbitratorDecision {
   mode_adjustments_used: string[]; duplicate_blocked: boolean;
   daily_lock_state: boolean; cooldown_state: boolean;
   paper_execution_intent_created: boolean;
+  selected_strategy?: string; arbitration_score?: number; competing_candidates?: Array<Record<string, unknown>>;
 }
 
 interface RiskState {
@@ -354,15 +355,15 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
   const min_atr_pct = params.min_atr_pct ?? (isJpyPair(symbol) ? 0.025 : 0.018);
   const max_atr_pct = params.max_atr_pct ?? 0.32;
   const min_body_atr = params.min_body_atr ?? 0.18;
-  const stop_atr_mult = params.stop_atr_mult ?? 1.15;
+  const stop_atr_mult = Math.max(params.stop_atr_mult ?? 1.15, 1.25);
   const tp1_r = params.tp1_r ?? 1.15;
   const tp2_r = params.tp2_r ?? 1.7;
   const min_rr = params.min_rr ?? 1.25;
   const min_score = params.min_score ?? 74;
   const momentum_lookback = Math.max(2, Math.floor(params.momentum_lookback ?? 3));
-  const min_stop_pips = params.min_stop_pips ?? (isJpyPair(symbol) ? 5.5 : 4.5);
-  const min_tp1_pips = params.min_tp1_pips ?? (isJpyPair(symbol) ? 6 : 5);
-  const min_tp2_pips = params.min_tp2_pips ?? (isJpyPair(symbol) ? 8 : 7);
+  const min_stop_pips = Math.max(params.min_stop_pips ?? 0, isJpyPair(symbol) ? 7 : 6);
+  const min_tp1_pips = Math.max(params.min_tp1_pips ?? 0, isJpyPair(symbol) ? 8 : 7);
+  const min_tp2_pips = Math.max(params.min_tp2_pips ?? 0, isJpyPair(symbol) ? 12 : 10);
   const max_entry_band_pips = params.max_entry_band_pips ?? (timeframe === "5m" ? 1.2 : 1.8);
 
   if (!["5m", "15m"].includes(timeframe)) return forexZeroReject("unsupported_timeframe", symbol);
@@ -401,6 +402,9 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
   const wickOk = direction === "buy" ? upperWick <= body * 1.8 : lowerWick <= body * 1.8;
   const trendConfirmed = direction === "buy" ? ind.ema20 > ind.ema50 && price > ind.ema20 : ind.ema20 < ind.ema50 && price < ind.ema20;
   const structureAligned = direction === "buy" ? last.close > prev.close && last.low >= recentLow - atr * 0.25 : last.close < prev.close && last.high <= recentHigh + atr * 0.25;
+  const microBreakoutAligned = direction === "buy" ? price >= recentHigh - atr * 0.08 && last.close > prev.close : price <= recentLow + atr * 0.08 && last.close < prev.close;
+  const trendQualityPass = trendConfirmed || (emaSpreadPips >= 0.8 && (direction === "buy" ? buyContext >= 4 : sellContext >= 4) && price > 0);
+  const structureQualityPass = structureAligned || (microBreakoutAligned && bodyAtr >= min_body_atr * 0.8);
   const rsiConfirmed = direction === "buy" ? ind.rsi14 >= 48 && ind.rsi14 <= 72 : ind.rsi14 <= 52 && ind.rsi14 >= 28;
   const spikeOnly = bodyAtr > 1.25 && Math.abs(last.close - prev.close) > atr * 1.15 && Math.sign(last.close - last.open) !== Math.sign(prev.close - prev.open);
 
@@ -429,8 +433,8 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
   let primaryFailedGate = "";
   if (atrPct < min_atr_pct) primaryFailedGate = "volatility_too_low";
   else if (atrPct > max_atr_pct) primaryFailedGate = "volatility_too_high";
-  else if (emaSpreadPips < 1.2 || stopPips < min_stop_pips || tp1Pips < min_tp1_pips || tp2Pips < min_tp2_pips) primaryFailedGate = "distance_guard_failed";
-  else if (!trendConfirmed || !structureAligned) primaryFailedGate = "trend_filter_failed";
+  else if (emaSpreadPips < 0.8 || stopPips < min_stop_pips || tp1Pips < min_tp1_pips || tp2Pips < min_tp2_pips) primaryFailedGate = "distance_guard_failed";
+  else if (!trendQualityPass || !structureQualityPass) primaryFailedGate = "trend_filter_failed";
   else if (directionalMomentum < 0.15) primaryFailedGate = "momentum_failed";
   else if (!candleInDirection || bodyAtr < min_body_atr || bodyShare < 0.32 || !wickOk || spikeOnly) primaryFailedGate = "candle_body_too_small";
   else if (!rsiConfirmed) primaryFailedGate = "momentum_failed";
@@ -451,6 +455,9 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
     rr: risk_reward,
     direction,
     ema_alignment: direction === "buy" ? "ema20_above_ema50" : "ema20_below_ema50",
+    trend_quality_pass: trendQualityPass,
+    structure_quality_pass: structureQualityPass,
+    micro_breakout_aligned: microBreakoutAligned,
     ema_spread_pips: parseFloat(emaSpreadPips.toFixed(1)),
     atr_pips: parseFloat(atrPips.toFixed(1)),
     atr_pct: parseFloat(atrPct.toFixed(4)),
@@ -516,11 +523,17 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const boxHigh = Math.max(...boxSlice.map((c) => c.high));
   const boxLow = Math.min(...boxSlice.map((c) => c.low));
   const boxRange = boxHigh - boxLow;
+  const recentCompressionSlice = boxSlice.slice(-Math.min(Math.max(min_box_bars, 12), boxSlice.length));
+  const recentBoxHigh = Math.max(...recentCompressionSlice.map((c) => c.high));
+  const recentBoxLow = Math.min(...recentCompressionSlice.map((c) => c.low));
+  const recentBoxRange = recentBoxHigh - recentBoxLow;
   if (boxRange <= 0 || !Number.isFinite(boxRange)) return strategyZeroReject("invalid_atr_or_price");
 
   const buffer = atr * breakout_buffer_atr;
-  const breakoutDistUp = last.close - boxHigh;
-  const breakoutDistDn = boxLow - last.close;
+  const effectiveBoxHigh = crypto_behavior_tuning && recentBoxRange > 0 && recentBoxRange < boxRange ? recentBoxHigh : boxHigh;
+  const effectiveBoxLow = crypto_behavior_tuning && recentBoxRange > 0 && recentBoxRange < boxRange ? recentBoxLow : boxLow;
+  const breakoutDistUp = last.close - effectiveBoxHigh;
+  const breakoutDistDn = effectiveBoxLow - last.close;
   const closeOutsideUp = breakoutDistUp > 0 && last.close > last.open;
   const closeOutsideDn = breakoutDistDn > 0 && last.close < last.open;
   const breakoutUp = breakoutDistUp > buffer && last.close > last.open;
@@ -534,11 +547,14 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
 
   const barsInside = boxSlice.filter((c) => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
   const boxRangeAtr = boxRange / atr;
+  const recentBoxRangeAtr = recentBoxRange / atr;
   const insideRatio = barsInside / Math.max(boxSlice.length, 1);
   const strictCompressionReady = boxSlice.length >= min_box_bars && barsInside >= min_box_bars && boxRangeAtr <= max_box_atr_range;
   const rangeTightness = max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (boxRangeAtr / Math.max(max_box_atr_range * 1.35, 0.01)))) : 0;
-  const compressionScore = clampScore((insideRatio * 45) + (rangeTightness * 55));
-  const nearCompressionReady = crypto_behavior_tuning && boxSlice.length >= min_box_bars && barsInside >= min_box_bars * 0.75 && boxRangeAtr <= max_box_atr_range * 1.2 && compressionScore >= 50;
+  const recentRangeTightness = max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (recentBoxRangeAtr / Math.max(max_box_atr_range * 1.45, 0.01)))) : 0;
+  const compressionScore = clampScore((insideRatio * 35) + (Math.max(rangeTightness, recentRangeTightness) * 65));
+  const rangeContracted = recentBoxRange > 0 && boxRange > 0 ? recentBoxRange <= boxRange * 0.72 : false;
+  const nearCompressionReady = crypto_behavior_tuning && boxSlice.length >= min_box_bars && barsInside >= min_box_bars * 0.65 && (boxRangeAtr <= max_box_atr_range * 1.35 || recentBoxRangeAtr <= max_box_atr_range * 1.45 || rangeContracted) && compressionScore >= 45;
   const compressionReady = strictCompressionReady || (nearCompressionReady && breakoutConfirmed);
 
   const histSlice = candles.slice(-(atr_expansion_lookback + 1), -1);
@@ -564,16 +580,16 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
 
   let entry_low: number, entry_high: number, stop_loss: number, tp1: number, tp2: number;
   if (direction === "buy") {
-    entry_low = breakoutConfirmed ? Math.min(boxHigh, price * 0.9995) : boxHigh;
-    entry_high = breakoutConfirmed ? Math.max(price, boxHigh + atr * 0.25) : boxHigh + atr * 0.25;
-    stop_loss = crypto_behavior_tuning ? Math.max(boxLow - atr * 0.25, boxHigh - atr * stop_atr_mult) : boxLow - atr * stop_atr_mult;
+    entry_low = breakoutConfirmed ? Math.min(effectiveBoxHigh, price * 0.9995) : effectiveBoxHigh;
+    entry_high = breakoutConfirmed ? Math.max(price, effectiveBoxHigh + atr * 0.25) : effectiveBoxHigh + atr * 0.25;
+    stop_loss = crypto_behavior_tuning ? Math.min(effectiveBoxLow - atr * 0.20, price - atr * stop_atr_mult) : effectiveBoxLow - atr * stop_atr_mult;
     const riskForTargets = Math.abs(price - stop_loss);
     tp1 = crypto_behavior_tuning ? price + riskForTargets * tp1_r : price + atr * tp1_r;
     tp2 = crypto_behavior_tuning ? price + riskForTargets * tp2_r : price + atr * tp2_r;
   } else {
-    entry_low = breakoutConfirmed ? Math.min(price, boxLow - atr * 0.25) : boxLow - atr * 0.25;
-    entry_high = breakoutConfirmed ? Math.max(boxLow, price * 1.0005) : boxLow;
-    stop_loss = crypto_behavior_tuning ? Math.min(boxHigh + atr * 0.25, boxLow + atr * stop_atr_mult) : boxHigh + atr * stop_atr_mult;
+    entry_low = breakoutConfirmed ? Math.min(price, effectiveBoxLow - atr * 0.25) : effectiveBoxLow - atr * 0.25;
+    entry_high = breakoutConfirmed ? Math.max(effectiveBoxLow, price * 1.0005) : effectiveBoxLow;
+    stop_loss = crypto_behavior_tuning ? Math.max(effectiveBoxHigh + atr * 0.20, price + atr * stop_atr_mult) : effectiveBoxHigh + atr * stop_atr_mult;
     const riskForTargets = Math.abs(price - stop_loss);
     tp1 = crypto_behavior_tuning ? price - riskForTargets * tp1_r : price - atr * tp1_r;
     tp2 = crypto_behavior_tuning ? price - riskForTargets * tp2_r : price - atr * tp2_r;
@@ -598,6 +614,8 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
     primary_failed_gate: primaryFailedGate || "passed",
     compression_score: compressionScore,
     box_range_atr: parseFloat(boxRangeAtr.toFixed(3)),
+    recent_box_range_atr: parseFloat(recentBoxRangeAtr.toFixed(3)),
+    range_contracted: rangeContracted,
     box_lookback,
     min_box_bars,
     bars_inside_box: barsInside,
@@ -608,7 +626,9 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
     early_breakout: earlyBreakoutUp || earlyBreakoutDn,
     breakout_direction: direction,
     breakout_distance_atr: parseFloat(breakoutDistanceAtr.toFixed(3)),
+    breakout_score: breakoutScore,
     atr_expansion: parseFloat(atrExpansionRatio.toFixed(3)),
+    atr_expansion_score: atrExpansionScore,
     min_atr_expansion,
     momentum_score: momentumScore,
     candle_body_score: candleBodyScore,
@@ -734,7 +754,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   else if (atrPct > max_atr_pct) primaryFailedGate = "volatility_too_high";
   else if (!trendQualityPass) primaryFailedGate = "trend_filter_failed";
   else if (!pullbackReady || pullbackScore < 45) primaryFailedGate = "pullback_not_ready";
-  else if (!reclaimConfirmed) primaryFailedGate = "reclaim_not_confirmed";
+  else if (!reclaimQualityPass) primaryFailedGate = "reclaim_not_confirmed";
   else if (momentumScore < 35 || rsiScore < 35) primaryFailedGate = "momentum_failed";
   else if (risk_reward < min_rr) primaryFailedGate = "rr_too_low";
 
@@ -755,6 +775,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
     pullback_score: pullbackScore,
     pullback_ready: pullbackReady,
     reclaim_confirmed: reclaimConfirmed,
+    reclaim_quality_pass: reclaimQualityPass,
     strict_reclaim_confirmed: strictReclaimConfirmed,
     reclaim_by_quality: reclaimByQuality,
     momentum_score: momentumScore,
@@ -784,7 +805,7 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   const min_atr_pct = params.min_atr_pct ?? 0.018;
   const max_atr_pct = params.max_atr_pct ?? 0.42;
   const pullback_bars = Math.max(3, Math.floor(params.pullback_bars ?? 6));
-  const stop_atr_mult = params.stop_atr_mult ?? 1.35;
+  const stop_atr_mult = Math.max(params.stop_atr_mult ?? 1.35, 1.35);
   const tp1_r = params.tp1_r ?? 1.25;
   const tp2_r = params.tp2_r ?? 1.85;
   const min_rr = params.min_rr ?? 1.45;
@@ -794,8 +815,8 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
   const ema_fast = Math.max(2, Math.floor(params.ema_fast ?? 20));
   const ema_slow = Math.max(ema_fast + 1, Math.floor(params.ema_slow ?? 50));
-  const min_stop_pips = params.min_stop_pips ?? (isJpyPair(symbol) ? 9 : 8);
-  const min_tp1_pips = params.min_tp1_pips ?? (isJpyPair(symbol) ? 11 : 10);
+  const min_stop_pips = Math.max(params.min_stop_pips ?? 0, isJpyPair(symbol) ? 13 : 11);
+  const min_tp1_pips = Math.max(params.min_tp1_pips ?? 0, isJpyPair(symbol) ? 15 : 13);
 
   if (!["1h", "15m"].includes(timeframe)) return forexZeroReject("unsupported_timeframe", symbol);
   const minLen = Math.max(ema_slow + 8, atr_len + 2, rsi_len + 2, pullback_bars + 12, 60);
@@ -833,10 +854,10 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   const pullbackHigh = Math.max(...pullbackWindow.map((c) => c.high));
   const pullbackCloseMin = Math.min(...pullbackWindow.map((c) => c.close));
   const pullbackCloseMax = Math.max(...pullbackWindow.map((c) => c.close));
-  const touchedBuyZone = pullbackLow <= emaFast + atr * 0.7 && pullbackLow >= emaSlow - atr * 0.45;
-  const touchedSellZone = pullbackHigh >= emaFast - atr * 0.7 && pullbackHigh <= emaSlow + atr * 0.45;
-  const reclaimedBuy = price > emaFast && last.close > last.open && price > pullbackCloseMin + atr * 0.25;
-  const reclaimedSell = price < emaFast && last.close < last.open && price < pullbackCloseMax - atr * 0.25;
+  const touchedBuyZone = (pullbackLow <= emaFast + atr * 0.8 && pullbackLow >= emaSlow - atr * 0.6) || (pullbackCloseMin <= emaFast + atr * 0.35 && pullbackCloseMin >= emaSlow - atr * 0.75);
+  const touchedSellZone = (pullbackHigh >= emaFast - atr * 0.8 && pullbackHigh <= emaSlow + atr * 0.6) || (pullbackCloseMax >= emaFast - atr * 0.35 && pullbackCloseMax <= emaSlow + atr * 0.75);
+  const reclaimedBuy = price > emaFast && price > pullbackCloseMin + atr * 0.18 && (last.close > last.open || Math.abs(last.close - last.open) >= atr * 0.18);
+  const reclaimedSell = price < emaFast && price < pullbackCloseMax - atr * 0.18 && (last.close < last.open || Math.abs(last.close - last.open) >= atr * 0.18);
   const pullbackReady = direction === "buy" ? touchedBuyZone : touchedSellZone;
   const reclaimConfirmed = direction === "buy" ? reclaimedBuy : reclaimedSell;
 
@@ -873,14 +894,18 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   else if (atrPct > max_atr_pct) volatilityScore = clampScore(Math.max(20, 86 - ((atrPct - max_atr_pct) / Math.max(max_atr_pct, 0.001)) * 120));
   const distanceScore = clampScore(Math.min(stopPips / Math.max(min_stop_pips, 0.1), 1.35) * 45 + Math.min(tp1Pips / Math.max(min_tp1_pips, 0.1), 1.35) * 25 + Math.min(tp2Pips / Math.max(min_tp1_pips * 1.4, 0.1), 1.35) * 20 + Math.min(atrPips / Math.max(min_stop_pips * 0.7, 0.1), 1.2) * 10);
   const rrScore = clampScore(Math.min(risk_reward / Math.max(min_rr, 0.01), 1.35) * 74);
-  const trendQualityPass = trendScore >= 58 && emaAligned && directionalSlope > -0.015 && directionalSpreadPips >= 1.5;
+  const trendQualityPass = emaAligned && (
+    (trendScore >= 58 && directionalSlope > -0.015 && directionalSpreadPips >= 1.5) ||
+    (trendScore >= 52 && emaSlopeScore >= 50 && directionalSlope > -0.025 && (directionalSpreadPips >= 1.0 || priceVsEma > 0) && structureContinuation)
+  );
+  const reclaimQualityPass = reclaimConfirmed || (pullbackScore >= 62 && momentumScore >= 42 && structureContinuation && (direction === "buy" ? price > emaFast : price < emaFast));
 
   let primaryFailedGate = "";
   if (atrPct < min_atr_pct) primaryFailedGate = "volatility_too_low";
   else if (atrPct > max_atr_pct) primaryFailedGate = "volatility_too_high";
   else if (!trendQualityPass) primaryFailedGate = "trend_filter_failed";
   else if (!pullbackReady || pullbackScore < 50) primaryFailedGate = "pullback_not_ready";
-  else if (!reclaimConfirmed) primaryFailedGate = "reclaim_not_confirmed";
+  else if (!reclaimQualityPass) primaryFailedGate = "reclaim_not_confirmed";
   else if (!structureContinuation) primaryFailedGate = "trend_filter_failed";
   else if (directionalMomentum < 0.05 || momentumScore < 42 || !rsiOk) primaryFailedGate = "momentum_failed";
   else if (stopPips < min_stop_pips || tp1Pips < min_tp1_pips) primaryFailedGate = "distance_guard_failed";
@@ -902,6 +927,7 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
     pullback_score: pullbackScore,
     pullback_ready: pullbackReady,
     reclaim_confirmed: reclaimConfirmed,
+    reclaim_quality_pass: reclaimQualityPass,
     momentum_score: momentumScore,
     volatility_score: volatilityScore,
     spread_or_distance_score: distanceScore,
@@ -1042,17 +1068,91 @@ interface EvalEntry {
   guard: DistanceGuardResult;
 }
 
+function scoreBreakdownNumber(breakdown: Record<string, number | string | boolean>, key: string): number {
+  const value = breakdown?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function scoreBreakdownBool(breakdown: Record<string, number | string | boolean>, key: string): boolean {
+  return breakdown?.[key] === true || breakdown?.[key] === "true" || breakdown?.[key] === "passed";
+}
+
+function strategyIdentityFit(e: EvalEntry): number {
+  const b = e.result.score_breakdown;
+  if (e.name === "CompressionBreakout") {
+    return clampScore(
+      scoreBreakdownNumber(b, "compression_score") * 0.30 +
+      scoreBreakdownNumber(b, "breakout_score") * 0.35 +
+      scoreBreakdownNumber(b, "atr_expansion_score") * 0.18 +
+      scoreBreakdownNumber(b, "momentum_score") * 0.17 +
+      (scoreBreakdownBool(b, "near_compression_ready") ? 6 : 0),
+    );
+  }
+  if (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") {
+    return clampScore(
+      scoreBreakdownNumber(b, "trend_score") * 0.30 +
+      scoreBreakdownNumber(b, "pullback_score") * 0.28 +
+      scoreBreakdownNumber(b, "momentum_score") * 0.22 +
+      scoreBreakdownNumber(b, "ema_slope_score") * 0.10 +
+      scoreBreakdownNumber(b, "rr_score") * 0.10,
+    );
+  }
+  if (e.name === "ForexMicroScalper") {
+    return clampScore(
+      scoreBreakdownNumber(b, "trend_score") * 0.25 +
+      scoreBreakdownNumber(b, "momentum_score") * 0.25 +
+      scoreBreakdownNumber(b, "candle_score") * 0.20 +
+      scoreBreakdownNumber(b, "spread_or_distance_score") * 0.20 +
+      scoreBreakdownNumber(b, "rr_score") * 0.10,
+    );
+  }
+  return clampScore(
+    scoreBreakdownNumber(b, "trend_score") * 0.25 +
+    scoreBreakdownNumber(b, "momentum_score") * 0.25 +
+    scoreBreakdownNumber(b, "rsi_score") * 0.18 +
+    scoreBreakdownNumber(b, "candle_body_score") * 0.14 +
+    scoreBreakdownNumber(b, "rr_score") * 0.18,
+  );
+}
+
+function overextensionPenalty(e: EvalEntry): number {
+  const b = e.result.score_breakdown;
+  let penalty = 0;
+  if (scoreBreakdownBool(b, "chase_risk")) penalty += 0.10;
+  const extensionAtr = scoreBreakdownNumber(b, "price_extension_atr");
+  if (extensionAtr > 2.0) penalty += Math.min((extensionAtr - 2.0) * 0.04, 0.12);
+  const bodyAtr = scoreBreakdownNumber(b, "body_atr");
+  if ((e.name === "MicroScalper" || e.name === "ForexMicroScalper") && bodyAtr > 1.35) penalty += 0.04;
+  return penalty;
+}
+
 function arbitrationScore(e: EvalEntry): number {
   const r = e.result;
   const g = e.guard;
-  // Weighted composite: confidence 40%, RR 30%, margin above min distances 20%, regime 10%
-  const scorePct   = r.confidence_score / 100;
-  const rrPct      = Math.min(r.risk_reward / 4, 1);
-  const slMargin   = g.sl_pct  > 0 ? Math.min((g.sl_pct  - e.cfg.min_stop_distance_pct)  / e.cfg.min_stop_distance_pct,  1) : 0;
-  const tp1Margin  = g.tp1_pct > 0 ? Math.min((g.tp1_pct - e.cfg.min_tp1_distance_pct)   / e.cfg.min_tp1_distance_pct,   1) : 0;
-  const tp2Margin  = g.tp2_pct > 0 ? Math.min((g.tp2_pct - e.cfg.min_tp2_distance_pct)   / e.cfg.min_tp2_distance_pct,   1) : 0;
+  const scorePct = r.confidence_score / 100;
+  const rrPct = Math.min(r.risk_reward / 3.5, 1);
+  const slMargin = g.sl_pct > 0 && e.cfg.min_stop_distance_pct > 0 ? Math.min(Math.max((g.sl_pct - e.cfg.min_stop_distance_pct) / e.cfg.min_stop_distance_pct, 0), 1) : 0.5;
+  const tp1Margin = g.tp1_pct > 0 && e.cfg.min_tp1_distance_pct > 0 ? Math.min(Math.max((g.tp1_pct - e.cfg.min_tp1_distance_pct) / e.cfg.min_tp1_distance_pct, 0), 1) : 0.5;
+  const tp2Margin = g.tp2_pct > 0 && e.cfg.min_tp2_distance_pct > 0 ? Math.min(Math.max((g.tp2_pct - e.cfg.min_tp2_distance_pct) / e.cfg.min_tp2_distance_pct, 0), 1) : 0.5;
   const distMargin = (slMargin + tp1Margin + tp2Margin) / 3;
-  return scorePct * 0.40 + rrPct * 0.30 + distMargin * 0.20 + (gradeIndex(r.grade) / 3) * 0.10;
+  const gradePct = gradeIndex(r.grade) / 3;
+  const identityPct = strategyIdentityFit(e) / 100;
+  return parseFloat(Math.max(0, (scorePct * 0.32) + (identityPct * 0.24) + (rrPct * 0.18) + (distMargin * 0.16) + (gradePct * 0.10) - overextensionPenalty(e)).toFixed(4));
+}
+
+function arbitrationSnapshot(entries: EvalEntry[]): Array<Record<string, unknown>> {
+  return entries.map((entry) => ({
+    strategy_name: entry.name,
+    arbitration_score: arbitrationScore(entry),
+    confidence_score: entry.result.confidence_score,
+    grade: entry.result.grade,
+    risk_reward: entry.result.risk_reward,
+    identity_fit_score: strategyIdentityFit(entry),
+    stop_margin_pct: parseFloat(entry.guard.sl_pct.toFixed(4)),
+    tp1_margin_pct: parseFloat(entry.guard.tp1_pct.toFixed(4)),
+    tp2_margin_pct: parseFloat(entry.guard.tp2_pct.toFixed(4)),
+    primary_failed_gate: entry.result.score_breakdown?.primary_failed_gate ?? "passed",
+  }));
 }
 
 // ─── Risk Engine ──────────────────────────────────────────────────────────────
@@ -2572,8 +2672,17 @@ async function runScanPipeline(
           (passingEntries[passingEntries.length - 1] as EvalEntry & { _candidateId: string })._candidateId = cData.id;
         }
 
-        // Arbitrate: sort by score descending, winner proceeds, rest are blocked
-        passingEntries.sort((a, b) => arbitrationScore(b) - arbitrationScore(a));
+        // Arbitrate with strategy-specific identity fit so selection is not first-valid/raw-score only.
+        passingEntries.sort((a, b) => {
+          const scoreDelta = arbitrationScore(b) - arbitrationScore(a);
+          if (Math.abs(scoreDelta) > 0.0001) return scoreDelta;
+          const identityDelta = strategyIdentityFit(b) - strategyIdentityFit(a);
+          if (identityDelta !== 0) return identityDelta;
+          return b.result.risk_reward - a.result.risk_reward;
+        });
+        const arbitrationCandidates = arbitrationSnapshot(passingEntries);
+        const selectedArbitrationScore = passingEntries.length > 0 ? arbitrationScore(passingEntries[0]) : 0;
+        const selectedStrategyName = passingEntries[0]?.name ?? "none";
 
         for (let idx = 0; idx < passingEntries.length; idx++) {
           const ev = passingEntries[idx] as EvalEntry & { _candidateId: string };
@@ -2582,21 +2691,52 @@ async function runScanPipeline(
           const isWinner = idx === 0;
 
           if (!isWinner) {
-            // Loser in arbitration — update candidate and skip
+            // Loser in arbitration — update candidate and skip with explicit diagnostics.
             await supabase.from("strategy_candidates").update({
               status: "rejected",
               rejection_reason: "arbitration_blocked",
+              score_breakdown: {
+                ...(r.score_breakdown ?? {}),
+                primary_failed_gate: "arbitration_blocked",
+                arbitration_blocked: true,
+                better_candidate_selected: selectedStrategyName,
+                lower_quality_than_selected: true,
+                arbitration_score: arbitrationScore(ev),
+                selected_arbitration_score: selectedArbitrationScore,
+                arbitration_candidates: arbitrationCandidates,
+              },
             }).eq("id", cId);
             rejectedCount++;
             continue;
           }
+
+          await supabase.from("strategy_candidates").update({
+            score_breakdown: {
+              ...(r.score_breakdown ?? {}),
+              primary_failed_gate: r.score_breakdown?.primary_failed_gate ?? "passed",
+              arbitration_selected: true,
+              arbitration_score: selectedArbitrationScore,
+              arbitration_candidates: arbitrationCandidates,
+            },
+          }).eq("id", cId);
 
           // Winner — proceed through existing gates
           candidatesFound++;
 
           // Duplicate gate
           if (config.prevent_duplicate_symbol_signals && activeSymbolSet.has(sym.symbol)) {
-            await supabase.from("strategy_candidates").update({ status: "rejected", rejection_reason: "duplicate_active_signal" }).eq("id", cId);
+            await supabase.from("strategy_candidates").update({
+              status: "rejected",
+              rejection_reason: "duplicate_active_signal",
+              score_breakdown: {
+                ...(r.score_breakdown ?? {}),
+                primary_failed_gate: "duplicate_active_signal",
+                duplicate_active_signal: true,
+                arbitration_selected: true,
+                arbitration_score: selectedArbitrationScore,
+                arbitration_candidates: arbitrationCandidates,
+              },
+            }).eq("id", cId);
             rejectedCount++;
             duplicateSymbolBlocked++;
             continue;
@@ -2660,6 +2800,9 @@ async function runScanPipeline(
               mode_adjustments_used: Object.keys(overrides).filter((k) => k !== "allowed_strategies"),
               duplicate_blocked: false, daily_lock_state: riskCheck.daily_lock,
               cooldown_state: riskCheck.cooldown, paper_execution_intent_created: false,
+              selected_strategy: ev.name,
+              arbitration_score: selectedArbitrationScore,
+              competing_candidates: arbitrationCandidates,
             };
 
             if (!riskCheck.passed) {
