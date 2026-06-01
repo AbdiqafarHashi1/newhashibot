@@ -37,7 +37,7 @@ interface BtMetrics {
   totalR: number; avgR: number; avgWin: number; avgLoss: number;
   bestTrade: number; worstTrade: number;
   maxConsecWins: number; maxConsecLosses: number; maxDrawdown: number;
-  evaluations: number; candidates: number; rejected: number;
+  evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number>;
 }
 
 interface CsvInfo {
@@ -48,10 +48,11 @@ interface CsvInfo {
   inferredTf: string;
 }
 
-// ─── Default params by strategy and mode ─────────────────────────────────────
+// ─── Strategy parameters and live-parity backtest defaults ─────────────────────────────────────
 
-type Mode = 'conservative' | 'balanced' | 'aggressive';
+type ResearchPreset = 'live' | 'conservative' | 'balanced' | 'aggressive';
 type Strategy = 'MicroScalper' | 'CompressionBreakout' | 'SwingContinuation';
+type StrategyChoice = Strategy | 'ALL';
 type RangePreset = 'full' | '7d' | '30d' | '60d' | '90d' | 'custom';
 
 interface ParamSet {
@@ -67,7 +68,7 @@ interface ParamSet {
   breakout_buffer_atr: number; pullback_bars: number;
 }
 
-const DEFAULTS: Record<Strategy, Record<Mode, ParamSet>> = {
+const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressive', ParamSet>> = {
   MicroScalper: {
     conservative: { min_score: 78, min_rr: 1.4, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.45, max_bars_in_trade: 20, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 55, rsi_sell_max: 45, stop_atr_mult: 1.5, tp1_r: 1.3, tp2_r: 2.0, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
     balanced:     { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.18, min_tp1_distance_pct: 0.25, min_tp2_distance_pct: 0.40, max_bars_in_trade: 24, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.2, tp2_r: 1.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
@@ -84,6 +85,63 @@ const DEFAULTS: Record<Strategy, Record<Mode, ParamSet>> = {
     aggressive:   { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.35, min_tp1_distance_pct: 0.55, min_tp2_distance_pct: 0.95, max_bars_in_trade: 120, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 48, rsi_sell_max: 52, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.2, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 6 },
   },
 };
+
+const LIVE_PARAMS: Record<Strategy, ParamSet> = {
+  MicroScalper: DEFAULTS.MicroScalper.balanced,
+  CompressionBreakout: DEFAULTS.CompressionBreakout.balanced,
+  SwingContinuation: DEFAULTS.SwingContinuation.balanced,
+};
+
+const STRATEGY_TIMEFRAMES: Record<Strategy, string[]> = {
+  MicroScalper: ['5m', '15m'],
+  CompressionBreakout: ['15m', '1h'],
+  SwingContinuation: ['15m', '1h'],
+};
+
+const TF_MINUTES: Record<string, number> = { '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240, '1d': 1440 };
+
+
+const RESEARCH_PRESET_LABEL: Record<ResearchPreset, string> = {
+  live: 'Live-like default',
+  conservative: 'Conservative research',
+  balanced: 'Balanced research',
+  aggressive: 'Aggressive research',
+};
+
+const RESEARCH_PRESET_DESCRIPTIONS: Record<ResearchPreset, string> = {
+  live: 'Closest browser-side approximation of current strategy-family behavior. Default path.',
+  conservative: 'Backtest-only stricter score, confirmation, RR/distance safety. Fewer weak setups expected.',
+  balanced: 'Backtest-only middle-ground research preset, aligned to current live-like defaults.',
+  aggressive: 'Backtest-only more active research preset. Keeps RR, distance, candle, and structure guards.',
+};
+
+function paramsForPreset(strategy: Strategy, preset: ResearchPreset): ParamSet {
+  if (preset === 'live' || preset === 'balanced') return { ...LIVE_PARAMS[strategy] };
+  return { ...DEFAULTS[strategy][preset] };
+}
+
+function presetShortLabel(preset: ResearchPreset): string {
+  return RESEARCH_PRESET_LABEL[preset].replace(' research', '');
+}
+
+interface BacktestRunResult {
+  id: string;
+  strategy: Strategy;
+  datasetTimeframe: string;
+  testedTimeframe: string;
+  resampled: boolean;
+  candlesLoaded: number;
+  candlesTested: number;
+  metrics: BtMetrics;
+  trades: BtTrade[];
+  params: ParamSet;
+  classification: string;
+  classificationReason: string;
+  truthLabel: 'Live strategy parity logic' | 'Backtest approximation logic';
+  parityNote: string;
+  preset: ResearchPreset;
+  unsupportedReason?: string;
+}
 
 // ─── Indicator helpers ────────────────────────────────────────────────────────
 
@@ -160,11 +218,11 @@ interface EvalOut {
   grade: string; score: number; rr: number; reason: string;
 }
 
-const FAIL = (): EvalOut => ({ ok: false, direction: 'buy', entry: 0, entry_low: 0, entry_high: 0, sl: 0, tp1: 0, tp2: 0, grade: 'reject', score: 0, rr: 0, reason: '' });
+const FAIL = (reason = 'no_valid_setup'): EvalOut => ({ ok: false, direction: 'buy', entry: 0, entry_low: 0, entry_high: 0, sl: 0, tp1: 0, tp2: 0, grade: 'reject', score: 0, rr: 0, reason });
 
 function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
-  if (!['5m', '15m'].includes(tf)) return FAIL();
-  if (window.length < 60) return FAIL();
+  if (!['5m', '15m'].includes(tf)) return FAIL('unsupported_timeframe');
+  if (window.length < 60) return FAIL('insufficient_candles');
   const closes = window.map(c => c.close);
   const ema20 = calcEMA(closes, p.ema_fast); const ema50 = calcEMA(closes, p.ema_slow);
   const atr = calcATR(window, p.atr_len); const rsi = calcRSI(closes, p.rsi_len);
@@ -173,7 +231,9 @@ function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const atrPct = price > 0 ? (atr / price) * 100 : 0;
   const bodyRatio = atr > 0 ? Math.abs(last.close - last.open) / atr : 0;
 
-  if (atrPct < p.min_atr_pct || atrPct > p.max_atr_pct || bodyRatio < p.min_body_atr) return FAIL();
+  if (atrPct < p.min_atr_pct) return FAIL('volatility_too_low');
+  if (atrPct > p.max_atr_pct) return FAIL('volatility_too_high');
+  if (bodyRatio < p.min_body_atr) return FAIL('candle_body_too_small');
 
   const olderHi = window.length > 50 ? Math.max(...window.slice(-50, -20).map(c => c.high)) : Math.max(...window.slice(-20).map(c => c.high));
   const olderLo = window.length > 50 ? Math.min(...window.slice(-50, -20).map(c => c.low))  : Math.min(...window.slice(-20).map(c => c.low));
@@ -187,18 +247,18 @@ function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (ema20 > ema50 && rsi >= p.rsi_buy_min && price > ema20) {
     direction = 'buy'; score += 15;
     if (reg === 'trend_up') score += 10;
-    if (mom > 0.2) score += 8; else return FAIL();
+    if (mom > 0.2) score += 8; else return FAIL('momentum_failed');
     if (rsi >= 58) score += 8; else score += 3;
     if (prev.close < ema20 && price > ema20) score += 7;
     score += last.close > last.open ? 5 : -3;
   } else if (ema20 < ema50 && rsi <= p.rsi_sell_max && price < ema20) {
     direction = 'sell'; score += 15;
     if (reg === 'trend_down') score += 10;
-    if (mom < -0.2) score += 8; else return FAIL();
+    if (mom < -0.2) score += 8; else return FAIL('momentum_failed');
     if (rsi <= 42) score += 8; else score += 3;
     if (prev.close > ema20 && price < ema20) score += 7;
     score += last.close < last.open ? 5 : -3;
-  } else return FAIL();
+  } else return FAIL('trend_rsi_context_failed');
 
   const sl  = direction === 'buy' ? price - atr * p.stop_atr_mult : price + atr * p.stop_atr_mult;
   const tp1 = direction === 'buy' ? price + atr * p.tp1_r         : price - atr * p.tp1_r;
@@ -213,22 +273,22 @@ function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
 }
 
 function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
-  if (!['15m', '1h'].includes(tf)) return FAIL();
+  if (!['15m', '1h'].includes(tf)) return FAIL('unsupported_timeframe');
   const boxLookback = p.box_lookback, minBoxBars = p.min_box_bars;
-  if (window.length < boxLookback + 5) return FAIL();
+  if (window.length < boxLookback + 5) return FAIL('insufficient_candles');
   const closes = window.map(c => c.close);
   const atr = calcATR(window, p.atr_len);
-  if (atr <= 0) return FAIL();
+  if (atr <= 0) return FAIL('invalid_atr');
   const rsi = calcRSI(closes, p.rsi_len);
   const last = window[window.length - 1]; const price = last.close;
   const boxSlice = window.slice(-(boxLookback + 1), -1);
-  if (boxSlice.length < minBoxBars) return FAIL();
+  if (boxSlice.length < minBoxBars) return FAIL('insufficient_box_bars');
   const boxHigh = Math.max(...boxSlice.map(c => c.high));
   const boxLow  = Math.min(...boxSlice.map(c => c.low));
   const boxRange = boxHigh - boxLow;
-  if (boxRange > atr * p.max_box_atr_range) return FAIL();
+  if (boxRange > atr * p.max_box_atr_range) return FAIL('compression_failed_box_too_wide');
   const barsInside = boxSlice.filter(c => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
-  if (barsInside < minBoxBars) return FAIL();
+  if (barsInside < minBoxBars) return FAIL('compression_failed_not_enough_inside_bars');
 
   const boxMid = (boxHigh + boxLow) / 2;
   const bfh = boxSlice.slice(0, Math.floor(boxSlice.length / 2));
@@ -236,24 +296,24 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const fa = bfh.reduce((s, c) => s + c.close, 0) / (bfh.length || 1);
   const sa = bsh.reduce((s, c) => s + c.close, 0) / (bsh.length || 1);
   const drift = Math.abs(sa - fa) / (boxRange || 1);
-  if (drift < 0.10 && Math.abs(fa - boxMid) / (boxRange || 1) < 0.15 && Math.abs(sa - boxMid) / (boxRange || 1) < 0.15) return FAIL();
+  if (drift < 0.10 && Math.abs(fa - boxMid) / (boxRange || 1) < 0.15 && Math.abs(sa - boxMid) / (boxRange || 1) < 0.15) return FAIL('compression_drift_too_flat');
 
   const buf = atr * p.breakout_buffer_atr;
   const up = last.close > boxHigh + buf && last.close > last.open;
   const dn = last.close < boxLow  - buf && last.close < last.open;
-  if (!up && !dn) return FAIL();
+  if (!up && !dn) return FAIL('breakout_not_confirmed');
 
   const hist = window.slice(-(p.atr_expansion_lookback + 1), -1);
   const avgRange = hist.reduce((s, c) => s + (c.high - c.low), 0) / (hist.length || 1);
   const expansion = avgRange > 0 ? (last.high - last.low) / avgRange : 1;
-  if (expansion < p.min_atr_expansion) return FAIL();
+  if (expansion < p.min_atr_expansion) return FAIL('atr_expansion_too_low');
 
   const brkDist = up ? last.close - boxHigh : boxLow - last.close;
-  if (brkDist < buf * 0.6) return FAIL();
+  if (brkDist < buf * 0.6) return FAIL('breakout_distance_too_small');
 
   const mom = momentumScore(closes, p.momentum_lookback);
-  if (up && mom < 0) return FAIL();
-  if (dn && mom > 0) return FAIL();
+  if (up && mom < 0) return FAIL('momentum_failed');
+  if (dn && mom > 0) return FAIL('momentum_failed');
 
   const direction: 'buy' | 'sell' = up ? 'buy' : 'sell';
   let score = 50;
@@ -280,17 +340,18 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
 }
 
 function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
-  if (!['15m', '1h'].includes(tf)) return FAIL();
-  if (window.length < 60) return FAIL();
+  if (!['15m', '1h'].includes(tf)) return FAIL('unsupported_timeframe');
+  if (window.length < 60) return FAIL('insufficient_candles');
   const closes = window.map(c => c.close);
   const ema20 = calcEMA(closes, p.ema_fast); const ema50 = calcEMA(closes, p.ema_slow);
   const atr = calcATR(window, p.atr_len); const rsi = calcRSI(closes, p.rsi_len);
   const last = window[window.length - 1]; const price = last.close;
   const atrPct = price > 0 ? (atr / price) * 100 : 0;
-  if (atrPct < p.min_atr_pct || atrPct > p.max_atr_pct) return FAIL();
+  if (atrPct < p.min_atr_pct) return FAIL('volatility_too_low');
+  if (atrPct > p.max_atr_pct) return FAIL('volatility_too_high');
 
   const emaBull = ema20 > ema50 * 1.003; const emaBear = ema20 < ema50 * 0.997;
-  if (!emaBull && !emaBear) return FAIL();
+  if (!emaBull && !emaBear) return FAIL('trend_alignment_failed');
 
   const olderHi = window.length > 50 ? Math.max(...window.slice(-50, -20).map(c => c.high)) : Math.max(...window.slice(-20).map(c => c.high));
   const olderLo = window.length > 50 ? Math.min(...window.slice(-50, -20).map(c => c.low))  : Math.min(...window.slice(-20).map(c => c.low));
@@ -298,7 +359,7 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const recentLo = Math.min(...window.slice(-20).map(c => c.low));
   const rcr = (olderHi - olderLo) > 0 ? (recentHi - recentLo) / (olderHi - olderLo) : 1;
   const reg = regime(ema20, ema50, rsi, rcr, atrPct);
-  if (['ranging', 'unclear'].includes(reg)) return FAIL();
+  if (['ranging', 'unclear'].includes(reg)) return FAIL('regime_not_trending');
 
   const pbWindow = window.slice(-(p.pullback_bars + 1), -1);
   const pbLow  = Math.min(...pbWindow.map(c => c.low));
@@ -307,14 +368,14 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
 
   let score = 50, direction: 'buy' | 'sell' | null = null;
   if (emaBull && rsi >= p.rsi_buy_min && price > ema20) {
-    if (pbLow > ema20 * 1.008 || price <= ema20) return FAIL();
-    if (mom <= 0 || rsi < 48) return FAIL();
+    if (pbLow > ema20 * 1.008 || price <= ema20) return FAIL('pullback_not_ready');
+    if (mom <= 0 || rsi < 48) return FAIL('continuation_momentum_failed');
     direction = 'buy';
   } else if (emaBear && rsi <= p.rsi_sell_max && price < ema20) {
-    if (pbHigh < ema20 * 0.992 || price >= ema20) return FAIL();
-    if (mom >= 0 || rsi > 52) return FAIL();
+    if (pbHigh < ema20 * 0.992 || price >= ema20) return FAIL('pullback_not_ready');
+    if (mom >= 0 || rsi > 52) return FAIL('continuation_momentum_failed');
     direction = 'sell';
-  } else return FAIL();
+  } else return FAIL('trend_rsi_context_failed');
 
   const emaSep = Math.abs(ema20 - ema50) / ema50;
   if (emaSep > 0.01) score += 12; else if (emaSep > 0.005) score += 8; else score += 3;
@@ -342,10 +403,12 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
 
 function runBacktest(
   candles: BtCandle[], strategy: Strategy, tf: string, p: ParamSet,
-): { trades: BtTrade[]; evaluations: number; candidates: number; rejected: number } {
+): { trades: BtTrade[]; evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number> } {
   const trades: BtTrade[] = [];
   const MIN_WIN = 65;
   let evaluations = 0, candidates = 0, rejected = 0;
+  const rejectionReasons: Record<string, number> = {};
+  const reject = (reason: string) => { rejected++; rejectionReasons[reason || 'no_valid_setup'] = (rejectionReasons[reason || 'no_valid_setup'] ?? 0) + 1; };
   let inTrade = false;
   let tradeEndIndex = -1;
 
@@ -358,10 +421,10 @@ function runBacktest(
     const window = candles.slice(0, i + 1);
     evaluations++;
     const ev = evalFn(window, p, tf);
-    if (!ev.ok || ev.grade === 'reject') { rejected++; continue; }
+    if (!ev.ok || ev.grade === 'reject') { reject(ev.reason || 'no_valid_setup'); continue; }
 
     const guard = passesDistanceGuard(ev.entry, ev.sl, ev.tp1, ev.tp2, ev.score, ev.rr, p);
-    if (!guard.ok) { rejected++; continue; }
+    if (!guard.ok) { reject(guard.reason || 'distance_guard_failed'); continue; }
     candidates++;
 
     // Simulate outcome from i+1 forward, max max_bars_in_trade bars
@@ -404,12 +467,12 @@ function runBacktest(
     inTrade = true;
   }
 
-  return { trades, evaluations, candidates, rejected };
+  return { trades, evaluations, candidates, rejected, rejectionReasons };
 }
 
 // ─── Metrics calculator ───────────────────────────────────────────────────────
 
-function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number): BtMetrics {
+function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number, rejectionReasons: Record<string, number> = {}): BtMetrics {
   const wins   = trades.filter(t => t.result === 'tp1_hit' || t.result === 'tp2_hit');
   const losses = trades.filter(t => t.result === 'sl_hit');
   const exps   = trades.filter(t => t.result === 'expired');
@@ -450,7 +513,7 @@ function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number,
     avgWin: parseFloat(avgWin.toFixed(2)), avgLoss: parseFloat(avgLoss.toFixed(2)),
     bestTrade: parseFloat(bestTrade.toFixed(2)), worstTrade: parseFloat(worstTrade.toFixed(2)),
     maxConsecWins: maxCW, maxConsecLosses: maxCL, maxDrawdown: parseFloat(maxDD.toFixed(2)),
-    evaluations, candidates, rejected,
+    evaluations, candidates, rejected, rejectionReasons,
   };
 }
 
@@ -519,6 +582,103 @@ function parseCSV(text: string): { candles: BtCandle[]; skippedRows: number; err
   return { candles, skippedRows, error: null };
 }
 
+
+function resampleCandles(candles: BtCandle[], sourceTf: string, targetTf: string): BtCandle[] {
+  const sourceMinutes = TF_MINUTES[sourceTf];
+  const targetMinutes = TF_MINUTES[targetTf];
+  if (!sourceMinutes || !targetMinutes || sourceMinutes >= targetMinutes || targetMinutes % sourceMinutes !== 0) return [];
+  const bucketMs = targetMinutes * 60000;
+  const expected = targetMinutes / sourceMinutes;
+  const buckets = new Map<number, BtCandle[]>();
+  for (const candle of candles) {
+    const ts = new Date(candle.time).getTime();
+    if (!Number.isFinite(ts)) continue;
+    const bucketTs = Math.floor(ts / bucketMs) * bucketMs;
+    const group = buckets.get(bucketTs) ?? [];
+    group.push(candle);
+    buckets.set(bucketTs, group);
+  }
+  const output: BtCandle[] = [];
+  for (const [bucketTs, group] of [...buckets.entries()].sort((a, b) => a[0] - b[0])) {
+    const sorted = group.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+    if (sorted.length !== expected) continue;
+    output.push({
+      time: new Date(bucketTs).toISOString(),
+      open: sorted[0].open,
+      high: Math.max(...sorted.map(c => c.high)),
+      low: Math.min(...sorted.map(c => c.low)),
+      close: sorted[sorted.length - 1].close,
+      volume: sorted.reduce((sum, c) => sum + (Number.isFinite(c.volume) ? c.volume : 0), 0),
+    });
+  }
+  return output;
+}
+
+function buildCandlesForTimeframe(candles: BtCandle[], datasetTf: string, targetTf: string): { candles: BtCandle[]; resampled: boolean; unsupportedReason?: string } {
+  if (datasetTf === targetTf) return { candles, resampled: false };
+  const sourceMinutes = TF_MINUTES[datasetTf];
+  const targetMinutes = TF_MINUTES[targetTf];
+  if (!sourceMinutes || !targetMinutes) return { candles: [], resampled: false, unsupportedReason: `unsupported_timeframe_dataset_${datasetTf}_target_${targetTf}` };
+  if (sourceMinutes > targetMinutes) return { candles: [], resampled: false, unsupportedReason: `cannot_downsample_${datasetTf}_to_${targetTf}` };
+  if (sourceMinutes < targetMinutes) {
+    const resampled = resampleCandles(candles, datasetTf, targetTf);
+    return resampled.length >= 60 ? { candles: resampled, resampled: true } : { candles: resampled, resampled: true, unsupportedReason: `insufficient_resampled_candles_${resampled.length}` };
+  }
+  return { candles: [], resampled: false, unsupportedReason: 'timeframe_mapping_missing' };
+}
+
+function classifyBacktestResult(metrics: BtMetrics, unsupportedReason?: string): { classification: string; reason: string } {
+  if (unsupportedReason) return { classification: 'wrong timeframe/dataset', reason: unsupportedReason };
+  if (metrics.evaluations === 0) return { classification: 'broken/misconfigured', reason: 'No evaluations were possible.' };
+  if (metrics.candidates === 0) return { classification: 'not enough trades', reason: 'No qualified candidates passed setup and distance guards.' };
+  if (metrics.totalTrades < 10) return { classification: 'not enough trades', reason: 'Too few trades for decision confidence.' };
+  if (metrics.totalR > 0 && metrics.profitFactor >= 1.2 && metrics.winRate >= 40) return { classification: 'viable', reason: 'Positive R with acceptable profit factor and hit rate.' };
+  if (metrics.totalR <= 0 && metrics.totalTrades > 0) return { classification: 'needs tuning', reason: 'Trades were generated, but R/result quality is poor.' };
+  return { classification: 'not suitable for that symbol/timeframe', reason: 'Setup activity exists but metrics are not decision-ready.' };
+}
+
+function topRejectionReasons(reasons: Record<string, number>, limit = 6): [string, number][] {
+  return Object.entries(reasons).sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+
+function makeRunResult(strategy: Strategy, datasetTimeframe: string, testedTimeframe: string, sourceCandles: BtCandle[], params: ParamSet, preset: ResearchPreset): BacktestRunResult {
+  const built = buildCandlesForTimeframe(sourceCandles, datasetTimeframe, testedTimeframe);
+  const runnable = !built.unsupportedReason && built.candles.length >= 60;
+  const bt = runnable
+    ? runBacktest(built.candles, strategy, testedTimeframe, params)
+    : { trades: [] as BtTrade[], evaluations: 0, candidates: 0, rejected: built.candles.length, rejectionReasons: { [built.unsupportedReason ?? 'insufficient_candles']: built.candles.length } };
+  const metrics = calcMetrics(bt.trades, bt.evaluations, bt.candidates, bt.rejected, bt.rejectionReasons);
+  const cls = classifyBacktestResult(metrics, built.unsupportedReason);
+  return {
+    id: `${strategy}-${testedTimeframe}-${preset}`,
+    strategy,
+    datasetTimeframe,
+    testedTimeframe,
+    resampled: built.resampled,
+    candlesLoaded: sourceCandles.length,
+    candlesTested: built.candles.length,
+    metrics,
+    trades: bt.trades,
+    params,
+    preset,
+    classification: cls.classification,
+    classificationReason: cls.reason,
+    truthLabel: 'Backtest approximation logic',
+    parityNote: 'Uses browser-compatible evaluator kept on the current HashiBot strategy family and selected backtest preset parameters; live Edge Function imports are not executed in-browser, so fills/slippage/provider context may differ.',
+    unsupportedReason: built.unsupportedReason,
+  };
+}
+
+function buildRunPlan(choice: StrategyChoice, datasetTimeframe: string): Array<{ strategy: Strategy; timeframe: string }> {
+  const strategies: Strategy[] = choice === 'ALL' ? ['MicroScalper', 'CompressionBreakout', 'SwingContinuation'] : [choice];
+  const sourceMinutes = TF_MINUTES[datasetTimeframe] ?? Infinity;
+  return strategies.flatMap(s => {
+    const validTargets = STRATEGY_TIMEFRAMES[s].filter(tf => (TF_MINUTES[tf] ?? 0) >= sourceMinutes);
+    const targets = validTargets.length > 0 ? validTargets : [STRATEGY_TIMEFRAMES[s][0]];
+    return targets.map(timeframe => ({ strategy: s, timeframe }));
+  });
+}
+
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function toDatetimeLocal(iso: string): string {
@@ -564,6 +724,272 @@ function ParamRow({ label, field, value, onChange, step = 0.01, min }: {
   );
 }
 
+
+const CLASSIFICATION_RANK: Record<string, number> = {
+  viable: 1,
+  'needs tuning': 2,
+  'not enough trades': 3,
+  'not suitable for that symbol/timeframe': 4,
+  'broken/misconfigured': 5,
+  'wrong timeframe/dataset': 6,
+};
+
+function capitalForResult(result: BacktestRunResult, assumptions: CapitalAssumptions) {
+  return estimateCapitalFromR(result.trades.map(t => t.pnl_r), assumptions);
+}
+
+function compareRunResults(a: BacktestRunResult, b: BacktestRunResult): number {
+  const rank = (CLASSIFICATION_RANK[a.classification] ?? 99) - (CLASSIFICATION_RANK[b.classification] ?? 99);
+  if (rank !== 0) return rank;
+  const aDecision = a.classification === 'viable' || a.classification === 'needs tuning';
+  const bDecision = b.classification === 'viable' || b.classification === 'needs tuning';
+  if (aDecision && bDecision) {
+    if (b.metrics.profitFactor !== a.metrics.profitFactor) return b.metrics.profitFactor - a.metrics.profitFactor;
+    if (b.metrics.totalR !== a.metrics.totalR) return b.metrics.totalR - a.metrics.totalR;
+    if (b.metrics.avgR !== a.metrics.avgR) return b.metrics.avgR - a.metrics.avgR;
+    return a.metrics.maxDrawdown - b.metrics.maxDrawdown;
+  }
+  return b.metrics.totalTrades - a.metrics.totalTrades;
+}
+
+function recommendationForResult(result: BacktestRunResult): { action: string; text: string } {
+  const label = `${result.strategy} ${result.testedTimeframe}`;
+  if (result.unsupportedReason || result.classification === 'wrong timeframe/dataset') return { action: 'Wrong dataset', text: `${label}: Wrong dataset — ${result.unsupportedReason ?? 'uploaded timeframe cannot support this test'}.` };
+  if (result.classification === 'viable') return { action: 'Keep', text: `${label}: Keep — viable in this sample with positive R and acceptable PF/drawdown evidence.` };
+  if (result.classification === 'needs tuning') return { action: 'Tune', text: `${label}: Needs tuning — trades exist but PF ${result.metrics.profitFactor} and total R ${result.metrics.totalR} are not strong enough.` };
+  if (result.classification === 'not enough trades') return { action: 'Needs more data', text: `${label}: Needs more data — ${result.metrics.totalTrades} trades from ${result.metrics.evaluations.toLocaleString()} evaluations; check longer data or thresholds.` };
+  if (result.classification === 'broken/misconfigured') return { action: 'Disable', text: `${label}: Disable/investigate — no evaluations were possible.` };
+  return { action: 'Tune', text: `${label}: Tune — not suitable for this symbol/timeframe sample based on current evidence.` };
+}
+
+
+type TuningSituation =
+  | 'No-trade / dead strategy'
+  | 'Too strict'
+  | 'Too loose / low quality'
+  | 'Bad trade management / poor exits'
+  | 'Symbol/timeframe mismatch'
+  | 'Viable but needs optimization'
+  | 'Viable / preserve';
+
+type TuningConfidence = 'High' | 'Medium' | 'Low';
+
+interface TuningDiagnosis {
+  situation: TuningSituation;
+  mainWeakness: string;
+  suggestedDirection: string;
+  confidence: TuningConfidence;
+  confidenceReason: string;
+}
+
+interface TuningInsight {
+  label: string;
+  result: BacktestRunResult | null;
+  note: string;
+}
+
+const STRICT_REJECTION_REASONS = new Set([
+  'confidence_too_low', 'momentum_failed', 'continuation_momentum_failed', 'candle_body_too_small',
+  'compression_not_ready', 'compression_failed_box_too_wide', 'compression_failed_not_enough_inside_bars',
+  'compression_drift_too_flat', 'breakout_not_confirmed', 'reclaim_not_confirmed', 'trend_filter_failed',
+  'trend_alignment_failed', 'trend_rsi_context_failed', 'regime_not_trending', 'pullback_not_ready', 'rr_too_low',
+]);
+
+function rejectionTotal(result: BacktestRunResult): number {
+  return Object.values(result.metrics.rejectionReasons).reduce((sum, count) => sum + count, 0);
+}
+
+function topReason(result: BacktestRunResult): [string, number] | null {
+  return topRejectionReasons(result.metrics.rejectionReasons, 1)[0] ?? null;
+}
+
+function reasonShare(result: BacktestRunResult): number {
+  const top = topReason(result);
+  const total = rejectionTotal(result);
+  return top && total > 0 ? top[1] / total : 0;
+}
+
+function hasAnyTopReason(result: BacktestRunResult, reasons: string[]): boolean {
+  const entries = topRejectionReasons(result.metrics.rejectionReasons, 5);
+  return entries.some(([reason]) => reasons.includes(reason));
+}
+
+function resultLabel(result: BacktestRunResult): string {
+  return `${result.strategy} ${result.testedTimeframe} · ${RESEARCH_PRESET_LABEL[result.preset]}`;
+}
+
+function confidenceForResult(result: BacktestRunResult, situation: TuningSituation): { confidence: TuningConfidence; reason: string } {
+  const m = result.metrics;
+  const clearZeroTrade = m.totalTrades === 0 && m.evaluations >= 1000 && reasonShare(result) >= 0.5;
+  if (m.evaluations < 100 || result.candlesTested < 300) return { confidence: 'Low', reason: 'Dataset/evaluation count is small; needs a longer sample before tuning.' };
+  if (m.totalTrades >= 50) return { confidence: 'High', reason: 'Large enough trade sample for a strong diagnostic signal.' };
+  if ((situation === 'Too loose / low quality' || situation === 'Bad trade management / poor exits') && m.totalTrades >= 25 && (m.profitFactor < 0.8 || m.maxConsecLosses >= 5)) return { confidence: 'High', reason: 'Loss quality is severe across a meaningful trade sample.' };
+  if (clearZeroTrade) return { confidence: 'High', reason: 'Many evaluations produced no trades and a dominant rejection reason is clear.' };
+  if (m.totalTrades >= 10 || m.evaluations >= 1000) return { confidence: 'Medium', reason: 'Enough evidence for a directional tuning hypothesis, but confirm on more data.' };
+  return { confidence: 'Low', reason: 'Few trades/evaluations; treat as a hypothesis only.' };
+}
+
+function strategySpecificDirection(result: BacktestRunResult, situation: TuningSituation): string {
+  const top = topReason(result)?.[0] ?? 'none';
+  if (result.strategy === 'MicroScalper') {
+    if (['candle_body_too_small', 'momentum_failed', 'continuation_momentum_failed'].includes(top)) return 'Consider testing momentum/body confirmation in research presets; do not loosen until checked on a longer dataset and chop periods.';
+    if (situation === 'Too loose / low quality') return 'Consider stricter momentum, stronger trend filter, or reducing chop entries in a research preset.';
+    if (situation === 'Bad trade management / poor exits') return 'Investigate TP1/TP2 balance, break-even timing, or trailing behavior in research only.';
+    if (situation === 'Viable / preserve') return 'Preserve the core scalp behavior for now; only test small risk/trade-management optimizations.';
+  }
+  if (result.strategy === 'CompressionBreakout') {
+    if (top.includes('compression')) return 'Investigate whether compression range thresholds or near-compression logic are too strict in research presets.';
+    if (top === 'breakout_not_confirmed' || top === 'breakout_distance_too_small') return 'Consider testing breakout buffer/confirmation sensitivity; keep structure evidence required.';
+    if (top === 'rr_too_low' || top.includes('too_close')) return 'Investigate structural SL/TP math and distance guards in research; do not remove safety checks.';
+    if (situation === 'Too loose / low quality' || situation === 'Bad trade management / poor exits') return 'Consider fakeout protection, retest confirmation, or time-stop adjustments in research presets.';
+    if (situation === 'Viable / preserve') return 'Preserve breakout structure; only test fakeout/exit refinements.';
+  }
+  if (result.strategy === 'SwingContinuation') {
+    if (['trend_alignment_failed', 'trend_filter_failed', 'regime_not_trending', 'trend_rsi_context_failed'].includes(top)) return 'Investigate whether trend filter requirements are too strict for this symbol/timeframe.';
+    if (top === 'pullback_not_ready' || top === 'reclaim_not_confirmed') return 'Consider testing broader pullback/reclaim quality rules while still rejecting chop.';
+    if (top.includes('momentum')) return 'Investigate continuation momentum thresholds and follow-through quality in research presets.';
+    if (result.metrics.expired / Math.max(result.metrics.totalTrades, 1) > 0.3) return 'Review time-stop or continuation follow-through logic in research; avoid forcing exits to look profitable.';
+    if (situation === 'Too loose / low quality') return 'Consider stricter reclaim quality, cleaner trend filter, or better invalidation logic.';
+    if (situation === 'Viable / preserve') return 'Preserve trend/reclaim logic and optimize trade management carefully.';
+  }
+  if (situation === 'No-trade / dead strategy') return 'Needs more data or targeted research preset changes before any live tuning is considered.';
+  if (situation === 'Too strict') return 'Consider testing a slightly less restrictive research preset; keep RR and distance guards intact.';
+  if (situation === 'Too loose / low quality') return 'Consider stricter filters in research; do not promote this behavior without improved PF/R.';
+  if (situation === 'Bad trade management / poor exits') return 'Investigate exits, expiry, TP balance, and invalidation in research only.';
+  if (situation === 'Symbol/timeframe mismatch') return 'Test a more suitable timeframe or longer native dataset before tuning parameters.';
+  return 'Preserve core logic and test only small, isolated optimizations.';
+}
+
+function diagnoseTuning(result: BacktestRunResult, allResults: BacktestRunResult[]): TuningDiagnosis {
+  const m = result.metrics;
+  const top = topReason(result);
+  const rejectionRatio = m.evaluations > 0 ? m.rejected / m.evaluations : 1;
+  const candidateRatio = m.evaluations > 0 ? m.candidates / m.evaluations : 0;
+  const slRate = m.totalTrades > 0 ? m.losses / m.totalTrades : 0;
+  const tp2Rate = m.totalTrades > 0 ? m.tp2Hits / m.totalTrades : 0;
+  const expiryRate = m.totalTrades > 0 ? m.expired / m.totalTrades : 0;
+  const sameStrategyBetterTf = allResults.some(other => other.strategy === result.strategy && other.id !== result.id && ['viable', 'needs tuning'].includes(other.classification) && !['viable', 'needs tuning'].includes(result.classification));
+  let situation: TuningSituation;
+  let weakness: string;
+
+  if (result.unsupportedReason || sameStrategyBetterTf) {
+    situation = 'Symbol/timeframe mismatch';
+    weakness = result.unsupportedReason ? `Unsupported or insufficient timeframe path: ${result.unsupportedReason}.` : 'Another timeframe for the same strategy produced better evidence than this one.';
+  } else if (m.totalTrades === 0 && (m.candidates <= 1 || rejectionRatio > 0.9)) {
+    situation = 'No-trade / dead strategy';
+    weakness = top ? `No trades; dominant rejection is ${top[0]} (${top[1]} rejects).` : 'No trades and no clear candidate flow.';
+  } else if (rejectionRatio > 0.85 && candidateRatio < 0.03 && top && (STRICT_REJECTION_REASONS.has(top[0]) || hasAnyTopReason(result, [...STRICT_REJECTION_REASONS]))) {
+    situation = 'Too strict';
+    weakness = `High rejection ratio (${Math.round(rejectionRatio * 100)}%) with low candidate flow; top reason is ${top[0]}.`;
+  } else if (m.totalTrades >= 10 && m.totalR < 0 && (m.profitFactor < 0.9 || m.winRate < 40 || m.maxConsecLosses >= 4)) {
+    situation = 'Too loose / low quality';
+    weakness = `Trades are active but quality is poor: PF ${m.profitFactor}, win ${m.winRate}%, total ${m.totalR}R, max loss streak ${m.maxConsecLosses}.`;
+  } else if (m.totalTrades >= 5 && (m.avgR <= 0 || slRate >= 0.45 || tp2Rate < 0.1 || expiryRate > 0.35)) {
+    situation = 'Bad trade management / poor exits';
+    weakness = `Exit profile is weak: avg ${m.avgR}R, SL rate ${Math.round(slRate * 100)}%, TP2 rate ${Math.round(tp2Rate * 100)}%, expiry ${Math.round(expiryRate * 100)}%.`;
+  } else if (m.totalTrades >= 10 && m.totalR > 0 && m.profitFactor > 1 && (m.maxDrawdown <= Math.max(3, Math.abs(m.totalR) * 0.75))) {
+    situation = 'Viable / preserve';
+    weakness = `Positive sample: PF ${m.profitFactor}, total ${m.totalR}R, max drawdown ${m.maxDrawdown}R.`;
+  } else {
+    situation = 'Viable but needs optimization';
+    weakness = m.totalTrades > 0 ? `Some evidence exists but quality is not decisive: PF ${m.profitFactor}, total ${m.totalR}R, avg ${m.avgR}R.` : 'No decisive trade evidence yet.';
+  }
+
+  const confidence = confidenceForResult(result, situation);
+  return {
+    situation,
+    mainWeakness: weakness,
+    suggestedDirection: strategySpecificDirection(result, situation),
+    confidence: confidence.confidence,
+    confidenceReason: confidence.reason,
+  };
+}
+
+function buildTuningInsights(results: BacktestRunResult[], assumptions: CapitalAssumptions): TuningInsight[] {
+  if (results.length === 0) return [];
+  const sorted = [...results].sort(compareRunResults);
+  const overactive = [...results].sort((a, b) => b.metrics.totalTrades - a.metrics.totalTrades)[0] ?? null;
+  const dead = [...results].filter(r => r.metrics.totalTrades === 0).sort((a, b) => b.metrics.rejected - a.metrics.rejected)[0] ?? null;
+  const highestDd = [...results].sort((a, b) => b.metrics.maxDrawdown - a.metrics.maxDrawdown)[0] ?? null;
+  const riskAdjusted = [...results].filter(r => r.metrics.totalTrades > 0).sort((a, b) => (b.metrics.totalR / Math.max(b.metrics.maxDrawdown, 0.5)) - (a.metrics.totalR / Math.max(a.metrics.maxDrawdown, 0.5)))[0] ?? null;
+  const preserve = results.find(r => diagnoseTuning(r, results).situation === 'Viable / preserve') ?? null;
+  const tuneFirst = results.find(r => ['Too loose / low quality', 'Too strict', 'Bad trade management / poor exits'].includes(diagnoseTuning(r, results).situation)) ?? null;
+  return [
+    { label: 'Best strategy/timeframe/preset', result: sorted[0] ?? null, note: 'Top-ranked by decision classification and performance quality.' },
+    { label: 'Worst strategy/timeframe/preset', result: sorted[sorted.length - 1] ?? null, note: 'Lowest-ranked evidence in this historical sample.' },
+    { label: 'Most overactive strategy', result: overactive, note: overactive ? `${overactive.metrics.totalTrades} trades generated.` : 'No result.' },
+    { label: 'Most dead strategy', result: dead, note: dead ? `${dead.metrics.rejected.toLocaleString()} rejections and no trades.` : 'No zero-trade result.' },
+    { label: 'Highest drawdown strategy', result: highestDd, note: highestDd ? `${highestDd.metrics.maxDrawdown}R max drawdown; ${formatMoney(capitalForResult(highestDd, assumptions).maxDrawdownAmount)} estimated.` : 'No result.' },
+    { label: 'Best risk-adjusted candidate', result: riskAdjusted, note: riskAdjusted ? `${(riskAdjusted.metrics.totalR / Math.max(riskAdjusted.metrics.maxDrawdown, 0.5)).toFixed(2)} TotalR/MaxDD score.` : 'No traded result.' },
+    { label: 'Strategy to preserve', result: preserve, note: preserve ? 'Positive evidence; preserve core behavior and only optimize carefully.' : 'No preserve candidate yet.' },
+    { label: 'Strategy to tune first', result: tuneFirst, note: tuneFirst ? diagnoseTuning(tuneFirst, results).mainWeakness : 'No obvious first tuning candidate yet.' },
+  ];
+}
+
+function buildCopyableTuningReport(symbol: string, datasetTf: string, csvInfo: CsvInfo | null, preset: ResearchPreset, results: BacktestRunResult[], assumptions: CapitalAssumptions): string {
+  const sorted = [...results].sort(compareRunResults);
+  const range = csvInfo ? `${new Date(csvInfo.firstTime).toISOString()} → ${new Date(csvInfo.lastTime).toISOString()}` : 'unknown';
+  const insights = buildTuningInsights(sorted, assumptions);
+  const lines = [
+    'HashiBot Strategy Tuning Report',
+    'Diagnostic recommendations only — no live config changes requested.',
+    `Symbol: ${symbol.trim().toUpperCase() || 'unspecified'}`,
+    `Dataset timeframe: ${datasetTf}`,
+    `Dataset range: ${range}`,
+    `Starting capital: ${formatMoney(assumptions.startingCapital)} | Risk/trade: ${formatPct(assumptions.riskPct)}`,
+    `Preset used: ${RESEARCH_PRESET_LABEL[preset]} (backtest-only)`,
+    'Limitations: browser-side backtest approximation; no live Edge Function execution, slippage, provider context, or DB strategy_config update.',
+    '',
+    'Results and tuning diagnoses:',
+    ...sorted.flatMap(result => {
+      const diagnosis = diagnoseTuning(result, sorted);
+      const topReasons = topRejectionReasons(result.metrics.rejectionReasons, 5).map(([reason, count]) => `${reason}=${count}`).join(', ') || 'none';
+      const cap = capitalForResult(result, assumptions);
+      return [
+        `- ${resultLabel(result)}: classification=${result.classification}, situation=${diagnosis.situation}, trades=${result.metrics.totalTrades}, win=${result.metrics.totalTrades > 0 ? `${result.metrics.winRate}%` : 'N/A'}, PF=${result.metrics.totalTrades > 0 ? result.metrics.profitFactor : 'N/A'}, totalR=${result.metrics.totalTrades > 0 ? result.metrics.totalR : 'N/A'}, avgR=${result.metrics.totalTrades > 0 ? result.metrics.avgR : 'N/A'}, maxDD=${result.metrics.totalTrades > 0 ? `${result.metrics.maxDrawdown}R` : 'N/A'}, estPL=${result.metrics.totalTrades > 0 ? formatMoney(cap.estimatedPnl) : 'N/A'}, topReject=${topReasons}`,
+        `  Main weakness: ${diagnosis.mainWeakness}`,
+        `  Suggested direction: ${diagnosis.suggestedDirection}`,
+        `  Confidence: ${diagnosis.confidence} — ${diagnosis.confidenceReason}`,
+      ];
+    }),
+    '',
+    'Best/worst insights:',
+    ...insights.map(insight => `- ${insight.label}: ${insight.result ? resultLabel(insight.result) : 'N/A'} — ${insight.note}`),
+    '',
+    'Recommended next tuning order:',
+    ...sorted.map(result => `- ${resultLabel(result)}: ${diagnoseTuning(result, sorted).situation} (${diagnoseTuning(result, sorted).confidence})`),
+    '',
+    'Warning: use this as research evidence only. Do not auto-apply live strategy_config changes without separate validation.',
+  ];
+  return lines.join('\n');
+}
+
+function buildCopySummary(symbol: string, datasetTf: string, csvInfo: CsvInfo | null, preset: ResearchPreset, results: BacktestRunResult[]): string {
+  const range = csvInfo ? `${new Date(csvInfo.firstTime).toISOString()} → ${new Date(csvInfo.lastTime).toISOString()}` : 'unknown';
+  const best = results[0];
+  const worst = results[results.length - 1];
+  const lines = [
+    'HashiBot Backtest Lab Summary',
+    `Symbol: ${symbol.trim().toUpperCase() || 'unspecified'}`,
+    `Dataset timeframe: ${datasetTf}`,
+    `Dataset range: ${range}`,
+    `Preset used: ${RESEARCH_PRESET_LABEL[preset]} (backtest-only; does not affect live scanner/config/Telegram)`,
+    '',
+    'Strategy results:',
+    ...results.map(r => {
+      const top = topRejectionReasons(r.metrics.rejectionReasons, 1)[0];
+      return `- ${r.strategy} ${r.testedTimeframe}: preset=${RESEARCH_PRESET_LABEL[r.preset]}, dataset=${r.datasetTimeframe}, resampled=${r.resampled ? 'yes' : 'no'}, trades=${r.metrics.totalTrades}, win=${r.metrics.totalTrades > 0 ? `${r.metrics.winRate}%` : 'N/A'}, PF=${r.metrics.totalTrades > 0 ? r.metrics.profitFactor : 'N/A'}, totalR=${r.metrics.totalTrades > 0 ? r.metrics.totalR : 'N/A'}, avgR=${r.metrics.totalTrades > 0 ? r.metrics.avgR : 'N/A'}, maxDD=${r.metrics.totalTrades > 0 ? `${r.metrics.maxDrawdown}R` : 'N/A'}, classification=${r.classification}, topReject=${top ? `${top[0]} (${top[1]})` : 'none'}`;
+    }),
+    '',
+    `Best strategy/timeframe: ${best ? `${best.strategy} ${best.testedTimeframe} (${best.classification}, ${best.metrics.totalR}R)` : 'N/A'}`,
+    `Worst strategy/timeframe: ${worst ? `${worst.strategy} ${worst.testedTimeframe} (${worst.classification}, ${worst.metrics.totalR}R)` : 'N/A'}`,
+    '',
+    'Recommendations:',
+    ...results.map(r => `- ${recommendationForResult(r).text}`),
+  ];
+  return lines.join('\n');
+}
+
 const TRADES_PER_PAGE = 50;
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -586,9 +1012,9 @@ export default function BacktestLab() {
   const [rangeEnd, setRangeEnd] = useState('');
 
   // Config
-  const [strategy, setStrategy] = useState<Strategy>('MicroScalper');
-  const [mode, setMode] = useState<Mode>('balanced');
-  const [params, setParams] = useState<ParamSet>(DEFAULTS.MicroScalper.balanced);
+  const [strategy, setStrategy] = useState<StrategyChoice>('MicroScalper');
+  const [researchPreset, setResearchPreset] = useState<ResearchPreset>('live');
+  const [params, setParams] = useState<ParamSet>(LIVE_PARAMS.MicroScalper);
   const [showParams, setShowParams] = useState(false);
 
   // Results
@@ -596,6 +1022,10 @@ export default function BacktestLab() {
   const [progress, setProgress] = useState(0);
   const [trades, setTrades] = useState<BtTrade[] | null>(null);
   const [metrics, setMetrics] = useState<BtMetrics | null>(null);
+  const [runResults, setRunResults] = useState<BacktestRunResult[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [summaryCopied, setSummaryCopied] = useState(false);
+  const [tuningReportCopied, setTuningReportCopied] = useState(false);
   const [showTrades, setShowTrades] = useState(true);
   const [tradeSort, setTradeSort] = useState<'time' | 'r'>('time');
   const [tradePage, setTradePage] = useState(0);
@@ -615,14 +1045,16 @@ export default function BacktestLab() {
   }, []);
   useEffect(() => { loadDatasets(); }, [loadDatasets]);
 
-  // When strategy or mode changes, reload defaults
-  useEffect(() => { setParams(DEFAULTS[strategy][mode]); }, [strategy, mode]);
+  // Live Strategy Parity is the default. Parameter editing is a visible research override only.
+  useEffect(() => {
+    if (strategy !== 'ALL') setParams(paramsForPreset(strategy, researchPreset));
+  }, [strategy, researchPreset]);
 
   // Mark results stale when config changes after a run
   useEffect(() => {
     if (metrics) setResultsStale(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [strategy, mode, params, rangeStart, rangeEnd, rangePreset, csvTimeframe]);
+  }, [strategy, researchPreset, params, rangeStart, rangeEnd, rangePreset, csvTimeframe]);
 
   function setParam(k: keyof ParamSet, v: number) {
     setParams(prev => ({ ...prev, [k]: v }));
@@ -714,16 +1146,26 @@ export default function BacktestLab() {
   }
 
   function executeRun(candles: BtCandle[]) {
-    setRunning(true); setProgress(10); setTrades(null); setMetrics(null);
+    setRunning(true); setProgress(10); setTrades(null); setMetrics(null); setRunResults([]); setSelectedRunId(null);
     setResultsStale(false); setTradePage(0); setConfirmPending(false);
 
     setTimeout(() => {
       setProgress(30);
       try {
-        const { trades: t, evaluations, candidates, rejected } = runBacktest(candles, strategy, csvTimeframe, params);
+        const plan = buildRunPlan(strategy, csvTimeframe);
+        const results = plan.map(({ strategy: plannedStrategy, timeframe }) => makeRunResult(
+          plannedStrategy,
+          csvTimeframe,
+          timeframe,
+          candles,
+          strategy === 'ALL' ? paramsForPreset(plannedStrategy, researchPreset) : params,
+          researchPreset,
+        ));
         setProgress(90);
-        const m = calcMetrics(t, evaluations, candidates, rejected);
-        setTrades(t); setMetrics(m); setProgress(100); setShowTrades(true);
+        const first = results[0];
+        setRunResults(results);
+        setSelectedRunId(first?.id ?? null);
+        setTrades(first?.trades ?? []); setMetrics(first?.metrics ?? calcMetrics([], 0, 0, 0)); setProgress(100); setShowTrades(true);
       } catch (err) {
         setUploadMsg({ ok: false, text: `Backtest error: ${err instanceof Error ? err.message : 'unknown'}` });
       } finally {
@@ -755,6 +1197,13 @@ export default function BacktestLab() {
   const totalPages = Math.ceil(sortedTrades.length / TRADES_PER_PAGE);
   const visibleTrades = sortedTrades.slice(tradePage * TRADES_PER_PAGE, (tradePage + 1) * TRADES_PER_PAGE);
 
+  const primaryResult = runResults.find(r => r.id === selectedRunId) ?? runResults[0];
+  const sortedComparison = [...runResults].sort(compareRunResults);
+  const bestResult = sortedComparison[0];
+  const worstResult = sortedComparison[sortedComparison.length - 1];
+  const copySummary = buildCopySummary(csvSymbol, csvTimeframe, csvInfo, researchPreset, sortedComparison);
+  const tuningReportText = buildCopyableTuningReport(csvSymbol, csvTimeframe, csvInfo, researchPreset, sortedComparison, capitalAssumptions);
+  const tuningInsights = buildTuningInsights(sortedComparison, capitalAssumptions);
   const backtestCapital = estimateCapitalFromR(trades?.map(t => t.pnl_r) ?? [], capitalAssumptions);
 
   const tfLabel = (tf: string) => ({ '5m': '5 min', '15m': '15 min', '1h': '1 Hour', '4h': '4 Hour' }[tf] ?? tf);
@@ -929,38 +1378,48 @@ export default function BacktestLab() {
             </div>
           )}
 
-          {/* Strategy + Mode */}
+          {/* Strategy */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
             <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
-              <Settings size={13} className="text-zinc-500" /> Strategy &amp; Mode
+              <Settings size={13} className="text-zinc-500" /> Strategy
             </div>
             <div className="px-5 py-4 space-y-3.5">
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Strategy</label>
-                <div className="flex gap-2">
-                  {(['MicroScalper', 'CompressionBreakout', 'SwingContinuation'] as Strategy[]).map(s => (
-                    <button key={s} onClick={() => setStrategy(s)}
-                      className={`flex-1 text-xs py-2 px-2 rounded-lg border transition-colors ${strategy === s ? 'bg-sky-600/20 border-sky-500/50 text-sky-300' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>
-                      {s === 'MicroScalper' ? 'Micro' : s === 'CompressionBreakout' ? 'Breakout' : 'Swing'}
+                <label className="block text-xs text-zinc-400 mb-1.5">Current real strategy family</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ['MicroScalper', 'MicroScalper'],
+                    ['CompressionBreakout', 'CompressionBreakout'],
+                    ['SwingContinuation', 'SwingContinuation'],
+                    ['ALL', 'Run All Strategies'],
+                  ] as Array<[StrategyChoice, string]>).map(([value, label]) => (
+                    <button key={value} onClick={() => setStrategy(value)}
+                      className={`text-xs py-2 px-2 rounded-lg border transition-colors ${strategy === value ? 'bg-sky-600/20 border-sky-500/50 text-sky-300' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>
+                      {label}
                     </button>
                   ))}
                 </div>
+                <div className="mt-2 text-xs text-zinc-500 leading-relaxed">
+                  <strong className="text-zinc-300">Mode:</strong> Live Strategy Parity / Current Strategy Logic. Conservative/Balanced/Aggressive are not primary modes here because they are research presets, not separate live scanner behaviors.
+                </div>
                 <div className="mt-1.5 text-xs text-zinc-600">
-                  {strategy === 'MicroScalper' && 'Short-term momentum · 5m/15m · EMA + RSI'}
-                  {strategy === 'CompressionBreakout' && 'Range compression + expansion · 15m/1h'}
-                  {strategy === 'SwingContinuation' && 'Trend pullback reclaim · 15m/1h · wider SL/TP'}
+                  {strategy === 'MicroScalper' && 'Short-term momentum · tests 5m/15m only.'}
+                  {strategy === 'CompressionBreakout' && 'Range compression + expansion · tests 15m/1h only.'}
+                  {strategy === 'SwingContinuation' && 'Trend pullback reclaim · tests 15m/1h only.'}
+                  {strategy === 'ALL' && 'Runs each valid strategy/timeframe combination available from the uploaded dataset without downsampling.'}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Mode (loads default parameters)</label>
-                <div className="flex gap-2">
-                  {(['conservative', 'balanced', 'aggressive'] as Mode[]).map(m => (
-                    <button key={m} onClick={() => setMode(m)}
-                      className={`flex-1 text-xs py-2 px-2 rounded-lg border capitalize transition-colors ${mode === m ? 'bg-sky-600/20 border-sky-500/50 text-sky-300' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>
-                      {m}
-                    </button>
+              <div className="border-t border-zinc-800 pt-3">
+                <label className="block text-xs text-zinc-400 mb-1.5">Backtest-only research preset</label>
+                <select value={researchPreset} onChange={e => setResearchPreset(e.target.value as ResearchPreset)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+                  {(['live', 'conservative', 'balanced', 'aggressive'] as ResearchPreset[]).map(p => (
+                    <option key={p} value={p}>{RESEARCH_PRESET_LABEL[p]}</option>
                   ))}
+                </select>
+                <div className="mt-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 leading-relaxed">
+                  {RESEARCH_PRESET_DESCRIPTIONS[researchPreset]} This only changes browser-side backtest parameters; it does not update live signals, scanner behavior, Telegram, or database strategy_config.
                 </div>
               </div>
             </div>
@@ -976,7 +1435,7 @@ export default function BacktestLab() {
             </button>
             {showParams && (
               <div className="px-5 py-4 space-y-2.5">
-                <div className="text-xs text-zinc-600 mb-3">Editing overrides mode defaults. Mode buttons reset to defaults.</div>
+                <div className="text-xs text-zinc-600 mb-3">Editing is a Backtest research override and is not applied to live scanner config.</div>
 
                 <div className="text-xs font-medium text-zinc-400 mb-1">Quality Gates</div>
                 <ParamRow label="Min Score" field="min_score" value={params.min_score} onChange={setParam} step={1} min={0} />
@@ -1122,11 +1581,226 @@ export default function BacktestLab() {
                   </div>
                 </div>
 
+                {/* Strategy/timeframe decision grid */}
+                {runResults.length > 0 && (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {runResults.map(result => {
+                      const capital = estimateCapitalFromR(result.trades.map(t => t.pnl_r), capitalAssumptions);
+                      const topReasons = topRejectionReasons(result.metrics.rejectionReasons, 5);
+                      const isPrimary = primaryResult?.id === result.id;
+                      return (
+                        <button key={result.id} onClick={() => { setSelectedRunId(result.id); setTrades(result.trades); setMetrics(result.metrics); setTradePage(0); }}
+                          className={`text-left bg-zinc-900 border rounded-xl p-4 transition-colors ${isPrimary ? 'border-sky-500/60' : 'border-zinc-800 hover:border-zinc-700'}`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold text-zinc-100">{result.strategy} · {result.testedTimeframe}</div>
+                              <div className="text-xs text-zinc-500 mt-1">Dataset {result.datasetTimeframe} · resampled {result.resampled ? 'yes' : 'no'} · preset {RESEARCH_PRESET_LABEL[result.preset]} · candles {result.candlesTested.toLocaleString()} / {result.candlesLoaded.toLocaleString()}</div>
+                            </div>
+                            <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded border ${result.classification === 'viable' ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : result.classification === 'needs tuning' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : result.classification === 'wrong timeframe/dataset' ? 'text-red-300 border-red-500/30 bg-red-500/10' : 'text-zinc-300 border-zinc-600 bg-zinc-800/60'}`}>
+                              {result.classification}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2 mt-3 text-xs">
+                            <div><div className="text-zinc-600">Eval</div><div className="text-zinc-300">{result.metrics.evaluations.toLocaleString()}</div></div>
+                            <div><div className="text-zinc-600">Cand</div><div className="text-zinc-300">{result.metrics.candidates}</div></div>
+                            <div><div className="text-zinc-600">Reject</div><div className="text-zinc-300">{result.metrics.rejected}</div></div>
+                            <div><div className="text-zinc-600">Trades</div><div className="text-zinc-300">{result.metrics.totalTrades}</div></div>
+                            <div><div className="text-zinc-600">Total R</div><div className={result.metrics.totalR > 0 ? 'text-emerald-400' : result.metrics.totalR < 0 ? 'text-red-400' : 'text-zinc-300'}>{result.metrics.totalTrades > 0 ? `${result.metrics.totalR > 0 ? '+' : ''}${result.metrics.totalR}R` : 'N/A'}</div></div>
+                            <div><div className="text-zinc-600">Win</div><div className="text-zinc-300">{result.metrics.totalTrades > 0 ? `${result.metrics.winRate}%` : 'N/A'}</div></div>
+                            <div><div className="text-zinc-600">PF</div><div className="text-zinc-300">{result.metrics.totalTrades > 0 ? result.metrics.profitFactor : 'N/A'}</div></div>
+                            <div><div className="text-zinc-600">Est P/L</div><div className={(capital.estimatedPnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}>{result.metrics.totalTrades > 0 ? formatMoney(capital.estimatedPnl) : 'N/A'}</div></div>
+                            <div><div className="text-zinc-600">Final</div><div className="text-zinc-300">{result.metrics.totalTrades > 0 ? formatMoney(capital.estimatedFinalCapital) : 'N/A'}</div></div>
+                            <div><div className="text-zinc-600">Max DD</div><div className="text-red-400">{result.metrics.totalTrades > 0 ? `${result.metrics.maxDrawdown}R` : 'N/A'}</div></div>
+                          </div>
+                          <div className="mt-3 text-xs text-zinc-500">{result.classificationReason}</div>
+                          <div className="mt-2 text-[11px] text-zinc-600">Truth: {result.truthLabel}. {result.parityNote}</div>
+                          {topReasons.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {topReasons.map(([reason, count]) => <span key={reason} className="text-[10px] bg-zinc-800 border border-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded">{reason}: {count}</span>)}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Comparison table */}
+                {runResults.length > 1 && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                    <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                      <BarChart2 size={13} className="text-zinc-500" /> Strategy Comparison · {RESEARCH_PRESET_LABEL[researchPreset]}
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-zinc-800 text-zinc-500">
+                            {['Strategy', 'TF', 'Preset', 'Trades', 'Win', 'PF', 'Total R', 'Avg R', 'Est. P/L', 'Max DD', 'Loss streak', 'Decision', 'Top rejection'].map(h => (
+                              <th key={h} className="text-left px-3 py-2 whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedComparison.map(result => {
+                            const cap = capitalForResult(result, capitalAssumptions);
+                            const top = topRejectionReasons(result.metrics.rejectionReasons, 1)[0];
+                            return (
+                              <tr key={`cmp-${result.id}`} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                                <td className="px-3 py-2 text-zinc-200 whitespace-nowrap">{result.strategy}</td>
+                                <td className="px-3 py-2 text-zinc-400">{result.testedTimeframe}</td>
+                                <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{presetShortLabel(result.preset)}</td>
+                                <td className="px-3 py-2 text-zinc-300 tabular-nums">{result.metrics.totalTrades}</td>
+                                <td className="px-3 py-2 text-zinc-300 tabular-nums">{result.metrics.totalTrades > 0 ? `${result.metrics.winRate}%` : 'N/A'}</td>
+                                <td className="px-3 py-2 text-zinc-300 tabular-nums">{result.metrics.totalTrades > 0 ? result.metrics.profitFactor : 'N/A'}</td>
+                                <td className={`px-3 py-2 tabular-nums ${result.metrics.totalR > 0 ? 'text-emerald-400' : result.metrics.totalR < 0 ? 'text-red-400' : 'text-zinc-400'}`}>{result.metrics.totalTrades > 0 ? `${result.metrics.totalR > 0 ? '+' : ''}${result.metrics.totalR}R` : 'N/A'}</td>
+                                <td className="px-3 py-2 text-zinc-300 tabular-nums">{result.metrics.totalTrades > 0 ? `${result.metrics.avgR > 0 ? '+' : ''}${result.metrics.avgR}R` : 'N/A'}</td>
+                                <td className={`px-3 py-2 tabular-nums ${(cap.estimatedPnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{result.metrics.totalTrades > 0 ? formatMoney(cap.estimatedPnl) : 'N/A'}</td>
+                                <td className="px-3 py-2 text-red-400 tabular-nums">{result.metrics.totalTrades > 0 ? `${result.metrics.maxDrawdown}R` : 'N/A'}</td>
+                                <td className="px-3 py-2 text-zinc-300 tabular-nums">{result.metrics.maxConsecLosses}</td>
+                                <td className="px-3 py-2 text-zinc-300 whitespace-nowrap">{result.classification}</td>
+                                <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">{top ? `${top[0]} (${top[1]})` : 'none'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Recommendation panel */}
+                {runResults.length > 0 && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                    <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                      <Info size={13} className="text-zinc-500" /> Recommendations
+                    </div>
+                    <div className="px-5 py-4 space-y-2">
+                      {sortedComparison.map(result => {
+                        const rec = recommendationForResult(result);
+                        return (
+                          <div key={`rec-${result.id}`} className="flex gap-2 text-xs bg-zinc-800/50 border border-zinc-700/50 rounded-lg px-3 py-2">
+                            <span className="shrink-0 font-medium text-sky-300">{rec.action}</span>
+                            <span className="text-zinc-400">{rec.text}</span>
+                          </div>
+                        );
+                      })}
+                      <div className="text-[11px] text-zinc-600 pt-1">Recommendations are based only on this uploaded historical sample and do not imply future profitability.</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Strategy Tuning Report */}
+                {runResults.length > 0 && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                    <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                      <Settings size={13} className="text-zinc-500" /> Strategy Tuning Report
+                    </div>
+                    <div className="px-5 py-4 space-y-4">
+                      <div className="grid md:grid-cols-2 gap-3">
+                        {tuningInsights.map(insight => (
+                          <div key={insight.label} className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg px-3 py-2">
+                            <div className="text-[11px] uppercase tracking-wide text-zinc-500">{insight.label}</div>
+                            <div className="text-sm text-zinc-200 mt-0.5">{insight.result ? resultLabel(insight.result) : 'N/A'}</div>
+                            <div className="text-xs text-zinc-500 mt-1">{insight.note}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-3">
+                        {sortedComparison.map(result => {
+                          const diagnosis = diagnoseTuning(result, sortedComparison);
+                          const topReasons = topRejectionReasons(result.metrics.rejectionReasons, 5);
+                          return (
+                            <div key={`tuning-${result.id}`} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+                              <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                                <div>
+                                  <div className="text-sm font-semibold text-zinc-100">{result.strategy} · {result.testedTimeframe}</div>
+                                  <div className="text-xs text-zinc-500 mt-1">Preset {RESEARCH_PRESET_LABEL[result.preset]} · {result.classification} · {result.truthLabel}</div>
+                                </div>
+                                <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded border ${diagnosis.confidence === 'High' ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : diagnosis.confidence === 'Medium' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : 'text-zinc-300 border-zinc-600 bg-zinc-800/60'}`}>
+                                  {diagnosis.confidence} confidence
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mt-3 text-xs">
+                                <div><div className="text-zinc-600">Trades</div><div className="text-zinc-300">{result.metrics.totalTrades}</div></div>
+                                <div><div className="text-zinc-600">Win</div><div className="text-zinc-300">{result.metrics.totalTrades > 0 ? `${result.metrics.winRate}%` : 'N/A'}</div></div>
+                                <div><div className="text-zinc-600">PF</div><div className="text-zinc-300">{result.metrics.totalTrades > 0 ? result.metrics.profitFactor : 'N/A'}</div></div>
+                                <div><div className="text-zinc-600">Total R</div><div className={result.metrics.totalR > 0 ? 'text-emerald-400' : result.metrics.totalR < 0 ? 'text-red-400' : 'text-zinc-300'}>{result.metrics.totalTrades > 0 ? `${result.metrics.totalR > 0 ? '+' : ''}${result.metrics.totalR}R` : 'N/A'}</div></div>
+                                <div><div className="text-zinc-600">Avg R</div><div className="text-zinc-300">{result.metrics.totalTrades > 0 ? `${result.metrics.avgR > 0 ? '+' : ''}${result.metrics.avgR}R` : 'N/A'}</div></div>
+                                <div><div className="text-zinc-600">Max DD / Loss streak</div><div className="text-red-400">{result.metrics.totalTrades > 0 ? `${result.metrics.maxDrawdown}R / ${result.metrics.maxConsecLosses}` : 'N/A'}</div></div>
+                              </div>
+                              <div className="mt-3 grid md:grid-cols-3 gap-3 text-xs">
+                                <div>
+                                  <div className="text-zinc-500 font-medium mb-1">Tuning situation</div>
+                                  <div className="text-zinc-300">{diagnosis.situation}</div>
+                                </div>
+                                <div>
+                                  <div className="text-zinc-500 font-medium mb-1">Main weakness</div>
+                                  <div className="text-zinc-300">{diagnosis.mainWeakness}</div>
+                                </div>
+                                <div>
+                                  <div className="text-zinc-500 font-medium mb-1">Suggested tuning direction</div>
+                                  <div className="text-zinc-300">{diagnosis.suggestedDirection}</div>
+                                </div>
+                              </div>
+                              <div className="mt-3 text-xs text-zinc-500">Confidence basis: {diagnosis.confidenceReason}</div>
+                              {topReasons.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                  {topReasons.map(([reason, count]) => <span key={reason} className="text-[10px] bg-zinc-800 border border-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded">{reason}: {count}</span>)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                        Diagnostic recommendations only. No auto-tuning, live strategy_config update, scanner change, or Telegram/live signal change is performed by this report.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Copyable tuning report */}
+                {runResults.length > 0 && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                    <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2"><FileText size={13} className="text-zinc-500" /> Copyable Strategy Tuning Report</div>
+                      <button onClick={async () => { await navigator.clipboard?.writeText(tuningReportText); setTuningReportCopied(true); setTimeout(() => setTuningReportCopied(false), 1500); }}
+                        className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
+                        {tuningReportCopied ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <textarea readOnly value={tuningReportText}
+                      className="w-full min-h-72 bg-zinc-950 text-zinc-400 text-xs font-mono leading-relaxed px-4 py-3 outline-none resize-y" />
+                  </div>
+                )}
+
+                {/* Copyable summary */}
+                {runResults.length > 0 && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                    <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2"><FileText size={13} className="text-zinc-500" /> Copyable Backtest Summary</div>
+                      <button onClick={async () => { await navigator.clipboard?.writeText(copySummary); setSummaryCopied(true); setTimeout(() => setSummaryCopied(false), 1500); }}
+                        className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
+                        {summaryCopied ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <textarea readOnly value={copySummary}
+                      className="w-full min-h-56 bg-zinc-950 text-zinc-400 text-xs font-mono leading-relaxed px-4 py-3 outline-none resize-y" />
+                    {bestResult && worstResult && (
+                      <div className="border-t border-zinc-800 px-5 py-2 text-xs text-zinc-500">
+                        Best: {bestResult.strategy} {bestResult.testedTimeframe} · Worst: {worstResult.strategy} {worstResult.testedTimeframe}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Summary cards */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
                   <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
                     <BarChart2 size={13} className="text-zinc-500" />
-                    Results — {strategy} · {mode} · {csvTimeframe}
+                    Results — {primaryResult ? `${primaryResult.strategy} · tested ${primaryResult.testedTimeframe}` : strategy} · {RESEARCH_PRESET_LABEL[researchPreset]} · dataset {csvTimeframe}
                     <span className="ml-auto text-xs bg-amber-500/15 text-amber-400 border border-amber-500/25 px-1.5 py-0.5 rounded">SIMULATION</span>
                   </div>
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-px bg-zinc-800">
@@ -1273,10 +1947,38 @@ export default function BacktestLab() {
                 )}
 
                 {metrics.totalTrades === 0 && (
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center">
-                    <Minus size={28} className="text-zinc-700 mx-auto mb-3" />
-                    <div className="text-sm text-zinc-500">No trades generated</div>
-                    <div className="text-xs text-zinc-600 mt-1">Try a lower min_score, loosen distance guards, or use a longer CSV</div>
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Minus size={18} className="text-zinc-600" />
+                      <div>
+                        <div className="text-sm text-zinc-300 font-medium">No trades generated — diagnostics</div>
+                        <div className="text-xs text-zinc-600">Bad or quiet results are shown as-is. No artificial passes are created.</div>
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2 text-xs">
+                      <MetricCell label="Candles loaded" value={String(primaryResult?.candlesLoaded ?? selectedCount)} />
+                      <MetricCell label="Candles tested" value={String(primaryResult?.candlesTested ?? selectedCount)} />
+                      <MetricCell label="Dataset timeframe" value={primaryResult?.datasetTimeframe ?? csvTimeframe} />
+                      <MetricCell label="Tested timeframe" value={primaryResult?.testedTimeframe ?? csvTimeframe} />
+                      <MetricCell label="Resampled" value={primaryResult?.resampled ? 'yes' : 'no'} />
+                      <MetricCell label="Min score / RR" value={`${primaryResult?.params.min_score ?? params.min_score} / ${primaryResult?.params.min_rr ?? params.min_rr}`} />
+                    </div>
+                    {primaryResult?.unsupportedReason && (
+                      <div className="mt-3 text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{primaryResult.unsupportedReason}</div>
+                    )}
+                    {topRejectionReasons(metrics.rejectionReasons, 10).length > 0 && (
+                      <div className="mt-4">
+                        <div className="text-xs font-medium text-zinc-400 mb-2">Top rejection reasons</div>
+                        <div className="space-y-1.5">
+                          {topRejectionReasons(metrics.rejectionReasons, 10).map(([reason, count]) => (
+                            <div key={reason} className="flex items-center justify-between bg-zinc-800/60 border border-zinc-700/60 rounded px-3 py-1.5 text-xs">
+                              <span className="text-zinc-300">{reason}</span>
+                              <span className="text-zinc-500">{count.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
