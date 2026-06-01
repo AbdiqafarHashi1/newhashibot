@@ -43,13 +43,6 @@ export default function AccessRequests() {
 
   async function updateStatus(req: RequestRow, status: AccessRequest['status'], grantAccess = false) {
     const note = noteInputs[req.id] ?? '';
-    const { error } = await supabase.from('access_requests').update({
-      status,
-      admin_note: note,
-      updated_at: new Date().toISOString(),
-    }).eq('id', req.id);
-
-    if (error) { flash(`Error: ${error.message}`, 'err'); return; }
 
     if (grantAccess) {
       const expiry = expiryInputs[req.id];
@@ -82,7 +75,7 @@ export default function AccessRequests() {
         ? await supabase.from('customer_subscriptions').update(subscriptionPayload).eq('id', existing.data.id)
         : await supabase.from('customer_subscriptions').insert(subscriptionPayload);
 
-      if (subscriptionWrite.error) { flash(`Request approved but subscription grant failed: ${subscriptionWrite.error.message}`, 'err'); return; }
+      if (subscriptionWrite.error) { flash(`Package approval blocked because subscription grant failed: ${subscriptionWrite.error.message}`, 'err'); return; }
 
       const { error: accessErr } = await supabase.from('user_access').upsert({
         user_id: req.user_id,
@@ -105,6 +98,14 @@ export default function AccessRequests() {
         }, { onConflict: 'user_id' });
       }
 
+      const { error: requestErr } = await supabase.from('access_requests').update({
+        status,
+        admin_note: note,
+        updated_at: new Date().toISOString(),
+      }).eq('id', req.id);
+
+      if (requestErr) { flash(`Package access granted but request status update failed: ${requestErr.message}`, 'err'); return; }
+
       await supabase.from('audit_logs').insert({
         actor_user_id: session?.user.id ?? null,
         action: 'access_request_approved_and_granted',
@@ -114,6 +115,14 @@ export default function AccessRequests() {
       });
       flash('Request approved and package access granted.');
     } else {
+      const { error } = await supabase.from('access_requests').update({
+        status,
+        admin_note: note,
+        updated_at: new Date().toISOString(),
+      }).eq('id', req.id);
+
+      if (error) { flash(`Error: ${error.message}`, 'err'); return; }
+
       await supabase.from('audit_logs').insert({
         actor_user_id: session?.user.id ?? null,
         action: `access_request_${status}`,

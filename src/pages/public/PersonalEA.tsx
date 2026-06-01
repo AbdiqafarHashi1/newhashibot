@@ -8,7 +8,7 @@ const planned = [
   'Risk and leverage guidance surfaced before any connector is enabled',
   'Demo connector planned first for observation and testing',
   'Crypto-first roadmap with forex considered later',
-  'No broker connection, live execution, or order placement is available currently',
+  'Bot execution is enabled only after setup is completed and verified',
 ];
 
 export default function PersonalEA() {
@@ -33,7 +33,7 @@ export default function PersonalEA() {
               Expected price: <span className="font-semibold text-white">10,000 KES/month or $100/month</span>
             </div>
             <p className="text-sm text-zinc-600 max-w-xl leading-relaxed mb-10">
-              This is not live execution. Demo connector planning comes first, and HashiBot does not currently connect brokers or place orders for Crypto Personal Bot.
+              This is a managed setup request. Demo connector planning comes first, and execution is activated only after setup and verification.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link to="/register?package=crypto_personal_bot" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-600/20 text-sm">
@@ -51,7 +51,7 @@ export default function PersonalEA() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">Planned Crypto Personal Bot scope</h2>
-            <p className="text-zinc-500 text-sm max-w-xl mx-auto">A setup request for future tooling; live execution, MT5/OANDA/Binance order placement, and broker connections are not available today.</p>
+            <p className="text-zinc-500 text-sm max-w-xl mx-auto">A managed setup request for future tooling; MT5/OANDA/Binance connections are activated only after setup and verification.</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto mb-12">
             {[
