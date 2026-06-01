@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { AccessRequest, Signal, TelegramLink, CustomerSubscription, Package } from '../../lib/types';
+import { AccessRequest, CustomerBotSetup, Signal, TelegramLink, CustomerSubscription, Package } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import {
   Radio, ArrowRight, Lock, MessageCircle, AlertTriangle,
@@ -19,6 +19,7 @@ import {
   hasFullSignalAccess,
 } from '../../lib/customerAccess';
 import { isBotPackage, normalizePackage, packageDisplayName, slugFromPackageValue } from '../../lib/packages';
+import { botSetupStatusLabel, setupProgress } from '../../lib/botSetup';
 
 function panelClass(tone: 'green' | 'yellow' | 'red' | 'gray' | 'blue') {
   const tones = {
@@ -38,22 +39,25 @@ export default function Dashboard() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [tgLink, setTgLink] = useState<TelegramLink | null>(null);
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
+  const [botSetup, setBotSetup] = useState<CustomerBotSetup | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async function load() {
     if (!user) return;
-    const [subRes, pkgRes, sigRes, tgRes, reqRes] = await Promise.all([
+    const [subRes, pkgRes, sigRes, tgRes, reqRes, setupRes] = await Promise.all([
       supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('packages').select('*').order('sort_order'),
       supabase.from('signals').select('*').in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(5),
       supabase.from('telegram_links').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('customer_bot_setups').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setSub(subRes.data ?? null);
     setPackages(((pkgRes.data ?? []) as Package[]).map(normalizePackage));
     setSignals(sigRes.data ?? []);
     setTgLink(tgRes.data ?? null);
     setLatestRequest(reqRes.data as AccessRequest | null);
+    setBotSetup(setupRes.data as CustomerBotSetup | null);
     setLoading(false);
   }, [user]);
 
@@ -61,13 +65,15 @@ export default function Dashboard() {
 
   const pkg = useMemo(() => packages.find(p => p.id === sub?.package_id || p.name === sub?.package_name || p.slug === latestRequest?.product_slug), [packages, sub, latestRequest]);
   const cryptoPackage = packages.find(p => p.slug === 'crypto_signal_room');
-  const requestedPackage = latestRequest?.product_slug ?? sub?.package_name;
+  const requestedPackage = botSetup?.package_slug ?? latestRequest?.product_slug ?? sub?.package_name;
   const accessState = getCustomerAccessState(sub, latestRequest);
   const hasAccess = hasFullSignalAccess(sub);
   const isPending = ['pending', 'pending_payment', 'pending_admin_approval'].includes(accessState);
   const isExpired = accessState === 'expired';
   const noPackage = accessState === 'no_package';
   const accessTone = hasAccess ? 'green' : isPending ? 'yellow' : isExpired ? 'red' : 'gray';
+  const hasBotPackage = isBotPackage(slugFromPackageValue(requestedPackage));
+  const botProgress = setupProgress(botSetup, hasBotPackage);
 
   const expiresInDays = sub?.expires_at
     ? Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86400000)
@@ -183,14 +189,29 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {isBotPackage(slugFromPackageValue(requestedPackage)) && (
+        {hasBotPackage && (
           <div className={panelClass('blue')}>
             <div className="flex items-center gap-2 mb-3">
               <PackageIcon size={16} className="text-sky-400" />
               <h2 className="font-semibold">Bot setup status</h2>
+              <Badge variant="blue" className="ml-auto capitalize">{botSetupStatusLabel(botSetup?.setup_status)}</Badge>
             </div>
-            <div className="text-sm text-zinc-200 mb-1">pending_admin_setup</div>
-            <p className="text-xs text-zinc-400 leading-relaxed">Signal Mode is included. Bot execution remains setup/status only until admin configuration is complete; there are no fake start/stop controls or broker orders.</p>
+            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+              <Info label="Risk preset" value={botSetup?.risk_preset || latestRequest?.risk_preset || 'Not selected'} />
+              <Info label="Signal Mode" value="Included" />
+            </div>
+            <div className="space-y-1.5 mb-4">
+              {botProgress.slice(0, 4).map(step => (
+                <div key={step.label} className="flex items-center gap-2 text-xs">
+                  <span className={`w-2 h-2 rounded-full ${step.done ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                  <span className={step.done ? 'text-zinc-300' : 'text-zinc-500'}>{step.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-3">Setup request only. Execution is not active until admin configuration and demo connector are completed. No orders are placed from this dashboard yet.</p>
+            <Link to={`/app/package-request?package=${botSetup?.package_slug || slugFromPackageValue(requestedPackage) || 'crypto_personal_bot'}`} className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors">
+              Manage setup details <ArrowRight size={12} />
+            </Link>
           </div>
         )}
 

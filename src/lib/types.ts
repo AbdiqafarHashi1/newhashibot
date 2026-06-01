@@ -66,6 +66,37 @@ export interface AccessRequest {
   updated_at: string;
 }
 
+
+export interface CustomerBotSetup {
+  id: string;
+  user_id: string;
+  package_slug: string;
+  subscription_id: string | null;
+  access_request_id: string | null;
+  bot_type: 'crypto_personal' | 'forex_mt5_personal' | 'forex_mt5_prop';
+  capital_mode: 'personal' | 'prop';
+  setup_status: 'not_configured' | 'setup_requested' | 'pending_admin_setup' | 'configured' | 'paused' | 'running' | 'disabled';
+  risk_preset: string;
+  account_size: number | null;
+  account_currency: string;
+  platform: string;
+  broker_name: string;
+  exchange_name: string;
+  prop_firm_name: string;
+  account_type: string;
+  preferred_symbols: string[];
+  max_risk_per_trade_pct: number | null;
+  max_daily_loss_pct: number | null;
+  drawdown_limit_pct: number | null;
+  min_trading_days: number | null;
+  leverage_profile: string;
+  customer_notes: string;
+  admin_notes: string;
+  acknowledged_no_execution: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TelegramLink {
   id: string;
   user_id: string;

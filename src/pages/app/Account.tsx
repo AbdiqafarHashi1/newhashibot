@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { CustomerSubscription } from '../../lib/types';
+import { AccessRequest, CustomerBotSetup, CustomerSubscription } from '../../lib/types';
 import { Badge } from '../../components/ui/Badge';
 import {
-  User, Radio, Cpu, Zap, Lock, ArrowRight,
-  MessageCircle, CheckCircle, Clock, Package, ShieldCheck, Send,
+  User, Radio, Cpu, Lock, ArrowRight,
+  MessageCircle, CheckCircle, Clock, Package, ShieldCheck, Send, AlertTriangle,
 } from 'lucide-react';
+import { botSetupStatusLabel, setupProgress } from '../../lib/botSetup';
+import { isBotPackage, packageDisplayName, slugFromPackageValue } from '../../lib/packages';
 
 function StatusDot({ active }: { active: boolean }) {
   return <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-emerald-500' : 'bg-zinc-600'}`} />;
@@ -17,16 +19,29 @@ function StatusDot({ active }: { active: boolean }) {
 export default function Account() {
   const { profile, user } = useAuth();
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
+  const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
+  const [botSetup, setBotSetup] = useState<CustomerBotSetup | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle()
-      .then(({ data }) => { setSub(data ?? null); setLoading(false); });
+    Promise.all([
+      supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('customer_bot_setups').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+    ]).then(([subRes, reqRes, setupRes]) => {
+      setSub(subRes.data ?? null);
+      setLatestRequest(reqRes.data as AccessRequest | null);
+      setBotSetup(setupRes.data as CustomerBotSetup | null);
+      setLoading(false);
+    });
   }, [user]);
 
   const hasAccess = sub?.access_status === 'active';
   const isPaid = sub?.payment_status === 'paid';
+  const packageValue = botSetup?.package_slug || latestRequest?.product_slug || sub?.package_name;
+  const hasBotPackage = isBotPackage(slugFromPackageValue(packageValue));
+  const progress = setupProgress(botSetup, hasBotPackage);
 
   const expiresInDays = sub?.expires_at
     ? Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86400000)
@@ -206,54 +221,75 @@ export default function Account() {
           </div>
         </div>
 
-        {/* Products — coming soon */}
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Coming Soon</h2>
-          <div className="space-y-3">
+        {hasBotPackage ? (
+          <div className="bg-zinc-900 border border-sky-500/20 rounded-xl overflow-hidden">
+            <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold flex items-center gap-2">
+              <Cpu size={14} className="text-sky-400" /> Bot Setup
+              <Badge variant="blue" className="ml-auto capitalize">{botSetupStatusLabel(botSetup?.setup_status)}</Badge>
+            </div>
+            <div className="px-5 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="bg-zinc-800 rounded-lg px-3 py-2">
+                  <div className="text-zinc-500 mb-0.5">Current package</div>
+                  <div className="text-zinc-200">{packageDisplayName(packageValue)}</div>
+                </div>
+                <div className="bg-zinc-800 rounded-lg px-3 py-2">
+                  <div className="text-zinc-500 mb-0.5">Risk preset</div>
+                  <div className="text-zinc-200">{botSetup?.risk_preset || latestRequest?.risk_preset || 'Not selected'}</div>
+                </div>
+                <div className="bg-zinc-800 rounded-lg px-3 py-2">
+                  <div className="text-zinc-500 mb-0.5">Bot type</div>
+                  <div className="text-zinc-200 capitalize">{botSetup?.bot_type?.replace(/_/g, ' ') || 'Pending setup form'}</div>
+                </div>
+                <div className="bg-zinc-800 rounded-lg px-3 py-2">
+                  <div className="text-zinc-500 mb-0.5">Capital mode</div>
+                  <div className="text-zinc-200 capitalize">{botSetup?.capital_mode || (packageValue?.includes('prop') ? 'prop' : 'personal')}</div>
+                </div>
+              </div>
+
+              <div className="bg-zinc-800/40 border border-zinc-700/50 rounded-lg px-4 py-4 space-y-2.5">
+                <div className="text-xs font-medium text-zinc-400 mb-1">Setup checklist:</div>
+                {progress.map((step, i) => (
+                  <div key={step.label} className="flex items-start gap-2.5 text-xs">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${step.done ? 'bg-emerald-600/30' : 'bg-zinc-700'}`}>
+                      {step.done ? <CheckCircle size={10} className="text-emerald-400" /> : <span className="text-zinc-500 text-xs leading-none">{i + 1}</span>}
+                    </div>
+                    <span className={step.done ? 'text-zinc-300' : 'text-zinc-500'}>{step.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 flex items-start gap-2.5">
+                <AlertTriangle size={13} className="text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-100 leading-relaxed">Setup request only. Execution is not active until admin configuration and demo connector are completed. No orders are placed from this dashboard yet.</p>
+              </div>
+
+              <Link to={`/app/package-request?package=${botSetup?.package_slug || slugFromPackageValue(packageValue) || 'crypto_personal_bot'}`} className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors">
+                Edit setup request <ArrowRight size={11} />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Bot packages</h2>
             <div className="rounded-xl border bg-zinc-900 border-zinc-800 p-5 flex items-start gap-3">
               <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">
                 <Cpu size={16} className="text-zinc-500" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-semibold text-sm">Crypto Personal Bot</span>
-                  <Badge variant="gray">Admin setup</Badge>
+                  <span className="font-semibold text-sm">Bot setup appears here after selecting a Bot package</span>
+                  <Badge variant="gray">Setup only</Badge>
                   <Lock size={12} className="text-zinc-600" />
                 </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Crypto Bot setup/status is admin-enabled. Signal Mode is included; execution is not live until configuration is complete and no orders are placed from this app.</p>
-              </div>
-            </div>
-            <div className="rounded-xl border bg-zinc-900 border-zinc-800 p-5 flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">
-                <Cpu size={16} className="text-zinc-500" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-semibold text-sm">Forex MT5 Personal Bot</span>
-                  <Badge variant="gray">Admin setup</Badge>
-                  <Lock size={12} className="text-zinc-600" />
-                </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Forex MT5 setup/status is admin-enabled. Signal Mode is included; execution is not live until configuration is complete and no orders are placed from this app.</p>
-              </div>
-            </div>
-            <div className="rounded-xl border bg-zinc-900 border-zinc-800 p-5 flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">
-                <Zap size={16} className="text-zinc-500" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-semibold text-sm">Forex MT5 Prop Bot</span>
-                  <Badge variant="gray">Admin setup</Badge>
-                  <Lock size={12} className="text-zinc-600" />
-                </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Forex MT5 prop-safe setup/status is admin-enabled with Conservative / Prop Safe risk. Signal Mode is included; no orders are placed from this app.</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">Signal Room customers keep the normal Signal Mode flow. Full Bot setup fields are shown only for Crypto Personal Bot, Forex MT5 Personal Bot, or Forex MT5 Prop Bot requesters.</p>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         <p className="text-xs text-zinc-600 leading-relaxed">
-          Bot packages include Signal Mode and show setup/status only until admin configuration is complete. No fake live execution controls are shown.
+          Bot packages include Signal Mode and show setup/status only until admin configuration is complete. No Start/Stop/Connect controls are shown.
         </p>
 
         {/* Signals shortcut */}
