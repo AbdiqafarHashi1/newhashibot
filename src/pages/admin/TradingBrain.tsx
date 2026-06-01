@@ -370,13 +370,17 @@ function CandidateRow({ c, expandedId, setExpandedId }: {
             <div>
               <div className="text-xs text-zinc-600 mb-1">Score breakdown:</div>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(c.score_breakdown).map(([k, v]) => (
-                  <span key={k} className={`text-xs font-mono px-1.5 py-0.5 rounded border ${
-                    (v as number) > 0 ? 'bg-emerald-500/8 border-emerald-500/20 text-emerald-400' : 'bg-red-500/8 border-red-500/20 text-red-400'
-                  }`}>
-                    {k}: {v > 0 ? '+' : ''}{v}
-                  </span>
-                ))}
+                {Object.entries(c.score_breakdown).map(([k, v]) => {
+                  const numericValue = typeof v === 'number' ? v : null;
+                  const isPositive = numericValue !== null && numericValue > 0;
+                  return (
+                    <span key={k} className={`text-xs font-mono px-1.5 py-0.5 rounded border ${
+                      isPositive ? 'bg-emerald-500/8 border-emerald-500/20 text-emerald-400' : 'bg-red-500/8 border-red-500/20 text-red-400'
+                    }`}>
+                      {k}: {isPositive ? '+' : ''}{String(v)}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}
