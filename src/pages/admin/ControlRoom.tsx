@@ -216,6 +216,10 @@ export default function ControlRoom() {
     return `${((new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000).toFixed(1)}s`;
   }
 
+  const strategySummaryEntries = latestRun?.strategy_evaluation_summary
+    ? Object.entries(latestRun.strategy_evaluation_summary)
+    : [];
+
   return (
     <AdminLayout>
       <div className="flex items-start justify-between mb-6 gap-4">
@@ -561,6 +565,21 @@ export default function ControlRoom() {
                   <span className="text-xs text-zinc-200">{value}</span>
                 </div>
               ))}
+              {strategySummaryEntries.length > 0 && (
+                <div className="px-5 py-3">
+                  <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Strategy evaluation counts</div>
+                  <div className="grid gap-1.5">
+                    {strategySummaryEntries.map(([name, stats]) => (
+                      <div key={name} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-zinc-950/50 px-3 py-1.5 text-[11px]">
+                        <span className="font-medium text-zinc-300">{name}</span>
+                        <span className="text-zinc-500">
+                          eval {stats.evaluated ?? 0} · accepted {stats.accepted ?? 0} · rejected {stats.rejected ?? 0} · arb {stats.arbitration_blocked ?? 0} · dup {stats.duplicate_active_signal ?? 0} · errors {stats.runtime_errors ?? 0} · skipped {stats.skipped ?? 0}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {latestRun.error_message && !/forex|finnhub|twelvedata|oanda|mt5|demo/i.test(latestRun.error_message) && (
                 <div className="px-5 py-2.5">
                   <div className="text-xs text-yellow-400 flex items-start gap-1.5">

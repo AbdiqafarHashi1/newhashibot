@@ -8,13 +8,16 @@ export default function RejectedSetups() {
   const [items, setItems] = useState<StrategyCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [marketFilter, setMarketFilter] = useState('all');
+  const [strategyFilter, setStrategyFilter] = useState('all');
 
   useEffect(() => {
+    setLoading(true);
     let query = supabase.from('strategy_candidates').select('*').eq('status', 'rejected')
       .order('created_at', { ascending: false }).limit(100);
     if (marketFilter !== 'all') query = query.eq('market_type', marketFilter);
+    if (strategyFilter !== 'all') query = query.eq('strategy_name', strategyFilter);
     query.then(({ data }) => { setItems(data ?? []); setLoading(false); });
-  }, [marketFilter]);
+  }, [marketFilter, strategyFilter]);
 
   const reasonColors: Record<string, 'red' | 'yellow' | 'orange' | 'gray'> = {
     low_score: 'red',
@@ -45,6 +48,9 @@ export default function RejectedSetups() {
     provider_invalid_response: 'gray',
     forex_budget_limited: 'gray',
     distance_guard_failed: 'orange',
+    arbitration_blocked: 'orange',
+    duplicate_active_signal: 'orange',
+    runtime_error: 'red',
   };
 
   const formatRiskReward = (rr: number | null) => (typeof rr === 'number' && Number.isFinite(rr) ? `${rr.toFixed(2)}R` : '—');
@@ -64,6 +70,9 @@ export default function RejectedSetups() {
       'compression_score', 'box_range_atr', 'compression_ready', 'breakout_confirmed', 'atr_expansion',
       'trend_direction', 'trend_score', 'pullback_score', 'reclaim_confirmed', 'momentum_score',
       'volatility_score', 'candle_score', 'rsi_score', 'spread_or_distance_score', 'stop_distance_pips',
+      'selected_strategy', 'selected_arbitration_score', 'candidate_arbitration_score',
+      'arbitration_blocked', 'better_candidate_selected', 'lower_quality_than_selected',
+      'runtime_error', 'error_message',
       'tp1_distance_pips', 'tp2_distance_pips', 'forex_pair_type', 'session_context',
     ];
     return keys
@@ -78,11 +87,20 @@ export default function RejectedSetups() {
         <p className="text-sm text-zinc-500 mt-0.5">{items.length} rejected candidates</p>
       </div>
 
-      <div className="flex gap-2 flex-wrap mb-6">
+      <div className="flex gap-2 flex-wrap mb-3">
         {['all', 'crypto', 'forex'].map(f => (
           <button key={f} onClick={() => setMarketFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${marketFilter === f ? 'bg-cyan-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>
             {f === 'all' ? 'All Markets' : f.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2 flex-wrap mb-6">
+        {['all', 'MicroScalper', 'CompressionBreakout', 'SwingContinuation', 'ForexMicroScalper', 'ForexSwingContinuation'].map(f => (
+          <button key={f} onClick={() => setStrategyFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${strategyFilter === f ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>
+            {f === 'all' ? 'All Strategies' : f}
           </button>
         ))}
       </div>
