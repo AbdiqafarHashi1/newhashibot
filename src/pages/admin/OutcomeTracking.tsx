@@ -64,6 +64,15 @@ interface OutcomeRunResult {
   updates?: Array<{ signal_id: string; symbol: string; from: string; to: string; price: number | null; telegram_status?: string; telegram_reason?: string }>;
 }
 
+function signalPriceDecimals(sig: SignalRow) {
+  if (sig.market_type === 'forex') return sig.symbol.replace(/[^A-Za-z0-9]/g, '').toUpperCase().endsWith('JPY') ? 3 : 5;
+  return Number(sig.stop_loss) >= 100 ? 2 : 5;
+}
+
+function fmtSignalPrice(sig: SignalRow, value: number) {
+  return Number(value).toFixed(signalPriceDecimals(sig));
+}
+
 export default function OutcomeTracking() {
   const { session } = useAuth();
   const [running, setRunning] = useState(false);
@@ -84,7 +93,7 @@ export default function OutcomeTracking() {
     setLoadWarning('');
     try {
       const [sigsRes, updatesRes, deliveryRes, autoUpdateRes, manualUpdateRes] = await Promise.all([
-        supabase.from('signals').select('*').eq('market_type', 'crypto').eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']).order('created_at', { ascending: false }).limit(50),
+        supabase.from('signals').select('*').eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']).order('created_at', { ascending: false }).limit(50),
         supabase.from('signal_updates').select('*, signals(symbol, direction)').order('created_at', { ascending: false }).limit(30),
         supabase.from('telegram_deliveries').select('*').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(100),
         supabase.from('signal_updates').select('*').ilike('message', '%source: scheduled-market-scanner%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -284,7 +293,7 @@ export default function OutcomeTracking() {
           {loading ? (
             <div className="flex items-center justify-center py-10"><div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
           ) : activeSignals.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-zinc-600">No open crypto REAL DATA signals. Run the scanner first.</div>
+            <div className="px-5 py-8 text-center text-sm text-zinc-600">No open REAL DATA signals. Run the scanner first.</div>
           ) : (
             <div className="divide-y divide-zinc-800/60 max-h-[500px] overflow-y-auto">
               {activeSignals.map(sig => {
@@ -297,13 +306,13 @@ export default function OutcomeTracking() {
                       {directionBadge(sig.direction)}
                       {gradeBadge(sig.grade)}
                       {statusBadge(sig.status)}
-                      <Badge variant="blue">CRYPTO</Badge>
+                      <Badge variant={sig.market_type === 'forex' ? 'purple' : 'blue'}>{sig.market_type.toUpperCase()}</Badge>
                       <Badge variant="green">REAL DATA</Badge>
                     </div>
                     <div className="text-xs text-zinc-500 flex gap-3 flex-wrap">
-                      <span>SL: <span className="font-mono text-red-400">{Number(sig.stop_loss).toFixed(5)}</span></span>
-                      <span>TP1: <span className="font-mono text-blue-400">{Number(sig.tp1).toFixed(5)}</span></span>
-                      <span>TP2: <span className="font-mono text-emerald-400">{Number(sig.tp2).toFixed(5)}</span></span>
+                      <span>SL: <span className="font-mono text-red-400">{fmtSignalPrice(sig, sig.stop_loss)}</span></span>
+                      <span>TP1: <span className="font-mono text-blue-400">{fmtSignalPrice(sig, sig.tp1)}</span></span>
+                      <span>TP2: <span className="font-mono text-emerald-400">{fmtSignalPrice(sig, sig.tp2)}</span></span>
                       <span className="text-zinc-600">{ageMins}m old</span>
                     </div>
                   </div>

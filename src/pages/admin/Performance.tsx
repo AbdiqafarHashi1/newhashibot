@@ -156,9 +156,19 @@ function fmtDuration(mins: number | null | undefined) {
   return `${(mins / 1440).toFixed(1)}d`;
 }
 
+function forexDecimals(symbol: string) {
+  return symbol.replace(/[^A-Za-z0-9]/g, '').toUpperCase().endsWith('JPY') ? 3 : 5;
+}
+
 function fmtPrice(n: number | null | undefined) {
   if (n === null || n === undefined) return '—';
   return n >= 100 ? n.toFixed(2) : n.toFixed(5);
+}
+
+function fmtMarketPrice(row: SignalAnalyticsRow, n: number | null | undefined) {
+  if (n === null || n === undefined) return '—';
+  if (row.market_type === 'forex') return n.toFixed(forexDecimals(row.symbol));
+  return fmtPrice(n);
 }
 
 function fmtDateTime(value: string | null | undefined) {
@@ -418,13 +428,16 @@ export default function Performance() {
     }
   }
 
-  const filterOpts = useMemo(() => ({
-    strategies: configuredStrategies,
-    symbols: [...new Set(signals.map(s => s.symbol).filter(Boolean))].sort(),
-    timeframes: [...new Set(signals.map(s => s.timeframe).filter(Boolean))].sort(),
-    directions: [...new Set(signals.map(s => s.direction).filter(Boolean))].sort(),
-    grades: [...new Set(signals.map(s => s.grade).filter(Boolean))].sort(),
-  }), [configuredStrategies, signals]);
+  const filterOpts = useMemo(() => {
+    const marketScopedSignals = filters.market ? signals.filter(s => s.market_type === filters.market) : signals;
+    return {
+      strategies: configuredStrategies,
+      symbols: [...new Set(marketScopedSignals.map(s => s.symbol).filter(Boolean))].sort(),
+      timeframes: [...new Set(marketScopedSignals.map(s => s.timeframe).filter(Boolean))].sort(),
+      directions: [...new Set(marketScopedSignals.map(s => s.direction).filter(Boolean))].sort(),
+      grades: [...new Set(marketScopedSignals.map(s => s.grade).filter(Boolean))].sort(),
+    };
+  }, [configuredStrategies, signals, filters.market]);
 
   const { start: dateStart, end: dateEnd } = useMemo(() => dateRangeForFilters(filters, baselineStartedAt), [filters, baselineStartedAt]);
 
@@ -793,11 +806,11 @@ export default function Performance() {
                         </span>
                       </td>
                       <td className="px-3 py-3 text-right">{fmtSignalR(sig.r_result)}</td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.entry_price)}</td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.stop_loss)}</td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.tp1)}</td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.tp2)}</td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.close_price)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtMarketPrice(sig, sig.entry_price)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtMarketPrice(sig, sig.stop_loss)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtMarketPrice(sig, sig.tp1)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtMarketPrice(sig, sig.tp2)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtMarketPrice(sig, sig.close_price)}</td>
                       <td className="px-3 py-3 text-right text-zinc-500">{fmtDuration(sig.duration_minutes)}</td>
                       <td className="px-3 py-3 text-right text-zinc-500 whitespace-nowrap">{fmtDateTime(sig.created_at)}</td>
                       <td className="px-4 py-3 text-right text-zinc-500 whitespace-nowrap">{fmtDateTime(sig.closed_at)}</td>

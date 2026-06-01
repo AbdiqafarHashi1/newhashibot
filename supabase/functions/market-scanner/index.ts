@@ -187,6 +187,70 @@ function strategyZeroReject(reason: string): EvalResult {
   };
 }
 
+
+// ─── Forex-specific helpers ──────────────────────────────────────────────────
+
+function isJpyPair(symbol: string): boolean {
+  return normalizeSymbol(symbol).endsWith("JPY");
+}
+
+function forexPipSize(symbol: string): number {
+  return isJpyPair(symbol) ? 0.01 : 0.0001;
+}
+
+function forexPrecision(symbol: string): number {
+  return isJpyPair(symbol) ? 3 : 5;
+}
+
+function roundForexPrice(symbol: string, price: number): number {
+  if (!Number.isFinite(price)) return 0;
+  return Number(price.toFixed(forexPrecision(symbol)));
+}
+
+function pipDistance(symbol: string, from: number, to: number): number {
+  const pip = forexPipSize(symbol);
+  return pip > 0 && Number.isFinite(from) && Number.isFinite(to) ? parseFloat((Math.abs(to - from) / pip).toFixed(1)) : 0;
+}
+
+function forexPairType(symbol: string): string {
+  const normalized = normalizeSymbol(symbol);
+  const majors = new Set(["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "AUDUSD", "NZDUSD"]);
+  return majors.has(normalized) ? "major" : normalized.length === 6 ? "minor" : "unknown";
+}
+
+function forexSessionContext(date = new Date()): string {
+  const hour = date.getUTCHours();
+  if (hour >= 12 && hour < 16) return "London-NY overlap";
+  if (hour >= 7 && hour < 12) return "London";
+  if (hour >= 16 && hour < 21) return "New York";
+  if (hour >= 0 && hour < 7) return "Asian";
+  return "Unknown";
+}
+
+function forexAtrPct(symbol: string, atr: number, price: number): number {
+  if (price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return 0;
+  return (atr / price) * 100;
+}
+
+function forexZeroReject(reason: string, symbol: string): EvalResult {
+  return {
+    ...strategyZeroReject(reason),
+    score_breakdown: {
+      primary_failed_gate: reason,
+      forex_pair_type: forexPairType(symbol),
+      session_context: forexSessionContext(),
+    },
+  };
+}
+
+function forexEntryBand(symbol: string, price: number, atr: number, maxPips: number): { entry_low: number; entry_high: number } {
+  const half = Math.min(atr * 0.12, forexPipSize(symbol) * maxPips);
+  return {
+    entry_low: roundForexPrice(symbol, price - half),
+    entry_high: roundForexPrice(symbol, price + half),
+  };
+}
+
 // ─── MicroScalper ─────────────────────────────────────────────────────────────
 
 function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
@@ -280,6 +344,135 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
   if (primaryFailedGate) {
     return { status: "rejected", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade: "reject", reason, rejection_reason: primaryFailedGate, score_breakdown };
   }
+  return { status: "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade, reason, rejection_reason: "", score_breakdown };
+}
+
+// ─── ForexMicroScalper ───────────────────────────────────────────────────────
+
+function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
+  const symbol = normalizeSymbol(candles[candles.length - 1]?.symbol ?? "");
+  const min_atr_pct = params.min_atr_pct ?? (isJpyPair(symbol) ? 0.025 : 0.018);
+  const max_atr_pct = params.max_atr_pct ?? 0.32;
+  const min_body_atr = params.min_body_atr ?? 0.18;
+  const stop_atr_mult = params.stop_atr_mult ?? 1.15;
+  const tp1_r = params.tp1_r ?? 1.15;
+  const tp2_r = params.tp2_r ?? 1.7;
+  const min_rr = params.min_rr ?? 1.25;
+  const min_score = params.min_score ?? 74;
+  const momentum_lookback = Math.max(2, Math.floor(params.momentum_lookback ?? 3));
+  const min_stop_pips = params.min_stop_pips ?? (isJpyPair(symbol) ? 5.5 : 4.5);
+  const min_tp1_pips = params.min_tp1_pips ?? (isJpyPair(symbol) ? 6 : 5);
+  const min_tp2_pips = params.min_tp2_pips ?? (isJpyPair(symbol) ? 8 : 7);
+  const max_entry_band_pips = params.max_entry_band_pips ?? (timeframe === "5m" ? 1.2 : 1.8);
+
+  if (!["5m", "15m"].includes(timeframe)) return forexZeroReject("unsupported_timeframe", symbol);
+  if (candles.length < 55) return forexZeroReject("insufficient_candles", symbol);
+  if (hasInvalidCandles(candles)) return forexZeroReject("invalid_candles", symbol);
+
+  const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2];
+  const price = last.close;
+  const atr = ind.atr14;
+  const pip = forexPipSize(symbol);
+  const atrPips = atr / pip;
+  const atrPct = forexAtrPct(symbol, atr, price);
+  if (atr <= 0 || price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return forexZeroReject("invalid_atr_or_price", symbol);
+
+  const closes = candles.map((c) => c.close);
+  const highs = candles.map((c) => c.high);
+  const lows = candles.map((c) => c.low);
+  const momentumRaw = calcMomentumScore(closes, momentum_lookback);
+  const emaSpreadPips = Math.abs(ind.ema20 - ind.ema50) / pip;
+  const emaSpreadAtr = Math.abs(ind.ema20 - ind.ema50) / atr;
+  const recentHigh = Math.max(...highs.slice(-8, -1));
+  const recentLow = Math.min(...lows.slice(-8, -1));
+  const body = Math.abs(last.close - last.open);
+  const bodyAtr = body / atr;
+  const upperWick = last.high - Math.max(last.open, last.close);
+  const lowerWick = Math.min(last.open, last.close) - last.low;
+  const totalRange = Math.max(last.high - last.low, pip / 10);
+  const bodyShare = body / totalRange;
+
+  const buyContext = (ind.ema20 > ind.ema50 ? 2 : 0) + (price > ind.ema20 ? 1 : 0) + (momentumRaw > 0 ? 1 : 0) + (ind.rsi14 >= 50 ? 1 : 0) + (last.close >= recentHigh ? 1 : 0);
+  const sellContext = (ind.ema20 < ind.ema50 ? 2 : 0) + (price < ind.ema20 ? 1 : 0) + (momentumRaw < 0 ? 1 : 0) + (ind.rsi14 <= 50 ? 1 : 0) + (last.close <= recentLow ? 1 : 0);
+  const direction: "buy" | "sell" = buyContext >= sellContext ? "buy" : "sell";
+  const directionalMomentum = direction === "buy" ? momentumRaw : -momentumRaw;
+  const candleInDirection = direction === "buy" ? last.close > last.open : last.close < last.open;
+  const wickOk = direction === "buy" ? upperWick <= body * 1.8 : lowerWick <= body * 1.8;
+  const trendConfirmed = direction === "buy" ? ind.ema20 > ind.ema50 && price > ind.ema20 : ind.ema20 < ind.ema50 && price < ind.ema20;
+  const structureAligned = direction === "buy" ? last.close > prev.close && last.low >= recentLow - atr * 0.25 : last.close < prev.close && last.high <= recentHigh + atr * 0.25;
+  const rsiConfirmed = direction === "buy" ? ind.rsi14 >= 48 && ind.rsi14 <= 72 : ind.rsi14 <= 52 && ind.rsi14 >= 28;
+  const spikeOnly = bodyAtr > 1.25 && Math.abs(last.close - prev.close) > atr * 1.15 && Math.sign(last.close - last.open) !== Math.sign(prev.close - prev.open);
+
+  const { entry_low, entry_high } = forexEntryBand(symbol, price, atr, max_entry_band_pips);
+  const rawRisk = Math.max(atr * stop_atr_mult, pip * min_stop_pips);
+  const structureStop = direction === "buy" ? Math.min(recentLow - atr * 0.12, price - rawRisk) : Math.max(recentHigh + atr * 0.12, price + rawRisk);
+  const stop_loss = roundForexPrice(symbol, structureStop);
+  const risk = Math.abs(price - stop_loss);
+  const tp1 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp1_r : price - risk * tp1_r);
+  const tp2 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp2_r : price - risk * tp2_r);
+  const risk_reward = risk > 0 ? parseFloat((Math.abs(tp2 - price) / risk).toFixed(2)) : 0;
+  const stopPips = pipDistance(symbol, price, stop_loss);
+  const tp1Pips = pipDistance(symbol, price, tp1);
+  const tp2Pips = pipDistance(symbol, price, tp2);
+
+  const trendScore = clampScore((trendConfirmed ? 45 : 15) + Math.min(emaSpreadAtr, 0.8) * 35 + (structureAligned ? 20 : 0));
+  const momentumScore = clampScore((Math.max(0, directionalMomentum) * 55) + (candleInDirection ? 20 : 0) + (structureAligned ? 15 : 0) + Math.min(bodyAtr, 0.8) * 12);
+  const candleScore = clampScore((candleInDirection ? 35 : 8) + Math.min(bodyAtr / Math.max(min_body_atr, 0.01), 1.2) * 35 + (bodyShare >= 0.35 ? 20 : 5) + (wickOk ? 10 : 0));
+  const rsiScore = direction === "buy" ? clampScore(100 - Math.abs(ind.rsi14 - 58) * 4) : clampScore(100 - Math.abs(ind.rsi14 - 42) * 4);
+  let volatilityScore = 85;
+  if (atrPct < min_atr_pct) volatilityScore = clampScore((atrPct / Math.max(min_atr_pct, 0.001)) * 55);
+  else if (atrPct > max_atr_pct) volatilityScore = clampScore(Math.max(20, 85 - ((atrPct - max_atr_pct) / Math.max(max_atr_pct, 0.001)) * 120));
+  const spreadOrDistanceScore = clampScore(Math.min(stopPips / Math.max(min_stop_pips, 0.1), 1.4) * 45 + Math.min(tp1Pips / Math.max(min_tp1_pips, 0.1), 1.4) * 25 + Math.min(tp2Pips / Math.max(min_tp2_pips, 0.1), 1.4) * 20 + Math.min(atrPips / Math.max(min_stop_pips, 0.1), 1.2) * 10);
+  const rrScore = clampScore(Math.min(risk_reward / Math.max(min_rr, 0.01), 1.45) * 70);
+
+  let primaryFailedGate = "";
+  if (atrPct < min_atr_pct) primaryFailedGate = "volatility_too_low";
+  else if (atrPct > max_atr_pct) primaryFailedGate = "volatility_too_high";
+  else if (emaSpreadPips < 1.2 || stopPips < min_stop_pips || tp1Pips < min_tp1_pips || tp2Pips < min_tp2_pips) primaryFailedGate = "distance_guard_failed";
+  else if (!trendConfirmed || !structureAligned) primaryFailedGate = "trend_filter_failed";
+  else if (directionalMomentum < 0.15) primaryFailedGate = "momentum_failed";
+  else if (!candleInDirection || bodyAtr < min_body_atr || bodyShare < 0.32 || !wickOk || spikeOnly) primaryFailedGate = "candle_body_too_small";
+  else if (!rsiConfirmed) primaryFailedGate = "momentum_failed";
+  else if (risk_reward < min_rr) primaryFailedGate = "rr_too_low";
+
+  const finalScore = clampScore((trendScore * 0.22) + (momentumScore * 0.19) + (candleScore * 0.17) + (rsiScore * 0.12) + (volatilityScore * 0.12) + (spreadOrDistanceScore * 0.10) + (rrScore * 0.08));
+  if (!primaryFailedGate && finalScore < min_score) primaryFailedGate = "confidence_too_low";
+
+  const score_breakdown: Record<string, number | string | boolean> = {
+    primary_failed_gate: primaryFailedGate || "passed",
+    trend_score: trendScore,
+    momentum_score: momentumScore,
+    volatility_score: volatilityScore,
+    candle_score: candleScore,
+    rsi_score: rsiScore,
+    spread_or_distance_score: spreadOrDistanceScore,
+    rr_score: rrScore,
+    rr: risk_reward,
+    direction,
+    ema_alignment: direction === "buy" ? "ema20_above_ema50" : "ema20_below_ema50",
+    ema_spread_pips: parseFloat(emaSpreadPips.toFixed(1)),
+    atr_pips: parseFloat(atrPips.toFixed(1)),
+    atr_pct: parseFloat(atrPct.toFixed(4)),
+    body_atr: parseFloat(bodyAtr.toFixed(3)),
+    body_share: parseFloat(bodyShare.toFixed(3)),
+    structure_aligned: structureAligned,
+    spike_only: spikeOnly,
+    rsi: parseFloat(ind.rsi14.toFixed(2)),
+    stop_distance_pct: pctDistance(price, stop_loss),
+    tp1_distance_pct: pctDistance(price, tp1),
+    tp2_distance_pct: pctDistance(price, tp2),
+    stop_distance_pips: stopPips,
+    tp1_distance_pips: tp1Pips,
+    tp2_distance_pips: tp2Pips,
+    forex_pair_type: forexPairType(symbol),
+    session_context: forexSessionContext(),
+    final_score: finalScore,
+  };
+
+  const grade = scoreGrade(finalScore);
+  const reason = `ForexMicroScalper ${direction}: EMA context=${trendScore}, momentum=${momentumScore}, candle=${candleScore}, ATR=${atrPips.toFixed(1)} pips, rr=${risk_reward.toFixed(2)}R, score=${finalScore}`;
+  if (primaryFailedGate) return { status: "rejected", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade: "reject", reason, rejection_reason: primaryFailedGate, score_breakdown };
   return { status: "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade, reason, rejection_reason: "", score_breakdown };
 }
 
@@ -584,6 +777,157 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   return { status: "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade, reason, rejection_reason: "", score_breakdown };
 }
 
+// ─── ForexSwingContinuation ──────────────────────────────────────────────────
+
+function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
+  const symbol = normalizeSymbol(candles[candles.length - 1]?.symbol ?? "");
+  const min_atr_pct = params.min_atr_pct ?? 0.018;
+  const max_atr_pct = params.max_atr_pct ?? 0.42;
+  const pullback_bars = Math.max(3, Math.floor(params.pullback_bars ?? 6));
+  const stop_atr_mult = params.stop_atr_mult ?? 1.35;
+  const tp1_r = params.tp1_r ?? 1.25;
+  const tp2_r = params.tp2_r ?? 1.85;
+  const min_rr = params.min_rr ?? 1.45;
+  const min_score = params.min_score ?? 76;
+  const momentum_lookback = Math.max(2, Math.floor(params.momentum_lookback ?? 4));
+  const atr_len = Math.max(2, Math.floor(params.atr_len ?? 14));
+  const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
+  const ema_fast = Math.max(2, Math.floor(params.ema_fast ?? 20));
+  const ema_slow = Math.max(ema_fast + 1, Math.floor(params.ema_slow ?? 50));
+  const min_stop_pips = params.min_stop_pips ?? (isJpyPair(symbol) ? 9 : 8);
+  const min_tp1_pips = params.min_tp1_pips ?? (isJpyPair(symbol) ? 11 : 10);
+
+  if (!["1h", "15m"].includes(timeframe)) return forexZeroReject("unsupported_timeframe", symbol);
+  const minLen = Math.max(ema_slow + 8, atr_len + 2, rsi_len + 2, pullback_bars + 12, 60);
+  if (candles.length < minLen) return forexZeroReject("insufficient_candles", symbol);
+  if (hasInvalidCandles(candles)) return forexZeroReject("invalid_candles", symbol);
+
+  const closes = candles.map((c) => c.close);
+  const last = candles[candles.length - 1];
+  const price = last.close;
+  const atr = calcATR(candles, atr_len);
+  const pip = forexPipSize(symbol);
+  const atrPct = forexAtrPct(symbol, atr, price);
+  const atrPips = atr / pip;
+  const rsi = calcRSI(closes, rsi_len);
+  const emaFast = calcEMA(closes, ema_fast);
+  const emaSlow = calcEMA(closes, ema_slow);
+  const priorEmaFast = calcEMA(closes.slice(0, -pullback_bars), ema_fast);
+  if (atr <= 0 || price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return forexZeroReject("invalid_atr_or_price", symbol);
+
+  const emaSpreadPct = emaSlow > 0 ? ((emaFast - emaSlow) / emaSlow) * 100 : 0;
+  const emaSpreadPips = (emaFast - emaSlow) / pip;
+  const emaSlope = priorEmaFast > 0 ? ((emaFast - priorEmaFast) / priorEmaFast) * 100 : 0;
+  const bullBias = (emaSpreadPct * 2.0) + (emaSlope * 1.5) + (price > emaFast ? 0.15 : -0.15) + ((rsi - 50) / 120);
+  const bearBias = (-emaSpreadPct * 2.0) + (-emaSlope * 1.5) + (price < emaFast ? 0.15 : -0.15) + ((50 - rsi) / 120);
+  const direction: "buy" | "sell" = bullBias >= bearBias ? "buy" : "sell";
+  const directionalSpreadPct = direction === "buy" ? emaSpreadPct : -emaSpreadPct;
+  const directionalSlope = direction === "buy" ? emaSlope : -emaSlope;
+  const directionalSpreadPips = direction === "buy" ? emaSpreadPips : -emaSpreadPips;
+  const emaAligned = direction === "buy" ? emaFast > emaSlow : emaFast < emaSlow;
+  const emaAlignment = direction === "buy" ? (emaAligned ? "bullish" : "not_bullish") : (emaAligned ? "bearish" : "not_bearish");
+  const priceVsEma = direction === "buy" ? ((price - emaFast) / price) * 100 : ((emaFast - price) / price) * 100;
+
+  const pullbackWindow = candles.slice(-(pullback_bars + 1), -1);
+  const pullbackLow = Math.min(...pullbackWindow.map((c) => c.low));
+  const pullbackHigh = Math.max(...pullbackWindow.map((c) => c.high));
+  const pullbackCloseMin = Math.min(...pullbackWindow.map((c) => c.close));
+  const pullbackCloseMax = Math.max(...pullbackWindow.map((c) => c.close));
+  const touchedBuyZone = pullbackLow <= emaFast + atr * 0.7 && pullbackLow >= emaSlow - atr * 0.45;
+  const touchedSellZone = pullbackHigh >= emaFast - atr * 0.7 && pullbackHigh <= emaSlow + atr * 0.45;
+  const reclaimedBuy = price > emaFast && last.close > last.open && price > pullbackCloseMin + atr * 0.25;
+  const reclaimedSell = price < emaFast && last.close < last.open && price < pullbackCloseMax - atr * 0.25;
+  const pullbackReady = direction === "buy" ? touchedBuyZone : touchedSellZone;
+  const reclaimConfirmed = direction === "buy" ? reclaimedBuy : reclaimedSell;
+
+  const momentum = calcMomentumScore(closes, momentum_lookback);
+  const directionalMomentum = direction === "buy" ? momentum : -momentum;
+  const bodyAtr = Math.abs(last.close - last.open) / atr;
+  const rsiOk = direction === "buy" ? rsi >= 48 && rsi <= 70 : rsi <= 52 && rsi >= 30;
+  const recentHigh = Math.max(...candles.slice(-14, -1).map((c) => c.high));
+  const recentLow = Math.min(...candles.slice(-14, -1).map((c) => c.low));
+  const structureContinuation = direction === "buy" ? price > emaFast && recentLow > emaSlow - atr * 0.6 : price < emaFast && recentHigh < emaSlow + atr * 0.6;
+
+  const { entry_low, entry_high } = forexEntryBand(symbol, price, atr, timeframe === "1h" ? 2.5 : 1.8);
+  const minRisk = pip * min_stop_pips;
+  const stopBuffer = Math.max(atr * 0.2, pip * 2);
+  const stop_loss = roundForexPrice(symbol, direction === "buy"
+    ? Math.min(pullbackLow - stopBuffer, price - Math.max(atr * stop_atr_mult, minRisk))
+    : Math.max(pullbackHigh + stopBuffer, price + Math.max(atr * stop_atr_mult, minRisk)));
+  const risk = Math.abs(price - stop_loss);
+  const tp1 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp1_r : price - risk * tp1_r);
+  const tp2 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp2_r : price - risk * tp2_r);
+  const risk_reward = risk > 0 ? parseFloat((Math.abs(tp2 - price) / risk).toFixed(2)) : 0;
+  const stopPips = pipDistance(symbol, price, stop_loss);
+  const tp1Pips = pipDistance(symbol, price, tp1);
+  const tp2Pips = pipDistance(symbol, price, tp2);
+
+  const trendScore = clampScore((emaAligned ? 42 : 8) + Math.min(Math.max(directionalSpreadPct, 0) / 0.18, 1) * 28 + Math.min(Math.max(directionalSlope, 0) / 0.08, 1) * 22 + (directionalSpreadPips >= 2 ? 8 : 0));
+  const emaSlopeScore = clampScore(35 + Math.min(Math.max(directionalSlope, -0.04) + 0.04, 0.16) / 0.16 * 65);
+  const pullbackScore = direction === "buy"
+    ? clampScore((touchedBuyZone ? 42 : 12) + (reclaimedBuy ? 38 : price > emaFast ? 18 : 0) + (pullbackLow > emaSlow - atr * 0.45 ? 20 : 5))
+    : clampScore((touchedSellZone ? 42 : 12) + (reclaimedSell ? 38 : price < emaFast ? 18 : 0) + (pullbackHigh < emaSlow + atr * 0.45 ? 20 : 5));
+  const momentumScore = clampScore((Math.max(0, directionalMomentum) * 52) + ((direction === "buy" ? last.close > last.open : last.close < last.open) ? 18 : 0) + Math.min(bodyAtr, 0.9) * 20 + (rsiOk ? 10 : 0));
+  let volatilityScore = 86;
+  if (atrPct < min_atr_pct) volatilityScore = clampScore((atrPct / Math.max(min_atr_pct, 0.001)) * 55);
+  else if (atrPct > max_atr_pct) volatilityScore = clampScore(Math.max(20, 86 - ((atrPct - max_atr_pct) / Math.max(max_atr_pct, 0.001)) * 120));
+  const distanceScore = clampScore(Math.min(stopPips / Math.max(min_stop_pips, 0.1), 1.35) * 45 + Math.min(tp1Pips / Math.max(min_tp1_pips, 0.1), 1.35) * 25 + Math.min(tp2Pips / Math.max(min_tp1_pips * 1.4, 0.1), 1.35) * 20 + Math.min(atrPips / Math.max(min_stop_pips * 0.7, 0.1), 1.2) * 10);
+  const rrScore = clampScore(Math.min(risk_reward / Math.max(min_rr, 0.01), 1.35) * 74);
+  const trendQualityPass = trendScore >= 58 && emaAligned && directionalSlope > -0.015 && directionalSpreadPips >= 1.5;
+
+  let primaryFailedGate = "";
+  if (atrPct < min_atr_pct) primaryFailedGate = "volatility_too_low";
+  else if (atrPct > max_atr_pct) primaryFailedGate = "volatility_too_high";
+  else if (!trendQualityPass) primaryFailedGate = "trend_filter_failed";
+  else if (!pullbackReady || pullbackScore < 50) primaryFailedGate = "pullback_not_ready";
+  else if (!reclaimConfirmed) primaryFailedGate = "reclaim_not_confirmed";
+  else if (!structureContinuation) primaryFailedGate = "trend_filter_failed";
+  else if (directionalMomentum < 0.05 || momentumScore < 42 || !rsiOk) primaryFailedGate = "momentum_failed";
+  else if (stopPips < min_stop_pips || tp1Pips < min_tp1_pips) primaryFailedGate = "distance_guard_failed";
+  else if (risk_reward < min_rr) primaryFailedGate = "rr_too_low";
+
+  const finalScore = clampScore((trendScore * 0.23) + (emaSlopeScore * 0.11) + (pullbackScore * 0.21) + (momentumScore * 0.15) + (volatilityScore * 0.10) + (distanceScore * 0.10) + (rrScore * 0.10));
+  if (!primaryFailedGate && finalScore < min_score) primaryFailedGate = "confidence_too_low";
+
+  const score_breakdown: Record<string, number | string | boolean> = {
+    primary_failed_gate: primaryFailedGate || "passed",
+    trend_direction: direction,
+    trend_score: trendScore,
+    ema_alignment: emaAlignment,
+    ema_slope: parseFloat(directionalSlope.toFixed(4)),
+    ema_slope_score: emaSlopeScore,
+    ema_spread_pips: parseFloat(directionalSpreadPips.toFixed(1)),
+    price_vs_ema: parseFloat(priceVsEma.toFixed(4)),
+    trend_quality_pass: trendQualityPass,
+    pullback_score: pullbackScore,
+    pullback_ready: pullbackReady,
+    reclaim_confirmed: reclaimConfirmed,
+    momentum_score: momentumScore,
+    volatility_score: volatilityScore,
+    spread_or_distance_score: distanceScore,
+    rr_score: rrScore,
+    rr: risk_reward,
+    atr_pips: parseFloat(atrPips.toFixed(1)),
+    atr_pct: parseFloat(atrPct.toFixed(4)),
+    body_atr: parseFloat(bodyAtr.toFixed(3)),
+    rsi: parseFloat(rsi.toFixed(2)),
+    stop_distance_pct: pctDistance(price, stop_loss),
+    tp1_distance_pct: pctDistance(price, tp1),
+    tp2_distance_pct: pctDistance(price, tp2),
+    stop_distance_pips: stopPips,
+    tp1_distance_pips: tp1Pips,
+    tp2_distance_pips: tp2Pips,
+    session_context: forexSessionContext(),
+    forex_pair_type: forexPairType(symbol),
+    final_score: finalScore,
+  };
+
+  const grade = scoreGrade(finalScore);
+  const reason = `ForexSwingContinuation ${direction}: EMA ${emaAlignment}, pullback=${pullbackScore}, reclaim=${reclaimConfirmed}, momentum=${momentumScore}, ATR=${atrPips.toFixed(1)} pips, rr=${risk_reward.toFixed(2)}R, score=${finalScore}`;
+  if (primaryFailedGate) return { status: "rejected", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade: "reject", reason, rejection_reason: primaryFailedGate, score_breakdown };
+  return { status: "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade, reason, rejection_reason: "", score_breakdown };
+}
+
 // ─── Grade index ──────────────────────────────────────────────────────────────
 
 function gradeIndex(g: string): number { return g === "A+" ? 3 : g === "A" ? 2 : g === "B" ? 1 : 0; }
@@ -612,10 +956,11 @@ function normalizeRejectionReason(reason: string, marketType = "crypto"): string
   const normalized = map[reason] ?? reason;
   if (marketType === "forex") {
     const allowed = new Set([
-      "provider_failed", "unsupported_symbol", "insufficient_candles",
-      "spread_or_distance_too_tight", "volatility_too_low", "trend_filter_failed",
-      "momentum_failed", "rr_too_low", "confidence_too_low", "score_below_min",
-      "duplicate_active_signal", "arbitration_blocked",
+      "provider_failed", "provider_rate_limited", "provider_data_unavailable", "provider_invalid_response", "unsupported_symbol",
+      "unsupported_timeframe", "insufficient_candles", "invalid_atr_or_price", "invalid_candles",
+      "spread_or_distance_too_tight", "distance_guard_failed", "volatility_too_low", "volatility_too_high",
+      "trend_filter_failed", "pullback_not_ready", "reclaim_not_confirmed", "momentum_failed",
+      "rr_too_low", "confidence_too_low", "score_below_min", "forex_budget_limited", "duplicate_active_signal", "arbitration_blocked",
     ]);
     return allowed.has(normalized) ? normalized : "trend_filter_failed";
   }
@@ -631,10 +976,21 @@ function intEnv(name: string, defaultValue: number, minValue = 0): number {
   return Number.isFinite(parsed) && parsed >= minValue ? parsed : defaultValue;
 }
 
-function forexTimeframes(): string[] {
+interface ForexTimeframePlan {
+  supported: string[];
+  unsupported: string[];
+}
+
+function forexTimeframePlan(): ForexTimeframePlan {
   const raw = Deno.env.get("FOREX_ACTIVE_TIMEFRAMES") ?? "15m,1h";
-  const filtered = raw.split(",").map((v) => v.trim()).filter((v) => C2_FOREX_TIMEFRAMES.has(v));
-  return filtered.length ? [...new Set(filtered)] : ["15m", "1h"];
+  const requested = [...new Set(raw.split(",").map((v) => v.trim()).filter(Boolean))];
+  const supported = requested.filter((v) => C2_FOREX_TIMEFRAMES.has(v));
+  const unsupported = requested.filter((v) => !C2_FOREX_TIMEFRAMES.has(v));
+  return { supported: supported.length ? supported : ["15m", "1h"], unsupported };
+}
+
+function forexTimeframes(): string[] {
+  return forexTimeframePlan().supported;
 }
 
 // ─── Distance guard ───────────────────────────────────────────────────────────
@@ -1026,9 +1382,11 @@ type ForexProviderStatusClass =
   | "forbidden_403"
   | "rate_limited_429"
   | "unsupported_symbol"
+  | "unsupported_timeframe"
   | "invalid_symbol_format"
   | "insufficient_candles"
   | "market_closed_or_stale"
+  | "provider_invalid_response"
   | "provider_error";
 
 interface ForexProviderFetchResult {
@@ -1070,6 +1428,7 @@ function classifyProviderPayload(message: string): ForexProviderStatusClass {
   if (m.includes("api key") || m.includes("apikey") || m.includes("unauthorized")) return "unauthorized_401";
   if (m.includes("forbidden") || m.includes("permission") || m.includes("plan")) return "forbidden_403";
   if (m.includes("no values") || m.includes("no_data")) return "market_closed_or_stale";
+  if (m.includes("json") || m.includes("unexpected") || m.includes("invalid response") || m.includes("invalid latest price")) return "provider_invalid_response";
   return "provider_error";
 }
 
@@ -1089,7 +1448,12 @@ async function fetchTwelveDataCandles(symbol: string, tf: string, apiKey: string
     if (!res.ok) {
       return { candles: null, error: `TwelveData HTTP ${res.status}: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderHttpStatus(res.status), candle_count: 0, url_without_token: url };
     }
-    const data = JSON.parse(text) as Record<string, unknown>;
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return { candles: null, error: `TwelveData invalid JSON response: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "provider_invalid_response", candle_count: 0, url_without_token: url };
+    }
     if (data.status === "error" || data.code) {
       const msg = String(data.message ?? data.code ?? safeBody);
       return { candles: null, error: `TwelveData: ${msg}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderPayload(msg), candle_count: 0, url_without_token: url };
@@ -1122,13 +1486,18 @@ async function fetchTwelveDataLatestPrice(symbol: string, apiKey: string): Promi
     const text = await res.text();
     const safeBody = safeProviderBody(text);
     if (!res.ok) return { price: null, error: `TwelveData HTTP ${res.status}: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderHttpStatus(res.status), url_without_token: url };
-    const data = JSON.parse(text) as Record<string, unknown>;
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return { price: null, error: `TwelveData invalid JSON response: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "provider_invalid_response", url_without_token: url };
+    }
     if (data.status === "error" || data.code) {
       const msg = String(data.message ?? data.code ?? safeBody);
       return { price: null, error: `TwelveData: ${msg}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderPayload(msg), url_without_token: url };
     }
     const price = Number(data.price);
-    if (!Number.isFinite(price) || price <= 0) return { price: null, error: "TwelveData: invalid latest price", provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "provider_error", url_without_token: url };
+    if (!Number.isFinite(price) || price <= 0) return { price: null, error: "TwelveData: invalid latest price", provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "provider_invalid_response", url_without_token: url };
     return { price, error: null, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "ok", url_without_token: url };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "TwelveData latest price fetch failed";
@@ -1325,8 +1694,14 @@ interface ForexScanThrottleState {
 
 interface ForexScanBudgetState {
   maxProviderCalls: number;
+  maxPairs: number;
+  maxTimeframes: number;
   plannedProviderCalls: number;
+  plannedPairs: number;
+  plannedTimeframes: number;
   allowedPairs: Set<string>;
+  allowedSymbols: Set<string>;
+  allowedTimeframes: string[];
   budgetLimited: boolean;
 }
 
@@ -1364,28 +1739,41 @@ async function getForexThrottleState(
   };
 }
 
-function buildForexScanBudget(symbols: Array<Record<string, unknown>>, timeframes: string[]): ForexScanBudgetState {
-  const maxProviderCalls = intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCAN", 6, 1);
+function buildForexScanBudget(symbols: Array<Record<string, unknown>>, timeframes: string[], runType: "manual" | "scheduled"): ForexScanBudgetState {
+  const scheduled = runType === "scheduled";
+  const defaultMaxPairs = scheduled ? 3 : 6;
+  const defaultMaxTimeframes = scheduled ? 2 : 2;
+  const maxPairs = intEnv(scheduled ? "FOREX_MAX_PAIRS_PER_SCHEDULED_SCAN" : "FOREX_MAX_PAIRS_PER_MANUAL_SCAN", defaultMaxPairs, 1);
+  const maxTimeframes = intEnv(scheduled ? "FOREX_MAX_TIMEFRAMES_PER_SCHEDULED_SCAN" : "FOREX_MAX_TIMEFRAMES_PER_MANUAL_SCAN", defaultMaxTimeframes, 1);
+  const defaultMaxCalls = scheduled ? 6 : Math.max(6, maxPairs * Math.min(maxTimeframes, timeframes.length));
+  const maxProviderCalls = intEnv(scheduled ? "FOREX_MAX_PROVIDER_CALLS_PER_SCHEDULED_SCAN" : "FOREX_MAX_PROVIDER_CALLS_PER_MANUAL_SCAN", intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCAN", defaultMaxCalls, 1), 1);
   const forexSymbols = symbols
     .filter((sym) => String(sym.market_type ?? "").toLowerCase() === "forex")
     .map((sym) => normalizeSymbol(String(sym.symbol ?? "")))
     .filter((symbol) => C2_FOREX_SYMBOLS.has(symbol));
   const uniqueSymbols = [...new Set(forexSymbols)];
+  const limitedSymbols = uniqueSymbols.slice(0, maxPairs);
+  const limitedTimeframes = timeframes.slice(0, maxTimeframes);
   const plannedProviderCalls = uniqueSymbols.length * timeframes.length;
   const allowedPairs = new Set<string>();
-  for (const symbol of uniqueSymbols) {
-    for (const tf of timeframes) {
+  for (const symbol of limitedSymbols) {
+    for (const tf of limitedTimeframes) {
       if (allowedPairs.size >= maxProviderCalls) break;
       allowedPairs.add(`${symbol}|${tf}`);
     }
   }
-  return { maxProviderCalls, plannedProviderCalls, allowedPairs, budgetLimited: plannedProviderCalls > maxProviderCalls };
+  return {
+    maxProviderCalls, maxPairs, maxTimeframes, plannedProviderCalls,
+    plannedPairs: uniqueSymbols.length, plannedTimeframes: timeframes.length,
+    allowedPairs, allowedSymbols: new Set(limitedSymbols), allowedTimeframes: limitedTimeframes,
+    budgetLimited: plannedProviderCalls > allowedPairs.size,
+  };
 }
 
 async function fetchForexCandles(
   symbol: string, tf: string,
   supabase: ReturnType<typeof createClient>
-): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null }> {
+): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }> {
   const configuredProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? C2_FOREX_PROVIDER).trim().toLowerCase();
   const now = new Date().toISOString();
 
@@ -1395,7 +1783,7 @@ async function fetchForexCandles(
       provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "off",
       last_error_at: now, error_message: msg, data_source_label: "OFF", updated_at: now,
     }, { onConflict: "provider_name" });
-    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg };
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg, statusClass: "provider_error" };
   }
 
   // C2 intentionally uses one real provider path only: TwelveData forex candles.
@@ -1407,12 +1795,16 @@ async function fetchForexCandles(
       provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
       last_error_at: now, error_message: msg, data_source_label: "PROVIDER_ERROR", updated_at: now,
     }, { onConflict: "provider_name" });
-    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg };
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg, statusClass: "provider_error" };
+  }
+
+  if (!C2_FOREX_TIMEFRAMES.has(tf)) {
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_timeframe: ${tf}`, statusClass: "unsupported_timeframe" };
   }
 
   const normalized = normalizeSymbol(symbol);
   if (!C2_FOREX_SYMBOLS.has(normalized)) {
-    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_symbol: ${symbol}` };
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_symbol: ${symbol}`, statusClass: "unsupported_symbol" };
   }
 
   const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
@@ -1422,7 +1814,7 @@ async function fetchForexCandles(
       provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
       last_error_at: now, error_message: msg, data_source_label: "PROVIDER_ERROR", updated_at: now,
     }, { onConflict: "provider_name" });
-    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg };
+    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg, statusClass: "provider_error" };
   }
 
   const result = await fetchTwelveDataCandles(normalized, tf, key);
@@ -1432,7 +1824,7 @@ async function fetchForexCandles(
       last_success_at: now, error_message: "", data_source_label: "REAL DATA",
       last_candles_count: result.candles.length, updated_at: now,
     }, { onConflict: "provider_name" });
-    return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null };
+    return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null, statusClass: "ok" };
   }
 
   const msg = result.error ?? `insufficient_candles: ${result.candle_count}`;
@@ -1443,7 +1835,7 @@ async function fetchForexCandles(
     error_message: `${normalized} ${tf}: ${statusClass}: ${msg} (mapped: ${result.mapped_symbol}, http: ${result.http_status ?? "n/a"})`,
     data_source_label: "PROVIDER_ERROR", last_candles_count: result.candle_count, updated_at: now,
   }, { onConflict: "provider_name" });
-  return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `${statusClass}: ${msg}` };
+  return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `${statusClass}: ${msg}`, statusClass };
 }
 
 async function fetchForexLatestPrice(symbol: string): Promise<ForexLatestPriceResult> {
@@ -1473,19 +1865,98 @@ function formatRiskGuidanceLines(signal: Record<string, unknown>): string[] {
   const levMax = Number(signal.suggested_leverage_max);
   const cap = Number(signal.leverage_cap);
   if (!Number.isFinite(riskPct) || !Number.isFinite(levMin) || !Number.isFinite(levMax)) return [];
+  const marketType = String(signal.market_type ?? "").toLowerCase();
+  const leverageLabel = marketType === "forex" ? "Suggested Effective Exposure" : "Suggested Leverage";
+  const warning = marketType === "forex"
+    ? "Signal only. Manage lot size, spread, slippage, and risk. Not financial advice."
+    : String(signal.risk_warning || "Signal only. Manage risk. Not financial advice.");
   return [
     `*Risk Guidance:*`,
     `• Capital Mode: ${titleCaseMode(signal.capital_mode ?? signal.mode_slug ?? "signal_mode")}`,
     `• Risk Profile: ${titleCaseMode(signal.risk_profile ?? "balanced")}`,
     `• Suggested Risk: ${riskPct.toFixed(2)}% of account`,
-    `• Suggested Leverage: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x`,
-    Number.isFinite(cap) ? `• Max Leverage Cap: ${cap.toFixed(0)}x` : null,
+    `• ${leverageLabel}: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x`,
+    Number.isFinite(cap) ? `• Max ${marketType === "forex" ? "Exposure" : "Leverage"} Cap: ${cap.toFixed(0)}x` : null,
     signal.strategy_specific_warning ? `• Note: ${signal.strategy_specific_warning}` : null,
-    `• Warning: ${signal.risk_warning || "Signal only. Manage risk. Not financial advice."}`,
+    `• Warning: ${warning}`,
   ].filter(Boolean) as string[];
 }
 
+function asScoreBreakdown(signal: Record<string, unknown>): Record<string, unknown> {
+  const raw = signal.score_breakdown ?? signal.risk_profile_snapshot;
+  if (raw && typeof raw === "object") {
+    const record = raw as Record<string, unknown>;
+    if (record.score_breakdown && typeof record.score_breakdown === "object") return record.score_breakdown as Record<string, unknown>;
+    return record;
+  }
+  return {};
+}
+
+function forexPriceForMessage(symbol: string, value: unknown): string {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num.toFixed(forexPrecision(symbol)) : "N/A";
+}
+
+function formatMaybePips(value: unknown): string | null {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? `${num.toFixed(1)} pips` : null;
+}
+
+function formatForexSignalMessage(signal: Record<string, unknown>, dataSource: string): string {
+  const symbol = normalizeSymbol(String(signal.symbol ?? ""));
+  const grade = String(signal.grade ?? "");
+  const gradeEmoji = grade === "A+" ? "⭐⭐⭐" : grade === "A" ? "⭐⭐" : "⭐";
+  const dir = String(signal.direction ?? "").toLowerCase() === "buy" ? "BUY" : "SELL";
+  const dirEmoji = dir === "BUY" ? "🟢 BUY" : "🔴 SELL";
+  const entryRange = signal.entry_low && signal.entry_high
+    ? `${forexPriceForMessage(symbol, signal.entry_low)} – ${forexPriceForMessage(symbol, signal.entry_high)}`
+    : forexPriceForMessage(symbol, signal.entry_high ?? signal.entry_low);
+  const breakdown = asScoreBreakdown(signal);
+  const session = String(breakdown.session_context ?? "Unknown");
+  const slPips = formatMaybePips(breakdown.stop_distance_pips);
+  const tp1Pips = formatMaybePips(breakdown.tp1_distance_pips);
+  const tp2Pips = formatMaybePips(breakdown.tp2_distance_pips);
+  const strategy = String(signal.strategy_name ?? "");
+  const dataLabel = dataSource === "REAL DATA" ? "✅ REAL DATA" : "⚠️ PROVIDER UNVERIFIED — DO NOT SEND";
+  const reasoning = strategy === "ForexSwingContinuation"
+    ? "Trend continuation: EMA alignment + pullback reclaim + momentum confirmation."
+    : "Forex scalper: short-term momentum + candle body confirmation + ATR volatility sanity.";
+  const reclaim = typeof breakdown.reclaim_confirmed === "boolean" ? `, reclaim=${breakdown.reclaim_confirmed ? "yes" : "no"}` : "";
+  return [
+    `🌐 *HASHIBOT FOREX ${grade === "A+" ? "A+ " : ""}SIGNAL* ${gradeEmoji}`,
+    ``,
+    `*Pair:* ${symbol}`,
+    `*Market:* FOREX`,
+    `*Timeframe:* ${signal.timeframe}`,
+    `*Direction:* ${dirEmoji}`,
+    `*Strategy:* ${strategy}`,
+    `*Session:* ${session}`,
+    `*Confidence:* ${signal.confidence_score}%`,
+    `*Data:* ${dataLabel}`,
+    ``,
+    `*Trade Plan:*`,
+    `• Entry Zone: ${entryRange}`,
+    `• Stop Loss: ${forexPriceForMessage(symbol, signal.stop_loss)}${slPips ? ` (${slPips})` : ""}`,
+    `• TP1: ${forexPriceForMessage(symbol, signal.tp1)}${tp1Pips ? ` (${tp1Pips})` : ""}`,
+    `• TP2: ${forexPriceForMessage(symbol, signal.tp2)}${tp2Pips ? ` (${tp2Pips})` : ""}`,
+    `• Risk/Reward: ${Number(signal.risk_reward).toFixed(2)}R`,
+    ``,
+    `*Forex Reasoning:*`,
+    `• ${reasoning}`,
+    `• Scores: trend=${breakdown.trend_score ?? "n/a"}, momentum=${breakdown.momentum_score ?? "n/a"}, volatility=${breakdown.volatility_score ?? "n/a"}${breakdown.pullback_score !== undefined ? `, pullback=${breakdown.pullback_score}${reclaim}` : ""}, RR=${Number(signal.risk_reward).toFixed(2)}R.`,
+    `• ${signal.reason}`,
+    ``,
+    ...formatRiskGuidanceLines(signal),
+    ``,
+    `*Timestamp:* ${new Date().toISOString()}`,
+    ``,
+    `_Signal only. Manage lot size, spread, slippage, and risk. Not financial advice._`,
+    `_HashiBot Trading Intelligence_`,
+  ].join("\n");
+}
+
 function formatSignalMessage(signal: Record<string, unknown>, dataSource: string): string {
+  if (String(signal.market_type ?? "").toLowerCase() === "forex") return formatForexSignalMessage(signal, dataSource);
   const grade = String(signal.grade ?? "");
   const gradeEmoji = grade === "A+" ? "⭐⭐⭐" : grade === "A" ? "⭐⭐" : "⭐";
   const dirEmoji = signal.direction === "buy" ? "🟢 BUY" : "🔴 SELL";
@@ -1761,17 +2232,46 @@ async function runScanPipeline(
   let forexProviderCallsAttempted = 0, forexProviderCallsPlanned = 0, forexProviderCallLimit = 0;
   let lastForexScanAt: string | null = null, nextAllowedForexScanAt: string | null = null;
   let forexSkipReason = config.signal_enable_forex ? "" : "forex_disabled_for_mvp";
+  let forexProviderCacheHits = 0;
+  const forexFetchCache = new Map<string, { candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }>();
+  const forexProviderRejectionKeys = new Set<string>();
   const marketMode = signalMarketMode(config.signal_enable_crypto, config.signal_enable_forex);
 
   async function recordForexRejection(symbol: string, timeframe: string, reason: string, dataSource = "PROVIDER_ERROR", detail = "") {
+    const normalizedReason = normalizeRejectionReason(reason, "forex");
+    const key = `${symbol}|${timeframe}|${normalizedReason}`;
+    if (dataSource === "PROVIDER_ERROR" && forexProviderRejectionKeys.has(key)) return;
+    if (dataSource === "PROVIDER_ERROR") forexProviderRejectionKeys.add(key);
     rejectedCount++;
     await supabase.from("strategy_candidates").insert({
       scanner_run_id: runId, symbol, market_type: "forex", timeframe,
       strategy_name: "ForexProviderGate", direction: "none",
       confidence_score: 0, grade: "reject", reason: detail,
-      rejection_reason: normalizeRejectionReason(reason, "forex"),
-      status: "rejected", data_source: dataSource, score_breakdown: {},
+      rejection_reason: normalizedReason,
+      status: "rejected", data_source: dataSource,
+      score_breakdown: {
+        primary_failed_gate: normalizedReason,
+        provider: C2_FOREX_PROVIDER,
+        provider_status_class: reason,
+        provider_failure_detail: detail,
+        forex_pair_type: forexPairType(symbol),
+        session_context: forexSessionContext(),
+      },
     });
+  }
+
+  async function fetchForexCandlesForRun(symbol: string, tf: string) {
+    const normalized = normalizeSymbol(symbol);
+    const cacheKey = `${normalized}|${tf}`;
+    const cached = forexFetchCache.get(cacheKey);
+    if (cached) {
+      forexProviderCacheHits++;
+      return cached;
+    }
+    forexProviderCallsAttempted++;
+    const result = await fetchForexCandles(symbol, tf, supabase);
+    forexFetchCache.set(cacheKey, result);
+    return result;
   }
 
   const { data: symbols } = await supabase.from("symbols").select("*").eq("is_active", true);
@@ -1780,7 +2280,9 @@ async function runScanPipeline(
     throw new Error("No active symbols configured");
   }
 
-  const forexScanTimeframes = forexTimeframes();
+  const forexTfPlan = forexTimeframePlan();
+  const forexScanTimeframes = forexTfPlan.supported;
+  const unsupportedForexTimeframes = forexTfPlan.unsupported;
   let forexThrottle: ForexScanThrottleState | null = null;
   let forexBudget: ForexScanBudgetState | null = null;
   if (config.signal_enable_forex) {
@@ -1790,11 +2292,12 @@ async function runScanPipeline(
     nextAllowedForexScanAt = forexThrottle.nextAllowedForexScanAt;
     if (forexThrottle.reason && !forexThrottle.rateLimited) errors.push(`[WARN] ${forexThrottle.reason}`);
 
-    forexBudget = buildForexScanBudget(symbols as Array<Record<string, unknown>>, forexScanTimeframes);
+    forexBudget = buildForexScanBudget(symbols as Array<Record<string, unknown>>, forexScanTimeframes, runType);
     forexProviderCallsPlanned = forexBudget.plannedProviderCalls;
     forexProviderCallLimit = forexBudget.maxProviderCalls;
     forexBudgetLimited = forexBudget.budgetLimited;
-    if (forexBudgetLimited) errors.push(`[WARN] forex_provider_call_budget_limited planned=${forexProviderCallsPlanned} max=${forexProviderCallLimit}`);
+    if (forexBudgetLimited) errors.push(`[WARN] forex_provider_call_budget_limited planned=${forexProviderCallsPlanned} max=${forexProviderCallLimit} max_pairs=${forexBudget.maxPairs} max_timeframes=${forexBudget.maxTimeframes}`);
+    if (unsupportedForexTimeframes.length > 0) errors.push(`[WARN] unsupported_forex_timeframes skipped=${unsupportedForexTimeframes.join(",")}`);
 
     if (forexThrottle.rateLimited) {
       forexSkippedRateLimit = true;
@@ -1820,7 +2323,7 @@ async function runScanPipeline(
 
     if (marketType === "forex" && !C2_FOREX_SYMBOLS.has(normalizedSymbol)) {
       forexSkippedCount++;
-      for (const tf of forexTimeframes()) {
+      for (const tf of forexScanTimeframes) {
         await recordForexRejection(normalizedSymbol, tf, "unsupported_symbol", "PROVIDER_ERROR", "C2 initial forex set supports EURUSD, GBPUSD, and USDJPY only; XAUUSD is skipped until provider support is verified.");
       }
       continue;
@@ -1828,12 +2331,20 @@ async function runScanPipeline(
 
     symbolsScanned++;
     if (marketType === "crypto") cryptoSymbolsScanned++;
-    if (marketType === "forex") forexSymbolsScanned++;
+    if (marketType === "forex") {
+      forexSymbolsScanned++;
+      if (unsupportedForexTimeframes.length > 0 && (!forexBudget || forexBudget.allowedSymbols.has(normalizedSymbol))) {
+        for (const unsupportedTf of unsupportedForexTimeframes) {
+          await recordForexRejection(normalizedSymbol, unsupportedTf, "unsupported_timeframe", "PROVIDER_ERROR", `Unsupported TwelveData forex timeframe skipped before provider call: ${unsupportedTf}`);
+        }
+      }
+    }
     const timeframesToScan = marketType === "forex" ? forexScanTimeframes : config.active_timeframes;
     for (const tf of timeframesToScan) {
       if (tf === "4h" && marketType === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
       if (marketType === "forex" && forexBudget && !forexBudget.allowedPairs.has(`${normalizedSymbol}|${tf}`)) {
         forexSkippedCount++;
+        await recordForexRejection(normalizedSymbol, tf, "forex_budget_limited", "PROVIDER_ERROR", `Forex provider budget skipped ${normalizedSymbol} ${tf} before TwelveData call`);
         continue;
       }
 
@@ -1849,8 +2360,7 @@ async function runScanPipeline(
             errors.push(`[SKIP] Binance failed ${sym.symbol} ${tf}`); continue;
           }
         } else {
-          forexProviderCallsAttempted++;
-          const result = await fetchForexCandles(sym.symbol, tf, supabase);
+          const result = await fetchForexCandlesForRun(sym.symbol, tf);
           candles = result.candles;
           dataSource = result.data_source;
           forexProviderName = result.source || forexProviderName;
@@ -1862,8 +2372,19 @@ async function runScanPipeline(
           }
           // If no fallback allowed and provider errored, skip this symbol/timeframe
           if (dataSource === "PROVIDER_ERROR") {
-            const reason = String(result.providerError ?? "provider_failed").startsWith("unsupported_symbol") ? "unsupported_symbol" : "provider_failed";
-            await recordForexRejection(normalizedSymbol, tf, reason, dataSource, String(result.providerError ?? ""));
+            const providerErrorText = String(result.providerError ?? "provider_failed");
+            const reason = providerErrorText.startsWith("unsupported_symbol")
+              ? "unsupported_symbol"
+              : providerErrorText.includes("rate_limited_429")
+                ? "provider_rate_limited"
+                : providerErrorText.includes("provider_invalid_response")
+                  ? "provider_invalid_response"
+                  : providerErrorText.includes("unsupported_timeframe")
+                    ? "unsupported_timeframe"
+                    : providerErrorText.includes("insufficient_candles")
+                      ? "insufficient_candles"
+                      : "provider_data_unavailable";
+            await recordForexRejection(normalizedSymbol, tf, reason, dataSource, providerErrorText);
             errors.push(`[SKIP] Forex provider error ${sym.symbol} ${tf}: ${result.providerError}`);
             continue;
           }
@@ -1896,10 +2417,10 @@ async function runScanPipeline(
           const fxMsConfig = getStratCfg("ForexMicroScalper");
           const fxSwConfig = getStratCfg("ForexSwingContinuation");
           if (fxMsConfig.enabled && (fxMsConfig.allowed_timeframes.length === 0 || fxMsConfig.allowed_timeframes.includes(tf))) {
-            allEvals.push({ name: "ForexMicroScalper", cfg: fxMsConfig, result: evalMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }) });
+            allEvals.push({ name: "ForexMicroScalper", cfg: fxMsConfig, result: evalForexMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }) });
           }
           if (fxSwConfig.enabled && (fxSwConfig.allowed_timeframes.length === 0 || fxSwConfig.allowed_timeframes.includes(tf))) {
-            allEvals.push({ name: "ForexSwingContinuation", cfg: fxSwConfig, result: evalSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }) });
+            allEvals.push({ name: "ForexSwingContinuation", cfg: fxSwConfig, result: evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }) });
           }
         } else {
           const msConfig  = getStratCfg("MicroScalper");
@@ -2052,7 +2573,7 @@ async function runScanPipeline(
                 invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
                 status: "cancelled", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
                 arbitrator_decision: arbitratorDecision,
-                risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason },
+                risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: r.score_breakdown },
                 ...riskLeverageRecommendation,
               });
               continue;
@@ -2069,7 +2590,7 @@ async function runScanPipeline(
               invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
               status: "waiting", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
               arbitrator_decision: arbitratorDecision,
-              risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct },
+              risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: r.score_breakdown },
               ...riskLeverageRecommendation,
             }).select("*").single();
 
@@ -2194,7 +2715,7 @@ async function runScanPipeline(
   return {
     success: true, run_id: runId, run_type: runType, duration_ms: durationMs,
     market_mode: marketMode, signal_enable_crypto: config.signal_enable_crypto, signal_enable_forex: config.signal_enable_forex,
-    crypto_symbols_scanned: cryptoSymbolsScanned, forex_symbols_scanned: forexSymbolsScanned, scanned_crypto_count: cryptoSymbolsScanned, scanned_forex_count: forexSymbolsScanned, forex_skipped_count: forexSkippedCount, forex_skip_reason: forexSkipReason, forex_skipped_rate_limit: forexSkippedRateLimit, forex_budget_limited: forexBudgetLimited, forex_provider_calls_attempted: forexProviderCallsAttempted, forex_provider_calls_planned: forexProviderCallsPlanned, forex_provider_call_limit: forexProviderCallLimit, last_forex_scan_at: forexSymbolsScanned > 0 ? now : lastForexScanAt, forex_next_allowed_scan_at: forexSymbolsScanned > 0 ? new Date(Date.now() + (forexThrottle?.minIntervalMinutes ?? intEnv("FOREX_SCAN_MIN_INTERVAL_MINUTES", 60, 1)) * 60_000).toISOString() : nextAllowedForexScanAt, forex_provider_called: config.signal_enable_forex && forexProviderCallsAttempted > 0,
+    crypto_symbols_scanned: cryptoSymbolsScanned, forex_symbols_scanned: forexSymbolsScanned, scanned_crypto_count: cryptoSymbolsScanned, scanned_forex_count: forexSymbolsScanned, forex_skipped_count: forexSkippedCount, forex_skip_reason: forexSkipReason, forex_skipped_rate_limit: forexSkippedRateLimit, forex_budget_limited: forexBudgetLimited, forex_provider_calls_attempted: forexProviderCallsAttempted, forex_provider_cache_hits: forexProviderCacheHits, forex_provider_calls_planned: forexProviderCallsPlanned, forex_provider_call_limit: forexProviderCallLimit, last_forex_scan_at: forexSymbolsScanned > 0 ? now : lastForexScanAt, forex_next_allowed_scan_at: forexSymbolsScanned > 0 ? new Date(Date.now() + (forexThrottle?.minIntervalMinutes ?? intEnv("FOREX_SCAN_MIN_INTERVAL_MINUTES", 60, 1)) * 60_000).toISOString() : nextAllowedForexScanAt, forex_provider_called: config.signal_enable_forex && forexProviderCallsAttempted > 0,
     symbols_scanned: symbolsScanned, candles_fetched: candlesFetched,
     indicators_calculated: indicatorsCalc, strategy_evaluations_count: evaluationsCount,
     candidates_found: candidatesFound, rejected_candidates_count: rejectedCount,
@@ -2203,7 +2724,7 @@ async function runScanPipeline(
     telegram_skip_reasons: telegramSkipReasons, telegram_delivery_ids: telegramDeliveryIds,
     duplicate_symbol_blocked: duplicateSymbolBlocked,
     active_modes: activeModes.map((m) => m.mode_slug),
-    forex_provider: forexProviderName, forex_real_data: forexProviderSuccess,
+    forex_provider: forexProviderName, forex_real_data: forexProviderSuccess, forex_provider_cache_hits: forexProviderCacheHits, forex_budget: forexBudget ? { max_pairs: forexBudget.maxPairs, max_timeframes: forexBudget.maxTimeframes, allowed_pairs: forexBudget.allowedPairs.size, planned_pairs: forexBudget.plannedPairs, planned_timeframes: forexBudget.plannedTimeframes } : null,
     forex_demo_fallback_used: false,
     errors: errors.slice(0, 10),
   };
@@ -2252,8 +2773,14 @@ Deno.serve(async (req: Request) => {
         scanner_cron_secret_set: Boolean(Deno.env.get("SCANNER_CRON_SECRET")),
         forex_symbol_map_sample: signalEnableForexEnv ? { EURUSD: "EUR/USD", GBPUSD: "GBP/USD", USDJPY: "USD/JPY" } : null,
         forex_supported_timeframes: ["15m", "1h"],
+        forex_requested_timeframes: forexTimeframePlan(),
         forex_scan_min_interval_minutes: intEnv("FOREX_SCAN_MIN_INTERVAL_MINUTES", 60, 1),
-        forex_max_provider_calls_per_scan: intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCAN", 6, 1),
+        forex_max_pairs_per_scheduled_scan: intEnv("FOREX_MAX_PAIRS_PER_SCHEDULED_SCAN", 3, 1),
+        forex_max_timeframes_per_scheduled_scan: intEnv("FOREX_MAX_TIMEFRAMES_PER_SCHEDULED_SCAN", 2, 1),
+        forex_max_provider_calls_per_scheduled_scan: intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCHEDULED_SCAN", intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCAN", 6, 1), 1),
+        forex_max_pairs_per_manual_scan: intEnv("FOREX_MAX_PAIRS_PER_MANUAL_SCAN", 6, 1),
+        forex_max_timeframes_per_manual_scan: intEnv("FOREX_MAX_TIMEFRAMES_PER_MANUAL_SCAN", 2, 1),
+        forex_max_provider_calls_per_manual_scan: intEnv("FOREX_MAX_PROVIDER_CALLS_PER_MANUAL_SCAN", intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCAN", 12, 1), 1),
         finnhub_symbol_map_sample: signalEnableForexEnv ? { EURUSD: "OANDA:EUR_USD", GBPUSD: "OANDA:GBP_USD", USDJPY: "OANDA:USD_JPY" } : null,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -2266,6 +2793,7 @@ Deno.serve(async (req: Request) => {
       const requestedProvider = typeof body.provider === "string" ? body.provider.trim().toLowerCase() : C2_FOREX_PROVIDER;
       const testTf = typeof body.timeframe === "string" ? body.timeframe : "15m";
       const symbolsToTest = body.debug_forex_provider_test === true ? [...C2_FOREX_SYMBOLS] : [normalizeSymbol(typeof body.symbol === "string" ? body.symbol : "EURUSD")];
+      const includeQuotePrice = body.include_quote_price === true;
 
       if (requestedProvider === "finnhub") {
         const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
@@ -2303,9 +2831,9 @@ Deno.serve(async (req: Request) => {
       }
       const results = await Promise.all(symbolsToTest.map(async (testSymbol) => {
         const candles = await fetchTwelveDataCandles(testSymbol, testTf, key);
-        const quote = await fetchForexLatestPrice(testSymbol);
         const firstCandle = candles.candles ? candles.candles[0] : null;
         const latestCandle = candles.candles ? candles.candles[candles.candles.length - 1] : null;
+        const quote = includeQuotePrice ? await fetchForexLatestPrice(testSymbol) : null;
         return {
           provider: C2_FOREX_PROVIDER,
           input_symbol: testSymbol,
@@ -2319,10 +2847,11 @@ Deno.serve(async (req: Request) => {
           candle_count: candles.candle_count,
           first_candle_time: firstCandle?.open_time ?? null,
           last_candle_time: latestCandle?.open_time ?? null,
-          quote_latest_price: quote.price,
-          quote_http_status: quote.http_status,
-          quote_classified_status: quote.status_class,
-          quote_error: quote.error,
+          quote_latest_price: quote?.price ?? latestCandle?.close ?? null,
+          quote_http_status: quote?.http_status ?? null,
+          quote_classified_status: quote?.status_class ?? (latestCandle ? "derived_from_latest_candle" : null),
+          quote_error: quote?.error ?? null,
+          quote_provider_called: includeQuotePrice,
           error: candles.error,
         };
       }));
