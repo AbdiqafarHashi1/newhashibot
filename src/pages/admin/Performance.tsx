@@ -567,9 +567,7 @@ export default function Performance() {
             </h2>
             <h3 className="text-base font-semibold text-zinc-100 mt-2">Reset trading history</h3>
             <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-              This clears old signals, candidates, outcomes, and linked performance history only. It does not delete symbols,
-              strategy configs, scanner settings, users, packages, or access records. New signals will populate this page
-              normally after scanner runs.
+              Full trading-state reset: clears open/closed signals, outcomes, candidates/rejected setups, linked Telegram signal history, and app-tracked open signal state. Preserves candles, symbols, configs, customers, packages, access, and Bot setup records. Next scanner run will repopulate fresh signals.
             </p>
             <p className="text-xs text-zinc-500 mt-3">
               Type <span className="font-mono text-red-200">{RESET_CONFIRMATION_TEXT}</span> to enable this manual reset.
