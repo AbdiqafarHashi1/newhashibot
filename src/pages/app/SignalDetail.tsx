@@ -9,6 +9,20 @@ import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
 import { useAuth } from '../../contexts/AuthContext';
 import { accessStateDescription, accessStateLabel, getCustomerAccessState, hasFullSignalAccess } from '../../lib/customerAccess';
 
+
+function priceDecimals(signal: Signal) {
+  if (signal.market_type === 'forex') {
+    return signal.symbol.replace(/[^A-Za-z0-9]/g, '').toUpperCase().endsWith('JPY') ? 3 : 5;
+  }
+  const price = Number(signal.entry_high ?? signal.entry_low ?? signal.tp1);
+  return Number.isFinite(price) && price >= 100 ? 2 : 5;
+}
+
+function fmtSignalPrice(signal: Signal, value: number | null | undefined) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toFixed(priceDecimals(signal)) : '—';
+}
+
 export default function SignalDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -105,22 +119,22 @@ export default function SignalDetail() {
           <div className="grid grid-cols-2 divide-x divide-zinc-800">
             <div className="p-5">
               <div className="text-xs text-zinc-500 mb-1">Entry Zone</div>
-              <div className="font-mono text-sm text-zinc-100">{Number(signal.entry_low).toFixed(5)}</div>
+              <div className="font-mono text-sm text-zinc-100">{fmtSignalPrice(signal, signal.entry_low)}</div>
               <div className="text-xs text-zinc-600">to</div>
-              <div className="font-mono text-sm text-zinc-100">{Number(signal.entry_high).toFixed(5)}</div>
+              <div className="font-mono text-sm text-zinc-100">{fmtSignalPrice(signal, signal.entry_high)}</div>
             </div>
             <div className="p-5 space-y-3">
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">Stop Loss</div>
-                <div className="font-mono text-sm text-red-400">{Number(signal.stop_loss).toFixed(5)}</div>
+                <div className="font-mono text-sm text-red-400">{fmtSignalPrice(signal, signal.stop_loss)}</div>
               </div>
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">TP1</div>
-                <div className="font-mono text-sm text-blue-400">{Number(signal.tp1).toFixed(5)}</div>
+                <div className="font-mono text-sm text-blue-400">{fmtSignalPrice(signal, signal.tp1)}</div>
               </div>
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">TP2</div>
-                <div className="font-mono text-sm text-blue-400">{Number(signal.tp2).toFixed(5)}</div>
+                <div className="font-mono text-sm text-blue-400">{fmtSignalPrice(signal, signal.tp2)}</div>
               </div>
               <div>
                 <div className="text-xs text-zinc-500 mb-0.5">Risk / Reward</div>

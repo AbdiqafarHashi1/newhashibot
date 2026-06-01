@@ -3,6 +3,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle } from 'lucide-react';
+import { DEFAULT_CAPITAL_ASSUMPTIONS, estimateCapitalFromR, formatMoney, formatPct, validCapitalAssumptions, CapitalAssumptions } from '../../lib/capitalAnalytics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,7 @@ type MetricSummary = {
 type BreakdownRow = MetricSummary & {
   key: string;
   label: string;
+  rows: SignalAnalyticsRow[];
   market?: string;
   mostUsedStrategy?: string | null;
 };
@@ -86,6 +88,7 @@ interface StrategyConfigRow {
 
 const RESET_CONFIRMATION_TEXT = 'RESET TRADING HISTORY';
 const BASELINE_STORAGE_KEY = 'hashibot.adminPerformance.baselineStartedAt';
+const CAPITAL_STORAGE_KEY = 'hashibot.adminPerformance.capitalAssumptions';
 const REQUIRED_STRATEGIES = [
   'MicroScalper',
   'CompressionBreakout',
@@ -103,6 +106,39 @@ const OUTCOME_COLORS: Record<string, string> = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+
+function getStoredCapitalAssumptions(): CapitalAssumptions {
+  if (typeof window === 'undefined') return DEFAULT_CAPITAL_ASSUMPTIONS;
+  try {
+    const raw = window.localStorage.getItem(CAPITAL_STORAGE_KEY);
+    if (!raw) return DEFAULT_CAPITAL_ASSUMPTIONS;
+    const parsed = JSON.parse(raw) as Partial<CapitalAssumptions>;
+    return validCapitalAssumptions({
+      startingCapital: Number(parsed.startingCapital),
+      riskPct: Number(parsed.riskPct),
+    });
+  } catch {
+    return DEFAULT_CAPITAL_ASSUMPTIONS;
+  }
+}
+
+function rValuesByCreatedAt(rows: SignalAnalyticsRow[]) {
+  return [...rows]
+    .filter(row => row.r_result !== null && row.r_result !== undefined && !Number.isNaN(Number(row.r_result)))
+    .sort((a, b) => new Date(a.closed_at ?? a.created_at).getTime() - new Date(b.closed_at ?? b.created_at).getTime())
+    .map(row => Number(row.r_result));
+}
+
+function capitalForRows(rows: SignalAnalyticsRow[], assumptions: CapitalAssumptions) {
+  return estimateCapitalFromR(rValuesByCreatedAt(rows), assumptions);
+}
+
+function CapitalText({ estimate }: { estimate: ReturnType<typeof estimateCapitalFromR> }) {
+  const color = (estimate.estimatedPnl ?? 0) > 0 ? 'text-emerald-400' : (estimate.estimatedPnl ?? 0) < 0 ? 'text-red-400' : 'text-zinc-400';
+  if (estimate.estimatedPnl === null) return <span className="text-zinc-500">—</span>;
+  return <span className={color}>{formatPct(estimate.totalReturnPct, true)} / {formatMoney(estimate.estimatedPnl)}</span>;
+}
 
 function getStoredBaselineTimestamp() {
   if (typeof window === 'undefined') return null;
@@ -288,6 +324,7 @@ function groupBreakdown(rows: SignalAnalyticsRow[], getKey: (row: SignalAnalytic
   return [...groups.entries()].map(([key, keyRows]) => ({
     key,
     label: key,
+    rows: keyRows,
     ...calculateSummary(keyRows),
     ...(getExtra?.(key, keyRows) ?? {}),
   })).sort((a, b) => b.totalSignals - a.totalSignals || a.label.localeCompare(b.label));
@@ -354,6 +391,7 @@ export default function Performance() {
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string } | null>(null);
+  const [capitalAssumptions, setCapitalAssumptions] = useState<CapitalAssumptions>(() => getStoredCapitalAssumptions());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -386,6 +424,10 @@ export default function Performance() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    window.localStorage.setItem(CAPITAL_STORAGE_KEY, JSON.stringify(capitalAssumptions));
+  }, [capitalAssumptions]);
 
   function setFilter(key: keyof Filters, val: string) {
     setFilters(f => ({ ...f, [key]: val }));
@@ -462,11 +504,13 @@ export default function Performance() {
   }, [baselineStartedAt, signals]);
 
   const summary = useMemo(() => calculateSummary(filteredSignals), [filteredSignals]);
+  const summaryCapital = useMemo(() => capitalForRows(filteredSignals, capitalAssumptions), [filteredSignals, capitalAssumptions]);
   const strategyBreakdown = useMemo(() => {
     const grouped = new Map(groupBreakdown(filteredSignals, row => row.strategy_name ?? 'unnamed').map(row => [row.key, row]));
     return configuredStrategies.map(strategy => grouped.get(strategy) ?? {
       key: strategy,
       label: strategy,
+      rows: [],
       ...calculateSummary([]),
     });
   }, [configuredStrategies, filteredSignals]);
@@ -476,6 +520,7 @@ export default function Performance() {
   })), [filteredSignals]);
   const timeframeBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.timeframe), [filteredSignals]);
   const gradeBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.grade), [filteredSignals]);
+  const riskAmount = capitalAssumptions.startingCapital * (capitalAssumptions.riskPct / 100);
 
   const activeFilterCount = [filters.market, filters.strategy, filters.symbol, filters.timeframe, filters.direction, filters.grade, filters.outcome].filter(Boolean).length + (filters.datePreset !== (baselineStartedAt ? 'baseline' : 'last30d') || filters.customStart || filters.customEnd ? 1 : 0);
   const hasSignalsInBaseline = baselineSignals.length > 0;
@@ -617,6 +662,32 @@ export default function Performance() {
         </div>
       </section>
 
+      <section className="mb-6 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-300">Capital assumptions</h2>
+            <p className="text-xs text-zinc-500 mt-1">Admin-only estimates for signal reporting. These do not change scanner, provider, strategy, or execution logic.</p>
+          </div>
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex flex-col gap-0.5">
+              <label className="text-xs text-zinc-500">Starting capital (USD)</label>
+              <input type="number" min="1" step="50" value={capitalAssumptions.startingCapital}
+                onChange={e => setCapitalAssumptions(a => validCapitalAssumptions({ ...a, startingCapital: Number(e.target.value) }))}
+                className="w-32 bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <label className="text-xs text-zinc-500">Risk per signal (%)</label>
+              <input type="number" min="0.01" step="0.05" value={capitalAssumptions.riskPct}
+                onChange={e => setCapitalAssumptions(a => validCapitalAssumptions({ ...a, riskPct: Number(e.target.value) }))}
+                className="w-28 bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500" />
+            </div>
+            <div className="text-xs text-zinc-400 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
+              Estimated risk / signal: <span className="font-semibold text-zinc-200">{formatMoney(riskAmount)}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {loading && signals.length === 0 && (
         <div className="flex items-center justify-center py-20">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -639,7 +710,9 @@ export default function Performance() {
               <StatCard label="Win Rate" value={fmtWinRate(summary.winRatePct)} sub={`${summary.wins}W / ${summary.losses}L`} />
               <StatCard label="Profit Factor" value={fmtPF(summary.profitFactor)} sub="wins vs losses only" />
               <StatCard label="Total R" value={fmtR(summary.totalR)} sub={`avg ${summary.avgR === null ? '—' : `${summary.avgR > 0 ? '+' : ''}${summary.avgR.toFixed(2)}R`} / closed`} />
-              <StatCard label="Average R / Closed" value={fmtR(summary.avgR)} sub="closed signals only" />
+              <StatCard label={`Estimated P/L @ ${capitalAssumptions.riskPct.toFixed(2)}%`} value={<CapitalText estimate={summaryCapital} />} sub={`on ${formatMoney(capitalAssumptions.startingCapital)} baseline`} />
+              <StatCard label="Estimated Equity" value={formatMoney(summaryCapital.estimatedFinalCapital)} sub={`max DD est. ${formatPct(summaryCapital.maxDrawdownPct)}`} />
+              <StatCard label="Average R / Closed" value={fmtR(summary.avgR)} sub={`est. ${formatPct(summaryCapital.avgReturnPct, true)} / ${formatMoney(summaryCapital.avgPnl)}`} />
               <StatCard label="Best Trade" value={fmtR(summary.bestR)} sub={`worst: ${summary.worstR === null ? '—' : `${summary.worstR.toFixed(2)}R`}`} />
               <StatCard label="Worst Trade" value={fmtR(summary.worstR)} sub={`best: ${summary.bestR === null ? '—' : `${summary.bestR > 0 ? '+' : ''}${summary.bestR.toFixed(2)}R`}`} />
               <StatCard label="TP1 Hits" value={summary.tp1Hits} sub="partial wins" />
@@ -674,6 +747,9 @@ export default function Performance() {
                   <th className="text-right px-3 py-3 font-medium">Win Rate</th>
                   <th className="text-right px-3 py-3 font-medium">PF</th>
                   <th className="text-right px-3 py-3 font-medium">Total R</th>
+                  <th className="text-right px-3 py-3 font-medium">Est. P/L</th>
+                  <th className="text-right px-3 py-3 font-medium">Avg Est.</th>
+                  <th className="text-right px-3 py-3 font-medium">Est. DD</th>
                   <th className="text-right px-3 py-3 font-medium">Avg R</th>
                   <th className="text-right px-3 py-3 font-medium">Best R</th>
                   <th className="text-right px-3 py-3 font-medium">Worst R</th>
@@ -696,6 +772,11 @@ export default function Performance() {
                     <td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td>
                     <td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td>
                     <td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td>
+                    {(() => { const est = capitalForRows(row.rows, capitalAssumptions); return <>
+                      <td className="px-3 py-3 text-right"><CapitalText estimate={est} /></td>
+                      <td className="px-3 py-3 text-right text-zinc-300">{formatMoney(est.avgPnl)}</td>
+                      <td className="px-3 py-3 text-right text-red-400">{formatPct(est.maxDrawdownPct)}</td>
+                    </>; })()}
                     <td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td>
                     <td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td>
                     <td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td>
@@ -717,10 +798,10 @@ export default function Performance() {
         {symbolBreakdown.length === 0 ? <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center text-sm text-zinc-600">{emptyMessage}</div> : (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
             <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
-              {['Symbol','Market','Trades','Closed','Open','Win Rate','PF','Total R','Avg R','Best R','Worst R','Most Used Strategy','Last Signal'].map((h, i) => <th key={h} className={`${i < 2 || i === 11 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
+              {['Symbol','Market','Trades','Closed','Open','Win Rate','PF','Total R','Est. P/L','Avg Est.','Avg R','Best R','Worst R','Most Used Strategy','Last Signal'].map((h, i) => <th key={h} className={`${i < 2 || i === 11 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-zinc-800/60">{symbolBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors">
-              <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400 uppercase">{row.market}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{row.closedTrades}</td><td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td><td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td><td className="px-3 py-3 text-zinc-400">{row.mostUsedStrategy ?? '—'}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
+              <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400 uppercase">{row.market}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{row.closedTrades}</td><td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td>{(() => { const est = capitalForRows(row.rows, capitalAssumptions); return <><td className="px-3 py-3 text-right"><CapitalText estimate={est} /></td><td className="px-3 py-3 text-right text-zinc-300">{formatMoney(est.avgPnl)}</td></>; })()}<td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td><td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td><td className="px-3 py-3 text-zinc-400">{row.mostUsedStrategy ?? '—'}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
             </tr>)}</tbody>
           </table></div></div>
         )}
@@ -731,8 +812,8 @@ export default function Performance() {
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Timeframe Breakdown</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
-            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Timeframe','Trades','Win Rate','PF','Total R','Avg R','TP2','SL'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
-            <tbody className="divide-y divide-zinc-800/60">{timeframeBreakdown.length === 0 ? <tr><td colSpan={8} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : timeframeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-red-400">{row.slHits}</td></tr>)}</tbody>
+            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Timeframe','Trades','Win Rate','PF','Total R','Est. P/L','Avg R','TP2','SL'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-zinc-800/60">{timeframeBreakdown.length === 0 ? <tr><td colSpan={9} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : timeframeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right"><CapitalText estimate={capitalForRows(row.rows, capitalAssumptions)} /></td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-red-400">{row.slHits}</td></tr>)}</tbody>
           </table></div></div>
         </section>
 
@@ -740,8 +821,8 @@ export default function Performance() {
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Grade Breakdown</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
-            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Grade','Trades','Win Rate','PF','Total R','Avg R'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
-            <tbody className="divide-y divide-zinc-800/60">{gradeBreakdown.length === 0 ? <tr><td colSpan={6} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : gradeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3">{row.label !== '—' ? gradeBadge(row.label) : <span className="text-zinc-600">—</span>}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td></tr>)}</tbody>
+            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Grade','Trades','Win Rate','PF','Total R','Est. P/L','Avg R'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-zinc-800/60">{gradeBreakdown.length === 0 ? <tr><td colSpan={7} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : gradeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3">{row.label !== '—' ? gradeBadge(row.label) : <span className="text-zinc-600">—</span>}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right"><CapitalText estimate={capitalForRows(row.rows, capitalAssumptions)} /></td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td></tr>)}</tbody>
           </table></div></div>
         </section>
       </div>
