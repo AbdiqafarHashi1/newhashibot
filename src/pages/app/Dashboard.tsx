@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Signal, TelegramLink, CustomerSubscription, Package } from '../../lib/types';
+import { AccessRequest, Signal, TelegramLink, CustomerSubscription, Package } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import {
   Radio, ArrowRight, Lock, MessageCircle, AlertTriangle, History,
@@ -18,6 +18,7 @@ import {
   getCustomerAccessState,
   hasFullSignalAccess,
 } from '../../lib/customerAccess';
+import { isBotPackage, normalizePackage, packageDisplayName, slugFromPackageValue } from '../../lib/packages';
 
 function panelClass(tone: 'green' | 'yellow' | 'red' | 'gray' | 'blue') {
   const tones = {
@@ -37,32 +38,36 @@ export default function Dashboard() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [outcomes, setOutcomes] = useState<Signal[]>([]);
   const [tgLink, setTgLink] = useState<TelegramLink | null>(null);
+  const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async function load() {
     if (!user) return;
-    const [subRes, pkgRes, sigRes, historyRes, tgRes] = await Promise.all([
+    const [subRes, pkgRes, sigRes, historyRes, tgRes, reqRes] = await Promise.all([
       supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('packages').select('*').order('sort_order'),
       supabase.from('signals').select('*').in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(5),
       supabase.from('signals').select('*').not('status', 'in', '("waiting","active")').order('updated_at', { ascending: false }).limit(6),
       supabase.from('telegram_links').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setSub(subRes.data ?? null);
-    setPackages((pkgRes.data ?? []) as Package[]);
+    setPackages(((pkgRes.data ?? []) as Package[]).map(normalizePackage));
     setSignals(sigRes.data ?? []);
     setOutcomes(historyRes.data ?? []);
     setTgLink(tgRes.data ?? null);
+    setLatestRequest(reqRes.data as AccessRequest | null);
     setLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
-  const pkg = useMemo(() => packages.find(p => p.id === sub?.package_id || p.name === sub?.package_name), [packages, sub]);
+  const pkg = useMemo(() => packages.find(p => p.id === sub?.package_id || p.name === sub?.package_name || p.slug === latestRequest?.product_slug), [packages, sub, latestRequest]);
   const cryptoPackage = packages.find(p => p.slug === 'crypto_signal_room');
-  const accessState = getCustomerAccessState(sub);
+  const requestedPackage = latestRequest?.product_slug ?? sub?.package_name;
+  const accessState = getCustomerAccessState(sub, latestRequest);
   const hasAccess = hasFullSignalAccess(sub);
-  const isPending = accessState === 'pending';
+  const isPending = ['pending', 'pending_payment', 'pending_admin_approval'].includes(accessState);
   const isExpired = accessState === 'expired';
   const noPackage = accessState === 'no_package';
   const accessTone = hasAccess ? 'green' : isPending ? 'yellow' : isExpired ? 'red' : 'gray';
@@ -106,7 +111,7 @@ export default function Dashboard() {
                 <h2 className="font-semibold">Access status</h2>
                 <Badge variant={hasAccess ? 'green' : isPending ? 'yellow' : isExpired ? 'red' : 'gray'}>{accessStateLabel(accessState)}</Badge>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed">{accessStateDescription(accessState)}</p>
+              <p className="text-sm text-zinc-400 leading-relaxed">{accessStateDescription(accessState, sub?.package_name ?? latestRequest?.product_slug)}</p>
               {expiringWarning && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-amber-300">
                   <Clock size={12} /> Access expires in {expiresInDays} day{expiresInDays !== 1 ? 's' : ''}. Contact admin to renew.
@@ -114,11 +119,11 @@ export default function Dashboard() {
               )}
               {!hasAccess && (
                 <div className="mt-4 flex gap-2 flex-wrap">
-                  <Link to="/pricing" className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors">
-                    View Packages <ArrowRight size={12} />
+                  <Link to="/app/package-request" className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors">
+                    Choose / Request Package <ArrowRight size={12} />
                   </Link>
-                  <Link to="/app/telegram" className="inline-flex items-center gap-1.5 border border-zinc-700 text-zinc-300 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors">
-                    Submit Telegram details
+                  <Link to="/app/package-request" className="inline-flex items-center gap-1.5 border border-zinc-700 text-zinc-300 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors">
+                    Update package request
                   </Link>
                 </div>
               )}
@@ -131,14 +136,14 @@ export default function Dashboard() {
             <PackageIcon size={16} className="text-sky-400" />
             <h2 className="font-semibold">Package</h2>
           </div>
-          {sub ? (
+          {sub || latestRequest ? (
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <Info label="Package" value={sub.package_name || pkg?.name || 'Not assigned'} />
+              <Info label="Package" value={sub?.package_name || pkg?.name || packageDisplayName(latestRequest?.product_slug)} />
               <Info label="Price" value={formatPackagePrice(pkg, sub)} />
               <Info label="Billing period" value={billingPeriod(pkg)} />
-              <Info label="Payment" value={sub.payment_status} />
-              <Info label="Start date" value={formatDate(sub.starts_at)} />
-              <Info label="Expiry date" value={sub.expires_at ? formatDate(sub.expires_at) : 'No expiry set'} />
+              <Info label="Payment" value={sub?.payment_status || latestRequest?.status || 'pending'} />
+              <Info label="Start date" value={formatDate(sub?.starts_at)} />
+              <Info label="Expiry date" value={sub?.expires_at ? formatDate(sub.expires_at) : 'No expiry set'} />
             </div>
           ) : (
             <div className="space-y-3">
@@ -182,6 +187,17 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {isBotPackage(slugFromPackageValue(requestedPackage)) && (
+          <div className={panelClass('blue')}>
+            <div className="flex items-center gap-2 mb-3">
+              <PackageIcon size={16} className="text-sky-400" />
+              <h2 className="font-semibold">Bot setup status</h2>
+            </div>
+            <div className="text-sm text-zinc-200 mb-1">pending_admin_setup</div>
+            <p className="text-xs text-zinc-400 leading-relaxed">Signal Mode is included. Bot execution remains setup/status only until admin configuration is complete; there are no fake start/stop controls or broker orders.</p>
+          </div>
+        )}
+
         <div className={panelClass('gray')}>
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle size={16} className="text-amber-400" />
@@ -211,7 +227,7 @@ export default function Dashboard() {
             <Lock size={22} className="text-zinc-700 mx-auto mb-3" />
             <div className="text-sm font-medium text-zinc-300 mb-1">Full performance snapshot is locked</div>
             <p className="text-xs text-zinc-500 max-w-md mx-auto">
-              {noPackage ? 'Choose Crypto Signal Room and contact admin for manual payment.' : isPending ? 'Your account is created and waiting for admin approval.' : 'Renew access to view active signals and results.'}
+              {noPackage ? 'Choose a package and submit manual payment details.' : isPending ? 'Your account is created and waiting for admin approval.' : 'Renew access to view active signals and results.'}
             </p>
           </div>
         )}

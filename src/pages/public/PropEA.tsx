@@ -20,26 +20,26 @@ export default function PropEA() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-full px-3.5 py-1.5 text-xs text-zinc-400 mb-6 font-medium">
               <Clock size={11} />
-              Prop EA Setup — Coming Soon / Waitlist
+              Forex MT5 Prop Bot — Coming Soon / Setup Request
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Prop-safe setup<br />
               <span className="text-zinc-400">planned for challenge rules</span>
             </h1>
             <p className="text-lg text-zinc-400 leading-relaxed mb-4 max-w-2xl">
-              Prop EA Setup is a planned onboarding package for conservative prop-safe configuration, drawdown protection planning, and compliance-first risk guidance.
+              Forex MT5 Prop Bot is a planned onboarding package for conservative prop-safe configuration, drawdown protection planning, and compliance-first risk guidance.
             </p>
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-blue-200 mb-6">
               Expected price: <span className="font-semibold text-white">10,000 KES/month or $100/month</span>
             </div>
             <p className="text-sm text-zinc-600 max-w-xl leading-relaxed mb-10">
-              This is a coming-soon waitlist, not a live execution product. Demo connector planning comes first, and no live orders are placed currently.
+              This is a coming-soon setup request, not a live execution product. Demo connector planning comes first, and no live orders are placed currently.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link to="/register" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-600/20 text-sm">
-                Join Prop Mode Waitlist <ArrowRight size={16} />
+              <Link to="/register?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-600/20 text-sm">
+                Request Forex MT5 Prop Bot <ArrowRight size={16} />
               </Link>
-              <Link to="/app/telegram" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-7 py-3.5 rounded-lg font-medium transition-colors text-sm">
+              <Link to="/app/package-request?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-7 py-3.5 rounded-lg font-medium transition-colors text-sm">
                 Contact Admin
               </Link>
             </div>
@@ -52,7 +52,7 @@ export default function PropEA() {
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">Planned prop-safe scope</h2>
             <p className="text-zinc-500 text-sm max-w-xl mx-auto">
-              The waitlist is for conservative planning and admin onboarding. Live execution, MT5/OANDA/Binance order placement, and broker connections are not available today.
+              The setup request is for conservative planning and admin onboarding. Live execution, MT5/OANDA/Binance order placement, and broker connections are not available today.
             </p>
           </div>
 
@@ -94,14 +94,14 @@ export default function PropEA() {
           <div className="w-14 h-14 rounded-2xl bg-blue-600/12 border border-blue-600/20 flex items-center justify-center mx-auto mb-6">
             <Bell size={24} className="text-blue-400" />
           </div>
-          <h2 className="text-xl font-bold mb-3">Join the Prop Mode waitlist</h2>
+          <h2 className="text-xl font-bold mb-3">Join the Forex MT5 Prop Bot setup request</h2>
           <p className="text-zinc-400 text-sm mb-2 leading-relaxed">
             Request prop setup interest now. Admin will confirm availability when demo-first prop-safe onboarding is ready.
           </p>
-          <p className="text-xs text-zinc-600 mb-8">Crypto Signal Room is live today while Prop Mode remains planned.</p>
+          <p className="text-xs text-zinc-600 mb-8">Crypto Signal Room is live today while Forex MT5 Prop Bot remains planned.</p>
           <div className="flex flex-col gap-3">
-            <Link to="/register" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-sm shadow-lg shadow-blue-600/20">
-              Join Prop Mode Waitlist <ArrowRight size={14} />
+            <Link to="/register?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-sm shadow-lg shadow-blue-600/20">
+              Request Forex MT5 Prop Bot <ArrowRight size={14} />
             </Link>
             <Link to="/signal-mode" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-600 text-zinc-400 hover:text-zinc-200 px-8 py-3 rounded-lg text-sm transition-colors">
               View live Signal Mode <ArrowRight size={14} />

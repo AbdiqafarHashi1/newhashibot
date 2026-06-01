@@ -6,8 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/signal-mode', label: 'Signal Mode' },
-  { to: '/personal-ea', label: 'Personal Mode' },
-  { to: '/prop-ea', label: 'Prop Mode' },
+  { to: '/personal-ea', label: 'Crypto Personal Bot' },
+  { to: '/prop-ea', label: 'Forex MT5 Prop Bot' },
   { to: '/pricing', label: 'Pricing' },
   { to: '/results', label: 'Results' },
 ];
@@ -175,8 +175,8 @@ export function PublicLayout({ children }: { children: ReactNode }) {
               <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3 font-medium">Products</div>
               <div className="space-y-2">
                 <Link to="/signal-mode" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Signal Mode</Link>
-                <Link to="/personal-ea" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Personal Mode</Link>
-                <Link to="/prop-ea" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Prop Mode</Link>
+                <Link to="/personal-ea" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Crypto Personal Bot</Link>
+                <Link to="/prop-ea" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Forex MT5 Prop Bot</Link>
                 <Link to="/pricing" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Pricing</Link>
               </div>
             </div>

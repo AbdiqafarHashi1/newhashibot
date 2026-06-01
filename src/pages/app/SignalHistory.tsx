@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { supabase } from '../../lib/supabase';
-import { CustomerSubscription, Signal } from '../../lib/types';
+import { AccessRequest, CustomerSubscription, Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { Lock, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,6 +12,7 @@ export default function SignalHistory() {
   const { user } = useAuth();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
+  const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
@@ -32,16 +33,18 @@ export default function SignalHistory() {
 
     Promise.all([
       supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       query,
-    ]).then(([subRes, sigRes]) => {
+    ]).then(([subRes, reqRes, sigRes]) => {
       setSub(subRes.data ?? null);
+      setLatestRequest(reqRes.data as AccessRequest | null);
       setSignals(sigRes.data ?? []);
       setLoading(false);
     });
   }, [filter, user]);
 
   const statuses = ['all', 'tp1_hit', 'tp2_hit', 'sl_hit', 'expired', 'cancelled'];
-  const accessState = getCustomerAccessState(sub);
+  const accessState = getCustomerAccessState(sub, latestRequest);
   const hasAccess = hasFullSignalAccess(sub);
 
   if (!loading && !hasAccess) return (
@@ -53,7 +56,7 @@ export default function SignalHistory() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center max-w-xl mx-auto">
         <Lock size={28} className="text-zinc-700 mx-auto mb-3" />
         <div className="text-sm font-semibold mb-1">{accessStateLabel(accessState)}</div>
-        <p className="text-sm text-zinc-500 mb-5">{accessStateDescription(accessState)}</p>
+        <p className="text-sm text-zinc-500 mb-5">{accessStateDescription(accessState, sub?.package_name ?? latestRequest?.product_slug)}</p>
         <div className="flex gap-2 justify-center flex-wrap">
           <Link to="/pricing" className="bg-sky-600 hover:bg-sky-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Renew / Choose package</Link>
           <Link to="/app/telegram" className="inline-flex items-center gap-1.5 border border-zinc-700 text-zinc-300 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors"><MessageCircle size={13} /> Submit Telegram</Link>

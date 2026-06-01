@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { supabase } from '../../lib/supabase';
-import { CustomerSubscription, Signal } from '../../lib/types';
+import { AccessRequest, CustomerSubscription, Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { ArrowLeft, AlertTriangle, Lock, MessageCircle } from 'lucide-react';
 import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
@@ -14,6 +14,7 @@ export default function SignalDetail() {
   const { user } = useAuth();
   const [signal, setSignal] = useState<Signal | null>(null);
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
+  const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,9 +22,11 @@ export default function SignalDetail() {
     Promise.all([
       supabase.from('signals').select('*').eq('id', id).maybeSingle(),
       supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
-    ]).then(([signalRes, subRes]) => {
+      supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    ]).then(([signalRes, subRes, reqRes]) => {
       setSignal(signalRes.data);
       setSub(subRes.data ?? null);
+      setLatestRequest(reqRes.data as AccessRequest | null);
       setLoading(false);
     });
   }, [id, user]);
@@ -43,7 +46,7 @@ export default function SignalDetail() {
   );
 
   const isRealData = signal.data_source === 'REAL DATA';
-  const accessState = getCustomerAccessState(sub);
+  const accessState = getCustomerAccessState(sub, latestRequest);
   const hasAccess = hasFullSignalAccess(sub);
 
   if (!hasAccess) return (
@@ -63,7 +66,7 @@ export default function SignalDetail() {
           {statusBadge(signal.status)}
         </div>
         <div className="text-sm font-semibold mb-1">{accessStateLabel(accessState)}</div>
-        <p className="text-sm text-zinc-500 mb-5">{accessStateDescription(accessState)}</p>
+        <p className="text-sm text-zinc-500 mb-5">{accessStateDescription(accessState, sub?.package_name ?? latestRequest?.product_slug)}</p>
         <div className="flex gap-2 justify-center flex-wrap">
           <Link to="/pricing" className="bg-sky-600 hover:bg-sky-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Renew / Choose package</Link>
           <Link to="/app/telegram" className="inline-flex items-center gap-1.5 border border-zinc-700 text-zinc-300 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors"><MessageCircle size={13} /> Submit Telegram</Link>

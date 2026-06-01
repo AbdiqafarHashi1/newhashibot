@@ -24,6 +24,7 @@ import SignalDetail from './pages/app/SignalDetail';
 import TelegramSetup from './pages/app/TelegramSetup';
 import Watchlist from './pages/app/Watchlist';
 import Account from './pages/app/Account';
+import PackageRequest from './pages/app/PackageRequest';
 
 // Admin pages
 import ControlRoom from './pages/admin/ControlRoom';
@@ -102,6 +103,7 @@ function App() {
           <Route path="/app/signals/:id" element={<RequireAuth><SignalDetail /></RequireAuth>} />
           <Route path="/app/history"     element={<RequireAuth><SignalHistory /></RequireAuth>} />
           <Route path="/app/telegram"    element={<RequireAuth><TelegramSetup /></RequireAuth>} />
+          <Route path="/app/package-request" element={<RequireAuth><PackageRequest /></RequireAuth>} />
           <Route path="/app/watchlist"   element={<RequireAuth><Watchlist /></RequireAuth>} />
           <Route path="/app/account"     element={<RequireAuth><Account /></RequireAuth>} />
 

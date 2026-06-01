@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
-import { AccessRequest } from '../../lib/types';
+import { AccessRequest, Package } from '../../lib/types';
 import { statusBadge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClipboardList, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { defaultRiskPreset, isBotPackage, packageDisplayName } from '../../lib/packages';
 
 interface RequestRow extends AccessRequest {
   profile?: { email: string; full_name: string };
@@ -13,6 +14,7 @@ interface RequestRow extends AccessRequest {
 export default function AccessRequests() {
   const { session } = useAuth();
   const [requests, setRequests] = useState<RequestRow[]>([]);
+  const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState<'ok' | 'err'>('ok');
@@ -21,11 +23,14 @@ export default function AccessRequests() {
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
 
   async function load() {
-    const { data } = await supabase
+    const [{ data }, pkgRes] = await Promise.all([supabase
       .from('access_requests')
       .select('*, profile:profiles(email, full_name)')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }),
+      supabase.from('packages').select('*').order('sort_order'),
+    ]);
     setRequests((data ?? []) as RequestRow[]);
+    setPackages((pkgRes.data ?? []) as Package[]);
     setLoading(false);
   }
 
@@ -48,15 +53,46 @@ export default function AccessRequests() {
 
     if (grantAccess) {
       const expiry = expiryInputs[req.id];
+      const startsAt = new Date().toISOString();
+      const expiresAt = expiry ? new Date(expiry).toISOString() : null;
+      const pkg = packages.find(p => p.slug === req.product_slug);
+      const existing = await supabase.from('customer_subscriptions').select('id').eq('user_id', req.user_id).maybeSingle();
+      const subscriptionPayload = {
+        user_id: req.user_id,
+        profile_id: req.user_id,
+        email: req.email || req.profile?.email || '',
+        full_name: req.full_name || req.profile?.full_name || '',
+        package_id: pkg?.id ?? null,
+        package_name: pkg?.name ?? packageDisplayName(req.product_slug),
+        payment_status: 'paid',
+        access_status: 'active',
+        amount_paid: pkg?.price_kes ?? pkg?.price ?? null,
+        currency: pkg?.currency ?? 'KES',
+        payment_reference: req.payment_reference || '',
+        payment_method: req.payment_method || 'manual',
+        starts_at: startsAt,
+        expires_at: expiresAt,
+        telegram_username: req.telegram_username || '',
+        telegram_chat_id: req.telegram_chat_id || '',
+        notes: [req.notes, isBotPackage(req.product_slug) ? `Bot setup status: pending_admin_setup; risk preset: ${req.risk_preset || defaultRiskPreset(req.product_slug)}` : ''].filter(Boolean).join(' | '),
+        admin_note: note,
+        updated_at: startsAt,
+      };
+      const subscriptionWrite = existing.data?.id
+        ? await supabase.from('customer_subscriptions').update(subscriptionPayload).eq('id', existing.data.id)
+        : await supabase.from('customer_subscriptions').insert(subscriptionPayload);
+
+      if (subscriptionWrite.error) { flash(`Request approved but subscription grant failed: ${subscriptionWrite.error.message}`, 'err'); return; }
+
       const { error: accessErr } = await supabase.from('user_access').upsert({
         user_id: req.user_id,
         product_slug: 'signal_mode',
         status: 'active',
-        started_at: new Date().toISOString(),
-        expires_at: expiry ? new Date(expiry).toISOString() : null,
+        started_at: startsAt,
+        expires_at: expiresAt,
       }, { onConflict: 'user_id,product_slug' });
 
-      if (accessErr) { flash(`Request approved but access grant failed: ${accessErr.message}`, 'err'); return; }
+      if (accessErr) { flash(`Subscription created but legacy access grant failed: ${accessErr.message}`, 'err'); return; }
 
       // Also create/update telegram link if provided
       if (req.telegram_username || req.telegram_chat_id) {
@@ -74,9 +110,9 @@ export default function AccessRequests() {
         action: 'access_request_approved_and_granted',
         entity_type: 'access_requests',
         entity_id: req.id,
-        metadata: { user_id: req.user_id, product: req.product_slug, note },
+        metadata: { user_id: req.user_id, product: req.product_slug, subscription_model: 'customer_subscriptions', note },
       });
-      flash('Request approved and Signal Mode access granted.');
+      flash('Request approved and package access granted.');
     } else {
       await supabase.from('audit_logs').insert({
         actor_user_id: session?.user.id ?? null,
@@ -91,14 +127,14 @@ export default function AccessRequests() {
     await load();
   }
 
-  const pending = requests.filter(r => r.status === 'pending');
-  const others = requests.filter(r => r.status !== 'pending');
+  const pending = requests.filter(r => ['pending', 'pending_payment', 'pending_admin_approval'].includes(r.status));
+  const others = requests.filter(r => !['pending', 'pending_payment', 'pending_admin_approval'].includes(r.status));
 
   return (
     <AdminLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Access Requests</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Customer Signal Mode access requests — approve to grant access</p>
+        <p className="text-sm text-zinc-500 mt-0.5">Customer package/payment requests — approve to grant package access</p>
       </div>
 
       {msg && (
@@ -201,6 +237,9 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
               { label: 'Telegram', value: req.telegram_username ? `@${req.telegram_username}` : '—' },
               { label: 'Chat ID', value: req.telegram_chat_id || '—' },
               { label: 'Payment method', value: req.payment_method || '—' },
+              { label: 'Payment reference', value: req.payment_reference || '—' },
+              { label: 'Risk preset', value: req.risk_preset || '—' },
+              { label: 'Preferred contact', value: req.contact_preference || '—' },
             ].map(({ label, value }) => value ? (
               <div key={label} className="bg-zinc-800/50 rounded px-2.5 py-1.5">
                 <div className="text-zinc-600 mb-0.5">{label}</div>
@@ -215,7 +254,7 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
             </div>
           )}
 
-          {req.status === 'pending' && (
+          {['pending', 'pending_payment', 'pending_admin_approval'].includes(req.status) && (
             <div className="space-y-2">
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -242,7 +281,7 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
                 <button
                   onClick={() => updateStatus(req, 'converted_to_access', true)}
                   className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-2 rounded-lg transition-colors">
-                  <CheckCircle size={12} /> Approve & Grant Access
+                  <CheckCircle size={12} /> Approve & Grant Package
                 </button>
                 <button
                   onClick={() => updateStatus(req, 'rejected')}
