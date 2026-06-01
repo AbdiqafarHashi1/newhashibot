@@ -266,7 +266,7 @@ export interface StrategyCandidate {
   rejection_reason: string;
   status: 'candidate' | 'approved' | 'rejected' | 'converted_to_signal';
   data_source: string;
-  score_breakdown: Record<string, number>;
+  score_breakdown: Record<string, number | string | boolean>;
   created_at: string;
 }
 

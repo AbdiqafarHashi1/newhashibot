@@ -22,9 +22,46 @@ export default function RejectedSetups() {
     duplicate_signal: 'orange',
     insufficient_candles: 'gray',
     risk_reward_too_low: 'red',
+    rr_too_low: 'red',
+    confidence_too_low: 'red',
+    score_below_min: 'red',
     volatility_too_low: 'yellow',
     volatility_too_high: 'orange',
     unclear_trend: 'gray',
+    unsupported_timeframe: 'gray',
+    invalid_candles: 'gray',
+    invalid_atr_or_price: 'gray',
+    momentum_failed: 'yellow',
+    rsi_not_confirmed: 'yellow',
+    candle_body_too_small: 'yellow',
+    compression_not_ready: 'yellow',
+    breakout_not_confirmed: 'yellow',
+    atr_expansion_weak: 'yellow',
+    trend_filter_failed: 'yellow',
+    pullback_not_ready: 'yellow',
+    reclaim_not_confirmed: 'yellow',
+  };
+
+  const formatRiskReward = (rr: number | null) => (typeof rr === 'number' && Number.isFinite(rr) ? `${rr.toFixed(2)}R` : '—');
+
+  const formatScore = (score: number | null) => (typeof score === 'number' && Number.isFinite(score) ? `${Math.round(score)}%` : '—');
+
+  const formatDiagnosticValue = (value: number | string | boolean | null | undefined) => {
+    if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(3);
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    return value ? String(value) : '—';
+  };
+
+  const diagnosticEntries = (c: StrategyCandidate) => {
+    const breakdown = c.score_breakdown ?? {};
+    const keys = [
+      'primary_failed_gate', 'stop_distance_pct', 'tp1_distance_pct', 'tp2_distance_pct', 'rr',
+      'compression_score', 'box_range_atr', 'compression_ready', 'breakout_confirmed', 'atr_expansion',
+      'trend_direction', 'trend_score', 'pullback_score', 'reclaim_confirmed', 'momentum_score',
+    ];
+    return keys
+      .filter((key) => breakdown[key] !== undefined && breakdown[key] !== null && breakdown[key] !== '')
+      .map((key) => [key, breakdown[key]] as const);
   };
 
   return (
@@ -76,12 +113,21 @@ export default function RejectedSetups() {
                   <td className="px-4 py-3 text-zinc-500">{c.timeframe}</td>
                   <td className="px-4 py-3 text-zinc-500">{c.strategy_name}</td>
                   <td className="px-4 py-3">{directionBadge(c.direction)}</td>
-                  <td className="px-4 py-3 text-zinc-400">{c.confidence_score}%</td>
-                  <td className="px-4 py-3 text-zinc-400">{c.risk_reward}R</td>
+                  <td className="px-4 py-3 text-zinc-400">{formatScore(c.confidence_score)}</td>
+                  <td className="px-4 py-3 text-zinc-400">{formatRiskReward(c.risk_reward)}</td>
                   <td className="px-4 py-3">
                     <Badge variant={reasonColors[c.rejection_reason] ?? 'gray'}>
-                      {c.rejection_reason.replace(/_/g, ' ')}
+                      {(c.rejection_reason || 'unknown').replace(/_/g, ' ')}
                     </Badge>
+                    {diagnosticEntries(c).length > 0 && (
+                      <div className="mt-1 flex max-w-md flex-wrap gap-x-2 gap-y-0.5 text-[10px] leading-4 text-zinc-500">
+                        {diagnosticEntries(c).map(([key, value]) => (
+                          <span key={key}>
+                            <span className="text-zinc-600">{key.replace(/_/g, ' ')}:</span> {formatDiagnosticValue(value)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell">{c.regime}</td>
                   <td className="px-4 py-3 text-zinc-600 hidden lg:table-cell">{new Date(c.created_at).toLocaleString()}</td>
