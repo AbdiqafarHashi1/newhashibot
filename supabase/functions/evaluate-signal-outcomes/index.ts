@@ -32,6 +32,87 @@ type TelegramResult = {
   delivery_id?: string;
 };
 
+
+interface OutcomeCandle {
+  open_time: string;
+  high: number;
+  low: number;
+  close: number;
+}
+
+interface CandleOutcomeResult {
+  next_status: string;
+  reason: string;
+  price: number | null;
+  source: string;
+}
+
+function isJpyPair(symbol: string): boolean {
+  return normalizeForexSymbol(symbol).endsWith("JPY");
+}
+
+function forexPrecision(symbol: string): number {
+  return isJpyPair(symbol) ? 3 : 5;
+}
+
+function forexPipSize(symbol: string): number {
+  return isJpyPair(symbol) ? 0.01 : 0.0001;
+}
+
+function formatPriceForMarket(sig: SignalRow, value: number | null, empty = "—"): string {
+  if (value === null || !Number.isFinite(value)) return empty;
+  return String(sig.market_type ?? "").toLowerCase() === "forex"
+    ? value.toFixed(forexPrecision(sig.symbol))
+    : value >= 100 ? value.toFixed(2) : value.toFixed(5);
+}
+
+function pipDistance(sig: SignalRow, from: number | null, to: number | null): number | null {
+  if (from === null || to === null || !Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return Math.abs(to - from) / forexPipSize(sig.symbol);
+}
+
+function formatPips(value: number | null): string {
+  return value === null || !Number.isFinite(value) ? "—" : `${value.toFixed(1)} pips`;
+}
+
+function rMultipleForStatus(sig: SignalRow, status: string): number | null {
+  if (status === "sl_hit") return -1;
+  const entry = entryMidpoint(sig);
+  const stop = numberField(sig, "stop_loss", "sl");
+  const risk = entry !== null && stop !== null ? Math.abs(entry - stop) : 0;
+  if (!Number.isFinite(risk) || risk <= 0 || entry === null) return null;
+  if (status === "tp1_hit") {
+    const tp1 = numberField(sig, "tp1");
+    return tp1 !== null ? Math.abs(tp1 - entry) / risk : null;
+  }
+  if (status === "tp2_hit") {
+    const tp2 = numberField(sig, "tp2");
+    return tp2 !== null ? Math.abs(tp2 - entry) / risk : numberField(sig, "risk_reward");
+  }
+  if (status === "expired") return 0;
+  return null;
+}
+
+function toTwelveDataInterval(tf: string): string | null {
+  const map: Record<string, string> = { "5m": "5min", "15m": "15min", "30m": "30min", "1h": "1h", "4h": "4h", "1d": "1day" };
+  return map[tf] ?? null;
+}
+
+function parseTwelveDataDate(value: string): string {
+  if (!value) return new Date().toISOString();
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(value)) return new Date(value).toISOString();
+  return new Date(`${value.replace(" ", "T")}Z`).toISOString();
+}
+
+function classifyProviderFailure(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("rate") || m.includes("limit") || m.includes("429")) return "provider_rate_limited";
+  if (m.includes("unsupported") || m.includes("timeframe") || m.includes("interval")) return "unsupported_timeframe";
+  if (m.includes("json") || m.includes("invalid") || m.includes("unexpected")) return "provider_invalid_response";
+  if (m.includes("no values") || m.includes("no_data") || m.includes("unavailable")) return "provider_data_unavailable";
+  return "provider_data_unavailable";
+}
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -55,6 +136,15 @@ function numberField(sig: Record<string, unknown>, ...keys: string[]): number | 
 
 function hasFiniteNumber(sig: Record<string, unknown>, ...keys: string[]) {
   return numberField(sig, ...keys) !== null;
+}
+
+function entryMidpoint(sig: Record<string, unknown>): number | null {
+  const entry = numberField(sig, "entry");
+  if (entry !== null) return entry;
+  const low = numberField(sig, "entry_low");
+  const high = numberField(sig, "entry_high");
+  if (low !== null && high !== null) return (low + high) / 2;
+  return high ?? low;
 }
 
 function normalizeBinanceSymbol(symbol: string): string {
@@ -106,6 +196,57 @@ async function twelveDataForexPrice(symbol: string): Promise<number | null> {
   }
 }
 
+async function twelveDataForexCandles(symbol: string, timeframe: string, sinceIso: string): Promise<{ candles: OutcomeCandle[] | null; source: string; reason?: string }> {
+  const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
+  if (!key) return { candles: null, source: "twelvedata_forex_candles", reason: "provider_data_unavailable" };
+
+  const normalized = normalizeForexSymbol(symbol);
+  const mapped = TWELVEDATA_SYMBOL_MAP[normalized];
+  if (!mapped) return { candles: null, source: "twelvedata_forex_candles", reason: "unsupported_symbol" };
+
+  const interval = toTwelveDataInterval(timeframe);
+  if (!interval) return { candles: null, source: "twelvedata_forex_candles", reason: "unsupported_timeframe" };
+
+  try {
+    const res = await fetch(`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(mapped)}&interval=${interval}&outputsize=120&apikey=${key}&format=JSON`, {
+      signal: AbortSignal.timeout(9000),
+    });
+    const text = await res.text();
+    if (!res.ok) return { candles: null, source: "twelvedata_forex_candles", reason: res.status === 429 ? "provider_rate_limited" : "provider_data_unavailable" };
+
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return { candles: null, source: "twelvedata_forex_candles", reason: "provider_invalid_response" };
+    }
+
+    if (data.status === "error" || data.code) {
+      return { candles: null, source: "twelvedata_forex_candles", reason: classifyProviderFailure(String(data.message ?? data.code ?? "provider error")) };
+    }
+
+    const values = data.values as Array<Record<string, string>>;
+    if (!Array.isArray(values) || values.length === 0) return { candles: null, source: "twelvedata_forex_candles", reason: "provider_data_unavailable" };
+
+    const sinceMs = new Date(sinceIso).getTime();
+    const candles = values
+      .map((v) => ({
+        open_time: parseTwelveDataDate(v.datetime),
+        high: Number(v.high),
+        low: Number(v.low),
+        close: Number(v.close),
+      }))
+      .filter((c) => Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close) && c.high >= c.low)
+      .sort((a, b) => new Date(a.open_time).getTime() - new Date(b.open_time).getTime())
+      .filter((c) => !Number.isFinite(sinceMs) || new Date(c.open_time).getTime() >= sinceMs - 60_000);
+
+    if (candles.length === 0) return { candles: null, source: "twelvedata_forex_candles", reason: "insufficient_candles" };
+    return { candles, source: "twelvedata_forex_candles" };
+  } catch (e) {
+    return { candles: null, source: "twelvedata_forex_candles", reason: classifyProviderFailure(e instanceof Error ? e.message : "provider error") };
+  }
+}
+
 async function latestPrice(sig: SignalRow): Promise<{ price: number | null; source: string; reason?: string }> {
   const marketType = String(sig.market_type ?? "").toLowerCase();
   if (marketType === "crypto") return { price: await binancePrice(sig.symbol), source: "binance_latest_price" };
@@ -114,6 +255,72 @@ async function latestPrice(sig: SignalRow): Promise<{ price: number | null; sour
     return { price: await twelveDataForexPrice(sig.symbol), source: "twelvedata_forex_price" };
   }
   return { price: null, source: "unsupported", reason: "unsupported_market_type" };
+}
+
+function entryTouched(sig: SignalRow, candle: OutcomeCandle): boolean {
+  const direction = String(sig.direction ?? "").toLowerCase();
+  const entryLow = numberField(sig, "entry_low", "entry");
+  const entryHigh = numberField(sig, "entry_high", "entry");
+  if (entryLow === null && entryHigh === null) return false;
+  const low = entryLow ?? entryHigh!;
+  const high = entryHigh ?? entryLow!;
+  if (direction === "sell") return candle.high >= low && candle.low <= high;
+  return candle.high >= low && candle.low <= high;
+}
+
+function evaluateCandleAfterEntry(sig: SignalRow, candle: OutcomeCandle): { next_status: string; reason: string; price: number | null } | null {
+  const direction = String(sig.direction ?? "").toLowerCase();
+  const currentStatus = String(sig.status ?? "waiting");
+  const sl = numberField(sig, "stop_loss", "sl");
+  const tp1 = numberField(sig, "tp1");
+  const tp2 = numberField(sig, "tp2");
+
+  if (direction === "buy") {
+    const slHit = sl !== null && candle.low <= sl;
+    const tp2Hit = tp2 !== null && candle.high >= tp2;
+    const tp1Hit = tp1 !== null && candle.high >= tp1;
+    // Conservative same-candle handling: if SL and any TP are touched in the same candle, SL wins.
+    if (slHit) return { next_status: "sl_hit", reason: tp1Hit || tp2Hit ? "candle_trigger_sl_conservative_same_candle" : "candle_trigger_sl", price: sl };
+    if (tp2Hit) return { next_status: "tp2_hit", reason: "candle_trigger_tp2", price: tp2 };
+    if (tp1Hit && currentStatus !== "tp1_hit") return { next_status: "tp1_hit", reason: "candle_trigger_tp1", price: tp1 };
+    return null;
+  }
+
+  if (direction === "sell") {
+    const slHit = sl !== null && candle.high >= sl;
+    const tp2Hit = tp2 !== null && candle.low <= tp2;
+    const tp1Hit = tp1 !== null && candle.low <= tp1;
+    // Conservative same-candle handling: if SL and any TP are touched in the same candle, SL wins.
+    if (slHit) return { next_status: "sl_hit", reason: tp1Hit || tp2Hit ? "candle_trigger_sl_conservative_same_candle" : "candle_trigger_sl", price: sl };
+    if (tp2Hit) return { next_status: "tp2_hit", reason: "candle_trigger_tp2", price: tp2 };
+    if (tp1Hit && currentStatus !== "tp1_hit") return { next_status: "tp1_hit", reason: "candle_trigger_tp1", price: tp1 };
+  }
+  return null;
+}
+
+function getForexOutcomeFromCandles(sig: SignalRow, candles: OutcomeCandle[]): CandleOutcomeResult {
+  const currentStatus = String(sig.status ?? "waiting");
+  let entered = !["waiting", "new", "approved"].includes(currentStatus);
+  let entryTriggered = false;
+  let lastPrice: number | null = null;
+
+  for (const candle of candles) {
+    lastPrice = candle.close;
+    if (!entered) {
+      if (!entryTouched(sig, candle)) continue;
+      entered = true;
+      entryTriggered = true;
+    }
+
+    const exit = evaluateCandleAfterEntry(sig, candle);
+    if (exit) return { ...exit, source: "twelvedata_forex_candles" };
+  }
+
+  if (entryTriggered && ["waiting", "new", "approved"].includes(currentStatus)) {
+    return { next_status: "active", reason: "candle_entry_trigger", price: lastPrice, source: "twelvedata_forex_candles" };
+  }
+
+  return { next_status: currentStatus, reason: "no_change", price: lastPrice, source: "twelvedata_forex_candles" };
 }
 
 function getOutcomeForSignal(sig: SignalRow, price: number): { next_status: string; reason: string } {
@@ -174,10 +381,33 @@ function deliveryType(status: string): string {
 }
 
 function formatOutcomeMessage(sig: SignalRow, newStatus: string, price: number | null) {
-  const entry = numberField(sig, "entry", "entry_low");
+  const entry = entryMidpoint(sig);
   const stopLoss = numberField(sig, "stop_loss", "sl");
   const tp1 = numberField(sig, "tp1");
   const tp2 = numberField(sig, "tp2");
+  const marketType = String(sig.market_type ?? "unknown").toLowerCase();
+
+  if (marketType === "forex") {
+    const rResult = rMultipleForStatus(sig, newStatus);
+    return [
+      "📣 HashiBot Forex Signal Update",
+      "",
+      `Pair: ${sig.symbol}`,
+      "Market: FOREX",
+      `Event: ${eventLabel(newStatus)}`,
+      `Direction: ${String(sig.direction ?? "unknown").toUpperCase()}`,
+      `Entry: ${formatPriceForMarket(sig, entry)}`,
+      `Stop Loss: ${formatPriceForMarket(sig, stopLoss)} (${formatPips(pipDistance(sig, entry, stopLoss))})`,
+      `TP1: ${formatPriceForMarket(sig, tp1)} (${formatPips(pipDistance(sig, entry, tp1))})`,
+      ...(tp2 !== null ? [`TP2: ${formatPriceForMarket(sig, tp2)} (${formatPips(pipDistance(sig, entry, tp2))})`] : []),
+      `Outcome Price: ${formatPriceForMarket(sig, price)}`,
+      `Result: ${rResult === null ? "—" : `${rResult >= 0 ? "+" : ""}${rResult.toFixed(2)}R`}`,
+      `Original Signal Time: ${sig.created_at ? new Date(sig.created_at).toISOString() : "—"}`,
+      `Update Time: ${new Date().toISOString()}`,
+      "",
+      "Signal only. Manage lot size, spread, slippage, and risk. Not financial advice.",
+    ].join("\n");
+  }
 
   return [
     "📣 HashiBot Signal Update",
@@ -186,11 +416,11 @@ function formatOutcomeMessage(sig: SignalRow, newStatus: string, price: number |
     `Market: ${String(sig.market_type ?? "unknown").toUpperCase()}`,
     `Event: ${eventLabel(newStatus)}`,
     `Direction: ${String(sig.direction ?? "unknown").toUpperCase()}`,
-    `Entry: ${entry !== null ? entry.toFixed(5) : "—"}`,
-    `Stop Loss: ${stopLoss !== null ? stopLoss.toFixed(5) : "—"}`,
-    `TP1: ${tp1 !== null ? tp1.toFixed(5) : "—"}`,
-    ...(tp2 !== null ? [`TP2: ${tp2.toFixed(5)}`] : []),
-    `Current Price: ${price !== null ? price.toFixed(5) : "—"}`,
+    `Entry: ${formatPriceForMarket(sig, entry)}`,
+    `Stop Loss: ${formatPriceForMarket(sig, stopLoss)}`,
+    `TP1: ${formatPriceForMarket(sig, tp1)}`,
+    ...(tp2 !== null ? [`TP2: ${formatPriceForMarket(sig, tp2)}`] : []),
+    `Current Price: ${formatPriceForMarket(sig, price)}`,
     `Original Signal Time: ${sig.created_at ? new Date(sig.created_at).toISOString() : "—"}`,
     `Update Time: ${new Date().toISOString()}`,
     "",
@@ -334,8 +564,8 @@ Deno.serve(async (req: Request) => {
       expired: 0,
       skipped: 0,
       skipped_reasons: [] as string[],
-      price_source: signalEnableForex ? "binance_latest_price+twelvedata_forex_price" : "binance_latest_price",
-      price_source_limitation: "Latest ticker price is used; intrabar TP/SL ordering is not inferred.",
+      price_source: signalEnableForex ? "binance_latest_price+twelvedata_forex_candles" : "binance_latest_price",
+      price_source_limitation: "Crypto uses latest ticker price. Forex uses TwelveData candles and conservative same-candle handling: if TP and SL are both touched in one candle, SL wins.",
     };
 
     for (const sig of ((signals ?? []) as SignalRow[])) {
@@ -378,6 +608,20 @@ Deno.serve(async (req: Request) => {
         next = "expired";
         reason = expiry.reason;
         out.expired++;
+      } else if (marketType === "forex") {
+        const sinceForOutcome = ["active", "tp1_hit"].includes(currentStatus)
+          ? String(sig.updated_at ?? sig.created_at ?? new Date().toISOString())
+          : String(sig.created_at ?? new Date().toISOString());
+        const candleResult = await twelveDataForexCandles(sig.symbol, String(sig.timeframe ?? "15m"), sinceForOutcome);
+        if (!candleResult.candles) {
+          out.price_unavailable++;
+          out.skipped_reasons.push(candleResult.reason ?? "provider_data_unavailable");
+          continue;
+        }
+        const outcome = getForexOutcomeFromCandles(sig, candleResult.candles);
+        next = outcome.next_status;
+        price = outcome.price;
+        reason = outcome.reason;
       } else {
         const priceResult = await latestPrice(sig);
         price = priceResult.price;

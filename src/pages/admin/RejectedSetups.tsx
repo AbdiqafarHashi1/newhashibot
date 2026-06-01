@@ -40,6 +40,11 @@ export default function RejectedSetups() {
     trend_filter_failed: 'yellow',
     pullback_not_ready: 'yellow',
     reclaim_not_confirmed: 'yellow',
+    provider_rate_limited: 'orange',
+    provider_data_unavailable: 'gray',
+    provider_invalid_response: 'gray',
+    forex_budget_limited: 'gray',
+    distance_guard_failed: 'orange',
   };
 
   const formatRiskReward = (rr: number | null) => (typeof rr === 'number' && Number.isFinite(rr) ? `${rr.toFixed(2)}R` : '—');
@@ -58,6 +63,8 @@ export default function RejectedSetups() {
       'primary_failed_gate', 'stop_distance_pct', 'tp1_distance_pct', 'tp2_distance_pct', 'rr',
       'compression_score', 'box_range_atr', 'compression_ready', 'breakout_confirmed', 'atr_expansion',
       'trend_direction', 'trend_score', 'pullback_score', 'reclaim_confirmed', 'momentum_score',
+      'volatility_score', 'candle_score', 'rsi_score', 'spread_or_distance_score', 'stop_distance_pips',
+      'tp1_distance_pips', 'tp2_distance_pips', 'forex_pair_type', 'session_context',
     ];
     return keys
       .filter((key) => breakdown[key] !== undefined && breakdown[key] !== null && breakdown[key] !== '')
