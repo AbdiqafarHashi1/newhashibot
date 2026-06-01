@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { AccessRequest, Signal, TelegramLink, CustomerSubscription, Package } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import {
-  Radio, ArrowRight, Lock, MessageCircle, AlertTriangle, History,
+  Radio, ArrowRight, Lock, MessageCircle, AlertTriangle,
   Send, Package as PackageIcon, Clock, ShieldCheck, BookOpen,
 } from 'lucide-react';
 import {
@@ -36,25 +36,22 @@ export default function Dashboard() {
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [outcomes, setOutcomes] = useState<Signal[]>([]);
   const [tgLink, setTgLink] = useState<TelegramLink | null>(null);
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async function load() {
     if (!user) return;
-    const [subRes, pkgRes, sigRes, historyRes, tgRes, reqRes] = await Promise.all([
+    const [subRes, pkgRes, sigRes, tgRes, reqRes] = await Promise.all([
       supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('packages').select('*').order('sort_order'),
       supabase.from('signals').select('*').in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(5),
-      supabase.from('signals').select('*').not('status', 'in', '("waiting","active")').order('updated_at', { ascending: false }).limit(6),
       supabase.from('telegram_links').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setSub(subRes.data ?? null);
     setPackages(((pkgRes.data ?? []) as Package[]).map(normalizePackage));
     setSignals(sigRes.data ?? []);
-    setOutcomes(historyRes.data ?? []);
     setTgLink(tgRes.data ?? null);
     setLatestRequest(reqRes.data as AccessRequest | null);
     setLoading(false);
@@ -182,7 +179,6 @@ export default function Dashboard() {
           </div>
           <div className="space-y-2">
             <QuickLink to="/app/signals" icon={<Radio size={13} />} title="Active Signals" locked={!hasAccess} />
-            <QuickLink to="/app/history" icon={<History size={13} />} title="Signal History" locked={!hasAccess} />
             <QuickLink to="/app/signals" icon={<BookOpen size={13} />} title="Risk Rules" locked={false} subtitle="Guidance is shown on every signal" />
           </div>
         </div>
@@ -213,21 +209,20 @@ export default function Dashboard() {
         <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold">Performance snapshot</h2>
-            <p className="text-xs text-zinc-500">Recent signal outcomes and active setups</p>
+            <p className="text-xs text-zinc-500">Waiting and active live setups only</p>
           </div>
           {!hasAccess && <Badge variant="gray">Locked preview</Badge>}
         </div>
         {hasAccess ? (
-          <div className="grid lg:grid-cols-2 gap-px bg-zinc-800">
+          <div className="bg-zinc-800">
             <SnapshotList title="Active now" signals={signals} empty="No waiting or active signals right now." />
-            <SnapshotList title="Recent results" signals={outcomes} empty="No completed signals yet." />
           </div>
         ) : (
           <div className="px-5 py-8 text-center">
             <Lock size={22} className="text-zinc-700 mx-auto mb-3" />
             <div className="text-sm font-medium text-zinc-300 mb-1">Full performance snapshot is locked</div>
             <p className="text-xs text-zinc-500 max-w-md mx-auto">
-              {noPackage ? 'Choose a package and submit manual payment details.' : isPending ? 'Your account is created and waiting for admin approval.' : 'Renew access to view active signals and results.'}
+              {noPackage ? 'Choose a package and submit manual payment details.' : isPending ? 'Your account is created and waiting for admin approval.' : 'Renew access to view active signals.'}
             </p>
           </div>
         )}
