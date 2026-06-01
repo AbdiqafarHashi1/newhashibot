@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     q: 'Does HashiBot execute trades automatically?',
-    a: 'Not in Signal Mode. Signal Mode is information only — you receive the signal and decide whether to act. The Personal EA and Prop EA products (coming soon) will offer MT5 auto-execution.'
+    a: 'Not in Signal Mode. Signal Mode is information only — you receive the signal and decide whether to act. The Crypto Personal Bot and Forex MT5 Prop Bot products (coming soon) will offer MT5 setup/status.'
   },
   {
     q: 'How does Telegram delivery work?',

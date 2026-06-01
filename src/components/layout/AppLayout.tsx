@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Radio, History,
-  MessageCircle, LogOut, Menu, Eye, User, Cpu, ShieldCheck
+  MessageCircle, LogOut, Menu, Eye, User, Cpu, ShieldCheck, Package
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -10,8 +10,9 @@ const userNav = [
   { to: '/app/dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
   { to: '/app/signals',    label: 'Active Signals',   icon: Radio },
   { to: '/app/history',    label: 'Signal History',   icon: History },
+  { to: '/app/package-request', label: 'Package Request', icon: Package },
   { to: '/app/telegram',   label: 'Telegram Setup',   icon: MessageCircle },
-  { to: '/app/account',    label: 'Account & EA',     icon: Cpu },
+  { to: '/app/account',    label: 'Account & Bot',    icon: Cpu },
   { to: '/app/watchlist',  label: 'Watchlist',        icon: Eye },
 ];
 

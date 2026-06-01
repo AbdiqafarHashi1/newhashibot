@@ -20,26 +20,26 @@ export default function PersonalEA() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-full px-3.5 py-1.5 text-xs text-zinc-400 mb-6 font-medium">
               <Clock size={11} />
-              Personal EA Setup — Coming Soon / Waitlist
+              Crypto Personal Bot — Coming Soon / Setup Request
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Personal-mode setup<br />
               <span className="text-zinc-400">planned for power users</span>
             </h1>
             <p className="text-lg text-zinc-400 leading-relaxed mb-4 max-w-2xl">
-              Personal EA Setup is a planned onboarding package for users who want a more aggressive personal-mode workflow around qualified crypto setups.
+              Crypto Personal Bot is a planned onboarding package for users who want a more aggressive Bot setup workflow around qualified crypto setups.
             </p>
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-blue-200 mb-6">
               Expected price: <span className="font-semibold text-white">10,000 KES/month or $100/month</span>
             </div>
             <p className="text-sm text-zinc-600 max-w-xl leading-relaxed mb-10">
-              This is not live execution. Demo connector planning comes first, and HashiBot does not currently connect brokers or place orders for Personal Mode.
+              This is not live execution. Demo connector planning comes first, and HashiBot does not currently connect brokers or place orders for Crypto Personal Bot.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link to="/register" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-600/20 text-sm">
-                Join Personal Mode Waitlist <ArrowRight size={16} />
+              <Link to="/register?package=crypto_personal_bot" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-600/20 text-sm">
+                Request Crypto Personal Bot <ArrowRight size={16} />
               </Link>
-              <Link to="/app/telegram" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-7 py-3.5 rounded-lg font-medium transition-colors text-sm">
+              <Link to="/app/package-request?package=crypto_personal_bot" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-7 py-3.5 rounded-lg font-medium transition-colors text-sm">
                 Contact Admin
               </Link>
             </div>
@@ -50,12 +50,12 @@ export default function PersonalEA() {
       <section className="border-t border-zinc-800/70 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-3">Planned Personal Mode scope</h2>
-            <p className="text-zinc-500 text-sm max-w-xl mx-auto">A setup waitlist for future tooling; live execution, MT5/OANDA/Binance order placement, and broker connections are not available today.</p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">Planned Crypto Personal Bot scope</h2>
+            <p className="text-zinc-500 text-sm max-w-xl mx-auto">A setup request for future tooling; live execution, MT5/OANDA/Binance order placement, and broker connections are not available today.</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto mb-12">
             {[
-              { icon: Cpu, title: 'Personal dashboard', desc: 'Planned dashboard for onboarding status, personal-mode preferences, and risk guidance.' },
+              { icon: Cpu, title: 'Personal dashboard', desc: 'Planned dashboard for onboarding status, Bot setup preferences, and risk guidance.' },
               { icon: Settings, title: 'Aggressive setup profile', desc: 'More frequent qualified setup profile planned, still bounded by risk/leverage guidance and transparency.' },
               { icon: Shield, title: 'Demo connector first', desc: 'Connector work starts in demo/observation mode before any live capability is considered.' },
             ].map(({ icon: Icon, title, desc }) => (
@@ -88,14 +88,14 @@ export default function PersonalEA() {
           <div className="w-14 h-14 rounded-2xl bg-blue-600/12 border border-blue-600/20 flex items-center justify-center mx-auto mb-6">
             <Bell size={24} className="text-blue-400" />
           </div>
-          <h2 className="text-xl font-bold mb-3">Join the Personal Mode waitlist</h2>
+          <h2 className="text-xl font-bold mb-3">Join the Crypto Personal Bot setup request</h2>
           <p className="text-zinc-400 text-sm mb-2 leading-relaxed">
-            Request setup interest now. Admin will confirm availability when demo-first Personal Mode onboarding is ready.
+            Request setup interest now. Admin will confirm availability when demo-first Crypto Personal Bot onboarding is ready.
           </p>
-          <p className="text-xs text-zinc-600 mb-8">Crypto Signal Room is live today while Personal Mode remains planned.</p>
+          <p className="text-xs text-zinc-600 mb-8">Crypto Signal Room is live today while Crypto Personal Bot remains planned.</p>
           <div className="flex flex-col gap-3">
-            <Link to="/register" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-sm shadow-lg shadow-blue-600/20">
-              Join Personal Mode Waitlist <ArrowRight size={14} />
+            <Link to="/register?package=crypto_personal_bot" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-sm shadow-lg shadow-blue-600/20">
+              Request Crypto Personal Bot <ArrowRight size={14} />
             </Link>
             <Link to="/signal-mode" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-600 text-zinc-400 hover:text-zinc-200 px-8 py-3 rounded-lg text-sm transition-colors">
               View live Signal Mode <ArrowRight size={14} />

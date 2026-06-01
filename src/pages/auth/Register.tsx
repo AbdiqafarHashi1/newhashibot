@@ -1,11 +1,12 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Zap } from 'lucide-react';
 
 export default function Register() {
   const { signUp } = useAuth();
   const nav = useNavigate();
+  const [search] = useSearchParams();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -26,7 +27,8 @@ export default function Register() {
     if (error) {
       setError(error.message);
     } else {
-      nav('/dashboard');
+      const pkg = search.get('package');
+      nav(pkg ? `/app/package-request?package=${pkg}` : '/dashboard');
     }
   }
 

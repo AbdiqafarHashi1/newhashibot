@@ -216,11 +216,24 @@ export default function Account() {
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-semibold text-sm">Personal Mode</span>
-                  <Badge variant="gray">Coming soon</Badge>
+                  <span className="font-semibold text-sm">Crypto Personal Bot</span>
+                  <Badge variant="gray">Admin setup</Badge>
                   <Lock size={12} className="text-zinc-600" />
                 </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Personal Mode setup waitlist for future account automation. Execution is not live and no orders are placed from this app.</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">Crypto Bot setup/status is admin-enabled. Signal Mode is included; execution is not live until configuration is complete and no orders are placed from this app.</p>
+              </div>
+            </div>
+            <div className="rounded-xl border bg-zinc-900 border-zinc-800 p-5 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">
+                <Cpu size={16} className="text-zinc-500" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-semibold text-sm">Forex MT5 Personal Bot</span>
+                  <Badge variant="gray">Admin setup</Badge>
+                  <Lock size={12} className="text-zinc-600" />
+                </div>
+                <p className="text-xs text-zinc-500 leading-relaxed">Forex MT5 setup/status is admin-enabled. Signal Mode is included; execution is not live until configuration is complete and no orders are placed from this app.</p>
               </div>
             </div>
             <div className="rounded-xl border bg-zinc-900 border-zinc-800 p-5 flex items-start gap-3">
@@ -229,18 +242,18 @@ export default function Account() {
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-semibold text-sm">Prop Mode</span>
-                  <Badge variant="gray">Coming soon</Badge>
+                  <span className="font-semibold text-sm">Forex MT5 Prop Bot</span>
+                  <Badge variant="gray">Admin setup</Badge>
                   <Lock size={12} className="text-zinc-600" />
                 </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Prop Mode setup waitlist for future funded-account workflows. Execution is not live and no orders are placed from this app.</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">Forex MT5 prop-safe setup/status is admin-enabled with Conservative / Prop Safe risk. Signal Mode is included; no orders are placed from this app.</p>
               </div>
             </div>
           </div>
         </div>
 
         <p className="text-xs text-zinc-600 leading-relaxed">
-          Personal Mode and Prop Mode are in active development. Early access will be available to Signal Mode subscribers first.
+          Bot packages include Signal Mode and show setup/status only until admin configuration is complete. No fake live execution controls are shown.
         </p>
 
         {/* Signals shortcut */}

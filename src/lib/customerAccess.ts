@@ -1,6 +1,7 @@
-import { CustomerSubscription, Package } from './types';
+import { AccessRequest, CustomerSubscription, Package } from './types';
+import { isBotPackage, packageDisplayName, signalModeIncluded, slugFromPackageValue } from './packages';
 
-export type CustomerAccessState = 'active' | 'pending' | 'expired' | 'no_package';
+export type CustomerAccessState = 'active' | 'pending_payment' | 'pending_admin_approval' | 'pending' | 'expired' | 'rejected' | 'no_package';
 
 export function formatDate(value?: string | null) {
   return value ? new Date(value).toLocaleDateString() : '—';
@@ -12,12 +13,14 @@ export function formatDateTime(value?: string | null) {
 
 export function formatPackagePrice(pkg?: Package | null, sub?: CustomerSubscription | null) {
   const currency = pkg?.currency || sub?.currency || 'KES';
-  const amount = pkg?.price ?? sub?.amount_paid ?? null;
+  const slug = pkg?.slug || slugFromPackageValue(sub?.package_name);
+  const amount = slug && isBotPackage(slug) ? 10000 : pkg?.price ?? sub?.amount_paid ?? null;
   if (amount == null) return currency === 'KES' ? '5,000 KES' : 'Contact admin';
   if (Number(amount) === 0) return 'Free';
-  return currency === 'KES'
+  const main = currency === 'KES'
     ? `${Number(amount).toLocaleString()} KES`
     : `${currency} ${Number(amount).toLocaleString()}`;
+  return slug && isBotPackage(slug) ? `${main} or $100` : main;
 }
 
 export function billingPeriod(pkg?: Package | null) {
@@ -28,17 +31,20 @@ export function billingPeriod(pkg?: Package | null) {
   return 'contact admin';
 }
 
-export function getCustomerAccessState(sub?: CustomerSubscription | null): CustomerAccessState {
-  if (!sub?.package_name && !sub?.package_id) return 'no_package';
-
-  const expiresAt = sub.expires_at ? new Date(sub.expires_at).getTime() : null;
+export function getCustomerAccessState(sub?: CustomerSubscription | null, request?: AccessRequest | null): CustomerAccessState {
+  const hasPackage = Boolean(sub?.package_name || sub?.package_id);
+  const expiresAt = sub?.expires_at ? new Date(sub.expires_at).getTime() : null;
   const isPastExpiry = expiresAt !== null && expiresAt < Date.now();
 
-  if (sub.access_status === 'expired' || sub.payment_status === 'expired' || isPastExpiry) return 'expired';
+  if (hasPackage && (sub?.access_status === 'expired' || sub?.payment_status === 'expired' || isPastExpiry)) return 'expired';
+  if (hasPackage && sub?.access_status === 'active' && sub.payment_status === 'paid' && signalModeIncluded(sub.package_name)) return 'active';
 
-  if (sub.access_status === 'active' && sub.payment_status === 'paid') return 'active';
+  if (request?.status === 'rejected') return 'rejected';
+  if (request?.status === 'pending_payment') return 'pending_payment';
+  if (request && ['pending', 'pending_admin_approval', 'approved'].includes(request.status)) return 'pending_admin_approval';
+  if (hasPackage) return 'pending';
 
-  return 'pending';
+  return 'no_package';
 }
 
 export function hasFullSignalAccess(sub?: CustomerSubscription | null) {
@@ -48,19 +54,26 @@ export function hasFullSignalAccess(sub?: CustomerSubscription | null) {
 export function accessStateLabel(state: CustomerAccessState) {
   const labels: Record<CustomerAccessState, string> = {
     active: 'Active',
+    pending_payment: 'Pending payment',
+    pending_admin_approval: 'Pending admin approval',
     pending: 'Pending approval',
     expired: 'Expired',
+    rejected: 'Rejected',
     no_package: 'No package',
   };
   return labels[state];
 }
 
-export function accessStateDescription(state: CustomerAccessState) {
+export function accessStateDescription(state: CustomerAccessState, packageValue?: string | null) {
+  const packageName = packageDisplayName(packageValue);
   const descriptions: Record<CustomerAccessState, string> = {
-    active: 'Your Signal Room access is active. You can view active signals, history, and signal details.',
-    pending: 'Your account or payment is waiting for admin approval. Submit Telegram details while you wait.',
-    expired: 'Your access has expired. Renew manually with admin to unlock full signals again.',
-    no_package: 'Choose Crypto Signal Room and contact admin for manual payment approval.',
+    active: `Your ${packageName} access is active. Signal Mode buyers see signals and Telegram status only; Bot packages include Signal Mode plus setup status.`,
+    pending_payment: `Your ${packageName} request is saved and waiting for payment details or admin payment confirmation.`,
+    pending_admin_approval: `Your ${packageName} request/payment details are waiting for admin approval. Submit Telegram details while you wait.`,
+    pending: `Your ${packageName} account or payment is waiting for admin approval. Submit Telegram details while you wait.`,
+    expired: 'Your access has expired. Renew manually with admin to unlock Signal Mode again.',
+    rejected: 'Your latest request was rejected. Review the admin note if provided and submit updated payment/contact details.',
+    no_package: 'Choose a package and submit manual payment/contact details for admin approval.',
   };
   return descriptions[state];
 }
