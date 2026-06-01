@@ -195,6 +195,9 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
   const min_body_atr = params.min_body_atr ?? 0.25, stop_atr_mult = params.stop_atr_mult ?? 1.2;
   const tp1_r = params.tp1_r ?? 0.9, tp2_r = params.tp2_r ?? 1.5;
   const min_rr = params.min_rr ?? 1.2, min_score = params.min_score ?? 75;
+  const crypto_behavior_tuning = params.crypto_behavior_tuning === 1;
+  const min_continuation_body_atr = params.min_continuation_body_atr ?? 0.15;
+  const max_chase_extension_atr = params.max_chase_extension_atr ?? 1.8;
   const momentum_lookback = Math.max(1, Math.floor(params.momentum_lookback ?? 3));
 
   if (!["5m", "15m"].includes(timeframe)) return strategyZeroReject("unsupported_timeframe");
@@ -217,6 +220,9 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
   const trendConfirmed = direction === "buy" ? ind.ema20 > ind.ema50 && last.close > ind.ema20 : ind.ema20 < ind.ema50 && last.close < ind.ema20;
   const candleConfirmed = direction === "buy" ? last.close > last.open : last.close < last.open;
   const momentumConfirmed = directionalMomentum > 0.2;
+  const continuationBodyConfirmed = bodyAtr >= min_body_atr || (crypto_behavior_tuning && candleConfirmed && directionalMomentum >= 0.45 && bodyAtr >= min_continuation_body_atr);
+  const priceExtensionAtr = atr > 0 ? (direction === "buy" ? price - ind.ema20 : ind.ema20 - price) / atr : 0;
+  const chaseRisk = crypto_behavior_tuning && priceExtensionAtr > max_chase_extension_atr && bodyAtr < min_body_atr * 1.25 && directionalMomentum < 0.7;
 
   const entry_low = price * 0.9998, entry_high = price * 1.0002;
   const stop_loss = direction === "buy" ? price - atr * stop_atr_mult : price + atr * stop_atr_mult;
@@ -239,9 +245,9 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
   let primaryFailedGate = "";
   if (ind.atr_pct < min_atr_pct) primaryFailedGate = "volatility_too_low";
   else if (ind.atr_pct > max_atr_pct) primaryFailedGate = "volatility_too_high";
-  else if (bodyAtr < min_body_atr) primaryFailedGate = "candle_body_too_small";
+  else if (!continuationBodyConfirmed) primaryFailedGate = "candle_body_too_small";
   else if (!trendConfirmed || !rsiConfirmed) primaryFailedGate = "rsi_not_confirmed";
-  else if (!momentumConfirmed) primaryFailedGate = "momentum_failed";
+  else if (!momentumConfirmed || chaseRisk) primaryFailedGate = "momentum_failed";
   else if (risk_reward < min_rr) primaryFailedGate = "rr_too_low";
 
   const finalScore = clampScore((trendScore * 0.24) + (momentumScore * 0.22) + (rsiScore * 0.18) + (bodyScore * 0.12) + (volatilityScore * 0.12) + (rrScore * 0.12));
@@ -259,6 +265,9 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
     rsi: parseFloat(ind.rsi14.toFixed(2)),
     atr_pct: parseFloat(ind.atr_pct.toFixed(4)),
     body_atr: parseFloat(bodyAtr.toFixed(3)),
+    continuation_body_confirmed: continuationBodyConfirmed,
+    price_extension_atr: parseFloat(priceExtensionAtr.toFixed(3)),
+    chase_risk: chaseRisk,
     rr: risk_reward,
     stop_distance_pct: pctDistance(price, stop_loss),
     tp1_distance_pct: pctDistance(price, tp1),
@@ -289,6 +298,7 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const tp2_r = params.tp2_r ?? 2.5;
   const min_rr = params.min_rr ?? 1.3;
   const min_score = params.min_score ?? 75;
+  const crypto_behavior_tuning = params.crypto_behavior_tuning === 1;
   const atr_len = Math.max(2, Math.floor(params.atr_len ?? 14));
   const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
   const ema_fast = Math.max(2, Math.floor(params.ema_fast ?? 20));
@@ -318,19 +328,25 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const buffer = atr * breakout_buffer_atr;
   const breakoutDistUp = last.close - boxHigh;
   const breakoutDistDn = boxLow - last.close;
+  const closeOutsideUp = breakoutDistUp > 0 && last.close > last.open;
+  const closeOutsideDn = breakoutDistDn > 0 && last.close < last.open;
   const breakoutUp = breakoutDistUp > buffer && last.close > last.open;
   const breakoutDn = breakoutDistDn > buffer && last.close < last.open;
-  const direction: "buy" | "sell" = breakoutUp ? "buy" : breakoutDn ? "sell" : (last.close >= (boxHigh + boxLow) / 2 ? "buy" : "sell");
-  const breakoutConfirmed = breakoutUp || breakoutDn;
+  const earlyBreakoutUp = crypto_behavior_tuning && closeOutsideUp && (last.high - last.low) > atr * min_atr_expansion;
+  const earlyBreakoutDn = crypto_behavior_tuning && closeOutsideDn && (last.high - last.low) > atr * min_atr_expansion;
+  const direction: "buy" | "sell" = breakoutUp || earlyBreakoutUp ? "buy" : breakoutDn || earlyBreakoutDn ? "sell" : (last.close >= (boxHigh + boxLow) / 2 ? "buy" : "sell");
+  const breakoutConfirmed = breakoutUp || breakoutDn || earlyBreakoutUp || earlyBreakoutDn;
   const breakoutDist = direction === "buy" ? Math.max(0, breakoutDistUp) : Math.max(0, breakoutDistDn);
   const breakoutDistanceAtr = breakoutDist / atr;
 
   const barsInside = boxSlice.filter((c) => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
   const boxRangeAtr = boxRange / atr;
   const insideRatio = barsInside / Math.max(boxSlice.length, 1);
-  const compressionReady = boxSlice.length >= min_box_bars && barsInside >= min_box_bars && boxRangeAtr <= max_box_atr_range;
+  const strictCompressionReady = boxSlice.length >= min_box_bars && barsInside >= min_box_bars && boxRangeAtr <= max_box_atr_range;
   const rangeTightness = max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (boxRangeAtr / Math.max(max_box_atr_range * 1.35, 0.01)))) : 0;
   const compressionScore = clampScore((insideRatio * 45) + (rangeTightness * 55));
+  const nearCompressionReady = crypto_behavior_tuning && boxSlice.length >= min_box_bars && barsInside >= min_box_bars * 0.75 && boxRangeAtr <= max_box_atr_range * 1.2 && compressionScore >= 50;
+  const compressionReady = strictCompressionReady || (nearCompressionReady && breakoutConfirmed);
 
   const histSlice = candles.slice(-(atr_expansion_lookback + 1), -1);
   const avgBarRange = histSlice.length > 0 ? histSlice.reduce((sum, c) => sum + (c.high - c.low), 0) / histSlice.length : 0;
@@ -355,17 +371,19 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
 
   let entry_low: number, entry_high: number, stop_loss: number, tp1: number, tp2: number;
   if (direction === "buy") {
-    entry_low = breakoutUp ? Math.min(boxHigh, price * 0.9995) : boxHigh;
-    entry_high = breakoutUp ? Math.max(price, boxHigh + atr * 0.25) : boxHigh + atr * 0.25;
-    stop_loss = boxLow - atr * stop_atr_mult;
-    tp1 = price + atr * tp1_r;
-    tp2 = price + atr * tp2_r;
+    entry_low = breakoutConfirmed ? Math.min(boxHigh, price * 0.9995) : boxHigh;
+    entry_high = breakoutConfirmed ? Math.max(price, boxHigh + atr * 0.25) : boxHigh + atr * 0.25;
+    stop_loss = crypto_behavior_tuning ? Math.max(boxLow - atr * 0.25, boxHigh - atr * stop_atr_mult) : boxLow - atr * stop_atr_mult;
+    const riskForTargets = Math.abs(price - stop_loss);
+    tp1 = crypto_behavior_tuning ? price + riskForTargets * tp1_r : price + atr * tp1_r;
+    tp2 = crypto_behavior_tuning ? price + riskForTargets * tp2_r : price + atr * tp2_r;
   } else {
-    entry_low = breakoutDn ? Math.min(price, boxLow - atr * 0.25) : boxLow - atr * 0.25;
-    entry_high = breakoutDn ? Math.max(boxLow, price * 1.0005) : boxLow;
-    stop_loss = boxHigh + atr * stop_atr_mult;
-    tp1 = price - atr * tp1_r;
-    tp2 = price - atr * tp2_r;
+    entry_low = breakoutConfirmed ? Math.min(price, boxLow - atr * 0.25) : boxLow - atr * 0.25;
+    entry_high = breakoutConfirmed ? Math.max(boxLow, price * 1.0005) : boxLow;
+    stop_loss = crypto_behavior_tuning ? Math.min(boxHigh + atr * 0.25, boxLow + atr * stop_atr_mult) : boxHigh + atr * stop_atr_mult;
+    const riskForTargets = Math.abs(price - stop_loss);
+    tp1 = crypto_behavior_tuning ? price - riskForTargets * tp1_r : price - atr * tp1_r;
+    tp2 = crypto_behavior_tuning ? price - riskForTargets * tp2_r : price - atr * tp2_r;
   }
   const risk = Math.abs(price - stop_loss);
   const reward = Math.abs(tp2 - price);
@@ -375,7 +393,7 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   let primaryFailedGate = "";
   if (!compressionReady) primaryFailedGate = "compression_not_ready";
   else if (!breakoutConfirmed) primaryFailedGate = "breakout_not_confirmed";
-  else if (atrExpansionRatio < min_atr_expansion) primaryFailedGate = "atr_expansion_weak";
+  else if (atrExpansionRatio < min_atr_expansion && !(crypto_behavior_tuning && nearCompressionReady && breakoutDistanceAtr >= breakout_buffer_atr * 2)) primaryFailedGate = "atr_expansion_weak";
   else if (ind.atr_pct > 5.0) primaryFailedGate = "volatility_too_high";
   else if (momentumScore < 45) primaryFailedGate = "momentum_failed";
   else if (risk_reward < min_rr) primaryFailedGate = "rr_too_low";
@@ -391,7 +409,10 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
     min_box_bars,
     bars_inside_box: barsInside,
     compression_ready: compressionReady,
+    strict_compression_ready: strictCompressionReady,
+    near_compression_ready: nearCompressionReady,
     breakout_confirmed: breakoutConfirmed,
+    early_breakout: earlyBreakoutUp || earlyBreakoutDn,
     breakout_direction: direction,
     breakout_distance_atr: parseFloat(breakoutDistanceAtr.toFixed(3)),
     atr_expansion: parseFloat(atrExpansionRatio.toFixed(3)),
@@ -429,6 +450,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   const tp2_r = params.tp2_r ?? 2.5;
   const min_rr = params.min_rr ?? 1.5;
   const min_score = params.min_score ?? params.min_confidence_balanced ?? 76;
+  const crypto_behavior_tuning = params.crypto_behavior_tuning === 1;
   const momentum_lookback = Math.max(1, Math.floor(params.momentum_lookback ?? 3));
   const atr_len = Math.max(2, Math.floor(params.atr_len ?? 14));
   const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
@@ -473,7 +495,8 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   const touchedSellZone = pullbackHigh >= emaFast - atr * 0.75;
   const reclaimedSell = price < emaFast && last.close < last.open;
   const pullbackReady = direction === "buy" ? touchedBuyZone : touchedSellZone;
-  const reclaimConfirmed = direction === "buy" ? reclaimedBuy : reclaimedSell;
+  const strictReclaimConfirmed = direction === "buy" ? reclaimedBuy : reclaimedSell;
+  let reclaimConfirmed = strictReclaimConfirmed;
   const pullbackScore = direction === "buy"
     ? clampScore((touchedBuyZone ? 48 : 18) + (reclaimedBuy ? 38 : price > emaFast ? 22 : 0) + (pullbackLow > emaSlow ? 14 : 5))
     : clampScore((touchedSellZone ? 48 : 18) + (reclaimedSell ? 38 : price < emaFast ? 22 : 0) + (pullbackHigh < emaSlow ? 14 : 5));
@@ -485,6 +508,9 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   const rsiScore = direction === "buy"
     ? clampScore(Math.min(Math.max((rsi - 45) / Math.max(rsi_buy_min - 45, 1), 0), 1.25) * 80)
     : clampScore(Math.min(Math.max((55 - rsi) / Math.max(55 - rsi_sell_max, 1), 0), 1.25) * 80);
+  const trendQualityPass = trendScore >= 45 || (crypto_behavior_tuning && emaSlopeScore >= 55 && directionalSpread > -0.08 && priceVsEma > 0 && rsiScore >= 40);
+  const reclaimByQuality = crypto_behavior_tuning && pullbackScore >= 68 && momentumScore >= 45 && priceVsEma > -0.05;
+  reclaimConfirmed = strictReclaimConfirmed || reclaimByQuality;
   let volatilityScore = 85;
   if (atrPct < min_atr_pct) volatilityScore = clampScore((atrPct / Math.max(min_atr_pct, 0.01)) * 55);
   else if (atrPct > max_atr_pct) volatilityScore = clampScore(Math.max(20, 80 - ((atrPct - max_atr_pct) / Math.max(max_atr_pct, 0.01)) * 80));
@@ -493,15 +519,17 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   if (direction === "buy") {
     entry_low = price * 0.9997;
     entry_high = price * 1.0003;
-    stop_loss = Math.min(pullbackLow, price - atr * stop_atr_mult) - atr * 0.3;
-    tp1 = price + atr * tp1_r;
-    tp2 = price + atr * tp2_r;
+    stop_loss = Math.min(pullbackLow - atr * 0.15, price - atr * stop_atr_mult);
+    const riskForTargets = Math.abs(price - stop_loss);
+    tp1 = crypto_behavior_tuning ? price + riskForTargets * tp1_r : price + atr * tp1_r;
+    tp2 = crypto_behavior_tuning ? price + riskForTargets * tp2_r : price + atr * tp2_r;
   } else {
     entry_low = price * 0.9997;
     entry_high = price * 1.0003;
-    stop_loss = Math.max(pullbackHigh, price + atr * stop_atr_mult) + atr * 0.3;
-    tp1 = price - atr * tp1_r;
-    tp2 = price - atr * tp2_r;
+    stop_loss = Math.max(pullbackHigh + atr * 0.15, price + atr * stop_atr_mult);
+    const riskForTargets = Math.abs(price - stop_loss);
+    tp1 = crypto_behavior_tuning ? price - riskForTargets * tp1_r : price - atr * tp1_r;
+    tp2 = crypto_behavior_tuning ? price - riskForTargets * tp2_r : price - atr * tp2_r;
   }
   const risk = Math.abs(price - stop_loss);
   const reward = Math.abs(tp2 - price);
@@ -511,7 +539,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   let primaryFailedGate = "";
   if (atrPct < min_atr_pct) primaryFailedGate = "volatility_too_low";
   else if (atrPct > max_atr_pct) primaryFailedGate = "volatility_too_high";
-  else if (trendScore < 45) primaryFailedGate = "trend_filter_failed";
+  else if (!trendQualityPass) primaryFailedGate = "trend_filter_failed";
   else if (!pullbackReady || pullbackScore < 45) primaryFailedGate = "pullback_not_ready";
   else if (!reclaimConfirmed) primaryFailedGate = "reclaim_not_confirmed";
   else if (momentumScore < 35 || rsiScore < 35) primaryFailedGate = "momentum_failed";
@@ -524,6 +552,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
     primary_failed_gate: primaryFailedGate || "passed",
     trend_direction: direction,
     trend_score: trendScore,
+    trend_quality_pass: trendQualityPass,
     ema_fast: parseFloat(emaFast.toFixed(8)),
     ema_slow: parseFloat(emaSlow.toFixed(8)),
     ema_alignment: emaAlignment,
@@ -533,6 +562,8 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
     pullback_score: pullbackScore,
     pullback_ready: pullbackReady,
     reclaim_confirmed: reclaimConfirmed,
+    strict_reclaim_confirmed: strictReclaimConfirmed,
+    reclaim_by_quality: reclaimByQuality,
     momentum_score: momentumScore,
     rsi_score: rsiScore,
     volatility_score: volatilityScore,
@@ -1875,9 +1906,9 @@ async function runScanPipeline(
           const cbConfig  = getStratCfg("CompressionBreakout");
           const swConfig  = getStratCfg("SwingContinuation");
           const timeframeAllowed = (cfg: StrategyConfig) => cfg.allowed_timeframes.length === 0 || cfg.allowed_timeframes.includes(tf);
-          if (msConfig.enabled && timeframeAllowed(msConfig)) allEvals.push({ name: "MicroScalper",       cfg: msConfig, result: evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr }) });
-          if (cbConfig.enabled && timeframeAllowed(cbConfig)) allEvals.push({ name: "CompressionBreakout", cfg: cbConfig, result: evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr }) });
-          if (swConfig.enabled && timeframeAllowed(swConfig)) allEvals.push({ name: "SwingContinuation",   cfg: swConfig, result: evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr }) });
+          if (msConfig.enabled && timeframeAllowed(msConfig)) allEvals.push({ name: "MicroScalper",       cfg: msConfig, result: evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr, crypto_behavior_tuning: 1 }) });
+          if (cbConfig.enabled && timeframeAllowed(cbConfig)) allEvals.push({ name: "CompressionBreakout", cfg: cbConfig, result: evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, crypto_behavior_tuning: 1 }) });
+          if (swConfig.enabled && timeframeAllowed(swConfig)) allEvals.push({ name: "SwingContinuation",   cfg: swConfig, result: evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, crypto_behavior_tuning: 1 }) });
         }
 
         // ── Pre-arbitration: collect passing candidates, pick the best one ──
