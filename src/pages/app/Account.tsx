@@ -262,9 +262,6 @@ export default function Account() {
             <Link to="/app/signals" className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Radio size={13} /> View Live Signals <ArrowRight size={13} />
             </Link>
-            <Link to="/app/history" className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors">
-              Signal History
-            </Link>
           </div>
         )}
       </div>

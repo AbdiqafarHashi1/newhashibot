@@ -35,7 +35,7 @@ export const PUBLIC_PACKAGES: Package[] = [
     id: 'crypto_signal_room', name: 'Crypto Signal Room', slug: 'crypto_signal_room', price: 5000, price_kes: 5000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 1,
     description: 'Monthly crypto Signal Room access.',
-    features: ['Active crypto signals', 'Signal history', 'Telegram onboarding', 'Package status', 'Signal-only. No automated execution.'],
+    features: ['Active crypto signals', 'Active signal details', 'Telegram onboarding', 'Package status', 'Signal-only. No automated execution.'],
     created_at: '', updated_at: '',
   },
   {

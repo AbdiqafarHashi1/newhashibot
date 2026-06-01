@@ -19,7 +19,6 @@ import AdminSetup from './pages/auth/AdminSetup';
 // User app pages
 import Dashboard from './pages/app/Dashboard';
 import ActiveSignals from './pages/app/ActiveSignals';
-import SignalHistory from './pages/app/SignalHistory';
 import SignalDetail from './pages/app/SignalDetail';
 import TelegramSetup from './pages/app/TelegramSetup';
 import Watchlist from './pages/app/Watchlist';
@@ -101,7 +100,7 @@ function App() {
           <Route path="/app/dashboard"   element={<RequireAuth><Dashboard /></RequireAuth>} />
           <Route path="/app/signals"     element={<RequireAuth><ActiveSignals /></RequireAuth>} />
           <Route path="/app/signals/:id" element={<RequireAuth><SignalDetail /></RequireAuth>} />
-          <Route path="/app/history"     element={<RequireAuth><SignalHistory /></RequireAuth>} />
+          <Route path="/app/history"     element={<RequireAuth><Navigate to="/app/signals" replace /></RequireAuth>} />
           <Route path="/app/telegram"    element={<RequireAuth><TelegramSetup /></RequireAuth>} />
           <Route path="/app/package-request" element={<RequireAuth><PackageRequest /></RequireAuth>} />
           <Route path="/app/watchlist"   element={<RequireAuth><Watchlist /></RequireAuth>} />
