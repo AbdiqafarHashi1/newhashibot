@@ -8,7 +8,7 @@ const differentiators = [
   'Lower risk per trade and compliance-first position guidance',
   'Challenge-aware notes and rule reminders planned in the dashboard',
   'Demo connector planned first for testing and observation',
-  'No live execution, broker connection, or order placement is available currently',
+  'Bot execution is enabled only after setup is completed and verified',
 ];
 
 export default function PropEA() {
@@ -33,7 +33,7 @@ export default function PropEA() {
               Expected price: <span className="font-semibold text-white">10,000 KES/month or $100/month</span>
             </div>
             <p className="text-sm text-zinc-600 max-w-xl leading-relaxed mb-10">
-              This is a coming-soon setup request, not a live execution product. Demo connector planning comes first, and no live orders are placed currently.
+              This is a prop-safe setup request. Demo connector planning comes first, and execution is activated only after setup and verification.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link to="/register?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-blue-600/20 text-sm">
@@ -52,7 +52,7 @@ export default function PropEA() {
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">Planned prop-safe scope</h2>
             <p className="text-zinc-500 text-sm max-w-xl mx-auto">
-              The setup request is for conservative planning and admin onboarding. Live execution, MT5/OANDA/Binance order placement, and broker connections are not available today.
+              The setup request is for conservative planning and account review. MT5/OANDA/Binance connections are activated only after setup and verification.
             </p>
           </div>
 

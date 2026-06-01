@@ -27,36 +27,36 @@ export const PUBLIC_PACKAGES: Package[] = [
   {
     id: 'free_preview', name: 'Free Preview', slug: 'free_preview', price: 0, price_kes: 0, currency: 'KES', billing_period: '7-day preview',
     duration_days: 7, active: true, telegram_access_required: false, sort_order: 0,
-    description: 'Public preview and onboarding path before paid Signal Room or Bot access.',
-    features: ['Public preview only', 'Create an account and choose a package', 'No full signal access', 'No Bot controls'],
+    description: 'Explore HashiBot before subscribing. View sample signal format, package options, risk guidance, and onboarding flow.',
+    features: ['Public dashboard preview', 'Sample signal format', 'Package comparison', 'Telegram setup guide', 'No live signal access', 'No Bot controls'],
     created_at: '', updated_at: '',
   },
   {
     id: 'crypto_signal_room', name: 'Crypto Signal Room', slug: 'crypto_signal_room', price: 5000, price_kes: 5000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 1,
-    description: 'Monthly crypto Signal Mode dashboard access with manual Telegram Signal Room onboarding.',
-    features: ['Crypto Signal Mode access', 'Active signals and signal history', 'Telegram onboarding/status', 'Package/access status'],
+    description: 'Monthly crypto Signal Room access.',
+    features: ['Active crypto signals', 'Signal history', 'Telegram onboarding', 'Package status', 'Signal-only. No automated execution.'],
     created_at: '', updated_at: '',
   },
   {
     id: 'crypto_personal_bot', name: 'Crypto Personal Bot', slug: 'crypto_personal_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 2,
-    description: 'Crypto Bot setup package. Signal Room is included; execution setup requires admin configuration.',
-    features: ['Includes Crypto Signal Room', 'Bot setup/status tracking', 'Risk preset request: Conservative, Balanced, or Aggressive', 'No live execution until configured by admin'],
+    description: 'Includes Crypto Signal Room. Managed crypto Bot setup for personal trading mode.',
+    features: ['Includes Crypto Signal Room', 'Managed crypto Bot setup for personal trading mode', 'Risk preset collected during setup', 'Execution is activated only after setup and verification'],
     created_at: '', updated_at: '',
   },
   {
     id: 'forex_mt5_personal_bot', name: 'Forex MT5 Personal Bot', slug: 'forex_mt5_personal_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 3,
-    description: 'Forex MT5 Bot setup package. Signal Mode is included; MT5 setup requires admin configuration.',
-    features: ['Includes Signal Mode access', 'MT5 setup/status tracking', 'Risk preset request: Conservative, Balanced, or Aggressive', 'No broker execution from this app'],
+    description: 'Includes Signal Room. Managed MT5 forex Bot setup for personal trading mode.',
+    features: ['Includes Signal Room', 'Managed MT5 forex Bot setup for personal trading mode', 'Risk preset collected during setup', 'MT5 connection is activated only after setup and verification'],
     created_at: '', updated_at: '',
   },
   {
     id: 'forex_mt5_prop_bot', name: 'Forex MT5 Prop Bot', slug: 'forex_mt5_prop_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 4,
-    description: 'Prop-safe Forex MT5 Bot setup package. Signal Mode is included; admin setup is required.',
-    features: ['Includes Signal Mode access', 'Prop-safe positioning guidance', 'Default risk preset: Conservative / Prop Safe', 'No guaranteed profit wording or fake execution'],
+    description: 'Includes Signal Room. Managed MT5 forex Bot setup for prop-safe trading.',
+    features: ['Includes Signal Room', 'Managed MT5 forex Bot setup for prop-safe trading', 'Conservative / Prop Safe risk profile', 'Built for rule protection and controlled risk'],
     created_at: '', updated_at: '',
   },
 ];
@@ -107,7 +107,8 @@ export function slugFromPackageValue(value?: string | null): PackageCapability |
 
 export function packageStatusLabel(pkg: Package) {
   if (pkg.slug === 'crypto_signal_room') return 'Available';
-  if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return 'Setup required / Admin-enabled';
+  if (pkg.slug === 'forex_mt5_prop_bot') return 'Prop-Safe Setup';
+  if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return 'Managed Setup';
   return 'Preview';
 }
 

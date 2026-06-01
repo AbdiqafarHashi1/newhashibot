@@ -40,7 +40,7 @@ export default function Pricing() {
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Choose your HashiBot package</h1>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-            Start with a free preview, buy Crypto Signal Room, or request a Bot setup package. Bot setup requires admin configuration and does not place broker orders from this app.
+            Start with a free preview, subscribe to the Crypto Signal Room, or request a managed Bot setup package. Bot execution is enabled only after setup is completed and verified.
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export default function Pricing() {
 
                 {signalModeIncluded(pkg.slug) && bot && (
                   <div className="mb-4 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-                    Signal Mode is included. Setup/status only until admin enables configuration.
+                    Includes Signal Room access. Bot setup is guided and activated after account review.
                   </div>
                 )}
 
@@ -93,7 +93,7 @@ export default function Pricing() {
               { step: '1', title: 'Sign up', desc: 'Create your account or log in' },
               { step: '2', title: 'Choose package', desc: 'Select Signal Room or Bot setup' },
               { step: '3', title: 'Submit payment proof', desc: 'Manual payment details are reviewed' },
-              { step: '4', title: 'Admin approval', desc: 'Correct access is activated' },
+              { step: '4', title: 'Account review', desc: 'Approved access is activated' },
             ].map(s => (
               <div key={s.step} className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4">
                 <div className="w-8 h-8 rounded-full bg-sky-600/20 border border-sky-600/30 text-sky-400 text-sm font-bold flex items-center justify-center mx-auto mb-2">{s.step}</div>
@@ -116,7 +116,7 @@ export default function Pricing() {
             <Zap size={18} className="text-sky-400 shrink-0 mt-0.5" />
             <div>
               <h3 className="font-semibold mb-1">Bot package safety</h3>
-              <p className="text-sm text-zinc-500 leading-relaxed">Bot packages show setup/status and risk preset preparation only. No guaranteed profit claims, no fake running state, and no broker/MT5 order placement are provided by this flow.</p>
+              <p className="text-sm text-zinc-500 leading-relaxed">Bot packages include guided setup, account review, and risk preset preparation. No guaranteed profit claims, no fake running state, and no broker/MT5 order placement are provided by this flow.</p>
             </div>
           </div>
         </div>
