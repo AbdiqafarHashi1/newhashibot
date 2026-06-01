@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
-import { AccessRequest, Package } from '../../lib/types';
+import { AccessRequest, CustomerBotSetup, Package } from '../../lib/types';
 import { statusBadge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClipboardList, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { defaultRiskPreset, isBotPackage, packageDisplayName } from '../../lib/packages';
+import { botSetupStatusLabel } from '../../lib/botSetup';
 
 interface RequestRow extends AccessRequest {
   profile?: { email: string; full_name: string };
+  bot_setup?: CustomerBotSetup | null;
 }
 
 export default function AccessRequests() {
@@ -23,13 +25,15 @@ export default function AccessRequests() {
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
 
   async function load() {
-    const [{ data }, pkgRes] = await Promise.all([supabase
+    const [{ data }, pkgRes, setupRes] = await Promise.all([supabase
       .from('access_requests')
       .select('*, profile:profiles(email, full_name)')
       .order('created_at', { ascending: false }),
       supabase.from('packages').select('*').order('sort_order'),
+      supabase.from('customer_bot_setups').select('*'),
     ]);
-    setRequests((data ?? []) as RequestRow[]);
+    const setupsByRequest = new Map((setupRes.data ?? []).map(setup => [(setup as CustomerBotSetup).access_request_id, setup as CustomerBotSetup]));
+    setRequests(((data ?? []) as RequestRow[]).map(req => ({ ...req, bot_setup: setupsByRequest.get(req.id) ?? null })));
     setPackages((pkgRes.data ?? []) as Package[]);
     setLoading(false);
   }
@@ -72,10 +76,18 @@ export default function AccessRequests() {
         updated_at: startsAt,
       };
       const subscriptionWrite = existing.data?.id
-        ? await supabase.from('customer_subscriptions').update(subscriptionPayload).eq('id', existing.data.id)
-        : await supabase.from('customer_subscriptions').insert(subscriptionPayload);
+        ? await supabase.from('customer_subscriptions').update(subscriptionPayload).eq('id', existing.data.id).select('id').single()
+        : await supabase.from('customer_subscriptions').insert(subscriptionPayload).select('id').single();
 
       if (subscriptionWrite.error) { flash(`Package approval blocked because subscription grant failed: ${subscriptionWrite.error.message}`, 'err'); return; }
+
+      if (isBotPackage(req.product_slug)) {
+        await supabase.from('customer_bot_setups').update({
+          subscription_id: subscriptionWrite.data?.id ?? existing.data?.id ?? null,
+          setup_status: 'pending_admin_setup',
+          updated_at: startsAt,
+        }).eq('access_request_id', req.id);
+      }
 
       const { error: accessErr } = await supabase.from('user_access').upsert({
         user_id: req.user_id,
@@ -260,6 +272,31 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
             <div className="bg-zinc-800/50 rounded px-3 py-2 text-xs">
               <div className="text-zinc-500 mb-0.5">Customer note</div>
               <div className="text-zinc-300">{req.notes}</div>
+            </div>
+          )}
+
+          {req.bot_setup && (
+            <div className="bg-sky-500/10 border border-sky-500/20 rounded px-3 py-3 text-xs">
+              <div className="text-sky-300 font-medium mb-2">Bot setup summary (setup only, no execution)</div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Setup status', value: botSetupStatusLabel(req.bot_setup.setup_status) },
+                  { label: 'Bot type', value: req.bot_setup.bot_type.replace(/_/g, ' ') },
+                  { label: 'Capital mode', value: req.bot_setup.capital_mode },
+                  { label: 'Risk preset', value: req.bot_setup.risk_preset },
+                  { label: 'Account size', value: req.bot_setup.account_size?.toString() || '—' },
+                  { label: 'Currency', value: req.bot_setup.account_currency || '—' },
+                  { label: 'Broker/exchange/platform', value: req.bot_setup.broker_name || req.bot_setup.exchange_name || req.bot_setup.platform || '—' },
+                  { label: 'Prop firm', value: req.bot_setup.prop_firm_name || '—' },
+                  { label: 'Preferred symbols', value: Array.isArray(req.bot_setup.preferred_symbols) ? req.bot_setup.preferred_symbols.join(', ') || '—' : '—' },
+                  { label: 'No-execution acknowledged', value: req.bot_setup.acknowledged_no_execution ? 'Yes' : 'No' },
+                ].map(item => (
+                  <div key={item.label} className="bg-zinc-900/60 rounded px-2 py-1.5">
+                    <div className="text-zinc-500 mb-0.5">{item.label}</div>
+                    <div className="text-zinc-300 capitalize">{item.value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
