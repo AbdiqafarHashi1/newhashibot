@@ -627,14 +627,85 @@ function buildCandlesForTimeframe(candles: BtCandle[], datasetTf: string, target
   return { candles: [], resampled: false, unsupportedReason: 'timeframe_mapping_missing' };
 }
 
-function classifyBacktestResult(metrics: BtMetrics, unsupportedReason?: string): { classification: string; reason: string } {
-  if (unsupportedReason) return { classification: 'wrong timeframe/dataset', reason: unsupportedReason };
+
+function topMetricReason(metrics: BtMetrics): [string, number] | null {
+  return Object.entries(metrics.rejectionReasons).sort((a, b) => b[1] - a[1])[0] ?? null;
+}
+
+function topMetricReasonShare(metrics: BtMetrics): number {
+  const total = Object.values(metrics.rejectionReasons).reduce((sum, count) => sum + count, 0);
+  const top = topMetricReason(metrics);
+  return top && total > 0 ? top[1] / total : 0;
+}
+
+function isStrictRejectionReason(reason: string): boolean {
+  return reason === 'confidence_too_low'
+    || reason === 'momentum_failed'
+    || reason === 'continuation_momentum_failed'
+    || reason === 'candle_body_too_small'
+    || reason === 'compression_not_ready'
+    || reason === 'compression_failed_box_too_wide'
+    || reason === 'compression_failed_not_enough_inside_bars'
+    || reason === 'compression_drift_too_flat'
+    || reason === 'breakout_not_confirmed'
+    || reason === 'reclaim_not_confirmed'
+    || reason === 'trend_filter_failed'
+    || reason === 'trend_alignment_failed'
+    || reason === 'trend_rsi_context_failed'
+    || reason === 'regime_not_trending'
+    || reason === 'pullback_not_ready'
+    || reason === 'rr_too_low';
+}
+
+function classifyBacktestResult(metrics: BtMetrics, strategy: Strategy, unsupportedReason?: string): { classification: string; reason: string } {
+  if (unsupportedReason) return { classification: 'wrong dataset/timeframe', reason: unsupportedReason };
   if (metrics.evaluations === 0) return { classification: 'broken/misconfigured', reason: 'No evaluations were possible.' };
-  if (metrics.candidates === 0) return { classification: 'not enough trades', reason: 'No qualified candidates passed setup and distance guards.' };
-  if (metrics.totalTrades < 10) return { classification: 'not enough trades', reason: 'Too few trades for decision confidence.' };
-  if (metrics.totalR > 0 && metrics.profitFactor >= 1.2 && metrics.winRate >= 40) return { classification: 'viable', reason: 'Positive R with acceptable profit factor and hit rate.' };
-  if (metrics.totalR <= 0 && metrics.totalTrades > 0) return { classification: 'needs tuning', reason: 'Trades were generated, but R/result quality is poor.' };
-  return { classification: 'not suitable for that symbol/timeframe', reason: 'Setup activity exists but metrics are not decision-ready.' };
+
+  const top = topMetricReason(metrics);
+  const topShare = topMetricReasonShare(metrics);
+  const highEvaluations = metrics.evaluations >= 500;
+  const dominantStrictBlocker = Boolean(top && isStrictRejectionReason(top[0]) && topShare >= 0.5);
+
+  if (metrics.totalTrades === 0) {
+    if (highEvaluations && dominantStrictBlocker) {
+      return {
+        classification: 'too strict / dead participation',
+        reason: `Zero trades from ${metrics.evaluations.toLocaleString()} evaluations with dominant blocker ${top?.[0]} (${Math.round(topShare * 100)}% of rejects).`,
+      };
+    }
+    if (highEvaluations && strategy === 'SwingContinuation') {
+      const reasons = Object.entries(metrics.rejectionReasons).filter(([reason]) => isStrictRejectionReason(reason)).length;
+      return {
+        classification: 'possible parity mismatch',
+        reason: `Zero trades from ${metrics.evaluations.toLocaleString()} evaluations across ${reasons} strict SwingContinuation gates; audit whether backtest logic matches live scanner behavior before assuming no market fit.`,
+      };
+    }
+    if (highEvaluations && top && isStrictRejectionReason(top[0])) {
+      return {
+        classification: 'too strict / dead participation',
+        reason: `Zero trades from ${metrics.evaluations.toLocaleString()} evaluations; top strict blocker is ${top[0]} (${top[1].toLocaleString()} rejects).`,
+      };
+    }
+    return { classification: 'needs more data', reason: `No trades yet, but only ${metrics.evaluations.toLocaleString()} evaluations; extend sample before tuning conclusions.` };
+  }
+
+  if (metrics.totalTrades < 10) return { classification: 'needs more data', reason: 'Too few trades for decision confidence.' };
+
+  if (metrics.totalR > 0 && metrics.profitFactor > 1 && metrics.winRate >= 40) {
+    const weakExpectancy = metrics.avgR < 0.07;
+    const elevatedDrawdown = metrics.maxDrawdown > Math.max(10, Math.abs(metrics.totalR) * 0.4);
+    const marginalPf = metrics.profitFactor < 1.15;
+    if (weakExpectancy || elevatedDrawdown || marginalPf) {
+      return {
+        classification: 'viable but noisy',
+        reason: `Profitable sample (PF ${metrics.profitFactor}, total ${metrics.totalR}R), but quality is noisy due to ${[weakExpectancy ? `weak avg R ${metrics.avgR}` : '', elevatedDrawdown ? `drawdown ${metrics.maxDrawdown}R` : '', marginalPf ? `marginal PF ${metrics.profitFactor}` : ''].filter(Boolean).join(', ')}.`,
+      };
+    }
+    return { classification: 'viable / preserve', reason: 'Positive R with acceptable profit factor, hit rate, expectancy, and drawdown evidence.' };
+  }
+
+  if (metrics.totalR <= 0) return { classification: 'needs tuning', reason: 'Trades were generated, but R/result quality is poor.' };
+  return { classification: 'viable but noisy', reason: 'Profitable trade sample exists, but quality metrics are not strong enough to preserve without tuning.' };
 }
 
 function topRejectionReasons(reasons: Record<string, number>, limit = 6): [string, number][] {
@@ -648,7 +719,7 @@ function makeRunResult(strategy: Strategy, datasetTimeframe: string, testedTimef
     ? runBacktest(built.candles, strategy, testedTimeframe, params)
     : { trades: [] as BtTrade[], evaluations: 0, candidates: 0, rejected: built.candles.length, rejectionReasons: { [built.unsupportedReason ?? 'insufficient_candles']: built.candles.length } };
   const metrics = calcMetrics(bt.trades, bt.evaluations, bt.candidates, bt.rejected, bt.rejectionReasons);
-  const cls = classifyBacktestResult(metrics, built.unsupportedReason);
+  const cls = classifyBacktestResult(metrics, strategy, built.unsupportedReason);
   return {
     id: `${strategy}-${testedTimeframe}-${preset}`,
     strategy,
@@ -726,12 +797,17 @@ function ParamRow({ label, field, value, onChange, step = 0.01, min }: {
 
 
 const CLASSIFICATION_RANK: Record<string, number> = {
+  'viable / preserve': 1,
   viable: 1,
-  'needs tuning': 2,
-  'not enough trades': 3,
-  'not suitable for that symbol/timeframe': 4,
-  'broken/misconfigured': 5,
-  'wrong timeframe/dataset': 6,
+  'viable but noisy': 2,
+  'needs tuning': 3,
+  'possible parity mismatch': 4,
+  'needs more data': 5,
+  'not enough trades': 5,
+  'too strict / dead participation': 6,
+  'broken/misconfigured': 7,
+  'wrong dataset/timeframe': 8,
+  'wrong timeframe/dataset': 8,
 };
 
 function capitalForResult(result: BacktestRunResult, assumptions: CapitalAssumptions) {
@@ -741,8 +817,8 @@ function capitalForResult(result: BacktestRunResult, assumptions: CapitalAssumpt
 function compareRunResults(a: BacktestRunResult, b: BacktestRunResult): number {
   const rank = (CLASSIFICATION_RANK[a.classification] ?? 99) - (CLASSIFICATION_RANK[b.classification] ?? 99);
   if (rank !== 0) return rank;
-  const aDecision = a.classification === 'viable' || a.classification === 'needs tuning';
-  const bDecision = b.classification === 'viable' || b.classification === 'needs tuning';
+  const aDecision = ['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(a.classification);
+  const bDecision = ['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(b.classification);
   if (aDecision && bDecision) {
     if (b.metrics.profitFactor !== a.metrics.profitFactor) return b.metrics.profitFactor - a.metrics.profitFactor;
     if (b.metrics.totalR !== a.metrics.totalR) return b.metrics.totalR - a.metrics.totalR;
@@ -754,21 +830,33 @@ function compareRunResults(a: BacktestRunResult, b: BacktestRunResult): number {
 
 function recommendationForResult(result: BacktestRunResult): { action: string; text: string } {
   const label = `${result.strategy} ${result.testedTimeframe}`;
-  if (result.unsupportedReason || result.classification === 'wrong timeframe/dataset') return { action: 'Wrong dataset', text: `${label}: Wrong dataset — ${result.unsupportedReason ?? 'uploaded timeframe cannot support this test'}.` };
-  if (result.classification === 'viable') return { action: 'Keep', text: `${label}: Keep — viable in this sample with positive R and acceptable PF/drawdown evidence.` };
+  if (result.unsupportedReason || ['wrong dataset/timeframe', 'wrong timeframe/dataset'].includes(result.classification)) return { action: 'Wrong dataset', text: `${label}: Wrong dataset/timeframe — ${result.unsupportedReason ?? 'uploaded timeframe cannot support this test'}.` };
+  if (result.strategy === 'MicroScalper' && result.testedTimeframe === '15m' && ['viable / preserve', 'viable'].includes(result.classification)) return { action: 'Keep', text: `${label}: Keep / preserve core behavior. Only optimize carefully, and check longer datasets plus chop periods before loosening or tightening.` };
+  if (result.strategy === 'MicroScalper' && result.testedTimeframe === '5m' && result.classification === 'viable but noisy') return { action: 'Tune later', text: `${label}: Viable but noisy — do not discard; tune later for drawdown, loss streak, and lower average R. 15m appears cleaner in this sample.` };
+  if (result.strategy === 'CompressionBreakout' && result.testedTimeframe === '15m' && result.classification === 'too strict / dead participation') return { action: 'Tune first', text: `${label}: Tune first — likely compression-box/range threshold too strict or incorrectly scaled. Dominant blocker: ${topReason(result)?.[0] ?? 'none'}. Do not simply lower score/RR; investigate box width, ATR normalization, near-compression, and resampled timeframe behavior.` };
+  if (result.strategy === 'CompressionBreakout' && result.testedTimeframe === '1h' && result.classification === 'too strict / dead participation') return { action: 'Audit', text: `${label}: Same compression blocker appears (${topReason(result)?.[0] ?? 'none'}), but confidence is lower due to fewer 1h samples; gather more data before major tuning.` };
+  if (result.strategy === 'SwingContinuation' && result.testedTimeframe === '15m' && result.metrics.totalTrades === 0) return { action: 'Audit after CompressionBreakout', text: `${label}: Audit/tune after CompressionBreakout — likely too strict or possible backtest/live parity mismatch. Dominant blockers: ${topRejectionReasons(result.metrics.rejectionReasons, 3).map(([reason]) => reason).join(', ') || 'none'}. Check whether the backtest evaluator matches live scanner SwingContinuation behavior.` };
+  if (result.strategy === 'SwingContinuation' && result.testedTimeframe === '1h' && result.metrics.totalTrades === 0) return { action: 'Low-confidence audit', text: `${label}: Lower confidence zero-trade finding; main blockers are ${topRejectionReasons(result.metrics.rejectionReasons, 2).map(([reason]) => reason).join(' and ') || 'none'}. Test more 1h data before major tuning.` };
+  if (['viable / preserve', 'viable'].includes(result.classification)) return { action: 'Keep', text: `${label}: Keep — viable in this sample with positive R and acceptable PF/drawdown evidence.` };
+  if (result.classification === 'viable but noisy') return { action: 'Tune later', text: `${label}: Viable but noisy — profitable evidence exists, but tune for drawdown/noise before considering expansion.` };
+  if (result.classification === 'too strict / dead participation') return { action: 'Tune', text: `${label}: Too strict / dead participation — no trades from ${result.metrics.evaluations.toLocaleString()} evaluations; investigate top blocker ${topReason(result)?.[0] ?? 'none'}.` };
+  if (result.classification === 'possible parity mismatch') return { action: 'Audit parity', text: `${label}: Possible parity mismatch — zero trades despite enough evaluations; audit backtest gates against live scanner behavior before tuning parameters.` };
   if (result.classification === 'needs tuning') return { action: 'Tune', text: `${label}: Needs tuning — trades exist but PF ${result.metrics.profitFactor} and total R ${result.metrics.totalR} are not strong enough.` };
-  if (result.classification === 'not enough trades') return { action: 'Needs more data', text: `${label}: Needs more data — ${result.metrics.totalTrades} trades from ${result.metrics.evaluations.toLocaleString()} evaluations; check longer data or thresholds.` };
+  if (['needs more data', 'not enough trades'].includes(result.classification)) return { action: 'Needs more data', text: `${label}: Needs more data — ${result.metrics.totalTrades} trades from ${result.metrics.evaluations.toLocaleString()} evaluations; check longer data before tuning conclusions.` };
   if (result.classification === 'broken/misconfigured') return { action: 'Disable', text: `${label}: Disable/investigate — no evaluations were possible.` };
-  return { action: 'Tune', text: `${label}: Tune — not suitable for this symbol/timeframe sample based on current evidence.` };
+  return { action: 'Tune', text: `${label}: Tune — evidence is not decision-ready under the current sample.` };
 }
 
 
 type TuningSituation =
-  | 'No-trade / dead strategy'
+  | 'Too strict / dead participation'
+  | 'Possible parity mismatch'
   | 'Too strict'
   | 'Too loose / low quality'
   | 'Bad trade management / poor exits'
   | 'Symbol/timeframe mismatch'
+  | 'Needs more data'
+  | 'Viable but noisy'
   | 'Viable but needs optimization'
   | 'Viable / preserve';
 
@@ -852,11 +940,14 @@ function strategySpecificDirection(result: BacktestRunResult, situation: TuningS
     if (situation === 'Too loose / low quality') return 'Consider stricter reclaim quality, cleaner trend filter, or better invalidation logic.';
     if (situation === 'Viable / preserve') return 'Preserve trend/reclaim logic and optimize trade management carefully.';
   }
-  if (situation === 'No-trade / dead strategy') return 'Needs more data or targeted research preset changes before any live tuning is considered.';
+  if (situation === 'Too strict / dead participation') return 'Tune blocker first; investigate dominant rejection scaling before any live config change.';
+  if (situation === 'Possible parity mismatch') return 'Audit backtest/live parity and strict gates before assuming the strategy cannot participate.';
   if (situation === 'Too strict') return 'Consider testing a slightly less restrictive research preset; keep RR and distance guards intact.';
   if (situation === 'Too loose / low quality') return 'Consider stricter filters in research; do not promote this behavior without improved PF/R.';
   if (situation === 'Bad trade management / poor exits') return 'Investigate exits, expiry, TP balance, and invalidation in research only.';
   if (situation === 'Symbol/timeframe mismatch') return 'Test a more suitable timeframe or longer native dataset before tuning parameters.';
+  if (situation === 'Needs more data') return 'Extend the sample before drawing tuning conclusions.';
+  if (situation === 'Viable but noisy') return 'Do not discard; tune drawdown, loss streaks, and expectancy only after preserving the cleaner timeframe.';
   return 'Preserve core logic and test only small, isolated optimizations.';
 }
 
@@ -868,16 +959,22 @@ function diagnoseTuning(result: BacktestRunResult, allResults: BacktestRunResult
   const slRate = m.totalTrades > 0 ? m.losses / m.totalTrades : 0;
   const tp2Rate = m.totalTrades > 0 ? m.tp2Hits / m.totalTrades : 0;
   const expiryRate = m.totalTrades > 0 ? m.expired / m.totalTrades : 0;
-  const sameStrategyBetterTf = allResults.some(other => other.strategy === result.strategy && other.id !== result.id && ['viable', 'needs tuning'].includes(other.classification) && !['viable', 'needs tuning'].includes(result.classification));
+  const sameStrategyBetterTf = allResults.some(other => other.strategy === result.strategy && other.id !== result.id && ['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(other.classification) && !['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(result.classification));
   let situation: TuningSituation;
   let weakness: string;
 
-  if (result.unsupportedReason || sameStrategyBetterTf) {
+  if (result.unsupportedReason) {
     situation = 'Symbol/timeframe mismatch';
-    weakness = result.unsupportedReason ? `Unsupported or insufficient timeframe path: ${result.unsupportedReason}.` : 'Another timeframe for the same strategy produced better evidence than this one.';
-  } else if (m.totalTrades === 0 && (m.candidates <= 1 || rejectionRatio > 0.9)) {
-    situation = 'No-trade / dead strategy';
-    weakness = top ? `No trades; dominant rejection is ${top[0]} (${top[1]} rejects).` : 'No trades and no clear candidate flow.';
+    weakness = `Unsupported or insufficient timeframe path: ${result.unsupportedReason}.`;
+  } else if (result.classification === 'too strict / dead participation') {
+    situation = 'Too strict / dead participation';
+    weakness = top ? `No trades from ${m.evaluations.toLocaleString()} evaluations; dominant blocker is ${top[0]} (${top[1].toLocaleString()} rejects, ${Math.round(reasonShare(result) * 100)}% share).` : 'No trades despite enough evaluations; blocker is unclear.';
+  } else if (result.classification === 'possible parity mismatch') {
+    situation = 'Possible parity mismatch';
+    weakness = top ? `No trades from ${m.evaluations.toLocaleString()} evaluations; leading blockers include ${topRejectionReasons(m.rejectionReasons, 3).map(([reason, count]) => `${reason}=${count}`).join(', ')}. This may be too strict or a backtest/live parity mismatch.` : 'No trades despite enough evaluations; audit live/backtest parity.';
+  } else if (sameStrategyBetterTf && m.totalTrades === 0) {
+    situation = 'Symbol/timeframe mismatch';
+    weakness = 'Another timeframe for the same strategy produced better evidence than this zero-trade result.';
   } else if (rejectionRatio > 0.85 && candidateRatio < 0.03 && top && (STRICT_REJECTION_REASONS.has(top[0]) || hasAnyTopReason(result, [...STRICT_REJECTION_REASONS]))) {
     situation = 'Too strict';
     weakness = `High rejection ratio (${Math.round(rejectionRatio * 100)}%) with low candidate flow; top reason is ${top[0]}.`;
@@ -887,9 +984,15 @@ function diagnoseTuning(result: BacktestRunResult, allResults: BacktestRunResult
   } else if (m.totalTrades >= 5 && (m.avgR <= 0 || slRate >= 0.45 || tp2Rate < 0.1 || expiryRate > 0.35)) {
     situation = 'Bad trade management / poor exits';
     weakness = `Exit profile is weak: avg ${m.avgR}R, SL rate ${Math.round(slRate * 100)}%, TP2 rate ${Math.round(tp2Rate * 100)}%, expiry ${Math.round(expiryRate * 100)}%.`;
-  } else if (m.totalTrades >= 10 && m.totalR > 0 && m.profitFactor > 1 && (m.maxDrawdown <= Math.max(3, Math.abs(m.totalR) * 0.75))) {
+  } else if (['viable / preserve', 'viable'].includes(result.classification)) {
     situation = 'Viable / preserve';
-    weakness = `Positive sample: PF ${m.profitFactor}, total ${m.totalR}R, max drawdown ${m.maxDrawdown}R.`;
+    weakness = `Positive sample: PF ${m.profitFactor}, total ${m.totalR}R, avg ${m.avgR}R, max drawdown ${m.maxDrawdown}R.`;
+  } else if (result.classification === 'viable but noisy') {
+    situation = 'Viable but noisy';
+    weakness = `Profitable but noisy: PF ${m.profitFactor}, total ${m.totalR}R, avg ${m.avgR}R, max drawdown ${m.maxDrawdown}R.`;
+  } else if (['needs more data', 'not enough trades'].includes(result.classification)) {
+    situation = 'Needs more data';
+    weakness = `Only ${m.totalTrades} trades from ${m.evaluations.toLocaleString()} evaluations; avoid strong conclusions.`;
   } else {
     situation = 'Viable but needs optimization';
     weakness = m.totalTrades > 0 ? `Some evidence exists but quality is not decisive: PF ${m.profitFactor}, total ${m.totalR}R, avg ${m.avgR}R.` : 'No decisive trade evidence yet.';
@@ -905,21 +1008,66 @@ function diagnoseTuning(result: BacktestRunResult, allResults: BacktestRunResult
   };
 }
 
+function deadParticipationScore(result: BacktestRunResult): number {
+  if (result.metrics.totalTrades > 0) return 0;
+  const top = topReason(result);
+  const blockerClarity = top && STRICT_REJECTION_REASONS.has(top[0]) ? Math.max(reasonShare(result), 0.25) : 0;
+  const evaluationWeight = Math.min(result.metrics.evaluations / 1000, 3);
+  const compressionPriority = result.strategy === 'CompressionBreakout' && result.testedTimeframe === '15m' ? 2 : 0;
+  const swingPriority = result.strategy === 'SwingContinuation' && result.testedTimeframe === '15m' ? 1 : 0;
+  const lowerTimeframePenalty = result.testedTimeframe === '1h' ? -0.75 : 0;
+  return evaluationWeight + blockerClarity + compressionPriority + swingPriority + lowerTimeframePenalty;
+}
+
+function worstScore(result: BacktestRunResult): number {
+  const m = result.metrics;
+  if (m.totalTrades === 0) return 100 + deadParticipationScore(result);
+  if (m.totalTrades < 10) return 10;
+  const negativeQuality = Math.max(0, -m.totalR) * 2 + Math.max(0, 1 - m.profitFactor) * 20 + Math.max(0, m.maxDrawdown - Math.max(10, Math.abs(m.totalR) * 0.5));
+  return negativeQuality;
+}
+
+function tuneOrderScore(result: BacktestRunResult): number {
+  const diagnosis = diagnoseTuning(result, []);
+  if (result.testedTimeframe === '1h') return 5 + Math.min(result.metrics.evaluations / 1000, 1);
+  if (result.strategy === 'CompressionBreakout' && result.testedTimeframe === '15m' && result.metrics.totalTrades === 0) return 100 + deadParticipationScore(result);
+  if (result.strategy === 'SwingContinuation' && result.testedTimeframe === '15m' && result.metrics.totalTrades === 0) return 80 + deadParticipationScore(result);
+  if (result.classification === 'too strict / dead participation') return 70 + deadParticipationScore(result);
+  if (result.classification === 'possible parity mismatch') return 60 + deadParticipationScore(result);
+  if (result.classification === 'needs tuning') return 45;
+  if (result.classification === 'viable but noisy') return result.strategy === 'MicroScalper' && result.testedTimeframe === '5m' ? 35 : 30;
+  if (diagnosis.situation === 'Viable / preserve') return 10;
+  return 0;
+}
+
+function recommendedTuningOrder(results: BacktestRunResult[]): BacktestRunResult[] {
+  return [...results]
+    .sort((a, b) => {
+      const score = tuneOrderScore(b) - tuneOrderScore(a);
+      if (score !== 0) return score;
+      if (b.metrics.evaluations !== a.metrics.evaluations) return b.metrics.evaluations - a.metrics.evaluations;
+      return compareRunResults(a, b);
+    });
+}
+
+
 function buildTuningInsights(results: BacktestRunResult[], assumptions: CapitalAssumptions): TuningInsight[] {
   if (results.length === 0) return [];
   const sorted = [...results].sort(compareRunResults);
-  const overactive = [...results].sort((a, b) => b.metrics.totalTrades - a.metrics.totalTrades)[0] ?? null;
-  const dead = [...results].filter(r => r.metrics.totalTrades === 0).sort((a, b) => b.metrics.rejected - a.metrics.rejected)[0] ?? null;
-  const highestDd = [...results].sort((a, b) => b.metrics.maxDrawdown - a.metrics.maxDrawdown)[0] ?? null;
+  const tuningOrder = recommendedTuningOrder(results);
+  const overactive = [...results].filter(r => r.metrics.totalTrades > 0).sort((a, b) => b.metrics.totalTrades - a.metrics.totalTrades)[0] ?? null;
+  const dead = [...results].filter(r => r.metrics.totalTrades === 0).sort((a, b) => deadParticipationScore(b) - deadParticipationScore(a))[0] ?? null;
+  const highestDd = [...results].filter(r => r.metrics.totalTrades > 0).sort((a, b) => b.metrics.maxDrawdown - a.metrics.maxDrawdown)[0] ?? null;
   const riskAdjusted = [...results].filter(r => r.metrics.totalTrades > 0).sort((a, b) => (b.metrics.totalR / Math.max(b.metrics.maxDrawdown, 0.5)) - (a.metrics.totalR / Math.max(a.metrics.maxDrawdown, 0.5)))[0] ?? null;
-  const preserve = results.find(r => diagnoseTuning(r, results).situation === 'Viable / preserve') ?? null;
-  const tuneFirst = results.find(r => ['Too loose / low quality', 'Too strict', 'Bad trade management / poor exits'].includes(diagnoseTuning(r, results).situation)) ?? null;
+  const preserve = sorted.find(r => diagnoseTuning(r, results).situation === 'Viable / preserve') ?? null;
+  const tuneFirst = tuningOrder.find(r => tuneOrderScore(r) >= 30) ?? null;
+  const worst = [...results].sort((a, b) => worstScore(b) - worstScore(a))[0] ?? null;
   return [
-    { label: 'Best strategy/timeframe/preset', result: sorted[0] ?? null, note: 'Top-ranked by decision classification and performance quality.' },
-    { label: 'Worst strategy/timeframe/preset', result: sorted[sorted.length - 1] ?? null, note: 'Lowest-ranked evidence in this historical sample.' },
-    { label: 'Most overactive strategy', result: overactive, note: overactive ? `${overactive.metrics.totalTrades} trades generated.` : 'No result.' },
-    { label: 'Most dead strategy', result: dead, note: dead ? `${dead.metrics.rejected.toLocaleString()} rejections and no trades.` : 'No zero-trade result.' },
-    { label: 'Highest drawdown strategy', result: highestDd, note: highestDd ? `${highestDd.metrics.maxDrawdown}R max drawdown; ${formatMoney(capitalForResult(highestDd, assumptions).maxDrawdownAmount)} estimated.` : 'No result.' },
+    { label: 'Best strategy/timeframe/preset', result: sorted[0] ?? null, note: 'Top-ranked by viability, PF, total R, average R, drawdown, and sample size.' },
+    { label: 'Worst strategy/timeframe/preset', result: worst, note: worst ? 'Prioritizes true dead participation, high-confidence blockers, negative R/PF, and severe drawdown over profitable-but-noisy results.' : 'No result.' },
+    { label: 'Most overactive strategy', result: overactive, note: overactive ? `${overactive.metrics.totalTrades} trades generated.` : 'No traded result.' },
+    { label: 'Most dead strategy', result: dead, note: dead ? `${dead.metrics.evaluations.toLocaleString()} evaluations, ${dead.metrics.rejected.toLocaleString()} rejections, and no trades; top blocker ${topReason(dead)?.[0] ?? 'none'}.` : 'No zero-trade result.' },
+    { label: 'Highest drawdown strategy', result: highestDd, note: highestDd ? `${highestDd.metrics.maxDrawdown}R max drawdown; ${formatMoney(capitalForResult(highestDd, assumptions).maxDrawdownAmount)} estimated.` : 'No traded result.' },
     { label: 'Best risk-adjusted candidate', result: riskAdjusted, note: riskAdjusted ? `${(riskAdjusted.metrics.totalR / Math.max(riskAdjusted.metrics.maxDrawdown, 0.5)).toFixed(2)} TotalR/MaxDD score.` : 'No traded result.' },
     { label: 'Strategy to preserve', result: preserve, note: preserve ? 'Positive evidence; preserve core behavior and only optimize carefully.' : 'No preserve candidate yet.' },
     { label: 'Strategy to tune first', result: tuneFirst, note: tuneFirst ? diagnoseTuning(tuneFirst, results).mainWeakness : 'No obvious first tuning candidate yet.' },
@@ -957,7 +1105,7 @@ function buildCopyableTuningReport(symbol: string, datasetTf: string, csvInfo: C
     ...insights.map(insight => `- ${insight.label}: ${insight.result ? resultLabel(insight.result) : 'N/A'} — ${insight.note}`),
     '',
     'Recommended next tuning order:',
-    ...sorted.map(result => `- ${resultLabel(result)}: ${diagnoseTuning(result, sorted).situation} (${diagnoseTuning(result, sorted).confidence})`),
+    ...recommendedTuningOrder(sorted).map((result, index) => `- ${index + 1}. ${resultLabel(result)}: ${diagnoseTuning(result, sorted).situation} (${diagnoseTuning(result, sorted).confidence}) — ${recommendationForResult(result).text}`),
     '',
     'Warning: use this as research evidence only. Do not auto-apply live strategy_config changes without separate validation.',
   ];
@@ -966,8 +1114,10 @@ function buildCopyableTuningReport(symbol: string, datasetTf: string, csvInfo: C
 
 function buildCopySummary(symbol: string, datasetTf: string, csvInfo: CsvInfo | null, preset: ResearchPreset, results: BacktestRunResult[]): string {
   const range = csvInfo ? `${new Date(csvInfo.firstTime).toISOString()} → ${new Date(csvInfo.lastTime).toISOString()}` : 'unknown';
-  const best = results[0];
-  const worst = results[results.length - 1];
+  const sorted = [...results].sort(compareRunResults);
+  const best = sorted[0];
+  const worst = [...results].sort((a, b) => worstScore(b) - worstScore(a))[0];
+  const tuningOrder = recommendedTuningOrder(results);
   const lines = [
     'HashiBot Backtest Lab Summary',
     `Symbol: ${symbol.trim().toUpperCase() || 'unspecified'}`,
@@ -986,6 +1136,9 @@ function buildCopySummary(symbol: string, datasetTf: string, csvInfo: CsvInfo | 
     '',
     'Recommendations:',
     ...results.map(r => `- ${recommendationForResult(r).text}`),
+    '',
+    'Recommended tuning order:',
+    ...tuningOrder.map((r, index) => `- ${index + 1}. ${r.strategy} ${r.testedTimeframe}: ${diagnoseTuning(r, results).situation} — ${recommendationForResult(r).action}`),
   ];
   return lines.join('\n');
 }
@@ -1200,7 +1353,8 @@ export default function BacktestLab() {
   const primaryResult = runResults.find(r => r.id === selectedRunId) ?? runResults[0];
   const sortedComparison = [...runResults].sort(compareRunResults);
   const bestResult = sortedComparison[0];
-  const worstResult = sortedComparison[sortedComparison.length - 1];
+  const worstResult = [...runResults].sort((a, b) => worstScore(b) - worstScore(a))[0];
+  const tuningOrder = recommendedTuningOrder(runResults);
   const copySummary = buildCopySummary(csvSymbol, csvTimeframe, csvInfo, researchPreset, sortedComparison);
   const tuningReportText = buildCopyableTuningReport(csvSymbol, csvTimeframe, csvInfo, researchPreset, sortedComparison, capitalAssumptions);
   const tuningInsights = buildTuningInsights(sortedComparison, capitalAssumptions);
@@ -1596,7 +1750,7 @@ export default function BacktestLab() {
                               <div className="text-sm font-semibold text-zinc-100">{result.strategy} · {result.testedTimeframe}</div>
                               <div className="text-xs text-zinc-500 mt-1">Dataset {result.datasetTimeframe} · resampled {result.resampled ? 'yes' : 'no'} · preset {RESEARCH_PRESET_LABEL[result.preset]} · candles {result.candlesTested.toLocaleString()} / {result.candlesLoaded.toLocaleString()}</div>
                             </div>
-                            <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded border ${result.classification === 'viable' ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : result.classification === 'needs tuning' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : result.classification === 'wrong timeframe/dataset' ? 'text-red-300 border-red-500/30 bg-red-500/10' : 'text-zinc-300 border-zinc-600 bg-zinc-800/60'}`}>
+                            <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded border ${['viable / preserve', 'viable'].includes(result.classification) ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : result.classification === 'viable but noisy' ? 'text-sky-300 border-sky-500/30 bg-sky-500/10' : result.classification === 'needs tuning' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : ['too strict / dead participation', 'possible parity mismatch'].includes(result.classification) ? 'text-orange-300 border-orange-500/30 bg-orange-500/10' : ['wrong dataset/timeframe', 'wrong timeframe/dataset'].includes(result.classification) ? 'text-red-300 border-red-500/30 bg-red-500/10' : 'text-zinc-300 border-zinc-600 bg-zinc-800/60'}`}>
                               {result.classification}
                             </span>
                           </div>
@@ -1704,6 +1858,24 @@ export default function BacktestLab() {
                             <div className="text-xs text-zinc-500 mt-1">{insight.note}</div>
                           </div>
                         ))}
+                      </div>
+
+                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+                        <div className="text-xs font-semibold text-zinc-300 mb-3">Recommended tuning order</div>
+                        <div className="space-y-2">
+                          {tuningOrder.map((result, index) => {
+                            const diagnosis = diagnoseTuning(result, sortedComparison);
+                            return (
+                              <div key={`order-${result.id}`} className="flex gap-3 text-xs">
+                                <span className="text-zinc-500 tabular-nums">{index + 1}.</span>
+                                <div>
+                                  <span className="text-zinc-200">{result.strategy} {result.testedTimeframe}</span>
+                                  <span className="text-zinc-500"> — {diagnosis.situation}; {recommendationForResult(result).action}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       <div className="space-y-3">
