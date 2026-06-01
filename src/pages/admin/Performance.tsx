@@ -1,59 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface PerformanceSummary {
-  total_signals: number;
-  closed_trades: number;
-  open_trades: number;
-  wins: number;
-  losses: number;
-  tp1_hits: number;
-  tp2_hits: number;
-  sl_hits: number;
-  expired: number;
-  win_rate_pct: number | null;
-  loss_rate_pct: number | null;
-  total_r: number;
-  avg_r: number;
-  profit_factor: number | null;
-  avg_win_r: number;
-  avg_loss_r: number;
-  best_trade_r: number;
-  worst_trade_r: number;
-  max_consecutive_wins: number;
-  max_consecutive_losses: number;
-  estimated_pnl_r: number;
-  calculated_at: string;
-}
-
-interface StrategyRow {
-  market_type?: string | null;
-  strategy_name: string | null;
-  total_signals: number;
-  closed_trades: number;
-  open_trades: number;
-  wins: number;
-  losses: number;
-  tp1_hits: number;
-  tp2_hits: number;
-  sl_hits: number;
-  expired: number;
-  win_rate_pct: number | null;
-  total_r: number;
-  avg_r: number;
-  profit_factor: number | null;
-  avg_win_r: number;
-  avg_loss_r: number;
-  best_trade_r: number;
-  worst_trade_r: number;
-  estimated_pnl_r: number;
-  last_signal_time: string | null;
-}
 
 interface SignalAnalyticsRow {
   signal_id: string;
@@ -85,6 +36,9 @@ interface Filters {
   direction: string;
   grade: string;
   outcome: string;
+  datePreset: DatePreset;
+  customStart: string;
+  customEnd: string;
 }
 
 interface ResetCountRow {
@@ -92,22 +46,105 @@ interface ResetCountRow {
   deleted_count: number;
 }
 
+type DatePreset = 'today' | 'last24h' | 'last7d' | 'last30d' | 'baseline' | 'custom';
+
+type MetricSummary = {
+  totalSignals: number;
+  closedTrades: number;
+  openTrades: number;
+  wins: number;
+  losses: number;
+  expired: number;
+  tp1Hits: number;
+  tp2Hits: number;
+  slHits: number;
+  winRatePct: number | null;
+  profitFactor: number | null;
+  totalR: number | null;
+  avgR: number | null;
+  bestR: number | null;
+  worstR: number | null;
+  avgWinR: number | null;
+  avgLossR: number | null;
+  maxWinStreak: number;
+  maxLossStreak: number;
+  lastSignalTime: string | null;
+};
+
+type BreakdownRow = MetricSummary & {
+  key: string;
+  label: string;
+  market?: string;
+  mostUsedStrategy?: string | null;
+};
+
+interface StrategyConfigRow {
+  strategy_name: string;
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const RESET_CONFIRMATION_TEXT = 'RESET TRADING HISTORY';
+const BASELINE_STORAGE_KEY = 'hashibot.adminPerformance.baselineStartedAt';
+const REQUIRED_STRATEGIES = [
+  'MicroScalper',
+  'CompressionBreakout',
+  'SwingContinuation',
+  'ForexMicroScalper',
+  'ForexSwingContinuation',
+];
+
+const OUTCOME_COLORS: Record<string, string> = {
+  WIN: 'text-emerald-400',
+  LOSS: 'text-red-400',
+  EXPIRED: 'text-zinc-500',
+  OPEN: 'text-blue-400',
+  CANCELLED: 'text-zinc-600',
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function fmtR(n: number | null | undefined) {
-  if (n === null || n === undefined) return <span className="text-zinc-500">open</span>;
+function getStoredBaselineTimestamp() {
+  if (typeof window === 'undefined') return null;
+  const stored = window.localStorage.getItem(BASELINE_STORAGE_KEY);
+  return stored && !Number.isNaN(new Date(stored).getTime()) ? stored : null;
+}
+
+function initialFilters(): Filters {
+  const baselineStartedAt = getStoredBaselineTimestamp();
+  return {
+    market: 'crypto',
+    strategy: '',
+    symbol: '',
+    timeframe: '',
+    direction: '',
+    grade: '',
+    outcome: '',
+    datePreset: baselineStartedAt ? 'baseline' : 'last30d',
+    customStart: '',
+    customEnd: '',
+  };
+}
+
+function fmtR(n: number | null | undefined, empty = '—') {
+  if (n === null || n === undefined || Number.isNaN(n)) return <span className="text-zinc-500">{empty}</span>;
   const color = n > 0 ? 'text-emerald-400' : n < 0 ? 'text-red-400' : 'text-zinc-400';
   return <span className={color}>{n > 0 ? '+' : ''}{n.toFixed(2)}R</span>;
 }
 
+function fmtSignalR(n: number | null | undefined) {
+  if (n === null || n === undefined || Number.isNaN(n)) return <span className="text-zinc-500">open</span>;
+  return fmtR(n);
+}
+
 function fmtPF(pf: number | null | undefined) {
-  if (pf === null || pf === undefined) return <span className="text-emerald-300 font-semibold">∞</span>;
+  if (pf === null || pf === undefined || Number.isNaN(pf)) return <span className="text-zinc-500">—</span>;
   const color = pf >= 1.5 ? 'text-emerald-400' : pf >= 1 ? 'text-yellow-400' : 'text-red-400';
   return <span className={color}>{pf.toFixed(2)}</span>;
 }
 
 function fmtWinRate(wr: number | null | undefined) {
-  if (wr === null || wr === undefined) return '—';
+  if (wr === null || wr === undefined || Number.isNaN(wr)) return <span className="text-zinc-500">—</span>;
   const color = wr >= 60 ? 'text-emerald-400' : wr >= 40 ? 'text-yellow-400' : 'text-red-400';
   return <span className={color}>{wr.toFixed(1)}%</span>;
 }
@@ -119,17 +156,138 @@ function fmtDuration(mins: number | null | undefined) {
   return `${(mins / 1440).toFixed(1)}d`;
 }
 
-const RESET_CONFIRMATION_TEXT = 'RESET TRADING HISTORY';
+function fmtPrice(n: number | null | undefined) {
+  if (n === null || n === undefined) return '—';
+  return n >= 100 ? n.toFixed(2) : n.toFixed(5);
+}
 
-const OUTCOME_COLORS: Record<string, string> = {
-  WIN: 'text-emerald-400',
-  LOSS: 'text-red-400',
-  EXPIRED: 'text-zinc-500',
-  OPEN: 'text-blue-400',
-  CANCELLED: 'text-zinc-600',
-};
+function fmtDateTime(value: string | null | undefined) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString();
+}
 
-// ─── StatCard ─────────────────────────────────────────────────────────────────
+function fmtDate(value: string | null | undefined) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString();
+}
+
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function dateRangeForFilters(filters: Filters, baselineStartedAt: string | null) {
+  const now = new Date();
+  let start: Date | null = null;
+  let end: Date | null = null;
+
+  if (filters.datePreset === 'today') {
+    start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    end = new Date(now);
+  } else if (filters.datePreset === 'last24h') {
+    start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    end = new Date(now);
+  } else if (filters.datePreset === 'last7d') {
+    start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    end = new Date(now);
+  } else if (filters.datePreset === 'last30d') {
+    start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    end = new Date(now);
+  } else if (filters.datePreset === 'baseline' && baselineStartedAt) {
+    start = new Date(baselineStartedAt);
+  } else if (filters.datePreset === 'custom') {
+    if (filters.customStart) {
+      start = new Date(`${filters.customStart}T00:00:00`);
+    }
+    if (filters.customEnd) {
+      end = new Date(`${filters.customEnd}T23:59:59.999`);
+    }
+  }
+
+  return { start, end };
+}
+
+function isWinLoss(row: SignalAnalyticsRow) {
+  return row.outcome_category === 'WIN' || row.outcome_category === 'LOSS';
+}
+
+function calculateSummary(rows: SignalAnalyticsRow[]): MetricSummary {
+  const closedRows = rows.filter(row => row.outcome_category !== 'OPEN');
+  const rRows = closedRows.filter(row => row.r_result !== null && row.r_result !== undefined);
+  const wins = rows.filter(row => row.outcome_category === 'WIN').length;
+  const losses = rows.filter(row => row.outcome_category === 'LOSS').length;
+  const positiveR = rRows.filter(row => (row.r_result ?? 0) > 0).reduce((sum, row) => sum + (row.r_result ?? 0), 0);
+  const negativeR = rRows.filter(row => (row.r_result ?? 0) < 0).reduce((sum, row) => sum + (row.r_result ?? 0), 0);
+  const totalR = rRows.reduce((sum, row) => sum + (row.r_result ?? 0), 0);
+  const rValues = rRows.map(row => row.r_result ?? 0);
+  const winLossCount = wins + losses;
+
+  let currentWinStreak = 0;
+  let currentLossStreak = 0;
+  let maxWinStreak = 0;
+  let maxLossStreak = 0;
+  [...rows]
+    .filter(isWinLoss)
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .forEach(row => {
+      if (row.outcome_category === 'WIN') {
+        currentWinStreak += 1;
+        currentLossStreak = 0;
+      } else {
+        currentLossStreak += 1;
+        currentWinStreak = 0;
+      }
+      maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+      maxLossStreak = Math.max(maxLossStreak, currentLossStreak);
+    });
+
+  return {
+    totalSignals: rows.length,
+    closedTrades: closedRows.length,
+    openTrades: rows.filter(row => row.outcome_category === 'OPEN').length,
+    wins,
+    losses,
+    expired: rows.filter(row => row.outcome_category === 'EXPIRED').length,
+    tp1Hits: rows.filter(row => row.current_status === 'tp1_hit').length,
+    tp2Hits: rows.filter(row => row.current_status === 'tp2_hit').length,
+    slHits: rows.filter(row => row.current_status === 'sl_hit').length,
+    winRatePct: winLossCount > 0 ? (wins / winLossCount) * 100 : null,
+    profitFactor: positiveR > 0 && negativeR < 0 ? positiveR / Math.abs(negativeR) : null,
+    totalR: rRows.length > 0 ? totalR : null,
+    avgR: rRows.length > 0 ? totalR / rRows.length : null,
+    bestR: rValues.length > 0 ? Math.max(...rValues) : null,
+    worstR: rValues.length > 0 ? Math.min(...rValues) : null,
+    avgWinR: wins > 0 ? positiveR / wins : null,
+    avgLossR: losses > 0 ? negativeR / losses : null,
+    maxWinStreak,
+    maxLossStreak,
+    lastSignalTime: rows.reduce<string | null>((latest, row) => {
+      if (!latest) return row.created_at;
+      return new Date(row.created_at) > new Date(latest) ? row.created_at : latest;
+    }, null),
+  };
+}
+
+function groupBreakdown(rows: SignalAnalyticsRow[], getKey: (row: SignalAnalyticsRow) => string, getExtra?: (key: string, keyRows: SignalAnalyticsRow[]) => Partial<BreakdownRow>): BreakdownRow[] {
+  const groups = new Map<string, SignalAnalyticsRow[]>();
+  rows.forEach(row => {
+    const key = getKey(row) || '—';
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  });
+
+  return [...groups.entries()].map(([key, keyRows]) => ({
+    key,
+    label: key,
+    ...calculateSummary(keyRows),
+    ...(getExtra?.(key, keyRows) ?? {}),
+  })).sort((a, b) => b.totalSignals - a.totalSignals || a.label.localeCompare(b.label));
+}
+
+function mostUsedStrategy(rows: SignalAnalyticsRow[]) {
+  const counts = new Map<string, number>();
+  rows.forEach(row => counts.set(row.strategy_name ?? 'unnamed', (counts.get(row.strategy_name ?? 'unnamed') ?? 0) + 1));
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
 
 function StatCard({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
@@ -140,8 +298,6 @@ function StatCard({ label, value, sub }: { label: string; value: React.ReactNode
     </div>
   );
 }
-
-// ─── FilterBar ───────────────────────────────────────────────────────────────
 
 function FilterSelect({ label, value, onChange, options }: {
   label: string;
@@ -164,70 +320,76 @@ function FilterSelect({ label, value, onChange, options }: {
   );
 }
 
+function DatePresetButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${active ? 'bg-blue-600/20 border-blue-500/60 text-blue-200' : 'border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500'}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Performance() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [summary, setSummary] = useState<PerformanceSummary | null>(null);
-  const [strategies, setStrategies] = useState<StrategyRow[]>([]);
   const [signals, setSignals] = useState<SignalAnalyticsRow[]>([]);
-  const [filters, setFilters] = useState<Filters>({ market: 'crypto', strategy: '', symbol: '', timeframe: '', direction: '', grade: '', outcome: '' });
+  const [configuredStrategies, setConfiguredStrategies] = useState<string[]>(REQUIRED_STRATEGIES);
+  const [filters, setFilters] = useState<Filters>(initialFilters);
+  const [baselineStartedAt, setBaselineStartedAt] = useState<string | null>(() => getStoredBaselineTimestamp());
   const [resetInput, setResetInput] = useState('');
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string } | null>(null);
 
-  // Dynamic filter options derived from loaded data
-  const [filterOpts, setFilterOpts] = useState<{ strategies: string[]; symbols: string[]; timeframes: string[]; directions: string[]; grades: string[] }>({
-    strategies: [], symbols: [], timeframes: [], directions: [], grades: [],
-  });
-
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [summaryRes, stratRes, sigRes] = await Promise.all([
-        supabase.from('signal_performance_summary_by_market_view').select('*'),
-        supabase.from('strategy_performance_by_market_view').select('*'),
+      const [sigRes, stratConfigRes] = await Promise.all([
         supabase.from('signal_analytics_view')
           .select('signal_id,strategy_name,symbol,market_type,timeframe,direction,grade,data_source,current_status,outcome_category,r_result,close_price,closed_at,duration_minutes,created_at,entry_price,stop_loss,tp1,tp2')
           .eq('data_source', 'REAL DATA')
           .neq('outcome_category', 'CANCELLED')
           .order('created_at', { ascending: false })
-          .limit(200),
+          .limit(5000),
+        supabase.from('strategy_configs').select('strategy_name').order('strategy_name'),
       ]);
 
-      if (summaryRes.error) throw new Error(summaryRes.error.message);
-      if (stratRes.error) throw new Error(stratRes.error.message);
       if (sigRes.error) throw new Error(sigRes.error.message);
+      if (stratConfigRes.error) throw new Error(stratConfigRes.error.message);
 
-      const summaries = (summaryRes.data ?? []) as (PerformanceSummary & { market_type?: string | null })[];
-      setSummary((summaries.find(row => row.market_type === filters.market) ?? null) as PerformanceSummary | null);
-      const stratData = ((stratRes.data ?? []) as StrategyRow[]).filter(row => row.market_type === filters.market);
-      setStrategies(stratData);
-      const sigData = (sigRes.data ?? []) as SignalAnalyticsRow[];
-      setSignals(sigData);
-
-      // Derive filter options
-      setFilterOpts({
-        strategies: [...new Set(stratData.map(s => s.strategy_name ?? 'unnamed').filter(Boolean))].sort(),
-        symbols: [...new Set(sigData.map(s => s.symbol))].sort(),
-        timeframes: [...new Set(sigData.map(s => s.timeframe))].sort(),
-        directions: [...new Set(sigData.map(s => s.direction))].filter(Boolean).sort(),
-        grades: [...new Set(sigData.map(s => s.grade))].filter(Boolean).sort(),
+      setSignals((sigRes.data ?? []) as SignalAnalyticsRow[]);
+      const names = new Set(REQUIRED_STRATEGIES);
+      ((stratConfigRes.data ?? []) as StrategyConfigRow[]).forEach(row => {
+        if (row.strategy_name) names.add(row.strategy_name);
       });
+      setConfiguredStrategies([...names].sort());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load analytics');
     } finally {
       setLoading(false);
     }
-  }, [filters.market]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
   function setFilter(key: keyof Filters, val: string) {
     setFilters(f => ({ ...f, [key]: val }));
+  }
+
+  function setDatePreset(datePreset: DatePreset) {
+    setFilters(f => {
+      const next = { ...f, datePreset };
+      if (datePreset === 'custom' && !next.customStart && !next.customEnd) {
+        next.customStart = toDateInputValue(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        next.customEnd = toDateInputValue(new Date());
+      }
+      return next;
+    });
   }
 
   async function handleResetTradingHistory() {
@@ -239,9 +401,13 @@ export default function Performance() {
       const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history');
       if (rpcError) throw new Error(rpcError.message);
 
+      const timestamp = new Date().toISOString();
+      window.localStorage.setItem(BASELINE_STORAGE_KEY, timestamp);
+      setBaselineStartedAt(timestamp);
+      setFilters(f => ({ ...f, datePreset: 'baseline', customStart: '', customEnd: '' }));
       setResetResult({
         rows: (data ?? []) as ResetCountRow[],
-        timestamp: new Date().toISOString(),
+        timestamp,
       });
       setResetInput('');
       await load();
@@ -252,8 +418,20 @@ export default function Performance() {
     }
   }
 
-  // Apply filters to signals table
-  const filteredSignals = signals.filter(s => {
+  const filterOpts = useMemo(() => ({
+    strategies: configuredStrategies,
+    symbols: [...new Set(signals.map(s => s.symbol).filter(Boolean))].sort(),
+    timeframes: [...new Set(signals.map(s => s.timeframe).filter(Boolean))].sort(),
+    directions: [...new Set(signals.map(s => s.direction).filter(Boolean))].sort(),
+    grades: [...new Set(signals.map(s => s.grade).filter(Boolean))].sort(),
+  }), [configuredStrategies, signals]);
+
+  const { start: dateStart, end: dateEnd } = useMemo(() => dateRangeForFilters(filters, baselineStartedAt), [filters, baselineStartedAt]);
+
+  const filteredSignals = useMemo(() => signals.filter(s => {
+    const created = new Date(s.created_at);
+    if (dateStart && created < dateStart) return false;
+    if (dateEnd && created > dateEnd) return false;
     if (filters.market && s.market_type !== filters.market) return false;
     if (filters.strategy && (s.strategy_name ?? 'unnamed') !== filters.strategy) return false;
     if (filters.symbol && s.symbol !== filters.symbol) return false;
@@ -262,12 +440,35 @@ export default function Performance() {
     if (filters.grade && s.grade !== filters.grade) return false;
     if (filters.outcome && s.outcome_category !== filters.outcome) return false;
     return true;
-  });
+  }), [signals, filters, dateStart, dateEnd]);
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const hasTrackedSignals = signals.length > 0;
-  const hasClosedSignals = (summary?.closed_trades ?? 0) > 0;
-  const showBaselineEmptyState = !loading && !hasTrackedSignals && activeFilterCount === 1 && Boolean(filters.market);
+  const baselineSignals = useMemo(() => {
+    if (!baselineStartedAt) return signals;
+    const baselineDate = new Date(baselineStartedAt);
+    return signals.filter(signal => new Date(signal.created_at) >= baselineDate);
+  }, [baselineStartedAt, signals]);
+
+  const summary = useMemo(() => calculateSummary(filteredSignals), [filteredSignals]);
+  const strategyBreakdown = useMemo(() => {
+    const grouped = new Map(groupBreakdown(filteredSignals, row => row.strategy_name ?? 'unnamed').map(row => [row.key, row]));
+    return configuredStrategies.map(strategy => grouped.get(strategy) ?? {
+      key: strategy,
+      label: strategy,
+      ...calculateSummary([]),
+    });
+  }, [configuredStrategies, filteredSignals]);
+  const symbolBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.symbol, (_key, rows) => ({
+    market: [...new Set(rows.map(row => row.market_type))].join(', '),
+    mostUsedStrategy: mostUsedStrategy(rows),
+  })), [filteredSignals]);
+  const timeframeBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.timeframe), [filteredSignals]);
+  const gradeBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.grade), [filteredSignals]);
+
+  const activeFilterCount = [filters.market, filters.strategy, filters.symbol, filters.timeframe, filters.direction, filters.grade, filters.outcome].filter(Boolean).length + (filters.datePreset !== (baselineStartedAt ? 'baseline' : 'last30d') || filters.customStart || filters.customEnd ? 1 : 0);
+  const hasSignalsInBaseline = baselineSignals.length > 0;
+  const emptyMessage = !hasSignalsInBaseline
+    ? 'No tracked signals in this baseline yet. Run the scanner to begin collecting fresh results.'
+    : 'No signals match this filter/date range.';
 
   return (
     <AdminLayout>
@@ -278,7 +479,10 @@ export default function Performance() {
             <BarChart2 size={22} className="text-blue-400" />
             Signal Performance
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">REAL DATA signals by market — crypto and forex never mixed without the market filter</p>
+          <p className="text-sm text-zinc-500 mt-0.5">REAL DATA signals by market — crypto and forex only mix when Market is set to All</p>
+          <p className="text-xs text-zinc-500 mt-2">
+            {baselineStartedAt ? `Current baseline started: ${fmtDateTime(baselineStartedAt)}` : 'Baseline: all available trading history'}
+          </p>
         </div>
         <button
           onClick={load}
@@ -345,125 +549,9 @@ export default function Performance() {
         </div>
       </section>
 
-      {loading && !summary && (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-
-      {/* ── Overall Performance Cards ── */}
-      {summary && hasClosedSignals && (
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Overall Performance</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-3">
-            <StatCard label="Total Signals" value={summary.total_signals} sub={`${summary.closed_trades} closed · ${summary.open_trades} open`} />
-            <StatCard label="Win Rate" value={fmtWinRate(summary.win_rate_pct)} sub={`${summary.wins}W / ${summary.losses}L`} />
-            <StatCard label="Profit Factor" value={fmtPF(summary.profit_factor)} sub={summary.profit_factor === null && summary.wins > 0 ? 'No losses recorded' : undefined} />
-            <StatCard label="Total R" value={
-              <span className={summary.total_r > 0 ? 'text-emerald-400' : summary.total_r < 0 ? 'text-red-400' : 'text-zinc-300'}>
-                {summary.total_r > 0 ? '+' : ''}{summary.total_r.toFixed(2)}R
-              </span>
-            } sub={`avg ${summary.avg_r > 0 ? '+' : ''}${summary.avg_r.toFixed(2)}R / trade`} />
-            <StatCard label="Best Trade" value={<span className="text-emerald-400">+{summary.best_trade_r.toFixed(2)}R</span>} sub={`worst: ${summary.worst_trade_r.toFixed(2)}R`} />
-            <StatCard label="Avg Win R" value={<span className="text-emerald-400">+{summary.avg_win_r.toFixed(2)}R</span>} sub={`avg loss: ${summary.avg_loss_r.toFixed(2)}R`} />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <StatCard label="TP1 Hits" value={summary.tp1_hits} sub="partial wins" />
-            <StatCard label="TP2 Hits" value={summary.tp2_hits} sub="full wins" />
-            <StatCard label="SL Hits" value={summary.sl_hits} sub="losses" />
-            <StatCard label="Expired" value={summary.expired} sub="0R — neither win nor loss" />
-            <StatCard label="Max Win Streak" value={summary.max_consecutive_wins} sub={`max loss streak: ${summary.max_consecutive_losses}`} />
-          </div>
-        </section>
-      )}
-
-      {summary && !hasClosedSignals && hasTrackedSignals && (
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Overall Performance</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <StatCard label="Total Signals" value={summary.total_signals} sub={`${summary.open_trades} open · 0 closed`} />
-            <StatCard label="Closed Trades" value="0" sub="Performance metrics begin after outcomes close." />
-            <StatCard label="Open Trades" value={summary.open_trades} sub="Awaiting TP/SL/expiry outcomes." />
-          </div>
-        </section>
-      )}
-
-      {!loading && !summary && (
-        <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
-          No tracked signals in this baseline yet. Run the scanner to begin collecting fresh results.
-        </div>
-      )}
-
-      {/* ── Strategy Performance Table ── */}
-      {strategies.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Breakdown</h2>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
-                    <th className="text-left px-4 py-3 font-medium">Strategy</th>
-                    <th className="text-right px-3 py-3 font-medium">Trades</th>
-                    <th className="text-right px-3 py-3 font-medium">W / L</th>
-                    <th className="text-right px-3 py-3 font-medium">Win Rate</th>
-                    <th className="text-right px-3 py-3 font-medium">PF</th>
-                    <th className="text-right px-3 py-3 font-medium">Total R</th>
-                    <th className="text-right px-3 py-3 font-medium">Avg R</th>
-                    <th className="text-right px-3 py-3 font-medium">TP1</th>
-                    <th className="text-right px-3 py-3 font-medium">TP2</th>
-                    <th className="text-right px-3 py-3 font-medium">SL</th>
-                    <th className="text-right px-3 py-3 font-medium">Exp</th>
-                    <th className="text-right px-3 py-3 font-medium">Open</th>
-                    <th className="text-right px-4 py-3 font-medium">Last Signal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/60">
-                  {strategies.map((row, i) => (
-                    <tr key={i} className="hover:bg-zinc-800/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-zinc-200 max-w-[160px]">
-                        <span className="truncate block" title={row.strategy_name ?? 'unnamed'}>
-                          {row.strategy_name ?? <span className="text-zinc-600 italic">unnamed</span>}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-right text-zinc-300">{row.total_signals}</td>
-                      <td className="px-3 py-3 text-right">
-                        <span className="text-emerald-400">{row.wins}</span>
-                        <span className="text-zinc-600"> / </span>
-                        <span className="text-red-400">{row.losses}</span>
-                      </td>
-                      <td className="px-3 py-3 text-right">{fmtWinRate(row.win_rate_pct)}</td>
-                      <td className="px-3 py-3 text-right">{fmtPF(row.profit_factor)}</td>
-                      <td className="px-3 py-3 text-right">
-                        <span className={row.total_r > 0 ? 'text-emerald-400' : row.total_r < 0 ? 'text-red-400' : 'text-zinc-400'}>
-                          {row.total_r > 0 ? '+' : ''}{row.total_r.toFixed(2)}R
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <span className={row.avg_r > 0 ? 'text-emerald-400' : row.avg_r < 0 ? 'text-red-400' : 'text-zinc-400'}>
-                          {row.avg_r > 0 ? '+' : ''}{row.avg_r.toFixed(2)}R
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-right text-cyan-400">{row.tp1_hits}</td>
-                      <td className="px-3 py-3 text-right text-emerald-400">{row.tp2_hits}</td>
-                      <td className="px-3 py-3 text-right text-red-400">{row.sl_hits}</td>
-                      <td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td>
-                      <td className="px-3 py-3 text-right text-blue-400">{row.open_trades}</td>
-                      <td className="px-4 py-3 text-right text-zinc-500">
-                        {row.last_signal_time ? new Date(row.last_signal_time).toLocaleDateString() : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── Filters ── */}
-      <section className="mb-4">
-        <div className="flex flex-wrap items-end gap-3">
+      <section className="mb-6 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        <div className="flex flex-wrap items-end gap-3 mb-4">
           <FilterSelect label="Market" value={filters.market} onChange={v => setFilter('market', v)} options={['crypto', 'forex']} />
           <FilterSelect label="Strategy" value={filters.strategy} onChange={v => setFilter('strategy', v)} options={filterOpts.strategies} />
           <FilterSelect label="Symbol" value={filters.symbol} onChange={v => setFilter('symbol', v)} options={filterOpts.symbols} />
@@ -473,14 +561,177 @@ export default function Performance() {
           <FilterSelect label="Outcome" value={filters.outcome} onChange={v => setFilter('outcome', v)} options={['OPEN', 'WIN', 'LOSS', 'EXPIRED']} />
           {activeFilterCount > 0 && (
             <button
-              onClick={() => setFilters({ market: 'crypto', strategy: '', symbol: '', timeframe: '', direction: '', grade: '', outcome: '' })}
+              onClick={() => setFilters({ ...initialFilters(), datePreset: baselineStartedAt ? 'baseline' : 'last30d' })}
               className="text-xs text-zinc-500 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-500 px-2 py-1.5 rounded-lg transition-colors"
             >
               Clear ({activeFilterCount})
             </button>
           )}
         </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-zinc-500">Date range</span>
+            <div className="flex flex-wrap gap-2">
+              <DatePresetButton active={filters.datePreset === 'today'} onClick={() => setDatePreset('today')}>Today</DatePresetButton>
+              <DatePresetButton active={filters.datePreset === 'last24h'} onClick={() => setDatePreset('last24h')}>Last 24h</DatePresetButton>
+              <DatePresetButton active={filters.datePreset === 'last7d'} onClick={() => setDatePreset('last7d')}>Last 7 days</DatePresetButton>
+              <DatePresetButton active={filters.datePreset === 'last30d'} onClick={() => setDatePreset('last30d')}>Last 30 days</DatePresetButton>
+              <DatePresetButton active={filters.datePreset === 'baseline'} onClick={() => setDatePreset('baseline')}>All baseline</DatePresetButton>
+              <DatePresetButton active={filters.datePreset === 'custom'} onClick={() => setDatePreset('custom')}>Custom</DatePresetButton>
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-zinc-500">Custom start date</label>
+            <input
+              type="date"
+              value={filters.customStart}
+              onChange={e => setFilters(f => ({ ...f, customStart: e.target.value, datePreset: 'custom' }))}
+              className="bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs text-zinc-500">Custom end date</label>
+            <input
+              type="date"
+              value={filters.customEnd}
+              onChange={e => setFilters(f => ({ ...f, customEnd: e.target.value, datePreset: 'custom' }))}
+              className="bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="text-xs text-zinc-600">
+            Applied: {dateStart ? fmtDateTime(dateStart.toISOString()) : 'beginning'} → {dateEnd ? fmtDateTime(dateEnd.toISOString()) : 'now'}
+          </div>
+        </div>
       </section>
+
+      {loading && signals.length === 0 && (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* ── Overall Performance Cards ── */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Overall Performance</h2>
+        {filteredSignals.length === 0 && !loading ? (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
+            {emptyMessage}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-3">
+              <StatCard label="Total Signals" value={summary.totalSignals} sub={`${summary.closedTrades} closed · ${summary.openTrades} open`} />
+              <StatCard label="Closed Signals" value={summary.closedTrades} sub="resolved or expired" />
+              <StatCard label="Open Signals" value={summary.openTrades} sub="awaiting outcome" />
+              <StatCard label="Win Rate" value={fmtWinRate(summary.winRatePct)} sub={`${summary.wins}W / ${summary.losses}L`} />
+              <StatCard label="Profit Factor" value={fmtPF(summary.profitFactor)} sub="wins vs losses only" />
+              <StatCard label="Total R" value={fmtR(summary.totalR)} sub={`avg ${summary.avgR === null ? '—' : `${summary.avgR > 0 ? '+' : ''}${summary.avgR.toFixed(2)}R`} / closed`} />
+              <StatCard label="Average R / Closed" value={fmtR(summary.avgR)} sub="closed signals only" />
+              <StatCard label="Best Trade" value={fmtR(summary.bestR)} sub={`worst: ${summary.worstR === null ? '—' : `${summary.worstR.toFixed(2)}R`}`} />
+              <StatCard label="Worst Trade" value={fmtR(summary.worstR)} sub={`best: ${summary.bestR === null ? '—' : `${summary.bestR > 0 ? '+' : ''}${summary.bestR.toFixed(2)}R`}`} />
+              <StatCard label="TP1 Hits" value={summary.tp1Hits} sub="partial wins" />
+              <StatCard label="TP2 Hits" value={summary.tp2Hits} sub="full target hits" />
+              <StatCard label="SL Hits" value={summary.slHits} sub="stop losses" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <StatCard label="Expired" value={summary.expired} sub="not counted as W/L" />
+              <StatCard label="Max Win Streak" value={summary.maxWinStreak} sub="WIN outcomes only" />
+              <StatCard label="Max Loss Streak" value={summary.maxLossStreak} sub="LOSS outcomes only" />
+              <StatCard label="Last Signal" value={fmtDate(summary.lastSignalTime)} sub={summary.lastSignalTime ? fmtDateTime(summary.lastSignalTime) : '—'} />
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* ── Strategy Performance Table ── */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Breakdown</h2>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 font-medium">Strategy</th>
+                  <th className="text-right px-3 py-3 font-medium">Trades</th>
+                  <th className="text-right px-3 py-3 font-medium">Closed</th>
+                  <th className="text-right px-3 py-3 font-medium">Open</th>
+                  <th className="text-right px-3 py-3 font-medium">Wins</th>
+                  <th className="text-right px-3 py-3 font-medium">Losses</th>
+                  <th className="text-right px-3 py-3 font-medium">Expired</th>
+                  <th className="text-right px-3 py-3 font-medium">Win Rate</th>
+                  <th className="text-right px-3 py-3 font-medium">PF</th>
+                  <th className="text-right px-3 py-3 font-medium">Total R</th>
+                  <th className="text-right px-3 py-3 font-medium">Avg R</th>
+                  <th className="text-right px-3 py-3 font-medium">Best R</th>
+                  <th className="text-right px-3 py-3 font-medium">Worst R</th>
+                  <th className="text-right px-3 py-3 font-medium">TP1</th>
+                  <th className="text-right px-3 py-3 font-medium">TP2</th>
+                  <th className="text-right px-3 py-3 font-medium">SL</th>
+                  <th className="text-right px-4 py-3 font-medium">Last Signal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {strategyBreakdown.map(row => (
+                  <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-4 py-3 font-medium text-zinc-200 max-w-[180px]"><span className="truncate block" title={row.label}>{row.label}</span></td>
+                    <td className="px-3 py-3 text-right text-zinc-300">{row.totalSignals}</td>
+                    <td className="px-3 py-3 text-right text-zinc-300">{row.closedTrades}</td>
+                    <td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td>
+                    <td className="px-3 py-3 text-right text-emerald-400">{row.wins}</td>
+                    <td className="px-3 py-3 text-right text-red-400">{row.losses}</td>
+                    <td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td>
+                    <td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td>
+                    <td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td>
+                    <td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td>
+                    <td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td>
+                    <td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td>
+                    <td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td>
+                    <td className="px-3 py-3 text-right text-cyan-400">{row.tp1Hits}</td>
+                    <td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td>
+                    <td className="px-3 py-3 text-right text-red-400">{row.slHits}</td>
+                    <td className="px-4 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Symbol Breakdown ── */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Symbol Breakdown</h2>
+        {symbolBreakdown.length === 0 ? <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center text-sm text-zinc-600">{emptyMessage}</div> : (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+              {['Symbol','Market','Trades','Closed','Open','Win Rate','PF','Total R','Avg R','Best R','Worst R','Most Used Strategy','Last Signal'].map((h, i) => <th key={h} className={`${i < 2 || i === 11 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
+            </tr></thead>
+            <tbody className="divide-y divide-zinc-800/60">{symbolBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors">
+              <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400 uppercase">{row.market}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{row.closedTrades}</td><td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td><td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td><td className="px-3 py-3 text-zinc-400">{row.mostUsedStrategy ?? '—'}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
+            </tr>)}</tbody>
+          </table></div></div>
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+        {/* ── Timeframe Breakdown ── */}
+        <section>
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Timeframe Breakdown</h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Timeframe','Trades','Win Rate','PF','Total R','Avg R','TP2','SL'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-zinc-800/60">{timeframeBreakdown.length === 0 ? <tr><td colSpan={8} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : timeframeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-red-400">{row.slHits}</td></tr>)}</tbody>
+          </table></div></div>
+        </section>
+
+        {/* ── Grade Breakdown ── */}
+        <section>
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Grade Breakdown</h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Grade','Trades','Win Rate','PF','Total R','Avg R'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-zinc-800/60">{gradeBreakdown.length === 0 ? <tr><td colSpan={6} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : gradeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3">{row.label !== '—' ? gradeBadge(row.label) : <span className="text-zinc-600">—</span>}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td></tr>)}</tbody>
+          </table></div></div>
+        </section>
+      </div>
 
       {/* ── Recent Signals Table ── */}
       <section>
@@ -495,7 +746,7 @@ export default function Performance() {
           </div>
         ) : filteredSignals.length === 0 ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
-            {activeFilterCount > 0 && !showBaselineEmptyState ? 'No signals match the current filters.' : 'No tracked signals in this baseline yet. Run the scanner to begin collecting fresh results.'}
+            {emptyMessage}
           </div>
         ) : (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
@@ -506,14 +757,19 @@ export default function Performance() {
                     <th className="text-left px-4 py-3 font-medium">Symbol</th>
                     <th className="text-left px-3 py-3 font-medium">Market</th>
                     <th className="text-left px-3 py-3 font-medium">Strategy</th>
-                    <th className="text-left px-3 py-3 font-medium">TF</th>
-                    <th className="text-left px-3 py-3 font-medium">Dir</th>
+                    <th className="text-left px-3 py-3 font-medium">Timeframe</th>
+                    <th className="text-left px-3 py-3 font-medium">Direction</th>
                     <th className="text-left px-3 py-3 font-medium">Grade</th>
                     <th className="text-left px-3 py-3 font-medium">Outcome</th>
                     <th className="text-right px-3 py-3 font-medium">R Result</th>
-                    <th className="text-right px-3 py-3 font-medium">Duration</th>
+                    <th className="text-right px-3 py-3 font-medium">Entry</th>
+                    <th className="text-right px-3 py-3 font-medium">Stop Loss</th>
+                    <th className="text-right px-3 py-3 font-medium">TP1</th>
+                    <th className="text-right px-3 py-3 font-medium">TP2</th>
                     <th className="text-right px-3 py-3 font-medium">Close Price</th>
-                    <th className="text-right px-4 py-3 font-medium">Created</th>
+                    <th className="text-right px-3 py-3 font-medium">Duration</th>
+                    <th className="text-right px-3 py-3 font-medium">Created</th>
+                    <th className="text-right px-4 py-3 font-medium">Closed</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60">
@@ -521,11 +777,7 @@ export default function Performance() {
                     <tr key={sig.signal_id} className="hover:bg-zinc-800/30 transition-colors">
                       <td className="px-4 py-3 font-mono font-bold text-zinc-100">{sig.symbol}</td>
                       <td className="px-3 py-3 text-zinc-400 uppercase">{sig.market_type}</td>
-                      <td className="px-3 py-3 text-zinc-400 max-w-[120px]">
-                        <span className="truncate block" title={sig.strategy_name ?? undefined}>
-                          {sig.strategy_name ?? <span className="text-zinc-600 italic">—</span>}
-                        </span>
-                      </td>
+                      <td className="px-3 py-3 text-zinc-400 max-w-[140px]"><span className="truncate block" title={sig.strategy_name ?? undefined}>{sig.strategy_name ?? <span className="text-zinc-600 italic">—</span>}</span></td>
                       <td className="px-3 py-3 text-zinc-400">{sig.timeframe}</td>
                       <td className="px-3 py-3">{directionBadge(sig.direction)}</td>
                       <td className="px-3 py-3">{gradeBadge(sig.grade)}</td>
@@ -540,14 +792,15 @@ export default function Performance() {
                             : sig.outcome_category}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-right">{fmtR(sig.r_result)}</td>
+                      <td className="px-3 py-3 text-right">{fmtSignalR(sig.r_result)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.entry_price)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.stop_loss)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.tp1)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.tp2)}</td>
+                      <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtPrice(sig.close_price)}</td>
                       <td className="px-3 py-3 text-right text-zinc-500">{fmtDuration(sig.duration_minutes)}</td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400">
-                        {sig.close_price != null ? sig.close_price.toFixed(5) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right text-zinc-500">
-                        {new Date(sig.created_at).toLocaleDateString()}
-                      </td>
+                      <td className="px-3 py-3 text-right text-zinc-500 whitespace-nowrap">{fmtDateTime(sig.created_at)}</td>
+                      <td className="px-4 py-3 text-right text-zinc-500 whitespace-nowrap">{fmtDateTime(sig.closed_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -560,13 +813,12 @@ export default function Performance() {
       {/* Footer note */}
       <div className="mt-6 text-xs text-zinc-600 leading-relaxed">
         <span className="font-medium text-zinc-500">Data notes:</span>{' '}
-        All stats are from <code className="bg-zinc-800 px-1 rounded">signal_performance_summary_by_market_view</code>,{' '}
-        <code className="bg-zinc-800 px-1 rounded">strategy_performance_by_market_view</code>, and{' '}
-        <code className="bg-zinc-800 px-1 rounded">signal_analytics_view</code>.
-        Open signals are excluded from win/loss/PF calculations.
-        Profit factor = ∞ when no losses exist.
-        R uses entry midpoint and SL distance as 1R.
-        Use the Market filter to view crypto and forex separately; metrics are not intentionally mixed.
+        Signal rows are loaded from <code className="bg-zinc-800 px-1 rounded">signal_analytics_view</code>; configured strategy names are loaded from{' '}
+        <code className="bg-zinc-800 px-1 rounded">strategy_configs</code> with required strategy fallbacks.
+        All cards and breakdowns are recalculated client-side from the same filtered signal set.
+        Open signals are counted separately and excluded from win/loss/PF/R aggregates.
+        Expired signals are shown separately and are not treated as wins or losses.
+        Profit factor shows “—” when there are no losses or no closed R results, avoiding unsafe infinity values.
       </div>
     </AdminLayout>
   );
