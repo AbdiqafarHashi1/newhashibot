@@ -576,13 +576,22 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const boxRangeAtr = boxRange / atr;
   const recentBoxRangeAtr = recentBoxRange / atr;
   const insideRatio = barsInside / Math.max(boxSlice.length, 1);
+  const recentBarsInside = recentCompressionSlice.filter((c) => c.high <= recentBoxHigh * 1.0015 && c.low >= recentBoxLow * 0.9985).length;
+  const recentInsideRatio = recentBarsInside / Math.max(recentCompressionSlice.length, 1);
+  const olderCompressionSlice = boxSlice.slice(0, Math.max(0, boxSlice.length - recentCompressionSlice.length));
+  const olderBoxHigh = olderCompressionSlice.length > 0 ? Math.max(...olderCompressionSlice.map((c) => c.high)) : boxHigh;
+  const olderBoxLow = olderCompressionSlice.length > 0 ? Math.min(...olderCompressionSlice.map((c) => c.low)) : boxLow;
+  const olderBoxRange = olderBoxHigh - olderBoxLow;
+  const compressionRatio = olderBoxRange > 0 ? recentBoxRange / olderBoxRange : 1;
   const strictCompressionReady = boxSlice.length >= min_box_bars && barsInside >= min_box_bars && boxRangeAtr <= max_box_atr_range;
+  const recentCompressionReady = recentCompressionSlice.length >= min_box_bars && recentBarsInside >= min_box_bars * 0.8 && recentBoxRangeAtr <= max_box_atr_range * 1.1;
   const rangeTightness = max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (boxRangeAtr / Math.max(max_box_atr_range * 1.35, 0.01)))) : 0;
   const recentRangeTightness = max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (recentBoxRangeAtr / Math.max(max_box_atr_range * 1.45, 0.01)))) : 0;
-  const compressionScore = clampScore((insideRatio * 35) + (Math.max(rangeTightness, recentRangeTightness) * 65));
+  const contractionScore = Math.max(0, Math.min(1, 1 - compressionRatio)) * 30;
+  const compressionScore = clampScore((Math.max(insideRatio, recentInsideRatio) * 35) + (Math.max(rangeTightness, recentRangeTightness) * 55) + contractionScore);
   const rangeContracted = recentBoxRange > 0 && boxRange > 0 ? recentBoxRange <= boxRange * 0.72 : false;
-  const nearCompressionReady = crypto_behavior_tuning && boxSlice.length >= min_box_bars && barsInside >= min_box_bars * 0.65 && (boxRangeAtr <= max_box_atr_range * 1.35 || recentBoxRangeAtr <= max_box_atr_range * 1.45 || rangeContracted) && compressionScore >= 45;
-  const compressionReady = strictCompressionReady || (nearCompressionReady && breakoutConfirmed);
+  const nearCompressionReady = crypto_behavior_tuning && boxSlice.length >= min_box_bars && Math.max(insideRatio, recentInsideRatio) >= 0.65 && (boxRangeAtr <= max_box_atr_range * 1.35 || recentBoxRangeAtr <= max_box_atr_range * 1.45 || rangeContracted) && compressionScore >= 45;
+  const compressionReady = strictCompressionReady || recentCompressionReady || (nearCompressionReady && breakoutConfirmed);
 
   const histSlice = candles.slice(-(atr_expansion_lookback + 1), -1);
   const avgBarRange = histSlice.length > 0 ? histSlice.reduce((sum, c) => sum + (c.high - c.low), 0) / histSlice.length : 0;
@@ -640,23 +649,40 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const score_breakdown: Record<string, number | string | boolean> = {
     primary_failed_gate: primaryFailedGate || "passed",
     compression_score: compressionScore,
+    box_high: parseFloat(boxHigh.toFixed(6)),
+    box_low: parseFloat(boxLow.toFixed(6)),
+    box_range: parseFloat(boxRange.toFixed(6)),
+    box_range_pct: parseFloat(((boxRange / price) * 100).toFixed(4)),
+    atr: parseFloat(atr.toFixed(6)),
     box_range_atr: parseFloat(boxRangeAtr.toFixed(3)),
+    configured_max_box_range_atr: max_box_atr_range,
+    recent_box_high: parseFloat(recentBoxHigh.toFixed(6)),
+    recent_box_low: parseFloat(recentBoxLow.toFixed(6)),
     recent_box_range_atr: parseFloat(recentBoxRangeAtr.toFixed(3)),
+    effective_box_range_atr: parseFloat(((effectiveBoxHigh - effectiveBoxLow) / atr).toFixed(3)),
+    average_range: parseFloat(avgBarRange.toFixed(6)),
+    compression_ratio: parseFloat(compressionRatio.toFixed(3)),
     range_contracted: rangeContracted,
     box_lookback,
     min_box_bars,
     bars_inside_box: barsInside,
     compression_ready: compressionReady,
     strict_compression_ready: strictCompressionReady,
+    recent_compression_ready: recentCompressionReady,
     near_compression_ready: nearCompressionReady,
     breakout_confirmed: breakoutConfirmed,
     early_breakout: earlyBreakoutUp || earlyBreakoutDn,
     breakout_direction: direction,
+    breakout_level: parseFloat((direction === "buy" ? effectiveBoxHigh : effectiveBoxLow).toFixed(6)),
     breakout_distance_atr: parseFloat(breakoutDistanceAtr.toFixed(3)),
     breakout_score: breakoutScore,
     atr_expansion: parseFloat(atrExpansionRatio.toFixed(3)),
     atr_expansion_score: atrExpansionScore,
     min_atr_expansion,
+    candles_used_in_box: crypto_behavior_tuning && recentBoxRange > 0 && recentBoxRange < boxRange ? recentCompressionSlice.length : boxSlice.length,
+    full_box_candles: boxSlice.length,
+    recent_box_candles: recentCompressionSlice.length,
+    tested_timeframe: timeframe,
     momentum_score: momentumScore,
     candle_body_score: candleBodyScore,
     volatility_score: volatilityScore,

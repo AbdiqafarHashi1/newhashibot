@@ -38,6 +38,7 @@ interface BtMetrics {
   bestTrade: number; worstTrade: number;
   maxConsecWins: number; maxConsecLosses: number; maxDrawdown: number;
   evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number>;
+  rejectionDiagnostics?: Record<string, Record<string, string | number | boolean>>;
 }
 
 interface CsvInfo {
@@ -216,9 +217,10 @@ interface EvalOut {
   entry: number; entry_low: number; entry_high: number;
   sl: number; tp1: number; tp2: number;
   grade: string; score: number; rr: number; reason: string;
+  diagnostics?: Record<string, string | number | boolean>;
 }
 
-const FAIL = (reason = 'no_valid_setup'): EvalOut => ({ ok: false, direction: 'buy', entry: 0, entry_low: 0, entry_high: 0, sl: 0, tp1: 0, tp2: 0, grade: 'reject', score: 0, rr: 0, reason });
+const FAIL = (reason = 'no_valid_setup', diagnostics?: Record<string, string | number | boolean>): EvalOut => ({ ok: false, direction: 'buy', entry: 0, entry_low: 0, entry_high: 0, sl: 0, tp1: 0, tp2: 0, grade: 'reject', score: 0, rr: 0, reason, diagnostics });
 
 function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (!['5m', '15m'].includes(tf)) return FAIL('unsupported_timeframe');
@@ -272,71 +274,164 @@ function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   return { ok: true, direction, entry: price, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `MS ${direction}: score=${final_score}, rsi=${rsi.toFixed(1)}, regime=${reg}` };
 }
 
+function clampScore(value: number): number {
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+function roundDiag(value: number, digits = 3): number {
+  return Number.isFinite(value) ? parseFloat(value.toFixed(digits)) : 0;
+}
+
+function pctDistance(a: number, b: number): number {
+  return a > 0 ? roundDiag((Math.abs(a - b) / a) * 100, 4) : 0;
+}
+
 function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (!['15m', '1h'].includes(tf)) return FAIL('unsupported_timeframe');
-  const boxLookback = p.box_lookback, minBoxBars = p.min_box_bars;
-  if (window.length < boxLookback + 5) return FAIL('insufficient_candles');
+  const boxLookback = Math.max(10, Math.floor(p.box_lookback));
+  const minBoxBars = Math.max(5, Math.floor(p.min_box_bars));
+  const atrExpansionLookback = Math.max(5, Math.floor(p.atr_expansion_lookback));
+  const minLen = Math.max(boxLookback + 5, atrExpansionLookback + 2, p.ema_slow + 5, p.atr_len + 2, p.rsi_len + 2, 60);
+  if (window.length < minLen) return FAIL('insufficient_candles');
+
   const closes = window.map(c => c.close);
   const atr = calcATR(window, p.atr_len);
-  if (atr <= 0) return FAIL('invalid_atr');
   const rsi = calcRSI(closes, p.rsi_len);
-  const last = window[window.length - 1]; const price = last.close;
-  const boxSlice = window.slice(-(boxLookback + 1), -1);
-  if (boxSlice.length < minBoxBars) return FAIL('insufficient_box_bars');
-  const boxHigh = Math.max(...boxSlice.map(c => c.high));
-  const boxLow  = Math.min(...boxSlice.map(c => c.low));
+  const emaFast = calcEMA(closes, p.ema_fast);
+  const emaSlow = calcEMA(closes, p.ema_slow);
+  const last = window[window.length - 1];
+  const price = last.close;
+  if (atr <= 0 || price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return FAIL('invalid_atr');
+
+  const fullBoxSlice = window.slice(-(boxLookback + 1), -1);
+  if (fullBoxSlice.length < minBoxBars) return FAIL('insufficient_box_bars');
+  const recentLen = Math.min(Math.max(minBoxBars, 12), fullBoxSlice.length);
+  const recentBoxSlice = fullBoxSlice.slice(-recentLen);
+  const boxHigh = Math.max(...fullBoxSlice.map(c => c.high));
+  const boxLow = Math.min(...fullBoxSlice.map(c => c.low));
   const boxRange = boxHigh - boxLow;
-  if (boxRange > atr * p.max_box_atr_range) return FAIL('compression_failed_box_too_wide');
-  const barsInside = boxSlice.filter(c => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
-  if (barsInside < minBoxBars) return FAIL('compression_failed_not_enough_inside_bars');
+  const recentBoxHigh = Math.max(...recentBoxSlice.map(c => c.high));
+  const recentBoxLow = Math.min(...recentBoxSlice.map(c => c.low));
+  const recentBoxRange = recentBoxHigh - recentBoxLow;
+  if (boxRange <= 0 || !Number.isFinite(boxRange)) return FAIL('invalid_box_range');
 
-  const boxMid = (boxHigh + boxLow) / 2;
-  const bfh = boxSlice.slice(0, Math.floor(boxSlice.length / 2));
-  const bsh = boxSlice.slice(Math.floor(boxSlice.length / 2));
-  const fa = bfh.reduce((s, c) => s + c.close, 0) / (bfh.length || 1);
-  const sa = bsh.reduce((s, c) => s + c.close, 0) / (bsh.length || 1);
-  const drift = Math.abs(sa - fa) / (boxRange || 1);
-  if (drift < 0.10 && Math.abs(fa - boxMid) / (boxRange || 1) < 0.15 && Math.abs(sa - boxMid) / (boxRange || 1) < 0.15) return FAIL('compression_drift_too_flat');
+  const buffer = atr * p.breakout_buffer_atr;
+  const useRecentBox = recentBoxRange > 0 && recentBoxRange < boxRange;
+  const effectiveBoxHigh = useRecentBox ? recentBoxHigh : boxHigh;
+  const effectiveBoxLow = useRecentBox ? recentBoxLow : boxLow;
+  const effectiveBoxRange = effectiveBoxHigh - effectiveBoxLow;
+  const breakoutDistUp = last.close - effectiveBoxHigh;
+  const breakoutDistDn = effectiveBoxLow - last.close;
+  const closeOutsideUp = breakoutDistUp > 0 && last.close > last.open;
+  const closeOutsideDn = breakoutDistDn > 0 && last.close < last.open;
+  const breakoutUp = breakoutDistUp > buffer && last.close > last.open;
+  const breakoutDn = breakoutDistDn > buffer && last.close < last.open;
+  const earlyBreakoutUp = closeOutsideUp && (last.high - last.low) > atr * p.min_atr_expansion;
+  const earlyBreakoutDn = closeOutsideDn && (last.high - last.low) > atr * p.min_atr_expansion;
+  const direction: 'buy' | 'sell' = breakoutUp || earlyBreakoutUp ? 'buy' : breakoutDn || earlyBreakoutDn ? 'sell' : (last.close >= (effectiveBoxHigh + effectiveBoxLow) / 2 ? 'buy' : 'sell');
+  const breakoutConfirmed = breakoutUp || breakoutDn || earlyBreakoutUp || earlyBreakoutDn;
+  const breakoutDist = direction === 'buy' ? Math.max(0, breakoutDistUp) : Math.max(0, breakoutDistDn);
+  const breakoutDistanceAtr = breakoutDist / atr;
 
-  const buf = atr * p.breakout_buffer_atr;
-  const up = last.close > boxHigh + buf && last.close > last.open;
-  const dn = last.close < boxLow  - buf && last.close < last.open;
-  if (!up && !dn) return FAIL('breakout_not_confirmed');
+  const barsInside = fullBoxSlice.filter(c => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
+  const recentBarsInside = recentBoxSlice.filter(c => c.high <= recentBoxHigh * 1.0015 && c.low >= recentBoxLow * 0.9985).length;
+  const boxRangeAtr = boxRange / atr;
+  const recentBoxRangeAtr = recentBoxRange / atr;
+  const effectiveBoxRangeAtr = effectiveBoxRange / atr;
+  const boxRangePct = price > 0 ? (boxRange / price) * 100 : 0;
+  const insideRatio = barsInside / Math.max(fullBoxSlice.length, 1);
+  const recentInsideRatio = recentBarsInside / Math.max(recentBoxSlice.length, 1);
 
-  const hist = window.slice(-(p.atr_expansion_lookback + 1), -1);
-  const avgRange = hist.reduce((s, c) => s + (c.high - c.low), 0) / (hist.length || 1);
-  const expansion = avgRange > 0 ? (last.high - last.low) / avgRange : 1;
-  if (expansion < p.min_atr_expansion) return FAIL('atr_expansion_too_low');
+  const histSlice = window.slice(-(atrExpansionLookback + 1), -1);
+  const avgRange = histSlice.length > 0 ? histSlice.reduce((sum, c) => sum + (c.high - c.low), 0) / histSlice.length : 0;
+  const curBarRange = last.high - last.low;
+  const atrExpansionRatio = avgRange > 0 ? curBarRange / avgRange : 1;
+  const olderRange = fullBoxSlice.length > recentLen
+    ? (Math.max(...fullBoxSlice.slice(0, -recentLen).map(c => c.high)) - Math.min(...fullBoxSlice.slice(0, -recentLen).map(c => c.low)))
+    : boxRange;
+  const compressionRatio = olderRange > 0 ? recentBoxRange / olderRange : 1;
+  const rangeContracted = recentBoxRange > 0 && boxRange > 0 ? recentBoxRange <= boxRange * 0.72 : false;
 
-  const brkDist = up ? last.close - boxHigh : boxLow - last.close;
-  if (brkDist < buf * 0.6) return FAIL('breakout_distance_too_small');
+  const strictCompressionReady = fullBoxSlice.length >= minBoxBars && barsInside >= minBoxBars && boxRangeAtr <= p.max_box_atr_range;
+  const recentCompressionReady = recentBoxSlice.length >= minBoxBars && recentBarsInside >= minBoxBars * 0.8 && recentBoxRangeAtr <= p.max_box_atr_range * 1.1;
+  const rangeTightness = p.max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (boxRangeAtr / Math.max(p.max_box_atr_range * 1.35, 0.01)))) : 0;
+  const recentRangeTightness = p.max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (recentBoxRangeAtr / Math.max(p.max_box_atr_range * 1.45, 0.01)))) : 0;
+  const contractionScore = Math.max(0, Math.min(1, 1 - compressionRatio)) * 30;
+  const compressionScore = clampScore((Math.max(insideRatio, recentInsideRatio) * 35) + (Math.max(rangeTightness, recentRangeTightness) * 55) + contractionScore);
+  const nearCompressionReady = fullBoxSlice.length >= minBoxBars
+    && Math.max(insideRatio, recentInsideRatio) >= 0.65
+    && (boxRangeAtr <= p.max_box_atr_range * 1.35 || recentBoxRangeAtr <= p.max_box_atr_range * 1.45 || rangeContracted)
+    && compressionScore >= 45;
+  const compressionReady = strictCompressionReady || recentCompressionReady || (nearCompressionReady && breakoutConfirmed);
 
+  const atrExpansionScore = clampScore(Math.min(1.4, atrExpansionRatio / Math.max(p.min_atr_expansion, 0.01)) * 70);
+  const breakoutScore = clampScore((breakoutConfirmed ? 45 : 0) + Math.min(1, breakoutDistanceAtr / Math.max(p.breakout_buffer_atr * 4, 0.25)) * 55);
   const mom = momentumScore(closes, p.momentum_lookback);
-  if (up && mom < 0) return FAIL('momentum_failed');
-  if (dn && mom > 0) return FAIL('momentum_failed');
+  const bodyAtr = Math.abs(last.close - last.open) / atr;
+  const directionMomentum = direction === 'buy' ? mom : -mom;
+  const rsiDirectional = direction === 'buy' ? Math.max(0, (rsi - 45) / 20) : Math.max(0, (55 - rsi) / 20);
+  const emaDirectional = direction === 'buy' ? (emaFast >= emaSlow ? 1 : 0.45) : (emaFast <= emaSlow ? 1 : 0.45);
+  const candleBodyScore = clampScore(Math.min(bodyAtr, 1.25) * 80);
+  const momentumScoreValue = clampScore((Math.max(0, directionMomentum) * 45) + (Math.min(bodyAtr, 1) * 30) + (Math.min(rsiDirectional, 1) * 15) + (emaDirectional * 10));
+  const atrPct = (atr / price) * 100;
+  let volatilityScore = 80;
+  if (atrPct < 0.08) volatilityScore = 25;
+  else if (atrPct < 0.15) volatilityScore = 55;
+  else if (atrPct > 5.0) volatilityScore = 30;
+  else if (atrPct > 3.5) volatilityScore = 55;
 
-  const direction: 'buy' | 'sell' = up ? 'buy' : 'sell';
-  let score = 50;
-  const cq = barsInside / Math.max(boxLookback, 1);
-  if (cq > 0.80) score += 12; else if (cq > 0.60) score += 7; else score += 2;
-  if (expansion > 2.0) score += 12; else if (expansion > 1.5) score += 8; else score += 4;
-  if ((brkDist / atr) > 0.6) score += 8; else score += 2;
-  if (direction === 'buy'  && rsi > 55) score += 6;
-  if (direction === 'sell' && rsi < 45) score += 6;
-  if (mom !== 0) score += 4;
+  let entry_low: number, entry_high: number, sl: number, tp1: number, tp2: number;
+  if (direction === 'buy') {
+    entry_low = breakoutConfirmed ? Math.min(effectiveBoxHigh, price * 0.9995) : effectiveBoxHigh;
+    entry_high = breakoutConfirmed ? Math.max(price, effectiveBoxHigh + atr * 0.25) : effectiveBoxHigh + atr * 0.25;
+    sl = Math.min(effectiveBoxLow - atr * 0.20, price - atr * p.stop_atr_mult);
+    const riskForTargets = Math.abs(price - sl);
+    tp1 = price + riskForTargets * p.tp1_r;
+    tp2 = price + riskForTargets * p.tp2_r;
+  } else {
+    entry_low = breakoutConfirmed ? Math.min(price, effectiveBoxLow - atr * 0.25) : effectiveBoxLow - atr * 0.25;
+    entry_high = breakoutConfirmed ? Math.max(effectiveBoxLow, price * 1.0005) : effectiveBoxLow;
+    sl = Math.max(effectiveBoxHigh + atr * 0.20, price + atr * p.stop_atr_mult);
+    const riskForTargets = Math.abs(price - sl);
+    tp1 = price - riskForTargets * p.tp1_r;
+    tp2 = price - riskForTargets * p.tp2_r;
+  }
+  const entry = price;
+  const risk = Math.abs(price - sl);
+  const rr = risk > 0 ? parseFloat((Math.abs(tp2 - price) / risk).toFixed(2)) : 0;
+  const rrScore = clampScore(Math.min(rr / Math.max(p.min_rr, 0.01), 1.5) * 66);
+  const score = clampScore((compressionScore * 0.24) + (breakoutScore * 0.24) + (atrExpansionScore * 0.16) + (momentumScoreValue * 0.14) + (volatilityScore * 0.08) + (rrScore * 0.10) + (candleBodyScore * 0.04));
+  const grade = score >= 85 ? 'A+' : score >= 75 ? 'A' : score >= 65 ? 'B' : 'reject';
 
-  const entry_low  = direction === 'buy'  ? boxHigh          : boxLow - atr * 0.35;
-  const entry_high = direction === 'buy'  ? boxHigh + atr * 0.35 : boxLow;
-  const entry = (entry_low + entry_high) / 2;
-  const sl  = direction === 'buy'  ? boxLow  - atr * p.stop_atr_mult : boxHigh + atr * p.stop_atr_mult;
-  const tp1 = direction === 'buy'  ? price   + atr * p.tp1_r         : price   - atr * p.tp1_r;
-  const tp2 = direction === 'buy'  ? price   + atr * p.tp2_r         : price   - atr * p.tp2_r;
-  const risk = Math.abs(entry - sl);
-  const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
-  if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 6;
-  const final_score = Math.min(Math.max(score, 0), 100);
-  const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
-  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `CB ${direction}: cq=${cq.toFixed(2)}, exp=${expansion.toFixed(2)}x, box=${boxLow.toFixed(4)}-${boxHigh.toFixed(4)}` };
+  const diagnostics: Record<string, string | number | boolean> = {
+    primary_failed_gate: 'passed',
+    box_high: roundDiag(boxHigh, 4), box_low: roundDiag(boxLow, 4), box_range: roundDiag(boxRange, 4), box_range_pct: roundDiag(boxRangePct, 4),
+    atr: roundDiag(atr, 4), box_range_atr: roundDiag(boxRangeAtr), configured_max_box_range_atr: p.max_box_atr_range,
+    recent_box_high: roundDiag(recentBoxHigh, 4), recent_box_low: roundDiag(recentBoxLow, 4), recent_box_range_atr: roundDiag(recentBoxRangeAtr),
+    effective_box_range_atr: roundDiag(effectiveBoxRangeAtr), used_recent_box: useRecentBox,
+    average_range: roundDiag(avgRange, 4), compression_ratio: roundDiag(compressionRatio), range_contracted: rangeContracted,
+    near_compression_ready: nearCompressionReady, strict_compression_ready: strictCompressionReady, recent_compression_ready: recentCompressionReady,
+    breakout_level: roundDiag(direction === 'buy' ? effectiveBoxHigh : effectiveBoxLow, 4), breakout_distance_atr: roundDiag(breakoutDistanceAtr),
+    atr_expansion_ratio: roundDiag(atrExpansionRatio), candles_used_in_box: useRecentBox ? recentBoxSlice.length : fullBoxSlice.length,
+    full_box_candles: fullBoxSlice.length, recent_box_candles: recentBoxSlice.length, tested_timeframe: tf, resampled: tf !== '5m',
+    breakout_confirmed: breakoutConfirmed, rr, stop_distance_pct: pctDistance(price, sl), tp1_distance_pct: pctDistance(price, tp1), tp2_distance_pct: pctDistance(price, tp2),
+    compression_score: compressionScore, final_score: score,
+  };
+
+  let failedGate = '';
+  if (!compressionReady) failedGate = 'compression_not_ready';
+  else if (!breakoutConfirmed) failedGate = 'breakout_not_confirmed';
+  else if (atrExpansionRatio < p.min_atr_expansion && !(nearCompressionReady && breakoutDistanceAtr >= p.breakout_buffer_atr * 2)) failedGate = 'atr_expansion_weak';
+  else if (atrPct > 5.0) failedGate = 'volatility_too_high';
+  else if (momentumScoreValue < 45) failedGate = 'momentum_failed';
+  else if (rr < p.min_rr) failedGate = 'rr_too_low';
+  else if (score < p.min_score) failedGate = 'confidence_too_low';
+
+  if (failedGate) {
+    diagnostics.primary_failed_gate = failedGate;
+    return FAIL(failedGate, diagnostics);
+  }
+  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score, rr, reason: `CB ${direction}: box=${effectiveBoxRangeAtr.toFixed(2)} ATR, recent=${recentBoxRangeAtr.toFixed(2)} ATR, exp=${atrExpansionRatio.toFixed(2)}x, rr=${rr.toFixed(2)}R`, diagnostics };
 }
 
 function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
@@ -403,12 +498,18 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
 
 function runBacktest(
   candles: BtCandle[], strategy: Strategy, tf: string, p: ParamSet,
-): { trades: BtTrade[]; evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number> } {
+): { trades: BtTrade[]; evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number>; rejectionDiagnostics: Record<string, Record<string, string | number | boolean>> } {
   const trades: BtTrade[] = [];
   const MIN_WIN = 65;
   let evaluations = 0, candidates = 0, rejected = 0;
   const rejectionReasons: Record<string, number> = {};
-  const reject = (reason: string) => { rejected++; rejectionReasons[reason || 'no_valid_setup'] = (rejectionReasons[reason || 'no_valid_setup'] ?? 0) + 1; };
+  const rejectionDiagnostics: Record<string, Record<string, string | number | boolean>> = {};
+  const reject = (reason: string, diagnostics?: Record<string, string | number | boolean>) => {
+    const key = reason || 'no_valid_setup';
+    rejected++;
+    rejectionReasons[key] = (rejectionReasons[key] ?? 0) + 1;
+    if (diagnostics && !rejectionDiagnostics[key]) rejectionDiagnostics[key] = diagnostics;
+  };
   let inTrade = false;
   let tradeEndIndex = -1;
 
@@ -421,7 +522,7 @@ function runBacktest(
     const window = candles.slice(0, i + 1);
     evaluations++;
     const ev = evalFn(window, p, tf);
-    if (!ev.ok || ev.grade === 'reject') { reject(ev.reason || 'no_valid_setup'); continue; }
+    if (!ev.ok || ev.grade === 'reject') { reject(ev.reason || 'no_valid_setup', ev.diagnostics); continue; }
 
     const guard = passesDistanceGuard(ev.entry, ev.sl, ev.tp1, ev.tp2, ev.score, ev.rr, p);
     if (!guard.ok) { reject(guard.reason || 'distance_guard_failed'); continue; }
@@ -467,12 +568,12 @@ function runBacktest(
     inTrade = true;
   }
 
-  return { trades, evaluations, candidates, rejected, rejectionReasons };
+  return { trades, evaluations, candidates, rejected, rejectionReasons, rejectionDiagnostics };
 }
 
 // ─── Metrics calculator ───────────────────────────────────────────────────────
 
-function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number, rejectionReasons: Record<string, number> = {}): BtMetrics {
+function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number, rejectionReasons: Record<string, number> = {}, rejectionDiagnostics?: Record<string, Record<string, string | number | boolean>>): BtMetrics {
   const wins   = trades.filter(t => t.result === 'tp1_hit' || t.result === 'tp2_hit');
   const losses = trades.filter(t => t.result === 'sl_hit');
   const exps   = trades.filter(t => t.result === 'expired');
@@ -513,7 +614,7 @@ function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number,
     avgWin: parseFloat(avgWin.toFixed(2)), avgLoss: parseFloat(avgLoss.toFixed(2)),
     bestTrade: parseFloat(bestTrade.toFixed(2)), worstTrade: parseFloat(worstTrade.toFixed(2)),
     maxConsecWins: maxCW, maxConsecLosses: maxCL, maxDrawdown: parseFloat(maxDD.toFixed(2)),
-    evaluations, candidates, rejected, rejectionReasons,
+    evaluations, candidates, rejected, rejectionReasons, rejectionDiagnostics,
   };
 }
 
@@ -718,7 +819,7 @@ function makeRunResult(strategy: Strategy, datasetTimeframe: string, testedTimef
   const bt = runnable
     ? runBacktest(built.candles, strategy, testedTimeframe, params)
     : { trades: [] as BtTrade[], evaluations: 0, candidates: 0, rejected: built.candles.length, rejectionReasons: { [built.unsupportedReason ?? 'insufficient_candles']: built.candles.length } };
-  const metrics = calcMetrics(bt.trades, bt.evaluations, bt.candidates, bt.rejected, bt.rejectionReasons);
+  const metrics = calcMetrics(bt.trades, bt.evaluations, bt.candidates, bt.rejected, bt.rejectionReasons, 'rejectionDiagnostics' in bt ? bt.rejectionDiagnostics : undefined);
   const cls = classifyBacktestResult(metrics, strategy, built.unsupportedReason);
   return {
     id: `${strategy}-${testedTimeframe}-${preset}`,
@@ -734,8 +835,10 @@ function makeRunResult(strategy: Strategy, datasetTimeframe: string, testedTimef
     preset,
     classification: cls.classification,
     classificationReason: cls.reason,
-    truthLabel: 'Backtest approximation logic',
-    parityNote: 'Uses browser-compatible evaluator kept on the current HashiBot strategy family and selected backtest preset parameters; live Edge Function imports are not executed in-browser, so fills/slippage/provider context may differ.',
+    truthLabel: strategy === 'CompressionBreakout' ? 'Live strategy parity logic' : 'Backtest approximation logic',
+    parityNote: strategy === 'CompressionBreakout'
+      ? 'CompressionBreakout mirrors the live scanner box/ATR/recent-compression/breakout scoring path with browser-side fills; provider context, slippage, DB config, and live duplicate protections are still not executed in-browser.'
+      : 'Uses browser-compatible evaluator kept on the current HashiBot strategy family and selected backtest preset parameters; live Edge Function imports are not executed in-browser, so fills/slippage/provider context may differ.',
     unsupportedReason: built.unsupportedReason,
   };
 }
@@ -1143,6 +1246,12 @@ function buildCopySummary(symbol: string, datasetTf: string, csvInfo: CsvInfo | 
   return lines.join('\n');
 }
 
+function formatDiagnosticValue(value: string | number | boolean): string {
+  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+  if (typeof value === 'number') return Number.isInteger(value) ? value.toLocaleString() : String(value);
+  return value;
+}
+
 const TRADES_PER_PAGE = 50;
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -1508,14 +1617,28 @@ export default function BacktestLab() {
                 )}
 
                 {/* Selected candle count */}
-                <div className={`flex items-center justify-between text-xs px-2.5 py-2 rounded-lg border ${
+                <div className={`space-y-1 text-xs px-2.5 py-2 rounded-lg border ${
                   sizeBlock   ? 'bg-red-500/10 border-red-500/30 text-red-300' :
                   sizeConfirm ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
                   sizeWarning ? 'bg-yellow-500/8 border-yellow-500/20 text-yellow-300' :
                   'bg-zinc-800/50 border-zinc-700/50 text-zinc-400'
                 }`}>
-                  <span>Selected candles</span>
-                  <span className="font-medium">{selectedCount.toLocaleString()}</span>
+                  <div className="flex items-center justify-between">
+                    <span>Selected test-window candles</span>
+                    <span className="font-medium">{selectedCount.toLocaleString()}</span>
+                  </div>
+                  {csvInfo && (
+                    <>
+                      <div className="flex items-center justify-between text-zinc-500">
+                        <span>Full CSV range</span>
+                        <span>{new Date(csvInfo.firstTime).toISOString().slice(0, 16)} → {new Date(csvInfo.lastTime).toISOString().slice(0, 16)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-zinc-500">
+                        <span>Selected window</span>
+                        <span>{selectedCandles[0] ? new Date(selectedCandles[0].time).toISOString().slice(0, 16) : 'n/a'} → {selectedCandles[selectedCandles.length - 1] ? new Date(selectedCandles[selectedCandles.length - 1].time).toISOString().slice(0, 16) : 'n/a'}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {sizeBlock && (
@@ -2148,6 +2271,30 @@ export default function BacktestLab() {
                               <span className="text-zinc-500">{count.toLocaleString()}</span>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+                    {primaryResult?.strategy === 'CompressionBreakout' && metrics.rejectionDiagnostics && Object.keys(metrics.rejectionDiagnostics).length > 0 && (
+                      <div className="mt-4">
+                        <div className="text-xs font-medium text-zinc-400 mb-2">Compression diagnostics from rejected setup samples</div>
+                        <div className="space-y-2">
+                          {topRejectionReasons(metrics.rejectionReasons, 4).map(([reason]) => {
+                            const diag = metrics.rejectionDiagnostics?.[reason];
+                            if (!diag) return null;
+                            return (
+                              <div key={reason} className="bg-zinc-800/60 border border-zinc-700/60 rounded-lg p-3">
+                                <div className="text-xs text-zinc-300 font-medium mb-2">{reason}</div>
+                                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+                                  {Object.entries(diag).map(([key, value]) => (
+                                    <div key={key} className="flex justify-between gap-2 border-b border-zinc-700/40 py-0.5">
+                                      <span className="text-zinc-500">{key}</span>
+                                      <span className="text-zinc-300 text-right">{formatDiagnosticValue(value)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
