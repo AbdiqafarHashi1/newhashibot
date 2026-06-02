@@ -4,16 +4,61 @@ const CSV = 'data/backtests/5m.csv';
 const DAY_MS = 86_400_000;
 const TF_MINUTES = { '5m': 5, '15m': 15, '1h': 60 };
 const STRATEGY_TIMEFRAMES = { MicroScalper: ['5m', '15m'], CompressionBreakout: ['15m', '1h'], SwingContinuation: ['15m', '1h'] };
-const BASE = { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.18, min_tp1_distance_pct: 0.25, min_tp2_distance_pct: 0.40, max_bars_in_trade: 24, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.2, tp2_r: 1.8, min_atr_pct: 0.10, max_atr_pct: 3, min_body_atr: 0.30, momentum_lookback: 3, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 };
-const LIVE_PARAMS = {
-  MicroScalper: { ...BASE, min_score: 72, min_rr: 1.2, max_bars_in_trade: 24 },
-  CompressionBreakout: { ...BASE, min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, tp1_r: 1.3, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, min_atr_expansion: 1.1 },
-  SwingContinuation: { ...BASE, min_score: 72, min_rr: 1.2, max_bars_in_trade: 60, pullback_bars: 6, tp1_r: 1.4, tp2_r: 2.4 },
+const PRESET_ORDER = ['live', 'conservative', 'balanced', 'aggressive'];
+const PRESET_LABELS = {
+  live: 'Live-like default',
+  conservative: 'Conservative research',
+  balanced: 'Balanced research',
+  aggressive: 'Aggressive research',
 };
+const BASE = { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.18, min_tp1_distance_pct: 0.25, min_tp2_distance_pct: 0.40, max_bars_in_trade: 24, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.2, tp2_r: 1.8, min_atr_pct: 0.10, max_atr_pct: 3, min_body_atr: 0.30, momentum_lookback: 3, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 };
+const DEFAULTS = {
+  MicroScalper: {
+    conservative: { ...BASE, min_score: 78, min_rr: 1.4, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.45, max_bars_in_trade: 20, rsi_buy_min: 55, rsi_sell_max: 45, stop_atr_mult: 1.5, tp1_r: 1.3, tp2_r: 2.0 },
+    balanced: { ...BASE },
+    aggressive: { ...BASE, min_score: 68, min_rr: 1.0, min_stop_distance_pct: 0.15, min_tp1_distance_pct: 0.20, min_tp2_distance_pct: 0.32, max_bars_in_trade: 30, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.2, tp1_r: 1.0, tp2_r: 1.5 },
+  },
+  CompressionBreakout: {
+    conservative: { ...BASE, min_score: 80, min_rr: 1.6, min_stop_distance_pct: 0.30, min_tp1_distance_pct: 0.40, min_tp2_distance_pct: 0.70, max_bars_in_trade: 40, stop_atr_mult: 1.5, tp1_r: 1.4, tp2_r: 2.8, box_lookback: 60, min_box_bars: 16, max_box_atr_range: 1.6, min_atr_expansion: 1.2, breakout_buffer_atr: 0.14 },
+    balanced: { ...BASE, min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, tp1_r: 1.3, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, min_atr_expansion: 1.1 },
+    aggressive: { ...BASE, min_score: 68, min_rr: 1.1, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.50, max_bars_in_trade: 60, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.3, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 40, min_box_bars: 12, max_box_atr_range: 2.0, min_atr_expansion: 1.05, breakout_buffer_atr: 0.10 },
+  },
+  SwingContinuation: {
+    conservative: { ...BASE, min_score: 80, min_rr: 1.8, min_stop_distance_pct: 0.50, min_tp1_distance_pct: 0.80, min_tp2_distance_pct: 1.30, max_bars_in_trade: 80, min_atr_pct: 0.15, max_atr_pct: 4.0, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.8, tp1_r: 1.7, tp2_r: 2.8, pullback_bars: 4 },
+    balanced: { ...BASE, min_score: 76, min_rr: 1.5, min_stop_distance_pct: 0.45, min_tp1_distance_pct: 0.70, min_tp2_distance_pct: 1.20, max_bars_in_trade: 96, min_atr_pct: 0.15, max_atr_pct: 4.0, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.6, tp1_r: 1.5, tp2_r: 2.5, pullback_bars: 5 },
+    aggressive: { ...BASE, min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.35, min_tp1_distance_pct: 0.55, min_tp2_distance_pct: 0.95, max_bars_in_trade: 120, min_atr_pct: 0.15, max_atr_pct: 4.0, rsi_buy_min: 48, rsi_sell_max: 52, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.2, pullback_bars: 6 },
+  },
+};
+const LIVE_PARAMS = {
+  MicroScalper: { ...DEFAULTS.MicroScalper.balanced },
+  CompressionBreakout: { ...DEFAULTS.CompressionBreakout.balanced },
+  SwingContinuation: { ...BASE, min_score: 72, min_rr: 1.2, max_bars_in_trade: 60, pullback_bars: 6, tp1_r: 1.4, tp2_r: 2.4, swing_15m_tp1_r: 1.3, swing_15m_tp2_r: 2.2 },
+};
+function paramsForPreset(strategy, preset) {
+  if (preset === 'live') return { ...LIVE_PARAMS[strategy] };
+  return { ...DEFAULTS[strategy][preset] };
+}
 
+
+function argValue(name) {
+  return process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1];
+}
+function parseDateArg(value, name) {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  if (!Number.isFinite(ms)) {
+    console.error(`Invalid --${name}=${value}. Use an ISO timestamp, for example 2025-06-08T15:10:00Z.`);
+    process.exit(1);
+  }
+  return ms;
+}
 function parseArgs() {
-  const days = Number(process.argv.find(a => a.startsWith('--days='))?.split('=')[1] ?? 90);
-  return { days: Number.isFinite(days) && days > 0 ? days : 90 };
+  const days = Number(argValue('days') ?? 90);
+  const preset = argValue('preset') ?? 'live';
+  const startMs = parseDateArg(argValue('start'), 'start');
+  const endMs = parseDateArg(argValue('end'), 'end');
+  const full = process.argv.includes('--full');
+  return { days: Number.isFinite(days) && days > 0 ? days : 90, preset, startMs, endMs, full };
 }
 function parseCsv(text) {
   const [head, ...rows] = text.trim().split(/\r?\n/);
@@ -81,7 +126,8 @@ function evalSW(w, p, tf) {
   const pb = w.slice(-(pbars + 1), -1), pl = Math.min(...pb.map(c => c.low)), ph = Math.max(...pb.map(c => c.high)), touchedBuy = pl <= ef + a * 0.75, touchedSell = ph >= ef - a * 0.75, reclaimedBuy = price > ef && last.close > last.open, reclaimedSell = price < ef && last.close < last.open, pullbackReady = dir === 'buy' ? touchedBuy : touchedSell, strictReclaim = dir === 'buy' ? reclaimedBuy : reclaimedSell;
   const pullbackScore = dir === 'buy' ? clamp((touchedBuy ? 48 : 18) + (reclaimedBuy ? 38 : price > ef ? 22 : 0) + (pl > es ? 14 : 5)) : clamp((touchedSell ? 48 : 18) + (reclaimedSell ? 38 : price < ef ? 22 : 0) + (ph < es ? 14 : 5)); const rawMom = momentum(cl, p.momentum_lookback), dm = dir === 'buy' ? rawMom : -rawMom, body = Math.abs(last.close - last.open) / a, mscore = clamp(Math.max(0, dm) * 60 + Math.min(body, 1) * 25 + (strictReclaim ? 15 : 0)), rsiScore = dir === 'buy' ? clamp(Math.min(Math.max((rs - 45) / Math.max(p.rsi_buy_min - 45, 1), 0), 1.25) * 80) : clamp(Math.min(Math.max((55 - rs) / Math.max(55 - p.rsi_sell_max, 1), 0), 1.25) * 80);
   const trendPass = trendScore >= 45 || (emaSlopeScore >= 55 && dsp > -0.08 && priceVsEma > 0 && rsiScore >= 40), reclaimByQuality = pullbackScore >= 68 && mscore >= 45 && priceVsEma > -0.05, reclaim = strictReclaim || reclaimByQuality; let volScore = 85; if (atrPct < p.min_atr_pct) volScore = clamp(atrPct / Math.max(p.min_atr_pct, 0.01) * 55); else if (atrPct > p.max_atr_pct) volScore = clamp(Math.max(20, 80 - ((atrPct - p.max_atr_pct) / Math.max(p.max_atr_pct, 0.01)) * 80));
-  let sl, tp1, tp2; if (dir === 'buy') { sl = Math.min(pl - a * 0.15, price - a * p.stop_atr_mult); const risk = Math.abs(price - sl); tp1 = price + risk * p.tp1_r; tp2 = price + risk * p.tp2_r; } else { sl = Math.max(ph + a * 0.15, price + a * p.stop_atr_mult); const risk = Math.abs(price - sl); tp1 = price - risk * p.tp1_r; tp2 = price - risk * p.tp2_r; }
+  const tp1Mult = tf === '15m' && Number.isFinite(p.swing_15m_tp1_r) ? p.swing_15m_tp1_r : p.tp1_r, tp2Mult = tf === '15m' && Number.isFinite(p.swing_15m_tp2_r) ? p.swing_15m_tp2_r : p.tp2_r;
+  let sl, tp1, tp2; if (dir === 'buy') { sl = Math.min(pl - a * 0.15, price - a * p.stop_atr_mult); const risk = Math.abs(price - sl); tp1 = price + risk * tp1Mult; tp2 = price + risk * tp2Mult; } else { sl = Math.max(ph + a * 0.15, price + a * p.stop_atr_mult); const risk = Math.abs(price - sl); tp1 = price - risk * tp1Mult; tp2 = price - risk * tp2Mult; }
   const rr = +(Math.abs(tp2 - price) / Math.abs(price - sl)).toFixed(2), rrScore = clamp(Math.min(rr / Math.max(p.min_rr, 0.01), 1.5) * 66), score = clamp(trendScore * 0.22 + emaSlopeScore * 0.14 + pullbackScore * 0.20 + mscore * 0.16 + rsiScore * 0.12 + volScore * 0.08 + rrScore * 0.08); const diagnostics = { trend_score: trendScore, pullback_score: pullbackScore, pullback_ready: pullbackReady, reclaim_confirmed: reclaim, momentum_score: mscore, rsi_score: rsiScore, rr, final_score: score };
   let gate = ''; if (atrPct < p.min_atr_pct) gate = 'volatility_too_low'; else if (atrPct > p.max_atr_pct) gate = 'volatility_too_high'; else if (!trendPass) gate = 'trend_filter_failed'; else if (!pullbackReady || pullbackScore < 45) gate = 'pullback_not_ready'; else if (!reclaim) gate = 'reclaim_not_confirmed'; else if (mscore < 35 || rsiScore < 35) gate = 'momentum_failed'; else if (rr < p.min_rr) gate = 'rr_too_low'; else if (score < p.min_score) gate = 'confidence_too_low'; if (gate) return fail(gate, { ...diagnostics, primary_failed_gate: gate }); return { ok: true, direction: dir, entry: price, sl, tp1, tp2, score, rr };
 }
@@ -93,26 +139,132 @@ function backtest(candles, strategy, tf, p) {
   return { evaluations, candidates, rejected, trades: trades.length, wins: wins.length, losses: losses.length, tp1: trades.filter(t => t.result === 'tp1_hit').length, tp2: trades.filter(t => t.result === 'tp2_hit').length, sl: trades.filter(t => t.result === 'sl_hit').length, expired: trades.filter(t => t.result === 'expired').length, winRate, pf, totalR, avgR, maxDD: +maxDD.toFixed(2), maxCL, top: Object.entries(reasons).sort((a, b) => b[1] - a[1]).slice(0, 5), diagnostics: diags };
 }
 
-const { days } = parseArgs();
+
+function csvCell(value) {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+function recommendation(r, cls) {
+  if (r.trades === 0) return 'Research-only; audit strict gates before any tuning';
+  if (r.trades < 30) return 'Research-only / low-sample; collect more evidence';
+  if (cls === 'viable / preserve') return 'Preserve unchanged for now';
+  if (cls === 'viable but noisy') return r.trades > 1000 ? 'Profitable but overactive; tune later for noise/drawdown' : 'Tune next / monitor exits and blockers';
+  return 'Tune before consideration';
+}
+function decisionScore(r) {
+  if (r.trades === 0) return -999;
+  const sampleScore = Math.min(r.trades, 300) / 300 * 20;
+  const pfScore = Math.max(0, Math.min(r.pf - 1, 0.8)) / 0.8 * 25;
+  const totalScore = Math.max(-10, Math.min(r.totalR, 120)) / 120 * 20;
+  const avgScore = Math.max(-0.1, Math.min(r.avgR, 0.25)) / 0.25 * 15;
+  const ddPenalty = Math.min(r.maxDD, 25) / 25 * 12;
+  const clPenalty = Math.min(r.maxCL, 10) / 10 * 8;
+  const overactivePenalty = r.trades > 1200 ? Math.min((r.trades - 1200) / 600, 1) * 8 : 0;
+  const lowSamplePenalty = r.trades < 30 ? 14 : r.trades < 75 ? 6 : 0;
+  return +(sampleScore + pfScore + totalScore + avgScore - ddPenalty - clPenalty - overactivePenalty - lowSamplePenalty).toFixed(2);
+}
+function runPreset(selected, preset) {
+  const rows = [];
+  for (const strategy of ['MicroScalper', 'CompressionBreakout', 'SwingContinuation']) {
+    for (const tf of STRATEGY_TIMEFRAMES[strategy]) {
+      const candles = resample(selected, tf);
+      const r = backtest(candles, strategy, tf, paramsForPreset(strategy, preset));
+      const cls = classify(r);
+      const pl = +(r.totalR * 1000 * 0.005).toFixed(2);
+      rows.push({
+        preset,
+        presetName: PRESET_LABELS[preset],
+        strategy,
+        timeframe: tf,
+        datasetTimeframe: '5m',
+        resampled: tf === '5m' ? 'no' : 'yes',
+        selectedCandles: selected.length,
+        resampledCandles: candles.length,
+        ...r,
+        profitFactorDisplay: r.trades ? r.pf : 'N/A',
+        totalRDisplay: r.trades ? r.totalR : 'N/A',
+        avgRDisplay: r.trades ? r.avgR : 'N/A',
+        maxDDDisplay: r.trades ? r.maxDD : 'N/A',
+        estPL: pl,
+        topRejections: r.top.map(([k, v]) => `${k}:${v}`).join('|') || 'none',
+        classification: cls,
+        recommendation: recommendation(r, cls),
+        decisionScore: decisionScore(r),
+      });
+    }
+  }
+  return rows;
+}
+
+const { days, preset, startMs: argStartMs, endMs: argEndMs, full } = parseArgs();
+const requestedPresets = preset === 'all' ? PRESET_ORDER : [preset];
+const invalidPreset = requestedPresets.find(p => !PRESET_ORDER.includes(p));
+if (invalidPreset) {
+  console.error(`Unsupported --preset=${invalidPreset}. Use one of: ${PRESET_ORDER.join(', ')}, all`);
+  process.exit(1);
+}
 const all = parseCsv(fs.readFileSync(CSV, 'utf8'));
-const lastMs = Date.parse(all.at(-1).time), startMs = lastMs - days * DAY_MS;
-const selected = all.filter(c => Date.parse(c.time) >= startMs && Date.parse(c.time) <= lastMs);
+const defaultEndMs = Date.parse(all.at(-1).time);
+const endMs = full ? defaultEndMs : (argEndMs ?? defaultEndMs);
+const startMs = full ? Date.parse(all[0].time) : (argStartMs ?? endMs - days * DAY_MS);
+if (startMs > endMs) {
+  console.error(`Invalid selected window: start ${new Date(startMs).toISOString()} is after end ${new Date(endMs).toISOString()}.`);
+  process.exit(1);
+}
+const selected = all.filter(c => {
+  const t = Date.parse(c.time);
+  return t >= startMs && t <= endMs;
+});
+if (selected.length === 0) {
+  console.error(`Selected window contains no candles: ${new Date(startMs).toISOString()} -> ${new Date(endMs).toISOString()}.`);
+  process.exit(1);
+}
+const results = requestedPresets.flatMap(p => runPreset(selected, p));
 console.log(`Fixture: ${CSV}`);
 console.log(`Full CSV range: ${all[0].time} -> ${all.at(-1).time}`);
-console.log(`Selected test window: ${selected[0].time} -> ${selected.at(-1).time} (${days} days)`);
+console.log(`Selected test window: ${selected[0].time} -> ${selected.at(-1).time}${full ? ' (full fixture)' : argStartMs || argEndMs ? ' (custom)' : ` (${days} days)`}`);
 console.log(`Dataset timeframe: 5m`);
 console.log(`Loaded candles: ${all.length}`);
 console.log(`Selected candles: ${selected.length}`);
-console.log('Preset: Live-like default only');
-console.log('\nstrategy,timeframe,evaluations,candidates,rejected,trades,wins,losses,tp1,tp2,sl,expired,win_rate,profit_factor,total_r,avg_r,max_dd_r,max_consec_losses,est_pl_1000_0.5pct,top_rejections,classification,recommended_action,resampled_candles_tested');
-for (const strategy of ['MicroScalper', 'CompressionBreakout', 'SwingContinuation']) {
-  for (const tf of STRATEGY_TIMEFRAMES[strategy]) {
-    const candles = resample(selected, tf);
-    const r = backtest(candles, strategy, tf, LIVE_PARAMS[strategy]);
-    const cls = classify(r);
-    const pl = +(r.totalR * 1000 * 0.005).toFixed(2);
-    const action = cls === 'viable / preserve' ? 'Preserve as-is' : cls === 'viable but noisy' ? 'Tune next / monitor exits' : cls === 'needs tuning' ? 'Tune next' : cls.includes('dead') ? 'Audit strict gates' : 'Needs more data';
-    console.log([strategy, tf, r.evaluations, r.candidates, r.rejected, r.trades, r.wins, r.losses, r.tp1, r.tp2, r.sl, r.expired, r.winRate, r.trades ? r.pf : 'N/A', r.trades ? r.totalR : 'N/A', r.trades ? r.avgR : 'N/A', r.trades ? r.maxDD : 'N/A', r.maxCL, pl, r.top.map(([k, v]) => `${k}:${v}`).join('|') || 'none', cls, action, candles.length].join(','));
-    if (strategy === 'CompressionBreakout' || strategy === 'SwingContinuation') console.log(`# diagnostics ${strategy} ${tf}: ${JSON.stringify(r.diagnostics[Object.keys(r.diagnostics)[0]] || {})}`);
+console.log(`Presets: ${requestedPresets.map(p => PRESET_LABELS[p]).join(' | ')}`);
+console.log('Parity note: local fixture validator uses the same browser-compatible evaluator family as Backtest Lab; no live scanner/provider/Telegram/outcome/customer/Bot/execution logic is invoked.');
+console.log('\npreset,preset_name,strategy,tested_timeframe,dataset_timeframe,resampled,selected_candles,resampled_candles_tested,evaluations,candidates,rejected,trades,wins,losses,tp1_hits,tp2_hits,sl_hits,expired,win_rate,profit_factor,total_r,avg_r,max_dd_r,max_consec_losses,est_pl_1000_0.5pct,top_rejections,classification,recommendation,decision_score');
+for (const r of results) {
+  console.log([
+    r.preset,
+    r.presetName,
+    r.strategy,
+    r.timeframe,
+    r.datasetTimeframe,
+    r.resampled,
+    r.selectedCandles,
+    r.resampledCandles,
+    r.evaluations,
+    r.candidates,
+    r.rejected,
+    r.trades,
+    r.wins,
+    r.losses,
+    r.tp1,
+    r.tp2,
+    r.sl,
+    r.expired,
+    r.winRate,
+    r.profitFactorDisplay,
+    r.totalRDisplay,
+    r.avgRDisplay,
+    r.maxDDDisplay,
+    r.maxCL,
+    r.estPL,
+    r.topRejections,
+    r.classification,
+    r.recommendation,
+    r.decisionScore,
+  ].map(csvCell).join(','));
+}
+if (requestedPresets.length > 1) {
+  console.log('\nDecision ranking (higher score = better decision-quality balance):');
+  for (const [idx, r] of [...results].sort((a, b) => b.decisionScore - a.decisionScore).entries()) {
+    console.log(`${idx + 1}. ${r.presetName} · ${r.strategy} ${r.timeframe} · score=${r.decisionScore} · trades=${r.trades} · PF=${r.profitFactorDisplay} · totalR=${r.totalRDisplay} · avgR=${r.avgRDisplay} · maxDD=${r.maxDDDisplay}R · recommendation=${r.recommendation}`);
   }
 }
