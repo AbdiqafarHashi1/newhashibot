@@ -30,6 +30,80 @@ interface EvalResult {
 }
 
 type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "ForexMicroScalper" | "ForexSwingContinuation";
+type StrategySignalMode = "active_signal" | "blocked_signal";
+
+const PHASE_1G_APPROVED_MICROSCALPER_15M_PARAMS: Record<string, number> = {
+  min_score: 72,
+  min_rr: 1.2,
+  min_stop_distance_pct: 0.18,
+  min_tp1_distance_pct: 0.25,
+  min_tp2_distance_pct: 0.40,
+  max_bars_in_trade: 24,
+  rsi_buy_min: 52,
+  rsi_sell_max: 48,
+  min_atr_pct: 0.10,
+  max_atr_pct: 3.0,
+  min_body_atr: 0.30,
+  momentum_lookback: 3,
+  stop_atr_mult: 1.4,
+  tp1_r: 1.2,
+  tp2_r: 1.8,
+  crypto_behavior_tuning: 0,
+};
+
+const PHASE_1G_CONTROLLED_MICROSCALPER_5M_PARAMS: Record<string, number> = {
+  max_bars_in_trade: 30,
+  rsi_buy_min: 54,
+  rsi_sell_max: 46,
+  stop_atr_mult: 1.45,
+};
+
+const PHASE_1G_CONTROLLED_COMPRESSION_15M_PARAMS: Record<string, number> = {
+  min_score: 76,
+  breakout_buffer_atr: 0.16,
+  tp1_r: 1.05,
+  tp2_r: 2.6,
+};
+
+const PHASE_1G_CONTROLLED_COMPRESSION_1H_PARAMS: Record<string, number> = {
+  min_score: 80,
+  min_rr: 1.6,
+  max_bars_in_trade: 40,
+  stop_atr_mult: 1.5,
+  tp1_r: 1.1,
+  tp2_r: 2.8,
+  box_lookback: 60,
+  min_box_bars: 16,
+  max_box_atr_range: 1.6,
+  min_atr_expansion: 1.2,
+  breakout_buffer_atr: 0.14,
+};
+
+const PHASE_1G_CONTROLLED_SWING_15M_PARAMS: Record<string, number> = {
+  min_score: 72,
+  min_rr: 1.2,
+  max_bars_in_trade: 120,
+  rsi_buy_min: 48,
+  rsi_sell_max: 52,
+  stop_atr_mult: 1.4,
+  tp1_r: 1.3,
+  tp2_r: 2.2,
+  swing_15m_tp1_r: 1.3,
+  swing_15m_tp2_r: 2.2,
+  pullback_bars: 6,
+};
+
+const PHASE_1G_CONTROLLED_SWING_1H_PARAMS: Record<string, number> = {
+  min_score: 80,
+  min_rr: 1.8,
+  max_bars_in_trade: 80,
+  rsi_buy_min: 52,
+  rsi_sell_max: 48,
+  stop_atr_mult: 1.8,
+  tp1_r: 1.7,
+  tp2_r: 2.8,
+  pullback_bars: 4,
+};
 
 interface StrategyEvaluationStats {
   evaluated: number;
@@ -92,7 +166,7 @@ interface ArbitratorDecision {
   mode_adjustments_used: string[]; duplicate_blocked: boolean;
   daily_lock_state: boolean; cooldown_state: boolean;
   paper_execution_intent_created: boolean;
-  selected_strategy?: string; arbitration_score?: number; competing_candidates?: Array<Record<string, unknown>>;
+  selected_strategy?: string; selected_timeframe?: string; candidate_signal_mode?: StrategySignalMode; arbitration_score?: number; competing_candidates?: Array<Record<string, unknown>>;
 }
 
 interface RiskState {
@@ -1073,6 +1147,115 @@ function forexTimeframes(): string[] {
   return forexTimeframePlan().supported;
 }
 
+function phase1GStrategySignalMode(name: StrategyName, marketType: string, timeframe: string): StrategySignalMode {
+  if (marketType === "forex" || name.startsWith("Forex")) return "blocked_signal";
+  if (name === "MicroScalper" && ["5m", "15m"].includes(timeframe)) return "active_signal";
+  if (name === "CompressionBreakout" && ["15m", "1h"].includes(timeframe)) return "active_signal";
+  if (name === "SwingContinuation" && ["15m", "1h"].includes(timeframe)) return "active_signal";
+  return "blocked_signal";
+}
+
+function phase1GModeReason(name: StrategyName, marketType: string, timeframe: string): string {
+  if (marketType === "forex" || name.startsWith("Forex")) return "forex_not_calibrated";
+  if (name === "MicroScalper" && timeframe === "15m") return "microscalper_15m_phase_1f_baseline_active";
+  if (name === "MicroScalper" && timeframe === "5m") return "microscalper_5m_noise_reduction_active";
+  if (name === "CompressionBreakout" && timeframe === "15m") return "compression_breakout_15m_phase_1f_candidate_active";
+  if (name === "CompressionBreakout" && timeframe === "1h") return "compression_breakout_1h_strict_active";
+  if (name === "SwingContinuation" && timeframe === "15m") return "swing_continuation_15m_active";
+  if (name === "SwingContinuation" && timeframe === "1h") return "swing_continuation_1h_strict_active";
+  return "blocked_signal_not_in_phase_1g_crypto_set";
+}
+
+function phase1GExpectedHoldDiagnostics(name: StrategyName, timeframe: string, cfg: StrategyConfig): Record<string, number | string | boolean> {
+  const tfMinutes = ({ "5m": 5, "15m": 15, "1h": 60, "4h": 240 } as Record<string, number>)[timeframe] ?? 15;
+  const maxBars = Math.max(0, cfg.max_bars_in_trade || 0);
+  const expectedMinutes = maxBars * tfMinutes;
+  const expectedHours = parseFloat((expectedMinutes / 60).toFixed(2));
+  const swing = name.includes("SwingContinuation");
+  return {
+    expected_hold_profile: name === "MicroScalper" ? "short_intraday" : name === "CompressionBreakout" ? "breakout_intraday" : swing ? "swing_continuation_longer_hold" : "forex_unvalidated",
+    strategy_expected_hold_profile: name === "MicroScalper" ? "short_intraday" : name === "CompressionBreakout" ? "breakout_intraday" : swing ? "swing_continuation_longer_hold" : "forex_unvalidated",
+    configured_time_stop_bars: maxBars,
+    expected_max_bars_in_trade: maxBars,
+    expected_time_stop_minutes: expectedMinutes,
+    expected_time_stop_hours: expectedHours,
+    scanner_expiry_hours: 6,
+    scanner_global_6h_expiry_reference_minutes: 360,
+    expiry_window_may_be_too_short: swing && expectedHours > 6,
+    scanner_global_6h_expiry_may_be_short: swing && expectedHours > 6,
+    strategy_timeframe_hold_mismatch: swing && expectedHours > 6,
+    low_sample: (name === "CompressionBreakout" || name === "SwingContinuation") && timeframe === "1h",
+    low_confidence_risk: name === "SwingContinuation" && timeframe === "1h",
+    noise_risk: name === "MicroScalper" && timeframe === "5m",
+    fakeout_expiry_risk: name === "CompressionBreakout",
+  };
+}
+
+function applyPhase1GConfig(cfg: StrategyConfig, timeframe: string, overrides: Record<string, number>): StrategyConfig {
+  return {
+    ...cfg,
+    enabled: true,
+    min_score: typeof overrides.min_score === "number" ? overrides.min_score : cfg.min_score,
+    min_rr: typeof overrides.min_rr === "number" ? overrides.min_rr : cfg.min_rr,
+    min_stop_distance_pct: typeof overrides.min_stop_distance_pct === "number" ? overrides.min_stop_distance_pct : cfg.min_stop_distance_pct,
+    min_tp1_distance_pct: typeof overrides.min_tp1_distance_pct === "number" ? overrides.min_tp1_distance_pct : cfg.min_tp1_distance_pct,
+    min_tp2_distance_pct: typeof overrides.min_tp2_distance_pct === "number" ? overrides.min_tp2_distance_pct : cfg.min_tp2_distance_pct,
+    max_bars_in_trade: typeof overrides.max_bars_in_trade === "number" ? overrides.max_bars_in_trade : cfg.max_bars_in_trade,
+    risk_mode: "balanced",
+    allowed_timeframes: [...new Set([...(cfg.allowed_timeframes ?? []), timeframe])],
+    params: {
+      ...cfg.params,
+      ...overrides,
+    },
+  };
+}
+
+function phase1GEffectiveConfig(name: StrategyName, timeframe: string, marketType: string, cfg: StrategyConfig): StrategyConfig {
+  if (marketType !== "crypto") return cfg;
+  if (name === "MicroScalper" && timeframe === "15m") return applyPhase1GConfig(cfg, timeframe, PHASE_1G_APPROVED_MICROSCALPER_15M_PARAMS);
+  if (name === "MicroScalper" && timeframe === "5m") return applyPhase1GConfig(cfg, timeframe, PHASE_1G_CONTROLLED_MICROSCALPER_5M_PARAMS);
+  if (name === "CompressionBreakout" && timeframe === "15m") return applyPhase1GConfig(cfg, timeframe, PHASE_1G_CONTROLLED_COMPRESSION_15M_PARAMS);
+  if (name === "CompressionBreakout" && timeframe === "1h") return applyPhase1GConfig(cfg, timeframe, PHASE_1G_CONTROLLED_COMPRESSION_1H_PARAMS);
+  if (name === "SwingContinuation" && timeframe === "15m") return applyPhase1GConfig(cfg, timeframe, PHASE_1G_CONTROLLED_SWING_15M_PARAMS);
+  if (name === "SwingContinuation" && timeframe === "1h") return applyPhase1GConfig(cfg, timeframe, PHASE_1G_CONTROLLED_SWING_1H_PARAMS);
+  return cfg;
+}
+
+function phase1GConfigDiagnostics(name: StrategyName, timeframe: string, marketType: string, rawCfg: StrategyConfig, effectiveCfg: StrategyConfig): Record<string, number | string | boolean> {
+  const mode = phase1GStrategySignalMode(name, marketType, timeframe);
+  const rawParams = rawCfg.params ?? {};
+  const effectiveParams = effectiveCfg.params ?? {};
+  return {
+    phase_1g_signal_mode: mode,
+    phase_1g_mode_reason: phase1GModeReason(name, marketType, timeframe),
+    blocked_signal: mode === "blocked_signal",
+    phase_1g_customer_signal_eligible: mode === "active_signal",
+    active_signal: mode === "active_signal",
+    customer_signal_requires_all_existing_gates: mode === "active_signal",
+    forex_not_calibrated: phase1GModeReason(name, marketType, timeframe) === "forex_not_calibrated",
+    no_real_forex_csv_fixture: phase1GModeReason(name, marketType, timeframe) === "forex_not_calibrated",
+    db_enabled: rawCfg.enabled,
+    effective_enabled: effectiveCfg.enabled,
+    db_allowed_timeframes: rawCfg.allowed_timeframes.join(",") || "all",
+    effective_allowed_timeframes: effectiveCfg.allowed_timeframes.join(",") || "all",
+    db_min_score: rawCfg.min_score,
+    effective_min_score: effectiveCfg.min_score,
+    db_min_rr: rawCfg.min_rr,
+    effective_min_rr: effectiveCfg.min_rr,
+    db_max_bars_in_trade: rawCfg.max_bars_in_trade,
+    effective_max_bars_in_trade: effectiveCfg.max_bars_in_trade,
+    db_stop_atr_mult: typeof rawParams.stop_atr_mult === "number" ? rawParams.stop_atr_mult : "unset",
+    effective_stop_atr_mult: typeof effectiveParams.stop_atr_mult === "number" ? effectiveParams.stop_atr_mult : "unset",
+    db_tp1_r: typeof rawParams.tp1_r === "number" ? rawParams.tp1_r : "unset",
+    effective_tp1_r: typeof effectiveParams.tp1_r === "number" ? effectiveParams.tp1_r : "unset",
+    db_tp2_r: typeof rawParams.tp2_r === "number" ? rawParams.tp2_r : "unset",
+    effective_tp2_r: typeof effectiveParams.tp2_r === "number" ? effectiveParams.tp2_r : "unset",
+    db_crypto_behavior_tuning: typeof rawParams.crypto_behavior_tuning === "number" ? rawParams.crypto_behavior_tuning : "unset",
+    effective_crypto_behavior_tuning: typeof effectiveParams.crypto_behavior_tuning === "number" ? effectiveParams.crypto_behavior_tuning : "unset",
+    scanner_config_drift_corrected: marketType === "crypto" && (rawCfg.min_score !== effectiveCfg.min_score || rawCfg.min_rr !== effectiveCfg.min_rr || rawCfg.max_bars_in_trade !== effectiveCfg.max_bars_in_trade || rawCfg.enabled !== effectiveCfg.enabled || rawCfg.allowed_timeframes.join(",") !== effectiveCfg.allowed_timeframes.join(",")),
+  };
+}
+
 // ─── Distance guard ───────────────────────────────────────────────────────────
 
 interface DistanceGuardResult {
@@ -1116,9 +1299,10 @@ function checkDistanceGuards(
 // score each and return the best one. Losers are marked arbitration_blocked.
 
 interface EvalEntry {
-  name: string;
+  name: StrategyName;
   result: EvalResult;
   cfg: StrategyConfig;
+  rawCfg: StrategyConfig;
   guard: DistanceGuardResult;
 }
 
@@ -1194,9 +1378,11 @@ function arbitrationScore(e: EvalEntry): number {
   return parseFloat(Math.max(0, (scorePct * 0.32) + (identityPct * 0.24) + (rrPct * 0.18) + (distMargin * 0.16) + (gradePct * 0.10) - overextensionPenalty(e)).toFixed(4));
 }
 
-function arbitrationSnapshot(entries: EvalEntry[]): Array<Record<string, unknown>> {
+function arbitrationSnapshot(entries: EvalEntry[], timeframe: string, marketType: string): Array<Record<string, unknown>> {
   return entries.map((entry) => ({
     strategy_name: entry.name,
+    timeframe,
+    candidate_signal_mode: phase1GStrategySignalMode(entry.name, marketType, timeframe),
     arbitration_score: arbitrationScore(entry),
     confidence_score: entry.result.confidence_score,
     grade: entry.result.grade,
@@ -1206,6 +1392,7 @@ function arbitrationSnapshot(entries: EvalEntry[]): Array<Record<string, unknown
     tp1_margin_pct: parseFloat(entry.guard.tp1_pct.toFixed(4)),
     tp2_margin_pct: parseFloat(entry.guard.tp2_pct.toFixed(4)),
     primary_failed_gate: entry.result.score_breakdown?.primary_failed_gate ?? "passed",
+    arbitration_participation: "active",
   }));
 }
 
@@ -2389,17 +2576,18 @@ async function runScanPipeline(
   const getStratCfg = (name: string): StrategyConfig => {
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
     const isForex = name.startsWith("Forex");
+    const microFallback = name === "MicroScalper";
     return {
       strategy_name: name,
       enabled:               (cfg?.enabled as boolean)                      ?? true,
       signal_style:          (cfg?.signal_style as string)                  ?? (isForex ? "forex_signal" : "scalper"),
       risk_mode:             (cfg?.risk_mode as string)                     ?? (isForex ? "conservative" : "balanced"),
-      min_score:             (cfg?.min_score as number)                     ?? (isForex ? 78 : 75),
+      min_score:             (cfg?.min_score as number)                     ?? (isForex ? 78 : microFallback ? PHASE_1G_APPROVED_MICROSCALPER_15M_PARAMS.min_score : 75),
       min_rr:                (cfg?.min_rr as number)                        ?? (isForex ? 1.4 : 1.2),
       min_stop_distance_pct: (cfg?.min_stop_distance_pct as number)         ?? (isForex ? 0.08 : 0.18),
       min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? (isForex ? 0.10 : 0.25),
       min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? (isForex ? 0.16 : 0.40),
-      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (isForex ? 48 : 32),
+      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (isForex ? 48 : microFallback ? PHASE_1G_APPROVED_MICROSCALPER_15M_PARAMS.max_bars_in_trade : 32),
       allowed_symbols:       (cfg?.allowed_symbols as string[])             ?? (isForex ? [...C2_FOREX_SYMBOLS] : []),
       allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isForex ? forexTimeframes() : []),
       params:                (cfg?.params as Record<string, number>)        ?? {},
@@ -2574,11 +2762,30 @@ async function runScanPipeline(
     }
   }
 
-  let activeSymbolSet = new Set<string>();
+  const activeSymbolSet = new Set<string>();
+  const activeSignalBySymbol = new Map<string, { strategy_name?: string | null; timeframe?: string | null; created_at?: string | null }>();
   if (config.prevent_duplicate_symbol_signals) {
-    const { data: activeSigs } = await supabase.from("signals").select("symbol").in("status", ["waiting", "active"]);
-    activeSymbolSet = new Set((activeSigs ?? []).map((s: { symbol: string }) => s.symbol));
+    const { data: activeSigs } = await supabase.from("signals").select("symbol,strategy_name,timeframe,created_at").in("status", ["waiting", "active"]);
+    for (const s of activeSigs ?? []) {
+      const row = s as { symbol: string; strategy_name?: string | null; timeframe?: string | null; created_at?: string | null };
+      activeSymbolSet.add(row.symbol);
+      if (!activeSignalBySymbol.has(row.symbol)) activeSignalBySymbol.set(row.symbol, row);
+    }
   }
+  const activeSignalDiagnostics = (symbol: string): Record<string, number | string | boolean> => {
+    const existing = activeSignalBySymbol.get(symbol);
+    const createdMs = existing?.created_at ? Date.parse(existing.created_at) : NaN;
+    const ageMinutes = Number.isFinite(createdMs) ? Math.max(0, Math.round((Date.now() - createdMs) / 60_000)) : -1;
+    return {
+      active_symbol_blocked_by_existing_signal: true,
+      existing_signal_strategy: existing?.strategy_name ?? "unknown",
+      existing_signal_timeframe: existing?.timeframe ?? "unknown",
+      existing_signal_age_minutes: ageMinutes,
+      existing_signal_age: ageMinutes >= 0 ? `${ageMinutes}m` : "unknown",
+      stale_active_signal_possible: ageMinutes < 0 || ageMinutes > 360,
+      duplicate_protection_preserved: true,
+    };
+  };
 
   for (const sym of symbols) {
     // Respect effective market toggles before any provider function is called.
@@ -2680,31 +2887,34 @@ async function runScanPipeline(
           volatility_state: ind.volatility_state, regime: ind.regime,
         }, { onConflict: "symbol,timeframe,candle_time" });
 
-        const allEvals: Array<{ name: StrategyName; result: EvalResult; cfg: StrategyConfig }> = [];
+        const allEvals: Array<{ name: StrategyName; result: EvalResult; cfg: StrategyConfig; rawCfg: StrategyConfig }> = [];
         const timeframeAllowed = (cfg: StrategyConfig) => cfg.allowed_timeframes.length === 0 || cfg.allowed_timeframes.includes(tf);
-        const evaluateStrategy = (name: StrategyName, cfg: StrategyConfig, evaluator: () => EvalResult) => {
+        const evaluateStrategy = (name: StrategyName, cfg: StrategyConfig, evaluator: () => EvalResult, rawCfg = cfg) => {
           if (!cfg.enabled) { recordStrategySkip(name, "strategy_disabled"); return; }
           if (!timeframeAllowed(cfg)) { recordStrategySkip(name, `timeframe_not_allowed:${tf}`); return; }
           try {
-            allEvals.push({ name, cfg, result: evaluator() });
+            allEvals.push({ name, cfg, rawCfg, result: evaluator() });
           } catch (strategyErr) {
             recordStrategyError(name, sym.symbol, tf, strategyErr);
-            allEvals.push({ name, cfg, result: strategyRuntimeReject(name, strategyErr) });
+            allEvals.push({ name, cfg, rawCfg, result: strategyRuntimeReject(name, strategyErr) });
           }
         };
 
         if (marketType === "forex") {
-          const fxMsConfig = getStratCfg("ForexMicroScalper");
-          const fxSwConfig = getStratCfg("ForexSwingContinuation");
+          const fxMsConfig = phase1GEffectiveConfig("ForexMicroScalper", tf, marketType, getStratCfg("ForexMicroScalper"));
+          const fxSwConfig = phase1GEffectiveConfig("ForexSwingContinuation", tf, marketType, getStratCfg("ForexSwingContinuation"));
           evaluateStrategy("ForexMicroScalper", fxMsConfig, () => evalForexMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }));
           evaluateStrategy("ForexSwingContinuation", fxSwConfig, () => evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }));
         } else {
-          const msConfig  = getStratCfg("MicroScalper");
-          const cbConfig  = getStratCfg("CompressionBreakout");
-          const swConfig  = getStratCfg("SwingContinuation");
-          evaluateStrategy("MicroScalper", msConfig, () => evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr, crypto_behavior_tuning: 1 }));
-          evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, crypto_behavior_tuning: 1 }));
-          evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, crypto_behavior_tuning: 1 }));
+          const rawMsConfig = getStratCfg("MicroScalper");
+          const rawCbConfig = getStratCfg("CompressionBreakout");
+          const rawSwConfig = getStratCfg("SwingContinuation");
+          const msConfig = phase1GEffectiveConfig("MicroScalper", tf, marketType, rawMsConfig);
+          const cbConfig = phase1GEffectiveConfig("CompressionBreakout", tf, marketType, rawCbConfig);
+          const swConfig = phase1GEffectiveConfig("SwingContinuation", tf, marketType, rawSwConfig);
+          evaluateStrategy("MicroScalper", msConfig, () => evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr }), rawMsConfig);
+          evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, crypto_behavior_tuning: 1 }), rawCbConfig);
+          evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, crypto_behavior_tuning: 1 }), rawSwConfig);
         }
 
         // ── Pre-arbitration: collect passing candidates, pick the best one ──
@@ -2716,6 +2926,11 @@ async function runScanPipeline(
           incrementStrategyStat(ev.name, "evaluated");
           const r = ev.result;
 
+          const mode = phase1GStrategySignalMode(ev.name, marketType, tf);
+          const phase1GDiagnostics = {
+            ...phase1GConfigDiagnostics(ev.name, tf, marketType, ev.rawCfg, ev.cfg),
+            ...phase1GExpectedHoldDiagnostics(ev.name, tf, ev.cfg),
+          };
           const candidateRow = {
             scanner_run_id: runId, symbol: sym.symbol, market_type: sym.market_type, timeframe: tf,
             strategy_name: ev.name, direction: r.direction || "none",
@@ -2724,7 +2939,7 @@ async function runScanPipeline(
             risk_reward: r.risk_reward || null, regime: ind.regime,
             confidence_score: r.confidence_score, grade: r.grade,
             reason: r.reason, rejection_reason: normalizeRejectionReason(r.rejection_reason, marketType),
-            status: r.status, data_source: dataSource, score_breakdown: r.score_breakdown,
+            status: r.status, data_source: dataSource, score_breakdown: { ...(r.score_breakdown ?? {}), ...phase1GDiagnostics },
           };
 
           const { data: cData } = await supabase.from("strategy_candidates").insert(candidateRow).select("id").single();
@@ -2736,7 +2951,7 @@ async function runScanPipeline(
           const guard = checkDistanceGuards(r, ev.cfg);
           if (!guard.passed) {
             const guardedBreakdown = {
-              ...(r.score_breakdown ?? {}),
+              ...(candidateRow.score_breakdown ?? {}),
               primary_failed_gate: "distance_guard_failed",
               distance_guard_reason: guard.rejection_reason,
               guard_sl_pct: parseFloat(guard.sl_pct.toFixed(4)),
@@ -2754,7 +2969,29 @@ async function runScanPipeline(
             continue;
           }
 
-          passingEntries.push({ name: ev.name, result: r, cfg: ev.cfg, guard });
+          if (mode === "blocked_signal") {
+            const blockedReason = phase1GModeReason(ev.name, marketType, tf);
+            await supabase.from("strategy_candidates").update({
+              status: "rejected",
+              rejection_reason: blockedReason,
+              score_breakdown: {
+                ...(candidateRow.score_breakdown ?? {}),
+                primary_failed_gate: blockedReason,
+                blocked_signal: true,
+                phase_1g_signal_mode: mode,
+                phase_1g_mode_reason: blockedReason,
+                customer_signal_blocked: true,
+                customer_signal_block_reason: blockedReason,
+                arbitration_excluded: true,
+                arbitration_exclusion_reason: blockedReason,
+              },
+            }).eq("id", cData.id);
+            incrementStrategyStat(ev.name, "rejected");
+            rejectedCount++;
+            continue;
+          }
+
+          passingEntries.push({ name: ev.name, result: r, cfg: ev.cfg, rawCfg: ev.rawCfg, guard });
           // tag candidate id for later use
           (passingEntries[passingEntries.length - 1] as EvalEntry & { _candidateId: string })._candidateId = cData.id;
         }
@@ -2767,7 +3004,7 @@ async function runScanPipeline(
           if (identityDelta !== 0) return identityDelta;
           return b.result.risk_reward - a.result.risk_reward;
         });
-        const arbitrationCandidates = arbitrationSnapshot(passingEntries);
+        const arbitrationCandidates = arbitrationSnapshot(passingEntries, tf, marketType);
         const selectedArbitrationScore = passingEntries.length > 0 ? arbitrationScore(passingEntries[0]) : 0;
         const selectedStrategyName = passingEntries[0]?.name ?? "none";
 
@@ -2784,12 +3021,17 @@ async function runScanPipeline(
               rejection_reason: "arbitration_blocked",
               score_breakdown: {
                 ...(r.score_breakdown ?? {}),
+                ...phase1GConfigDiagnostics(ev.name, tf, marketType, ev.rawCfg, ev.cfg),
+                ...phase1GExpectedHoldDiagnostics(ev.name, tf, ev.cfg),
                 primary_failed_gate: "arbitration_blocked",
                 arbitration_blocked: true,
                 better_candidate_selected: true,
                 lower_quality_than_selected: true,
                 arbitration_score: arbitrationScore(ev),
                 selected_strategy: selectedStrategyName,
+                selected_timeframe: tf,
+                candidate_signal_mode: phase1GStrategySignalMode(ev.name, marketType, tf),
+                arbitration_loss_reason: "lower_arbitration_score_than_selected_candidate",
                 selected_arbitration_score: selectedArbitrationScore,
                 candidate_arbitration_score: arbitrationScore(ev),
                 arbitration_candidates: arbitrationCandidates,
@@ -2804,9 +3046,13 @@ async function runScanPipeline(
           await supabase.from("strategy_candidates").update({
             score_breakdown: {
               ...(r.score_breakdown ?? {}),
+              ...phase1GConfigDiagnostics(ev.name, tf, marketType, ev.rawCfg, ev.cfg),
+              ...phase1GExpectedHoldDiagnostics(ev.name, tf, ev.cfg),
               primary_failed_gate: r.score_breakdown?.primary_failed_gate ?? "passed",
               arbitration_selected: true,
               selected_strategy: selectedStrategyName,
+              selected_timeframe: tf,
+              candidate_signal_mode: phase1GStrategySignalMode(ev.name, marketType, tf),
               arbitration_score: selectedArbitrationScore,
               selected_arbitration_score: selectedArbitrationScore,
               candidate_arbitration_score: selectedArbitrationScore,
@@ -2824,10 +3070,15 @@ async function runScanPipeline(
               rejection_reason: "duplicate_active_signal",
               score_breakdown: {
                 ...(r.score_breakdown ?? {}),
+                ...phase1GConfigDiagnostics(ev.name, tf, marketType, ev.rawCfg, ev.cfg),
+                ...phase1GExpectedHoldDiagnostics(ev.name, tf, ev.cfg),
                 primary_failed_gate: "duplicate_active_signal",
                 duplicate_active_signal: true,
+                ...activeSignalDiagnostics(sym.symbol),
                 arbitration_selected: true,
                 selected_strategy: selectedStrategyName,
+                selected_timeframe: tf,
+                candidate_signal_mode: phase1GStrategySignalMode(ev.name, marketType, tf),
                 arbitration_score: selectedArbitrationScore,
                 selected_arbitration_score: selectedArbitrationScore,
                 candidate_arbitration_score: selectedArbitrationScore,
@@ -2902,6 +3153,8 @@ async function runScanPipeline(
               duplicate_blocked: false, daily_lock_state: riskCheck.daily_lock,
               cooldown_state: riskCheck.cooldown, paper_execution_intent_created: false,
               selected_strategy: ev.name,
+              selected_timeframe: tf,
+              candidate_signal_mode: phase1GStrategySignalMode(ev.name, marketType, tf),
               arbitration_score: selectedArbitrationScore,
               competing_candidates: arbitrationCandidates,
             };
