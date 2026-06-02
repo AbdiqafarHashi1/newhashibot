@@ -38,7 +38,6 @@ interface BtMetrics {
   bestTrade: number; worstTrade: number;
   maxConsecWins: number; maxConsecLosses: number; maxDrawdown: number;
   evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number>;
-  rejectionDiagnostics?: Record<string, Record<string, string | number | boolean>>;
 }
 
 interface CsvInfo {
@@ -67,7 +66,6 @@ interface ParamSet {
   box_lookback: number; min_box_bars: number; max_box_atr_range: number;
   atr_expansion_lookback: number; min_atr_expansion: number;
   breakout_buffer_atr: number; pullback_bars: number;
-  swing_15m_tp1_r?: number; swing_15m_tp2_r?: number;
 }
 
 const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressive', ParamSet>> = {
@@ -77,9 +75,9 @@ const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressiv
     aggressive:   { min_score: 68, min_rr: 1.0, min_stop_distance_pct: 0.15, min_tp1_distance_pct: 0.20, min_tp2_distance_pct: 0.32, max_bars_in_trade: 30, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.2, tp1_r: 1.0, tp2_r: 1.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
   },
   CompressionBreakout: {
-    conservative: { min_score: 80, min_rr: 1.6, min_stop_distance_pct: 0.30, min_tp1_distance_pct: 0.40, min_tp2_distance_pct: 0.70, max_bars_in_trade: 40, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.5, tp1_r: 1.1, tp2_r: 2.8, box_lookback: 60, min_box_bars: 16, max_box_atr_range: 1.6, atr_expansion_lookback: 48, min_atr_expansion: 1.2, breakout_buffer_atr: 0.14, pullback_bars: 5 },
-    balanced:     { min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.0, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
-    aggressive:   { min_score: 68, min_rr: 1.1, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.50, max_bars_in_trade: 60, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.3, tp1_r: 0.95, tp2_r: 2.2, box_lookback: 40, min_box_bars: 12, max_box_atr_range: 2.0, atr_expansion_lookback: 48, min_atr_expansion: 1.05, breakout_buffer_atr: 0.10, pullback_bars: 5 },
+    conservative: { min_score: 80, min_rr: 1.6, min_stop_distance_pct: 0.30, min_tp1_distance_pct: 0.40, min_tp2_distance_pct: 0.70, max_bars_in_trade: 40, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.5, tp1_r: 1.4, tp2_r: 2.8, box_lookback: 60, min_box_bars: 16, max_box_atr_range: 1.6, atr_expansion_lookback: 48, min_atr_expansion: 1.2, breakout_buffer_atr: 0.14, pullback_bars: 5 },
+    balanced:     { min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5 },
+    aggressive:   { min_score: 68, min_rr: 1.1, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.50, max_bars_in_trade: 60, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.3, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 40, min_box_bars: 12, max_box_atr_range: 2.0, atr_expansion_lookback: 48, min_atr_expansion: 1.05, breakout_buffer_atr: 0.10, pullback_bars: 5 },
   },
   SwingContinuation: {
     conservative: { min_score: 80, min_rr: 1.8, min_stop_distance_pct: 0.50, min_tp1_distance_pct: 0.80, min_tp2_distance_pct: 1.30, max_bars_in_trade: 80, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.8, tp1_r: 1.7, tp2_r: 2.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 4 },
@@ -91,10 +89,7 @@ const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressiv
 const LIVE_PARAMS: Record<Strategy, ParamSet> = {
   MicroScalper: DEFAULTS.MicroScalper.balanced,
   CompressionBreakout: DEFAULTS.CompressionBreakout.balanced,
-  // Live-like browser approximation for backtesting only. Phase 1C adds
-  // 15m-specific SwingContinuation exit targets while keeping 1h targets and
-  // live scanner/provider/Telegram/DB strategy_config untouched.
-  SwingContinuation: { ...DEFAULTS.MicroScalper.balanced, min_score: 72, min_rr: 1.2, max_bars_in_trade: 60, pullback_bars: 6, tp1_r: 1.4, tp2_r: 2.4, swing_15m_tp1_r: 1.3, swing_15m_tp2_r: 2.2 },
+  SwingContinuation: DEFAULTS.SwingContinuation.balanced,
 };
 
 const STRATEGY_TIMEFRAMES: Record<Strategy, string[]> = {
@@ -116,12 +111,12 @@ const RESEARCH_PRESET_LABEL: Record<ResearchPreset, string> = {
 const RESEARCH_PRESET_DESCRIPTIONS: Record<ResearchPreset, string> = {
   live: 'Closest browser-side approximation of current strategy-family behavior. Default path.',
   conservative: 'Backtest-only stricter score, confirmation, RR/distance safety. Fewer weak setups expected.',
-  balanced: 'Backtest-only middle-ground research preset. MicroScalper and CompressionBreakout match live-like defaults; SwingContinuation keeps a separate preset from the tuned live-like 15m exit approximation.',
+  balanced: 'Backtest-only middle-ground research preset, aligned to current live-like defaults.',
   aggressive: 'Backtest-only more active research preset. Keeps RR, distance, candle, and structure guards.',
 };
 
 function paramsForPreset(strategy: Strategy, preset: ResearchPreset): ParamSet {
-  if (preset === 'live') return { ...LIVE_PARAMS[strategy] };
+  if (preset === 'live' || preset === 'balanced') return { ...LIVE_PARAMS[strategy] };
   return { ...DEFAULTS[strategy][preset] };
 }
 
@@ -221,10 +216,9 @@ interface EvalOut {
   entry: number; entry_low: number; entry_high: number;
   sl: number; tp1: number; tp2: number;
   grade: string; score: number; rr: number; reason: string;
-  diagnostics?: Record<string, string | number | boolean>;
 }
 
-const FAIL = (reason = 'no_valid_setup', diagnostics?: Record<string, string | number | boolean>): EvalOut => ({ ok: false, direction: 'buy', entry: 0, entry_low: 0, entry_high: 0, sl: 0, tp1: 0, tp2: 0, grade: 'reject', score: 0, rr: 0, reason, diagnostics });
+const FAIL = (reason = 'no_valid_setup'): EvalOut => ({ ok: false, direction: 'buy', entry: 0, entry_low: 0, entry_high: 0, sl: 0, tp1: 0, tp2: 0, grade: 'reject', score: 0, rr: 0, reason });
 
 function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (!['5m', '15m'].includes(tf)) return FAIL('unsupported_timeframe');
@@ -278,289 +272,143 @@ function evalMS(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   return { ok: true, direction, entry: price, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `MS ${direction}: score=${final_score}, rsi=${rsi.toFixed(1)}, regime=${reg}` };
 }
 
-function clampScore(value: number): number {
-  return Math.min(100, Math.max(0, Math.round(value)));
-}
-
-function roundDiag(value: number, digits = 3): number {
-  return Number.isFinite(value) ? parseFloat(value.toFixed(digits)) : 0;
-}
-
-function pctDistance(a: number, b: number): number {
-  return a > 0 ? roundDiag((Math.abs(a - b) / a) * 100, 4) : 0;
-}
-
 function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (!['15m', '1h'].includes(tf)) return FAIL('unsupported_timeframe');
-  const boxLookback = Math.max(10, Math.floor(p.box_lookback));
-  const minBoxBars = Math.max(5, Math.floor(p.min_box_bars));
-  const atrExpansionLookback = Math.max(5, Math.floor(p.atr_expansion_lookback));
-  const minLen = Math.max(boxLookback + 5, atrExpansionLookback + 2, p.ema_slow + 5, p.atr_len + 2, p.rsi_len + 2, 60);
-  if (window.length < minLen) return FAIL('insufficient_candles');
-
+  const boxLookback = p.box_lookback, minBoxBars = p.min_box_bars;
+  if (window.length < boxLookback + 5) return FAIL('insufficient_candles');
   const closes = window.map(c => c.close);
   const atr = calcATR(window, p.atr_len);
+  if (atr <= 0) return FAIL('invalid_atr');
   const rsi = calcRSI(closes, p.rsi_len);
-  const emaFast = calcEMA(closes, p.ema_fast);
-  const emaSlow = calcEMA(closes, p.ema_slow);
-  const last = window[window.length - 1];
-  const price = last.close;
-  if (atr <= 0 || price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return FAIL('invalid_atr');
-
-  const fullBoxSlice = window.slice(-(boxLookback + 1), -1);
-  if (fullBoxSlice.length < minBoxBars) return FAIL('insufficient_box_bars');
-  const recentLen = Math.min(Math.max(minBoxBars, 12), fullBoxSlice.length);
-  const recentBoxSlice = fullBoxSlice.slice(-recentLen);
-  const boxHigh = Math.max(...fullBoxSlice.map(c => c.high));
-  const boxLow = Math.min(...fullBoxSlice.map(c => c.low));
+  const last = window[window.length - 1]; const price = last.close;
+  const boxSlice = window.slice(-(boxLookback + 1), -1);
+  if (boxSlice.length < minBoxBars) return FAIL('insufficient_box_bars');
+  const boxHigh = Math.max(...boxSlice.map(c => c.high));
+  const boxLow  = Math.min(...boxSlice.map(c => c.low));
   const boxRange = boxHigh - boxLow;
-  const recentBoxHigh = Math.max(...recentBoxSlice.map(c => c.high));
-  const recentBoxLow = Math.min(...recentBoxSlice.map(c => c.low));
-  const recentBoxRange = recentBoxHigh - recentBoxLow;
-  if (boxRange <= 0 || !Number.isFinite(boxRange)) return FAIL('invalid_box_range');
+  if (boxRange > atr * p.max_box_atr_range) return FAIL('compression_failed_box_too_wide');
+  const barsInside = boxSlice.filter(c => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
+  if (barsInside < minBoxBars) return FAIL('compression_failed_not_enough_inside_bars');
 
-  const buffer = atr * p.breakout_buffer_atr;
-  const useRecentBox = recentBoxRange > 0 && recentBoxRange < boxRange;
-  const effectiveBoxHigh = useRecentBox ? recentBoxHigh : boxHigh;
-  const effectiveBoxLow = useRecentBox ? recentBoxLow : boxLow;
-  const effectiveBoxRange = effectiveBoxHigh - effectiveBoxLow;
-  const breakoutDistUp = last.close - effectiveBoxHigh;
-  const breakoutDistDn = effectiveBoxLow - last.close;
-  const closeOutsideUp = breakoutDistUp > 0 && last.close > last.open;
-  const closeOutsideDn = breakoutDistDn > 0 && last.close < last.open;
-  const breakoutUp = breakoutDistUp > buffer && last.close > last.open;
-  const breakoutDn = breakoutDistDn > buffer && last.close < last.open;
-  const earlyBreakoutUp = closeOutsideUp && (last.high - last.low) > atr * p.min_atr_expansion;
-  const earlyBreakoutDn = closeOutsideDn && (last.high - last.low) > atr * p.min_atr_expansion;
-  const direction: 'buy' | 'sell' = breakoutUp || earlyBreakoutUp ? 'buy' : breakoutDn || earlyBreakoutDn ? 'sell' : (last.close >= (effectiveBoxHigh + effectiveBoxLow) / 2 ? 'buy' : 'sell');
-  const breakoutConfirmed = breakoutUp || breakoutDn || earlyBreakoutUp || earlyBreakoutDn;
-  const breakoutDist = direction === 'buy' ? Math.max(0, breakoutDistUp) : Math.max(0, breakoutDistDn);
-  const breakoutDistanceAtr = breakoutDist / atr;
+  const boxMid = (boxHigh + boxLow) / 2;
+  const bfh = boxSlice.slice(0, Math.floor(boxSlice.length / 2));
+  const bsh = boxSlice.slice(Math.floor(boxSlice.length / 2));
+  const fa = bfh.reduce((s, c) => s + c.close, 0) / (bfh.length || 1);
+  const sa = bsh.reduce((s, c) => s + c.close, 0) / (bsh.length || 1);
+  const drift = Math.abs(sa - fa) / (boxRange || 1);
+  if (drift < 0.10 && Math.abs(fa - boxMid) / (boxRange || 1) < 0.15 && Math.abs(sa - boxMid) / (boxRange || 1) < 0.15) return FAIL('compression_drift_too_flat');
 
-  const barsInside = fullBoxSlice.filter(c => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
-  const recentBarsInside = recentBoxSlice.filter(c => c.high <= recentBoxHigh * 1.0015 && c.low >= recentBoxLow * 0.9985).length;
-  const boxRangeAtr = boxRange / atr;
-  const recentBoxRangeAtr = recentBoxRange / atr;
-  const effectiveBoxRangeAtr = effectiveBoxRange / atr;
-  const boxRangePct = price > 0 ? (boxRange / price) * 100 : 0;
-  const insideRatio = barsInside / Math.max(fullBoxSlice.length, 1);
-  const recentInsideRatio = recentBarsInside / Math.max(recentBoxSlice.length, 1);
+  const buf = atr * p.breakout_buffer_atr;
+  const up = last.close > boxHigh + buf && last.close > last.open;
+  const dn = last.close < boxLow  - buf && last.close < last.open;
+  if (!up && !dn) return FAIL('breakout_not_confirmed');
 
-  const histSlice = window.slice(-(atrExpansionLookback + 1), -1);
-  const avgRange = histSlice.length > 0 ? histSlice.reduce((sum, c) => sum + (c.high - c.low), 0) / histSlice.length : 0;
-  const curBarRange = last.high - last.low;
-  const atrExpansionRatio = avgRange > 0 ? curBarRange / avgRange : 1;
-  const olderRange = fullBoxSlice.length > recentLen
-    ? (Math.max(...fullBoxSlice.slice(0, -recentLen).map(c => c.high)) - Math.min(...fullBoxSlice.slice(0, -recentLen).map(c => c.low)))
-    : boxRange;
-  const compressionRatio = olderRange > 0 ? recentBoxRange / olderRange : 1;
-  const rangeContracted = recentBoxRange > 0 && boxRange > 0 ? recentBoxRange <= boxRange * 0.72 : false;
+  const hist = window.slice(-(p.atr_expansion_lookback + 1), -1);
+  const avgRange = hist.reduce((s, c) => s + (c.high - c.low), 0) / (hist.length || 1);
+  const expansion = avgRange > 0 ? (last.high - last.low) / avgRange : 1;
+  if (expansion < p.min_atr_expansion) return FAIL('atr_expansion_too_low');
 
-  const strictCompressionReady = fullBoxSlice.length >= minBoxBars && barsInside >= minBoxBars && boxRangeAtr <= p.max_box_atr_range;
-  const recentCompressionReady = recentBoxSlice.length >= minBoxBars && recentBarsInside >= minBoxBars * 0.8 && recentBoxRangeAtr <= p.max_box_atr_range * 1.1;
-  const rangeTightness = p.max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (boxRangeAtr / Math.max(p.max_box_atr_range * 1.35, 0.01)))) : 0;
-  const recentRangeTightness = p.max_box_atr_range > 0 ? Math.max(0, Math.min(1, 1 - (recentBoxRangeAtr / Math.max(p.max_box_atr_range * 1.45, 0.01)))) : 0;
-  const contractionScore = Math.max(0, Math.min(1, 1 - compressionRatio)) * 30;
-  const compressionScore = clampScore((Math.max(insideRatio, recentInsideRatio) * 35) + (Math.max(rangeTightness, recentRangeTightness) * 55) + contractionScore);
-  const nearCompressionReady = fullBoxSlice.length >= minBoxBars
-    && Math.max(insideRatio, recentInsideRatio) >= 0.65
-    && (boxRangeAtr <= p.max_box_atr_range * 1.35 || recentBoxRangeAtr <= p.max_box_atr_range * 1.45 || rangeContracted)
-    && compressionScore >= 45;
-  const compressionReady = strictCompressionReady || recentCompressionReady || (nearCompressionReady && breakoutConfirmed);
+  const brkDist = up ? last.close - boxHigh : boxLow - last.close;
+  if (brkDist < buf * 0.6) return FAIL('breakout_distance_too_small');
 
-  const atrExpansionScore = clampScore(Math.min(1.4, atrExpansionRatio / Math.max(p.min_atr_expansion, 0.01)) * 70);
-  const breakoutScore = clampScore((breakoutConfirmed ? 45 : 0) + Math.min(1, breakoutDistanceAtr / Math.max(p.breakout_buffer_atr * 4, 0.25)) * 55);
   const mom = momentumScore(closes, p.momentum_lookback);
-  const bodyAtr = Math.abs(last.close - last.open) / atr;
-  const directionMomentum = direction === 'buy' ? mom : -mom;
-  const rsiDirectional = direction === 'buy' ? Math.max(0, (rsi - 45) / 20) : Math.max(0, (55 - rsi) / 20);
-  const emaDirectional = direction === 'buy' ? (emaFast >= emaSlow ? 1 : 0.45) : (emaFast <= emaSlow ? 1 : 0.45);
-  const candleBodyScore = clampScore(Math.min(bodyAtr, 1.25) * 80);
-  const momentumScoreValue = clampScore((Math.max(0, directionMomentum) * 45) + (Math.min(bodyAtr, 1) * 30) + (Math.min(rsiDirectional, 1) * 15) + (emaDirectional * 10));
-  const atrPct = (atr / price) * 100;
-  let volatilityScore = 80;
-  if (atrPct < 0.08) volatilityScore = 25;
-  else if (atrPct < 0.15) volatilityScore = 55;
-  else if (atrPct > 5.0) volatilityScore = 30;
-  else if (atrPct > 3.5) volatilityScore = 55;
+  if (up && mom < 0) return FAIL('momentum_failed');
+  if (dn && mom > 0) return FAIL('momentum_failed');
 
-  let entry_low: number, entry_high: number, sl: number, tp1: number, tp2: number;
-  if (direction === 'buy') {
-    entry_low = breakoutConfirmed ? Math.min(effectiveBoxHigh, price * 0.9995) : effectiveBoxHigh;
-    entry_high = breakoutConfirmed ? Math.max(price, effectiveBoxHigh + atr * 0.25) : effectiveBoxHigh + atr * 0.25;
-    sl = Math.min(effectiveBoxLow - atr * 0.20, price - atr * p.stop_atr_mult);
-    const riskForTargets = Math.abs(price - sl);
-    tp1 = price + riskForTargets * p.tp1_r;
-    tp2 = price + riskForTargets * p.tp2_r;
-  } else {
-    entry_low = breakoutConfirmed ? Math.min(price, effectiveBoxLow - atr * 0.25) : effectiveBoxLow - atr * 0.25;
-    entry_high = breakoutConfirmed ? Math.max(effectiveBoxLow, price * 1.0005) : effectiveBoxLow;
-    sl = Math.max(effectiveBoxHigh + atr * 0.20, price + atr * p.stop_atr_mult);
-    const riskForTargets = Math.abs(price - sl);
-    tp1 = price - riskForTargets * p.tp1_r;
-    tp2 = price - riskForTargets * p.tp2_r;
-  }
-  const entry = price;
-  const risk = Math.abs(price - sl);
-  const rr = risk > 0 ? parseFloat((Math.abs(tp2 - price) / risk).toFixed(2)) : 0;
-  const rrScore = clampScore(Math.min(rr / Math.max(p.min_rr, 0.01), 1.5) * 66);
-  const score = clampScore((compressionScore * 0.24) + (breakoutScore * 0.24) + (atrExpansionScore * 0.16) + (momentumScoreValue * 0.14) + (volatilityScore * 0.08) + (rrScore * 0.10) + (candleBodyScore * 0.04));
-  const grade = score >= 85 ? 'A+' : score >= 75 ? 'A' : score >= 65 ? 'B' : 'reject';
+  const direction: 'buy' | 'sell' = up ? 'buy' : 'sell';
+  let score = 50;
+  const cq = barsInside / Math.max(boxLookback, 1);
+  if (cq > 0.80) score += 12; else if (cq > 0.60) score += 7; else score += 2;
+  if (expansion > 2.0) score += 12; else if (expansion > 1.5) score += 8; else score += 4;
+  if ((brkDist / atr) > 0.6) score += 8; else score += 2;
+  if (direction === 'buy'  && rsi > 55) score += 6;
+  if (direction === 'sell' && rsi < 45) score += 6;
+  if (mom !== 0) score += 4;
 
-  const diagnostics: Record<string, string | number | boolean> = {
-    primary_failed_gate: 'passed',
-    box_high: roundDiag(boxHigh, 4), box_low: roundDiag(boxLow, 4), box_range: roundDiag(boxRange, 4), box_range_pct: roundDiag(boxRangePct, 4),
-    atr: roundDiag(atr, 4), box_range_atr: roundDiag(boxRangeAtr), configured_max_box_range_atr: p.max_box_atr_range,
-    recent_box_high: roundDiag(recentBoxHigh, 4), recent_box_low: roundDiag(recentBoxLow, 4), recent_box_range_atr: roundDiag(recentBoxRangeAtr),
-    effective_box_range_atr: roundDiag(effectiveBoxRangeAtr), used_recent_box: useRecentBox,
-    average_range: roundDiag(avgRange, 4), compression_ratio: roundDiag(compressionRatio), range_contracted: rangeContracted,
-    near_compression_ready: nearCompressionReady, strict_compression_ready: strictCompressionReady, recent_compression_ready: recentCompressionReady,
-    breakout_level: roundDiag(direction === 'buy' ? effectiveBoxHigh : effectiveBoxLow, 4), breakout_distance_atr: roundDiag(breakoutDistanceAtr),
-    atr_expansion_ratio: roundDiag(atrExpansionRatio), candles_used_in_box: useRecentBox ? recentBoxSlice.length : fullBoxSlice.length,
-    full_box_candles: fullBoxSlice.length, recent_box_candles: recentBoxSlice.length, tested_timeframe: tf, resampled: tf !== '5m',
-    breakout_confirmed: breakoutConfirmed, rr, stop_distance_pct: pctDistance(price, sl), tp1_distance_pct: pctDistance(price, tp1), tp2_distance_pct: pctDistance(price, tp2),
-    compression_score: compressionScore, final_score: score,
-  };
-
-  let failedGate = '';
-  if (!compressionReady) failedGate = 'compression_not_ready';
-  else if (!breakoutConfirmed) failedGate = 'breakout_not_confirmed';
-  else if (atrExpansionRatio < p.min_atr_expansion && !(nearCompressionReady && breakoutDistanceAtr >= p.breakout_buffer_atr * 2)) failedGate = 'atr_expansion_weak';
-  else if (atrPct > 5.0) failedGate = 'volatility_too_high';
-  else if (momentumScoreValue < 45) failedGate = 'momentum_failed';
-  else if (rr < p.min_rr) failedGate = 'rr_too_low';
-  else if (score < p.min_score) failedGate = 'confidence_too_low';
-
-  if (failedGate) {
-    diagnostics.primary_failed_gate = failedGate;
-    return FAIL(failedGate, diagnostics);
-  }
-  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score, rr, reason: `CB ${direction}: box=${effectiveBoxRangeAtr.toFixed(2)} ATR, recent=${recentBoxRangeAtr.toFixed(2)} ATR, exp=${atrExpansionRatio.toFixed(2)}x, rr=${rr.toFixed(2)}R`, diagnostics };
+  const entry_low  = direction === 'buy'  ? boxHigh          : boxLow - atr * 0.35;
+  const entry_high = direction === 'buy'  ? boxHigh + atr * 0.35 : boxLow;
+  const entry = (entry_low + entry_high) / 2;
+  const sl  = direction === 'buy'  ? boxLow  - atr * p.stop_atr_mult : boxHigh + atr * p.stop_atr_mult;
+  const tp1 = direction === 'buy'  ? price   + atr * p.tp1_r         : price   - atr * p.tp1_r;
+  const tp2 = direction === 'buy'  ? price   + atr * p.tp2_r         : price   - atr * p.tp2_r;
+  const risk = Math.abs(entry - sl);
+  const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
+  if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 6;
+  const final_score = Math.min(Math.max(score, 0), 100);
+  const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
+  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `CB ${direction}: cq=${cq.toFixed(2)}, exp=${expansion.toFixed(2)}x, box=${boxLow.toFixed(4)}-${boxHigh.toFixed(4)}` };
 }
 
 function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (!['15m', '1h'].includes(tf)) return FAIL('unsupported_timeframe');
-  const pullbackBars = Math.max(2, Math.floor(p.pullback_bars));
-  const minLen = Math.max(p.ema_slow + 5, p.atr_len + 2, p.rsi_len + 2, pullbackBars + 10, 60);
-  if (window.length < minLen) return FAIL('insufficient_candles');
-
+  if (window.length < 60) return FAIL('insufficient_candles');
   const closes = window.map(c => c.close);
-  const last = window[window.length - 1];
-  const price = last.close;
-  const atr = calcATR(window, p.atr_len);
-  const rsi = calcRSI(closes, p.rsi_len);
-  const emaFast = calcEMA(closes, p.ema_fast);
-  const emaSlow = calcEMA(closes, p.ema_slow);
-  const priorEmaFast = calcEMA(closes.slice(0, -pullbackBars), p.ema_fast);
-  if (atr <= 0 || price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return FAIL('invalid_atr_or_price');
+  const ema20 = calcEMA(closes, p.ema_fast); const ema50 = calcEMA(closes, p.ema_slow);
+  const atr = calcATR(window, p.atr_len); const rsi = calcRSI(closes, p.rsi_len);
+  const last = window[window.length - 1]; const price = last.close;
+  const atrPct = price > 0 ? (atr / price) * 100 : 0;
+  if (atrPct < p.min_atr_pct) return FAIL('volatility_too_low');
+  if (atrPct > p.max_atr_pct) return FAIL('volatility_too_high');
 
-  const atrPct = (atr / price) * 100;
-  const emaSpreadPct = emaSlow > 0 ? ((emaFast - emaSlow) / emaSlow) * 100 : 0;
-  const emaSlopePct = priorEmaFast > 0 ? ((emaFast - priorEmaFast) / priorEmaFast) * 100 : 0;
-  const bullBias = (emaSpreadPct * 1.4) + emaSlopePct + (price > emaFast ? 0.25 : -0.25) + ((rsi - 50) / 100);
-  const bearBias = (-emaSpreadPct * 1.4) - emaSlopePct + (price < emaFast ? 0.25 : -0.25) + ((50 - rsi) / 100);
-  const direction: 'buy' | 'sell' = bullBias >= bearBias ? 'buy' : 'sell';
-  const directionalSpread = direction === 'buy' ? emaSpreadPct : -emaSpreadPct;
-  const directionalSlope = direction === 'buy' ? emaSlopePct : -emaSlopePct;
-  const emaAligned = directionalSpread > 0;
-  const priceVsEma = direction === 'buy' ? ((price - emaFast) / price) * 100 : ((emaFast - price) / price) * 100;
-  const trendScore = clampScore((emaAligned ? 42 : 12) + Math.min(Math.max(directionalSpread, 0) / 1.2, 1) * 38 + (directionalSlope > 0 ? 20 : 0));
-  const emaSlopeScore = clampScore(35 + (Math.min(Math.max(directionalSlope, -0.15) + 0.15, 0.65) / 0.65) * 65);
+  const emaBull = ema20 > ema50 * 1.003; const emaBear = ema20 < ema50 * 0.997;
+  if (!emaBull && !emaBear) return FAIL('trend_alignment_failed');
 
-  const pullbackWindow = window.slice(-(pullbackBars + 1), -1);
-  const pullbackLow = Math.min(...pullbackWindow.map(c => c.low));
-  const pullbackHigh = Math.max(...pullbackWindow.map(c => c.high));
-  const touchedBuyZone = pullbackLow <= emaFast + atr * 0.75;
-  const touchedSellZone = pullbackHigh >= emaFast - atr * 0.75;
-  const reclaimedBuy = price > emaFast && last.close > last.open;
-  const reclaimedSell = price < emaFast && last.close < last.open;
-  const pullbackReady = direction === 'buy' ? touchedBuyZone : touchedSellZone;
-  const strictReclaimConfirmed = direction === 'buy' ? reclaimedBuy : reclaimedSell;
-  const pullbackScore = direction === 'buy'
-    ? clampScore((touchedBuyZone ? 48 : 18) + (reclaimedBuy ? 38 : price > emaFast ? 22 : 0) + (pullbackLow > emaSlow ? 14 : 5))
-    : clampScore((touchedSellZone ? 48 : 18) + (reclaimedSell ? 38 : price < emaFast ? 22 : 0) + (pullbackHigh < emaSlow ? 14 : 5));
+  const olderHi = window.length > 50 ? Math.max(...window.slice(-50, -20).map(c => c.high)) : Math.max(...window.slice(-20).map(c => c.high));
+  const olderLo = window.length > 50 ? Math.min(...window.slice(-50, -20).map(c => c.low))  : Math.min(...window.slice(-20).map(c => c.low));
+  const recentHi = Math.max(...window.slice(-20).map(c => c.high));
+  const recentLo = Math.min(...window.slice(-20).map(c => c.low));
+  const rcr = (olderHi - olderLo) > 0 ? (recentHi - recentLo) / (olderHi - olderLo) : 1;
+  const reg = regime(ema20, ema50, rsi, rcr, atrPct);
+  if (['ranging', 'unclear'].includes(reg)) return FAIL('regime_not_trending');
 
-  const rawMomentum = momentumScore(closes, p.momentum_lookback);
-  const directionalMomentum = direction === 'buy' ? rawMomentum : -rawMomentum;
-  const bodyAtr = Math.abs(last.close - last.open) / atr;
-  const momentumScoreValue = clampScore((Math.max(0, directionalMomentum) * 60) + (Math.min(bodyAtr, 1) * 25) + (strictReclaimConfirmed ? 15 : 0));
-  const rsiScore = direction === 'buy'
-    ? clampScore(Math.min(Math.max((rsi - 45) / Math.max(p.rsi_buy_min - 45, 1), 0), 1.25) * 80)
-    : clampScore(Math.min(Math.max((55 - rsi) / Math.max(55 - p.rsi_sell_max, 1), 0), 1.25) * 80);
-  const trendQualityPass = trendScore >= 45 || (emaSlopeScore >= 55 && directionalSpread > -0.08 && priceVsEma > 0 && rsiScore >= 40);
-  const reclaimByQuality = pullbackScore >= 68 && momentumScoreValue >= 45 && priceVsEma > -0.05;
-  const reclaimConfirmed = strictReclaimConfirmed || reclaimByQuality;
+  const pbWindow = window.slice(-(p.pullback_bars + 1), -1);
+  const pbLow  = Math.min(...pbWindow.map(c => c.low));
+  const pbHigh = Math.max(...pbWindow.map(c => c.high));
+  const mom = momentumScore(closes, p.momentum_lookback);
 
-  let volatilityScore = 85;
-  if (atrPct < p.min_atr_pct) volatilityScore = clampScore((atrPct / Math.max(p.min_atr_pct, 0.01)) * 55);
-  else if (atrPct > p.max_atr_pct) volatilityScore = clampScore(Math.max(20, 80 - ((atrPct - p.max_atr_pct) / Math.max(p.max_atr_pct, 0.01)) * 80));
+  let score = 50, direction: 'buy' | 'sell' | null = null;
+  if (emaBull && rsi >= p.rsi_buy_min && price > ema20) {
+    if (pbLow > ema20 * 1.008 || price <= ema20) return FAIL('pullback_not_ready');
+    if (mom <= 0 || rsi < 48) return FAIL('continuation_momentum_failed');
+    direction = 'buy';
+  } else if (emaBear && rsi <= p.rsi_sell_max && price < ema20) {
+    if (pbHigh < ema20 * 0.992 || price >= ema20) return FAIL('pullback_not_ready');
+    if (mom >= 0 || rsi > 52) return FAIL('continuation_momentum_failed');
+    direction = 'sell';
+  } else return FAIL('trend_rsi_context_failed');
 
-  const tp1Multiplier = tf === '15m' && typeof p.swing_15m_tp1_r === 'number' && Number.isFinite(p.swing_15m_tp1_r) ? p.swing_15m_tp1_r : p.tp1_r;
-  const tp2Multiplier = tf === '15m' && typeof p.swing_15m_tp2_r === 'number' && Number.isFinite(p.swing_15m_tp2_r) ? p.swing_15m_tp2_r : p.tp2_r;
-  let entry_low: number, entry_high: number, sl: number, tp1: number, tp2: number;
-  if (direction === 'buy') {
-    entry_low = price * 0.9997;
-    entry_high = price * 1.0003;
-    sl = Math.min(pullbackLow - atr * 0.15, price - atr * p.stop_atr_mult);
-    const riskForTargets = Math.abs(price - sl);
-    tp1 = price + riskForTargets * tp1Multiplier;
-    tp2 = price + riskForTargets * tp2Multiplier;
-  } else {
-    entry_low = price * 0.9997;
-    entry_high = price * 1.0003;
-    sl = Math.max(pullbackHigh + atr * 0.15, price + atr * p.stop_atr_mult);
-    const riskForTargets = Math.abs(price - sl);
-    tp1 = price - riskForTargets * tp1Multiplier;
-    tp2 = price - riskForTargets * tp2Multiplier;
-  }
+  const emaSep = Math.abs(ema20 - ema50) / ema50;
+  if (emaSep > 0.01) score += 12; else if (emaSep > 0.005) score += 8; else score += 3;
+  if ((direction === 'buy' && reg === 'trend_up') || (direction === 'sell' && reg === 'trend_down')) score += 10;
+  const ms = Math.abs(mom);
+  if (ms > 0.5) score += 8; else if (ms > 0.2) score += 5;
+  if ((direction === 'buy' && rsi >= 58) || (direction === 'sell' && rsi <= 42)) score += 7; else score += 3;
+  if ((direction === 'buy' && last.close > last.open) || (direction === 'sell' && last.close < last.open)) score += 5;
 
-  const entry = price;
+  const structLow  = direction === 'buy'  ? Math.min(pbLow,  price - atr * p.stop_atr_mult) : 0;
+  const structHigh = direction === 'sell' ? Math.max(pbHigh, price + atr * p.stop_atr_mult) : 0;
+  const sl  = direction === 'buy'  ? structLow  - atr * 0.3 : structHigh + atr * 0.3;
+  const tp1 = direction === 'buy'  ? price + atr * p.tp1_r  : price - atr * p.tp1_r;
+  const tp2 = direction === 'buy'  ? price + atr * p.tp2_r  : price - atr * p.tp2_r;
+  const entry_low = price * 0.9997, entry_high = price * 1.0003, entry = price;
   const risk = Math.abs(entry - sl);
   const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
-  const rrScore = clampScore(Math.min(rr / Math.max(p.min_rr, 0.01), 1.5) * 66);
-  const final_score = clampScore((trendScore * 0.22) + (emaSlopeScore * 0.14) + (pullbackScore * 0.20) + (momentumScoreValue * 0.16) + (rsiScore * 0.12) + (volatilityScore * 0.08) + (rrScore * 0.08));
+  if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 5;
+  const final_score = Math.min(Math.max(score, 0), 100);
   const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
-  const diagnostics: Record<string, string | number | boolean> = {
-    primary_failed_gate: 'passed', trend_direction: direction, trend_score: trendScore, trend_quality_pass: trendQualityPass,
-    ema_spread_pct: roundDiag(directionalSpread), ema_slope_pct: roundDiag(directionalSlope), ema_slope_score: emaSlopeScore, price_vs_ema: roundDiag(priceVsEma),
-    pullback_score: pullbackScore, pullback_ready: pullbackReady, reclaim_confirmed: reclaimConfirmed, strict_reclaim_confirmed: strictReclaimConfirmed, reclaim_by_quality: reclaimByQuality,
-    momentum_score: momentumScoreValue, rsi_score: rsiScore, volatility_score: volatilityScore, rr_score: rrScore, rr,
-    stop_distance_pct: pctDistance(price, sl), tp1_distance_pct: pctDistance(price, tp1), tp2_distance_pct: pctDistance(price, tp2), tp1_multiplier: tp1Multiplier, tp2_multiplier: tp2Multiplier, final_score,
-  };
-
-  let failedGate = '';
-  if (atrPct < p.min_atr_pct) failedGate = 'volatility_too_low';
-  else if (atrPct > p.max_atr_pct) failedGate = 'volatility_too_high';
-  else if (!trendQualityPass) failedGate = 'trend_filter_failed';
-  else if (!pullbackReady || pullbackScore < 45) failedGate = 'pullback_not_ready';
-  else if (!reclaimConfirmed) failedGate = 'reclaim_not_confirmed';
-  else if (momentumScoreValue < 35 || rsiScore < 35) failedGate = 'momentum_failed';
-  else if (rr < p.min_rr) failedGate = 'rr_too_low';
-  else if (final_score < p.min_score) failedGate = 'confidence_too_low';
-  if (failedGate) {
-    diagnostics.primary_failed_gate = failedGate;
-    return FAIL(failedGate, diagnostics);
-  }
-
-  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `SW ${direction}: ema_spread=${directionalSpread.toFixed(3)}%, slope=${directionalSlope.toFixed(3)}%, pullback=${pullbackScore}, reclaim=${reclaimConfirmed}, rr=${rr.toFixed(2)}R, score=${final_score}`, diagnostics };
+  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `SW ${direction}: ema_sep=${(emaSep * 100).toFixed(2)}%, rsi=${rsi.toFixed(1)}, regime=${reg}` };
 }
 
 // ─── Backtest engine ──────────────────────────────────────────────────────────
 
 function runBacktest(
   candles: BtCandle[], strategy: Strategy, tf: string, p: ParamSet,
-): { trades: BtTrade[]; evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number>; rejectionDiagnostics: Record<string, Record<string, string | number | boolean>> } {
+): { trades: BtTrade[]; evaluations: number; candidates: number; rejected: number; rejectionReasons: Record<string, number> } {
   const trades: BtTrade[] = [];
   const MIN_WIN = 65;
   let evaluations = 0, candidates = 0, rejected = 0;
   const rejectionReasons: Record<string, number> = {};
-  const rejectionDiagnostics: Record<string, Record<string, string | number | boolean>> = {};
-  const reject = (reason: string, diagnostics?: Record<string, string | number | boolean>) => {
-    const key = reason || 'no_valid_setup';
-    rejected++;
-    rejectionReasons[key] = (rejectionReasons[key] ?? 0) + 1;
-    if (diagnostics && !rejectionDiagnostics[key]) rejectionDiagnostics[key] = diagnostics;
-  };
+  const reject = (reason: string) => { rejected++; rejectionReasons[reason || 'no_valid_setup'] = (rejectionReasons[reason || 'no_valid_setup'] ?? 0) + 1; };
   let inTrade = false;
   let tradeEndIndex = -1;
 
@@ -573,7 +421,7 @@ function runBacktest(
     const window = candles.slice(0, i + 1);
     evaluations++;
     const ev = evalFn(window, p, tf);
-    if (!ev.ok || ev.grade === 'reject') { reject(ev.reason || 'no_valid_setup', ev.diagnostics); continue; }
+    if (!ev.ok || ev.grade === 'reject') { reject(ev.reason || 'no_valid_setup'); continue; }
 
     const guard = passesDistanceGuard(ev.entry, ev.sl, ev.tp1, ev.tp2, ev.score, ev.rr, p);
     if (!guard.ok) { reject(guard.reason || 'distance_guard_failed'); continue; }
@@ -619,12 +467,12 @@ function runBacktest(
     inTrade = true;
   }
 
-  return { trades, evaluations, candidates, rejected, rejectionReasons, rejectionDiagnostics };
+  return { trades, evaluations, candidates, rejected, rejectionReasons };
 }
 
 // ─── Metrics calculator ───────────────────────────────────────────────────────
 
-function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number, rejectionReasons: Record<string, number> = {}, rejectionDiagnostics?: Record<string, Record<string, string | number | boolean>>): BtMetrics {
+function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number, rejectionReasons: Record<string, number> = {}): BtMetrics {
   const wins   = trades.filter(t => t.result === 'tp1_hit' || t.result === 'tp2_hit');
   const losses = trades.filter(t => t.result === 'sl_hit');
   const exps   = trades.filter(t => t.result === 'expired');
@@ -665,7 +513,7 @@ function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number,
     avgWin: parseFloat(avgWin.toFixed(2)), avgLoss: parseFloat(avgLoss.toFixed(2)),
     bestTrade: parseFloat(bestTrade.toFixed(2)), worstTrade: parseFloat(worstTrade.toFixed(2)),
     maxConsecWins: maxCW, maxConsecLosses: maxCL, maxDrawdown: parseFloat(maxDD.toFixed(2)),
-    evaluations, candidates, rejected, rejectionReasons, rejectionDiagnostics,
+    evaluations, candidates, rejected, rejectionReasons,
   };
 }
 
@@ -779,85 +627,14 @@ function buildCandlesForTimeframe(candles: BtCandle[], datasetTf: string, target
   return { candles: [], resampled: false, unsupportedReason: 'timeframe_mapping_missing' };
 }
 
-
-function topMetricReason(metrics: BtMetrics): [string, number] | null {
-  return Object.entries(metrics.rejectionReasons).sort((a, b) => b[1] - a[1])[0] ?? null;
-}
-
-function topMetricReasonShare(metrics: BtMetrics): number {
-  const total = Object.values(metrics.rejectionReasons).reduce((sum, count) => sum + count, 0);
-  const top = topMetricReason(metrics);
-  return top && total > 0 ? top[1] / total : 0;
-}
-
-function isStrictRejectionReason(reason: string): boolean {
-  return reason === 'confidence_too_low'
-    || reason === 'momentum_failed'
-    || reason === 'continuation_momentum_failed'
-    || reason === 'candle_body_too_small'
-    || reason === 'compression_not_ready'
-    || reason === 'compression_failed_box_too_wide'
-    || reason === 'compression_failed_not_enough_inside_bars'
-    || reason === 'compression_drift_too_flat'
-    || reason === 'breakout_not_confirmed'
-    || reason === 'reclaim_not_confirmed'
-    || reason === 'trend_filter_failed'
-    || reason === 'trend_alignment_failed'
-    || reason === 'trend_rsi_context_failed'
-    || reason === 'regime_not_trending'
-    || reason === 'pullback_not_ready'
-    || reason === 'rr_too_low';
-}
-
-function classifyBacktestResult(metrics: BtMetrics, strategy: Strategy, unsupportedReason?: string): { classification: string; reason: string } {
-  if (unsupportedReason) return { classification: 'wrong dataset/timeframe', reason: unsupportedReason };
+function classifyBacktestResult(metrics: BtMetrics, unsupportedReason?: string): { classification: string; reason: string } {
+  if (unsupportedReason) return { classification: 'wrong timeframe/dataset', reason: unsupportedReason };
   if (metrics.evaluations === 0) return { classification: 'broken/misconfigured', reason: 'No evaluations were possible.' };
-
-  const top = topMetricReason(metrics);
-  const topShare = topMetricReasonShare(metrics);
-  const highEvaluations = metrics.evaluations >= 500;
-  const dominantStrictBlocker = Boolean(top && isStrictRejectionReason(top[0]) && topShare >= 0.5);
-
-  if (metrics.totalTrades === 0) {
-    if (highEvaluations && dominantStrictBlocker) {
-      return {
-        classification: 'too strict / dead participation',
-        reason: `Zero trades from ${metrics.evaluations.toLocaleString()} evaluations with dominant blocker ${top?.[0]} (${Math.round(topShare * 100)}% of rejects).`,
-      };
-    }
-    if (highEvaluations && strategy === 'SwingContinuation') {
-      const reasons = Object.entries(metrics.rejectionReasons).filter(([reason]) => isStrictRejectionReason(reason)).length;
-      return {
-        classification: 'possible parity mismatch',
-        reason: `Zero trades from ${metrics.evaluations.toLocaleString()} evaluations across ${reasons} strict SwingContinuation gates; audit whether backtest logic matches live scanner behavior before assuming no market fit.`,
-      };
-    }
-    if (highEvaluations && top && isStrictRejectionReason(top[0])) {
-      return {
-        classification: 'too strict / dead participation',
-        reason: `Zero trades from ${metrics.evaluations.toLocaleString()} evaluations; top strict blocker is ${top[0]} (${top[1].toLocaleString()} rejects).`,
-      };
-    }
-    return { classification: 'needs more data', reason: `No trades yet, but only ${metrics.evaluations.toLocaleString()} evaluations; extend sample before tuning conclusions.` };
-  }
-
-  if (metrics.totalTrades < 10) return { classification: 'needs more data', reason: 'Too few trades for decision confidence.' };
-
-  if (metrics.totalR > 0 && metrics.profitFactor > 1 && metrics.winRate >= 40) {
-    const weakExpectancy = metrics.avgR < 0.07;
-    const elevatedDrawdown = metrics.maxDrawdown > Math.max(10, Math.abs(metrics.totalR) * 0.4);
-    const marginalPf = metrics.profitFactor < 1.15;
-    if (weakExpectancy || elevatedDrawdown || marginalPf) {
-      return {
-        classification: 'viable but noisy',
-        reason: `Profitable sample (PF ${metrics.profitFactor}, total ${metrics.totalR}R), but quality is noisy due to ${[weakExpectancy ? `weak avg R ${metrics.avgR}` : '', elevatedDrawdown ? `drawdown ${metrics.maxDrawdown}R` : '', marginalPf ? `marginal PF ${metrics.profitFactor}` : ''].filter(Boolean).join(', ')}.`,
-      };
-    }
-    return { classification: 'viable / preserve', reason: 'Positive R with acceptable profit factor, hit rate, expectancy, and drawdown evidence.' };
-  }
-
-  if (metrics.totalR <= 0) return { classification: 'needs tuning', reason: 'Trades were generated, but R/result quality is poor.' };
-  return { classification: 'viable but noisy', reason: 'Profitable trade sample exists, but quality metrics are not strong enough to preserve without tuning.' };
+  if (metrics.candidates === 0) return { classification: 'not enough trades', reason: 'No qualified candidates passed setup and distance guards.' };
+  if (metrics.totalTrades < 10) return { classification: 'not enough trades', reason: 'Too few trades for decision confidence.' };
+  if (metrics.totalR > 0 && metrics.profitFactor >= 1.2 && metrics.winRate >= 40) return { classification: 'viable', reason: 'Positive R with acceptable profit factor and hit rate.' };
+  if (metrics.totalR <= 0 && metrics.totalTrades > 0) return { classification: 'needs tuning', reason: 'Trades were generated, but R/result quality is poor.' };
+  return { classification: 'not suitable for that symbol/timeframe', reason: 'Setup activity exists but metrics are not decision-ready.' };
 }
 
 function topRejectionReasons(reasons: Record<string, number>, limit = 6): [string, number][] {
@@ -870,8 +647,8 @@ function makeRunResult(strategy: Strategy, datasetTimeframe: string, testedTimef
   const bt = runnable
     ? runBacktest(built.candles, strategy, testedTimeframe, params)
     : { trades: [] as BtTrade[], evaluations: 0, candidates: 0, rejected: built.candles.length, rejectionReasons: { [built.unsupportedReason ?? 'insufficient_candles']: built.candles.length } };
-  const metrics = calcMetrics(bt.trades, bt.evaluations, bt.candidates, bt.rejected, bt.rejectionReasons, 'rejectionDiagnostics' in bt ? bt.rejectionDiagnostics : undefined);
-  const cls = classifyBacktestResult(metrics, strategy, built.unsupportedReason);
+  const metrics = calcMetrics(bt.trades, bt.evaluations, bt.candidates, bt.rejected, bt.rejectionReasons);
+  const cls = classifyBacktestResult(metrics, built.unsupportedReason);
   return {
     id: `${strategy}-${testedTimeframe}-${preset}`,
     strategy,
@@ -886,10 +663,8 @@ function makeRunResult(strategy: Strategy, datasetTimeframe: string, testedTimef
     preset,
     classification: cls.classification,
     classificationReason: cls.reason,
-    truthLabel: strategy === 'CompressionBreakout' ? 'Live strategy parity logic' : 'Backtest approximation logic',
-    parityNote: strategy === 'CompressionBreakout'
-      ? 'CompressionBreakout mirrors the live scanner box/ATR/recent-compression/breakout scoring path with browser-side fills; provider context, slippage, DB config, and live duplicate protections are still not executed in-browser.'
-      : 'Uses browser-compatible evaluator kept on the current HashiBot strategy family and selected backtest preset parameters; live Edge Function imports are not executed in-browser, so fills/slippage/provider context may differ.',
+    truthLabel: 'Backtest approximation logic',
+    parityNote: 'Uses browser-compatible evaluator kept on the current HashiBot strategy family and selected backtest preset parameters; live Edge Function imports are not executed in-browser, so fills/slippage/provider context may differ.',
     unsupportedReason: built.unsupportedReason,
   };
 }
@@ -951,17 +726,12 @@ function ParamRow({ label, field, value, onChange, step = 0.01, min }: {
 
 
 const CLASSIFICATION_RANK: Record<string, number> = {
-  'viable / preserve': 1,
   viable: 1,
-  'viable but noisy': 2,
-  'needs tuning': 3,
-  'possible parity mismatch': 4,
-  'needs more data': 5,
-  'not enough trades': 5,
-  'too strict / dead participation': 6,
-  'broken/misconfigured': 7,
-  'wrong dataset/timeframe': 8,
-  'wrong timeframe/dataset': 8,
+  'needs tuning': 2,
+  'not enough trades': 3,
+  'not suitable for that symbol/timeframe': 4,
+  'broken/misconfigured': 5,
+  'wrong timeframe/dataset': 6,
 };
 
 function capitalForResult(result: BacktestRunResult, assumptions: CapitalAssumptions) {
@@ -971,8 +741,8 @@ function capitalForResult(result: BacktestRunResult, assumptions: CapitalAssumpt
 function compareRunResults(a: BacktestRunResult, b: BacktestRunResult): number {
   const rank = (CLASSIFICATION_RANK[a.classification] ?? 99) - (CLASSIFICATION_RANK[b.classification] ?? 99);
   if (rank !== 0) return rank;
-  const aDecision = ['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(a.classification);
-  const bDecision = ['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(b.classification);
+  const aDecision = a.classification === 'viable' || a.classification === 'needs tuning';
+  const bDecision = b.classification === 'viable' || b.classification === 'needs tuning';
   if (aDecision && bDecision) {
     if (b.metrics.profitFactor !== a.metrics.profitFactor) return b.metrics.profitFactor - a.metrics.profitFactor;
     if (b.metrics.totalR !== a.metrics.totalR) return b.metrics.totalR - a.metrics.totalR;
@@ -984,33 +754,21 @@ function compareRunResults(a: BacktestRunResult, b: BacktestRunResult): number {
 
 function recommendationForResult(result: BacktestRunResult): { action: string; text: string } {
   const label = `${result.strategy} ${result.testedTimeframe}`;
-  if (result.unsupportedReason || ['wrong dataset/timeframe', 'wrong timeframe/dataset'].includes(result.classification)) return { action: 'Wrong dataset', text: `${label}: Wrong dataset/timeframe — ${result.unsupportedReason ?? 'uploaded timeframe cannot support this test'}.` };
-  if (result.strategy === 'MicroScalper' && result.testedTimeframe === '15m' && ['viable / preserve', 'viable'].includes(result.classification)) return { action: 'Keep', text: `${label}: Keep / preserve core behavior. Only optimize carefully, and check longer datasets plus chop periods before loosening or tightening.` };
-  if (result.strategy === 'MicroScalper' && result.testedTimeframe === '5m' && result.classification === 'viable but noisy') return { action: 'Tune later', text: `${label}: Viable but noisy — do not discard; tune later for drawdown, loss streak, and lower average R. 15m appears cleaner in this sample.` };
-  if (result.strategy === 'CompressionBreakout' && result.testedTimeframe === '15m' && result.classification === 'too strict / dead participation') return { action: 'Tune first', text: `${label}: Tune first — likely compression-box/range threshold too strict or incorrectly scaled. Dominant blocker: ${topReason(result)?.[0] ?? 'none'}. Do not simply lower score/RR; investigate box width, ATR normalization, near-compression, and resampled timeframe behavior.` };
-  if (result.strategy === 'CompressionBreakout' && result.testedTimeframe === '1h' && result.classification === 'too strict / dead participation') return { action: 'Audit', text: `${label}: Same compression blocker appears (${topReason(result)?.[0] ?? 'none'}), but confidence is lower due to fewer 1h samples; gather more data before major tuning.` };
-  if (result.strategy === 'SwingContinuation' && result.testedTimeframe === '15m' && result.metrics.totalTrades === 0) return { action: 'Audit after CompressionBreakout', text: `${label}: Audit/tune after CompressionBreakout — likely too strict or possible backtest/live parity mismatch. Dominant blockers: ${topRejectionReasons(result.metrics.rejectionReasons, 3).map(([reason]) => reason).join(', ') || 'none'}. Check whether the backtest evaluator matches live scanner SwingContinuation behavior.` };
-  if (result.strategy === 'SwingContinuation' && result.testedTimeframe === '1h' && result.metrics.totalTrades === 0) return { action: 'Low-confidence audit', text: `${label}: Lower confidence zero-trade finding; main blockers are ${topRejectionReasons(result.metrics.rejectionReasons, 2).map(([reason]) => reason).join(' and ') || 'none'}. Test more 1h data before major tuning.` };
-  if (['viable / preserve', 'viable'].includes(result.classification)) return { action: 'Keep', text: `${label}: Keep — viable in this sample with positive R and acceptable PF/drawdown evidence.` };
-  if (result.classification === 'viable but noisy') return { action: 'Tune later', text: `${label}: Viable but noisy — profitable evidence exists, but tune for drawdown/noise before considering expansion.` };
-  if (result.classification === 'too strict / dead participation') return { action: 'Tune', text: `${label}: Too strict / dead participation — no trades from ${result.metrics.evaluations.toLocaleString()} evaluations; investigate top blocker ${topReason(result)?.[0] ?? 'none'}.` };
-  if (result.classification === 'possible parity mismatch') return { action: 'Audit parity', text: `${label}: Possible parity mismatch — zero trades despite enough evaluations; audit backtest gates against live scanner behavior before tuning parameters.` };
+  if (result.unsupportedReason || result.classification === 'wrong timeframe/dataset') return { action: 'Wrong dataset', text: `${label}: Wrong dataset — ${result.unsupportedReason ?? 'uploaded timeframe cannot support this test'}.` };
+  if (result.classification === 'viable') return { action: 'Keep', text: `${label}: Keep — viable in this sample with positive R and acceptable PF/drawdown evidence.` };
   if (result.classification === 'needs tuning') return { action: 'Tune', text: `${label}: Needs tuning — trades exist but PF ${result.metrics.profitFactor} and total R ${result.metrics.totalR} are not strong enough.` };
-  if (['needs more data', 'not enough trades'].includes(result.classification)) return { action: 'Needs more data', text: `${label}: Needs more data — ${result.metrics.totalTrades} trades from ${result.metrics.evaluations.toLocaleString()} evaluations; check longer data before tuning conclusions.` };
+  if (result.classification === 'not enough trades') return { action: 'Needs more data', text: `${label}: Needs more data — ${result.metrics.totalTrades} trades from ${result.metrics.evaluations.toLocaleString()} evaluations; check longer data or thresholds.` };
   if (result.classification === 'broken/misconfigured') return { action: 'Disable', text: `${label}: Disable/investigate — no evaluations were possible.` };
-  return { action: 'Tune', text: `${label}: Tune — evidence is not decision-ready under the current sample.` };
+  return { action: 'Tune', text: `${label}: Tune — not suitable for this symbol/timeframe sample based on current evidence.` };
 }
 
 
 type TuningSituation =
-  | 'Too strict / dead participation'
-  | 'Possible parity mismatch'
+  | 'No-trade / dead strategy'
   | 'Too strict'
   | 'Too loose / low quality'
   | 'Bad trade management / poor exits'
   | 'Symbol/timeframe mismatch'
-  | 'Needs more data'
-  | 'Viable but noisy'
   | 'Viable but needs optimization'
   | 'Viable / preserve';
 
@@ -1094,14 +852,11 @@ function strategySpecificDirection(result: BacktestRunResult, situation: TuningS
     if (situation === 'Too loose / low quality') return 'Consider stricter reclaim quality, cleaner trend filter, or better invalidation logic.';
     if (situation === 'Viable / preserve') return 'Preserve trend/reclaim logic and optimize trade management carefully.';
   }
-  if (situation === 'Too strict / dead participation') return 'Tune blocker first; investigate dominant rejection scaling before any live config change.';
-  if (situation === 'Possible parity mismatch') return 'Audit backtest/live parity and strict gates before assuming the strategy cannot participate.';
+  if (situation === 'No-trade / dead strategy') return 'Needs more data or targeted research preset changes before any live tuning is considered.';
   if (situation === 'Too strict') return 'Consider testing a slightly less restrictive research preset; keep RR and distance guards intact.';
   if (situation === 'Too loose / low quality') return 'Consider stricter filters in research; do not promote this behavior without improved PF/R.';
   if (situation === 'Bad trade management / poor exits') return 'Investigate exits, expiry, TP balance, and invalidation in research only.';
   if (situation === 'Symbol/timeframe mismatch') return 'Test a more suitable timeframe or longer native dataset before tuning parameters.';
-  if (situation === 'Needs more data') return 'Extend the sample before drawing tuning conclusions.';
-  if (situation === 'Viable but noisy') return 'Do not discard; tune drawdown, loss streaks, and expectancy only after preserving the cleaner timeframe.';
   return 'Preserve core logic and test only small, isolated optimizations.';
 }
 
@@ -1113,22 +868,16 @@ function diagnoseTuning(result: BacktestRunResult, allResults: BacktestRunResult
   const slRate = m.totalTrades > 0 ? m.losses / m.totalTrades : 0;
   const tp2Rate = m.totalTrades > 0 ? m.tp2Hits / m.totalTrades : 0;
   const expiryRate = m.totalTrades > 0 ? m.expired / m.totalTrades : 0;
-  const sameStrategyBetterTf = allResults.some(other => other.strategy === result.strategy && other.id !== result.id && ['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(other.classification) && !['viable / preserve', 'viable', 'viable but noisy', 'needs tuning'].includes(result.classification));
+  const sameStrategyBetterTf = allResults.some(other => other.strategy === result.strategy && other.id !== result.id && ['viable', 'needs tuning'].includes(other.classification) && !['viable', 'needs tuning'].includes(result.classification));
   let situation: TuningSituation;
   let weakness: string;
 
-  if (result.unsupportedReason) {
+  if (result.unsupportedReason || sameStrategyBetterTf) {
     situation = 'Symbol/timeframe mismatch';
-    weakness = `Unsupported or insufficient timeframe path: ${result.unsupportedReason}.`;
-  } else if (result.classification === 'too strict / dead participation') {
-    situation = 'Too strict / dead participation';
-    weakness = top ? `No trades from ${m.evaluations.toLocaleString()} evaluations; dominant blocker is ${top[0]} (${top[1].toLocaleString()} rejects, ${Math.round(reasonShare(result) * 100)}% share).` : 'No trades despite enough evaluations; blocker is unclear.';
-  } else if (result.classification === 'possible parity mismatch') {
-    situation = 'Possible parity mismatch';
-    weakness = top ? `No trades from ${m.evaluations.toLocaleString()} evaluations; leading blockers include ${topRejectionReasons(m.rejectionReasons, 3).map(([reason, count]) => `${reason}=${count}`).join(', ')}. This may be too strict or a backtest/live parity mismatch.` : 'No trades despite enough evaluations; audit live/backtest parity.';
-  } else if (sameStrategyBetterTf && m.totalTrades === 0) {
-    situation = 'Symbol/timeframe mismatch';
-    weakness = 'Another timeframe for the same strategy produced better evidence than this zero-trade result.';
+    weakness = result.unsupportedReason ? `Unsupported or insufficient timeframe path: ${result.unsupportedReason}.` : 'Another timeframe for the same strategy produced better evidence than this one.';
+  } else if (m.totalTrades === 0 && (m.candidates <= 1 || rejectionRatio > 0.9)) {
+    situation = 'No-trade / dead strategy';
+    weakness = top ? `No trades; dominant rejection is ${top[0]} (${top[1]} rejects).` : 'No trades and no clear candidate flow.';
   } else if (rejectionRatio > 0.85 && candidateRatio < 0.03 && top && (STRICT_REJECTION_REASONS.has(top[0]) || hasAnyTopReason(result, [...STRICT_REJECTION_REASONS]))) {
     situation = 'Too strict';
     weakness = `High rejection ratio (${Math.round(rejectionRatio * 100)}%) with low candidate flow; top reason is ${top[0]}.`;
@@ -1138,15 +887,9 @@ function diagnoseTuning(result: BacktestRunResult, allResults: BacktestRunResult
   } else if (m.totalTrades >= 5 && (m.avgR <= 0 || slRate >= 0.45 || tp2Rate < 0.1 || expiryRate > 0.35)) {
     situation = 'Bad trade management / poor exits';
     weakness = `Exit profile is weak: avg ${m.avgR}R, SL rate ${Math.round(slRate * 100)}%, TP2 rate ${Math.round(tp2Rate * 100)}%, expiry ${Math.round(expiryRate * 100)}%.`;
-  } else if (['viable / preserve', 'viable'].includes(result.classification)) {
+  } else if (m.totalTrades >= 10 && m.totalR > 0 && m.profitFactor > 1 && (m.maxDrawdown <= Math.max(3, Math.abs(m.totalR) * 0.75))) {
     situation = 'Viable / preserve';
-    weakness = `Positive sample: PF ${m.profitFactor}, total ${m.totalR}R, avg ${m.avgR}R, max drawdown ${m.maxDrawdown}R.`;
-  } else if (result.classification === 'viable but noisy') {
-    situation = 'Viable but noisy';
-    weakness = `Profitable but noisy: PF ${m.profitFactor}, total ${m.totalR}R, avg ${m.avgR}R, max drawdown ${m.maxDrawdown}R.`;
-  } else if (['needs more data', 'not enough trades'].includes(result.classification)) {
-    situation = 'Needs more data';
-    weakness = `Only ${m.totalTrades} trades from ${m.evaluations.toLocaleString()} evaluations; avoid strong conclusions.`;
+    weakness = `Positive sample: PF ${m.profitFactor}, total ${m.totalR}R, max drawdown ${m.maxDrawdown}R.`;
   } else {
     situation = 'Viable but needs optimization';
     weakness = m.totalTrades > 0 ? `Some evidence exists but quality is not decisive: PF ${m.profitFactor}, total ${m.totalR}R, avg ${m.avgR}R.` : 'No decisive trade evidence yet.';
@@ -1162,66 +905,21 @@ function diagnoseTuning(result: BacktestRunResult, allResults: BacktestRunResult
   };
 }
 
-function deadParticipationScore(result: BacktestRunResult): number {
-  if (result.metrics.totalTrades > 0) return 0;
-  const top = topReason(result);
-  const blockerClarity = top && STRICT_REJECTION_REASONS.has(top[0]) ? Math.max(reasonShare(result), 0.25) : 0;
-  const evaluationWeight = Math.min(result.metrics.evaluations / 1000, 3);
-  const compressionPriority = result.strategy === 'CompressionBreakout' && result.testedTimeframe === '15m' ? 2 : 0;
-  const swingPriority = result.strategy === 'SwingContinuation' && result.testedTimeframe === '15m' ? 1 : 0;
-  const lowerTimeframePenalty = result.testedTimeframe === '1h' ? -0.75 : 0;
-  return evaluationWeight + blockerClarity + compressionPriority + swingPriority + lowerTimeframePenalty;
-}
-
-function worstScore(result: BacktestRunResult): number {
-  const m = result.metrics;
-  if (m.totalTrades === 0) return 100 + deadParticipationScore(result);
-  if (m.totalTrades < 10) return 10;
-  const negativeQuality = Math.max(0, -m.totalR) * 2 + Math.max(0, 1 - m.profitFactor) * 20 + Math.max(0, m.maxDrawdown - Math.max(10, Math.abs(m.totalR) * 0.5));
-  return negativeQuality;
-}
-
-function tuneOrderScore(result: BacktestRunResult): number {
-  const diagnosis = diagnoseTuning(result, []);
-  if (result.testedTimeframe === '1h') return 5 + Math.min(result.metrics.evaluations / 1000, 1);
-  if (result.strategy === 'CompressionBreakout' && result.testedTimeframe === '15m' && result.metrics.totalTrades === 0) return 100 + deadParticipationScore(result);
-  if (result.strategy === 'SwingContinuation' && result.testedTimeframe === '15m' && result.metrics.totalTrades === 0) return 80 + deadParticipationScore(result);
-  if (result.classification === 'too strict / dead participation') return 70 + deadParticipationScore(result);
-  if (result.classification === 'possible parity mismatch') return 60 + deadParticipationScore(result);
-  if (result.classification === 'needs tuning') return 45;
-  if (result.classification === 'viable but noisy') return result.strategy === 'MicroScalper' && result.testedTimeframe === '5m' ? 35 : 30;
-  if (diagnosis.situation === 'Viable / preserve') return 10;
-  return 0;
-}
-
-function recommendedTuningOrder(results: BacktestRunResult[]): BacktestRunResult[] {
-  return [...results]
-    .sort((a, b) => {
-      const score = tuneOrderScore(b) - tuneOrderScore(a);
-      if (score !== 0) return score;
-      if (b.metrics.evaluations !== a.metrics.evaluations) return b.metrics.evaluations - a.metrics.evaluations;
-      return compareRunResults(a, b);
-    });
-}
-
-
 function buildTuningInsights(results: BacktestRunResult[], assumptions: CapitalAssumptions): TuningInsight[] {
   if (results.length === 0) return [];
   const sorted = [...results].sort(compareRunResults);
-  const tuningOrder = recommendedTuningOrder(results);
-  const overactive = [...results].filter(r => r.metrics.totalTrades > 0).sort((a, b) => b.metrics.totalTrades - a.metrics.totalTrades)[0] ?? null;
-  const dead = [...results].filter(r => r.metrics.totalTrades === 0).sort((a, b) => deadParticipationScore(b) - deadParticipationScore(a))[0] ?? null;
-  const highestDd = [...results].filter(r => r.metrics.totalTrades > 0).sort((a, b) => b.metrics.maxDrawdown - a.metrics.maxDrawdown)[0] ?? null;
+  const overactive = [...results].sort((a, b) => b.metrics.totalTrades - a.metrics.totalTrades)[0] ?? null;
+  const dead = [...results].filter(r => r.metrics.totalTrades === 0).sort((a, b) => b.metrics.rejected - a.metrics.rejected)[0] ?? null;
+  const highestDd = [...results].sort((a, b) => b.metrics.maxDrawdown - a.metrics.maxDrawdown)[0] ?? null;
   const riskAdjusted = [...results].filter(r => r.metrics.totalTrades > 0).sort((a, b) => (b.metrics.totalR / Math.max(b.metrics.maxDrawdown, 0.5)) - (a.metrics.totalR / Math.max(a.metrics.maxDrawdown, 0.5)))[0] ?? null;
-  const preserve = sorted.find(r => diagnoseTuning(r, results).situation === 'Viable / preserve') ?? null;
-  const tuneFirst = tuningOrder.find(r => tuneOrderScore(r) >= 30) ?? null;
-  const worst = [...results].sort((a, b) => worstScore(b) - worstScore(a))[0] ?? null;
+  const preserve = results.find(r => diagnoseTuning(r, results).situation === 'Viable / preserve') ?? null;
+  const tuneFirst = results.find(r => ['Too loose / low quality', 'Too strict', 'Bad trade management / poor exits'].includes(diagnoseTuning(r, results).situation)) ?? null;
   return [
-    { label: 'Best strategy/timeframe/preset', result: sorted[0] ?? null, note: 'Top-ranked by viability, PF, total R, average R, drawdown, and sample size.' },
-    { label: 'Worst strategy/timeframe/preset', result: worst, note: worst ? 'Prioritizes true dead participation, high-confidence blockers, negative R/PF, and severe drawdown over profitable-but-noisy results.' : 'No result.' },
-    { label: 'Most overactive strategy', result: overactive, note: overactive ? `${overactive.metrics.totalTrades} trades generated.` : 'No traded result.' },
-    { label: 'Most dead strategy', result: dead, note: dead ? `${dead.metrics.evaluations.toLocaleString()} evaluations, ${dead.metrics.rejected.toLocaleString()} rejections, and no trades; top blocker ${topReason(dead)?.[0] ?? 'none'}.` : 'No zero-trade result.' },
-    { label: 'Highest drawdown strategy', result: highestDd, note: highestDd ? `${highestDd.metrics.maxDrawdown}R max drawdown; ${formatMoney(capitalForResult(highestDd, assumptions).maxDrawdownAmount)} estimated.` : 'No traded result.' },
+    { label: 'Best strategy/timeframe/preset', result: sorted[0] ?? null, note: 'Top-ranked by decision classification and performance quality.' },
+    { label: 'Worst strategy/timeframe/preset', result: sorted[sorted.length - 1] ?? null, note: 'Lowest-ranked evidence in this historical sample.' },
+    { label: 'Most overactive strategy', result: overactive, note: overactive ? `${overactive.metrics.totalTrades} trades generated.` : 'No result.' },
+    { label: 'Most dead strategy', result: dead, note: dead ? `${dead.metrics.rejected.toLocaleString()} rejections and no trades.` : 'No zero-trade result.' },
+    { label: 'Highest drawdown strategy', result: highestDd, note: highestDd ? `${highestDd.metrics.maxDrawdown}R max drawdown; ${formatMoney(capitalForResult(highestDd, assumptions).maxDrawdownAmount)} estimated.` : 'No result.' },
     { label: 'Best risk-adjusted candidate', result: riskAdjusted, note: riskAdjusted ? `${(riskAdjusted.metrics.totalR / Math.max(riskAdjusted.metrics.maxDrawdown, 0.5)).toFixed(2)} TotalR/MaxDD score.` : 'No traded result.' },
     { label: 'Strategy to preserve', result: preserve, note: preserve ? 'Positive evidence; preserve core behavior and only optimize carefully.' : 'No preserve candidate yet.' },
     { label: 'Strategy to tune first', result: tuneFirst, note: tuneFirst ? diagnoseTuning(tuneFirst, results).mainWeakness : 'No obvious first tuning candidate yet.' },
@@ -1259,7 +957,7 @@ function buildCopyableTuningReport(symbol: string, datasetTf: string, csvInfo: C
     ...insights.map(insight => `- ${insight.label}: ${insight.result ? resultLabel(insight.result) : 'N/A'} — ${insight.note}`),
     '',
     'Recommended next tuning order:',
-    ...recommendedTuningOrder(sorted).map((result, index) => `- ${index + 1}. ${resultLabel(result)}: ${diagnoseTuning(result, sorted).situation} (${diagnoseTuning(result, sorted).confidence}) — ${recommendationForResult(result).text}`),
+    ...sorted.map(result => `- ${resultLabel(result)}: ${diagnoseTuning(result, sorted).situation} (${diagnoseTuning(result, sorted).confidence})`),
     '',
     'Warning: use this as research evidence only. Do not auto-apply live strategy_config changes without separate validation.',
   ];
@@ -1268,10 +966,8 @@ function buildCopyableTuningReport(symbol: string, datasetTf: string, csvInfo: C
 
 function buildCopySummary(symbol: string, datasetTf: string, csvInfo: CsvInfo | null, preset: ResearchPreset, results: BacktestRunResult[]): string {
   const range = csvInfo ? `${new Date(csvInfo.firstTime).toISOString()} → ${new Date(csvInfo.lastTime).toISOString()}` : 'unknown';
-  const sorted = [...results].sort(compareRunResults);
-  const best = sorted[0];
-  const worst = [...results].sort((a, b) => worstScore(b) - worstScore(a))[0];
-  const tuningOrder = recommendedTuningOrder(results);
+  const best = results[0];
+  const worst = results[results.length - 1];
   const lines = [
     'HashiBot Backtest Lab Summary',
     `Symbol: ${symbol.trim().toUpperCase() || 'unspecified'}`,
@@ -1290,17 +986,8 @@ function buildCopySummary(symbol: string, datasetTf: string, csvInfo: CsvInfo | 
     '',
     'Recommendations:',
     ...results.map(r => `- ${recommendationForResult(r).text}`),
-    '',
-    'Recommended tuning order:',
-    ...tuningOrder.map((r, index) => `- ${index + 1}. ${r.strategy} ${r.testedTimeframe}: ${diagnoseTuning(r, results).situation} — ${recommendationForResult(r).action}`),
   ];
   return lines.join('\n');
-}
-
-function formatDiagnosticValue(value: string | number | boolean): string {
-  if (typeof value === 'boolean') return value ? 'yes' : 'no';
-  if (typeof value === 'number') return Number.isInteger(value) ? value.toLocaleString() : String(value);
-  return value;
 }
 
 const TRADES_PER_PAGE = 50;
@@ -1513,8 +1200,7 @@ export default function BacktestLab() {
   const primaryResult = runResults.find(r => r.id === selectedRunId) ?? runResults[0];
   const sortedComparison = [...runResults].sort(compareRunResults);
   const bestResult = sortedComparison[0];
-  const worstResult = [...runResults].sort((a, b) => worstScore(b) - worstScore(a))[0];
-  const tuningOrder = recommendedTuningOrder(runResults);
+  const worstResult = sortedComparison[sortedComparison.length - 1];
   const copySummary = buildCopySummary(csvSymbol, csvTimeframe, csvInfo, researchPreset, sortedComparison);
   const tuningReportText = buildCopyableTuningReport(csvSymbol, csvTimeframe, csvInfo, researchPreset, sortedComparison, capitalAssumptions);
   const tuningInsights = buildTuningInsights(sortedComparison, capitalAssumptions);
@@ -1668,28 +1354,14 @@ export default function BacktestLab() {
                 )}
 
                 {/* Selected candle count */}
-                <div className={`space-y-1 text-xs px-2.5 py-2 rounded-lg border ${
+                <div className={`flex items-center justify-between text-xs px-2.5 py-2 rounded-lg border ${
                   sizeBlock   ? 'bg-red-500/10 border-red-500/30 text-red-300' :
                   sizeConfirm ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
                   sizeWarning ? 'bg-yellow-500/8 border-yellow-500/20 text-yellow-300' :
                   'bg-zinc-800/50 border-zinc-700/50 text-zinc-400'
                 }`}>
-                  <div className="flex items-center justify-between">
-                    <span>Selected test-window candles</span>
-                    <span className="font-medium">{selectedCount.toLocaleString()}</span>
-                  </div>
-                  {csvInfo && (
-                    <>
-                      <div className="flex items-center justify-between text-zinc-500">
-                        <span>Full CSV range</span>
-                        <span>{new Date(csvInfo.firstTime).toISOString().slice(0, 16)} → {new Date(csvInfo.lastTime).toISOString().slice(0, 16)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-zinc-500">
-                        <span>Selected window</span>
-                        <span>{selectedCandles[0] ? new Date(selectedCandles[0].time).toISOString().slice(0, 16) : 'n/a'} → {selectedCandles[selectedCandles.length - 1] ? new Date(selectedCandles[selectedCandles.length - 1].time).toISOString().slice(0, 16) : 'n/a'}</span>
-                      </div>
-                    </>
-                  )}
+                  <span>Selected candles</span>
+                  <span className="font-medium">{selectedCount.toLocaleString()}</span>
                 </div>
 
                 {sizeBlock && (
@@ -1922,9 +1594,9 @@ export default function BacktestLab() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="text-sm font-semibold text-zinc-100">{result.strategy} · {result.testedTimeframe}</div>
-                              <div className="text-xs text-zinc-500 mt-1">Dataset {result.datasetTimeframe} · tested {result.testedTimeframe} · resampled {result.resampled ? 'yes' : 'no'} · preset {RESEARCH_PRESET_LABEL[result.preset]} · resampled candles tested {result.candlesTested.toLocaleString()} / selected candles {result.candlesLoaded.toLocaleString()}</div>
+                              <div className="text-xs text-zinc-500 mt-1">Dataset {result.datasetTimeframe} · resampled {result.resampled ? 'yes' : 'no'} · preset {RESEARCH_PRESET_LABEL[result.preset]} · candles {result.candlesTested.toLocaleString()} / {result.candlesLoaded.toLocaleString()}</div>
                             </div>
-                            <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded border ${['viable / preserve', 'viable'].includes(result.classification) ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : result.classification === 'viable but noisy' ? 'text-sky-300 border-sky-500/30 bg-sky-500/10' : result.classification === 'needs tuning' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : ['too strict / dead participation', 'possible parity mismatch'].includes(result.classification) ? 'text-orange-300 border-orange-500/30 bg-orange-500/10' : ['wrong dataset/timeframe', 'wrong timeframe/dataset'].includes(result.classification) ? 'text-red-300 border-red-500/30 bg-red-500/10' : 'text-zinc-300 border-zinc-600 bg-zinc-800/60'}`}>
+                            <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded border ${result.classification === 'viable' ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : result.classification === 'needs tuning' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : result.classification === 'wrong timeframe/dataset' ? 'text-red-300 border-red-500/30 bg-red-500/10' : 'text-zinc-300 border-zinc-600 bg-zinc-800/60'}`}>
                               {result.classification}
                             </span>
                           </div>
@@ -2032,24 +1704,6 @@ export default function BacktestLab() {
                             <div className="text-xs text-zinc-500 mt-1">{insight.note}</div>
                           </div>
                         ))}
-                      </div>
-
-                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
-                        <div className="text-xs font-semibold text-zinc-300 mb-3">Recommended tuning order</div>
-                        <div className="space-y-2">
-                          {tuningOrder.map((result, index) => {
-                            const diagnosis = diagnoseTuning(result, sortedComparison);
-                            return (
-                              <div key={`order-${result.id}`} className="flex gap-3 text-xs">
-                                <span className="text-zinc-500 tabular-nums">{index + 1}.</span>
-                                <div>
-                                  <span className="text-zinc-200">{result.strategy} {result.testedTimeframe}</span>
-                                  <span className="text-zinc-500"> — {diagnosis.situation}; {recommendationForResult(result).action}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
                       </div>
 
                       <div className="space-y-3">
@@ -2322,30 +1976,6 @@ export default function BacktestLab() {
                               <span className="text-zinc-500">{count.toLocaleString()}</span>
                             </div>
                           ))}
-                        </div>
-                      </div>
-                    )}
-                    {primaryResult?.strategy === 'CompressionBreakout' && metrics.rejectionDiagnostics && Object.keys(metrics.rejectionDiagnostics).length > 0 && (
-                      <div className="mt-4">
-                        <div className="text-xs font-medium text-zinc-400 mb-2">Compression diagnostics from rejected setup samples</div>
-                        <div className="space-y-2">
-                          {topRejectionReasons(metrics.rejectionReasons, 4).map(([reason]) => {
-                            const diag = metrics.rejectionDiagnostics?.[reason];
-                            if (!diag) return null;
-                            return (
-                              <div key={reason} className="bg-zinc-800/60 border border-zinc-700/60 rounded-lg p-3">
-                                <div className="text-xs text-zinc-300 font-medium mb-2">{reason}</div>
-                                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
-                                  {Object.entries(diag).map(([key, value]) => (
-                                    <div key={key} className="flex justify-between gap-2 border-b border-zinc-700/40 py-0.5">
-                                      <span className="text-zinc-500">{key}</span>
-                                      <span className="text-zinc-300 text-right">{formatDiagnosticValue(value)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
                         </div>
                       </div>
                     )}

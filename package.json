@@ -8,10 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "backtest:fixture": "node scripts/backtest-5m-fixture.mjs",
-    "backtest:optimize": "node scripts/backtest-optimizer.mjs",
-    "backtest:calibrate": "node scripts/backtest-optimizer.mjs --calibration"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
