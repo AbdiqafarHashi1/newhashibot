@@ -436,62 +436,107 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
 
 function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (!['15m', '1h'].includes(tf)) return FAIL('unsupported_timeframe');
-  if (window.length < 60) return FAIL('insufficient_candles');
+  const pullbackBars = Math.max(2, Math.floor(p.pullback_bars));
+  const minLen = Math.max(p.ema_slow + 5, p.atr_len + 2, p.rsi_len + 2, pullbackBars + 10, 60);
+  if (window.length < minLen) return FAIL('insufficient_candles');
+
   const closes = window.map(c => c.close);
-  const ema20 = calcEMA(closes, p.ema_fast); const ema50 = calcEMA(closes, p.ema_slow);
-  const atr = calcATR(window, p.atr_len); const rsi = calcRSI(closes, p.rsi_len);
-  const last = window[window.length - 1]; const price = last.close;
-  const atrPct = price > 0 ? (atr / price) * 100 : 0;
-  if (atrPct < p.min_atr_pct) return FAIL('volatility_too_low');
-  if (atrPct > p.max_atr_pct) return FAIL('volatility_too_high');
+  const last = window[window.length - 1];
+  const price = last.close;
+  const atr = calcATR(window, p.atr_len);
+  const rsi = calcRSI(closes, p.rsi_len);
+  const emaFast = calcEMA(closes, p.ema_fast);
+  const emaSlow = calcEMA(closes, p.ema_slow);
+  const priorEmaFast = calcEMA(closes.slice(0, -pullbackBars), p.ema_fast);
+  if (atr <= 0 || price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return FAIL('invalid_atr_or_price');
 
-  const emaBull = ema20 > ema50 * 1.003; const emaBear = ema20 < ema50 * 0.997;
-  if (!emaBull && !emaBear) return FAIL('trend_alignment_failed');
+  const atrPct = (atr / price) * 100;
+  const emaSpreadPct = emaSlow > 0 ? ((emaFast - emaSlow) / emaSlow) * 100 : 0;
+  const emaSlopePct = priorEmaFast > 0 ? ((emaFast - priorEmaFast) / priorEmaFast) * 100 : 0;
+  const bullBias = (emaSpreadPct * 1.4) + emaSlopePct + (price > emaFast ? 0.25 : -0.25) + ((rsi - 50) / 100);
+  const bearBias = (-emaSpreadPct * 1.4) - emaSlopePct + (price < emaFast ? 0.25 : -0.25) + ((50 - rsi) / 100);
+  const direction: 'buy' | 'sell' = bullBias >= bearBias ? 'buy' : 'sell';
+  const directionalSpread = direction === 'buy' ? emaSpreadPct : -emaSpreadPct;
+  const directionalSlope = direction === 'buy' ? emaSlopePct : -emaSlopePct;
+  const emaAligned = directionalSpread > 0;
+  const priceVsEma = direction === 'buy' ? ((price - emaFast) / price) * 100 : ((emaFast - price) / price) * 100;
+  const trendScore = clampScore((emaAligned ? 42 : 12) + Math.min(Math.max(directionalSpread, 0) / 1.2, 1) * 38 + (directionalSlope > 0 ? 20 : 0));
+  const emaSlopeScore = clampScore(35 + (Math.min(Math.max(directionalSlope, -0.15) + 0.15, 0.65) / 0.65) * 65);
 
-  const olderHi = window.length > 50 ? Math.max(...window.slice(-50, -20).map(c => c.high)) : Math.max(...window.slice(-20).map(c => c.high));
-  const olderLo = window.length > 50 ? Math.min(...window.slice(-50, -20).map(c => c.low))  : Math.min(...window.slice(-20).map(c => c.low));
-  const recentHi = Math.max(...window.slice(-20).map(c => c.high));
-  const recentLo = Math.min(...window.slice(-20).map(c => c.low));
-  const rcr = (olderHi - olderLo) > 0 ? (recentHi - recentLo) / (olderHi - olderLo) : 1;
-  const reg = regime(ema20, ema50, rsi, rcr, atrPct);
-  if (['ranging', 'unclear'].includes(reg)) return FAIL('regime_not_trending');
+  const pullbackWindow = window.slice(-(pullbackBars + 1), -1);
+  const pullbackLow = Math.min(...pullbackWindow.map(c => c.low));
+  const pullbackHigh = Math.max(...pullbackWindow.map(c => c.high));
+  const touchedBuyZone = pullbackLow <= emaFast + atr * 0.75;
+  const touchedSellZone = pullbackHigh >= emaFast - atr * 0.75;
+  const reclaimedBuy = price > emaFast && last.close > last.open;
+  const reclaimedSell = price < emaFast && last.close < last.open;
+  const pullbackReady = direction === 'buy' ? touchedBuyZone : touchedSellZone;
+  const strictReclaimConfirmed = direction === 'buy' ? reclaimedBuy : reclaimedSell;
+  const pullbackScore = direction === 'buy'
+    ? clampScore((touchedBuyZone ? 48 : 18) + (reclaimedBuy ? 38 : price > emaFast ? 22 : 0) + (pullbackLow > emaSlow ? 14 : 5))
+    : clampScore((touchedSellZone ? 48 : 18) + (reclaimedSell ? 38 : price < emaFast ? 22 : 0) + (pullbackHigh < emaSlow ? 14 : 5));
 
-  const pbWindow = window.slice(-(p.pullback_bars + 1), -1);
-  const pbLow  = Math.min(...pbWindow.map(c => c.low));
-  const pbHigh = Math.max(...pbWindow.map(c => c.high));
-  const mom = momentumScore(closes, p.momentum_lookback);
+  const rawMomentum = momentumScore(closes, p.momentum_lookback);
+  const directionalMomentum = direction === 'buy' ? rawMomentum : -rawMomentum;
+  const bodyAtr = Math.abs(last.close - last.open) / atr;
+  const momentumScoreValue = clampScore((Math.max(0, directionalMomentum) * 60) + (Math.min(bodyAtr, 1) * 25) + (strictReclaimConfirmed ? 15 : 0));
+  const rsiScore = direction === 'buy'
+    ? clampScore(Math.min(Math.max((rsi - 45) / Math.max(p.rsi_buy_min - 45, 1), 0), 1.25) * 80)
+    : clampScore(Math.min(Math.max((55 - rsi) / Math.max(55 - p.rsi_sell_max, 1), 0), 1.25) * 80);
+  const trendQualityPass = trendScore >= 45 || (emaSlopeScore >= 55 && directionalSpread > -0.08 && priceVsEma > 0 && rsiScore >= 40);
+  const reclaimByQuality = pullbackScore >= 68 && momentumScoreValue >= 45 && priceVsEma > -0.05;
+  const reclaimConfirmed = strictReclaimConfirmed || reclaimByQuality;
 
-  let score = 50, direction: 'buy' | 'sell' | null = null;
-  if (emaBull && rsi >= p.rsi_buy_min && price > ema20) {
-    if (pbLow > ema20 * 1.008 || price <= ema20) return FAIL('pullback_not_ready');
-    if (mom <= 0 || rsi < 48) return FAIL('continuation_momentum_failed');
-    direction = 'buy';
-  } else if (emaBear && rsi <= p.rsi_sell_max && price < ema20) {
-    if (pbHigh < ema20 * 0.992 || price >= ema20) return FAIL('pullback_not_ready');
-    if (mom >= 0 || rsi > 52) return FAIL('continuation_momentum_failed');
-    direction = 'sell';
-  } else return FAIL('trend_rsi_context_failed');
+  let volatilityScore = 85;
+  if (atrPct < p.min_atr_pct) volatilityScore = clampScore((atrPct / Math.max(p.min_atr_pct, 0.01)) * 55);
+  else if (atrPct > p.max_atr_pct) volatilityScore = clampScore(Math.max(20, 80 - ((atrPct - p.max_atr_pct) / Math.max(p.max_atr_pct, 0.01)) * 80));
 
-  const emaSep = Math.abs(ema20 - ema50) / ema50;
-  if (emaSep > 0.01) score += 12; else if (emaSep > 0.005) score += 8; else score += 3;
-  if ((direction === 'buy' && reg === 'trend_up') || (direction === 'sell' && reg === 'trend_down')) score += 10;
-  const ms = Math.abs(mom);
-  if (ms > 0.5) score += 8; else if (ms > 0.2) score += 5;
-  if ((direction === 'buy' && rsi >= 58) || (direction === 'sell' && rsi <= 42)) score += 7; else score += 3;
-  if ((direction === 'buy' && last.close > last.open) || (direction === 'sell' && last.close < last.open)) score += 5;
+  let entry_low: number, entry_high: number, sl: number, tp1: number, tp2: number;
+  if (direction === 'buy') {
+    entry_low = price * 0.9997;
+    entry_high = price * 1.0003;
+    sl = Math.min(pullbackLow - atr * 0.15, price - atr * p.stop_atr_mult);
+    const riskForTargets = Math.abs(price - sl);
+    tp1 = price + riskForTargets * p.tp1_r;
+    tp2 = price + riskForTargets * p.tp2_r;
+  } else {
+    entry_low = price * 0.9997;
+    entry_high = price * 1.0003;
+    sl = Math.max(pullbackHigh + atr * 0.15, price + atr * p.stop_atr_mult);
+    const riskForTargets = Math.abs(price - sl);
+    tp1 = price - riskForTargets * p.tp1_r;
+    tp2 = price - riskForTargets * p.tp2_r;
+  }
 
-  const structLow  = direction === 'buy'  ? Math.min(pbLow,  price - atr * p.stop_atr_mult) : 0;
-  const structHigh = direction === 'sell' ? Math.max(pbHigh, price + atr * p.stop_atr_mult) : 0;
-  const sl  = direction === 'buy'  ? structLow  - atr * 0.3 : structHigh + atr * 0.3;
-  const tp1 = direction === 'buy'  ? price + atr * p.tp1_r  : price - atr * p.tp1_r;
-  const tp2 = direction === 'buy'  ? price + atr * p.tp2_r  : price - atr * p.tp2_r;
-  const entry_low = price * 0.9997, entry_high = price * 1.0003, entry = price;
+  const entry = price;
   const risk = Math.abs(entry - sl);
   const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
-  if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 5;
-  const final_score = Math.min(Math.max(score, 0), 100);
+  const rrScore = clampScore(Math.min(rr / Math.max(p.min_rr, 0.01), 1.5) * 66);
+  const final_score = clampScore((trendScore * 0.22) + (emaSlopeScore * 0.14) + (pullbackScore * 0.20) + (momentumScoreValue * 0.16) + (rsiScore * 0.12) + (volatilityScore * 0.08) + (rrScore * 0.08));
   const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
-  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `SW ${direction}: ema_sep=${(emaSep * 100).toFixed(2)}%, rsi=${rsi.toFixed(1)}, regime=${reg}` };
+  const diagnostics: Record<string, string | number | boolean> = {
+    primary_failed_gate: 'passed', trend_direction: direction, trend_score: trendScore, trend_quality_pass: trendQualityPass,
+    ema_spread_pct: roundDiag(directionalSpread), ema_slope_pct: roundDiag(directionalSlope), ema_slope_score: emaSlopeScore, price_vs_ema: roundDiag(priceVsEma),
+    pullback_score: pullbackScore, pullback_ready: pullbackReady, reclaim_confirmed: reclaimConfirmed, strict_reclaim_confirmed: strictReclaimConfirmed, reclaim_by_quality: reclaimByQuality,
+    momentum_score: momentumScoreValue, rsi_score: rsiScore, volatility_score: volatilityScore, rr_score: rrScore, rr,
+    stop_distance_pct: pctDistance(price, sl), tp1_distance_pct: pctDistance(price, tp1), tp2_distance_pct: pctDistance(price, tp2), final_score,
+  };
+
+  let failedGate = '';
+  if (atrPct < p.min_atr_pct) failedGate = 'volatility_too_low';
+  else if (atrPct > p.max_atr_pct) failedGate = 'volatility_too_high';
+  else if (!trendQualityPass) failedGate = 'trend_filter_failed';
+  else if (!pullbackReady || pullbackScore < 45) failedGate = 'pullback_not_ready';
+  else if (!reclaimConfirmed) failedGate = 'reclaim_not_confirmed';
+  else if (momentumScoreValue < 35 || rsiScore < 35) failedGate = 'momentum_failed';
+  else if (rr < p.min_rr) failedGate = 'rr_too_low';
+  else if (final_score < p.min_score) failedGate = 'confidence_too_low';
+  if (failedGate) {
+    diagnostics.primary_failed_gate = failedGate;
+    return FAIL(failedGate, diagnostics);
+  }
+
+  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `SW ${direction}: ema_spread=${directionalSpread.toFixed(3)}%, slope=${directionalSlope.toFixed(3)}%, pullback=${pullbackScore}, reclaim=${reclaimConfirmed}, rr=${rr.toFixed(2)}R, score=${final_score}`, diagnostics };
 }
 
 // ─── Backtest engine ──────────────────────────────────────────────────────────
@@ -1871,7 +1916,7 @@ export default function BacktestLab() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="text-sm font-semibold text-zinc-100">{result.strategy} · {result.testedTimeframe}</div>
-                              <div className="text-xs text-zinc-500 mt-1">Dataset {result.datasetTimeframe} · resampled {result.resampled ? 'yes' : 'no'} · preset {RESEARCH_PRESET_LABEL[result.preset]} · candles {result.candlesTested.toLocaleString()} / {result.candlesLoaded.toLocaleString()}</div>
+                              <div className="text-xs text-zinc-500 mt-1">Dataset {result.datasetTimeframe} · tested {result.testedTimeframe} · resampled {result.resampled ? 'yes' : 'no'} · preset {RESEARCH_PRESET_LABEL[result.preset]} · resampled candles tested {result.candlesTested.toLocaleString()} / selected candles {result.candlesLoaded.toLocaleString()}</div>
                             </div>
                             <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded border ${['viable / preserve', 'viable'].includes(result.classification) ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : result.classification === 'viable but noisy' ? 'text-sky-300 border-sky-500/30 bg-sky-500/10' : result.classification === 'needs tuning' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : ['too strict / dead participation', 'possible parity mismatch'].includes(result.classification) ? 'text-orange-300 border-orange-500/30 bg-orange-500/10' : ['wrong dataset/timeframe', 'wrong timeframe/dataset'].includes(result.classification) ? 'text-red-300 border-red-500/30 bg-red-500/10' : 'text-zinc-300 border-zinc-600 bg-zinc-800/60'}`}>
                               {result.classification}
