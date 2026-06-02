@@ -196,6 +196,25 @@ function runPreset(selected, preset) {
   return rows;
 }
 
+export {
+  CSV,
+  DAY_MS,
+  TF_MINUTES,
+  STRATEGY_TIMEFRAMES,
+  PRESET_ORDER,
+  PRESET_LABELS,
+  BASE,
+  DEFAULTS,
+  LIVE_PARAMS,
+  paramsForPreset,
+  parseCsv,
+  resample,
+  backtest,
+  classify,
+  decisionScore,
+};
+
+function main() {
 const { days, preset, startMs: argStartMs, endMs: argEndMs, full } = parseArgs();
 const requestedPresets = preset === 'all' ? PRESET_ORDER : [preset];
 const invalidPreset = requestedPresets.find(p => !PRESET_ORDER.includes(p));
@@ -267,4 +286,10 @@ if (requestedPresets.length > 1) {
   for (const [idx, r] of [...results].sort((a, b) => b.decisionScore - a.decisionScore).entries()) {
     console.log(`${idx + 1}. ${r.presetName} · ${r.strategy} ${r.timeframe} · score=${r.decisionScore} · trades=${r.trades} · PF=${r.profitFactorDisplay} · totalR=${r.totalRDisplay} · avgR=${r.avgRDisplay} · maxDD=${r.maxDDDisplay}R · recommendation=${r.recommendation}`);
   }
+}
+
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
 }
