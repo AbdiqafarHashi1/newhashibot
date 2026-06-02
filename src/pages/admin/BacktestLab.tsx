@@ -67,6 +67,7 @@ interface ParamSet {
   box_lookback: number; min_box_bars: number; max_box_atr_range: number;
   atr_expansion_lookback: number; min_atr_expansion: number;
   breakout_buffer_atr: number; pullback_bars: number;
+  swing_15m_tp1_r?: number; swing_15m_tp2_r?: number;
 }
 
 const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressive', ParamSet>> = {
@@ -90,7 +91,10 @@ const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressiv
 const LIVE_PARAMS: Record<Strategy, ParamSet> = {
   MicroScalper: DEFAULTS.MicroScalper.balanced,
   CompressionBreakout: DEFAULTS.CompressionBreakout.balanced,
-  SwingContinuation: DEFAULTS.SwingContinuation.balanced,
+  // Live-like browser approximation for backtesting only. Phase 1C adds
+  // 15m-specific SwingContinuation exit targets while keeping 1h targets and
+  // live scanner/provider/Telegram/DB strategy_config untouched.
+  SwingContinuation: { ...DEFAULTS.MicroScalper.balanced, min_score: 72, min_rr: 1.2, max_bars_in_trade: 60, pullback_bars: 6, tp1_r: 1.4, tp2_r: 2.4, swing_15m_tp1_r: 1.3, swing_15m_tp2_r: 2.2 },
 };
 
 const STRATEGY_TIMEFRAMES: Record<Strategy, string[]> = {
@@ -112,12 +116,12 @@ const RESEARCH_PRESET_LABEL: Record<ResearchPreset, string> = {
 const RESEARCH_PRESET_DESCRIPTIONS: Record<ResearchPreset, string> = {
   live: 'Closest browser-side approximation of current strategy-family behavior. Default path.',
   conservative: 'Backtest-only stricter score, confirmation, RR/distance safety. Fewer weak setups expected.',
-  balanced: 'Backtest-only middle-ground research preset, aligned to current live-like defaults.',
+  balanced: 'Backtest-only middle-ground research preset. MicroScalper and CompressionBreakout match live-like defaults; SwingContinuation keeps a separate preset from the tuned live-like 15m exit approximation.',
   aggressive: 'Backtest-only more active research preset. Keeps RR, distance, candle, and structure guards.',
 };
 
 function paramsForPreset(strategy: Strategy, preset: ResearchPreset): ParamSet {
-  if (preset === 'live' || preset === 'balanced') return { ...LIVE_PARAMS[strategy] };
+  if (preset === 'live') return { ...LIVE_PARAMS[strategy] };
   return { ...DEFAULTS[strategy][preset] };
 }
 
@@ -491,21 +495,23 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (atrPct < p.min_atr_pct) volatilityScore = clampScore((atrPct / Math.max(p.min_atr_pct, 0.01)) * 55);
   else if (atrPct > p.max_atr_pct) volatilityScore = clampScore(Math.max(20, 80 - ((atrPct - p.max_atr_pct) / Math.max(p.max_atr_pct, 0.01)) * 80));
 
+  const tp1Multiplier = tf === '15m' && typeof p.swing_15m_tp1_r === 'number' && Number.isFinite(p.swing_15m_tp1_r) ? p.swing_15m_tp1_r : p.tp1_r;
+  const tp2Multiplier = tf === '15m' && typeof p.swing_15m_tp2_r === 'number' && Number.isFinite(p.swing_15m_tp2_r) ? p.swing_15m_tp2_r : p.tp2_r;
   let entry_low: number, entry_high: number, sl: number, tp1: number, tp2: number;
   if (direction === 'buy') {
     entry_low = price * 0.9997;
     entry_high = price * 1.0003;
     sl = Math.min(pullbackLow - atr * 0.15, price - atr * p.stop_atr_mult);
     const riskForTargets = Math.abs(price - sl);
-    tp1 = price + riskForTargets * p.tp1_r;
-    tp2 = price + riskForTargets * p.tp2_r;
+    tp1 = price + riskForTargets * tp1Multiplier;
+    tp2 = price + riskForTargets * tp2Multiplier;
   } else {
     entry_low = price * 0.9997;
     entry_high = price * 1.0003;
     sl = Math.max(pullbackHigh + atr * 0.15, price + atr * p.stop_atr_mult);
     const riskForTargets = Math.abs(price - sl);
-    tp1 = price - riskForTargets * p.tp1_r;
-    tp2 = price - riskForTargets * p.tp2_r;
+    tp1 = price - riskForTargets * tp1Multiplier;
+    tp2 = price - riskForTargets * tp2Multiplier;
   }
 
   const entry = price;
@@ -519,7 +525,7 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
     ema_spread_pct: roundDiag(directionalSpread), ema_slope_pct: roundDiag(directionalSlope), ema_slope_score: emaSlopeScore, price_vs_ema: roundDiag(priceVsEma),
     pullback_score: pullbackScore, pullback_ready: pullbackReady, reclaim_confirmed: reclaimConfirmed, strict_reclaim_confirmed: strictReclaimConfirmed, reclaim_by_quality: reclaimByQuality,
     momentum_score: momentumScoreValue, rsi_score: rsiScore, volatility_score: volatilityScore, rr_score: rrScore, rr,
-    stop_distance_pct: pctDistance(price, sl), tp1_distance_pct: pctDistance(price, tp1), tp2_distance_pct: pctDistance(price, tp2), final_score,
+    stop_distance_pct: pctDistance(price, sl), tp1_distance_pct: pctDistance(price, tp1), tp2_distance_pct: pctDistance(price, tp2), tp1_multiplier: tp1Multiplier, tp2_multiplier: tp2Multiplier, final_score,
   };
 
   let failedGate = '';
