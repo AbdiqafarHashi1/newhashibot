@@ -526,7 +526,14 @@ Deno.serve(async (req: Request) => {
     const isServiceInvocation = Boolean(serviceRole) && token === serviceRole;
     const isCronSecretInvocation = Boolean(cronSecret) && suppliedSecret === cronSecret;
 
-    if (!isServiceInvocation && !isCronSecretInvocation) {
+    // Third auth path: pg_cron sends Authorization: Bearer <cron_pg_token> stored in scanner_config.
+    let isPgCronTokenInvocation = false;
+    if (!isServiceInvocation && !isCronSecretInvocation && token) {
+      const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
+      isPgCronTokenInvocation = Boolean(cfgAuth?.cron_pg_token) && token === cfgAuth!.cron_pg_token;
+    }
+
+    if (!isServiceInvocation && !isCronSecretInvocation && !isPgCronTokenInvocation) {
       const { data: { user } } = await supabase.auth.getUser(token);
       if (!user) return jsonResponse({ success: false, error: "Unauthorized" }, 401);
     }

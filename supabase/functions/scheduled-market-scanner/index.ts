@@ -131,14 +131,25 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", market_scanner_called: false, outcome_called: false, warnings, errors }, 500);
     }
 
+    const supabase = createClient(supabaseUrl, serviceRole);
+
+    // Third auth path: pg_cron sends Authorization: Bearer <cron_pg_token> stored in scanner_config.
+    // This avoids the need for a GUC or vault entry — the token lives in the DB and is read dynamically.
+    let isPgCronTokenInvocation = false;
     if (!isServiceInvocation && !isCronSecretInvocation) {
-      errors.push(cronSecret
-        ? "Forbidden: scheduled scanner requires service-role Authorization or matching x-scanner-cron-secret"
-        : "Scheduled scanner setup error: SCANNER_CRON_SECRET is not configured, so only service-role Authorization is accepted");
-      return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", market_scanner_called: false, outcome_called: false, warnings, errors }, cronSecret ? 403 : 500);
+      const token = authHeader.replace("Bearer ", "");
+      if (token) {
+        const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
+        isPgCronTokenInvocation = Boolean(cfgAuth?.cron_pg_token) && token === cfgAuth!.cron_pg_token;
+      }
     }
 
-    const supabase = createClient(supabaseUrl, serviceRole);
+    if (!isServiceInvocation && !isCronSecretInvocation && !isPgCronTokenInvocation) {
+      errors.push(cronSecret
+        ? "Forbidden: scheduled scanner requires service-role Authorization, matching x-scanner-cron-secret, or valid cron_pg_token"
+        : "Scheduled scanner setup error: SCANNER_CRON_SECRET is not configured, so only service-role Authorization or cron_pg_token is accepted");
+      return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", market_scanner_called: false, outcome_called: false, warnings, errors }, 403);
+    }
     supabaseForCatch = supabase;
     runId = await createScheduledRun(supabase, source);
 
