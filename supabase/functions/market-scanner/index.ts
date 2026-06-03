@@ -606,7 +606,8 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const breakoutDist = direction === "buy" ? Math.max(0, breakoutDistUp) : Math.max(0, breakoutDistDn);
   const breakoutDistanceAtr = breakoutDist / atr;
 
-  const barsInside = boxSlice.filter((c) => c.high <= boxHigh * 1.0015 && c.low >= boxLow * 0.9985).length;
+  const boxBarTol = params.box_bar_tolerance ?? 0.0015;
+  const barsInside = boxSlice.filter((c) => c.high <= boxHigh * (1 + boxBarTol) && c.low >= boxLow * (1 - boxBarTol)).length;
   const boxRangeAtr = boxRange / atr;
   const recentBoxRangeAtr = recentBoxRange / atr;
   const insideRatio = barsInside / Math.max(boxSlice.length, 1);
