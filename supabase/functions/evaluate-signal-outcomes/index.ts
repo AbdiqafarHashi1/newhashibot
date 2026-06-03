@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const TERMINAL = new Set(["tp2_hit", "sl_hit", "expired", "cancelled"]);
 const EVALUATED_STATUSES = ["waiting", "active", "new", "approved", "tp1_hit"];
-const EXPIRY_MINS = 360;
+const LEGACY_GLOBAL_EXPIRY_MINS = 360;
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -354,8 +354,8 @@ function expiryStatus(sig: SignalRow): { expired: boolean; reason: string } {
   if (Number.isFinite(expiresAt) && now > expiresAt) return { expired: true, reason: "expires_at_passed" };
 
   const createdAt = sig.created_at ? new Date(sig.created_at).getTime() : NaN;
-  if (Number.isFinite(createdAt) && (now - createdAt) / 60000 > EXPIRY_MINS) {
-    return { expired: true, reason: "max_age_expired" };
+  if (Number.isFinite(createdAt) && (now - createdAt) / 60000 > LEGACY_GLOBAL_EXPIRY_MINS) {
+    return { expired: true, reason: "legacy_global_max_age_expired" };
   }
   return { expired: false, reason: "not_expired" };
 }

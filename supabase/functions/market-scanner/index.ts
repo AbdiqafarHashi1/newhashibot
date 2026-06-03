@@ -53,6 +53,7 @@ interface ScannerConfig {
 
 interface StrategyConfig {
   strategy_name: string;
+  config_source: "db" | "fallback";
   enabled: boolean;
   signal_style: string;
   risk_mode: string;
@@ -345,15 +346,48 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
   const finalScore = clampScore((trendScore * 0.24) + (momentumScore * 0.22) + (rsiScore * 0.18) + (bodyScore * 0.12) + (volatilityScore * 0.12) + (rrScore * 0.12));
   if (!primaryFailedGate && finalScore < min_score) primaryFailedGate = "confidence_too_low";
 
+  const rawRejectionReason = primaryFailedGate || "passed";
   const score_breakdown: Record<string, number | string | boolean> = {
-    primary_failed_gate: primaryFailedGate || "passed",
+    primary_failed_gate: rawRejectionReason,
+    raw_rejection_reason: rawRejectionReason,
+    strategy_config_loaded: true,
+    timeframe_allowed: true,
+    evaluator_called: true,
+    raw_evaluator_status: primaryFailedGate ? "failed" : "passed",
+    score_gate: finalScore >= min_score ? "passed" : "failed",
+    rr_gate: risk_reward >= min_rr ? "passed" : "failed",
+    distance_guard: "pending",
+    arbitration: "pending",
+    duplicate_guard: "pending",
+    signal_insert: "pending",
+    telegram_eligibility: "pending",
+    min_score,
+    required_score: min_score,
+    min_rr,
+    stop_atr_mult,
+    tp1_r,
+    tp2_r,
+    min_body_atr,
+    required_min_body_atr: min_body_atr,
+    rsi_buy_min,
+    rsi_sell_max,
+    rsi_threshold: direction === "buy" ? rsi_buy_min : rsi_sell_max,
+    max_bars_in_trade: params.max_bars_in_trade ?? (timeframe === "5m" ? 30 : 24),
+    momentum_lookback,
+    min_atr_pct,
+    max_atr_pct,
+    crypto_behavior_tuning,
     trend_score: trendScore,
     rsi_score: rsiScore,
     momentum_score: momentumScore,
     candle_body_score: bodyScore,
+    candle_body_ratio: parseFloat(bodyAtr.toFixed(3)),
     volatility_score: volatilityScore,
     rr_score: rrScore,
     direction_basis: direction === "buy" ? buyContext : sellContext,
+    buy_context: buyContext,
+    sell_context: sellContext,
+    trend_context: `${direction}:ema20_${direction === "buy" ? (ind.ema20 > ind.ema50 ? "above" : "not_above") : (ind.ema20 < ind.ema50 ? "below" : "not_below")}_ema50:price_${direction === "buy" ? (last.close > ind.ema20 ? "above" : "not_above") : (last.close < ind.ema20 ? "below" : "not_below")}_ema20`,
     rsi: parseFloat(ind.rsi14.toFixed(2)),
     atr_pct: parseFloat(ind.atr_pct.toFixed(4)),
     body_atr: parseFloat(bodyAtr.toFixed(3)),
@@ -1181,6 +1215,158 @@ function arbitrationSnapshot(entries: EvalEntry[]): Array<Record<string, unknown
     tp2_margin_pct: parseFloat(entry.guard.tp2_pct.toFixed(4)),
     primary_failed_gate: entry.result.score_breakdown?.primary_failed_gate ?? "passed",
   }));
+}
+
+
+
+function timeframeMinutes(timeframe: string): number | null {
+  const map: Record<string, number> = { "1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440 };
+  return map[timeframe] ?? null;
+}
+
+interface ExpiryMetadata {
+  expires_at: string | null;
+  expiry_source: string;
+  strategy: string;
+  timeframe: string;
+  timeframe_minutes: number | null;
+  max_bars_in_trade: number;
+  computed_expiry_minutes: number;
+  global_fallback_used: boolean;
+  legacy_global_fallback_minutes: number;
+  expiry_window_may_be_too_short: boolean;
+}
+
+const LEGACY_GLOBAL_FALLBACK_MINUTES = 360;
+
+function buildSignalExpiryMetadata(strategyName: string, timeframe: string, cfg: StrategyConfig, scoreBreakdown: Record<string, number | string | boolean>, createdAt: Date): ExpiryMetadata {
+  const tfMinutes = timeframeMinutes(timeframe);
+  const scoreBreakdownBars = scoreBreakdown.max_bars_in_trade;
+  const maxBars = typeof scoreBreakdownBars === "number" && Number.isFinite(scoreBreakdownBars) && scoreBreakdownBars > 0
+    ? Math.floor(scoreBreakdownBars)
+    : Math.max(1, Math.floor(cfg.max_bars_in_trade || 0));
+  const computedMinutes = tfMinutes && maxBars > 0 ? tfMinutes * maxBars : LEGACY_GLOBAL_FALLBACK_MINUTES;
+  const canUseStrategyExpiry = Boolean(tfMinutes && maxBars > 0);
+  return {
+    expires_at: canUseStrategyExpiry ? new Date(createdAt.getTime() + computedMinutes * 60_000).toISOString() : null,
+    expiry_source: canUseStrategyExpiry ? "strategy_config_max_bars_in_trade" : "legacy_global_fallback",
+    strategy: strategyName,
+    timeframe,
+    timeframe_minutes: tfMinutes,
+    max_bars_in_trade: maxBars,
+    computed_expiry_minutes: computedMinutes,
+    global_fallback_used: !canUseStrategyExpiry,
+    legacy_global_fallback_minutes: LEGACY_GLOBAL_FALLBACK_MINUTES,
+    expiry_window_may_be_too_short: !canUseStrategyExpiry,
+  };
+}
+
+function scoreBreakdownWithExpiry(scoreBreakdown: Record<string, number | string | boolean>, expiry: ExpiryMetadata): Record<string, number | string | boolean> {
+  return {
+    ...scoreBreakdown,
+    expires_at: expiry.expires_at ?? "",
+    expiry_source: expiry.expiry_source,
+    strategy: expiry.strategy,
+    timeframe: expiry.timeframe,
+    timeframe_minutes: expiry.timeframe_minutes ?? 0,
+    max_bars_in_trade: expiry.max_bars_in_trade,
+    computed_expiry_minutes: expiry.computed_expiry_minutes,
+    global_fallback_used: expiry.global_fallback_used,
+    legacy_global_fallback_minutes: expiry.legacy_global_fallback_minutes,
+    expiry_window_may_be_too_short: expiry.expiry_window_may_be_too_short,
+  };
+}
+
+function microScalperRuntimeParams(cfg: StrategyConfig, timeframe: string): { params: Record<string, number>; config_source: "db" | "fallback" | "runtime_override"; base_config_source: "db" | "fallback"; runtime_overrides: string[] } {
+  const calibrated15m: Record<string, number> = {
+    min_score: 72,
+    min_rr: 1.2,
+    stop_atr_mult: 1.4,
+    tp1_r: 1.2,
+    tp2_r: 1.8,
+    min_body_atr: 0.30,
+    rsi_buy_min: 52,
+    rsi_sell_max: 48,
+    max_bars_in_trade: 24,
+    momentum_lookback: 3,
+    min_atr_pct: 0.10,
+    max_atr_pct: 3.0,
+    crypto_behavior_tuning: 1,
+  };
+  const calibrated5m: Record<string, number> = {
+    ...calibrated15m,
+    rsi_buy_min: 54,
+    rsi_sell_max: 46,
+    stop_atr_mult: 1.45,
+    max_bars_in_trade: 30,
+  };
+  const calibrated = timeframe === "5m" ? calibrated5m : calibrated15m;
+  const runtimeOverrides: string[] = [];
+  const params: Record<string, number> = { ...calibrated, ...cfg.params };
+
+  // The live scanner has a single DB strategy_config row for MicroScalper while
+  // production needs distinct 5m/15m calibrated behavior. Apply the known 5m
+  // calibration at runtime unless the DB has explicit timeframe-specific keys.
+  if (timeframe === "5m") {
+    const timeframeKeys: Record<string, string> = {
+      rsi_buy_min: "rsi_buy_min_5m",
+      rsi_sell_max: "rsi_sell_max_5m",
+      stop_atr_mult: "stop_atr_mult_5m",
+      max_bars_in_trade: "max_bars_in_trade_5m",
+    };
+    for (const [key, tfKey] of Object.entries(timeframeKeys)) {
+      const explicit = cfg.params[tfKey];
+      const next = typeof explicit === "number" && Number.isFinite(explicit) ? explicit : (calibrated5m[key] ?? params[key] ?? 0);
+      if (params[key] !== next) runtimeOverrides.push(key);
+      params[key] = next;
+    }
+  }
+
+  params.min_score = cfg.min_score > 0 ? cfg.min_score : calibrated.min_score;
+  params.min_rr = cfg.min_rr > 0 ? cfg.min_rr : calibrated.min_rr;
+  if (cfg.max_bars_in_trade > 0 && timeframe !== "5m") params.max_bars_in_trade = cfg.max_bars_in_trade;
+  if (timeframe === "5m" && cfg.params.max_bars_in_trade_5m === undefined) params.max_bars_in_trade = calibrated5m.max_bars_in_trade;
+  params.crypto_behavior_tuning = 1;
+
+  return {
+    params,
+    config_source: runtimeOverrides.length > 0 ? "runtime_override" : cfg.config_source,
+    base_config_source: cfg.config_source,
+    runtime_overrides: runtimeOverrides,
+  };
+}
+
+function withMicroScalperDiagnostics(result: EvalResult, cfg: StrategyConfig, runtime: ReturnType<typeof microScalperRuntimeParams>): EvalResult {
+  const raw = String(result.rejection_reason || result.score_breakdown?.raw_rejection_reason || result.score_breakdown?.primary_failed_gate || "passed");
+  const normalized = normalizeRejectionReason(raw, "crypto");
+  return {
+    ...result,
+    score_breakdown: {
+      ...result.score_breakdown,
+      raw_rejection_reason: raw,
+      normalized_rejection_reason: normalized,
+      config_source: runtime.config_source,
+      base_config_source: runtime.base_config_source,
+      runtime_overrides: runtime.runtime_overrides.join(",") || "none",
+      strategy_config_loaded: true,
+      strategy_enabled: cfg.enabled,
+      timeframe_allowed: true,
+      evaluator_called: true,
+      max_bars_in_trade: runtime.params.max_bars_in_trade,
+      min_score: runtime.params.min_score,
+      min_rr: runtime.params.min_rr,
+      stop_atr_mult: runtime.params.stop_atr_mult,
+      tp1_r: runtime.params.tp1_r,
+      tp2_r: runtime.params.tp2_r,
+      min_body_atr: runtime.params.min_body_atr,
+      rsi_buy_min: runtime.params.rsi_buy_min,
+      rsi_sell_max: runtime.params.rsi_sell_max,
+      momentum_lookback: runtime.params.momentum_lookback,
+      min_atr_pct: runtime.params.min_atr_pct,
+      max_atr_pct: runtime.params.max_atr_pct,
+      crypto_behavior_tuning: runtime.params.crypto_behavior_tuning === 1,
+    },
+  };
 }
 
 // ─── Risk Engine ──────────────────────────────────────────────────────────────
@@ -2363,19 +2549,21 @@ async function runScanPipeline(
   const getStratCfg = (name: string): StrategyConfig => {
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
     const isForex = name.startsWith("Forex");
+    const isMicroScalper = name === "MicroScalper";
     return {
       strategy_name: name,
+      config_source:         cfg ? "db" : "fallback",
       enabled:               (cfg?.enabled as boolean)                      ?? true,
       signal_style:          (cfg?.signal_style as string)                  ?? (isForex ? "forex_signal" : "scalper"),
       risk_mode:             (cfg?.risk_mode as string)                     ?? (isForex ? "conservative" : "balanced"),
-      min_score:             (cfg?.min_score as number)                     ?? (isForex ? 78 : 75),
-      min_rr:                (cfg?.min_rr as number)                        ?? (isForex ? 1.4 : 1.2),
+      min_score:             (cfg?.min_score as number)                     ?? (isMicroScalper ? 72 : isForex ? 78 : 75),
+      min_rr:                (cfg?.min_rr as number)                        ?? (isMicroScalper ? 1.2 : isForex ? 1.4 : 1.2),
       min_stop_distance_pct: (cfg?.min_stop_distance_pct as number)         ?? (isForex ? 0.08 : 0.18),
       min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? (isForex ? 0.10 : 0.25),
       min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? (isForex ? 0.16 : 0.40),
-      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (isForex ? 48 : 32),
+      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (isMicroScalper ? 24 : isForex ? 48 : 32),
       allowed_symbols:       (cfg?.allowed_symbols as string[])             ?? (isForex ? [...C2_FOREX_SYMBOLS] : []),
-      allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isForex ? forexTimeframes() : []),
+      allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isMicroScalper ? ["5m", "15m"] : isForex ? forexTimeframes() : []),
       params:                (cfg?.params as Record<string, number>)        ?? {},
     };
   };
@@ -2548,10 +2736,14 @@ async function runScanPipeline(
     }
   }
 
-  let activeSymbolSet = new Set<string>();
+  const activeSymbolSet = new Set<string>();
+  const activeSignalBySymbol = new Map<string, { id: string; status: string; created_at: string | null }>();
   if (config.prevent_duplicate_symbol_signals) {
-    const { data: activeSigs } = await supabase.from("signals").select("symbol").in("status", ["waiting", "active"]);
-    activeSymbolSet = new Set((activeSigs ?? []).map((s: { symbol: string }) => s.symbol));
+    const { data: activeSigs } = await supabase.from("signals").select("id,symbol,status,created_at").in("status", ["waiting", "active"]);
+    for (const sig of (activeSigs ?? []) as Array<{ id: string; symbol: string; status: string; created_at: string | null }>) {
+      activeSymbolSet.add(sig.symbol);
+      if (!activeSignalBySymbol.has(sig.symbol)) activeSignalBySymbol.set(sig.symbol, { id: sig.id, status: sig.status, created_at: sig.created_at });
+    }
   }
 
   for (const sym of symbols) {
@@ -2676,7 +2868,8 @@ async function runScanPipeline(
           const msConfig  = getStratCfg("MicroScalper");
           const cbConfig  = getStratCfg("CompressionBreakout");
           const swConfig  = getStratCfg("SwingContinuation");
-          evaluateStrategy("MicroScalper", msConfig, () => evalMicroScalper(candles, ind, tf, { ...msConfig.params, min_score: msConfig.min_score, min_rr: msConfig.min_rr, crypto_behavior_tuning: 1 }));
+          const msRuntime = microScalperRuntimeParams(msConfig, tf);
+          evaluateStrategy("MicroScalper", msConfig, () => withMicroScalperDiagnostics(evalMicroScalper(candles, ind, tf, msRuntime.params), msConfig, msRuntime));
           evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, crypto_behavior_tuning: 1 }));
           evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, crypto_behavior_tuning: 1 }));
         }
@@ -2690,6 +2883,20 @@ async function runScanPipeline(
           incrementStrategyStat(ev.name, "evaluated");
           const r = ev.result;
 
+          const normalizedRejectionReason = normalizeRejectionReason(r.rejection_reason, marketType);
+          const candidateScoreBreakdown = ev.name === "MicroScalper"
+            ? {
+              ...(r.score_breakdown ?? {}),
+              normalized_rejection_reason: normalizedRejectionReason || "passed",
+              raw_rejection_reason: r.rejection_reason || r.score_breakdown?.raw_rejection_reason || "passed",
+              primary_failed_gate: r.score_breakdown?.primary_failed_gate ?? (r.rejection_reason || "passed"),
+              distance_guard: r.status === "rejected" ? "not_reached" : (r.score_breakdown?.distance_guard ?? "pending"),
+              arbitration: r.status === "rejected" ? "not_reached" : (r.score_breakdown?.arbitration ?? "pending"),
+              duplicate_guard: r.status === "rejected" ? "not_reached" : (r.score_breakdown?.duplicate_guard ?? "pending"),
+              signal_insert: r.status === "rejected" ? "not_reached" : (r.score_breakdown?.signal_insert ?? "pending"),
+              telegram_eligibility: r.status === "rejected" ? "not_reached" : (r.score_breakdown?.telegram_eligibility ?? "pending"),
+            }
+            : r.score_breakdown;
           const candidateRow = {
             scanner_run_id: runId, symbol: sym.symbol, market_type: sym.market_type, timeframe: tf,
             strategy_name: ev.name, direction: r.direction || "none",
@@ -2697,8 +2904,8 @@ async function runScanPipeline(
             stop_loss: r.stop_loss || null, tp1: r.tp1 || null, tp2: r.tp2 || null,
             risk_reward: r.risk_reward || null, regime: ind.regime,
             confidence_score: r.confidence_score, grade: r.grade,
-            reason: r.reason, rejection_reason: normalizeRejectionReason(r.rejection_reason, marketType),
-            status: r.status, data_source: dataSource, score_breakdown: r.score_breakdown,
+            reason: r.reason, rejection_reason: normalizedRejectionReason,
+            status: r.status, data_source: dataSource, score_breakdown: candidateScoreBreakdown,
           };
 
           const { data: cData } = await supabase.from("strategy_candidates").insert(candidateRow).select("id").single();
@@ -2712,11 +2919,18 @@ async function runScanPipeline(
             const guardedBreakdown = {
               ...(r.score_breakdown ?? {}),
               primary_failed_gate: "distance_guard_failed",
+              raw_rejection_reason: guard.rejection_reason,
+              normalized_rejection_reason: normalizeRejectionReason(guard.rejection_reason, marketType),
+              distance_guard: "failed",
               distance_guard_reason: guard.rejection_reason,
               guard_sl_pct: parseFloat(guard.sl_pct.toFixed(4)),
               guard_tp1_pct: parseFloat(guard.tp1_pct.toFixed(4)),
               guard_tp2_pct: parseFloat(guard.tp2_pct.toFixed(4)),
               guard_rr: parseFloat(guard.rr.toFixed(3)),
+              arbitration: "not_reached",
+              duplicate_guard: "not_reached",
+              signal_insert: "not_reached",
+              telegram_eligibility: "not_reached",
             };
             await supabase.from("strategy_candidates").update({
               status: "rejected",
@@ -2759,14 +2973,26 @@ async function runScanPipeline(
               score_breakdown: {
                 ...(r.score_breakdown ?? {}),
                 primary_failed_gate: "arbitration_blocked",
+                raw_rejection_reason: "arbitration_blocked",
+                normalized_rejection_reason: "arbitration_blocked",
+                distance_guard: "passed",
+                arbitration: "lost",
                 arbitration_blocked: true,
                 better_candidate_selected: true,
                 lower_quality_than_selected: true,
                 arbitration_score: arbitrationScore(ev),
                 selected_strategy: selectedStrategyName,
+                selected_timeframe: tf,
+                selected_score: selectedArbitrationScore,
+                microscalper_score: ev.name === "MicroScalper" ? arbitrationScore(ev) : null,
+                arbitration_loss_reason: `selected_${selectedStrategyName}_had_higher_arbitration_rank`,
+                strategy_order_affected_result: false,
                 selected_arbitration_score: selectedArbitrationScore,
                 candidate_arbitration_score: arbitrationScore(ev),
                 arbitration_candidates: arbitrationCandidates,
+                duplicate_guard: "not_reached",
+                signal_insert: "not_reached",
+                telegram_eligibility: "not_reached",
               },
             }).eq("id", cId);
             incrementStrategyStat(ev.name, "arbitration_blocked");
@@ -2779,8 +3005,15 @@ async function runScanPipeline(
             score_breakdown: {
               ...(r.score_breakdown ?? {}),
               primary_failed_gate: r.score_breakdown?.primary_failed_gate ?? "passed",
+              normalized_rejection_reason: "passed",
+              distance_guard: "passed",
+              arbitration: "selected",
               arbitration_selected: true,
               selected_strategy: selectedStrategyName,
+              selected_timeframe: tf,
+              selected_score: selectedArbitrationScore,
+              microscalper_score: ev.name === "MicroScalper" ? selectedArbitrationScore : null,
+              strategy_order_affected_result: false,
               arbitration_score: selectedArbitrationScore,
               selected_arbitration_score: selectedArbitrationScore,
               candidate_arbitration_score: selectedArbitrationScore,
@@ -2793,19 +3026,35 @@ async function runScanPipeline(
 
           // Duplicate gate
           if (config.prevent_duplicate_symbol_signals && activeSymbolSet.has(sym.symbol)) {
+            const blockingSignal = activeSignalBySymbol.get(sym.symbol);
+            const blockingAgeMinutes = blockingSignal?.created_at ? Math.max(0, Math.round((Date.now() - new Date(blockingSignal.created_at).getTime()) / 60000)) : null;
             await supabase.from("strategy_candidates").update({
               status: "rejected",
               rejection_reason: "duplicate_active_signal",
               score_breakdown: {
                 ...(r.score_breakdown ?? {}),
                 primary_failed_gate: "duplicate_active_signal",
+                raw_rejection_reason: "duplicate_active_signal",
+                normalized_rejection_reason: "duplicate_active_signal",
+                distance_guard: "passed",
+                arbitration: "selected",
+                duplicate_guard: "blocked",
                 duplicate_active_signal: true,
+                blocking_signal_id: blockingSignal?.id ?? "unknown",
+                blocking_signal_status: blockingSignal?.status ?? "unknown",
+                blocking_signal_age_minutes: blockingAgeMinutes ?? "unknown",
                 arbitration_selected: true,
                 selected_strategy: selectedStrategyName,
+                selected_timeframe: tf,
+                selected_score: selectedArbitrationScore,
+                microscalper_score: ev.name === "MicroScalper" ? selectedArbitrationScore : null,
+                strategy_order_affected_result: false,
                 arbitration_score: selectedArbitrationScore,
                 selected_arbitration_score: selectedArbitrationScore,
                 candidate_arbitration_score: selectedArbitrationScore,
                 arbitration_candidates: arbitrationCandidates,
+                signal_insert: "not_reached",
+                telegram_eligibility: "not_reached",
               },
             }).eq("id", cId);
             incrementStrategyStat(ev.name, "duplicate_active_signal");
@@ -2819,7 +3068,28 @@ async function runScanPipeline(
 
           // Grade gate
           if (gradeIndex(r.grade) < gradeIndex(config.min_signal_grade)) {
-            await supabase.from("strategy_candidates").update({ status: "approved" }).eq("id", cId);
+            await supabase.from("strategy_candidates").update({
+              status: "approved",
+              score_breakdown: ev.name === "MicroScalper" ? {
+                ...(r.score_breakdown ?? {}),
+                primary_failed_gate: "grade_below_min_signal_grade",
+                raw_rejection_reason: "grade_below_min_signal_grade",
+                normalized_rejection_reason: "grade_below_min_signal_grade",
+                distance_guard: "passed",
+                arbitration: "selected",
+                duplicate_guard: "passed",
+                signal_insert: "blocked_by_grade_gate",
+                telegram_eligibility: "not_reached",
+                min_signal_grade: config.min_signal_grade,
+                candidate_grade: r.grade,
+                selected_strategy: selectedStrategyName,
+                selected_timeframe: tf,
+                selected_score: selectedArbitrationScore,
+                microscalper_score: selectedArbitrationScore,
+                strategy_order_affected_result: false,
+                arbitration_candidates: arbitrationCandidates,
+              } : r.score_breakdown,
+            }).eq("id", cId);
             continue;
           }
 
@@ -2865,6 +3135,9 @@ async function runScanPipeline(
               invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
             };
             const tradeManagement = tradeManagementPlan(managementInput);
+            const signalCreatedAt = new Date();
+            const expiryMetadata = buildSignalExpiryMetadata(ev.name, tf, ev.cfg, r.score_breakdown ?? {}, signalCreatedAt);
+            const expiryScoreBreakdown = scoreBreakdownWithExpiry(r.score_breakdown ?? {}, expiryMetadata);
 
             const arbitratorDecision: ArbitratorDecision = {
               selected_mode: modeSlug, risk_check_passed: riskCheck.passed,
@@ -2891,8 +3164,9 @@ async function runScanPipeline(
                 confidence_score: r.confidence_score, reason: r.reason,
                 invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
                 status: "cancelled", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
-                arbitrator_decision: arbitratorDecision,
-                risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: r.score_breakdown, trade_management: tradeManagement },
+                created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
+                arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata },
+                risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
                 ...riskLeverageRecommendation,
               });
               continue;
@@ -2908,8 +3182,9 @@ async function runScanPipeline(
               confidence_score: r.confidence_score, reason: r.reason,
               invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
               status: "waiting", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
-              arbitrator_decision: arbitratorDecision,
-              risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: r.score_breakdown, trade_management: tradeManagement },
+              created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
+              arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata },
+              risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
               ...riskLeverageRecommendation,
             }).select("*").single();
 
@@ -2917,7 +3192,26 @@ async function runScanPipeline(
             signalsCreated++;
             signalCreatedForThisCandidate = true;
             activeSymbolSet.add(sym.symbol);
-            await supabase.from("strategy_candidates").update({ status: "converted_to_signal" }).eq("id", cId);
+            activeSignalBySymbol.set(sym.symbol, { id: sigData.id as string, status: String(sigData.status ?? "waiting"), created_at: String(sigData.created_at ?? new Date().toISOString()) });
+            await supabase.from("strategy_candidates").update({
+              status: "converted_to_signal",
+              score_breakdown: {
+                ...expiryScoreBreakdown,
+                primary_failed_gate: "passed",
+                raw_rejection_reason: "passed",
+                normalized_rejection_reason: "passed",
+                distance_guard: "passed",
+                arbitration: "selected",
+                duplicate_guard: "passed",
+                signal_insert: "inserted",
+                inserted_signal_id: sigData.id,
+                selected_strategy: selectedStrategyName,
+                selected_timeframe: tf,
+                selected_score: selectedArbitrationScore,
+                candidate_arbitration_score: selectedArbitrationScore,
+                arbitration_candidates: arbitrationCandidates,
+              },
+            }).eq("id", cId);
 
             // Paper execution intent (Personal/Prop modes)
             const paperEnabled = execPolicy.paper_execution_enabled === true;
@@ -2943,6 +3237,29 @@ async function runScanPipeline(
             else if (tgResult.status === "failed") telegramFailed++;
             else telegramSkipped++;
             if (tgResult.blocked_reason) telegramSkipReasons[tgResult.blocked_reason] = (telegramSkipReasons[tgResult.blocked_reason] ?? 0) + 1;
+            if (ev.name === "MicroScalper") {
+              await supabase.from("strategy_candidates").update({
+                score_breakdown: {
+                  ...expiryScoreBreakdown,
+                  primary_failed_gate: "passed",
+                  raw_rejection_reason: "passed",
+                  normalized_rejection_reason: "passed",
+                  distance_guard: "passed",
+                  arbitration: "selected",
+                  duplicate_guard: "passed",
+                  signal_insert: "inserted",
+                  inserted_signal_id: sigData.id,
+                  telegram_eligibility: tgResult.sent ? "sent" : tgResult.status,
+                  telegram_eligibility_reason: tgResult.sent ? "sent" : tgResult.blocked_reason,
+                  selected_strategy: selectedStrategyName,
+                  selected_timeframe: tf,
+                  selected_score: selectedArbitrationScore,
+                  microscalper_score: selectedArbitrationScore,
+                  strategy_order_affected_result: false,
+                  arbitration_candidates: arbitrationCandidates,
+                },
+              }).eq("id", cId);
+            }
 
             break;
           }
