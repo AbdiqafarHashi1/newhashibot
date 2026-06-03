@@ -1159,6 +1159,18 @@ function strategyIdentityFit(e: EvalEntry): number {
       scoreBreakdownNumber(b, "rr_score") * 0.10,
     );
   }
+  if (e.name === "MicroScalper") {
+    // Mirrors evalMicroScalper final score weights: trend 0.24, momentum 0.22,
+    // rsi 0.18, body 0.12, volatility 0.12, rr 0.12
+    return clampScore(
+      scoreBreakdownNumber(b, "trend_score") * 0.24 +
+      scoreBreakdownNumber(b, "momentum_score") * 0.22 +
+      scoreBreakdownNumber(b, "rsi_score") * 0.18 +
+      scoreBreakdownNumber(b, "candle_body_score") * 0.12 +
+      scoreBreakdownNumber(b, "volatility_score") * 0.12 +
+      scoreBreakdownNumber(b, "rr_score") * 0.12,
+    );
+  }
   if (e.name === "ForexMicroScalper") {
     return clampScore(
       scoreBreakdownNumber(b, "trend_score") * 0.25 +
