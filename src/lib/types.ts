@@ -452,3 +452,42 @@ export interface ScannerRun {
   forex_next_allowed_scan_at?: string | null;
   strategy_evaluation_summary?: Record<string, StrategyEvaluationStats> | null;
 }
+
+export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
+  exchange: string;
+  environment: 'testnet' | 'live';
+  side: 'long' | 'short' | string;
+  leverage: number | null;
+  quantity: number | null;
+  entry_order_id: string | null;
+  sl_order_id: string | null;
+  tp1_order_id: string | null;
+  tp2_order_id: string | null;
+  raw_exchange_response: Record<string, unknown> | null;
+  testnet_enabled_at: string | null;
+  last_exchange_error: string | null;
+  status: 'pending' | 'entry_submitted' | 'entry_filled' | 'sl_submitted' | 'tp_submitted' | 'partially_closed' | 'closed_tp' | 'closed_sl' | 'cancelled' | 'failed' | 'skipped' | string;
+}
+
+export interface ExecutionEventLog {
+  id: string;
+  execution_id: string;
+  event_type: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ExecutionSettings {
+  id: number;
+  execution_mode: 'signal_only' | 'testnet';
+  exchange: 'binance_usdm_testnet';
+  testnet_enabled: boolean;
+  live_trading_enabled: false;
+  kill_switch_enabled: boolean;
+  max_open_testnet_positions: number;
+  one_active_execution_per_symbol: boolean;
+  testnet_enabled_at: string | null;
+  fallback_account_balance: number;
+  updated_at: string;
+}

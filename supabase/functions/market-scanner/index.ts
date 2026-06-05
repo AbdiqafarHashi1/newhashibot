@@ -2538,6 +2538,29 @@ async function tryAutoSendTelegram(
     return { sent: false, status: "failed", blocked_reason: reason, delivery_id: deliveryId };
   }
 }
+
+async function tryAutoExecuteTestnet(signalId: string): Promise<{ called: boolean; success: boolean; reason: string }> {
+  if (!envBool("TESTNET_ENABLED", false)) return { called: false, success: false, reason: "TESTNET_ENABLED_not_true" };
+  if ((Deno.env.get("EXECUTION_MODE") ?? "signal_only") !== "testnet") return { called: false, success: false, reason: "EXECUTION_MODE_not_testnet" };
+  if ((Deno.env.get("EXCHANGE") ?? "binance_usdm_testnet") !== "binance_usdm_testnet") return { called: false, success: false, reason: "EXCHANGE_not_binance_usdm_testnet" };
+  if (envBool("LIVE_TRADING_ENABLED", false)) return { called: false, success: false, reason: "LIVE_TRADING_ENABLED_guard" };
+  const url = `${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`;
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!url || !serviceRole) return { called: false, success: false, reason: "supabase_internal_config_missing" };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "execute_signal", signal_id: signalId, manual: false }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+    return { called: true, success: Boolean(data.success), reason: String(data.reason ?? data.error ?? res.statusText) };
+  } catch (e) {
+    return { called: true, success: false, reason: e instanceof Error ? e.message : "unknown_execution_call_error" };
+  }
+}
+
 // ─── Heartbeat updater ────────────────────────────────────────────────────────
 
 async function updateHeartbeat(
@@ -3291,6 +3314,15 @@ async function runScanPipeline(
             else if (tgResult.status === "failed") telegramFailed++;
             else telegramSkipped++;
             if (tgResult.blocked_reason) telegramSkipReasons[tgResult.blocked_reason] = (telegramSkipReasons[tgResult.blocked_reason] ?? 0) + 1;
+
+            // ── Optional Binance USD-M testnet execution ───────────────────
+            // This is gated by server-side env and DB settings in the execution
+            // function. It only receives the just-created signal id, so old
+            // historical signals are never auto-submitted from the scanner.
+            const executionResult = tgResult.sent
+              ? await tryAutoExecuteTestnet(sigData.id as string)
+              : { called: false, success: false, reason: "telegram_signal_not_sent" };
+
             if (ev.name === "MicroScalper") {
               await supabase.from("strategy_candidates").update({
                 score_breakdown: {
@@ -3305,6 +3337,8 @@ async function runScanPipeline(
                   inserted_signal_id: sigData.id,
                   telegram_eligibility: tgResult.sent ? "sent" : tgResult.status,
                   telegram_eligibility_reason: tgResult.sent ? "sent" : tgResult.blocked_reason,
+                  testnet_execution_called: executionResult.called,
+                  testnet_execution_result: executionResult.success ? "submitted" : executionResult.reason,
                   selected_strategy: selectedStrategyName,
                   selected_timeframe: tf,
                   selected_score: selectedArbitrationScore,
