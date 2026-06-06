@@ -13,7 +13,7 @@ SET
   min_score = 72,
   min_rr = 1.2,
   max_bars_in_trade = 24,
-  allowed_timeframes = ARRAY['5m','15m'],
+  allowed_timeframes = '["5m","15m"]'::jsonb,
   params = (
     params
     || jsonb_build_object(
