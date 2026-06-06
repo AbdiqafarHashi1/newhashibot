@@ -84,7 +84,7 @@ const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressiv
     // conservative: tighter than live — requires genuine dense compression
     conservative: { min_score: 80, min_rr: 1.6, min_stop_distance_pct: 0.30, min_tp1_distance_pct: 0.40, min_tp2_distance_pct: 0.70, max_bars_in_trade: 40, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.5, tp1_r: 1.4, tp2_r: 2.8, box_lookback: 60, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 5, box_bar_tolerance: 0.0015, ema_trend_pct: 0.003, pullback_ema_pct: 0.008 },
     // balanced (= live): improved participation — slightly wider box tolerance, fewer required inside bars
-    balanced:     { min_score: 72, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.1, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 36, min_box_bars: 8, max_box_atr_range: 8.0, atr_expansion_lookback: 48, min_atr_expansion: 0.95, breakout_buffer_atr: 0.05, pullback_bars: 5, box_bar_tolerance: 0.0020, ema_trend_pct: 0.003, pullback_ema_pct: 0.008 },
+    balanced:     { min_score: 75, min_rr: 1.3, min_stop_distance_pct: 0.25, min_tp1_distance_pct: 0.35, min_tp2_distance_pct: 0.60, max_bars_in_trade: 48, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.5, box_lookback: 50, min_box_bars: 10, max_box_atr_range: 2.0, atr_expansion_lookback: 48, min_atr_expansion: 1.05, breakout_buffer_atr: 0.10, pullback_bars: 5, box_bar_tolerance: 0.0020, ema_trend_pct: 0.003, pullback_ema_pct: 0.008 },
     // aggressive: broadest compression detection, still requires box structure and breakout
     aggressive:   { min_score: 68, min_rr: 1.1, min_stop_distance_pct: 0.20, min_tp1_distance_pct: 0.28, min_tp2_distance_pct: 0.50, max_bars_in_trade: 60, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.10, max_atr_pct: 3.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.3, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 40, min_box_bars: 8, max_box_atr_range: 2.2, atr_expansion_lookback: 48, min_atr_expansion: 1.05, breakout_buffer_atr: 0.08, pullback_bars: 5, box_bar_tolerance: 0.0025, ema_trend_pct: 0.003, pullback_ema_pct: 0.008 },
   },
@@ -92,9 +92,9 @@ const DEFAULTS: Record<Strategy, Record<'conservative' | 'balanced' | 'aggressiv
     // conservative: requires tight 0.3% EMA spread and close pullback touch
     conservative: { min_score: 80, min_rr: 1.8, min_stop_distance_pct: 0.50, min_tp1_distance_pct: 0.80, min_tp2_distance_pct: 1.30, max_bars_in_trade: 80, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 52, rsi_sell_max: 48, stop_atr_mult: 1.8, tp1_r: 1.7, tp2_r: 2.8, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 4, box_bar_tolerance: 0.0015, ema_trend_pct: 0.003, pullback_ema_pct: 0.008 },
     // balanced (= live): 0.2% EMA spread, 1.2% pullback tolerance, 8-bar pullback window
-    balanced:     { min_score: 78, min_rr: 1.5, min_stop_distance_pct: 0.45, min_tp1_distance_pct: 0.70, min_tp2_distance_pct: 1.20, max_bars_in_trade: 96, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.2, tp1_r: 1.2, tp2_r: 2.2, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 8, box_bar_tolerance: 0.0015, ema_trend_pct: 0.002, pullback_ema_pct: 0.012 },
+    balanced:     { min_score: 76, min_rr: 1.5, min_stop_distance_pct: 0.45, min_tp1_distance_pct: 0.70, min_tp2_distance_pct: 1.20, max_bars_in_trade: 96, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 50, rsi_sell_max: 50, stop_atr_mult: 1.6, tp1_r: 1.5, tp2_r: 2.5, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 8, box_bar_tolerance: 0.0015, ema_trend_pct: 0.002, pullback_ema_pct: 0.012 },
     // aggressive: 0.1% EMA spread, 1.8% pullback tolerance, 10-bar pullback window
-    aggressive:   { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.35, min_tp1_distance_pct: 0.55, min_tp2_distance_pct: 0.95, max_bars_in_trade: 120, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 48, rsi_sell_max: 52, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.2, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 8, box_bar_tolerance: 0.0015, ema_trend_pct: 0.002, pullback_ema_pct: 0.012 },
+    aggressive:   { min_score: 72, min_rr: 1.2, min_stop_distance_pct: 0.35, min_tp1_distance_pct: 0.55, min_tp2_distance_pct: 0.95, max_bars_in_trade: 120, ema_fast: 20, ema_slow: 50, rsi_len: 14, atr_len: 14, min_atr_pct: 0.15, max_atr_pct: 4.0, min_body_atr: 0.30, momentum_lookback: 3, rsi_buy_min: 48, rsi_sell_max: 52, stop_atr_mult: 1.4, tp1_r: 1.3, tp2_r: 2.2, box_lookback: 50, min_box_bars: 14, max_box_atr_range: 1.8, atr_expansion_lookback: 48, min_atr_expansion: 1.1, breakout_buffer_atr: 0.12, pullback_bars: 10, box_bar_tolerance: 0.0015, ema_trend_pct: 0.001, pullback_ema_pct: 0.018 },
   },
 };
 
@@ -303,7 +303,13 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const barsInside = boxSlice.filter(c => c.high <= boxHigh * (1 + boxTol) && c.low >= boxLow * (1 - boxTol)).length;
   if (barsInside < minBoxBars) return FAIL('compression_failed_not_enough_inside_bars');
 
-  // Real crypto compression is often flat before expansion; do not reject solely for low box drift.
+  const boxMid = (boxHigh + boxLow) / 2;
+  const bfh = boxSlice.slice(0, Math.floor(boxSlice.length / 2));
+  const bsh = boxSlice.slice(Math.floor(boxSlice.length / 2));
+  const fa = bfh.reduce((s, c) => s + c.close, 0) / (bfh.length || 1);
+  const sa = bsh.reduce((s, c) => s + c.close, 0) / (bsh.length || 1);
+  const drift = Math.abs(sa - fa) / (boxRange || 1);
+  if (drift < 0.10 && Math.abs(fa - boxMid) / (boxRange || 1) < 0.15 && Math.abs(sa - boxMid) / (boxRange || 1) < 0.15) return FAIL('compression_drift_too_flat');
 
   const buf = atr * p.breakout_buffer_atr;
   const up = last.close > boxHigh + buf && last.close > last.open;
@@ -336,9 +342,9 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const entry_high = direction === 'buy'  ? boxHigh + atr * 0.35 : boxLow;
   const entry = (entry_low + entry_high) / 2;
   const sl  = direction === 'buy'  ? boxLow  - atr * p.stop_atr_mult : boxHigh + atr * p.stop_atr_mult;
+  const tp1 = direction === 'buy'  ? price   + atr * p.tp1_r         : price   - atr * p.tp1_r;
+  const tp2 = direction === 'buy'  ? price   + atr * p.tp2_r         : price   - atr * p.tp2_r;
   const risk = Math.abs(entry - sl);
-  const tp1 = direction === 'buy'  ? price + risk * p.tp1_r : price - risk * p.tp1_r;
-  const tp2 = direction === 'buy'  ? price + risk * p.tp2_r : price - risk * p.tp2_r;
   const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
   if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 6;
   const final_score = Math.min(Math.max(score, 0), 100);
@@ -378,12 +384,12 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   let score = 50, direction: 'buy' | 'sell' | null = null;
   if (emaBull && rsi >= p.rsi_buy_min && price > ema20) {
     const pbTol = p.pullback_ema_pct ?? 0.008;
-    if (pbLow > Math.max(ema20 * (1 + pbTol), ema20 + atr * 0.9) || price <= ema20) return FAIL('pullback_not_ready');
+    if (pbLow > ema20 * (1 + pbTol) || price <= ema20) return FAIL('pullback_not_ready');
     if (mom <= 0 || rsi < 48) return FAIL('continuation_momentum_failed');
     direction = 'buy';
   } else if (emaBear && rsi <= p.rsi_sell_max && price < ema20) {
     const pbTol = p.pullback_ema_pct ?? 0.008;
-    if (pbHigh < Math.min(ema20 * (1 - pbTol), ema20 - atr * 0.9) || price >= ema20) return FAIL('pullback_not_ready');
+    if (pbHigh < ema20 * (1 - pbTol) || price >= ema20) return FAIL('pullback_not_ready');
     if (mom >= 0 || rsi > 52) return FAIL('continuation_momentum_failed');
     direction = 'sell';
   } else return FAIL('trend_rsi_context_failed');
@@ -398,10 +404,9 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
 
   const structLow  = direction === 'buy'  ? Math.min(pbLow,  price - atr * p.stop_atr_mult) : 0;
   const structHigh = direction === 'sell' ? Math.max(pbHigh, price + atr * p.stop_atr_mult) : 0;
-  const sl  = direction === 'buy'  ? structLow  - atr * 0.15 : structHigh + atr * 0.15;
-  const riskForTargets = Math.abs(price - sl);
-  const tp1 = direction === 'buy'  ? price + riskForTargets * p.tp1_r  : price - riskForTargets * p.tp1_r;
-  const tp2 = direction === 'buy'  ? price + riskForTargets * p.tp2_r  : price - riskForTargets * p.tp2_r;
+  const sl  = direction === 'buy'  ? structLow  - atr * 0.3 : structHigh + atr * 0.3;
+  const tp1 = direction === 'buy'  ? price + atr * p.tp1_r  : price - atr * p.tp1_r;
+  const tp2 = direction === 'buy'  ? price + atr * p.tp2_r  : price - atr * p.tp2_r;
   const entry_low = price * 0.9997, entry_high = price * 1.0003, entry = price;
   const risk = Math.abs(entry - sl);
   const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
