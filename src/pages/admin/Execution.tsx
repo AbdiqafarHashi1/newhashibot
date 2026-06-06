@@ -37,6 +37,12 @@ interface StatusPayload {
   failed_count?: number;
   skipped_count?: number;
   latest_error?: { error_message?: string; last_exchange_error?: string } | null;
+  capital?: { raw_total_margin_balance?: number; raw_total_wallet_balance?: number; raw_available_usdt?: number; raw_available_usdc?: number; selected_capital_used?: number; capital_basis?: string; max_capital_cap_applied?: boolean };
+  account_state?: { totalMarginBalance?: number; totalWalletBalance?: number; availableBalance?: number; availableUsdt?: number; availableUsdc?: number; unrealizedPnl?: number; openPositions?: number; marginRatio?: number | null; openOrderCount?: number; positions?: Array<{ symbol: string; positionAmt: number; unrealizedPnl: number; notional: number }> };
+  governor?: { state?: string; reason?: string; risk_multiplier?: number; adjusted_max_leverage?: number; adjusted_max_open_positions?: number; daily_pnl_pct?: number | null; unrealized_pnl?: number | null; current_equity?: number | null };
+  current_open_risk_pct?: number;
+  max_total_open_risk_pct?: number;
+  remaining_risk_capacity_pct?: number;
   error?: string;
 }
 
@@ -61,9 +67,13 @@ export default function Execution() {
   const [result, setResult] = useState<ActionResult | null>(null);
 
   const executions = useMemo(() => status?.executions ?? [], [status?.executions]);
-  const openExecutions = useMemo(() => executions.filter(e => ['pending', 'entry_submitted', 'entry_filled', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
+  const openExecutions = useMemo(() => executions.filter(e => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'pending_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
   const failedExecutions = executions.filter(e => e.status === 'failed');
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
+
+  async function updateExecutionSettings(settingsPatch: Record<string, unknown>) {
+    return callExecution('update_settings', { settings: settingsPatch });
+  }
 
   async function callExecution(action: string, payload: Record<string, unknown> = {}) {
     if (!session) return { success: false, error: 'No admin session' } as ActionResult;
@@ -130,6 +140,86 @@ export default function Execution() {
         <StatusCard icon={<Activity size={14} />} label="Open / Max" value={`${openExecutions.length} / ${status?.settings?.max_open_testnet_positions ?? 3}`} note="One active per symbol by default" />
       </div>
 
+
+
+
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="font-semibold text-sm">Risk Governor / PnL Brain</h2>
+          <div className="flex gap-2">
+            <ActionButton disabled={acting} onClick={() => callExecution('refresh_account_state')} icon={<RefreshCw size={14} />} label="Refresh Binance Account State" />
+            <ActionButton disabled={acting} onClick={() => callExecution('evaluate_governor')} icon={<Shield size={14} />} label="Re-evaluate Governor" />
+          </div>
+        </div>
+        <div className="grid md:grid-cols-4 gap-3 text-xs">
+          <ProofRow label="Governor enabled" value={status?.settings?.governor_enabled ? 'true' : 'false'} />
+          <ProofRow label="Governor state" value={status?.governor?.state ?? status?.settings?.governor_state ?? 'normal'} />
+          <ProofRow label="Current equity" value={String(status?.governor?.current_equity ?? status?.settings?.current_equity ?? '—')} />
+          <ProofRow label="Daily start equity" value={String(status?.settings?.daily_start_equity ?? '—')} />
+          <ProofRow label="Daily PnL %" value={String(status?.governor?.daily_pnl_pct ?? status?.settings?.daily_pnl_pct ?? '—')} />
+          <ProofRow label="Unrealized PnL" value={String(status?.governor?.unrealized_pnl ?? status?.settings?.daily_unrealized_pnl ?? '—')} />
+          <ProofRow label="Open positions" value={String(status?.account_state?.openPositions ?? status?.settings?.account_open_positions ?? '—')} />
+          <ProofRow label="Open orders" value={String(status?.account_state?.openOrderCount ?? status?.settings?.account_open_order_count ?? '—')} />
+          <ProofRow label="Available balance" value={String(status?.account_state?.availableBalance ?? status?.settings?.account_available_balance ?? '—')} />
+          <ProofRow label="Margin ratio" value={String(status?.account_state?.marginRatio ?? status?.settings?.account_margin_ratio ?? '—')} />
+          <ProofRow label="Risk multiplier" value={String(status?.governor?.risk_multiplier ?? '—')} />
+          <ProofRow label="Effective max lev" value={`${status?.governor?.adjusted_max_leverage ?? status?.settings?.testnet_max_leverage ?? 7}x`} />
+          <ProofRow label="Effective risk %" value={status?.governor?.state === 'defensive' ? '0.5x configured' : status?.governor?.state === 'aggressive_allowed' ? 'A 0.75 / A+ 1.0 cap' : 'configured'} />
+          <ProofRow label="Last checked" value={status?.settings?.last_governor_checked_at ? new Date(status.settings.last_governor_checked_at).toLocaleString() : '—'} />
+        </div>
+        <div className="mt-3 text-xs text-zinc-400">Governor reason: {status?.governor?.reason ?? status?.settings?.last_governor_reason ?? '—'}</div>
+        {status?.account_state?.positions && status.account_state.positions.length > 0 && <div className="mt-3 text-xs text-zinc-500 font-mono">Positions: {status.account_state.positions.map(p => `${p.symbol} size ${p.positionAmt} uPnL ${p.unrealizedPnl}`).join(' · ')}</div>}
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <h2 className="font-semibold mb-3 text-sm">Auto Execution Gate</h2>
+          <div className="space-y-3 text-xs">
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-zinc-400">Auto-execute new scanner signals</span>
+              <button disabled={acting} onClick={() => updateExecutionSettings({ auto_execute_testnet: !status?.settings?.auto_execute_testnet })} className={`px-3 py-1 rounded-full border text-xs ${status?.settings?.auto_execute_testnet ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>{status?.settings?.auto_execute_testnet ? 'ON' : 'OFF'}</button>
+            </label>
+            <ProofRow label="DB mode" value={status?.settings?.execution_mode ?? 'signal_only'} />
+            <ProofRow label="DB testnet" value={status?.settings?.testnet_enabled ? 'true' : 'false'} />
+            <ProofRow label="One active/symbol" value={status?.settings?.one_active_execution_per_symbol ? 'true' : 'false'} />
+            <ProofRow label="Max open positions" value={String(status?.settings?.max_open_testnet_positions ?? 3)} />
+            <ProofRow label="Max total open risk" value={`${status?.settings?.max_total_open_risk_pct ?? 3}%`} />
+            <ProofRow label="Current open risk" value={`${status?.current_open_risk_pct ?? 0}%`} />
+            <ProofRow label="Remaining risk" value={`${status?.remaining_risk_capacity_pct ?? 0}%`} />
+            <label className="block pt-2"><span className="text-zinc-500">Set max open (1-10)</span><input type="number" min={1} max={10} value={status?.settings?.max_open_testnet_positions ?? 3} onChange={e => updateExecutionSettings({ max_open_testnet_positions: Math.min(10, Math.max(1, Number(e.target.value))) })} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /></label>
+          </div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <h2 className="font-semibold mb-3 text-sm">Capital Basis</h2>
+          <select value={status?.settings?.capital_basis ?? 'available_usdt'} disabled={acting} onChange={e => updateExecutionSettings({ capital_basis: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm mb-3">
+            <option value="available_usdt">available_usdt</option>
+            <option value="available_usdc_plus_usdt">available_usdc_plus_usdt</option>
+            <option value="total_margin_balance">total_margin_balance</option>
+            <option value="total_wallet_balance">total_wallet_balance</option>
+            <option value="manual_override">manual_override</option>
+          </select>
+          <div className="space-y-2 text-xs">
+            <ProofRow label="Selected capital" value={String(status?.capital?.selected_capital_used ?? '—')} />
+            <ProofRow label="Total margin" value={String(status?.capital?.raw_total_margin_balance ?? '—')} />
+            <ProofRow label="Total wallet" value={String(status?.capital?.raw_total_wallet_balance ?? '—')} />
+            <ProofRow label="Available USDT" value={String(status?.capital?.raw_available_usdt ?? '—')} />
+            <ProofRow label="Available USDC" value={String(status?.capital?.raw_available_usdc ?? '—')} />
+          </div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <h2 className="font-semibold mb-3 text-sm">Risk / Leverage</h2>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <ProofRow label="Risk A" value={`${status?.settings?.testnet_risk_a ?? 0.5}%`} />
+            <ProofRow label="Risk A+" value={`${status?.settings?.testnet_risk_a_plus ?? 0.75}%`} />
+            <ProofRow label="Max risk" value={`${status?.settings?.max_testnet_risk_pct ?? 1}%`} />
+            <ProofRow label="Lev A" value={`${status?.settings?.testnet_leverage_a ?? 3}x`} />
+            <ProofRow label="Lev A+" value={`${status?.settings?.testnet_leverage_a_plus ?? 5}x`} />
+            <ProofRow label="Max lev" value={`${status?.settings?.testnet_max_leverage ?? 7}x`} />
+          </div>
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 md:col-span-2">
           <h2 className="font-semibold mb-4 text-sm">Manual Test Actions</h2>
@@ -187,19 +277,20 @@ export default function Execution() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Created</th><th className="text-left px-4 py-3">Sync</th>
+                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Capital</th><th className="text-left px-4 py-3">Sync</th>
               </tr>
             </thead>
             <tbody>
-              {executions.length === 0 ? <tr><td colSpan={8} className="px-4 py-8 text-center text-zinc-500">No Binance testnet executions yet.</td></tr> : executions.map(e => (
+              {executions.length === 0 ? <tr><td colSpan={9} className="px-4 py-8 text-center text-zinc-500">No Binance testnet executions yet.</td></tr> : executions.map(e => (
                 <tr key={e.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
                   <td className="px-4 py-3 font-mono font-semibold text-xs">{e.symbol}</td>
                   <td className="px-4 py-3"><span className={e.side === 'long' ? 'text-emerald-400' : 'text-red-400'}>{e.side}</span></td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.leverage ? `${e.leverage}x` : '—'}</td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
                   <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span></td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>TP1 filled: {e.tp1_filled ? 'yes' : 'no'}</div><div>SL BE: {e.sl_moved_to_be ? 'yes' : 'no'} {e.be_stop_level ?? ''}</div><div>{e.governor_state || '—'} {e.adjusted_risk_pct ? `· risk ${e.adjusted_risk_pct}%` : ''}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500 font-mono">E:{e.entry_order_id || '—'} SL:{e.sl_order_id || '—'} TP:{e.tp1_order_id || '—'}/{e.tp2_order_id || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-zinc-600">{new Date(e.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.capital_basis || '—'}</div><div>{e.selected_capital_used ?? '—'}</div></td>
                   <td className="px-4 py-3"><button onClick={() => callExecution('sync_execution', { execution_id: e.id })} className="text-xs text-blue-400 hover:text-blue-300">Sync</button></td>
                 </tr>
               ))}
