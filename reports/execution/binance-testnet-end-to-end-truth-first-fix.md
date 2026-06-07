@@ -163,3 +163,57 @@ Live trading remains blocked in all layers:
 - Settings updates force `live_trading_enabled = false`.
 - The migration re-updates any non-false DB setting back to false.
 - No live exchange base URL is introduced.
+
+## B5.1 — Part E: confirm execution + TP/SL protection after null-signal and cron-auth fixes
+
+After deploying the B5.1 migration and the updated Edge Functions, run **Admin → Binance USD-M Testnet Execution → Run E2E Test Flow** for one recent crypto signal. The flow now performs these checks in order:
+
+1. Cleans stale same-symbol execution rows only when Binance truth shows no position and no open orders.
+2. Builds the dry-run plan and confirms TP split sizing before entry.
+3. Submits the entry order to Binance Demo.
+4. Fetches Binance symbol truth from `positionRisk` and `openOrders`.
+5. Syncs the execution row and attempts exchange-native reduce-only SL/TP protection.
+6. Invokes the monitor path once with service-role auth to confirm that cron-compatible monitor auth still works.
+7. Reports native/fallback protection state using the latest `execution_orders` row and monitor proof fields.
+
+Expected protected outcomes:
+
+- `entry_submitted = true`
+- `binance_truth_fetched = true`
+- `tp1_quantity_pct = 50`
+- `tp2_quantity_pct = 50` or the rounded remaining 50% after Binance step-size precision
+- `protection_status` is `protected` or `protected_managed`
+- `bracket_mode` is `exchange_native` or `managed_exit_fallback`
+- `monitor_cron_confirmed_protection_state = true`
+
+Native exchange protection is confirmed only when all three Binance Demo order IDs are saved and verified:
+
+- `sl_created_natively = true`
+- `tp1_created_natively = true`
+- `tp2_created_natively = true`
+- `bracket_mode = exchange_native`
+- `protection_status = protected`
+
+If Binance Demo rejects native TP/SL placement or the submitted IDs are not visible in open orders, the execution must **not** be marked `protected`. The acceptable fallback state is:
+
+- `sl_created_natively = false` and/or TP native creation is false
+- `managed_fallback_active = true`
+- `bracket_mode = managed_exit_fallback`
+- `protection_status = protected_managed`
+- `latest_protection_error` contains the exact latest native placement/verification error
+
+When managed fallback is active, the monitor cron remains responsible for exits using Binance mark price:
+
+- TP1 hit: reduce-only market close for `tp1_quantity` (50%) and move the remaining stop to break-even.
+- TP2 hit: reduce-only market close for the remaining quantity.
+- SL hit before TP1: reduce-only market close for the full remaining quantity.
+- SL hit after TP1: reduce-only market close for the remaining quantity at the break-even/active stop.
+
+The required report answers are emitted under `result` by `manual_test_flow`:
+
+- Was entry submitted? → `entry_submitted`
+- Was SL created natively? → `sl_created_natively`
+- Was TP1 created natively? → `tp1_created_natively`
+- Was TP2 created natively? → `tp2_created_natively`
+- If not native, is managed fallback active? → `managed_fallback_active`
+- Did monitor cron confirm protection state? → `monitor_cron_confirmed_protection_state`
