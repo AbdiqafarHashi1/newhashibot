@@ -23,6 +23,7 @@ type MonitorStats = {
   stale_cleaned: number;
   reduce_only_orders: number;
   cancelled_orders: number;
+  last_managed_action: Record<string, unknown> | null;
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -60,7 +61,7 @@ async function binanceRequest(path: string, params: Record<string, string>, meth
   const apiKey = Deno.env.get("BINANCE_TESTNET_API_KEY") ?? "";
   const apiSecret = Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? "";
   if (!apiKey || !apiSecret) throw new Error("Binance testnet API keys are not configured");
-  const baseUrl = Deno.env.get("BINANCE_TESTNET_FAPI_BASE_URL") ?? "https://testnet.binancefuture.com";
+  const baseUrl = Deno.env.get("BINANCE_TESTNET_BASE_URL") ?? "https://demo-fapi.binance.com";
   const search = new URLSearchParams({ ...params, timestamp: String(Date.now()), recvWindow: "5000" });
   search.set("signature", await hmacSha256(apiSecret, search.toString()));
   const res = await fetch(`${baseUrl}${path}?${search.toString()}`, { method, headers: { "X-MBX-APIKEY": apiKey } });
@@ -120,8 +121,8 @@ async function cancelOrder(symbol: string, orderId: string) {
 }
 
 async function closeReduceOnly(row: Row, quantity: number, reason: string) {
-  if (quantity <= 0) return;
-  await binanceRequest("/fapi/v1/order", {
+  if (quantity <= 0) return null;
+  return await binanceRequest("/fapi/v1/order", {
     symbol: row.symbol,
     side: sideToClose(row.direction),
     type: "MARKET",
@@ -203,19 +204,22 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
     const activeStop = row.sl_moved_to_be ? n(row.entry_price) : n(row.intended_sl);
     if (!row.tp1_closed_at && n(row.intended_tp1) > 0 && targetHit(row.direction, markPrice, n(row.intended_tp1))) {
       const qty = Math.min(tp1Qty, remaining);
-      await closeReduceOnly(row, qty, "tp1");
+      const closeResult = await closeReduceOnly(row, qty, "tp1");
       Object.assign(update, { status: "partially_closed", tp1_closed_at: now, remaining_quantity: Math.max(remaining - qty, 0), sl_moved_to_be: true });
       stats.reduce_only_orders += 1;
+      stats.last_managed_action = { symbol: row.symbol, action: "tp1", quantity: qty, order: closeResult, at: now };
       await logEvent(supabase, row, "managed_tp1_closed", `${row.symbol} managed TP1 hit; closed 50% reduce-only and moved SL to BE.`, { markPrice, qty }, stats);
     } else if (n(row.intended_tp2) > 0 && targetHit(row.direction, markPrice, n(row.intended_tp2))) {
-      await closeReduceOnly(row, remaining, "tp2");
+      const closeResult = await closeReduceOnly(row, remaining, "tp2");
       Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0 });
       stats.reduce_only_orders += 1;
+      stats.last_managed_action = { symbol: row.symbol, action: "tp2", quantity: remaining, order: closeResult, at: now };
       await logEvent(supabase, row, "managed_tp2_closed", `${row.symbol} managed TP2 hit; closed remaining reduce-only.`, { markPrice, remaining }, stats);
     } else if (activeStop > 0 && stopHit(row.direction, markPrice, activeStop)) {
-      await closeReduceOnly(row, remaining, "sl");
+      const closeResult = await closeReduceOnly(row, remaining, "sl");
       Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0 });
       stats.reduce_only_orders += 1;
+      stats.last_managed_action = { symbol: row.symbol, action: "sl", quantity: remaining, order: closeResult, at: now };
       await logEvent(supabase, row, "managed_sl_closed", `${row.symbol} managed SL hit; closed remaining reduce-only.`, { markPrice, remaining, activeStop }, stats);
     }
   }
@@ -248,6 +252,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     latest_monitor_run_at: new Date().toISOString(),
     latest_monitor_status: "completed",
     latest_monitor_result: stats,
+    last_managed_exit_action: stats.last_managed_action,
     open_binance_positions: positions,
     open_binance_orders: orders,
     pnl_snapshot: { unrealized_pnl: unrealized, total_margin_balance: totalMargin, total_wallet_balance: totalWallet },
@@ -267,7 +272,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
-  const stats: MonitorStats = { checked: 0, updated: 0, events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0 };
+  const stats: MonitorStats = { checked: 0, updated: 0, events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null };
   let supabase: SupabaseClient | null = null;
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";

@@ -16,6 +16,7 @@ export const RETRYABLE_EXECUTION_STATUSES = [
   'stale_closed',
   'closed_tp',
   'closed_sl',
+  'closed_breakeven',
 ] as const;
 
 export type ActiveExecutionStatus = typeof ACTIVE_EXECUTION_STATUSES[number];
@@ -134,6 +135,18 @@ export function shouldBlockDuplicateSignal(existingRows: ExecutionRow[]): Duplic
   if (active) return { block: true, reason: 'active_duplicate_signal', blockingRow: active };
   if (existingRows.length > 0) return { block: false, reason: 'retryable_signal_row' };
   return { block: false, reason: 'no_existing_execution' };
+}
+
+export function shouldBlockDuplicateSignalWithTruth(existingRows: ExecutionRow[], binanceTruth: BinanceTruthState): DuplicateDecision & { staleRowIds: string[] } {
+  const active = existingRows.find((row) => isActiveExecutionStatus(row.status));
+  if (!active) {
+    const decision = shouldBlockDuplicateSignal(existingRows);
+    return { ...decision, staleRowIds: [] };
+  }
+  if (Math.abs(binanceTruth.positionSize) > 0 || binanceTruth.openOrders.length > 0) {
+    return { block: true, reason: 'active_duplicate_signal', blockingRow: active, staleRowIds: [] };
+  }
+  return { block: false, reason: 'retryable_signal_row', staleRowIds: existingRows.filter((row) => isActiveExecutionStatus(row.status)).map((row) => row.id) };
 }
 
 export function decideSameSymbolBlock(rows: ExecutionRow[], binanceTruth: BinanceTruthState): SymbolBlockDecision {

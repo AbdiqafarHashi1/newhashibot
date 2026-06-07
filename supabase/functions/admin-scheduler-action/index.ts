@@ -46,7 +46,7 @@ async function hmacSha256(secret: string, payload: string): Promise<string> {
 }
 
 async function binanceSignedGet(path: string, params: Record<string, string>, apiKey: string, apiSecret: string) {
-  const baseUrl = Deno.env.get("BINANCE_TESTNET_FAPI_BASE_URL") ?? "https://testnet.binancefuture.com";
+  const baseUrl = Deno.env.get("BINANCE_TESTNET_BASE_URL") ?? "https://demo-fapi.binance.com";
   const search = new URLSearchParams({ ...params, timestamp: String(Date.now()), recvWindow: "5000" });
   const signature = await hmacSha256(apiSecret, search.toString());
   search.set("signature", signature);

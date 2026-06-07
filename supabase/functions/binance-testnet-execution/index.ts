@@ -8,10 +8,11 @@ const corsHeaders = {
 };
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
-const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "partially_closed", "pending_protection"];
-const TERMINAL_STATUSES = ["closed_tp", "closed_sl", "closed_breakeven", "cancelled", "failed", "skipped"];
+const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "partially_closed", "pending_protection", "protected_managed", "pending_managed_protection"];
+const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_sl", "closed_breakeven"];
+const TERMINAL_STATUSES = ["closed_tp", "closed_sl", "closed_breakeven", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor";
+type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -166,6 +167,66 @@ interface OrderPlan {
   adjusted_risk_pct: number;
   adjusted_max_leverage: number;
   total_open_risk_after_trade?: number;
+}
+
+interface BinanceSymbolTruth {
+  symbol: string;
+  positionAmt: number;
+  openOrders: Json[];
+  hasExposure: boolean;
+  positionRisk: Json | null;
+}
+
+function truthHasExposure(truth: BinanceSymbolTruth): boolean {
+  return Math.abs(truth.positionAmt) > 0 || truth.openOrders.length > 0;
+}
+
+async function fetchBinanceSymbolTruth(symbol: string): Promise<BinanceSymbolTruth> {
+  const [positionBody, ordersBody] = await Promise.all([
+    binanceRequest<Array<Json & { symbol?: string; positionAmt?: string }>>("GET", "/fapi/v2/positionRisk", { symbol }, true),
+    binanceRequest<Array<Json>>("GET", "/fapi/v1/openOrders", { symbol }, true),
+  ]);
+  const positionRisk = (Array.isArray(positionBody) ? positionBody : []).find((row) => row.symbol === symbol) ?? null;
+  const openOrders = Array.isArray(ordersBody) ? ordersBody : [];
+  const positionAmt = Number(positionRisk?.positionAmt ?? 0);
+  const truth = { symbol, positionAmt: Number.isFinite(positionAmt) ? positionAmt : 0, openOrders, hasExposure: false, positionRisk: positionRisk as Json | null };
+  truth.hasExposure = truthHasExposure(truth);
+  return truth;
+}
+
+async function markSymbolRowsStale(supabase: SupabaseClient, symbol: string, reason: string, signalId?: string): Promise<number> {
+  const { data, error } = await supabase.rpc("mark_stale_testnet_execution_orders", {
+    p_symbol: symbol,
+    p_active_statuses: ACTIVE_STATUSES,
+    p_stale_status: "stale_closed",
+    p_reason: signalId ? `${reason}:${signalId}` : reason,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+async function cleanStaleRowsForSymbols(supabase: SupabaseClient, symbols?: string[]): Promise<Json> {
+  assertLiveTradingImpossible();
+  const query = supabase.from("execution_orders").select("id,symbol,status").eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
+  const { data, error } = symbols && symbols.length > 0 ? await query.in("symbol", symbols) : await query;
+  if (error) throw error;
+  const activeRows = (data ?? []) as Array<{ id: string; symbol: string; status: string }>;
+  const uniqueSymbols = Array.from(new Set(activeRows.map((row) => row.symbol).filter(Boolean)));
+  const cleaned_symbols: string[] = [];
+  const details: Json[] = [];
+  let cleaned_count = 0;
+  for (const symbol of uniqueSymbols) {
+    const truth = await fetchBinanceSymbolTruth(symbol);
+    if (truth.hasExposure) {
+      details.push({ symbol, cleaned: 0, blocked_by_binance_truth: true, positionAmt: truth.positionAmt, openOrders: truth.openOrders.length });
+      continue;
+    }
+    const cleaned = await markSymbolRowsStale(supabase, symbol, "manual_clean_stale_execution_rows_binance_empty");
+    cleaned_count += cleaned;
+    if (cleaned > 0) cleaned_symbols.push(symbol);
+    details.push({ symbol, cleaned, blocked_by_binance_truth: false, positionAmt: truth.positionAmt, openOrders: truth.openOrders.length });
+  }
+  return { success: true, symbols_checked: uniqueSymbols.length, cleaned_count, cleaned_symbols, details };
 }
 
 
@@ -624,17 +685,21 @@ async function submitBracketOrders(supabase: SupabaseClient, executionId: string
     const sl = await submitAlgoExitOrder(plan, "STOP_MARKET", plan.stopLoss, plan.quantity);
     const tp1 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp1, plan.tp1Quantity);
     const tp2 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp2, plan.tp2Quantity);
-    const raw = { sl, tp1, tp2 };
+    const openOrders = await binanceRequest<Array<Json>>("GET", "/fapi/v1/openOrders", { symbol: plan.symbol }, true);
+    const orderIds = new Set(openOrders.map((order) => String(order.orderId ?? order.algoId ?? order.clientAlgoId ?? "")));
+    const missing = [sl.id, tp1.id, tp2.id].filter((id) => !orderIds.has(String(id)));
+    const raw = { sl, tp1, tp2, verified_open_orders: openOrders };
+    if (missing.length > 0) throw new Error(`Native protection verification failed; missing open reduce-only orders: ${missing.join(",")}`);
     await supabase.from("execution_orders").update({ status: "protected", bracket_mode: "exchange_native", protection_status: "protected", sl_order_id: sl.id, tp1_order_id: tp1.id, tp2_order_id: tp2.id, binance_sl_order_id: sl.id, binance_tp1_order_id: tp1.id, binance_tp2_order_id: tp2.id, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: "", raw_exchange_response: raw, updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "protected", "SL/TP reduce-only protection submitted", raw);
+    await logEvent(supabase, executionId, "protected", "SL/TP reduce-only protection submitted and verified on Binance openOrders", raw);
     return { mode: "exchange_native", protection: "protected", sl_order_id: sl.id, tp1_order_id: tp1.id, tp2_order_id: tp2.id, raw };
   } catch (e) {
     const error = e instanceof Error ? e.message : "Bracket order submission failed";
-    const unsupported = error.includes("/fapi/v1/algoOrder") || error.includes("Order type not supported") || error.includes("Algo order API") || error.includes("404") || error.includes("unsupported");
-    if (unsupported) {
-      const raw = { intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, error };
-      await supabase.from("execution_orders").update({ status: "entry_filled", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed", tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, updated_at: new Date().toISOString() }).eq("id", executionId);
-      await logEvent(supabase, executionId, "managed_exit_fallback_enabled", "Exchange-native SL/TP unavailable; HashiBot managed exit fallback enabled", raw);
+    const fallbackSafe = plan.stopLoss > 0 && plan.tp1 > 0 && plan.tp2 > 0 && plan.tp1Quantity > 0 && plan.tp2Quantity > 0;
+    if (fallbackSafe) {
+      const raw = { intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, error };
+      await supabase.from("execution_orders").update({ status: "entry_filled", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed", intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, updated_at: new Date().toISOString() }).eq("id", executionId);
+      await logEvent(supabase, executionId, "managed_exit_fallback_enabled", "Exchange-native SL/TP unavailable or unverified; HashiBot managed exit fallback enabled", raw);
       return { mode: "managed_exit_fallback", protection: "protected_managed", raw, error };
     }
     await supabase.from("execution_orders").update({ status: "failed", bracket_mode: "failed", protection_status: "unprotected_failed", last_exchange_error: error, latest_protection_error: error, error_message: error, updated_at: new Date().toISOString() }).eq("id", executionId);
@@ -671,21 +736,39 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   if (settings.kill_switch_enabled) return createSkipped(supabase, sig, "skipped_kill_switch");
   if (settings.execution_mode !== "testnet" || !settings.testnet_enabled) return createSkipped(supabase, sig, "skipped_auto_disabled");
   if (!manual && !settings.auto_execute_testnet) return createSkipped(supabase, sig, "skipped_auto_disabled");
-  const { data: existing } = await supabase.from("execution_orders").select("id,status").eq("signal_id", signalId).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").maybeSingle();
-  if (existing) return { success: false, skipped: true, reason: "skipped_duplicate_signal", execution_id: (existing as { id: string }).id };
+  const { data: existingRows, error: existingError } = await supabase.from("execution_orders").select("id,status,symbol").eq("signal_id", signalId).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").order("created_at", { ascending: false });
+  if (existingError) throw existingError;
+  const existing = (existingRows ?? []) as Array<{ id: string; status: string; symbol: string }>;
+  const activeDuplicate = existing.find((row) => ACTIVE_STATUSES.includes(row.status));
+  if (activeDuplicate) {
+    const truth = await fetchBinanceSymbolTruth(sig.symbol);
+    if (truth.hasExposure) {
+      return { success: false, skipped: true, reason: "skipped_duplicate_signal", execution_id: activeDuplicate.id, binance_truth: { positionAmt: truth.positionAmt, openOrders: truth.openOrders.length } };
+    }
+    await markSymbolRowsStale(supabase, sig.symbol, "duplicate_signal_binance_truth_no_position_no_orders", signalId);
+    await logEvent(supabase, activeDuplicate.id, "stale_closed", "Duplicate signal blocker marked stale_closed after Binance truth showed no position and no open orders", { symbol: sig.symbol, positionAmt: truth.positionAmt, openOrders: truth.openOrders.length });
+  } else if (existing.length > 0 && !existing.every((row) => RETRYABLE_STATUSES.includes(row.status))) {
+    return { success: false, skipped: true, reason: "skipped_duplicate_signal_non_retryable", execution_id: existing[0].id, status: existing[0].status };
+  }
   if (sig.market_type !== "crypto") return createSkipped(supabase, sig, "skipped_non_crypto");
   if (!manual && settings.testnet_enabled_at && new Date(sig.created_at) < new Date(settings.testnet_enabled_at)) return createSkipped(supabase, sig, "skipped_old_signal");
   if (!manual && sig.source !== "scanner") return createSkipped(supabase, sig, "skipped_old_signal");
   const governor = await evaluateGovernor(supabase, settings);
   if (!manual && governor.blocks_execution) return createSkipped(supabase, sig, "skipped_governor_paused", { governor_state: governor.state, governor_reason: governor.reason, risk_multiplier: governor.risk_multiplier, adjusted_max_leverage: governor.adjusted_max_leverage });
   if (!manual && governor.state === "defensive" && String(sig.grade ?? "").toUpperCase() !== "A+") return createSkipped(supabase, sig, "skipped_governor_defensive_filter", { governor_state: governor.state, governor_reason: governor.reason, risk_multiplier: governor.risk_multiplier, adjusted_max_leverage: governor.adjusted_max_leverage });
+  if (settings.one_active_execution_per_symbol) {
+    const { data: symbolRows, error: symbolRowsError } = await supabase.from("execution_orders").select("id,status").eq("symbol", sig.symbol).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
+    if (symbolRowsError) throw symbolRowsError;
+    if ((symbolRows?.length ?? 0) > 0) {
+      const truth = await fetchBinanceSymbolTruth(sig.symbol);
+      if (truth.hasExposure) return createSkipped(supabase, sig, "skipped_active_symbol_execution", { binance_position_amt: truth.positionAmt, binance_open_orders: truth.openOrders.length });
+      const cleaned = await markSymbolRowsStale(supabase, sig.symbol, "same_symbol_binance_truth_no_position_no_orders", signalId);
+      await logEvent(supabase, String((symbolRows?.[0] as { id: string } | undefined)?.id ?? ""), "stale_closed", "Same-symbol execution blocker marked stale_closed after Binance truth showed no position and no open orders", { symbol: sig.symbol, cleaned, positionAmt: truth.positionAmt, openOrders: truth.openOrders.length });
+    }
+  }
   const maxOpenAllowed = !manual ? Math.min(clampMaxOpenPositions(settings), governor.adjusted_max_open_positions) : clampMaxOpenPositions(settings);
   const { count: openCount } = await supabase.from("execution_orders").select("id", { count: "exact", head: true }).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
   if ((openCount ?? 0) >= maxOpenAllowed) return createSkipped(supabase, sig, "skipped_max_open_positions", { governor_state: governor.state, governor_reason: governor.reason, adjusted_max_open_positions: maxOpenAllowed });
-  if (settings.one_active_execution_per_symbol) {
-    const { count: symbolOpen } = await supabase.from("execution_orders").select("id", { count: "exact", head: true }).eq("symbol", sig.symbol).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
-    if ((symbolOpen ?? 0) > 0) return createSkipped(supabase, sig, "skipped_active_symbol_execution");
-  }
   let plan: OrderPlan;
   try { plan = buildPlan(sig, await getRules(sig.symbol), await capitalSnapshot(settings), settings, governor); }
   catch (e) { return createSkipped(supabase, sig, e instanceof Error ? e.message : "skipped_invalid_sizing"); }
@@ -828,6 +911,41 @@ async function syncExecution(supabase: SupabaseClient, executionId: string): Pro
   }
 }
 
+async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promise<Json> {
+  assertLiveTradingImpossible();
+  const { data: signal } = await supabase.from("signals").select("symbol").eq("id", signalId).maybeSingle();
+  if (!signal) throw new Error("Signal not found");
+  const symbol = String((signal as Json).symbol);
+  const clean = await cleanStaleRowsForSymbols(supabase, [symbol]);
+  const settings = await getSettings(supabase);
+  const { data: fullSignal } = await supabase.from("signals").select("*").eq("id", signalId).maybeSingle();
+  if (!fullSignal) throw new Error("Signal not found");
+  const plan = buildPlan(fullSignal as SignalRow, await getRules(symbol), await capitalSnapshot(settings), settings, await evaluateGovernor(supabase, settings));
+  const execution = await executeSignal(supabase, signalId, true);
+  const truth = await fetchBinanceSymbolTruth(symbol);
+  let sync: Json | null = null;
+  if (execution.execution_id) sync = await syncExecution(supabase, String(execution.execution_id));
+  const { data: row } = execution.execution_id
+    ? await supabase.from("execution_orders").select("status,entry_order_id,binance_entry_order_id,sl_order_id,tp1_order_id,tp2_order_id,bracket_mode,protection_status,latest_protection_error,raw_exchange_response").eq("id", String(execution.execution_id)).maybeSingle()
+    : { data: null };
+  return {
+    success: true,
+    signal_id: signalId,
+    symbol,
+    steps: { clean, dry_run: { success: true, plan }, execute: execution, fetch_binance_truth: { position: truth.positionRisk, open_orders: truth.openOrders }, sync },
+    result: {
+      entry_order_status: (row as Json | null)?.status ?? execution.status ?? execution.reason ?? "unknown",
+      position_status: truth.hasExposure ? "open_on_binance" : "no_open_binance_position",
+      sl_status: (row as Json | null)?.sl_order_id ? "order_saved" : "managed_or_missing",
+      tp1_status: (row as Json | null)?.tp1_order_id ? "order_saved" : "managed_or_missing",
+      tp2_status: (row as Json | null)?.tp2_order_id ? "order_saved" : "managed_or_missing",
+      bracket_mode: (row as Json | null)?.bracket_mode ?? null,
+      protection_status: (row as Json | null)?.protection_status ?? null,
+      latest_protection_error: (row as Json | null)?.latest_protection_error ?? null,
+    },
+  };
+}
+
 async function statusPayload(supabase: SupabaseClient): Promise<Json> {
   const settings = await getSettings(supabase);
   const [executions, failed, skipped, latestError] = await Promise.all([
@@ -874,6 +992,8 @@ Deno.serve(async (req: Request) => {
       payload = { success: true, plan: buildPlan(signal as SignalRow, await getRules((signal as SignalRow).symbol), await capitalSnapshot(settings), settings, await evaluateGovernor(supabase, settings)) };
     }
     else if (action === "execute_signal") payload = await executeSignal(supabase, body.signal_id ?? "", Boolean(body.manual));
+    else if (action === "clean_stale_execution_rows") payload = await cleanStaleRowsForSymbols(supabase, body.symbol ? [body.symbol] : undefined);
+    else if (action === "manual_test_flow") payload = await manualTestFlow(supabase, body.signal_id ?? "");
     else if (action === "sync_execution") payload = await syncExecution(supabase, body.execution_id ?? "");
     else if (action === "refresh_account_state") { assertLiveTradingImpossible(); const settings = await getSettings(supabase); const account_state = await fetchAccountState(); await storeAccountState(supabase, settings, account_state); payload = { success: true, account_state }; }
     else if (action === "evaluate_governor") { assertLiveTradingImpossible(); const settings = await getSettings(supabase); const account_state = await fetchAccountState().catch(() => null); payload = { success: true, account_state, governor: await evaluateGovernor(supabase, settings, account_state ?? undefined) }; }

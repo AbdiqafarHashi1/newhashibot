@@ -606,6 +606,7 @@ export interface ExecutionSettings {
   account_open_positions: number | null;
   account_margin_ratio: number | null;
   account_open_order_count: number | null;
+  latest_account_state_at?: string | null;
   latest_monitor_run_at?: string | null;
   latest_monitor_status?: string;
   latest_monitor_result?: Record<string, unknown> | null;
@@ -621,6 +622,7 @@ export interface ExecutionSettings {
   current_open_risk_pct?: number | null;
   open_positions_count?: number | null;
   latest_sync_time?: string | null;
+  last_managed_exit_action?: Record<string, unknown> | null;
   binance_monitor_cron_active?: boolean | null;
   binance_monitor_cron_job_name?: string | null;
   updated_at: string;
