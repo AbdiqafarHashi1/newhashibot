@@ -35,6 +35,8 @@ type ExecutionSettingsSnapshot = {
   account_total_margin_balance: number | null;
   account_total_wallet_balance: number | null;
   latest_sync_time: string | null;
+  latest_account_state_at?: string | null;
+  last_managed_exit_action?: Record<string, unknown> | null;
 };
 
 interface StatusPayload {
@@ -70,6 +72,8 @@ interface ActionResult {
   status?: string;
   plan?: Record<string, unknown>;
   rules?: Record<string, unknown>;
+  cleaned_count?: number;
+  symbols_checked?: number;
 }
 
 export default function Execution() {
@@ -94,7 +98,7 @@ export default function Execution() {
     return callExecution('update_settings', { settings: settingsPatch });
   }
 
-  async function callExecution(action: string, payload: Record<string, unknown> = {}) {
+  async function callExecution(action: string, payload: Record<string, unknown> = {}): Promise<ActionResult> {
     if (!session) return { success: false, error: 'No admin session' } as ActionResult;
     setActing(true);
     setResult(null);
@@ -127,7 +131,7 @@ export default function Execution() {
         body: JSON.stringify({ action: 'status' }),
       }).then(r => r.json()).catch((e: unknown) => ({ success: false, error: e instanceof Error ? e.message : 'Status failed' })),
       supabase.from('signals').select('*').eq('market_type', 'crypto').order('created_at', { ascending: false }).limit(25),
-      supabase.from('execution_settings').select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,open_binance_positions,open_binance_orders,pnl_snapshot,stale_rows_cleaned,open_positions_count,unrealized_pnl,account_total_margin_balance,account_total_wallet_balance,latest_sync_time').eq('id', 1).maybeSingle(),
+      supabase.from('execution_settings').select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,open_binance_positions,open_binance_orders,pnl_snapshot,stale_rows_cleaned,open_positions_count,unrealized_pnl,account_total_margin_balance,account_total_wallet_balance,latest_sync_time,latest_account_state_at,last_managed_exit_action').eq('id', 1).maybeSingle(),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -143,10 +147,8 @@ export default function Execution() {
     setCleaning(true);
     setCleanupMsg('Checking Binance testnet truth before clearing stale execution blockers...');
     try {
-      const { data, error } = await supabase.functions.invoke('admin-scheduler-action', {
-        body: { action: 'clean_stale_testnet_executions' },
-      });
-      if (error) throw error;
+      const data = await callExecution('clean_stale_execution_rows', selectedSignalId ? { symbol } : {});
+      if (!data.success) throw new Error(data.error ?? data.reason ?? 'cleanup failed');
       const cleaned = typeof data?.cleaned_count === 'number' ? data.cleaned_count : 0;
       const checked = typeof data?.symbols_checked === 'number' ? data.symbols_checked : 0;
       setCleanupMsg(`Clean stale testnet executions complete: ${cleaned} row(s) cleaned across ${checked} symbol(s).`);
@@ -185,16 +187,26 @@ export default function Execution() {
             {monitorState?.latest_monitor_status ?? 'not configured'}
           </span>
         </div>
-        <div className="grid sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+        <div className="grid sm:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Last Run</div><div className="text-zinc-200 mt-1">{monitorState?.latest_monitor_run_at ? new Date(monitorState.latest_monitor_run_at).toLocaleString() : '—'}</div></div>
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Open Positions</div><div className="text-zinc-200 mt-1">{monitorState?.open_positions_count ?? 0}</div></div>
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Open Orders</div><div className="text-zinc-200 mt-1">{monitorState?.open_binance_orders?.length ?? 0}</div></div>
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Unrealized PnL</div><div className="text-zinc-200 mt-1">{monitorState?.unrealized_pnl ?? '—'}</div></div>
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Wallet</div><div className="text-zinc-200 mt-1">{monitorState?.account_total_wallet_balance ?? '—'}</div></div>
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Stale Cleaned</div><div className="text-zinc-200 mt-1">{monitorState?.stale_rows_cleaned ?? 0}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Account Fetch</div><div className="text-zinc-200 mt-1">{monitorState?.latest_account_state_at ? new Date(monitorState.latest_account_state_at).toLocaleString() : '—'}</div></div>
         </div>
         <div className="mt-3 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.latest_monitor_result ?? {})}>
           Latest sync result: {JSON.stringify(monitorState?.latest_monitor_result ?? {})}
+        </div>
+        <div className="mt-2 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.open_binance_positions ?? [])}>
+          Open Binance positions: {JSON.stringify(monitorState?.open_binance_positions ?? [])}
+        </div>
+        <div className="mt-2 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.open_binance_orders ?? [])}>
+          Open Binance orders: {JSON.stringify(monitorState?.open_binance_orders ?? [])}
+        </div>
+        <div className="mt-2 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.last_managed_exit_action ?? {})}>
+          Last managed TP/SL action: {JSON.stringify(monitorState?.last_managed_exit_action ?? {})}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
@@ -306,8 +318,10 @@ export default function Execution() {
             <ActionButton disabled={acting} onClick={() => callExecution('validate_symbol', { symbol })} icon={<FlaskConical size={14} />} label="Validate Symbol" />
             <ActionButton disabled={acting || !selectedSignalId} onClick={() => callExecution('dry_run', { signal_id: selectedSignalId })} icon={<FlaskConical size={14} />} label="Dry-run Selected Signal" />
             <ActionButton disabled={acting || !selectedSignalId} onClick={() => callExecution('execute_signal', { signal_id: selectedSignalId, manual: true })} icon={<PlayCircle size={14} />} label="Execute Selected Signal" danger />
+            <ActionButton disabled={acting || !selectedSignalId} onClick={() => callExecution('manual_test_flow', { signal_id: selectedSignalId })} icon={<Shield size={14} />} label="Run E2E Test Flow" danger />
             <ActionButton disabled={acting} onClick={() => callExecution('positions')} icon={<RefreshCw size={14} />} label="Fetch Open Positions" />
             <ActionButton disabled={acting || !symbol} onClick={() => callExecution('cancel_orders', { symbol })} icon={<XCircle size={14} />} label="Cancel Symbol Orders" danger />
+            <ActionButton disabled={acting || !symbol} onClick={() => callExecution('clean_stale_execution_rows', { symbol })} icon={<Trash2 size={14} />} label="Clean Stale Rows Now" />
           </div>
           <div className="grid sm:grid-cols-2 gap-3 mt-4">
             <label className="block">

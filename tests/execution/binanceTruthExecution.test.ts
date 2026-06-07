@@ -5,6 +5,7 @@ import {
   decideSameSymbolBlock,
   evaluateManagedExit,
   shouldBlockDuplicateSignal,
+  shouldBlockDuplicateSignalWithTruth,
   type EntryFill,
   type ManagedExitClient,
   type NativeProtectionClient,
@@ -13,6 +14,10 @@ import {
 async function run() {
   assert.equal(shouldBlockDuplicateSignal([{ id: 'skip-auto', symbol: 'BTCUSDT', status: 'skipped', latest_auto_skip_reason: 'skipped_auto_disabled' }]).block, false, 'skipped_auto_disabled row allows manual retry');
   assert.equal(shouldBlockDuplicateSignal([{ id: 'failed', symbol: 'BTCUSDT', status: 'failed' }]).block, false, 'failed row allows retry');
+  assert.equal(shouldBlockDuplicateSignal([{ id: 'closed-be', symbol: 'BTCUSDT', status: 'closed_breakeven' }]).block, false, 'closed_breakeven row allows retry');
+  const duplicateTruth = shouldBlockDuplicateSignalWithTruth([{ id: 'active-dup', symbol: 'BTCUSDT', status: 'protected' }], { symbol: 'BTCUSDT', positionSize: 0, openOrders: [] });
+  assert.equal(duplicateTruth.block, false, 'truth-first duplicate allows retry when Binance is empty');
+  assert.deepEqual(duplicateTruth.staleRowIds, ['active-dup']);
   assert.equal(decideSameSymbolBlock([{ id: 'active-stale', symbol: 'BTCUSDT', status: 'protected' }], { symbol: 'BTCUSDT', positionSize: 0, openOrders: [] }).block, false, 'stale DB active row with no Binance position/orders allows retry');
   assert.deepEqual(decideSameSymbolBlock([{ id: 'active-stale', symbol: 'BTCUSDT', status: 'protected' }], { symbol: 'BTCUSDT', positionSize: 0, openOrders: [] }).staleRowIds, ['active-stale']);
   assert.equal(decideSameSymbolBlock([{ id: 'active-real', symbol: 'BTCUSDT', status: 'protected' }], { symbol: 'BTCUSDT', positionSize: 0.25, openOrders: [] }).block, true, 'active DB row with real Binance position blocks');

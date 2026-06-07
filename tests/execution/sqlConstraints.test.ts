@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const sql = readFileSync('supabase/migrations/20260607123000_039_binance_monitor_cron_and_constraints.sql', 'utf8');
+const sql = readFileSync('supabase/migrations/20260607133000_044_binance_truth_first_end_to_end.sql', 'utf8');
 
-for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
+for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
 }
 for (const value of ['unprotected','protected','protected_managed','pending_protection','pending_managed_protection','unprotected_failed']) {
@@ -14,5 +14,7 @@ for (const value of ['exchange_native','managed_exit_fallback','failed']) {
 }
 assert.match(sql, /bracket_mode IN \('',/, 'execution_orders.bracket_mode allows empty string');
 assert.match(sql, /hashibot_binance_testnet_monitor_1m/);
+assert.match(sql, /last_managed_exit_action/);
+assert.match(sql, /cron_pg_token/);
 assert.match(sql, /\*\/1 \* \* \* \*/);
 console.log('SQL constraint tests passed');
