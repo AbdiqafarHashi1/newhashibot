@@ -75,6 +75,27 @@ INSERT INTO public.execution_settings (id, execution_mode, testnet_enabled, kill
 VALUES (1, 'testnet', false, true, false)
 ON CONFLICT (id) DO NOTHING;
 
+
+-- If B2/B3 created execution_settings first, extend it with B4.1 monitor fields instead of assuming CREATE TABLE ran.
+ALTER TABLE public.execution_settings
+  ADD COLUMN IF NOT EXISTS latest_monitor_run_at timestamptz,
+  ADD COLUMN IF NOT EXISTS latest_monitor_status text NOT NULL DEFAULT 'never_run',
+  ADD COLUMN IF NOT EXISTS latest_monitor_result jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS open_binance_positions jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS open_binance_orders jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS pnl_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS stale_rows_cleaned integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS current_position_size numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS mark_price numeric,
+  ADD COLUMN IF NOT EXISTS unrealized_pnl numeric,
+  ADD COLUMN IF NOT EXISTS account_total_margin_balance numeric,
+  ADD COLUMN IF NOT EXISTS account_total_wallet_balance numeric,
+  ADD COLUMN IF NOT EXISTS available_usdt numeric,
+  ADD COLUMN IF NOT EXISTS available_usdc numeric,
+  ADD COLUMN IF NOT EXISTS current_open_risk_pct numeric,
+  ADD COLUMN IF NOT EXISTS open_positions_count integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS latest_sync_time timestamptz;
+
 ALTER TABLE public.execution_settings ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Admins can read execution settings" ON public.execution_settings;
@@ -102,6 +123,14 @@ CREATE TABLE IF NOT EXISTS public.execution_event_logs (
   telegram_sent boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+
+-- If B2/B3 created execution_event_logs first, extend it with B4.1 monitor fields.
+ALTER TABLE public.execution_event_logs
+  ADD COLUMN IF NOT EXISTS execution_order_id uuid REFERENCES public.execution_orders(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS signal_id uuid REFERENCES public.signals(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS symbol text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS telegram_sent boolean NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS execution_event_logs_execution_order_id_idx ON public.execution_event_logs(execution_order_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS execution_event_logs_event_type_idx ON public.execution_event_logs(event_type, created_at DESC);
