@@ -30,6 +30,93 @@ function minutesAgo(value: unknown): number | null {
   return Math.round(ms / 60000);
 }
 
+
+const ACTIVE_EXECUTION_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "pending_protection", "partially_closed", "protected_managed", "pending_managed_protection"];
+
+async function hmacSha256(secret: string, payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function binanceSignedGet(path: string, params: Record<string, string>, apiKey: string, apiSecret: string) {
+  const baseUrl = Deno.env.get("BINANCE_TESTNET_FAPI_BASE_URL") ?? "https://testnet.binancefuture.com";
+  const search = new URLSearchParams({ ...params, timestamp: String(Date.now()), recvWindow: "5000" });
+  const signature = await hmacSha256(apiSecret, search.toString());
+  search.set("signature", signature);
+  const res = await fetch(`${baseUrl}${path}?${search.toString()}`, { headers: { "X-MBX-APIKEY": apiKey } });
+  const text = await res.text();
+  let body: unknown = text;
+  try { body = JSON.parse(text); } catch { /* keep text */ }
+  if (!res.ok) throw new Error(`Binance testnet ${path} failed (${res.status}): ${typeof body === "string" ? body : JSON.stringify(body)}`);
+  return body;
+}
+
+function numericValue(value: unknown): number {
+  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function fetchBinanceTruth(symbol: string) {
+  const apiKey = Deno.env.get("BINANCE_TESTNET_API_KEY") ?? "";
+  const apiSecret = Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? "";
+  if (!apiKey || !apiSecret) {
+    return { configured: false, symbol, positionSize: 0, openOrders: [], warning: "BINANCE_TESTNET_API_KEY/API_SECRET not configured; cleanup skipped" };
+  }
+  const [positionBody, ordersBody] = await Promise.all([
+    binanceSignedGet("/fapi/v2/positionRisk", { symbol }, apiKey, apiSecret),
+    binanceSignedGet("/fapi/v1/openOrders", { symbol }, apiKey, apiSecret),
+  ]);
+  const positions = Array.isArray(positionBody) ? positionBody as Record<string, unknown>[] : [];
+  const positionSize = positions.reduce((sum, row) => sum + Math.abs(numericValue(row.positionAmt)), 0);
+  const openOrders = Array.isArray(ordersBody) ? ordersBody as Record<string, unknown>[] : [];
+  return { configured: true, symbol, positionSize, openOrders };
+}
+
+async function cleanStaleTestnetExecutions(supabase: ReturnType<typeof createClient>) {
+  const { data, error } = await supabase
+    .from("execution_orders")
+    .select("id,symbol,status")
+    .in("status", ACTIVE_EXECUTION_STATUSES);
+  if (error) throw error;
+
+  const activeRows = (data ?? []) as Array<{ id: string; symbol: string; status: string }>;
+  const symbols = Array.from(new Set(activeRows.map((row) => row.symbol).filter(Boolean)));
+  const details: Record<string, unknown>[] = [];
+  let cleanedCount = 0;
+
+  for (const symbol of symbols) {
+    const truth = await fetchBinanceTruth(symbol);
+    if (!truth.configured) {
+      details.push(truth);
+      continue;
+    }
+    const hasBinanceExposure = Math.abs(truth.positionSize) > 0 || truth.openOrders.length > 0;
+    if (hasBinanceExposure) {
+      details.push({ ...truth, cleaned: 0, blocked_by_binance_truth: true });
+      continue;
+    }
+    const { data: rpcData, error: rpcError } = await supabase.rpc("mark_stale_testnet_execution_orders", {
+      p_symbol: symbol,
+      p_active_statuses: ACTIVE_EXECUTION_STATUSES,
+      p_stale_status: "stale_closed",
+      p_reason: "admin_clean_stale_testnet_executions_binance_empty",
+    });
+    if (rpcError) throw rpcError;
+    const cleaned = numericValue(rpcData);
+    cleanedCount += cleaned;
+    details.push({ ...truth, cleaned, blocked_by_binance_truth: false });
+  }
+
+  return { symbols_checked: symbols.length, cleaned_count: cleanedCount, details };
+}
+
 async function verifyAdmin(req: Request, supabase: ReturnType<typeof createClient>) {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace("Bearer ", "");
@@ -221,6 +308,19 @@ Deno.serve(async (req: Request) => {
         proxied_body: proxiedBody,
         ...status,
       }, proxy.ok ? 200 : 502);
+    }
+
+
+    if (action === "clean_stale_testnet_executions") {
+      const result = await cleanStaleTestnetExecutions(supabase);
+      await supabase.from("audit_logs").insert({
+        actor_user_id: admin.userId ?? null,
+        action: "clean_stale_testnet_executions",
+        entity_type: "execution_orders",
+        entity_id: "",
+        metadata: result,
+      });
+      return jsonResponse({ success: true, action, ...result });
     }
 
     return jsonResponse({ success: false, error: `Unknown action: ${action}` }, 400);

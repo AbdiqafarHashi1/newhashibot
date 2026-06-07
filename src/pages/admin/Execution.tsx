@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { ExecutionOrder, PaperExecutionIntent } from '../../lib/types';
-import { Shield, AlertTriangle, Cpu, Activity, Send, FileText } from 'lucide-react';
+import { Shield, AlertTriangle, Cpu, Activity, Send, FileText, Trash2 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 
 const ORDER_STATUS_COLORS: Record<string, string> = {
@@ -13,6 +13,22 @@ const ORDER_STATUS_COLORS: Record<string, string> = {
   filled: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
   failed: 'text-red-400 bg-red-500/10 border-red-500/20',
   cancelled: 'text-zinc-400 bg-zinc-800 border-zinc-700',
+};
+
+
+type ExecutionSettingsSnapshot = {
+  latest_monitor_run_at: string | null;
+  latest_monitor_status: string;
+  latest_monitor_result: Record<string, unknown> | null;
+  open_binance_positions: unknown[] | null;
+  open_binance_orders: unknown[] | null;
+  pnl_snapshot: Record<string, unknown> | null;
+  stale_rows_cleaned: number | null;
+  open_positions_count: number | null;
+  unrealized_pnl: number | null;
+  account_total_margin_balance: number | null;
+  account_total_wallet_balance: number | null;
+  latest_sync_time: string | null;
 };
 
 const PAPER_STATUS_COLORS: Record<string, string> = {
@@ -26,22 +42,26 @@ export default function Execution() {
   const [orders, setOrders] = useState<ExecutionOrder[]>([]);
   const [paperIntents, setPaperIntents] = useState<PaperExecutionIntent[]>([]);
   const [paperStats, setPaperStats] = useState({ total: 0, blocked: 0, pending: 0 });
+  const [monitorState, setMonitorState] = useState<ExecutionSettingsSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const [testMsg, setTestMsg] = useState('');
   const [tab, setTab] = useState<'paper' | 'orders'>('paper');
 
   async function load() {
-    const [ordersRes, paperRes, blockedRes] = await Promise.all([
+    const [ordersRes, paperRes, blockedRes, monitorRes] = await Promise.all([
       supabase.from('execution_orders').select('*').order('created_at', { ascending: false }).limit(50),
       supabase.from('paper_execution_intents').select('*').order('created_at', { ascending: false }).limit(50),
       supabase.from('paper_execution_intents').select('id', { count: 'exact' }).eq('risk_check_passed', false),
+      supabase.from('execution_settings').select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,open_binance_positions,open_binance_orders,pnl_snapshot,stale_rows_cleaned,open_positions_count,unrealized_pnl,account_total_margin_balance,account_total_wallet_balance,latest_sync_time').eq('id', 1).maybeSingle(),
     ]);
     setOrders((ordersRes.data ?? []) as ExecutionOrder[]);
     const pi = (paperRes.data ?? []) as PaperExecutionIntent[];
     setPaperIntents(pi);
     const pending = pi.filter(p => p.status === 'pending').length;
     setPaperStats({ total: pi.length, blocked: blockedRes.count ?? 0, pending });
+    setMonitorState((monitorRes.data ?? null) as ExecutionSettingsSnapshot | null);
     setLoading(false);
   }
 
@@ -51,6 +71,25 @@ export default function Execution() {
     setTesting(true);
     setTestMsg('MT5 execution bridge is not yet enabled. Set MT5_EXECUTION_ENABLED=true and configure MT5_EXECUTION_BRIDGE_BASE_URL to activate.');
     setTesting(false);
+  }
+
+  async function cleanStaleTestnetExecutions() {
+    setCleaning(true);
+    setTestMsg('Checking Binance testnet truth before clearing stale execution blockers...');
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-scheduler-action', {
+        body: { action: 'clean_stale_testnet_executions' },
+      });
+      if (error) throw error;
+      const cleaned = typeof data?.cleaned_count === 'number' ? data.cleaned_count : 0;
+      const checked = typeof data?.symbols_checked === 'number' ? data.symbols_checked : 0;
+      setTestMsg(`Clean stale testnet executions complete: ${cleaned} row(s) cleaned across ${checked} symbol(s).`);
+      await load();
+    } catch (err) {
+      setTestMsg(`Clean stale testnet executions failed: ${err instanceof Error ? err.message : 'unknown error'}`);
+    } finally {
+      setCleaning(false);
+    }
   }
 
   const executionMode = 'signal_only';
@@ -67,6 +106,30 @@ export default function Execution() {
         <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
         <div className="text-sm text-yellow-300/90">
           <strong>No real trades are placed by this app.</strong> Paper intents are simulated records of what would be traded in Personal/Prop modes. The MT5 bridge is a future integration.
+        </div>
+      </div>
+
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-sm">Binance Testnet Monitor</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">1-minute bot supervisor snapshot. Binance Demo only — live trading remains disabled.</p>
+          </div>
+          <span className="text-xs px-2 py-0.5 rounded-full border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+            {monitorState?.latest_monitor_status ?? 'not configured'}
+          </span>
+        </div>
+        <div className="grid sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Last Run</div><div className="text-zinc-200 mt-1">{monitorState?.latest_monitor_run_at ? new Date(monitorState.latest_monitor_run_at).toLocaleString() : '—'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Open Positions</div><div className="text-zinc-200 mt-1">{monitorState?.open_positions_count ?? 0}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Open Orders</div><div className="text-zinc-200 mt-1">{monitorState?.open_binance_orders?.length ?? 0}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Unrealized PnL</div><div className="text-zinc-200 mt-1">{monitorState?.unrealized_pnl ?? '—'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Wallet</div><div className="text-zinc-200 mt-1">{monitorState?.account_total_wallet_balance ?? '—'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Stale Cleaned</div><div className="text-zinc-200 mt-1">{monitorState?.stale_rows_cleaned ?? 0}</div></div>
+        </div>
+        <div className="mt-3 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.latest_monitor_result ?? {})}>
+          Latest sync result: {JSON.stringify(monitorState?.latest_monitor_result ?? {})}
         </div>
       </div>
 
@@ -135,6 +198,16 @@ export default function Execution() {
           className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-600 px-4 py-2 rounded-lg text-sm cursor-not-allowed">
           <Send size={13} /> Send Test Demo Order
           <span className="text-xs text-zinc-600 ml-1">(disabled)</span>
+        </button>
+        <button
+          onClick={cleanStaleTestnetExecutions}
+          disabled={cleaning}
+          title="Checks Binance testnet positions/orders before marking stale DB blockers closed"
+          className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 text-amber-300 px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-60">
+          {cleaning
+            ? <div className="w-3.5 h-3.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+            : <Trash2 size={13} />}
+          Clean stale testnet executions
         </button>
       </div>
 
