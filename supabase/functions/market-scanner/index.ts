@@ -33,6 +33,14 @@ type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation"
 
 interface StrategyEvaluationStats {
   evaluated: number;
+  evaluator_pass: number;
+  score_pass: number;
+  rr_pass: number;
+  distance_pass: number;
+  duplicate_pass: number;
+  arbitration_entered: number;
+  arbitration_won: number;
+  signals_created: number;
   accepted: number;
   rejected: number;
   arbitration_blocked: number;
@@ -547,18 +555,18 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
 // ─── CompressionBreakout ──────────────────────────────────────────────────────
 
 function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
-  const box_lookback = Math.max(10, Math.floor(params.box_lookback ?? 50));
-  const min_box_bars = Math.max(5, Math.floor(params.min_box_bars ?? 14));
-  const max_box_atr_range = params.max_box_atr_range ?? 1.8;
+  const box_lookback = Math.max(10, Math.floor(params.box_lookback ?? 36));
+  const min_box_bars = Math.max(5, Math.floor(params.min_box_bars ?? 8));
+  const max_box_atr_range = params.max_box_atr_range ?? 8.0;
   const atr_expansion_lookback = Math.max(5, Math.floor(params.atr_expansion_lookback ?? 48));
-  const min_atr_expansion = params.min_atr_expansion ?? 1.1;
-  const breakout_buffer_atr = params.breakout_buffer_atr ?? 0.12;
+  const min_atr_expansion = params.min_atr_expansion ?? 0.95;
+  const breakout_buffer_atr = params.breakout_buffer_atr ?? 0.05;
   const momentum_lookback = Math.max(1, Math.floor(params.momentum_lookback ?? 3));
-  const stop_atr_mult = params.stop_atr_mult ?? 1.4;
-  const tp1_r = params.tp1_r ?? 1.3;
-  const tp2_r = params.tp2_r ?? 2.5;
+  const stop_atr_mult = params.stop_atr_mult ?? 1.1;
+  const tp1_r = params.tp1_r ?? 1.2;
+  const tp2_r = params.tp2_r ?? 2.2;
   const min_rr = params.min_rr ?? 1.3;
-  const min_score = params.min_score ?? 75;
+  const min_score = params.min_score ?? 72;
   const crypto_behavior_tuning = params.crypto_behavior_tuning === 1;
   const atr_len = Math.max(2, Math.floor(params.atr_len ?? 14));
   const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
@@ -701,6 +709,7 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
     tp1_distance_pct: pctDistance(price, tp1),
     tp2_distance_pct: pctDistance(price, tp2),
     final_score: finalScore,
+    max_bars_in_trade: params.max_bars_in_trade ?? 48,
   };
 
   const grade = scoreGrade(finalScore);
@@ -719,12 +728,12 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   const rsi_sell_max = params.rsi_sell_max ?? 50;
   const min_atr_pct = params.min_atr_pct ?? 0.15;
   const max_atr_pct = params.max_atr_pct ?? 4.0;
-  const pullback_bars = Math.max(2, Math.floor(params.pullback_bars ?? 5));
-  const stop_atr_mult = params.stop_atr_mult ?? 1.6;
-  const tp1_r = params.tp1_r ?? 1.5;
-  const tp2_r = params.tp2_r ?? 2.5;
+  const pullback_bars = Math.max(2, Math.floor(params.pullback_bars ?? 8));
+  const stop_atr_mult = params.stop_atr_mult ?? 1.2;
+  const tp1_r = params.tp1_r ?? 1.2;
+  const tp2_r = params.tp2_r ?? 2.2;
   const min_rr = params.min_rr ?? 1.5;
-  const min_score = params.min_score ?? params.min_confidence_balanced ?? 76;
+  const min_score = params.min_score ?? params.min_confidence_balanced ?? 78;
   const crypto_behavior_tuning = params.crypto_behavior_tuning === 1;
   const momentum_lookback = Math.max(1, Math.floor(params.momentum_lookback ?? 3));
   const atr_len = Math.max(2, Math.floor(params.atr_len ?? 14));
@@ -850,6 +859,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
     tp1_distance_pct: pctDistance(price, tp1),
     tp2_distance_pct: pctDistance(price, tp2),
     final_score: finalScore,
+    max_bars_in_trade: params.max_bars_in_trade ?? 96,
   };
 
   const grade = scoreGrade(finalScore);
@@ -872,7 +882,7 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   const tp1_r = params.tp1_r ?? 1.25;
   const tp2_r = params.tp2_r ?? 1.85;
   const min_rr = params.min_rr ?? 1.45;
-  const min_score = params.min_score ?? 76;
+  const min_score = params.min_score ?? 78;
   const momentum_lookback = Math.max(2, Math.floor(params.momentum_lookback ?? 4));
   const atr_len = Math.max(2, Math.floor(params.atr_len ?? 14));
   const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
@@ -1233,8 +1243,16 @@ function arbitrationSnapshot(entries: EvalEntry[]): Array<Record<string, unknown
 
 
 function timeframeMinutes(timeframe: string): number | null {
-  const map: Record<string, number> = { "1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440 };
-  return map[timeframe] ?? null;
+  const normalized = String(timeframe || "").trim().toLowerCase();
+  const map: Record<string, number> = { "1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30, "60m": 60, "1h": 60, "4h": 240, "1d": 1440, "1day": 1440 };
+  const mapped = map[normalized];
+  if (mapped) return mapped;
+  const match = normalized.match(/^(\d+)\s*([mhd])$/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  const unit = match[2];
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return unit === "m" ? value : unit === "h" ? value * 60 : value * 1440;
 }
 
 interface ExpiryMetadata {
@@ -1255,14 +1273,18 @@ const LEGACY_GLOBAL_FALLBACK_MINUTES = 360;
 function buildSignalExpiryMetadata(strategyName: string, timeframe: string, cfg: StrategyConfig, scoreBreakdown: Record<string, number | string | boolean>, createdAt: Date): ExpiryMetadata {
   const tfMinutes = timeframeMinutes(timeframe);
   const scoreBreakdownBars = scoreBreakdown.max_bars_in_trade;
-  const maxBars = typeof scoreBreakdownBars === "number" && Number.isFinite(scoreBreakdownBars) && scoreBreakdownBars > 0
-    ? Math.floor(scoreBreakdownBars)
-    : Math.max(1, Math.floor(cfg.max_bars_in_trade || 0));
+  const paramsBars = cfg.params?.max_bars_in_trade;
+  const rawMaxBars = typeof scoreBreakdownBars === "number" && Number.isFinite(scoreBreakdownBars) && scoreBreakdownBars > 0
+    ? scoreBreakdownBars
+    : typeof paramsBars === "number" && Number.isFinite(paramsBars) && paramsBars > 0
+      ? paramsBars
+      : cfg.max_bars_in_trade;
+  const maxBars = Math.max(1, Math.floor(rawMaxBars || 0));
   const computedMinutes = tfMinutes && maxBars > 0 ? tfMinutes * maxBars : LEGACY_GLOBAL_FALLBACK_MINUTES;
   const canUseStrategyExpiry = Boolean(tfMinutes && maxBars > 0);
   return {
     expires_at: canUseStrategyExpiry ? new Date(createdAt.getTime() + computedMinutes * 60_000).toISOString() : null,
-    expiry_source: canUseStrategyExpiry ? "strategy_config_max_bars_in_trade" : "legacy_global_fallback",
+    expiry_source: canUseStrategyExpiry ? "strategy_effective_max_bars_in_trade" : "legacy_global_fallback",
     strategy: strategyName,
     timeframe,
     timeframe_minutes: tfMinutes,
@@ -1308,18 +1330,20 @@ function microScalperRuntimeParams(cfg: StrategyConfig, timeframe: string): { pa
   };
   const calibrated5m: Record<string, number> = {
     ...calibrated15m,
-    rsi_buy_min: 54,
-    rsi_sell_max: 46,
-    stop_atr_mult: 1.45,
-    max_bars_in_trade: 30,
+    // Keep scanner 5m aligned with the successful live-like 5m CSV/backtest
+    // path unless DB explicitly provides timeframe-specific overrides.
+    rsi_buy_min: calibrated15m.rsi_buy_min,
+    rsi_sell_max: calibrated15m.rsi_sell_max,
+    stop_atr_mult: calibrated15m.stop_atr_mult,
+    max_bars_in_trade: calibrated15m.max_bars_in_trade,
   };
   const calibrated = timeframe === "5m" ? calibrated5m : calibrated15m;
   const runtimeOverrides: string[] = [];
   const params: Record<string, number> = { ...calibrated, ...cfg.params };
 
-  // The live scanner has a single DB strategy_config row for MicroScalper while
-  // production needs distinct 5m/15m calibrated behavior. Apply the known 5m
-  // calibration at runtime unless the DB has explicit timeframe-specific keys.
+  // The live scanner has a single DB strategy_config row for MicroScalper. Keep
+  // 5m on the same calibrated surface as the successful 5m CSV/backtest path
+  // unless the DB has explicit timeframe-specific keys.
   if (timeframe === "5m") {
     const timeframeKeys: Record<string, string> = {
       rsi_buy_min: "rsi_buy_min_5m",
@@ -2514,6 +2538,29 @@ async function tryAutoSendTelegram(
     return { sent: false, status: "failed", blocked_reason: reason, delivery_id: deliveryId };
   }
 }
+
+async function tryAutoExecuteTestnet(signalId: string): Promise<{ called: boolean; success: boolean; reason: string }> {
+  if (!envBool("TESTNET_ENABLED", false)) return { called: false, success: false, reason: "TESTNET_ENABLED_not_true" };
+  if ((Deno.env.get("EXECUTION_MODE") ?? "signal_only") !== "testnet") return { called: false, success: false, reason: "EXECUTION_MODE_not_testnet" };
+  if ((Deno.env.get("EXCHANGE") ?? "binance_usdm_testnet") !== "binance_usdm_testnet") return { called: false, success: false, reason: "EXCHANGE_not_binance_usdm_testnet" };
+  if (envBool("LIVE_TRADING_ENABLED", false)) return { called: false, success: false, reason: "LIVE_TRADING_ENABLED_guard" };
+  const url = `${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`;
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!url || !serviceRole) return { called: false, success: false, reason: "supabase_internal_config_missing" };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "execute_signal", signal_id: signalId, manual: false }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+    return { called: true, success: Boolean(data.success), reason: String(data.reason ?? data.error ?? res.statusText) };
+  } catch (e) {
+    return { called: true, success: false, reason: e instanceof Error ? e.message : "unknown_execution_call_error" };
+  }
+}
+
 // ─── Heartbeat updater ────────────────────────────────────────────────────────
 
 async function updateHeartbeat(
@@ -2574,7 +2621,7 @@ async function runScanPipeline(
       min_stop_distance_pct: (cfg?.min_stop_distance_pct as number)         ?? (isForex ? 0.08 : 0.18),
       min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? (isForex ? 0.10 : 0.25),
       min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? (isForex ? 0.16 : 0.40),
-      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (isMicroScalper ? 24 : isForex ? 48 : 32),
+      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (name === "SwingContinuation" ? 96 : name === "CompressionBreakout" ? 48 : isMicroScalper ? 24 : isForex ? 48 : 32),
       allowed_symbols:       (cfg?.allowed_symbols as string[])             ?? (isForex ? [...C2_FOREX_SYMBOLS] : []),
       allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isMicroScalper ? ["5m", "15m"] : isForex ? forexTimeframes() : []),
       params:                (cfg?.params as Record<string, number>)        ?? {},
@@ -2655,6 +2702,14 @@ async function runScanPipeline(
   const strategyNames: StrategyName[] = ["MicroScalper", "CompressionBreakout", "SwingContinuation", "ForexMicroScalper", "ForexSwingContinuation"];
   const strategyEvaluationSummary = Object.fromEntries(strategyNames.map((name) => [name, {
     evaluated: 0,
+    evaluator_pass: 0,
+    score_pass: 0,
+    rr_pass: 0,
+    distance_pass: 0,
+    duplicate_pass: 0,
+    arbitration_entered: 0,
+    arbitration_won: 0,
+    signals_created: 0,
     accepted: 0,
     rejected: 0,
     arbitration_blocked: 0,
@@ -2883,8 +2938,8 @@ async function runScanPipeline(
           const swConfig  = getStratCfg("SwingContinuation");
           const msRuntime = microScalperRuntimeParams(msConfig, tf);
           evaluateStrategy("MicroScalper", msConfig, () => withMicroScalperDiagnostics(evalMicroScalper(candles, ind, tf, msRuntime.params), msConfig, msRuntime));
-          evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, crypto_behavior_tuning: 1 }));
-          evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, crypto_behavior_tuning: 1 }));
+          evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, max_bars_in_trade: cbConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
+          evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, max_bars_in_trade: swConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
         }
 
         // ── Pre-arbitration: collect passing candidates, pick the best one ──
@@ -2924,7 +2979,11 @@ async function runScanPipeline(
           const { data: cData } = await supabase.from("strategy_candidates").insert(candidateRow).select("id").single();
           if (!cData) continue;
 
+          if (r.confidence_score >= ev.cfg.min_score) incrementStrategyStat(ev.name, "score_pass");
+          if (r.risk_reward >= ev.cfg.min_rr) incrementStrategyStat(ev.name, "rr_pass");
+
           if (r.status === "rejected") { incrementStrategyStat(ev.name, "rejected"); rejectedCount++; continue; }
+          incrementStrategyStat(ev.name, "evaluator_pass");
 
           // Distance guard
           const guard = checkDistanceGuards(r, ev.cfg);
@@ -2955,6 +3014,8 @@ async function runScanPipeline(
             continue;
           }
 
+          incrementStrategyStat(ev.name, "distance_pass");
+          incrementStrategyStat(ev.name, "arbitration_entered");
           passingEntries.push({ name: ev.name, result: r, cfg: ev.cfg, guard });
           // tag candidate id for later use
           (passingEntries[passingEntries.length - 1] as EvalEntry & { _candidateId: string })._candidateId = cData.id;
@@ -3014,6 +3075,7 @@ async function runScanPipeline(
             continue;
           }
 
+          incrementStrategyStat(ev.name, "arbitration_won");
           await supabase.from("strategy_candidates").update({
             score_breakdown: {
               ...(r.score_breakdown ?? {}),
@@ -3077,6 +3139,7 @@ async function runScanPipeline(
             continue;
           }
 
+          incrementStrategyStat(ev.name, "duplicate_pass");
           incrementStrategyStat(ev.name, "accepted");
 
           // Grade gate
@@ -3203,6 +3266,7 @@ async function runScanPipeline(
 
             if (!sigData) continue;
             signalsCreated++;
+            incrementStrategyStat(ev.name, "signals_created");
             signalCreatedForThisCandidate = true;
             activeSymbolSet.add(sym.symbol);
             activeSignalBySymbol.set(sym.symbol, { id: sigData.id as string, status: String(sigData.status ?? "waiting"), created_at: String(sigData.created_at ?? new Date().toISOString()) });
@@ -3250,6 +3314,15 @@ async function runScanPipeline(
             else if (tgResult.status === "failed") telegramFailed++;
             else telegramSkipped++;
             if (tgResult.blocked_reason) telegramSkipReasons[tgResult.blocked_reason] = (telegramSkipReasons[tgResult.blocked_reason] ?? 0) + 1;
+
+            // ── Optional Binance USD-M testnet execution ───────────────────
+            // This is gated by server-side env and DB settings in the execution
+            // function. It only receives the just-created signal id, so old
+            // historical signals are never auto-submitted from the scanner.
+            const executionResult = tgResult.sent
+              ? await tryAutoExecuteTestnet(sigData.id as string)
+              : { called: false, success: false, reason: "telegram_signal_not_sent" };
+
             if (ev.name === "MicroScalper") {
               await supabase.from("strategy_candidates").update({
                 score_breakdown: {
@@ -3264,6 +3337,8 @@ async function runScanPipeline(
                   inserted_signal_id: sigData.id,
                   telegram_eligibility: tgResult.sent ? "sent" : tgResult.status,
                   telegram_eligibility_reason: tgResult.sent ? "sent" : tgResult.blocked_reason,
+                  testnet_execution_called: executionResult.called,
+                  testnet_execution_result: executionResult.success ? "submitted" : executionResult.reason,
                   selected_strategy: selectedStrategyName,
                   selected_timeframe: tf,
                   selected_score: selectedArbitrationScore,
