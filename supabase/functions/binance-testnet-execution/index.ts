@@ -564,7 +564,21 @@ async function requireAdminOrInternal(req: Request, supabase: SupabaseClient): P
 }
 
 async function logEvent(supabase: SupabaseClient, executionId: string, eventType: string, message: string, metadata: Json = {}): Promise<void> {
-  await supabase.from("execution_event_logs").insert({ execution_id: executionId, execution_order_id: executionId, event_type: eventType, message, metadata });
+  const { data: execution } = await supabase
+    .from("execution_orders")
+    .select("signal_id,symbol")
+    .eq("id", executionId)
+    .maybeSingle();
+  const row = (execution ?? {}) as { signal_id?: string | null; symbol?: string | null };
+  await supabase.from("execution_event_logs").insert({
+    execution_id: executionId,
+    execution_order_id: executionId,
+    signal_id: row.signal_id ?? null,
+    symbol: row.symbol ?? "",
+    event_type: eventType,
+    message,
+    metadata,
+  });
 }
 
 async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string, eventType: string, lines: string[]): Promise<void> {
@@ -911,6 +925,30 @@ async function syncExecution(supabase: SupabaseClient, executionId: string): Pro
   }
 }
 
+async function invokeMonitorCron(): Promise<Json> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceRole) return { success: false, error: "monitor_invocation_not_configured" };
+  const res = await fetch(`${supabaseUrl}/functions/v1/binance-testnet-monitor`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRole}` },
+    body: JSON.stringify({ source: "binance-testnet-execution", run_type: "manual_test_flow_monitor_confirmation" }),
+  });
+  const body = await res.json().catch(() => ({})) as Json;
+  return { success: res.ok && body.success !== false, status: res.status, body };
+}
+
+function nativeOrderCreated(row: Json | null, key: string): boolean {
+  return String(row?.bracket_mode ?? "") === "exchange_native" && Boolean(row?.[key]);
+}
+
+function quantityPct(quantity: unknown, total: unknown): number | null {
+  const q = Number(quantity ?? NaN);
+  const t = Number(total ?? NaN);
+  if (!Number.isFinite(q) || !Number.isFinite(t) || t <= 0) return null;
+  return Number(((q / t) * 100).toFixed(8));
+}
+
 async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promise<Json> {
   assertLiveTradingImpossible();
   const { data: signal } = await supabase.from("signals").select("symbol").eq("id", signalId).maybeSingle();
@@ -925,23 +963,48 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
   const truth = await fetchBinanceSymbolTruth(symbol);
   let sync: Json | null = null;
   if (execution.execution_id) sync = await syncExecution(supabase, String(execution.execution_id));
+  const monitor = await invokeMonitorCron().catch((e) => ({ success: false, error: e instanceof Error ? e.message : String(e) }));
   const { data: row } = execution.execution_id
-    ? await supabase.from("execution_orders").select("status,entry_order_id,binance_entry_order_id,sl_order_id,tp1_order_id,tp2_order_id,bracket_mode,protection_status,latest_protection_error,raw_exchange_response").eq("id", String(execution.execution_id)).maybeSingle()
+    ? await supabase.from("execution_orders").select("status,quantity,volume,entry_order_id,binance_entry_order_id,sl_order_id,tp1_order_id,tp2_order_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,bracket_mode,protection_status,latest_protection_error,tp1_quantity,tp2_quantity,remaining_quantity,raw_exchange_response").eq("id", String(execution.execution_id)).maybeSingle()
     : { data: null };
+  const { data: monitorSettings } = await supabase
+    .from("execution_settings")
+    .select("latest_monitor_run_at,latest_monitor_status,latest_monitor_result,last_managed_exit_action,open_binance_positions,open_binance_orders")
+    .eq("id", 1)
+    .maybeSingle();
+  const resultRow = (row as Json | null) ?? null;
+  const totalQuantity = resultRow?.quantity ?? resultRow?.volume ?? plan.quantity;
+  const managedFallbackActive = String(resultRow?.bracket_mode ?? "") === "managed_exit_fallback" && String(resultRow?.protection_status ?? "") === "protected_managed";
+  const protectedState = ["protected", "protected_managed"].includes(String(resultRow?.protection_status ?? ""));
+  const bracketState = ["exchange_native", "managed_exit_fallback"].includes(String(resultRow?.bracket_mode ?? ""));
+  const monitorStateConfirmed = Boolean((monitor as Json).success && protectedState && bracketState);
   return {
     success: true,
     signal_id: signalId,
     symbol,
-    steps: { clean, dry_run: { success: true, plan }, execute: execution, fetch_binance_truth: { position: truth.positionRisk, open_orders: truth.openOrders }, sync },
+    steps: { clean, dry_run: { success: true, plan }, execute: execution, fetch_binance_truth: { position: truth.positionRisk, open_orders: truth.openOrders }, sync, monitor_cron_confirmation: monitor },
     result: {
-      entry_order_status: (row as Json | null)?.status ?? execution.status ?? execution.reason ?? "unknown",
+      entry_submitted: Boolean(resultRow?.entry_order_id ?? resultRow?.binance_entry_order_id),
+      entry_order_status: (resultRow as Json | null)?.status ?? execution.status ?? execution.reason ?? "unknown",
+      binance_truth_fetched: true,
       position_status: truth.hasExposure ? "open_on_binance" : "no_open_binance_position",
-      sl_status: (row as Json | null)?.sl_order_id ? "order_saved" : "managed_or_missing",
-      tp1_status: (row as Json | null)?.tp1_order_id ? "order_saved" : "managed_or_missing",
-      tp2_status: (row as Json | null)?.tp2_order_id ? "order_saved" : "managed_or_missing",
-      bracket_mode: (row as Json | null)?.bracket_mode ?? null,
-      protection_status: (row as Json | null)?.protection_status ?? null,
-      latest_protection_error: (row as Json | null)?.latest_protection_error ?? null,
+      sl_created_natively: nativeOrderCreated(resultRow, "binance_sl_order_id") || nativeOrderCreated(resultRow, "sl_order_id"),
+      tp1_created_natively: nativeOrderCreated(resultRow, "binance_tp1_order_id") || nativeOrderCreated(resultRow, "tp1_order_id"),
+      tp2_created_natively: nativeOrderCreated(resultRow, "binance_tp2_order_id") || nativeOrderCreated(resultRow, "tp2_order_id"),
+      managed_fallback_active: managedFallbackActive,
+      tp1_quantity: resultRow?.tp1_quantity ?? plan.tp1Quantity,
+      tp2_quantity: resultRow?.tp2_quantity ?? plan.tp2Quantity,
+      total_quantity: totalQuantity,
+      tp1_quantity_pct: quantityPct(resultRow?.tp1_quantity ?? plan.tp1Quantity, totalQuantity),
+      tp2_quantity_pct: quantityPct(resultRow?.tp2_quantity ?? plan.tp2Quantity, totalQuantity),
+      protection_status: resultRow?.protection_status ?? null,
+      bracket_mode: resultRow?.bracket_mode ?? null,
+      protected_or_managed: protectedState,
+      monitor_cron_confirmed_protection_state: monitorStateConfirmed,
+      monitor_status: (monitorSettings as Json | null)?.latest_monitor_status ?? null,
+      monitor_run_at: (monitorSettings as Json | null)?.latest_monitor_run_at ?? null,
+      monitor_result: (monitorSettings as Json | null)?.latest_monitor_result ?? null,
+      latest_protection_error: resultRow?.latest_protection_error ?? null,
     },
   };
 }
