@@ -6,6 +6,8 @@ const b51Sql = readFileSync('supabase/migrations/20260607143000_045_b5_1_signal_
 const b6Sql = readFileSync('supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql', 'utf8');
 const b61Sql = readFileSync('supabase/migrations/20260608143000_047_b6_1_reset_signal_fk_chain.sql', 'utf8');
 const b62Sql = readFileSync('supabase/migrations/20260608170000_048_b6_2_separate_history_reset_governor_controls.sql', 'utf8');
+const b63Sql = readFileSync('supabase/migrations/20260608193000_049_b6_3_restore_batched_performance_reset.sql', 'utf8');
+const b64Sql = readFileSync('supabase/migrations/20260608203000_050_b6_4_binance_algo_tpsl_ids.sql', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -43,5 +45,19 @@ assert.match(b62Sql, /'execution_orders'[\s\S]*WHERE signal_id IS NOT NULL/, 'B6
 assert.match(b62Sql, /'governor reset'/, 'B6.2 reset documents governor preservation');
 assert.match(b62Sql, /failed_execution_streak/, 'B6.2 persists failed execution streak separate from history rows');
 assert.match(b62Sql, /closed_sl_streak/, 'B6.2 persists closed SL streak separate from history rows');
+
+assert.match(b63Sql, /greatest\(25, least\(coalesce\(p_batch_size, 50\), 100\)\)/, 'B6.3 clamps reset batches to small timeout-safe sizes');
+assert.match(b63Sql, /'telegram_deliveries',[\s\S]*'signal_updates',[\s\S]*'signal_outcomes',[\s\S]*'outcomes',[\s\S]*'execution_event_logs',[\s\S]*'execution_orders',[\s\S]*'paper_execution_intents',[\s\S]*'rejected_setups',[\s\S]*'signals',[\s\S]*'strategy_candidates'/, 'B6.3 reset uses child-first current-schema delete order');
+assert.match(b63Sql, /remaining_counts/, 'B6.3 reset returns remaining counts for UI verification');
+assert.match(b63Sql, /p_until_empty boolean DEFAULT false/, 'B6.3 reset accepts until-empty acceptance guard flag');
+assert.match(b63Sql, /'success', NOT/, 'B6.3 reset success is false while remaining source rows exist');
+assert.match(b63Sql, /remaining_signals/, 'B6.3 reset acceptance explicitly checks remaining signals');
+assert.match(b63Sql, /'scanner_config',[\s\S]*'strategy_configs',[\s\S]*'execution_settings'/, 'B6.3 reset preserves scanner, strategy, and execution settings');
+assert.doesNotMatch(b63Sql, /DELETE FROM public\.scanner_runs/, 'B6.3 preserves scanner_runs like the original performance reset');
+
+for (const field of ['sl_algo_id','tp1_algo_id','tp2_algo_id','sl_client_algo_id','tp1_client_algo_id','tp2_client_algo_id','native_protection_verified','managed_fallback_active']) {
+  assert.match(b64Sql, new RegExp(field), `B6.4 adds ${field}`);
+}
+assert.match(b64Sql, /protected_native/, 'B6.4 allows protected_native protection status');
 
 console.log('SQL constraint tests passed');

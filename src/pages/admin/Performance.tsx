@@ -48,10 +48,15 @@ interface ResetCountRow {
   status?: string;
 }
 
+type ResetRemainingCounts = Record<string, number>;
+
 type ResetResponse = {
   completed_at?: string;
   timestamp?: string;
+  success?: boolean;
+  has_more?: boolean;
   deleted_counts?: Record<string, { deleted_count?: number; status?: string } | number | string>;
+  remaining_counts?: ResetRemainingCounts;
 };
 
 type DatePreset = 'today' | 'last24h' | 'last7d' | 'last30d' | 'baseline' | 'custom';
@@ -116,16 +121,36 @@ const OUTCOME_COLORS: Record<string, string> = {
 
 
 
-function normalizeResetRows(data: unknown): { rows: ResetCountRow[]; timestamp: string } {
+function resetRowsFromResponse(data: unknown): ResetCountRow[] {
   const payload = (data ?? {}) as ResetResponse;
   const counts = payload.deleted_counts ?? {};
+  return Object.entries(counts).map(([table_name, value]) => {
+    if (typeof value === 'number') return { table_name, deleted_count: value, status: 'deleted' };
+    if (typeof value === 'string') return { table_name, deleted_count: 0, status: value };
+    return { table_name, deleted_count: Number(value?.deleted_count ?? 0), status: value?.status };
+  });
+}
+
+function mergeResetRows(existing: ResetCountRow[], next: ResetCountRow[]) {
+  const merged = new Map<string, ResetCountRow>();
+  [...existing, ...next].forEach(row => {
+    const current = merged.get(row.table_name);
+    merged.set(row.table_name, {
+      table_name: row.table_name,
+      deleted_count: (current?.deleted_count ?? 0) + row.deleted_count,
+      status: row.status ?? current?.status,
+    });
+  });
+  return Array.from(merged.values());
+}
+
+function normalizeResetBatch(data: unknown, rows: ResetCountRow[]): { rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean } {
+  const payload = (data ?? {}) as ResetResponse;
   return {
-    rows: Object.entries(counts).map(([table_name, value]) => {
-      if (typeof value === 'number') return { table_name, deleted_count: value, status: 'deleted' };
-      if (typeof value === 'string') return { table_name, deleted_count: 0, status: value };
-      return { table_name, deleted_count: Number(value?.deleted_count ?? 0), status: value?.status };
-    }),
+    rows,
     timestamp: payload.completed_at ?? payload.timestamp ?? new Date().toISOString(),
+    remainingCounts: payload.remaining_counts ?? {},
+    hasMore: Boolean(payload.has_more || payload.success === false),
   };
 }
 
@@ -411,7 +436,7 @@ export default function Performance() {
   const [resetInput, setResetInput] = useState('');
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState('');
-  const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string } | null>(null);
+  const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean } | null>(null);
   const [capitalAssumptions, setCapitalAssumptions] = useState<CapitalAssumptions>(() => getStoredCapitalAssumptions());
 
   const load = useCallback(async () => {
@@ -471,10 +496,21 @@ export default function Performance() {
     setResetting(true);
     setResetError('');
     try {
-      const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history');
-      if (rpcError) throw new Error(rpcError.message);
+      let aggregateRows: ResetCountRow[] = [];
+      let normalized: ReturnType<typeof normalizeResetBatch> | null = null;
 
-      const normalized = normalizeResetRows(data);
+      for (let iteration = 0; iteration < 2000; iteration += 1) {
+        const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history_batch', { p_batch_size: 50, p_until_empty: true });
+        if (rpcError) throw new Error(rpcError.message);
+
+        aggregateRows = mergeResetRows(aggregateRows, resetRowsFromResponse(data));
+        normalized = normalizeResetBatch(data, aggregateRows);
+        if (!normalized.hasMore) break;
+      }
+
+      if (!normalized) throw new Error('Reset did not return a result');
+      if (normalized.hasMore) throw new Error('Reset stopped before all performance rows were cleared. Please run reset again.');
+
       window.localStorage.setItem(BASELINE_STORAGE_KEY, normalized.timestamp);
       setBaselineStartedAt(normalized.timestamp);
       setFilters(f => ({ ...f, datePreset: 'baseline', customStart: '', customEnd: '' }));
@@ -585,7 +621,7 @@ export default function Performance() {
             </h2>
             <h3 className="text-base font-semibold text-zinc-100 mt-2">Reset Performance History</h3>
             <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-              Clears signal/performance/testing history only: signals, outcomes, Telegram delivery rows linked to signals, candidate/rejected setups, scanner run history, performance/stat rows derived from old signals, and DB execution history linked to old signals. It preserves scanner settings, strategy settings, execution settings, customers, packages, subscriptions, profiles, Telegram config, bot setup records, Binance credentials, account balances, and real Binance positions/orders. It does not reset the testnet governor or disable the scanner; the next scheduled scanner run will repopulate fresh rows if setups qualify.
+              Clears signal/performance/testing history only: signals, outcomes, Telegram delivery rows linked to signals, candidate/rejected setups, performance/stat rows derived from old signals, and DB execution history linked to old signals. It preserves scanner settings, strategy settings, execution settings, customers, packages, subscriptions, profiles, Telegram config, bot setup records, Binance credentials, account balances, and real Binance positions/orders. It does not reset the testnet governor or disable the scanner; the next scheduled scanner run will repopulate fresh rows if setups qualify.
             </p>
             <p className="text-xs text-zinc-500 mt-3">
               Type <span className="font-mono text-red-200">{RESET_CONFIRMATION_TEXT}</span> to enable this manual reset.
@@ -610,11 +646,28 @@ export default function Performance() {
             {resetError && <div className="text-xs text-red-300 bg-red-950/50 border border-red-900/50 rounded-lg px-3 py-2">{resetError}</div>}
             {resetResult && (
               <div className="text-xs text-zinc-400 bg-zinc-950/70 border border-zinc-800 rounded-lg px-3 py-2 space-y-1">
-                <div className="font-medium text-emerald-300">Reset completed at {new Date(resetResult.timestamp).toLocaleString()}.</div>
+                <div className="font-medium text-emerald-300">Reset Complete at {new Date(resetResult.timestamp).toLocaleString()}.</div>
+                <div className="pt-1 font-medium text-zinc-300">Deleted</div>
                 {resetResult.rows.map(row => (
                   <div key={row.table_name} className="flex justify-between gap-3">
                     <span className="font-mono">{row.table_name}</span>
                     <span>{row.deleted_count}{row.status ? ` (${row.status})` : ''}</span>
+                  </div>
+                ))}
+                <div className="pt-2 font-medium text-zinc-300">Remaining</div>
+                {['signals', 'outcomes', 'telegram_deliveries', 'candidates', 'rejected_setups'].map(table => {
+                  const count = resetResult.remainingCounts[table] ?? 0;
+                  return (
+                    <div key={table} className={`flex justify-between gap-3 ${count > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                      <span className="font-mono">{table}</span>
+                      <span>{count}</span>
+                    </div>
+                  );
+                })}
+                {Object.entries(resetResult.remainingCounts).filter(([table, count]) => count > 0 && !['signals', 'outcomes', 'telegram_deliveries', 'candidates', 'rejected_setups'].includes(table)).map(([table, count]) => (
+                  <div key={table} className="flex justify-between gap-3 text-red-300">
+                    <span className="font-mono">Responsible: {table}</span>
+                    <span>{count}</span>
                   </div>
                 ))}
               </div>

@@ -7,12 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
-const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "pending_protection", "protected_managed", "pending_managed_protection", "partially_closed"];
+const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protected_managed", "pending_managed_protection", "partially_closed"];
 const TERMINAL_ORDER_STATUSES = ["CANCELED", "EXPIRED"];
 
 type SupabaseClient = ReturnType<typeof createClient>;
 type Row = Record<string, unknown> & { id: string; symbol: string; direction: string; status: string; signal_id?: string | null };
-type BinanceOrder = Record<string, unknown> & { orderId?: string | number; status?: string; symbol?: string };
+type BinanceOrder = Record<string, unknown> & { orderId?: string | number; algoId?: string | number; status?: string; algoStatus?: string; symbol?: string };
 type BinancePosition = Record<string, unknown> & { symbol?: string; positionAmt?: string; markPrice?: string; unRealizedProfit?: string; unrealizedProfit?: string };
 
 type MonitorStats = {
@@ -116,8 +116,16 @@ async function logEvent(supabase: SupabaseClient, row: Row, type: string, messag
   if (telegramSent) stats.telegram_sent += 1;
 }
 
-async function cancelOrder(symbol: string, orderId: string) {
-  await binanceRequest("/fapi/v1/order", { symbol, orderId }, "DELETE");
+async function cancelAlgoOrder(symbol: string, algoId: string) {
+  await binanceRequest("/fapi/v1/algoOrder", { symbol, algoId }, "DELETE");
+}
+
+function normalizeAlgoStatus(order: BinanceOrder | null | undefined): string {
+  return String(order?.algoStatus ?? order?.status ?? "UNKNOWN").toUpperCase();
+}
+
+function algoFilled(order: BinanceOrder | null | undefined): boolean {
+  return ["FILLED", "TRIGGERED", "FINISHED"].includes(normalizeAlgoStatus(order));
 }
 
 function timeStopMinutes(strategyName: unknown, timeframe: unknown): number | null {
@@ -155,12 +163,15 @@ async function closeReduceOnly(row: Row, quantity: number, reason: string) {
 
 async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStats) {
   stats.checked += 1;
-  const [positionBody, openOrdersBody] = await Promise.all([
+  const [positionBody, openOrdersBody, openAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/positionRisk", { symbol: row.symbol }),
     binanceRequest("/fapi/v1/openOrders", { symbol: row.symbol }),
+    binanceRequest("/fapi/v1/openAlgoOrders", { symbol: row.symbol, algoType: "CONDITIONAL" }).catch(() => []),
   ]);
   const position = (Array.isArray(positionBody) ? positionBody : []).find((p: BinancePosition) => p.symbol === row.symbol) as BinancePosition | undefined;
-  const openOrders = (Array.isArray(openOrdersBody) ? openOrdersBody : []) as BinanceOrder[];
+  const regularOpenOrders = (Array.isArray(openOrdersBody) ? openOrdersBody : []) as BinanceOrder[];
+  const openAlgoOrders = (Array.isArray(openAlgoOrdersBody) ? openAlgoOrdersBody : []) as BinanceOrder[];
+  const openOrders = [...regularOpenOrders, ...openAlgoOrders];
   const positionAmt = n(position?.positionAmt);
   const markPrice = n(position?.markPrice);
   const unrealizedPnl = n(position?.unRealizedProfit ?? position?.unrealizedProfit);
@@ -178,16 +189,17 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
     return;
   }
 
-  const orderIds = [row.binance_entry_order_id, row.binance_sl_order_id, row.binance_tp1_order_id, row.binance_tp2_order_id].filter(Boolean).map(String);
   const orderStatus: Record<string, BinanceOrder> = {};
-  for (const orderId of orderIds) {
-    orderStatus[orderId] = await binanceRequest("/fapi/v1/order", { symbol: row.symbol, orderId }) as BinanceOrder;
+  const entryId = row.binance_entry_order_id ? String(row.binance_entry_order_id) : "";
+  if (entryId) orderStatus[entryId] = await binanceRequest("/fapi/v1/order", { symbol: row.symbol, orderId: entryId }) as BinanceOrder;
+  const algoIds = [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id].filter(Boolean).map(String);
+  for (const algoId of algoIds) {
+    orderStatus[algoId] = await binanceRequest("/fapi/v1/algoOrder", { symbol: row.symbol, algoId }) as BinanceOrder;
   }
 
-  const entryId = row.binance_entry_order_id ? String(row.binance_entry_order_id) : "";
   const entry = entryId ? orderStatus[entryId] : null;
   if (entry?.status === "FILLED" && ["pending", "entry_submitted"].includes(row.status)) {
-    update.status = row.protection_status === "protected" ? "protected" : "entry_filled";
+    update.status = row.protection_status === "protected_native" ? "protected_native" : row.protection_status === "protected" ? "protected" : "entry_filled";
     const avg = n(entry.avgPrice);
     if (avg > 0) update.entry_price = avg;
     await logEvent(supabase, row, "entry_filled", `${row.symbol} entry filled${avg > 0 ? ` at ${avg}` : ""}.`, { entry }, stats);
@@ -200,26 +212,29 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 
   if (row.bracket_mode === "exchange_native") {
-    const tp1 = row.binance_tp1_order_id ? orderStatus[String(row.binance_tp1_order_id)] : null;
-    const tp2 = row.binance_tp2_order_id ? orderStatus[String(row.binance_tp2_order_id)] : null;
-    const sl = row.binance_sl_order_id ? orderStatus[String(row.binance_sl_order_id)] : null;
-    if (!row.tp1_closed_at && tp1?.status === "FILLED") {
+    const tp1AlgoId = row.tp1_algo_id ?? row.binance_tp1_order_id;
+    const tp2AlgoId = row.tp2_algo_id ?? row.binance_tp2_order_id;
+    const slAlgoId = row.sl_algo_id ?? row.binance_sl_order_id;
+    const tp1 = tp1AlgoId ? orderStatus[String(tp1AlgoId)] : null;
+    const tp2 = tp2AlgoId ? orderStatus[String(tp2AlgoId)] : null;
+    const sl = slAlgoId ? orderStatus[String(slAlgoId)] : null;
+    if (!row.tp1_closed_at && algoFilled(tp1)) {
       Object.assign(update, { status: "partially_closed", tp1_closed_at: now, sl_moved_to_be: true });
       await logEvent(supabase, row, "native_tp1_filled", `${row.symbol} TP1 filled; SL moved/confirmed at break-even.`, { tp1 }, stats);
     }
-    if (!row.tp2_closed_at && tp2?.status === "FILLED") {
+    if (!row.tp2_closed_at && algoFilled(tp2)) {
       Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0, last_monitor_action: "managed_tp2_closed" });
-      if (row.binance_sl_order_id) { await cancelOrder(row.symbol, String(row.binance_sl_order_id)); stats.cancelled_orders += 1; }
+      if (slAlgoId) { await cancelAlgoOrder(row.symbol, String(slAlgoId)); stats.cancelled_orders += 1; }
       await logEvent(supabase, row, "native_tp2_filled", `${row.symbol} TP2 filled; position closed in profit.`, { tp2 }, stats);
     }
-    if (!row.sl_closed_at && sl?.status === "FILLED") {
+    if (!row.sl_closed_at && algoFilled(sl)) {
       Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0, last_monitor_action: row.sl_moved_to_be ? "managed_be_closed" : "managed_sl_closed" });
-      for (const oid of [row.binance_tp1_order_id, row.binance_tp2_order_id].filter(Boolean).map(String)) { await cancelOrder(row.symbol, oid); stats.cancelled_orders += 1; }
+      for (const oid of [tp1AlgoId, tp2AlgoId].filter(Boolean).map(String)) { await cancelAlgoOrder(row.symbol, oid); stats.cancelled_orders += 1; }
       await logEvent(supabase, row, "native_sl_filled", `${row.symbol} SL filled; position closed.`, { sl }, stats);
     }
   }
 
-  if (hasPosition && !["protected", "protected_managed"].includes(String(row.protection_status ?? "")) && ["entry_filled", "protected", "protected_managed", "partially_closed"].includes(row.status)) {
+  if (hasPosition && !["protected", "protected_native", "protected_managed"].includes(String(row.protection_status ?? "")) && ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed"].includes(row.status)) {
     Object.assign(update, { protection_status: "unprotected_failed", latest_protection_error: "open Binance position is not protected_native or protected_managed", last_monitor_action: "unprotected_position_warning" });
     await logEvent(supabase, row, "unprotected_position_warning", `${row.symbol} has an open Binance position without verified native or managed protection.`, { positionAmt, open_orders: openOrders }, stats);
   }
@@ -266,16 +281,17 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
 }
 
 async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats) {
-  const [accountBody, positionsBody, allOrdersBody] = await Promise.all([
+  const [accountBody, positionsBody, allOrdersBody, allAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/account", {}),
     binanceRequest("/fapi/v2/positionRisk", {}),
     binanceRequest("/fapi/v1/openOrders", {}),
+    binanceRequest("/fapi/v1/openAlgoOrders", { algoType: "CONDITIONAL" }).catch(() => []),
   ]);
   const assets = (accountBody as Record<string, unknown>).assets as Array<Record<string, unknown>> | undefined;
   const usdt = assets?.find((a) => a.asset === "USDT");
   const usdc = assets?.find((a) => a.asset === "USDC");
   const positions = (Array.isArray(positionsBody) ? positionsBody : []).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0);
-  const orders = Array.isArray(allOrdersBody) ? allOrdersBody : [];
+  const orders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...(Array.isArray(allAlgoOrdersBody) ? allAlgoOrdersBody : [])];
   const totalMargin = n((accountBody as Record<string, unknown>).totalMarginBalance);
   const totalWallet = n((accountBody as Record<string, unknown>).totalWalletBalance);
   const unrealized = positions.reduce((sum: number, p: BinancePosition) => sum + n(p.unRealizedProfit ?? p.unrealizedProfit), 0);
