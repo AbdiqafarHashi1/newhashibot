@@ -493,7 +493,33 @@ export default function Execution() {
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
                   <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span></td>
                   <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>TP1 filled: {e.tp1_filled || e.tp1_closed_at ? 'yes' : 'no'}</div><div>SL BE: {e.sl_moved_to_be ? 'yes' : 'no'} {e.be_stop_level ?? ''}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
-                  <td className="px-4 py-3 text-xs text-zinc-500 font-mono"><div>Entry: {e.entry_order_id || e.binance_entry_order_id || '—'}</div><div>SL algo: {e.sl_algo_id || e.binance_sl_order_id || e.sl_order_id || '—'}</div><div>TP1 algo: {e.tp1_algo_id || e.binance_tp1_order_id || e.tp1_order_id || '—'}</div><div>TP2 algo: {e.tp2_algo_id || e.binance_tp2_order_id || e.tp2_order_id || '—'}</div><div>Native verified: {e.native_protection_verified ? 'yes' : 'no'}</div><div>Managed fallback: {e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'yes' : 'no'}</div></td>
+                  <td className="px-4 py-3 text-xs text-zinc-500 font-mono">
+                    <div className="font-semibold text-zinc-400 mb-1">{e.bracket_mode === 'exchange_native' ? 'Native algo orders' : e.bracket_mode === 'managed_exit_fallback' ? 'Managed fallback' : 'Pending'}</div>
+                    <div>Entry: {e.entry_order_id || e.binance_entry_order_id || '—'}</div>
+                    {(e.sl_algo_id || e.binance_sl_order_id) && (
+                      <div className="mt-1 text-zinc-400">
+                        <div>SL algo: {e.sl_algo_id || e.binance_sl_order_id}</div>
+                        {e.sl_client_algo_id && <div className="text-zinc-600">client: {e.sl_client_algo_id}</div>}
+                        <div>trigger: {e.intended_sl ?? e.stop_loss ?? '—'} · STOP_MARKET · reduceOnly</div>
+                      </div>
+                    )}
+                    {(e.tp1_algo_id || e.binance_tp1_order_id) && (
+                      <div className="mt-1 text-zinc-400">
+                        <div>TP1 algo: {e.tp1_algo_id || e.binance_tp1_order_id}</div>
+                        {e.tp1_client_algo_id && <div className="text-zinc-600">client: {e.tp1_client_algo_id}</div>}
+                        <div>trigger: {e.intended_tp1 ?? e.tp1 ?? '—'} · TP_MARKET · qty: {e.tp1_quantity ?? '—'}</div>
+                      </div>
+                    )}
+                    {(e.tp2_algo_id || e.binance_tp2_order_id) && (
+                      <div className="mt-1 text-zinc-400">
+                        <div>TP2 algo: {e.tp2_algo_id || e.binance_tp2_order_id}</div>
+                        {e.tp2_client_algo_id && <div className="text-zinc-600">client: {e.tp2_client_algo_id}</div>}
+                        <div>trigger: {e.intended_tp2 ?? e.tp2 ?? '—'} · TP_MARKET · qty: {e.tp2_quantity ?? '—'}</div>
+                      </div>
+                    )}
+                    <div className="mt-1">Native verified: <span className={e.native_protection_verified ? 'text-emerald-300' : 'text-zinc-600'}>{e.native_protection_verified ? 'yes' : 'no'}</span></div>
+                    <div>Managed fallback: <span className={e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'text-yellow-300' : 'text-zinc-600'}>{e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'yes' : 'no'}</span></div>
+                  </td>
                   <td className="px-4 py-3 text-xs text-zinc-500"><div>Mark: {e.latest_mark_price ?? '—'}</div><div>uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Deadline: {e.time_stop_deadline_at ? new Date(e.time_stop_deadline_at).toLocaleString() : '—'}</div><div>Last: {e.last_monitor_action || '—'}</div></td>
                   <td className="px-4 py-3"><button onClick={() => callExecution('sync_execution', { execution_id: e.id })} className="text-xs text-blue-400 hover:text-blue-300">Sync</button></td>
                 </tr>

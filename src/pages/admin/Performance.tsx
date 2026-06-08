@@ -500,7 +500,7 @@ export default function Performance() {
       let normalized: ReturnType<typeof normalizeResetBatch> | null = null;
 
       for (let iteration = 0; iteration < 2000; iteration += 1) {
-        const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history_batch', { p_batch_size: 50, p_until_empty: true });
+        const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history_batch', { p_batch_size: 25, p_until_empty: false });
         if (rpcError) throw new Error(rpcError.message);
 
         aggregateRows = mergeResetRows(aggregateRows, resetRowsFromResponse(data));

@@ -146,7 +146,8 @@ async function fetchSymbolRules(symbol: string): Promise<{ stepSize: number; tic
 }
 
 async function submitAlgoProtectionOrder(symbol: string, closeSide: "BUY" | "SELL", type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", triggerPrice: number, quantity: number, label: string): Promise<{ algoId: string; clientAlgoId: string }> {
-  const clientAlgoId = `hashibot_${label}_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  // Binance requires clientAlgoId < 36 chars. Use short prefix + 22 random hex chars (max 30).
+  const clientAlgoId = `hb_${label}_${crypto.randomUUID().replace(/-/g, "").slice(0, 22)}`;
   const payload: Record<string, string | number | boolean> = {
     symbol, side: closeSide, algoType: "CONDITIONAL", type, triggerPrice, quantity,
     reduceOnly: true, workingType: "MARK_PRICE", clientAlgoId,
@@ -260,7 +261,7 @@ async function closeReduceOnly(row: Row, quantity: number, reason: string) {
     type: "MARKET",
     quantity: String(quantity),
     reduceOnly: "true",
-    newClientOrderId: `hashibot_${reason}_${row.id.slice(0, 8)}_${Date.now()}`,
+    newClientOrderId: `hb_${reason}_${row.id.slice(0, 8)}`,
   }, "POST");
 }
 
