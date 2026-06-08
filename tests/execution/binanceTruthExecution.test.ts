@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  buildE2EProtectionProof,
   buildNativeConditionalOrder,
   canExecuteFreshSignal,
   createProtectionPlan,
@@ -8,13 +9,26 @@ import {
   shouldBlockDuplicateSignal,
   shouldBlockDuplicateSignalWithTruth,
   timeStopMinutes,
+  validateSelectedSignalForExecution,
   verifyNativeProtectionOpenOrders,
+  governorPausedVisibility,
   type EntryFill,
   type ManagedExitClient,
   type NativeProtectionClient,
 } from '../../src/lib/binanceTruthExecution.js';
 
 async function run() {
+  assert.deepEqual(validateSelectedSignalForExecution(null, null), { ok: false, error: 'missing_signal_id' }, 'missing signal_id returns clean error');
+  assert.deepEqual(validateSelectedSignalForExecution('sig-1', null), { ok: false, error: 'signal_not_found' }, 'deleted signal returns clean signal_not_found error');
+  assert.deepEqual(validateSelectedSignalForExecution('sig-1', { id: 'other', symbol: 'BTCUSDT', market_type: 'crypto', direction: 'buy' }), { ok: false, error: 'invalid_selected_signal' }, 'selected signal mismatch does not crash');
+  assert.deepEqual(validateSelectedSignalForExecution('sig-1', { id: 'sig-1', symbol: null, market_type: 'crypto', direction: 'buy' }), { ok: false, error: 'stale_signal_not_executable' }, 'stale signal is not executable');
+  assert.equal(governorPausedVisibility({ state: 'paused', reason: 'daily_loss_limit_reached', lastCheckedAt: '2026-06-08T00:00:00.000Z' }).error, 'governor_paused', 'governor paused returns clean reason');
+  const proof = buildE2EProtectionProof({ entryOrderId: 'entry-1', positionSize: 0.1, bracketMode: 'exchange_native', protectionStatus: 'protected', slOrderId: 'sl-1', tp1OrderId: 'tp1-1', tp2OrderId: 'tp2-1' });
+  assert.equal(proof.entry_submitted, true, 'E2E proof includes entry_submitted');
+  assert.equal(proof.native_sl_order_detected, true, 'E2E proof includes native SL detection');
+  assert.equal(proof.native_tp1_order_detected, true, 'E2E proof includes native TP1 detection');
+  assert.equal(proof.native_tp2_order_detected, true, 'E2E proof includes native TP2 detection');
+
   assert.equal(shouldBlockDuplicateSignal([{ id: 'skip-auto', symbol: 'BTCUSDT', status: 'skipped', latest_auto_skip_reason: 'skipped_auto_disabled' }]).block, false, 'skipped_auto_disabled row allows manual retry');
   assert.equal(shouldBlockDuplicateSignal([{ id: 'failed', symbol: 'BTCUSDT', status: 'failed' }]).block, false, 'failed row allows retry');
   assert.equal(shouldBlockDuplicateSignal([{ id: 'closed-be', symbol: 'BTCUSDT', status: 'closed_breakeven' }]).block, false, 'closed_breakeven row allows retry');
