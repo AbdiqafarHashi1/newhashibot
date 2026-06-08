@@ -5,6 +5,7 @@ const sql = readFileSync('supabase/migrations/20260607133000_044_binance_truth_f
 const b51Sql = readFileSync('supabase/migrations/20260607143000_045_b5_1_signal_id_cron_auth_e2e_proof.sql', 'utf8');
 const b6Sql = readFileSync('supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql', 'utf8');
 const b61Sql = readFileSync('supabase/migrations/20260608143000_047_b6_1_reset_signal_fk_chain.sql', 'utf8');
+const b62Sql = readFileSync('supabase/migrations/20260608170000_048_b6_2_separate_history_reset_governor_controls.sql', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -37,4 +38,10 @@ for (const preserved of ['customers','packages','subscriptions','scanner_config'
 }
 assert.match(b61Sql, /to_regclass\('public\.' \|\| t\)/, 'B6.1 batch reset skips absent optional tables');
 assert.match(b61Sql, /LIMIT %s/, 'B6.1 reset remains batch-safe');
+assert.match(b62Sql, /reset_scope', 'performance_history_only'/, 'B6.2 performance reset is explicitly history-only');
+assert.match(b62Sql, /'execution_orders'[\s\S]*WHERE signal_id IS NOT NULL/, 'B6.2 reset only deletes DB execution orders linked to old signals');
+assert.match(b62Sql, /'governor reset'/, 'B6.2 reset documents governor preservation');
+assert.match(b62Sql, /failed_execution_streak/, 'B6.2 persists failed execution streak separate from history rows');
+assert.match(b62Sql, /closed_sl_streak/, 'B6.2 persists closed SL streak separate from history rows');
+
 console.log('SQL constraint tests passed');

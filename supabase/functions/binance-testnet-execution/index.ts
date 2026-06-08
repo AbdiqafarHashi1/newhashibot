@@ -12,7 +12,7 @@ const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protecte
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_sl", "closed_breakeven", "closed_timeout"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_sl", "closed_breakeven", "closed_timeout", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "clean_stale_execution_rows" | "manual_test_flow";
+type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -80,6 +80,8 @@ interface ExecutionSettings {
   max_consecutive_closed_sl: number;
   last_governor_reason: string | null;
   last_governor_checked_at: string | null;
+  failed_execution_streak: number;
+  closed_sl_streak: number;
 }
 
 interface AccountState {
@@ -403,8 +405,8 @@ async function evaluateGovernor(supabase: SupabaseClient, settings: ExecutionSet
     supabase.from("execution_orders").select("status").eq("exchange", "binance_usdm_testnet").order("updated_at", { ascending: false }).limit(25),
   ]);
   const statuses = ((recent ?? []) as Array<{ status: string }>).map((r) => r.status);
-  const consecutiveFailed = countLeading(statuses, "failed");
-  const consecutiveSl = countLeading(statuses, "closed_sl");
+  const consecutiveFailed = Math.max(countLeading(statuses, "failed"), Number(settings.failed_execution_streak ?? 0));
+  const consecutiveSl = Math.max(countLeading(statuses, "closed_sl"), Number(settings.closed_sl_streak ?? 0));
   let state: GovernorState = "normal";
   let reason = "governor_normal";
   if (!settings.governor_enabled) {
@@ -460,6 +462,8 @@ async function evaluateGovernor(supabase: SupabaseClient, settings: ExecutionSet
     daily_pnl_pct: decision.daily_pnl_pct,
     last_governor_reason: decision.reason,
     last_governor_checked_at: new Date().toISOString(),
+    failed_execution_streak: consecutiveFailed,
+    closed_sl_streak: consecutiveSl,
     updated_at: new Date().toISOString(),
   }).eq("id", 1);
   return decision;
@@ -1110,7 +1114,45 @@ async function statusPayload(supabase: SupabaseClient): Promise<Json> {
   const governor = await evaluateGovernor(supabase, settings, account_state ?? undefined).catch(() => null);
   const current_open_risk_pct = await currentOpenRiskPct(supabase).catch(() => 0);
   const max_total_open_risk_pct = maxTotalOpenRiskPct(settings);
-  return { success: true, settings, capital, account_state, governor, current_open_risk_pct, max_total_open_risk_pct, remaining_risk_capacity_pct: Math.max(0, max_total_open_risk_pct - current_open_risk_pct), env: { execution_mode: Deno.env.get("EXECUTION_MODE") || "signal_only", exchange: Deno.env.get("EXCHANGE") || "binance_usdm_testnet", testnet_enabled: envBool("TESTNET_ENABLED", false), live_trading_enabled: envBool("LIVE_TRADING_ENABLED", false), base_url: safeBaseUrl(), api_key_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY")), api_secret_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_SECRET")) }, executions: executions.data ?? [], failed_count: failed.count ?? 0, skipped_count: skipped.count ?? 0, latest_error: latestError.data ?? null };
+  return { success: true, settings, capital, account_state, governor, execution_allowed: governor ? !governor.blocks_execution : settings.governor_state !== "paused", current_open_risk_pct, max_total_open_risk_pct, remaining_risk_capacity_pct: Math.max(0, max_total_open_risk_pct - current_open_risk_pct), env: { execution_mode: Deno.env.get("EXECUTION_MODE") || "signal_only", exchange: Deno.env.get("EXCHANGE") || "binance_usdm_testnet", testnet_enabled: envBool("TESTNET_ENABLED", false), live_trading_enabled: envBool("LIVE_TRADING_ENABLED", false), base_url: safeBaseUrl(), api_key_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY")), api_secret_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_SECRET")) }, executions: executions.data ?? [], failed_count: failed.count ?? 0, skipped_count: skipped.count ?? 0, latest_error: latestError.data ?? null };
+}
+
+async function resetTestnetGovernor(supabase: SupabaseClient): Promise<Json> {
+  assertLiveTradingImpossible();
+  const settings = await getSettings(supabase);
+  if (settings.live_trading_enabled) throw new Error("live_trading_enabled_guard");
+  const account_state = await fetchAccountState().catch(() => null);
+  const resetEquity = account_state?.totalMarginBalance ?? (Number.isFinite(Number(settings.current_equity)) ? Number(settings.current_equity) : null);
+  const resetUnrealized = account_state?.unrealizedPnl ?? (Number.isFinite(Number(settings.daily_unrealized_pnl)) ? Number(settings.daily_unrealized_pnl) : null);
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase.from("execution_settings").update({
+    live_trading_enabled: false,
+    daily_start_equity: resetEquity,
+    current_equity: resetEquity,
+    daily_realized_pnl: 0,
+    daily_unrealized_pnl: resetUnrealized,
+    daily_pnl_pct: 0,
+    failed_execution_streak: 0,
+    closed_sl_streak: 0,
+    governor_state: "normal",
+    last_governor_reason: "testnet_governor_reset_start_new_test_day",
+    last_governor_checked_at: nowIso,
+    latest_account_state: account_state ? account_state as unknown as Json : settings as unknown as Json,
+    latest_account_state_at: account_state ? nowIso : settings.last_governor_checked_at,
+    updated_at: nowIso,
+  }).eq("id", 1);
+  if (error) throw new Error(error.message);
+
+  const refreshed = await getSettings(supabase);
+  const governor = await evaluateGovernor(supabase, refreshed, account_state ?? undefined);
+  return {
+    success: true,
+    reset_scope: "testnet_governor_only",
+    account_state,
+    governor,
+    execution_allowed: !governor.blocks_execution,
+    not_performed: ["performance_history_reset", "signal_delete", "scanner_run_delete", "binance_position_close", "binance_order_cancel", "live_trading_enable"],
+  };
 }
 
 async function updateSettings(supabase: SupabaseClient, patch: Json): Promise<Json> {
@@ -1166,7 +1208,8 @@ Deno.serve(async (req: Request) => {
     else if (action === "manual_test_flow") payload = await manualTestFlow(supabase, cleanSignalId(body.signal_id));
     else if (action === "sync_execution") payload = await syncExecution(supabase, body.execution_id ?? "");
     else if (action === "refresh_account_state") { assertLiveTradingImpossible(); const settings = await getSettings(supabase); const account_state = await fetchAccountState(); await storeAccountState(supabase, settings, account_state); payload = { success: true, account_state }; }
-    else if (action === "evaluate_governor") { assertLiveTradingImpossible(); const settings = await getSettings(supabase); const account_state = await fetchAccountState().catch(() => null); payload = { success: true, account_state, governor: await evaluateGovernor(supabase, settings, account_state ?? undefined) }; }
+    else if (action === "evaluate_governor") { assertLiveTradingImpossible(); const settings = await getSettings(supabase); const account_state = await fetchAccountState().catch(() => null); const governor = await evaluateGovernor(supabase, settings, account_state ?? undefined); payload = { success: true, account_state, governor, execution_allowed: !governor.blocks_execution }; }
+    else if (action === "reset_testnet_governor") payload = await resetTestnetGovernor(supabase);
     else if (action === "update_settings") payload = await updateSettings(supabase, body.settings ?? {});
     else payload = { success: false, error: "Unsupported action" };
     return new Response(JSON.stringify(payload), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });

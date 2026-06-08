@@ -45,7 +45,14 @@ interface Filters {
 interface ResetCountRow {
   table_name: string;
   deleted_count: number;
+  status?: string;
 }
+
+type ResetResponse = {
+  completed_at?: string;
+  timestamp?: string;
+  deleted_counts?: Record<string, { deleted_count?: number; status?: string } | number | string>;
+};
 
 type DatePreset = 'today' | 'last24h' | 'last7d' | 'last30d' | 'baseline' | 'custom';
 
@@ -86,7 +93,7 @@ interface StrategyConfigRow {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const RESET_CONFIRMATION_TEXT = 'RESET TRADING HISTORY';
+const RESET_CONFIRMATION_TEXT = 'RESET PERFORMANCE HISTORY';
 const BASELINE_STORAGE_KEY = 'hashibot.adminPerformance.baselineStartedAt';
 const CAPITAL_STORAGE_KEY = 'hashibot.adminPerformance.capitalAssumptions';
 const REQUIRED_STRATEGIES = [
@@ -107,6 +114,20 @@ const OUTCOME_COLORS: Record<string, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+
+
+function normalizeResetRows(data: unknown): { rows: ResetCountRow[]; timestamp: string } {
+  const payload = (data ?? {}) as ResetResponse;
+  const counts = payload.deleted_counts ?? {};
+  return {
+    rows: Object.entries(counts).map(([table_name, value]) => {
+      if (typeof value === 'number') return { table_name, deleted_count: value, status: 'deleted' };
+      if (typeof value === 'string') return { table_name, deleted_count: 0, status: value };
+      return { table_name, deleted_count: Number(value?.deleted_count ?? 0), status: value?.status };
+    }),
+    timestamp: payload.completed_at ?? payload.timestamp ?? new Date().toISOString(),
+  };
+}
 
 function getStoredCapitalAssumptions(): CapitalAssumptions {
   if (typeof window === 'undefined') return DEFAULT_CAPITAL_ASSUMPTIONS;
@@ -453,14 +474,11 @@ export default function Performance() {
       const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history');
       if (rpcError) throw new Error(rpcError.message);
 
-      const timestamp = new Date().toISOString();
-      window.localStorage.setItem(BASELINE_STORAGE_KEY, timestamp);
-      setBaselineStartedAt(timestamp);
+      const normalized = normalizeResetRows(data);
+      window.localStorage.setItem(BASELINE_STORAGE_KEY, normalized.timestamp);
+      setBaselineStartedAt(normalized.timestamp);
       setFilters(f => ({ ...f, datePreset: 'baseline', customStart: '', customEnd: '' }));
-      setResetResult({
-        rows: (data ?? []) as ResetCountRow[],
-        timestamp,
-      });
+      setResetResult(normalized);
       setResetInput('');
       await load();
     } catch (e) {
@@ -565,9 +583,9 @@ export default function Performance() {
             <h2 className="text-sm font-semibold text-red-300 uppercase tracking-wider flex items-center gap-2">
               <AlertTriangle size={16} /> Danger Zone
             </h2>
-            <h3 className="text-base font-semibold text-zinc-100 mt-2">Reset trading history</h3>
+            <h3 className="text-base font-semibold text-zinc-100 mt-2">Reset Performance History</h3>
             <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-              Full trading-state reset: clears open/closed signals, outcomes, candidates/rejected setups, linked Telegram signal history, and app-tracked open signal state. Preserves candles, symbols, configs, customers, packages, access, and Bot setup records. Next scanner run will repopulate fresh signals.
+              Clears signal/performance/testing history only: signals, outcomes, Telegram delivery rows linked to signals, candidate/rejected setups, scanner run history, performance/stat rows derived from old signals, and DB execution history linked to old signals. It preserves scanner settings, strategy settings, execution settings, customers, packages, subscriptions, profiles, Telegram config, bot setup records, Binance credentials, account balances, and real Binance positions/orders. It does not reset the testnet governor or disable the scanner; the next scheduled scanner run will repopulate fresh rows if setups qualify.
             </p>
             <p className="text-xs text-zinc-500 mt-3">
               Type <span className="font-mono text-red-200">{RESET_CONFIRMATION_TEXT}</span> to enable this manual reset.
@@ -587,7 +605,7 @@ export default function Performance() {
               className="w-full inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
             >
               {resetting && <RefreshCw size={12} className="animate-spin" />}
-              Reset trading history
+              Reset Performance History
             </button>
             {resetError && <div className="text-xs text-red-300 bg-red-950/50 border border-red-900/50 rounded-lg px-3 py-2">{resetError}</div>}
             {resetResult && (
@@ -596,7 +614,7 @@ export default function Performance() {
                 {resetResult.rows.map(row => (
                   <div key={row.table_name} className="flex justify-between gap-3">
                     <span className="font-mono">{row.table_name}</span>
-                    <span>{row.deleted_count}</span>
+                    <span>{row.deleted_count}{row.status ? ` (${row.status})` : ''}</span>
                   </div>
                 ))}
               </div>

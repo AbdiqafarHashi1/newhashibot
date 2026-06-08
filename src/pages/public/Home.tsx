@@ -14,33 +14,33 @@ export default function Home() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.15),transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_50%,rgba(6,182,212,0.06),transparent_50%)]" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-24 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 sm:pt-28 pb-16 sm:pb-24 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3.5 py-1.5 text-xs text-blue-400 mb-8 font-medium">
+            <div className="inline-flex max-w-full items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3.5 py-1.5 text-[11px] sm:text-xs text-blue-400 mb-5 sm:mb-8 font-medium leading-snug">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
               Live signal engine — 10 crypto markets scanned continuously
             </div>
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.05]">
+            <h1 className="text-[clamp(2.65rem,13vw,4rem)] sm:text-6xl md:text-7xl font-bold tracking-tight mb-4 sm:mb-6 leading-[1.02] sm:leading-[1.05]">
               Crypto signals with<br />
               <span className="text-blue-400">structure and clarity</span>
             </h1>
-            <p className="text-lg sm:text-xl text-zinc-400 max-w-2xl mx-auto mb-4 leading-relaxed">
+            <p className="text-base sm:text-xl text-zinc-400 max-w-2xl mx-auto mb-3 sm:mb-4 leading-relaxed">
               HashiBot delivers rule-based crypto signals with defined entry zones, stop loss,
               take profit levels, and full outcome tracking — straight to your dashboard and Telegram.
             </p>
-            <p className="text-sm text-zinc-600 max-w-lg mx-auto mb-10">
+            <p className="text-sm text-zinc-600 max-w-lg mx-auto mb-7 sm:mb-10 leading-relaxed">
               Uses Binance public market data. No guesswork, no manual calls. Every signal is graded before delivery.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-xl shadow-blue-600/20 text-sm"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-xl shadow-blue-600/20 text-sm"
               >
                 Join Signal Room <ArrowRight size={16} />
               </Link>
               <Link
                 to="/pricing"
-                className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-7 py-3.5 rounded-lg font-medium transition-colors text-sm"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-7 py-3.5 rounded-lg font-medium transition-colors text-sm"
               >
                 View Pricing
               </Link>
@@ -61,7 +61,7 @@ export default function Home() {
       </div>
 
       {/* Product pillars */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">Everything a signal needs to be actionable</h2>
           <p className="text-zinc-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
@@ -105,7 +105,7 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section className="bg-zinc-900/25 border-y border-zinc-800/70 py-24">
+      <section className="bg-zinc-900/25 border-y border-zinc-800/70 py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">How HashiBot works</h2>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { BinanceExecutionOrder, ExecutionSettings, Signal } from '../../lib/types';
-import { Shield, AlertTriangle, Cpu, Activity, Send, RefreshCw, XCircle, PlayCircle, FlaskConical, Trash2 } from 'lucide-react';
+import { Shield, AlertTriangle, Cpu, Activity, Send, RefreshCw, XCircle, PlayCircle, FlaskConical, Trash2, RotateCcw } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
@@ -62,6 +62,7 @@ interface StatusPayload {
   current_open_risk_pct?: number;
   max_total_open_risk_pct?: number;
   remaining_risk_capacity_pct?: number;
+  execution_allowed?: boolean;
   error?: string;
 }
 
@@ -79,6 +80,8 @@ interface ActionResult {
   admin_action_needed?: string;
   result?: Record<string, unknown>;
   rules?: Record<string, unknown>;
+  account_state?: Record<string, unknown> | null;
+  governor?: Record<string, unknown>;
   cleaned_count?: number;
   symbols_checked?: number;
 }
@@ -165,6 +168,10 @@ export default function Execution() {
     return callExecution(action, { signal_id: selectedSignalId, ...extra });
   }
 
+
+  async function resetTestnetGovernor() {
+    await callExecution('reset_testnet_governor');
+  }
 
   async function cleanStaleTestnetExecutions() {
     setCleaning(true);
@@ -263,26 +270,33 @@ export default function Execution() {
           <div className="flex gap-2">
             <ActionButton disabled={acting} onClick={() => callExecution('refresh_account_state')} icon={<RefreshCw size={14} />} label="Refresh Binance Account State" />
             <ActionButton disabled={acting} onClick={() => callExecution('evaluate_governor')} icon={<Shield size={14} />} label="Re-evaluate Governor" />
+            <ActionButton disabled={acting} onClick={resetTestnetGovernor} icon={<RotateCcw size={14} />} label="Reset Testnet Governor / Start New Test Day" danger />
           </div>
         </div>
         <div className="grid md:grid-cols-4 gap-3 text-xs">
           <ProofRow label="Governor enabled" value={status?.settings?.governor_enabled ? 'true' : 'false'} />
           <ProofRow label="Governor state" value={status?.governor?.state ?? status?.settings?.governor_state ?? 'normal'} />
+          <ProofRow label="Governor reason" value={status?.governor?.reason ?? status?.settings?.last_governor_reason ?? '—'} />
           <ProofRow label="Current equity" value={String(status?.governor?.current_equity ?? status?.settings?.current_equity ?? '—')} />
           <ProofRow label="Daily start equity" value={String(status?.settings?.daily_start_equity ?? '—')} />
+          <ProofRow label="Daily realized PnL" value={String(status?.settings?.daily_realized_pnl ?? '—')} />
           <ProofRow label="Daily PnL %" value={String(status?.governor?.daily_pnl_pct ?? status?.settings?.daily_pnl_pct ?? '—')} />
           <ProofRow label="Unrealized PnL" value={String(status?.governor?.unrealized_pnl ?? status?.settings?.daily_unrealized_pnl ?? '—')} />
           <ProofRow label="Open positions" value={String(status?.account_state?.openPositions ?? status?.settings?.account_open_positions ?? '—')} />
           <ProofRow label="Open orders" value={String(status?.account_state?.openOrderCount ?? status?.settings?.account_open_order_count ?? '—')} />
           <ProofRow label="Available balance" value={String(status?.account_state?.availableBalance ?? status?.settings?.account_available_balance ?? '—')} />
           <ProofRow label="Margin ratio" value={String(status?.account_state?.marginRatio ?? status?.settings?.account_margin_ratio ?? '—')} />
+          <ProofRow label="Max daily loss %" value={`${status?.settings?.max_daily_loss_pct ?? '—'}%`} />
+          <ProofRow label="Max unrealized DD %" value={`${status?.settings?.max_unrealized_drawdown_pct ?? '—'}%`} />
+          <ProofRow label="Failed execution streak" value={String(status?.settings?.failed_execution_streak ?? 0)} />
+          <ProofRow label="Closed SL streak" value={String(status?.settings?.closed_sl_streak ?? 0)} />
           <ProofRow label="Risk multiplier" value={String(status?.governor?.risk_multiplier ?? '—')} />
           <ProofRow label="Effective max lev" value={`${status?.governor?.adjusted_max_leverage ?? status?.settings?.testnet_max_leverage ?? 7}x`} />
           <ProofRow label="Effective risk %" value={status?.governor?.state === 'defensive' ? '0.5x configured' : status?.governor?.state === 'aggressive_allowed' ? 'A 0.75 / A+ 1.0 cap' : 'configured'} />
           <ProofRow label="Last checked" value={status?.settings?.last_governor_checked_at ? new Date(status.settings.last_governor_checked_at).toLocaleString() : '—'} />
-          <ProofRow label="Execution allowed" value={(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused') ? 'false' : 'true'} />
+          <ProofRow label="Execution allowed" value={String(status?.execution_allowed ?? !(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused'))} />
         </div>
-        <div className="mt-3 text-xs text-zinc-400">Governor reason: {status?.governor?.reason ?? status?.settings?.last_governor_reason ?? '—'}</div>
+        <div className="mt-3 text-xs text-zinc-400">Governor reset is testnet-only and does not delete signals, scanner runs, performance history, Binance positions, or Binance orders.</div>
         {(status?.governor?.state === 'paused' || status?.settings?.governor_state === 'paused') && (
           <div className="mt-3 text-xs text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 rounded p-3">
             Admin action needed: review kill switch, account PnL/drawdown, consecutive failure/SL streaks, and governor thresholds. HashiBot will not silently unpause execution.
