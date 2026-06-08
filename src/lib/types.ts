@@ -642,5 +642,7 @@ export interface ExecutionSettings {
   last_managed_exit_action?: Record<string, unknown> | null;
   binance_monitor_cron_active?: boolean | null;
   binance_monitor_cron_job_name?: string | null;
+  bot_paused: boolean;
+  bot_paused_reason: string | null;
   updated_at: string;
 }

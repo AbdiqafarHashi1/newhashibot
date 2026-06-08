@@ -120,6 +120,109 @@ async function cancelAlgoOrder(symbol: string, algoId: string) {
   await binanceRequest("/fapi/v1/algoOrder", { symbol, algoId }, "DELETE");
 }
 
+function floorToStep(value: number, step: number, precision: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const scaled = Math.floor((value / step) + 1e-12) * step;
+  return Number(scaled.toFixed(Math.min(Math.max(precision, 0), 12)));
+}
+
+function roundToTick(value: number, tick: number, precision: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const rounded = Math.round(value / tick) * tick;
+  return Number(rounded.toFixed(Math.min(Math.max(precision, 0), 12)));
+}
+
+async function fetchSymbolRules(symbol: string): Promise<{ stepSize: number; tickSize: number; pricePrecision: number; quantityPrecision: number }> {
+  try {
+    const data = await binanceRequest("/fapi/v1/exchangeInfo") as { symbols: Array<{ symbol: string; status: string; pricePrecision: number; quantityPrecision: number; filters: Array<{ filterType: string; tickSize?: string; stepSize?: string }> }> };
+    const row = data.symbols.find((s) => s.symbol === symbol && s.status === "TRADING");
+    if (!row) return { stepSize: 0.001, tickSize: 0.01, pricePrecision: 6, quantityPrecision: 3 };
+    const lot = row.filters.find((f) => f.filterType === "LOT_SIZE");
+    const price = row.filters.find((f) => f.filterType === "PRICE_FILTER");
+    return { stepSize: Number(lot?.stepSize ?? 0.001), tickSize: Number(price?.tickSize ?? 0.01), pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision };
+  } catch {
+    return { stepSize: 0.001, tickSize: 0.01, pricePrecision: 6, quantityPrecision: 3 };
+  }
+}
+
+async function submitAlgoProtectionOrder(symbol: string, closeSide: "BUY" | "SELL", type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", triggerPrice: number, quantity: number, label: string): Promise<{ algoId: string; clientAlgoId: string }> {
+  const clientAlgoId = `hashibot_${label}_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+  const payload: Record<string, string | number | boolean> = {
+    symbol, side: closeSide, algoType: "CONDITIONAL", type, triggerPrice, quantity,
+    reduceOnly: true, workingType: "MARK_PRICE", clientAlgoId,
+  };
+  const algo = await binanceRequest("/fapi/v1/algoOrder", payload, "POST") as { algoId?: string | number; clientAlgoId?: string };
+  const algoId = String(algo.algoId ?? "");
+  if (!algoId) throw new Error(`No algoId returned for ${label}`);
+  return { algoId, clientAlgoId: String(algo.clientAlgoId ?? clientAlgoId) };
+}
+
+async function submitProtectionForRow(
+  supabase: SupabaseClient,
+  row: Row,
+  quantity: number,
+  stats: MonitorStats,
+): Promise<"protected_native" | "protected_managed"> {
+  const rules = await fetchSymbolRules(row.symbol);
+  const closeSide = sideToClose(row.direction);
+  const sl = n(row.intended_sl) || n(row.stop_loss);
+  const tp1Price = n(row.intended_tp1) || n(row.tp1);
+  const tp2Price = n(row.intended_tp2) || n(row.tp2);
+  const tp1Qty = floorToStep(quantity * 0.5, rules.stepSize, rules.quantityPrecision);
+  const tp2Qty = floorToStep(quantity - tp1Qty, rules.stepSize, rules.quantityPrecision);
+  const slTrigger = roundToTick(sl, rules.tickSize, rules.pricePrecision);
+  const tp1Trigger = roundToTick(tp1Price, rules.tickSize, rules.pricePrecision);
+  const tp2Trigger = roundToTick(tp2Price, rules.tickSize, rules.pricePrecision);
+
+  if (!slTrigger || !tp1Trigger || !tp2Trigger || tp1Qty <= 0 || tp2Qty <= 0) {
+    const error = `missing_price_levels: sl=${sl} tp1=${tp1Price} tp2=${tp2Price} qty=${quantity}`;
+    await supabase.from("execution_orders").update({
+      bracket_mode: "managed_exit_fallback", protection_status: "protected_managed",
+      native_protection_verified: false, managed_fallback_active: true,
+      intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
+      tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
+      latest_protection_error: error, updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+    await logEvent(supabase, row, "managed_exit_fallback_enabled", `Monitor managed fallback: ${error}`, { error }, stats);
+    return "protected_managed";
+  }
+
+  try {
+    const [slOrder, tp1Order, tp2Order] = await Promise.all([
+      submitAlgoProtectionOrder(row.symbol, closeSide as "BUY" | "SELL", "STOP_MARKET", slTrigger, quantity, "sl"),
+      submitAlgoProtectionOrder(row.symbol, closeSide as "BUY" | "SELL", "TAKE_PROFIT_MARKET", tp1Trigger, tp1Qty, "tp1"),
+      submitAlgoProtectionOrder(row.symbol, closeSide as "BUY" | "SELL", "TAKE_PROFIT_MARKET", tp2Trigger, tp2Qty, "tp2"),
+    ]);
+    await supabase.from("execution_orders").update({
+      status: "protected_native", bracket_mode: "exchange_native", protection_status: "protected_native",
+      sl_order_id: slOrder.algoId, tp1_order_id: tp1Order.algoId, tp2_order_id: tp2Order.algoId,
+      sl_algo_id: slOrder.algoId, tp1_algo_id: tp1Order.algoId, tp2_algo_id: tp2Order.algoId,
+      sl_client_algo_id: slOrder.clientAlgoId, tp1_client_algo_id: tp1Order.clientAlgoId, tp2_client_algo_id: tp2Order.clientAlgoId,
+      binance_sl_order_id: slOrder.algoId, binance_tp1_order_id: tp1Order.algoId, binance_tp2_order_id: tp2Order.algoId,
+      native_protection_verified: true, managed_fallback_active: false,
+      tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
+      intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
+      latest_protection_error: "", tp1_filled: false, sl_moved_to_be: false,
+      protected_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+    await logEvent(supabase, row, "protected_native", `Monitor placed native SL/TP: sl=${slTrigger} tp1=${tp1Trigger} tp2=${tp2Trigger} qty=${quantity}`, { slOrder, tp1Order, tp2Order }, stats);
+    stats.updated += 1;
+    return "protected_native";
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "Native protection failed in monitor";
+    await supabase.from("execution_orders").update({
+      bracket_mode: "managed_exit_fallback", protection_status: "protected_managed",
+      native_protection_verified: false, managed_fallback_active: true,
+      intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
+      tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
+      latest_protection_error: error, updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+    await logEvent(supabase, row, "managed_exit_fallback_enabled", `Monitor managed fallback: native protection failed: ${error}`, { error }, stats);
+    stats.updated += 1;
+    return "protected_managed";
+  }
+}
+
 function normalizeAlgoStatus(order: BinanceOrder | null | undefined): string {
   return String(order?.algoStatus ?? order?.status ?? "UNKNOWN").toUpperCase();
 }
@@ -198,11 +301,19 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 
   const entry = entryId ? orderStatus[entryId] : null;
+
+  // Entry fill detected: immediately submit SL/TP protection before saving any status update.
+  // This prevents the monitor's unprotected check from flagging the row between fill and protection.
   if (entry?.status === "FILLED" && ["pending", "entry_submitted"].includes(row.status)) {
-    update.status = row.protection_status === "protected_native" ? "protected_native" : row.protection_status === "protected" ? "protected" : "entry_filled";
     const avg = n(entry.avgPrice);
+    const qty = Math.abs(positionAmt) > 0 ? Math.abs(positionAmt) : n(row.quantity) || n(row.volume);
     if (avg > 0) update.entry_price = avg;
-    await logEvent(supabase, row, "entry_filled", `${row.symbol} entry filled${avg > 0 ? ` at ${avg}` : ""}.`, { entry }, stats);
+    update.entry_filled_at = now;
+    await supabase.from("execution_orders").update({ ...update, status: "entry_filled" }).eq("id", row.id);
+    await logEvent(supabase, row, "entry_filled", `${row.symbol} entry filled${avg > 0 ? ` at ${avg}` : ""}; submitting protection immediately.`, { entry, qty }, stats);
+    stats.updated += 1;
+    await submitProtectionForRow(supabase, { ...row, status: "entry_filled", entry_price: avg || row.entry_price } as Row, qty, stats);
+    return;
   } else if (entry && TERMINAL_ORDER_STATUSES.includes(String(entry.status)) && ["pending", "entry_submitted"].includes(row.status)) {
     update.status = "cancelled";
     await logEvent(supabase, row, "entry_cancelled", `${row.symbol} entry order ${entry.status}.`, { entry }, stats);
@@ -234,9 +345,34 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
     }
   }
 
-  if (hasPosition && !["protected", "protected_native", "protected_managed"].includes(String(row.protection_status ?? "")) && ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed"].includes(row.status)) {
-    Object.assign(update, { protection_status: "unprotected_failed", latest_protection_error: "open Binance position is not protected_native or protected_managed", last_monitor_action: "unprotected_position_warning" });
-    await logEvent(supabase, row, "unprotected_position_warning", `${row.symbol} has an open Binance position without verified native or managed protection.`, { positionAmt, open_orders: openOrders }, stats);
+  // Unprotected open position: attempt protection recovery first, then safety close as last resort.
+  const protectionStatus = String(row.protection_status ?? "");
+  const isProtected = ["protected", "protected_native", "protected_managed"].includes(protectionStatus);
+  if (hasPosition && !isProtected && ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed"].includes(row.status)) {
+    await logEvent(supabase, row, "unprotected_recovery_attempt", `${row.symbol} open position without protection — attempting recovery.`, { positionAmt, protection_status: protectionStatus }, stats);
+    const qty = Math.abs(positionAmt) > 0 ? Math.abs(positionAmt) : n(row.quantity) || n(row.volume);
+    const recovered = await submitProtectionForRow(supabase, row, qty, stats);
+    if (recovered === "protected_native" || recovered === "protected_managed") {
+      Object.assign(update, { protection_status: recovered, last_monitor_action: `recovery_${recovered}` });
+    } else {
+      // Neither native nor managed protection could be established. Safety close to avoid uncontrolled loss.
+      try {
+        const closeResult = await closeReduceOnly(row, qty, "safety_close");
+        await supabase.from("execution_orders").update({
+          ...update, status: "closed_sl", protection_status: "unprotected_failed",
+          latest_protection_error: "safety_close: protection unavailable after recovery attempt",
+          remaining_quantity: 0, sl_closed_at: now, last_monitor_action: "safety_close",
+        }).eq("id", row.id);
+        await logEvent(supabase, row, "safety_close", `${row.symbol} safety-closed: position was unprotected and protection recovery failed.`, { positionAmt, closeResult }, stats);
+        stats.reduce_only_orders += 1;
+        stats.updated += 1;
+      } catch (closeErr) {
+        const closeError = closeErr instanceof Error ? closeErr.message : "safety close failed";
+        Object.assign(update, { protection_status: "unprotected_failed", latest_protection_error: `safety_close_failed: ${closeError}`, last_monitor_action: "safety_close_failed" });
+        await logEvent(supabase, row, "safety_close_failed", `${row.symbol} CRITICAL: unprotected position could not be safety-closed: ${closeError}`, { positionAmt, closeError }, stats);
+      }
+      return;
+    }
   }
 
   if (row.bracket_mode === "managed_exit_fallback" || row.protection_status === "protected_managed") {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { BinanceExecutionOrder, ExecutionSettings, Signal } from '../../lib/types';
-import { Shield, AlertTriangle, Cpu, Activity, Send, RefreshCw, XCircle, PlayCircle, FlaskConical, Trash2, RotateCcw } from 'lucide-react';
+import { Shield, AlertTriangle, Cpu, Activity, Send, RefreshCw, XCircle, PlayCircle, FlaskConical, Trash2, RotateCcw, PauseCircle, StopCircle, CheckCircle2 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
@@ -206,6 +206,71 @@ export default function Execution() {
           <strong>Testnet only.</strong> Live trading is blocked by env and database guards. API keys stay server-side in Supabase Edge Function secrets and are never shown here.
         </div>
       </div>
+
+      {/* Bot State Control Panel */}
+      {(() => {
+        const killActive = status?.settings?.kill_switch_enabled === true;
+        const paused = status?.settings?.bot_paused === true;
+        const running = !killActive && !paused && status?.settings?.auto_execute_testnet === true;
+        const botState = killActive ? 'kill_switch' : paused ? 'paused' : running ? 'running' : 'idle';
+        const stateConfig = {
+          kill_switch: { label: 'Kill Switch ON', sub: 'No new entries. Monitor still manages open positions.', ring: 'border-red-500/50', bg: 'bg-red-500/10', dot: 'bg-red-400', text: 'text-red-300' },
+          paused:      { label: 'Bot Paused',     sub: 'No new entries. Monitor still manages open positions.', ring: 'border-yellow-500/50', bg: 'bg-yellow-500/10', dot: 'bg-yellow-400', text: 'text-yellow-300' },
+          running:     { label: 'Bot Running',    sub: 'Auto-executing qualified scanner signals.', ring: 'border-emerald-500/50', bg: 'bg-emerald-500/10', dot: 'bg-emerald-400', text: 'text-emerald-300' },
+          idle:        { label: 'Idle (auto-off)', sub: 'Auto-execute is disabled. Manual execution still works.', ring: 'border-zinc-600', bg: 'bg-zinc-800/50', dot: 'bg-zinc-500', text: 'text-zinc-400' },
+        }[botState];
+        return (
+          <div className={`rounded-xl border p-5 mb-6 ${stateConfig.ring} ${stateConfig.bg}`}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className={`inline-block w-3 h-3 rounded-full ${stateConfig.dot} animate-pulse shrink-0`} />
+                <div>
+                  <div className={`font-semibold ${stateConfig.text}`}>{stateConfig.label}</div>
+                  <div className="text-xs text-zinc-500 mt-0.5">{stateConfig.sub}</div>
+                  {paused && status?.settings?.bot_paused_reason && (
+                    <div className="text-xs text-yellow-300/80 mt-1">Pause reason: {status.settings.bot_paused_reason}</div>
+                  )}
+                  <div className="text-xs text-zinc-600 mt-1">Scanner, Signal Mode, Telegram signals and outcome tracking are unaffected by bot state.</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button
+                  disabled={acting || (!paused && !killActive)}
+                  onClick={() => updateExecutionSettings({ bot_paused: false, kill_switch_enabled: false })}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors">
+                  <CheckCircle2 size={14} />Start Bot
+                </button>
+                <button
+                  disabled={acting || paused}
+                  onClick={() => updateExecutionSettings({ bot_paused: true, bot_paused_reason: 'Manual pause by admin' })}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-yellow-600 hover:bg-yellow-500 text-white disabled:opacity-40 transition-colors">
+                  <PauseCircle size={14} />Pause Bot
+                </button>
+                <button
+                  disabled={acting || killActive}
+                  onClick={() => updateExecutionSettings({ kill_switch_enabled: true })}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-red-700 hover:bg-red-600 text-white disabled:opacity-40 transition-colors">
+                  <StopCircle size={14} />Kill Switch
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mt-4 text-xs">
+              <div className="bg-black/20 rounded-lg p-3">
+                <div className="text-zinc-500">Auto-Execute</div>
+                <div className={`font-mono mt-1 ${status?.settings?.auto_execute_testnet ? 'text-emerald-300' : 'text-zinc-400'}`}>{status?.settings?.auto_execute_testnet ? 'ON' : 'OFF'}</div>
+              </div>
+              <div className="bg-black/20 rounded-lg p-3">
+                <div className="text-zinc-500">Governor</div>
+                <div className={`font-mono mt-1 ${status?.settings?.governor_state === 'paused' ? 'text-red-300' : status?.settings?.governor_state === 'defensive' ? 'text-yellow-300' : status?.settings?.governor_state === 'aggressive_allowed' ? 'text-blue-300' : 'text-emerald-300'}`}>{status?.settings?.governor_state ?? 'normal'}</div>
+              </div>
+              <div className="bg-black/20 rounded-lg p-3">
+                <div className="text-zinc-500">Open Positions</div>
+                <div className="font-mono mt-1 text-zinc-200">{openExecutions.length} / {status?.settings?.max_open_testnet_positions ?? 3}</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">

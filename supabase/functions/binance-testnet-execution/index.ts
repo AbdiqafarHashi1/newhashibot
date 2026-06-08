@@ -82,6 +82,8 @@ interface ExecutionSettings {
   last_governor_checked_at: string | null;
   failed_execution_streak: number;
   closed_sl_streak: number;
+  bot_paused: boolean;
+  bot_paused_reason: string | null;
 }
 
 interface AccountState {
@@ -554,7 +556,7 @@ async function getSettings(supabase: SupabaseClient): Promise<ExecutionSettings>
     kill_switch_enabled: false, auto_execute_testnet: false, max_open_testnet_positions: 3, max_open_testnet_positions_allowed_max: 10, max_total_open_risk_pct: 3, one_active_execution_per_symbol: true,
     testnet_enabled_at: null, fallback_account_balance: 10000, capital_basis: "available_usdt", testnet_capital_override_usdt: null,
     max_capital_used_usdt: null, testnet_risk_a: 0.5, testnet_risk_a_plus: 0.75, max_testnet_risk_pct: 1,
-    testnet_leverage_a: 3, testnet_leverage_a_plus: 5, testnet_max_leverage: 7, governor_enabled: true, governor_state: "normal", daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, ...(data ?? {}),
+    testnet_leverage_a: 3, testnet_leverage_a_plus: 5, testnet_max_leverage: 7, governor_enabled: true, governor_state: "normal", daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
   } as ExecutionSettings;
 }
 
@@ -792,6 +794,7 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   if (error || !signal) throw new Error("Signal not found");
   const sig = signal as SignalRow;
   if (settings.kill_switch_enabled) return createSkipped(supabase, sig, "skipped_kill_switch");
+  if (settings.bot_paused) return createSkipped(supabase, sig, "skipped_bot_paused", { bot_paused_reason: settings.bot_paused_reason });
   if (settings.execution_mode !== "testnet" || !settings.testnet_enabled) return createSkipped(supabase, sig, "skipped_auto_disabled");
   if (!manual && !settings.auto_execute_testnet) return createSkipped(supabase, sig, "skipped_auto_disabled");
   const { data: existingRows, error: existingError } = await supabase.from("execution_orders").select("id,status,symbol").eq("signal_id", signalId).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").order("created_at", { ascending: false });
