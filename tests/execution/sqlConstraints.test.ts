@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const sql = readFileSync('supabase/migrations/20260607133000_044_binance_truth_first_end_to_end.sql', 'utf8');
 const b51Sql = readFileSync('supabase/migrations/20260607143000_045_b5_1_signal_id_cron_auth_e2e_proof.sql', 'utf8');
 const b6Sql = readFileSync('supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql', 'utf8');
+const b61Sql = readFileSync('supabase/migrations/20260608143000_047_b6_1_reset_signal_fk_chain.sql', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -28,4 +29,12 @@ for (const value of ['protected_native','protected_managed','closed_timeout','cl
 assert.match(b6Sql, /admin_reset_trading_history_batch/, 'B6 adds batch reset function');
 assert.match(b6Sql, /to_regclass\('public\.' \|\| t\)/, 'B6 batch reset skips absent optional tables');
 assert.match(b6Sql, /time_stop_deadline_at/, 'B6 stores time-stop deadline');
+
+assert.match(b61Sql, /'telegram_deliveries',[\s\S]*'execution_event_logs',[\s\S]*'execution_orders',[\s\S]*'signal_updates',[\s\S]*'signal_outcomes',[\s\S]*'outcomes',[\s\S]*'signals'/, 'B6.1 reset deletes signal dependents before signals');
+assert.match(b61Sql, /'signals',[\s\S]*'strategy_candidates',[\s\S]*'scanner_candidates',[\s\S]*'rejected_setups',[\s\S]*'scanner_runs'/, 'B6.1 reset deletes candidate and scanner history after signals');
+for (const preserved of ['customers','packages','subscriptions','scanner_config','strategy_configs','execution_settings','telegram config','bot setup records']) {
+  assert.match(b61Sql, new RegExp(`'${preserved}'`), `B6.1 reset preserves ${preserved}`);
+}
+assert.match(b61Sql, /to_regclass\('public\.' \|\| t\)/, 'B6.1 batch reset skips absent optional tables');
+assert.match(b61Sql, /LIMIT %s/, 'B6.1 reset remains batch-safe');
 console.log('SQL constraint tests passed');

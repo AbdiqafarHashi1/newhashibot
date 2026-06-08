@@ -992,18 +992,61 @@ function quantityPct(quantity: unknown, total: unknown): number | null {
   return Number(((q / t) * 100).toFixed(8));
 }
 
+function cleanSignalId(signalId: unknown): string {
+  return typeof signalId === "string" ? signalId.trim() : "";
+}
+
+function governorPausedPayload(governor: GovernorDecision, settings: ExecutionSettings): Json {
+  return {
+    success: false,
+    error: "governor_paused",
+    reason: governor.reason,
+    governor_state: governor.state,
+    governor_reason: governor.reason,
+    last_governor_checked_at: new Date().toISOString(),
+    execution_allowed: false,
+    admin_action_needed: settings.kill_switch_enabled
+      ? "Turn off the execution kill switch after reviewing account state; the function will not unpause automatically."
+      : "Review governor thresholds, account PnL, failed execution streaks, and risk settings; the function will not unpause automatically.",
+  };
+}
+
+async function validateSelectedSignal(supabase: SupabaseClient, signalId: unknown): Promise<SignalRow | Json> {
+  const id = cleanSignalId(signalId);
+  if (!id) return { success: false, error: "missing_signal_id" };
+  const { data, error } = await supabase.from("signals").select("*").eq("id", id).maybeSingle();
+  if (error) return { success: false, error: "signal_not_found", details: error.message, signal_id: id };
+  if (!data) return { success: false, error: "signal_not_found", signal_id: id };
+  const signal = data as SignalRow;
+  if (!signal.id || signal.id !== id) return { success: false, error: "invalid_selected_signal", signal_id: id };
+  if (signal.market_type !== "crypto" || !signal.symbol || !signal.direction) {
+    return { success: false, error: "stale_signal_not_executable", signal_id: id, market_type: signal.market_type, symbol: signal.symbol ?? "", direction: signal.direction ?? "" };
+  }
+  return signal;
+}
+
+function isSignalRow(value: SignalRow | Json): value is SignalRow {
+  return typeof (value as SignalRow).id === "string" && typeof (value as SignalRow).symbol === "string";
+}
+
 async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promise<Json> {
   assertLiveTradingImpossible();
-  const { data: signal } = await supabase.from("signals").select("symbol").eq("id", signalId).maybeSingle();
-  if (!signal) throw new Error("Signal not found");
-  const symbol = String((signal as Json).symbol);
-  const clean = await cleanStaleRowsForSymbols(supabase, [symbol]);
+  const validated = await validateSelectedSignal(supabase, signalId);
+  if (!isSignalRow(validated)) return validated;
+  const symbol = validated.symbol;
   const settings = await getSettings(supabase);
-  const { data: fullSignal } = await supabase.from("signals").select("*").eq("id", signalId).maybeSingle();
-  if (!fullSignal) throw new Error("Signal not found");
-  const plan = buildPlan(fullSignal as SignalRow, await getRules(symbol), await capitalSnapshot(settings), settings, await evaluateGovernor(supabase, settings));
+  const governor = await evaluateGovernor(supabase, settings);
+  if (governor.blocks_execution) return governorPausedPayload(governor, settings);
+  const clean = await cleanStaleRowsForSymbols(supabase, [symbol]);
+  let plan: OrderPlan;
+  try {
+    plan = buildPlan(validated, await getRules(symbol), await capitalSnapshot(settings), settings, governor);
+  } catch (e) {
+    return { success: false, error: "stale_signal_not_executable", reason: e instanceof Error ? e.message : "invalid_selected_signal", signal_id: signalId, symbol };
+  }
   const execution = await executeSignal(supabase, signalId, true);
   const truth = await fetchBinanceSymbolTruth(symbol);
+  const openOrders = await binanceRequest<Json[]>("GET", "/fapi/v1/openOrders", { symbol }, true).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
   let sync: Json | null = null;
   if (execution.execution_id) sync = await syncExecution(supabase, String(execution.execution_id));
   const monitor = await invokeMonitorCron().catch((e) => ({ success: false, error: e instanceof Error ? e.message : String(e) }));
@@ -1025,15 +1068,16 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
     success: true,
     signal_id: signalId,
     symbol,
-    steps: { clean, dry_run: { success: true, plan }, execute: execution, fetch_binance_truth: { position: truth.positionRisk, open_orders: truth.openOrders }, sync, monitor_cron_confirmation: monitor },
+    steps: { clean, dry_run: { success: true, plan }, execute: execution, fetch_binance_truth: { position: truth.positionRisk, open_orders: truth.openOrders }, fetch_binance_open_orders: openOrders, sync, monitor_cron_confirmation: monitor },
     result: {
       entry_submitted: Boolean(resultRow?.entry_order_id ?? resultRow?.binance_entry_order_id),
       entry_order_status: (resultRow as Json | null)?.status ?? execution.status ?? execution.reason ?? "unknown",
       binance_truth_fetched: true,
+      position_detected: Math.abs(truth.positionAmt) > 0,
       position_status: truth.hasExposure ? "open_on_binance" : "no_open_binance_position",
-      sl_created_natively: nativeOrderCreated(resultRow, "binance_sl_order_id") || nativeOrderCreated(resultRow, "sl_order_id"),
-      tp1_created_natively: nativeOrderCreated(resultRow, "binance_tp1_order_id") || nativeOrderCreated(resultRow, "tp1_order_id"),
-      tp2_created_natively: nativeOrderCreated(resultRow, "binance_tp2_order_id") || nativeOrderCreated(resultRow, "tp2_order_id"),
+      native_sl_order_detected: nativeOrderCreated(resultRow, "binance_sl_order_id") || nativeOrderCreated(resultRow, "sl_order_id"),
+      native_tp1_order_detected: nativeOrderCreated(resultRow, "binance_tp1_order_id") || nativeOrderCreated(resultRow, "tp1_order_id"),
+      native_tp2_order_detected: nativeOrderCreated(resultRow, "binance_tp2_order_id") || nativeOrderCreated(resultRow, "tp2_order_id"),
       managed_fallback_active: managedFallbackActive,
       tp1_quantity: resultRow?.tp1_quantity ?? plan.tp1Quantity,
       tp2_quantity: resultRow?.tp2_quantity ?? plan.tp2Quantity,
@@ -1044,6 +1088,7 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
       bracket_mode: resultRow?.bracket_mode ?? null,
       protected_or_managed: protectedState,
       monitor_cron_confirmed_protection_state: monitorStateConfirmed,
+      monitor_ready: monitorStateConfirmed || managedFallbackActive || protectedState,
       monitor_status: (monitorSettings as Json | null)?.latest_monitor_status ?? null,
       monitor_run_at: (monitorSettings as Json | null)?.latest_monitor_run_at ?? null,
       monitor_result: (monitorSettings as Json | null)?.latest_monitor_result ?? null,
@@ -1100,14 +1145,25 @@ Deno.serve(async (req: Request) => {
       else payload = { success: true, result: await binanceRequest("POST", "/fapi/v1/order", { symbol: String(sym), side: amt > 0 ? "SELL" : "BUY", type: "MARKET", quantity: Math.abs(amt), reduceOnly: true }, true) };
     }
     else if (action === "dry_run") {
-      const { data: signal } = await supabase.from("signals").select("*").eq("id", body.signal_id ?? "").maybeSingle();
-      if (!signal) throw new Error("Signal not found");
-      const settings = await getSettings(supabase);
-      payload = { success: true, plan: buildPlan(signal as SignalRow, await getRules((signal as SignalRow).symbol), await capitalSnapshot(settings), settings, await evaluateGovernor(supabase, settings)) };
+      const validated = await validateSelectedSignal(supabase, body.signal_id);
+      if (!isSignalRow(validated)) payload = validated;
+      else {
+        const settings = await getSettings(supabase);
+        const governor = await evaluateGovernor(supabase, settings);
+        payload = governor.blocks_execution ? governorPausedPayload(governor, settings) : { success: true, plan: buildPlan(validated, await getRules(validated.symbol), await capitalSnapshot(settings), settings, governor) };
+      }
     }
-    else if (action === "execute_signal") payload = await executeSignal(supabase, body.signal_id ?? "", Boolean(body.manual));
+    else if (action === "execute_signal") {
+      const validated = await validateSelectedSignal(supabase, body.signal_id);
+      if (!isSignalRow(validated)) payload = validated;
+      else {
+        const settings = await getSettings(supabase);
+        const governor = await evaluateGovernor(supabase, settings);
+        payload = governor.blocks_execution ? governorPausedPayload(governor, settings) : await executeSignal(supabase, validated.id, Boolean(body.manual));
+      }
+    }
     else if (action === "clean_stale_execution_rows") payload = await cleanStaleRowsForSymbols(supabase, body.symbol ? [body.symbol] : undefined);
-    else if (action === "manual_test_flow") payload = await manualTestFlow(supabase, body.signal_id ?? "");
+    else if (action === "manual_test_flow") payload = await manualTestFlow(supabase, cleanSignalId(body.signal_id));
     else if (action === "sync_execution") payload = await syncExecution(supabase, body.execution_id ?? "");
     else if (action === "refresh_account_state") { assertLiveTradingImpossible(); const settings = await getSettings(supabase); const account_state = await fetchAccountState(); await storeAccountState(supabase, settings, account_state); payload = { success: true, account_state }; }
     else if (action === "evaluate_governor") { assertLiveTradingImpossible(); const settings = await getSettings(supabase); const account_state = await fetchAccountState().catch(() => null); payload = { success: true, account_state, governor: await evaluateGovernor(supabase, settings, account_state ?? undefined) }; }

@@ -359,3 +359,71 @@ export async function evaluateManagedExit(state: ManagedPositionState, markPrice
   }
   return { action: 'none', closedQuantity: 0, remainingQuantity: state.remainingQuantity, slMovedToBreakEven: state.slMovedToBreakEven };
 }
+
+export type SelectedSignalValidationError = 'missing_signal_id' | 'signal_not_found' | 'invalid_selected_signal' | 'stale_signal_not_executable';
+
+export interface SelectedSignalLike {
+  id?: string | null;
+  symbol?: string | null;
+  market_type?: string | null;
+  direction?: Direction | string | null;
+  status?: string | null;
+}
+
+export function validateSelectedSignalForExecution(signalId: string | null | undefined, signal: SelectedSignalLike | null | undefined): { ok: true; signal_id: string } | { ok: false; error: SelectedSignalValidationError } {
+  const id = typeof signalId === 'string' ? signalId.trim() : '';
+  if (!id) return { ok: false, error: 'missing_signal_id' };
+  if (!signal) return { ok: false, error: 'signal_not_found' };
+  if (signal.id !== id) return { ok: false, error: 'invalid_selected_signal' };
+  if (signal.market_type !== 'crypto' || !signal.symbol || !signal.direction) return { ok: false, error: 'stale_signal_not_executable' };
+  return { ok: true, signal_id: id };
+}
+
+export interface GovernorVisibilityInput {
+  state: string;
+  reason: string;
+  lastCheckedAt?: string | null;
+  killSwitchEnabled?: boolean;
+}
+
+export function governorPausedVisibility(input: GovernorVisibilityInput): { error: 'governor_paused'; governor_state: string; governor_reason: string; last_governor_checked_at: string | null; execution_allowed: false; admin_action_needed: string } {
+  return {
+    error: 'governor_paused',
+    governor_state: input.state,
+    governor_reason: input.reason,
+    last_governor_checked_at: input.lastCheckedAt ?? null,
+    execution_allowed: false,
+    admin_action_needed: input.killSwitchEnabled
+      ? 'Turn off the execution kill switch after reviewing account state; the bot will not unpause automatically.'
+      : 'Review governor thresholds, account PnL, failed execution streaks, and risk settings; the bot will not unpause automatically.',
+  };
+}
+
+export interface E2EProtectionProofInput {
+  entryOrderId?: string | null;
+  positionSize: number;
+  bracketMode?: string | null;
+  protectionStatus?: string | null;
+  slOrderId?: string | null;
+  tp1OrderId?: string | null;
+  tp2OrderId?: string | null;
+  latestProtectionError?: string | null;
+  monitorReady?: boolean;
+}
+
+export function buildE2EProtectionProof(input: E2EProtectionProofInput) {
+  const native = input.bracketMode === 'exchange_native';
+  const managed = input.bracketMode === 'managed_exit_fallback' && input.protectionStatus === 'protected_managed';
+  return {
+    entry_submitted: Boolean(input.entryOrderId),
+    position_detected: Math.abs(input.positionSize) > 0,
+    native_sl_order_detected: native && Boolean(input.slOrderId),
+    native_tp1_order_detected: native && Boolean(input.tp1OrderId),
+    native_tp2_order_detected: native && Boolean(input.tp2OrderId),
+    bracket_mode: input.bracketMode ?? null,
+    protection_status: input.protectionStatus ?? null,
+    latest_protection_error: input.latestProtectionError ?? null,
+    managed_fallback_active: managed,
+    monitor_ready: Boolean(input.monitorReady || managed || input.protectionStatus === 'protected'),
+  };
+}

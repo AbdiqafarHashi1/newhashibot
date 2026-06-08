@@ -58,7 +58,7 @@ interface StatusPayload {
   latest_error?: { error_message?: string; last_exchange_error?: string } | null;
   capital?: { raw_total_margin_balance?: number; raw_total_wallet_balance?: number; raw_available_usdt?: number; raw_available_usdc?: number; selected_capital_used?: number; capital_basis?: string; max_capital_cap_applied?: boolean };
   account_state?: { totalMarginBalance?: number; totalWalletBalance?: number; availableBalance?: number; availableUsdt?: number; availableUsdc?: number; unrealizedPnl?: number; openPositions?: number; marginRatio?: number | null; openOrderCount?: number; positions?: Array<{ symbol: string; positionAmt: number; unrealizedPnl: number; notional: number }> };
-  governor?: { state?: string; reason?: string; risk_multiplier?: number; adjusted_max_leverage?: number; adjusted_max_open_positions?: number; daily_pnl_pct?: number | null; unrealized_pnl?: number | null; current_equity?: number | null };
+  governor?: { state?: string; reason?: string; risk_multiplier?: number; adjusted_max_leverage?: number; adjusted_max_open_positions?: number; daily_pnl_pct?: number | null; unrealized_pnl?: number | null; current_equity?: number | null; blocks_execution?: boolean };
   current_open_risk_pct?: number;
   max_total_open_risk_pct?: number;
   remaining_risk_capacity_pct?: number;
@@ -72,6 +72,12 @@ interface ActionResult {
   execution_id?: string;
   status?: string;
   plan?: Record<string, unknown>;
+  governor_state?: string;
+  governor_reason?: string;
+  last_governor_checked_at?: string;
+  execution_allowed?: boolean;
+  admin_action_needed?: string;
+  result?: Record<string, unknown>;
   rules?: Record<string, unknown>;
   cleaned_count?: number;
   symbols_checked?: number;
@@ -94,6 +100,7 @@ export default function Execution() {
   const openExecutions = useMemo(() => executions.filter(e => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
   const failedExecutions = executions.filter(e => e.status === 'failed');
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
+  const selectedSignalValid = useMemo(() => Boolean(selectedSignalId && signals.some(s => s.id === selectedSignalId)), [selectedSignalId, signals]);
 
   async function updateExecutionSettings(settingsPatch: Record<string, unknown>) {
     return callExecution('update_settings', { settings: settingsPatch });
@@ -138,10 +145,25 @@ export default function Execution() {
     setStatus(statusPayload);
     const recentSignals = (signalsRes.data ?? []) as Signal[];
     setSignals(recentSignals);
-    setSelectedSignalId(current => current || recentSignals[0]?.id || '');
+    setSelectedSignalId(current => recentSignals.some(s => s.id === current) ? current : (recentSignals[0]?.id || ''));
     setMonitorState((monitorRes.data ?? null) as ExecutionSettingsSnapshot | null);
     setLoading(false);
   }, [session]);
+
+  async function callSelectedExecution(action: 'dry_run' | 'execute_signal' | 'manual_test_flow', extra: Record<string, unknown> = {}) {
+    if (!selectedSignalId) {
+      const data = { success: false, error: 'missing_signal_id' } as ActionResult;
+      setResult(data);
+      return data;
+    }
+    if (!signals.some(s => s.id === selectedSignalId)) {
+      const data = { success: false, error: 'invalid_selected_signal', reason: 'Selected signal is stale or no longer in the refreshed dropdown.' } as ActionResult;
+      setResult(data);
+      await load();
+      return data;
+    }
+    return callExecution(action, { signal_id: selectedSignalId, ...extra });
+  }
 
 
   async function cleanStaleTestnetExecutions() {
@@ -258,8 +280,14 @@ export default function Execution() {
           <ProofRow label="Effective max lev" value={`${status?.governor?.adjusted_max_leverage ?? status?.settings?.testnet_max_leverage ?? 7}x`} />
           <ProofRow label="Effective risk %" value={status?.governor?.state === 'defensive' ? '0.5x configured' : status?.governor?.state === 'aggressive_allowed' ? 'A 0.75 / A+ 1.0 cap' : 'configured'} />
           <ProofRow label="Last checked" value={status?.settings?.last_governor_checked_at ? new Date(status.settings.last_governor_checked_at).toLocaleString() : '—'} />
+          <ProofRow label="Execution allowed" value={(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused') ? 'false' : 'true'} />
         </div>
         <div className="mt-3 text-xs text-zinc-400">Governor reason: {status?.governor?.reason ?? status?.settings?.last_governor_reason ?? '—'}</div>
+        {(status?.governor?.state === 'paused' || status?.settings?.governor_state === 'paused') && (
+          <div className="mt-3 text-xs text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 rounded p-3">
+            Admin action needed: review kill switch, account PnL/drawdown, consecutive failure/SL streaks, and governor thresholds. HashiBot will not silently unpause execution.
+          </div>
+        )}
         {status?.account_state?.positions && status.account_state.positions.length > 0 && <div className="mt-3 text-xs text-zinc-500 font-mono">Positions: {status.account_state.positions.map(p => `${p.symbol} size ${p.positionAmt} uPnL ${p.unrealizedPnl}`).join(' · ')}</div>}
       </div>
 
@@ -317,9 +345,9 @@ export default function Execution() {
           <div className="grid sm:grid-cols-2 gap-3">
             <ActionButton disabled={acting} onClick={() => callExecution('test_connection')} icon={<Send size={14} />} label="Test Binance Connection" />
             <ActionButton disabled={acting} onClick={() => callExecution('validate_symbol', { symbol })} icon={<FlaskConical size={14} />} label="Validate Symbol" />
-            <ActionButton disabled={acting || !selectedSignalId} onClick={() => callExecution('dry_run', { signal_id: selectedSignalId })} icon={<FlaskConical size={14} />} label="Dry-run Selected Signal" />
-            <ActionButton disabled={acting || !selectedSignalId} onClick={() => callExecution('execute_signal', { signal_id: selectedSignalId, manual: true })} icon={<PlayCircle size={14} />} label="Execute Selected Signal" danger />
-            <ActionButton disabled={acting || !selectedSignalId} onClick={() => callExecution('manual_test_flow', { signal_id: selectedSignalId })} icon={<Shield size={14} />} label="Run E2E Test Flow" danger />
+            <ActionButton disabled={acting || !selectedSignalValid} onClick={() => callSelectedExecution('dry_run')} icon={<FlaskConical size={14} />} label="Dry-run Selected Signal" />
+            <ActionButton disabled={acting || !selectedSignalValid} onClick={() => callSelectedExecution('execute_signal', { manual: true })} icon={<PlayCircle size={14} />} label="Execute Selected Signal" danger />
+            <ActionButton disabled={acting || !selectedSignalValid} onClick={() => callSelectedExecution('manual_test_flow')} icon={<Shield size={14} />} label="Run E2E Test Flow" danger />
             <ActionButton disabled={acting} onClick={() => callExecution('positions')} icon={<RefreshCw size={14} />} label="Fetch Open Positions" />
             <ActionButton disabled={acting || !symbol} onClick={() => callExecution('cancel_orders', { symbol })} icon={<XCircle size={14} />} label="Cancel Symbol Orders" danger />
             <ActionButton disabled={acting || !symbol} onClick={() => callExecution('close_position', { symbol })} icon={<XCircle size={14} />} label="Close Position Now" danger />
@@ -333,8 +361,10 @@ export default function Execution() {
             <label className="block">
               <span className="text-xs text-zinc-500">Recent signal for dry-run/manual execution</span>
               <select value={selectedSignalId} onChange={e => setSelectedSignalId(e.target.value)} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm">
+                <option value="" disabled>{signals.length === 0 ? 'No executable crypto signals available' : 'Select a signal'}</option>
                 {signals.map(s => <option key={s.id} value={s.id}>{s.symbol} {s.direction.toUpperCase()} · {s.grade} · {new Date(s.created_at).toLocaleString()}</option>)}
               </select>
+              {!selectedSignalValid && <div className="text-[11px] text-yellow-300 mt-1">Refresh removed stale/deleted signals from this dropdown. Select a valid fresh signal before execution.</div>}
             </label>
           </div>
         </div>
