@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { evaluateMonitorGates, processExecutionMonitorTick } from '../../src/lib/binanceTestnetMonitor.js';
+import { computeTimeStopDeadline, evaluateMonitorGates, processExecutionMonitorTick } from '../../src/lib/binanceTestnetMonitor.js';
 
 async function run() {
   assert.deepEqual(evaluateMonitorGates({ EXECUTION_MODE: 'testnet', TESTNET_ENABLED: true, LIVE_TRADING_ENABLED: true }, { execution_mode: 'testnet', testnet_enabled: true, kill_switch_enabled: false }), { allowed: false, reason: 'live_trading_enabled_abort' }, 'monitor aborts if live trading is enabled');
@@ -11,7 +11,7 @@ async function run() {
   assert.equal(entry.updates.entry_price, 100.5);
   assert.equal(entry.events.length, 1);
 
-  const native = { ...base, status: 'protected', bracket_mode: 'exchange_native', binance_tp1_order_id: 'tp1', binance_tp2_order_id: 'tp2', binance_sl_order_id: 'sl' };
+  const native = { ...base, status: 'protected', protection_status: 'protected', bracket_mode: 'exchange_native', binance_tp1_order_id: 'tp1', binance_tp2_order_id: 'tp2', binance_sl_order_id: 'sl' };
   const nativeTp1 = processExecutionMonitorTick(native, { positionAmt: 1, openOrders: [], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FILLED' } });
   assert.equal(nativeTp1.updates.status, 'partially_closed', 'native TP1 partial close detection');
   assert.equal(nativeTp1.updates.sl_moved_to_be, true);
@@ -33,6 +33,14 @@ async function run() {
   const managedTp2 = processExecutionMonitorTick({ ...managed, tp1_closed_at: new Date().toISOString(), sl_moved_to_be: true, remaining_quantity: 1 }, { positionAmt: 1, openOrders: [], markPrice: 121 }, {});
   assert.equal(managedTp2.reduceOnlyMarketOrders[0].reason, 'tp2', 'managed TP2 closes remaining');
   assert.equal(managedTp2.updates.status, 'closed_tp');
+
+  const expired = processExecutionMonitorTick({ ...managed, strategy_name: 'MicroScalper', timeframe: '5m', created_at: new Date(Date.now() - 121 * 60_000).toISOString() }, { positionAmt: 2, openOrders: [], markPrice: 101 }, {});
+  assert.equal(expired.reduceOnlyMarketOrders[0].reason, 'timeout', 'time-stop closes remaining reduce-only');
+  assert.equal(expired.updates.status, 'closed_timeout');
+  assert.equal(typeof computeTimeStopDeadline({ ...managed, strategy_name: 'CompressionBreakout', timeframe: '1h', created_at: '2026-06-08T00:00:00.000Z' }), 'string', 'time-stop deadline is computed');
+
+  const unprotected = processExecutionMonitorTick({ ...base, status: 'entry_filled', protection_status: 'unprotected' }, { positionAmt: 2, openOrders: [], markPrice: 100 }, {});
+  assert.equal(unprotected.updates.protection_status, 'unprotected_failed', 'unprotected open position warning');
 
   const managedSl = processExecutionMonitorTick({ ...managed, tp1_closed_at: new Date().toISOString(), sl_moved_to_be: true, remaining_quantity: 1 }, { positionAmt: 1, openOrders: [], markPrice: 99 }, {});
   assert.equal(managedSl.reduceOnlyMarketOrders[0].reason, 'sl', 'managed SL closes remaining');

@@ -17,6 +17,7 @@ export const RETRYABLE_EXECUTION_STATUSES = [
   'closed_tp',
   'closed_sl',
   'closed_breakeven',
+  'closed_timeout',
 ] as const;
 
 export type ActiveExecutionStatus = typeof ACTIVE_EXECUTION_STATUSES[number];
@@ -39,6 +40,31 @@ export interface BinanceOpenOrder {
   status?: string;
   reduceOnly?: boolean;
   closePosition?: boolean;
+  side?: 'BUY' | 'SELL' | string;
+  stopPrice?: number | string;
+  price?: number | string;
+  origQty?: number | string;
+  workingType?: string;
+  positionSide?: string;
+}
+
+export interface NativeConditionalOrderIntent {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  type: 'STOP_MARKET' | 'TAKE_PROFIT_MARKET';
+  quantity: number;
+  stopPrice: number;
+  reduceOnly: true;
+  workingType: 'MARK_PRICE';
+  closePosition?: false;
+  timeInForce?: never;
+  price?: never;
+}
+
+export interface NativeProtectionVerificationResult {
+  verified: boolean;
+  missingLabels: Array<'sl' | 'tp1' | 'tp2'>;
+  errors: string[];
 }
 
 export interface ExecutionRow {
@@ -176,9 +202,71 @@ export function canExecuteFreshSignal(input: SignalExecutionInput): { allowed: b
   return { allowed: true, reason: 'allowed' };
 }
 
+export function splitTp1Tp2Quantities(quantity: number, stepSize = 0): { tp1Quantity: number; tp2Quantity: number } {
+  if (!Number.isFinite(quantity) || quantity <= 0) return { tp1Quantity: 0, tp2Quantity: 0 };
+  const rawHalf = quantity / 2;
+  const tp1Quantity = stepSize > 0 ? Math.floor((rawHalf / stepSize) + 1e-12) * stepSize : rawHalf;
+  return { tp1Quantity, tp2Quantity: Math.max(quantity - tp1Quantity, 0) };
+}
+
 function splitHalf(quantity: number): { firstHalf: number; secondHalf: number } {
-  const firstHalf = quantity / 2;
-  return { firstHalf, secondHalf: quantity - firstHalf };
+  const { tp1Quantity, tp2Quantity } = splitTp1Tp2Quantities(quantity);
+  return { firstHalf: tp1Quantity, secondHalf: tp2Quantity };
+}
+
+export function closeSideForDirection(direction: Direction): 'BUY' | 'SELL' {
+  return direction === 'buy' ? 'SELL' : 'BUY';
+}
+
+export function buildNativeConditionalOrder(input: EntryFill & { quantity: number; label: 'sl' | 'tp1' | 'tp2'; targetPrice?: number }): NativeConditionalOrderIntent {
+  const isStop = input.label === 'sl';
+  return {
+    symbol: input.symbol,
+    side: closeSideForDirection(input.direction),
+    type: isStop ? 'STOP_MARKET' : 'TAKE_PROFIT_MARKET',
+    quantity: input.quantity,
+    stopPrice: isStop ? input.stopLoss : Number(input.targetPrice),
+    reduceOnly: true,
+    workingType: 'MARK_PRICE',
+    closePosition: false,
+  };
+}
+
+function orderMatches(order: BinanceOpenOrder | undefined, expected: NativeConditionalOrderIntent): string | null {
+  if (!order) return 'missing';
+  if (order.side && String(order.side).toUpperCase() !== expected.side) return 'wrong_side';
+  if (order.type && String(order.type).toUpperCase() !== expected.type) return 'wrong_type';
+  if (order.reduceOnly === false) return 'not_reduce_only';
+  if (order.closePosition === true) return 'unexpected_close_position';
+  const stop = Number(order.stopPrice);
+  if (Number.isFinite(stop) && Math.abs(stop - expected.stopPrice) > Math.max(Math.abs(expected.stopPrice) * 0.000001, 1e-8)) return 'wrong_stop_price';
+  const qty = Number(order.origQty);
+  if (Number.isFinite(qty) && Math.abs(qty - expected.quantity) > Math.max(expected.quantity * 0.000001, 1e-8)) return 'wrong_quantity';
+  return null;
+}
+
+export function verifyNativeProtectionOpenOrders(
+  fill: EntryFill,
+  orderIds: { sl: string; tp1: string; tp2: string },
+  openOrders: BinanceOpenOrder[],
+): NativeProtectionVerificationResult {
+  const { tp1Quantity, tp2Quantity } = splitTp1Tp2Quantities(fill.quantity);
+  const intents = {
+    sl: buildNativeConditionalOrder({ ...fill, label: 'sl', quantity: fill.quantity }),
+    tp1: buildNativeConditionalOrder({ ...fill, label: 'tp1', quantity: tp1Quantity, targetPrice: fill.tp1 }),
+    tp2: buildNativeConditionalOrder({ ...fill, label: 'tp2', quantity: tp2Quantity, targetPrice: fill.tp2 }),
+  } as const;
+  const missingLabels: Array<'sl' | 'tp1' | 'tp2'> = [];
+  const errors: string[] = [];
+  (['sl', 'tp1', 'tp2'] as const).forEach((label) => {
+    const order = openOrders.find((row) => String(row.orderId) === String(orderIds[label]));
+    const mismatch = orderMatches(order, intents[label]);
+    if (mismatch) {
+      missingLabels.push(label);
+      errors.push(`${label}:${mismatch}`);
+    }
+  });
+  return { verified: missingLabels.length === 0, missingLabels, errors };
 }
 
 export async function createProtectionPlan(fill: EntryFill, client: NativeProtectionClient): Promise<ProtectionPlan> {
@@ -223,6 +311,24 @@ function targetHit(direction: Direction, markPrice: number, target: number): boo
 
 function stopHit(direction: Direction, markPrice: number, stop: number): boolean {
   return direction === 'buy' ? markPrice <= stop : markPrice >= stop;
+}
+
+export function timeStopMinutes(strategyName: string | null | undefined, timeframe: string | null | undefined): number | null {
+  const key = `${String(strategyName ?? '').toLowerCase()}:${String(timeframe ?? '').toLowerCase()}`;
+  if (key === 'microscalper:5m') return 120;
+  if (key === 'microscalper:15m') return 360;
+  if (key === 'compressionbreakout:15m') return 720;
+  if (key === 'compressionbreakout:1h') return 48 * 60;
+  if (key === 'swingcontinuation:15m') return 1440;
+  if (key === 'swingcontinuation:1h') return 96 * 60;
+  return null;
+}
+
+export function timeStopDeadline(openedAt: string | null | undefined, strategyName: string | null | undefined, timeframe: string | null | undefined): string | null {
+  const minutes = timeStopMinutes(strategyName, timeframe);
+  const start = openedAt ? new Date(openedAt).getTime() : NaN;
+  if (!minutes || !Number.isFinite(start)) return null;
+  return new Date(start + minutes * 60_000).toISOString();
 }
 
 export async function evaluateManagedExit(state: ManagedPositionState, markPrice: number, client: ManagedExitClient): Promise<ManagedExitEvent> {

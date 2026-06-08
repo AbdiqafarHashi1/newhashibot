@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const sql = readFileSync('supabase/migrations/20260607133000_044_binance_truth_first_end_to_end.sql', 'utf8');
 const b51Sql = readFileSync('supabase/migrations/20260607143000_045_b5_1_signal_id_cron_auth_e2e_proof.sql', 'utf8');
+const b6Sql = readFileSync('supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -21,4 +22,10 @@ assert.match(sql, /\*\/1 \* \* \* \*/);
 assert.match(b51Sql, /UPDATE public\.execution_event_logs AS eel/, 'B5.1 backfills execution event signal_id and symbol');
 assert.match(b51Sql, /cron_pg_token = gen_random_uuid\(\)::text/, 'B5.1 ensures monitor cron token exists');
 assert.match(b51Sql, /hashibot_binance_testnet_monitor_1m/, 'B5.1 rebuilds monitor cron');
+for (const value of ['protected_native','protected_managed','closed_timeout','closed_synced']) {
+  assert.match(b6Sql, new RegExp(`'${value}'`), `B6 execution_orders.status allows ${value}`);
+}
+assert.match(b6Sql, /admin_reset_trading_history_batch/, 'B6 adds batch reset function');
+assert.match(b6Sql, /to_regclass\('public\.' \|\| t\)/, 'B6 batch reset skips absent optional tables');
+assert.match(b6Sql, /time_stop_deadline_at/, 'B6 stores time-stop deadline');
 console.log('SQL constraint tests passed');
