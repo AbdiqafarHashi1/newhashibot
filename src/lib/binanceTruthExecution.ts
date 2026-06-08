@@ -3,6 +3,7 @@ export const ACTIVE_EXECUTION_STATUSES = [
   'entry_submitted',
   'entry_filled',
   'protected',
+  'protected_native',
   'pending_protection',
   'partially_closed',
   'protected_managed',
@@ -25,7 +26,7 @@ export type RetryableExecutionStatus = typeof RETRYABLE_EXECUTION_STATUSES[numbe
 export type ExecutionStatus = ActiveExecutionStatus | RetryableExecutionStatus | string;
 export type Direction = 'buy' | 'sell';
 export type BracketMode = 'exchange_native' | 'managed_exit_fallback';
-export type ProtectionStatus = 'unprotected' | 'pending_protection' | 'protected' | 'protected_managed' | 'pending_managed_protection' | 'unprotected_failed';
+export type ProtectionStatus = 'unprotected' | 'pending_protection' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_managed_protection' | 'unprotected_failed';
 
 export interface BinanceTruthState {
   symbol: string;
@@ -35,6 +36,8 @@ export interface BinanceTruthState {
 
 export interface BinanceOpenOrder {
   orderId: string;
+  algoId?: string | number;
+  triggerPrice?: number | string;
   symbol: string;
   type?: string;
   status?: string;
@@ -51,9 +54,10 @@ export interface BinanceOpenOrder {
 export interface NativeConditionalOrderIntent {
   symbol: string;
   side: 'BUY' | 'SELL';
+  algoType: 'CONDITIONAL';
   type: 'STOP_MARKET' | 'TAKE_PROFIT_MARKET';
   quantity: number;
-  stopPrice: number;
+  triggerPrice: number;
   reduceOnly: true;
   workingType: 'MARK_PRICE';
   closePosition?: false;
@@ -107,7 +111,8 @@ export interface EntryFill {
 }
 
 export interface NativeOrderResult {
-  orderId: string;
+  algoId: string;
+  clientAlgoId?: string;
 }
 
 export interface NativeProtectionClient {
@@ -121,6 +126,14 @@ export interface ProtectionPlan {
   sl_order_id?: string;
   tp1_order_id?: string;
   tp2_order_id?: string;
+  sl_algo_id?: string;
+  tp1_algo_id?: string;
+  tp2_algo_id?: string;
+  sl_client_algo_id?: string;
+  tp1_client_algo_id?: string;
+  tp2_client_algo_id?: string;
+  native_protection_verified?: boolean;
+  managed_fallback_active?: boolean;
   intended_sl: number;
   intended_tp1: number;
   intended_tp2: number;
@@ -223,9 +236,10 @@ export function buildNativeConditionalOrder(input: EntryFill & { quantity: numbe
   return {
     symbol: input.symbol,
     side: closeSideForDirection(input.direction),
+    algoType: 'CONDITIONAL',
     type: isStop ? 'STOP_MARKET' : 'TAKE_PROFIT_MARKET',
     quantity: input.quantity,
-    stopPrice: isStop ? input.stopLoss : Number(input.targetPrice),
+    triggerPrice: isStop ? input.stopLoss : Number(input.targetPrice),
     reduceOnly: true,
     workingType: 'MARK_PRICE',
     closePosition: false,
@@ -238,8 +252,8 @@ function orderMatches(order: BinanceOpenOrder | undefined, expected: NativeCondi
   if (order.type && String(order.type).toUpperCase() !== expected.type) return 'wrong_type';
   if (order.reduceOnly === false) return 'not_reduce_only';
   if (order.closePosition === true) return 'unexpected_close_position';
-  const stop = Number(order.stopPrice);
-  if (Number.isFinite(stop) && Math.abs(stop - expected.stopPrice) > Math.max(Math.abs(expected.stopPrice) * 0.000001, 1e-8)) return 'wrong_stop_price';
+  const stop = Number((order as unknown as Record<string, unknown>).triggerPrice ?? order.stopPrice);
+  if (Number.isFinite(stop) && Math.abs(stop - expected.triggerPrice) > Math.max(Math.abs(expected.triggerPrice) * 0.000001, 1e-8)) return 'wrong_stop_price';
   const qty = Number(order.origQty);
   if (Number.isFinite(qty) && Math.abs(qty - expected.quantity) > Math.max(expected.quantity * 0.000001, 1e-8)) return 'wrong_quantity';
   return null;
@@ -259,7 +273,7 @@ export function verifyNativeProtectionOpenOrders(
   const missingLabels: Array<'sl' | 'tp1' | 'tp2'> = [];
   const errors: string[] = [];
   (['sl', 'tp1', 'tp2'] as const).forEach((label) => {
-    const order = openOrders.find((row) => String(row.orderId) === String(orderIds[label]));
+    const order = openOrders.find((row) => String(row.orderId) === String(orderIds[label]) || String((row as unknown as Record<string, unknown>).algoId ?? '') === String(orderIds[label]));
     const mismatch = orderMatches(order, intents[label]);
     if (mismatch) {
       missingLabels.push(label);
@@ -278,11 +292,19 @@ export async function createProtectionPlan(fill: EntryFill, client: NativeProtec
       client.placeReduceOnlyTakeProfit({ ...fill, quantity: secondHalf, targetPrice: fill.tp2, label: 'tp2' }),
     ]);
     return {
-      protection_status: 'protected',
+      protection_status: 'protected_native',
       bracket_mode: 'exchange_native',
-      sl_order_id: sl.orderId,
-      tp1_order_id: tp1.orderId,
-      tp2_order_id: tp2.orderId,
+      sl_order_id: sl.algoId,
+      tp1_order_id: tp1.algoId,
+      tp2_order_id: tp2.algoId,
+      sl_algo_id: sl.algoId,
+      tp1_algo_id: tp1.algoId,
+      tp2_algo_id: tp2.algoId,
+      sl_client_algo_id: sl.clientAlgoId,
+      tp1_client_algo_id: tp1.clientAlgoId,
+      tp2_client_algo_id: tp2.clientAlgoId,
+      native_protection_verified: true,
+      managed_fallback_active: false,
       intended_sl: fill.stopLoss,
       intended_tp1: fill.tp1,
       intended_tp2: fill.tp2,
@@ -301,6 +323,8 @@ export async function createProtectionPlan(fill: EntryFill, client: NativeProtec
       tp2_quantity: secondHalf,
       sl_moved_to_be: false,
       error_message: err instanceof Error ? err.message : 'Native protection rejected',
+      native_protection_verified: false,
+      managed_fallback_active: true,
     };
   }
 }
@@ -412,7 +436,7 @@ export interface E2EProtectionProofInput {
 }
 
 export function buildE2EProtectionProof(input: E2EProtectionProofInput) {
-  const native = input.bracketMode === 'exchange_native';
+  const native = input.bracketMode === 'exchange_native' && input.protectionStatus === 'protected_native';
   const managed = input.bracketMode === 'managed_exit_fallback' && input.protectionStatus === 'protected_managed';
   return {
     entry_submitted: Boolean(input.entryOrderId),
@@ -424,6 +448,6 @@ export function buildE2EProtectionProof(input: E2EProtectionProofInput) {
     protection_status: input.protectionStatus ?? null,
     latest_protection_error: input.latestProtectionError ?? null,
     managed_fallback_active: managed,
-    monitor_ready: Boolean(input.monitorReady || managed || input.protectionStatus === 'protected'),
+    monitor_ready: Boolean(input.monitorReady || managed || input.protectionStatus === 'protected_native' || input.protectionStatus === 'protected'),
   };
 }

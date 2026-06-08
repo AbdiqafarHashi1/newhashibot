@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
-const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "partially_closed", "pending_protection", "protected_managed", "pending_managed_protection"];
+const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protected_managed", "pending_managed_protection"];
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_sl", "closed_breakeven", "closed_timeout"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_sl", "closed_breakeven", "closed_timeout", "cancelled", "failed", "skipped", "stale_closed"];
 
@@ -17,7 +17,7 @@ type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
 type BracketMode = "exchange_native" | "managed_exit_fallback" | "failed";
-type ProtectionStatus = "protected" | "pending_protection" | "protected_managed" | "pending_managed_protection" | "unprotected_failed";
+type ProtectionStatus = "protected" | "protected_native" | "pending_protection" | "protected_managed" | "pending_managed_protection" | "unprotected_failed";
 type GovernorState = "normal" | "defensive" | "aggressive_allowed" | "paused";
 
 interface SignalRow {
@@ -634,26 +634,27 @@ function maxTotalOpenRiskPct(settings: ExecutionSettings): number {
   return Math.max(0, Math.min(Number(settings.max_total_open_risk_pct ?? 3), 5));
 }
 
-async function cancelExitOrder(symbol: string, orderId?: unknown): Promise<Json> {
-  if (!orderId) return { skipped: true };
-  return await binanceRequest<Json>("DELETE", "/fapi/v1/order", { symbol, orderId: String(orderId) }, true)
-    .catch(async (regularError) => await binanceRequest<Json>("DELETE", "/fapi/v1/algoOrder", { symbol, algoId: String(orderId) }, true)
-      .catch((algoError) => ({ regular_error: regularError instanceof Error ? regularError.message : String(regularError), algo_error: algoError instanceof Error ? algoError.message : String(algoError) })));
+async function cancelAlgoOrder(symbol: string, algoId?: unknown): Promise<Json> {
+  if (!algoId) return { skipped: true };
+  return await binanceRequest<Json>("DELETE", "/fapi/v1/algoOrder", { symbol, algoId: String(algoId) }, true);
 }
 
-async function fetchExitOrderStatus(symbol: string, orderId?: unknown): Promise<{ status: string; raw?: Json; error?: string } | null> {
-  if (!orderId) return null;
+function normalizeAlgoStatus(algo: Json & { algoStatus?: string; status?: string }): string {
+  return String(algo.algoStatus ?? algo.status ?? "UNKNOWN").toUpperCase();
+}
+
+async function fetchAlgoOrderStatus(symbol: string, algoId?: unknown): Promise<{ status: string; raw?: Json; error?: string } | null> {
+  if (!algoId) return null;
   try {
-    const regular = await binanceRequest<Json & { status?: string }>("GET", "/fapi/v1/order", { symbol, orderId: String(orderId) }, true);
-    return { status: String(regular.status ?? "UNKNOWN"), raw: regular };
-  } catch (regularError) {
-    try {
-      const algo = await binanceRequest<Json & { status?: string }>("GET", "/fapi/v1/algoOrder", { symbol, algoId: String(orderId) }, true);
-      return { status: String(algo.status ?? "UNKNOWN"), raw: algo };
-    } catch (algoError) {
-      return { status: "UNKNOWN", error: `${regularError instanceof Error ? regularError.message : String(regularError)} | ${algoError instanceof Error ? algoError.message : String(algoError)}` };
-    }
+    const algo = await binanceRequest<Json & { algoStatus?: string; status?: string }>("GET", "/fapi/v1/algoOrder", { symbol, algoId: String(algoId) }, true);
+    return { status: normalizeAlgoStatus(algo), raw: algo };
+  } catch (error) {
+    return { status: "UNKNOWN", error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+function algoFilled(status: string | undefined): boolean {
+  return ["FILLED", "TRIGGERED", "FINISHED"].includes(String(status ?? "").toUpperCase());
 }
 
 async function submitBreakevenSl(supabase: SupabaseClient, executionId: string, ex: Json, closeSide: Side, quantity: number, rules: SymbolRules): Promise<{ orderId?: string; raw?: Json; error?: string }> {
@@ -661,9 +662,9 @@ async function submitBreakevenSl(supabase: SupabaseClient, executionId: string, 
   const planLike = { symbol: String(ex.symbol), closeSide } as OrderPlan;
   const qty = floorToStep(quantity, rules.stepSize, rules.quantityPrecision);
   try {
-    await cancelExitOrder(String(ex.symbol), ex.sl_order_id);
-    const be = await submitAlgoExitOrder(planLike, "STOP_MARKET", stopPrice, qty);
-    await supabase.from("execution_orders").update({ sl_order_id: be.id, binance_sl_order_id: be.id, breakeven_sl_order_id: be.id, tp1_filled: true, sl_moved_to_be: true, be_stop_level: stopPrice, protection_status: "protected", latest_protection_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
+    await cancelAlgoOrder(String(ex.symbol), ex.sl_algo_id ?? ex.sl_order_id);
+    const be = await submitAlgoExitOrder(planLike, "STOP_MARKET", stopPrice, qty, "sl");
+    await supabase.from("execution_orders").update({ sl_order_id: be.algoId, binance_sl_order_id: be.algoId, sl_algo_id: be.algoId, sl_client_algo_id: be.clientAlgoId, breakeven_sl_order_id: be.algoId, tp1_filled: true, sl_moved_to_be: true, be_stop_level: stopPrice, protection_status: "protected_native", latest_protection_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "sl_moved_to_be", "TP1 filled; SL moved to break-even for remaining 50%", { be, stopPrice, qty });
     return { orderId: be.id, raw: be.raw };
   } catch (e) {
@@ -685,22 +686,24 @@ async function createSkipped(supabase: SupabaseClient, signal: SignalRow, reason
   return { success: false, skipped: true, reason: normalized, ...metadata };
 }
 
-function nativeExitPayload(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", stopPrice: number, quantity: number): Record<string, string | number | boolean> {
+function nativeExitPayload(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", triggerPrice: number, quantity: number, label: "sl" | "tp1" | "tp2"): Record<string, string | number | boolean> {
   return {
     symbol: plan.symbol,
     side: plan.closeSide,
+    algoType: "CONDITIONAL",
     type,
-    stopPrice,
+    triggerPrice,
     quantity,
     reduceOnly: true,
     workingType: "MARK_PRICE",
+    clientAlgoId: `hashibot_${label}_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
   };
 }
 
 async function fetchNativeOpenProtection(symbol: string): Promise<Json[]> {
   const [regular, algo] = await Promise.all([
     binanceRequest<Array<Json>>("GET", "/fapi/v1/openOrders", { symbol }, true).catch(() => []),
-    binanceRequest<Json>("GET", "/fapi/v1/algoOpenOrders", { symbol }, true).catch(() => ({ orders: [] })),
+    binanceRequest<Json>("GET", "/fapi/v1/openAlgoOrders", { symbol, algoType: "CONDITIONAL" }, true).catch(() => ({ orders: [] })),
   ]);
   const algoOrders = Array.isArray(algo) ? algo : Array.isArray((algo as Json).orders) ? (algo as { orders: Json[] }).orders : [];
   return [...regular, ...algoOrders];
@@ -710,30 +713,26 @@ function openOrderId(order: Json): string {
   return String(order.orderId ?? order.algoId ?? order.clientAlgoId ?? order.clientOrderId ?? "");
 }
 
-async function submitAlgoExitOrder(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", stopPrice: number, quantity: number): Promise<{ id: string; raw: Json; endpoint: string; payload: Json }> {
-  const payload = nativeExitPayload(plan, type, stopPrice, quantity);
-  try {
-    const regular = await binanceRequest<{ orderId: number }>("POST", "/fapi/v1/order", payload, true);
-    return { id: String(regular.orderId), raw: regular as Json, endpoint: "/fapi/v1/order", payload: payload as Json };
-  } catch (regularError) {
-    const regularMsg = regularError instanceof Error ? regularError.message : String(regularError);
-    if (!regularMsg.includes("Order type not supported") && !regularMsg.includes("Algo order API")) throw regularError;
-    const algo = await binanceRequest<{ algoId?: number; orderId?: number; clientAlgoId?: string }>("POST", "/fapi/v1/algoOrder", payload, true);
-    return { id: String(algo.algoId ?? algo.orderId ?? algo.clientAlgoId), raw: { ...algo as Json, regular_endpoint_error: regularMsg }, endpoint: "/fapi/v1/algoOrder", payload: payload as Json };
-  }
+async function submitAlgoExitOrder(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", triggerPrice: number, quantity: number, label: "sl" | "tp1" | "tp2"): Promise<{ id: string; algoId: string; clientAlgoId: string; raw: Json; endpoint: string; payload: Json }> {
+  const payload = nativeExitPayload(plan, type, triggerPrice, quantity, label);
+  const algo = await binanceRequest<{ algoId?: number | string; clientAlgoId?: string }>("POST", "/fapi/v1/algoOrder", payload, true);
+  const algoId = String(algo.algoId ?? "");
+  const clientAlgoId = String(algo.clientAlgoId ?? payload.clientAlgoId ?? "");
+  if (!algoId) throw new Error(`Binance /fapi/v1/algoOrder did not return algoId for ${label}`);
+  return { id: algoId, algoId, clientAlgoId, raw: algo as Json, endpoint: "/fapi/v1/algoOrder", payload: payload as Json };
 }
 
 async function submitBracketOrders(supabase: SupabaseClient, executionId: string, plan: OrderPlan): Promise<{ mode: BracketMode; protection: ProtectionStatus; sl_order_id?: string; tp1_order_id?: string; tp2_order_id?: string; raw: Json; error?: string }> {
   try {
-    const sl = await submitAlgoExitOrder(plan, "STOP_MARKET", plan.stopLoss, plan.quantity);
-    const tp1 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp1, plan.tp1Quantity);
-    const tp2 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp2, plan.tp2Quantity);
+    const sl = await submitAlgoExitOrder(plan, "STOP_MARKET", plan.stopLoss, plan.quantity, "sl");
+    const tp1 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp1, plan.tp1Quantity, "tp1");
+    const tp2 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp2, plan.tp2Quantity, "tp2");
     const openOrders = await fetchNativeOpenProtection(plan.symbol);
     const orderIds = new Set(openOrders.map(openOrderId));
     const expected = [
-      { label: "sl", placed: sl, type: "STOP_MARKET", side: plan.closeSide, quantity: plan.quantity, stopPrice: plan.stopLoss },
-      { label: "tp1", placed: tp1, type: "TAKE_PROFIT_MARKET", side: plan.closeSide, quantity: plan.tp1Quantity, stopPrice: plan.tp1 },
-      { label: "tp2", placed: tp2, type: "TAKE_PROFIT_MARKET", side: plan.closeSide, quantity: plan.tp2Quantity, stopPrice: plan.tp2 },
+      { label: "sl", placed: sl, type: "STOP_MARKET", side: plan.closeSide, quantity: plan.quantity, triggerPrice: plan.stopLoss },
+      { label: "tp1", placed: tp1, type: "TAKE_PROFIT_MARKET", side: plan.closeSide, quantity: plan.tp1Quantity, triggerPrice: plan.tp1 },
+      { label: "tp2", placed: tp2, type: "TAKE_PROFIT_MARKET", side: plan.closeSide, quantity: plan.tp2Quantity, triggerPrice: plan.tp2 },
     ];
     const mismatches = expected.flatMap((item) => {
       const order = openOrders.find((o) => openOrderId(o) === String(item.placed.id));
@@ -742,22 +741,22 @@ async function submitBracketOrders(supabase: SupabaseClient, executionId: string
       if (String(order.side ?? item.side).toUpperCase() !== item.side) issues.push(`${item.label}:wrong_side`);
       if (String(order.type ?? item.type).toUpperCase() !== item.type) issues.push(`${item.label}:wrong_type`);
       if ((order.reduceOnly as unknown) === false) issues.push(`${item.label}:not_reduce_only`);
-      const stop = Number(order.stopPrice ?? item.stopPrice);
-      if (Number.isFinite(stop) && Math.abs(stop - item.stopPrice) > Math.max(item.stopPrice * 0.000001, 1e-8)) issues.push(`${item.label}:wrong_stop_price`);
+      const stop = Number(order.triggerPrice ?? order.stopPrice ?? item.triggerPrice);
+      if (Number.isFinite(stop) && Math.abs(stop - item.triggerPrice) > Math.max(item.triggerPrice * 0.000001, 1e-8)) issues.push(`${item.label}:wrong_trigger_price`);
       return issues;
     });
     const missing = [sl.id, tp1.id, tp2.id].filter((id) => !orderIds.has(String(id)));
     const raw = { sl, tp1, tp2, verified_open_orders: openOrders, verification_mismatches: mismatches };
     if (missing.length > 0 || mismatches.length > 0) throw new Error(`Native protection verification failed; missing/mismatched open reduce-only orders: ${[...missing, ...mismatches].join(",")}`);
-    await supabase.from("execution_orders").update({ status: "protected", bracket_mode: "exchange_native", protection_status: "protected", sl_order_id: sl.id, tp1_order_id: tp1.id, tp2_order_id: tp2.id, binance_sl_order_id: sl.id, binance_tp1_order_id: tp1.id, binance_tp2_order_id: tp2.id, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: "", raw_exchange_response: raw, updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "protected", "SL/TP reduce-only protection submitted and verified on Binance openOrders", raw);
-    return { mode: "exchange_native", protection: "protected", sl_order_id: sl.id, tp1_order_id: tp1.id, tp2_order_id: tp2.id, raw };
+    await supabase.from("execution_orders").update({ status: "protected_native", bracket_mode: "exchange_native", protection_status: "protected_native", sl_order_id: sl.algoId, tp1_order_id: tp1.algoId, tp2_order_id: tp2.algoId, binance_sl_order_id: sl.algoId, binance_tp1_order_id: tp1.algoId, binance_tp2_order_id: tp2.algoId, sl_algo_id: sl.algoId, tp1_algo_id: tp1.algoId, tp2_algo_id: tp2.algoId, sl_client_algo_id: sl.clientAlgoId, tp1_client_algo_id: tp1.clientAlgoId, tp2_client_algo_id: tp2.clientAlgoId, native_protection_verified: true, managed_fallback_active: false, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: "", raw_exchange_response: raw, updated_at: new Date().toISOString() }).eq("id", executionId);
+    await logEvent(supabase, executionId, "protected_native", "SL/TP reduce-only algo protection submitted and verified on Binance algo-order endpoints", raw);
+    return { mode: "exchange_native", protection: "protected_native", sl_order_id: sl.algoId, tp1_order_id: tp1.algoId, tp2_order_id: tp2.algoId, sl_algo_id: sl.algoId, tp1_algo_id: tp1.algoId, tp2_algo_id: tp2.algoId, raw };
   } catch (e) {
     const error = e instanceof Error ? e.message : "Bracket order submission failed";
     const fallbackSafe = plan.stopLoss > 0 && plan.tp1 > 0 && plan.tp2 > 0 && plan.tp1Quantity > 0 && plan.tp2Quantity > 0;
     if (fallbackSafe) {
       const raw = { intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, error };
-      await supabase.from("execution_orders").update({ status: "entry_filled", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed", intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, updated_at: new Date().toISOString() }).eq("id", executionId);
+      await supabase.from("execution_orders").update({ status: "entry_filled", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed", native_protection_verified: false, managed_fallback_active: true, intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, updated_at: new Date().toISOString() }).eq("id", executionId);
       await logEvent(supabase, executionId, "managed_exit_fallback_enabled", "Exchange-native SL/TP unavailable or unverified; HashiBot managed exit fallback enabled", raw);
       return { mode: "managed_exit_fallback", protection: "protected_managed", raw, error };
     }
@@ -910,7 +909,7 @@ async function syncExecution(supabase: SupabaseClient, executionId: string): Pro
       await supabase.from("execution_orders").update({ status: "entry_filled", quantity: qty, volume: qty, raw_exchange_response: raw, updated_at: new Date().toISOString() }).eq("id", executionId);
       await logEvent(supabase, executionId, "entry_filled", "Entry filled; submitting SL/TP protection", raw);
       const bracket = await maybePlaceProtection(supabase, executionId, signalId, planLike);
-      return { success: true, status: bracket.mode === "exchange_native" ? "protected" : "entry_filled", bracket };
+      return { success: true, status: bracket.mode === "exchange_native" ? "protected_native" : "entry_filled", bracket };
     }
 
     if (ex.bracket_mode === "managed_exit_fallback" && !TERMINAL_STATUSES.includes(String(ex.status)) && position) {
@@ -933,34 +932,34 @@ async function syncExecution(supabase: SupabaseClient, executionId: string): Pro
     }
 
     const [tp1, tp2, sl] = await Promise.all([
-      fetchExitOrderStatus(String(ex.symbol), ex.tp1_order_id),
-      fetchExitOrderStatus(String(ex.symbol), ex.tp2_order_id),
-      fetchExitOrderStatus(String(ex.symbol), ex.sl_order_id),
+      fetchAlgoOrderStatus(String(ex.symbol), ex.tp1_algo_id ?? ex.tp1_order_id),
+      fetchAlgoOrderStatus(String(ex.symbol), ex.tp2_algo_id ?? ex.tp2_order_id),
+      fetchAlgoOrderStatus(String(ex.symbol), ex.sl_algo_id ?? ex.sl_order_id),
     ]);
     raw.orders = { tp1, tp2, sl } as Json;
     let status = String(ex.status);
-    const tp1Filled = Boolean(ex.tp1_filled) || tp1?.status === "FILLED" || status === "partially_closed";
-    if (sl?.status === "FILLED" && tp1Filled && ex.sl_moved_to_be) {
-      await cancelExitOrder(String(ex.symbol), ex.tp2_order_id);
+    const tp1Filled = Boolean(ex.tp1_filled) || algoFilled(tp1?.status) || status === "partially_closed";
+    if (algoFilled(sl?.status) && tp1Filled && ex.sl_moved_to_be) {
+      await cancelAlgoOrder(String(ex.symbol), ex.tp2_algo_id ?? ex.tp2_order_id);
       status = "closed_breakeven";
       await sendExecutionTelegram(supabase, signalId, "closed_breakeven", ["Break-even SL hit", "Remaining position closed"]);
-    } else if (sl?.status === "FILLED") {
-      await Promise.all([cancelExitOrder(String(ex.symbol), ex.tp1_order_id), cancelExitOrder(String(ex.symbol), ex.tp2_order_id)]);
+    } else if (algoFilled(sl?.status)) {
+      await Promise.all([cancelAlgoOrder(String(ex.symbol), ex.tp1_algo_id ?? ex.tp1_order_id), cancelAlgoOrder(String(ex.symbol), ex.tp2_algo_id ?? ex.tp2_order_id)]);
       status = "closed_sl";
       await sendExecutionTelegram(supabase, signalId, "closed_sl", ["SL hit", "Full position closed"]);
-    } else if (tp2?.status === "FILLED") {
-      await cancelExitOrder(String(ex.symbol), ex.sl_order_id);
+    } else if (algoFilled(tp2?.status)) {
+      await cancelAlgoOrder(String(ex.symbol), ex.sl_algo_id ?? ex.sl_order_id);
       status = "closed_tp";
       await sendExecutionTelegram(supabase, signalId, "closed_tp", ["TP2 hit", "Closed remaining position", "Trade closed TP"]);
-    } else if (tp1?.status === "FILLED" && !ex.tp1_filled) {
+    } else if (algoFilled(tp1?.status) && !ex.tp1_filled) {
       const remaining = openAmt > 0 ? openAmt : Number(ex.tp2_order_id ? ex.quantity : 0) * 0.5;
       const be = await submitBreakevenSl(supabase, executionId, ex, closeSide, remaining, rules);
       status = "partially_closed";
       await sendExecutionTelegram(supabase, signalId, "partially_closed", ["TP1 hit", "Closed: 50%", be.error ? `SL move failed: ${be.error}` : "SL moved to break-even", "Remaining position: 50%"]);
     } else if (ex.sl_order_id && ex.tp1_order_id && ex.tp2_order_id && !TERMINAL_STATUSES.includes(status)) {
-      status = tp1Filled ? "partially_closed" : "protected";
+      status = tp1Filled ? "partially_closed" : "protected_native";
     }
-    const protectionStatus = status === "protected" || status === "partially_closed" ? "protected" : ex.protection_status;
+    const protectionStatus = status === "protected_native" || status === "partially_closed" ? "protected_native" : ex.protection_status;
     await supabase.from("execution_orders").update({ status, protection_status: protectionStatus, bracket_mode: ex.bracket_mode ?? "exchange_native", raw_exchange_response: raw, last_exchange_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "sync_result", `Sync result: ${status}`, raw);
     return { success: true, status, order_statuses: raw.orders, position };
@@ -1055,7 +1054,7 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
   if (execution.execution_id) sync = await syncExecution(supabase, String(execution.execution_id));
   const monitor = await invokeMonitorCron().catch((e) => ({ success: false, error: e instanceof Error ? e.message : String(e) }));
   const { data: row } = execution.execution_id
-    ? await supabase.from("execution_orders").select("status,quantity,volume,entry_order_id,binance_entry_order_id,sl_order_id,tp1_order_id,tp2_order_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,bracket_mode,protection_status,latest_protection_error,tp1_quantity,tp2_quantity,remaining_quantity,raw_exchange_response").eq("id", String(execution.execution_id)).maybeSingle()
+    ? await supabase.from("execution_orders").select("status,quantity,volume,entry_order_id,binance_entry_order_id,sl_order_id,tp1_order_id,tp2_order_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,sl_algo_id,tp1_algo_id,tp2_algo_id,sl_client_algo_id,tp1_client_algo_id,tp2_client_algo_id,native_protection_verified,managed_fallback_active,bracket_mode,protection_status,latest_protection_error,tp1_quantity,tp2_quantity,remaining_quantity,raw_exchange_response").eq("id", String(execution.execution_id)).maybeSingle()
     : { data: null };
   const { data: monitorSettings } = await supabase
     .from("execution_settings")
@@ -1064,8 +1063,8 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
     .maybeSingle();
   const resultRow = (row as Json | null) ?? null;
   const totalQuantity = resultRow?.quantity ?? resultRow?.volume ?? plan.quantity;
-  const managedFallbackActive = String(resultRow?.bracket_mode ?? "") === "managed_exit_fallback" && String(resultRow?.protection_status ?? "") === "protected_managed";
-  const protectedState = ["protected", "protected_managed"].includes(String(resultRow?.protection_status ?? ""));
+  const managedFallbackActive = Boolean(resultRow?.managed_fallback_active) || (String(resultRow?.bracket_mode ?? "") === "managed_exit_fallback" && String(resultRow?.protection_status ?? "") === "protected_managed");
+  const protectedState = ["protected", "protected_native", "protected_managed"].includes(String(resultRow?.protection_status ?? ""));
   const bracketState = ["exchange_native", "managed_exit_fallback"].includes(String(resultRow?.bracket_mode ?? ""));
   const monitorStateConfirmed = Boolean((monitor as Json).success && protectedState && bracketState);
   return {
@@ -1079,9 +1078,9 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
       binance_truth_fetched: true,
       position_detected: Math.abs(truth.positionAmt) > 0,
       position_status: truth.hasExposure ? "open_on_binance" : "no_open_binance_position",
-      native_sl_order_detected: nativeOrderCreated(resultRow, "binance_sl_order_id") || nativeOrderCreated(resultRow, "sl_order_id"),
-      native_tp1_order_detected: nativeOrderCreated(resultRow, "binance_tp1_order_id") || nativeOrderCreated(resultRow, "tp1_order_id"),
-      native_tp2_order_detected: nativeOrderCreated(resultRow, "binance_tp2_order_id") || nativeOrderCreated(resultRow, "tp2_order_id"),
+      native_sl_order_detected: nativeOrderCreated(resultRow, "sl_algo_id") || nativeOrderCreated(resultRow, "binance_sl_order_id") || nativeOrderCreated(resultRow, "sl_order_id"),
+      native_tp1_order_detected: nativeOrderCreated(resultRow, "tp1_algo_id") || nativeOrderCreated(resultRow, "binance_tp1_order_id") || nativeOrderCreated(resultRow, "tp1_order_id"),
+      native_tp2_order_detected: nativeOrderCreated(resultRow, "tp2_algo_id") || nativeOrderCreated(resultRow, "binance_tp2_order_id") || nativeOrderCreated(resultRow, "tp2_order_id"),
       managed_fallback_active: managedFallbackActive,
       tp1_quantity: resultRow?.tp1_quantity ?? plan.tp1Quantity,
       tp2_quantity: resultRow?.tp2_quantity ?? plan.tp2Quantity,
@@ -1093,6 +1092,10 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
       protected_or_managed: protectedState,
       monitor_cron_confirmed_protection_state: monitorStateConfirmed,
       monitor_ready: monitorStateConfirmed || managedFallbackActive || protectedState,
+      native_verified: Boolean(resultRow?.native_protection_verified),
+      sl_algo_id: resultRow?.sl_algo_id ?? null,
+      tp1_algo_id: resultRow?.tp1_algo_id ?? null,
+      tp2_algo_id: resultRow?.tp2_algo_id ?? null,
       monitor_status: (monitorSettings as Json | null)?.latest_monitor_status ?? null,
       monitor_run_at: (monitorSettings as Json | null)?.latest_monitor_run_at ?? null,
       monitor_result: (monitorSettings as Json | null)?.latest_monitor_result ?? null,

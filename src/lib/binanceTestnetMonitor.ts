@@ -3,6 +3,7 @@ export const MONITOR_ACTIVE_STATUSES = [
   'entry_submitted',
   'entry_filled',
   'protected',
+  'protected_native',
   'pending_protection',
   'protected_managed',
   'pending_managed_protection',
@@ -57,6 +58,9 @@ export interface MonitorExecutionRow {
   binance_sl_order_id?: string | null;
   binance_tp1_order_id?: string | null;
   binance_tp2_order_id?: string | null;
+  sl_algo_id?: string | null;
+  tp1_algo_id?: string | null;
+  tp2_algo_id?: string | null;
   entry_price?: number | null;
   intended_sl?: number | null;
   intended_tp1?: number | null;
@@ -85,7 +89,7 @@ export interface BinanceOrderSnapshot {
 
 export interface BinanceTruthSnapshot {
   positionAmt: number;
-  openOrders: Array<{ orderId: string; reduceOnly?: boolean; type?: string }>;
+  openOrders: Array<{ orderId?: string; algoId?: string; reduceOnly?: boolean; type?: string; orderType?: string }>;
   markPrice?: number | null;
   unrealizedPnl?: number | null;
 }
@@ -159,6 +163,10 @@ function addEvent(out: MonitorUpdate, type: MonitorEventType, message: string, t
   out.events.push({ type, message: `BINANCE TESTNET — NOT LIVE\n${message}`, telegram });
 }
 
+function conditionalFilled(order: BinanceOrderSnapshot | undefined): boolean {
+  return ['FILLED', 'TRIGGERED', 'FINISHED'].includes(String(order?.status ?? '').toUpperCase());
+}
+
 export function processExecutionMonitorTick(
   row: MonitorExecutionRow,
   truth: BinanceTruthSnapshot,
@@ -174,7 +182,7 @@ export function processExecutionMonitorTick(
     return out;
   }
 
-  if (hasPosition && !['protected', 'protected_managed'].includes(String(row.protection_status ?? '')) && ['entry_filled', 'protected', 'protected_managed', 'partially_closed'].includes(row.status)) {
+  if (hasPosition && !['protected', 'protected_native', 'protected_managed'].includes(String(row.protection_status ?? '')) && ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'partially_closed'].includes(row.status)) {
     out.updates.protection_status = 'unprotected_failed';
     out.updates.latest_protection_error = 'open Binance position is not protected_native or protected_managed';
     addEvent(out, 'unprotected_position_warning', `${row.symbol} has an open Binance position without verified native or managed protection.`);
@@ -183,7 +191,7 @@ export function processExecutionMonitorTick(
   const entryOrder = row.binance_entry_order_id ? orderById[row.binance_entry_order_id] : undefined;
   if (entryOrder?.status === 'FILLED' && ['pending', 'entry_submitted'].includes(row.status)) {
     const avgPrice = num(entryOrder.avgPrice);
-    out.updates.status = row.protection_status === 'protected' || row.protection_status === 'protected_managed' ? row.status : 'entry_filled';
+    out.updates.status = row.protection_status === 'protected' || row.protection_status === 'protected_native' || row.protection_status === 'protected_managed' ? row.status : 'entry_filled';
     if (avgPrice && avgPrice > 0) out.updates.entry_price = avgPrice;
     addEvent(out, 'entry_filled', `${row.symbol} entry filled${avgPrice ? ` at ${avgPrice}` : ''}.`);
   }
@@ -199,27 +207,30 @@ export function processExecutionMonitorTick(
   }
 
   if (row.bracket_mode === 'exchange_native') {
-    const tp1 = row.binance_tp1_order_id ? orderById[row.binance_tp1_order_id] : undefined;
-    const tp2 = row.binance_tp2_order_id ? orderById[row.binance_tp2_order_id] : undefined;
-    const sl = row.binance_sl_order_id ? orderById[row.binance_sl_order_id] : undefined;
-    if (!row.tp1_closed_at && tp1?.status === 'FILLED') {
+    const tp1Id = row.tp1_algo_id ?? row.binance_tp1_order_id;
+    const tp2Id = row.tp2_algo_id ?? row.binance_tp2_order_id;
+    const slId = row.sl_algo_id ?? row.binance_sl_order_id;
+    const tp1 = tp1Id ? orderById[tp1Id] : undefined;
+    const tp2 = tp2Id ? orderById[tp2Id] : undefined;
+    const sl = slId ? orderById[slId] : undefined;
+    if (!row.tp1_closed_at && conditionalFilled(tp1)) {
       out.updates.status = 'partially_closed';
       out.updates.tp1_closed_at = new Date().toISOString();
       out.updates.sl_moved_to_be = true;
       addEvent(out, 'native_tp1_filled', `${row.symbol} TP1 filled; position partially closed.`);
       addEvent(out, 'sl_moved_to_be', `${row.symbol} SL moved/confirmed at break-even for remaining quantity.`);
     }
-    if (!row.tp2_closed_at && tp2?.status === 'FILLED') {
+    if (!row.tp2_closed_at && conditionalFilled(tp2)) {
       out.updates.status = 'closed_tp';
       out.updates.tp2_closed_at = new Date().toISOString();
-      if (row.binance_sl_order_id) out.cancelOrderIds.push(row.binance_sl_order_id);
+      if (slId) out.cancelOrderIds.push(slId);
       addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 filled; position closed in profit.`);
     }
-    if (!row.sl_closed_at && sl?.status === 'FILLED') {
+    if (!row.sl_closed_at && conditionalFilled(sl)) {
       out.updates.status = 'closed_sl';
       out.updates.sl_closed_at = new Date().toISOString();
-      if (row.binance_tp1_order_id) out.cancelOrderIds.push(row.binance_tp1_order_id);
-      if (row.binance_tp2_order_id) out.cancelOrderIds.push(row.binance_tp2_order_id);
+      if (tp1Id) out.cancelOrderIds.push(tp1Id);
+      if (tp2Id) out.cancelOrderIds.push(tp2Id);
       addEvent(out, 'native_sl_filled', `${row.symbol} SL filled; position closed.`);
     }
     return out;
@@ -277,7 +288,7 @@ export function processExecutionMonitorTick(
 
   if (isMonitorActiveStatus(row.status) && !hasPosition && hasOpenOrders) {
     addEvent(out, 'manual_position_closed', `${row.symbol} position is closed on Binance; stale leftover orders should be cancelled.`);
-    out.cancelOrderIds.push(...truth.openOrders.map((order) => order.orderId));
+    out.cancelOrderIds.push(...truth.openOrders.map((order) => String(order.algoId ?? order.orderId ?? '')).filter(Boolean));
     out.updates.status = 'stale_closed';
     out.updates.stale_cleanup_reason = 'position_closed_leftover_orders_cancelled';
     out.updates.stale_checked_at = new Date().toISOString();

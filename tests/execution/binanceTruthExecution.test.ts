@@ -23,7 +23,7 @@ async function run() {
   assert.deepEqual(validateSelectedSignalForExecution('sig-1', { id: 'other', symbol: 'BTCUSDT', market_type: 'crypto', direction: 'buy' }), { ok: false, error: 'invalid_selected_signal' }, 'selected signal mismatch does not crash');
   assert.deepEqual(validateSelectedSignalForExecution('sig-1', { id: 'sig-1', symbol: null, market_type: 'crypto', direction: 'buy' }), { ok: false, error: 'stale_signal_not_executable' }, 'stale signal is not executable');
   assert.equal(governorPausedVisibility({ state: 'paused', reason: 'daily_loss_limit_reached', lastCheckedAt: '2026-06-08T00:00:00.000Z' }).error, 'governor_paused', 'governor paused returns clean reason');
-  const proof = buildE2EProtectionProof({ entryOrderId: 'entry-1', positionSize: 0.1, bracketMode: 'exchange_native', protectionStatus: 'protected', slOrderId: 'sl-1', tp1OrderId: 'tp1-1', tp2OrderId: 'tp2-1' });
+  const proof = buildE2EProtectionProof({ entryOrderId: 'entry-1', positionSize: 0.1, bracketMode: 'exchange_native', protectionStatus: 'protected_native', slOrderId: 'sl-1', tp1OrderId: 'tp1-1', tp2OrderId: 'tp2-1' });
   assert.equal(proof.entry_submitted, true, 'E2E proof includes entry_submitted');
   assert.equal(proof.native_sl_order_detected, true, 'E2E proof includes native SL detection');
   assert.equal(proof.native_tp1_order_detected, true, 'E2E proof includes native TP1 detection');
@@ -42,24 +42,25 @@ async function run() {
 
   const fill: EntryFill = { symbol: 'BTCUSDT', direction: 'buy', quantity: 2, entryPrice: 100, stopLoss: 90, tp1: 110, tp2: 120 };
   const nativeClient: NativeProtectionClient = {
-    async placeReduceOnlyStop() { return { orderId: 'sl-1' }; },
-    async placeReduceOnlyTakeProfit(input) { return { orderId: `${input.label}-1` }; },
+    async placeReduceOnlyStop() { return { algoId: 'sl-1', clientAlgoId: 'c-sl-1' }; },
+    async placeReduceOnlyTakeProfit(input) { return { algoId: `${input.label}-1`, clientAlgoId: `c-${input.label}-1` }; },
   };
   const slIntent = buildNativeConditionalOrder({ ...fill, label: 'sl', quantity: fill.quantity });
-  assert.deepEqual(slIntent, { symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', quantity: 2, stopPrice: 90, reduceOnly: true, workingType: 'MARK_PRICE', closePosition: false }, 'native SL uses reduce-only STOP_MARKET on close side');
+  assert.deepEqual(slIntent, { symbol: 'BTCUSDT', side: 'SELL', algoType: 'CONDITIONAL', type: 'STOP_MARKET', quantity: 2, triggerPrice: 90, reduceOnly: true, workingType: 'MARK_PRICE', closePosition: false }, 'native SL uses reduce-only STOP_MARKET on close side');
   const tp1Intent = buildNativeConditionalOrder({ ...fill, label: 'tp1', quantity: 1, targetPrice: fill.tp1 });
   assert.equal(tp1Intent.type, 'TAKE_PROFIT_MARKET', 'native TP1 uses TAKE_PROFIT_MARKET');
   assert.equal(tp1Intent.closePosition, false, 'native TP1 does not use closePosition partials');
 
   const nativePlan = await createProtectionPlan(fill, nativeClient);
-  assert.equal(nativePlan.protection_status, 'protected', 'TP1/TP2/SL native success');
+  assert.equal(nativePlan.protection_status, 'protected_native', 'TP1/TP2/SL native algo success');
+  assert.equal(nativePlan.native_protection_verified, true, 'native algo orders are verified before protected_native');
   assert.equal(nativePlan.bracket_mode, 'exchange_native');
   assert.equal(nativePlan.tp1_quantity, 1);
   assert.equal(nativePlan.tp2_quantity, 1);
   const verified = verifyNativeProtectionOpenOrders(fill, { sl: 'sl-1', tp1: 'tp1-1', tp2: 'tp2-1' }, [
-    { orderId: 'sl-1', symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, closePosition: false, stopPrice: 90, origQty: 2 },
-    { orderId: 'tp1-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, stopPrice: 110, origQty: 1 },
-    { orderId: 'tp2-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, stopPrice: 120, origQty: 1 },
+    { orderId: 'legacy-sl', algoId: 'sl-1', symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, closePosition: false, triggerPrice: 90, origQty: 2 },
+    { orderId: 'legacy-tp1', algoId: 'tp1-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, triggerPrice: 110, origQty: 1 },
+    { orderId: 'legacy-tp2', algoId: 'tp2-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, triggerPrice: 120, origQty: 1 },
   ]);
   assert.equal(verified.verified, true, 'openOrders verification confirms native SL/TP1/TP2');
   assert.equal(verifyNativeProtectionOpenOrders(fill, { sl: 'sl-1', tp1: 'missing', tp2: 'tp2-1' }, []).missingLabels.includes('tp1'), true, 'missing native TP1 is detected');
@@ -69,7 +70,7 @@ async function run() {
 
   const fallbackPlan = await createProtectionPlan(fill, {
     async placeReduceOnlyStop() { throw new Error('STOP rejected on demo'); },
-    async placeReduceOnlyTakeProfit() { return { orderId: 'unused' }; },
+    async placeReduceOnlyTakeProfit() { return { algoId: 'unused' }; },
   });
   assert.equal(fallbackPlan.protection_status, 'protected_managed', 'managed fallback success');
   assert.equal(fallbackPlan.bracket_mode, 'managed_exit_fallback');

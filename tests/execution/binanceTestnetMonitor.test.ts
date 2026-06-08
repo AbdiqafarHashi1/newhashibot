@@ -11,16 +11,16 @@ async function run() {
   assert.equal(entry.updates.entry_price, 100.5);
   assert.equal(entry.events.length, 1);
 
-  const native = { ...base, status: 'protected', protection_status: 'protected', bracket_mode: 'exchange_native', binance_tp1_order_id: 'tp1', binance_tp2_order_id: 'tp2', binance_sl_order_id: 'sl' };
-  const nativeTp1 = processExecutionMonitorTick(native, { positionAmt: 1, openOrders: [], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FILLED' } });
+  const native = { ...base, status: 'protected_native', protection_status: 'protected_native', bracket_mode: 'exchange_native', tp1_algo_id: 'tp1', tp2_algo_id: 'tp2', sl_algo_id: 'sl' };
+  const nativeTp1 = processExecutionMonitorTick(native, { positionAmt: 1, openOrders: [], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FINISHED' } });
   assert.equal(nativeTp1.updates.status, 'partially_closed', 'native TP1 partial close detection');
   assert.equal(nativeTp1.updates.sl_moved_to_be, true);
 
-  const nativeTp2 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 0, openOrders: [{ orderId: 'sl' }], markPrice: 121 }, { tp2: { orderId: 'tp2', status: 'FILLED' } });
+  const nativeTp2 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 0, openOrders: [{ algoId: 'sl' }], markPrice: 121 }, { tp2: { orderId: 'tp2', status: 'FILLED' } });
   assert.equal(nativeTp2.updates.status, 'closed_tp', 'native TP2 close detection');
   assert.deepEqual(nativeTp2.cancelOrderIds, ['sl']);
 
-  const nativeSl = processExecutionMonitorTick(native, { positionAmt: 0, openOrders: [{ orderId: 'tp1' }, { orderId: 'tp2' }], markPrice: 89 }, { sl: { orderId: 'sl', status: 'FILLED' } });
+  const nativeSl = processExecutionMonitorTick(native, { positionAmt: 0, openOrders: [{ algoId: 'tp1' }, { algoId: 'tp2' }], markPrice: 89 }, { sl: { orderId: 'sl', status: 'FILLED' } });
   assert.equal(nativeSl.updates.status, 'closed_sl', 'native SL close detection');
   assert.deepEqual(nativeSl.cancelOrderIds, ['tp1', 'tp2']);
 
@@ -53,7 +53,7 @@ async function run() {
   const activeExposure = processExecutionMonitorTick({ ...base, status: 'protected' }, { positionAmt: 1, openOrders: [], markPrice: 100 }, {});
   assert.equal(activeExposure.updates.status, undefined, 'active Binance exposure blocks cleanup');
 
-  const repeatedTp1 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 1, openOrders: [], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FILLED' } });
+  const repeatedTp1 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 1, openOrders: [], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FINISHED' } });
   assert.equal(repeatedTp1.events.length, 0, 'Telegram update events are emitted only on state changes');
 }
 
