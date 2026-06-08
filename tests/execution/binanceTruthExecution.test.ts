@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import {
+  buildNativeConditionalOrder,
   canExecuteFreshSignal,
   createProtectionPlan,
   decideSameSymbolBlock,
   evaluateManagedExit,
   shouldBlockDuplicateSignal,
   shouldBlockDuplicateSignalWithTruth,
+  timeStopMinutes,
+  verifyNativeProtectionOpenOrders,
   type EntryFill,
   type ManagedExitClient,
   type NativeProtectionClient,
@@ -28,11 +31,27 @@ async function run() {
     async placeReduceOnlyStop() { return { orderId: 'sl-1' }; },
     async placeReduceOnlyTakeProfit(input) { return { orderId: `${input.label}-1` }; },
   };
+  const slIntent = buildNativeConditionalOrder({ ...fill, label: 'sl', quantity: fill.quantity });
+  assert.deepEqual(slIntent, { symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', quantity: 2, stopPrice: 90, reduceOnly: true, workingType: 'MARK_PRICE', closePosition: false }, 'native SL uses reduce-only STOP_MARKET on close side');
+  const tp1Intent = buildNativeConditionalOrder({ ...fill, label: 'tp1', quantity: 1, targetPrice: fill.tp1 });
+  assert.equal(tp1Intent.type, 'TAKE_PROFIT_MARKET', 'native TP1 uses TAKE_PROFIT_MARKET');
+  assert.equal(tp1Intent.closePosition, false, 'native TP1 does not use closePosition partials');
+
   const nativePlan = await createProtectionPlan(fill, nativeClient);
   assert.equal(nativePlan.protection_status, 'protected', 'TP1/TP2/SL native success');
   assert.equal(nativePlan.bracket_mode, 'exchange_native');
   assert.equal(nativePlan.tp1_quantity, 1);
   assert.equal(nativePlan.tp2_quantity, 1);
+  const verified = verifyNativeProtectionOpenOrders(fill, { sl: 'sl-1', tp1: 'tp1-1', tp2: 'tp2-1' }, [
+    { orderId: 'sl-1', symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, closePosition: false, stopPrice: 90, origQty: 2 },
+    { orderId: 'tp1-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, stopPrice: 110, origQty: 1 },
+    { orderId: 'tp2-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, stopPrice: 120, origQty: 1 },
+  ]);
+  assert.equal(verified.verified, true, 'openOrders verification confirms native SL/TP1/TP2');
+  assert.equal(verifyNativeProtectionOpenOrders(fill, { sl: 'sl-1', tp1: 'missing', tp2: 'tp2-1' }, []).missingLabels.includes('tp1'), true, 'missing native TP1 is detected');
+
+  assert.equal(timeStopMinutes('MicroScalper', '5m'), 120, 'MicroScalper 5m time-stop is 120 minutes');
+  assert.equal(timeStopMinutes('SwingContinuation', '1h'), 5760, 'SwingContinuation 1h time-stop is 96 hours');
 
   const fallbackPlan = await createProtectionPlan(fill, {
     async placeReduceOnlyStop() { throw new Error('STOP rejected on demo'); },

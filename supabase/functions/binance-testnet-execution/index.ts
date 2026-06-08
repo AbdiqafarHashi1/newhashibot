@@ -9,10 +9,10 @@ const corsHeaders = {
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
 const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "partially_closed", "pending_protection", "protected_managed", "pending_managed_protection"];
-const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_sl", "closed_breakeven"];
-const TERMINAL_STATUSES = ["closed_tp", "closed_sl", "closed_breakeven", "cancelled", "failed", "skipped", "stale_closed"];
+const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_sl", "closed_breakeven", "closed_timeout"];
+const TERMINAL_STATUSES = ["closed_tp", "closed_sl", "closed_breakeven", "closed_timeout", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "clean_stale_execution_rows" | "manual_test_flow";
+type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -681,16 +681,41 @@ async function createSkipped(supabase: SupabaseClient, signal: SignalRow, reason
   return { success: false, skipped: true, reason: normalized, ...metadata };
 }
 
-async function submitAlgoExitOrder(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", stopPrice: number, quantity: number): Promise<{ id: string; raw: Json; endpoint: string }> {
-  const payload = { symbol: plan.symbol, side: plan.closeSide, type, stopPrice, quantity, reduceOnly: true, workingType: "MARK_PRICE" };
+function nativeExitPayload(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", stopPrice: number, quantity: number): Record<string, string | number | boolean> {
+  return {
+    symbol: plan.symbol,
+    side: plan.closeSide,
+    type,
+    stopPrice,
+    quantity,
+    reduceOnly: true,
+    workingType: "MARK_PRICE",
+  };
+}
+
+async function fetchNativeOpenProtection(symbol: string): Promise<Json[]> {
+  const [regular, algo] = await Promise.all([
+    binanceRequest<Array<Json>>("GET", "/fapi/v1/openOrders", { symbol }, true).catch(() => []),
+    binanceRequest<Json>("GET", "/fapi/v1/algoOpenOrders", { symbol }, true).catch(() => ({ orders: [] })),
+  ]);
+  const algoOrders = Array.isArray(algo) ? algo : Array.isArray((algo as Json).orders) ? (algo as { orders: Json[] }).orders : [];
+  return [...regular, ...algoOrders];
+}
+
+function openOrderId(order: Json): string {
+  return String(order.orderId ?? order.algoId ?? order.clientAlgoId ?? order.clientOrderId ?? "");
+}
+
+async function submitAlgoExitOrder(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", stopPrice: number, quantity: number): Promise<{ id: string; raw: Json; endpoint: string; payload: Json }> {
+  const payload = nativeExitPayload(plan, type, stopPrice, quantity);
   try {
     const regular = await binanceRequest<{ orderId: number }>("POST", "/fapi/v1/order", payload, true);
-    return { id: String(regular.orderId), raw: regular as Json, endpoint: "/fapi/v1/order" };
+    return { id: String(regular.orderId), raw: regular as Json, endpoint: "/fapi/v1/order", payload: payload as Json };
   } catch (regularError) {
     const regularMsg = regularError instanceof Error ? regularError.message : String(regularError);
     if (!regularMsg.includes("Order type not supported") && !regularMsg.includes("Algo order API")) throw regularError;
     const algo = await binanceRequest<{ algoId?: number; orderId?: number; clientAlgoId?: string }>("POST", "/fapi/v1/algoOrder", payload, true);
-    return { id: String(algo.algoId ?? algo.orderId ?? algo.clientAlgoId), raw: { ...algo as Json, regular_endpoint_error: regularMsg }, endpoint: "/fapi/v1/algoOrder" };
+    return { id: String(algo.algoId ?? algo.orderId ?? algo.clientAlgoId), raw: { ...algo as Json, regular_endpoint_error: regularMsg }, endpoint: "/fapi/v1/algoOrder", payload: payload as Json };
   }
 }
 
@@ -699,11 +724,27 @@ async function submitBracketOrders(supabase: SupabaseClient, executionId: string
     const sl = await submitAlgoExitOrder(plan, "STOP_MARKET", plan.stopLoss, plan.quantity);
     const tp1 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp1, plan.tp1Quantity);
     const tp2 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp2, plan.tp2Quantity);
-    const openOrders = await binanceRequest<Array<Json>>("GET", "/fapi/v1/openOrders", { symbol: plan.symbol }, true);
-    const orderIds = new Set(openOrders.map((order) => String(order.orderId ?? order.algoId ?? order.clientAlgoId ?? "")));
+    const openOrders = await fetchNativeOpenProtection(plan.symbol);
+    const orderIds = new Set(openOrders.map(openOrderId));
+    const expected = [
+      { label: "sl", placed: sl, type: "STOP_MARKET", side: plan.closeSide, quantity: plan.quantity, stopPrice: plan.stopLoss },
+      { label: "tp1", placed: tp1, type: "TAKE_PROFIT_MARKET", side: plan.closeSide, quantity: plan.tp1Quantity, stopPrice: plan.tp1 },
+      { label: "tp2", placed: tp2, type: "TAKE_PROFIT_MARKET", side: plan.closeSide, quantity: plan.tp2Quantity, stopPrice: plan.tp2 },
+    ];
+    const mismatches = expected.flatMap((item) => {
+      const order = openOrders.find((o) => openOrderId(o) === String(item.placed.id));
+      if (!order) return [`${item.label}:missing_open_order`];
+      const issues: string[] = [];
+      if (String(order.side ?? item.side).toUpperCase() !== item.side) issues.push(`${item.label}:wrong_side`);
+      if (String(order.type ?? item.type).toUpperCase() !== item.type) issues.push(`${item.label}:wrong_type`);
+      if ((order.reduceOnly as unknown) === false) issues.push(`${item.label}:not_reduce_only`);
+      const stop = Number(order.stopPrice ?? item.stopPrice);
+      if (Number.isFinite(stop) && Math.abs(stop - item.stopPrice) > Math.max(item.stopPrice * 0.000001, 1e-8)) issues.push(`${item.label}:wrong_stop_price`);
+      return issues;
+    });
     const missing = [sl.id, tp1.id, tp2.id].filter((id) => !orderIds.has(String(id)));
-    const raw = { sl, tp1, tp2, verified_open_orders: openOrders };
-    if (missing.length > 0) throw new Error(`Native protection verification failed; missing open reduce-only orders: ${missing.join(",")}`);
+    const raw = { sl, tp1, tp2, verified_open_orders: openOrders, verification_mismatches: mismatches };
+    if (missing.length > 0 || mismatches.length > 0) throw new Error(`Native protection verification failed; missing/mismatched open reduce-only orders: ${[...missing, ...mismatches].join(",")}`);
     await supabase.from("execution_orders").update({ status: "protected", bracket_mode: "exchange_native", protection_status: "protected", sl_order_id: sl.id, tp1_order_id: tp1.id, tp2_order_id: tp2.id, binance_sl_order_id: sl.id, binance_tp1_order_id: tp1.id, binance_tp2_order_id: tp2.id, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: "", raw_exchange_response: raw, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "protected", "SL/TP reduce-only protection submitted and verified on Binance openOrders", raw);
     return { mode: "exchange_native", protection: "protected", sl_order_id: sl.id, tp1_order_id: tp1.id, tp2_order_id: tp2.id, raw };
@@ -817,7 +858,7 @@ async function getPosition(symbol: string): Promise<{ positionAmt: string; markP
   return positions.find((p) => p.symbol === symbol) ?? null;
 }
 
-async function closeManaged(supabase: SupabaseClient, ex: Json, closeSide: Side, quantity: number, reason: "closed_tp" | "closed_sl" | "closed_breakeven" | "partially_closed", message: string): Promise<Json> {
+async function closeManaged(supabase: SupabaseClient, ex: Json, closeSide: Side, quantity: number, reason: "closed_tp" | "closed_sl" | "closed_breakeven" | "closed_timeout" | "partially_closed", message: string): Promise<Json> {
   const result = await binanceRequest<{ orderId: number }>("POST", "/fapi/v1/order", { symbol: String(ex.symbol), side: closeSide, type: "MARKET", quantity, reduceOnly: true }, true);
   const update: Json = { status: reason, raw_exchange_response: { managed_close: result }, updated_at: new Date().toISOString() };
   if (reason === "partially_closed") {
@@ -834,7 +875,9 @@ async function closeManaged(supabase: SupabaseClient, ex: Json, closeSide: Side,
       ? ["TP2 hit", "Closed remaining position", "Trade closed TP"]
       : reason === "closed_breakeven"
         ? ["Break-even SL hit", "Remaining position closed"]
-        : ["SL hit", "Full position closed"];
+        : reason === "closed_timeout"
+          ? ["Time-stop expired", "Remaining position closed"]
+          : ["SL hit", "Full position closed"];
   await sendExecutionTelegram(supabase, String(ex.signal_id), reason, lines);
   return { success: true, status: reason, managed_close_order_id: result.orderId };
 }
@@ -1048,6 +1091,14 @@ Deno.serve(async (req: Request) => {
     else if (action === "validate_symbol") payload = { success: true, rules: await getRules(body.symbol ?? "BTCUSDT") };
     else if (action === "positions") { assertLiveTradingImpossible(); payload = { success: true, positions: await binanceRequest("GET", "/fapi/v2/positionRisk", {}, true) }; }
     else if (action === "cancel_orders") { assertLiveTradingImpossible(); payload = { success: true, result: await binanceRequest("DELETE", "/fapi/v1/allOpenOrders", { symbol: body.symbol ?? "BTCUSDT" }, true), algo_result: await binanceRequest("DELETE", "/fapi/v1/algoOpenOrders", { symbol: body.symbol ?? "BTCUSDT" }, true).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) }; }
+    else if (action === "close_position") {
+      assertLiveTradingImpossible();
+      const sym = body.symbol ?? "BTCUSDT";
+      const pos = await getPosition(String(sym));
+      const amt = Number(pos?.positionAmt ?? 0);
+      if (!Number.isFinite(amt) || Math.abs(amt) <= 0) payload = { success: true, skipped: true, reason: "no_open_position", symbol: sym };
+      else payload = { success: true, result: await binanceRequest("POST", "/fapi/v1/order", { symbol: String(sym), side: amt > 0 ? "SELL" : "BUY", type: "MARKET", quantity: Math.abs(amt), reduceOnly: true }, true) };
+    }
     else if (action === "dry_run") {
       const { data: signal } = await supabase.from("signals").select("*").eq("id", body.signal_id ?? "").maybeSingle();
       if (!signal) throw new Error("Signal not found");

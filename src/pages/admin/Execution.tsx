@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
   partially_closed: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
   closed_tp: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
   closed_sl: 'text-red-400 bg-red-500/10 border-red-500/20',
+  closed_timeout: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
   failed: 'text-red-400 bg-red-500/10 border-red-500/20',
   skipped: 'text-zinc-400 bg-zinc-800 border-zinc-700',
   cancelled: 'text-zinc-400 bg-zinc-800 border-zinc-700',
@@ -90,7 +91,7 @@ export default function Execution() {
   const [result, setResult] = useState<ActionResult | null>(null);
 
   const executions = useMemo(() => status?.executions ?? [], [status?.executions]);
-  const openExecutions = useMemo(() => executions.filter(e => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'pending_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
+  const openExecutions = useMemo(() => executions.filter(e => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
   const failedExecutions = executions.filter(e => e.status === 'failed');
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
 
@@ -321,6 +322,7 @@ export default function Execution() {
             <ActionButton disabled={acting || !selectedSignalId} onClick={() => callExecution('manual_test_flow', { signal_id: selectedSignalId })} icon={<Shield size={14} />} label="Run E2E Test Flow" danger />
             <ActionButton disabled={acting} onClick={() => callExecution('positions')} icon={<RefreshCw size={14} />} label="Fetch Open Positions" />
             <ActionButton disabled={acting || !symbol} onClick={() => callExecution('cancel_orders', { symbol })} icon={<XCircle size={14} />} label="Cancel Symbol Orders" danger />
+            <ActionButton disabled={acting || !symbol} onClick={() => callExecution('close_position', { symbol })} icon={<XCircle size={14} />} label="Close Position Now" danger />
             <ActionButton disabled={acting || !symbol} onClick={() => callExecution('clean_stale_execution_rows', { symbol })} icon={<Trash2 size={14} />} label="Clean Stale Rows Now" />
           </div>
           <div className="grid sm:grid-cols-2 gap-3 mt-4">
@@ -369,7 +371,7 @@ export default function Execution() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Capital</th><th className="text-left px-4 py-3">Sync</th>
+                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Market / Timer</th><th className="text-left px-4 py-3">Sync</th>
               </tr>
             </thead>
             <tbody>
@@ -380,9 +382,9 @@ export default function Execution() {
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.leverage ? `${e.leverage}x` : '—'}</td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
                   <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span></td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>TP1 filled: {e.tp1_filled ? 'yes' : 'no'}</div><div>SL BE: {e.sl_moved_to_be ? 'yes' : 'no'} {e.be_stop_level ?? ''}</div><div>{e.governor_state || '—'} {e.adjusted_risk_pct ? `· risk ${e.adjusted_risk_pct}%` : ''}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>TP1 filled: {e.tp1_filled || e.tp1_closed_at ? 'yes' : 'no'}</div><div>SL BE: {e.sl_moved_to_be ? 'yes' : 'no'} {e.be_stop_level ?? ''}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500 font-mono">E:{e.entry_order_id || '—'} SL:{e.sl_order_id || '—'} TP:{e.tp1_order_id || '—'}/{e.tp2_order_id || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.capital_basis || '—'}</div><div>{e.selected_capital_used ?? '—'}</div></td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Mark: {e.latest_mark_price ?? '—'}</div><div>uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Deadline: {e.time_stop_deadline_at ? new Date(e.time_stop_deadline_at).toLocaleString() : '—'}</div><div>Last: {e.last_monitor_action || '—'}</div></td>
                   <td className="px-4 py-3"><button onClick={() => callExecution('sync_execution', { execution_id: e.id })} className="text-xs text-blue-400 hover:text-blue-300">Sync</button></td>
                 </tr>
               ))}

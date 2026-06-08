@@ -120,6 +120,27 @@ async function cancelOrder(symbol: string, orderId: string) {
   await binanceRequest("/fapi/v1/order", { symbol, orderId }, "DELETE");
 }
 
+function timeStopMinutes(strategyName: unknown, timeframe: unknown): number | null {
+  const key = `${String(strategyName ?? "").toLowerCase()}:${String(timeframe ?? "").toLowerCase()}`;
+  if (key === "microscalper:5m") return 120;
+  if (key === "microscalper:15m") return 360;
+  if (key === "compressionbreakout:15m") return 720;
+  if (key === "compressionbreakout:1h") return 48 * 60;
+  if (key === "swingcontinuation:15m") return 1440;
+  if (key === "swingcontinuation:1h") return 96 * 60;
+  return null;
+}
+
+function timeStopDeadline(row: Row): string | null {
+  const existing = String(row.time_stop_deadline_at ?? "");
+  if (existing) return existing;
+  const minutes = timeStopMinutes(row.strategy_name, row.timeframe);
+  const start = String(row.entry_filled_at ?? row.created_at ?? "");
+  const ms = start ? new Date(start).getTime() : NaN;
+  if (!minutes || !Number.isFinite(ms)) return null;
+  return new Date(ms + minutes * 60_000).toISOString();
+}
+
 async function closeReduceOnly(row: Row, quantity: number, reason: string) {
   if (quantity <= 0) return null;
   return await binanceRequest("/fapi/v1/order", {
@@ -146,7 +167,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   const hasPosition = Math.abs(positionAmt) > 0;
   const hasOpenOrders = openOrders.length > 0;
   const now = new Date().toISOString();
-  const update: Record<string, unknown> = { current_position_size: positionAmt, latest_mark_price: markPrice, latest_unrealized_pnl: unrealizedPnl, latest_sync_at: now };
+  const update: Record<string, unknown> = { current_position_size: positionAmt, latest_mark_price: markPrice, latest_unrealized_pnl: unrealizedPnl, latest_sync_at: now, last_monitor_action: "synced" };
 
   if (ACTIVE_STATUSES.includes(row.status) && !hasPosition && !hasOpenOrders) {
     Object.assign(update, { status: "stale_closed", stale_cleanup_reason: "binance_truth_no_position_no_orders", stale_checked_at: now });
@@ -187,37 +208,50 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
       await logEvent(supabase, row, "native_tp1_filled", `${row.symbol} TP1 filled; SL moved/confirmed at break-even.`, { tp1 }, stats);
     }
     if (!row.tp2_closed_at && tp2?.status === "FILLED") {
-      Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0 });
+      Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0, last_monitor_action: "managed_tp2_closed" });
       if (row.binance_sl_order_id) { await cancelOrder(row.symbol, String(row.binance_sl_order_id)); stats.cancelled_orders += 1; }
       await logEvent(supabase, row, "native_tp2_filled", `${row.symbol} TP2 filled; position closed in profit.`, { tp2 }, stats);
     }
     if (!row.sl_closed_at && sl?.status === "FILLED") {
-      Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0 });
+      Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0, last_monitor_action: row.sl_moved_to_be ? "managed_be_closed" : "managed_sl_closed" });
       for (const oid of [row.binance_tp1_order_id, row.binance_tp2_order_id].filter(Boolean).map(String)) { await cancelOrder(row.symbol, oid); stats.cancelled_orders += 1; }
       await logEvent(supabase, row, "native_sl_filled", `${row.symbol} SL filled; position closed.`, { sl }, stats);
     }
   }
 
+  if (hasPosition && !["protected", "protected_managed"].includes(String(row.protection_status ?? "")) && ["entry_filled", "protected", "protected_managed", "partially_closed"].includes(row.status)) {
+    Object.assign(update, { protection_status: "unprotected_failed", latest_protection_error: "open Binance position is not protected_native or protected_managed", last_monitor_action: "unprotected_position_warning" });
+    await logEvent(supabase, row, "unprotected_position_warning", `${row.symbol} has an open Binance position without verified native or managed protection.`, { positionAmt, open_orders: openOrders }, stats);
+  }
+
   if (row.bracket_mode === "managed_exit_fallback" || row.protection_status === "protected_managed") {
+    const deadline = timeStopDeadline(row);
+    if (deadline) update.time_stop_deadline_at = deadline;
     const remaining = n(row.remaining_quantity) || n(row.volume) || Math.abs(positionAmt);
     const tp1Qty = n(row.tp1_quantity) || (remaining / 2);
     const activeStop = row.sl_moved_to_be ? n(row.entry_price) : n(row.intended_sl);
-    if (!row.tp1_closed_at && n(row.intended_tp1) > 0 && targetHit(row.direction, markPrice, n(row.intended_tp1))) {
+    if (deadline && Date.now() >= new Date(deadline).getTime()) {
+      const closeResult = await closeReduceOnly(row, remaining, "timeout");
+      Object.assign(update, { status: "closed_timeout", timeout_closed_at: now, remaining_quantity: 0, last_monitor_action: "managed_timeout_closed" });
+      stats.reduce_only_orders += 1;
+      stats.last_managed_action = { symbol: row.symbol, action: "timeout", quantity: remaining, order: closeResult, at: now, deadline };
+      await logEvent(supabase, row, "managed_timeout_closed", `${row.symbol} time-stop expired; closed remaining reduce-only.`, { markPrice, remaining, deadline }, stats);
+    } else if (!row.tp1_closed_at && n(row.intended_tp1) > 0 && targetHit(row.direction, markPrice, n(row.intended_tp1))) {
       const qty = Math.min(tp1Qty, remaining);
       const closeResult = await closeReduceOnly(row, qty, "tp1");
-      Object.assign(update, { status: "partially_closed", tp1_closed_at: now, remaining_quantity: Math.max(remaining - qty, 0), sl_moved_to_be: true });
+      Object.assign(update, { status: "partially_closed", tp1_closed_at: now, remaining_quantity: Math.max(remaining - qty, 0), sl_moved_to_be: true, be_stop_level: n(row.entry_price), last_monitor_action: "managed_tp1_closed" });
       stats.reduce_only_orders += 1;
       stats.last_managed_action = { symbol: row.symbol, action: "tp1", quantity: qty, order: closeResult, at: now };
       await logEvent(supabase, row, "managed_tp1_closed", `${row.symbol} managed TP1 hit; closed 50% reduce-only and moved SL to BE.`, { markPrice, qty }, stats);
     } else if (n(row.intended_tp2) > 0 && targetHit(row.direction, markPrice, n(row.intended_tp2))) {
       const closeResult = await closeReduceOnly(row, remaining, "tp2");
-      Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0 });
+      Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0, last_monitor_action: "managed_tp2_closed" });
       stats.reduce_only_orders += 1;
       stats.last_managed_action = { symbol: row.symbol, action: "tp2", quantity: remaining, order: closeResult, at: now };
       await logEvent(supabase, row, "managed_tp2_closed", `${row.symbol} managed TP2 hit; closed remaining reduce-only.`, { markPrice, remaining }, stats);
     } else if (activeStop > 0 && stopHit(row.direction, markPrice, activeStop)) {
       const closeResult = await closeReduceOnly(row, remaining, "sl");
-      Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0 });
+      Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0, last_monitor_action: row.sl_moved_to_be ? "managed_be_closed" : "managed_sl_closed" });
       stats.reduce_only_orders += 1;
       stats.last_managed_action = { symbol: row.symbol, action: "sl", quantity: remaining, order: closeResult, at: now };
       await logEvent(supabase, row, "managed_sl_closed", `${row.symbol} managed SL hit; closed remaining reduce-only.`, { markPrice, remaining, activeStop }, stats);

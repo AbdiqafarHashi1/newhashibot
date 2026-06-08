@@ -22,6 +22,8 @@ export type MonitorEventType =
   | 'managed_tp1_closed'
   | 'managed_tp2_closed'
   | 'managed_sl_closed'
+  | 'managed_timeout_closed'
+  | 'unprotected_position_warning'
   | 'sl_moved_to_be'
   | 'stale_closed'
   | 'manual_position_closed';
@@ -67,6 +69,11 @@ export interface MonitorExecutionRow {
   tp2_closed_at?: string | null;
   sl_closed_at?: string | null;
   sl_moved_to_be?: boolean | null;
+  strategy_name?: string | null;
+  timeframe?: string | null;
+  created_at?: string | null;
+  entry_filled_at?: string | null;
+  time_stop_deadline_at?: string | null;
 }
 
 export interface BinanceOrderSnapshot {
@@ -86,7 +93,7 @@ export interface BinanceTruthSnapshot {
 export interface MonitorUpdate {
   updates: Record<string, unknown>;
   events: Array<{ type: MonitorEventType; message: string; telegram: boolean }>;
-  reduceOnlyMarketOrders: Array<{ symbol: string; side: 'BUY' | 'SELL'; quantity: number; reason: 'tp1' | 'tp2' | 'sl' }>;
+  reduceOnlyMarketOrders: Array<{ symbol: string; side: 'BUY' | 'SELL'; quantity: number; reason: 'tp1' | 'tp2' | 'sl' | 'timeout' }>;
   cancelOrderIds: string[];
 }
 
@@ -128,6 +135,26 @@ function stopHit(direction: Direction, markPrice: number, stop: number): boolean
   return direction === 'buy' ? markPrice <= stop : markPrice >= stop;
 }
 
+export function timeStopMinutes(strategyName: string | null | undefined, timeframe: string | null | undefined): number | null {
+  const key = `${String(strategyName ?? '').toLowerCase()}:${String(timeframe ?? '').toLowerCase()}`;
+  if (key === 'microscalper:5m') return 120;
+  if (key === 'microscalper:15m') return 360;
+  if (key === 'compressionbreakout:15m') return 720;
+  if (key === 'compressionbreakout:1h') return 48 * 60;
+  if (key === 'swingcontinuation:15m') return 1440;
+  if (key === 'swingcontinuation:1h') return 96 * 60;
+  return null;
+}
+
+export function computeTimeStopDeadline(row: MonitorExecutionRow): string | null {
+  if (row.time_stop_deadline_at) return row.time_stop_deadline_at;
+  const minutes = timeStopMinutes(row.strategy_name, row.timeframe);
+  const start = row.entry_filled_at ?? row.created_at;
+  const startMs = start ? new Date(start).getTime() : NaN;
+  if (!minutes || !Number.isFinite(startMs)) return null;
+  return new Date(startMs + minutes * 60_000).toISOString();
+}
+
 function addEvent(out: MonitorUpdate, type: MonitorEventType, message: string, telegram = true) {
   out.events.push({ type, message: `BINANCE TESTNET — NOT LIVE\n${message}`, telegram });
 }
@@ -145,6 +172,12 @@ export function processExecutionMonitorTick(
     out.updates = { status: 'stale_closed', stale_cleanup_reason: 'binance_truth_no_position_no_orders', stale_checked_at: new Date().toISOString() };
     addEvent(out, 'stale_closed', `${row.symbol} stale DB execution cleaned because Binance has no position and no open orders.`);
     return out;
+  }
+
+  if (hasPosition && !['protected', 'protected_managed'].includes(String(row.protection_status ?? '')) && ['entry_filled', 'protected', 'protected_managed', 'partially_closed'].includes(row.status)) {
+    out.updates.protection_status = 'unprotected_failed';
+    out.updates.latest_protection_error = 'open Binance position is not protected_native or protected_managed';
+    addEvent(out, 'unprotected_position_warning', `${row.symbol} has an open Binance position without verified native or managed protection.`);
   }
 
   const entryOrder = row.binance_entry_order_id ? orderById[row.binance_entry_order_id] : undefined;
@@ -193,6 +226,8 @@ export function processExecutionMonitorTick(
   }
 
   if (row.bracket_mode === 'managed_exit_fallback' || row.protection_status === 'protected_managed') {
+    const deadline = computeTimeStopDeadline(row);
+    if (deadline) out.updates.time_stop_deadline_at = deadline;
     const mark = truth.markPrice;
     if (!mark || mark <= 0) return out;
     const entry = row.entry_price;
@@ -202,6 +237,14 @@ export function processExecutionMonitorTick(
     const remaining = row.remaining_quantity ?? row.volume ?? Math.abs(truth.positionAmt);
     const half = row.tp1_quantity ?? (row.volume ? row.volume / 2 : Math.abs(truth.positionAmt) / 2);
     const activeStop = row.sl_moved_to_be && entry ? entry : intendedSl;
+
+    if (deadline && Date.now() >= new Date(deadline).getTime()) {
+      out.reduceOnlyMarketOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, reason: 'timeout' });
+      out.updates.status = 'closed_timeout';
+      out.updates.remaining_quantity = 0;
+      addEvent(out, 'managed_timeout_closed', `${row.symbol} time-stop expired; remaining quantity closed reduce-only.`);
+      return out;
+    }
 
     if (!row.tp1_closed_at && intendedTp1 && targetHit(row.direction, mark, intendedTp1)) {
       const qty = Math.min(half, remaining);

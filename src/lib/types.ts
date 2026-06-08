@@ -538,12 +538,19 @@ export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   latest_available_usdt?: number | null;
   latest_available_usdc?: number | null;
   latest_sync_at?: string | null;
+  entry_filled_at?: string | null;
+  protection_submitted_at?: string | null;
+  protected_at?: string | null;
+  time_stop_deadline_at?: string | null;
+  timeout_closed_at?: string | null;
+  last_monitor_action?: string | null;
+  margin_mode?: string | null;
   governor_state: 'normal' | 'defensive' | 'aggressive_allowed' | 'paused' | null;
   governor_reason: string | null;
   risk_multiplier: number | null;
   adjusted_risk_pct: number | null;
   adjusted_max_leverage: number | null;
-  status: 'pending' | 'entry_submitted' | 'entry_filled' | 'sl_submitted' | 'tp_submitted' | 'partially_closed' | 'closed_tp' | 'closed_sl' | 'closed_breakeven' | 'cancelled' | 'failed' | 'skipped' | string;
+  status: 'pending' | 'entry_submitted' | 'entry_filled' | 'sl_submitted' | 'tp_submitted' | 'partially_closed' | 'closed_tp' | 'closed_sl' | 'closed_breakeven' | 'closed_timeout' | 'cancelled' | 'failed' | 'skipped' | string;
 }
 
 export interface ExecutionEventLog {
