@@ -604,6 +604,8 @@ export interface ExecutionSettings {
   max_consecutive_closed_sl: number;
   last_governor_reason: string | null;
   last_governor_checked_at: string | null;
+  failed_execution_streak: number;
+  closed_sl_streak: number;
   account_total_margin_balance: number | null;
   account_total_wallet_balance: number | null;
   account_available_balance: number | null;

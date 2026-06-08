@@ -222,25 +222,28 @@ export default function ControlRoom() {
 
   return (
     <AdminLayout>
-      <div className="flex items-start justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Operator Control Room</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Signal Mode MVP — scanner, providers, Telegram, subscribers</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
+      <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/55 p-4 sm:p-5 shadow-xl shadow-black/10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-400/80">Operator</p>
+            <h1 className="text-[clamp(1.85rem,8vw,2.35rem)] font-bold leading-[1.05] tracking-tight break-normal">Control Room</h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-500">Signal Mode MVP — scanner, providers, Telegram, subscribers</p>
+          </div>
+          <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 sm:mx-0 sm:flex-wrap sm:justify-end sm:overflow-visible sm:pb-0 shrink-0">
           <button onClick={async () => { await refresh(); await loadStats(); }} disabled={state.loading}
-            className="inline-flex items-center gap-1.5 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:opacity-50">
             <RefreshCw size={12} className={state.loading ? 'animate-spin' : ''} />
             Refresh
           </button>
           <Link to="/admin/checklist"
-            className="inline-flex items-center gap-1.5 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors">
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white">
             <CheckCircle size={13} /> MVP Checklist
           </Link>
           <Link to="/admin/scanner-config"
-            className="inline-flex items-center gap-1.5 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors">
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white">
             <Settings size={13} /> Config
           </Link>
+          </div>
         </div>
       </div>
 
@@ -256,7 +259,7 @@ export default function ControlRoom() {
       </div>
 
       {/* Live state banner */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-4 flex flex-wrap gap-x-5 gap-y-2 items-center">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-x-5 sm:gap-y-2 sm:items-center">
         <div className="flex items-center gap-2">
           <div className={`w-2.5 h-2.5 rounded-full ${state.scannerEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
           <span className="text-sm font-semibold">Signal Mode MVP</span>
@@ -359,7 +362,7 @@ export default function ControlRoom() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <StatCard label="Active Symbols" value={stats.symbols} icon={<Radio size={16} />} color="blue" />
         <StatCard label="Candles Stored" value={stats.candles.toLocaleString()} icon={<Database size={16} />} color="cyan" />
         <StatCard label="Active Signals" value={stats.signals} icon={<Zap size={16} />} color="green" />
@@ -368,7 +371,7 @@ export default function ControlRoom() {
       </div>
 
       {/* Real signal counts */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 min-[390px]:grid-cols-3 gap-3 mb-6">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-emerald-400">{state.latestApprovedRealSignalCount}</div>
           <div className="text-xs text-zinc-500 mt-1">Active Real Data Signals</div>
