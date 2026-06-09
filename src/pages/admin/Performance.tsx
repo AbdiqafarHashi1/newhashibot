@@ -144,13 +144,31 @@ function mergeResetRows(existing: ResetCountRow[], next: ResetCountRow[]) {
   return Array.from(merged.values());
 }
 
+function resetRemainingValue(counts: ResetRemainingCounts, ...keys: string[]) {
+  return keys.reduce((sum, key) => sum + Number(counts[key] ?? 0), 0);
+}
+
+function resetIsComplete(counts: ResetRemainingCounts) {
+  return resetRemainingValue(counts, 'signals') === 0
+    && resetRemainingValue(counts, 'telegram_deliveries_linked_to_signals', 'telegram_deliveries') === 0
+    && resetRemainingValue(counts, 'strategy_candidates') === 0
+    && resetRemainingValue(counts, 'rejected_setups') === 0
+    && resetRemainingValue(counts, 'execution_event_logs_linked') === 0
+    && resetRemainingValue(counts, 'execution_orders') === 0
+    && resetRemainingValue(counts, 'paper_execution_intents') === 0
+    && resetRemainingValue(counts, 'signal_updates') === 0
+    && resetRemainingValue(counts, 'signal_outcomes', 'outcomes') === 0
+    && resetRemainingValue(counts, 'scanner_runs') === 0;
+}
+
 function normalizeResetBatch(data: unknown, rows: ResetCountRow[]): { rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean } {
   const payload = (data ?? {}) as ResetResponse;
+  const remainingCounts = payload.remaining_counts ?? {};
   return {
     rows,
     timestamp: payload.completed_at ?? payload.timestamp ?? new Date().toISOString(),
-    remainingCounts: payload.remaining_counts ?? {},
-    hasMore: Boolean(payload.has_more || payload.success === false),
+    remainingCounts,
+    hasMore: Boolean(payload.has_more || payload.success === false || !resetIsComplete(remainingCounts)),
   };
 }
 
@@ -505,7 +523,7 @@ export default function Performance() {
 
         aggregateRows = mergeResetRows(aggregateRows, resetRowsFromResponse(data));
         normalized = normalizeResetBatch(data, aggregateRows);
-        if (!normalized.hasMore) break;
+        if (resetIsComplete(normalized.remainingCounts)) break;
       }
 
       if (!normalized) throw new Error('Reset did not return a result');
@@ -621,7 +639,7 @@ export default function Performance() {
             </h2>
             <h3 className="text-base font-semibold text-zinc-100 mt-2">Reset Performance History</h3>
             <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-              Clears signal/performance/testing history only: signals, outcomes, Telegram delivery rows linked to signals, candidate/rejected setups, performance/stat rows derived from old signals, and DB execution history linked to old signals. It preserves scanner settings, strategy settings, execution settings, customers, packages, subscriptions, profiles, Telegram config, bot setup records, Binance credentials, account balances, and real Binance positions/orders. It does not reset the testnet governor or disable the scanner; the next scheduled scanner run will repopulate fresh rows if setups qualify.
+              Clears signal/performance history only: Telegram delivery rows linked to signals, signal-linked execution logs/orders, signal updates, signal outcomes, signals, strategy candidates, rejected setups, and scanner-run history. It preserves scanner settings, strategy settings, execution settings, customers, packages, subscriptions, profiles, Telegram config, bot setup records, Binance credentials, account balances, and real Binance positions/orders. It does not reset the testnet governor or disable the scanner; the next scheduled scanner run will repopulate fresh rows if setups qualify.
             </p>
             <p className="text-xs text-zinc-500 mt-3">
               Type <span className="font-mono text-red-200">{RESET_CONFIRMATION_TEXT}</span> to enable this manual reset.
@@ -655,7 +673,7 @@ export default function Performance() {
                   </div>
                 ))}
                 <div className="pt-2 font-medium text-zinc-300">Remaining</div>
-                {['signals', 'outcomes', 'telegram_deliveries', 'candidates', 'rejected_setups'].map(table => {
+                {['signals', 'telegram_deliveries_linked_to_signals', 'execution_event_logs_linked', 'execution_orders', 'paper_execution_intents', 'signal_updates', 'signal_outcomes', 'outcomes', 'strategy_candidates', 'rejected_setups', 'scanner_runs'].map(table => {
                   const count = resetResult.remainingCounts[table] ?? 0;
                   return (
                     <div key={table} className={`flex justify-between gap-3 ${count > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
@@ -664,7 +682,7 @@ export default function Performance() {
                     </div>
                   );
                 })}
-                {Object.entries(resetResult.remainingCounts).filter(([table, count]) => count > 0 && !['signals', 'outcomes', 'telegram_deliveries', 'candidates', 'rejected_setups'].includes(table)).map(([table, count]) => (
+                {Object.entries(resetResult.remainingCounts).filter(([table, count]) => count > 0 && !['signals', 'telegram_deliveries_linked_to_signals', 'telegram_deliveries', 'execution_event_logs_linked', 'execution_orders', 'paper_execution_intents', 'signal_updates', 'signal_outcomes', 'outcomes', 'strategy_candidates', 'rejected_setups', 'scanner_runs'].includes(table)).map(([table, count]) => (
                   <div key={table} className="flex justify-between gap-3 text-red-300">
                     <span className="font-mono">Responsible: {table}</span>
                     <span>{count}</span>
