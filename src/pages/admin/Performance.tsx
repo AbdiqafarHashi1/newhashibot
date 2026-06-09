@@ -55,6 +55,8 @@ type ResetResponse = {
   timestamp?: string;
   success?: boolean;
   has_more?: boolean;
+  step?: string;
+  deleted_count?: number;
   deleted_counts?: Record<string, { deleted_count?: number; status?: string } | number | string>;
   remaining_counts?: ResetRemainingCounts;
 };
@@ -144,31 +146,18 @@ function mergeResetRows(existing: ResetCountRow[], next: ResetCountRow[]) {
   return Array.from(merged.values());
 }
 
-function resetRemainingValue(counts: ResetRemainingCounts, ...keys: string[]) {
-  return keys.reduce((sum, key) => sum + Number(counts[key] ?? 0), 0);
-}
-
-function resetIsComplete(counts: ResetRemainingCounts) {
-  return resetRemainingValue(counts, 'signals') === 0
-    && resetRemainingValue(counts, 'telegram_deliveries_linked_to_signals', 'telegram_deliveries') === 0
-    && resetRemainingValue(counts, 'strategy_candidates') === 0
-    && resetRemainingValue(counts, 'rejected_setups') === 0
-    && resetRemainingValue(counts, 'execution_event_logs_linked') === 0
-    && resetRemainingValue(counts, 'execution_orders') === 0
-    && resetRemainingValue(counts, 'paper_execution_intents') === 0
-    && resetRemainingValue(counts, 'signal_updates') === 0
-    && resetRemainingValue(counts, 'signal_outcomes', 'outcomes') === 0
-    && resetRemainingValue(counts, 'scanner_runs') === 0;
-}
-
-function normalizeResetBatch(data: unknown, rows: ResetCountRow[]): { rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean } {
+function normalizeResetBatch(data: unknown, rows: ResetCountRow[]): { rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean; success: boolean; step: string; deletedCount: number } {
   const payload = (data ?? {}) as ResetResponse;
   const remainingCounts = payload.remaining_counts ?? {};
+  const success = payload.success === true;
   return {
     rows,
     timestamp: payload.completed_at ?? payload.timestamp ?? new Date().toISOString(),
     remainingCounts,
-    hasMore: Boolean(payload.has_more || payload.success === false || !resetIsComplete(remainingCounts)),
+    hasMore: Boolean(payload.has_more),
+    success,
+    step: payload.step ?? 'unknown',
+    deletedCount: Number(payload.deleted_count ?? 0),
   };
 }
 
@@ -454,7 +443,8 @@ export default function Performance() {
   const [resetInput, setResetInput] = useState('');
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState('');
-  const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean } | null>(null);
+  const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean; success: boolean; step: string; deletedCount: number } | null>(null);
+  const [resetProgress, setResetProgress] = useState('');
   const [capitalAssumptions, setCapitalAssumptions] = useState<CapitalAssumptions>(() => getStoredCapitalAssumptions());
 
   const load = useCallback(async () => {
@@ -513,32 +503,38 @@ export default function Performance() {
 
     setResetting(true);
     setResetError('');
+    setResetProgress('Starting small-batch reset…');
     try {
       let aggregateRows: ResetCountRow[] = [];
       let normalized: ReturnType<typeof normalizeResetBatch> | null = null;
 
-      for (let iteration = 0; iteration < 2000; iteration += 1) {
+      for (let iteration = 0; iteration < 10000; iteration += 1) {
         const { data, error: rpcError } = await supabase.rpc('admin_reset_trading_history_batch', { p_batch_size: 25, p_until_empty: false });
         if (rpcError) throw new Error(rpcError.message);
 
         aggregateRows = mergeResetRows(aggregateRows, resetRowsFromResponse(data));
         normalized = normalizeResetBatch(data, aggregateRows);
-        if (resetIsComplete(normalized.remainingCounts)) break;
+        setResetProgress(`Batch ${iteration + 1}: ${normalized.step} deleted ${normalized.deletedCount}; ${normalized.hasMore ? 'continuing…' : 'verifying completion…'}`);
+
+        if (normalized.success) break;
+        if (!normalized.hasMore) break;
       }
 
       if (!normalized) throw new Error('Reset did not return a result');
-      if (normalized.hasMore) throw new Error('Reset stopped before all performance rows were cleared. Please run reset again.');
+      if (!normalized.success) throw new Error('Reset stopped before all performance rows were cleared. Please run reset again.');
 
       window.localStorage.setItem(BASELINE_STORAGE_KEY, normalized.timestamp);
       setBaselineStartedAt(normalized.timestamp);
       setFilters(f => ({ ...f, datePreset: 'baseline', customStart: '', customEnd: '' }));
       setResetResult(normalized);
       setResetInput('');
+      setResetProgress('Reset complete. Refreshing Performance data…');
       await load();
     } catch (e) {
       setResetError(e instanceof Error ? e.message : 'Failed to reset trading history');
     } finally {
       setResetting(false);
+      setResetProgress('');
     }
   }
 
@@ -639,7 +635,7 @@ export default function Performance() {
             </h2>
             <h3 className="text-base font-semibold text-zinc-100 mt-2">Reset Performance History</h3>
             <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-              Clears signal/performance history only: Telegram delivery rows linked to signals, signal-linked execution logs/orders, signal updates, signal outcomes, signals, strategy candidates, rejected setups, and scanner-run history. It preserves scanner settings, strategy settings, execution settings, customers, packages, subscriptions, profiles, Telegram config, bot setup records, Binance credentials, account balances, and real Binance positions/orders. It does not reset the testnet governor or disable the scanner; the next scheduled scanner run will repopulate fresh rows if setups qualify.
+              Clears signal/performance history only: Telegram delivery rows linked to signals, signal-linked execution logs/orders, signal updates, signal outcomes, signals, strategy candidates, and rejected setups. It preserves scanner settings, strategy settings, execution settings, customers, packages, subscriptions, profiles, Telegram config, bot setup records, Binance credentials, account balances, and real Binance positions/orders. It does not reset the testnet governor or disable the scanner; the next scheduled scanner run will repopulate fresh rows if setups qualify.
             </p>
             <p className="text-xs text-zinc-500 mt-3">
               Type <span className="font-mono text-red-200">{RESET_CONFIRMATION_TEXT}</span> to enable this manual reset.
@@ -661,6 +657,7 @@ export default function Performance() {
               {resetting && <RefreshCw size={12} className="animate-spin" />}
               Reset Performance History
             </button>
+            {resetProgress && <div className="text-xs text-zinc-300 bg-zinc-950/70 border border-zinc-800 rounded-lg px-3 py-2">{resetProgress}</div>}
             {resetError && <div className="text-xs text-red-300 bg-red-950/50 border border-red-900/50 rounded-lg px-3 py-2">{resetError}</div>}
             {resetResult && (
               <div className="text-xs text-zinc-400 bg-zinc-950/70 border border-zinc-800 rounded-lg px-3 py-2 space-y-1">
@@ -673,7 +670,7 @@ export default function Performance() {
                   </div>
                 ))}
                 <div className="pt-2 font-medium text-zinc-300">Remaining</div>
-                {['signals', 'telegram_deliveries_linked_to_signals', 'execution_event_logs_linked', 'execution_orders', 'paper_execution_intents', 'signal_updates', 'signal_outcomes', 'outcomes', 'strategy_candidates', 'rejected_setups', 'scanner_runs'].map(table => {
+                {['signals', 'telegram_deliveries_linked_to_signals', 'execution_event_logs_linked', 'execution_orders', 'signal_updates', 'signal_outcomes', 'strategy_candidates', 'rejected_setups'].map(table => {
                   const count = resetResult.remainingCounts[table] ?? 0;
                   return (
                     <div key={table} className={`flex justify-between gap-3 ${count > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
@@ -682,7 +679,7 @@ export default function Performance() {
                     </div>
                   );
                 })}
-                {Object.entries(resetResult.remainingCounts).filter(([table, count]) => count > 0 && !['signals', 'telegram_deliveries_linked_to_signals', 'telegram_deliveries', 'execution_event_logs_linked', 'execution_orders', 'paper_execution_intents', 'signal_updates', 'signal_outcomes', 'outcomes', 'strategy_candidates', 'rejected_setups', 'scanner_runs'].includes(table)).map(([table, count]) => (
+                {Object.entries(resetResult.remainingCounts).filter(([table, count]) => count > 0 && !['signals', 'telegram_deliveries_linked_to_signals', 'telegram_deliveries', 'execution_event_logs_linked', 'execution_orders', 'signal_updates', 'signal_outcomes', 'strategy_candidates', 'rejected_setups'].includes(table)).map(([table, count]) => (
                   <div key={table} className="flex justify-between gap-3 text-red-300">
                     <span className="font-mono">Responsible: {table}</span>
                     <span>{count}</span>
