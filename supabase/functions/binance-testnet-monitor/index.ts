@@ -233,6 +233,7 @@ function algoFilled(order: BinanceOrder | null | undefined): boolean {
 }
 
 function timeStopMinutes(strategyName: unknown, timeframe: unknown): number | null {
+  if (typeof strategyName === "number" && Number.isFinite(strategyName) && strategyName > 0) return strategyName;
   const key = `${String(strategyName ?? "").toLowerCase()}:${String(timeframe ?? "").toLowerCase()}`;
   if (key === "microscalper:5m") return 120;
   if (key === "microscalper:15m") return 360;
@@ -244,13 +245,28 @@ function timeStopMinutes(strategyName: unknown, timeframe: unknown): number | nu
 }
 
 function timeStopDeadline(row: Row): string | null {
-  const existing = String(row.time_stop_deadline_at ?? "");
+  const existing = String(row.expires_at ?? row.time_stop_deadline_at ?? "");
   if (existing) return existing;
-  const minutes = timeStopMinutes(row.strategy_name, row.timeframe);
-  const start = String(row.entry_filled_at ?? row.created_at ?? "");
+  const minutes = timeStopMinutes(row.max_hold_minutes ?? row.strategy_name, row.timeframe);
+  const start = String(row.opened_at ?? row.entry_filled_at ?? row.created_at ?? "");
   const ms = start ? new Date(start).getTime() : NaN;
   if (!minutes || !Number.isFinite(ms)) return null;
   return new Date(ms + minutes * 60_000).toISOString();
+}
+
+async function cancelRemainingProtection(row: Row, stats: MonitorStats): Promise<string[]> {
+  const ids = [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id].filter(Boolean).map(String);
+  const cancelled: string[] = [];
+  for (const id of ids) {
+    try {
+      await cancelAlgoOrder(row.symbol, id);
+      cancelled.push(id);
+      stats.cancelled_orders += 1;
+    } catch {
+      // Already triggered/cancelled algo orders are safe to ignore during timeout cleanup.
+    }
+  }
+  return cancelled;
 }
 
 async function closeReduceOnly(row: Row, quantity: number, reason: string) {
@@ -282,7 +298,24 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   const hasPosition = Math.abs(positionAmt) > 0;
   const hasOpenOrders = openOrders.length > 0;
   const now = new Date().toISOString();
-  const update: Record<string, unknown> = { current_position_size: positionAmt, latest_mark_price: markPrice, latest_unrealized_pnl: unrealizedPnl, latest_sync_at: now, last_monitor_action: "synced" };
+  const deadline = timeStopDeadline(row);
+  const maxHoldMinutes = row.max_hold_minutes ?? timeStopMinutes(row.strategy_name, row.timeframe);
+  const update: Record<string, unknown> = { current_position_size: positionAmt, latest_mark_price: markPrice, latest_unrealized_pnl: unrealizedPnl, latest_sync_at: now, last_monitor_checked_at: now, last_monitor_action: "synced" };
+  if (deadline) { update.expires_at = deadline; update.time_stop_deadline_at = deadline; }
+  if (maxHoldMinutes) update.max_hold_minutes = maxHoldMinutes;
+
+  if (deadline && Date.now() >= new Date(deadline).getTime() && ACTIVE_STATUSES.includes(row.status)) {
+    const remaining = n(row.remaining_quantity) || n(row.volume) || Math.abs(positionAmt);
+    const cancelled = await cancelRemainingProtection(row, stats);
+    const closeResult = hasPosition && remaining > 0 ? await closeReduceOnly(row, remaining, "timeout") : null;
+    Object.assign(update, { status: "closed_timeout", timeout_closed_at: now, remaining_quantity: 0, expiry_reason: row.expiry_reason ?? "strategy_time_stop_expired", last_monitor_action: "timeout_closed" });
+    await supabase.from("execution_orders").update(update).eq("id", row.id);
+    stats.reduce_only_orders += closeResult ? 1 : 0;
+    stats.last_managed_action = { symbol: row.symbol, action: "timeout", quantity: remaining, order: closeResult, cancelled, at: now, deadline };
+    await logEvent(supabase, row, "managed_timeout_closed", `${row.symbol} time-stop expired; cancelled remaining TP/SL orders and closed remaining Binance position reduce-only.`, { markPrice, remaining, deadline, cancelled, closeResult }, stats);
+    stats.updated += 1;
+    return;
+  }
 
   if (ACTIVE_STATUSES.includes(row.status) && !hasPosition && !hasOpenOrders) {
     Object.assign(update, { status: "stale_closed", stale_cleanup_reason: "binance_truth_no_position_no_orders", stale_checked_at: now });
@@ -377,18 +410,10 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 
   if (row.bracket_mode === "managed_exit_fallback" || row.protection_status === "protected_managed") {
-    const deadline = timeStopDeadline(row);
-    if (deadline) update.time_stop_deadline_at = deadline;
     const remaining = n(row.remaining_quantity) || n(row.volume) || Math.abs(positionAmt);
     const tp1Qty = n(row.tp1_quantity) || (remaining / 2);
     const activeStop = row.sl_moved_to_be ? n(row.entry_price) : n(row.intended_sl);
-    if (deadline && Date.now() >= new Date(deadline).getTime()) {
-      const closeResult = await closeReduceOnly(row, remaining, "timeout");
-      Object.assign(update, { status: "closed_timeout", timeout_closed_at: now, remaining_quantity: 0, last_monitor_action: "managed_timeout_closed" });
-      stats.reduce_only_orders += 1;
-      stats.last_managed_action = { symbol: row.symbol, action: "timeout", quantity: remaining, order: closeResult, at: now, deadline };
-      await logEvent(supabase, row, "managed_timeout_closed", `${row.symbol} time-stop expired; closed remaining reduce-only.`, { markPrice, remaining, deadline }, stats);
-    } else if (!row.tp1_closed_at && n(row.intended_tp1) > 0 && targetHit(row.direction, markPrice, n(row.intended_tp1))) {
+    if (!row.tp1_closed_at && n(row.intended_tp1) > 0 && targetHit(row.direction, markPrice, n(row.intended_tp1))) {
       const qty = Math.min(tp1Qty, remaining);
       const closeResult = await closeReduceOnly(row, qty, "tp1");
       Object.assign(update, { status: "partially_closed", tp1_closed_at: now, remaining_quantity: Math.max(remaining - qty, 0), sl_moved_to_be: true, be_stop_level: n(row.entry_price), last_monitor_action: "managed_tp1_closed" });

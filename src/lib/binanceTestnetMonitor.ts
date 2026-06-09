@@ -78,6 +78,11 @@ export interface MonitorExecutionRow {
   created_at?: string | null;
   entry_filled_at?: string | null;
   time_stop_deadline_at?: string | null;
+  opened_at?: string | null;
+  expires_at?: string | null;
+  max_hold_minutes?: number | null;
+  expiry_reason?: string | null;
+  last_monitor_checked_at?: string | null;
 }
 
 export interface BinanceOrderSnapshot {
@@ -139,7 +144,8 @@ function stopHit(direction: Direction, markPrice: number, stop: number): boolean
   return direction === 'buy' ? markPrice <= stop : markPrice >= stop;
 }
 
-export function timeStopMinutes(strategyName: string | null | undefined, timeframe: string | null | undefined): number | null {
+export function timeStopMinutes(strategyName: string | number | null | undefined, timeframe: string | null | undefined): number | null {
+  if (typeof strategyName === 'number' && Number.isFinite(strategyName) && strategyName > 0) return strategyName;
   const key = `${String(strategyName ?? '').toLowerCase()}:${String(timeframe ?? '').toLowerCase()}`;
   if (key === 'microscalper:5m') return 120;
   if (key === 'microscalper:15m') return 360;
@@ -151,9 +157,10 @@ export function timeStopMinutes(strategyName: string | null | undefined, timefra
 }
 
 export function computeTimeStopDeadline(row: MonitorExecutionRow): string | null {
+  if (row.expires_at) return row.expires_at;
   if (row.time_stop_deadline_at) return row.time_stop_deadline_at;
-  const minutes = timeStopMinutes(row.strategy_name, row.timeframe);
-  const start = row.entry_filled_at ?? row.created_at;
+  const minutes = timeStopMinutes(row.max_hold_minutes ?? row.strategy_name, row.timeframe);
+  const start = row.opened_at ?? row.entry_filled_at ?? row.created_at;
   const startMs = start ? new Date(start).getTime() : NaN;
   if (!minutes || !Number.isFinite(startMs)) return null;
   return new Date(startMs + minutes * 60_000).toISOString();
@@ -173,11 +180,34 @@ export function processExecutionMonitorTick(
   orderById: Record<string, BinanceOrderSnapshot | undefined>,
 ): MonitorUpdate {
   const out: MonitorUpdate = { updates: {}, events: [], reduceOnlyMarketOrders: [], cancelOrderIds: [] };
+  const checkedAt = new Date().toISOString();
+  out.updates.last_monitor_checked_at = checkedAt;
+  const deadline = computeTimeStopDeadline(row);
+  if (deadline) {
+    out.updates.expires_at = deadline;
+    out.updates.time_stop_deadline_at = deadline;
+  }
+  const maxHoldMinutes = row.max_hold_minutes ?? timeStopMinutes(row.strategy_name, row.timeframe);
+  if (maxHoldMinutes) out.updates.max_hold_minutes = maxHoldMinutes;
   const hasPosition = Math.abs(truth.positionAmt) > 0;
   const hasOpenOrders = truth.openOrders.length > 0;
 
+  if (deadline && Date.now() >= new Date(deadline).getTime() && isMonitorActiveStatus(row.status)) {
+    const remaining = row.remaining_quantity ?? row.volume ?? Math.abs(truth.positionAmt);
+    out.cancelOrderIds.push(...truth.openOrders.map((order) => String(order.algoId ?? order.orderId ?? '')).filter(Boolean));
+    const ids = [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id].filter(Boolean).map(String);
+    out.cancelOrderIds.push(...ids.filter((id) => !out.cancelOrderIds.includes(id)));
+    if (hasPosition && remaining > 0) out.reduceOnlyMarketOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, reason: 'timeout' });
+    out.updates.status = 'closed_timeout';
+    out.updates.remaining_quantity = 0;
+    out.updates.expiry_reason = row.expiry_reason ?? 'strategy_time_stop_expired';
+    out.updates.last_monitor_action = 'timeout_closed';
+    addEvent(out, 'managed_timeout_closed', `${row.symbol} time-stop expired; remaining TP/SL orders should be cancelled and remaining position closed reduce-only.`);
+    return out;
+  }
+
   if (isMonitorActiveStatus(row.status) && !hasPosition && !hasOpenOrders) {
-    out.updates = { status: 'stale_closed', stale_cleanup_reason: 'binance_truth_no_position_no_orders', stale_checked_at: new Date().toISOString() };
+    out.updates = { ...out.updates, status: 'stale_closed', stale_cleanup_reason: 'binance_truth_no_position_no_orders', stale_checked_at: new Date().toISOString() };
     addEvent(out, 'stale_closed', `${row.symbol} stale DB execution cleaned because Binance has no position and no open orders.`);
     return out;
   }
@@ -193,6 +223,7 @@ export function processExecutionMonitorTick(
     const avgPrice = num(entryOrder.avgPrice);
     out.updates.status = row.protection_status === 'protected' || row.protection_status === 'protected_native' || row.protection_status === 'protected_managed' ? row.status : 'entry_filled';
     if (avgPrice && avgPrice > 0) out.updates.entry_price = avgPrice;
+    out.updates.entry_filled_at = checkedAt;
     addEvent(out, 'entry_filled', `${row.symbol} entry filled${avgPrice ? ` at ${avgPrice}` : ''}.`);
   }
   if (entryOrder && ['CANCELED', 'EXPIRED'].includes(entryOrder.status) && ['pending', 'entry_submitted'].includes(row.status)) {
@@ -237,8 +268,6 @@ export function processExecutionMonitorTick(
   }
 
   if (row.bracket_mode === 'managed_exit_fallback' || row.protection_status === 'protected_managed') {
-    const deadline = computeTimeStopDeadline(row);
-    if (deadline) out.updates.time_stop_deadline_at = deadline;
     const mark = truth.markPrice;
     if (!mark || mark <= 0) return out;
     const entry = row.entry_price;
@@ -249,13 +278,6 @@ export function processExecutionMonitorTick(
     const half = row.tp1_quantity ?? (row.volume ? row.volume / 2 : Math.abs(truth.positionAmt) / 2);
     const activeStop = row.sl_moved_to_be && entry ? entry : intendedSl;
 
-    if (deadline && Date.now() >= new Date(deadline).getTime()) {
-      out.reduceOnlyMarketOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, reason: 'timeout' });
-      out.updates.status = 'closed_timeout';
-      out.updates.remaining_quantity = 0;
-      addEvent(out, 'managed_timeout_closed', `${row.symbol} time-stop expired; remaining quantity closed reduce-only.`);
-      return out;
-    }
 
     if (!row.tp1_closed_at && intendedTp1 && targetHit(row.direction, mark, intendedTp1)) {
       const qty = Math.min(half, remaining);

@@ -105,6 +105,7 @@ export default function Execution() {
   const failedExecutions = executions.filter(e => e.status === 'failed');
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
   const selectedSignalValid = useMemo(() => Boolean(selectedSignalId && signals.some(s => s.id === selectedSignalId)), [selectedSignalId, signals]);
+  const governorMode = status?.settings?.testnet_governor_mode ?? 'normal';
 
   async function updateExecutionSettings(settingsPatch: Record<string, unknown>) {
     return callExecution('update_settings', { settings: settingsPatch });
@@ -200,6 +201,15 @@ export default function Execution() {
         <p className="text-sm text-zinc-500 mt-0.5">Testnet-only connector for qualified HashiBot crypto signals. BINANCE TESTNET — NOT LIVE.</p>
       </div>
 
+      {governorMode === 'off_for_testing' && (
+        <div className="bg-red-600/15 border border-red-500/40 rounded-xl p-4 mb-6 flex gap-3">
+          <AlertTriangle size={18} className="text-red-300 mt-0.5 shrink-0" />
+          <div className="text-sm text-red-200">
+            <strong>TESTNET GOVERNOR OFF.</strong> This bypasses governor blocking for Binance Testnet entries only. Live trading remains impossible and monitor protection stays active.
+          </div>
+        </div>
+      )}
+
       <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-xl p-4 mb-6 flex gap-3">
         <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
         <div className="text-sm text-yellow-300/90">
@@ -261,7 +271,7 @@ export default function Execution() {
               </div>
               <div className="bg-black/20 rounded-lg p-3">
                 <div className="text-zinc-500">Governor</div>
-                <div className={`font-mono mt-1 ${status?.settings?.governor_state === 'paused' ? 'text-red-300' : status?.settings?.governor_state === 'defensive' ? 'text-yellow-300' : status?.settings?.governor_state === 'aggressive_allowed' ? 'text-blue-300' : 'text-emerald-300'}`}>{status?.settings?.governor_state ?? 'normal'}</div>
+                <div className={`font-mono mt-1 ${governorMode === 'off_for_testing' ? 'text-red-300' : status?.settings?.governor_state === 'paused' ? 'text-red-300' : status?.settings?.governor_state === 'defensive' ? 'text-yellow-300' : status?.settings?.governor_state === 'aggressive_allowed' ? 'text-blue-300' : 'text-emerald-300'}`}>{governorMode} / {status?.settings?.governor_state ?? 'normal'}</div>
               </div>
               <div className="bg-black/20 rounded-lg p-3">
                 <div className="text-zinc-500">Open Positions</div>
@@ -336,10 +346,14 @@ export default function Execution() {
           <div className="flex gap-2">
             <ActionButton disabled={acting} onClick={() => callExecution('refresh_account_state')} icon={<RefreshCw size={14} />} label="Refresh Binance Account State" />
             <ActionButton disabled={acting} onClick={() => callExecution('evaluate_governor')} icon={<Shield size={14} />} label="Re-evaluate Governor" />
+            <ActionButton disabled={acting} onClick={() => updateExecutionSettings({ testnet_governor_mode: 'normal' })} icon={<Shield size={14} />} label="Governor Normal" />
+            <ActionButton disabled={acting} onClick={() => updateExecutionSettings({ testnet_governor_mode: 'readonly' })} icon={<Shield size={14} />} label="Governor Readonly" />
+            <ActionButton disabled={acting} onClick={() => updateExecutionSettings({ testnet_governor_mode: 'off_for_testing' })} icon={<AlertTriangle size={14} />} label="Governor Off For Testing" danger />
             <ActionButton disabled={acting} onClick={resetTestnetGovernor} icon={<RotateCcw size={14} />} label="Reset Testnet Governor / Start New Test Day" danger />
           </div>
         </div>
         <div className="grid md:grid-cols-4 gap-3 text-xs">
+          <ProofRow label="Governor mode" value={governorMode} />
           <ProofRow label="Governor enabled" value={status?.settings?.governor_enabled ? 'true' : 'false'} />
           <ProofRow label="Governor state" value={status?.governor?.state ?? status?.settings?.governor_state ?? 'normal'} />
           <ProofRow label="Governor reason" value={status?.governor?.reason ?? status?.settings?.last_governor_reason ?? '—'} />
@@ -362,6 +376,8 @@ export default function Execution() {
           <ProofRow label="Last checked" value={status?.settings?.last_governor_checked_at ? new Date(status.settings.last_governor_checked_at).toLocaleString() : '—'} />
           <ProofRow label="Execution allowed" value={String(status?.execution_allowed ?? !(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused'))} />
         </div>
+        {governorMode === 'off_for_testing' && <div className="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded p-3">TESTNET GOVERNOR OFF: governor stats still display, but new Binance Testnet entries are not blocked by governor state. Live trading remains blocked.</div>}
+        {governorMode === 'readonly' && <div className="mt-3 text-xs text-yellow-200 bg-yellow-500/10 border border-yellow-500/20 rounded p-3">Governor readonly: PnL/risk/streaks are calculated and warnings remain visible, but testnet entries are not governor-blocked.</div>}
         <div className="mt-3 text-xs text-zinc-400">Governor reset is testnet-only and does not delete signals, scanner runs, performance history, Binance positions, or Binance orders.</div>
         {(status?.governor?.state === 'paused' || status?.settings?.governor_state === 'paused') && (
           <div className="mt-3 text-xs text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 rounded p-3">
@@ -481,7 +497,7 @@ export default function Execution() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Market / Timer</th><th className="text-left px-4 py-3">Sync</th>
+                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Stress Test Timer</th><th className="text-left px-4 py-3">Sync</th>
               </tr>
             </thead>
             <tbody>
@@ -492,7 +508,7 @@ export default function Execution() {
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.leverage ? `${e.leverage}x` : '—'}</td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
                   <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span></td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>TP1 filled: {e.tp1_filled || e.tp1_closed_at ? 'yes' : 'no'}</div><div>SL BE: {e.sl_moved_to_be ? 'yes' : 'no'} {e.be_stop_level ?? ''}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>Protection mode: {e.bracket_mode || 'pending'}</div><div>TP1 status: {e.tp1_closed_at || e.tp1_filled ? 'filled/closed' : e.tp1_algo_id || e.binance_tp1_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>TP2 status: {e.tp2_closed_at ? 'filled/closed' : e.tp2_algo_id || e.binance_tp2_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>SL/BE status: {e.sl_closed_at ? 'closed' : e.sl_moved_to_be ? `BE ${e.be_stop_level ?? ''}` : e.sl_algo_id || e.binance_sl_order_id ? 'open/native SL' : e.bracket_mode === 'managed_exit_fallback' ? 'managed SL' : 'pending'}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500 font-mono">
                     <div className="font-semibold text-zinc-400 mb-1">{e.bracket_mode === 'exchange_native' ? 'Native algo orders' : e.bracket_mode === 'managed_exit_fallback' ? 'Managed fallback' : 'Pending'}</div>
                     <div>Entry: {e.entry_order_id || e.binance_entry_order_id || '—'}</div>
@@ -520,7 +536,7 @@ export default function Execution() {
                     <div className="mt-1">Native verified: <span className={e.native_protection_verified ? 'text-emerald-300' : 'text-zinc-600'}>{e.native_protection_verified ? 'yes' : 'no'}</span></div>
                     <div>Managed fallback: <span className={e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'text-yellow-300' : 'text-zinc-600'}>{e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'yes' : 'no'}</span></div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Mark: {e.latest_mark_price ?? '—'}</div><div>uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Deadline: {e.time_stop_deadline_at ? new Date(e.time_stop_deadline_at).toLocaleString() : '—'}</div><div>Last: {e.last_monitor_action || '—'}</div></td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Opened: {e.opened_at ? new Date(e.opened_at).toLocaleString() : e.entry_filled_at ? new Date(e.entry_filled_at).toLocaleString() : '—'}</div><div>Expires: {e.expires_at || e.time_stop_deadline_at ? new Date(e.expires_at ?? e.time_stop_deadline_at ?? '').toLocaleString() : '—'}</div><div>Minutes left: {minutesRemaining(e.expires_at ?? e.time_stop_deadline_at)}</div><div>Max hold: {e.max_hold_minutes ?? '—'}m</div><div>Mark: {e.latest_mark_price ?? '—'} · uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Last monitor: {e.last_monitor_action || '—'}</div><div>Checked: {e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).toLocaleString() : '—'}</div></td>
                   <td className="px-4 py-3"><button onClick={() => callExecution('sync_execution', { execution_id: e.id })} className="text-xs text-blue-400 hover:text-blue-300">Sync</button></td>
                 </tr>
               ))}
@@ -535,6 +551,13 @@ export default function Execution() {
       </div>
     </AdminLayout>
   );
+}
+
+function minutesRemaining(expiresAt?: string | null): string {
+  if (!expiresAt) return '—';
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return '—';
+  return String(Math.max(0, Math.ceil(ms / 60_000)));
 }
 
 function StatusCard({ icon, label, value, note, valueClass = 'text-zinc-100' }: { icon: ReactNode; label: string; value: string; note: string; valueClass?: string }) {
