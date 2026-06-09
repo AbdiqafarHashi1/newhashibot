@@ -32,11 +32,13 @@ DECLARE
   endpoint text;
 BEGIN
   IF project_url IS NULL OR project_url = '' THEN
-    RAISE EXCEPTION 'Missing required setting: app.settings.supabase_url';
+    RAISE NOTICE 'Skipping scheduled-market-scanner cron registration: missing app.settings.supabase_url (expected in preview/CI).';
+    RETURN;
   END IF;
 
   IF coalesce(cron_secret, '') = '' THEN
-    RAISE EXCEPTION 'Missing auth setting: set app.settings.scanner_cron_secret';
+    RAISE NOTICE 'Skipping scheduled-market-scanner cron registration: missing app.settings.scanner_cron_secret (expected in preview/CI).';
+    RETURN;
   END IF;
 
   FOR job IN

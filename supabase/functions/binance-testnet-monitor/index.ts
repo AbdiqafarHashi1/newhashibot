@@ -7,6 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
+const MONITOR_VERSION = "b6.7r-monitor-startup-safe";
 const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protected_managed", "pending_managed_protection", "partially_closed"];
 const ENTRY_OPEN_STATUSES = ["NEW", "PARTIALLY_FILLED"];
 const TERMINAL_ORDER_STATUSES = ["CANCELED", "EXPIRED"];
@@ -17,6 +18,21 @@ type BinanceOrder = Record<string, unknown> & { orderId?: string | number; algoI
 type BinancePosition = Record<string, unknown> & { symbol?: string; positionAmt?: string; markPrice?: string; unRealizedProfit?: string; unrealizedProfit?: string };
 
 type RowError = { id: string; symbol: string; status: string; error: string; stack?: string; action: string };
+
+
+type MonitorPayload = {
+  expected_monitor_version?: string;
+  [key: string]: unknown;
+};
+
+type GlobalErrorReason =
+  | "auth_failed"
+  | "missing_env"
+  | "invalid_payload"
+  | "db_query_failed"
+  | "missing_table_or_column"
+  | "deployment_mismatch"
+  | "startup_exception";
 
 type MonitorStats = {
   checked: number;
@@ -39,6 +55,60 @@ type MonitorStats = {
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
+
+function globalErrorResponse(reason: GlobalErrorReason, message: string, stats: MonitorStats, extra: Record<string, unknown> = {}, status = 200) {
+  return jsonResponse({
+    success: false,
+    action: "binance_testnet_monitor",
+    monitor_version: MONITOR_VERSION,
+    monitor_started: false,
+    global_error: reason,
+    error: message,
+    checked: stats.checked,
+    updated: stats.updated,
+    row_errors: stats.row_errors,
+    ...extra,
+  }, status);
+}
+
+async function parseMonitorPayload(req: Request): Promise<{ payload: MonitorPayload; error?: string }> {
+  const contentType = req.headers.get("Content-Type") ?? "";
+  const raw = await req.text();
+  if (!raw.trim()) return { payload: {} };
+  if (contentType && !contentType.toLowerCase().includes("application/json")) return { payload: {}, error: "Content-Type must be application/json when a body is supplied" };
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { payload: {}, error: "JSON body must be an object" };
+    return { payload: parsed as MonitorPayload };
+  } catch (err) {
+    return { payload: {}, error: `Invalid JSON payload: ${errorMessage(err)}` };
+  }
+}
+
+function isMissingTableOrColumn(err: unknown): boolean {
+  const message = errorMessage(err).toLowerCase();
+  return message.includes("column") || message.includes("relation") || message.includes("schema cache") || message.includes("could not find") || message.includes("does not exist");
+}
+
+async function safeSettingsUpdate(supabase: SupabaseClient | null, update: Record<string, unknown>) {
+  if (!supabase) return;
+  try {
+    await supabase.from("execution_settings").update(update).eq("id", 1);
+  } catch {
+    // Best-effort visibility only; never let status persistence turn a structured response into a 500.
+  }
+}
+
+async function verifyMonitorSchema(supabase: SupabaseClient) {
+  const executionOrdersColumns = "id,status,latest_monitor_error,latest_sync_error,latest_protection_error,last_monitor_action";
+  const executionSettingsColumns = "id,latest_monitor_error,latest_sync_error,latest_monitor_status,latest_monitor_result";
+  const ordersProbe = await supabase.from("execution_orders").select(executionOrdersColumns).limit(0);
+  if (ordersProbe.error) return { ok: false, error: ordersProbe.error, table: "execution_orders", columns: executionOrdersColumns };
+  const settingsProbe = await supabase.from("execution_settings").select(executionSettingsColumns).limit(0);
+  if (settingsProbe.error) return { ok: false, error: settingsProbe.error, table: "execution_settings", columns: executionSettingsColumns };
+  return { ok: true };
 }
 
 function boolEnv(value: string | undefined): boolean {
@@ -100,7 +170,8 @@ async function verifyCronOrService(req: Request, supabase: SupabaseClient, servi
   const token = authHeader.replace("Bearer ", "");
   if (token && token === serviceRole) return true;
   if (token) {
-    const { data } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
+    const { data, error } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
+    if (error) throw error;
     if (data?.cron_pg_token && token === data.cron_pg_token) return true;
   }
   const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
@@ -614,22 +685,55 @@ Deno.serve(async (req: Request) => {
   const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "" };
   let supabase: SupabaseClient | null = null;
   try {
+    const parsedPayload = await parseMonitorPayload(req);
+    if (parsedPayload.error) return globalErrorResponse("invalid_payload", parsedPayload.error, stats);
+    if (parsedPayload.payload.expected_monitor_version && parsedPayload.payload.expected_monitor_version !== MONITOR_VERSION) {
+      return globalErrorResponse("deployment_mismatch", `Deployed monitor version ${MONITOR_VERSION} does not match expected ${parsedPayload.payload.expected_monitor_version}`, stats, { expected_monitor_version: parsedPayload.payload.expected_monitor_version });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    if (!supabaseUrl || !serviceRole) return jsonResponse({ success: false, error: "Monitor is not configured" }, 500);
-    supabase = createClient(supabaseUrl, serviceRole);
-    if (!(await verifyCronOrService(req, supabase, serviceRole))) return jsonResponse({ success: false, error: "Forbidden" }, 403);
+    if (!supabaseUrl || !serviceRole) {
+      return globalErrorResponse("missing_env", "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY", stats, { missing_env: [!supabaseUrl ? "SUPABASE_URL" : null, !serviceRole ? "SUPABASE_SERVICE_ROLE_KEY" : null].filter(Boolean) });
+    }
 
-    const { data: settings } = await supabase.from("execution_settings").select("*").eq("id", 1).maybeSingle();
-    if (boolEnv(Deno.env.get("LIVE_TRADING_ENABLED")) || settings?.live_trading_enabled === true) return jsonResponse({ success: false, aborted: true, reason: "live_trading_enabled_abort" }, 409);
-    if (String(Deno.env.get("EXECUTION_MODE") ?? "").toLowerCase() !== "testnet") return jsonResponse({ success: true, skipped: true, reason: "env_execution_mode_not_testnet" });
-    if (!boolEnv(Deno.env.get("TESTNET_ENABLED"))) return jsonResponse({ success: true, skipped: true, reason: "env_testnet_disabled" });
+    try {
+      supabase = createClient(supabaseUrl, serviceRole);
+    } catch (clientErr) {
+      return globalErrorResponse("missing_env", `Supabase client initialization failed: ${errorMessage(clientErr)}`, stats);
+    }
+
+    let authenticated = false;
+    try {
+      authenticated = await verifyCronOrService(req, supabase, serviceRole);
+    } catch (authErr) {
+      return globalErrorResponse(isMissingTableOrColumn(authErr) ? "missing_table_or_column" : "db_query_failed", `Cron auth lookup failed: ${errorMessage(authErr)}`, stats);
+    }
+    if (!authenticated) return globalErrorResponse("auth_failed", "Cron/service authorization failed", stats);
+
+    const schema = await verifyMonitorSchema(supabase);
+    if (!schema.ok) {
+      const reason = isMissingTableOrColumn(schema.error) ? "missing_table_or_column" : "db_query_failed";
+      return globalErrorResponse(reason, `Monitor schema check failed for ${schema.table}: ${errorMessage(schema.error)}`, stats, { required_columns: schema.columns });
+    }
+
+    const { data: settings, error: settingsError } = await supabase.from("execution_settings").select("*").eq("id", 1).maybeSingle();
+    if (settingsError) {
+      const reason = isMissingTableOrColumn(settingsError) ? "missing_table_or_column" : "db_query_failed";
+      return globalErrorResponse(reason, `execution_settings query failed: ${errorMessage(settingsError)}`, stats);
+    }
+    if (boolEnv(Deno.env.get("LIVE_TRADING_ENABLED")) || settings?.live_trading_enabled === true) return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, aborted: true, reason: "live_trading_enabled_abort", global_error: "startup_exception", ...stats });
+    if (String(Deno.env.get("EXECUTION_MODE") ?? "").toLowerCase() !== "testnet") return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_execution_mode_not_testnet", global_error: "", ...stats });
+    if (!boolEnv(Deno.env.get("TESTNET_ENABLED"))) return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_testnet_disabled", global_error: "", ...stats });
     if (!settings || settings.execution_mode !== "testnet" || settings.testnet_enabled !== true || settings.kill_switch_enabled === true) {
-      return jsonResponse({ success: true, skipped: true, reason: "execution_settings_gate_closed" });
+      return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "execution_settings_gate_closed", global_error: "", ...stats });
     }
 
     const { data: rows, error } = await supabase.from("execution_orders").select("*").in("status", ACTIVE_STATUSES).order("created_at", { ascending: true }).limit(100);
-    if (error) throw error;
+    if (error) {
+      const reason = isMissingTableOrColumn(error) ? "missing_table_or_column" : "db_query_failed";
+      return globalErrorResponse(reason, `execution_orders query failed: ${errorMessage(error)}`, stats);
+    }
     for (const row of (rows ?? []) as Row[]) {
       try {
         await monitorRow(supabase, row, stats);
@@ -650,24 +754,22 @@ Deno.serve(async (req: Request) => {
       const message = errorMessage(syncErr);
       stats.latest_monitor_error = message;
       stats.latest_sync_error = message;
-      await supabase.from("execution_settings").update({
+      await safeSettingsUpdate(supabase, {
         latest_monitor_run_at: new Date().toISOString(),
         latest_monitor_status: "completed_with_sync_error",
         latest_monitor_error: message,
         latest_sync_error: message,
-        latest_monitor_result: { action: "binance_testnet_monitor", ...stats },
+        latest_monitor_result: { action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, ...stats },
         updated_at: new Date().toISOString(),
-      }).eq("id", 1);
-      return jsonResponse({ success: true, action: "binance_testnet_monitor", completed_with_sync_error: true, ...stats });
+      });
+      return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, completed_with_sync_error: true, global_error: "", ...stats });
     }
     if (stats.row_errors.length > 0) {
-      await supabase.from("execution_settings").update({ latest_monitor_status: "completed_with_row_errors", latest_monitor_error: stats.latest_monitor_error, latest_sync_error: stats.latest_sync_error, latest_monitor_result: { action: "binance_testnet_monitor", ...stats }, updated_at: new Date().toISOString() }).eq("id", 1);
+      await safeSettingsUpdate(supabase, { latest_monitor_status: "completed_with_row_errors", latest_monitor_error: stats.latest_monitor_error, latest_sync_error: stats.latest_sync_error, latest_monitor_result: { action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, ...stats }, updated_at: new Date().toISOString() });
     }
-    return jsonResponse({ success: true, action: "binance_testnet_monitor", ...stats });
+    return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, global_error: "", ...stats });
   } catch (err) {
-    if (supabase) {
-      await supabase.from("execution_settings").update({ latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: "error", latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), ...stats }, updated_at: new Date().toISOString() }).eq("id", 1);
-    }
-    return jsonResponse({ success: false, error: errorMessage(err), ...stats }, 500);
+    await safeSettingsUpdate(supabase, { latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: "error", latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), monitor_version: MONITOR_VERSION, ...stats }, updated_at: new Date().toISOString() });
+    return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, global_error: "startup_exception", error: errorMessage(err), ...stats }, 500);
   }
 });
