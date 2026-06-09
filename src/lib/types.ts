@@ -550,6 +550,11 @@ export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   protection_submitted_at?: string | null;
   protected_at?: string | null;
   time_stop_deadline_at?: string | null;
+  opened_at?: string | null;
+  expires_at?: string | null;
+  max_hold_minutes?: number | null;
+  expiry_reason?: string | null;
+  last_monitor_checked_at?: string | null;
   timeout_closed_at?: string | null;
   last_monitor_action?: string | null;
   margin_mode?: string | null;
@@ -598,6 +603,7 @@ export interface ExecutionSettings {
   testnet_leverage_a_plus: number;
   testnet_max_leverage: number;
   governor_enabled: boolean;
+  testnet_governor_mode: 'normal' | 'readonly' | 'off_for_testing';
   governor_state: 'normal' | 'defensive' | 'aggressive_allowed' | 'paused';
   daily_start_equity: number | null;
   current_equity: number | null;

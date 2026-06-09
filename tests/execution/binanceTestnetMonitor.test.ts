@@ -20,6 +20,11 @@ async function run() {
   assert.equal(nativeTp2.updates.status, 'closed_tp', 'native TP2 close detection');
   assert.deepEqual(nativeTp2.cancelOrderIds, ['sl']);
 
+  const nativeExpired = processExecutionMonitorTick({ ...native, opened_at: new Date(Date.now() - 121 * 60_000).toISOString(), max_hold_minutes: 120 }, { positionAmt: 1, openOrders: [{ algoId: 'sl' }, { algoId: 'tp1' }, { algoId: 'tp2' }], markPrice: 101 }, {});
+  assert.equal(nativeExpired.updates.status, 'closed_timeout', 'native protected execution also expires through monitor time-stop');
+  assert.equal(nativeExpired.reduceOnlyMarketOrders[0].reason, 'timeout');
+  assert.deepEqual(nativeExpired.cancelOrderIds.sort(), ['sl', 'tp1', 'tp2'].sort());
+
   const nativeSl = processExecutionMonitorTick(native, { positionAmt: 0, openOrders: [{ algoId: 'tp1' }, { algoId: 'tp2' }], markPrice: 89 }, { sl: { orderId: 'sl', status: 'FILLED' } });
   assert.equal(nativeSl.updates.status, 'closed_sl', 'native SL close detection');
   assert.deepEqual(nativeSl.cancelOrderIds, ['tp1', 'tp2']);
@@ -37,6 +42,7 @@ async function run() {
   const expired = processExecutionMonitorTick({ ...managed, strategy_name: 'MicroScalper', timeframe: '5m', created_at: new Date(Date.now() - 121 * 60_000).toISOString() }, { positionAmt: 2, openOrders: [], markPrice: 101 }, {});
   assert.equal(expired.reduceOnlyMarketOrders[0].reason, 'timeout', 'time-stop closes remaining reduce-only');
   assert.equal(expired.updates.status, 'closed_timeout');
+  assert.equal(expired.updates.expiry_reason, 'strategy_time_stop_expired');
   assert.equal(typeof computeTimeStopDeadline({ ...managed, strategy_name: 'CompressionBreakout', timeframe: '1h', created_at: '2026-06-08T00:00:00.000Z' }), 'string', 'time-stop deadline is computed');
 
   const unprotected = processExecutionMonitorTick({ ...base, status: 'entry_filled', protection_status: 'unprotected' }, { positionAmt: 2, openOrders: [], markPrice: 100 }, {});

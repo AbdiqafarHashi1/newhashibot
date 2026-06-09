@@ -91,6 +91,8 @@ export interface SymbolBlockDecision {
   staleRowIds: string[];
 }
 
+export type TestnetGovernorMode = 'normal' | 'readonly' | 'off_for_testing';
+
 export interface SignalExecutionInput {
   testnetModeEnabled: boolean;
   executionAllowed: boolean;
@@ -201,6 +203,11 @@ export function decideSameSymbolBlock(rows: ExecutionRow[], binanceTruth: Binanc
     return { block: false, reason: 'db_stale_cleaned', staleRowIds };
   }
   return { block: false, reason: 'no_active_symbol_exposure', staleRowIds: [] };
+}
+
+export function governorAllowsTestnetExecution(mode: TestnetGovernorMode, governorBlocksExecution: boolean): boolean {
+  if (mode === 'off_for_testing' || mode === 'readonly') return true;
+  return !governorBlocksExecution;
 }
 
 export function canExecuteFreshSignal(input: SignalExecutionInput): { allowed: boolean; reason: string } {

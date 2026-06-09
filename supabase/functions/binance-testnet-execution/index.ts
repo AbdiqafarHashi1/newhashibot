@@ -19,6 +19,7 @@ type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margi
 type BracketMode = "exchange_native" | "managed_exit_fallback" | "failed";
 type ProtectionStatus = "protected" | "protected_native" | "pending_protection" | "protected_managed" | "pending_managed_protection" | "unprotected_failed";
 type GovernorState = "normal" | "defensive" | "aggressive_allowed" | "paused";
+type TestnetGovernorMode = "normal" | "readonly" | "off_for_testing";
 
 interface SignalRow {
   id: string;
@@ -66,6 +67,7 @@ interface ExecutionSettings {
   testnet_leverage_a_plus: number;
   testnet_max_leverage: number;
   governor_enabled: boolean;
+  testnet_governor_mode: TestnetGovernorMode;
   governor_state: GovernorState;
   daily_start_equity: number | null;
   current_equity: number | null;
@@ -110,6 +112,8 @@ interface GovernorDecision {
   unrealized_pnl: number | null;
   current_equity: number | null;
   blocks_execution: boolean;
+  execution_allowed: boolean;
+  testnet_governor_mode: TestnetGovernorMode;
 }
 
 
@@ -454,7 +458,9 @@ async function evaluateGovernor(supabase: SupabaseClient, settings: ExecutionSet
     daily_pnl_pct: dailyPnlPct,
     unrealized_pnl: unrealizedPnl,
     current_equity: Number.isFinite(equity) ? equity : null,
-    blocks_execution: state === "paused",
+    blocks_execution: (settings.testnet_governor_mode ?? "normal") === "normal" && state === "paused",
+    execution_allowed: !((settings.testnet_governor_mode ?? "normal") === "normal" && state === "paused"),
+    testnet_governor_mode: settings.testnet_governor_mode ?? "normal",
   };
   await supabase.from("execution_settings").update({
     governor_state: decision.state,
@@ -512,7 +518,7 @@ async function capitalSnapshot(settings: ExecutionSettings): Promise<CapitalSnap
 }
 
 function buildPlan(signal: SignalRow, rules: SymbolRules, capital: CapitalSnapshot, settings: ExecutionSettings, governor?: GovernorDecision): OrderPlan {
-  const decision = governor ?? { state: "normal", reason: "governor_not_evaluated", risk_multiplier: 1, adjusted_max_leverage: Math.min(Number(settings.testnet_max_leverage ?? 7), 7), adjusted_max_open_positions: Number(settings.max_open_testnet_positions ?? 3), daily_pnl_pct: null, unrealized_pnl: null, current_equity: null, blocks_execution: false };
+  const decision = governor ?? { state: "normal", reason: "governor_not_evaluated", risk_multiplier: 1, adjusted_max_leverage: Math.min(Number(settings.testnet_max_leverage ?? 7), 7), adjusted_max_open_positions: Number(settings.max_open_testnet_positions ?? 3), daily_pnl_pct: null, unrealized_pnl: null, current_equity: null, blocks_execution: false, execution_allowed: true, testnet_governor_mode: settings.testnet_governor_mode ?? "normal" };
   const entry = roundToTick(entryPrice(signal), rules.tickSize, rules.pricePrecision);
   const stopLoss = roundToTick(Number(signal.stop_loss), rules.tickSize, rules.pricePrecision);
   const tp1 = roundToTick(Number(signal.tp1), rules.tickSize, rules.pricePrecision);
@@ -556,7 +562,7 @@ async function getSettings(supabase: SupabaseClient): Promise<ExecutionSettings>
     kill_switch_enabled: false, auto_execute_testnet: false, max_open_testnet_positions: 3, max_open_testnet_positions_allowed_max: 10, max_total_open_risk_pct: 3, one_active_execution_per_symbol: true,
     testnet_enabled_at: null, fallback_account_balance: 10000, capital_basis: "available_usdt", testnet_capital_override_usdt: null,
     max_capital_used_usdt: null, testnet_risk_a: 0.5, testnet_risk_a_plus: 0.75, max_testnet_risk_pct: 1,
-    testnet_leverage_a: 3, testnet_leverage_a_plus: 5, testnet_max_leverage: 7, governor_enabled: true, governor_state: "normal", daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
+    testnet_leverage_a: 3, testnet_leverage_a_plus: 5, testnet_max_leverage: 7, governor_enabled: true, testnet_governor_mode: "normal", governor_state: "normal", daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
   } as ExecutionSettings;
 }
 
@@ -675,6 +681,30 @@ async function submitBreakevenSl(supabase: SupabaseClient, executionId: string, 
     await logEvent(supabase, executionId, "be_sl_failed", error, { stopPrice, qty });
     return { error };
   }
+}
+
+function timeStopMinutes(strategyName: unknown, timeframe: unknown): number | null {
+  const key = `${String(strategyName ?? "").toLowerCase()}:${String(timeframe ?? "").toLowerCase()}`;
+  if (key === "microscalper:5m") return 120;
+  if (key === "microscalper:15m") return 360;
+  if (key === "compressionbreakout:15m") return 720;
+  if (key === "compressionbreakout:1h") return 48 * 60;
+  if (key === "swingcontinuation:15m") return 1440;
+  if (key === "swingcontinuation:1h") return 96 * 60;
+  return null;
+}
+
+function expiryFields(signal: SignalRow): Json {
+  const openedAt = new Date().toISOString();
+  const maxHoldMinutes = timeStopMinutes(signal.strategy_name, signal.timeframe);
+  return {
+    opened_at: openedAt,
+    max_hold_minutes: maxHoldMinutes,
+    expires_at: maxHoldMinutes ? new Date(new Date(openedAt).getTime() + maxHoldMinutes * 60_000).toISOString() : null,
+    time_stop_deadline_at: maxHoldMinutes ? new Date(new Date(openedAt).getTime() + maxHoldMinutes * 60_000).toISOString() : null,
+    expiry_reason: maxHoldMinutes ? `strategy_time_stop_${signal.strategy_name}_${signal.timeframe}` : "strategy_time_stop_not_configured",
+    last_monitor_checked_at: null,
+  };
 }
 
 async function createSkipped(supabase: SupabaseClient, signal: SignalRow, reason: string, metadata: Json = {}): Promise<Json> {
@@ -815,8 +845,9 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   if (!manual && settings.testnet_enabled_at && new Date(sig.created_at) < new Date(settings.testnet_enabled_at)) return createSkipped(supabase, sig, "skipped_old_signal");
   if (!manual && sig.source !== "scanner") return createSkipped(supabase, sig, "skipped_old_signal");
   const governor = await evaluateGovernor(supabase, settings);
-  if (!manual && governor.blocks_execution) return createSkipped(supabase, sig, "skipped_governor_paused", { governor_state: governor.state, governor_reason: governor.reason, risk_multiplier: governor.risk_multiplier, adjusted_max_leverage: governor.adjusted_max_leverage });
-  if (!manual && governor.state === "defensive" && String(sig.grade ?? "").toUpperCase() !== "A+") return createSkipped(supabase, sig, "skipped_governor_defensive_filter", { governor_state: governor.state, governor_reason: governor.reason, risk_multiplier: governor.risk_multiplier, adjusted_max_leverage: governor.adjusted_max_leverage });
+  const governorMode = settings.testnet_governor_mode ?? "normal";
+  if (!manual && governor.blocks_execution) return createSkipped(supabase, sig, "skipped_governor_paused", { governor_mode: governorMode, governor_state: governor.state, governor_reason: governor.reason, risk_multiplier: governor.risk_multiplier, adjusted_max_leverage: governor.adjusted_max_leverage });
+  if (!manual && governorMode === "normal" && governor.state === "defensive" && String(sig.grade ?? "").toUpperCase() !== "A+") return createSkipped(supabase, sig, "skipped_governor_defensive_filter", { governor_mode: governorMode, governor_state: governor.state, governor_reason: governor.reason, risk_multiplier: governor.risk_multiplier, adjusted_max_leverage: governor.adjusted_max_leverage });
   if (settings.one_active_execution_per_symbol) {
     const { data: symbolRows, error: symbolRowsError } = await supabase.from("execution_orders").select("id,status").eq("symbol", sig.symbol).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
     if (symbolRowsError) throw symbolRowsError;
@@ -827,7 +858,7 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
       await logEvent(supabase, String((symbolRows?.[0] as { id: string } | undefined)?.id ?? ""), "stale_closed", "Same-symbol execution blocker marked stale_closed after Binance truth showed no position and no open orders", { symbol: sig.symbol, cleaned, positionAmt: truth.positionAmt, openOrders: truth.openOrders.length });
     }
   }
-  const maxOpenAllowed = !manual ? Math.min(clampMaxOpenPositions(settings), governor.adjusted_max_open_positions) : clampMaxOpenPositions(settings);
+  const maxOpenAllowed = !manual && governorMode === "normal" ? Math.min(clampMaxOpenPositions(settings), governor.adjusted_max_open_positions) : clampMaxOpenPositions(settings);
   const { count: openCount } = await supabase.from("execution_orders").select("id", { count: "exact", head: true }).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
   if ((openCount ?? 0) >= maxOpenAllowed) return createSkipped(supabase, sig, "skipped_max_open_positions", { governor_state: governor.state, governor_reason: governor.reason, adjusted_max_open_positions: maxOpenAllowed });
   let plan: OrderPlan;
@@ -838,7 +869,7 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   const totalRiskAfter = currentRisk + plan.riskPct;
   if (!manual && totalRiskAfter > riskCap + 1e-9) return createSkipped(supabase, sig, "skipped_total_open_risk_cap", { current_open_risk_pct: currentRisk, proposed_risk_pct: plan.riskPct, max_total_open_risk_pct: riskCap });
   plan.total_open_risk_after_trade = totalRiskAfter;
-  const { data: exec } = await supabase.from("execution_orders").insert({ signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, ...commonExecutionFields(plan) }).select("id").single();
+  const { data: exec } = await supabase.from("execution_orders").insert({ signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, ...expiryFields(sig), ...commonExecutionFields(plan) }).select("id").single();
   const executionId = String((exec as { id: string }).id);
   await logEvent(supabase, executionId, "planned", "Order plan created", { plan });
   try {
@@ -1162,9 +1193,10 @@ async function resetTestnetGovernor(supabase: SupabaseClient): Promise<Json> {
 }
 
 async function updateSettings(supabase: SupabaseClient, patch: Json): Promise<Json> {
-  const allowed = ["auto_execute_testnet", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl"];
+  const allowed = ["auto_execute_testnet", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "testnet_governor_mode", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl"];
   const update: Json = { updated_at: new Date().toISOString() };
   for (const key of allowed) if (key in patch) update[key] = patch[key];
+  if ("testnet_governor_mode" in update && !["normal", "readonly", "off_for_testing"].includes(String(update.testnet_governor_mode))) throw new Error("Invalid testnet_governor_mode");
   update.live_trading_enabled = false;
   const { data, error } = await supabase.from("execution_settings").update(update).eq("id", 1).select("*").single();
   if (error) throw new Error(error.message);

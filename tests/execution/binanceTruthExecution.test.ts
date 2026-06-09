@@ -12,6 +12,7 @@ import {
   validateSelectedSignalForExecution,
   verifyNativeProtectionOpenOrders,
   governorPausedVisibility,
+  governorAllowsTestnetExecution,
   type EntryFill,
   type ManagedExitClient,
   type NativeProtectionClient,
@@ -23,6 +24,9 @@ async function run() {
   assert.deepEqual(validateSelectedSignalForExecution('sig-1', { id: 'other', symbol: 'BTCUSDT', market_type: 'crypto', direction: 'buy' }), { ok: false, error: 'invalid_selected_signal' }, 'selected signal mismatch does not crash');
   assert.deepEqual(validateSelectedSignalForExecution('sig-1', { id: 'sig-1', symbol: null, market_type: 'crypto', direction: 'buy' }), { ok: false, error: 'stale_signal_not_executable' }, 'stale signal is not executable');
   assert.equal(governorPausedVisibility({ state: 'paused', reason: 'daily_loss_limit_reached', lastCheckedAt: '2026-06-08T00:00:00.000Z' }).error, 'governor_paused', 'governor paused returns clean reason');
+  assert.equal(governorAllowsTestnetExecution('normal', true), false, 'normal governor mode blocks when governor blocks');
+  assert.equal(governorAllowsTestnetExecution('readonly', true), true, 'readonly governor mode calculates but does not block testnet execution');
+  assert.equal(governorAllowsTestnetExecution('off_for_testing', true), true, 'off_for_testing bypasses governor block for testnet execution');
   const proof = buildE2EProtectionProof({ entryOrderId: 'entry-1', positionSize: 0.1, bracketMode: 'exchange_native', protectionStatus: 'protected_native', slOrderId: 'sl-1', tp1OrderId: 'tp1-1', tp2OrderId: 'tp2-1' });
   assert.equal(proof.entry_submitted, true, 'E2E proof includes entry_submitted');
   assert.equal(proof.native_sl_order_detected, true, 'E2E proof includes native SL detection');
