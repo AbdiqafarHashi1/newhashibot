@@ -17,6 +17,9 @@ export type MonitorEventType =
   | 'entry_filled'
   | 'entry_cancelled'
   | 'entry_failed'
+  | 'entry_timeout_cancelled'
+  | 'entry_missing_no_position'
+  | 'protection_recovery_required'
   | 'native_tp1_filled'
   | 'native_tp2_filled'
   | 'native_sl_filled'
@@ -27,6 +30,7 @@ export type MonitorEventType =
   | 'unprotected_position_warning'
   | 'sl_moved_to_be'
   | 'stale_closed'
+  | 'closed_synced'
   | 'manual_position_closed';
 
 export interface MonitorEnv {
@@ -55,6 +59,7 @@ export interface MonitorExecutionRow {
   bracket_mode?: string | null;
   protection_status?: string | null;
   binance_entry_order_id?: string | null;
+  entry_order_id?: string | null;
   binance_sl_order_id?: string | null;
   binance_tp1_order_id?: string | null;
   binance_tp2_order_id?: string | null;
@@ -76,6 +81,7 @@ export interface MonitorExecutionRow {
   strategy_name?: string | null;
   timeframe?: string | null;
   created_at?: string | null;
+  entry_submitted_at?: string | null;
   entry_filled_at?: string | null;
   time_stop_deadline_at?: string | null;
   opened_at?: string | null;
@@ -174,6 +180,16 @@ function conditionalFilled(order: BinanceOrderSnapshot | undefined): boolean {
   return ['FILLED', 'TRIGGERED', 'FINISHED'].includes(String(order?.status ?? '').toUpperCase());
 }
 
+function rowAgeMs(row: MonitorExecutionRow): number {
+  const start = row.entry_submitted_at ?? row.created_at;
+  const ms = start ? new Date(start).getTime() : NaN;
+  return Number.isFinite(ms) ? Date.now() - ms : 0;
+}
+
+function syncedNoPositionStatus(row: MonitorExecutionRow): 'closed_synced' | 'stale_closed' {
+  return ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'partially_closed', 'pending_protection', 'pending_managed_protection'].includes(row.status) ? 'closed_synced' : 'stale_closed';
+}
+
 export function processExecutionMonitorTick(
   row: MonitorExecutionRow,
   truth: BinanceTruthSnapshot,
@@ -206,38 +222,78 @@ export function processExecutionMonitorTick(
     return out;
   }
 
+  const entryOrderId = row.binance_entry_order_id ?? row.entry_order_id;
+  const entryOrder = entryOrderId ? orderById[entryOrderId] : undefined;
+  const entryOrderStatus = String(entryOrder?.status ?? '').toUpperCase();
+
+  if (['pending', 'entry_submitted'].includes(row.status)) {
+    if (entryOrderStatus === 'FILLED' || hasPosition) {
+      const avgPrice = num(entryOrder?.avgPrice) ?? truth.markPrice ?? row.entry_price;
+      const qty = Math.abs(truth.positionAmt) || num(entryOrder?.executedQty) || row.volume || row.remaining_quantity || 0;
+      out.updates.status = 'entry_filled';
+      out.updates.entry_filled_at = checkedAt;
+      out.updates.protection_status = 'pending_protection';
+      out.updates.remaining_quantity = qty;
+      out.updates.last_monitor_action = 'entry_filled_submit_protection';
+      if (avgPrice && avgPrice > 0) out.updates.entry_price = avgPrice;
+      addEvent(out, 'entry_filled', `${row.symbol} entry filled${avgPrice ? ` at ${avgPrice}` : ''}; protection must be submitted immediately.`);
+      return out;
+    }
+    if (row.status === 'entry_submitted' && rowAgeMs(row) >= 2 * 60_000) {
+      if (entryOrderId && (!entryOrder || ['NEW', 'PARTIALLY_FILLED'].includes(entryOrderStatus))) out.cancelOrderIds.push(String(entryOrderId));
+      out.updates.status = 'entry_timeout_cancelled';
+      out.updates.protection_status = 'unprotected';
+      out.updates.native_protection_verified = false;
+      out.updates.managed_fallback_active = false;
+      out.updates.remaining_quantity = 0;
+      out.updates.stale_cleanup_reason = 'entry_submitted_timeout_no_fill';
+      out.updates.last_monitor_action = 'entry_timeout_cancelled';
+      addEvent(out, 'entry_timeout_cancelled', `${row.symbol} entry was not filled within 2 minutes; entry order should be cancelled.`);
+      return out;
+    }
+    if (!entryOrder && !hasPosition) {
+      out.updates.status = 'entry_missing_no_position';
+      out.updates.protection_status = 'unprotected';
+      out.updates.native_protection_verified = false;
+      out.updates.managed_fallback_active = false;
+      out.updates.remaining_quantity = 0;
+      out.updates.stale_cleanup_reason = 'entry_order_not_found_no_position';
+      out.updates.last_monitor_action = 'entry_missing_no_position';
+      addEvent(out, 'entry_missing_no_position', `${row.symbol} entry order is missing and Binance has no position.`);
+      return out;
+    }
+  }
+
   if (isMonitorActiveStatus(row.status) && !hasPosition && !hasOpenOrders) {
-    out.updates = { ...out.updates, status: 'stale_closed', stale_cleanup_reason: 'binance_truth_no_position_no_orders', stale_checked_at: new Date().toISOString() };
-    addEvent(out, 'stale_closed', `${row.symbol} stale DB execution cleaned because Binance has no position and no open orders.`);
+    const syncedStatus = syncedNoPositionStatus(row);
+    out.updates = { ...out.updates, status: syncedStatus, protection_status: 'unprotected', native_protection_verified: false, managed_fallback_active: false, remaining_quantity: 0, stale_cleanup_reason: 'binance_truth_no_position_no_orders', stale_checked_at: new Date().toISOString(), last_monitor_action: syncedStatus };
+    addEvent(out, syncedStatus, `${row.symbol} synced closed because Binance has no position and no open orders.`);
     return out;
   }
 
+
   if (hasPosition && !['protected', 'protected_native', 'protected_managed'].includes(String(row.protection_status ?? '')) && ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'partially_closed'].includes(row.status)) {
-    out.updates.protection_status = 'unprotected_failed';
-    out.updates.latest_protection_error = 'open Binance position is not protected_native or protected_managed';
-    addEvent(out, 'unprotected_position_warning', `${row.symbol} has an open Binance position without verified native or managed protection.`);
+    out.updates.protection_status = 'protected_managed';
+    out.updates.bracket_mode = 'managed_exit_fallback';
+    out.updates.managed_fallback_active = true;
+    out.updates.native_protection_verified = false;
+    out.updates.last_monitor_action = 'protection_recovery_required';
+    addEvent(out, 'protection_recovery_required', `${row.symbol} has an open Binance position without verified protection; monitor must retry native protection or activate managed fallback immediately.`);
   }
 
-  const entryOrder = row.binance_entry_order_id ? orderById[row.binance_entry_order_id] : undefined;
-  if (entryOrder?.status === 'FILLED' && ['pending', 'entry_submitted'].includes(row.status)) {
-    const avgPrice = num(entryOrder.avgPrice);
-    out.updates.status = row.protection_status === 'protected' || row.protection_status === 'protected_native' || row.protection_status === 'protected_managed' ? row.status : 'entry_filled';
-    if (avgPrice && avgPrice > 0) out.updates.entry_price = avgPrice;
-    out.updates.entry_filled_at = checkedAt;
-    addEvent(out, 'entry_filled', `${row.symbol} entry filled${avgPrice ? ` at ${avgPrice}` : ''}.`);
-  }
-  if (entryOrder && ['CANCELED', 'EXPIRED'].includes(entryOrder.status) && ['pending', 'entry_submitted'].includes(row.status)) {
+  if (entryOrder && ['CANCELED', 'EXPIRED'].includes(entryOrderStatus) && ['pending', 'entry_submitted'].includes(row.status)) {
     out.updates.status = 'cancelled';
     addEvent(out, 'entry_cancelled', `${row.symbol} entry order ${entryOrder.status.toLowerCase()}.`);
     return out;
   }
-  if (entryOrder?.status === 'REJECTED' && ['pending', 'entry_submitted'].includes(row.status)) {
+  if (entryOrderStatus === 'REJECTED' && ['pending', 'entry_submitted'].includes(row.status)) {
     out.updates.status = 'failed';
     addEvent(out, 'entry_failed', `${row.symbol} entry order rejected.`);
     return out;
   }
 
   if (row.bracket_mode === 'exchange_native') {
+    let nativeChanged = false;
     const tp1Id = row.tp1_algo_id ?? row.binance_tp1_order_id;
     const tp2Id = row.tp2_algo_id ?? row.binance_tp2_order_id;
     const slId = row.sl_algo_id ?? row.binance_sl_order_id;
@@ -250,12 +306,14 @@ export function processExecutionMonitorTick(
       out.updates.sl_moved_to_be = true;
       addEvent(out, 'native_tp1_filled', `${row.symbol} TP1 filled; position partially closed.`);
       addEvent(out, 'sl_moved_to_be', `${row.symbol} SL moved/confirmed at break-even for remaining quantity.`);
+      nativeChanged = true;
     }
     if (!row.tp2_closed_at && conditionalFilled(tp2)) {
       out.updates.status = 'closed_tp';
       out.updates.tp2_closed_at = new Date().toISOString();
       if (slId) out.cancelOrderIds.push(slId);
       addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 filled; position closed in profit.`);
+      nativeChanged = true;
     }
     if (!row.sl_closed_at && conditionalFilled(sl)) {
       out.updates.status = 'closed_sl';
@@ -263,8 +321,9 @@ export function processExecutionMonitorTick(
       if (tp1Id) out.cancelOrderIds.push(tp1Id);
       if (tp2Id) out.cancelOrderIds.push(tp2Id);
       addEvent(out, 'native_sl_filled', `${row.symbol} SL filled; position closed.`);
+      nativeChanged = true;
     }
-    return out;
+    if (nativeChanged) return out;
   }
 
   if (row.bracket_mode === 'managed_exit_fallback' || row.protection_status === 'protected_managed') {
@@ -311,10 +370,19 @@ export function processExecutionMonitorTick(
   if (isMonitorActiveStatus(row.status) && !hasPosition && hasOpenOrders) {
     addEvent(out, 'manual_position_closed', `${row.symbol} position is closed on Binance; stale leftover orders should be cancelled.`);
     out.cancelOrderIds.push(...truth.openOrders.map((order) => String(order.algoId ?? order.orderId ?? '')).filter(Boolean));
-    out.updates.status = 'stale_closed';
+    const syncedStatus = syncedNoPositionStatus(row);
+    out.updates.status = syncedStatus;
+    out.updates.protection_status = 'unprotected';
+    out.updates.native_protection_verified = false;
+    out.updates.managed_fallback_active = false;
+    out.updates.remaining_quantity = 0;
     out.updates.stale_cleanup_reason = 'position_closed_leftover_orders_cancelled';
+    out.updates.last_monitor_action = 'orphan_protection_orders_cancelled';
     out.updates.stale_checked_at = new Date().toISOString();
+    return out;
+    return out;
   }
+
 
   return out;
 }

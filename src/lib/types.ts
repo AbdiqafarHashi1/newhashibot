@@ -525,6 +525,8 @@ export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   sl_moved_to_be: boolean | null;
   be_stop_level: number | null;
   latest_protection_error: string | null;
+  latest_monitor_error?: string | null;
+  latest_sync_error?: string | null;
   current_open_risk_pct: number | null;
   total_open_risk_after_trade: number | null;
   intended_sl?: number | null;
@@ -633,6 +635,8 @@ export interface ExecutionSettings {
   latest_monitor_run_at?: string | null;
   latest_monitor_status?: string;
   latest_monitor_result?: Record<string, unknown> | null;
+  latest_monitor_error?: string | null;
+  latest_sync_error?: string | null;
   open_binance_positions?: unknown[] | null;
   open_binance_orders?: unknown[] | null;
   pnl_snapshot?: Record<string, unknown> | null;

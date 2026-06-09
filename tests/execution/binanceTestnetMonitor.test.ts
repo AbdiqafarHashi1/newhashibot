@@ -46,15 +46,37 @@ async function run() {
   assert.equal(typeof computeTimeStopDeadline({ ...managed, strategy_name: 'CompressionBreakout', timeframe: '1h', created_at: '2026-06-08T00:00:00.000Z' }), 'string', 'time-stop deadline is computed');
 
   const unprotected = processExecutionMonitorTick({ ...base, status: 'entry_filled', protection_status: 'unprotected' }, { positionAmt: 2, openOrders: [], markPrice: 100 }, {});
-  assert.equal(unprotected.updates.protection_status, 'unprotected_failed', 'unprotected open position warning');
+  assert.equal(unprotected.updates.protection_status, 'protected_managed', 'unprotected open position is immediately moved to managed fallback recovery');
+  assert.equal(unprotected.updates.last_monitor_action, 'protection_recovery_required');
 
   const managedSl = processExecutionMonitorTick({ ...managed, tp1_closed_at: new Date().toISOString(), sl_moved_to_be: true, remaining_quantity: 1 }, { positionAmt: 1, openOrders: [], markPrice: 99 }, {});
   assert.equal(managedSl.reduceOnlyMarketOrders[0].reason, 'sl', 'managed SL closes remaining');
   assert.equal(managedSl.updates.status, 'closed_sl');
 
-  const stale = processExecutionMonitorTick({ ...base, status: 'protected' }, { positionAmt: 0, openOrders: [], markPrice: 100 }, {});
-  assert.equal(stale.updates.status, 'stale_closed', 'stale DB active row cleaned when Binance has no position/orders');
-  assert.equal(stale.updates.stale_cleanup_reason, 'binance_truth_no_position_no_orders');
+  const timedOutEntry = processExecutionMonitorTick({ ...base, created_at: new Date(Date.now() - 3 * 60_000).toISOString() }, { positionAmt: 0, openOrders: [{ orderId: 'entry' }], markPrice: 100 }, { entry: { orderId: 'entry', status: 'NEW' } });
+  assert.equal(timedOutEntry.updates.status, 'entry_timeout_cancelled', 'entry_submitted older than 2 minutes is cancelled');
+  assert.deepEqual(timedOutEntry.cancelOrderIds, ['entry']);
+
+  const missingEntry = processExecutionMonitorTick({ ...base, binance_entry_order_id: 'missing' }, { positionAmt: 0, openOrders: [], markPrice: 100 }, {});
+  assert.equal(missingEntry.updates.status, 'entry_missing_no_position', 'missing entry order with no Binance position is closed as entry_missing_no_position');
+
+  const positionFilledEntry = processExecutionMonitorTick({ ...base, binance_entry_order_id: 'missing' }, { positionAmt: 2, openOrders: [], markPrice: 101 }, {});
+  assert.equal(positionFilledEntry.updates.status, 'entry_filled', 'Binance position proves entry fill even when entry order lookup is missing');
+  assert.equal(positionFilledEntry.updates.protection_status, 'pending_protection');
+
+  const stale = processExecutionMonitorTick({ ...base, status: 'entry_submitted' }, { positionAmt: 0, openOrders: [], markPrice: 100 }, { entry: { orderId: 'entry', status: 'CANCELED' } });
+  assert.equal(stale.updates.status, 'stale_closed', 'stale entry row cleaned when Binance has no position/orders');
+  assert.equal(stale.updates.remaining_quantity, 0);
+
+  const closedSynced = processExecutionMonitorTick({ ...native, status: 'protected_native' }, { positionAmt: 0, openOrders: [], markPrice: 100 }, {});
+  assert.equal(closedSynced.updates.status, 'closed_synced', 'protected DB row syncs closed when Binance has no position/orders');
+  assert.equal(closedSynced.updates.protection_status, 'unprotected');
+  assert.equal(closedSynced.updates.remaining_quantity, 0);
+
+  const orphanOrders = processExecutionMonitorTick({ ...native, status: 'protected_native' }, { positionAmt: 0, openOrders: [{ algoId: 'sl' }, { algoId: 'tp1' }, { algoId: 'tp2' }], markPrice: 100 }, {});
+  assert.equal(orphanOrders.updates.status, 'closed_synced', 'manual Binance close cancels orphan protection orders and syncs closed');
+  assert.deepEqual(orphanOrders.cancelOrderIds.sort(), ['sl', 'tp1', 'tp2'].sort());
+  assert.equal(orphanOrders.updates.last_monitor_action, 'orphan_protection_orders_cancelled');
 
   const activeExposure = processExecutionMonitorTick({ ...base, status: 'protected' }, { positionAmt: 1, openOrders: [], markPrice: 100 }, {});
   assert.equal(activeExposure.updates.status, undefined, 'active Binance exposure blocks cleanup');
