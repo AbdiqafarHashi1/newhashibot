@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protected_managed", "pending_managed_protection", "partially_closed"];
+const ENTRY_OPEN_STATUSES = ["NEW", "PARTIALLY_FILLED"];
 const TERMINAL_ORDER_STATUSES = ["CANCELED", "EXPIRED"];
 
 type SupabaseClient = ReturnType<typeof createClient>;
@@ -15,15 +16,25 @@ type Row = Record<string, unknown> & { id: string; symbol: string; direction: st
 type BinanceOrder = Record<string, unknown> & { orderId?: string | number; algoId?: string | number; status?: string; algoStatus?: string; symbol?: string };
 type BinancePosition = Record<string, unknown> & { symbol?: string; positionAmt?: string; markPrice?: string; unRealizedProfit?: string; unrealizedProfit?: string };
 
+type RowError = { id: string; symbol: string; status: string; error: string; stack?: string; action: string };
+
 type MonitorStats = {
   checked: number;
   updated: number;
+  protected: number;
+  managed: number;
+  stale_closed: number;
+  closed_synced: number;
+  safety_closed: number;
+  row_errors: RowError[];
   events: number;
   telegram_sent: number;
   stale_cleaned: number;
   reduce_only_orders: number;
   cancelled_orders: number;
   last_managed_action: Record<string, unknown> | null;
+  latest_monitor_error: string;
+  latest_sync_error: string;
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -37,6 +48,18 @@ function boolEnv(value: string | undefined): boolean {
 function n(value: unknown): number {
   const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err || "Unknown error");
+}
+
+function errorStack(err: unknown): string {
+  return err instanceof Error && err.stack ? err.stack.slice(0, 2000) : "";
+}
+
+function syncedNoPositionStatus(row: Row): "closed_synced" | "stale_closed" {
+  return ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed", "pending_protection", "pending_managed_protection"].includes(row.status) ? "closed_synced" : "stale_closed";
 }
 
 function sideToClose(direction: string): "BUY" | "SELL" {
@@ -176,16 +199,7 @@ async function submitProtectionForRow(
   const tp2Trigger = roundToTick(tp2Price, rules.tickSize, rules.pricePrecision);
 
   if (!slTrigger || !tp1Trigger || !tp2Trigger || tp1Qty <= 0 || tp2Qty <= 0) {
-    const error = `missing_price_levels: sl=${sl} tp1=${tp1Price} tp2=${tp2Price} qty=${quantity}`;
-    await supabase.from("execution_orders").update({
-      bracket_mode: "managed_exit_fallback", protection_status: "protected_managed",
-      native_protection_verified: false, managed_fallback_active: true,
-      intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
-      tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
-      latest_protection_error: error, updated_at: new Date().toISOString(),
-    }).eq("id", row.id);
-    await logEvent(supabase, row, "managed_exit_fallback_enabled", `Monitor managed fallback: ${error}`, { error }, stats);
-    return "protected_managed";
+    throw new Error(`managed_fallback_unavailable: missing_price_levels sl=${sl} tp1=${tp1Price} tp2=${tp2Price} qty=${quantity}`);
   }
 
   try {
@@ -208,11 +222,12 @@ async function submitProtectionForRow(
     }).eq("id", row.id);
     await logEvent(supabase, row, "protected_native", `Monitor placed native SL/TP: sl=${slTrigger} tp1=${tp1Trigger} tp2=${tp2Trigger} qty=${quantity}`, { slOrder, tp1Order, tp2Order }, stats);
     stats.updated += 1;
+    stats.protected += 1;
     return "protected_native";
   } catch (e) {
     const error = e instanceof Error ? e.message : "Native protection failed in monitor";
     await supabase.from("execution_orders").update({
-      bracket_mode: "managed_exit_fallback", protection_status: "protected_managed",
+      status: "protected_managed", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed",
       native_protection_verified: false, managed_fallback_active: true,
       intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
       tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
@@ -220,6 +235,7 @@ async function submitProtectionForRow(
     }).eq("id", row.id);
     await logEvent(supabase, row, "managed_exit_fallback_enabled", `Monitor managed fallback: native protection failed: ${error}`, { error }, stats);
     stats.updated += 1;
+    stats.managed += 1;
     return "protected_managed";
   }
 }
@@ -254,6 +270,12 @@ function timeStopDeadline(row: Row): string | null {
   return new Date(ms + minutes * 60_000).toISOString();
 }
 
+function rowAgeMs(row: Row): number {
+  const start = String(row.entry_submitted_at ?? row.protection_submitted_at ?? row.created_at ?? "");
+  const ms = start ? new Date(start).getTime() : NaN;
+  return Number.isFinite(ms) ? Date.now() - ms : 0;
+}
+
 async function cancelRemainingProtection(row: Row, stats: MonitorStats): Promise<string[]> {
   const ids = [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id].filter(Boolean).map(String);
   const cancelled: string[] = [];
@@ -277,8 +299,56 @@ async function closeReduceOnly(row: Row, quantity: number, reason: string) {
     type: "MARKET",
     quantity: String(quantity),
     reduceOnly: "true",
-    newClientOrderId: `hb_${reason}_${row.id.slice(0, 8)}`,
+    newClientOrderId: `hb_${reason}_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
   }, "POST");
+}
+
+async function cancelEntryOrder(symbol: string, orderId: string) {
+  await binanceRequest("/fapi/v1/order", { symbol, orderId }, "DELETE");
+}
+
+async function cancelOpenOrder(symbol: string, order: BinanceOrder) {
+  if (order.algoId) {
+    await cancelAlgoOrder(symbol, String(order.algoId));
+    return;
+  }
+  if (order.orderId) await binanceRequest("/fapi/v1/order", { symbol, orderId: String(order.orderId) }, "DELETE");
+}
+
+async function fetchEntryOrder(symbol: string, orderId: string): Promise<BinanceOrder | null> {
+  if (!orderId) return null;
+  try {
+    return await binanceRequest("/fapi/v1/order", { symbol, orderId }) as BinanceOrder;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("-2013") || message.toLowerCase().includes("order does not exist")) return null;
+    throw err;
+  }
+}
+
+async function protectOrSafetyClose(supabase: SupabaseClient, row: Row, quantity: number, stats: MonitorStats, reason: string): Promise<"protected_native" | "protected_managed" | "closed_unprotected_safety"> {
+  try {
+    return await submitProtectionForRow(supabase, row, quantity, stats);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "protection unavailable";
+    const closeResult = await closeReduceOnly(row, quantity, "safety");
+    await supabase.from("execution_orders").update({
+      status: "closed_unprotected_safety",
+      protection_status: "unprotected_failed",
+      native_protection_verified: false,
+      managed_fallback_active: false,
+      latest_protection_error: `safety_close: ${reason}: ${error}`,
+      remaining_quantity: 0,
+      sl_closed_at: new Date().toISOString(),
+      last_monitor_action: "closed_unprotected_safety",
+      updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+    await logEvent(supabase, row, "closed_unprotected_safety", `${row.symbol} safety-closed reduce-only because protection could not be established: ${error}`, { quantity, reason, closeResult }, stats);
+    stats.reduce_only_orders += closeResult ? 1 : 0;
+    stats.safety_closed += 1;
+    stats.updated += 1;
+    return "closed_unprotected_safety";
+  }
 }
 
 async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStats) {
@@ -308,7 +378,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
     const remaining = n(row.remaining_quantity) || n(row.volume) || Math.abs(positionAmt);
     const cancelled = await cancelRemainingProtection(row, stats);
     const closeResult = hasPosition && remaining > 0 ? await closeReduceOnly(row, remaining, "timeout") : null;
-    Object.assign(update, { status: "closed_timeout", timeout_closed_at: now, remaining_quantity: 0, expiry_reason: row.expiry_reason ?? "strategy_time_stop_expired", last_monitor_action: "timeout_closed" });
+    Object.assign(update, { status: "closed_timeout", protection_status: "unprotected", native_protection_verified: false, managed_fallback_active: false, timeout_closed_at: now, remaining_quantity: 0, expiry_reason: row.expiry_reason ?? "strategy_time_stop_expired", last_monitor_action: "timeout_closed" });
     await supabase.from("execution_orders").update(update).eq("id", row.id);
     stats.reduce_only_orders += closeResult ? 1 : 0;
     stats.last_managed_action = { symbol: row.symbol, action: "timeout", quantity: remaining, order: closeResult, cancelled, at: now, deadline };
@@ -317,41 +387,79 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
     return;
   }
 
+  const entryId = row.binance_entry_order_id ? String(row.binance_entry_order_id) : row.entry_order_id ? String(row.entry_order_id) : "";
+  const entry = entryId ? await fetchEntryOrder(row.symbol, entryId) : null;
+  const entryStatus = String(entry?.status ?? "").toUpperCase();
+  const isEntryPendingRow = ["pending", "entry_submitted"].includes(row.status);
+
+  if (isEntryPendingRow) {
+    const entryFilled = entryStatus === "FILLED" || hasPosition;
+    if (entryFilled) {
+      const avg = n(entry?.avgPrice) || markPrice || n(row.entry_price);
+      const qty = Math.abs(positionAmt) || n(entry?.executedQty) || n(row.quantity) || n(row.volume);
+      const filledRow = { ...row, status: "entry_filled", entry_price: avg || row.entry_price } as Row;
+      await supabase.from("execution_orders").update({ ...update, status: "entry_filled", entry_price: avg || row.entry_price, entry_filled_at: now, remaining_quantity: qty, last_monitor_action: "entry_filled_submit_protection" }).eq("id", row.id);
+      await logEvent(supabase, row, "entry_filled", `${row.symbol} entry filled${avg > 0 ? ` at ${avg}` : ""}; submitting protection immediately.`, { entry, qty, positionAmt }, stats);
+      stats.updated += 1;
+      await protectOrSafetyClose(supabase, filledRow, qty, stats, "entry_filled_submit_protection");
+      return;
+    }
+
+    if (row.status === "entry_submitted" && rowAgeMs(row) >= 2 * 60_000) {
+      let cancelled = false;
+      if (entryId && (!entry || ENTRY_OPEN_STATUSES.includes(entryStatus))) {
+        try {
+          await cancelEntryOrder(row.symbol, entryId);
+          cancelled = true;
+          stats.cancelled_orders += 1;
+        } catch (err) {
+          await logEvent(supabase, row, "entry_cancel_failed", `${row.symbol} entry timeout cancel failed: ${err instanceof Error ? err.message : "unknown error"}`, { entryId, entry }, stats);
+        }
+      }
+      Object.assign(update, { status: "entry_timeout_cancelled", protection_status: "unprotected", native_protection_verified: false, managed_fallback_active: false, remaining_quantity: 0, stale_cleanup_reason: "entry_submitted_timeout_no_fill", stale_checked_at: now, last_monitor_action: "entry_timeout_cancelled" });
+      await supabase.from("execution_orders").update(update).eq("id", row.id);
+      await logEvent(supabase, row, "entry_timeout_cancelled", `${row.symbol} entry was not filled within 2 minutes; ${cancelled ? "cancelled open entry order" : "marked timed out with no Binance position"}.`, { entryId, entry, cancelled }, stats);
+      stats.updated += 1;
+      return;
+    }
+
+    if (!entry && !hasPosition) {
+      Object.assign(update, { status: "entry_missing_no_position", protection_status: "unprotected", native_protection_verified: false, managed_fallback_active: false, remaining_quantity: 0, stale_cleanup_reason: "entry_order_not_found_no_position", stale_checked_at: now, last_monitor_action: "entry_missing_no_position" });
+      await supabase.from("execution_orders").update(update).eq("id", row.id);
+      await logEvent(supabase, row, "entry_missing_no_position", `${row.symbol} entry order was not found and Binance has no position.`, { entryId }, stats);
+      stats.updated += 1;
+      stats.stale_cleaned += 1;
+      return;
+    }
+  }
+
   if (ACTIVE_STATUSES.includes(row.status) && !hasPosition && !hasOpenOrders) {
-    Object.assign(update, { status: "stale_closed", stale_cleanup_reason: "binance_truth_no_position_no_orders", stale_checked_at: now });
+    const syncedStatus = syncedNoPositionStatus(row);
+    Object.assign(update, { status: syncedStatus, protection_status: "unprotected", native_protection_verified: false, managed_fallback_active: false, remaining_quantity: 0, stale_cleanup_reason: "binance_truth_no_position_no_orders", stale_checked_at: now, last_monitor_action: syncedStatus });
     await supabase.from("execution_orders").update(update).eq("id", row.id);
-    await logEvent(supabase, row, "stale_closed", `${row.symbol} stale execution cleaned: Binance has no position and no open orders.`, { positionAmt, open_orders: 0 }, stats);
+    await logEvent(supabase, row, syncedStatus, `${row.symbol} synced closed: Binance has no position and no open orders.`, { positionAmt, open_orders: 0 }, stats);
     stats.updated += 1;
     stats.stale_cleaned += 1;
+    if (syncedStatus === "closed_synced") stats.closed_synced += 1; else stats.stale_closed += 1;
     return;
   }
+
 
   const orderStatus: Record<string, BinanceOrder> = {};
-  const entryId = row.binance_entry_order_id ? String(row.binance_entry_order_id) : "";
-  if (entryId) orderStatus[entryId] = await binanceRequest("/fapi/v1/order", { symbol: row.symbol, orderId: entryId }) as BinanceOrder;
+  if (entryId && entry) orderStatus[entryId] = entry;
   const algoIds = [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id].filter(Boolean).map(String);
   for (const algoId of algoIds) {
-    orderStatus[algoId] = await binanceRequest("/fapi/v1/algoOrder", { symbol: row.symbol, algoId }) as BinanceOrder;
+    try {
+      orderStatus[algoId] = await binanceRequest("/fapi/v1/algoOrder", { symbol: row.symbol, algoId }) as BinanceOrder;
+    } catch {
+      // Legacy long clientAlgoId rows may refer to invalid/missing algo orders; protection recovery below regenerates short IDs or falls back managed.
+    }
   }
 
-  const entry = entryId ? orderStatus[entryId] : null;
-
-  // Entry fill detected: immediately submit SL/TP protection before saving any status update.
-  // This prevents the monitor's unprotected check from flagging the row between fill and protection.
-  if (entry?.status === "FILLED" && ["pending", "entry_submitted"].includes(row.status)) {
-    const avg = n(entry.avgPrice);
-    const qty = Math.abs(positionAmt) > 0 ? Math.abs(positionAmt) : n(row.quantity) || n(row.volume);
-    if (avg > 0) update.entry_price = avg;
-    update.entry_filled_at = now;
-    await supabase.from("execution_orders").update({ ...update, status: "entry_filled" }).eq("id", row.id);
-    await logEvent(supabase, row, "entry_filled", `${row.symbol} entry filled${avg > 0 ? ` at ${avg}` : ""}; submitting protection immediately.`, { entry, qty }, stats);
-    stats.updated += 1;
-    await submitProtectionForRow(supabase, { ...row, status: "entry_filled", entry_price: avg || row.entry_price } as Row, qty, stats);
-    return;
-  } else if (entry && TERMINAL_ORDER_STATUSES.includes(String(entry.status)) && ["pending", "entry_submitted"].includes(row.status)) {
+  if (entry && TERMINAL_ORDER_STATUSES.includes(entryStatus) && isEntryPendingRow) {
     update.status = "cancelled";
-    await logEvent(supabase, row, "entry_cancelled", `${row.symbol} entry order ${entry.status}.`, { entry }, stats);
-  } else if (entry?.status === "REJECTED" && ["pending", "entry_submitted"].includes(row.status)) {
+    await logEvent(supabase, row, "entry_cancelled", `${row.symbol} entry order ${entryStatus}.`, { entry }, stats);
+  } else if (entryStatus === "REJECTED" && isEntryPendingRow) {
     update.status = "failed";
     await logEvent(supabase, row, "entry_failed", `${row.symbol} entry order rejected.`, { entry }, stats);
   }
@@ -379,34 +487,36 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
     }
   }
 
-  // Unprotected open position: attempt protection recovery first, then safety close as last resort.
+  if (!update.status && !isEntryPendingRow && ACTIVE_STATUSES.includes(row.status) && !hasPosition && hasOpenOrders) {
+    const cancelled: Array<string | number | undefined> = [];
+    for (const order of openOrders) {
+      try {
+        await cancelOpenOrder(row.symbol, order);
+        cancelled.push(order.algoId ?? order.orderId);
+        stats.cancelled_orders += 1;
+      } catch {
+        // Stale cleanup must continue even if Binance reports an order already gone.
+      }
+    }
+    const syncedStatus = syncedNoPositionStatus(row);
+    Object.assign(update, { status: syncedStatus, protection_status: "unprotected", native_protection_verified: false, managed_fallback_active: false, remaining_quantity: 0, stale_cleanup_reason: "position_closed_leftover_orders_cancelled", stale_checked_at: now, last_monitor_action: "orphan_protection_orders_cancelled" });
+    await supabase.from("execution_orders").update(update).eq("id", row.id);
+    await logEvent(supabase, row, syncedStatus, `${row.symbol} position is closed on Binance; cancelled leftover SL/TP/open orders and synced DB closed.`, { cancelled }, stats);
+    stats.updated += 1;
+    stats.stale_cleaned += 1;
+    if (syncedStatus === "closed_synced") stats.closed_synced += 1; else stats.stale_closed += 1;
+    return;
+  }
+
+
   const protectionStatus = String(row.protection_status ?? "");
   const isProtected = ["protected", "protected_native", "protected_managed"].includes(protectionStatus);
   if (hasPosition && !isProtected && ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed"].includes(row.status)) {
     await logEvent(supabase, row, "unprotected_recovery_attempt", `${row.symbol} open position without protection — attempting recovery.`, { positionAmt, protection_status: protectionStatus }, stats);
     const qty = Math.abs(positionAmt) > 0 ? Math.abs(positionAmt) : n(row.quantity) || n(row.volume);
-    const recovered = await submitProtectionForRow(supabase, row, qty, stats);
-    if (recovered === "protected_native" || recovered === "protected_managed") {
-      Object.assign(update, { protection_status: recovered, last_monitor_action: `recovery_${recovered}` });
-    } else {
-      // Neither native nor managed protection could be established. Safety close to avoid uncontrolled loss.
-      try {
-        const closeResult = await closeReduceOnly(row, qty, "safety_close");
-        await supabase.from("execution_orders").update({
-          ...update, status: "closed_sl", protection_status: "unprotected_failed",
-          latest_protection_error: "safety_close: protection unavailable after recovery attempt",
-          remaining_quantity: 0, sl_closed_at: now, last_monitor_action: "safety_close",
-        }).eq("id", row.id);
-        await logEvent(supabase, row, "safety_close", `${row.symbol} safety-closed: position was unprotected and protection recovery failed.`, { positionAmt, closeResult }, stats);
-        stats.reduce_only_orders += 1;
-        stats.updated += 1;
-      } catch (closeErr) {
-        const closeError = closeErr instanceof Error ? closeErr.message : "safety close failed";
-        Object.assign(update, { protection_status: "unprotected_failed", latest_protection_error: `safety_close_failed: ${closeError}`, last_monitor_action: "safety_close_failed" });
-        await logEvent(supabase, row, "safety_close_failed", `${row.symbol} CRITICAL: unprotected position could not be safety-closed: ${closeError}`, { positionAmt, closeError }, stats);
-      }
-      return;
-    }
+    const recovered = await protectOrSafetyClose(supabase, row, qty, stats, "protection_pending_recovery");
+    if (recovered === "closed_unprotected_safety") return;
+    Object.assign(update, { protection_status: recovered, last_monitor_action: `recovery_${recovered}` });
   }
 
   if (row.bracket_mode === "managed_exit_fallback" || row.protection_status === "protected_managed") {
@@ -482,9 +592,26 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   }).eq("id", 1);
 }
 
+async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, stats: MonitorStats) {
+  const message = errorMessage(err);
+  const stack = errorStack(err);
+  const action = "row_error_continue";
+  stats.row_errors.push({ id: row.id, symbol: row.symbol, status: row.status, error: message, stack, action });
+  stats.latest_monitor_error = message;
+  stats.latest_sync_error = message;
+  await supabase.from("execution_orders").update({
+    latest_monitor_error: message,
+    latest_sync_error: message,
+    latest_protection_error: message,
+    last_monitor_action: action,
+    last_monitor_checked_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq("id", row.id);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
-  const stats: MonitorStats = { checked: 0, updated: 0, events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null };
+  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "" };
   let supabase: SupabaseClient | null = null;
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -503,13 +630,44 @@ Deno.serve(async (req: Request) => {
 
     const { data: rows, error } = await supabase.from("execution_orders").select("*").in("status", ACTIVE_STATUSES).order("created_at", { ascending: true }).limit(100);
     if (error) throw error;
-    for (const row of (rows ?? []) as Row[]) await monitorRow(supabase, row, stats);
-    await refreshAccountState(supabase, stats);
+    for (const row of (rows ?? []) as Row[]) {
+      try {
+        await monitorRow(supabase, row, stats);
+      } catch (rowErr) {
+        try {
+          await recordRowError(supabase, row, rowErr, stats);
+        } catch (saveErr) {
+          const message = `row_error_save_failed: ${errorMessage(saveErr)}; original=${errorMessage(rowErr)}`;
+          stats.row_errors.push({ id: row.id, symbol: row.symbol, status: row.status, error: message, stack: errorStack(saveErr), action: "row_error_save_failed_continue" });
+          stats.latest_monitor_error = message;
+          stats.latest_sync_error = message;
+        }
+      }
+    }
+    try {
+      await refreshAccountState(supabase, stats);
+    } catch (syncErr) {
+      const message = errorMessage(syncErr);
+      stats.latest_monitor_error = message;
+      stats.latest_sync_error = message;
+      await supabase.from("execution_settings").update({
+        latest_monitor_run_at: new Date().toISOString(),
+        latest_monitor_status: "completed_with_sync_error",
+        latest_monitor_error: message,
+        latest_sync_error: message,
+        latest_monitor_result: { action: "binance_testnet_monitor", ...stats },
+        updated_at: new Date().toISOString(),
+      }).eq("id", 1);
+      return jsonResponse({ success: true, action: "binance_testnet_monitor", completed_with_sync_error: true, ...stats });
+    }
+    if (stats.row_errors.length > 0) {
+      await supabase.from("execution_settings").update({ latest_monitor_status: "completed_with_row_errors", latest_monitor_error: stats.latest_monitor_error, latest_sync_error: stats.latest_sync_error, latest_monitor_result: { action: "binance_testnet_monitor", ...stats }, updated_at: new Date().toISOString() }).eq("id", 1);
+    }
     return jsonResponse({ success: true, action: "binance_testnet_monitor", ...stats });
   } catch (err) {
     if (supabase) {
-      await supabase.from("execution_settings").update({ latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: "error", latest_monitor_result: { error: err instanceof Error ? err.message : "Unknown error", ...stats }, updated_at: new Date().toISOString() }).eq("id", 1);
+      await supabase.from("execution_settings").update({ latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: "error", latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), ...stats }, updated_at: new Date().toISOString() }).eq("id", 1);
     }
-    return jsonResponse({ success: false, error: err instanceof Error ? err.message : "Unknown error", ...stats }, 500);
+    return jsonResponse({ success: false, error: errorMessage(err), ...stats }, 500);
   }
 });

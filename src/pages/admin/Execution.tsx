@@ -28,6 +28,8 @@ type ExecutionSettingsSnapshot = {
   latest_monitor_run_at: string | null;
   latest_monitor_status: string;
   latest_monitor_result: Record<string, unknown> | null;
+  latest_monitor_error?: string | null;
+  latest_sync_error?: string | null;
   open_binance_positions: unknown[] | null;
   open_binance_orders: unknown[] | null;
   pnl_snapshot: Record<string, unknown> | null;
@@ -106,6 +108,22 @@ export default function Execution() {
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
   const selectedSignalValid = useMemo(() => Boolean(selectedSignalId && signals.some(s => s.id === selectedSignalId)), [selectedSignalId, signals]);
   const governorMode = status?.settings?.testnet_governor_mode ?? 'normal';
+  const nowMs = Date.now();
+  const secondsSinceEntryFill = (e: BinanceExecutionOrder): number | null => {
+    const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
+    return Number.isFinite(value) ? Math.max(0, Math.floor((nowMs - value) / 1000)) : null;
+  };
+  const protectionSlaState = (e: BinanceExecutionOrder): 'pass' | 'fail' | 'pending' | 'n/a' => {
+    if (['closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'closed_tp', 'closed_sl', 'cancelled', 'failed', 'skipped'].includes(e.status)) return 'n/a';
+    if (e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' || e.status === 'protected_native' || e.status === 'protected_managed') return 'pass';
+    const seconds = secondsSinceEntryFill(e);
+    if (seconds === null) return ['entry_submitted', 'entry_filled', 'pending_protection', 'pending_managed_protection'].includes(e.status) ? 'pending' : 'n/a';
+    return seconds > 60 ? 'fail' : 'pending';
+  };
+  const freshnessState = (e: BinanceExecutionOrder): 'fresh' | 'stale' => {
+    const checked = e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).getTime() : NaN;
+    return Number.isFinite(checked) && nowMs - checked <= 2 * 60_000 ? 'fresh' : 'stale';
+  };
 
   async function updateExecutionSettings(settingsPatch: Record<string, unknown>) {
     return callExecution('update_settings', { settings: settingsPatch });
@@ -144,7 +162,7 @@ export default function Execution() {
         body: JSON.stringify({ action: 'status' }),
       }).then(r => r.json()).catch((e: unknown) => ({ success: false, error: e instanceof Error ? e.message : 'Status failed' })),
       supabase.from('signals').select('*').eq('market_type', 'crypto').order('created_at', { ascending: false }).limit(25),
-      supabase.from('execution_settings').select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,open_binance_positions,open_binance_orders,pnl_snapshot,stale_rows_cleaned,open_positions_count,unrealized_pnl,account_total_margin_balance,account_total_wallet_balance,latest_sync_time,latest_account_state_at,last_managed_exit_action').eq('id', 1).maybeSingle(),
+      supabase.from('execution_settings').select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,latest_monitor_error,latest_sync_error,open_binance_positions,open_binance_orders,pnl_snapshot,stale_rows_cleaned,open_positions_count,unrealized_pnl,account_total_margin_balance,account_total_wallet_balance,latest_sync_time,latest_account_state_at,last_managed_exit_action').eq('id', 1).maybeSingle(),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -305,6 +323,11 @@ export default function Execution() {
         <div className="mt-3 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.latest_monitor_result ?? {})}>
           Latest sync result: {JSON.stringify(monitorState?.latest_monitor_result ?? {})}
         </div>
+        {(monitorState?.latest_monitor_error || monitorState?.latest_sync_error) && (
+          <div className="mt-2 text-xs text-red-300 font-mono truncate" title={`${monitorState?.latest_monitor_error ?? ''} ${monitorState?.latest_sync_error ?? ''}`}>
+            Monitor error: {monitorState?.latest_monitor_error || '—'} · Sync error: {monitorState?.latest_sync_error || '—'}
+          </div>
+        )}
         <div className="mt-2 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.open_binance_positions ?? [])}>
           Open Binance positions: {JSON.stringify(monitorState?.open_binance_positions ?? [])}
         </div>
@@ -507,7 +530,7 @@ export default function Execution() {
                   <td className="px-4 py-3"><span className={e.side === 'long' ? 'text-emerald-400' : 'text-red-400'}>{e.side}</span></td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.leverage ? `${e.leverage}x` : '—'}</td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span></td>
+                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span><div className="mt-1 text-[11px] text-zinc-500">Entry: {e.entry_filled_at ? 'filled' : e.binance_entry_order_id || e.entry_order_id ? 'submitted' : '—'}</div><div className={freshnessState(e) === 'fresh' ? 'mt-1 text-[11px] text-emerald-300' : 'mt-1 text-[11px] text-yellow-300'}>{freshnessState(e)}</div></td>
                   <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>Protection mode: {e.bracket_mode || 'pending'}</div><div>TP1 status: {e.tp1_closed_at || e.tp1_filled ? 'filled/closed' : e.tp1_algo_id || e.binance_tp1_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>TP2 status: {e.tp2_closed_at ? 'filled/closed' : e.tp2_algo_id || e.binance_tp2_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>SL/BE status: {e.sl_closed_at ? 'closed' : e.sl_moved_to_be ? `BE ${e.be_stop_level ?? ''}` : e.sl_algo_id || e.binance_sl_order_id ? 'open/native SL' : e.bracket_mode === 'managed_exit_fallback' ? 'managed SL' : 'pending'}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500 font-mono">
                     <div className="font-semibold text-zinc-400 mb-1">{e.bracket_mode === 'exchange_native' ? 'Native algo orders' : e.bracket_mode === 'managed_exit_fallback' ? 'Managed fallback' : 'Pending'}</div>
@@ -536,7 +559,7 @@ export default function Execution() {
                     <div className="mt-1">Native verified: <span className={e.native_protection_verified ? 'text-emerald-300' : 'text-zinc-600'}>{e.native_protection_verified ? 'yes' : 'no'}</span></div>
                     <div>Managed fallback: <span className={e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'text-yellow-300' : 'text-zinc-600'}>{e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'yes' : 'no'}</span></div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Opened: {e.opened_at ? new Date(e.opened_at).toLocaleString() : e.entry_filled_at ? new Date(e.entry_filled_at).toLocaleString() : '—'}</div><div>Expires: {e.expires_at || e.time_stop_deadline_at ? new Date(e.expires_at ?? e.time_stop_deadline_at ?? '').toLocaleString() : '—'}</div><div>Minutes left: {minutesRemaining(e.expires_at ?? e.time_stop_deadline_at)}</div><div>Max hold: {e.max_hold_minutes ?? '—'}m</div><div>Mark: {e.latest_mark_price ?? '—'} · uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Last monitor: {e.last_monitor_action || '—'}</div><div>Checked: {e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).toLocaleString() : '—'}</div></td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Opened: {e.opened_at ? new Date(e.opened_at).toLocaleString() : e.entry_filled_at ? new Date(e.entry_filled_at).toLocaleString() : '—'}</div><div>Expires: {e.expires_at || e.time_stop_deadline_at ? new Date(e.expires_at ?? e.time_stop_deadline_at ?? '').toLocaleString() : '—'}</div><div>Minutes left: {minutesRemaining(e.expires_at ?? e.time_stop_deadline_at)}</div><div>Max hold: {e.max_hold_minutes ?? '—'}m</div><div>Mark: {e.latest_mark_price ?? '—'} · uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Last monitor: {e.last_monitor_action || '—'}</div><div>Monitor error: <span className={e.latest_monitor_error ? 'text-red-300' : 'text-zinc-600'}>{e.latest_monitor_error || '—'}</span></div><div>Sync error: <span className={e.latest_sync_error ? 'text-red-300' : 'text-zinc-600'}>{e.latest_sync_error || '—'}</span></div><div>Seconds since fill: {secondsSinceEntryFill(e) ?? '—'}</div><div>Protection SLA: <span className={protectionSlaState(e) === 'pass' ? 'text-emerald-300' : protectionSlaState(e) === 'fail' ? 'text-red-300' : 'text-yellow-300'}>{protectionSlaState(e)}</span></div><div>Checked: {e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).toLocaleString() : '—'}</div></td>
                   <td className="px-4 py-3"><button onClick={() => callExecution('sync_execution', { execution_id: e.id })} className="text-xs text-blue-400 hover:text-blue-300">Sync</button></td>
                 </tr>
               ))}

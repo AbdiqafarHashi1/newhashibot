@@ -8,6 +8,9 @@ const b61Sql = readFileSync('supabase/migrations/20260608143000_047_b6_1_reset_s
 const b62Sql = readFileSync('supabase/migrations/20260608170000_048_b6_2_separate_history_reset_governor_controls.sql', 'utf8');
 const b63Sql = readFileSync('supabase/migrations/20260608193000_049_b6_3_restore_batched_performance_reset.sql', 'utf8');
 const b64Sql = readFileSync('supabase/migrations/20260608203000_050_b6_4_binance_algo_tpsl_ids.sql', 'utf8');
+const b66Sql = readFileSync('supabase/migrations/20260609120000_052_b6_6_entry_submitted_protection_pending_fix.sql', 'utf8');
+const b67Sql = readFileSync('supabase/migrations/20260609130000_053_b6_7_monitor_row_isolation_and_visibility.sql', 'utf8');
+const monitorFn = readFileSync('supabase/functions/binance-testnet-monitor/index.ts', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -59,5 +62,16 @@ for (const field of ['sl_algo_id','tp1_algo_id','tp2_algo_id','sl_client_algo_id
   assert.match(b64Sql, new RegExp(field), `B6.4 adds ${field}`);
 }
 assert.match(b64Sql, /protected_native/, 'B6.4 allows protected_native protection status');
+for (const value of ['entry_timeout_cancelled','entry_missing_no_position','closed_unprotected_safety']) {
+  assert.match(b66Sql, new RegExp(`'${value}'`), `B6.6 execution_orders.status allows ${value}`);
+}
+assert.match(b66Sql, /pending_protection/, 'B6.6 keeps protection pending states valid for monitor recovery');
+for (const field of ['latest_monitor_error','latest_sync_error','last_monitor_action']) {
+  assert.match(b67Sql, new RegExp(field), `B6.7 adds ${field}`);
+}
+assert.match(monitorFn, /for \(const row of[\s\S]*try[\s\S]*monitorRow\(supabase, row, stats\)[\s\S]*catch \(rowErr\)/, 'B6.7 isolates per-row monitor failures');
+assert.match(monitorFn, /return jsonResponse\(\{ success: true, action: "binance_testnet_monitor"[\s\S]*row_errors/, 'B6.7 returns 200 summaries with row_errors');
+assert.match(monitorFn, /orphan_protection_orders_cancelled/, 'B6.7 cancels orphan protection orders after manual close');
+assert.match(monitorFn, /closed_unprotected_safety/, 'B6.7 retains safety close path for unprotected positions');
 
 console.log('SQL constraint tests passed');
