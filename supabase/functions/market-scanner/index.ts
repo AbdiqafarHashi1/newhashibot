@@ -572,6 +572,7 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
   const ema_fast = Math.max(2, Math.floor(params.ema_fast ?? 20));
   const ema_slow = Math.max(ema_fast + 1, Math.floor(params.ema_slow ?? 50));
+  const max_late_breakout_atr = params.max_late_breakout_atr ?? 1.45;
 
   if (!["15m", "1h"].includes(timeframe)) return strategyZeroReject("unsupported_timeframe");
   const minLen = Math.max(box_lookback + 5, atr_expansion_lookback + 2, ema_slow + 5, atr_len + 2, rsi_len + 2, 60);
@@ -668,16 +669,20 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
   const reward = Math.abs(tp2 - price);
   const risk_reward = risk > 0 ? parseFloat((reward / risk).toFixed(2)) : 0;
   const rrScore = clampScore(Math.min(risk_reward / Math.max(min_rr, 0.01), 1.5) * 66);
+  const breakoutFreshnessScore = clampScore(100 - Math.max(0, breakoutDistanceAtr - 0.35) * 42 - Math.max(0, 0.10 - breakoutDistanceAtr) * 140);
+  const lateBreakoutPenalty = breakoutDistanceAtr > max_late_breakout_atr ? Math.min(14, Math.round((breakoutDistanceAtr - max_late_breakout_atr) * 12)) : 0;
+  const lateBreakoutExhausted = breakoutDistanceAtr > max_late_breakout_atr && momentumScore < 62 && atrExpansionRatio < Math.max(min_atr_expansion * 1.15, 1.08);
 
   let primaryFailedGate = "";
   if (!compressionReady) primaryFailedGate = "compression_not_ready";
   else if (!breakoutConfirmed) primaryFailedGate = "breakout_not_confirmed";
   else if (atrExpansionRatio < min_atr_expansion && !(crypto_behavior_tuning && nearCompressionReady && breakoutDistanceAtr >= breakout_buffer_atr * 2)) primaryFailedGate = "atr_expansion_weak";
+  else if (lateBreakoutExhausted) primaryFailedGate = "late_breakout_exhausted";
   else if (ind.atr_pct > 5.0) primaryFailedGate = "volatility_too_high";
   else if (momentumScore < 45) primaryFailedGate = "momentum_failed";
   else if (risk_reward < min_rr) primaryFailedGate = "rr_too_low";
 
-  const finalScore = clampScore((compressionScore * 0.24) + (breakoutScore * 0.24) + (atrExpansionScore * 0.16) + (momentumScore * 0.14) + (volatilityScore * 0.08) + (rrScore * 0.10) + (candleBodyScore * 0.04));
+  const finalScore = clampScore((compressionScore * 0.24) + (breakoutScore * 0.22) + (atrExpansionScore * 0.16) + (momentumScore * 0.14) + (volatilityScore * 0.08) + (rrScore * 0.10) + (candleBodyScore * 0.04) + (breakoutFreshnessScore * 0.02) - lateBreakoutPenalty);
   if (!primaryFailedGate && finalScore < min_score) primaryFailedGate = "confidence_too_low";
 
   const score_breakdown: Record<string, number | string | boolean> = {
@@ -697,6 +702,10 @@ function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: 
     breakout_direction: direction,
     breakout_distance_atr: parseFloat(breakoutDistanceAtr.toFixed(3)),
     breakout_score: breakoutScore,
+    breakout_freshness_score: breakoutFreshnessScore,
+    max_late_breakout_atr,
+    late_breakout_penalty: lateBreakoutPenalty,
+    late_breakout_exhausted: lateBreakoutExhausted,
     atr_expansion: parseFloat(atrExpansionRatio.toFixed(3)),
     atr_expansion_score: atrExpansionScore,
     min_atr_expansion,
@@ -792,8 +801,9 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   const rsiScore = direction === "buy"
     ? clampScore(Math.min(Math.max((rsi - 45) / Math.max(rsi_buy_min - 45, 1), 0), 1.25) * 80)
     : clampScore(Math.min(Math.max((55 - rsi) / Math.max(55 - rsi_sell_max, 1), 0), 1.25) * 80);
-  const trendQualityPass = trendScore >= 45 || (crypto_behavior_tuning && emaSlopeScore >= 55 && directionalSpread > -0.08 && priceVsEma > 0 && rsiScore >= 40);
-  const reclaimByQuality = crypto_behavior_tuning && pullbackScore >= 68 && momentumScore >= 45 && priceVsEma > -0.05;
+  const continuationChopScore = clampScore((Math.abs(rsi - 50) < 5 ? 35 : 0) + (Math.abs(directionalSpread) < 0.12 ? 30 : 0) + (bodyAtr < 0.22 ? 20 : 0) + (Math.abs(directionalMomentum) < 0.2 ? 15 : 0));
+  const trendQualityPass = trendScore >= 50 || (crypto_behavior_tuning && emaSlopeScore >= 62 && directionalSpread > 0.02 && priceVsEma > 0 && rsiScore >= 45 && continuationChopScore < 65);
+  const reclaimByQuality = crypto_behavior_tuning && pullbackScore >= 74 && momentumScore >= 52 && trendScore >= 58 && emaSlopeScore >= 62 && continuationChopScore < 62 && priceVsEma > -0.02;
   reclaimConfirmed = strictReclaimConfirmed || reclaimByQuality;
   const reclaimQualityPass = reclaimConfirmed;
   let volatilityScore = 85;
@@ -830,7 +840,9 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
   else if (momentumScore < 35 || rsiScore < 35) primaryFailedGate = "momentum_failed";
   else if (risk_reward < min_rr) primaryFailedGate = "rr_too_low";
 
-  const finalScore = clampScore((trendScore * 0.22) + (emaSlopeScore * 0.14) + (pullbackScore * 0.20) + (momentumScore * 0.16) + (rsiScore * 0.12) + (volatilityScore * 0.08) + (rrScore * 0.08));
+  const finalScore = clampScore((trendScore * 0.24) + (emaSlopeScore * 0.15) + (pullbackScore * 0.18) + (momentumScore * 0.16) + (rsiScore * 0.11) + (volatilityScore * 0.08) + (rrScore * 0.08));
+  if (!primaryFailedGate && reclaimByQuality && !strictReclaimConfirmed && finalScore < 85) primaryFailedGate = "strict_reclaim_required_for_A";
+  if (!primaryFailedGate && continuationChopScore >= 70 && finalScore < 85) primaryFailedGate = "chop_continuation_risk";
   if (!primaryFailedGate && finalScore < min_score) primaryFailedGate = "confidence_too_low";
 
   const score_breakdown: Record<string, number | string | boolean> = {
@@ -850,6 +862,7 @@ function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: st
     reclaim_quality_pass: reclaimQualityPass,
     strict_reclaim_confirmed: strictReclaimConfirmed,
     reclaim_by_quality: reclaimByQuality,
+    continuation_chop_score: continuationChopScore,
     momentum_score: momentumScore,
     rsi_score: rsiScore,
     volatility_score: volatilityScore,
@@ -1141,6 +1154,115 @@ interface EvalEntry {
   guard: DistanceGuardResult;
 }
 
+interface MarketContext {
+  regime: string;
+  trend_strength: number;
+  momentum_strength: number;
+  volatility_expansion: number;
+  volatility_contraction: number;
+  compression_state: number;
+  range_state: number;
+  chop_level: number;
+  atr_regime: string;
+  distance_from_ema_atr: number;
+  overextension: number;
+  breakout_state: number;
+  pullback_state: number;
+  reclaim_state: number;
+  preferred_strategy: StrategyName | "none";
+  mixed_market: boolean;
+}
+
+function classifyMarketContext(ind: Indicators, candles: Candle[]): MarketContext {
+  const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2] ?? last;
+  const atr = Math.max(ind.atr14, 0);
+  const price = Math.max(last?.close ?? 0, 0);
+  const emaSpreadAtr = atr > 0 ? Math.abs(ind.ema20 - ind.ema50) / atr : 0;
+  const distanceFromEmaAtr = atr > 0 ? Math.abs(price - ind.ema20) / atr : 0;
+  const bodyAtr = atr > 0 ? Math.abs(last.close - last.open) / atr : 0;
+  const barRangeAtr = atr > 0 ? (last.high - last.low) / atr : 0;
+  const recentHigh = ind.recent_high;
+  const recentLow = ind.recent_low;
+  const breakoutUp = atr > 0 && last.close > recentHigh - atr * 0.10 && last.close > last.open;
+  const breakoutDn = atr > 0 && last.close < recentLow + atr * 0.10 && last.close < last.open;
+  const trendStrength = clampScore(Math.min(1, emaSpreadAtr / 2.2) * 58 + (ind.regime.startsWith("trend") ? 24 : 0) + (Math.abs(ind.rsi14 - 50) / 50) * 18);
+  const momentumStrength = clampScore(Math.abs(ind.momentum_score) * 60 + Math.min(bodyAtr, 1.2) * 28 + ((last.close > prev.close) === (ind.momentum_score >= 0) ? 12 : 0));
+  const volatilityExpansion = clampScore(Math.min(barRangeAtr / 1.6, 1.4) * 72 + (ind.atr_pct > 2 ? 18 : 0));
+  const volatilityContraction = clampScore(Math.max(0, 1 - ind.range_compression_ratio) * 85 + (ind.atr_pct < 0.5 ? 15 : 0));
+  const compressionState = clampScore(Math.max(0, 1 - ind.range_compression_ratio / 0.75) * 100);
+  const rangeState = clampScore((ind.rsi14 > 45 && ind.rsi14 < 55 ? 45 : 0) + Math.max(0, 1 - emaSpreadAtr / 1.4) * 35 + (ind.range_compression_ratio > 0.70 ? 20 : 0));
+  const chopLevel = clampScore(rangeState * 0.65 + (bodyAtr < 0.22 ? 20 : 0) + (Math.abs(ind.momentum_score) < 0.2 ? 15 : 0));
+  const overextension = clampScore(Math.min(distanceFromEmaAtr / 2.4, 1.4) * 100);
+  const breakoutState = clampScore((breakoutUp || breakoutDn ? 55 : 0) + volatilityExpansion * 0.30 + compressionState * 0.15);
+  const pullbackState = clampScore((distanceFromEmaAtr <= 0.9 ? 45 : 0) + trendStrength * 0.35 + (bodyAtr >= 0.20 ? 20 : 0));
+  const reclaimState = clampScore(((last.close > ind.ema20 && last.close > last.open) || (last.close < ind.ema20 && last.close < last.open) ? 40 : 0) + pullbackState * 0.45 + momentumStrength * 0.15);
+  const atrRegime = ind.atr_pct > 3.5 ? "very_high" : ind.atr_pct > 2.0 ? "high" : ind.atr_pct < 0.15 ? "very_low" : ind.atr_pct < 0.5 ? "low" : "normal";
+
+  let preferred_strategy: StrategyName | "none" = "none";
+  if (compressionState >= 58 && breakoutState >= 58 && overextension < 75 && chopLevel < 72) preferred_strategy = "CompressionBreakout";
+  else if (trendStrength >= 62 && reclaimState >= 58 && chopLevel < 58 && overextension < 82) preferred_strategy = "SwingContinuation";
+  else if (momentumStrength >= 58 && overextension < 72 && volatilityExpansion >= 38 && chopLevel < 68) preferred_strategy = "MicroScalper";
+
+  const positiveStates = [
+    momentumStrength >= 55 && overextension < 72,
+    compressionState >= 55 && breakoutState >= 55,
+    trendStrength >= 60 && reclaimState >= 55,
+  ].filter(Boolean).length;
+  const mixed_market = preferred_strategy === "none" || positiveStates !== 1 || chopLevel >= 72;
+
+  return {
+    regime: ind.regime, trend_strength: trendStrength, momentum_strength: momentumStrength,
+    volatility_expansion: volatilityExpansion, volatility_contraction: volatilityContraction,
+    compression_state: compressionState, range_state: rangeState, chop_level: chopLevel,
+    atr_regime: atrRegime, distance_from_ema_atr: parseFloat(distanceFromEmaAtr.toFixed(3)),
+    overextension, breakout_state: breakoutState, pullback_state: pullbackState, reclaim_state: reclaimState,
+    preferred_strategy, mixed_market,
+  };
+}
+
+function marketRoleFit(e: EvalEntry, ctx: MarketContext): number {
+  if (e.name === "MicroScalper" || e.name === "ForexMicroScalper") {
+    return clampScore(ctx.momentum_strength * 0.38 + (100 - ctx.overextension) * 0.24 + ctx.volatility_expansion * 0.20 + (100 - ctx.chop_level) * 0.18);
+  }
+  if (e.name === "CompressionBreakout") {
+    return clampScore(ctx.compression_state * 0.30 + ctx.breakout_state * 0.34 + ctx.volatility_expansion * 0.18 + (100 - Math.max(ctx.overextension, ctx.chop_level)) * 0.18);
+  }
+  if (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") {
+    return clampScore(ctx.trend_strength * 0.34 + ctx.reclaim_state * 0.28 + ctx.pullback_state * 0.18 + (100 - ctx.chop_level) * 0.20);
+  }
+  return 50;
+}
+
+function strategyFreshnessScore(e: EvalEntry, ctx: MarketContext): number {
+  const b = e.result.score_breakdown;
+  if (e.name === "CompressionBreakout") {
+    const breakoutFreshness = scoreBreakdownNumber(b, "breakout_freshness_score");
+    return breakoutFreshness > 0 ? breakoutFreshness : clampScore(100 - Math.max(0, scoreBreakdownNumber(b, "breakout_distance_atr") - 0.35) * 42);
+  }
+  if (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") {
+    const strictReclaim = scoreBreakdownBool(b, "strict_reclaim_confirmed");
+    const reclaimByQuality = scoreBreakdownBool(b, "reclaim_by_quality");
+    return clampScore((strictReclaim ? 78 : reclaimByQuality ? 56 : 35) + ctx.reclaim_state * 0.16 + (100 - ctx.chop_level) * 0.06);
+  }
+  if (e.name === "MicroScalper" || e.name === "ForexMicroScalper") {
+    const extension = scoreBreakdownNumber(b, "price_extension_atr");
+    return clampScore(88 - Math.max(0, extension - 0.8) * 22 - (scoreBreakdownBool(b, "chase_risk") ? 28 : 0) + ctx.momentum_strength * 0.10);
+  }
+  return 55;
+}
+
+function arbitrationNoTradeReason(ctx: MarketContext, entries: EvalEntry[]): string {
+  if (entries.length === 0) return "";
+  const top = entries[0];
+  const topScore = arbitrationScore(top, ctx);
+  const hasAPlus = entries.some((entry) => entry.result.grade === "A+");
+  if (ctx.chop_level >= 76 && !hasAPlus) return "mixed_choppy_market_requires_a_plus";
+  if (ctx.mixed_market && ctx.preferred_strategy === "none" && !hasAPlus) return "mixed_market_no_clear_strategy_requires_a_plus";
+  if (ctx.mixed_market && top.result.grade !== "A+" && topScore < 0.68) return "mixed_market_expected_value_too_low";
+  return "";
+}
+
 function scoreBreakdownNumber(breakdown: Record<string, number | string | boolean>, key: string): number {
   const value = breakdown?.[key];
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -1211,7 +1333,7 @@ function overextensionPenalty(e: EvalEntry): number {
   return penalty;
 }
 
-function arbitrationScore(e: EvalEntry): number {
+function arbitrationScore(e: EvalEntry, ctx?: MarketContext): number {
   const r = e.result;
   const g = e.guard;
   const scorePct = r.confidence_score / 100;
@@ -1222,17 +1344,39 @@ function arbitrationScore(e: EvalEntry): number {
   const distMargin = (slMargin + tp1Margin + tp2Margin) / 3;
   const gradePct = gradeIndex(r.grade) / 3;
   const identityPct = strategyIdentityFit(e) / 100;
-  return parseFloat(Math.max(0, (scorePct * 0.32) + (identityPct * 0.24) + (rrPct * 0.18) + (distMargin * 0.16) + (gradePct * 0.10) - overextensionPenalty(e)).toFixed(4));
+  const roleFitPct = ctx ? marketRoleFit(e, ctx) / 100 : identityPct;
+  const freshnessPct = ctx ? strategyFreshnessScore(e, ctx) / 100 : 0.55;
+  const preferredBonus = ctx?.preferred_strategy === e.name ? 0.05 : 0;
+  const mixedMarketPenalty = ctx?.mixed_market && r.grade !== "A+" ? 0.04 : 0;
+  const swingChopPenalty = ctx && (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") && ctx.chop_level >= 58 && r.grade !== "A+" ? 0.09 : 0;
+  return parseFloat(Math.max(0, (scorePct * 0.21) + (identityPct * 0.15) + (roleFitPct * 0.22) + (freshnessPct * 0.10) + (rrPct * 0.15) + (distMargin * 0.09) + (gradePct * 0.08) + preferredBonus - mixedMarketPenalty - swingChopPenalty - overextensionPenalty(e)).toFixed(4));
 }
 
-function arbitrationSnapshot(entries: EvalEntry[]): Array<Record<string, unknown>> {
+function arbitrationLossReason(entry: EvalEntry, selected: EvalEntry | undefined, ctx: MarketContext): string {
+  if (!selected) return "no_selected_candidate";
+  const reasons: string[] = [];
+  const candidateRoleFit = marketRoleFit(entry, ctx);
+  const selectedRoleFit = marketRoleFit(selected, ctx);
+  if (ctx.preferred_strategy && ctx.preferred_strategy !== "none" && entry.name !== ctx.preferred_strategy) reasons.push(`market_preferred_${ctx.preferred_strategy}`);
+  if (selected.result.grade !== entry.result.grade) reasons.push(`selected_grade_${selected.result.grade}_vs_${entry.result.grade}`);
+  if (selectedRoleFit > candidateRoleFit + 4) reasons.push(`selected_role_fit_${selectedRoleFit}_vs_${candidateRoleFit}`);
+  if (selected.result.risk_reward > entry.result.risk_reward + 0.15) reasons.push("selected_rr_better");
+  if (ctx.mixed_market && entry.result.grade !== "A+") reasons.push("mixed_market_requires_stronger_grade");
+  return reasons.length > 0 ? reasons.join(";") : `selected_${selected.name}_higher_expected_value`;
+}
+
+function arbitrationSnapshot(entries: EvalEntry[], ctx?: MarketContext): Array<Record<string, unknown>> {
   return entries.map((entry) => ({
     strategy_name: entry.name,
-    arbitration_score: arbitrationScore(entry),
+    arbitration_score: arbitrationScore(entry, ctx),
     confidence_score: entry.result.confidence_score,
     grade: entry.result.grade,
     risk_reward: entry.result.risk_reward,
     identity_fit_score: strategyIdentityFit(entry),
+    market_role_fit_score: ctx ? marketRoleFit(entry, ctx) : null,
+    freshness_score: ctx ? strategyFreshnessScore(entry, ctx) : null,
+    market_preferred_strategy: ctx?.preferred_strategy ?? null,
+    regime_fit: ctx ? (ctx.preferred_strategy === entry.name ? "matched" : ctx.preferred_strategy === "none" ? "mixed" : "mismatched") : "unknown",
     stop_margin_pct: parseFloat(entry.guard.sl_pct.toFixed(4)),
     tp1_margin_pct: parseFloat(entry.guard.tp1_pct.toFixed(4)),
     tp2_margin_pct: parseFloat(entry.guard.tp2_pct.toFixed(4)),
@@ -2905,6 +3049,7 @@ async function runScanPipeline(
         })), { onConflict: "symbol,timeframe,open_time" });
 
         const ind = calculateIndicators(candles);
+        const marketContext = classifyMarketContext(ind, candles);
         indicatorsCalc++;
         const lastCandle = candles[candles.length - 1];
         await supabase.from("indicator_snapshots").upsert({
@@ -2973,7 +3118,7 @@ async function runScanPipeline(
             risk_reward: r.risk_reward || null, regime: ind.regime,
             confidence_score: r.confidence_score, grade: r.grade,
             reason: r.reason, rejection_reason: normalizedRejectionReason,
-            status: r.status, data_source: dataSource, score_breakdown: candidateScoreBreakdown,
+            status: r.status, data_source: dataSource, score_breakdown: { ...(candidateScoreBreakdown ?? {}), market_context: marketContext },
           };
 
           const { data: cData } = await supabase.from("strategy_candidates").insert(candidateRow).select("id").single();
@@ -3023,15 +3168,51 @@ async function runScanPipeline(
 
         // Arbitrate with strategy-specific identity fit so selection is not first-valid/raw-score only.
         passingEntries.sort((a, b) => {
-          const scoreDelta = arbitrationScore(b) - arbitrationScore(a);
+          const scoreDelta = arbitrationScore(b, marketContext) - arbitrationScore(a, marketContext);
           if (Math.abs(scoreDelta) > 0.0001) return scoreDelta;
           const identityDelta = strategyIdentityFit(b) - strategyIdentityFit(a);
           if (identityDelta !== 0) return identityDelta;
           return b.result.risk_reward - a.result.risk_reward;
         });
-        const arbitrationCandidates = arbitrationSnapshot(passingEntries);
-        const selectedArbitrationScore = passingEntries.length > 0 ? arbitrationScore(passingEntries[0]) : 0;
+        const arbitrationCandidates = arbitrationSnapshot(passingEntries, marketContext);
+        const selectedArbitrationScore = passingEntries.length > 0 ? arbitrationScore(passingEntries[0], marketContext) : 0;
         const selectedStrategyName = passingEntries[0]?.name ?? "none";
+        const noTradeReason = arbitrationNoTradeReason(marketContext, passingEntries);
+        if (noTradeReason) {
+          for (const blockedEntry of passingEntries as Array<EvalEntry & { _candidateId: string }>) {
+            const r = blockedEntry.result;
+            await supabase.from("strategy_candidates").update({
+              status: "rejected",
+              rejection_reason: "arbitration_no_trade",
+              score_breakdown: {
+                ...(r.score_breakdown ?? {}),
+                primary_failed_gate: "arbitration_no_trade",
+                raw_rejection_reason: "arbitration_no_trade",
+                normalized_rejection_reason: "arbitration_no_trade",
+                distance_guard: "passed",
+                arbitration: "no_trade",
+                arbitration_blocked: true,
+                arbitration_no_trade_reason: noTradeReason,
+                market_regime: marketContext.regime,
+                market_context: marketContext,
+                market_preferred_strategy: marketContext.preferred_strategy,
+                selected_strategy: "none",
+                selected_timeframe: tf,
+                selected_score: selectedArbitrationScore,
+                arbitration_score: arbitrationScore(blockedEntry, marketContext),
+                candidate_arbitration_score: arbitrationScore(blockedEntry, marketContext),
+                arbitration_candidates: arbitrationCandidates,
+                duplicate_guard: "not_reached",
+                signal_insert: "not_reached",
+                telegram_eligibility: "not_reached",
+              },
+            }).eq("id", blockedEntry._candidateId);
+            incrementStrategyStat(blockedEntry.name, "arbitration_blocked");
+            incrementStrategyStat(blockedEntry.name, "rejected");
+            rejectedCount++;
+          }
+          continue;
+        }
 
         for (let idx = 0; idx < passingEntries.length; idx++) {
           const ev = passingEntries[idx] as EvalEntry & { _candidateId: string };
@@ -3054,15 +3235,15 @@ async function runScanPipeline(
                 arbitration_blocked: true,
                 better_candidate_selected: true,
                 lower_quality_than_selected: true,
-                arbitration_score: arbitrationScore(ev),
+                arbitration_score: arbitrationScore(ev, marketContext),
                 selected_strategy: selectedStrategyName,
                 selected_timeframe: tf,
                 selected_score: selectedArbitrationScore,
-                microscalper_score: ev.name === "MicroScalper" ? arbitrationScore(ev) : null,
-                arbitration_loss_reason: `selected_${selectedStrategyName}_had_higher_arbitration_rank`,
+                microscalper_score: ev.name === "MicroScalper" ? arbitrationScore(ev, marketContext) : null,
+                arbitration_loss_reason: arbitrationLossReason(ev, passingEntries[0], marketContext),
                 strategy_order_affected_result: false,
                 selected_arbitration_score: selectedArbitrationScore,
-                candidate_arbitration_score: arbitrationScore(ev),
+                candidate_arbitration_score: arbitrationScore(ev, marketContext),
                 arbitration_candidates: arbitrationCandidates,
                 duplicate_guard: "not_reached",
                 signal_insert: "not_reached",
@@ -3084,6 +3265,10 @@ async function runScanPipeline(
               distance_guard: "passed",
               arbitration: "selected",
               arbitration_selected: true,
+              market_regime: marketContext.regime,
+              market_context: marketContext,
+              winner_matched_regime: marketContext.preferred_strategy === selectedStrategyName,
+              market_preferred_strategy: marketContext.preferred_strategy,
               selected_strategy: selectedStrategyName,
               selected_timeframe: tf,
               selected_score: selectedArbitrationScore,
@@ -3449,7 +3634,7 @@ async function runScanPipeline(
     telegram_skip_reasons: telegramSkipReasons, telegram_delivery_ids: telegramDeliveryIds,
     duplicate_symbol_blocked: duplicateSymbolBlocked,
     active_modes: activeModes.map((m) => m.mode_slug),
-    forex_provider: forexProviderName, forex_real_data: forexProviderSuccess, forex_provider_cache_hits: forexProviderCacheHits, forex_budget: forexBudget ? { max_pairs: forexBudget.maxPairs, max_timeframes: forexBudget.maxTimeframes, allowed_pairs: forexBudget.allowedPairs.size, planned_pairs: forexBudget.plannedPairs, planned_timeframes: forexBudget.plannedTimeframes } : null,
+    forex_provider: forexProviderName, forex_real_data: forexProviderSuccess, forex_budget: forexBudget ? { max_pairs: forexBudget.maxPairs, max_timeframes: forexBudget.maxTimeframes, allowed_pairs: forexBudget.allowedPairs.size, planned_pairs: forexBudget.plannedPairs, planned_timeframes: forexBudget.plannedTimeframes } : null,
     forex_demo_fallback_used: false,
     strategy_evaluation_summary: strategyEvaluationSummary,
     errors: errors.slice(0, 10),
