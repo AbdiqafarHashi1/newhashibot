@@ -27,12 +27,13 @@ interface BtTrade {
   result: 'tp2_hit' | 'tp1_hit' | 'sl_hit' | 'expired';
   exitIndex: number | null; exitTime: string | null; exitPrice: number | null;
   pnl_r: number; durationBars: number;
+  expiryCause?: string; expiryEvidence?: string;
   grade: string; score: number; reason: string;
 }
 
 interface BtMetrics {
   totalTrades: number; wins: number; tp1Hits: number; tp2Hits: number;
-  losses: number; expired: number;
+  losses: number; expired: number; expiryReasons: Record<string, number>;
   winRate: number; profitFactor: number;
   totalR: number; avgR: number; avgWin: number; avgLoss: number;
   bestTrade: number; worstTrade: number;
@@ -322,18 +323,20 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   if (expansion < p.min_atr_expansion) return FAIL('atr_expansion_too_low');
 
   const brkDist = up ? last.close - boxHigh : boxLow - last.close;
+  const brkDistAtr = atr > 0 ? brkDist / atr : 0;
   if (brkDist < buf * 0.6) return FAIL('breakout_distance_too_small');
 
   const mom = momentumScore(closes, p.momentum_lookback);
   if (up && mom < 0) return FAIL('momentum_failed');
   if (dn && mom > 0) return FAIL('momentum_failed');
+  if (brkDistAtr > 1.45 && Math.abs(mom) < 0.67 && expansion < Math.max(p.min_atr_expansion * 1.15, 1.08)) return FAIL('late_breakout_exhausted');
 
   const direction: 'buy' | 'sell' = up ? 'buy' : 'sell';
   let score = 50;
   const cq = barsInside / Math.max(boxLookback, 1);
   if (cq > 0.80) score += 12; else if (cq > 0.60) score += 7; else score += 2;
   if (expansion > 2.0) score += 12; else if (expansion > 1.5) score += 8; else score += 4;
-  if ((brkDist / atr) > 0.6) score += 8; else score += 2;
+  if (brkDistAtr > 0.6) score += 8; else score += 2;
   if (direction === 'buy'  && rsi > 55) score += 6;
   if (direction === 'sell' && rsi < 45) score += 6;
   if (mom !== 0) score += 4;
@@ -347,9 +350,10 @@ function evalCB(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const risk = Math.abs(entry - sl);
   const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
   if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 6;
-  const final_score = Math.min(Math.max(score, 0), 100);
+  const latePenalty = brkDistAtr > 1.45 ? Math.min(14, Math.round((brkDistAtr - 1.45) * 12)) : 0;
+  const final_score = Math.min(Math.max(score - latePenalty, 0), 100);
   const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
-  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `CB ${direction}: cq=${cq.toFixed(2)}, exp=${expansion.toFixed(2)}x, box=${boxLow.toFixed(4)}-${boxHigh.toFixed(4)}` };
+  return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `CB ${direction}: cq=${cq.toFixed(2)}, exp=${expansion.toFixed(2)}x, brk=${brkDistAtr.toFixed(2)} ATR, box=${boxLow.toFixed(4)}-${boxHigh.toFixed(4)}` };
 }
 
 function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
@@ -411,9 +415,33 @@ function evalSW(window: BtCandle[], p: ParamSet, tf: string): EvalOut {
   const risk = Math.abs(entry - sl);
   const rr = risk > 0 ? parseFloat((Math.abs(tp2 - entry) / risk).toFixed(2)) : 0;
   if (rr >= 3.0) score += 10; else if (rr >= 2.0) score += 5;
+  const continuationChopScore = (Math.abs(rsi - 50) < 5 ? 35 : 0) + (emaSep < 0.0012 ? 30 : 0) + (Math.abs(mom) < 0.2 ? 20 : 0);
   const final_score = Math.min(Math.max(score, 0), 100);
+  if (continuationChopScore >= 70 && final_score < 85) return FAIL('chop_continuation_risk');
   const grade = final_score >= 85 ? 'A+' : final_score >= 75 ? 'A' : final_score >= 65 ? 'B' : 'reject';
   return { ok: true, direction, entry, entry_low, entry_high, sl, tp1, tp2, grade, score: final_score, rr, reason: `SW ${direction}: ema_sep=${(emaSep * 100).toFixed(2)}%, rsi=${rsi.toFixed(1)}, regime=${reg}` };
+}
+
+
+function classifyBacktestExpiry(strategy: Strategy, ev: EvalOut, lastObserved: BtCandle, maxBars: number): { cause: string; evidence: string } {
+  const risk = Math.abs(ev.entry - ev.sl);
+  const tp1R = risk > 0 ? Math.abs(ev.tp1 - ev.entry) / risk : 0;
+  const tp2R = risk > 0 ? Math.abs(ev.tp2 - ev.entry) / risk : ev.rr;
+  const tpProgress = ev.direction === 'sell'
+    ? (ev.entry - lastObserved.close) / Math.max(ev.entry - ev.tp1, 1e-12)
+    : (lastObserved.close - ev.entry) / Math.max(ev.tp1 - ev.entry, 1e-12);
+
+  let cause = 'chop/no follow-through';
+  if (tp1R > 1.35 || tp2R > 2.4) cause = 'TP too far';
+  else if (tpProgress > 0.65) cause = 'expiry too short';
+  else if (ev.score < 78) cause = strategy === 'SwingContinuation' ? 'bad continuation' : 'weak momentum';
+  else if (strategy === 'CompressionBreakout' && /exp=1\.(0|1)/.test(ev.reason)) cause = 'fake breakout';
+  else if (strategy === 'SwingContinuation' && ev.grade !== 'A+') cause = 'bad continuation';
+
+  return {
+    cause,
+    evidence: `score=${ev.score}; grade=${ev.grade}; rr=${ev.rr}; tp1R=${tp1R.toFixed(2)}; tp2R=${tp2R.toFixed(2)}; progressToTp1=${tpProgress.toFixed(2)}; maxBars=${maxBars}`,
+  };
 }
 
 // ─── Backtest engine ──────────────────────────────────────────────────────────
@@ -449,6 +477,8 @@ function runBacktest(
     let result: BtTrade['result'] = 'expired';
     let exitIndex: number | null = null;
     let exitPrice: number | null = null;
+    let expiryCause: string | undefined;
+    let expiryEvidence: string | undefined;
     const maxEnd = Math.min(i + p.max_bars_in_trade, candles.length - 1);
 
     for (let j = i + 1; j <= maxEnd; j++) {
@@ -464,6 +494,13 @@ function runBacktest(
       }
     }
 
+    if (result === 'expired') {
+      const observed = candles[maxEnd] ?? last;
+      const classified = classifyBacktestExpiry(strategy, ev, observed, p.max_bars_in_trade);
+      expiryCause = classified.cause;
+      expiryEvidence = classified.evidence;
+    }
+
     const risk = Math.abs(ev.entry - ev.sl);
     let pnl_r = 0;
     if (result === 'sl_hit')  pnl_r = -1;
@@ -477,7 +514,7 @@ function runBacktest(
       entry: ev.entry, entry_low: ev.entry_low, entry_high: ev.entry_high,
       stop_loss: ev.sl, tp1: ev.tp1, tp2: ev.tp2,
       result, exitIndex, exitTime: exitIndex !== null ? (candles[exitIndex]?.time ?? null) : null,
-      exitPrice, pnl_r, durationBars, grade: ev.grade, score: ev.score, reason: ev.reason,
+      exitPrice, pnl_r, durationBars, expiryCause, expiryEvidence, grade: ev.grade, score: ev.score, reason: ev.reason,
     });
 
     tradeEndIndex = exitIndex ?? maxEnd;
@@ -490,6 +527,11 @@ function runBacktest(
 // ─── Metrics calculator ───────────────────────────────────────────────────────
 
 function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number, rejected: number, rejectionReasons: Record<string, number> = {}): BtMetrics {
+  const expiryReasons = trades.filter(t => t.result === 'expired').reduce<Record<string, number>>((acc, t) => {
+    const key = t.expiryCause || 'unclassified';
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
   const wins   = trades.filter(t => t.result === 'tp1_hit' || t.result === 'tp2_hit');
   const losses = trades.filter(t => t.result === 'sl_hit');
   const exps   = trades.filter(t => t.result === 'expired');
@@ -524,7 +566,7 @@ function calcMetrics(trades: BtTrade[], evaluations: number, candidates: number,
     totalTrades: trades.length, wins: wins.length,
     tp1Hits: trades.filter(t => t.result === 'tp1_hit').length,
     tp2Hits: trades.filter(t => t.result === 'tp2_hit').length,
-    losses: losses.length, expired: exps.length,
+    losses: losses.length, expired: exps.length, expiryReasons,
     winRate: parseFloat(winRate.toFixed(1)), profitFactor,
     totalR: parseFloat(totalR.toFixed(2)), avgR: parseFloat(avgR.toFixed(2)),
     avgWin: parseFloat(avgWin.toFixed(2)), avgLoss: parseFloat(avgLoss.toFixed(2)),

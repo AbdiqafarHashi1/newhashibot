@@ -15,6 +15,7 @@ type SupabaseClient = ReturnType<typeof createClient>;
 
 type SignalRow = Record<string, unknown> & {
   id: string;
+  candidate_id?: string | null;
   symbol: string;
   market_type?: string | null;
   direction?: string | null;
@@ -348,6 +349,56 @@ function getOutcomeForSignal(sig: SignalRow, price: number): { next_status: stri
   return { next_status: status, reason: "no_change" };
 }
 
+
+function classifyExpiryCause(sig: SignalRow, price: number | null, candidate: Record<string, unknown> | null): { cause: string; evidence: Record<string, unknown> } {
+  const direction = String(sig.direction ?? "").toLowerCase();
+  const entry = entryMidpoint(sig);
+  const stop = numberField(sig, "stop_loss", "sl");
+  const tp1 = numberField(sig, "tp1");
+  const tp2 = numberField(sig, "tp2");
+  const risk = entry !== null && stop !== null ? Math.abs(entry - stop) : 0;
+  const scoreBreakdown = (candidate?.score_breakdown && typeof candidate.score_breakdown === "object" ? candidate.score_breakdown : {}) as Record<string, unknown>;
+  const candidateReason = String(candidate?.rejection_reason ?? scoreBreakdown.primary_failed_gate ?? "");
+  const strategy = String(sig.strategy_name ?? "");
+  const confidence = Number(sig.confidence_score ?? candidate?.confidence_score ?? 0);
+  const rr = Number(sig.risk_reward ?? candidate?.risk_reward ?? 0);
+  const tp1R = entry !== null && tp1 !== null && risk > 0 ? Math.abs(tp1 - entry) / risk : null;
+  const tp2R = entry !== null && tp2 !== null && risk > 0 ? Math.abs(tp2 - entry) / risk : rr;
+  const tpProgress = price !== null && entry !== null && tp1 !== null
+    ? direction === "sell" ? (entry - price) / Math.max(entry - tp1, 1e-12) : (price - entry) / Math.max(tp1 - entry, 1e-12)
+    : null;
+  const adverseProgress = price !== null && entry !== null && stop !== null
+    ? direction === "sell" ? (price - entry) / Math.max(stop - entry, 1e-12) : (entry - price) / Math.max(entry - stop, 1e-12)
+    : null;
+
+  let cause = "chop/no follow-through";
+  if (["arbitration_blocked", "duplicate_active_signal"].includes(candidateReason)) cause = "wrong arbitration winner";
+  else if (candidateReason && candidateReason !== "passed") cause = "strategy should not have entered";
+  else if ((tp1R !== null && tp1R > 1.35) || tp2R > 2.4) cause = "TP too far";
+  else if (String(sig.status ?? "") === "waiting" || String(sig.status ?? "") === "new" || String(sig.status ?? "") === "approved") cause = "entry too late";
+  else if (confidence < 78 || Number(scoreBreakdown.momentum_score ?? 100) < 45) cause = "weak momentum";
+  else if (strategy === "CompressionBreakout" && (Number(scoreBreakdown.breakout_distance_atr ?? 1) < 0.20 || Number(scoreBreakdown.atr_expansion ?? 2) < 1.05)) cause = "fake breakout";
+  else if (strategy === "SwingContinuation" && (scoreBreakdown.strict_reclaim_confirmed === false || Number(scoreBreakdown.trend_score ?? 100) < 55)) cause = "bad continuation";
+  else if (tpProgress !== null && tpProgress > 0.65) cause = "expiry too short";
+  else if (adverseProgress !== null && adverseProgress > 0.55) cause = "strategy should not have entered";
+
+  return {
+    cause,
+    evidence: {
+      price, entry, stop, tp1, tp2, risk_reward: rr, tp1_r: tp1R, tp2_r: tp2R,
+      tp_progress_to_tp1: tpProgress !== null && Number.isFinite(tpProgress) ? Number(tpProgress.toFixed(3)) : null,
+      adverse_progress_to_sl: adverseProgress !== null && Number.isFinite(adverseProgress) ? Number(adverseProgress.toFixed(3)) : null,
+      candidate_rejection_reason: candidateReason || "passed",
+      confidence_score: confidence,
+      candidate_momentum_score: scoreBreakdown.momentum_score ?? null,
+      candidate_breakout_distance_atr: scoreBreakdown.breakout_distance_atr ?? null,
+      candidate_atr_expansion: scoreBreakdown.atr_expansion ?? null,
+      candidate_strict_reclaim_confirmed: scoreBreakdown.strict_reclaim_confirmed ?? null,
+      candidate_trend_score: scoreBreakdown.trend_score ?? null,
+    },
+  };
+}
+
 function expiryStatus(sig: SignalRow): { expired: boolean; reason: string } {
   const now = Date.now();
   const expiresAt = sig.expires_at ? new Date(String(sig.expires_at)).getTime() : NaN;
@@ -652,6 +703,29 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
       if (existing) continue;
 
+      let finalReason = reason;
+      let expiryCause: string | null = null;
+      let expiryEvidence: Record<string, unknown> | null = null;
+      if (next === "expired") {
+        let candidate: Record<string, unknown> | null = null;
+        if (sig.candidate_id) {
+          const { data: candidateData } = await supabase
+            .from("strategy_candidates")
+            .select("rejection_reason, confidence_score, risk_reward, score_breakdown")
+            .eq("id", sig.candidate_id)
+            .maybeSingle();
+          candidate = (candidateData as Record<string, unknown> | null) ?? null;
+        }
+        if (price === null) {
+          const priceResult = await latestPrice(sig);
+          price = priceResult.price;
+        }
+        const classified = classifyExpiryCause(sig, price, candidate);
+        expiryCause = classified.cause;
+        expiryEvidence = classified.evidence;
+        finalReason = `${reason}; expiry_cause=${expiryCause}`;
+      }
+
       const telegramResult = ["tp1_hit", "tp2_hit", "sl_hit", "expired"].includes(next)
         ? await sendOutcomeNotification(supabase, sig, next, price)
         : { sent: false, skipped: false, failed: false } as TelegramResult;
@@ -673,9 +747,9 @@ Deno.serve(async (req: Request) => {
         previous_status: currentStatus,
         old_status: currentStatus,
         new_status: next,
-        message: `${eventLabel(next)} via ${reason} (source: ${source})`,
+        message: `${eventLabel(next)} via ${finalReason} (source: ${source})`,
         price,
-        reason,
+        reason: finalReason,
         telegram_sent: telegramResult.sent,
         created_at: new Date().toISOString(),
       });
@@ -687,7 +761,8 @@ Deno.serve(async (req: Request) => {
         from: currentStatus,
         to: next,
         price,
-        reason,
+        reason: finalReason,
+        ...(expiryCause ? { expiry_cause: expiryCause, expiry_evidence: expiryEvidence } : {}),
         telegram_status: telegramResult.sent ? "sent" : telegramResult.failed ? "failed" : telegramResult.skipped ? "skipped" : "not_required",
         telegram_reason: telegramResult.reason,
       });
