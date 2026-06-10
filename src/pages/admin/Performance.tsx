@@ -488,6 +488,27 @@ function hasNativeProtectionIds(row: ExecutionOrderRow) {
   return Boolean((row.sl_algo_id || row.binance_sl_order_id) && (row.tp1_algo_id || row.binance_tp1_order_id) && (row.tp2_algo_id || row.binance_tp2_order_id));
 }
 
+
+function monitorResultArray(result: Record<string, unknown>, key: string): unknown[] {
+  const value = result[key];
+  return Array.isArray(value) ? value : [];
+}
+
+function monitorResultCount(result: Record<string, unknown>, key: string): number {
+  const value = result[key];
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && Number.isFinite(Number(value))) return Number(value);
+  return monitorResultArray(result, key.replace(/_count$/, '')).length;
+}
+
+function monitorCriticalStatus(status: string | null | undefined): string {
+  if (!status) return 'never_run';
+  if (status === 'error' || status === 'completed_with_sync_error') return 'critical_error';
+  if (status === 'completed' || status === 'ok') return 'healthy';
+  if (status === 'completed_with_row_errors') return 'row_errors_only';
+  return status;
+}
+
 function positionSafety(row: ExecutionOrderRow) {
   if (!hasFilledEntry(row) || Number(row.current_position_size ?? row.remaining_quantity ?? 0) === 0) return 'not_open';
   if ((row.protection_status === 'protected_native' || row.native_protection_verified) && hasNativeProtectionIds(row)) return 'safe';
@@ -803,11 +824,19 @@ export default function Performance() {
     const eventText = (needle: string) => executionEvents.filter(event => `${event.event_type} ${event.message}`.toLowerCase().includes(needle)).length;
     const monitorResult = executionSettings?.latest_monitor_result ?? {};
     const monitorHttpStatus = typeof monitorResult.http_status === 'number' || typeof monitorResult.http_status === 'string' ? String(monitorResult.http_status) : '—';
+    const monitorCriticalStatusValue = monitorCriticalStatus(executionSettings?.latest_monitor_status);
+    const monitorWarningsCount = monitorResultCount(monitorResult, 'warnings_count');
+    const monitorRowErrorsCount = monitorResultCount(monitorResult, 'row_errors_count');
+    const monitorCriticalErrorsCount = monitorResultCount(monitorResult, 'critical_errors_count');
     const monitor500Count = eventText('500') + (String(monitorHttpStatus).startsWith('5') ? 1 : 0);
     return {
       activeRows,
       monitorStatus: executionSettings?.latest_monitor_status ?? 'never_run',
+      monitorCriticalStatus: monitorCriticalStatusValue,
       latestMonitorHttpStatus: monitorHttpStatus,
+      monitorWarningsCount,
+      monitorRowErrorsCount,
+      monitorCriticalErrorsCount,
       monitor500Count,
       protectedNative: filteredExecutionOrders.filter(row => row.protection_status === 'protected_native' || row.native_protection_verified).length,
       protectedManaged: filteredExecutionOrders.filter(row => row.protection_status === 'protected_managed' || row.managed_fallback_active).length,
@@ -1236,14 +1265,17 @@ export default function Performance() {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
-          <StatCard label="Monitor status" value={botHealth.monitorStatus} sub={`HTTP ${botHealth.latestMonitorHttpStatus}`} />
+          <StatCard label="HTTP status" value={botHealth.latestMonitorHttpStatus} sub="Supabase function response" />
+          <StatCard label="Monitor critical status" value={<span className={botHealth.monitorCriticalStatus === 'critical_error' ? 'text-red-400' : botHealth.monitorCriticalStatus === 'healthy' ? 'text-emerald-400' : 'text-yellow-400'}>{botHealth.monitorCriticalStatus}</span>} sub={botHealth.monitorStatus} />
+          <StatCard label="Monitor warnings" value={<span className={botHealth.monitorWarningsCount > 0 ? 'text-yellow-400' : 'text-emerald-400'}>{botHealth.monitorWarningsCount}</span>} sub="recoverable row/order issues" />
+          <StatCard label="Row errors" value={<span className={botHealth.monitorRowErrorsCount > 0 ? 'text-red-400' : 'text-emerald-400'}>{botHealth.monitorRowErrorsCount}</span>} sub={`${botHealth.monitorCriticalErrorsCount} critical`} />
           <StatCard label="Protection SLA" value={<span className={botHealth.protectionSla === 'pass' ? 'text-emerald-400' : botHealth.protectionSla === 'fail' ? 'text-red-400' : 'text-yellow-400'}>{botHealth.protectionSla}</span>} sub={botHealth.avgSecondsToProtection === null ? 'avg fill→protect —' : `avg ${botHealth.avgSecondsToProtection}s fill→protect`} />
           <StatCard label="Native protected" value={botHealth.protectedNative} sub="DB + Binance IDs" />
           <StatCard label="Managed fallback" value={botHealth.protectedManaged} sub="HashiBot managed exits" />
           <StatCard label="Unprotected open positions" value={<span className={botHealth.unprotectedOpenPositions > 0 ? 'text-red-400' : 'text-emerald-400'}>{botHealth.unprotectedOpenPositions}</span>} sub="unsafe if > 0" />
           <StatCard label="Orphans cleaned" value={botHealth.orphanOrdersCleaned} sub="monitor event logs" />
           <StatCard label="Stale rows cleaned" value={botHealth.staleRowsCleaned} sub="DB stale sync" />
-          <StatCard label="Monitor errors" value={botHealth.monitor500Count} sub="500/sync error count" />
+          <StatCard label="HTTP 500s" value={botHealth.monitor500Count} sub="transport/server failures" />
           <StatCard label="Entry timeouts" value={botHealth.entryTimeoutCancelled} sub="not unprotected trades" />
           <StatCard label="Manual close synced" value={botHealth.manualCloseSynced} sub="closed_synced/stale_closed" />
           <StatCard label="External conditional cancels" value={botHealth.conditionalOrdersCancelledExternally} sub="event-log evidence" />
