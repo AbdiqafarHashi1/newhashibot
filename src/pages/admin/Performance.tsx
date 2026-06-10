@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
-import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle, Shield, Activity } from 'lucide-react';
 import { DEFAULT_CAPITAL_ASSUMPTIONS, estimateCapitalFromR, formatMoney, formatPct, validCapitalAssumptions, CapitalAssumptions } from '../../lib/capitalAnalytics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,6 +27,71 @@ interface SignalAnalyticsRow {
   stop_loss: number | null;
   tp1: number | null;
   tp2: number | null;
+}
+
+interface ExecutionOrderRow {
+  id: string;
+  signal_id: string | null;
+  symbol: string;
+  direction: string;
+  execution_mode: string | null;
+  status: string;
+  latest_auto_skip_reason: string | null;
+  error_message: string | null;
+  last_exchange_error: string | null;
+  latest_monitor_error: string | null;
+  latest_sync_error: string | null;
+  entry_price: number | null;
+  stop_loss: number | null;
+  tp1: number | null;
+  tp2: number | null;
+  entry_order_id: string | null;
+  binance_entry_order_id: string | null;
+  sl_algo_id: string | null;
+  tp1_algo_id: string | null;
+  tp2_algo_id: string | null;
+  binance_sl_order_id: string | null;
+  binance_tp1_order_id: string | null;
+  binance_tp2_order_id: string | null;
+  entry_filled_at: string | null;
+  protection_submitted_at: string | null;
+  protected_at: string | null;
+  protection_status: string | null;
+  bracket_mode: string | null;
+  native_protection_verified: boolean | null;
+  managed_fallback_active: boolean | null;
+  current_position_size: number | null;
+  remaining_quantity: number | null;
+  tp1_closed_at: string | null;
+  tp2_closed_at: string | null;
+  sl_closed_at: string | null;
+  timeout_closed_at: string | null;
+  stale_checked_at: string | null;
+  stale_cleanup_reason: string | null;
+  last_monitor_action: string | null;
+  latest_mark_price: number | null;
+  latest_unrealized_pnl: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ExecutionSettingsRow {
+  latest_monitor_run_at: string | null;
+  latest_monitor_status: string | null;
+  latest_monitor_result: Record<string, unknown> | null;
+  latest_monitor_error: string | null;
+  latest_sync_error: string | null;
+  open_binance_positions: Array<Record<string, unknown>> | null;
+  open_binance_orders: Array<Record<string, unknown>> | null;
+  stale_rows_cleaned: number | null;
+  open_positions_count: number | null;
+  latest_sync_time: string | null;
+}
+
+interface ExecutionEventLogRow {
+  event_type: string;
+  message: string;
+  created_at: string;
 }
 
 interface Filters {
@@ -310,6 +375,127 @@ function isWinLoss(row: SignalAnalyticsRow) {
   return row.outcome_category === 'WIN' || row.outcome_category === 'LOSS';
 }
 
+
+function normalizedSignalStatus(row: SignalAnalyticsRow) {
+  return (row.outcome_category || 'OPEN').toUpperCase();
+}
+
+function hasFilledEntry(row: ExecutionOrderRow) {
+  return Boolean(row.entry_filled_at) || ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'tp1_hit', 'sl_moved_to_be', 'closed_tp', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed'].includes(row.status);
+}
+
+function hasExecutionAttempt(row: ExecutionOrderRow) {
+  return row.execution_mode !== 'signal_only' || Boolean(row.entry_order_id || row.binance_entry_order_id) || row.status !== 'skipped';
+}
+
+function executionDisplayStatus(row?: ExecutionOrderRow): string {
+  if (!row) return 'NOT_EXECUTED';
+  const status = row.status;
+  if (status === 'skipped') return 'SKIPPED';
+  if (status === 'entry_submitted') return 'ENTRY_SUBMITTED';
+  if (status === 'entry_timeout_cancelled') return 'ENTRY_TIMEOUT_CANCELLED';
+  if (status === 'entry_filled') return 'ENTRY_FILLED';
+  if (status === 'protected_native') return 'PROTECTED_NATIVE';
+  if (status === 'protected_managed') return 'PROTECTED_MANAGED';
+  if (status === 'closed_tp') return 'CLOSED_TP';
+  if (status === 'closed_sl') return 'CLOSED_SL';
+  if (status === 'closed_timeout') return 'CLOSED_TIMEOUT';
+  if (status === 'closed_synced' || status === 'stale_closed') return 'CLOSED_SYNCED';
+  if (status === 'closed_unprotected_safety') return 'CLOSED_UNPROTECTED_SAFETY';
+  if (hasFilledEntry(row)) return 'ENTRY_FILLED';
+  if (row.entry_order_id || row.binance_entry_order_id) return 'ENTRY_SUBMITTED';
+  return status.toUpperCase();
+}
+
+function executionReason(row?: ExecutionOrderRow) {
+  if (!row) return 'signal_mode_only / not_selected';
+  if (row.status === 'entry_timeout_cancelled') return 'limit_entry_not_filled';
+  return row.latest_auto_skip_reason || row.stale_cleanup_reason || row.last_monitor_action || row.error_message || row.last_exchange_error || '—';
+}
+
+function estimateExecutionR(row: ExecutionOrderRow): number | null {
+  if (!hasFilledEntry(row)) return null;
+  const entry = Number(row.entry_price);
+  const stop = Number(row.stop_loss);
+  const tp1 = Number(row.tp1);
+  const tp2 = Number(row.tp2);
+  const risk = Math.abs(entry - stop);
+  if (row.status === 'closed_sl' || row.sl_closed_at) return -1;
+  if (row.status === 'closed_breakeven') return 0;
+  if (row.status === 'closed_tp' || row.tp2_closed_at) {
+    return Number.isFinite(entry) && Number.isFinite(tp2) && risk > 0 ? Math.abs(tp2 - entry) / risk : null;
+  }
+  if (row.tp1_closed_at || row.status === 'tp1_hit') {
+    return Number.isFinite(entry) && Number.isFinite(tp1) && risk > 0 ? Math.abs(tp1 - entry) / risk : null;
+  }
+  return null;
+}
+
+function calculateExecutionSummary(rows: ExecutionOrderRow[], eligibleSignals: number) {
+  const attempted = rows.filter(hasExecutionAttempt);
+  const filled = rows.filter(hasFilledEntry);
+  const skipped = rows.filter(row => row.status === 'skipped');
+  const timeoutCancelled = rows.filter(row => row.status === 'entry_timeout_cancelled');
+  const submitted = rows.filter(row => row.entry_order_id || row.binance_entry_order_id || row.status === 'entry_submitted');
+  const rRows = filled.map(row => estimateExecutionR(row)).filter((value): value is number => value !== null && !Number.isNaN(value));
+  const wins = filled.filter(row => row.status === 'closed_tp' || Boolean(row.tp2_closed_at || row.tp1_closed_at)).length;
+  const losses = filled.filter(row => row.status === 'closed_sl' || row.status === 'closed_unprotected_safety' || Boolean(row.sl_closed_at)).length;
+  const positiveR = rRows.filter(r => r > 0).reduce((sum, r) => sum + r, 0);
+  const negativeR = rRows.filter(r => r < 0).reduce((sum, r) => sum + r, 0);
+  const skipReasonCount = (needle: string) => skipped.filter(row => (row.latest_auto_skip_reason ?? '').includes(needle)).length;
+  return {
+    eligibleSignals,
+    executionAttempted: attempted.length,
+    entrySubmitted: submitted.length,
+    entryFilled: filled.length,
+    entryTimeoutCancelled: timeoutCancelled.length,
+    skippedExecutions: skipped.length,
+    governorBlocked: skipReasonCount('governor'),
+    botPaused: skipReasonCount('paused'),
+    duplicateBlocked: skipReasonCount('duplicate'),
+    sameSymbolBlocked: skipReasonCount('same_symbol'),
+    riskCapBlocked: skipReasonCount('risk'),
+    maxPositionBlocked: skipReasonCount('max_position'),
+    missingCredentials: skipReasonCount('credential'),
+    invalidSymbol: skipReasonCount('invalid_symbol'),
+    protectionUnavailable: rows.filter(row => row.protection_status === 'unprotected_failed' || row.status === 'closed_unprotected_safety').length,
+    wins,
+    losses,
+    botWinRatePct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : null,
+    botProfitFactor: positiveR > 0 && negativeR < 0 ? positiveR / Math.abs(negativeR) : null,
+    botTotalR: rRows.length > 0 ? rRows.reduce((sum, r) => sum + r, 0) : null,
+    tp1Hits: filled.filter(row => Boolean(row.tp1_closed_at) || row.status === 'tp1_hit').length,
+    tp2Hits: filled.filter(row => Boolean(row.tp2_closed_at) || row.status === 'closed_tp').length,
+    slHits: filled.filter(row => Boolean(row.sl_closed_at) || row.status === 'closed_sl').length,
+    pendingSync: filled.filter(row => estimateExecutionR(row) === null && ['closed_tp', 'closed_sl', 'closed_timeout', 'closed_synced', 'stale_closed'].includes(row.status)).length,
+  };
+}
+
+function protectionSlaState(row: ExecutionOrderRow): 'pass' | 'fail' | 'pending' | 'n/a' {
+  if (!hasFilledEntry(row) || ['closed_tp', 'closed_sl', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'cancelled', 'failed', 'skipped', 'entry_timeout_cancelled'].includes(row.status)) return 'n/a';
+  if (row.protection_status === 'protected_native' || row.protection_status === 'protected_managed' || row.native_protection_verified || row.managed_fallback_active) return 'pass';
+  const filledAt = row.entry_filled_at ? new Date(row.entry_filled_at).getTime() : NaN;
+  if (!Number.isFinite(filledAt)) return 'pending';
+  return Date.now() - filledAt > 60_000 ? 'fail' : 'pending';
+}
+
+function secondsFromFillToProtection(row: ExecutionOrderRow) {
+  if (!row.entry_filled_at || !row.protected_at) return null;
+  return Math.max(0, Math.round((new Date(row.protected_at).getTime() - new Date(row.entry_filled_at).getTime()) / 1000));
+}
+
+function hasNativeProtectionIds(row: ExecutionOrderRow) {
+  return Boolean((row.sl_algo_id || row.binance_sl_order_id) && (row.tp1_algo_id || row.binance_tp1_order_id) && (row.tp2_algo_id || row.binance_tp2_order_id));
+}
+
+function positionSafety(row: ExecutionOrderRow) {
+  if (!hasFilledEntry(row) || Number(row.current_position_size ?? row.remaining_quantity ?? 0) === 0) return 'not_open';
+  if ((row.protection_status === 'protected_native' || row.native_protection_verified) && hasNativeProtectionIds(row)) return 'safe';
+  if (row.protection_status === 'protected_native' && !hasNativeProtectionIds(row)) return 'unsafe_or_desynced';
+  if (row.protection_status === 'protected_managed' || row.managed_fallback_active) return 'managed_fallback';
+  return 'unsafe_untracked_position';
+}
+
 function calculateSummary(rows: SignalAnalyticsRow[]): MetricSummary {
   const closedRows = rows.filter(row => row.outcome_category !== 'OPEN');
   const rRows = closedRows.filter(row => row.r_result !== null && row.r_result !== undefined);
@@ -437,6 +623,9 @@ export default function Performance() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [signals, setSignals] = useState<SignalAnalyticsRow[]>([]);
+  const [executionOrders, setExecutionOrders] = useState<ExecutionOrderRow[]>([]);
+  const [executionSettings, setExecutionSettings] = useState<ExecutionSettingsRow | null>(null);
+  const [executionEvents, setExecutionEvents] = useState<ExecutionEventLogRow[]>([]);
   const [configuredStrategies, setConfiguredStrategies] = useState<string[]>(REQUIRED_STRATEGIES);
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [baselineStartedAt, setBaselineStartedAt] = useState<string | null>(() => getStoredBaselineTimestamp());
@@ -451,7 +640,7 @@ export default function Performance() {
     setLoading(true);
     setError('');
     try {
-      const [sigRes, stratConfigRes] = await Promise.all([
+      const [sigRes, stratConfigRes, execRes, settingsRes, eventRes] = await Promise.all([
         supabase.from('signal_analytics_view')
           .select('signal_id,strategy_name,symbol,market_type,timeframe,direction,grade,data_source,current_status,outcome_category,r_result,close_price,closed_at,duration_minutes,created_at,entry_price,stop_loss,tp1,tp2')
           .eq('data_source', 'REAL DATA')
@@ -459,12 +648,30 @@ export default function Performance() {
           .order('created_at', { ascending: false })
           .limit(5000),
         supabase.from('strategy_configs').select('strategy_name').order('strategy_name'),
+        supabase.from('execution_orders')
+          .select('id,signal_id,symbol,direction,execution_mode,status,latest_auto_skip_reason,error_message,last_exchange_error,latest_monitor_error,latest_sync_error,entry_price,stop_loss,tp1,tp2,entry_order_id,binance_entry_order_id,sl_algo_id,tp1_algo_id,tp2_algo_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,entry_filled_at,protection_submitted_at,protected_at,protection_status,bracket_mode,native_protection_verified,managed_fallback_active,current_position_size,remaining_quantity,tp1_closed_at,tp2_closed_at,sl_closed_at,timeout_closed_at,stale_checked_at,stale_cleanup_reason,last_monitor_action,latest_mark_price,latest_unrealized_pnl,created_at,updated_at')
+          .order('created_at', { ascending: false })
+          .limit(5000),
+        supabase.from('execution_settings')
+          .select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,latest_monitor_error,latest_sync_error,open_binance_positions,open_binance_orders,stale_rows_cleaned,open_positions_count,latest_sync_time')
+          .eq('id', 1)
+          .maybeSingle(),
+        supabase.from('execution_event_logs')
+          .select('event_type,message,created_at')
+          .order('created_at', { ascending: false })
+          .limit(1000),
       ]);
 
       if (sigRes.error) throw new Error(sigRes.error.message);
       if (stratConfigRes.error) throw new Error(stratConfigRes.error.message);
+      if (execRes.error) throw new Error(execRes.error.message);
+      if (settingsRes.error) throw new Error(settingsRes.error.message);
+      if (eventRes.error) throw new Error(eventRes.error.message);
 
       setSignals((sigRes.data ?? []) as SignalAnalyticsRow[]);
+      setExecutionOrders((execRes.data ?? []) as ExecutionOrderRow[]);
+      setExecutionSettings((settingsRes.data ?? null) as ExecutionSettingsRow | null);
+      setExecutionEvents((eventRes.data ?? []) as ExecutionEventLogRow[]);
       const names = new Set(REQUIRED_STRATEGIES);
       ((stratConfigRes.data ?? []) as StrategyConfigRow[]).forEach(row => {
         if (row.strategy_name) names.add(row.strategy_name);
@@ -571,7 +778,56 @@ export default function Performance() {
     return signals.filter(signal => new Date(signal.created_at) >= baselineDate);
   }, [baselineStartedAt, signals]);
 
+  const filteredSignalIds = useMemo(() => new Set(filteredSignals.map(signal => signal.signal_id)), [filteredSignals]);
+  const filteredExecutionOrders = useMemo(() => executionOrders.filter(order => {
+    const created = new Date(order.created_at);
+    if (dateStart && created < dateStart) return false;
+    if (dateEnd && created > dateEnd) return false;
+    if (order.signal_id && filteredSignalIds.has(order.signal_id)) return true;
+    return !order.signal_id && !filters.symbol && !filters.strategy && !filters.timeframe && !filters.direction && !filters.grade && !filters.outcome;
+  }), [executionOrders, filteredSignalIds, dateStart, dateEnd, filters.symbol, filters.strategy, filters.timeframe, filters.direction, filters.grade, filters.outcome]);
+  const latestExecutionBySignalId = useMemo(() => {
+    const map = new Map<string, ExecutionOrderRow>();
+    filteredExecutionOrders.forEach(order => {
+      if (!order.signal_id) return;
+      const current = map.get(order.signal_id);
+      if (!current || new Date(order.created_at) > new Date(current.created_at)) map.set(order.signal_id, order);
+    });
+    return map;
+  }, [filteredExecutionOrders]);
+  const executionSummary = useMemo(() => calculateExecutionSummary(filteredExecutionOrders, filteredSignals.length), [filteredExecutionOrders, filteredSignals.length]);
+  const botHealth = useMemo(() => {
+    const activeRows = filteredExecutionOrders.filter(row => hasFilledEntry(row) && !['closed_tp', 'closed_sl', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'cancelled', 'failed', 'skipped', 'entry_timeout_cancelled'].includes(row.status));
+    const slaStates = activeRows.map(protectionSlaState);
+    const protectionSeconds = activeRows.map(secondsFromFillToProtection).filter((value): value is number => value !== null);
+    const eventText = (needle: string) => executionEvents.filter(event => `${event.event_type} ${event.message}`.toLowerCase().includes(needle)).length;
+    const monitorResult = executionSettings?.latest_monitor_result ?? {};
+    const monitorHttpStatus = typeof monitorResult.http_status === 'number' || typeof monitorResult.http_status === 'string' ? String(monitorResult.http_status) : '—';
+    const monitor500Count = eventText('500') + (String(monitorHttpStatus).startsWith('5') ? 1 : 0);
+    return {
+      activeRows,
+      monitorStatus: executionSettings?.latest_monitor_status ?? 'never_run',
+      latestMonitorHttpStatus: monitorHttpStatus,
+      monitor500Count,
+      protectedNative: filteredExecutionOrders.filter(row => row.protection_status === 'protected_native' || row.native_protection_verified).length,
+      protectedManaged: filteredExecutionOrders.filter(row => row.protection_status === 'protected_managed' || row.managed_fallback_active).length,
+      closedUnprotectedSafety: filteredExecutionOrders.filter(row => row.status === 'closed_unprotected_safety').length,
+      unprotectedOpenPositions: activeRows.filter(row => ['fail', 'pending'].includes(protectionSlaState(row)) && positionSafety(row).startsWith('unsafe')).length,
+      protectionSla: slaStates.some(state => state === 'fail') ? 'fail' : slaStates.some(state => state === 'pending') ? 'pending' : 'pass',
+      avgSecondsToProtection: protectionSeconds.length > 0 ? Math.round(protectionSeconds.reduce((sum, value) => sum + value, 0) / protectionSeconds.length) : null,
+      orphanOrdersCleaned: eventText('orphan'),
+      staleRowsCleaned: executionSettings?.stale_rows_cleaned ?? filteredExecutionOrders.filter(row => row.status === 'stale_closed').length,
+      entryTimeoutCancelled: filteredExecutionOrders.filter(row => row.status === 'entry_timeout_cancelled').length,
+      manualCloseSynced: filteredExecutionOrders.filter(row => row.status === 'closed_synced' || row.status === 'stale_closed').length,
+      conditionalOrdersCancelledExternally: eventText('conditional') + eventText('externally'),
+      openBinancePositions: executionSettings?.open_binance_positions ?? [],
+      openBinanceOrders: executionSettings?.open_binance_orders ?? [],
+    };
+  }, [filteredExecutionOrders, executionEvents, executionSettings]);
+
   const summary = useMemo(() => calculateSummary(filteredSignals), [filteredSignals]);
+  const aGradeCount = useMemo(() => filteredSignals.filter(signal => signal.grade === 'A').length, [filteredSignals]);
+  const aPlusGradeCount = useMemo(() => filteredSignals.filter(signal => signal.grade === 'A+').length, [filteredSignals]);
   const summaryCapital = useMemo(() => capitalForRows(filteredSignals, capitalAssumptions), [filteredSignals, capitalAssumptions]);
   const strategyBreakdown = useMemo(() => {
     const grouped = new Map(groupBreakdown(filteredSignals, row => row.strategy_name ?? 'unnamed').map(row => [row.key, row]));
@@ -588,6 +844,7 @@ export default function Performance() {
   })), [filteredSignals]);
   const timeframeBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.timeframe), [filteredSignals]);
   const gradeBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.grade), [filteredSignals]);
+  const expiryBreakdown = useMemo(() => groupBreakdown(filteredSignals.filter(row => row.outcome_category === 'EXPIRED'), row => row.current_status || 'expired'), [filteredSignals]);
   const riskAmount = capitalAssumptions.startingCapital * (capitalAssumptions.riskPct / 100);
 
   const activeFilterCount = [filters.market, filters.strategy, filters.symbol, filters.timeframe, filters.direction, filters.grade, filters.outcome].filter(Boolean).length + (filters.datePreset !== (baselineStartedAt ? 'baseline' : 'last30d') || filters.customStart || filters.customEnd ? 1 : 0);
@@ -603,9 +860,9 @@ export default function Performance() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BarChart2 size={22} className="text-blue-400" />
-            Signal Performance
+            Performance Truth Separation
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">REAL DATA signals by market — crypto and forex only mix when Market is set to All</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Three separate truths: strategy signal performance, Binance testnet execution performance, and bot health/protection safety.</p>
           <p className="text-xs text-zinc-500 mt-2">
             {baselineStartedAt ? `Current baseline started: ${fmtDateTime(baselineStartedAt)}` : 'Baseline: all available trading history'}
           </p>
@@ -780,7 +1037,7 @@ export default function Performance() {
 
       {/* ── Overall Performance Cards ── */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Overall Performance</h2>
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Signal Performance — Overall</h2>
         {filteredSignals.length === 0 && !loading ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
             {emptyMessage}
@@ -802,6 +1059,7 @@ export default function Performance() {
               <StatCard label="TP1 Hits" value={summary.tp1Hits} sub="partial wins" />
               <StatCard label="TP2 Hits" value={summary.tp2Hits} sub="full target hits" />
               <StatCard label="SL Hits" value={summary.slHits} sub="stop losses" />
+              <StatCard label="A vs A+" value={`${aGradeCount} / ${aPlusGradeCount}`} sub="strategy grades only" />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               <StatCard label="Expired" value={summary.expired} sub="not counted as W/L" />
@@ -815,7 +1073,7 @@ export default function Performance() {
 
       {/* ── Strategy Performance Table ── */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Breakdown</h2>
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Signal Breakdown</h2>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -911,10 +1169,120 @@ export default function Performance() {
         </section>
       </div>
 
+
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Expiry Cause Breakdown</h2>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+          <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Expiry Cause','Expired Signals','Total R','Last Signal'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-zinc-800/60">{expiryBreakdown.length === 0 ? <tr><td colSpan={4} className="px-3 py-8 text-center text-zinc-600">No expired strategy signals in this filter.</td></tr> : expiryBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td></tr>)}</tbody>
+        </table></div></div>
+      </section>
+
+      {/* ── Binance Execution Performance ── */}
+      <section id="binance-execution-performance" className="mb-8">
+        <div className="flex items-start gap-2 mb-3">
+          <Activity size={16} className="text-cyan-400 mt-0.5" />
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Binance Testnet Execution Performance</h2>
+            <p className="text-xs text-zinc-500 mt-1">Execution truth only. Unfilled limit entries are shown as no_trade and are excluded from bot win rate, PF, R, TP, and SL stats.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
+          <StatCard label="Eligible signals" value={executionSummary.eligibleSignals} sub="qualified signal rows" />
+          <StatCard label="Execution attempted" value={executionSummary.executionAttempted} sub={`${executionSummary.entrySubmitted} entry submitted`} />
+          <StatCard label="Filled trades" value={executionSummary.entryFilled} sub="only these count as bot trades" />
+          <StatCard label="Entry timeout cancelled" value={executionSummary.entryTimeoutCancelled} sub="no_trade · limit_entry_not_filled" />
+          <StatCard label="Skipped executions" value={executionSummary.skippedExecutions} sub="blocked before order fill" />
+          <StatCard label="Bot win rate" value={fmtWinRate(executionSummary.botWinRatePct)} sub={`${executionSummary.wins}W / ${executionSummary.losses}L filled only`} />
+          <StatCard label="Bot PF" value={fmtPF(executionSummary.botProfitFactor)} sub="filled closed trades only" />
+          <StatCard label="Bot total R" value={fmtR(executionSummary.botTotalR)} sub={executionSummary.pendingSync > 0 ? `${executionSummary.pendingSync} pending sync` : 'synced filled trades'} />
+          <StatCard label="Filled TP1" value={executionSummary.tp1Hits} sub="filled-trade count" />
+          <StatCard label="Filled TP2" value={executionSummary.tp2Hits} sub="filled-trade count" />
+          <StatCard label="Filled SL" value={executionSummary.slHits} sub="filled-trade count" />
+          <StatCard label="Protection unavailable" value={executionSummary.protectionUnavailable} sub="execution safety failures" />
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                  {['Reason','Count'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {[
+                  ['Governor blocked', executionSummary.governorBlocked],
+                  ['Bot paused', executionSummary.botPaused],
+                  ['Duplicate blocked', executionSummary.duplicateBlocked],
+                  ['Same-symbol blocked', executionSummary.sameSymbolBlocked],
+                  ['Risk cap blocked', executionSummary.riskCapBlocked],
+                  ['Max position blocked', executionSummary.maxPositionBlocked],
+                  ['Missing credentials', executionSummary.missingCredentials],
+                  ['Invalid symbol', executionSummary.invalidSymbol],
+                ].map(([label, count]) => <tr key={String(label)}><td className="px-3 py-3 text-zinc-300">{label}</td><td className="px-3 py-3 text-right text-zinc-300">{count}</td></tr>)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Bot Health ── */}
+      <section id="bot-health" className="mb-8">
+        <div className="flex items-start gap-2 mb-3">
+          <Shield size={16} className="text-emerald-400 mt-0.5" />
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Bot Health / Protection Performance</h2>
+            <p className="text-xs text-zinc-500 mt-1">System safety truth from execution rows plus monitor-synced Binance positions and orders.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
+          <StatCard label="Monitor status" value={botHealth.monitorStatus} sub={`HTTP ${botHealth.latestMonitorHttpStatus}`} />
+          <StatCard label="Protection SLA" value={<span className={botHealth.protectionSla === 'pass' ? 'text-emerald-400' : botHealth.protectionSla === 'fail' ? 'text-red-400' : 'text-yellow-400'}>{botHealth.protectionSla}</span>} sub={botHealth.avgSecondsToProtection === null ? 'avg fill→protect —' : `avg ${botHealth.avgSecondsToProtection}s fill→protect`} />
+          <StatCard label="Native protected" value={botHealth.protectedNative} sub="DB + Binance IDs" />
+          <StatCard label="Managed fallback" value={botHealth.protectedManaged} sub="HashiBot managed exits" />
+          <StatCard label="Unprotected open positions" value={<span className={botHealth.unprotectedOpenPositions > 0 ? 'text-red-400' : 'text-emerald-400'}>{botHealth.unprotectedOpenPositions}</span>} sub="unsafe if > 0" />
+          <StatCard label="Orphans cleaned" value={botHealth.orphanOrdersCleaned} sub="monitor event logs" />
+          <StatCard label="Stale rows cleaned" value={botHealth.staleRowsCleaned} sub="DB stale sync" />
+          <StatCard label="Monitor errors" value={botHealth.monitor500Count} sub="500/sync error count" />
+          <StatCard label="Entry timeouts" value={botHealth.entryTimeoutCancelled} sub="not unprotected trades" />
+          <StatCard label="Manual close synced" value={botHealth.manualCloseSynced} sub="closed_synced/stale_closed" />
+          <StatCard label="External conditional cancels" value={botHealth.conditionalOrdersCancelledExternally} sub="event-log evidence" />
+          <StatCard label="Open Binance positions" value={botHealth.openBinancePositions.length || executionSettings?.open_positions_count || 0} sub={`${botHealth.openBinanceOrders.length} open orders`} />
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                  {['Symbol','Status','Position','SL','TP1','TP2','Native verified','Managed fallback','Safety','Last monitor'].map((h, i) => <th key={h} className={`${i < 2 || i === 8 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {botHealth.activeRows.length === 0 ? <tr><td colSpan={10} className="px-3 py-8 text-center text-zinc-600">No open filled Binance execution rows require protection.</td></tr> : botHealth.activeRows.map(row => {
+                  const safety = positionSafety(row);
+                  return <tr key={row.id} className="hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.symbol}</td>
+                    <td className="px-3 py-3 text-zinc-300">{row.status}</td>
+                    <td className="px-3 py-3 text-right text-zinc-300">{row.current_position_size ?? row.remaining_quantity ?? '—'}</td>
+                    <td className="px-3 py-3 text-right">{row.sl_algo_id || row.binance_sl_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
+                    <td className="px-3 py-3 text-right">{row.tp1_algo_id || row.binance_tp1_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
+                    <td className="px-3 py-3 text-right">{row.tp2_algo_id || row.binance_tp2_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
+                    <td className="px-3 py-3 text-right">{row.native_protection_verified ? 'yes' : 'no'}</td>
+                    <td className="px-3 py-3 text-right">{row.managed_fallback_active ? 'yes' : 'no'}</td>
+                    <td className={`px-3 py-3 ${safety === 'safe' || safety === 'managed_fallback' ? 'text-emerald-400' : 'text-red-400'}`}>{safety}</td>
+                    <td className="px-3 py-3 text-right text-zinc-500">{row.last_monitor_action || '—'}</td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       {/* ── Recent Signals Table ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Tracked Signals</h2>
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Tracked Signals — Signal Truth + Execution Truth</h2>
           <span className="text-xs text-zinc-600">{filteredSignals.length} {activeFilterCount > 0 ? 'matching' : 'total'}</span>
         </div>
 
@@ -938,8 +1306,10 @@ export default function Performance() {
                     <th className="text-left px-3 py-3 font-medium">Timeframe</th>
                     <th className="text-left px-3 py-3 font-medium">Direction</th>
                     <th className="text-left px-3 py-3 font-medium">Grade</th>
-                    <th className="text-left px-3 py-3 font-medium">Outcome</th>
-                    <th className="text-right px-3 py-3 font-medium">R Result</th>
+                    <th className="text-left px-3 py-3 font-medium">Signal Status</th>
+                    <th className="text-left px-3 py-3 font-medium">Execution Status</th>
+                    <th className="text-left px-3 py-3 font-medium">Execution Reason</th>
+                    <th className="text-right px-3 py-3 font-medium">Signal R</th>
                     <th className="text-right px-3 py-3 font-medium">Entry</th>
                     <th className="text-right px-3 py-3 font-medium">Stop Loss</th>
                     <th className="text-right px-3 py-3 font-medium">TP1</th>
@@ -951,7 +1321,11 @@ export default function Performance() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60">
-                  {filteredSignals.map(sig => (
+                  {filteredSignals.map(sig => {
+                    const execution = latestExecutionBySignalId.get(sig.signal_id);
+                    const executionStatus = executionDisplayStatus(execution);
+                    const signalOpenExecutionNotOpen = normalizedSignalStatus(sig) === 'OPEN' && (!execution || !hasFilledEntry(execution));
+                    return (
                     <tr key={sig.signal_id} className="hover:bg-zinc-800/30 transition-colors">
                       <td className="px-4 py-3 font-mono font-bold text-zinc-100">{sig.symbol}</td>
                       <td className="px-3 py-3 text-zinc-400 uppercase">{sig.market_type}</td>
@@ -970,6 +1344,11 @@ export default function Performance() {
                             : sig.outcome_category}
                         </span>
                       </td>
+                      <td className="px-3 py-3">
+                        <div className={executionStatus === 'NOT_EXECUTED' || executionStatus === 'SKIPPED' || executionStatus === 'ENTRY_TIMEOUT_CANCELLED' ? 'text-yellow-300' : executionStatus.startsWith('CLOSED') || executionStatus.startsWith('PROTECTED') || executionStatus === 'ENTRY_FILLED' ? 'text-emerald-300' : 'text-blue-300'}>{executionStatus}</div>
+                        {signalOpenExecutionNotOpen && <div className="text-[10px] text-yellow-400 mt-0.5">Signal open · execution not open</div>}
+                      </td>
+                      <td className="px-3 py-3 text-zinc-500 max-w-[180px]"><span className="truncate block" title={executionReason(execution)}>{executionReason(execution)}</span></td>
                       <td className="px-3 py-3 text-right">{fmtSignalR(sig.r_result)}</td>
                       <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtMarketPrice(sig, sig.entry_price)}</td>
                       <td className="px-3 py-3 text-right font-mono text-zinc-400">{fmtMarketPrice(sig, sig.stop_loss)}</td>
@@ -980,7 +1359,8 @@ export default function Performance() {
                       <td className="px-3 py-3 text-right text-zinc-500 whitespace-nowrap">{fmtDateTime(sig.created_at)}</td>
                       <td className="px-4 py-3 text-right text-zinc-500 whitespace-nowrap">{fmtDateTime(sig.closed_at)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -991,9 +1371,9 @@ export default function Performance() {
       {/* Footer note */}
       <div className="mt-6 text-xs text-zinc-600 leading-relaxed">
         <span className="font-medium text-zinc-500">Data notes:</span>{' '}
-        Signal rows are loaded from <code className="bg-zinc-800 px-1 rounded">signal_analytics_view</code>; configured strategy names are loaded from{' '}
-        <code className="bg-zinc-800 px-1 rounded">strategy_configs</code> with required strategy fallbacks.
-        All cards and breakdowns are recalculated client-side from the same filtered signal set.
+        Strategy signal rows are loaded from <code className="bg-zinc-800 px-1 rounded">signal_analytics_view</code>; Binance execution truth is loaded from{' '}
+        <code className="bg-zinc-800 px-1 rounded">execution_orders</code>; bot health is loaded from <code className="bg-zinc-800 px-1 rounded">execution_settings</code> and <code className="bg-zinc-800 px-1 rounded">execution_event_logs</code>.
+        Strategy cards and breakdowns are recalculated client-side from the filtered signal/outcome set; execution cards are recalculated only from execution rows.
         Open signals are counted separately and excluded from win/loss/PF/R aggregates.
         Expired signals are shown separately and are not treated as wins or losses.
         Profit factor shows “—” when there are no losses or no closed R results, avoiding unsafe infinity values.
