@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
-const MONITOR_VERSION = "b6.7r-monitor-startup-safe";
+const MONITOR_VERSION = "b6.7r-monitor-health-classification";
 const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protected_managed", "pending_managed_protection", "partially_closed"];
 const ENTRY_OPEN_STATUSES = ["NEW", "PARTIALLY_FILLED"];
 const TERMINAL_ORDER_STATUSES = ["CANCELED", "EXPIRED"];
@@ -17,7 +17,9 @@ type Row = Record<string, unknown> & { id: string; symbol: string; direction: st
 type BinanceOrder = Record<string, unknown> & { orderId?: string | number; algoId?: string | number; status?: string; algoStatus?: string; symbol?: string };
 type BinancePosition = Record<string, unknown> & { symbol?: string; positionAmt?: string; markPrice?: string; unRealizedProfit?: string; unrealizedProfit?: string };
 
-type RowError = { id: string; symbol: string; status: string; error: string; stack?: string; action: string };
+type RowError = { id: string; symbol: string; status: string; error: string; stack?: string; action: string; severity?: "warning" | "critical" };
+type MonitorWarning = { id?: string; symbol?: string; status?: string; warning: string; action: string; source: "row" | "account_sync" | "order_lookup" | "cleanup" };
+type MonitorLevel = "healthy" | "completed_with_warnings" | "partial_sync_warning" | "row_errors_only" | "degraded" | "critical_error";
 
 
 type MonitorPayload = {
@@ -51,6 +53,11 @@ type MonitorStats = {
   last_managed_action: Record<string, unknown> | null;
   latest_monitor_error: string;
   latest_sync_error: string;
+  latest_monitor_warning: string;
+  warnings: MonitorWarning[];
+  critical_errors: string[];
+  unsafe_positions: number;
+  monitor_status: MonitorLevel;
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -128,6 +135,46 @@ function errorStack(err: unknown): string {
   return err instanceof Error && err.stack ? err.stack.slice(0, 2000) : "";
 }
 
+function isBinanceOrderNotFound(err: unknown): boolean {
+  const message = errorMessage(err).toLowerCase();
+  return message.includes('"code":-2013') || message.includes('code:-2013') || message.includes('-2013') || message.includes("order does not exist");
+}
+
+function addMonitorWarning(stats: MonitorStats, warning: MonitorWarning): void {
+  stats.warnings.push(warning);
+  stats.latest_monitor_warning = warning.warning;
+}
+
+function addCriticalMonitorError(stats: MonitorStats, error: string): void {
+  stats.critical_errors.push(error);
+  stats.latest_monitor_error = error;
+  stats.latest_sync_error = error;
+}
+
+function classifyMonitor(stats: MonitorStats): MonitorLevel {
+  if (stats.critical_errors.length > 0 || stats.unsafe_positions > 0) return "critical_error";
+  if (stats.safety_closed > 0) return "degraded";
+  if (stats.row_errors.length > 0) return "row_errors_only";
+  if (stats.warnings.some((warning) => warning.source === "account_sync")) return "partial_sync_warning";
+  if (stats.warnings.length > 0) return "completed_with_warnings";
+  return "healthy";
+}
+
+function monitorResult(stats: MonitorStats): Record<string, unknown> {
+  return {
+    action: "binance_testnet_monitor",
+    monitor_version: MONITOR_VERSION,
+    monitor_started: true,
+    monitor_status: stats.monitor_status,
+    warnings_count: stats.warnings.length,
+    row_errors_count: stats.row_errors.length,
+    critical_errors_count: stats.critical_errors.length,
+    unsafe_positions_count: stats.unsafe_positions,
+    http_status: 200,
+    ...stats,
+  };
+}
+
 function syncedNoPositionStatus(row: Row): "closed_synced" | "stale_closed" {
   return ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed", "pending_protection", "pending_managed_protection"].includes(row.status) ? "closed_synced" : "stale_closed";
 }
@@ -150,7 +197,7 @@ async function hmacSha256(secret: string, payload: string): Promise<string> {
   return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function binanceRequest(path: string, params: Record<string, string>, method = "GET") {
+async function binanceRequest(path: string, params: Record<string, string | number | boolean> = {}, method = "GET") {
   const apiKey = Deno.env.get("BINANCE_TESTNET_API_KEY") ?? "";
   const apiSecret = Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? "";
   if (!apiKey || !apiSecret) throw new Error("Binance testnet API keys are not configured");
@@ -386,13 +433,12 @@ async function cancelOpenOrder(symbol: string, order: BinanceOrder) {
   if (order.orderId) await binanceRequest("/fapi/v1/order", { symbol, orderId: String(order.orderId) }, "DELETE");
 }
 
-async function fetchEntryOrder(symbol: string, orderId: string): Promise<BinanceOrder | null> {
-  if (!orderId) return null;
+async function fetchEntryOrder(symbol: string, orderId: string): Promise<{ order: BinanceOrder | null; warning?: string }> {
+  if (!orderId) return { order: null };
   try {
-    return await binanceRequest("/fapi/v1/order", { symbol, orderId }) as BinanceOrder;
+    return { order: await binanceRequest("/fapi/v1/order", { symbol, orderId }) as BinanceOrder };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("-2013") || message.toLowerCase().includes("order does not exist")) return null;
+    if (isBinanceOrderNotFound(err)) return { order: null, warning: `stale_order_lookup_missing: ${errorMessage(err)}` };
     throw err;
   }
 }
@@ -402,7 +448,15 @@ async function protectOrSafetyClose(supabase: SupabaseClient, row: Row, quantity
     return await submitProtectionForRow(supabase, row, quantity, stats);
   } catch (err) {
     const error = err instanceof Error ? err.message : "protection unavailable";
-    const closeResult = await closeReduceOnly(row, quantity, "safety");
+    let closeResult: unknown = null;
+    try {
+      closeResult = await closeReduceOnly(row, quantity, "safety");
+    } catch (closeErr) {
+      const critical = `safety_close_failed: ${errorMessage(closeErr)}; protection_error=${error}`;
+      addCriticalMonitorError(stats, critical);
+      stats.unsafe_positions += 1;
+      throw new Error(critical);
+    }
     await supabase.from("execution_orders").update({
       status: "closed_unprotected_safety",
       protection_status: "unprotected_failed",
@@ -459,7 +513,9 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 
   const entryId = row.binance_entry_order_id ? String(row.binance_entry_order_id) : row.entry_order_id ? String(row.entry_order_id) : "";
-  const entry = entryId ? await fetchEntryOrder(row.symbol, entryId) : null;
+  const entryLookup = entryId ? await fetchEntryOrder(row.symbol, entryId) : { order: null };
+  if (entryLookup.warning) addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: entryLookup.warning, action: "entry_order_lookup_missing_continue", source: "order_lookup" });
+  const entry = entryLookup.order;
   const entryStatus = String(entry?.status ?? "").toUpperCase();
   const isEntryPendingRow = ["pending", "entry_submitted"].includes(row.status);
 
@@ -522,7 +578,10 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   for (const algoId of algoIds) {
     try {
       orderStatus[algoId] = await binanceRequest("/fapi/v1/algoOrder", { symbol: row.symbol, algoId }) as BinanceOrder;
-    } catch {
+    } catch (err) {
+      if (isBinanceOrderNotFound(err)) {
+        addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `stale_algo_order_lookup_missing: ${errorMessage(err)}`, action: "algo_order_lookup_missing_continue", source: "order_lookup" });
+      }
       // Legacy long clientAlgoId rows may refer to invalid/missing algo orders; protection recovery below regenerates short IDs or falls back managed.
     }
   }
@@ -623,13 +682,17 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 }
 
-async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats) {
+async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats, monitorStatus: MonitorLevel) {
   const [accountBody, positionsBody, allOrdersBody, allAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/account", {}),
     binanceRequest("/fapi/v2/positionRisk", {}),
     binanceRequest("/fapi/v1/openOrders", {}),
-    binanceRequest("/fapi/v1/openAlgoOrders", { algoType: "CONDITIONAL" }).catch(() => []),
+    binanceRequest("/fapi/v1/openAlgoOrders", { algoType: "CONDITIONAL" }).catch((err) => {
+      addMonitorWarning(stats, { warning: `open_algo_orders_partial_sync_warning: ${errorMessage(err)}`, action: "open_algo_orders_sync_warning_continue", source: "account_sync" });
+      return [];
+    }),
   ]);
+  stats.monitor_status = classifyMonitor({ ...stats, monitor_status: monitorStatus });
   const assets = (accountBody as Record<string, unknown>).assets as Array<Record<string, unknown>> | undefined;
   const usdt = assets?.find((a) => a.asset === "USDT");
   const usdc = assets?.find((a) => a.asset === "USDC");
@@ -643,8 +706,10 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   const currentOpenRiskPct = totalWallet > 0 ? (openNotional / totalWallet) * 100 : 0;
   await supabase.from("execution_settings").update({
     latest_monitor_run_at: new Date().toISOString(),
-    latest_monitor_status: "completed",
-    latest_monitor_result: stats,
+    latest_monitor_status: stats.monitor_status,
+    latest_monitor_result: monitorResult(stats),
+    latest_monitor_error: stats.latest_monitor_error,
+    latest_sync_error: stats.latest_sync_error,
     last_managed_exit_action: stats.last_managed_action,
     open_binance_positions: positions,
     open_binance_orders: orders,
@@ -666,10 +731,19 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
 async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, stats: MonitorStats) {
   const message = errorMessage(err);
   const stack = errorStack(err);
+  if (isBinanceOrderNotFound(err)) {
+    const action = "stale_order_lookup_warning_continue";
+    addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: message, action, source: "order_lookup" });
+    await supabase.from("execution_orders").update({
+      latest_sync_error: "",
+      last_monitor_action: action,
+      last_monitor_checked_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+    return;
+  }
   const action = "row_error_continue";
-  stats.row_errors.push({ id: row.id, symbol: row.symbol, status: row.status, error: message, stack, action });
-  stats.latest_monitor_error = message;
-  stats.latest_sync_error = message;
+  stats.row_errors.push({ id: row.id, symbol: row.symbol, status: row.status, error: message, stack, action, severity: "warning" });
   await supabase.from("execution_orders").update({
     latest_monitor_error: message,
     latest_sync_error: message,
@@ -682,7 +756,7 @@ async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, 
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
-  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "" };
+  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy" };
   let supabase: SupabaseClient | null = null;
   try {
     const parsedPayload = await parseMonitorPayload(req);
@@ -742,34 +816,33 @@ Deno.serve(async (req: Request) => {
           await recordRowError(supabase, row, rowErr, stats);
         } catch (saveErr) {
           const message = `row_error_save_failed: ${errorMessage(saveErr)}; original=${errorMessage(rowErr)}`;
-          stats.row_errors.push({ id: row.id, symbol: row.symbol, status: row.status, error: message, stack: errorStack(saveErr), action: "row_error_save_failed_continue" });
-          stats.latest_monitor_error = message;
-          stats.latest_sync_error = message;
+          stats.row_errors.push({ id: row.id, symbol: row.symbol, status: row.status, error: message, stack: errorStack(saveErr), action: "row_error_save_failed_continue", severity: "critical" });
+          addCriticalMonitorError(stats, message);
         }
       }
     }
+    stats.monitor_status = classifyMonitor(stats);
     try {
-      await refreshAccountState(supabase, stats);
+      await refreshAccountState(supabase, stats, stats.monitor_status);
     } catch (syncErr) {
       const message = errorMessage(syncErr);
-      stats.latest_monitor_error = message;
-      stats.latest_sync_error = message;
+      addCriticalMonitorError(stats, message);
+      stats.monitor_status = "critical_error";
       await safeSettingsUpdate(supabase, {
         latest_monitor_run_at: new Date().toISOString(),
-        latest_monitor_status: "completed_with_sync_error",
+        latest_monitor_status: stats.monitor_status,
         latest_monitor_error: message,
         latest_sync_error: message,
-        latest_monitor_result: { action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, ...stats },
+        latest_monitor_result: monitorResult(stats),
         updated_at: new Date().toISOString(),
       });
-      return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, completed_with_sync_error: true, global_error: "", ...stats });
+      return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, monitor_status: stats.monitor_status, global_error: "", ...stats });
     }
-    if (stats.row_errors.length > 0) {
-      await safeSettingsUpdate(supabase, { latest_monitor_status: "completed_with_row_errors", latest_monitor_error: stats.latest_monitor_error, latest_sync_error: stats.latest_sync_error, latest_monitor_result: { action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, ...stats }, updated_at: new Date().toISOString() });
-    }
-    return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, global_error: "", ...stats });
+    return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, monitor_status: stats.monitor_status, global_error: "", ...stats });
   } catch (err) {
-    await safeSettingsUpdate(supabase, { latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: "error", latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), monitor_version: MONITOR_VERSION, ...stats }, updated_at: new Date().toISOString() });
-    return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, global_error: "startup_exception", error: errorMessage(err), ...stats }, 500);
+    addCriticalMonitorError(stats, errorMessage(err));
+    stats.monitor_status = "critical_error";
+    await safeSettingsUpdate(supabase, { latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: stats.monitor_status, latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), monitor_version: MONITOR_VERSION, ...monitorResult(stats) }, updated_at: new Date().toISOString() });
+    return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, monitor_status: stats.monitor_status, global_error: "startup_exception", error: errorMessage(err), ...stats }, 500);
   }
 });

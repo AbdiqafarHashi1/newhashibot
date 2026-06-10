@@ -20,6 +20,7 @@ type BracketMode = "exchange_native" | "managed_exit_fallback" | "failed";
 type ProtectionStatus = "protected" | "protected_native" | "pending_protection" | "protected_managed" | "pending_managed_protection" | "unprotected_failed";
 type GovernorState = "normal" | "defensive" | "aggressive_allowed" | "paused";
 type TestnetGovernorMode = "normal" | "readonly" | "off_for_testing";
+type ExecutionFailureCode = "margin_type_change_blocked" | "leverage_change_blocked" | "leverage_change_failed" | "symbol_configuration_mismatch" | "execution_api_error";
 
 interface SignalRow {
   id: string;
@@ -185,8 +186,140 @@ interface BinanceSymbolTruth {
   positionRisk: Json | null;
 }
 
+interface SymbolExecutionState extends BinanceSymbolTruth {
+  currentMarginType: string | null;
+  currentLeverage: number | null;
+  conditionalOpenOrders: Json[];
+  openOrderCount: number;
+  conditionalOpenOrderCount: number;
+  openPositionExists: boolean;
+  regularOpenOrdersExist: boolean;
+  conditionalOpenOrdersExist: boolean;
+  anyOpenOrdersExist: boolean;
+  hedgeModeEnabled: boolean | null;
+  positionSide: string | null;
+}
+
+interface SymbolConfigurationResult {
+  ok: boolean;
+  state: SymbolExecutionState;
+  targetMarginType: "ISOLATED";
+  targetLeverage: number;
+  marginTypeAction: "skipped_already_correct" | "changed" | "reused_existing_due_open_position" | "not_checked";
+  leverageAction: "skipped_already_correct" | "changed" | "reused_existing_due_open_position" | "not_checked";
+  failure?: { code: ExecutionFailureCode; reason: string; details: Json };
+}
+
 function truthHasExposure(truth: BinanceSymbolTruth): boolean {
   return Math.abs(truth.positionAmt) > 0 || truth.openOrders.length > 0;
+}
+
+function normalizeMarginType(value: unknown): string | null {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (!normalized) return null;
+  if (normalized === "ISOLATED" || normalized === "CROSSED" || normalized === "CROSS") return normalized === "CROSS" ? "CROSSED" : normalized;
+  return normalized;
+}
+
+function failurePayload(code: ExecutionFailureCode, reason: string, details: Json): { code: ExecutionFailureCode; reason: string; details: Json } {
+  return { code, reason, details };
+}
+
+async function fetchSymbolExecutionState(symbol: string): Promise<SymbolExecutionState> {
+  const [truth, algo, positionMode] = await Promise.all([
+    fetchBinanceSymbolTruth(symbol),
+    binanceRequest<Json>("GET", "/fapi/v1/openAlgoOrders", { symbol, algoType: "CONDITIONAL" }, true).catch(() => ({ orders: [] })),
+    binanceRequest<{ dualSidePosition?: boolean | string }>("GET", "/fapi/v1/positionSide/dual", {}, true).catch(() => null),
+  ]);
+  const conditionalOpenOrders = Array.isArray(algo) ? algo : Array.isArray((algo as Json).orders) ? (algo as { orders: Json[] }).orders : [];
+  const currentLeverage = Number((truth.positionRisk as Json | null)?.leverage);
+  const positionSide = String((truth.positionRisk as Json | null)?.positionSide ?? "").trim() || null;
+  const hedgeRaw = positionMode?.dualSidePosition;
+  const hedgeModeEnabled = hedgeRaw == null ? null : hedgeRaw === true || String(hedgeRaw).toLowerCase() === "true";
+  const openPositionExists = Math.abs(truth.positionAmt) > 0;
+  const regularOpenOrdersExist = truth.openOrders.length > 0;
+  const conditionalOpenOrdersExist = conditionalOpenOrders.length > 0;
+  return {
+    ...truth,
+    currentMarginType: normalizeMarginType((truth.positionRisk as Json | null)?.marginType),
+    currentLeverage: Number.isFinite(currentLeverage) && currentLeverage > 0 ? currentLeverage : null,
+    conditionalOpenOrders,
+    openOrderCount: truth.openOrders.length,
+    conditionalOpenOrderCount: conditionalOpenOrders.length,
+    openPositionExists,
+    regularOpenOrdersExist,
+    conditionalOpenOrdersExist,
+    anyOpenOrdersExist: regularOpenOrdersExist || conditionalOpenOrdersExist,
+    hedgeModeEnabled,
+    positionSide,
+  };
+}
+
+async function configureSymbolForExecution(plan: OrderPlan): Promise<SymbolConfigurationResult> {
+  const targetMarginType = "ISOLATED" as const;
+  const state = await fetchSymbolExecutionState(plan.symbol);
+  const result: SymbolConfigurationResult = {
+    ok: true,
+    state,
+    targetMarginType,
+    targetLeverage: plan.leverage,
+    marginTypeAction: "not_checked",
+    leverageAction: "not_checked",
+  };
+
+  if (state.hedgeModeEnabled) {
+    result.ok = false;
+    result.failure = failurePayload("symbol_configuration_mismatch", "symbol_configuration_mismatch: hedge mode is enabled but HashiBot execution submits one-way reduce-only orders", { state, target_position_mode: "one_way" });
+    return result;
+  }
+
+  if (state.currentMarginType === targetMarginType) {
+    result.marginTypeAction = "skipped_already_correct";
+  } else if (state.openPositionExists) {
+    result.marginTypeAction = "reused_existing_due_open_position";
+  } else if (state.anyOpenOrdersExist) {
+    result.ok = false;
+    result.failure = failurePayload("margin_type_change_blocked", "margin_type_change_blocked: open_orders_exist", { state, target_margin_type: targetMarginType });
+    return result;
+  } else {
+    await binanceRequest("POST", "/fapi/v1/marginType", { symbol: plan.symbol, marginType: targetMarginType }, true).catch((e) => {
+      const message = String(e instanceof Error ? e.message : e);
+      if (!message.includes("No need to change margin type")) throw e;
+    });
+    result.marginTypeAction = "changed";
+  }
+
+  if (state.currentLeverage === plan.leverage) {
+    result.leverageAction = "skipped_already_correct";
+  } else if (state.openPositionExists) {
+    result.leverageAction = "reused_existing_due_open_position";
+  } else if (state.anyOpenOrdersExist) {
+    result.ok = false;
+    result.failure = failurePayload("leverage_change_blocked", "leverage_change_blocked: open_orders_exist", { state, target_leverage: plan.leverage });
+    return result;
+  } else {
+    try {
+      await binanceRequest("POST", "/fapi/v1/leverage", { symbol: plan.symbol, leverage: plan.leverage }, true);
+      result.leverageAction = "changed";
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "leverage_change_failed";
+      result.ok = false;
+      result.failure = failurePayload("leverage_change_failed", `leverage_change_failed: ${message}`, { state, target_leverage: plan.leverage });
+      return result;
+    }
+  }
+
+  return result;
+}
+
+function classifyExecutionError(error: unknown, fallbackCode: ExecutionFailureCode = "execution_api_error"): { code: ExecutionFailureCode; message: string; details: Json } {
+  const message = error instanceof Error ? error.message : String(error ?? "Execution failed");
+  if (error instanceof BinanceApiError) {
+    if (error.path === "/fapi/v1/marginType") return { code: "margin_type_change_blocked", message, details: { path: error.path, status: error.status, binance_code: error.code, binance_message: error.exchangeMessage } };
+    if (error.path === "/fapi/v1/leverage") return { code: "leverage_change_failed", message, details: { path: error.path, status: error.status, binance_code: error.code, binance_message: error.exchangeMessage } };
+    return { code: fallbackCode, message, details: { path: error.path, status: error.status, binance_code: error.code, binance_message: error.exchangeMessage } };
+  }
+  return { code: fallbackCode, message, details: {} };
 }
 
 async function fetchBinanceSymbolTruth(symbol: string): Promise<BinanceSymbolTruth> {
@@ -271,6 +404,22 @@ function stringifyParams(params: Record<string, string | number | boolean>): str
   return Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
 }
 
+class BinanceApiError extends Error {
+  path: string;
+  status: number;
+  code?: number;
+  exchangeMessage: string;
+
+  constructor(path: string, status: number, exchangeMessage: string, code?: number) {
+    super(`Binance ${path} failed (${status}): ${exchangeMessage}`);
+    this.name = "BinanceApiError";
+    this.path = path;
+    this.status = status;
+    this.code = code;
+    this.exchangeMessage = exchangeMessage;
+  }
+}
+
 async function binanceRequest<T>(method: "GET" | "POST" | "DELETE", path: string, params: Record<string, string | number | boolean> = {}, signed = false): Promise<T> {
   const apiKey = Deno.env.get("BINANCE_TESTNET_API_KEY") ?? "";
   const apiSecret = Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? "";
@@ -282,7 +431,7 @@ async function binanceRequest<T>(method: "GET" | "POST" | "DELETE", path: string
   const url = `${baseUrl}${path}${qs ? `?${qs}` : ""}`;
   const res = await fetch(url, { method, headers: apiKey ? { "X-MBX-APIKEY": apiKey } : undefined, signal: AbortSignal.timeout(10000) });
   const data = await res.json().catch(() => ({})) as T & { msg?: string; code?: number };
-  if (!res.ok) throw new Error(`Binance ${path} failed (${res.status}): ${data.msg ?? res.statusText}`);
+  if (!res.ok) throw new BinanceApiError(path, res.status, data.msg ?? res.statusText, data.code);
   return data as T;
 }
 
@@ -754,7 +903,7 @@ async function submitAlgoExitOrder(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_
   return { id: algoId, algoId, clientAlgoId, raw: algo as Json, endpoint: "/fapi/v1/algoOrder", payload: payload as Json };
 }
 
-async function submitBracketOrders(supabase: SupabaseClient, executionId: string, plan: OrderPlan): Promise<{ mode: BracketMode; protection: ProtectionStatus; sl_order_id?: string; tp1_order_id?: string; tp2_order_id?: string; raw: Json; error?: string }> {
+async function submitBracketOrders(supabase: SupabaseClient, executionId: string, plan: OrderPlan): Promise<{ mode: BracketMode; protection: ProtectionStatus; sl_order_id?: string; tp1_order_id?: string; tp2_order_id?: string; sl_algo_id?: string; tp1_algo_id?: string; tp2_algo_id?: string; raw: Json; error?: string }> {
   try {
     const sl = await submitAlgoExitOrder(plan, "STOP_MARKET", plan.stopLoss, plan.quantity, "sl");
     const tp1 = await submitAlgoExitOrder(plan, "TAKE_PROFIT_MARKET", plan.tp1, plan.tp1Quantity, "tp1");
@@ -873,20 +1022,27 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   const executionId = String((exec as { id: string }).id);
   await logEvent(supabase, executionId, "planned", "Order plan created", { plan });
   try {
-    await binanceRequest("POST", "/fapi/v1/leverage", { symbol: plan.symbol, leverage: plan.leverage }, true);
-    await binanceRequest("POST", "/fapi/v1/marginType", { symbol: plan.symbol, marginType: "ISOLATED" }, true).catch((e) => { if (!String(e instanceof Error ? e.message : e).includes("No need to change margin type")) throw e; });
+    const symbolConfiguration = await configureSymbolForExecution(plan);
+    if (!symbolConfiguration.ok && symbolConfiguration.failure) {
+      await supabase.from("execution_orders").update({ status: "failed", error_message: symbolConfiguration.failure.reason, last_exchange_error: symbolConfiguration.failure.code, bracket_mode: "failed", protection_status: "unprotected_failed", raw_exchange_response: { plan, symbol_configuration: symbolConfiguration, execution_failure: symbolConfiguration.failure }, updated_at: new Date().toISOString() }).eq("id", executionId);
+      await logEvent(supabase, executionId, symbolConfiguration.failure.code, symbolConfiguration.failure.reason, symbolConfiguration.failure.details);
+      await sendExecutionTelegram(supabase, sig.id, "failed", [`Execution failed: ${symbolConfiguration.failure.reason}`, `Signal: ${sig.symbol}`]);
+      return { success: false, execution_id: executionId, error: symbolConfiguration.failure.reason, reason_code: symbolConfiguration.failure.code, symbol_configuration: symbolConfiguration };
+    }
+    await logEvent(supabase, executionId, "symbol_configuration_checked", "Symbol configuration inspected before entry placement", { symbol_configuration: symbolConfiguration });
     const entry = await binanceRequest<{ orderId: number; status?: string }>("POST", "/fapi/v1/order", { symbol: plan.symbol, side: plan.entrySide, type: "LIMIT", timeInForce: "GTC", quantity: plan.quantity, price: plan.entryPrice }, true);
-    await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: String(entry.orderId), binance_entry_order_id: String(entry.orderId), raw_exchange_response: { entry, plan }, updated_at: new Date().toISOString() }).eq("id", executionId);
+    await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: String(entry.orderId), binance_entry_order_id: String(entry.orderId), raw_exchange_response: { entry, plan, symbol_configuration: symbolConfiguration }, last_exchange_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "entry_submitted", "Entry LIMIT order placed on /fapi/v1/order", { orderId: entry.orderId, entry_type: "LIMIT" });
     await sendExecutionTelegram(supabase, sig.id, "auto_executed", ["Auto execution submitted", `Symbol: ${plan.symbol}`, `Side: ${plan.side}`, `Strategy: ${sig.strategy_name}`, `Timeframe: ${sig.timeframe}`, `Grade: ${sig.grade}`, `Leverage: ${plan.leverage}x`, `Leverage source: ${plan.leverage_source}`, `Governor: ${plan.governor_state}`, `Governor reason: ${plan.governor_reason}`, `Effective risk %: ${plan.adjusted_risk_pct}`, `Effective max leverage: ${plan.adjusted_max_leverage}x`, `Capital basis: ${plan.capital.capital_basis}`, `Capital used: ${plan.capital.selected_capital_used.toFixed(2)}`, `Risk %: ${plan.riskPct}`, `Daily PnL %: ${governor.daily_pnl_pct ?? "unknown"}`, `Unrealized PnL: ${governor.unrealized_pnl ?? "unknown"}`, `Risk amount: ${plan.riskAmount.toFixed(2)}`, `Notional: ${plan.notional.toFixed(2)}`, `Qty: ${plan.quantity}`, `Entry: ${plan.entryPrice}`, `SL: ${plan.stopLoss}`, `TP1: ${plan.tp1}`, `TP2: ${plan.tp2}`, `Protection: pending`, `Bracket mode: pending`, `Entry order: ${entry.orderId}`, "SL order: pending", "TP1 order: pending", "TP2 order: pending", "TP1 close %: 50%", "TP2 close %: 50%", "Move SL to BE after TP1: yes", `Open risk: ${plan.riskPct}%`, `Total open risk after this trade: ${totalRiskAfter}%`]);
     if (entry.status === "FILLED") await maybePlaceProtection(supabase, executionId, sig.id, plan);
     return { success: true, execution_id: executionId, status: "entry_submitted", plan };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Execution failed";
-    await supabase.from("execution_orders").update({ status: "failed", error_message: msg, last_exchange_error: msg, bracket_mode: "failed", protection_status: "unprotected_failed", updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "failed_exchange_error", msg);
+    const classified = classifyExecutionError(e);
+    const msg = `${classified.code}: ${classified.message}`;
+    await supabase.from("execution_orders").update({ status: "failed", error_message: msg, last_exchange_error: classified.code, bracket_mode: "failed", protection_status: "unprotected_failed", raw_exchange_response: { plan, execution_failure: classified }, updated_at: new Date().toISOString() }).eq("id", executionId);
+    await logEvent(supabase, executionId, classified.code, msg, classified.details);
     await sendExecutionTelegram(supabase, sig.id, "failed", [`Execution failed: ${msg}`, `Signal: ${sig.symbol}`]);
-    return { success: false, execution_id: executionId, error: msg };
+    return { success: false, execution_id: executionId, error: msg, reason_code: classified.code, details: classified.details };
   }
 }
 
