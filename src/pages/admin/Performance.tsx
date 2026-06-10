@@ -501,10 +501,15 @@ function monitorResultCount(result: Record<string, unknown>, key: string): numbe
   return monitorResultArray(result, key.replace(/_count$/, '')).length;
 }
 
-function monitorCriticalStatus(status: string | null | undefined): string {
+function monitorCriticalStatus(status: string | null | undefined, result?: Record<string, unknown>): string {
   if (!status) return 'never_run';
-  if (status === 'error' || status === 'completed_with_sync_error') return 'critical_error';
-  if (status === 'completed' || status === 'ok') return 'healthy';
+  const unsafePositions = Number(result?.unsafe_positions ?? 0);
+  const criticalErrorsCount = Number(result?.critical_errors_count ?? 0);
+  const genuinelyCritical = unsafePositions > 0 || criticalErrorsCount > 0;
+  if (status === 'critical_error' || status === 'error' || status === 'completed_with_sync_error') {
+    return genuinelyCritical ? 'critical_error' : 'warning';
+  }
+  if (status === 'completed' || status === 'ok' || status === 'healthy') return 'healthy';
   if (status === 'completed_with_row_errors') return 'row_errors_only';
   return status;
 }
@@ -824,7 +829,7 @@ export default function Performance() {
     const eventText = (needle: string) => executionEvents.filter(event => `${event.event_type} ${event.message}`.toLowerCase().includes(needle)).length;
     const monitorResult = executionSettings?.latest_monitor_result ?? {};
     const monitorHttpStatus = typeof monitorResult.http_status === 'number' || typeof monitorResult.http_status === 'string' ? String(monitorResult.http_status) : '—';
-    const monitorCriticalStatusValue = monitorCriticalStatus(executionSettings?.latest_monitor_status);
+    const monitorCriticalStatusValue = monitorCriticalStatus(executionSettings?.latest_monitor_status, monitorResult);
     const monitorWarningsCount = monitorResultCount(monitorResult, 'warnings_count');
     const monitorRowErrorsCount = monitorResultCount(monitorResult, 'row_errors_count');
     const monitorCriticalErrorsCount = monitorResultCount(monitorResult, 'critical_errors_count');
