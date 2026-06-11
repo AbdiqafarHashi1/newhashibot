@@ -180,6 +180,19 @@ function conditionalFilled(order: BinanceOrderSnapshot | undefined): boolean {
   return ['FILLED', 'TRIGGERED', 'FINISHED'].includes(String(order?.status ?? '').toUpperCase());
 }
 
+function pushUniqueCancel(out: MonitorUpdate, ids: Array<string | number | null | undefined>): void {
+  for (const id of ids) {
+    const value = String(id ?? '');
+    if (value && !out.cancelOrderIds.includes(value)) out.cancelOrderIds.push(value);
+  }
+}
+
+function allProtectionIds(row: MonitorExecutionRow): string[] {
+  return [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id]
+    .filter(Boolean)
+    .map(String);
+}
+
 function rowAgeMs(row: MonitorExecutionRow): number {
   const start = row.entry_submitted_at ?? row.created_at;
   const ms = start ? new Date(start).getTime() : NaN;
@@ -210,9 +223,8 @@ export function processExecutionMonitorTick(
 
   if (deadline && Date.now() >= new Date(deadline).getTime() && isMonitorActiveStatus(row.status)) {
     const remaining = row.remaining_quantity ?? row.volume ?? Math.abs(truth.positionAmt);
-    out.cancelOrderIds.push(...truth.openOrders.map((order) => String(order.algoId ?? order.orderId ?? '')).filter(Boolean));
-    const ids = [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id].filter(Boolean).map(String);
-    out.cancelOrderIds.push(...ids.filter((id) => !out.cancelOrderIds.includes(id)));
+    pushUniqueCancel(out, truth.openOrders.map((order) => order.algoId ?? order.orderId));
+    pushUniqueCancel(out, allProtectionIds(row));
     if (hasPosition && remaining > 0) out.reduceOnlyMarketOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, reason: 'timeout' });
     out.updates.status = 'closed_timeout';
     out.updates.remaining_quantity = 0;
@@ -278,7 +290,7 @@ export function processExecutionMonitorTick(
     out.updates.managed_fallback_active = true;
     out.updates.native_protection_verified = false;
     out.updates.last_monitor_action = 'protection_recovery_required';
-    addEvent(out, 'protection_recovery_required', `${row.symbol} has an open Binance position without verified protection; monitor must retry native protection or activate managed fallback immediately.`);
+    addEvent(out, 'protection_recovery_required', `${row.symbol} has an unsafe_untracked_position: Binance has an open position without verified protection; monitor must retry native protection or activate managed fallback immediately.`);
   }
 
   if (entryOrder && ['CANCELED', 'EXPIRED'].includes(entryOrderStatus) && ['pending', 'entry_submitted'].includes(row.status)) {
@@ -311,16 +323,15 @@ export function processExecutionMonitorTick(
     if (!row.tp2_closed_at && conditionalFilled(tp2)) {
       out.updates.status = 'closed_tp';
       out.updates.tp2_closed_at = new Date().toISOString();
-      if (slId) out.cancelOrderIds.push(slId);
-      addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 filled; position closed in profit.`);
+      pushUniqueCancel(out, [slId, tp1Id]);
+      addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 filled; position closed in profit. Remaining TP/SL conditionals queued for cleanup verification.`);
       nativeChanged = true;
     }
     if (!row.sl_closed_at && conditionalFilled(sl)) {
       out.updates.status = 'closed_sl';
       out.updates.sl_closed_at = new Date().toISOString();
-      if (tp1Id) out.cancelOrderIds.push(tp1Id);
-      if (tp2Id) out.cancelOrderIds.push(tp2Id);
-      addEvent(out, 'native_sl_filled', `${row.symbol} SL filled; position closed.`);
+      pushUniqueCancel(out, [tp1Id, tp2Id]);
+      addEvent(out, 'native_sl_filled', `${row.symbol} SL filled; position closed. Remaining TP conditionals queued for cleanup verification.`);
       nativeChanged = true;
     }
     if (nativeChanged) return out;
@@ -354,7 +365,9 @@ export function processExecutionMonitorTick(
       out.updates.status = 'closed_tp';
       out.updates.tp2_closed_at = new Date().toISOString();
       out.updates.remaining_quantity = 0;
-      addEvent(out, 'managed_tp2_closed', `${row.symbol} managed TP2 hit; remaining quantity closed.`);
+      pushUniqueCancel(out, truth.openOrders.map((order) => order.algoId ?? order.orderId));
+      pushUniqueCancel(out, allProtectionIds(row));
+      addEvent(out, 'managed_tp2_closed', `${row.symbol} managed TP2 hit; remaining quantity closed; remaining conditionals queued for cleanup verification.`);
       return out;
     }
     if (activeStop && stopHit(row.direction, mark, activeStop)) {
@@ -362,14 +375,16 @@ export function processExecutionMonitorTick(
       out.updates.status = 'closed_sl';
       out.updates.sl_closed_at = new Date().toISOString();
       out.updates.remaining_quantity = 0;
-      addEvent(out, 'managed_sl_closed', `${row.symbol} managed SL hit; remaining quantity closed.`);
+      pushUniqueCancel(out, truth.openOrders.map((order) => order.algoId ?? order.orderId));
+      pushUniqueCancel(out, allProtectionIds(row));
+      addEvent(out, 'managed_sl_closed', `${row.symbol} managed SL hit; remaining quantity closed; remaining conditionals queued for cleanup verification.`);
       return out;
     }
   }
 
   if (isMonitorActiveStatus(row.status) && !hasPosition && hasOpenOrders) {
     addEvent(out, 'manual_position_closed', `${row.symbol} position is closed on Binance; stale leftover orders should be cancelled.`);
-    out.cancelOrderIds.push(...truth.openOrders.map((order) => String(order.algoId ?? order.orderId ?? '')).filter(Boolean));
+    pushUniqueCancel(out, truth.openOrders.map((order) => order.algoId ?? order.orderId));
     const syncedStatus = syncedNoPositionStatus(row);
     out.updates.status = syncedStatus;
     out.updates.protection_status = 'unprotected';

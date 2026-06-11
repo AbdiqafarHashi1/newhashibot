@@ -293,6 +293,7 @@ function fmtSignalR(n: number | null | undefined) {
 
 function fmtPF(pf: number | null | undefined) {
   if (pf === null || pf === undefined || Number.isNaN(pf)) return <span className="text-zinc-500">—</span>;
+  if (!Number.isFinite(pf)) return <span className="text-emerald-400">∞</span>;
   const color = pf >= 1.5 ? 'text-emerald-400' : pf >= 1 ? 'text-yellow-400' : 'text-red-400';
   return <span className={color}>{pf.toFixed(2)}</span>;
 }
@@ -381,7 +382,12 @@ function normalizedSignalStatus(row: SignalAnalyticsRow) {
 }
 
 function hasFilledEntry(row: ExecutionOrderRow) {
-  return Boolean(row.entry_filled_at) || ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'tp1_hit', 'sl_moved_to_be', 'closed_tp', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed'].includes(row.status);
+  if (row.entry_filled_at) return true;
+  return ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'tp1_hit', 'sl_moved_to_be', 'closed_tp', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced'].includes(row.status);
+}
+
+function isClosedFilledTrade(row: ExecutionOrderRow) {
+  return hasFilledEntry(row) && ['closed_tp', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced'].includes(row.status);
 }
 
 function hasExecutionAttempt(row: ExecutionOrderRow) {
@@ -417,7 +423,6 @@ function estimateExecutionR(row: ExecutionOrderRow): number | null {
   if (!hasFilledEntry(row)) return null;
   const entry = Number(row.entry_price);
   const stop = Number(row.stop_loss);
-  const tp1 = Number(row.tp1);
   const tp2 = Number(row.tp2);
   const risk = Math.abs(entry - stop);
   if (row.status === 'closed_sl' || row.sl_closed_at) return -1;
@@ -425,21 +430,20 @@ function estimateExecutionR(row: ExecutionOrderRow): number | null {
   if (row.status === 'closed_tp' || row.tp2_closed_at) {
     return Number.isFinite(entry) && Number.isFinite(tp2) && risk > 0 ? Math.abs(tp2 - entry) / risk : null;
   }
-  if (row.tp1_closed_at || row.status === 'tp1_hit') {
-    return Number.isFinite(entry) && Number.isFinite(tp1) && risk > 0 ? Math.abs(tp1 - entry) / risk : null;
-  }
+  if (row.status === 'closed_timeout' || row.status === 'closed_synced') return null;
   return null;
 }
 
 function calculateExecutionSummary(rows: ExecutionOrderRow[], eligibleSignals: number) {
   const attempted = rows.filter(hasExecutionAttempt);
   const filled = rows.filter(hasFilledEntry);
+  const closedFilled = rows.filter(isClosedFilledTrade);
   const skipped = rows.filter(row => row.status === 'skipped');
   const timeoutCancelled = rows.filter(row => row.status === 'entry_timeout_cancelled');
   const submitted = rows.filter(row => row.entry_order_id || row.binance_entry_order_id || row.status === 'entry_submitted');
-  const rRows = filled.map(row => estimateExecutionR(row)).filter((value): value is number => value !== null && !Number.isNaN(value));
-  const wins = filled.filter(row => row.status === 'closed_tp' || Boolean(row.tp2_closed_at || row.tp1_closed_at)).length;
-  const losses = filled.filter(row => row.status === 'closed_sl' || row.status === 'closed_unprotected_safety' || Boolean(row.sl_closed_at)).length;
+  const rRows = closedFilled.map(row => estimateExecutionR(row)).filter((value): value is number => value !== null && !Number.isNaN(value));
+  const wins = closedFilled.filter(row => row.status === 'closed_tp' || Boolean(row.tp2_closed_at)).length;
+  const losses = closedFilled.filter(row => row.status === 'closed_sl' || row.status === 'closed_unprotected_safety' || Boolean(row.sl_closed_at)).length;
   const positiveR = rRows.filter(r => r > 0).reduce((sum, r) => sum + r, 0);
   const negativeR = rRows.filter(r => r < 0).reduce((sum, r) => sum + r, 0);
   const skipReasonCount = (needle: string) => skipped.filter(row => (row.latest_auto_skip_reason ?? '').includes(needle)).length;
@@ -448,6 +452,7 @@ function calculateExecutionSummary(rows: ExecutionOrderRow[], eligibleSignals: n
     executionAttempted: attempted.length,
     entrySubmitted: submitted.length,
     entryFilled: filled.length,
+    closedTradeCount: closedFilled.length,
     entryTimeoutCancelled: timeoutCancelled.length,
     skippedExecutions: skipped.length,
     governorBlocked: skipReasonCount('governor'),
@@ -462,12 +467,12 @@ function calculateExecutionSummary(rows: ExecutionOrderRow[], eligibleSignals: n
     wins,
     losses,
     botWinRatePct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : null,
-    botProfitFactor: positiveR > 0 && negativeR < 0 ? positiveR / Math.abs(negativeR) : null,
+    botProfitFactor: positiveR > 0 && negativeR < 0 ? positiveR / Math.abs(negativeR) : positiveR > 0 && negativeR === 0 ? Number.POSITIVE_INFINITY : null,
     botTotalR: rRows.length > 0 ? rRows.reduce((sum, r) => sum + r, 0) : null,
-    tp1Hits: filled.filter(row => Boolean(row.tp1_closed_at) || row.status === 'tp1_hit').length,
-    tp2Hits: filled.filter(row => Boolean(row.tp2_closed_at) || row.status === 'closed_tp').length,
-    slHits: filled.filter(row => Boolean(row.sl_closed_at) || row.status === 'closed_sl').length,
-    pendingSync: filled.filter(row => estimateExecutionR(row) === null && ['closed_tp', 'closed_sl', 'closed_timeout', 'closed_synced', 'stale_closed'].includes(row.status)).length,
+    tp1Hits: filled.filter(row => Boolean(row.tp1_closed_at)).length,
+    tp2Hits: closedFilled.filter(row => Boolean(row.tp2_closed_at) || row.status === 'closed_tp').length,
+    slHits: closedFilled.filter(row => Boolean(row.sl_closed_at) || row.status === 'closed_sl' || row.status === 'closed_unprotected_safety').length,
+    pendingSync: closedFilled.filter(row => estimateExecutionR(row) === null).length,
   };
 }
 
@@ -1225,7 +1230,8 @@ export default function Performance() {
           <StatCard label="Eligible signals" value={executionSummary.eligibleSignals} sub="qualified signal rows" />
           <StatCard label="Execution attempted" value={executionSummary.executionAttempted} sub={`${executionSummary.entrySubmitted} entry submitted`} />
           <StatCard label="Filled trades" value={executionSummary.entryFilled} sub="only these count as bot trades" />
-          <StatCard label="Entry timeout cancelled" value={executionSummary.entryTimeoutCancelled} sub="no_trade · limit_entry_not_filled" />
+          <StatCard label="Closed trade count" value={executionSummary.closedTradeCount} sub="filled and closed only" />
+          <StatCard label="Entry timeout count" value={executionSummary.entryTimeoutCancelled} sub="no_trade · limit_entry_not_filled" />
           <StatCard label="Skipped executions" value={executionSummary.skippedExecutions} sub="blocked before order fill" />
           <StatCard label="Bot win rate" value={fmtWinRate(executionSummary.botWinRatePct)} sub={`${executionSummary.wins}W / ${executionSummary.losses}L filled only`} />
           <StatCard label="Bot PF" value={fmtPF(executionSummary.botProfitFactor)} sub="filled closed trades only" />
@@ -1233,7 +1239,8 @@ export default function Performance() {
           <StatCard label="Filled TP1" value={executionSummary.tp1Hits} sub="filled-trade count" />
           <StatCard label="Filled TP2" value={executionSummary.tp2Hits} sub="filled-trade count" />
           <StatCard label="Filled SL" value={executionSummary.slHits} sub="filled-trade count" />
-          <StatCard label="Protection unavailable" value={executionSummary.protectionUnavailable} sub="execution safety failures" />
+          <StatCard label="Pending sync count" value={executionSummary.pendingSync} sub="closed but missing R truth" />
+          <StatCard label="Protection unavailable count" value={executionSummary.protectionUnavailable} sub="execution safety failures" />
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
