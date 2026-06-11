@@ -62,6 +62,10 @@ interface ExecutionOrderRow {
   managed_fallback_active: boolean | null;
   current_position_size: number | null;
   remaining_quantity: number | null;
+  remaining_qty?: number | null;
+  runner_active?: boolean | null;
+  profit_lock_sl_active?: boolean | null;
+  tp1_filled?: boolean | null;
   tp1_closed_at: string | null;
   tp2_closed_at: string | null;
   sl_closed_at: string | null;
@@ -383,11 +387,11 @@ function normalizedSignalStatus(row: SignalAnalyticsRow) {
 
 function hasFilledEntry(row: ExecutionOrderRow) {
   if (row.entry_filled_at) return true;
-  return ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'tp1_hit', 'sl_moved_to_be', 'closed_tp', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced'].includes(row.status);
+  return ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'tp1_hit', 'sl_moved_to_be', 'closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced'].includes(row.status);
 }
 
 function isClosedFilledTrade(row: ExecutionOrderRow) {
-  return hasFilledEntry(row) && ['closed_tp', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced'].includes(row.status);
+  return hasFilledEntry(row) && ['closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'closed_breakeven', 'closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced'].includes(row.status);
 }
 
 function hasExecutionAttempt(row: ExecutionOrderRow) {
@@ -403,9 +407,12 @@ function executionDisplayStatus(row?: ExecutionOrderRow): string {
   if (status === 'entry_filled') return 'ENTRY_FILLED';
   if (status === 'protected_native') return 'PROTECTED_NATIVE';
   if (status === 'protected_managed') return 'PROTECTED_MANAGED';
-  if (status === 'closed_tp') return 'CLOSED_TP';
+  if (status === 'closed_tp' || status === 'closed_tp2') return 'CLOSED_TP2';
+  if (status === 'closed_profit_lock') return 'CLOSED_PROFIT_LOCK';
   if (status === 'closed_sl') return 'CLOSED_SL';
-  if (status === 'closed_timeout') return 'CLOSED_TIMEOUT';
+  if (status === 'closed_timeout' || status === 'closed_expired') return 'CLOSED_EXPIRED';
+  if (status === 'closed_expired_after_tp1') return 'CLOSED_EXPIRED_AFTER_TP1';
+  if (status === 'closed_manual') return 'CLOSED_MANUAL';
   if (status === 'closed_synced' || status === 'stale_closed') return 'CLOSED_SYNCED';
   if (status === 'closed_unprotected_safety') return 'CLOSED_UNPROTECTED_SAFETY';
   if (hasFilledEntry(row)) return 'ENTRY_FILLED';
@@ -425,12 +432,13 @@ function estimateExecutionR(row: ExecutionOrderRow): number | null {
   const stop = Number(row.stop_loss);
   const tp2 = Number(row.tp2);
   const risk = Math.abs(entry - stop);
-  if (row.status === 'closed_sl' || row.sl_closed_at) return -1;
+  if (row.status === 'closed_profit_lock') return 0.3;
+  if (row.status === 'closed_sl' || (row.sl_closed_at && !row.tp1_filled && !row.tp1_closed_at)) return -1;
   if (row.status === 'closed_breakeven') return 0;
-  if (row.status === 'closed_tp' || row.tp2_closed_at) {
+  if (row.status === 'closed_tp' || row.status === 'closed_tp2' || row.tp2_closed_at) {
     return Number.isFinite(entry) && Number.isFinite(tp2) && risk > 0 ? Math.abs(tp2 - entry) / risk : null;
   }
-  if (row.status === 'closed_timeout' || row.status === 'closed_synced') return null;
+  if (row.status === 'closed_timeout' || row.status === 'closed_expired' || row.status === 'closed_expired_after_tp1' || row.status === 'closed_manual' || row.status === 'closed_synced') return null;
   return null;
 }
 
@@ -442,8 +450,8 @@ function calculateExecutionSummary(rows: ExecutionOrderRow[], eligibleSignals: n
   const timeoutCancelled = rows.filter(row => row.status === 'entry_timeout_cancelled');
   const submitted = rows.filter(row => row.entry_order_id || row.binance_entry_order_id || row.status === 'entry_submitted');
   const rRows = closedFilled.map(row => estimateExecutionR(row)).filter((value): value is number => value !== null && !Number.isNaN(value));
-  const wins = closedFilled.filter(row => row.status === 'closed_tp' || Boolean(row.tp2_closed_at)).length;
-  const losses = closedFilled.filter(row => row.status === 'closed_sl' || row.status === 'closed_unprotected_safety' || Boolean(row.sl_closed_at)).length;
+  const wins = closedFilled.filter(row => row.status === 'closed_tp' || row.status === 'closed_tp2' || row.status === 'closed_profit_lock' || Boolean(row.tp2_closed_at)).length;
+  const losses = closedFilled.filter(row => row.status === 'closed_sl' || row.status === 'closed_unprotected_safety' || (Boolean(row.sl_closed_at) && row.status !== 'closed_profit_lock')).length;
   const positiveR = rRows.filter(r => r > 0).reduce((sum, r) => sum + r, 0);
   const negativeR = rRows.filter(r => r < 0).reduce((sum, r) => sum + r, 0);
   const skipReasonCount = (needle: string) => skipped.filter(row => (row.latest_auto_skip_reason ?? '').includes(needle)).length;
@@ -469,15 +477,21 @@ function calculateExecutionSummary(rows: ExecutionOrderRow[], eligibleSignals: n
     botWinRatePct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : null,
     botProfitFactor: positiveR > 0 && negativeR < 0 ? positiveR / Math.abs(negativeR) : positiveR > 0 && negativeR === 0 ? Number.POSITIVE_INFINITY : null,
     botTotalR: rRows.length > 0 ? rRows.reduce((sum, r) => sum + r, 0) : null,
-    tp1Hits: filled.filter(row => Boolean(row.tp1_closed_at)).length,
-    tp2Hits: closedFilled.filter(row => Boolean(row.tp2_closed_at) || row.status === 'closed_tp').length,
-    slHits: closedFilled.filter(row => Boolean(row.sl_closed_at) || row.status === 'closed_sl' || row.status === 'closed_unprotected_safety').length,
+    tp1Hits: filled.filter(row => Boolean(row.tp1_closed_at || row.tp1_filled)).length,
+    tp2Hits: closedFilled.filter(row => Boolean(row.tp2_closed_at) || row.status === 'closed_tp' || row.status === 'closed_tp2').length,
+    slHits: closedFilled.filter(row => row.status === 'closed_sl' || row.status === 'closed_unprotected_safety').length,
+    profitLockSlHits: closedFilled.filter(row => row.status === 'closed_profit_lock').length,
+    closedExpired: closedFilled.filter(row => row.status === 'closed_expired').length,
+    closedExpiredAfterTp1: closedFilled.filter(row => row.status === 'closed_expired_after_tp1').length,
+    closedManual: closedFilled.filter(row => row.status === 'closed_manual').length,
+    openRunnerCount: filled.filter(row => row.runner_active && !isClosedFilledTrade(row)).length,
+    protectedRunnerCount: filled.filter(row => row.runner_active && row.profit_lock_sl_active && !isClosedFilledTrade(row)).length,
     pendingSync: closedFilled.filter(row => estimateExecutionR(row) === null).length,
   };
 }
 
 function protectionSlaState(row: ExecutionOrderRow): 'pass' | 'fail' | 'pending' | 'n/a' {
-  if (!hasFilledEntry(row) || ['closed_tp', 'closed_sl', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'cancelled', 'failed', 'skipped', 'entry_timeout_cancelled'].includes(row.status)) return 'n/a';
+  if (!hasFilledEntry(row) || ['closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'cancelled', 'failed', 'skipped', 'entry_timeout_cancelled'].includes(row.status)) return 'n/a';
   if (row.protection_status === 'protected_native' || row.protection_status === 'protected_managed' || row.native_protection_verified || row.managed_fallback_active) return 'pass';
   const filledAt = row.entry_filled_at ? new Date(row.entry_filled_at).getTime() : NaN;
   if (!Number.isFinite(filledAt)) return 'pending';
@@ -828,7 +842,7 @@ export default function Performance() {
   }, [filteredExecutionOrders]);
   const executionSummary = useMemo(() => calculateExecutionSummary(filteredExecutionOrders, filteredSignals.length), [filteredExecutionOrders, filteredSignals.length]);
   const botHealth = useMemo(() => {
-    const activeRows = filteredExecutionOrders.filter(row => hasFilledEntry(row) && !['closed_tp', 'closed_sl', 'closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'cancelled', 'failed', 'skipped', 'entry_timeout_cancelled'].includes(row.status));
+    const activeRows = filteredExecutionOrders.filter(row => hasFilledEntry(row) && !['closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'cancelled', 'failed', 'skipped', 'entry_timeout_cancelled'].includes(row.status));
     const slaStates = activeRows.map(protectionSlaState);
     const protectionSeconds = activeRows.map(secondsFromFillToProtection).filter((value): value is number => value !== null);
     const eventText = (needle: string) => executionEvents.filter(event => `${event.event_type} ${event.message}`.toLowerCase().includes(needle)).length;

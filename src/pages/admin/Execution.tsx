@@ -16,8 +16,13 @@ const STATUS_COLORS: Record<string, string> = {
   tp_submitted: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
   partially_closed: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
   closed_tp: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  closed_tp2: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  closed_profit_lock: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
   closed_sl: 'text-red-400 bg-red-500/10 border-red-500/20',
   closed_timeout: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  closed_expired: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+  closed_expired_after_tp1: 'text-orange-300 bg-orange-500/10 border-orange-500/20',
+  closed_manual: 'text-zinc-300 bg-zinc-800 border-zinc-700',
   failed: 'text-red-400 bg-red-500/10 border-red-500/20',
   skipped: 'text-zinc-400 bg-zinc-800 border-zinc-700',
   cancelled: 'text-zinc-400 bg-zinc-800 border-zinc-700',
@@ -114,7 +119,7 @@ export default function Execution() {
     return Number.isFinite(value) ? Math.max(0, Math.floor((nowMs - value) / 1000)) : null;
   };
   const protectionSlaState = (e: BinanceExecutionOrder): 'pass' | 'fail' | 'pending' | 'n/a' => {
-    if (['closed_timeout', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'closed_tp', 'closed_sl', 'cancelled', 'failed', 'skipped'].includes(e.status)) return 'n/a';
+    if (['closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'cancelled', 'failed', 'skipped'].includes(e.status)) return 'n/a';
     if (e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' || e.status === 'protected_native' || e.status === 'protected_managed') return 'pass';
     const seconds = secondsSinceEntryFill(e);
     if (seconds === null) return ['entry_submitted', 'entry_filled', 'pending_protection', 'pending_managed_protection'].includes(e.status) ? 'pending' : 'n/a';

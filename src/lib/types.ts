@@ -403,6 +403,29 @@ export interface ExecutionOrder {
   tp1_quantity?: number | null;
   tp2_quantity?: number | null;
   remaining_quantity?: number | null;
+  remaining_qty?: number | null;
+  partial_close_qty?: number | null;
+  runner_active?: boolean | null;
+  lifecycle_state?: string | null;
+  profit_lock_enabled?: boolean | null;
+  profit_lock_r?: number | null;
+  profit_lock_price?: number | null;
+  profit_lock_status?: string | null;
+  original_sl_price?: number | null;
+  replacement_sl_price?: number | null;
+  replacement_sl_order_id?: string | null;
+  replacement_sl_algo_id?: string | null;
+  replacement_sl_verified?: boolean | null;
+  old_sl_cancelled_after_tp1?: boolean | null;
+  sl_replaced_after_tp1?: boolean | null;
+  tp2_pending?: boolean | null;
+  tp2_filled?: boolean | null;
+  profit_lock_sl_active?: boolean | null;
+  profit_lock_sl_hit?: boolean | null;
+  runner_expired?: boolean | null;
+  runner_closed?: boolean | null;
+  tp1_fill_price?: number | null;
+  tp1_fill_time?: string | null;
   tp1_closed_at?: string | null;
   tp2_closed_at?: string | null;
   sl_closed_at?: string | null;
@@ -535,6 +558,29 @@ export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   tp1_quantity?: number | null;
   tp2_quantity?: number | null;
   remaining_quantity?: number | null;
+  remaining_qty?: number | null;
+  partial_close_qty?: number | null;
+  runner_active?: boolean | null;
+  lifecycle_state?: string | null;
+  profit_lock_enabled?: boolean | null;
+  profit_lock_r?: number | null;
+  profit_lock_price?: number | null;
+  profit_lock_status?: string | null;
+  original_sl_price?: number | null;
+  replacement_sl_price?: number | null;
+  replacement_sl_order_id?: string | null;
+  replacement_sl_algo_id?: string | null;
+  replacement_sl_verified?: boolean | null;
+  old_sl_cancelled_after_tp1?: boolean | null;
+  sl_replaced_after_tp1?: boolean | null;
+  tp2_pending?: boolean | null;
+  tp2_filled?: boolean | null;
+  profit_lock_sl_active?: boolean | null;
+  profit_lock_sl_hit?: boolean | null;
+  runner_expired?: boolean | null;
+  runner_closed?: boolean | null;
+  tp1_fill_price?: number | null;
+  tp1_fill_time?: string | null;
   tp1_closed_at?: string | null;
   tp2_closed_at?: string | null;
   sl_closed_at?: string | null;
@@ -565,7 +611,7 @@ export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   risk_multiplier: number | null;
   adjusted_risk_pct: number | null;
   adjusted_max_leverage: number | null;
-  status: 'pending' | 'entry_submitted' | 'entry_filled' | 'sl_submitted' | 'tp_submitted' | 'partially_closed' | 'closed_tp' | 'closed_sl' | 'closed_breakeven' | 'closed_timeout' | 'cancelled' | 'failed' | 'skipped' | string;
+  status: 'pending' | 'entry_submitted' | 'entry_filled' | 'sl_submitted' | 'tp_submitted' | 'partially_closed' | 'closed_tp' | 'closed_tp2' | 'closed_profit_lock' | 'closed_sl' | 'closed_breakeven' | 'closed_timeout' | 'closed_expired' | 'closed_expired_after_tp1' | 'closed_manual' | 'cancelled' | 'failed' | 'skipped' | string;
 }
 
 export interface ExecutionEventLog {

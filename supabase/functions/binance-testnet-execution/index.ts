@@ -9,8 +9,8 @@ const corsHeaders = {
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
 const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protected_managed", "pending_managed_protection"];
-const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_sl", "closed_breakeven", "closed_timeout"];
-const TERMINAL_STATUSES = ["closed_tp", "closed_sl", "closed_breakeven", "closed_timeout", "cancelled", "failed", "skipped", "stale_closed"];
+const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
+const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
 type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
@@ -814,20 +814,29 @@ function algoFilled(status: string | undefined): boolean {
   return ["FILLED", "TRIGGERED", "FINISHED"].includes(String(status ?? "").toUpperCase());
 }
 
-async function submitBreakevenSl(supabase: SupabaseClient, executionId: string, ex: Json, closeSide: Side, quantity: number, rules: SymbolRules): Promise<{ orderId?: string; raw?: Json; error?: string }> {
-  const stopPrice = roundToTick(Number(ex.entry_price), rules.tickSize, rules.pricePrecision);
+async function submitProfitLockSl(supabase: SupabaseClient, executionId: string, ex: Json, closeSide: Side, quantity: number, rules: SymbolRules): Promise<{ orderId?: string; raw?: Json; error?: string }> {
+  const entry = Number(ex.entry_price);
+  const originalSl = Number(ex.original_sl_price ?? ex.intended_sl ?? ex.stop_loss);
+  const lock = String(ex.direction).toLowerCase() === "buy" ? entry + Math.abs(entry - originalSl) * 0.3 : entry - Math.abs(entry - originalSl) * 0.3;
+  const stopPrice = roundToTick(lock, rules.tickSize, rules.pricePrecision);
   const planLike = { symbol: String(ex.symbol), closeSide } as OrderPlan;
   const qty = floorToStep(quantity, rules.stepSize, rules.quantityPrecision);
   try {
-    await cancelAlgoOrder(String(ex.symbol), ex.sl_algo_id ?? ex.sl_order_id);
     const be = await submitAlgoExitOrder(planLike, "STOP_MARKET", stopPrice, qty, "sl");
-    await supabase.from("execution_orders").update({ sl_order_id: be.algoId, binance_sl_order_id: be.algoId, sl_algo_id: be.algoId, sl_client_algo_id: be.clientAlgoId, breakeven_sl_order_id: be.algoId, tp1_filled: true, sl_moved_to_be: true, be_stop_level: stopPrice, protection_status: "protected_native", latest_protection_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "sl_moved_to_be", "TP1 filled; SL moved to break-even for remaining 50%", { be, stopPrice, qty });
+    let oldCancelled = false;
+    try {
+      await cancelAlgoOrder(String(ex.symbol), ex.sl_algo_id ?? ex.sl_order_id);
+      oldCancelled = true;
+    } catch {
+      oldCancelled = false;
+    }
+    await supabase.from("execution_orders").update({ sl_order_id: be.algoId, binance_sl_order_id: be.algoId, sl_algo_id: be.algoId, sl_client_algo_id: be.clientAlgoId, breakeven_sl_order_id: be.algoId, replacement_sl_order_id: be.algoId, replacement_sl_algo_id: be.algoId, replacement_sl_verified: true, old_sl_cancelled_after_tp1: oldCancelled, sl_replaced_after_tp1: true, tp1_filled: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: stopPrice, replacement_sl_price: stopPrice, profit_lock_status: "active", profit_lock_sl_active: true, protection_warning_reason: oldCancelled ? "" : "old_sl_cancel_retry_needed", sl_moved_to_be: false, be_stop_level: stopPrice, protection_status: "protected_native", latest_protection_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
+    await logEvent(supabase, executionId, "tp1_profit_lock_active", "TP1 filled; SL replaced at +0.3R profit lock for remaining runner", { be, stopPrice, qty });
     return { orderId: be.id, raw: be.raw };
   } catch (e) {
-    const error = e instanceof Error ? e.message : "Failed to move SL to BE";
+    const error = e instanceof Error ? e.message : "Failed to replace SL with profit lock";
     await supabase.from("execution_orders").update({ tp1_filled: true, sl_moved_to_be: false, be_stop_level: stopPrice, latest_protection_error: error, protection_status: "unprotected_failed", updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "be_sl_failed", error, { stopPrice, qty });
+    await logEvent(supabase, executionId, "profit_lock_sl_failed", error, { stopPrice, qty });
     return { error };
   }
 }
@@ -1051,24 +1060,33 @@ async function getPosition(symbol: string): Promise<{ positionAmt: string; markP
   return positions.find((p) => p.symbol === symbol) ?? null;
 }
 
-async function closeManaged(supabase: SupabaseClient, ex: Json, closeSide: Side, quantity: number, reason: "closed_tp" | "closed_sl" | "closed_breakeven" | "closed_timeout" | "partially_closed", message: string): Promise<Json> {
+async function closeManaged(supabase: SupabaseClient, ex: Json, closeSide: Side, quantity: number, reason: "closed_tp2" | "closed_profit_lock" | "closed_sl" | "closed_breakeven" | "closed_expired" | "closed_expired_after_tp1" | "partially_closed", message: string): Promise<Json> {
   const result = await binanceRequest<{ orderId: number }>("POST", "/fapi/v1/order", { symbol: String(ex.symbol), side: closeSide, type: "MARKET", quantity, reduceOnly: true }, true);
   const update: Json = { status: reason, raw_exchange_response: { managed_close: result }, updated_at: new Date().toISOString() };
   if (reason === "partially_closed") {
     update.tp1_filled = true;
-    update.sl_moved_to_be = true;
-    update.be_stop_level = Number(ex.entry_price);
+    const entry = Number(ex.entry_price);
+    const originalSl = Number(ex.original_sl_price ?? ex.intended_sl ?? ex.stop_loss);
+    const profitLock = String(ex.direction).toLowerCase() === "buy" ? entry + Math.abs(entry - originalSl) * 0.3 : entry - Math.abs(entry - originalSl) * 0.3;
+    update.sl_moved_to_be = false;
+    update.profit_lock_enabled = true;
+    update.profit_lock_r = 0.3;
+    update.profit_lock_price = profitLock;
+    update.replacement_sl_price = profitLock;
+    update.profit_lock_status = "managed_active";
+    update.profit_lock_sl_active = true;
+    update.be_stop_level = profitLock;
     update.protection_status = "protected_managed";
   }
   await supabase.from("execution_orders").update(update).eq("id", String(ex.id));
   await logEvent(supabase, String(ex.id), reason === "partially_closed" ? "managed_tp1_hit" : `managed_${reason}`, message, { result, quantity });
   const lines = reason === "partially_closed"
-    ? ["TP1 hit", "Closed: 50%", "SL moved to break-even", "Remaining position: 50%"]
-    : reason === "closed_tp"
+    ? ["TP1 hit", "Closed: 50%", "+0.3R profit-lock SL active", "Remaining position: 50%"]
+    : reason === "closed_tp2"
       ? ["TP2 hit", "Closed remaining position", "Trade closed TP"]
-      : reason === "closed_breakeven"
-        ? ["Break-even SL hit", "Remaining position closed"]
-        : reason === "closed_timeout"
+      : reason === "closed_profit_lock"
+        ? ["Profit-lock SL hit", "TP1 secured", "Trade closed with protected profit"]
+        : reason === "closed_expired" || reason === "closed_expired_after_tp1"
           ? ["Time-stop expired", "Remaining position closed"]
           : ["SL hit", "Full position closed"];
   await sendExecutionTelegram(supabase, String(ex.signal_id), reason, lines);
@@ -1104,19 +1122,22 @@ async function syncExecution(supabase: SupabaseClient, executionId: string): Pro
 
     if (ex.bracket_mode === "managed_exit_fallback" && !TERMINAL_STATUSES.includes(String(ex.status)) && position) {
       if (openAmt <= 0) {
-        await supabase.from("execution_orders").update({ status: ex.tp1_filled ? "closed_tp" : "closed_sl", updated_at: new Date().toISOString() }).eq("id", executionId);
-        return { success: true, status: ex.tp1_filled ? "closed_tp" : "closed_sl", position };
+        await supabase.from("execution_orders").update({ status: ex.tp1_filled ? "closed_manual" : "closed_sl", updated_at: new Date().toISOString() }).eq("id", executionId);
+        return { success: true, status: ex.tp1_filled ? "closed_manual" : "closed_sl", position };
       }
       const isLong = ex.direction === "buy";
       const tp1Filled = Boolean(ex.tp1_filled) || String(ex.status) === "partially_closed";
-      const activeSl = tp1Filled && ex.sl_moved_to_be ? Number(ex.be_stop_level ?? ex.entry_price) : Number(ex.stop_loss);
+      const entry = Number(ex.entry_price);
+      const originalSl = Number(ex.original_sl_price ?? ex.intended_sl ?? ex.stop_loss);
+      const profitLockSl = Number(ex.replacement_sl_price ?? ex.profit_lock_price) || (String(ex.direction).toLowerCase() === "buy" ? entry + Math.abs(entry - originalSl) * 0.3 : entry - Math.abs(entry - originalSl) * 0.3);
+      const activeSl = tp1Filled ? profitLockSl : Number(ex.stop_loss);
       const hitSl = isLong ? mark <= activeSl : mark >= activeSl;
       const hitTp2 = isLong ? mark >= Number(ex.tp2) : mark <= Number(ex.tp2);
       const hitTp1 = isLong ? mark >= Number(ex.tp1) : mark <= Number(ex.tp1);
-      if (hitSl && tp1Filled) return closeManaged(supabase, ex, closeSide, floorToStep(openAmt, rules.stepSize, rules.quantityPrecision), "closed_breakeven", "Break-even SL hit / remaining position closed by managed fallback");
+      if (hitSl && tp1Filled) return closeManaged(supabase, ex, closeSide, floorToStep(openAmt, rules.stepSize, rules.quantityPrecision), "closed_profit_lock", "Profit-lock SL hit / remaining position closed by managed fallback");
       if (hitSl) return closeManaged(supabase, ex, closeSide, floorToStep(openAmt, rules.stepSize, rules.quantityPrecision), "closed_sl", "SL hit / full position closed by managed fallback");
-      if (hitTp2) return closeManaged(supabase, ex, closeSide, floorToStep(openAmt, rules.stepSize, rules.quantityPrecision), "closed_tp", "TP2 hit / remaining position closed by managed fallback");
-      if (hitTp1 && !tp1Filled) return closeManaged(supabase, ex, closeSide, floorToStep(openAmt * 0.5, rules.stepSize, rules.quantityPrecision), "partially_closed", "TP1 hit / 50% closed by managed fallback; SL moved to break-even");
+      if (hitTp2) return closeManaged(supabase, ex, closeSide, floorToStep(openAmt, rules.stepSize, rules.quantityPrecision), "closed_tp2", "TP2 hit / remaining position closed by managed fallback");
+      if (hitTp1 && !tp1Filled) return closeManaged(supabase, ex, closeSide, floorToStep(openAmt * 0.5, rules.stepSize, rules.quantityPrecision), "partially_closed", "TP1 hit / 50% closed by managed fallback; +0.3R profit lock active");
       await supabase.from("execution_orders").update({ status: tp1Filled ? "partially_closed" : "entry_filled", protection_status: "protected_managed", bracket_mode: "managed_exit_fallback", raw_exchange_response: raw, updated_at: new Date().toISOString() }).eq("id", executionId);
       return { success: true, status: tp1Filled ? "partially_closed" : "entry_filled", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed", mark_price: mark };
     }
@@ -1129,23 +1150,23 @@ async function syncExecution(supabase: SupabaseClient, executionId: string): Pro
     raw.orders = { tp1, tp2, sl } as Json;
     let status = String(ex.status);
     const tp1Filled = Boolean(ex.tp1_filled) || algoFilled(tp1?.status) || status === "partially_closed";
-    if (algoFilled(sl?.status) && tp1Filled && ex.sl_moved_to_be) {
+    if (algoFilled(sl?.status) && tp1Filled) {
       await cancelAlgoOrder(String(ex.symbol), ex.tp2_algo_id ?? ex.tp2_order_id);
-      status = "closed_breakeven";
-      await sendExecutionTelegram(supabase, signalId, "closed_breakeven", ["Break-even SL hit", "Remaining position closed"]);
+      status = "closed_profit_lock";
+      await sendExecutionTelegram(supabase, signalId, "closed_profit_lock", ["Profit-lock SL hit", "TP1 secured", "Trade closed with protected profit"]);
     } else if (algoFilled(sl?.status)) {
       await Promise.all([cancelAlgoOrder(String(ex.symbol), ex.tp1_algo_id ?? ex.tp1_order_id), cancelAlgoOrder(String(ex.symbol), ex.tp2_algo_id ?? ex.tp2_order_id)]);
       status = "closed_sl";
       await sendExecutionTelegram(supabase, signalId, "closed_sl", ["SL hit", "Full position closed"]);
     } else if (algoFilled(tp2?.status)) {
       await cancelAlgoOrder(String(ex.symbol), ex.sl_algo_id ?? ex.sl_order_id);
-      status = "closed_tp";
-      await sendExecutionTelegram(supabase, signalId, "closed_tp", ["TP2 hit", "Closed remaining position", "Trade closed TP"]);
+      status = "closed_tp2";
+      await sendExecutionTelegram(supabase, signalId, "closed_tp2", ["TP2 hit", "Closed remaining position", "Trade closed TP"]);
     } else if (algoFilled(tp1?.status) && !ex.tp1_filled) {
       const remaining = openAmt > 0 ? openAmt : Number(ex.tp2_order_id ? ex.quantity : 0) * 0.5;
-      const be = await submitBreakevenSl(supabase, executionId, ex, closeSide, remaining, rules);
+      const be = await submitProfitLockSl(supabase, executionId, ex, closeSide, remaining, rules);
       status = "partially_closed";
-      await sendExecutionTelegram(supabase, signalId, "partially_closed", ["TP1 hit", "Closed: 50%", be.error ? `SL move failed: ${be.error}` : "SL moved to break-even", "Remaining position: 50%"]);
+      await sendExecutionTelegram(supabase, signalId, "partially_closed", ["TP1 hit", "Closed: 50%", be.error ? `Profit-lock SL failed: ${be.error}` : "Profit-lock SL active at +0.3R", "Remaining position: 50%"]);
     } else if (ex.sl_order_id && ex.tp1_order_id && ex.tp2_order_id && !TERMINAL_STATUSES.includes(status)) {
       status = tp1Filled ? "partially_closed" : "protected_native";
     }
