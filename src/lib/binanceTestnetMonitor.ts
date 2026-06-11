@@ -23,6 +23,11 @@ export type MonitorEventType =
   | 'native_tp1_filled'
   | 'native_tp2_filled'
   | 'native_sl_filled'
+  | 'tp1_profit_lock_active'
+  | 'profit_lock_sl_filled'
+  | 'runner_expired_after_tp1'
+  | 'position_expired_closed'
+  | 'order_cleanup_warning'
   | 'managed_tp1_closed'
   | 'managed_tp2_closed'
   | 'managed_sl_closed'
@@ -31,7 +36,8 @@ export type MonitorEventType =
   | 'sl_moved_to_be'
   | 'stale_closed'
   | 'closed_synced'
-  | 'manual_position_closed';
+  | 'manual_position_closed'
+  | 'closed_manual';
 
 export interface MonitorEnv {
   EXECUTION_MODE?: string;
@@ -73,11 +79,34 @@ export interface MonitorExecutionRow {
   tp1_quantity?: number | null;
   tp2_quantity?: number | null;
   remaining_quantity?: number | null;
+  remaining_qty?: number | null;
+  partial_close_qty?: number | null;
   volume?: number | null;
   tp1_closed_at?: string | null;
+  tp1_filled?: boolean | null;
+  tp1_fill_price?: number | null;
+  tp1_fill_time?: string | null;
   tp2_closed_at?: string | null;
   sl_closed_at?: string | null;
   sl_moved_to_be?: boolean | null;
+  profit_lock_enabled?: boolean | null;
+  profit_lock_r?: number | null;
+  profit_lock_price?: number | null;
+  profit_lock_status?: string | null;
+  original_sl_price?: number | null;
+  replacement_sl_price?: number | null;
+  replacement_sl_order_id?: string | null;
+  replacement_sl_algo_id?: string | null;
+  replacement_sl_verified?: boolean | null;
+  old_sl_cancelled_after_tp1?: boolean | null;
+  sl_replaced_after_tp1?: boolean | null;
+  runner_active?: boolean | null;
+  tp2_filled?: boolean | null;
+  profit_lock_sl_active?: boolean | null;
+  profit_lock_sl_hit?: boolean | null;
+  runner_expired?: boolean | null;
+  runner_closed?: boolean | null;
+  lifecycle_state?: string | null;
   strategy_name?: string | null;
   timeframe?: string | null;
   created_at?: string | null;
@@ -95,12 +124,15 @@ export interface BinanceOrderSnapshot {
   orderId: string;
   status: OrderStatus;
   avgPrice?: number | string | null;
+  price?: number | string | null;
   executedQty?: number | string | null;
+  updateTime?: number | string | null;
+  time?: number | string | null;
 }
 
 export interface BinanceTruthSnapshot {
   positionAmt: number;
-  openOrders: Array<{ orderId?: string; algoId?: string; reduceOnly?: boolean; type?: string; orderType?: string }>;
+  openOrders: Array<{ orderId?: string; algoId?: string; reduceOnly?: boolean; type?: string; orderType?: string; quantity?: number | string; origQty?: number | string; status?: string }>;
   markPrice?: number | null;
   unrealizedPnl?: number | null;
 }
@@ -109,6 +141,7 @@ export interface MonitorUpdate {
   updates: Record<string, unknown>;
   events: Array<{ type: MonitorEventType; message: string; telegram: boolean }>;
   reduceOnlyMarketOrders: Array<{ symbol: string; side: 'BUY' | 'SELL'; quantity: number; reason: 'tp1' | 'tp2' | 'sl' | 'timeout' }>;
+  replacementStopOrders: Array<{ symbol: string; side: 'BUY' | 'SELL'; quantity: number; stopPrice: number; reason: 'profit_lock' }>;
   cancelOrderIds: string[];
 }
 
@@ -150,6 +183,21 @@ function stopHit(direction: Direction, markPrice: number, stop: number): boolean
   return direction === 'buy' ? markPrice <= stop : markPrice >= stop;
 }
 
+export function calculateProfitLockPrice(direction: Direction, entryPrice: number, originalStopLoss: number, profitLockR = 0.3): number {
+  const riskDistance = Math.abs(entryPrice - originalStopLoss);
+  if (!Number.isFinite(entryPrice) || !Number.isFinite(originalStopLoss) || riskDistance <= 0) return 0;
+  return direction === 'buy' ? entryPrice + riskDistance * profitLockR : entryPrice - riskDistance * profitLockR;
+}
+
+function orderFillPrice(order: BinanceOrderSnapshot | undefined, fallback: number | null | undefined): number | null {
+  return num(order?.avgPrice) ?? num(order?.price) ?? fallback ?? null;
+}
+
+function orderFillTime(order: BinanceOrderSnapshot | undefined, fallbackIso: string): string {
+  const ms = num(order?.updateTime) ?? num(order?.time);
+  return ms && ms > 0 ? new Date(ms).toISOString() : fallbackIso;
+}
+
 export function timeStopMinutes(strategyName: string | number | null | undefined, timeframe: string | null | undefined): number | null {
   if (typeof strategyName === 'number' && Number.isFinite(strategyName) && strategyName > 0) return strategyName;
   const key = `${String(strategyName ?? '').toLowerCase()}:${String(timeframe ?? '').toLowerCase()}`;
@@ -188,7 +236,7 @@ function pushUniqueCancel(out: MonitorUpdate, ids: Array<string | number | null 
 }
 
 function allProtectionIds(row: MonitorExecutionRow): string[] {
-  return [row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id]
+  return [row.replacement_sl_algo_id ?? row.replacement_sl_order_id, row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id]
     .filter(Boolean)
     .map(String);
 }
@@ -199,8 +247,31 @@ function rowAgeMs(row: MonitorExecutionRow): number {
   return Number.isFinite(ms) ? Date.now() - ms : 0;
 }
 
-function syncedNoPositionStatus(row: MonitorExecutionRow): 'closed_synced' | 'stale_closed' {
-  return ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'partially_closed', 'pending_protection', 'pending_managed_protection'].includes(row.status) ? 'closed_synced' : 'stale_closed';
+function syncedNoPositionStatus(row: MonitorExecutionRow): 'closed_synced' | 'stale_closed' | 'closed_manual' {
+  return ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'partially_closed', 'pending_protection', 'pending_managed_protection'].includes(row.status) ? 'closed_manual' : 'stale_closed';
+}
+
+export type ExecutionLifecycleOutcome =
+  | 'open_runner'
+  | 'win_tp2'
+  | 'protected_profit_lock'
+  | 'loss_direct_sl'
+  | 'expired_before_tp1'
+  | 'expired_after_tp1'
+  | 'manual_closed'
+  | 'pending_sync'
+  | 'no_trade';
+
+export function classifyExecutionLifecycleOutcome(row: Pick<MonitorExecutionRow, 'status' | 'tp1_filled' | 'tp1_closed_at' | 'runner_active' | 'tp2_closed_at' | 'sl_closed_at'>): ExecutionLifecycleOutcome {
+  if (row.status === 'entry_timeout_cancelled' || row.status === 'entry_missing_no_position' || row.status === 'cancelled' || row.status === 'skipped') return 'no_trade';
+  if (row.status === 'closed_tp2' || row.status === 'closed_tp' || row.tp2_closed_at) return 'win_tp2';
+  if (row.status === 'closed_profit_lock') return 'protected_profit_lock';
+  if (row.status === 'closed_sl' && !(row.tp1_filled || row.tp1_closed_at)) return 'loss_direct_sl';
+  if (row.status === 'closed_expired') return 'expired_before_tp1';
+  if (row.status === 'closed_expired_after_tp1') return 'expired_after_tp1';
+  if (row.status === 'closed_manual') return 'manual_closed';
+  if (row.runner_active || row.status === 'partially_closed') return 'open_runner';
+  return 'pending_sync';
 }
 
 export function processExecutionMonitorTick(
@@ -208,7 +279,7 @@ export function processExecutionMonitorTick(
   truth: BinanceTruthSnapshot,
   orderById: Record<string, BinanceOrderSnapshot | undefined>,
 ): MonitorUpdate {
-  const out: MonitorUpdate = { updates: {}, events: [], reduceOnlyMarketOrders: [], cancelOrderIds: [] };
+  const out: MonitorUpdate = { updates: {}, events: [], reduceOnlyMarketOrders: [], replacementStopOrders: [], cancelOrderIds: [] };
   const checkedAt = new Date().toISOString();
   out.updates.last_monitor_checked_at = checkedAt;
   const deadline = computeTimeStopDeadline(row);
@@ -226,11 +297,16 @@ export function processExecutionMonitorTick(
     pushUniqueCancel(out, truth.openOrders.map((order) => order.algoId ?? order.orderId));
     pushUniqueCancel(out, allProtectionIds(row));
     if (hasPosition && remaining > 0) out.reduceOnlyMarketOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, reason: 'timeout' });
-    out.updates.status = 'closed_timeout';
+    const afterTp1 = Boolean(row.tp1_closed_at || row.tp1_filled || row.runner_active);
+    out.updates.status = afterTp1 ? 'closed_expired_after_tp1' : 'closed_expired';
+    out.updates.runner_expired = afterTp1;
+    out.updates.runner_closed = true;
+    out.updates.runner_active = false;
     out.updates.remaining_quantity = 0;
+    out.updates.remaining_qty = 0;
     out.updates.expiry_reason = row.expiry_reason ?? 'strategy_time_stop_expired';
     out.updates.last_monitor_action = 'timeout_closed';
-    addEvent(out, 'managed_timeout_closed', `${row.symbol} time-stop expired; remaining TP/SL orders should be cancelled and remaining position closed reduce-only.`);
+    addEvent(out, afterTp1 ? 'runner_expired_after_tp1' : 'position_expired_closed', afterTp1 ? `${row.symbol} runner expired after TP1; remaining runner should be closed reduce-only and TP2/profit-lock conditionals cleaned.` : `${row.symbol} position expired before TP1; full position should be closed reduce-only and TP/SL conditionals cleaned.`);
     return out;
   }
 
@@ -313,25 +389,63 @@ export function processExecutionMonitorTick(
     const tp2 = tp2Id ? orderById[tp2Id] : undefined;
     const sl = slId ? orderById[slId] : undefined;
     if (!row.tp1_closed_at && conditionalFilled(tp1)) {
+      const fillTime = orderFillTime(tp1, checkedAt);
+      const filledQty = num(tp1?.executedQty) ?? row.tp1_quantity ?? Math.max((row.volume ?? Math.abs(truth.positionAmt) * 2) - Math.abs(truth.positionAmt), 0);
+      const remaining = Math.abs(truth.positionAmt) || Math.max((row.volume ?? 0) - filledQty, 0);
+      const originalSl = row.original_sl_price ?? row.intended_sl;
+      const entry = row.entry_price;
+      const lockPrice = entry && originalSl ? calculateProfitLockPrice(row.direction, entry, originalSl, 0.3) : 0;
       out.updates.status = 'partially_closed';
-      out.updates.tp1_closed_at = new Date().toISOString();
-      out.updates.sl_moved_to_be = true;
-      addEvent(out, 'native_tp1_filled', `${row.symbol} TP1 filled; position partially closed.`);
-      addEvent(out, 'sl_moved_to_be', `${row.symbol} SL moved/confirmed at break-even for remaining quantity.`);
+      out.updates.lifecycle_state = 'tp1_filled_profit_lock_pending';
+      out.updates.tp1_filled = true;
+      out.updates.tp1_closed_at = fillTime;
+      out.updates.tp1_fill_time = fillTime;
+      out.updates.tp1_fill_price = orderFillPrice(tp1, row.intended_tp1);
+      out.updates.partial_close_qty = filledQty;
+      out.updates.remaining_quantity = remaining;
+      out.updates.remaining_qty = remaining;
+      out.updates.runner_active = remaining > 0;
+      out.updates.tp2_pending = true;
+      out.updates.profit_lock_enabled = true;
+      out.updates.profit_lock_r = 0.3;
+      out.updates.original_sl_price = originalSl;
+      if (lockPrice > 0) {
+        out.updates.profit_lock_price = lockPrice;
+        out.updates.replacement_sl_price = lockPrice;
+        out.updates.profit_lock_status = 'replacement_pending';
+        out.replacementStopOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, stopPrice: lockPrice, reason: 'profit_lock' });
+      }
+      addEvent(out, 'native_tp1_filled', `${row.symbol} TP1 filled; partial quantity ${filledQty}; runner quantity ${remaining}.`);
+      addEvent(out, 'tp1_profit_lock_active', `${row.symbol} TP1 hit — profit lock +0.3R replacement SL required for remaining runner.`);
       nativeChanged = true;
     }
     if (!row.tp2_closed_at && conditionalFilled(tp2)) {
-      out.updates.status = 'closed_tp';
-      out.updates.tp2_closed_at = new Date().toISOString();
-      pushUniqueCancel(out, [slId, tp1Id]);
-      addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 filled; position closed in profit. Remaining TP/SL conditionals queued for cleanup verification.`);
+      const fillTime = orderFillTime(tp2, checkedAt);
+      out.updates.status = 'closed_tp2';
+      out.updates.lifecycle_state = 'closed_tp2';
+      out.updates.tp2_closed_at = fillTime;
+      out.updates.tp2_filled = true;
+      out.updates.runner_closed = true;
+      out.updates.runner_active = false;
+      out.updates.remaining_quantity = 0;
+      out.updates.remaining_qty = 0;
+      pushUniqueCancel(out, [slId, tp1Id, row.replacement_sl_algo_id, row.replacement_sl_order_id]);
+      addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 hit — trade closed; leftover SL/profit-lock conditionals queued for cleanup verification.`);
       nativeChanged = true;
     }
     if (!row.sl_closed_at && conditionalFilled(sl)) {
-      out.updates.status = 'closed_sl';
-      out.updates.sl_closed_at = new Date().toISOString();
+      const profitLockHit = Boolean(row.tp1_closed_at || row.tp1_filled || row.sl_replaced_after_tp1 || row.profit_lock_sl_active);
+      const fillTime = orderFillTime(sl, checkedAt);
+      out.updates.status = profitLockHit ? 'closed_profit_lock' : 'closed_sl';
+      out.updates.lifecycle_state = profitLockHit ? 'closed_profit_lock' : 'closed_sl';
+      out.updates.sl_closed_at = fillTime;
+      out.updates.profit_lock_sl_hit = profitLockHit;
+      out.updates.runner_closed = true;
+      out.updates.runner_active = false;
+      out.updates.remaining_quantity = 0;
+      out.updates.remaining_qty = 0;
       pushUniqueCancel(out, [tp1Id, tp2Id]);
-      addEvent(out, 'native_sl_filled', `${row.symbol} SL filled; position closed. Remaining TP conditionals queued for cleanup verification.`);
+      addEvent(out, profitLockHit ? 'profit_lock_sl_filled' : 'native_sl_filled', profitLockHit ? `${row.symbol} profit-lock stop hit — trade closed with protected profit; TP2 cleanup queued.` : `${row.symbol} original SL hit before TP1 — trade closed; TP cleanup queued.`);
       nativeChanged = true;
     }
     if (nativeChanged) return out;
@@ -346,7 +460,7 @@ export function processExecutionMonitorTick(
     const intendedTp2 = row.intended_tp2;
     const remaining = row.remaining_quantity ?? row.volume ?? Math.abs(truth.positionAmt);
     const half = row.tp1_quantity ?? (row.volume ? row.volume / 2 : Math.abs(truth.positionAmt) / 2);
-    const activeStop = row.sl_moved_to_be && entry ? entry : intendedSl;
+    const activeStop = row.profit_lock_sl_active && row.replacement_sl_price ? row.replacement_sl_price : row.sl_moved_to_be && entry ? calculateProfitLockPrice(row.direction, entry, intendedSl ?? 0, row.profit_lock_r ?? 0.3) : intendedSl;
 
 
     if (!row.tp1_closed_at && intendedTp1 && targetHit(row.direction, mark, intendedTp1)) {
@@ -355,29 +469,56 @@ export function processExecutionMonitorTick(
       out.updates.status = 'partially_closed';
       out.updates.tp1_closed_at = new Date().toISOString();
       out.updates.remaining_quantity = Math.max(remaining - qty, 0);
-      out.updates.sl_moved_to_be = true;
+      const originalSl = row.original_sl_price ?? intendedSl;
+      const lockPrice = entry && originalSl ? calculateProfitLockPrice(row.direction, entry, originalSl, 0.3) : 0;
+      out.updates.tp1_filled = true;
+      out.updates.tp1_fill_time = checkedAt;
+      out.updates.tp1_fill_price = mark;
+      out.updates.partial_close_qty = qty;
+      out.updates.remaining_qty = Math.max(remaining - qty, 0);
+      out.updates.runner_active = Math.max(remaining - qty, 0) > 0;
+      out.updates.lifecycle_state = 'tp1_filled_profit_lock_active';
+      out.updates.profit_lock_enabled = true;
+      out.updates.profit_lock_r = 0.3;
+      out.updates.original_sl_price = originalSl;
+      out.updates.profit_lock_price = lockPrice;
+      out.updates.replacement_sl_price = lockPrice;
+      out.updates.profit_lock_status = 'managed_active';
+      out.updates.profit_lock_sl_active = true;
+      out.updates.sl_moved_to_be = false;
       addEvent(out, 'managed_tp1_closed', `${row.symbol} managed TP1 hit; reduce-only market closed 50%.`);
-      addEvent(out, 'sl_moved_to_be', `${row.symbol} managed SL moved to break-even after TP1.`);
+      addEvent(out, 'tp1_profit_lock_active', `${row.symbol} managed +0.3R profit lock active for runner.`);
       return out;
     }
     if (intendedTp2 && targetHit(row.direction, mark, intendedTp2)) {
       out.reduceOnlyMarketOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, reason: 'tp2' });
-      out.updates.status = 'closed_tp';
+      out.updates.status = 'closed_tp2';
+      out.updates.lifecycle_state = 'closed_tp2';
       out.updates.tp2_closed_at = new Date().toISOString();
+      out.updates.tp2_filled = true;
+      out.updates.runner_closed = true;
+      out.updates.runner_active = false;
       out.updates.remaining_quantity = 0;
+      out.updates.remaining_qty = 0;
       pushUniqueCancel(out, truth.openOrders.map((order) => order.algoId ?? order.orderId));
       pushUniqueCancel(out, allProtectionIds(row));
-      addEvent(out, 'managed_tp2_closed', `${row.symbol} managed TP2 hit; remaining quantity closed; remaining conditionals queued for cleanup verification.`);
+      addEvent(out, 'managed_tp2_closed', `${row.symbol} TP2 hit — trade closed; remaining conditionals queued for cleanup verification.`);
       return out;
     }
     if (activeStop && stopHit(row.direction, mark, activeStop)) {
       out.reduceOnlyMarketOrders.push({ symbol: row.symbol, side: closeSide(row.direction), quantity: remaining, reason: 'sl' });
-      out.updates.status = 'closed_sl';
+      const profitLockHit = Boolean(row.tp1_closed_at || row.tp1_filled || row.profit_lock_sl_active || row.sl_replaced_after_tp1);
+      out.updates.status = profitLockHit ? 'closed_profit_lock' : 'closed_sl';
+      out.updates.lifecycle_state = profitLockHit ? 'closed_profit_lock' : 'closed_sl';
       out.updates.sl_closed_at = new Date().toISOString();
+      out.updates.profit_lock_sl_hit = profitLockHit;
+      out.updates.runner_closed = true;
+      out.updates.runner_active = false;
       out.updates.remaining_quantity = 0;
+      out.updates.remaining_qty = 0;
       pushUniqueCancel(out, truth.openOrders.map((order) => order.algoId ?? order.orderId));
       pushUniqueCancel(out, allProtectionIds(row));
-      addEvent(out, 'managed_sl_closed', `${row.symbol} managed SL hit; remaining quantity closed; remaining conditionals queued for cleanup verification.`);
+      addEvent(out, profitLockHit ? 'profit_lock_sl_filled' : 'managed_sl_closed', profitLockHit ? `${row.symbol} profit-lock stop hit — trade closed with protected profit; TP2 cleanup queued.` : `${row.symbol} original SL hit — trade closed; remaining conditionals queued for cleanup verification.`);
       return out;
     }
   }
