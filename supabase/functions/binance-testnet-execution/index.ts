@@ -460,19 +460,19 @@ function riskPctForSignal(signal: SignalRow, settings: ExecutionSettings, govern
   const grade = String(signal.grade ?? "").toUpperCase();
   const governorState = governor?.state ?? "normal";
   const gradeRisk = governorState === "aggressive_allowed"
-    ? (grade === "A+" ? 1.0 : 0.75)
-    : (grade === "A+" ? Number(settings.testnet_risk_a_plus ?? 0.75) : Number(settings.testnet_risk_a ?? 0.5));
+    ? (grade === "A+" ? Number(settings.testnet_risk_a_plus ?? 2) : Number(settings.testnet_risk_a ?? 2))
+    : (grade === "A+" ? Number(settings.testnet_risk_a_plus ?? 2) : Number(settings.testnet_risk_a ?? 2));
   const recommended = Number(signal.recommended_risk_pct);
   const selected = Number.isFinite(recommended) && recommended > 0 ? Math.min(recommended, gradeRisk) : gradeRisk;
   const multiplied = selected * Number(governor?.risk_multiplier ?? 1);
-  return Math.min(multiplied, Number(settings.max_testnet_risk_pct ?? 1), 1);
+  return Math.min(multiplied, Number(settings.max_testnet_risk_pct ?? 2), 2);
 }
 
 function leverageForSignal(signal: SignalRow, settings: ExecutionSettings, governor?: GovernorDecision): LeverageSelection {
   const grade = String(signal.grade ?? "").toUpperCase();
   const gradeDefault = grade === "A+" ? Number(settings.testnet_leverage_a_plus ?? 5) : Number(settings.testnet_leverage_a ?? 3);
-  const governorMax = Number(governor?.adjusted_max_leverage ?? settings.testnet_max_leverage ?? 7);
-  const hardMax = Math.min(Number(settings.testnet_max_leverage ?? 7), governorMax, 7);
+  const governorMax = Number(governor?.adjusted_max_leverage ?? settings.testnet_max_leverage ?? 10);
+  const hardMax = Math.min(Number(settings.testnet_max_leverage ?? 10), governorMax, 10);
   const guidance = Number(signal.suggested_leverage_max ?? signal.suggested_leverage_min);
   let requested = gradeDefault;
   let source: LeverageSelection["leverage_source"] = "grade_default";
@@ -602,7 +602,7 @@ async function evaluateGovernor(supabase: SupabaseClient, settings: ExecutionSet
     state,
     reason,
     risk_multiplier: state === "defensive" ? 0.5 : 1,
-    adjusted_max_leverage: state === "defensive" ? Math.min(Number(settings.testnet_max_leverage ?? 7), 3) : Math.min(Number(settings.testnet_max_leverage ?? 7), 7),
+    adjusted_max_leverage: state === "defensive" ? Math.min(Number(settings.testnet_max_leverage ?? 10), 3) : Math.min(Number(settings.testnet_max_leverage ?? 10), 10),
     adjusted_max_open_positions: state === "defensive" ? 1 : Number(settings.max_open_testnet_positions ?? 3),
     daily_pnl_pct: dailyPnlPct,
     unrealized_pnl: unrealizedPnl,
@@ -667,7 +667,7 @@ async function capitalSnapshot(settings: ExecutionSettings): Promise<CapitalSnap
 }
 
 function buildPlan(signal: SignalRow, rules: SymbolRules, capital: CapitalSnapshot, settings: ExecutionSettings, governor?: GovernorDecision): OrderPlan {
-  const decision = governor ?? { state: "normal", reason: "governor_not_evaluated", risk_multiplier: 1, adjusted_max_leverage: Math.min(Number(settings.testnet_max_leverage ?? 7), 7), adjusted_max_open_positions: Number(settings.max_open_testnet_positions ?? 3), daily_pnl_pct: null, unrealized_pnl: null, current_equity: null, blocks_execution: false, execution_allowed: true, testnet_governor_mode: settings.testnet_governor_mode ?? "normal" };
+  const decision = governor ?? { state: "normal", reason: "governor_not_evaluated", risk_multiplier: 1, adjusted_max_leverage: Math.min(Number(settings.testnet_max_leverage ?? 10), 10), adjusted_max_open_positions: Number(settings.max_open_testnet_positions ?? 3), daily_pnl_pct: null, unrealized_pnl: null, current_equity: null, blocks_execution: false, execution_allowed: true, testnet_governor_mode: settings.testnet_governor_mode ?? "normal" };
   const entry = roundToTick(entryPrice(signal), rules.tickSize, rules.pricePrecision);
   const stopLoss = roundToTick(Number(signal.stop_loss), rules.tickSize, rules.pricePrecision);
   const tp1 = roundToTick(Number(signal.tp1), rules.tickSize, rules.pricePrecision);
@@ -692,7 +692,7 @@ function buildPlan(signal: SignalRow, rules: SymbolRules, capital: CapitalSnapsh
   if (tp1Quantity + tp2Quantity < quantity) adjustments.push("TP quantities rounded below full position size to respect step size");
   if (lev.leverage_source === "capped_to_max") adjustments.push(`Leverage capped to ${lev.leverage}x`);
   if (decision.state === "defensive") adjustments.push("Risk governor defensive mode applied: 0.5x risk, max 3x leverage, max 1 open position");
-  if (decision.state === "aggressive_allowed") adjustments.push("Risk governor aggressive_allowed mode applied: A risk 0.75%, A+ risk up to 1.0%, hard cap still enforced");
+  if (decision.state === "aggressive_allowed") adjustments.push("Risk governor aggressive_allowed mode applied: testnet risk remains capped by admin setting/max cap; hard cap still enforced");
   if (quantity < rules.minQty) throw new Error(`skipped_invalid_sizing: Calculated quantity ${quantity} below minQty ${rules.minQty}`);
   if (notional < rules.minNotional) throw new Error(`skipped_invalid_sizing: Calculated notional ${notional.toFixed(2)} below minNotional ${rules.minNotional}`);
   if (tp1Quantity <= 0 || tp2Quantity <= 0) throw new Error("skipped_invalid_sizing: TP split invalid after precision rounding");
@@ -710,8 +710,8 @@ async function getSettings(supabase: SupabaseClient): Promise<ExecutionSettings>
     execution_mode: "signal_only", exchange: "binance_usdm_testnet", testnet_enabled: false, live_trading_enabled: false,
     kill_switch_enabled: false, auto_execute_testnet: false, max_open_testnet_positions: 3, max_open_testnet_positions_allowed_max: 10, max_total_open_risk_pct: 3, one_active_execution_per_symbol: true,
     testnet_enabled_at: null, fallback_account_balance: 10000, capital_basis: "available_usdt", testnet_capital_override_usdt: null,
-    max_capital_used_usdt: null, testnet_risk_a: 0.5, testnet_risk_a_plus: 0.75, max_testnet_risk_pct: 1,
-    testnet_leverage_a: 3, testnet_leverage_a_plus: 5, testnet_max_leverage: 7, governor_enabled: true, testnet_governor_mode: "normal", governor_state: "normal", daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
+    max_capital_used_usdt: null, testnet_risk_a: 2, testnet_risk_a_plus: 2, max_testnet_risk_pct: 2,
+    testnet_leverage_a: 10, testnet_leverage_a_plus: 10, testnet_max_leverage: 10, governor_enabled: true, testnet_governor_mode: "normal", governor_state: "normal", daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
   } as ExecutionSettings;
 }
 

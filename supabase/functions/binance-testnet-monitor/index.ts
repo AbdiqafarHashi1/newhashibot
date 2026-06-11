@@ -607,13 +607,13 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
     }
     if (!row.tp2_closed_at && algoFilled(tp2)) {
       Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0, last_monitor_action: "managed_tp2_closed" });
-      if (slAlgoId) { await cancelAlgoOrder(row.symbol, String(slAlgoId)); stats.cancelled_orders += 1; }
-      await logEvent(supabase, row, "native_tp2_filled", `${row.symbol} TP2 filled; position closed in profit.`, { tp2 }, stats);
+      const cancelled = await cancelRemainingProtection(row, stats);
+      await logEvent(supabase, row, "native_tp2_filled", `${row.symbol} TP2 filled; position closed in profit; remaining TP/SL conditionals cleaned.`, { tp2, cancelled }, stats);
     }
     if (!row.sl_closed_at && algoFilled(sl)) {
       Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0, last_monitor_action: row.sl_moved_to_be ? "managed_be_closed" : "managed_sl_closed" });
-      for (const oid of [tp1AlgoId, tp2AlgoId].filter(Boolean).map(String)) { await cancelAlgoOrder(row.symbol, oid); stats.cancelled_orders += 1; }
-      await logEvent(supabase, row, "native_sl_filled", `${row.symbol} SL filled; position closed.`, { sl }, stats);
+      const cancelled = await cancelRemainingProtection(row, stats);
+      await logEvent(supabase, row, "native_sl_filled", `${row.symbol} SL filled; position closed; remaining TP conditionals cleaned.`, { sl, cancelled }, stats);
     }
   }
 
@@ -642,7 +642,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   const protectionStatus = String(row.protection_status ?? "");
   const isProtected = ["protected", "protected_native", "protected_managed"].includes(protectionStatus);
   if (hasPosition && !isProtected && ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed"].includes(row.status)) {
-    await logEvent(supabase, row, "unprotected_recovery_attempt", `${row.symbol} open position without protection — attempting recovery.`, { positionAmt, protection_status: protectionStatus }, stats);
+    await logEvent(supabase, row, "unprotected_recovery_attempt", `${row.symbol} unsafe_untracked_position: open Binance position without protection — attempting recovery.`, { positionAmt, protection_status: protectionStatus }, stats);
     const qty = Math.abs(positionAmt) > 0 ? Math.abs(positionAmt) : n(row.quantity) || n(row.volume);
     const recovered = await protectOrSafetyClose(supabase, row, qty, stats, "protection_pending_recovery");
     if (recovered === "closed_unprotected_safety") return;
@@ -665,13 +665,15 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
       Object.assign(update, { status: "closed_tp", tp2_closed_at: now, remaining_quantity: 0, last_monitor_action: "managed_tp2_closed" });
       stats.reduce_only_orders += 1;
       stats.last_managed_action = { symbol: row.symbol, action: "tp2", quantity: remaining, order: closeResult, at: now };
-      await logEvent(supabase, row, "managed_tp2_closed", `${row.symbol} managed TP2 hit; closed remaining reduce-only.`, { markPrice, remaining }, stats);
+      const cancelled = await cancelRemainingProtection(row, stats);
+      await logEvent(supabase, row, "managed_tp2_closed", `${row.symbol} managed TP2 hit; closed remaining reduce-only and cleaned conditionals.`, { markPrice, remaining, cancelled }, stats);
     } else if (activeStop > 0 && stopHit(row.direction, markPrice, activeStop)) {
       const closeResult = await closeReduceOnly(row, remaining, "sl");
       Object.assign(update, { status: "closed_sl", sl_closed_at: now, remaining_quantity: 0, last_monitor_action: row.sl_moved_to_be ? "managed_be_closed" : "managed_sl_closed" });
       stats.reduce_only_orders += 1;
       stats.last_managed_action = { symbol: row.symbol, action: "sl", quantity: remaining, order: closeResult, at: now };
-      await logEvent(supabase, row, "managed_sl_closed", `${row.symbol} managed SL hit; closed remaining reduce-only.`, { markPrice, remaining, activeStop }, stats);
+      const cancelled = await cancelRemainingProtection(row, stats);
+      await logEvent(supabase, row, "managed_sl_closed", `${row.symbol} managed SL hit; closed remaining reduce-only and cleaned conditionals.`, { markPrice, remaining, activeStop, cancelled }, stats);
     }
   }
 

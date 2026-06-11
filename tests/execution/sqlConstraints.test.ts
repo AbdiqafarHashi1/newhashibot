@@ -11,6 +11,7 @@ const b64Sql = readFileSync('supabase/migrations/20260608203000_050_b6_4_binance
 const b66Sql = readFileSync('supabase/migrations/20260609120000_052_b6_6_entry_submitted_protection_pending_fix.sql', 'utf8');
 const b67Sql = readFileSync('supabase/migrations/20260609130000_053_b6_7_monitor_row_isolation_and_visibility.sql', 'utf8');
 const monitorFn = readFileSync('supabase/functions/binance-testnet-monitor/index.ts', 'utf8');
+const cryptoFix1Sql = readFileSync('supabase/migrations/20260611120000_059_crypto_fix_1_testnet_risk_leverage_truth.sql', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -73,5 +74,10 @@ assert.match(monitorFn, /for \(const row of[\s\S]*try[\s\S]*monitorRow\(supabase
 assert.match(monitorFn, /return jsonResponse\(\{ success: true, action: "binance_testnet_monitor"[\s\S]*row_errors/, 'B6.7 returns 200 summaries with row_errors');
 assert.match(monitorFn, /orphan_protection_orders_cancelled/, 'B6.7 cancels orphan protection orders after manual close');
 assert.match(monitorFn, /closed_unprotected_safety/, 'B6.7 retains safety close path for unprotected positions');
+assert.match(monitorFn, /unsafe_untracked_position/, 'Crypto Fix 1 monitor marks unsafe untracked Binance positions');
+assert.match(monitorFn, /cancelRemainingProtection\(row, stats\)/, 'Crypto Fix 1 monitor cleans remaining conditionals on terminal exits');
+assert.match(cryptoFix1Sql, /testnet_risk_a = 2\.0/, 'Crypto Fix 1 sets testnet A risk to 2%');
+assert.match(cryptoFix1Sql, /testnet_leverage_a = 10/, 'Crypto Fix 1 sets testnet leverage to 10x');
+assert.match(cryptoFix1Sql, /execution_mode = 'testnet'/, 'Crypto Fix 1 settings are testnet scoped');
 
 console.log('SQL constraint tests passed');

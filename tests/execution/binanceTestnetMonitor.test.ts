@@ -18,7 +18,7 @@ async function run() {
 
   const nativeTp2 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 0, openOrders: [{ algoId: 'sl' }], markPrice: 121 }, { tp2: { orderId: 'tp2', status: 'FILLED' } });
   assert.equal(nativeTp2.updates.status, 'closed_tp', 'native TP2 close detection');
-  assert.deepEqual(nativeTp2.cancelOrderIds, ['sl']);
+  assert.deepEqual(nativeTp2.cancelOrderIds.sort(), ['sl', 'tp1'].sort(), 'TP2 closure cancels all remaining native conditionals');
 
   const nativeExpired = processExecutionMonitorTick({ ...native, opened_at: new Date(Date.now() - 121 * 60_000).toISOString(), max_hold_minutes: 120 }, { positionAmt: 1, openOrders: [{ algoId: 'sl' }, { algoId: 'tp1' }, { algoId: 'tp2' }], markPrice: 101 }, {});
   assert.equal(nativeExpired.updates.status, 'closed_timeout', 'native protected execution also expires through monitor time-stop');
