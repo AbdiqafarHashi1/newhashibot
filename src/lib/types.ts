@@ -542,6 +542,9 @@ export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   risk_amount: number | null;
   notional: number | null;
   leverage_source: string | null;
+  risk_source?: string | null;
+  stress_mode?: boolean | null;
+  open_risk_guard?: string | null;
   latest_auto_skip_reason: string | null;
   breakeven_sl_order_id: string | null;
   tp1_filled: boolean | null;
@@ -650,6 +653,10 @@ export interface ExecutionSettings {
   testnet_leverage_a: number;
   testnet_leverage_a_plus: number;
   testnet_max_leverage: number;
+  stress_override_enabled: boolean;
+  stress_risk_pct: number;
+  stress_leverage: number;
+  stress_ignore_open_risk_limit: boolean;
   governor_enabled: boolean;
   testnet_governor_mode: 'normal' | 'readonly' | 'off_for_testing';
   governor_state: 'normal' | 'defensive' | 'aggressive_allowed' | 'paused';

@@ -694,7 +694,7 @@ export default function Performance() {
           .limit(5000),
         supabase.from('strategy_configs').select('strategy_name').order('strategy_name'),
         supabase.from('execution_orders')
-          .select('id,signal_id,symbol,direction,execution_mode,status,latest_auto_skip_reason,error_message,last_exchange_error,latest_monitor_error,latest_sync_error,entry_price,stop_loss,tp1,tp2,entry_order_id,binance_entry_order_id,sl_algo_id,tp1_algo_id,tp2_algo_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,entry_filled_at,protection_submitted_at,protected_at,protection_status,bracket_mode,native_protection_verified,managed_fallback_active,current_position_size,remaining_quantity,tp1_closed_at,tp2_closed_at,sl_closed_at,timeout_closed_at,stale_checked_at,stale_cleanup_reason,last_monitor_action,latest_mark_price,latest_unrealized_pnl,created_at,updated_at')
+          .select('id,signal_id,symbol,direction,execution_mode,status,latest_auto_skip_reason,error_message,last_exchange_error,latest_monitor_error,latest_sync_error,entry_price,stop_loss,tp1,tp2,entry_order_id,binance_entry_order_id,sl_algo_id,tp1_algo_id,tp2_algo_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,entry_filled_at,protection_submitted_at,protected_at,protection_status,bracket_mode,native_protection_verified,managed_fallback_active,current_position_size,remaining_quantity,remaining_qty,runner_active,profit_lock_sl_active,tp1_filled,tp2_filled,tp1_closed_at,tp2_closed_at,sl_closed_at,timeout_closed_at,stale_checked_at,stale_cleanup_reason,last_monitor_action,latest_mark_price,latest_unrealized_pnl,created_at,updated_at')
           .order('created_at', { ascending: false })
           .limit(5000),
         supabase.from('execution_settings')
@@ -1252,7 +1252,12 @@ export default function Performance() {
           <StatCard label="Bot total R" value={fmtR(executionSummary.botTotalR)} sub={executionSummary.pendingSync > 0 ? `${executionSummary.pendingSync} pending sync` : 'synced filled trades'} />
           <StatCard label="Filled TP1" value={executionSummary.tp1Hits} sub="filled-trade count" />
           <StatCard label="Filled TP2" value={executionSummary.tp2Hits} sub="filled-trade count" />
-          <StatCard label="Filled SL" value={executionSummary.slHits} sub="filled-trade count" />
+          <StatCard label="Profit-Lock Count" value={executionSummary.profitLockSlHits} sub="closed_profit_lock only" />
+          <StatCard label="Direct SL Count" value={executionSummary.slHits} sub="excludes profit-lock closures" />
+          <StatCard label="Expiry Count" value={executionSummary.closedExpired + executionSummary.closedExpiredAfterTp1} sub={`${executionSummary.closedExpiredAfterTp1} after TP1`} />
+          <StatCard label="Manual Close Count" value={executionSummary.closedManual} sub="Binance manual/synced closes" />
+          <StatCard label="Open Runner Count" value={executionSummary.openRunnerCount} sub="filled open runners" />
+          <StatCard label="Protected Runner Count" value={executionSummary.protectedRunnerCount} sub="runner + profit-lock active" />
           <StatCard label="Pending sync count" value={executionSummary.pendingSync} sub="closed but missing R truth" />
           <StatCard label="Protection unavailable count" value={executionSummary.protectionUnavailable} sub="execution safety failures" />
         </div>
