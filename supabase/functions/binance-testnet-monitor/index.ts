@@ -7,8 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
-const MONITOR_VERSION = "crypto-fix-3-final-stress-monitor-truth";
-const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protected_managed", "pending_managed_protection", "partially_closed"];
+const MONITOR_VERSION = "crypto-fix-4-execution-hardening-binance-truth";
+const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection", "partially_closed"];
 const ENTRY_OPEN_STATUSES = ["NEW", "PARTIALLY_FILLED"];
 const TERMINAL_ORDER_STATUSES = ["CANCELED", "EXPIRED"];
 
@@ -314,12 +314,32 @@ async function submitAlgoProtectionOrder(symbol: string, closeSide: "BUY" | "SEL
   return { algoId, clientAlgoId: String(algo.clientAlgoId ?? clientAlgoId) };
 }
 
+
+async function verifyOpenProtectionSet(row: Row, expected: Array<{ label: string; algoId: string; side: string; type: string; quantity: number; triggerPrice: number }>): Promise<{ verified: boolean; errors: string[]; openOrders: BinanceOrder[] }> {
+  const body = await binanceRequest("/fapi/v1/openAlgoOrders", { symbol: row.symbol, algoType: "CONDITIONAL" }).catch(() => []);
+  const openOrders = (Array.isArray(body) ? body : []) as BinanceOrder[];
+  const errors: string[] = [];
+  for (const item of expected) {
+    const order = openOrders.find((o) => String(o.algoId ?? o.orderId ?? "") === String(item.algoId));
+    if (!order) { errors.push(`${item.label}:missing`); continue; }
+    if (String(order.side ?? item.side).toUpperCase() !== item.side) errors.push(`${item.label}:wrong_side`);
+    if (String(order.type ?? item.type).toUpperCase() !== item.type) errors.push(`${item.label}:wrong_type`);
+    if ((order.reduceOnly as unknown) === false) errors.push(`${item.label}:not_reduce_only`);
+    if ((order.closePosition as unknown) === true) errors.push(`${item.label}:unexpected_close_position`);
+    const qty = n(order.origQty ?? order.quantity);
+    if (qty > 0 && Math.abs(qty - item.quantity) > Math.max(item.quantity * 0.000001, 1e-8)) errors.push(`${item.label}:wrong_quantity`);
+    const trigger = n(order.triggerPrice ?? order.stopPrice ?? order.price);
+    if (trigger > 0 && Math.abs(trigger - item.triggerPrice) > Math.max(item.triggerPrice * 0.000001, 1e-8)) errors.push(`${item.label}:wrong_trigger_price`);
+  }
+  return { verified: errors.length === 0, errors, openOrders };
+}
+
 async function submitProtectionForRow(
   supabase: SupabaseClient,
   row: Row,
   quantity: number,
   stats: MonitorStats,
-): Promise<"protected_native" | "protected_managed"> {
+): Promise<"protected_native" | "protection_failed"> {
   const rules = await fetchSymbolRules(row.symbol);
   const closeSide = sideToClose(row.direction);
   const sl = n(row.intended_sl) || n(row.stop_loss);
@@ -341,6 +361,12 @@ async function submitProtectionForRow(
       submitAlgoProtectionOrder(row.symbol, closeSide as "BUY" | "SELL", "TAKE_PROFIT_MARKET", tp1Trigger, tp1Qty, "tp1"),
       submitAlgoProtectionOrder(row.symbol, closeSide as "BUY" | "SELL", "TAKE_PROFIT_MARKET", tp2Trigger, tp2Qty, "tp2"),
     ]);
+    const verification = await verifyOpenProtectionSet(row, [
+      { label: "sl", algoId: slOrder.algoId, side: closeSide, type: "STOP_MARKET", quantity, triggerPrice: slTrigger },
+      { label: "tp1", algoId: tp1Order.algoId, side: closeSide, type: "TAKE_PROFIT_MARKET", quantity: tp1Qty, triggerPrice: tp1Trigger },
+      { label: "tp2", algoId: tp2Order.algoId, side: closeSide, type: "TAKE_PROFIT_MARKET", quantity: tp2Qty, triggerPrice: tp2Trigger },
+    ]);
+    if (!verification.verified) throw new Error(`native_protection_verification_failed: ${verification.errors.join(",")}`);
     await supabase.from("execution_orders").update({
       status: "protected_native", bracket_mode: "exchange_native", protection_status: "protected_native",
       sl_order_id: slOrder.algoId, tp1_order_id: tp1Order.algoId, tp2_order_id: tp2Order.algoId,
@@ -353,23 +379,23 @@ async function submitProtectionForRow(
       latest_protection_error: "", tp1_filled: false, sl_moved_to_be: false,
       protected_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }).eq("id", row.id);
-    await logEvent(supabase, row, "protected_native", `Monitor placed native SL/TP: sl=${slTrigger} tp1=${tp1Trigger} tp2=${tp2Trigger} qty=${quantity}`, { slOrder, tp1Order, tp2Order }, stats);
+    await logEvent(supabase, row, "protected_native", `Monitor placed native SL/TP: sl=${slTrigger} tp1=${tp1Trigger} tp2=${tp2Trigger} qty=${quantity}`, { slOrder, tp1Order, tp2Order, verification }, stats);
     stats.updated += 1;
     stats.protected += 1;
     return "protected_native";
   } catch (e) {
     const error = e instanceof Error ? e.message : "Native protection failed in monitor";
     await supabase.from("execution_orders").update({
-      status: "protected_managed", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed",
-      native_protection_verified: false, managed_fallback_active: true,
+      status: "protection_failed", bracket_mode: "exchange_native", protection_status: "protection_failed",
+      native_protection_verified: false, managed_fallback_active: false,
       intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
       tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
       latest_protection_error: error, updated_at: new Date().toISOString(),
     }).eq("id", row.id);
-    await logEvent(supabase, row, "managed_exit_fallback_enabled", `Monitor managed fallback: native protection failed: ${error}`, { error }, stats);
+    await logEvent(supabase, row, "protection_recovery_failed", `Monitor protection recovery failed verification: ${error}`, { error }, stats);
     stats.updated += 1;
-    stats.managed += 1;
-    return "protected_managed";
+    stats.unsafe_positions += 1;
+    return "protection_failed";
   }
 }
 
@@ -518,7 +544,7 @@ async function fetchEntryOrder(symbol: string, orderId: string): Promise<{ order
   }
 }
 
-async function protectOrSafetyClose(supabase: SupabaseClient, row: Row, quantity: number, stats: MonitorStats, reason: string): Promise<"protected_native" | "protected_managed" | "closed_unprotected_safety"> {
+async function protectOrSafetyClose(supabase: SupabaseClient, row: Row, quantity: number, stats: MonitorStats, reason: string): Promise<"protected_native" | "protection_failed" | "closed_unprotected_safety"> {
   try {
     return await submitProtectionForRow(supabase, row, quantity, stats);
   } catch (err) {
@@ -601,7 +627,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
       const avg = n(entry?.avgPrice) || markPrice || n(row.entry_price);
       const qty = Math.abs(positionAmt) || n(entry?.executedQty) || n(row.quantity) || n(row.volume);
       const filledRow = { ...row, status: "entry_filled", entry_price: avg || row.entry_price } as Row;
-      await supabase.from("execution_orders").update({ ...update, status: "entry_filled", entry_price: avg || row.entry_price, entry_filled_at: now, remaining_quantity: qty, last_monitor_action: "entry_filled_submit_protection" }).eq("id", row.id);
+      await supabase.from("execution_orders").update({ ...update, status: "entry_filled", protection_status: "pending_protection", native_protection_verified: false, managed_fallback_active: false, entry_price: avg || row.entry_price, entry_filled_at: now, remaining_quantity: qty, last_monitor_action: "entry_filled_submit_protection" }).eq("id", row.id);
       await logEvent(supabase, row, "entry_filled", `${row.symbol} entry filled${avg > 0 ? ` at ${avg}` : ""}; submitting protection immediately.`, { entry, qty, positionAmt }, stats);
       stats.updated += 1;
       await protectOrSafetyClose(supabase, filledRow, qty, stats, "entry_filled_submit_protection");
@@ -696,11 +722,16 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
       await logEvent(supabase, row, "tp1_profit_lock_active", `${row.symbol} TP1 hit — profit lock +0.3R active for remaining runner.`, { tp1, fillPrice, filledQty, remaining, replacementSl, replacementUpdate }, stats);
     }
     if (!row.tp2_closed_at && algoFilled(tp2)) {
-      Object.assign(update, { status: "closed_tp2", lifecycle_state: "closed_tp2", tp2_closed_at: now, tp2_filled: true, runner_closed: true, runner_active: false, remaining_quantity: 0, remaining_qty: 0, last_monitor_action: "closed_tp2_cleanup" });
-      const cancelled = [...await cancelRemainingProtection(row, stats), ...await cancelOpenConditionalsForRow(row, openOrders, stats)];
-      update.cleanup_status = "cleanup_verified_or_retry";
-      update.cleanup_checked_at = now;
-      await logEvent(supabase, row, "native_tp2_filled", `${row.symbol} TP2 hit — trade closed; remaining SL/profit-lock conditionals cleaned.`, { tp2, cancelled }, stats);
+      if (hasPosition) {
+        Object.assign(update, { lifecycle_state: "binance_truth_guard_position_open_after_tp2", latest_sync_error: "TP2 fill observed but Binance position still open", last_monitor_action: "binance_truth_guard_tp2_fill_position_still_open" });
+        await logEvent(supabase, row, "binance_truth_guard", `${row.symbol} TP2 fill observed but Binance position is still open; execution will not be closed until Binance confirms flat position.`, { tp2, positionAmt }, stats);
+      } else {
+        Object.assign(update, { status: "closed_tp2", lifecycle_state: "closed_tp2", tp2_closed_at: now, tp2_filled: true, runner_closed: true, runner_active: false, remaining_quantity: 0, remaining_qty: 0, last_monitor_action: "closed_tp2_cleanup" });
+        const cancelled = [...await cancelRemainingProtection(row, stats), ...await cancelOpenConditionalsForRow(row, openOrders, stats)];
+        update.cleanup_status = "cleanup_verified_or_retry";
+        update.cleanup_checked_at = now;
+        await logEvent(supabase, row, "native_tp2_filled", `${row.symbol} TP2 hit — trade closed; remaining SL/profit-lock conditionals cleaned.`, { tp2, cancelled }, stats);
+      }
     }
     if (!row.sl_closed_at && algoFilled(sl)) {
       const profitLockHit = Boolean(row.tp1_filled || row.tp1_closed_at || row.sl_replaced_after_tp1 || row.profit_lock_sl_active);

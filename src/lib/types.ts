@@ -389,9 +389,9 @@ export interface ExecutionOrder {
   tp2: number | null;
   volume: number;
   execution_mode: string;
-  status: 'pending' | 'sent_to_bridge' | 'accepted' | 'rejected' | 'filled' | 'failed' | 'cancelled' | 'skipped' | 'entry_submitted' | 'entry_filled' | 'protected' | 'pending_protection' | 'partially_closed' | 'protected_managed' | 'pending_managed_protection' | 'stale_closed' | 'closed_tp' | 'closed_sl' | 'closed_breakeven' | string;
+  status: 'pending' | 'sent_to_bridge' | 'accepted' | 'rejected' | 'filled' | 'failed' | 'cancelled' | 'skipped' | 'entry_submitted' | 'entry_filled' | 'protected' | 'pending_protection' | 'protection_pending' | 'protection_failed' | 'protection_recovered' | 'partially_closed' | 'protected_managed' | 'pending_managed_protection' | 'stale_closed' | 'closed_tp' | 'closed_sl' | 'closed_breakeven' | string;
   latest_auto_skip_reason?: string | null;
-  protection_status?: 'unprotected' | 'pending_protection' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_managed_protection' | 'unprotected_failed' | null;
+  protection_status?: 'unprotected' | 'pending_protection' | 'protection_pending' | 'protection_failed' | 'protection_recovered' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_managed_protection' | 'unprotected_failed' | null;
   bracket_mode?: '' | 'exchange_native' | 'managed_exit_fallback' | 'failed' | null;
   binance_entry_order_id?: string | null;
   binance_sl_order_id?: string | null;
@@ -530,7 +530,7 @@ export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   testnet_enabled_at: string | null;
   last_exchange_error: string | null;
   bracket_mode: '' | 'exchange_native' | 'managed_exit_fallback' | 'failed' | null;
-  protection_status: 'unprotected' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_protection' | 'pending_managed_protection' | 'unprotected_failed' | null;
+  protection_status: 'unprotected' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_protection' | 'protection_pending' | 'protection_failed' | 'protection_recovered' | 'pending_managed_protection' | 'unprotected_failed' | null;
   capital_basis: string | null;
   raw_total_margin_balance: number | null;
   raw_total_wallet_balance: number | null;

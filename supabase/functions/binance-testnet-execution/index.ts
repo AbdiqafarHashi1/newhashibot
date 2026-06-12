@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
-const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protected_managed", "pending_managed_protection"];
+const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection"];
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
@@ -17,7 +17,7 @@ type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
 type BracketMode = "exchange_native" | "managed_exit_fallback" | "failed";
-type ProtectionStatus = "protected" | "protected_native" | "pending_protection" | "protected_managed" | "pending_managed_protection" | "unprotected_failed";
+type ProtectionStatus = "protected" | "protected_native" | "pending_protection" | "protection_pending" | "protection_failed" | "protection_recovered" | "protected_managed" | "pending_managed_protection" | "unprotected_failed";
 type GovernorState = "normal" | "defensive" | "aggressive_allowed" | "paused";
 type TestnetGovernorMode = "normal" | "readonly" | "off_for_testing";
 type ExecutionFailureCode = "margin_type_change_blocked" | "leverage_change_blocked" | "leverage_change_failed" | "symbol_configuration_mismatch" | "execution_api_error";
@@ -994,9 +994,9 @@ async function submitBracketOrders(supabase: SupabaseClient, executionId: string
     const fallbackSafe = plan.stopLoss > 0 && plan.tp1 > 0 && plan.tp2 > 0 && plan.tp1Quantity > 0 && plan.tp2Quantity > 0;
     if (fallbackSafe) {
       const raw = { intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, error };
-      await supabase.from("execution_orders").update({ status: "entry_filled", bracket_mode: "managed_exit_fallback", protection_status: "protected_managed", native_protection_verified: false, managed_fallback_active: true, intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, updated_at: new Date().toISOString() }).eq("id", executionId);
-      await logEvent(supabase, executionId, "managed_exit_fallback_enabled", "Exchange-native SL/TP unavailable or unverified; HashiBot managed exit fallback enabled", raw);
-      return { mode: "managed_exit_fallback", protection: "protected_managed", raw, error };
+      await supabase.from("execution_orders").update({ status: "protection_failed", bracket_mode: "exchange_native", protection_status: "protection_failed", native_protection_verified: false, managed_fallback_active: false, intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, protection_critical_reason: "entry_filled_without_verified_sl_tp1_tp2", updated_at: new Date().toISOString() }).eq("id", executionId);
+      await logEvent(supabase, executionId, "protection_failed", "Exchange-native SL/TP unavailable or unverified; trade remains PROTECTION_FAILED until monitor recovery verifies SL+TP1+TP2", raw);
+      return { mode: "exchange_native", protection: "protection_failed", raw, error };
     }
     await supabase.from("execution_orders").update({ status: "failed", bracket_mode: "failed", protection_status: "unprotected_failed", last_exchange_error: error, latest_protection_error: error, error_message: error, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "failed_bracket_order", error);
@@ -1006,7 +1006,7 @@ async function submitBracketOrders(supabase: SupabaseClient, executionId: string
 
 async function maybePlaceProtection(supabase: SupabaseClient, executionId: string, signalId: string, plan: OrderPlan): Promise<Json> {
   const bracket = await submitBracketOrders(supabase, executionId, plan);
-  await sendExecutionTelegram(supabase, signalId, bracket.mode === "exchange_native" ? "protection_submitted" : bracket.mode === "managed_exit_fallback" ? "managed_exit_fallback_enabled" : "failed_bracket_order", [
+  await sendExecutionTelegram(supabase, signalId, bracket.protection === "protected_native" ? "protection_verified" : bracket.protection === "protection_failed" ? "protection_failed" : "failed_bracket_order", [
     `Protection: ${bracket.protection}`,
     `Bracket mode: ${bracket.mode}`,
     `Entry order: ${executionId}`,
