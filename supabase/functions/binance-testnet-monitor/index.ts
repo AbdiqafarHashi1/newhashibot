@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
-const MONITOR_VERSION = "crypto-fix-2-execution-lifecycle";
+const MONITOR_VERSION = "crypto-fix-3-final-stress-monitor-truth";
 const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protected_managed", "pending_managed_protection", "partially_closed"];
 const ENTRY_OPEN_STATUSES = ["NEW", "PARTIALLY_FILLED"];
 const TERMINAL_ORDER_STATUSES = ["CANCELED", "EXPIRED"];
@@ -778,6 +778,103 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 }
 
+async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: MonitorStats) {
+  const [positionsBody, allOrdersBody, allAlgoOrdersBody, dbRows] = await Promise.all([
+    binanceRequest("/fapi/v2/positionRisk", {}),
+    binanceRequest("/fapi/v1/openOrders", {}),
+    binanceRequest("/fapi/v1/openAlgoOrders", { algoType: "CONDITIONAL" }).catch((err) => {
+      addMonitorWarning(stats, { warning: `open_algo_orders_reconcile_warning: ${errorMessage(err)}`, action: "open_algo_orders_reconcile_continue", source: "account_sync" });
+      return [];
+    }),
+    supabase.from("execution_orders").select("*").eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").order("created_at", { ascending: false }).limit(500),
+  ]);
+  if (dbRows.error) throw dbRows.error;
+  const rows = (dbRows.data ?? []) as Row[];
+  const openPositions = (Array.isArray(positionsBody) ? positionsBody : []).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0) as BinancePosition[];
+  const openOrders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...(Array.isArray(allAlgoOrdersBody) ? allAlgoOrdersBody : [])] as BinanceOrder[];
+  const rowsBySymbol = new Map<string, Row[]>();
+  for (const row of rows) {
+    const list = rowsBySymbol.get(row.symbol) ?? [];
+    list.push(row);
+    rowsBySymbol.set(row.symbol, list);
+  }
+
+  for (const position of openPositions) {
+    const symbol = String(position.symbol ?? "");
+    if (!symbol) continue;
+    const symbolRows = rowsBySymbol.get(symbol) ?? [];
+    const active = symbolRows.find((row) => ACTIVE_STATUSES.includes(row.status));
+    const protectedActive = active && ["protected", "protected_native", "protected_managed"].includes(String(active.protection_status ?? ""));
+    if (protectedActive) continue;
+    const target = active ?? symbolRows[0];
+    if (!target) {
+      addCriticalMonitorError(stats, `unsafe_untracked_position: ${symbol} open on Binance with no execution row`);
+      stats.unsafe_positions += 1;
+      addMonitorWarning(stats, { symbol, warning: "unsafe_untracked_position", action: "manual_row_recovery_required", source: "account_sync" });
+      continue;
+    }
+    const now = new Date().toISOString();
+    await supabase.from("execution_orders").update({
+      status: "entry_filled",
+      lifecycle_state: "unsafe_untracked_position",
+      protection_status: "unprotected_failed",
+      current_position_size: n(position.positionAmt),
+      latest_mark_price: n(position.markPrice),
+      latest_unrealized_pnl: n(position.unRealizedProfit ?? position.unrealizedProfit),
+      latest_sync_at: now,
+      last_monitor_checked_at: now,
+      last_monitor_action: "unsafe_untracked_position_recovered_from_binance",
+      latest_monitor_error: "unsafe_untracked_position",
+      latest_sync_error: "",
+      protection_critical_reason: "binance_position_exists_without_verified_protection",
+      updated_at: now,
+    }).eq("id", target.id);
+    await logEvent(supabase, target, "unsafe_untracked_position", `${symbol} Binance position exists while DB was ${target.status}; Binance wins and row was recovered for protection handling.`, { position }, stats);
+    stats.unsafe_positions += 1;
+    stats.updated += 1;
+  }
+
+  const openPositionSymbols = new Set(openPositions.map((p) => String(p.symbol ?? "")));
+  const ordersBySymbol = new Map<string, BinanceOrder[]>();
+  for (const order of openOrders) {
+    const symbol = String(order.symbol ?? "");
+    if (!symbol) continue;
+    const list = ordersBySymbol.get(symbol) ?? [];
+    list.push(order);
+    ordersBySymbol.set(symbol, list);
+  }
+  for (const [symbol, orders] of ordersBySymbol.entries()) {
+    if (openPositionSymbols.has(symbol) || orders.length === 0) continue;
+    const symbolRows = rowsBySymbol.get(symbol) ?? [];
+    const target = symbolRows[0];
+    const cancelled: Array<string | number | undefined> = [];
+    for (const order of orders) {
+      try {
+        await cancelOpenOrder(symbol, order);
+        cancelled.push(order.algoId ?? order.orderId);
+        stats.cancelled_orders += 1;
+      } catch (err) {
+        addMonitorWarning(stats, { symbol, warning: `orphan_order_cleanup_failed: ${errorMessage(err)}`, action: "orphan_order_cleanup_retry", source: "cleanup" });
+      }
+    }
+    addMonitorWarning(stats, { id: target?.id, symbol, status: target?.status, warning: "orphan_orders_detected", action: "orphan_orders_cleanup_queued", source: "cleanup" });
+    if (target) {
+      const now = new Date().toISOString();
+      await supabase.from("execution_orders").update({
+        lifecycle_state: "orphan_orders_detected",
+        cleanup_status: cancelled.length === orders.length ? "cleanup_verified" : "cleanup_retry_required",
+        cleanup_warning: cancelled.length === orders.length ? "" : "orphan_order_cleanup_retry_required",
+        cleanup_checked_at: now,
+        last_monitor_checked_at: now,
+        last_monitor_action: "orphan_orders_detected_cleanup_queued",
+        updated_at: now,
+      }).eq("id", target.id);
+      await logEvent(supabase, target, "orphan_orders_detected", `${symbol} had open Binance orders without a Binance position; cleanup was queued/executed and Binance truth wins.`, { orders, cancelled }, stats);
+      stats.updated += 1;
+    }
+  }
+}
+
 async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats, monitorStatus: MonitorLevel) {
   const [accountBody, positionsBody, allOrdersBody, allAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/account", {}),
@@ -922,6 +1019,12 @@ Deno.serve(async (req: Request) => {
           addCriticalMonitorError(stats, message);
         }
       }
+    }
+    try {
+      await reconcileBinanceTruthGaps(supabase, stats);
+    } catch (reconcileErr) {
+      const message = `reconcile_binance_truth_failed: ${errorMessage(reconcileErr)}`;
+      addCriticalMonitorError(stats, message);
     }
     stats.monitor_status = classifyMonitor(stats);
     try {

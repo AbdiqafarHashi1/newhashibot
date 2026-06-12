@@ -66,7 +66,12 @@ interface StatusPayload {
   latest_error?: { error_message?: string; last_exchange_error?: string } | null;
   capital?: { raw_total_margin_balance?: number; raw_total_wallet_balance?: number; raw_available_usdt?: number; raw_available_usdc?: number; selected_capital_used?: number; capital_basis?: string; max_capital_cap_applied?: boolean };
   account_state?: { totalMarginBalance?: number; totalWalletBalance?: number; availableBalance?: number; availableUsdt?: number; availableUsdc?: number; unrealizedPnl?: number; openPositions?: number; marginRatio?: number | null; openOrderCount?: number; positions?: Array<{ symbol: string; positionAmt: number; unrealizedPnl: number; notional: number }> };
-  governor?: { state?: string; reason?: string; risk_multiplier?: number; adjusted_max_leverage?: number; adjusted_max_open_positions?: number; daily_pnl_pct?: number | null; unrealized_pnl?: number | null; current_equity?: number | null; blocks_execution?: boolean };
+  governor?: { state?: string; effective_state?: string; display_state?: string; reason?: string; risk_multiplier?: number; adjusted_max_leverage?: number; adjusted_max_open_positions?: number; daily_pnl_pct?: number | null; unrealized_pnl?: number | null; current_equity?: number | null; blocks_execution?: boolean };
+  governor_display?: { mode: string; state: string; execution_allowed: boolean };
+  effective_risk_pct?: number | null;
+  effective_leverage?: number | null;
+  risk_source?: string;
+  leverage_source?: string;
   current_open_risk_pct?: number;
   max_total_open_risk_pct?: number;
   remaining_risk_capacity_pct?: number;
@@ -113,6 +118,9 @@ export default function Execution() {
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
   const selectedSignalValid = useMemo(() => Boolean(selectedSignalId && signals.some(s => s.id === selectedSignalId)), [selectedSignalId, signals]);
   const governorMode = status?.settings?.testnet_governor_mode ?? 'normal';
+  const stressMode = status?.settings?.stress_override_enabled === true && status?.settings?.execution_mode === 'testnet';
+  const governorDisplayState = status?.governor_display?.state ?? (governorMode === 'off_for_testing' ? 'IGNORED' : (status?.governor?.display_state ?? status?.governor?.state ?? status?.settings?.governor_state ?? 'normal').toUpperCase());
+  const executionAllowedDisplay = status?.governor_display?.execution_allowed ?? status?.execution_allowed ?? !(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused');
   const nowMs = Date.now();
   const secondsSinceEntryFill = (e: BinanceExecutionOrder): number | null => {
     const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
@@ -228,7 +236,7 @@ export default function Execution() {
         <div className="bg-red-600/15 border border-red-500/40 rounded-xl p-4 mb-6 flex gap-3">
           <AlertTriangle size={18} className="text-red-300 mt-0.5 shrink-0" />
           <div className="text-sm text-red-200">
-            <strong>TESTNET GOVERNOR OFF.</strong> This bypasses governor blocking for Binance Testnet entries only. Live trading remains impossible and monitor protection stays active.
+            <strong>TESTNET GOVERNOR OFF.</strong> Governor Mode: OFF_FOR_TESTING · Governor State: IGNORED · Execution Allowed: TRUE. Live trading remains impossible and monitor protection stays active.
           </div>
         </div>
       )}
@@ -294,7 +302,7 @@ export default function Execution() {
               </div>
               <div className="bg-black/20 rounded-lg p-3">
                 <div className="text-zinc-500">Governor</div>
-                <div className={`font-mono mt-1 ${governorMode === 'off_for_testing' ? 'text-red-300' : status?.settings?.governor_state === 'paused' ? 'text-red-300' : status?.settings?.governor_state === 'defensive' ? 'text-yellow-300' : status?.settings?.governor_state === 'aggressive_allowed' ? 'text-blue-300' : 'text-emerald-300'}`}>{governorMode} / {status?.settings?.governor_state ?? 'normal'}</div>
+                <div className={`font-mono mt-1 ${governorMode === 'off_for_testing' ? 'text-red-300' : status?.settings?.governor_state === 'paused' ? 'text-red-300' : status?.settings?.governor_state === 'defensive' ? 'text-yellow-300' : status?.settings?.governor_state === 'aggressive_allowed' ? 'text-blue-300' : 'text-emerald-300'}`}>{governorMode} / {governorDisplayState}</div>
               </div>
               <div className="bg-black/20 rounded-lg p-3">
                 <div className="text-zinc-500">Open Positions</div>
@@ -383,7 +391,7 @@ export default function Execution() {
         <div className="grid md:grid-cols-4 gap-3 text-xs">
           <ProofRow label="Governor mode" value={governorMode} />
           <ProofRow label="Governor enabled" value={status?.settings?.governor_enabled ? 'true' : 'false'} />
-          <ProofRow label="Governor state" value={status?.governor?.state ?? status?.settings?.governor_state ?? 'normal'} />
+          <ProofRow label="Governor state" value={governorDisplayState} />
           <ProofRow label="Governor reason" value={status?.governor?.reason ?? status?.settings?.last_governor_reason ?? '—'} />
           <ProofRow label="Current equity" value={String(status?.governor?.current_equity ?? status?.settings?.current_equity ?? '—')} />
           <ProofRow label="Daily start equity" value={String(status?.settings?.daily_start_equity ?? '—')} />
@@ -402,9 +410,9 @@ export default function Execution() {
           <ProofRow label="Effective max lev" value={`${status?.governor?.adjusted_max_leverage ?? status?.settings?.testnet_max_leverage ?? 7}x`} />
           <ProofRow label="Effective risk %" value={status?.governor?.state === 'defensive' ? '0.5x configured' : status?.governor?.state === 'aggressive_allowed' ? 'A 0.75 / A+ 1.0 cap' : 'configured'} />
           <ProofRow label="Last checked" value={status?.settings?.last_governor_checked_at ? new Date(status.settings.last_governor_checked_at).toLocaleString() : '—'} />
-          <ProofRow label="Execution allowed" value={String(status?.execution_allowed ?? !(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused'))} />
+          <ProofRow label="Execution allowed" value={String(executionAllowedDisplay)} />
         </div>
-        {governorMode === 'off_for_testing' && <div className="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded p-3">TESTNET GOVERNOR OFF: governor stats still display, but new Binance Testnet entries are not blocked by governor state. Live trading remains blocked.</div>}
+        {governorMode === 'off_for_testing' && <div className="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded p-3">Governor Mode: OFF_FOR_TESTING · Governor State: IGNORED · Execution Allowed: TRUE. Historical governor reasons remain visible, but new Binance Testnet entries are not governor-blocked. Live trading remains blocked.</div>}
         {governorMode === 'readonly' && <div className="mt-3 text-xs text-yellow-200 bg-yellow-500/10 border border-yellow-500/20 rounded p-3">Governor readonly: PnL/risk/streaks are calculated and warnings remain visible, but testnet entries are not governor-blocked.</div>}
         <div className="mt-3 text-xs text-zinc-400">Governor reset is testnet-only and does not delete signals, scanner runs, performance history, Binance positions, or Binance orders.</div>
         {(status?.governor?.state === 'paused' || status?.settings?.governor_state === 'paused') && (
@@ -427,9 +435,9 @@ export default function Execution() {
             <ProofRow label="DB testnet" value={status?.settings?.testnet_enabled ? 'true' : 'false'} />
             <ProofRow label="One active/symbol" value={status?.settings?.one_active_execution_per_symbol ? 'true' : 'false'} />
             <ProofRow label="Max open positions" value={String(status?.settings?.max_open_testnet_positions ?? 3)} />
-            <ProofRow label="Max total open risk" value={`${status?.settings?.max_total_open_risk_pct ?? 3}%`} />
-            <ProofRow label="Current open risk" value={`${status?.current_open_risk_pct ?? 0}%`} />
-            <ProofRow label="Remaining risk" value={`${status?.remaining_risk_capacity_pct ?? 0}%`} />
+            <ProofRow label="Max total open risk" value={stressMode && status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : `${status?.settings?.max_total_open_risk_pct ?? 3}%`} />
+            <ProofRow label="Current open risk" value={stressMode && status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : `${status?.current_open_risk_pct ?? 0}%`} />
+            <ProofRow label="Remaining risk" value={stressMode && status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : `${status?.remaining_risk_capacity_pct ?? 0}%`} />
             <label className="block pt-2"><span className="text-zinc-500">Set max open (1-10)</span><input type="number" min={1} max={10} value={status?.settings?.max_open_testnet_positions ?? 3} onChange={e => updateExecutionSettings({ max_open_testnet_positions: Math.min(10, Math.max(1, Number(e.target.value))) })} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /></label>
           </div>
         </div>
@@ -453,6 +461,15 @@ export default function Execution() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
           <h2 className="font-semibold mb-3 text-sm">Risk / Leverage</h2>
           <div className="grid grid-cols-2 gap-2 text-xs">
+            <ProofRow label="Stress Mode" value={stressMode ? 'ON' : 'OFF'} />
+            <ProofRow label="Execution Mode" value={status?.settings?.execution_mode ?? 'signal_only'} />
+            <ProofRow label="Current Effective Risk" value={status?.effective_risk_pct !== null && status?.effective_risk_pct !== undefined ? `${status.effective_risk_pct}%` : 'normal logic'} />
+            <ProofRow label="Current Effective Leverage" value={status?.effective_leverage !== null && status?.effective_leverage !== undefined ? `${status.effective_leverage}x` : 'normal logic'} />
+            <ProofRow label="Risk Source" value={status?.risk_source ?? '—'} />
+            <ProofRow label="Leverage Source" value={status?.leverage_source ?? '—'} />
+            <ProofRow label="Governor Mode" value={status?.governor_display?.mode ?? governorMode.toUpperCase()} />
+            <ProofRow label="Governor State" value={governorDisplayState} />
+            <ProofRow label="Execution Allowed" value={String(executionAllowedDisplay)} />
             <ProofRow label="Risk A" value={`${status?.settings?.testnet_risk_a ?? 0.5}%`} />
             <ProofRow label="Risk A+" value={`${status?.settings?.testnet_risk_a_plus ?? 0.75}%`} />
             <ProofRow label="Max risk" value={`${status?.settings?.max_testnet_risk_pct ?? 1}%`} />
@@ -460,6 +477,19 @@ export default function Execution() {
             <ProofRow label="Lev A+" value={`${status?.settings?.testnet_leverage_a_plus ?? 5}x`} />
             <ProofRow label="Max lev" value={`${status?.settings?.testnet_max_leverage ?? 7}x`} />
           </div>
+          <div className="mt-4 grid sm:grid-cols-2 gap-3 text-xs">
+            <label className="flex items-center justify-between gap-3 rounded-lg bg-zinc-950/60 border border-zinc-800 px-3 py-2">
+              <span className="text-zinc-400">Stress Mode</span>
+              <button disabled={acting} onClick={() => updateExecutionSettings({ stress_override_enabled: !status?.settings?.stress_override_enabled })} className={`px-3 py-1 rounded-full border text-xs ${status?.settings?.stress_override_enabled ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>{status?.settings?.stress_override_enabled ? 'ON' : 'OFF'}</button>
+            </label>
+            <label className="flex items-center justify-between gap-3 rounded-lg bg-zinc-950/60 border border-zinc-800 px-3 py-2">
+              <span className="text-zinc-400">Ignore Open Risk Limit</span>
+              <button disabled={acting} onClick={() => updateExecutionSettings({ stress_ignore_open_risk_limit: !status?.settings?.stress_ignore_open_risk_limit })} className={`px-3 py-1 rounded-full border text-xs ${status?.settings?.stress_ignore_open_risk_limit ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>{status?.settings?.stress_ignore_open_risk_limit ? 'ON' : 'OFF'}</button>
+            </label>
+            <label className="block"><span className="text-zinc-500">Stress Risk %</span><input type="number" step="0.1" min={0} max={2} value={status?.settings?.stress_risk_pct ?? 2} onChange={e => updateExecutionSettings({ stress_risk_pct: Math.min(2, Math.max(0, Number(e.target.value))) })} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /></label>
+            <label className="block"><span className="text-zinc-500">Stress Leverage</span><input type="number" min={1} max={10} value={status?.settings?.stress_leverage ?? 10} onChange={e => updateExecutionSettings({ stress_leverage: Math.min(10, Math.max(1, Number(e.target.value))) })} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /></label>
+          </div>
+          {stressMode && <div className="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded p-3">Stress mode is active: every qualified testnet execution uses {status?.settings?.stress_risk_pct ?? 2}% risk, {status?.settings?.stress_leverage ?? 10}x leverage, risk_source/leverage_source testnet_stress_override, and open-risk guard {status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : 'ACTIVE'}.</div>}
         </div>
       </div>
 
@@ -533,7 +563,7 @@ export default function Execution() {
                 <tr key={e.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
                   <td className="px-4 py-3 font-mono font-semibold text-xs">{e.symbol}</td>
                   <td className="px-4 py-3"><span className={e.side === 'long' ? 'text-emerald-400' : 'text-red-400'}>{e.side}</span></td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">{e.leverage ? `${e.leverage}x` : '—'}</td>
+                  <td className="px-4 py-3 text-xs text-zinc-400"><div>{e.leverage ? `${e.leverage}x` : '—'}</div><div className="text-[11px] text-zinc-600">{e.leverage_source ?? '—'}</div><div className="text-[11px] text-zinc-600">Risk: {e.risk_pct ?? '—'}% · {e.risk_source ?? '—'}</div></td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
                   <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span><div className="mt-1 text-[11px] text-zinc-500">Entry: {e.entry_filled_at ? 'filled' : e.binance_entry_order_id || e.entry_order_id ? 'submitted' : '—'}</div><div className={freshnessState(e) === 'fresh' ? 'mt-1 text-[11px] text-emerald-300' : 'mt-1 text-[11px] text-yellow-300'}>{freshnessState(e)}</div></td>
                   <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>Protection mode: {e.bracket_mode || 'pending'}</div><div>TP1 status: {e.tp1_closed_at || e.tp1_filled ? 'filled/closed' : e.tp1_algo_id || e.binance_tp1_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>TP2 status: {e.tp2_closed_at ? 'filled/closed' : e.tp2_algo_id || e.binance_tp2_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>SL/BE status: {e.sl_closed_at ? 'closed' : e.sl_moved_to_be ? `BE ${e.be_stop_level ?? ''}` : e.sl_algo_id || e.binance_sl_order_id ? 'open/native SL' : e.bracket_mode === 'managed_exit_fallback' ? 'managed SL' : 'pending'}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>

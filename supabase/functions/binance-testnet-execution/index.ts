@@ -87,6 +87,10 @@ interface ExecutionSettings {
   closed_sl_streak: number;
   bot_paused: boolean;
   bot_paused_reason: string | null;
+  stress_override_enabled: boolean;
+  stress_risk_pct: number;
+  stress_leverage: number;
+  stress_ignore_open_risk_limit: boolean;
 }
 
 interface AccountState {
@@ -141,7 +145,7 @@ interface CapitalSnapshot {
 
 interface LeverageSelection {
   leverage: number;
-  leverage_source: "signal_guidance" | "grade_default" | "admin_setting" | "capped_to_max";
+  leverage_source: "signal_guidance" | "grade_default" | "admin_setting" | "capped_to_max" | "testnet_stress_override";
   requested: number;
   max: number;
 }
@@ -158,6 +162,9 @@ interface OrderPlan {
   tp2: number;
   leverage: number;
   leverage_source: string;
+  risk_source: string;
+  open_risk_guard: string;
+  stress_mode: boolean;
   riskPct: number;
   riskAmount: number;
   stopDistance: number;
@@ -456,7 +463,16 @@ function entryPrice(signal: SignalRow): number {
   return 0;
 }
 
+function stressModeActive(settings: ExecutionSettings): boolean {
+  return settings.execution_mode === "testnet" && settings.stress_override_enabled === true;
+}
+
+function stressOpenRiskIgnored(settings: ExecutionSettings): boolean {
+  return stressModeActive(settings) && settings.stress_ignore_open_risk_limit === true;
+}
+
 function riskPctForSignal(signal: SignalRow, settings: ExecutionSettings, governor?: GovernorDecision): number {
+  if (stressModeActive(settings)) return Math.max(0, Math.min(2, Number(settings.stress_risk_pct ?? 2)));
   const grade = String(signal.grade ?? "").toUpperCase();
   const governorState = governor?.state ?? "normal";
   const gradeRisk = governorState === "aggressive_allowed"
@@ -469,6 +485,10 @@ function riskPctForSignal(signal: SignalRow, settings: ExecutionSettings, govern
 }
 
 function leverageForSignal(signal: SignalRow, settings: ExecutionSettings, governor?: GovernorDecision): LeverageSelection {
+  if (stressModeActive(settings)) {
+    const leverage = Math.max(1, Math.min(10, Math.floor(Number(settings.stress_leverage ?? 10))));
+    return { leverage, leverage_source: "testnet_stress_override", requested: leverage, max: leverage };
+  }
   const grade = String(signal.grade ?? "").toUpperCase();
   const gradeDefault = grade === "A+" ? Number(settings.testnet_leverage_a_plus ?? 5) : Number(settings.testnet_leverage_a ?? 3);
   const governorMax = Number(governor?.adjusted_max_leverage ?? settings.testnet_max_leverage ?? 10);
@@ -691,6 +711,8 @@ function buildPlan(signal: SignalRow, rules: SymbolRules, capital: CapitalSnapsh
   if (rawQty > maxLeveredQty) adjustments.push("Quantity capped by selected leverage and capital margin capacity");
   if (tp1Quantity + tp2Quantity < quantity) adjustments.push("TP quantities rounded below full position size to respect step size");
   if (lev.leverage_source === "capped_to_max") adjustments.push(`Leverage capped to ${lev.leverage}x`);
+  if (stressModeActive(settings)) adjustments.push("Testnet stress override applied: risk/leverage ignore signal, grade, arbitration, confidence, and dynamic leverage sizing");
+  if (stressOpenRiskIgnored(settings)) adjustments.push("Open-risk portfolio cap ignored for testnet stress mode; execution safety checks remain active");
   if (decision.state === "defensive") adjustments.push("Risk governor defensive mode applied: 0.5x risk, max 3x leverage, max 1 open position");
   if (decision.state === "aggressive_allowed") adjustments.push("Risk governor aggressive_allowed mode applied: testnet risk remains capped by admin setting/max cap; hard cap still enforced");
   if (quantity < rules.minQty) throw new Error(`skipped_invalid_sizing: Calculated quantity ${quantity} below minQty ${rules.minQty}`);
@@ -698,7 +720,7 @@ function buildPlan(signal: SignalRow, rules: SymbolRules, capital: CapitalSnapsh
   if (tp1Quantity <= 0 || tp2Quantity <= 0) throw new Error("skipped_invalid_sizing: TP split invalid after precision rounding");
   return {
     signalId: signal.id, symbol: signal.symbol, side: isBuy ? "long" : "short", entrySide: isBuy ? "BUY" : "SELL", closeSide: isBuy ? "SELL" : "BUY",
-    entryPrice: entry, stopLoss, tp1, tp2, leverage: lev.leverage, leverage_source: lev.leverage_source, riskPct, riskAmount, stopDistance,
+    entryPrice: entry, stopLoss, tp1, tp2, leverage: lev.leverage, leverage_source: lev.leverage_source, risk_source: stressModeActive(settings) ? "testnet_stress_override" : "normal_arbitrated_grade_signal_sizing", open_risk_guard: stressOpenRiskIgnored(settings) ? "IGNORED_FOR_STRESS_TEST" : "ACTIVE", stress_mode: stressModeActive(settings), riskPct, riskAmount, stopDistance,
     stopDistancePct: stopDistance / entry, capital, quantity, tp1Quantity, tp2Quantity, notional, marginRequired: notional / lev.leverage, rules, adjustments,
     governor_state: decision.state, governor_reason: decision.reason, risk_multiplier: decision.risk_multiplier, adjusted_risk_pct: riskPct, adjusted_max_leverage: decision.adjusted_max_leverage,
   };
@@ -711,7 +733,7 @@ async function getSettings(supabase: SupabaseClient): Promise<ExecutionSettings>
     kill_switch_enabled: false, auto_execute_testnet: false, max_open_testnet_positions: 3, max_open_testnet_positions_allowed_max: 10, max_total_open_risk_pct: 3, one_active_execution_per_symbol: true,
     testnet_enabled_at: null, fallback_account_balance: 10000, capital_basis: "available_usdt", testnet_capital_override_usdt: null,
     max_capital_used_usdt: null, testnet_risk_a: 2, testnet_risk_a_plus: 2, max_testnet_risk_pct: 2,
-    testnet_leverage_a: 10, testnet_leverage_a_plus: 10, testnet_max_leverage: 10, governor_enabled: true, testnet_governor_mode: "normal", governor_state: "normal", daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
+    testnet_leverage_a: 10, testnet_leverage_a_plus: 10, testnet_max_leverage: 10, governor_enabled: true, testnet_governor_mode: "normal", governor_state: "normal", stress_override_enabled: true, stress_risk_pct: 2.0, stress_leverage: 10, stress_ignore_open_risk_limit: true, daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
   } as ExecutionSettings;
 }
 
@@ -746,7 +768,33 @@ async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string,
   const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
   const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID") ?? "";
   if (!envBool("TELEGRAM_ENABLED", false) || !botToken || !chatId) return;
-  const text = ["BINANCE TESTNET — NOT LIVE", "", ...lines].join("\n");
+  const { data: settingsRow } = await supabase.from("execution_settings").select("execution_mode,testnet_governor_mode,governor_state,stress_override_enabled,stress_risk_pct,stress_leverage,stress_ignore_open_risk_limit").eq("id", 1).maybeSingle();
+  const { data: latestExecution } = await supabase.from("execution_orders").select("risk_pct,risk_source,leverage,leverage_source,lifecycle_state,entry_filled_at,protection_status,runner_active,runner_expired,cleanup_status,open_risk_guard,status").eq("signal_id", signalId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const settings = (settingsRow ?? {}) as Json;
+  const execution = (latestExecution ?? {}) as Json;
+  const stressActive = String(settings.execution_mode ?? "") === "testnet" && settings.stress_override_enabled === true;
+  const governorMode = String(settings.testnet_governor_mode ?? "normal");
+  const governorState = governorMode === "off_for_testing" ? "IGNORED" : String(settings.governor_state ?? "normal").toUpperCase();
+  const truthLines = [
+    "",
+    "Execution Truth",
+    `Execution Mode: ${settings.execution_mode ?? "unknown"}`,
+    `Stress Mode: ${stressActive ? "ON" : "OFF"}`,
+    `Risk Used: ${execution.risk_pct ?? (stressActive ? settings.stress_risk_pct : "unknown")}%`,
+    `Risk Source: ${execution.risk_source ?? (stressActive ? "testnet_stress_override" : "unknown")}`,
+    `Leverage Used: ${execution.leverage ?? (stressActive ? settings.stress_leverage : "unknown")}x`,
+    `Leverage Source: ${execution.leverage_source ?? (stressActive ? "testnet_stress_override" : "unknown")}`,
+    `Governor Mode: ${governorMode.toUpperCase()}`,
+    `Governor State: ${governorState}`,
+    `Lifecycle State: ${execution.lifecycle_state ?? execution.status ?? eventType}`,
+    `Fill State: ${execution.entry_filled_at ? "ENTRY_FILLED" : execution.status ?? "UNKNOWN"}`,
+    `Protection State: ${execution.protection_status ?? "UNKNOWN"}`,
+    `Runner State: ${execution.runner_active ? "ACTIVE" : execution.runner_expired ? "EXPIRED" : "INACTIVE"}`,
+    `Expiry State: ${execution.runner_expired ? "EXPIRED" : "ACTIVE_OR_NOT_DUE"}`,
+    `Cleanup State: ${execution.cleanup_status ?? "PENDING_OR_NOT_REQUIRED"}`,
+    `Open Risk Guard: ${execution.open_risk_guard ?? (stressActive && settings.stress_ignore_open_risk_limit === true ? "IGNORED_FOR_STRESS_TEST" : "ACTIVE")}`,
+  ];
+  const text = ["BINANCE TESTNET — NOT LIVE", "", ...lines, ...truthLines].join("\n");
   try {
     const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }), signal: AbortSignal.timeout(8000) });
     const data = await res.json().catch(() => ({})) as { ok?: boolean; result?: { message_id?: number }; description?: string };
@@ -772,7 +820,7 @@ function commonExecutionFields(plan: OrderPlan): Json {
     capital_basis: plan.capital.capital_basis, raw_total_margin_balance: plan.capital.raw_total_margin_balance, raw_total_wallet_balance: plan.capital.raw_total_wallet_balance,
     raw_available_usdt: plan.capital.raw_available_usdt, raw_available_usdc: plan.capital.raw_available_usdc, selected_capital_used: plan.capital.selected_capital_used,
     max_capital_cap_applied: plan.capital.max_capital_cap_applied, risk_pct: plan.riskPct, risk_amount: plan.riskAmount, notional: plan.notional,
-    leverage_source: plan.leverage_source, governor_state: plan.governor_state, governor_reason: plan.governor_reason, risk_multiplier: plan.risk_multiplier, adjusted_risk_pct: plan.adjusted_risk_pct, adjusted_max_leverage: plan.adjusted_max_leverage,
+    risk_source: plan.risk_source, leverage_source: plan.leverage_source, stress_mode: plan.stress_mode, open_risk_guard: plan.open_risk_guard, governor_state: plan.governor_state, governor_reason: plan.governor_reason, risk_multiplier: plan.risk_multiplier, adjusted_risk_pct: plan.adjusted_risk_pct, adjusted_max_leverage: plan.adjusted_max_leverage,
     intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity,
   };
 }
@@ -1016,16 +1064,17 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
       await logEvent(supabase, String((symbolRows?.[0] as { id: string } | undefined)?.id ?? ""), "stale_closed", "Same-symbol execution blocker marked stale_closed after Binance truth showed no position and no open orders", { symbol: sig.symbol, cleaned, positionAmt: truth.positionAmt, openOrders: truth.openOrders.length });
     }
   }
+  const ignoreOpenRisk = stressOpenRiskIgnored(settings);
   const maxOpenAllowed = !manual && governorMode === "normal" ? Math.min(clampMaxOpenPositions(settings), governor.adjusted_max_open_positions) : clampMaxOpenPositions(settings);
   const { count: openCount } = await supabase.from("execution_orders").select("id", { count: "exact", head: true }).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
-  if ((openCount ?? 0) >= maxOpenAllowed) return createSkipped(supabase, sig, "skipped_max_open_positions", { governor_state: governor.state, governor_reason: governor.reason, adjusted_max_open_positions: maxOpenAllowed });
+  if (!ignoreOpenRisk && (openCount ?? 0) >= maxOpenAllowed) return createSkipped(supabase, sig, "skipped_max_open_positions", { governor_state: governor.state, governor_reason: governor.reason, adjusted_max_open_positions: maxOpenAllowed });
   let plan: OrderPlan;
   try { plan = buildPlan(sig, await getRules(sig.symbol), await capitalSnapshot(settings), settings, governor); }
   catch (e) { return createSkipped(supabase, sig, e instanceof Error ? e.message : "skipped_invalid_sizing"); }
   const currentRisk = await currentOpenRiskPct(supabase);
   const riskCap = maxTotalOpenRiskPct(settings);
   const totalRiskAfter = currentRisk + plan.riskPct;
-  if (!manual && totalRiskAfter > riskCap + 1e-9) return createSkipped(supabase, sig, "skipped_total_open_risk_cap", { current_open_risk_pct: currentRisk, proposed_risk_pct: plan.riskPct, max_total_open_risk_pct: riskCap });
+  if (!manual && !ignoreOpenRisk && totalRiskAfter > riskCap + 1e-9) return createSkipped(supabase, sig, "skipped_total_open_risk_cap", { current_open_risk_pct: currentRisk, proposed_risk_pct: plan.riskPct, max_total_open_risk_pct: riskCap });
   plan.total_open_risk_after_trade = totalRiskAfter;
   const { data: exec } = await supabase.from("execution_orders").insert({ signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, ...expiryFields(sig), ...commonExecutionFields(plan) }).select("id").single();
   const executionId = String((exec as { id: string }).id);
@@ -1042,7 +1091,7 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
     const entry = await binanceRequest<{ orderId: number; status?: string }>("POST", "/fapi/v1/order", { symbol: plan.symbol, side: plan.entrySide, type: "LIMIT", timeInForce: "GTC", quantity: plan.quantity, price: plan.entryPrice }, true);
     await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: String(entry.orderId), binance_entry_order_id: String(entry.orderId), raw_exchange_response: { entry, plan, symbol_configuration: symbolConfiguration }, last_exchange_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "entry_submitted", "Entry LIMIT order placed on /fapi/v1/order", { orderId: entry.orderId, entry_type: "LIMIT" });
-    await sendExecutionTelegram(supabase, sig.id, "auto_executed", ["Auto execution submitted", `Symbol: ${plan.symbol}`, `Side: ${plan.side}`, `Strategy: ${sig.strategy_name}`, `Timeframe: ${sig.timeframe}`, `Grade: ${sig.grade}`, `Leverage: ${plan.leverage}x`, `Leverage source: ${plan.leverage_source}`, `Governor: ${plan.governor_state}`, `Governor reason: ${plan.governor_reason}`, `Effective risk %: ${plan.adjusted_risk_pct}`, `Effective max leverage: ${plan.adjusted_max_leverage}x`, `Capital basis: ${plan.capital.capital_basis}`, `Capital used: ${plan.capital.selected_capital_used.toFixed(2)}`, `Risk %: ${plan.riskPct}`, `Daily PnL %: ${governor.daily_pnl_pct ?? "unknown"}`, `Unrealized PnL: ${governor.unrealized_pnl ?? "unknown"}`, `Risk amount: ${plan.riskAmount.toFixed(2)}`, `Notional: ${plan.notional.toFixed(2)}`, `Qty: ${plan.quantity}`, `Entry: ${plan.entryPrice}`, `SL: ${plan.stopLoss}`, `TP1: ${plan.tp1}`, `TP2: ${plan.tp2}`, `Protection: pending`, `Bracket mode: pending`, `Entry order: ${entry.orderId}`, "SL order: pending", "TP1 order: pending", "TP2 order: pending", "TP1 close %: 50%", "TP2 close %: 50%", "Move SL to BE after TP1: yes", `Open risk: ${plan.riskPct}%`, `Total open risk after this trade: ${totalRiskAfter}%`]);
+    await sendExecutionTelegram(supabase, sig.id, "auto_executed", ["Auto execution submitted", `Symbol: ${plan.symbol}`, `Side: ${plan.side}`, `Strategy: ${sig.strategy_name}`, `Timeframe: ${sig.timeframe}`, `Grade: ${sig.grade}`, `Leverage: ${plan.leverage}x`, `Leverage source: ${plan.leverage_source}`, `Execution Mode: ${settings.execution_mode}`, `Stress Mode: ${plan.stress_mode ? "ON" : "OFF"}`, `Risk Source: ${plan.risk_source}`, `Governor: ${plan.governor_state}`, `Governor reason: ${plan.governor_reason}`, `Effective risk %: ${plan.adjusted_risk_pct}`, `Effective max leverage: ${plan.adjusted_max_leverage}x`, `Capital basis: ${plan.capital.capital_basis}`, `Capital used: ${plan.capital.selected_capital_used.toFixed(2)}`, `Risk %: ${plan.riskPct}`, `Daily PnL %: ${governor.daily_pnl_pct ?? "unknown"}`, `Unrealized PnL: ${governor.unrealized_pnl ?? "unknown"}`, `Risk amount: ${plan.riskAmount.toFixed(2)}`, `Notional: ${plan.notional.toFixed(2)}`, `Qty: ${plan.quantity}`, `Entry: ${plan.entryPrice}`, `SL: ${plan.stopLoss}`, `TP1: ${plan.tp1}`, `TP2: ${plan.tp2}`, `Protection: pending`, `Bracket mode: pending`, `Entry order: ${entry.orderId}`, "SL order: pending", "TP1 order: pending", "TP2 order: pending", "TP1 close %: 50%", "TP2 close %: 50%", "Move SL to BE after TP1: yes", `Open risk: ${plan.riskPct}%`, `Total open risk after this trade: ${totalRiskAfter}%`, `Open Risk Guard: ${plan.open_risk_guard}`]);
     if (entry.status === "FILLED") await maybePlaceProtection(supabase, executionId, sig.id, plan);
     return { success: true, execution_id: executionId, status: "entry_submitted", plan };
   } catch (e) {
@@ -1328,7 +1377,10 @@ async function statusPayload(supabase: SupabaseClient): Promise<Json> {
   const governor = await evaluateGovernor(supabase, settings, account_state ?? undefined).catch(() => null);
   const current_open_risk_pct = await currentOpenRiskPct(supabase).catch(() => 0);
   const max_total_open_risk_pct = maxTotalOpenRiskPct(settings);
-  return { success: true, settings, capital, account_state, governor, execution_allowed: governor ? !governor.blocks_execution : settings.governor_state !== "paused", current_open_risk_pct, max_total_open_risk_pct, remaining_risk_capacity_pct: Math.max(0, max_total_open_risk_pct - current_open_risk_pct), env: { execution_mode: Deno.env.get("EXECUTION_MODE") || "signal_only", exchange: Deno.env.get("EXCHANGE") || "binance_usdm_testnet", testnet_enabled: envBool("TESTNET_ENABLED", false), live_trading_enabled: envBool("LIVE_TRADING_ENABLED", false), base_url: safeBaseUrl(), api_key_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY")), api_secret_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_SECRET")) }, executions: executions.data ?? [], failed_count: failed.count ?? 0, skipped_count: skipped.count ?? 0, latest_error: latestError.data ?? null };
+  const governorIgnored = (settings.testnet_governor_mode ?? "normal") === "off_for_testing";
+  const effectiveRiskPct = stressModeActive(settings) ? Number(settings.stress_risk_pct ?? 2) : null;
+  const effectiveLeverage = stressModeActive(settings) ? Number(settings.stress_leverage ?? 10) : null;
+  return { success: true, settings, capital, account_state, governor: governor ? { ...governor, effective_state: governorIgnored ? "IGNORED" : governor.state, display_state: governorIgnored ? "IGNORED" : governor.state } : governor, execution_allowed: governorIgnored ? true : (governor ? !governor.blocks_execution : settings.governor_state !== "paused"), current_open_risk_pct, max_total_open_risk_pct, remaining_risk_capacity_pct: stressOpenRiskIgnored(settings) ? null : Math.max(0, max_total_open_risk_pct - current_open_risk_pct), effective_risk_pct: effectiveRiskPct, effective_leverage: effectiveLeverage, risk_source: stressModeActive(settings) ? "testnet_stress_override" : "normal_arbitrated_grade_signal_sizing", leverage_source: stressModeActive(settings) ? "testnet_stress_override" : "normal_leverage_logic", governor_display: { mode: String(settings.testnet_governor_mode ?? "normal").toUpperCase(), state: governorIgnored ? "IGNORED" : String(governor?.state ?? settings.governor_state ?? "normal").toUpperCase(), execution_allowed: governorIgnored ? true : (governor ? !governor.blocks_execution : settings.governor_state !== "paused") }, env: { execution_mode: Deno.env.get("EXECUTION_MODE") || "signal_only", exchange: Deno.env.get("EXCHANGE") || "binance_usdm_testnet", testnet_enabled: envBool("TESTNET_ENABLED", false), live_trading_enabled: envBool("LIVE_TRADING_ENABLED", false), base_url: safeBaseUrl(), api_key_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY")), api_secret_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_SECRET")) }, executions: executions.data ?? [], failed_count: failed.count ?? 0, skipped_count: skipped.count ?? 0, latest_error: latestError.data ?? null };
 }
 
 async function resetTestnetGovernor(supabase: SupabaseClient): Promise<Json> {
@@ -1370,7 +1422,7 @@ async function resetTestnetGovernor(supabase: SupabaseClient): Promise<Json> {
 }
 
 async function updateSettings(supabase: SupabaseClient, patch: Json): Promise<Json> {
-  const allowed = ["auto_execute_testnet", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "testnet_governor_mode", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl"];
+  const allowed = ["auto_execute_testnet", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "testnet_governor_mode", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl", "stress_override_enabled", "stress_risk_pct", "stress_leverage", "stress_ignore_open_risk_limit", "bot_paused", "bot_paused_reason"];
   const update: Json = { updated_at: new Date().toISOString() };
   for (const key of allowed) if (key in patch) update[key] = patch[key];
   if ("testnet_governor_mode" in update && !["normal", "readonly", "off_for_testing"].includes(String(update.testnet_governor_mode))) throw new Error("Invalid testnet_governor_mode");
