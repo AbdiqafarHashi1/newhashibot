@@ -5,6 +5,9 @@ export const ACTIVE_EXECUTION_STATUSES = [
   'protected',
   'protected_native',
   'pending_protection',
+  'protection_pending',
+  'protection_failed',
+  'protection_recovered',
   'partially_closed',
   'protected_managed',
   'pending_managed_protection',
@@ -26,7 +29,7 @@ export type RetryableExecutionStatus = typeof RETRYABLE_EXECUTION_STATUSES[numbe
 export type ExecutionStatus = ActiveExecutionStatus | RetryableExecutionStatus | string;
 export type Direction = 'buy' | 'sell';
 export type BracketMode = 'exchange_native' | 'managed_exit_fallback';
-export type ProtectionStatus = 'unprotected' | 'pending_protection' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_managed_protection' | 'unprotected_failed';
+export type ProtectionStatus = 'unprotected' | 'pending_protection' | 'protection_pending' | 'protection_failed' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_managed_protection' | 'protection_recovered' | 'unprotected_failed';
 
 export interface BinanceTruthState {
   symbol: string;
@@ -120,6 +123,7 @@ export interface NativeOrderResult {
 export interface NativeProtectionClient {
   placeReduceOnlyStop(input: EntryFill & { quantity: number }): Promise<NativeOrderResult>;
   placeReduceOnlyTakeProfit(input: EntryFill & { quantity: number; targetPrice: number; label: 'tp1' | 'tp2' }): Promise<NativeOrderResult>;
+  fetchOpenProtectionOrders?(symbol: string): Promise<BinanceOpenOrder[]>;
 }
 
 export interface ProtectionPlan {
@@ -298,9 +302,8 @@ export async function createProtectionPlan(fill: EntryFill, client: NativeProtec
       client.placeReduceOnlyTakeProfit({ ...fill, quantity: firstHalf, targetPrice: fill.tp1, label: 'tp1' }),
       client.placeReduceOnlyTakeProfit({ ...fill, quantity: secondHalf, targetPrice: fill.tp2, label: 'tp2' }),
     ]);
-    return {
-      protection_status: 'protected_native',
-      bracket_mode: 'exchange_native',
+    const basePlan = {
+      bracket_mode: 'exchange_native' as const,
       sl_order_id: sl.algoId,
       tp1_order_id: tp1.algoId,
       tp2_order_id: tp2.algoId,
@@ -310,7 +313,6 @@ export async function createProtectionPlan(fill: EntryFill, client: NativeProtec
       sl_client_algo_id: sl.clientAlgoId,
       tp1_client_algo_id: tp1.clientAlgoId,
       tp2_client_algo_id: tp2.clientAlgoId,
-      native_protection_verified: true,
       managed_fallback_active: false,
       intended_sl: fill.stopLoss,
       intended_tp1: fill.tp1,
@@ -319,10 +321,33 @@ export async function createProtectionPlan(fill: EntryFill, client: NativeProtec
       tp2_quantity: secondHalf,
       sl_moved_to_be: false,
     };
+    if (!client.fetchOpenProtectionOrders) {
+      return {
+        ...basePlan,
+        protection_status: 'pending_protection',
+        native_protection_verified: false,
+        error_message: 'Native protection submitted but Binance open-order verification was not provided',
+      };
+    }
+    const openOrders = await client.fetchOpenProtectionOrders(fill.symbol);
+    const verification = verifyNativeProtectionOpenOrders(fill, { sl: sl.algoId, tp1: tp1.algoId, tp2: tp2.algoId }, openOrders);
+    if (!verification.verified) {
+      return {
+        ...basePlan,
+        protection_status: 'protection_failed',
+        native_protection_verified: false,
+        error_message: `Native protection verification failed: ${verification.errors.join(',')}`,
+      };
+    }
+    return {
+      ...basePlan,
+      protection_status: 'protected_native',
+      native_protection_verified: true,
+    };
   } catch (err) {
     return {
-      protection_status: 'protected_managed',
-      bracket_mode: 'managed_exit_fallback',
+      protection_status: 'protection_failed',
+      bracket_mode: 'exchange_native',
       intended_sl: fill.stopLoss,
       intended_tp1: fill.tp1,
       intended_tp2: fill.tp2,
@@ -331,7 +356,7 @@ export async function createProtectionPlan(fill: EntryFill, client: NativeProtec
       sl_moved_to_be: false,
       error_message: err instanceof Error ? err.message : 'Native protection rejected',
       native_protection_verified: false,
-      managed_fallback_active: true,
+      managed_fallback_active: false,
     };
   }
 }

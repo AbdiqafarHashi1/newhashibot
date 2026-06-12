@@ -55,8 +55,17 @@ async function run() {
   assert.equal(tp1Intent.type, 'TAKE_PROFIT_MARKET', 'native TP1 uses TAKE_PROFIT_MARKET');
   assert.equal(tp1Intent.closePosition, false, 'native TP1 does not use closePosition partials');
 
-  const nativePlan = await createProtectionPlan(fill, nativeClient);
-  assert.equal(nativePlan.protection_status, 'protected_native', 'TP1/TP2/SL native algo success');
+  const nativePlan = await createProtectionPlan(fill, {
+    ...nativeClient,
+    async fetchOpenProtectionOrders() {
+      return [
+        { orderId: 'legacy-sl', algoId: 'sl-1', symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, closePosition: false, triggerPrice: 90, origQty: 2 },
+        { orderId: 'legacy-tp1', algoId: 'tp1-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, triggerPrice: 110, origQty: 1 },
+        { orderId: 'legacy-tp2', algoId: 'tp2-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, closePosition: false, triggerPrice: 120, origQty: 1 },
+      ];
+    },
+  });
+  assert.equal(nativePlan.protection_status, 'protected_native', 'TP1/TP2/SL native algo success after Binance open-order verification');
   assert.equal(nativePlan.native_protection_verified, true, 'native algo orders are verified before protected_native');
   assert.equal(nativePlan.bracket_mode, 'exchange_native');
   assert.equal(nativePlan.tp1_quantity, 1);
@@ -76,8 +85,8 @@ async function run() {
     async placeReduceOnlyStop() { throw new Error('STOP rejected on demo'); },
     async placeReduceOnlyTakeProfit() { return { algoId: 'unused' }; },
   });
-  assert.equal(fallbackPlan.protection_status, 'protected_managed', 'managed fallback success');
-  assert.equal(fallbackPlan.bracket_mode, 'managed_exit_fallback');
+  assert.equal(fallbackPlan.protection_status, 'protection_failed', 'native failures remain unprotected until watchdog recovery verifies Binance SL/TP1/TP2');
+  assert.equal(fallbackPlan.bracket_mode, 'exchange_native');
 
   const closes: Array<{ quantity: number; reason: string }> = [];
   const managedClient: ManagedExitClient = {

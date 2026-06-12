@@ -11,7 +11,7 @@ async function run() {
   assert.equal(entry.updates.entry_price, 100.5);
   assert.equal(entry.events.length, 1);
 
-  const native = { ...base, status: 'protected_native', protection_status: 'protected_native', bracket_mode: 'exchange_native', tp1_algo_id: 'tp1', tp2_algo_id: 'tp2', sl_algo_id: 'sl' };
+  const native = { ...base, status: 'protected_native', protection_status: 'protected_native', bracket_mode: 'exchange_native', tp1_algo_id: 'tp1', tp2_algo_id: 'tp2', sl_algo_id: 'sl', tp1_quantity: 1, tp2_quantity: 1 };
   const nativeTp1 = processExecutionMonitorTick(native, { positionAmt: 1, openOrders: [], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FINISHED' } });
   assert.equal(nativeTp1.updates.status, 'partially_closed', 'native TP1 partial close detection');
   assert.equal(nativeTp1.updates.tp1_filled, true);
@@ -53,7 +53,7 @@ async function run() {
   assert.equal(typeof computeTimeStopDeadline({ ...managed, strategy_name: 'CompressionBreakout', timeframe: '1h', created_at: '2026-06-08T00:00:00.000Z' }), 'string', 'time-stop deadline is computed');
 
   const unprotected = processExecutionMonitorTick({ ...base, status: 'entry_filled', protection_status: 'unprotected' }, { positionAmt: 2, openOrders: [], markPrice: 100 }, {});
-  assert.equal(unprotected.updates.protection_status, 'protected_managed', 'unprotected open position is immediately moved to managed fallback recovery');
+  assert.equal(unprotected.updates.protection_status, 'pending_protection', 'unprotected open position remains pending until native SL/TP1/TP2 verification succeeds');
   assert.equal(unprotected.updates.last_monitor_action, 'protection_recovery_required');
 
   const managedSl = processExecutionMonitorTick({ ...managed, tp1_closed_at: new Date().toISOString(), profit_lock_sl_active: true, replacement_sl_price: 103, remaining_quantity: 1 }, { positionAmt: 1, openOrders: [], markPrice: 102 }, {});
@@ -86,7 +86,7 @@ async function run() {
   assert.equal(orphanOrders.updates.last_monitor_action, 'orphan_protection_orders_cancelled');
 
   const activeExposure = processExecutionMonitorTick({ ...base, status: 'protected' }, { positionAmt: 1, openOrders: [], markPrice: 100 }, {});
-  assert.equal(activeExposure.updates.status, undefined, 'active Binance exposure blocks cleanup');
+  assert.equal(activeExposure.updates.protection_status, 'pending_protection', 'active Binance exposure without SL/TP1/TP2 is unsafe and never classified protected');
 
   assert.equal(calculateProfitLockPrice('buy', 100, 95, 0.3), 101.5, 'long profit lock is +0.3R');
   assert.equal(calculateProfitLockPrice('sell', 100, 105, 0.3), 98.5, 'short profit lock is +0.3R');
@@ -106,8 +106,45 @@ async function run() {
   assert.equal(classifyExecutionLifecycleOutcome({ status: 'closed_sl' }), 'loss_direct_sl', 'direct SL before TP1 is the only normal loss path');
   assert.equal(classifyExecutionLifecycleOutcome({ status: 'closed_expired_after_tp1', tp1_filled: true }), 'expired_after_tp1', 'expiry after TP1 is classified separately');
 
-  const repeatedTp1 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 1, openOrders: [], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FINISHED' } });
+  const repeatedTp1 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 1, openOrders: [
+    { algoId: 'sl', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, triggerPrice: 90, origQty: 2 },
+    { algoId: 'tp1', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 110, origQty: 1 },
+    { algoId: 'tp2', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 120, origQty: 1 },
+  ], markPrice: 111 }, { tp1: { orderId: 'tp1', status: 'FINISHED' } });
   assert.equal(repeatedTp1.events.length, 0, 'Telegram update events are emitted only on state changes');
+
+  const missingSl = processExecutionMonitorTick(native, { positionAmt: 2, openOrders: [
+    { algoId: 'tp1', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 110, origQty: 1 },
+    { algoId: 'tp2', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 120, origQty: 1 },
+  ], markPrice: 100 }, {});
+  assert.equal(missingSl.updates.status, 'protection_failed', 'missing SL downgrades protected_native immediately');
+
+  const missingTp1 = processExecutionMonitorTick(native, { positionAmt: 2, openOrders: [
+    { algoId: 'sl', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, triggerPrice: 90, origQty: 2 },
+    { algoId: 'tp2', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 120, origQty: 1 },
+  ], markPrice: 100 }, {});
+  assert.equal(missingTp1.updates.status, 'protection_failed', 'missing TP1 downgrades protected_native immediately');
+
+  const missingTp2 = processExecutionMonitorTick(native, { positionAmt: 2, openOrders: [
+    { algoId: 'sl', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, triggerPrice: 90, origQty: 2 },
+    { algoId: 'tp1', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 110, origQty: 1 },
+  ], markPrice: 100 }, {});
+  assert.equal(missingTp2.updates.status, 'protection_failed', 'missing TP2 downgrades protected_native immediately');
+
+  const recoveredProtection = processExecutionMonitorTick({ ...native, status: 'entry_filled', protection_status: 'pending_protection' }, { positionAmt: 2, openOrders: [
+    { algoId: 'sl', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, triggerPrice: 90, origQty: 2 },
+    { algoId: 'tp1', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 110, origQty: 1 },
+    { algoId: 'tp2', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 120, origQty: 1 },
+  ], markPrice: 100 }, {});
+  assert.equal(recoveredProtection.updates.protection_status, 'protected_native', 'watchdog verification promotes only complete SL/TP1/TP2 protection');
+
+  const tp2WhileOpen = processExecutionMonitorTick(native, { positionAmt: 1, openOrders: [
+    { algoId: 'sl', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, triggerPrice: 90, origQty: 2 },
+    { algoId: 'tp1', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 110, origQty: 1 },
+    { algoId: 'tp2', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 120, origQty: 1 },
+  ], markPrice: 121 }, { tp2: { orderId: 'tp2', status: 'FILLED' } });
+  assert.equal(tp2WhileOpen.updates.status, undefined, 'TP2 fill cannot close execution while Binance position remains open');
+  assert.equal(tp2WhileOpen.events.some((event) => event.telegram), false, 'TP2 while open does not emit Telegram truth notification');
 }
 
 run().then(() => console.log('binance testnet monitor tests passed'));

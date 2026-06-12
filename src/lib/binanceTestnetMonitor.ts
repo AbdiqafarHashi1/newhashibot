@@ -5,6 +5,9 @@ export const MONITOR_ACTIVE_STATUSES = [
   'protected',
   'protected_native',
   'pending_protection',
+  'protection_pending',
+  'protection_failed',
+  'protection_recovered',
   'protected_managed',
   'pending_managed_protection',
   'partially_closed',
@@ -20,6 +23,10 @@ export type MonitorEventType =
   | 'entry_timeout_cancelled'
   | 'entry_missing_no_position'
   | 'protection_recovery_required'
+  | 'unsafe_position'
+  | 'protection_recovered'
+  | 'protection_recovery_failed'
+  | 'binance_truth_guard'
   | 'native_tp1_filled'
   | 'native_tp2_filled'
   | 'native_sl_filled'
@@ -132,7 +139,7 @@ export interface BinanceOrderSnapshot {
 
 export interface BinanceTruthSnapshot {
   positionAmt: number;
-  openOrders: Array<{ orderId?: string; algoId?: string; reduceOnly?: boolean; type?: string; orderType?: string; quantity?: number | string; origQty?: number | string; status?: string }>;
+  openOrders: Array<{ orderId?: string; algoId?: string; reduceOnly?: boolean; closePosition?: boolean; side?: string; type?: string; orderType?: string; quantity?: number | string; origQty?: number | string; triggerPrice?: number | string; stopPrice?: number | string; price?: number | string; status?: string }>;
   markPrice?: number | null;
   unrealizedPnl?: number | null;
 }
@@ -239,6 +246,47 @@ function allProtectionIds(row: MonitorExecutionRow): string[] {
   return [row.replacement_sl_algo_id ?? row.replacement_sl_order_id, row.sl_algo_id ?? row.binance_sl_order_id, row.tp1_algo_id ?? row.binance_tp1_order_id, row.tp2_algo_id ?? row.binance_tp2_order_id]
     .filter(Boolean)
     .map(String);
+}
+
+type ProtectionLabel = 'sl' | 'tp1' | 'tp2';
+
+function expectedProtection(row: MonitorExecutionRow, truth: BinanceTruthSnapshot): Record<ProtectionLabel, { id?: string | null; side: 'BUY' | 'SELL'; type: string; quantity: number; price?: number | null }> {
+  const total = row.volume ?? row.remaining_quantity ?? Math.abs(truth.positionAmt);
+  return {
+    sl: { id: row.sl_algo_id ?? row.binance_sl_order_id, side: closeSide(row.direction), type: 'STOP_MARKET', quantity: total, price: row.intended_sl },
+    tp1: { id: row.tp1_algo_id ?? row.binance_tp1_order_id, side: closeSide(row.direction), type: 'TAKE_PROFIT_MARKET', quantity: row.tp1_quantity ?? total / 2, price: row.intended_tp1 },
+    tp2: { id: row.tp2_algo_id ?? row.binance_tp2_order_id, side: closeSide(row.direction), type: 'TAKE_PROFIT_MARKET', quantity: row.tp2_quantity ?? total / 2, price: row.intended_tp2 },
+  };
+}
+
+function findProtectionOrder(openOrders: BinanceTruthSnapshot['openOrders'], expectedId: string | null | undefined) {
+  if (!expectedId) return undefined;
+  return openOrders.find((order) => String(order.algoId ?? order.orderId ?? '') === String(expectedId));
+}
+
+export function verifyExecutionProtection(row: MonitorExecutionRow, truth: BinanceTruthSnapshot): { verified: boolean; missingLabels: ProtectionLabel[]; errors: string[] } {
+  const expected = expectedProtection(row, truth);
+  const missingLabels: ProtectionLabel[] = [];
+  const errors: string[] = [];
+  for (const label of ['sl', 'tp1', 'tp2'] as const) {
+    const intent = expected[label];
+    const order = findProtectionOrder(truth.openOrders, intent.id);
+    const issues: string[] = [];
+    if (!order) issues.push('missing');
+    if (order?.side && String(order.side).toUpperCase() !== intent.side) issues.push('wrong_side');
+    if (order?.type && String(order.type).toUpperCase() !== intent.type) issues.push('wrong_type');
+    if (order?.reduceOnly === false) issues.push('not_reduce_only');
+    if (order?.closePosition === true) issues.push('unexpected_close_position');
+    const qty = num(order?.origQty ?? order?.quantity);
+    if (qty !== null && intent.quantity > 0 && Math.abs(qty - intent.quantity) > Math.max(intent.quantity * 0.000001, 1e-8)) issues.push('wrong_quantity');
+    const price = num(order?.triggerPrice ?? order?.stopPrice ?? order?.price);
+    if (price !== null && intent.price && Math.abs(price - intent.price) > Math.max(Math.abs(intent.price) * 0.000001, 1e-8)) issues.push('wrong_price');
+    if (issues.length > 0) {
+      missingLabels.push(label);
+      errors.push(`${label}:${issues.join('+')}`);
+    }
+  }
+  return { verified: missingLabels.length === 0, missingLabels, errors };
 }
 
 function rowAgeMs(row: MonitorExecutionRow): number {
@@ -360,13 +408,26 @@ export function processExecutionMonitorTick(
   }
 
 
-  if (hasPosition && !['protected', 'protected_native', 'protected_managed'].includes(String(row.protection_status ?? '')) && ['entry_filled', 'protected', 'protected_native', 'protected_managed', 'partially_closed'].includes(row.status)) {
-    out.updates.protection_status = 'protected_managed';
-    out.updates.bracket_mode = 'managed_exit_fallback';
-    out.updates.managed_fallback_active = true;
-    out.updates.native_protection_verified = false;
-    out.updates.last_monitor_action = 'protection_recovery_required';
-    addEvent(out, 'protection_recovery_required', `${row.symbol} has an unsafe_untracked_position: Binance has an open position without verified protection; monitor must retry native protection or activate managed fallback immediately.`);
+  if (hasPosition && ['entry_filled', 'pending_protection', 'protection_pending', 'protection_failed', 'protected', 'protected_native', 'protected_managed', 'partially_closed'].includes(row.status)) {
+    const verification = verifyExecutionProtection(row, truth);
+    const nativeLike = row.bracket_mode === 'exchange_native' || row.protection_status === 'protected_native' || row.protection_status === 'pending_protection' || row.protection_status === 'protection_pending';
+    if (verification.verified && nativeLike && row.protection_status !== 'protected_native') {
+      out.updates.status = 'protected_native';
+      out.updates.protection_status = 'protected_native';
+      out.updates.native_protection_verified = true;
+      out.updates.managed_fallback_active = false;
+      out.updates.last_monitor_action = 'protection_verified';
+      addEvent(out, 'protection_recovered', `${row.symbol} protection verified on Binance: SL, TP1, and TP2 all exist with reduce-only quantities and expected prices.`);
+    } else if (!verification.verified) {
+      out.updates.protection_status = row.protection_status === 'protection_failed' ? 'protection_failed' : 'pending_protection';
+      out.updates.native_protection_verified = false;
+      out.updates.managed_fallback_active = false;
+      out.updates.latest_protection_error = `UNSAFE_POSITION missing/mismatched protection: ${verification.errors.join(',')}`;
+      out.updates.protection_critical_reason = 'binance_position_exists_without_verified_sl_tp1_tp2';
+      out.updates.last_monitor_action = 'protection_recovery_required';
+      addEvent(out, 'unsafe_position', `${row.symbol} UNSAFE_POSITION CRITICAL — missing/mismatched protection (${verification.errors.join(',')}); recovery must recreate ${verification.missingLabels.join(', ')} before ACTIVE/protected_native.`);
+      if (row.protection_status === 'protected_native') out.updates.status = 'protection_failed';
+    }
   }
 
   if (entryOrder && ['CANCELED', 'EXPIRED'].includes(entryOrderStatus) && ['pending', 'entry_submitted'].includes(row.status)) {
@@ -420,18 +481,26 @@ export function processExecutionMonitorTick(
       nativeChanged = true;
     }
     if (!row.tp2_closed_at && conditionalFilled(tp2)) {
-      const fillTime = orderFillTime(tp2, checkedAt);
-      out.updates.status = 'closed_tp2';
-      out.updates.lifecycle_state = 'closed_tp2';
-      out.updates.tp2_closed_at = fillTime;
-      out.updates.tp2_filled = true;
-      out.updates.runner_closed = true;
-      out.updates.runner_active = false;
-      out.updates.remaining_quantity = 0;
-      out.updates.remaining_qty = 0;
-      pushUniqueCancel(out, [slId, tp1Id, row.replacement_sl_algo_id, row.replacement_sl_order_id]);
-      addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 hit — trade closed; leftover SL/profit-lock conditionals queued for cleanup verification.`);
-      nativeChanged = true;
+      if (hasPosition) {
+        out.updates.last_monitor_action = 'binance_truth_guard_tp2_fill_position_still_open';
+        out.updates.lifecycle_state = 'binance_truth_guard_position_open_after_tp2';
+        out.updates.latest_sync_error = 'TP2 order reports filled but Binance position is still open; not closing execution until Binance confirms flat position.';
+        addEvent(out, 'binance_truth_guard', `${row.symbol} TP2 fill was seen but Binance position remains open; execution is not closed and no TP2 HIT/CLOSED truth message is emitted.`, false);
+        nativeChanged = true;
+      } else {
+        const fillTime = orderFillTime(tp2, checkedAt);
+        out.updates.status = 'closed_tp2';
+        out.updates.lifecycle_state = 'closed_tp2';
+        out.updates.tp2_closed_at = fillTime;
+        out.updates.tp2_filled = true;
+        out.updates.runner_closed = true;
+        out.updates.runner_active = false;
+        out.updates.remaining_quantity = 0;
+        out.updates.remaining_qty = 0;
+        pushUniqueCancel(out, [slId, tp1Id, row.replacement_sl_algo_id, row.replacement_sl_order_id]);
+        addEvent(out, 'native_tp2_filled', `${row.symbol} TP2 hit — trade closed; leftover SL/profit-lock conditionals queued for cleanup verification.`);
+        nativeChanged = true;
+      }
     }
     if (!row.sl_closed_at && conditionalFilled(sl)) {
       const profitLockHit = Boolean(row.tp1_closed_at || row.tp1_filled || row.sl_replaced_after_tp1 || row.profit_lock_sl_active);
