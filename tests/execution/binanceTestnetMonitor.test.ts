@@ -138,6 +138,13 @@ async function run() {
   ], markPrice: 100 }, {});
   assert.equal(recoveredProtection.updates.protection_status, 'protected_native', 'watchdog verification promotes only complete SL/TP1/TP2 protection');
 
+  const recoveredWithStaleDbIds = processExecutionMonitorTick({ ...native, tp1_algo_id: 'old_tp1', tp2_algo_id: 'old_tp2', sl_algo_id: 'old_sl', status: 'entry_filled', protection_status: 'pending_protection' }, { positionAmt: 2, openOrders: [
+    { algoId: 'live_sl', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, triggerPrice: 90, origQty: 2 },
+    { algoId: 'live_tp1', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 110, origQty: 1 },
+    { algoId: 'live_tp2', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 120, origQty: 1 },
+  ], markPrice: 100 }, {});
+  assert.equal(recoveredWithStaleDbIds.updates.protection_status, 'protected_native', 'watchdog accepts live Binance conditionals even when stored DB IDs are stale');
+
   const tp2WhileOpen = processExecutionMonitorTick(native, { positionAmt: 1, openOrders: [
     { algoId: 'sl', side: 'SELL', type: 'STOP_MARKET', reduceOnly: true, triggerPrice: 90, origQty: 2 },
     { algoId: 'tp1', side: 'SELL', type: 'TAKE_PROFIT_MARKET', reduceOnly: true, triggerPrice: 110, origQty: 1 },
