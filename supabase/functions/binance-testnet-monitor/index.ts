@@ -127,6 +127,12 @@ function n(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function parseOpenAlgoOrders(body: unknown): BinanceOrder[] {
+  if (Array.isArray(body)) return body as BinanceOrder[];
+  const orders = (body as { orders?: unknown } | null)?.orders;
+  return Array.isArray(orders) ? orders as BinanceOrder[] : [];
+}
+
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err || "Unknown error");
 }
@@ -317,7 +323,7 @@ async function submitAlgoProtectionOrder(symbol: string, closeSide: "BUY" | "SEL
 
 async function verifyOpenProtectionSet(row: Row, expected: Array<{ label: string; algoId: string; side: string; type: string; quantity: number; triggerPrice: number }>): Promise<{ verified: boolean; errors: string[]; openOrders: BinanceOrder[] }> {
   const body = await binanceRequest("/fapi/v1/openAlgoOrders", { symbol: row.symbol, algoType: "CONDITIONAL" }).catch(() => []);
-  const openOrders = (Array.isArray(body) ? body : []) as BinanceOrder[];
+  const openOrders = parseOpenAlgoOrders(body);
   const errors: string[] = [];
   for (const item of expected) {
     const order = openOrders.find((o) => String(o.algoId ?? o.orderId ?? "") === String(item.algoId));
@@ -332,6 +338,166 @@ async function verifyOpenProtectionSet(row: Row, expected: Array<{ label: string
     if (trigger > 0 && Math.abs(trigger - item.triggerPrice) > Math.max(item.triggerPrice * 0.000001, 1e-8)) errors.push(`${item.label}:wrong_trigger_price`);
   }
   return { verified: errors.length === 0, errors, openOrders };
+}
+
+type ProtectionComponent = "sl" | "tp1" | "tp2";
+
+type ProtectionExpectation = {
+  label: ProtectionComponent;
+  storedId?: string;
+  side: "BUY" | "SELL";
+  type: "STOP_MARKET" | "TAKE_PROFIT_MARKET";
+  quantity: number;
+  triggerPrice: number;
+  idColumns: string[];
+};
+
+type ProtectionCheck = ProtectionExpectation & { liveOrder?: BinanceOrder; liveId?: string; errors: string[]; matchedByStoredId: boolean };
+
+function openOrderIdentity(order: BinanceOrder): string {
+  return String(order.algoId ?? order.orderId ?? order.clientAlgoId ?? order.clientOrderId ?? "");
+}
+
+function activeConditionalOrders(openOrders: BinanceOrder[]): BinanceOrder[] {
+  return openOrders.filter((order) => {
+    const status = normalizeAlgoStatus(order);
+    if (["CANCELED", "CANCELLED", "EXPIRED", "REJECTED", "FILLED", "FINISHED"].includes(status)) return false;
+    return Boolean(order.algoId || order.orderId || order.clientAlgoId || order.clientOrderId);
+  });
+}
+
+function orderMatchesProtectionIntent(order: BinanceOrder, expected: ProtectionExpectation): boolean {
+  const side = String(order.side ?? "").toUpperCase();
+  if (side && side !== expected.side) return false;
+  const type = String(order.type ?? (order as Record<string, unknown>).orderType ?? "").toUpperCase();
+  if (type && type !== expected.type) return false;
+  if ((order.reduceOnly as unknown) === false) return false;
+  if ((order.closePosition as unknown) === true) return false;
+  const qty = n(order.origQty ?? order.quantity);
+  if (qty > 0 && expected.quantity > 0 && Math.abs(qty - expected.quantity) > Math.max(expected.quantity * 0.000001, 1e-8)) return false;
+  const trigger = n(order.triggerPrice ?? order.stopPrice ?? order.price);
+  if (trigger > 0 && expected.triggerPrice > 0 && Math.abs(trigger - expected.triggerPrice) > Math.max(Math.abs(expected.triggerPrice) * 0.000001, 1e-8)) return false;
+  return true;
+}
+
+function expectedNativeProtection(row: Row, positionAmt: number): ProtectionExpectation[] {
+  const closeSide = sideToClose(row.direction);
+  const total = Math.abs(positionAmt) || n(row.remaining_quantity) || n(row.volume) || n(row.quantity);
+  const afterTp1 = Boolean(row.tp1_filled || row.tp1_closed_at || row.runner_active || row.profit_lock_sl_active || row.sl_replaced_after_tp1 || row.status === "partially_closed");
+  const slPrice = afterTp1 ? n(row.replacement_sl_price) || n(row.profit_lock_price) || n(row.intended_sl) || n(row.stop_loss) : n(row.intended_sl) || n(row.stop_loss);
+  const slId = String((afterTp1 ? row.replacement_sl_algo_id ?? row.replacement_sl_order_id : row.sl_algo_id ?? row.binance_sl_order_id) ?? "");
+  const tp1Qty = floorToStep(n(row.tp1_quantity) || total * 0.5, 0.00000001, 8);
+  const tp2Qty = floorToStep(n(row.tp2_quantity) || Math.max(total - tp1Qty, total * 0.5), 0.00000001, 8);
+  const expectations: ProtectionExpectation[] = [{
+    label: "sl",
+    storedId: slId || undefined,
+    side: closeSide,
+    type: "STOP_MARKET",
+    quantity: total,
+    triggerPrice: slPrice,
+    idColumns: afterTp1 ? ["replacement_sl_order_id", "replacement_sl_algo_id"] : ["sl_order_id", "sl_algo_id", "binance_sl_order_id"],
+  }];
+  if (!afterTp1) {
+    expectations.push({ label: "tp1", storedId: String(row.tp1_algo_id ?? row.binance_tp1_order_id ?? "") || undefined, side: closeSide, type: "TAKE_PROFIT_MARKET", quantity: tp1Qty, triggerPrice: n(row.intended_tp1) || n(row.tp1), idColumns: ["tp1_order_id", "tp1_algo_id", "binance_tp1_order_id"] });
+  }
+  expectations.push({ label: "tp2", storedId: String(row.tp2_algo_id ?? row.binance_tp2_order_id ?? "") || undefined, side: closeSide, type: "TAKE_PROFIT_MARKET", quantity: tp2Qty, triggerPrice: n(row.intended_tp2) || n(row.tp2), idColumns: ["tp2_order_id", "tp2_algo_id", "binance_tp2_order_id"] });
+  return expectations.filter((item) => item.quantity > 0 && item.triggerPrice > 0);
+}
+
+function checkNativeProtection(openOrders: BinanceOrder[], expected: ProtectionExpectation[]): ProtectionCheck[] {
+  const live = activeConditionalOrders(openOrders);
+  return expected.map((item) => {
+    const stored = item.storedId ? live.find((order) => openOrderIdentity(order) === item.storedId) : undefined;
+    const matched = stored && orderMatchesProtectionIntent(stored, item) ? stored : live.find((order) => orderMatchesProtectionIntent(order, item));
+    const order = matched ?? stored;
+    const errors: string[] = [];
+    if (!order) errors.push("missing");
+    else if (!orderMatchesProtectionIntent(order, item)) {
+      if (String(order.side ?? "").toUpperCase() !== item.side) errors.push("wrong_side");
+      if (String(order.type ?? (order as Record<string, unknown>).orderType ?? "").toUpperCase() !== item.type) errors.push("wrong_type");
+      if ((order.reduceOnly as unknown) === false) errors.push("not_reduce_only");
+      if ((order.closePosition as unknown) === true) errors.push("unexpected_close_position");
+      const qty = n(order.origQty ?? order.quantity);
+      if (qty > 0 && Math.abs(qty - item.quantity) > Math.max(item.quantity * 0.000001, 1e-8)) errors.push("wrong_quantity");
+      const trigger = n(order.triggerPrice ?? order.stopPrice ?? order.price);
+      if (trigger > 0 && Math.abs(trigger - item.triggerPrice) > Math.max(Math.abs(item.triggerPrice) * 0.000001, 1e-8)) errors.push("wrong_trigger_price");
+    }
+    return { ...item, liveOrder: order, liveId: order ? openOrderIdentity(order) : undefined, errors, matchedByStoredId: Boolean(stored && order === stored) };
+  });
+}
+
+async function fetchLiveConditionalOrders(symbol: string): Promise<BinanceOrder[]> {
+  const [regularBody, algoBody] = await Promise.all([
+    binanceRequest("/fapi/v1/openOrders", { symbol }).catch(() => []),
+    binanceRequest("/fapi/v1/openAlgoOrders", { symbol, algoType: "CONDITIONAL" }).catch(() => []),
+  ]);
+  return [...(Array.isArray(regularBody) ? regularBody as BinanceOrder[] : []), ...parseOpenAlgoOrders(algoBody)];
+}
+
+async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, positionAmt: number, openOrders: BinanceOrder[], stats: MonitorStats): Promise<boolean> {
+  const expected = expectedNativeProtection(row, positionAmt);
+  if (expected.length < (row.tp1_filled || row.tp1_closed_at || row.status === "partially_closed" ? 2 : 3)) {
+    const error = `native_protection_intent_incomplete: expected=${expected.map((item) => item.label).join(",")}`;
+    await supabase.from("execution_orders").update({ status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: error, lifecycle_state: "unsafe_position", last_monitor_action: "protection_watchdog_intent_incomplete", updated_at: new Date().toISOString() }).eq("id", row.id);
+    await logEvent(supabase, row, "protection_failed", `${row.symbol} UNSAFE_POSITION / PROTECTION_FAILED: ${error}`, { expected }, stats);
+    stats.unsafe_positions += 1;
+    stats.updated += 1;
+    return false;
+  }
+
+  let checks = checkNativeProtection(openOrders, expected);
+  const missingOrInvalid = checks.filter((item) => item.errors.length > 0);
+  const idUpdate: Record<string, unknown> = {};
+  for (const item of checks.filter((check) => check.errors.length === 0 && check.liveId && check.liveId !== check.storedId)) {
+    for (const column of item.idColumns) idUpdate[column] = item.liveId;
+  }
+  if (missingOrInvalid.length === 0) {
+    await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, latest_protection_error: "", protection_critical_reason: "", last_monitor_action: "protection_watchdog_verified_live", updated_at: new Date().toISOString() }).eq("id", row.id);
+    stats.protected += 1;
+    stats.updated += 1;
+    return true;
+  }
+
+  const unsafeReason = missingOrInvalid.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
+  await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `UNSAFE_POSITION missing/mismatched live Binance protection: ${unsafeReason}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", lifecycle_state: "unsafe_position", last_monitor_action: "protection_watchdog_repairing", updated_at: new Date().toISOString() }).eq("id", row.id);
+  await logEvent(supabase, row, "protection_failed", `${row.symbol} UNSAFE_POSITION / PROTECTION_FAILED: missing or invalid live Binance protection (${unsafeReason}); recreating missing components.`, { checks, expected }, stats);
+  stats.unsafe_positions += 1;
+  stats.updated += 1;
+
+  const created: Record<string, unknown> = {};
+  for (const item of missingOrInvalid) {
+    const knownBadId = item.matchedByStoredId && item.liveOrder ? openOrderIdentity(item.liveOrder) : "";
+    if (knownBadId) {
+      try {
+        await cancelOpenOrder(row.symbol, item.liveOrder as BinanceOrder);
+        stats.cancelled_orders += 1;
+      } catch (err) {
+        addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `protection_watchdog_cancel_bad_${item.label}_warning: ${errorMessage(err)}`, action: "protection_watchdog_repair_continue", source: "cleanup" });
+      }
+    }
+    const order = await submitAlgoProtectionOrder(row.symbol, item.side, item.type, item.triggerPrice, item.quantity, item.label);
+    created[item.label] = order;
+    for (const column of item.idColumns) idUpdate[column] = order.algoId;
+    idUpdate[`${item.label}_client_algo_id`] = order.clientAlgoId;
+  }
+
+  const refreshed = await fetchLiveConditionalOrders(row.symbol);
+  checks = checkNativeProtection(refreshed, expected.map((item) => ({ ...item, storedId: String(idUpdate[item.idColumns[0]] ?? item.storedId ?? "") || undefined })));
+  const remainingErrors = checks.filter((item) => item.errors.length > 0);
+  if (remainingErrors.length > 0) {
+    const error = remainingErrors.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
+    await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `protection_repair_verification_failed: ${error}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", last_monitor_action: "protection_watchdog_repair_failed", updated_at: new Date().toISOString() }).eq("id", row.id);
+    await logEvent(supabase, row, "protection_recovery_failed", `${row.symbol} protection repair submitted but Binance did not confirm all required live conditionals: ${error}`, { created, checks, refreshed }, stats);
+    stats.updated += 1;
+    return false;
+  }
+
+  const now = new Date().toISOString();
+  await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, managed_fallback_active: false, latest_protection_error: "", protection_critical_reason: "", lifecycle_state: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "tp1_filled_profit_lock_active" : "protected_native", protected_at: now, last_monitor_action: "protection_recovered", updated_at: now }).eq("id", row.id);
+  await logEvent(supabase, row, "protection_recovered", `${row.symbol} protection_recovered: recreated missing Binance conditional components (${Object.keys(created).join(", ")}) and verified every required live SL/TP order.`, { created, checks, refreshed }, stats);
+  stats.protected += 1;
+  stats.updated += 1;
+  return true;
 }
 
 async function submitProtectionForRow(
@@ -586,7 +752,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   ]);
   const position = (Array.isArray(positionBody) ? positionBody : []).find((p: BinancePosition) => p.symbol === row.symbol) as BinancePosition | undefined;
   const regularOpenOrders = (Array.isArray(openOrdersBody) ? openOrdersBody : []) as BinanceOrder[];
-  const openAlgoOrders = (Array.isArray(openAlgoOrdersBody) ? openAlgoOrdersBody : []) as BinanceOrder[];
+  const openAlgoOrders = parseOpenAlgoOrders(openAlgoOrdersBody);
   const openOrders = [...regularOpenOrders, ...openAlgoOrders];
   const positionAmt = n(position?.positionAmt);
   const markPrice = n(position?.markPrice);
@@ -756,9 +922,16 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 
 
-  const protectionStatus = String(row.protection_status ?? "");
+  let nativeWatchdogRan = false;
+  let nativeWatchdogVerified = false;
+  if (!update.status && hasPosition && ACTIVE_STATUSES.includes(row.status) && (row.bracket_mode === "exchange_native" || row.protection_status === "protected_native" || row.protection_status === "protection_failed" || row.protection_status === "pending_protection" || row.protection_status === "protection_pending")) {
+    nativeWatchdogRan = true;
+    nativeWatchdogVerified = await repairNativeProtectionSet(supabase, row, positionAmt, openOrders, stats);
+  }
+
+  const protectionStatus = nativeWatchdogVerified ? "protected_native" : String(row.protection_status ?? "");
   const isProtected = ["protected", "protected_native", "protected_managed"].includes(protectionStatus);
-  if (hasPosition && !isProtected && ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed"].includes(row.status)) {
+  if (!nativeWatchdogRan && hasPosition && !isProtected && ["entry_filled", "protected", "protected_native", "protected_managed", "partially_closed"].includes(row.status)) {
     await logEvent(supabase, row, "unprotected_recovery_attempt", `${row.symbol} unsafe_untracked_position: open Binance position without protection — attempting recovery.`, { positionAmt, protection_status: protectionStatus }, stats);
     const qty = Math.abs(positionAmt) > 0 ? Math.abs(positionAmt) : n(row.quantity) || n(row.volume);
     const recovered = await protectOrSafetyClose(supabase, row, qty, stats, "protection_pending_recovery");
@@ -822,7 +995,7 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
   if (dbRows.error) throw dbRows.error;
   const rows = (dbRows.data ?? []) as Row[];
   const openPositions = (Array.isArray(positionsBody) ? positionsBody : []).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0) as BinancePosition[];
-  const openOrders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...(Array.isArray(allAlgoOrdersBody) ? allAlgoOrdersBody : [])] as BinanceOrder[];
+  const openOrders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []) as BinanceOrder[], ...parseOpenAlgoOrders(allAlgoOrdersBody)];
   const rowsBySymbol = new Map<string, Row[]>();
   for (const row of rows) {
     const list = rowsBySymbol.get(row.symbol) ?? [];
@@ -921,7 +1094,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   const usdt = assets?.find((a) => a.asset === "USDT");
   const usdc = assets?.find((a) => a.asset === "USDC");
   const positions = (Array.isArray(positionsBody) ? positionsBody : []).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0);
-  const orders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...(Array.isArray(allAlgoOrdersBody) ? allAlgoOrdersBody : [])];
+  const orders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...parseOpenAlgoOrders(allAlgoOrdersBody)];
   const totalMargin = n((accountBody as Record<string, unknown>).totalMarginBalance);
   const totalWallet = n((accountBody as Record<string, unknown>).totalWalletBalance);
   const unrealized = positions.reduce((sum: number, p: BinancePosition) => sum + n(p.unRealizedProfit ?? p.unrealizedProfit), 0);

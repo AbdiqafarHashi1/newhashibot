@@ -259,9 +259,28 @@ function expectedProtection(row: MonitorExecutionRow, truth: BinanceTruthSnapsho
   };
 }
 
-function findProtectionOrder(openOrders: BinanceTruthSnapshot['openOrders'], expectedId: string | null | undefined) {
-  if (!expectedId) return undefined;
-  return openOrders.find((order) => String(order.algoId ?? order.orderId ?? '') === String(expectedId));
+function orderIdentity(order: BinanceTruthSnapshot['openOrders'][number]): string {
+  return String(order.algoId ?? order.orderId ?? '');
+}
+
+function protectionOrderIssues(order: BinanceTruthSnapshot['openOrders'][number] | undefined, intent: { side: 'BUY' | 'SELL'; type: string; quantity: number; price?: number | null }): string[] {
+  const issues: string[] = [];
+  if (!order) return ['missing'];
+  if (order.side && String(order.side).toUpperCase() !== intent.side) issues.push('wrong_side');
+  if (order.type && String(order.type).toUpperCase() !== intent.type) issues.push('wrong_type');
+  if (order.reduceOnly === false) issues.push('not_reduce_only');
+  if (order.closePosition === true) issues.push('unexpected_close_position');
+  const qty = num(order.origQty ?? order.quantity);
+  if (qty !== null && intent.quantity > 0 && Math.abs(qty - intent.quantity) > Math.max(intent.quantity * 0.000001, 1e-8)) issues.push('wrong_quantity');
+  const price = num(order.triggerPrice ?? order.stopPrice ?? order.price);
+  if (price !== null && intent.price && Math.abs(price - intent.price) > Math.max(Math.abs(intent.price) * 0.000001, 1e-8)) issues.push('wrong_price');
+  return issues;
+}
+
+function findProtectionOrder(openOrders: BinanceTruthSnapshot['openOrders'], intent: { id?: string | null; side: 'BUY' | 'SELL'; type: string; quantity: number; price?: number | null }) {
+  const stored = intent.id ? openOrders.find((order) => orderIdentity(order) === String(intent.id)) : undefined;
+  if (stored && protectionOrderIssues(stored, intent).length === 0) return stored;
+  return openOrders.find((order) => protectionOrderIssues(order, intent).length === 0) ?? stored;
 }
 
 export function verifyExecutionProtection(row: MonitorExecutionRow, truth: BinanceTruthSnapshot): { verified: boolean; missingLabels: ProtectionLabel[]; errors: string[] } {
@@ -270,17 +289,8 @@ export function verifyExecutionProtection(row: MonitorExecutionRow, truth: Binan
   const errors: string[] = [];
   for (const label of ['sl', 'tp1', 'tp2'] as const) {
     const intent = expected[label];
-    const order = findProtectionOrder(truth.openOrders, intent.id);
-    const issues: string[] = [];
-    if (!order) issues.push('missing');
-    if (order?.side && String(order.side).toUpperCase() !== intent.side) issues.push('wrong_side');
-    if (order?.type && String(order.type).toUpperCase() !== intent.type) issues.push('wrong_type');
-    if (order?.reduceOnly === false) issues.push('not_reduce_only');
-    if (order?.closePosition === true) issues.push('unexpected_close_position');
-    const qty = num(order?.origQty ?? order?.quantity);
-    if (qty !== null && intent.quantity > 0 && Math.abs(qty - intent.quantity) > Math.max(intent.quantity * 0.000001, 1e-8)) issues.push('wrong_quantity');
-    const price = num(order?.triggerPrice ?? order?.stopPrice ?? order?.price);
-    if (price !== null && intent.price && Math.abs(price - intent.price) > Math.max(Math.abs(intent.price) * 0.000001, 1e-8)) issues.push('wrong_price');
+    const order = findProtectionOrder(truth.openOrders, intent);
+    const issues = protectionOrderIssues(order, intent);
     if (issues.length > 0) {
       missingLabels.push(label);
       errors.push(`${label}:${issues.join('+')}`);
