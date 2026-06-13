@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
+import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
 };
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
@@ -739,12 +740,8 @@ async function getSettings(supabase: SupabaseClient): Promise<ExecutionSettings>
 }
 
 async function requireAdminOrInternal(req: Request, supabase: SupabaseClient): Promise<void> {
-  const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
-  if (token && token === (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "")) return;
-  const { data: { user } } = await supabase.auth.getUser(token);
-  if (!user) throw new Error("Unauthorized");
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if ((profile as { role?: string } | null)?.role !== "admin") throw new Error("Admin access required");
+  const auth = await authorizeInternalOrAdmin(req, supabase);
+  if (!auth.ok) throw new Error(auth.error);
 }
 
 async function logEvent(supabase: SupabaseClient, executionId: string, eventType: string, message: string, metadata: Json = {}): Promise<void> {

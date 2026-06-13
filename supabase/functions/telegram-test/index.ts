@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
+import { authJsonResponse, authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
 };
 
 Deno.serve(async (req: Request) => {
@@ -19,27 +20,8 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    if (!profile || profile.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const auth = await authorizeInternalOrAdmin(req, supabase);
+    if (!auth.ok) return authJsonResponse(auth, corsHeaders);
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const chatId = vipChatId();
@@ -84,7 +66,7 @@ _This is an automated test from the HashiBot operator panel. No action required.
 
     if (delivery?.status === "sent") {
       await supabase.from("audit_logs").insert({
-        actor_user_id: user.id,
+        actor_user_id: null,
         action: "telegram_test_sent",
         entity_type: "telegram",
         entity_id: "test",

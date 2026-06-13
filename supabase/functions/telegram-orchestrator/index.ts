@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { generateIntelligence, storeIntelligenceEvent } from "../_shared/intelligence-engine.ts";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
+import { authJsonResponse, authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,39 +16,12 @@ function isContentKind(value: unknown): value is ContentKind {
   return ["morning_brief", "news_digest", "watchlist_pattern_update", "watchlist_pattern", "market_wrap"].includes(String(value));
 }
 
-async function authorize(req: Request, supabase: ReturnType<typeof createClient>): Promise<boolean> {
-  const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
-  if (cronSecret && req.headers.get("x-scanner-cron-secret") === cronSecret) return true;
-
-  const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
-  const cronPgToken = (cfgAuth as { cron_pg_token?: string } | null)?.cron_pg_token ?? "";
-
-  // pg_cron must not send scanner_config.cron_pg_token as Authorization because the
-  // Supabase gateway treats Authorization as a JWT and can reject malformed tokens
-  // before this function executes. Prefer the custom header, then keep the legacy
-  // bearer fallback only for callers that provide a token which reaches function code.
-  const customCronToken = req.headers.get("x-hashibot-cron-token") ?? "";
-  if (cronPgToken && customCronToken === cronPgToken) return true;
-
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace("Bearer ", "");
-  if (token && token === (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "")) return true;
-  if (cronPgToken && token === cronPgToken) return true;
-  if (!token) return false;
-
-  const { data: { user } } = await supabase.auth.getUser(token);
-  if (!user) return false;
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  return (profile as { role?: string } | null)?.role === "admin";
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
-  if (!(await authorize(req, supabase))) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
+  const auth = await authorizeInternalOrAdmin(req, supabase);
+  if (!auth.ok) return authJsonResponse(auth, corsHeaders);
 
   try {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;

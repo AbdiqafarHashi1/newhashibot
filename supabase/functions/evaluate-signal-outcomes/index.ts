@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
 };
 
 const TERMINAL = new Set(["tp2_hit", "sl_hit", "expired", "cancelled"]);
@@ -568,25 +569,8 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const source = typeof body.source === "string" && body.source ? body.source : "manual_button";
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
-    const suppliedSecret = req.headers.get("x-scanner-cron-secret") ?? "";
-    const isServiceInvocation = Boolean(serviceRole) && token === serviceRole;
-    const isCronSecretInvocation = Boolean(cronSecret) && suppliedSecret === cronSecret;
-
-    // Third auth path: pg_cron sends Authorization: Bearer <cron_pg_token> stored in scanner_config.
-    let isPgCronTokenInvocation = false;
-    if (!isServiceInvocation && !isCronSecretInvocation && token) {
-      const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
-      isPgCronTokenInvocation = Boolean(cfgAuth?.cron_pg_token) && token === cfgAuth!.cron_pg_token;
-    }
-
-    if (!isServiceInvocation && !isCronSecretInvocation && !isPgCronTokenInvocation) {
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (!user) return jsonResponse({ success: false, error: "Unauthorized" }, 401);
-    }
+    const auth = await authorizeInternalOrAdmin(req, supabase);
+    if (!auth.ok) return jsonResponse({ success: false, error: auth.error }, auth.status);
 
     const signalEnableCrypto = parseBooleanEnv("SIGNAL_ENABLE_CRYPTO", true);
     const signalEnableForex = parseBooleanEnv("SIGNAL_ENABLE_FOREX", false);
