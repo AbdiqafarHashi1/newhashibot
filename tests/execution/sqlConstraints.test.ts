@@ -12,6 +12,7 @@ const b66Sql = readFileSync('supabase/migrations/20260609120000_052_b6_6_entry_s
 const b67Sql = readFileSync('supabase/migrations/20260609130000_053_b6_7_monitor_row_isolation_and_visibility.sql', 'utf8');
 const monitorFn = readFileSync('supabase/functions/binance-testnet-monitor/index.ts', 'utf8');
 const cryptoFix1Sql = readFileSync('supabase/migrations/20260611120000_059_crypto_fix_1_testnet_risk_leverage_truth.sql', 'utf8');
+const liveCronHeaderSql = readFileSync('supabase/migrations/20260613170000_067_live_cron_header_rebuild.sql', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -79,5 +80,26 @@ assert.match(monitorFn, /cancelRemainingProtection\(row, stats\)/, 'Crypto Fix 1
 assert.match(cryptoFix1Sql, /testnet_risk_a = 2\.0/, 'Crypto Fix 1 sets testnet A risk to 2%');
 assert.match(cryptoFix1Sql, /testnet_leverage_a = 10/, 'Crypto Fix 1 sets testnet leverage to 10x');
 assert.match(cryptoFix1Sql, /execution_mode = 'testnet'/, 'Crypto Fix 1 settings are testnet scoped');
+
+
+
+for (const jobName of [
+  'hashibot_binance_testnet_monitor_1m',
+  'hashibot_morning_brief_0800',
+  'hashibot_news_digest_1200',
+  'hashibot_watchlist_patterns_1600',
+  'hashibot_market_wrap_2000',
+  'hashibot_test_morning_brief_1m',
+  'hashibot_test_news_digest_1m',
+  'hashibot_test_watchlist_patterns_1m',
+  'hashibot_test_market_wrap_1m',
+]) {
+  assert.match(liveCronHeaderSql, new RegExp(jobName), `live cron header rebuild includes ${jobName}`);
+}
+assert.match(liveCronHeaderSql, /ADD COLUMN IF NOT EXISTS supabase_anon_key text/, 'live cron header rebuild adds scanner_config.supabase_anon_key');
+assert.match(liveCronHeaderSql, /'apikey',[\s\S]*supabase_anon_key/, 'live cron header rebuild sends anon key apikey header');
+assert.match(liveCronHeaderSql, /'Authorization',[\s\S]*'Bearer ' \|\|[\s\S]*supabase_anon_key/, 'live cron header rebuild sends anon key bearer Authorization');
+assert.match(liveCronHeaderSql, /'x-hashibot-cron-token',[\s\S]*cron_pg_token/, 'live cron header rebuild sends cron token only as custom header');
+assert.doesNotMatch(liveCronHeaderSql, /'Authorization',\s*'Bearer ' \|\| \(SELECT cron_pg_token/, 'live cron header rebuild never sends cron_pg_token directly in Authorization');
 
 console.log('SQL constraint tests passed');
