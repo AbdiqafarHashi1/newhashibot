@@ -181,6 +181,7 @@ export default function ControlRoom() {
   const autoTgReady = state.autoSendTelegram && Boolean(runtimeConfig?.telegram_enabled && runtimeConfig?.enable_signal_mode_output && runtimeConfig?.telegram_bot_token_set && runtimeConfig?.telegram_chat_id_set);
   const channelHealth = Object.fromEntries(state.telegramDeliveryHealth.map(row => [row.destination_channel, row]));
   const intelligenceHealth = Object.fromEntries(state.intelligenceHealth.map(row => [row.event_type, row]));
+  const intelligenceFeedHealth = Object.fromEntries(state.intelligenceFeedHealth.map(row => [row.feed_type, row]));
   const lastForexScanTime = latestRun?.forex_symbols_scanned ? latestRun.started_at : lastForexScanRun?.started_at;
   const nextAllowedForexScanTime = latestRun?.forex_next_allowed_scan_at ?? lastForexScanRun?.forex_next_allowed_scan_at;
   const filteredRecentRuns = runFilter === 'scheduled'
@@ -550,6 +551,38 @@ export default function ControlRoom() {
               </div>
             );
           })}
+        </div>
+
+        <div className="border-t border-zinc-800">
+          <div className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Real Feed Health</div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0 sm:border-t sm:border-zinc-800 divide-zinc-800">
+            {([
+              { key: 'fear_greed', label: 'Fear & Greed' },
+              { key: 'btc_dominance', label: 'BTC Dominance' },
+              { key: 'funding', label: 'Funding' },
+              { key: 'open_interest', label: 'Open Interest' },
+              { key: 'liquidations', label: 'Liquidations' },
+              { key: 'news', label: 'News' },
+              { key: 'market_breadth', label: 'Market Breadth' },
+              { key: 'sector_rotation', label: 'Sector Rotation' },
+              { key: 'stablecoin_flow', label: 'Stablecoin Flow' },
+            ] as const).map(item => {
+              const row = intelligenceFeedHealth[item.key];
+              const variant = row?.status === 'available' ? 'green' : row?.status === 'failed' ? 'red' : 'gray';
+              return (
+                <div key={item.key} className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium text-zinc-200">{item.label}</div>
+                    <Badge variant={variant}>{row?.status ?? 'unavailable'}</Badge>
+                  </div>
+                  <div className="mt-2 text-xs text-zinc-500">Source: {row?.source ?? 'unavailable'}</div>
+                  <div className="text-xs text-zinc-500">Freshness: {row?.freshness ?? 'Data unavailable'}</div>
+                  <div className="text-[11px] text-zinc-600">Last: {row?.last_updated_at ? new Date(row.last_updated_at).toLocaleString() : '—'}</div>
+                  {row?.error_message && <div className="mt-1 text-[11px] text-yellow-400 line-clamp-2">{row.error_message}</div>}
+                </div>
+              );
+            })}
+          </div>
         </div>
         <div className="border-t border-zinc-800 px-5 py-3 text-xs text-zinc-500 flex flex-wrap gap-4">
           <span>Last run: {state.latestIntelligenceEvent ? `${state.latestIntelligenceEvent.event_type} (${new Date(state.latestIntelligenceEvent.created_at).toLocaleString()})` : '—'}</span>
