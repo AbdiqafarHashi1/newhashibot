@@ -1,10 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
 };
 
 type SupabaseClient = ReturnType<typeof createClient>;
@@ -120,12 +121,6 @@ Deno.serve(async (req: Request) => {
     const source = typeof body.source === "string" && body.source ? body.source : "pg_cron";
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
-    const suppliedSecret = req.headers.get("x-scanner-cron-secret") ?? "";
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const isServiceInvocation = Boolean(serviceRole) && authHeader === `Bearer ${serviceRole}`;
-    const isCronSecretInvocation = Boolean(cronSecret) && suppliedSecret === cronSecret;
-
     if (!supabaseUrl || !serviceRole) {
       errors.push("Scheduled scanner is not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing");
       return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", market_scanner_called: false, outcome_called: false, warnings, errors }, 500);
@@ -133,22 +128,10 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, serviceRole);
 
-    // Third auth path: pg_cron sends Authorization: Bearer <cron_pg_token> stored in scanner_config.
-    // This avoids the need for a GUC or vault entry — the token lives in the DB and is read dynamically.
-    let isPgCronTokenInvocation = false;
-    if (!isServiceInvocation && !isCronSecretInvocation) {
-      const token = authHeader.replace("Bearer ", "");
-      if (token) {
-        const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
-        isPgCronTokenInvocation = Boolean(cfgAuth?.cron_pg_token) && token === cfgAuth!.cron_pg_token;
-      }
-    }
-
-    if (!isServiceInvocation && !isCronSecretInvocation && !isPgCronTokenInvocation) {
-      errors.push(cronSecret
-        ? "Forbidden: scheduled scanner requires service-role Authorization, matching x-scanner-cron-secret, or valid cron_pg_token"
-        : "Scheduled scanner setup error: SCANNER_CRON_SECRET is not configured, so only service-role Authorization or cron_pg_token is accepted");
-      return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", market_scanner_called: false, outcome_called: false, warnings, errors }, 403);
+    const auth = await authorizeInternalOrAdmin(req, supabase);
+    if (!auth.ok) {
+      errors.push(auth.error);
+      return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", market_scanner_called: false, outcome_called: false, warnings, errors }, auth.status);
     }
     supabaseForCatch = supabase;
     runId = await createScheduledRun(supabase, source);

@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
+import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
 };
 
 const MONITOR_VERSION = "crypto-fix-4-execution-hardening-binance-truth";
@@ -235,16 +236,9 @@ async function binanceRequest(path: string, params: Record<string, string | numb
 }
 
 async function verifyCronOrService(req: Request, supabase: SupabaseClient, serviceRole: string): Promise<boolean> {
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace("Bearer ", "");
-  if (token && token === serviceRole) return true;
-  if (token) {
-    const { data, error } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
-    if (error) throw error;
-    if (data?.cron_pg_token && token === data.cron_pg_token) return true;
-  }
-  const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
-  return Boolean(cronSecret && req.headers.get("x-scanner-cron-secret") === cronSecret);
+  void serviceRole;
+  const auth = await authorizeInternalOrAdmin(req, supabase);
+  return auth.ok;
 }
 
 async function sendTelegram(supabase: SupabaseClient, executionId: string, signalId: string | null, eventType: string, message: string): Promise<boolean> {
