@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -765,9 +766,7 @@ async function logEvent(supabase: SupabaseClient, executionId: string, eventType
 }
 
 async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string, eventType: string, lines: string[]): Promise<void> {
-  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
-  const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID") ?? "";
-  if (!envBool("TELEGRAM_ENABLED", false) || !botToken || !chatId) return;
+  if (!envBool("TELEGRAM_ENABLED", false)) return;
   const { data: settingsRow } = await supabase.from("execution_settings").select("execution_mode,testnet_governor_mode,governor_state,stress_override_enabled,stress_risk_pct,stress_leverage,stress_ignore_open_risk_limit").eq("id", 1).maybeSingle();
   const { data: latestExecution } = await supabase.from("execution_orders").select("risk_pct,risk_source,leverage,leverage_source,lifecycle_state,entry_filled_at,protection_status,runner_active,runner_expired,cleanup_status,open_risk_guard,status").eq("signal_id", signalId).order("created_at", { ascending: false }).limit(1).maybeSingle();
   const settings = (settingsRow ?? {}) as Json;
@@ -795,13 +794,15 @@ async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string,
     `Open Risk Guard: ${execution.open_risk_guard ?? (stressActive && settings.stress_ignore_open_risk_limit === true ? "IGNORED_FOR_STRESS_TEST" : "ACTIVE")}`,
   ];
   const text = ["BINANCE TESTNET — NOT LIVE", "", ...lines, ...truthLines].join("\n");
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }), signal: AbortSignal.timeout(8000) });
-    const data = await res.json().catch(() => ({})) as { ok?: boolean; result?: { message_id?: number }; description?: string };
-    await supabase.from("telegram_deliveries").insert({ signal_id: signalId, delivery_type: `execution_${eventType}`, chat_id: chatId, status: res.ok && data.ok ? "sent" : "failed", telegram_message_id: String(data.result?.message_id ?? ""), error_message: res.ok && data.ok ? "" : (data.description ?? res.statusText) });
-  } catch (e) {
-    await supabase.from("telegram_deliveries").insert({ signal_id: signalId, delivery_type: `execution_${eventType}`, chat_id: chatId, status: "failed", error_message: e instanceof Error ? e.message : "unknown" });
-  }
+  await routeTelegramEvent(supabase, {
+    event_id: `${signalId}:${eventType}:${Date.now()}`,
+    event_type: `execution_${eventType}`,
+    signal_id: signalId,
+    text,
+    source: "binance-testnet-execution",
+    channels: ["vip"],
+    dedupe: false,
+  });
 }
 
 async function getRules(symbol: string): Promise<SymbolRules> {

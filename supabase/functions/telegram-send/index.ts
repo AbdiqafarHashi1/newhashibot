@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -243,22 +244,25 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const defaultChatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID");
-    const targetChatId = chat_id || defaultChatId;
+    const targetChatId = chat_id || vipChatId();
 
-    if (!botToken || !targetChatId) {
-      // Log as not configured
+    if (!targetChatId) {
       await supabase.from("telegram_deliveries").insert({
         signal_id,
         delivery_type,
-        chat_id: targetChatId ?? "not_configured",
+        chat_id: "not_configured",
         status: "failed",
-        error_message: !botToken ? "TELEGRAM_BOT_TOKEN not configured" : "TELEGRAM_DEFAULT_CHANNEL_ID not configured",
+        error_message: "TELEGRAM_CHAT_ID not configured",
+        event_id: signal_id,
+        event_type: delivery_type,
+        destination_channel: "vip",
+        destination_chat_id: "not_configured",
+        delivery_status: "failed",
+        retry_count: 0,
       });
 
       return new Response(
-        JSON.stringify({ error: "Telegram not configured", details: !botToken ? "Missing BOT_TOKEN" : "Missing CHANNEL_ID" }),
+        JSON.stringify({ error: "Telegram not configured", details: "Missing TELEGRAM_CHAT_ID" }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -274,6 +278,12 @@ Deno.serve(async (req: Request) => {
       await supabase.from("telegram_deliveries").insert({
         signal_id, delivery_type, chat_id: targetChatId, status: "skipped",
         error_message: `already_sent:${existingSent.id}`,
+        event_id: signal_id,
+        event_type: delivery_type,
+        destination_channel: "vip",
+        destination_chat_id: targetChatId,
+        delivery_status: "skipped",
+        retry_count: 0,
       });
       return new Response(JSON.stringify({ skipped: true, reason: "already_sent" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -301,64 +311,48 @@ Deno.serve(async (req: Request) => {
         chat_id: targetChatId,
         status: "skipped",
         error_message: blockReason,
+        event_id: signal_id,
+        event_type: delivery_type,
+        destination_channel: "vip",
+        destination_chat_id: targetChatId,
+        delivery_status: "skipped",
+        retry_count: 0,
       });
       return new Response(JSON.stringify({ skipped: true, reason: blockReason }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const text = formatSignalMessage(signal as Record<string, unknown>);
-
-    // Send to Telegram
-    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: targetChatId,
-        text,
-        parse_mode: "Markdown",
-        disable_web_page_preview: true,
-      }),
+    const [delivery] = await routeTelegramEvent(supabase, {
+      event_id: signal_id,
+      event_type: delivery_type,
+      signal_id,
+      text,
+      source: "telegram-send",
+      channels: ["vip"],
+      parse_mode: "Markdown",
+      dedupe: false,
     });
 
-    const tgData = await tgRes.json() as { ok: boolean; result?: { message_id: number }; description?: string };
-
-    if (tgData.ok) {
-      const msgId = String(tgData.result?.message_id ?? "");
-      await supabase.from("telegram_deliveries").insert({
-        signal_id,
-        delivery_type,
-        chat_id: targetChatId,
-        status: "sent",
-        telegram_message_id: msgId,
-        error_message: "",
-      });
-
+    if (delivery?.status === "sent") {
       await supabase.from("audit_logs").insert({
         actor_user_id: user.id,
         action: "telegram_signal_sent",
         entity_type: "signal",
         entity_id: signal_id,
-        metadata: { chat_id: targetChatId, telegram_message_id: msgId },
+        metadata: { chat_id: delivery.chat_id, telegram_message_id: delivery.telegram_message_id, channel: delivery.channel },
       });
 
       return new Response(
-        JSON.stringify({ success: true, telegram_message_id: msgId }),
+        JSON.stringify({ success: true, telegram_message_id: delivery.telegram_message_id, channel: delivery.channel }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } else {
-      const errMsg = tgData.description ?? "Telegram API error";
-      await supabase.from("telegram_deliveries").insert({
-        signal_id,
-        delivery_type,
-        chat_id: targetChatId,
-        status: "failed",
-        error_message: errMsg,
-      });
-
-      return new Response(
-        JSON.stringify({ error: errMsg }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
+
+    const errMsg = delivery?.error_message ?? "Telegram delivery failed";
+    return new Response(
+      JSON.stringify({ error: errMsg, status: delivery?.status ?? "failed" }),
+      { status: delivery?.status === "skipped" ? 422 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return new Response(

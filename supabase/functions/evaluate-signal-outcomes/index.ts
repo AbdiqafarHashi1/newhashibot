@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -495,6 +496,13 @@ async function insertTelegramDelivery(
     status,
     telegram_message_id: messageId,
     error_message: errorMessage,
+    event_id: signalId,
+    event_type: type,
+    destination_channel: "vip",
+    destination_chat_id: chatId,
+    sent_at: status === "sent" ? new Date().toISOString() : null,
+    delivery_status: status,
+    retry_count: 0,
   }).select("id").maybeSingle();
   return data?.id as string | undefined;
 }
@@ -506,10 +514,10 @@ async function sendOutcomeNotification(
   price: number | null,
 ): Promise<TelegramResult> {
   const type = deliveryType(newStatus);
-  const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID") ?? "";
+  const chatId = vipChatId();
 
   const skip = async (reason: string): Promise<TelegramResult> => {
-    const deliveryId = chatId ? await insertTelegramDelivery(supabase, sig.id, type, chatId, "skipped", reason) : undefined;
+    const deliveryId = await insertTelegramDelivery(supabase, sig.id, type, chatId || "not_configured", "skipped", reason);
     return { sent: false, skipped: true, failed: false, reason, delivery_id: deliveryId };
   };
 
@@ -519,10 +527,7 @@ async function sendOutcomeNotification(
   if (marketType === "forex" && !parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return skip("forex_disabled");
   if (!["crypto", "forex"].includes(marketType)) return skip("unsupported_market_type");
   if (String(sig.data_source ?? "").toUpperCase() !== "REAL DATA") return skip("not_real_data");
-
-  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
-  if (!botToken) return skip("TELEGRAM_BOT_TOKEN missing");
-  if (!chatId) return { sent: false, skipped: true, failed: false, reason: "TELEGRAM_DEFAULT_CHANNEL_ID missing" };
+  if (!chatId) return skip("TELEGRAM_CHAT_ID missing");
 
   const { data: existing } = await supabase
     .from("telegram_deliveries")
@@ -534,27 +539,21 @@ async function sendOutcomeNotification(
     .maybeSingle();
   if (existing?.id) return { sent: false, skipped: true, failed: false, reason: "already_sent_outcome", delivery_id: existing.id as string };
 
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: formatOutcomeMessage(sig, newStatus, price), disable_web_page_preview: true }),
-      signal: AbortSignal.timeout(8000),
-    });
-    const tgData = await res.json() as { ok?: boolean; result?: { message_id?: number }; description?: string };
-    if (res.ok && tgData.ok) {
-      const deliveryId = await insertTelegramDelivery(supabase, sig.id, type, chatId, "sent", "", String(tgData.result?.message_id ?? ""));
-      return { sent: true, skipped: false, failed: false, delivery_id: deliveryId };
-    }
-    const reason = `telegram_api_error:${tgData.description ?? res.statusText}`;
-    const deliveryId = await insertTelegramDelivery(supabase, sig.id, type, chatId, "failed", reason);
-    return { sent: false, skipped: false, failed: true, reason, delivery_id: deliveryId };
-  } catch (e) {
-    const reason = `telegram_send_exception:${e instanceof Error ? e.message : "unknown"}`;
-    const deliveryId = await insertTelegramDelivery(supabase, sig.id, type, chatId, "failed", reason);
-    return { sent: false, skipped: false, failed: true, reason, delivery_id: deliveryId };
-  }
+  const [delivery] = await routeTelegramEvent(supabase, {
+    event_id: `${sig.id}:${newStatus}`,
+    event_type: type,
+    signal_id: sig.id,
+    text: formatOutcomeMessage(sig, newStatus, price),
+    source: "evaluate-signal-outcomes",
+    channels: ["vip"],
+    dedupe: false,
+  });
+
+  if (delivery?.status === "sent") return { sent: true, skipped: false, failed: false, delivery_id: delivery.delivery_id };
+  const reason = delivery?.error_message ?? "telegram_delivery_failed";
+  return { sent: false, skipped: delivery?.status === "skipped", failed: delivery?.status !== "skipped", reason, delivery_id: delivery?.delivery_id };
 }
+
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 

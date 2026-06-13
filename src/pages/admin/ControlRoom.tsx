@@ -178,7 +178,9 @@ export default function ControlRoom() {
   const liveForexProvider = runtimeConfig?.provider ?? forexProvider?.provider_name ?? 'unknown';
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? cryptoProvider?.provider_name ?? 'binance';
   const isForexReal = state.signalEnableForex && runtimeConfig?.provider === 'twelvedata' && runtimeConfig?.twelvedata_api_key_set === true && forexProvider?.data_source_label === 'REAL DATA';
-  const autoTgReady = state.autoSendTelegram && Boolean(runtimeConfig?.telegram_enabled && runtimeConfig?.enable_signal_mode_output && runtimeConfig?.telegram_bot_token_set && (runtimeConfig?.telegram_default_channel_id_set || runtimeConfig?.telegram_chat_id_set));
+  const autoTgReady = state.autoSendTelegram && Boolean(runtimeConfig?.telegram_enabled && runtimeConfig?.enable_signal_mode_output && runtimeConfig?.telegram_bot_token_set && runtimeConfig?.telegram_chat_id_set);
+  const channelHealth = Object.fromEntries(state.telegramDeliveryHealth.map(row => [row.destination_channel, row]));
+  const intelligenceHealth = Object.fromEntries(state.intelligenceHealth.map(row => [row.event_type, row]));
   const lastForexScanTime = latestRun?.forex_symbols_scanned ? latestRun.started_at : lastForexScanRun?.started_at;
   const nextAllowedForexScanTime = latestRun?.forex_next_allowed_scan_at ?? lastForexScanRun?.forex_next_allowed_scan_at;
   const filteredRecentRuns = runFilter === 'scheduled'
@@ -476,6 +478,84 @@ export default function ControlRoom() {
               <Settings size={14} /> Telegram Verification
             </Link>
           </div>
+        </div>
+      </div>
+
+      {/* Telegram router + product channels */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
+        <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
+          <div className="text-sm font-semibold flex items-center gap-2"><Send size={14} className="text-zinc-500" /> Telegram Router Health</div>
+          <Link to="/admin/telegram-logs" className="text-xs text-zinc-500 hover:text-zinc-300">Delivery log</Link>
+        </div>
+        <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-zinc-800">
+          {([
+            { key: 'admin', label: 'Admin Channel', configured: runtimeConfig?.telegram_admin_chat_id_set, note: 'Operator alerts only' },
+            { key: 'free', label: 'Free Channel', configured: runtimeConfig?.telegram_free_chat_id_set, note: 'Briefs, digests, watchlists' },
+            { key: 'vip', label: 'VIP Signal Room', configured: runtimeConfig?.telegram_chat_id_set, note: 'Existing TELEGRAM_CHAT_ID' },
+          ] as const).map(channel => {
+            const health = channelHealth[channel.key];
+            const failed = Number(health?.failed_count ?? 0);
+            const sent = Number(health?.sent_count ?? 0);
+            return (
+              <div key={channel.key} className="p-5">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-200">{channel.label}</div>
+                    <div className="text-xs text-zinc-500">{channel.note}</div>
+                  </div>
+                  <Badge variant={channel.configured ? (failed > sent ? 'orange' : 'green') : channel.key === 'vip' ? 'red' : 'gray'}>
+                    {channel.configured ? (failed > sent ? 'DEGRADED' : 'READY') : channel.key === 'vip' ? 'MISSING' : 'OPTIONAL'}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-lg bg-zinc-950/60 p-2"><div className="text-zinc-500">Sent</div><div className="text-emerald-400 font-mono">{sent}</div></div>
+                  <div className="rounded-lg bg-zinc-950/60 p-2"><div className="text-zinc-500">Failed</div><div className="text-red-400 font-mono">{failed}</div></div>
+                  <div className="rounded-lg bg-zinc-950/60 p-2"><div className="text-zinc-500">Skipped</div><div className="text-yellow-400 font-mono">{Number(health?.skipped_count ?? 0)}</div></div>
+                </div>
+                <div className="mt-2 text-[11px] text-zinc-600">Last success: {health?.last_success_at ? new Date(health.last_success_at).toLocaleString() : '—'}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="border-t border-zinc-800 px-5 py-3 text-xs text-zinc-500">
+          Router flow: source event → Telegram Router → channel resolution → delivery → delivery log. VIP remains the existing Telegram destination.
+        </div>
+      </div>
+
+      {/* Intelligence Engine */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6">
+        <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
+          <div className="text-sm font-semibold flex items-center gap-2"><BarChart2 size={14} className="text-zinc-500" /> Intelligence Engine MVP</div>
+          <Badge variant={state.failedIntelligenceEvents > 0 ? 'orange' : state.latestIntelligenceEvent ? 'green' : 'gray'}>
+            {state.latestIntelligenceEvent ? (state.failedIntelligenceEvents > 0 ? 'DEGRADED' : 'ACTIVE') : 'PENDING'}
+          </Badge>
+        </div>
+        <div className="grid md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-zinc-800">
+          {([
+            { key: 'morning_brief', label: 'Morning Brief', schedule: '08:00 EAT' },
+            { key: 'news_digest', label: 'News Digest', schedule: '12:00 EAT' },
+            { key: 'watchlist_pattern_update', label: 'Watchlist + Patterns', schedule: '16:00 EAT' },
+            { key: 'market_wrap', label: 'Market Wrap', schedule: '20:00 EAT' },
+          ] as const).map(item => {
+            const row = intelligenceHealth[item.key];
+            return (
+              <div key={item.key} className="p-4">
+                <div className="text-sm font-medium text-zinc-200">{item.label}</div>
+                <div className="text-xs text-zinc-500 mb-3">{item.schedule}</div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant={row?.last_status === 'generated' ? 'green' : row?.last_status === 'partial' ? 'orange' : 'gray'}>{row?.last_status ?? 'pending'}</Badge>
+                  <span className="text-xs text-zinc-500">conf {row?.last_confidence ?? '—'}%</span>
+                </div>
+                <div className="text-[11px] text-zinc-600">Last: {row?.last_generated_at ? new Date(row.last_generated_at).toLocaleString() : '—'}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="border-t border-zinc-800 px-5 py-3 text-xs text-zinc-500 flex flex-wrap gap-4">
+          <span>Last run: {state.latestIntelligenceEvent ? `${state.latestIntelligenceEvent.event_type} (${new Date(state.latestIntelligenceEvent.created_at).toLocaleString()})` : '—'}</span>
+          <span>Provider health: candles {String(state.latestIntelligenceEvent?.data_sources?.candles ?? 'Data unavailable')} · news {String(state.latestIntelligenceEvent?.data_sources?.news ?? 'Data unavailable')}</span>
+          <span>Failed events: {state.failedIntelligenceEvents}</span>
+          <span>Delivery: Admin / Free / VIP via Telegram Router</span>
         </div>
       </div>
 

@@ -25,6 +25,8 @@ export interface RuntimeProviderConfig {
   telegram_bot_token_set?: boolean;
   telegram_default_channel_id_set?: boolean;
   telegram_chat_id_set?: boolean;
+  telegram_admin_chat_id_set?: boolean;
+  telegram_free_chat_id_set?: boolean;
   supabase_url_set?: boolean;
   supabase_service_role_key_set?: boolean;
   scanner_cron_secret_set?: boolean;
@@ -86,7 +88,11 @@ export interface AdminLiveState {
   // Telegram
   telegramConfigured: boolean;
   autoSendTelegram: boolean;
-  latestTelegramDelivery: { status: string; created_at: string; error_message?: string; delivery_type?: string } | null;
+  telegramDeliveryHealth: Array<{ destination_channel: string; sent_count: number; failed_count: number; skipped_count: number; last_success_at: string | null; last_failure_at: string | null; last_delivery_at: string | null }>;
+  intelligenceHealth: Array<{ event_type: string; last_generated_at: string | null; generated_count: number; failed_count: number; last_status: string | null; last_confidence: number | null }>;
+  latestIntelligenceEvent: { event_type: string; title?: string | null; status: string; confidence?: number | null; created_at: string; data_sources?: Record<string, unknown> | null } | null;
+  failedIntelligenceEvents: number;
+  latestTelegramDelivery: { status: string; created_at: string; error_message?: string; delivery_type?: string; destination_channel?: string; delivery_status?: string; retry_count?: number } | null;
   latestOutcomeDelivery: { status: string; created_at: string; error_message?: string; delivery_type?: string } | null;
   latestSignalUpdate: { signal_id: string; new_status: string; created_at: string; reason?: string | null; message?: string | null } | null;
   latestAutomaticOutcomeUpdate: { signal_id: string; new_status: string; created_at: string; reason?: string | null; message?: string | null } | null;
@@ -147,6 +153,10 @@ const DEFAULT_STATE: AdminLiveState = {
   signalEnableForex: false,
   telegramConfigured: false,
   autoSendTelegram: false,
+  telegramDeliveryHealth: [],
+  intelligenceHealth: [],
+  latestIntelligenceEvent: null,
+  failedIntelligenceEvents: 0,
   latestTelegramDelivery: null,
   latestOutcomeDelivery: null,
   latestSignalUpdate: null,
@@ -180,6 +190,10 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       realForexCountRes,
       demoSignalCountRes,
       tgRes,
+      tgHealthRes,
+      intelligenceHealthRes,
+      latestIntelligenceRes,
+      failedIntelligenceRes,
       outcomeTgRes,
       updateRes,
       autoUpdateRes,
@@ -196,8 +210,12 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').eq('market_type', 'crypto').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').eq('market_type', 'forex').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
       supabase.from('signals').select('id', { count: 'exact', head: true }).neq('data_source', 'REAL DATA'),
-      supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type,destination_channel,delivery_status,retry_count').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('telegram_delivery_health').select('*'),
+      supabase.from('intelligence_event_health').select('*'),
+      supabase.from('intelligence_events').select('event_type,title,status,confidence,created_at,data_sources').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('intelligence_events').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+      supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type,destination_channel,delivery_status,retry_count').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').ilike('message', '%source: scheduled-market-scanner%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').or('message.is.null,message.ilike.%source: manual_button%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -265,6 +283,8 @@ export function useAdminLiveState(session: { access_token: string } | null) {
           telegram_bot_token_set: Boolean(json.telegram_bot_token_set),
           telegram_default_channel_id_set: Boolean(json.telegram_default_channel_id_set),
           telegram_chat_id_set: Boolean(json.telegram_chat_id_set),
+          telegram_admin_chat_id_set: Boolean(json.telegram_admin_chat_id_set),
+          telegram_free_chat_id_set: Boolean(json.telegram_free_chat_id_set),
           supabase_url_set: Boolean(json.supabase_url_set),
           supabase_service_role_key_set: Boolean(json.supabase_service_role_key_set),
           scanner_cron_secret_set: Boolean(json.scanner_cron_secret_set),
@@ -356,7 +376,11 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       marketMode: effectiveMarketMode,
       signalEnableCrypto: effectiveSignalEnableCrypto,
       signalEnableForex: effectiveSignalEnableForex,
-      telegramConfigured: Boolean(runtimeConfig?.finnhub_api_key_set !== undefined),
+      telegramConfigured: Boolean(runtimeConfig?.telegram_bot_token_set && runtimeConfig?.telegram_chat_id_set),
+      telegramDeliveryHealth: (tgHealthRes.data ?? []) as AdminLiveState['telegramDeliveryHealth'],
+      intelligenceHealth: (intelligenceHealthRes.data ?? []) as AdminLiveState['intelligenceHealth'],
+      latestIntelligenceEvent: (latestIntelligenceRes.data as AdminLiveState['latestIntelligenceEvent']) ?? null,
+      failedIntelligenceEvents: failedIntelligenceRes.count ?? 0,
       autoSendTelegram: cfg?.auto_send_telegram ?? false,
       latestTelegramDelivery: tgRes.data ?? null,
       latestOutcomeDelivery: outcomeTgRes.data ?? null,

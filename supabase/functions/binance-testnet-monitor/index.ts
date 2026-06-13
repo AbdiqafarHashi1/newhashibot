@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -247,27 +248,16 @@ async function verifyCronOrService(req: Request, supabase: SupabaseClient, servi
 }
 
 async function sendTelegram(supabase: SupabaseClient, executionId: string, signalId: string | null, eventType: string, message: string): Promise<boolean> {
-  const token = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
-  const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID") ?? Deno.env.get("TELEGRAM_CHAT_ID") ?? "";
-  if (!token || !chatId) {
-    await supabase.from("telegram_deliveries").insert({ signal_id: signalId, delivery_type: `binance_testnet_${eventType}`, chat_id: chatId, status: "skipped", error_message: "telegram_not_configured" });
-    return false;
-  }
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text: message }),
-  });
-  const body = await res.json().catch(() => ({})) as Record<string, unknown>;
-  await supabase.from("telegram_deliveries").insert({
+  const results = await routeTelegramEvent(supabase, {
+    event_id: executionId,
+    event_type: `binance_testnet_${eventType}`,
     signal_id: signalId,
-    delivery_type: `binance_testnet_${eventType}`,
-    chat_id: chatId,
-    status: res.ok ? "sent" : "failed",
-    telegram_message_id: String((body.result as Record<string, unknown> | undefined)?.message_id ?? ""),
-    error_message: res.ok ? "" : JSON.stringify(body).slice(0, 1000),
+    text: message,
+    source: "binance-testnet-monitor",
+    channels: ["vip"],
+    dedupe: false,
   });
-  return res.ok;
+  return results.some((result) => result.status === "sent");
 }
 
 async function logEvent(supabase: SupabaseClient, row: Row, type: string, message: string, metadata: Record<string, unknown>, stats: MonitorStats) {
