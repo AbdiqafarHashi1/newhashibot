@@ -9,10 +9,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
 };
 
-type ContentKind = "morning_brief" | "news_digest" | "watchlist_pattern_update" | "market_wrap";
+type ContentKind = "morning_brief" | "news_digest" | "watchlist_pattern_update" | "watchlist_pattern" | "market_wrap";
 
 function isContentKind(value: unknown): value is ContentKind {
-  return ["morning_brief", "news_digest", "watchlist_pattern_update", "market_wrap"].includes(String(value));
+  return ["morning_brief", "news_digest", "watchlist_pattern_update", "watchlist_pattern", "market_wrap"].includes(String(value));
 }
 
 async function authorize(req: Request, supabase: ReturnType<typeof createClient>): Promise<boolean> {
@@ -22,6 +22,10 @@ async function authorize(req: Request, supabase: ReturnType<typeof createClient>
   const token = authHeader.replace("Bearer ", "");
   if (token && token === (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "")) return true;
   if (!token) return false;
+
+  // pg_cron uses the same scanner_config.cron_pg_token bearer pattern as scheduled-market-scanner and evaluate-signal-outcomes.
+  const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
+  if (token === ((cfgAuth as { cron_pg_token?: string } | null)?.cron_pg_token ?? "")) return true;
   const { data: { user } } = await supabase.auth.getUser(token);
   if (!user) return false;
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
@@ -38,7 +42,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const kind = isContentKind(body.kind) ? body.kind : "morning_brief";
+    const requestedKind = isContentKind(body.kind) ? body.kind : "morning_brief";
+    const kind = requestedKind === "watchlist_pattern" ? "watchlist_pattern_update" : requestedKind;
     const output = await generateIntelligence(supabase, kind);
     await storeIntelligenceEvent(supabase, output);
 
@@ -47,7 +52,7 @@ Deno.serve(async (req: Request) => {
       event_type: output.event_type,
       text: output.summary,
       source: "telegram-orchestrator",
-      channels: ["admin", "free", "vip"],
+      channels: ["free", "vip"],
       dedupe: false,
     });
 

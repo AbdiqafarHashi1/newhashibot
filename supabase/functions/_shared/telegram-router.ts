@@ -4,6 +4,7 @@ type SupabaseClient = ReturnType<typeof createClient>;
 
 type TelegramChannel = "admin" | "free" | "vip";
 type DeliveryStatus = "sent" | "failed" | "skipped";
+type EventSeverity = "low" | "medium" | "high" | "critical";
 
 export interface TelegramRouteEvent {
   event_id?: string | null;
@@ -15,6 +16,15 @@ export interface TelegramRouteEvent {
   parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
   disable_web_page_preview?: boolean;
   dedupe?: boolean;
+  symbol?: string | null;
+  market?: string | null;
+  reason?: string;
+  severity?: EventSeverity | string;
+  confidence?: number;
+  data_source?: string;
+  freshness?: string;
+  channel_target?: TelegramChannel | TelegramChannel[] | "auto";
+  cooldown_minutes?: number;
 }
 
 export interface TelegramRouteResult {
@@ -38,12 +48,44 @@ export function telegramChannelConfig(): Record<TelegramChannel, string> {
   };
 }
 
-export function resolveTelegramChannels(eventType: string, override?: TelegramChannel[]): TelegramChannel[] {
-  if (override?.length) return Array.from(new Set(override));
+function uniqueChannels(channels: TelegramChannel[]): TelegramChannel[] {
+  return Array.from(new Set(channels));
+}
+
+function normalizeTarget(target: TelegramRouteEvent["channel_target"]): TelegramChannel[] | null {
+  if (!target || target === "auto") return null;
+  return uniqueChannels(Array.isArray(target) ? target : [target]);
+}
+
+function isEventIntelligence(type: string): boolean {
+  return type.includes("event_intelligence") || type.includes("intelligence_alert") || type.includes("regime_shift") || type.includes("level_break") || type.includes("volatility_expansion") || type.includes("liquidation_cascade") || type.includes("risk_off") || type.includes("risk_on") || type.includes("trend_exhaustion") || type.includes("breakout_watch") || type.includes("liquidity_sweep");
+}
+
+function isMajorBroadMarketEvent(event: TelegramRouteEvent, type: string): boolean {
+  const severity = String(event.severity ?? "").toLowerCase();
+  const market = String(event.market ?? "").toLowerCase();
+  const symbol = String(event.symbol ?? "").toUpperCase();
+  return severity === "critical"
+    || (severity === "high" && (!symbol || symbol === "BTC" || symbol === "BTCUSDT" || symbol === "ETH" || symbol === "ETHUSDT" || ["crypto", "market", "broad_market"].includes(market)))
+    || type.includes("major")
+    || type.includes("market_wide")
+    || type.includes("liquidation_cascade")
+    || type.includes("risk_off")
+    || type.includes("risk_on")
+    || type.includes("btc_major")
+    || type.includes("news_shock");
+}
+
+export function resolveTelegramChannels(eventType: string, override?: TelegramChannel[], event?: TelegramRouteEvent): TelegramChannel[] {
+  if (override?.length) return uniqueChannels(override);
+  const explicitTarget = normalizeTarget(event?.channel_target);
+  if (explicitTarget?.length) return explicitTarget;
+
   const type = eventType.toLowerCase();
-  if (type.startsWith("admin_") || type.includes("failure") || type.includes("watchdog") || type.includes("mismatch") || type.includes("critical") || type.includes("cleanup") || type.includes("cron_")) return ["admin"];
-  if (type.includes("morning_brief") || type.includes("market_wrap") || type.includes("news_digest") || type.includes("watchlist") || type.includes("pattern") || type.includes("sentiment") || type.includes("market_analytics")) return ["admin", "free", "vip"];
-  if (type.includes("highest_confidence_setup")) return ["free"];
+  if (type.startsWith("admin_") || type.includes("failure") || type.includes("watchdog") || type.includes("mismatch") || type.includes("critical_system") || type.includes("cleanup") || type.includes("cron_") || type.includes("provider_")) return ["admin"];
+  if (isEventIntelligence(type)) return isMajorBroadMarketEvent(event ?? { event_type: eventType, text: "" }, type) ? ["free", "vip"] : ["vip"];
+  if (type.includes("morning_brief") || type.includes("market_wrap") || type.includes("news_digest") || type.includes("watchlist") || type.includes("pattern") || type.includes("sentiment") || type.includes("market_analytics")) return ["free", "vip"];
+  if (type.includes("highest_confidence_setup") || type.includes("free_selected_signal")) return ["free"];
   return ["vip"];
 }
 
@@ -76,11 +118,28 @@ async function insertDelivery(
   return data?.id as string | undefined;
 }
 
+function eventDedupeKey(event: TelegramRouteEvent): string {
+  return [
+    event.event_type.toLowerCase(),
+    String(event.symbol ?? event.market ?? "market").toLowerCase(),
+    String(event.reason ?? "").toLowerCase().slice(0, 80),
+  ].join(":");
+}
+
+function eventCooldownMinutes(event: TelegramRouteEvent): number {
+  if (typeof event.cooldown_minutes === "number" && Number.isFinite(event.cooldown_minutes)) return Math.max(1, event.cooldown_minutes);
+  return 60;
+}
+
 export async function routeTelegramEvent(supabase: SupabaseClient, event: TelegramRouteEvent): Promise<TelegramRouteResult[]> {
   const token = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
   const config = telegramChannelConfig();
-  const channels = resolveTelegramChannels(event.event_type, event.channels);
+  const channels = resolveTelegramChannels(event.event_type, event.channels, event);
   const results: TelegramRouteResult[] = [];
+  const type = event.event_type.toLowerCase();
+  const isEventAlert = isEventIntelligence(type);
+  const alertKey = isEventAlert ? eventDedupeKey(event) : "";
+  const sinceIso = isEventAlert ? new Date(Date.now() - eventCooldownMinutes(event) * 60_000).toISOString() : "";
 
   for (const channel of channels) {
     const chatId = config[channel];
@@ -91,13 +150,29 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
       continue;
     }
 
-    if (event.dedupe !== false && event.signal_id) {
+    if (event.event_id && event.dedupe !== false) {
+      const { data: existingEvent } = await supabase.from("telegram_deliveries")
+        .select("id")
+        .eq("event_id", event.event_id)
+        .eq("destination_channel", channel)
+        .eq("status", "sent")
+        .limit(1)
+        .maybeSingle();
+      if (existingEvent) {
+        const deliveryId = await insertDelivery(supabase, event, channel, chatId, "skipped", `already_sent_event:${existingEvent.id}`);
+        results.push({ channel, chat_id: chatId, status: "skipped", error_message: "already_sent_event", delivery_id: deliveryId });
+        continue;
+      }
+    }
+
+    if (event.signal_id) {
       const { data: existing } = await supabase.from("telegram_deliveries")
         .select("id")
         .eq("signal_id", event.signal_id)
         .eq("destination_channel", channel)
         .eq("delivery_type", event.event_type)
         .eq("status", "sent")
+        .limit(1)
         .maybeSingle();
       if (existing) {
         const deliveryId = await insertDelivery(supabase, event, channel, chatId, "skipped", `already_sent:${existing.id}`);
@@ -106,13 +181,34 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
       }
     }
 
+    if (isEventAlert) {
+      const { data: recentAlert } = await supabase.from("telegram_deliveries")
+        .select("id")
+        .eq("event_type", event.event_type)
+        .eq("destination_channel", channel)
+        .eq("delivery_status", "sent")
+        .gte("created_at", sinceIso)
+        .ilike("event_id", `${alertKey}:%`)
+        .limit(1)
+        .maybeSingle();
+      if (recentAlert) {
+        const deliveryId = await insertDelivery(supabase, { ...event, event_id: `${alertKey}:${event.event_id ?? Date.now()}` }, channel, chatId, "skipped", `cooldown:${recentAlert.id}`);
+        results.push({ channel, chat_id: chatId, status: "skipped", error_message: "cooldown", delivery_id: deliveryId });
+        continue;
+      }
+    }
+
     try {
+      const routedEvent = isEventAlert ? { ...event, event_id: `${alertKey}:${event.event_id ?? Date.now()}` } : event;
+      const messageText = isEventAlert && !event.text.toLowerCase().includes("market intelligence alert")
+        ? `Market Intelligence Alert\n\n${event.text}`
+        : event.text;
       const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
-          text: event.text,
+          text: messageText,
           parse_mode: event.parse_mode,
           disable_web_page_preview: event.disable_web_page_preview ?? true,
         }),
@@ -122,7 +218,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
       const ok = res.ok && data.ok === true;
       const msgId = String(data.result?.message_id ?? "");
       const error = ok ? "" : (data.description ?? res.statusText ?? "Telegram API error");
-      const deliveryId = await insertDelivery(supabase, event, channel, chatId, ok ? "sent" : "failed", error, msgId);
+      const deliveryId = await insertDelivery(supabase, routedEvent, channel, chatId, ok ? "sent" : "failed", error, msgId);
       results.push({ channel, chat_id: chatId, status: ok ? "sent" : "failed", telegram_message_id: msgId, error_message: error, delivery_id: deliveryId });
     } catch (e) {
       const error = e instanceof Error ? e.message : "unknown";
