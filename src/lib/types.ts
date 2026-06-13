@@ -325,6 +325,13 @@ export interface TelegramDelivery {
   status: 'pending' | 'sent' | 'failed' | 'skipped';
   telegram_message_id: string;
   error_message: string;
+  event_id?: string | null;
+  event_type?: string | null;
+  destination_channel?: 'admin' | 'free' | 'vip' | null;
+  destination_chat_id?: string | null;
+  sent_at?: string | null;
+  delivery_status?: 'pending' | 'sent' | 'failed' | 'skipped' | null;
+  retry_count?: number | null;
   created_at: string;
 }
 

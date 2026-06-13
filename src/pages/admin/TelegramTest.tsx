@@ -8,7 +8,7 @@ export default function TelegramTest() {
   const { session } = useAuth();
   const [result, setResult] = useState<{
     success: boolean;
-    config?: { bot_token_configured: boolean; chat_id_configured: boolean };
+    config?: { bot_token_configured: boolean; vip_chat_id_configured?: boolean; chat_id_configured?: boolean; admin_chat_id_configured?: boolean; free_chat_id_configured?: boolean };
     telegram_message_id?: string;
     error?: string;
   } | null>(null);
@@ -38,7 +38,7 @@ export default function TelegramTest() {
   }
 
   const tokenOk = result?.config?.bot_token_configured;
-  const chatOk = result?.config?.chat_id_configured;
+  const chatOk = result?.config?.vip_chat_id_configured ?? result?.config?.chat_id_configured;
 
   return (
     <AdminLayout>
@@ -54,7 +54,7 @@ export default function TelegramTest() {
           <div className="text-sm text-blue-300">
             The bot token is <strong>never sent to the browser</strong>. All checks run server-side
             inside the <code className="text-xs bg-blue-900/30 px-1 py-0.5 rounded">telegram-test</code> Edge Function.
-            Clicking the button below triggers a real Telegram API call from the server.
+            Clicking the button below triggers a real Telegram API call through the server-side Telegram Router.
           </div>
         </div>
 
@@ -70,10 +70,10 @@ export default function TelegramTest() {
                 failText="Not configured — add this secret in Supabase Edge Function settings"
               />
               <ConfigRow
-                label="TELEGRAM_DEFAULT_CHANNEL_ID"
+                label="TELEGRAM_CHAT_ID (VIP)"
                 ok={chatOk ?? false}
                 okText="Configured"
-                failText="Not configured — set your channel or chat ID"
+                failText="Not configured — set the existing VIP channel/chat ID"
               />
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function TelegramTest() {
             <li className="flex gap-2"><span className="text-zinc-600 shrink-0">1.</span> Create a bot via Telegram @BotFather. Copy the bot token.</li>
             <li className="flex gap-2"><span className="text-zinc-600 shrink-0">2.</span> Create a Telegram channel or group. Add your bot as an admin with post permission.</li>
             <li className="flex gap-2"><span className="text-zinc-600 shrink-0">3.</span> Get your channel chat ID: forward a message to @userinfobot, or use the Telegram API <code className="bg-zinc-800 px-1 rounded">getUpdates</code> method.</li>
-            <li className="flex gap-2"><span className="text-zinc-600 shrink-0">4.</span> In Supabase dashboard → Edge Functions → Secrets, add: <code className="bg-zinc-800 px-1 rounded">TELEGRAM_BOT_TOKEN</code> and <code className="bg-zinc-800 px-1 rounded">TELEGRAM_DEFAULT_CHANNEL_ID</code>.</li>
+            <li className="flex gap-2"><span className="text-zinc-600 shrink-0">4.</span> In Supabase dashboard → Edge Functions → Secrets, add: <code className="bg-zinc-800 px-1 rounded">TELEGRAM_BOT_TOKEN</code> and <code className="bg-zinc-800 px-1 rounded">TELEGRAM_CHAT_ID</code> for the existing VIP room. Add <code className="bg-zinc-800 px-1 rounded">TELEGRAM_ADMIN_CHAT_ID</code> and <code className="bg-zinc-800 px-1 rounded">TELEGRAM_FREE_CHAT_ID</code> when those channels are ready.</li>
             <li className="flex gap-2"><span className="text-zinc-600 shrink-0">5.</span> Return here and click "Send Test Message" to verify.</li>
           </ol>
         </div>

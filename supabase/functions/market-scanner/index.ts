@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -2667,6 +2668,13 @@ async function insertTelegramDelivery(
     status,
     telegram_message_id: telegramMessageId,
     error_message: errorMessage,
+    event_id: signalId,
+    event_type: deliveryType,
+    destination_channel: "vip",
+    destination_chat_id: chatId,
+    sent_at: status === "sent" ? new Date().toISOString() : null,
+    delivery_status: status,
+    retry_count: 0,
   }).select("id").maybeSingle();
   return data?.id as string | undefined;
 }
@@ -2679,8 +2687,7 @@ async function tryAutoSendTelegram(
   config: ScannerConfig,
 ): Promise<AutoTelegramResult> {
   const deliveryType = "auto_signal";
-  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
-  const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID") ?? "";
+  const chatId = vipChatId();
   const fail = async (status: "skipped" | "failed", reason: string, chat = chatId || "auto") => {
     const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chat, status, reason);
     return { sent: false, status, blocked_reason: reason, delivery_id: deliveryId };
@@ -2710,7 +2717,7 @@ async function tryAutoSendTelegram(
     return fail("skipped", "invalid_trade_fields");
   }
 
-  if (!botToken || !chatId) return fail("failed", !botToken ? "TELEGRAM_BOT_TOKEN missing" : "TELEGRAM_DEFAULT_CHANNEL_ID missing", chatId || "not_configured");
+  if (!chatId) return fail("failed", "TELEGRAM_CHAT_ID missing", "not_configured");
 
   const { data: existing } = await supabase
     .from("telegram_deliveries")
@@ -2723,26 +2730,28 @@ async function tryAutoSendTelegram(
   if (existing) return { sent: false, status: "skipped", blocked_reason: "already_sent", delivery_id: existing.id as string };
 
   const text = formatSignalMessage(signalRecord, dataSource);
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown", disable_web_page_preview: true }),
-      signal: AbortSignal.timeout(8000),
-    });
-    const tgData = await res.json() as { ok: boolean; result?: { message_id: number }; description?: string };
-    if (tgData.ok) {
-      const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chatId, "sent", "", String(tgData.result?.message_id ?? ""));
-      return { sent: true, status: "sent", blocked_reason: "", delivery_id: deliveryId };
-    }
-    const errMsg = tgData.description ?? "Telegram API error";
-    const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chatId, "failed", errMsg);
-    return { sent: false, status: "failed", blocked_reason: `telegram_api_error: ${errMsg}`, delivery_id: deliveryId };
-  } catch (e) {
-    const reason = `telegram_send_exception: ${e instanceof Error ? e.message : "unknown"}`;
-    const deliveryId = await insertTelegramDelivery(supabase, signalId, deliveryType, chatId, "failed", reason);
-    return { sent: false, status: "failed", blocked_reason: reason, delivery_id: deliveryId };
+  const [delivery] = await routeTelegramEvent(supabase, {
+    event_id: signalId,
+    event_type: deliveryType,
+    signal_id: signalId,
+    text,
+    source: "market-scanner",
+    channels: ["vip"],
+    parse_mode: "Markdown",
+    dedupe: false,
+  });
+
+  if (delivery?.status === "sent") {
+    return { sent: true, status: "sent", blocked_reason: "", delivery_id: delivery.delivery_id };
   }
+  const reason = delivery?.error_message ?? "telegram_delivery_failed";
+  return {
+    sent: false,
+    status: delivery?.status === "skipped" ? "skipped" : "failed",
+    blocked_reason: reason,
+    delivery_id: delivery?.delivery_id,
+  };
+
 }
 
 async function tryAutoExecuteTestnet(signalId: string): Promise<{ called: boolean; success: boolean; reason: string }> {
@@ -3769,7 +3778,9 @@ Deno.serve(async (req: Request) => {
         enable_signal_mode_output: envBool("ENABLE_SIGNAL_MODE_OUTPUT", false),
         telegram_bot_token_set: Boolean(Deno.env.get("TELEGRAM_BOT_TOKEN")),
         telegram_default_channel_id_set: Boolean(Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID")),
-        telegram_chat_id_set: Boolean(Deno.env.get("TELEGRAM_CHAT_ID")),
+        telegram_chat_id_set: Boolean(Deno.env.get("TELEGRAM_CHAT_ID") || Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID")),
+        telegram_admin_chat_id_set: Boolean(Deno.env.get("TELEGRAM_ADMIN_CHAT_ID")),
+        telegram_free_chat_id_set: Boolean(Deno.env.get("TELEGRAM_FREE_CHAT_ID")),
         supabase_url_set: Boolean(Deno.env.get("SUPABASE_URL")),
         supabase_service_role_key_set: Boolean(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),
         scanner_cron_secret_set: Boolean(Deno.env.get("SCANNER_CRON_SECRET")),

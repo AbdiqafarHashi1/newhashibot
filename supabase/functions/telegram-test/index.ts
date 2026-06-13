@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,11 +42,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const chatId = Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID");
+    const chatId = vipChatId();
 
     const config = {
       bot_token_configured: !!botToken,
-      chat_id_configured: !!chatId,
+      vip_chat_id_configured: !!chatId,
+      admin_chat_id_configured: !!Deno.env.get("TELEGRAM_ADMIN_CHAT_ID"),
+      free_chat_id_configured: !!Deno.env.get("TELEGRAM_FREE_CHAT_ID"),
     };
 
     if (!botToken) {
@@ -56,65 +59,49 @@ Deno.serve(async (req: Request) => {
     }
     if (!chatId) {
       return new Response(
-        JSON.stringify({ success: false, config, error: "TELEGRAM_DEFAULT_CHANNEL_ID is not configured" }),
+        JSON.stringify({ success: false, config, error: "TELEGRAM_CHAT_ID is not configured" }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const text = `🧪 *HashiBot Telegram Connection Test*\n\nTimestamp: ${new Date().toISOString()}\nStatus: Connection verified\n\n_This is an automated test from the HashiBot operator panel. No action required._`;
+    const text = `🧪 *HashiBot Telegram Router Test*
 
-    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+Timestamp: ${new Date().toISOString()}
+Channel: VIP SIGNAL ROOM
+Status: Router connection verified
+
+_This is an automated test from the HashiBot operator panel. No action required._`;
+
+    const [delivery] = await routeTelegramEvent(supabase, {
+      event_id: `telegram-test:${Date.now()}`,
+      event_type: "test",
+      text,
+      source: "telegram-test",
+      channels: ["vip"],
+      parse_mode: "Markdown",
+      dedupe: false,
     });
 
-    const tgData = await tgRes.json() as {
-      ok: boolean;
-      result?: { message_id: number };
-      description?: string;
-    };
-
-    if (tgData.ok) {
-      const msgId = String(tgData.result?.message_id ?? "");
-
-      await supabase.from("telegram_deliveries").insert({
-        signal_id: null,
-        delivery_type: "test",
-        chat_id: chatId,
-        status: "sent",
-        telegram_message_id: msgId,
-        error_message: "",
-      });
-
+    if (delivery?.status === "sent") {
       await supabase.from("audit_logs").insert({
         actor_user_id: user.id,
         action: "telegram_test_sent",
         entity_type: "telegram",
         entity_id: "test",
-        metadata: { telegram_message_id: msgId, chat_id: chatId },
+        metadata: { telegram_message_id: delivery.telegram_message_id, chat_id: delivery.chat_id, channel: delivery.channel },
       });
 
       return new Response(
-        JSON.stringify({ success: true, config, telegram_message_id: msgId }),
+        JSON.stringify({ success: true, config, telegram_message_id: delivery.telegram_message_id }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } else {
-      const errMsg = tgData.description ?? "Telegram API returned an error";
-
-      await supabase.from("telegram_deliveries").insert({
-        signal_id: null,
-        delivery_type: "test",
-        chat_id: chatId,
-        status: "failed",
-        error_message: errMsg,
-      });
-
-      return new Response(
-        JSON.stringify({ success: false, config, error: errMsg }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
+
+    const errMsg = delivery?.error_message ?? "Telegram delivery failed";
+    return new Response(
+      JSON.stringify({ success: false, config, error: errMsg }),
+      { status: delivery?.status === "skipped" ? 422 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return new Response(

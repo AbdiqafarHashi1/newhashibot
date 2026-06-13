@@ -7,6 +7,9 @@ import { statusBadge, Badge } from '../../components/ui/Badge';
 function deliveryFamily(type: string) {
   if (type.startsWith('outcome_')) return 'Outcome update';
   if (['auto_signal', 'signal', 'initial_signal'].includes(type)) return 'Initial signal';
+  if (type.includes('brief') || type.includes('digest') || type.includes('watchlist') || type.includes('wrap') || type.includes('pattern')) return 'Intelligence';
+  if (type.startsWith('admin_') || type.includes('failure') || type.includes('critical')) return 'Admin alert';
+  if (type.startsWith('execution_') || type.startsWith('binance_testnet_')) return 'Execution';
   return 'Other';
 }
 
@@ -58,9 +61,11 @@ export default function TelegramLogs() {
                 <th className="text-left px-4 py-3">Date</th>
                 <th className="text-left px-4 py-3">Family</th>
                 <th className="text-left px-4 py-3">Type</th>
-                <th className="text-left px-4 py-3">Signal</th>
+                <th className="text-left px-4 py-3">Channel</th>
+                <th className="text-left px-4 py-3">Signal/Event</th>
                 <th className="text-left px-4 py-3">Chat ID</th>
                 <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Retries</th>
                 <th className="text-left px-4 py-3">TG Message ID</th>
                 <th className="text-left px-4 py-3">Reason / Error</th>
               </tr>
@@ -73,11 +78,13 @@ export default function TelegramLogs() {
                     <td className="px-4 py-3 text-zinc-400">{new Date(l.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3"><Badge variant={family === 'Outcome update' ? 'green' : family === 'Initial signal' ? 'blue' : 'gray'}>{family}</Badge></td>
                     <td className="px-4 py-3 text-zinc-400">{l.delivery_type}</td>
-                    <td className="px-4 py-3 font-mono text-zinc-500">{l.signal_id?.slice(0, 8) ?? '—'}</td>
-                    <td className="px-4 py-3 font-mono text-zinc-500">{l.chat_id}</td>
-                    <td className="px-4 py-3">{statusBadge(l.status)}</td>
+                    <td className="px-4 py-3 text-zinc-400 uppercase">{l.destination_channel ?? 'vip'}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">{l.signal_id?.slice(0, 8) ?? l.event_id?.slice(0, 12) ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">{l.destination_chat_id ?? l.chat_id}</td>
+                    <td className="px-4 py-3">{statusBadge(l.delivery_status ?? l.status)}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">{l.retry_count ?? 0}</td>
                     <td className="px-4 py-3 font-mono text-zinc-500">{l.telegram_message_id || '—'}</td>
-                    <td className={l.status === 'failed' ? 'px-4 py-3 text-red-400' : l.status === 'skipped' ? 'px-4 py-3 text-yellow-400' : 'px-4 py-3 text-zinc-500'}>{l.error_message || '—'}</td>
+                    <td className={(l.delivery_status ?? l.status) === 'failed' ? 'px-4 py-3 text-red-400' : (l.delivery_status ?? l.status) === 'skipped' ? 'px-4 py-3 text-yellow-400' : 'px-4 py-3 text-zinc-500'}>{l.error_message || '—'}</td>
                   </tr>
                 );
               })}
