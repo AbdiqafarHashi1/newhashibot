@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test:execution": "rm -rf .tmp/execution-tests && tsc --outDir .tmp/execution-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/execution/binanceTruthExecution.test.ts tests/execution/binanceTestnetMonitor.test.ts tests/execution/sqlConstraints.test.ts src/lib/binanceTruthExecution.ts src/lib/binanceTestnetMonitor.ts && node .tmp/execution-tests/tests/execution/binanceTruthExecution.test.js && node .tmp/execution-tests/tests/execution/binanceTestnetMonitor.test.js && node .tmp/execution-tests/tests/execution/sqlConstraints.test.js && rm -rf .tmp/execution-tests",
-    "deploy:edge-functions": "supabase functions deploy binance-testnet-execution && supabase functions deploy binance-testnet-monitor && supabase functions deploy market-scanner && supabase functions deploy evaluate-signal-outcomes && supabase functions deploy telegram-send && supabase functions deploy telegram-test && supabase functions deploy telegram-orchestrator && supabase functions deploy intelligence-engine",
+    "deploy:edge-functions": "supabase functions deploy binance-testnet-execution && supabase functions deploy binance-testnet-monitor && supabase functions deploy market-scanner && supabase functions deploy evaluate-signal-outcomes && supabase functions deploy telegram-send && supabase functions deploy telegram-test && supabase functions deploy telegram-orchestrator --no-verify-jwt && supabase functions deploy intelligence-engine --no-verify-jwt",
     "check:edge-functions": "node scripts/check-edge-functions.mjs"
   },
   "dependencies": {

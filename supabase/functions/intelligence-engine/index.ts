@@ -6,7 +6,7 @@ import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
 };
 
 type ContentKind = "morning_brief" | "news_digest" | "watchlist_pattern_update" | "market_wrap";

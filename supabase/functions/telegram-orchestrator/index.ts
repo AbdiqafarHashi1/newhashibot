@@ -6,7 +6,7 @@ import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
 };
 
 type ContentKind = "morning_brief" | "news_digest" | "watchlist_pattern_update" | "watchlist_pattern" | "market_wrap";
@@ -18,14 +18,23 @@ function isContentKind(value: unknown): value is ContentKind {
 async function authorize(req: Request, supabase: ReturnType<typeof createClient>): Promise<boolean> {
   const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? "";
   if (cronSecret && req.headers.get("x-scanner-cron-secret") === cronSecret) return true;
+
+  const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
+  const cronPgToken = (cfgAuth as { cron_pg_token?: string } | null)?.cron_pg_token ?? "";
+
+  // pg_cron must not send scanner_config.cron_pg_token as Authorization because the
+  // Supabase gateway treats Authorization as a JWT and can reject malformed tokens
+  // before this function executes. Prefer the custom header, then keep the legacy
+  // bearer fallback only for callers that provide a token which reaches function code.
+  const customCronToken = req.headers.get("x-hashibot-cron-token") ?? "";
+  if (cronPgToken && customCronToken === cronPgToken) return true;
+
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace("Bearer ", "");
   if (token && token === (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "")) return true;
+  if (cronPgToken && token === cronPgToken) return true;
   if (!token) return false;
 
-  // pg_cron uses the same scanner_config.cron_pg_token bearer pattern as scheduled-market-scanner and evaluate-signal-outcomes.
-  const { data: cfgAuth } = await supabase.from("scanner_config").select("cron_pg_token").eq("id", 1).maybeSingle();
-  if (token === ((cfgAuth as { cron_pg_token?: string } | null)?.cron_pg_token ?? "")) return true;
   const { data: { user } } = await supabase.auth.getUser(token);
   if (!user) return false;
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
