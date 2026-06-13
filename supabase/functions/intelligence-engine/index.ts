@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
       event_type: output.event_type,
       text: output.summary,
       source: "intelligence-engine",
-      channels: ["admin", "free", "vip"],
+      channels: ["free", "vip"],
       dedupe: false,
     });
 

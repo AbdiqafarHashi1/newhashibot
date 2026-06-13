@@ -490,9 +490,9 @@ export default function ControlRoom() {
         </div>
         <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-zinc-800">
           {([
-            { key: 'admin', label: 'Admin Channel', configured: runtimeConfig?.telegram_admin_chat_id_set, note: 'Operator alerts only' },
-            { key: 'free', label: 'Free Channel', configured: runtimeConfig?.telegram_free_chat_id_set, note: 'Briefs, digests, watchlists' },
-            { key: 'vip', label: 'VIP Signal Room', configured: runtimeConfig?.telegram_chat_id_set, note: 'Existing TELEGRAM_CHAT_ID' },
+            { key: 'admin', label: 'Admin Channel', configured: runtimeConfig?.telegram_admin_chat_id_set, note: 'Health, failures, digest summaries', categories: 'Provider/cron/intelligence failures, delivery failures, 12–24h operator digests' },
+            { key: 'free', label: 'Free Channel', configured: runtimeConfig?.telegram_free_chat_id_set, note: 'Growth content only', categories: 'Scheduled intelligence, education, major broad-market event intelligence, max 1–2 selected signals/day' },
+            { key: 'vip', label: 'VIP Signal Room', configured: runtimeConfig?.telegram_chat_id_set, note: 'Paid signal room', categories: 'Approved signals, signal lifecycle, scheduled intelligence, VIP event intelligence' },
           ] as const).map(channel => {
             const health = channelHealth[channel.key];
             const failed = Number(health?.failed_count ?? 0);
@@ -514,12 +514,15 @@ export default function ControlRoom() {
                   <div className="rounded-lg bg-zinc-950/60 p-2"><div className="text-zinc-500">Skipped</div><div className="text-yellow-400 font-mono">{Number(health?.skipped_count ?? 0)}</div></div>
                 </div>
                 <div className="mt-2 text-[11px] text-zinc-600">Last success: {health?.last_success_at ? new Date(health.last_success_at).toLocaleString() : '—'}</div>
+                <div className="mt-2 text-[11px] text-zinc-500 leading-relaxed">{channel.categories}</div>
               </div>
             );
           })}
         </div>
-        <div className="border-t border-zinc-800 px-5 py-3 text-xs text-zinc-500">
-          Router flow: source event → Telegram Router → channel resolution → delivery → delivery log. VIP remains the existing Telegram destination.
+        <div className="border-t border-zinc-800 px-5 py-3 text-xs text-zinc-500 grid md:grid-cols-3 gap-2">
+          <span>Router flow: source event → Telegram Router → channel resolution → delivery log.</span>
+          <span>Event intelligence: VIP by default; Free only for major broad-market alerts.</span>
+          <span>Dedup/cooldown: event_id, signal_id, and event_type+symbol cooldown enforced by router.</span>
         </div>
       </div>
 
@@ -588,7 +591,8 @@ export default function ControlRoom() {
           <span>Last run: {state.latestIntelligenceEvent ? `${state.latestIntelligenceEvent.event_type} (${new Date(state.latestIntelligenceEvent.created_at).toLocaleString()})` : '—'}</span>
           <span>Provider health: candles {String(state.latestIntelligenceEvent?.data_sources?.candles ?? 'Data unavailable')} · news {String(state.latestIntelligenceEvent?.data_sources?.news ?? 'Data unavailable')}</span>
           <span>Failed events: {state.failedIntelligenceEvents}</span>
-          <span>Delivery: Admin / Free / VIP via Telegram Router</span>
+          <span>Delivery: Scheduled intelligence → Free + VIP via Telegram Router</span>
+          <span>Event alerts: VIP default · Free for major broad-market only · Admin failures/digests</span>
         </div>
       </div>
 
