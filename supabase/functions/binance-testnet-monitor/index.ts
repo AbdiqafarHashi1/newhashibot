@@ -174,10 +174,12 @@ function monitorDisplayStatus(status: MonitorLevel): "HEALTHY" | "DEGRADED" | "C
 }
 
 function classifyMonitor(stats: MonitorStats): MonitorLevel {
-  const reconciliation = stats.reconciliation_summary as { unresolved_critical_count?: number; unprotected_position_count?: number; protection_degraded_count?: number; missing_sl_count?: number } | undefined;
+  const reconciliation = stats.reconciliation_summary as { unresolved_critical_count?: number; unprotected_position_count?: number; protection_degraded_count?: number; missing_sl_count?: number; reconciliation_failed_count?: number; account_fetch_failed_count?: number; duplicate_conditional_count?: number; stale_or_orphan_order_count?: number } | undefined;
   if (stats.unsafe_positions > 0 || (reconciliation?.unprotected_position_count ?? 0) > 0 || (reconciliation?.missing_sl_count ?? 0) > 0 || (reconciliation?.unresolved_critical_count ?? 0) > 0) return "critical_error";
+  if ((reconciliation?.reconciliation_failed_count ?? 0) > 0 || (reconciliation?.account_fetch_failed_count ?? 0) > 0) return "critical_error";
   if (stats.critical_errors.length > 0) return "critical_error";
   if (stats.safety_closed > 0 || (reconciliation?.protection_degraded_count ?? 0) > 0) return "degraded";
+  if ((reconciliation?.duplicate_conditional_count ?? 0) > 0 || (reconciliation?.stale_or_orphan_order_count ?? 0) > 0) return "degraded";
   if (stats.row_errors.length > 0 || stats.warnings.length > 0) return "degraded";
   return "healthy";
 }
@@ -1334,7 +1336,12 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
     duplicate_conditional_count: Object.values(classifications).reduce((sum, item) => sum + n(item.duplicate_conditional), 0),
     stale_or_orphan_order_count: Object.values(classifications).reduce((sum, item) => sum + n(item.stale_conditional) + n(item.orphan_binance_order), 0),
     unprotected_position_count: Object.values(classifications).filter((item) => item.missing_protection).length,
-    protection_degraded_count: rows.filter((row) => ["protection_degraded", "unprotected_failed"].includes(String(row.protection_status ?? "")) || String(row.profit_lock_status ?? "").includes("replacement_failed")).length,
+    protection_degraded_count: rows.filter((row) => {
+      const hasLiveBinanceExposure = openPositionSymbols.has(row.symbol) || (ordersBySymbol.get(row.symbol) ?? []).length > 0;
+      const hasRecoverableProtectionWarning = ["protection_degraded", "unprotected_failed"].includes(String(row.protection_status ?? ""));
+      const hasActiveProfitLockFailure = String(row.profit_lock_status ?? "").includes("replacement_failed") && row.profit_lock_sl_active === true;
+      return ACTIVE_STATUSES.includes(row.status) && hasLiveBinanceExposure && (hasRecoverableProtectionWarning || hasActiveProfitLockFailure);
+    }).length,
     unresolved_critical_count: Object.values(classifications).filter((item) => item.missing_protection || (item.unmanaged_external_order && item.position)).length,
   };
 }
