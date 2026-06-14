@@ -60,6 +60,7 @@ type MonitorStats = {
   critical_errors: string[];
   unsafe_positions: number;
   monitor_status: MonitorLevel;
+  reconciliation_summary: Record<string, unknown>;
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -161,11 +162,37 @@ function addCriticalMonitorError(stats: MonitorStats, error: string): void {
 
 function classifyMonitor(stats: MonitorStats): MonitorLevel {
   if (stats.critical_errors.length > 0 || stats.unsafe_positions > 0) return "critical_error";
-  if (stats.safety_closed > 0) return "degraded";
+  const reconciliation = stats.reconciliation_summary as { unresolved_critical_count?: number; unprotected_position_count?: number; protection_degraded_count?: number } | undefined;
+  if ((reconciliation?.unresolved_critical_count ?? 0) > 0 || (reconciliation?.unprotected_position_count ?? 0) > 0) return "critical_error";
+  if (stats.safety_closed > 0 || (reconciliation?.protection_degraded_count ?? 0) > 0) return "degraded";
   if (stats.row_errors.length > 0) return "row_errors_only";
   if (stats.warnings.some((warning) => warning.source === "account_sync")) return "partial_sync_warning";
   if (stats.warnings.length > 0) return "completed_with_warnings";
   return "healthy";
+}
+
+async function sendAdminMonitorAlert(supabase: SupabaseClient, stats: MonitorStats): Promise<void> {
+  if (!["critical_error", "degraded"].includes(stats.monitor_status) && stats.warnings.length === 0) return;
+  const reconciliation = stats.reconciliation_summary as Record<string, unknown>;
+  const text = [
+    "🚨 HashiBot Binance monitor operator alert",
+    `Status: ${stats.monitor_status}`,
+    `Critical errors: ${stats.critical_errors.length}`,
+    `Unsafe positions: ${stats.unsafe_positions}`,
+    `Cancelled cleanup orders: ${stats.cancelled_orders}`,
+    `Reconciliation: ${JSON.stringify(reconciliation).slice(0, 2500)}`,
+    stats.latest_monitor_error ? `Latest error: ${stats.latest_monitor_error}` : "",
+    stats.latest_monitor_warning ? `Latest warning: ${stats.latest_monitor_warning}` : "",
+    `Timestamp: ${new Date().toISOString()}`,
+  ].filter(Boolean).join("\n");
+  await routeTelegramEvent(supabase, {
+    event_id: `admin_binance_monitor_alert:${stats.monitor_status}:${new Date().toISOString().slice(0, 16)}`,
+    event_type: stats.monitor_status === "critical_error" ? "admin_binance_monitor_critical_error" : "admin_binance_monitor_protection_degraded",
+    text,
+    source: "binance-testnet-monitor",
+    channels: ["admin"],
+    dedupe: true,
+  }).catch(() => undefined);
 }
 
 function monitorResult(stats: MonitorStats): Record<string, unknown> {
@@ -410,6 +437,37 @@ function checkNativeProtection(openOrders: BinanceOrder[], expected: ProtectionE
   });
 }
 
+async function cancelDuplicateProtectionOrders(row: Row, openOrders: BinanceOrder[], expected: ProtectionExpectation[], stats: MonitorStats): Promise<string[]> {
+  const live = activeConditionalOrders(openOrders);
+  const keep = new Set<string>();
+  for (const item of checkNativeProtection(live, expected)) {
+    if (item.errors.length === 0 && item.liveId) keep.add(item.liveId);
+  }
+  const cancelled: string[] = [];
+  for (const order of live) {
+    const id = openOrderIdentity(order);
+    if (!id || keep.has(id)) continue;
+    const conflictsWithManagedSet = expected.some((item) => {
+      const sameSide = String(order.side ?? "").toUpperCase() === item.side;
+      const sameType = String(order.type ?? (order as Record<string, unknown>).orderType ?? "").toUpperCase() === item.type;
+      return sameSide && sameType;
+    });
+    if (!conflictsWithManagedSet) continue;
+    if (expected.some((item) => item.label === "sl") && keep.size === 0) {
+      addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `duplicate_cleanup_skipped_no_verified_keep_id=${id}`, action: "duplicate_cleanup_guard_only_valid_sl", source: "cleanup" });
+      continue;
+    }
+    try {
+      await cancelOpenOrder(row.symbol, order);
+      cancelled.push(id);
+      stats.cancelled_orders += 1;
+    } catch (err) {
+      addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `duplicate_cleanup_failed id=${id}: ${errorMessage(err)}`, action: "duplicate_cleanup_retry", source: "cleanup" });
+    }
+  }
+  return cancelled;
+}
+
 async function fetchLiveConditionalOrders(symbol: string): Promise<BinanceOrder[]> {
   const [regularBody, algoBody] = await Promise.all([
     binanceRequest("/fapi/v1/openOrders", { symbol }).catch(() => []),
@@ -436,6 +494,11 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
     for (const column of item.idColumns) idUpdate[column] = item.liveId;
   }
   if (missingOrInvalid.length === 0) {
+    const duplicateCancelled = await cancelDuplicateProtectionOrders(row, openOrders, expected, stats);
+    if (duplicateCancelled.length > 0) {
+      addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `duplicate_conditionals_cancelled=${duplicateCancelled.length}`, action: "duplicate_protection_cleanup", source: "cleanup" });
+      await logEvent(supabase, row, "order_cleanup_warning", `${row.symbol} duplicate/stale conditionals cancelled after live protection set was verified.`, { duplicateCancelled, expected }, stats);
+    }
     await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, latest_protection_error: "", protection_critical_reason: "", last_monitor_action: "protection_watchdog_verified_live", updated_at: new Date().toISOString() }).eq("id", row.id);
     stats.protected += 1;
     stats.updated += 1;
@@ -665,9 +728,10 @@ async function cancelEntryOrder(symbol: string, orderId: string) {
 async function cancelOpenOrder(symbol: string, order: BinanceOrder) {
   if (order.algoId) {
     await cancelAlgoOrder(symbol, String(order.algoId));
-    return;
+    return { cancelled_algo_id: String(order.algoId) };
   }
-  if (order.orderId) await binanceRequest("/fapi/v1/order", { symbol, orderId: String(order.orderId) }, "DELETE");
+  if (order.orderId) return await binanceRequest("/fapi/v1/order", { symbol, orderId: String(order.orderId) }, "DELETE");
+  return { skipped: true, reason: "missing_order_identity" };
 }
 
 async function cancelOpenConditionalsForRow(row: Row, openOrders: BinanceOrder[], stats: MonitorStats): Promise<Array<string | number | undefined>> {
@@ -861,14 +925,26 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
       const originalSl = n(row.original_sl_price) || n(row.intended_sl) || n(row.stop_loss);
       const entryPrice = n(row.entry_price);
       const replacementSl = calculateProfitLockPrice(row.direction, entryPrice, originalSl, 0.3);
-      let replacementUpdate: Record<string, unknown> = { protection_status: "unprotected_failed", profit_lock_status: "replacement_failed", protection_critical_reason: "replacement_sl_not_created" };
+      let replacementUpdate: Record<string, unknown> = {
+        protection_status: slAlgoId ? "protection_degraded" : "unprotected_failed",
+        profit_lock_status: "replacement_failed_existing_sl_preserved",
+        replacement_sl_verified: false,
+        old_sl_cancelled_after_tp1: false,
+        sl_replaced_after_tp1: false,
+        profit_lock_sl_active: false,
+        protection_critical_reason: slAlgoId ? "profit_lock_replacement_failed_existing_sl_preserved" : "replacement_sl_not_created",
+        protection_warning_reason: slAlgoId ? "existing_sl_preserved_profit_lock_retry_needed" : "",
+        last_monitor_action: slAlgoId ? "tp1_profit_lock_replacement_failed_existing_sl_preserved" : "tp1_profit_lock_replacement_failed_unprotected",
+      };
       try {
         replacementUpdate = await placeAndVerifyProfitLockStop(row, remaining, replacementSl, slAlgoId ? String(slAlgoId) : null, stats);
       } catch (err) {
-        addCriticalMonitorError(stats, `profit_lock_replacement_failed: ${errorMessage(err)}`);
+        const replacementError = `profit_lock_replacement_failed: ${errorMessage(err)}`;
+        if (slAlgoId) addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `${replacementError}; existing_sl_preserved=${String(slAlgoId)}`, action: "profit_lock_retry_next_monitor_existing_sl_preserved", source: "cleanup" });
+        else addCriticalMonitorError(stats, replacementError);
         update.latest_protection_error = `profit_lock_replacement_failed: ${errorMessage(err)}`;
       }
-      Object.assign(update, { status: "partially_closed", lifecycle_state: "tp1_filled_profit_lock_active", tp1_filled: true, tp1_closed_at: fillTime, tp1_fill_time: fillTime, tp1_fill_price: fillPrice, partial_close_qty: filledQty, remaining_quantity: remaining, remaining_qty: remaining, runner_active: remaining > 0, tp2_pending: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: replacementSl, original_sl_price: originalSl, replacement_sl_price: replacementSl, sl_moved_to_be: false, last_monitor_action: "tp1_profit_lock_replaced" }, replacementUpdate);
+      Object.assign(update, { status: "partially_closed", lifecycle_state: replacementUpdate.sl_replaced_after_tp1 ? "tp1_filled_profit_lock_active" : "tp1_filled_profit_lock_degraded", tp1_filled: true, tp1_closed_at: fillTime, tp1_fill_time: fillTime, tp1_fill_price: fillPrice, partial_close_qty: filledQty, remaining_quantity: remaining, remaining_qty: remaining, runner_active: remaining > 0, tp2_pending: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: replacementSl, original_sl_price: originalSl, replacement_sl_price: replacementSl, sl_moved_to_be: false, last_monitor_action: replacementUpdate.last_monitor_action ?? "tp1_profit_lock_replaced" }, replacementUpdate);
       await logEvent(supabase, row, "tp1_profit_lock_active", `${row.symbol} TP1 hit — profit lock +0.3R active for remaining runner.`, { tp1, fillPrice, filledQty, remaining, replacementSl, replacementUpdate }, stats);
     }
     if (!row.tp2_closed_at && algoFilled(tp2)) {
@@ -980,6 +1056,8 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
   const rows = (dbRows.data ?? []) as Row[];
   const openPositions = (Array.isArray(positionsBody) ? positionsBody : []).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0) as BinancePosition[];
   const openOrders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []) as BinanceOrder[], ...parseOpenAlgoOrders(allAlgoOrdersBody)];
+  const classifications: Record<string, Record<string, unknown>> = {};
+  const cleanupEvents: Array<Record<string, unknown>> = [];
   const rowsBySymbol = new Map<string, Row[]>();
   for (const row of rows) {
     const list = rowsBySymbol.get(row.symbol) ?? [];
@@ -1031,6 +1109,43 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
     list.push(order);
     ordersBySymbol.set(symbol, list);
   }
+  const allSymbols = new Set<string>([...openPositionSymbols, ...ordersBySymbol.keys(), ...rowsBySymbol.keys()]);
+  for (const symbol of allSymbols) {
+    const symbolRows = rowsBySymbol.get(symbol) ?? [];
+    const active = symbolRows.find((row) => ACTIVE_STATUSES.includes(row.status));
+    const orders = ordersBySymbol.get(symbol) ?? [];
+    const position = openPositions.find((p) => String(p.symbol ?? "") === symbol);
+    const expected = active && position ? expectedNativeProtection(active, n(position.positionAmt)) : [];
+    const checks = expected.length > 0 ? checkNativeProtection(orders, expected) : [];
+    const matchedLabels = new Set(checks.filter((check) => check.errors.length === 0).map((check) => check.label));
+    const hasOnlyOrdersNoPosition = orders.length > 0 && !position;
+    const missingProtection = Boolean(position && active && !matchedLabels.has("sl"));
+    const duplicateCount = Math.max(0, active && checks.every((check) => check.errors.length === 0) ? activeConditionalOrders(orders).length - checks.length : 0);
+    classifications[symbol] = {
+      symbol,
+      matched_position: Boolean(position && active),
+      matched_entry: Boolean(active?.binance_entry_order_id || active?.entry_order_id),
+      matched_sl: matchedLabels.has("sl"),
+      matched_tp1: matchedLabels.has("tp1"),
+      matched_tp2: matchedLabels.has("tp2"),
+      duplicate_conditional: duplicateCount,
+      stale_conditional: hasOnlyOrdersNoPosition ? orders.length : 0,
+      orphan_binance_order: !active && orders.length > 0 ? orders.length : 0,
+      orphan_local_order: Boolean(active && !position && orders.length === 0),
+      missing_protection: missingProtection,
+      unmanaged_external_order: Boolean(!active && (position || orders.length > 0)),
+      closed_but_orders_remain: hasOnlyOrdersNoPosition,
+      safe_to_cancel: hasOnlyOrdersNoPosition || duplicateCount > 0,
+      unsafe_to_cancel: Boolean(position && missingProtection),
+      position: position ? { symbol, side: n(position.positionAmt) > 0 ? "LONG" : "SHORT", quantity: Math.abs(n(position.positionAmt)), entry_price: n((position as Record<string, unknown>).entryPrice), mark_price: n(position.markPrice), update_time: (position as Record<string, unknown>).updateTime ?? null } : null,
+      orders: orders.map((order) => ({ symbol, side: order.side ?? null, quantity: n(order.origQty ?? order.quantity), order_type: order.type ?? (order as Record<string, unknown>).orderType ?? null, trigger_price: n(order.triggerPrice ?? order.stopPrice ?? order.price), reduce_only: order.reduceOnly ?? null, binance_order_id: order.orderId ?? null, algo_id: order.algoId ?? null, update_time: order.updateTime ?? order.time ?? null })),
+      checks,
+    };
+    if (missingProtection) {
+      addCriticalMonitorError(stats, `missing_protection: ${symbol} has open Binance position without verified SL`);
+      stats.unsafe_positions += 1;
+    }
+  }
   for (const [symbol, orders] of ordersBySymbol.entries()) {
     if (openPositionSymbols.has(symbol) || orders.length === 0) continue;
     const symbolRows = rowsBySymbol.get(symbol) ?? [];
@@ -1038,10 +1153,13 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
     const cancelled: Array<string | number | undefined> = [];
     for (const order of orders) {
       try {
-        await cancelOpenOrder(symbol, order);
+        const beforeCount = orders.length;
+        const response = await cancelOpenOrder(symbol, order);
         cancelled.push(order.algoId ?? order.orderId);
+        cleanupEvents.push({ symbol, binance_order_id: order.orderId ?? null, algo_id: order.algoId ?? null, local_order_id: target?.id ?? null, cleanup_action: "cancel_orphan_order", cleanup_reason: "binance_order_without_open_position", safety_decision: "safe_to_cancel_no_open_position", before_count: beforeCount, after_count: Math.max(beforeCount - cancelled.length, 0), binance_response: response ?? "ok", timestamp: new Date().toISOString() });
         stats.cancelled_orders += 1;
       } catch (err) {
+        cleanupEvents.push({ symbol, binance_order_id: order.orderId ?? null, algo_id: order.algoId ?? null, local_order_id: target?.id ?? null, cleanup_action: "skip_orphan_order_cancel_failed", cleanup_reason: errorMessage(err), safety_decision: "retry_required", before_count: orders.length, after_count: orders.length - cancelled.length, binance_response: errorMessage(err), timestamp: new Date().toISOString() });
         addMonitorWarning(stats, { symbol, warning: `orphan_order_cleanup_failed: ${errorMessage(err)}`, action: "orphan_order_cleanup_retry", source: "cleanup" });
       }
     }
@@ -1061,6 +1179,19 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
       stats.updated += 1;
     }
   }
+  stats.reconciliation_summary = {
+    ran_at: new Date().toISOString(),
+    symbols_checked: allSymbols.size,
+    open_position_symbols: openPositions.map((p) => String(p.symbol ?? "")).filter(Boolean),
+    open_order_symbols: Array.from(ordersBySymbol.keys()),
+    classifications,
+    cleanup_events: cleanupEvents.slice(-100),
+    duplicate_conditional_count: Object.values(classifications).reduce((sum, item) => sum + n(item.duplicate_conditional), 0),
+    stale_or_orphan_order_count: Object.values(classifications).reduce((sum, item) => sum + n(item.stale_conditional) + n(item.orphan_binance_order), 0),
+    unprotected_position_count: Object.values(classifications).filter((item) => item.missing_protection).length,
+    protection_degraded_count: rows.filter((row) => ["protection_degraded", "unprotected_failed"].includes(String(row.protection_status ?? "")) || String(row.profit_lock_status ?? "").includes("replacement_failed")).length,
+    unresolved_critical_count: Object.values(classifications).filter((item) => item.missing_protection || (item.unmanaged_external_order && item.position)).length,
+  };
 }
 
 async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats, monitorStatus: MonitorLevel) {
@@ -1105,6 +1236,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     current_open_risk_pct: currentOpenRiskPct,
     open_positions_count: positions.length,
     latest_sync_time: new Date().toISOString(),
+    latest_account_state_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq("id", 1);
 }
@@ -1137,7 +1269,7 @@ async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, 
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
-  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy" };
+  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy", reconciliation_summary: { ran: false } };
   let supabase: SupabaseClient | null = null;
   try {
     const parsedPayload = await parseMonitorPayload(req);
@@ -1217,6 +1349,7 @@ Deno.serve(async (req: Request) => {
     stats.monitor_status = classifyMonitor(stats);
     try {
       await refreshAccountState(supabase, stats, stats.monitor_status);
+      await sendAdminMonitorAlert(supabase, stats);
     } catch (syncErr) {
       const message = errorMessage(syncErr);
       addCriticalMonitorError(stats, message);

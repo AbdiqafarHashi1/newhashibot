@@ -48,6 +48,13 @@ type ExecutionSettingsSnapshot = {
   last_managed_exit_action?: Record<string, unknown> | null;
 };
 
+type OperatorRoutingSnapshot = {
+  last_admin_alert?: { created_at?: string; delivery_status?: string; error_message?: string; delivery_type?: string } | null;
+  last_admin_digest?: { created_at?: string; delivery_status?: string; error_message?: string; delivery_type?: string } | null;
+  free_selected_today?: number;
+  telegram_health?: Record<string, { latest_status?: string; latest_at?: string; latest_error?: string }>;
+};
+
 interface StatusPayload {
   success: boolean;
   settings?: ExecutionSettings;
@@ -106,6 +113,7 @@ export default function Execution() {
   const [selectedSignalId, setSelectedSignalId] = useState('');
   const [symbol, setSymbol] = useState('BTCUSDT');
   const [monitorState, setMonitorState] = useState<ExecutionSettingsSnapshot | null>(null);
+  const [operatorRouting, setOperatorRouting] = useState<OperatorRoutingSnapshot>({});
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [cleaning, setCleaning] = useState(false);
@@ -121,6 +129,22 @@ export default function Execution() {
   const stressMode = status?.settings?.stress_override_enabled === true && status?.settings?.execution_mode === 'testnet';
   const governorDisplayState = status?.governor_display?.state ?? (governorMode === 'off_for_testing' ? 'IGNORED' : (status?.governor?.display_state ?? status?.governor?.state ?? status?.settings?.governor_state ?? 'normal').toUpperCase());
   const executionAllowedDisplay = status?.governor_display?.execution_allowed ?? status?.execution_allowed ?? !(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused');
+  const monitorRunMs = monitorState?.latest_monitor_run_at ? new Date(monitorState.latest_monitor_run_at).getTime() : NaN;
+  const monitorAgeSeconds = Number.isFinite(monitorRunMs) ? Math.max(0, Math.floor((Date.now() - monitorRunMs) / 1000)) : null;
+  const accountFetchMs = monitorState?.latest_account_state_at ? new Date(monitorState.latest_account_state_at).getTime() : NaN;
+  const accountFetchAgeSeconds = Number.isFinite(accountFetchMs) ? Math.max(0, Math.floor((Date.now() - accountFetchMs) / 1000)) : null;
+  const monitorResultStatus = String(monitorState?.latest_monitor_result?.monitor_status ?? monitorState?.latest_monitor_status ?? 'unknown');
+  const reconciliationSummary = (monitorState?.latest_monitor_result?.reconciliation_summary ?? {}) as Record<string, unknown>;
+  const monitorUnhealthyReason = (() => {
+    if (!monitorState?.latest_monitor_run_at) return 'no monitor invocation recorded';
+    if (monitorAgeSeconds !== null && monitorAgeSeconds > 180) return `stale (${monitorAgeSeconds}s old)`;
+    if (accountFetchAgeSeconds !== null && accountFetchAgeSeconds > 180) return `account fetch stale (${accountFetchAgeSeconds}s old)`;
+    if (['critical_error', 'degraded'].includes(monitorResultStatus)) return monitorResultStatus;
+    if (Number(reconciliationSummary.unprotected_position_count ?? 0) > 0) return 'unprotected position exists';
+    if (Number(reconciliationSummary.unresolved_critical_count ?? 0) > 0) return 'unresolved critical reconciliation mismatch';
+    return monitorState.latest_monitor_error || monitorState.latest_sync_error || '';
+  })();
+  const monitorTruthStatus = monitorUnhealthyReason ? 'UNHEALTHY' : 'HEALTHY';
   const nowMs = Date.now();
   const secondsSinceEntryFill = (e: BinanceExecutionOrder): number | null => {
     const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
@@ -168,7 +192,9 @@ export default function Execution() {
   const load = useCallback(async () => {
     if (!session) return;
     setLoading(true);
-    const [statusRes, signalsRes, monitorRes] = await Promise.all([
+    const dayStart = new Date();
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes] = await Promise.all([
       fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
@@ -176,6 +202,10 @@ export default function Execution() {
       }).then(r => r.json()).catch((e: unknown) => ({ success: false, error: e instanceof Error ? e.message : 'Status failed' })),
       supabase.from('signals').select('*').eq('market_type', 'crypto').order('created_at', { ascending: false }).limit(25),
       supabase.from('execution_settings').select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,latest_monitor_error,latest_sync_error,open_binance_positions,open_binance_orders,pnl_snapshot,stale_rows_cleaned,open_positions_count,unrealized_pnl,account_total_margin_balance,account_total_wallet_balance,latest_sync_time,latest_account_state_at,last_managed_exit_action').eq('id', 1).maybeSingle(),
+      supabase.from('telegram_deliveries').select('created_at,delivery_status,error_message,delivery_type').eq('destination_channel', 'admin').like('delivery_type', 'admin_%alert%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('telegram_deliveries').select('created_at,delivery_status,error_message,delivery_type').eq('destination_channel', 'admin').like('delivery_type', 'admin_%digest%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('telegram_deliveries').select('id', { count: 'exact', head: true }).eq('destination_channel', 'free').eq('delivery_type', 'free_selected_signal').eq('delivery_status', 'sent').gte('created_at', dayStart.toISOString()),
+      supabase.from('telegram_deliveries').select('destination_channel,delivery_status,error_message,created_at').order('created_at', { ascending: false }).limit(50),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -183,6 +213,12 @@ export default function Execution() {
     setSignals(recentSignals);
     setSelectedSignalId(current => recentSignals.some(s => s.id === current) ? current : (recentSignals[0]?.id || ''));
     setMonitorState((monitorRes.data ?? null) as ExecutionSettingsSnapshot | null);
+    const health: OperatorRoutingSnapshot['telegram_health'] = {};
+    for (const row of ((telegramHealthRes.data ?? []) as Array<{ destination_channel?: string; delivery_status?: string; error_message?: string; created_at?: string }>)) {
+      const channel = row.destination_channel ?? 'unknown';
+      if (!health[channel]) health[channel] = { latest_status: row.delivery_status, latest_error: row.error_message, latest_at: row.created_at };
+    }
+    setOperatorRouting({ last_admin_alert: adminAlertRes.data ?? null, last_admin_digest: adminDigestRes.data ?? null, free_selected_today: freeSelectedRes.count ?? 0, telegram_health: health });
     setLoading(false);
   }, [session]);
 
@@ -320,8 +356,8 @@ export default function Execution() {
             <h2 className="font-semibold text-sm">Binance Testnet Monitor</h2>
             <p className="text-xs text-zinc-500 mt-0.5">1-minute bot supervisor snapshot. Binance Demo only — live trading remains disabled.</p>
           </div>
-          <span className="text-xs px-2 py-0.5 rounded-full border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
-            {monitorState?.latest_monitor_status ?? 'not configured'}
+          <span className={`text-xs px-2 py-0.5 rounded-full border ${monitorUnhealthyReason ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
+            {monitorTruthStatus} · {monitorResultStatus}
           </span>
         </div>
         <div className="grid sm:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
@@ -333,6 +369,23 @@ export default function Execution() {
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Stale Cleaned</div><div className="text-zinc-200 mt-1">{monitorState?.stale_rows_cleaned ?? 0}</div></div>
           <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Account Fetch</div><div className="text-zinc-200 mt-1">{monitorState?.latest_account_state_at ? new Date(monitorState.latest_account_state_at).toLocaleString() : '—'}</div></div>
         </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mt-3">
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Reconciled Symbols</div><div className="text-zinc-200 mt-1">{String(reconciliationSummary.symbols_checked ?? 0)}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Stale / Orphan Orders</div><div className="text-zinc-200 mt-1">{String(reconciliationSummary.stale_or_orphan_order_count ?? 0)}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Duplicate Conditionals</div><div className="text-zinc-200 mt-1">{String(reconciliationSummary.duplicate_conditional_count ?? 0)}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Unprotected Positions</div><div className={(Number(reconciliationSummary.unprotected_position_count ?? 0) > 0 ? 'text-red-300' : 'text-emerald-300') + ' mt-1'}>{String(reconciliationSummary.unprotected_position_count ?? 0)}</div></div>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mt-3">
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Last Admin Alert</div><div className="text-zinc-200 mt-1">{operatorRouting.last_admin_alert?.created_at ? `${new Date(operatorRouting.last_admin_alert.created_at).toLocaleString()} · ${operatorRouting.last_admin_alert.delivery_status}` : '—'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Last Admin Digest</div><div className="text-zinc-200 mt-1">{operatorRouting.last_admin_digest?.created_at ? `${new Date(operatorRouting.last_admin_digest.created_at).toLocaleString()} · ${operatorRouting.last_admin_digest.delivery_status}` : '—'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Free Selected Today</div><div className="text-zinc-200 mt-1">{operatorRouting.free_selected_today ?? 0} / 2</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Telegram Health</div><div className="text-zinc-200 mt-1">admin {operatorRouting.telegram_health?.admin?.latest_status ?? '—'} · free {operatorRouting.telegram_health?.free?.latest_status ?? '—'} · vip {operatorRouting.telegram_health?.vip?.latest_status ?? '—'}</div></div>
+        </div>
+        {monitorUnhealthyReason && (
+          <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200">
+            Monitor truth guard: unhealthy because {monitorUnhealthyReason}. UI does not mark the monitor healthy unless the latest run is recent and non-critical.
+          </div>
+        )}
         <div className="mt-3 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.latest_monitor_result ?? {})}>
           Latest sync result: {JSON.stringify(monitorState?.latest_monitor_result ?? {})}
         </div>

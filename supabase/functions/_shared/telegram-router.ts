@@ -82,7 +82,22 @@ export function resolveTelegramChannels(eventType: string, override?: TelegramCh
   if (explicitTarget?.length) return explicitTarget;
 
   const type = eventType.toLowerCase();
-  if (type.startsWith("admin_") || type.includes("failure") || type.includes("watchdog") || type.includes("mismatch") || type.includes("critical_system") || type.includes("cleanup") || type.includes("cron_") || type.includes("provider_")) return ["admin"];
+  if (
+    type.startsWith("admin_")
+    || type.includes("failure")
+    || type.includes("failed")
+    || type.includes("watchdog")
+    || type.includes("mismatch")
+    || type.includes("critical_system")
+    || type.includes("critical_error")
+    || type.includes("cleanup")
+    || type.includes("cron_")
+    || type.includes("provider_")
+    || type.includes("unprotected")
+    || type.includes("protection_degraded")
+    || type.includes("stale_monitor")
+    || type.includes("execution_rejection")
+  ) return ["admin"];
   if (isEventIntelligence(type)) return isMajorBroadMarketEvent(event ?? { event_type: eventType, text: "" }, type) ? ["free", "vip"] : ["vip"];
   if (type.includes("morning_brief") || type.includes("market_wrap") || type.includes("news_digest") || type.includes("watchlist") || type.includes("pattern") || type.includes("sentiment") || type.includes("market_analytics")) return ["free", "vip"];
   if (type.includes("highest_confidence_setup") || type.includes("free_selected_signal")) return ["free"];
