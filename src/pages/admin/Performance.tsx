@@ -5,6 +5,7 @@ import { getMonitorTruth } from '../../lib/monitorTruth';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle, Shield, Activity } from 'lucide-react';
 import { DEFAULT_CAPITAL_ASSUMPTIONS, estimateCapitalFromR, formatMoney, formatPct, validCapitalAssumptions, CapitalAssumptions } from '../../lib/capitalAnalytics';
+import { calculateOpportunityRankScore, classifyStrategySurvival, classifySymbolQuality, correlationGroup, correlationPenalty, customerSpamScore } from '../../lib/capitalHardness';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -901,6 +902,65 @@ export default function Performance() {
   const gradeBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.grade), [filteredSignals]);
   const expiryBreakdown = useMemo(() => groupBreakdown(filteredSignals.filter(row => row.outcome_category === 'EXPIRED'), row => row.current_status || 'expired'), [filteredSignals]);
   const riskAmount = capitalAssumptions.startingCapital * (capitalAssumptions.riskPct / 100);
+  const capitalHardness = useMemo(() => {
+    const closedCount = executionSummary.closedTradeCount;
+    const tp1ThenBeSl = filteredExecutionOrders.filter(row => (row.tp1_filled || row.tp1_closed_at) && (row.sl_closed_at || row.status === 'closed_breakeven' || row.status === 'closed_profit_lock' || row.status === 'closed_expired_after_tp1')).length;
+    const tp1ThenTp2 = filteredExecutionOrders.filter(row => (row.tp1_filled || row.tp1_closed_at) && (row.tp2_closed_at || row.status === 'closed_tp' || row.status === 'closed_tp2')).length;
+    const tp1HitCount = Math.max(1, executionSummary.tp1Hits);
+    const signalDays = Math.max(1, (dateEnd?.getTime() ?? Date.now()) - (dateStart?.getTime() ?? (filteredSignals.length > 0 ? new Date(filteredSignals[filteredSignals.length - 1].created_at).getTime() : Date.now()))) / (24 * 60 * 60 * 1000);
+    const spamScore = customerSpamScore(filteredSignals.length / Math.max(1, signalDays), summary.openTrades, 0, executionEvents.length / Math.max(1, signalDays));
+    const symbolRows = symbolBreakdown.slice(0, 8).map(row => {
+      const symbolExec = filteredExecutionOrders.filter(order => order.symbol === row.key);
+      const execFilled = symbolExec.filter(hasFilledEntry).length;
+      const protectedCount = symbolExec.filter(order => order.native_protection_verified || order.managed_fallback_active || order.protection_status === 'protected_native' || order.protection_status === 'protected_managed').length;
+      const classification = classifySymbolQuality({
+        completedTrades: row.closedTrades,
+        winRatePct: row.winRatePct,
+        profitFactor: row.profitFactor,
+        avgR: row.avgR,
+        executionReliabilityPct: row.totalSignals > 0 ? (execFilled / row.totalSignals) * 100 : null,
+        protectionReliabilityPct: execFilled > 0 ? (protectedCount / execFilled) * 100 : null,
+      });
+      const rank = calculateOpportunityRankScore({
+        scannerScore: 70,
+        confidence: 70,
+        rr: 2,
+        symbolQualityScore: classification === 'approved' ? 90 : classification === 'watchlist' ? 70 : classification === 'probation' ? 50 : 30,
+        strategySurvivalScore: 60,
+        regimeCompatibilityScore: 60,
+        volatilityConditionScore: 60,
+        recentSymbolPerformanceScore: Math.max(0, Math.min(100, 50 + (row.avgR ?? 0) * 50)),
+        executionReliabilityPct: row.totalSignals > 0 ? (execFilled / row.totalSignals) * 100 : 0,
+        protectionReliabilityPct: execFilled > 0 ? (protectedCount / execFilled) * 100 : 0,
+        tp1ProbabilityPct: row.closedTrades > 0 ? (row.tp1Hits / row.closedTrades) * 100 : 0,
+        tp2ProbabilityPct: row.closedTrades > 0 ? (row.tp2Hits / row.closedTrades) * 100 : 0,
+        givebackRiskPct: tp1ThenBeSl / tp1HitCount * 100,
+        correlationPenalty: correlationPenalty(0, false),
+        duplicatePenalty: 0,
+        completedTrades: row.closedTrades,
+      });
+      return { ...row, classification, rank, group: correlationGroup(row.key) };
+    });
+    const strategyRows = strategyBreakdown.map(row => ({
+      ...row,
+      survival: classifyStrategySurvival({
+        completedTrades: row.closedTrades,
+        winRatePct: row.winRatePct,
+        profitFactor: row.profitFactor,
+        avgR: row.avgR,
+        slRatePct: row.closedTrades > 0 ? (row.slHits / row.closedTrades) * 100 : null,
+        givebackAfterTp1R: tp1ThenBeSl / tp1HitCount,
+      }),
+    }));
+    return {
+      completedTradeObservationReady: closedCount >= 100,
+      tp1ThenBeSlRate: executionSummary.tp1Hits > 0 ? (tp1ThenBeSl / executionSummary.tp1Hits) * 100 : null,
+      tp1ThenTp2Rate: executionSummary.tp1Hits > 0 ? (tp1ThenTp2 / executionSummary.tp1Hits) * 100 : null,
+      spamScore,
+      symbolRows,
+      strategyRows,
+    };
+  }, [dateEnd, dateStart, executionEvents.length, executionSummary, filteredExecutionOrders, filteredSignals, strategyBreakdown, summary.openTrades, symbolBreakdown]);
 
   const activeFilterCount = [filters.market, filters.strategy, filters.symbol, filters.timeframe, filters.direction, filters.grade, filters.outcome].filter(Boolean).length + (filters.datePreset !== (baselineStartedAt ? 'baseline' : 'last30d') || filters.customStart || filters.customEnd ? 1 : 0);
   const hasSignalsInBaseline = baselineSignals.length > 0;
@@ -1231,6 +1291,45 @@ export default function Performance() {
           <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Expiry Cause','Expired Signals','Total R','Last Signal'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
           <tbody className="divide-y divide-zinc-800/60">{expiryBreakdown.length === 0 ? <tr><td colSpan={4} className="px-3 py-8 text-center text-zinc-600">No expired strategy signals in this filter.</td></tr> : expiryBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td></tr>)}</tbody>
         </table></div></div>
+      </section>
+
+      {/* ── Capital Allocation / Strategy Hardness ── */}
+      <section id="capital-allocation-strategy-hardness" className="mb-8">
+        <div className="flex items-start gap-2 mb-3">
+          <Shield size={16} className="text-purple-400 mt-0.5" />
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Capital Allocation / Strategy Hardness</h2>
+            <p className="text-xs text-zinc-500 mt-1">Research mode only: separates paper signal truth from Binance execution truth and previews future capital-ranking evidence without changing scanner, strategy entry, routing, or live execution rules.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
+          <StatCard label="100-trade readiness" value={<span className={capitalHardness.completedTradeObservationReady ? 'text-emerald-400' : 'text-yellow-400'}>{capitalHardness.completedTradeObservationReady ? 'ready' : 'observe'}</span>} sub={`${executionSummary.closedTradeCount}/100 executed closed trades`} />
+          <StatCard label="TP1 → BE/SL" value={formatPct(capitalHardness.tp1ThenBeSlRate)} sub="giveback after TP1" />
+          <StatCard label="TP1 → TP2" value={formatPct(capitalHardness.tp1ThenTp2Rate)} sub="runner usefulness" />
+          <StatCard label="Signal spam score" value={<span className={capitalHardness.spamScore >= 60 ? 'text-red-400' : capitalHardness.spamScore >= 35 ? 'text-yellow-400' : 'text-emerald-400'}>{capitalHardness.spamScore.toFixed(0)}/100</span>} sub="density + open load" />
+          <StatCard label="Governance" value="research-only" sub="no capital enforcement yet" />
+          <StatCard label="Exit decision" value={<span className="text-yellow-400">not final</span>} sub="requires 100 completed trades" />
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-800">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Symbol Quality / Opportunity Preview</h3>
+            </div>
+            <div className="overflow-x-auto"><table className="w-full text-xs">
+              <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Symbol','Group','Signals','Closed','Win','PF','Avg R','Class','Rank'].map((h, i) => <th key={h} className={`${i < 2 || i >= 7 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+              <tbody className="divide-y divide-zinc-800/60">{capitalHardness.symbolRows.length === 0 ? <tr><td colSpan={9} className="px-3 py-8 text-center text-zinc-600">No symbol rows in this filter.</td></tr> : capitalHardness.symbolRows.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400">{row.group}</td><td className="px-3 py-3 text-right text-zinc-400">{row.totalSignals}</td><td className="px-3 py-3 text-right text-zinc-400">{row.closedTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-zinc-300">{row.classification}</td><td className="px-3 py-3 text-zinc-300">{row.rank.tier}</td></tr>)}</tbody>
+            </table></div>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-800">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Strategy Survival Matrix Preview</h3>
+            </div>
+            <div className="overflow-x-auto"><table className="w-full text-xs">
+              <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Strategy','Signals','Closed','Win','TP1','TP2','SL','PF','Avg R','Survival'].map((h, i) => <th key={h} className={`${i === 0 || i === 9 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+              <tbody className="divide-y divide-zinc-800/60">{capitalHardness.strategyRows.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-100">{row.label}</td><td className="px-3 py-3 text-right text-zinc-400">{row.totalSignals}</td><td className="px-3 py-3 text-right text-zinc-400">{row.closedTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right text-zinc-400">{row.tp1Hits}</td><td className="px-3 py-3 text-right text-zinc-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-zinc-400">{row.slHits}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-zinc-300">{row.survival}</td></tr>)}</tbody>
+            </table></div>
+          </div>
+        </div>
       </section>
 
       {/* ── Binance Execution Performance ── */}

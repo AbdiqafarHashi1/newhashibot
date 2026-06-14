@@ -568,7 +568,7 @@ export default function ControlRoom() {
         </div>
 
         <div className="border-t border-zinc-800">
-          <div className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Real Feed Health</div>
+          <div className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Intelligence Feed Health</div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0 sm:border-t sm:border-zinc-800 divide-zinc-800">
             {([
               { key: 'fear_greed', label: 'Fear & Greed' },
@@ -582,17 +582,24 @@ export default function ControlRoom() {
               { key: 'stablecoin_flow', label: 'Stablecoin Flow' },
             ] as const).map(item => {
               const row = intelligenceFeedHealth[item.key];
-              const variant = row?.status === 'available' ? 'green' : row?.status === 'failed' ? 'red' : 'gray';
+              const quality = row?.quality_status ?? (row?.status === 'available' ? 'healthy' : row?.status === 'failed' ? 'degraded' : 'unavailable');
+              const variant = quality === 'healthy' ? 'green' : quality === 'degraded' || quality === 'fallback' ? 'orange' : quality === 'unavailable' ? 'red' : 'gray';
               return (
                 <div key={item.key} className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-medium text-zinc-200">{item.label}</div>
-                    <Badge variant={variant}>{row?.status ?? 'unavailable'}</Badge>
+                    <Badge variant={variant}>{quality}</Badge>
                   </div>
-                  <div className="mt-2 text-xs text-zinc-500">Source: {row?.source ?? 'unavailable'}</div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-zinc-950/60 p-2"><div className="text-zinc-500">Score</div><div className="font-mono text-zinc-200">{row?.quality_score ?? 0}/100</div></div>
+                    <div className="rounded-lg bg-zinc-950/60 p-2"><div className="text-zinc-500">Ranking</div><div className={row?.ranking_eligible ? 'text-emerald-400' : 'text-yellow-400'}>{row?.ranking_eligible ? 'eligible' : 'zero/reduced'}</div></div>
+                  </div>
+                  <div className="mt-2 text-xs text-zinc-500">Provider: {row?.provider ?? row?.source ?? 'unavailable'}</div>
+                  <div className="text-xs text-zinc-500">Source: {row?.source ?? 'unavailable'}</div>
                   <div className="text-xs text-zinc-500">Freshness: {row?.freshness ?? 'Data unavailable'}</div>
+                  <div className="text-xs text-zinc-600">Frequency: {row?.update_frequency ?? 'per intelligence run'}</div>
                   <div className="text-[11px] text-zinc-600">Last: {row?.last_updated_at ? new Date(row.last_updated_at).toLocaleString() : '—'}</div>
-                  {row?.error_message && <div className="mt-1 text-[11px] text-yellow-400 line-clamp-2">{row.error_message}</div>}
+                  {(row?.failure_reason || row?.error_message) && <div className="mt-1 text-[11px] text-yellow-400 line-clamp-2">{row.failure_reason ?? row.error_message}</div>}
                 </div>
               );
             })}
