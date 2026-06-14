@@ -90,7 +90,7 @@ export interface AdminLiveState {
   autoSendTelegram: boolean;
   telegramDeliveryHealth: Array<{ destination_channel: string; sent_count: number; failed_count: number; skipped_count: number; last_success_at: string | null; last_failure_at: string | null; last_delivery_at: string | null }>;
   intelligenceHealth: Array<{ event_type: string; last_generated_at: string | null; generated_count: number; failed_count: number; last_status: string | null; last_confidence: number | null }>;
-  intelligenceFeedHealth: Array<{ feed_type: string; status: 'available' | 'unavailable' | 'failed'; classification: string; source: string; freshness: string; error_message: string | null; last_updated_at: string | null }>;
+  intelligenceFeedHealth: Array<{ feed_type: string; status: 'available' | 'unavailable' | 'failed'; classification: string; source: string; freshness: string; error_message: string | null; last_updated_at: string | null; quality_status?: 'healthy' | 'degraded' | 'fallback' | 'unavailable' | 'insufficient_data' | null; quality_score?: number | null; ranking_eligible?: boolean | null; provider?: string | null; endpoint?: string | null; failure_reason?: string | null; update_frequency?: string | null; fallback_source?: string | null; historical_coverage?: string | null }>;
   latestIntelligenceEvent: { event_type: string; title?: string | null; status: string; confidence?: number | null; created_at: string; data_sources?: Record<string, unknown> | null } | null;
   failedIntelligenceEvents: number;
   latestTelegramDelivery: { status: string; created_at: string; error_message?: string; delivery_type?: string; destination_channel?: string; delivery_status?: string; retry_count?: number } | null;

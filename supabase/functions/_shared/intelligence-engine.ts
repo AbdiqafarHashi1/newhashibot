@@ -4,6 +4,7 @@ type SupabaseClient = ReturnType<typeof createClient>;
 type ContentKind = "morning_brief" | "news_digest" | "watchlist_pattern_update" | "market_wrap";
 type Regime = "risk_on" | "risk_off" | "neutral" | "volatile" | "compressed" | "breakout_watch";
 type FeedStatus = "available" | "unavailable" | "failed";
+type FeedQualityStatus = "healthy" | "degraded" | "fallback" | "unavailable" | "insufficient_data";
 
 type Candle = { symbol: string; timeframe: string; open_time: string; open: number | string; high: number | string; low: number | string; close: number | string; volume?: number | string | null; source?: string | null };
 type Candidate = { symbol: string; direction: string; confidence_score?: number | null; grade?: string | null; regime?: string | null; strategy_name?: string | null; reason?: string | null; created_at: string };
@@ -17,6 +18,15 @@ type FeedResult = {
   freshness: string;
   status: FeedStatus;
   error_message: string | null;
+  quality_status: FeedQualityStatus;
+  quality_score: number;
+  ranking_eligible: boolean;
+  failure_reason: string | null;
+  provider: string;
+  endpoint: string;
+  update_frequency: string;
+  fallback_source: string | null;
+  historical_coverage: string;
   created_at: string;
 };
 
@@ -56,9 +66,19 @@ function pct(from: number | null, to: number | null): number | null { if (!from 
 function fmtPct(value: number | null): string { return value === null ? "Data unavailable" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`; }
 function ageLabel(iso?: string | null): string { if (!iso) return "Data unavailable"; const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)); return mins < 60 ? `${mins}m ago` : `${Math.round(mins / 60)}h ago`; }
 function title(kind: ContentKind): string { return kind === "morning_brief" ? "🌅 HashiBot Morning Brief" : kind === "news_digest" ? "📰 HashiBot News Intelligence Digest" : kind === "watchlist_pattern_update" ? "📡 HashiBot Watchlist + Pattern Update" : "🌙 HashiBot Market Wrap"; }
-function unavailable(feed_type: string, source = "unavailable", message: string | null = null): FeedResult { return { feed_type, value: null, classification: "unavailable", source, freshness: "Data unavailable", status: "unavailable", error_message: message, created_at: new Date().toISOString() }; }
-function failed(feed_type: string, source: string, e: unknown): FeedResult { return { ...unavailable(feed_type, source, e instanceof Error ? e.message : "provider failed"), status: "failed" }; }
-async function fetchJson(url: string, headers?: HeadersInit): Promise<unknown> { const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) }); if (!res.ok) throw new Error(`HTTP ${res.status}`); return await res.json(); }
+function qualityFromStatus(status: FeedStatus, source: string, rankingEligible = true): { quality_status: FeedQualityStatus; quality_score: number; ranking_eligible: boolean } {
+  if (status === "available" && source.includes("fallback")) return { quality_status: "fallback", quality_score: 65, ranking_eligible: false };
+  if (status === "available") return { quality_status: "healthy", quality_score: 90, ranking_eligible: rankingEligible };
+  if (status === "failed") return { quality_status: "degraded", quality_score: 25, ranking_eligible: false };
+  return { quality_status: "unavailable", quality_score: 0, ranking_eligible: false };
+}
+function feedResult(input: Omit<FeedResult, "quality_status" | "quality_score" | "ranking_eligible" | "failure_reason" | "provider" | "endpoint" | "update_frequency" | "fallback_source" | "historical_coverage" | "created_at"> & Partial<Pick<FeedResult, "provider" | "endpoint" | "update_frequency" | "fallback_source" | "historical_coverage" | "ranking_eligible">>): FeedResult {
+  const q = qualityFromStatus(input.status, input.source, input.ranking_eligible ?? true);
+  return { ...input, ...q, failure_reason: input.status === "available" ? null : input.error_message, provider: input.provider ?? input.source, endpoint: input.endpoint ?? input.source, update_frequency: input.update_frequency ?? "per intelligence run", fallback_source: input.fallback_source ?? null, historical_coverage: input.historical_coverage ?? "latest snapshot only", created_at: new Date().toISOString() };
+}
+function unavailable(feed_type: string, source = "unavailable", message: string | null = null): FeedResult { return feedResult({ feed_type, value: null, classification: "unavailable", source, freshness: "Data unavailable", status: "unavailable", error_message: message, ranking_eligible: false }); }
+function failed(feed_type: string, source: string, e: unknown): FeedResult { return feedResult({ feed_type, value: null, classification: "failed", source, freshness: "Data unavailable", status: "failed", error_message: e instanceof Error ? e.message : "provider failed", ranking_eligible: false }); }
+async function fetchJson(url: string, headers?: HeadersInit): Promise<unknown> { const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) }); if (!res.ok) { const body = await res.text().catch(() => ""); const authHint = res.status === 401 ? "auth_failure_or_missing_api_key" : res.status === 403 ? "forbidden_or_quota_exceeded" : res.status === 429 ? "quota_or_rate_limit_exceeded" : "provider_http_error"; throw new Error(`${authHint}: HTTP ${res.status}${body ? ` ${body.slice(0, 180)}` : ""}`); } return await res.json(); }
 
 function snapshotFromCandles(symbol: string, candles: Candle[]): SymbolSnapshot {
   const rows = candles.filter((c) => c.symbol === symbol).sort((a, b) => new Date(a.open_time).getTime() - new Date(b.open_time).getTime());
@@ -89,18 +109,119 @@ async function fetchCandles(supabase: SupabaseClient): Promise<Candle[]> { const
 async function fetchCandidates(supabase: SupabaseClient): Promise<Candidate[]> { const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); const { data } = await supabase.from("strategy_candidates").select("symbol,direction,confidence_score,grade,regime,strategy_name,reason,created_at").eq("market_type", "crypto").gte("created_at", since).order("confidence_score", { ascending: false }).limit(40); return (data ?? []) as Candidate[]; }
 async function fetchSignals(supabase: SupabaseClient): Promise<Signal[]> { const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); const { data } = await supabase.from("signals").select("symbol,direction,status,grade,confidence_score,created_at").eq("market_type", "crypto").gte("created_at", since).order("created_at", { ascending: false }).limit(25); return (data ?? []) as Signal[]; }
 
-async function fearGreed(): Promise<FeedResult> { const url = Deno.env.get("FEAR_GREED_API_URL") || "https://api.alternative.me/fng/?limit=1&format=json"; try { const json = await fetchJson(url) as Record<string, unknown>; const item = Array.isArray(json.data) ? json.data[0] as Record<string, unknown> : json; const value = num(item?.value); return { feed_type: "fear_greed", value, classification: String(item?.value_classification ?? (value === null ? "unavailable" : value >= 55 ? "greed" : value <= 45 ? "fear" : "neutral")), source: Deno.env.get("FEAR_GREED_API_URL") ? "FEAR_GREED_API_URL" : "alternative.me", freshness: item?.timestamp ? ageLabel(new Date(Number(item.timestamp) * 1000).toISOString()) : "live fetch", status: value === null ? "unavailable" : "available", error_message: null, created_at: new Date().toISOString() }; } catch (e) { return failed("fear_greed", "fear_greed_provider", e); } }
-async function btcDominance(): Promise<FeedResult> { try { const json = await fetchJson("https://api.coingecko.com/api/v3/global") as { data?: { market_cap_percentage?: Record<string, number> } }; const value = num(json.data?.market_cap_percentage?.btc); return { feed_type: "btc_dominance", value, classification: value === null ? "unavailable" : value >= 55 ? "high" : value <= 45 ? "low" : "neutral", source: "coingecko_global", freshness: "live fetch", status: value === null ? "unavailable" : "available", error_message: null, created_at: new Date().toISOString() }; } catch (e) { return failed("btc_dominance", "coingecko_global", e); } }
-async function funding(): Promise<FeedResult> { try { const rows = await Promise.all(MAJORS.map(async (symbol) => { const json = await fetchJson(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`) as Record<string, unknown>; return { symbol, fundingRate: num(json.lastFundingRate), nextFundingTime: json.nextFundingTime }; })); const avg = rows.reduce((s, r) => s + (r.fundingRate ?? 0), 0) / rows.length; return { feed_type: "funding", value: rows, classification: avg > 0.0001 ? "bullish_long_crowding" : avg < -0.0001 ? "bearish_short_crowding" : "neutral", source: "binance_usdm_futures", freshness: "live fetch", status: "available", error_message: null, created_at: new Date().toISOString() }; } catch (e) { return failed("funding", "binance_usdm_futures", e); } }
-async function openInterest(): Promise<FeedResult> { try { const rows = await Promise.all(MAJORS.map(async (symbol) => { const [now, hist] = await Promise.all([fetchJson(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`) as Promise<Record<string, unknown>>, fetchJson(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=2`) as Promise<Record<string, unknown>[]>]); const current = num(now.openInterest); const prev = Array.isArray(hist) && hist.length > 1 ? num(hist[0].sumOpenInterest) : null; return { symbol, openInterest: current, changePct: pct(prev, current) }; })); const avg = rows.reduce((s, r) => s + (r.changePct ?? 0), 0) / rows.length; return { feed_type: "open_interest", value: rows, classification: avg > 1 ? "rising" : avg < -1 ? "falling" : "flat", source: "binance_usdm_futures", freshness: "live fetch", status: "available", error_message: null, created_at: new Date().toISOString() }; } catch (e) { return failed("open_interest", "binance_usdm_futures", e); } }
-async function liquidations(): Promise<FeedResult> { const url = Deno.env.get("LIQUIDATIONS_API_URL") ?? ""; if (!url) return unavailable("liquidations", "provider_not_configured", "LIQUIDATIONS_API_URL missing"); try { const json = await fetchJson(url); return { feed_type: "liquidations", value: json, classification: "provider_data", source: "LIQUIDATIONS_API_URL", freshness: "live fetch", status: "available", error_message: null, created_at: new Date().toISOString() }; } catch (e) { return failed("liquidations", "LIQUIDATIONS_API_URL", e); } }
-function marketBreadth(snapshots: SymbolSnapshot[]): FeedResult { const live = snapshots.filter((s) => s.dataSource !== "unavailable"); if (!live.length) return unavailable("market_breadth", "candles", "No tracked candles available"); const bullish = live.filter((s) => s.trend === "up").length, bearish = live.filter((s) => s.trend === "down").length; const aboveShortTrendPct = (bullish / live.length) * 100; return { feed_type: "market_breadth", value: { tracked: live.length, bullish, bearish, aboveShortTrendPct }, classification: aboveShortTrendPct >= 60 ? "broad_strength" : aboveShortTrendPct <= 40 ? "broad_weakness" : "mixed", source: "candles", freshness: "last stored 1h candles", status: "available", error_message: null, created_at: new Date().toISOString() }; }
-function sectorRotation(): FeedResult { return unavailable("sector_rotation", "symbol_categories", "Category data unavailable for tracked symbols"); }
-async function stablecoinFlow(): Promise<FeedResult> { const url = Deno.env.get("STABLECOIN_FLOW_API_URL") ?? ""; if (!url) return unavailable("stablecoin_flow", "provider_not_configured", "STABLECOIN_FLOW_API_URL missing"); try { const json = await fetchJson(url); return { feed_type: "stablecoin_flow", value: json, classification: "provider_data", source: "STABLECOIN_FLOW_API_URL", freshness: "live fetch", status: "available", error_message: null, created_at: new Date().toISOString() }; } catch (e) { return failed("stablecoin_flow", "STABLECOIN_FLOW_API_URL", e); } }
+async function fearGreed(): Promise<FeedResult> {
+  const configured = Deno.env.get("FEAR_GREED_API_URL");
+  const url = configured || "https://api.alternative.me/fng/?limit=1&format=json";
+  try {
+    const json = await fetchJson(url) as Record<string, unknown>;
+    const item = Array.isArray(json.data) ? json.data[0] as Record<string, unknown> : json;
+    const value = num(item?.value);
+    return feedResult({ feed_type: "fear_greed", value, classification: String(item?.value_classification ?? (value === null ? "unavailable" : value >= 55 ? "greed" : value <= 45 ? "fear" : "neutral")), source: configured ? "FEAR_GREED_API_URL" : "alternative.me", provider: configured ? "configured_fear_greed_provider" : "alternative.me", endpoint: configured ?? "https://api.alternative.me/fng/", freshness: item?.timestamp ? ageLabel(new Date(Number(item.timestamp) * 1000).toISOString()) : "live fetch", status: value === null ? "unavailable" : "available", error_message: value === null ? "provider returned no value" : null, update_frequency: "per intelligence run", historical_coverage: "latest Alternative.me index point" });
+  } catch (e) { return failed("fear_greed", configured ? "FEAR_GREED_API_URL" : "alternative.me", e); }
+}
+async function btcDominance(): Promise<FeedResult> {
+  try {
+    const json = await fetchJson("https://api.coingecko.com/api/v3/global") as { data?: { market_cap_percentage?: Record<string, number> } };
+    const value = num(json.data?.market_cap_percentage?.btc);
+    return feedResult({ feed_type: "btc_dominance", value, classification: value === null ? "unavailable" : value >= 55 ? "high" : value <= 45 ? "low" : "neutral", source: "coingecko_global", provider: "coingecko", endpoint: "https://api.coingecko.com/api/v3/global", freshness: "live fetch", status: value === null ? "unavailable" : "available", error_message: value === null ? "provider returned no BTC dominance" : null, update_frequency: "per intelligence run", historical_coverage: "latest global market-cap snapshot" });
+  } catch (e) { return failed("btc_dominance", "coingecko_global", e); }
+}
+async function funding(): Promise<FeedResult> {
+  try {
+    const rows = await Promise.all(MAJORS.map(async (symbol) => { const json = await fetchJson(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`) as Record<string, unknown>; return { symbol, fundingRate: num(json.lastFundingRate), nextFundingTime: json.nextFundingTime }; }));
+    const avg = rows.reduce((sum, row) => sum + (row.fundingRate ?? 0), 0) / rows.length;
+    return feedResult({ feed_type: "funding", value: rows, classification: avg > 0.0001 ? "bullish_long_crowding" : avg < -0.0001 ? "bearish_short_crowding" : "neutral", source: "binance_usdm_futures", provider: "binance", endpoint: "/fapi/v1/premiumIndex", freshness: "live fetch", status: "available", error_message: null, update_frequency: "per intelligence run", historical_coverage: "latest funding snapshot for BTC/ETH/SOL" });
+  } catch (e) { return failed("funding", "binance_usdm_futures", e); }
+}
+async function openInterest(): Promise<FeedResult> {
+  try {
+    const rows = await Promise.all(MAJORS.map(async (symbol) => { const [now, hist] = await Promise.all([fetchJson(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`) as Promise<Record<string, unknown>>, fetchJson(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=2`) as Promise<Record<string, unknown>[]>]); const current = num(now.openInterest); const prev = Array.isArray(hist) && hist.length > 1 ? num(hist[0].sumOpenInterest) : null; return { symbol, openInterest: current, changePct: pct(prev, current) }; }));
+    const avg = rows.reduce((sum, row) => sum + (row.changePct ?? 0), 0) / rows.length;
+    return feedResult({ feed_type: "open_interest", value: rows, classification: avg > 1 ? "rising" : avg < -1 ? "falling" : "flat", source: "binance_usdm_futures", provider: "binance", endpoint: "/fapi/v1/openInterest + /futures/data/openInterestHist", freshness: "live fetch", status: "available", error_message: null, update_frequency: "per intelligence run", historical_coverage: "latest snapshot plus 1h two-point change" });
+  } catch (e) { return failed("open_interest", "binance_usdm_futures", e); }
+}
+async function liquidations(): Promise<FeedResult> {
+  const url = Deno.env.get("LIQUIDATIONS_API_URL") ?? "";
+  if (!url) return feedResult({ feed_type: "liquidations", value: null, classification: "provider_not_configured", source: "LIQUIDATIONS_API_URL", provider: "not_configured", endpoint: "LIQUIDATIONS_API_URL", freshness: "Data unavailable", status: "unavailable", error_message: "LIQUIDATIONS_API_URL missing; expected an authenticated liquidation provider endpoint. No fake liquidation data is used.", ranking_eligible: false, update_frequency: "provider dependent", fallback_source: null, historical_coverage: "none until provider configured" });
+  try {
+    const json = await fetchJson(url);
+    return feedResult({ feed_type: "liquidations", value: json, classification: "provider_data", source: "LIQUIDATIONS_API_URL", provider: "configured_liquidations_provider", endpoint: "LIQUIDATIONS_API_URL", freshness: "live fetch", status: "available", error_message: null, update_frequency: "per intelligence run", historical_coverage: "provider response only" });
+  } catch (e) { return failed("liquidations", "LIQUIDATIONS_API_URL", e); }
+}
+function marketBreadth(snapshots: SymbolSnapshot[]): FeedResult {
+  const live = snapshots.filter((snapshot) => snapshot.dataSource !== "unavailable");
+  if (!live.length) return unavailable("market_breadth", "candles", "No tracked crypto candles available");
+  const bullish = live.filter((snapshot) => snapshot.trend === "up").length;
+  const bearish = live.filter((snapshot) => snapshot.trend === "down").length;
+  const flat = live.length - bullish - bearish;
+  const aboveShortTrendPct = (bullish / live.length) * 100;
+  const participationPct = ((bullish + bearish) / live.length) * 100;
+  const breadthScore = Math.round(Math.max(0, Math.min(100, aboveShortTrendPct * 0.7 + participationPct * 0.3)));
+  return feedResult({ feed_type: "market_breadth", value: { universe: "tracked_crypto_candle_universe", tracked: live.length, bullish, bearish, flat, aboveShortTrendPct, participationPct, breadthScore }, classification: aboveShortTrendPct >= 60 ? "broad_strength" : aboveShortTrendPct <= 40 ? "broad_weakness" : "mixed", source: "tracked_crypto_candles", provider: "supabase_candles", endpoint: "candles 1h crypto rows", freshness: "last stored 1h candles", status: "available", error_message: null, update_frequency: "per intelligence run from stored 1h candles", historical_coverage: "last 48h tracked crypto candle window" });
+}
+const SECTOR_GROUPS: Record<string, string[]> = {
+  "Layer 1": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "ADAUSDT", "AVAXUSDT", "SUIUSDT"],
+  DeFi: ["UNIUSDT", "AAVEUSDT", "LINKUSDT"],
+  AI: ["FETUSDT", "RNDRUSDT", "TAOUSDT", "NEARUSDT"],
+  Infrastructure: ["LINKUSDT", "MATICUSDT", "DOTUSDT", "ATOMUSDT"],
+  Meme: ["DOGEUSDT", "SHIBUSDT", "PEPEUSDT", "WIFUSDT"],
+  Gaming: ["SANDUSDT", "AXSUSDT", "GALAUSDT", "IMXUSDT"],
+  RWA: ["ONDOUSDT", "MKRUSDT"],
+};
+function sectorRotation(snapshots: SymbolSnapshot[]): FeedResult {
+  const live = snapshots.filter((snapshot) => snapshot.dataSource !== "unavailable");
+  const sectors = Object.entries(SECTOR_GROUPS).map(([sector, symbols]) => {
+    const members = live.filter((snapshot) => symbols.includes(snapshot.symbol));
+    const avgChangePct = members.length ? members.reduce((sum, snapshot) => sum + (snapshot.changePct ?? 0), 0) / members.length : null;
+    const participationPct = members.length ? (members.filter((snapshot) => snapshot.trend === "up").length / members.length) * 100 : null;
+    return { sector, symbols: members.map((member) => member.symbol), avgChangePct, participationPct, memberCount: members.length };
+  }).filter((sector) => sector.memberCount > 0);
+  if (sectors.length < 2) return feedResult({ feed_type: "sector_rotation", value: { sectors }, classification: "insufficient_data", source: "tracked_crypto_candles_sector_groups", provider: "research_sector_groups", endpoint: "candles 1h crypto rows", freshness: "Data unavailable", status: "unavailable", error_message: "Need at least two populated sector groups from real tracked candles", ranking_eligible: false, update_frequency: "per intelligence run", historical_coverage: "last 48h tracked crypto candle window" });
+  const sorted = [...sectors].sort((a, b) => (b.avgChangePct ?? -999) - (a.avgChangePct ?? -999));
+  const strongest = sorted[0], weakest = sorted[sorted.length - 1];
+  const sectorRotationScore = Math.round(Math.max(0, Math.min(100, 50 + ((strongest.avgChangePct ?? 0) - (weakest.avgChangePct ?? 0)) * 5)));
+  return feedResult({ feed_type: "sector_rotation", value: { sectors, strongest, weakest, sectorRotationScore }, classification: "research_only_sector_rotation", source: "tracked_crypto_candles_sector_groups", provider: "research_sector_groups", endpoint: "candles 1h crypto rows", freshness: "last stored 1h candles", status: "available", error_message: null, ranking_eligible: false, update_frequency: "per intelligence run", historical_coverage: "last 48h tracked crypto candle window" });
+}
+function stablecoinFlow(feeds: FeedResult[]): FeedResult {
+  const dom = feeds.find((f) => f.feed_type === "btc_dominance");
+  const oi = feeds.find((f) => f.feed_type === "open_interest");
+  const fund = feeds.find((f) => f.feed_type === "funding");
+  const breadth = feeds.find((f) => f.feed_type === "market_breadth");
+  const supported = [dom, oi, fund, breadth].filter((f): f is FeedResult => Boolean(f) && f.status === "available");
+  if (supported.length < 3) return feedResult({ feed_type: "stablecoin_flow", value: { supportedFeeds: supported.map((f) => f.feed_type) }, classification: "insufficient_proxy_support", source: "derived_proxy", provider: "derived_from_btc_dominance_oi_funding_breadth", endpoint: "derived", freshness: "Data unavailable", status: "unavailable", error_message: "Stablecoin flow requires at least three healthy proxy feeds; no direct stablecoin-flow provider configured and no fabricated values used.", ranking_eligible: false, update_frequency: "per intelligence run", historical_coverage: "derived latest snapshot only" });
+  const breadthValue = breadth?.value as { breadthScore?: number } | null;
+  const oiRows = Array.isArray(oi?.value) ? oi.value as Array<{ changePct?: number | null }> : [];
+  const avgOi = oiRows.length ? oiRows.reduce((sum, row) => sum + (row.changePct ?? 0), 0) / oiRows.length : 0;
+  const fundingRows = Array.isArray(fund?.value) ? fund.value as Array<{ fundingRate?: number | null }> : [];
+  const avgFunding = fundingRows.length ? fundingRows.reduce((sum, row) => sum + (row.fundingRate ?? 0), 0) / fundingRows.length : 0;
+  const riskAppetite = Math.max(0, Math.min(100, (breadthValue?.breadthScore ?? 50) + Math.max(-15, Math.min(15, avgOi * 2)) + Math.max(-10, Math.min(10, avgFunding * 100000))));
+  return feedResult({ feed_type: "stablecoin_flow", value: { stablecoinFlowConfidenceScore: Math.round(riskAppetite), proxyInputs: supported.map((f) => f.feed_type), directStablecoinFlow: false }, classification: riskAppetite >= 60 ? "risk_appetite_proxy_positive" : riskAppetite <= 40 ? "risk_appetite_proxy_negative" : "neutral_proxy", source: "derived_proxy", provider: "derived_from_btc_dominance_oi_funding_breadth", endpoint: "derived", freshness: "latest healthy proxy feeds", status: "available", error_message: null, ranking_eligible: false, update_frequency: "per intelligence run", historical_coverage: "derived latest snapshot only" });
+}
 function newsSourceName(source: unknown, fallback: unknown): string { if (source && typeof source === "object" && "title" in source) return String((source as { title?: unknown }).title ?? fallback ?? "news_provider"); return String(source ?? fallback ?? "news_provider"); }
 function normalizeNewsHeadlines(json: Record<string, unknown>): Array<{ title: string; url: string; source: string; published_at: string }> { const raw = (Array.isArray(json.results) ? json.results : Array.isArray(json.articles) ? json.articles : Array.isArray(json.Data) ? json.Data : Array.isArray(json.data) ? json.data : []) as Record<string, unknown>[]; return raw.slice(0, 20).map((h) => ({ title: String(h.title ?? "").slice(0, 220), url: String(h.url ?? h.guid ?? h.domain ?? ""), source: newsSourceName(h.source_info ?? h.source, h.domain), published_at: String(h.published_at ?? h.publishedAt ?? h.created_at ?? (h.published_on ? new Date(Number(h.published_on) * 1000).toISOString() : "")) })).filter((h) => h.title); }
-async function news(): Promise<FeedResult> { const configuredUrl = Deno.env.get("CRYPTO_NEWS_API_URL") ?? ""; const url = configuredUrl || "https://min-api.cryptocompare.com/data/v2/news/?lang=EN"; const key = Deno.env.get("NEWS_API_KEY") ?? ""; try { const sep = url.includes("?") ? "&" : "?"; const full = key && !url.includes("auth_token") && !url.includes("apiKey") ? `${url}${sep}auth_token=${encodeURIComponent(key)}` : url; const json = await fetchJson(full) as Record<string, unknown>; const headlines = normalizeNewsHeadlines(json); const buckets: Record<string, typeof headlines> = Object.fromEntries(NEWS_BUCKETS.map((b) => [b, []])); for (const h of headlines) { const t = h.title.toLowerCase(); const bucket = t.includes("etf") ? "etf" : /sec|cftc|regulat|law|court|policy/.test(t) ? "regulatory" : /binance|coinbase|kraken|exchange/.test(t) ? "exchange" : /fed|cpi|rates|dollar|macro/.test(t) ? "macro" : "ecosystem"; buckets[bucket].push(h); } return { feed_type: "news", value: { headlines, buckets }, classification: headlines.length ? "headlines_available" : "no_headlines", source: configuredUrl ? "CRYPTO_NEWS_API_URL" : "cryptocompare_public_news", freshness: "live fetch", status: "available", error_message: null, created_at: new Date().toISOString() }; } catch (e) { return failed("news", configuredUrl ? "CRYPTO_NEWS_API_URL" : "cryptocompare_public_news", e); } }
-async function buildFeeds(snapshots: SymbolSnapshot[]): Promise<FeedResult[]> { const asyncFeeds = await Promise.all([fearGreed(), btcDominance(), funding(), openInterest(), liquidations(), news(), stablecoinFlow()]); return [...asyncFeeds, marketBreadth(snapshots), sectorRotation()]; }
+async function news(): Promise<FeedResult> {
+  const configuredUrl = Deno.env.get("CRYPTO_NEWS_API_URL") ?? "";
+  const url = configuredUrl || "https://min-api.cryptocompare.com/data/v2/news/?lang=EN";
+  const key = Deno.env.get("NEWS_API_KEY") ?? "";
+  try {
+    const sep = url.includes("?") ? "&" : "?";
+    const full = key && !url.includes("auth_token") && !url.includes("apiKey") ? `${url}${sep}auth_token=${encodeURIComponent(key)}` : url;
+    const json = await fetchJson(full) as Record<string, unknown>;
+    const headlines = normalizeNewsHeadlines(json);
+    const buckets: Record<string, typeof headlines> = Object.fromEntries(NEWS_BUCKETS.map((bucket) => [bucket, []]));
+    for (const headline of headlines) {
+      const text = headline.title.toLowerCase();
+      const bucket = text.includes("etf") ? "etf" : /sec|cftc|regulat|law|court|policy/.test(text) ? "regulatory" : /binance|coinbase|kraken|exchange/.test(text) ? "exchange" : /fed|cpi|rates|dollar|macro/.test(text) ? "macro" : "ecosystem";
+      buckets[bucket].push(headline);
+    }
+    return feedResult({ feed_type: "news", value: { headlines, buckets }, classification: headlines.length ? "headlines_available" : "no_headlines", source: configuredUrl ? "CRYPTO_NEWS_API_URL" : "cryptocompare_public_news", provider: configuredUrl ? "configured_news_provider" : "cryptocompare", endpoint: configuredUrl || "https://min-api.cryptocompare.com/data/v2/news/", freshness: "live fetch", status: "available", error_message: null, update_frequency: "per intelligence run", fallback_source: configuredUrl ? "cryptocompare_public_news when CRYPTO_NEWS_API_URL unset" : null, historical_coverage: "latest provider headlines" });
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : "provider failed";
+    const exact = reason.includes("HTTP 401") ? new Error(`${reason}; exact cause is auth failure: missing/expired/invalid NEWS_API_KEY or provider token`) : e;
+    return failed("news", configuredUrl ? "CRYPTO_NEWS_API_URL" : "cryptocompare_public_news", exact);
+  }
+}
+async function buildFeeds(snapshots: SymbolSnapshot[]): Promise<FeedResult[]> { const coreFeeds = await Promise.all([fearGreed(), btcDominance(), funding(), openInterest(), liquidations(), news()]); const breadth = marketBreadth(snapshots); const sector = sectorRotation(snapshots); const stablecoin = stablecoinFlow([...coreFeeds, breadth]); return [...coreFeeds, breadth, sector, stablecoin]; }
 function feed(feeds: FeedResult[], type: string): FeedResult { return feeds.find((f) => f.feed_type === type) ?? unavailable(type); }
 function feedLine(f: FeedResult): string { return `${f.feed_type.replaceAll("_", " ")}: ${f.status}${f.status === "available" ? ` (${f.classification})` : f.error_message ? ` — ${f.error_message}` : ""}`; }
 function fundingLine(f: FeedResult): string { const rows = Array.isArray(f.value) ? f.value as Array<{ symbol: string; fundingRate?: number | null }> : []; return f.status === "available" ? rows.map((r) => `${r.symbol} ${(Number(r.fundingRate ?? 0) * 100).toFixed(4)}%`).join(" · ") : "Funding unavailable"; }
@@ -136,6 +257,6 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
 
 export async function storeIntelligenceEvent(supabase: SupabaseClient, output: IntelligenceOutput): Promise<void> {
   await supabase.from("intelligence_events").insert({ event_id: output.event_id, event_type: output.event_type, module: output.event_type === "news_digest" ? "news" : output.event_type === "watchlist_pattern_update" ? "watchlist_pattern" : "brief_generator", title: output.title, summary: output.summary, market: output.market, symbols: output.symbols, sentiment: output.sentiment, regime: output.regime, confidence: output.confidence, data_sources: output.data_sources, freshness: output.freshness, output_channel: output.output_channel, status: output.status, metadata: output.metadata });
-  const rows = ((output.metadata.feed_health ?? []) as FeedResult[]).map((f) => ({ event_id: output.event_id, feed_type: f.feed_type, value: f.value, classification: f.classification, source: f.source, freshness: f.freshness, status: f.status, error_message: f.error_message, created_at: f.created_at }));
+  const rows = ((output.metadata.feed_health ?? []) as FeedResult[]).map((f) => ({ event_id: output.event_id, feed_type: f.feed_type, value: f.value, classification: f.classification, source: f.source, freshness: f.freshness, status: f.status, error_message: f.error_message, quality_status: f.quality_status, quality_score: f.quality_score, ranking_eligible: f.ranking_eligible, failure_reason: f.failure_reason, provider: f.provider, endpoint: f.endpoint, update_frequency: f.update_frequency, fallback_source: f.fallback_source, historical_coverage: f.historical_coverage, created_at: f.created_at }));
   if (rows.length) await supabase.from("intelligence_feed_results").insert(rows);
 }
