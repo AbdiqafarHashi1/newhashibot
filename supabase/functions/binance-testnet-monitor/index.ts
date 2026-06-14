@@ -113,7 +113,7 @@ async function safeSettingsUpdate(supabase: SupabaseClient | null, update: Recor
 
 async function verifyMonitorSchema(supabase: SupabaseClient) {
   const executionOrdersColumns = "id,status,latest_monitor_error,latest_sync_error,latest_protection_error,last_monitor_action";
-  const executionSettingsColumns = "id,latest_monitor_error,latest_sync_error,latest_monitor_status,latest_monitor_result";
+  const executionSettingsColumns = "id,latest_monitor_run_at,latest_account_state_at,latest_monitor_error,latest_sync_error,latest_monitor_status,latest_monitor_result";
   const ordersProbe = await supabase.from("execution_orders").select(executionOrdersColumns).limit(0);
   if (ordersProbe.error) return { ok: false, error: ordersProbe.error, table: "execution_orders", columns: executionOrdersColumns };
   const settingsProbe = await supabase.from("execution_settings").select(executionSettingsColumns).limit(0);
@@ -182,13 +182,23 @@ function classifyMonitor(stats: MonitorStats): MonitorLevel {
   return "healthy";
 }
 
-function affectedSymbolLines(stats: MonitorStats): string[] {
+function affectedSymbols(stats: MonitorStats): string[] {
   const classifications = (stats.reconciliation_summary?.classifications ?? {}) as Record<string, Record<string, unknown>>;
   const symbols = new Set<string>();
   for (const symbol of Object.keys(classifications)) symbols.add(symbol);
   for (const warning of stats.warnings) if (warning.symbol) symbols.add(warning.symbol);
   for (const row of stats.row_errors) if (row.symbol) symbols.add(row.symbol);
-  const lines = Array.from(symbols).slice(0, 12).map((symbol) => {
+  for (const row of stats.critical_errors) {
+    const match = String(row).match(/\b[A-Z0-9]{2,15}USDT\b/);
+    if (match?.[0]) symbols.add(match[0]);
+  }
+  return Array.from(symbols).sort();
+}
+
+function affectedSymbolLines(stats: MonitorStats): string[] {
+  const classifications = (stats.reconciliation_summary?.classifications ?? {}) as Record<string, Record<string, unknown>>;
+  const symbols = affectedSymbols(stats);
+  const lines = symbols.slice(0, 12).map((symbol) => {
     const item = classifications[symbol] ?? {};
     const states = [
       item.missing_protection ? "missing SL" : "protected",
@@ -201,13 +211,68 @@ function affectedSymbolLines(stats: MonitorStats): string[] {
   return lines.length ? lines : ["• None"];
 }
 
-async function sendAdminMonitorAlert(supabase: SupabaseClient, stats: MonitorStats): Promise<void> {
-  if (!["critical_error", "degraded"].includes(stats.monitor_status) && stats.warnings.length === 0) return;
+type MonitorAlertSeverity = "healthy" | "degraded" | "critical";
+type MonitorAlertState = { fingerprint?: string; sent_at?: string; status?: string; severity?: MonitorAlertSeverity; latest_error_short?: string };
+
+function monitorAlertSeverity(stats: MonitorStats): MonitorAlertSeverity {
+  return stats.monitor_status === "critical_error" || stats.critical_errors.length > 0 || stats.unsafe_positions > 0 ? "critical" : stats.monitor_status === "degraded" || stats.warnings.length > 0 ? "degraded" : "healthy";
+}
+
+function monitorAlertFingerprint(stats: MonitorStats): { fingerprint: string; latestErrorShort: string; severity: MonitorAlertSeverity } {
+  const symbols = affectedSymbols(stats);
+  const latestErrorShort = shortText(stats.latest_monitor_error || stats.latest_sync_error || stats.latest_monitor_warning || "", 220);
+  const severity = monitorAlertSeverity(stats);
+  const fingerprint = JSON.stringify({
+    monitor_status: stats.monitor_status,
+    severity,
+    critical_errors: stats.critical_errors.length,
+    unsafe_positions: stats.unsafe_positions,
+    affected_symbols: symbols,
+    latest_error_short: latestErrorShort,
+  });
+  return { fingerprint, latestErrorShort, severity };
+}
+
+function cooldownMs(severity: MonitorAlertSeverity): number {
+  return severity === "critical" ? 10 * 60 * 1000 : 60 * 60 * 1000;
+}
+
+function fingerprintKey(value: string): string {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) hash = Math.imul(31, hash) + value.charCodeAt(i) | 0;
+  return Math.abs(hash).toString(36);
+}
+
+function wasUnhealthy(state?: MonitorAlertState | null): boolean {
+  return state?.severity === "critical" || state?.severity === "degraded" || state?.status === "critical_error" || state?.status === "degraded";
+}
+
+function shouldSendMonitorAlert(current: { fingerprint: string; severity: MonitorAlertSeverity }, previous: MonitorAlertState | null, nowMs: number): boolean {
+  if (current.severity === "healthy") return wasUnhealthy(previous);
+  if (!previous?.sent_at || !previous.fingerprint) return true;
+  if (previous.fingerprint !== current.fingerprint) return true;
+  if (current.severity === "critical" && previous.severity !== "critical") return true;
+  const previousMs = new Date(previous.sent_at).getTime();
+  if (!Number.isFinite(previousMs)) return true;
+  return nowMs - previousMs >= cooldownMs(current.severity);
+}
+
+function monitorAlertText(stats: MonitorStats, recovery: boolean): string {
+  if (recovery) {
+    return [
+      "✅ HashiBot Binance Monitor Recovery",
+      "",
+      `Status: ${monitorDisplayStatus(stats.monitor_status)}`,
+      `Time: ${eatTimestamp()}`,
+      "",
+      "Monitor is healthy again. Repeated recovery alerts are suppressed until the monitor degrades or becomes critical again.",
+    ].join("\n");
+  }
   const reconciliation = stats.reconciliation_summary as Record<string, unknown>;
   const cleanupEvents = Array.isArray(reconciliation.cleanup_events) ? reconciliation.cleanup_events as Record<string, unknown>[] : [];
   const cancelledCleanup = cleanupEvents.filter((event) => String(event.cleanup_action ?? "").includes("cancel")).length;
   const skippedUnsafe = cleanupEvents.filter((event) => String(event.cleanup_action ?? "").includes("skip")).length;
-  const text = [
+  return [
     "🚨 HashiBot Binance Monitor Alert",
     "",
     `Status: ${monitorDisplayStatus(stats.monitor_status)}`,
@@ -237,14 +302,42 @@ async function sendAdminMonitorAlert(supabase: SupabaseClient, stats: MonitorSta
     "Operator Note:",
     "Full reconciliation is stored in Execution UI / DB logs.",
   ].filter(Boolean).join("\n");
+}
+
+async function readMonitorAlertState(supabase: SupabaseClient): Promise<MonitorAlertState | null> {
+  const { data, error } = await supabase.from("execution_settings").select("latest_monitor_alert_state").eq("id", 1).maybeSingle();
+  if (error) return null;
+  return ((data as { latest_monitor_alert_state?: unknown } | null)?.latest_monitor_alert_state ?? null) as MonitorAlertState | null;
+}
+
+async function writeMonitorAlertState(supabase: SupabaseClient, state: MonitorAlertState): Promise<void> {
+  await supabase.from("execution_settings").update({ latest_monitor_alert_state: state, updated_at: new Date().toISOString() }).eq("id", 1);
+}
+
+async function sendAdminMonitorAlert(supabase: SupabaseClient, stats: MonitorStats): Promise<void> {
+  const current = monitorAlertFingerprint(stats);
+  const previous = await readMonitorAlertState(supabase);
+  const now = new Date();
+  if (!shouldSendMonitorAlert(current, previous, now.getTime())) return;
+  if (current.severity === "healthy" && !wasUnhealthy(previous)) return;
+
+  const recovery = current.severity === "healthy";
   await routeTelegramEvent(supabase, {
-    event_id: `admin_binance_monitor_alert:${stats.monitor_status}:${new Date().toISOString().slice(0, 16)}`,
-    event_type: stats.monitor_status === "critical_error" ? "admin_binance_monitor_critical_error" : "admin_binance_monitor_protection_degraded",
-    text,
+    event_id: `admin_binance_monitor_alert:${recovery ? "recovery" : stats.monitor_status}:${fingerprintKey(current.fingerprint)}:${now.toISOString().slice(0, 16)}`,
+    event_type: recovery ? "admin_binance_monitor_recovered" : stats.monitor_status === "critical_error" ? "admin_binance_monitor_critical_error" : "admin_binance_monitor_protection_degraded",
+    text: monitorAlertText(stats, recovery),
     source: "binance-testnet-monitor",
     channels: ["admin"],
     dedupe: true,
-  }).catch(() => undefined);
+  }).then(() => { stats.telegram_sent += 1; }).catch(() => undefined);
+
+  await writeMonitorAlertState(supabase, {
+    fingerprint: current.fingerprint,
+    sent_at: now.toISOString(),
+    status: stats.monitor_status,
+    severity: current.severity,
+    latest_error_short: current.latestErrorShort,
+  });
 }
 
 function monitorResult(stats: MonitorStats): Record<string, unknown> {
@@ -1247,6 +1340,7 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
 }
 
 async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats, monitorStatus: MonitorLevel) {
+  const monitorRunAt = new Date().toISOString();
   const [accountBody, positionsBody, allOrdersBody, allAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/account", {}),
     binanceRequest("/fapi/v2/positionRisk", {}),
@@ -1268,8 +1362,8 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   const currentPositionSize = positions.reduce((sum: number, p: BinancePosition) => sum + Math.abs(n(p.positionAmt)), 0);
   const openNotional = positions.reduce((sum: number, p: BinancePosition) => sum + Math.abs(n((p as Record<string, unknown>).notional)), 0);
   const currentOpenRiskPct = totalWallet > 0 ? (openNotional / totalWallet) * 100 : 0;
-  await supabase.from("execution_settings").update({
-    latest_monitor_run_at: new Date().toISOString(),
+  const settingsUpdate = {
+    latest_monitor_run_at: monitorRunAt,
     latest_monitor_status: stats.monitor_status,
     latest_monitor_result: monitorResult(stats),
     latest_monitor_error: stats.latest_monitor_error,
@@ -1287,11 +1381,31 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     available_usdc: n(usdc?.availableBalance),
     current_open_risk_pct: currentOpenRiskPct,
     open_positions_count: positions.length,
-    latest_sync_time: new Date().toISOString(),
-    latest_account_state_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq("id", 1);
+    latest_sync_time: monitorRunAt,
+    latest_account_state_at: monitorRunAt,
+    updated_at: monitorRunAt,
+  };
+  const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
+  if (!error) return;
+
+  // Preserve the single monitor clock even if a non-clock snapshot column drifts from
+  // the deployed schema. Without this fallback, Supabase Cron can succeed while the
+  // UI keeps reading an old monitor timestamp.
+  const fallback = {
+    latest_monitor_run_at: monitorRunAt,
+    latest_account_state_at: monitorRunAt,
+    latest_monitor_status: stats.monitor_status,
+    latest_monitor_result: monitorResult(stats),
+    latest_monitor_error: stats.latest_monitor_error,
+    latest_sync_error: stats.latest_sync_error,
+    latest_sync_time: monitorRunAt,
+    updated_at: monitorRunAt,
+  };
+  const { error: fallbackError } = await supabase.from("execution_settings").update(fallback).eq("id", 1);
+  if (fallbackError) throw new Error(`execution_settings monitor timestamp update failed: ${fallbackError.message}; original snapshot update failed: ${error.message}`);
+  addMonitorWarning(stats, { warning: `monitor_snapshot_partial_update: ${error.message}`, action: "monitor_clock_persisted_snapshot_partial", source: "execution_settings" });
 }
+
 
 async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, stats: MonitorStats) {
   const message = errorMessage(err);
