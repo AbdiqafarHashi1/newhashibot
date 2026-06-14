@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
+import { getMonitorTruth } from '../../lib/monitorTruth';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle, Shield, Activity } from 'lucide-react';
 import { DEFAULT_CAPITAL_ASSUMPTIONS, estimateCapitalFromR, formatMoney, formatPct, validCapitalAssumptions, CapitalAssumptions } from '../../lib/capitalAnalytics';
@@ -90,6 +91,7 @@ interface ExecutionSettingsRow {
   stale_rows_cleaned: number | null;
   open_positions_count: number | null;
   latest_sync_time: string | null;
+  latest_account_state_at: string | null;
 }
 
 interface ExecutionEventLogRow {
@@ -520,17 +522,17 @@ function monitorResultCount(result: Record<string, unknown>, key: string): numbe
   return monitorResultArray(result, key.replace(/_count$/, '')).length;
 }
 
-function monitorCriticalStatus(status: string | null | undefined, result?: Record<string, unknown>): string {
-  if (!status) return 'never_run';
-  const unsafePositions = Number(result?.unsafe_positions ?? 0);
-  const criticalErrorsCount = Number(result?.critical_errors_count ?? 0);
-  const genuinelyCritical = unsafePositions > 0 || criticalErrorsCount > 0;
-  if (status === 'critical_error' || status === 'error' || status === 'completed_with_sync_error') {
-    return genuinelyCritical ? 'critical_error' : 'warning';
-  }
-  if (status === 'completed' || status === 'ok' || status === 'healthy') return 'healthy';
-  if (status === 'completed_with_row_errors') return 'row_errors_only';
-  return status;
+function monitorCriticalStatus(status: string | null | undefined, result?: Record<string, unknown>, settings?: ExecutionSettingsRow | null): string {
+  if (!status && !result) return 'never_run';
+  const truth = getMonitorTruth({
+    latest_monitor_run_at: settings?.latest_monitor_run_at,
+    latest_account_state_at: settings?.latest_account_state_at,
+    latest_monitor_status: status,
+    latest_monitor_error: settings?.latest_monitor_error,
+    latest_sync_error: settings?.latest_sync_error,
+    latest_monitor_result: result,
+  });
+  return truth.level;
 }
 
 function positionSafety(row: ExecutionOrderRow) {
@@ -698,7 +700,7 @@ export default function Performance() {
           .order('created_at', { ascending: false })
           .limit(5000),
         supabase.from('execution_settings')
-          .select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,latest_monitor_error,latest_sync_error,open_binance_positions,open_binance_orders,stale_rows_cleaned,open_positions_count,latest_sync_time')
+          .select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,latest_monitor_error,latest_sync_error,latest_account_state_at,open_binance_positions,open_binance_orders,stale_rows_cleaned,open_positions_count,latest_sync_time')
           .eq('id', 1)
           .maybeSingle(),
         supabase.from('execution_event_logs')
@@ -848,7 +850,7 @@ export default function Performance() {
     const eventText = (needle: string) => executionEvents.filter(event => `${event.event_type} ${event.message}`.toLowerCase().includes(needle)).length;
     const monitorResult = executionSettings?.latest_monitor_result ?? {};
     const monitorHttpStatus = typeof monitorResult.http_status === 'number' || typeof monitorResult.http_status === 'string' ? String(monitorResult.http_status) : '—';
-    const monitorCriticalStatusValue = monitorCriticalStatus(executionSettings?.latest_monitor_status, monitorResult);
+    const monitorCriticalStatusValue = monitorCriticalStatus(executionSettings?.latest_monitor_status, monitorResult, executionSettings);
     const monitorWarningsCount = monitorResultCount(monitorResult, 'warnings_count');
     const monitorRowErrorsCount = monitorResultCount(monitorResult, 'row_errors_count');
     const monitorCriticalErrorsCount = monitorResultCount(monitorResult, 'critical_errors_count');
