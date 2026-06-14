@@ -238,6 +238,127 @@ function splitHalf(quantity: number): { firstHalf: number; secondHalf: number } 
   return { firstHalf: tp1Quantity, secondHalf: tp2Quantity };
 }
 
+
+export type MarginAsset = 'USDT' | 'USDC';
+export type MarginFallbackReason = 'sufficient_usdt_margin' | 'insufficient_usdt_margin' | 'usdc_backup_used' | 'usdc_market_unavailable' | 'insufficient_total_margin' | 'symbol_not_supported_for_usdc' | 'exchange_rejected' | 'usdc_backup_disabled';
+
+export interface MarginAssetSelectionInput {
+  symbol: string;
+  requestedMargin: number;
+  availableUsdt: number;
+  availableUsdc: number;
+  enableUsdcMarginBackup: boolean;
+  preferMarginAsset?: MarginAsset;
+  allowMarginAssets?: MarginAsset[];
+  supportedUsdtSymbols: string[];
+  supportedUsdcSymbols: string[];
+  maxRetryAssets?: number;
+}
+
+export interface MarginAssetSelection {
+  placeOrder: boolean;
+  selectedMarginAsset: MarginAsset | null;
+  selectedSymbol: string | null;
+  backupAttempted: boolean;
+  backupAssetUsed: MarginAsset | null;
+  reasons: MarginFallbackReason[];
+  retryDecision: 'none' | 'try_usdc_once' | 'do_not_retry';
+  finalStatus: 'ready' | 'blocked';
+}
+
+export function toUsdcEquivalentSymbol(symbol: string): string {
+  return symbol.toUpperCase().endsWith('USDT') ? `${symbol.toUpperCase().slice(0, -4)}USDC` : symbol.toUpperCase();
+}
+
+export function selectMarginAssetForExecution(input: MarginAssetSelectionInput): MarginAssetSelection {
+  const symbol = input.symbol.toUpperCase();
+  const usdcSymbol = toUsdcEquivalentSymbol(symbol);
+  const allow = input.allowMarginAssets ?? ['USDT', 'USDC'];
+  const maxRetryAssets = input.maxRetryAssets ?? 2;
+  const usdtSupported = input.supportedUsdtSymbols.map((s) => s.toUpperCase()).includes(symbol);
+  const usdcSupported = input.supportedUsdcSymbols.map((s) => s.toUpperCase()).includes(usdcSymbol);
+  const reasons: MarginFallbackReason[] = [];
+
+  if (usdtSupported && input.availableUsdt >= input.requestedMargin) {
+    return { placeOrder: true, selectedMarginAsset: 'USDT', selectedSymbol: symbol, backupAttempted: false, backupAssetUsed: null, reasons: ['sufficient_usdt_margin'], retryDecision: 'none', finalStatus: 'ready' };
+  }
+
+  reasons.push('insufficient_usdt_margin');
+  const canTryUsdc = input.enableUsdcMarginBackup && allow.includes('USDC') && maxRetryAssets >= 2;
+  if (!canTryUsdc) {
+    reasons.push('usdc_backup_disabled');
+    if (input.availableUsdt + input.availableUsdc < input.requestedMargin) reasons.push('insufficient_total_margin');
+    return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: false, backupAssetUsed: null, reasons, retryDecision: 'do_not_retry', finalStatus: 'blocked' };
+  }
+
+  if (!symbol.endsWith('USDT')) {
+    reasons.push('symbol_not_supported_for_usdc');
+    return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: true, backupAssetUsed: null, reasons, retryDecision: 'do_not_retry', finalStatus: 'blocked' };
+  }
+  if (!usdcSupported) {
+    reasons.push('usdc_market_unavailable');
+    return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: true, backupAssetUsed: null, reasons, retryDecision: 'do_not_retry', finalStatus: 'blocked' };
+  }
+  if (input.availableUsdc >= input.requestedMargin) {
+    reasons.push('usdc_backup_used');
+    return { placeOrder: true, selectedMarginAsset: 'USDC', selectedSymbol: usdcSymbol, backupAttempted: true, backupAssetUsed: 'USDC', reasons, retryDecision: 'try_usdc_once', finalStatus: 'ready' };
+  }
+  reasons.push('insufficient_total_margin');
+  return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: true, backupAssetUsed: null, reasons, retryDecision: 'do_not_retry', finalStatus: 'blocked' };
+}
+
+export interface ProfitLockConfig {
+  enableProfitLockEngine: boolean;
+  enableTestnetProfitLockEngine: boolean;
+  testnetEnabled: boolean;
+  liveTrading: boolean;
+  profitLockMinR: number;
+  profitLockAggressiveMinR: number;
+  profitLockBeforeTp1TestnetAllowed: boolean;
+  profitLockMaxUpdatesPerTrade: number;
+  profitLockCooldownMinutes: number;
+}
+export interface ProfitLockState {
+  currentR: number;
+  currentUnrealizedPnl: number;
+  tp1Hit: boolean;
+  reversalRisk: 'low' | 'medium' | 'high';
+  validSlExists: boolean;
+  existingSlPrice: number;
+  replacementSlVerified?: boolean;
+  updatesThisTrade: number;
+  minutesSinceLastUpdate: number;
+  stopUpdateAlreadyVerified: boolean;
+}
+export type ProfitLockAction = 'do_nothing' | 'move_sl_to_be' | 'move_sl_to_0_3r' | 'research_only' | 'emergency_protect';
+export function decideProfitLockAction(config: ProfitLockConfig, state: ProfitLockState): { action: ProfitLockAction; allowed: boolean; reason: string; neverCancelOldSlBeforeVerification: true } {
+  if (config.liveTrading) return { action: 'do_nothing', allowed: false, reason: 'live_mode_action_forbidden', neverCancelOldSlBeforeVerification: true };
+  if (!config.testnetEnabled || !config.enableProfitLockEngine || !config.enableTestnetProfitLockEngine) return { action: 'research_only', allowed: false, reason: 'profit_lock_execution_disabled_research_only', neverCancelOldSlBeforeVerification: true };
+  if (!state.validSlExists) return { action: 'emergency_protect', allowed: false, reason: 'existing_valid_sl_required_before_profit_lock', neverCancelOldSlBeforeVerification: true };
+  if (state.updatesThisTrade >= config.profitLockMaxUpdatesPerTrade) return { action: 'do_nothing', allowed: false, reason: 'max_updates_reached', neverCancelOldSlBeforeVerification: true };
+  if (state.minutesSinceLastUpdate < config.profitLockCooldownMinutes) return { action: 'do_nothing', allowed: false, reason: 'cooldown_active', neverCancelOldSlBeforeVerification: true };
+  if (state.tp1Hit && state.currentR >= config.profitLockMinR) return { action: 'move_sl_to_0_3r', allowed: true, reason: 'after_tp1_min_r_met_verify_replacement_before_old_cancel', neverCancelOldSlBeforeVerification: true };
+  if (state.tp1Hit) return { action: 'move_sl_to_be', allowed: true, reason: 'after_tp1_lock_to_breakeven', neverCancelOldSlBeforeVerification: true };
+  if (!config.profitLockBeforeTp1TestnetAllowed) return { action: 'research_only', allowed: false, reason: 'before_tp1_action_disabled_research_only', neverCancelOldSlBeforeVerification: true };
+  if (state.currentR >= config.profitLockAggressiveMinR && state.currentUnrealizedPnl > 0 && state.reversalRisk === 'high') return { action: 'move_sl_to_0_3r', allowed: true, reason: 'before_tp1_high_reversal_risk_testnet_only', neverCancelOldSlBeforeVerification: true };
+  return { action: 'do_nothing', allowed: false, reason: 'thresholds_not_met', neverCancelOldSlBeforeVerification: true };
+}
+
+export interface ProfitLockStudySample { r: number; unrealizedPnl: number; reversedAfter?: boolean; tp1DistanceR?: number; tp2DistanceR?: number; }
+export function summarizeProfitLockStudy(samples: ProfitLockStudySample[], leverage = 10) {
+  const reached = (threshold: number) => samples.filter((s) => s.r >= threshold).length;
+  const reversed = samples.filter((s) => s.reversedAfter).length;
+  const saved = samples.filter((s) => s.reversedAfter && s.r >= 0.3).reduce((sum, s) => sum + Math.max(s.unrealizedPnl, 0), 0);
+  return { reached_0_1r: reached(0.1), reached_0_2r: reached(0.2), reached_0_3r: reached(0.3), reached_0_5r: reached(0.5), later_reversed: reversed, estimated_usdt_saved_captured_at_leverage: saved, leverage };
+}
+
+export function recommendCapitalGovernor(input: { openPositions: number; maxOpenPositions: number; sameDirectionExposurePct: number; sameSymbolExposurePct: number; marginUsagePct: number; dailyPnlPct: number }): 'allow' | 'warn' | 'suppress_recommended' | 'block_recommended' {
+  if (input.dailyPnlPct <= -5 || input.marginUsagePct >= 80) return 'block_recommended';
+  if (input.openPositions >= input.maxOpenPositions || input.sameSymbolExposurePct > 35) return 'suppress_recommended';
+  if (input.sameDirectionExposurePct > 60 || input.marginUsagePct > 55) return 'warn';
+  return 'allow';
+}
+
 export function closeSideForDirection(direction: Direction): 'BUY' | 'SELL' {
   return direction === 'buy' ? 'SELL' : 'BUY';
 }

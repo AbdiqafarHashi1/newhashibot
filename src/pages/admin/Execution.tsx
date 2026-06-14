@@ -72,6 +72,7 @@ interface StatusPayload {
   failed_count?: number;
   skipped_count?: number;
   latest_error?: { error_message?: string; last_exchange_error?: string } | null;
+  last_insufficient_margin?: { reason?: string; backup_attempted?: boolean; backup_asset_used?: string; final_result?: string } | null;
   capital?: { raw_total_margin_balance?: number; raw_total_wallet_balance?: number; raw_available_usdt?: number; raw_available_usdc?: number; selected_capital_used?: number; capital_basis?: string; max_capital_cap_applied?: boolean };
   account_state?: { totalMarginBalance?: number; totalWalletBalance?: number; availableBalance?: number; availableUsdt?: number; availableUsdc?: number; unrealizedPnl?: number; openPositions?: number; marginRatio?: number | null; openOrderCount?: number; positions?: Array<{ symbol: string; positionAmt: number; unrealizedPnl: number; notional: number }> };
   governor?: { state?: string; effective_state?: string; display_state?: string; reason?: string; risk_multiplier?: number; adjusted_max_leverage?: number; adjusted_max_open_positions?: number; daily_pnl_pct?: number | null; unrealized_pnl?: number | null; current_equity?: number | null; blocks_execution?: boolean };
@@ -503,11 +504,25 @@ export default function Execution() {
             <ProofRow label="Total wallet" value={String(status?.capital?.raw_total_wallet_balance ?? '—')} />
             <ProofRow label="Available USDT" value={String(status?.capital?.raw_available_usdt ?? '—')} />
             <ProofRow label="Available USDC" value={String(status?.capital?.raw_available_usdc ?? '—')} />
+            <ProofRow label="Preferred asset" value={String(status?.settings?.prefer_margin_asset ?? 'USDT')} />
+            <ProofRow label="Allowed assets" value={String(status?.settings?.allow_margin_assets ?? 'USDT,USDC')} />
+            <ProofRow label="USDC backup" value={status?.settings?.enable_usdc_margin_backup ? 'enabled' : 'disabled/testnet default'} />
+            <ProofRow label="Last margin reason" value={String(status?.last_insufficient_margin?.reason ?? '—')} />
+            <ProofRow label="Backup attempted" value={status?.last_insufficient_margin?.backup_attempted ? 'yes' : 'no'} />
+            <ProofRow label="Backup asset used" value={String(status?.last_insufficient_margin?.backup_asset_used ?? '—')} />
+            <ProofRow label="Final margin result" value={String(status?.last_insufficient_margin?.final_result ?? '—')} />
           </div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
           <h2 className="font-semibold mb-3 text-sm">Risk / Leverage</h2>
           <div className="grid grid-cols-2 gap-2 text-xs">
+            <ProofRow label="Profit-lock engine" value={status?.settings?.enable_profit_lock_engine ? 'ON' : 'OFF'} />
+            <ProofRow label="Testnet profit-lock" value={status?.settings?.enable_testnet_profit_lock_engine ? 'ON' : 'OFF'} />
+            <ProofRow label="PL min R" value={String(status?.settings?.profit_lock_min_r ?? 0.3)} />
+            <ProofRow label="PL cooldown" value={`${status?.settings?.profit_lock_cooldown_minutes ?? 5}m`} />
+            <ProofRow label="PL study counters" value={JSON.stringify(status?.settings?.profit_lock_study_counters ?? {})} />
+            <ProofRow label="PL actions taken" value={String(status?.settings?.profit_lock_actions_taken ?? 0)} />
+            <ProofRow label="PL skipped" value={JSON.stringify(status?.settings?.profit_lock_skipped_reasons ?? {})} />
             <ProofRow label="Stress Mode" value={stressMode ? 'ON' : 'OFF'} />
             <ProofRow label="Execution Mode" value={status?.settings?.execution_mode ?? 'signal_only'} />
             <ProofRow label="Current Effective Risk" value={status?.effective_risk_pct !== null && status?.effective_risk_pct !== undefined ? `${status.effective_risk_pct}%` : 'normal logic'} />
@@ -602,11 +617,11 @@ export default function Execution() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Stress Test Timer</th><th className="text-left px-4 py-3">Sync</th>
+                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Stress Test Timer</th><th className="text-left px-4 py-3">Lock/Capital</th><th className="text-left px-4 py-3">Sync</th>
               </tr>
             </thead>
             <tbody>
-              {executions.length === 0 ? <tr><td colSpan={9} className="px-4 py-8 text-center text-zinc-500">No Binance testnet executions yet.</td></tr> : executions.map(e => (
+              {executions.length === 0 ? <tr><td colSpan={10} className="px-4 py-8 text-center text-zinc-500">No Binance testnet executions yet.</td></tr> : executions.map(e => (
                 <tr key={e.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
                   <td className="px-4 py-3 font-mono font-semibold text-xs">{e.symbol}</td>
                   <td className="px-4 py-3"><span className={e.side === 'long' ? 'text-emerald-400' : 'text-red-400'}>{e.side}</span></td>
@@ -642,6 +657,7 @@ export default function Execution() {
                     <div>Managed fallback: <span className={e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'text-yellow-300' : 'text-zinc-600'}>{e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'yes' : 'no'}</span></div>
                   </td>
                   <td className="px-4 py-3 text-xs text-zinc-500"><div>Opened: {e.opened_at ? new Date(e.opened_at).toLocaleString() : e.entry_filled_at ? new Date(e.entry_filled_at).toLocaleString() : '—'}</div><div>Expires: {e.expires_at || e.time_stop_deadline_at ? new Date(e.expires_at ?? e.time_stop_deadline_at ?? '').toLocaleString() : '—'}</div><div>Minutes left: {minutesRemaining(e.expires_at ?? e.time_stop_deadline_at)}</div><div>Max hold: {e.max_hold_minutes ?? '—'}m</div><div>Mark: {e.latest_mark_price ?? '—'} · uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Last monitor: {e.last_monitor_action || '—'}</div><div>Monitor error: <span className={e.latest_monitor_error ? 'text-red-300' : 'text-zinc-600'}>{e.latest_monitor_error || '—'}</span></div><div>Sync error: <span className={e.latest_sync_error ? 'text-red-300' : 'text-zinc-600'}>{e.latest_sync_error || '—'}</span></div><div>Seconds since fill: {secondsSinceEntryFill(e) ?? '—'}</div><div>Protection SLA: <span className={protectionSlaState(e) === 'pass' ? 'text-emerald-300' : protectionSlaState(e) === 'fail' ? 'text-red-300' : 'text-yellow-300'}>{protectionSlaState(e)}</span></div><div>Checked: {e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).toLocaleString() : '—'}</div></td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Asset: {e.selected_margin_asset ?? 'USDT'}</div><div>Margin reason: {e.insufficient_margin_reason ?? '—'}</div><div>Backup: {e.margin_backup_attempted ? 'yes' : 'no'} {e.margin_backup_asset_used ?? ''}</div><div>Mode: {e.profit_lock_engine_mode ?? '—'}</div><div>Current R/PnL: {e.current_r ?? e.profit_lock_r_current ?? '—'} / {e.current_pnl ?? e.latest_unrealized_pnl ?? '—'}</div><div>Highest R/PnL: {e.highest_positive_r_observed ?? '—'} / {e.highest_positive_pnl_observed ?? '—'}</div><div>Recommendation: {e.lock_recommendation ?? '—'}</div><div>Lock: {e.profit_lock_status ?? '—'}</div><div>Verified SL repl: {e.replacement_sl_verified ? 'yes' : 'no'}</div><div>Old SL preserved: {e.old_sl_preserved === false ? 'no' : 'yes'}</div><div>Actions: {e.profit_lock_action_count ?? 0}</div><div>Skipped: {e.profit_lock_skipped_reason ?? '—'}</div></td>
                   <td className="px-4 py-3"><button onClick={() => callExecution('sync_execution', { execution_id: e.id })} className="text-xs text-blue-400 hover:text-blue-300">Sync</button></td>
                 </tr>
               ))}
