@@ -15,6 +15,16 @@ function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+
+function eatTimestamp(date = new Date()): string {
+  return new Intl.DateTimeFormat("en-KE", { timeZone: "Africa/Nairobi", hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, year: "numeric", month: "short", day: "2-digit" }).format(date);
+}
+
+function shortText(value: unknown, max = 250): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
 async function countRows(supabase: SupabaseClient, table: string, fromIso?: string, column = "created_at"): Promise<number> {
   let query = supabase.from(table).select("id", { count: "exact", head: true });
   if (fromIso) query = query.gte(column, fromIso);
@@ -41,7 +51,7 @@ async function sendAdminDigest(supabase: SupabaseClient, testMode: boolean) {
   const reconciliation = (result.reconciliation_summary ?? {}) as Record<string, unknown>;
   const text = [
     `${testMode ? "🧪 TEST " : ""}HashiBot Operator Digest`,
-    `Window: 24h ending ${new Date().toISOString()}`,
+    `Window: 24h ending ${eatTimestamp()}`,
     `Scanner runs: ${scannerRuns}`,
     `Signals generated: ${signals}`,
     `Open execution rows: ${openExecutions.length}`,
@@ -51,7 +61,7 @@ async function sendAdminDigest(supabase: SupabaseClient, testMode: boolean) {
     `Reconciliation: symbols=${reconciliation.symbols_checked ?? 0} stale/orphan=${reconciliation.stale_or_orphan_order_count ?? 0} duplicate=${reconciliation.duplicate_conditional_count ?? 0} unprotected=${reconciliation.unprotected_position_count ?? 0}`,
     `Telegram failed/skipped: ${telegramFailures.count ?? 0}`,
     `Intelligence events: ${intelligence}`,
-    `Optional unavailable feeds (digest only): ${JSON.stringify(optionalFeeds.data ?? []).slice(0, 800)}`,
+    `Optional unavailable feeds (digest warning only): ${((optionalFeeds.data ?? []) as Array<Record<string, unknown>>).map((feed) => `${feed.provider_name ?? "provider"}=${feed.status ?? "unknown"}`).join(", ") || "None"}`,
   ].join("\n");
   const deliveries = await routeTelegramEvent(supabase, {
     event_id: `admin_operator_digest:${testMode ? "test:" : ""}${new Date().toISOString().slice(0, 13)}`,
@@ -118,7 +128,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const action = String(body.action ?? "vip_test");
     if (action === "admin_alert") {
-      const deliveries = await routeTelegramEvent(supabase, { event_id: `admin_test_alert:${Date.now()}`, event_type: "admin_test_error_alert", text: `🧪 HashiBot admin test alert\nTimestamp: ${new Date().toISOString()}`, source: "telegram-test", channels: ["admin"], dedupe: false });
+      const deliveries = await routeTelegramEvent(supabase, { event_id: `admin_test_alert:${Date.now()}`, event_type: "admin_test_error_alert", text: [`🧪 HashiBot Admin Test Alert`, `Status: HEALTHY`, `Time: ${eatTimestamp()}`, "", "Summary:", "• Critical errors: 0", "• Unsafe positions: 0", "• Open positions: 0", "• Open orders: 0", "• Protected positions: 0", "• Duplicate conditionals: 0", "• Stale/orphan orders: 0", "• Cleanup cancelled: 0", "", "Latest Error:", shortText("None"), "", "Operator Note:", "Full reconciliation is stored in Execution UI / DB logs."].join("\n"), source: "telegram-test", channels: ["admin"], dedupe: false });
       return json({ success: deliveries.some((delivery) => delivery.status === "sent"), deliveries });
     }
     if (action === "admin_digest") return json(await sendAdminDigest(supabase, true));

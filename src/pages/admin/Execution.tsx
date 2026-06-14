@@ -6,6 +6,7 @@ import { Shield, AlertTriangle, Cpu, Activity, Send, RefreshCw, XCircle, PlayCir
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
+import { getMonitorTruth, shortOperatorText } from '../../lib/monitorTruth';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
@@ -129,22 +130,18 @@ export default function Execution() {
   const stressMode = status?.settings?.stress_override_enabled === true && status?.settings?.execution_mode === 'testnet';
   const governorDisplayState = status?.governor_display?.state ?? (governorMode === 'off_for_testing' ? 'IGNORED' : (status?.governor?.display_state ?? status?.governor?.state ?? status?.settings?.governor_state ?? 'normal').toUpperCase());
   const executionAllowedDisplay = status?.governor_display?.execution_allowed ?? status?.execution_allowed ?? !(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused');
-  const monitorRunMs = monitorState?.latest_monitor_run_at ? new Date(monitorState.latest_monitor_run_at).getTime() : NaN;
-  const monitorAgeSeconds = Number.isFinite(monitorRunMs) ? Math.max(0, Math.floor((Date.now() - monitorRunMs) / 1000)) : null;
-  const accountFetchMs = monitorState?.latest_account_state_at ? new Date(monitorState.latest_account_state_at).getTime() : NaN;
-  const accountFetchAgeSeconds = Number.isFinite(accountFetchMs) ? Math.max(0, Math.floor((Date.now() - accountFetchMs) / 1000)) : null;
   const monitorResultStatus = String(monitorState?.latest_monitor_result?.monitor_status ?? monitorState?.latest_monitor_status ?? 'unknown');
   const reconciliationSummary = (monitorState?.latest_monitor_result?.reconciliation_summary ?? {}) as Record<string, unknown>;
-  const monitorUnhealthyReason = (() => {
-    if (!monitorState?.latest_monitor_run_at) return 'no monitor invocation recorded';
-    if (monitorAgeSeconds !== null && monitorAgeSeconds > 180) return `stale (${monitorAgeSeconds}s old)`;
-    if (accountFetchAgeSeconds !== null && accountFetchAgeSeconds > 180) return `account fetch stale (${accountFetchAgeSeconds}s old)`;
-    if (['critical_error', 'degraded'].includes(monitorResultStatus)) return monitorResultStatus;
-    if (Number(reconciliationSummary.unprotected_position_count ?? 0) > 0) return 'unprotected position exists';
-    if (Number(reconciliationSummary.unresolved_critical_count ?? 0) > 0) return 'unresolved critical reconciliation mismatch';
-    return monitorState.latest_monitor_error || monitorState.latest_sync_error || '';
-  })();
-  const monitorTruthStatus = monitorUnhealthyReason ? 'UNHEALTHY' : 'HEALTHY';
+  const monitorTruth = getMonitorTruth({
+    latest_monitor_run_at: monitorState?.latest_monitor_run_at,
+    latest_account_state_at: monitorState?.latest_account_state_at,
+    latest_monitor_status: monitorState?.latest_monitor_status,
+    latest_monitor_error: monitorState?.latest_monitor_error,
+    latest_sync_error: monitorState?.latest_sync_error,
+    latest_monitor_result: monitorState?.latest_monitor_result,
+  });
+  const monitorUnhealthyReason = monitorTruth.level === 'healthy' ? '' : monitorTruth.reason;
+  const monitorTruthStatus = monitorTruth.label;
   const nowMs = Date.now();
   const secondsSinceEntryFill = (e: BinanceExecutionOrder): number | null => {
     const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
@@ -356,7 +353,7 @@ export default function Execution() {
             <h2 className="font-semibold text-sm">Binance Testnet Monitor</h2>
             <p className="text-xs text-zinc-500 mt-0.5">1-minute bot supervisor snapshot. Binance Demo only — live trading remains disabled.</p>
           </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full border ${monitorUnhealthyReason ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
+          <span className={`text-xs px-2 py-0.5 rounded-full border ${monitorTruth.level === 'critical' || monitorTruth.level === 'stale' ? 'border-red-500/30 bg-red-500/10 text-red-300' : monitorTruth.level === 'degraded' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
             {monitorTruthStatus} · {monitorResultStatus}
           </span>
         </div>
@@ -386,23 +383,20 @@ export default function Execution() {
             Monitor truth guard: unhealthy because {monitorUnhealthyReason}. UI does not mark the monitor healthy unless the latest run is recent and non-critical.
           </div>
         )}
-        <div className="mt-3 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.latest_monitor_result ?? {})}>
-          Latest sync result: {JSON.stringify(monitorState?.latest_monitor_result ?? {})}
+        <div className="mt-3 grid sm:grid-cols-3 gap-3 text-xs">
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Monitor Truth</div><div className="text-zinc-200 mt-1">{monitorTruth.label}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Latest Short Error</div><div className="text-zinc-200 mt-1">{shortOperatorText(monitorState?.latest_monitor_error || monitorState?.latest_sync_error || 'None')}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Truth Reason</div><div className="text-zinc-200 mt-1">{monitorTruth.reason}</div></div>
         </div>
+        <details className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-xs text-zinc-400">
+          <summary className="cursor-pointer text-zinc-300">View raw details</summary>
+          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words">{JSON.stringify({ latest_monitor_result: monitorState?.latest_monitor_result ?? {}, open_binance_positions: monitorState?.open_binance_positions ?? [], open_binance_orders: monitorState?.open_binance_orders ?? [], last_managed_exit_action: monitorState?.last_managed_exit_action ?? {} }, null, 2)}</pre>
+        </details>
         {(monitorState?.latest_monitor_error || monitorState?.latest_sync_error) && (
           <div className="mt-2 text-xs text-red-300 font-mono truncate" title={`${monitorState?.latest_monitor_error ?? ''} ${monitorState?.latest_sync_error ?? ''}`}>
             Monitor error: {monitorState?.latest_monitor_error || '—'} · Sync error: {monitorState?.latest_sync_error || '—'}
           </div>
         )}
-        <div className="mt-2 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.open_binance_positions ?? [])}>
-          Open Binance positions: {JSON.stringify(monitorState?.open_binance_positions ?? [])}
-        </div>
-        <div className="mt-2 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.open_binance_orders ?? [])}>
-          Open Binance orders: {JSON.stringify(monitorState?.open_binance_orders ?? [])}
-        </div>
-        <div className="mt-2 text-xs text-zinc-500 font-mono truncate" title={JSON.stringify(monitorState?.last_managed_exit_action ?? {})}>
-          Last managed TP/SL action: {JSON.stringify(monitorState?.last_managed_exit_action ?? {})}
-        </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             onClick={cleanStaleTestnetExecutions}

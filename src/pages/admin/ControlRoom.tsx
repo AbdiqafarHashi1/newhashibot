@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
@@ -181,6 +181,21 @@ export default function ControlRoom() {
   const autoTgReady = state.autoSendTelegram && Boolean(runtimeConfig?.telegram_enabled && runtimeConfig?.enable_signal_mode_output && runtimeConfig?.telegram_bot_token_set && runtimeConfig?.telegram_chat_id_set);
   const channelHealth = Object.fromEntries(state.telegramDeliveryHealth.map(row => [row.destination_channel, row]));
   const intelligenceHealth = Object.fromEntries(state.intelligenceHealth.map(row => [row.event_type, row]));
+  const intelligenceSchedule = useMemo(() => {
+    const items = [
+      { key: 'morning_brief', label: 'Morning Brief', schedule: '08:00 EAT', hour: 5 },
+      { key: 'news_digest', label: 'News Digest', schedule: '12:00 EAT', hour: 9 },
+      { key: 'watchlist_pattern_update', label: 'Watchlist + Patterns', schedule: '16:00 EAT', hour: 13 },
+      { key: 'market_wrap', label: 'Market Wrap', schedule: '20:00 EAT', hour: 17 },
+    ] as const;
+    const now = new Date();
+    return items.map(item => {
+      const next = new Date(now);
+      next.setUTCHours(item.hour, 0, 0, 0);
+      if (next.getTime() <= now.getTime()) next.setUTCDate(next.getUTCDate() + 1);
+      return { ...item, nextRun: next };
+    });
+  }, []);
   const intelligenceFeedHealth = Object.fromEntries(state.intelligenceFeedHealth.map(row => [row.feed_type, row]));
   const lastForexScanTime = latestRun?.forex_symbols_scanned ? latestRun.started_at : lastForexScanRun?.started_at;
   const nextAllowedForexScanTime = latestRun?.forex_next_allowed_scan_at ?? lastForexScanRun?.forex_next_allowed_scan_at;
@@ -535,12 +550,7 @@ export default function ControlRoom() {
           </Badge>
         </div>
         <div className="grid md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-zinc-800">
-          {([
-            { key: 'morning_brief', label: 'Morning Brief', schedule: '08:00 EAT' },
-            { key: 'news_digest', label: 'News Digest', schedule: '12:00 EAT' },
-            { key: 'watchlist_pattern_update', label: 'Watchlist + Patterns', schedule: '16:00 EAT' },
-            { key: 'market_wrap', label: 'Market Wrap', schedule: '20:00 EAT' },
-          ] as const).map(item => {
+          {intelligenceSchedule.map(item => {
             const row = intelligenceHealth[item.key];
             return (
               <div key={item.key} className="p-4">
@@ -550,7 +560,8 @@ export default function ControlRoom() {
                   <Badge variant={row?.last_status === 'generated' ? 'green' : row?.last_status === 'partial' ? 'orange' : 'gray'}>{row?.last_status ?? 'pending'}</Badge>
                   <span className="text-xs text-zinc-500">conf {row?.last_confidence ?? '—'}%</span>
                 </div>
-                <div className="text-[11px] text-zinc-600">Last: {row?.last_generated_at ? new Date(row.last_generated_at).toLocaleString() : '—'}</div>
+                <div className="text-[11px] text-zinc-600">{row?.last_generated_at ? `Last production/orchestrator success: ${new Date(row.last_generated_at).toLocaleString()}` : `Next scheduled run: ${item.schedule}`}</div>
+                <div className="text-[11px] text-zinc-500 mt-1">Manual/test success is tracked separately; pending scheduled time is not a failure.</div>
               </div>
             );
           })}

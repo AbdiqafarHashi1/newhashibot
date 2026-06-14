@@ -160,30 +160,82 @@ function addCriticalMonitorError(stats: MonitorStats, error: string): void {
   stats.latest_sync_error = error;
 }
 
+function eatTimestamp(date = new Date()): string {
+  return new Intl.DateTimeFormat("en-KE", { timeZone: "Africa/Nairobi", hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, year: "numeric", month: "short", day: "2-digit" }).format(date);
+}
+
+function shortText(value: unknown, max = 250): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function monitorDisplayStatus(status: MonitorLevel): "HEALTHY" | "DEGRADED" | "CRITICAL" {
+  return status === "critical_error" ? "CRITICAL" : status === "healthy" ? "HEALTHY" : "DEGRADED";
+}
+
 function classifyMonitor(stats: MonitorStats): MonitorLevel {
-  if (stats.critical_errors.length > 0 || stats.unsafe_positions > 0) return "critical_error";
-  const reconciliation = stats.reconciliation_summary as { unresolved_critical_count?: number; unprotected_position_count?: number; protection_degraded_count?: number } | undefined;
-  if ((reconciliation?.unresolved_critical_count ?? 0) > 0 || (reconciliation?.unprotected_position_count ?? 0) > 0) return "critical_error";
+  const reconciliation = stats.reconciliation_summary as { unresolved_critical_count?: number; unprotected_position_count?: number; protection_degraded_count?: number; missing_sl_count?: number } | undefined;
+  if (stats.unsafe_positions > 0 || (reconciliation?.unprotected_position_count ?? 0) > 0 || (reconciliation?.missing_sl_count ?? 0) > 0 || (reconciliation?.unresolved_critical_count ?? 0) > 0) return "critical_error";
+  if (stats.critical_errors.length > 0) return "critical_error";
   if (stats.safety_closed > 0 || (reconciliation?.protection_degraded_count ?? 0) > 0) return "degraded";
-  if (stats.row_errors.length > 0) return "row_errors_only";
-  if (stats.warnings.some((warning) => warning.source === "account_sync")) return "partial_sync_warning";
-  if (stats.warnings.length > 0) return "completed_with_warnings";
+  if (stats.row_errors.length > 0 || stats.warnings.length > 0) return "degraded";
   return "healthy";
+}
+
+function affectedSymbolLines(stats: MonitorStats): string[] {
+  const classifications = (stats.reconciliation_summary?.classifications ?? {}) as Record<string, Record<string, unknown>>;
+  const symbols = new Set<string>();
+  for (const symbol of Object.keys(classifications)) symbols.add(symbol);
+  for (const warning of stats.warnings) if (warning.symbol) symbols.add(warning.symbol);
+  for (const row of stats.row_errors) if (row.symbol) symbols.add(row.symbol);
+  const lines = Array.from(symbols).slice(0, 12).map((symbol) => {
+    const item = classifications[symbol] ?? {};
+    const states = [
+      item.missing_protection ? "missing SL" : "protected",
+      n(item.duplicate_conditional) > 0 ? "duplicate orders" : "",
+      n(item.stale_conditional) + n(item.orphan_binance_order) > 0 ? "stale/orphan orders" : "",
+      stats.warnings.some((w) => w.symbol === symbol) || stats.row_errors.some((e) => e.symbol === symbol) ? "degraded" : "",
+    ].filter(Boolean).join(" / ");
+    return `• ${symbol} — ${states || "healthy"}`;
+  });
+  return lines.length ? lines : ["• None"];
 }
 
 async function sendAdminMonitorAlert(supabase: SupabaseClient, stats: MonitorStats): Promise<void> {
   if (!["critical_error", "degraded"].includes(stats.monitor_status) && stats.warnings.length === 0) return;
   const reconciliation = stats.reconciliation_summary as Record<string, unknown>;
+  const cleanupEvents = Array.isArray(reconciliation.cleanup_events) ? reconciliation.cleanup_events as Record<string, unknown>[] : [];
+  const cancelledCleanup = cleanupEvents.filter((event) => String(event.cleanup_action ?? "").includes("cancel")).length;
+  const skippedUnsafe = cleanupEvents.filter((event) => String(event.cleanup_action ?? "").includes("skip")).length;
   const text = [
-    "🚨 HashiBot Binance monitor operator alert",
-    `Status: ${stats.monitor_status}`,
-    `Critical errors: ${stats.critical_errors.length}`,
-    `Unsafe positions: ${stats.unsafe_positions}`,
-    `Cancelled cleanup orders: ${stats.cancelled_orders}`,
-    `Reconciliation: ${JSON.stringify(reconciliation).slice(0, 2500)}`,
-    stats.latest_monitor_error ? `Latest error: ${stats.latest_monitor_error}` : "",
-    stats.latest_monitor_warning ? `Latest warning: ${stats.latest_monitor_warning}` : "",
-    `Timestamp: ${new Date().toISOString()}`,
+    "🚨 HashiBot Binance Monitor Alert",
+    "",
+    `Status: ${monitorDisplayStatus(stats.monitor_status)}`,
+    `Time: ${eatTimestamp()}`,
+    "",
+    "Summary:",
+    `• Critical errors: ${stats.critical_errors.length}`,
+    `• Unsafe positions: ${stats.unsafe_positions}`,
+    `• Open positions: ${Array.isArray(reconciliation.open_position_symbols) ? reconciliation.open_position_symbols.length : 0}`,
+    `• Open orders: ${Array.isArray(reconciliation.open_order_symbols) ? reconciliation.open_order_symbols.length : 0}`,
+    `• Protected positions: ${Math.max(0, (Array.isArray(reconciliation.open_position_symbols) ? reconciliation.open_position_symbols.length : 0) - n(reconciliation.unprotected_position_count))}`,
+    `• Duplicate conditionals: ${n(reconciliation.duplicate_conditional_count)}`,
+    `• Stale/orphan orders: ${n(reconciliation.stale_or_orphan_order_count)}`,
+    `• Cleanup cancelled: ${stats.cancelled_orders}`,
+    "",
+    "Affected Symbols:",
+    ...affectedSymbolLines(stats),
+    "",
+    "Actions Taken:",
+    `• Cancelled stale orders: ${cancelledCleanup || stats.cancelled_orders}`,
+    `• Preserved valid SL: ${n(reconciliation.protection_degraded_count)}`,
+    `• Skipped unsafe cleanup: ${skippedUnsafe}`,
+    "",
+    "Latest Error:",
+    shortText(stats.latest_monitor_error || stats.latest_monitor_warning || "None"),
+    "",
+    "Operator Note:",
+    "Full reconciliation is stored in Execution UI / DB logs.",
   ].filter(Boolean).join("\n");
   await routeTelegramEvent(supabase, {
     event_id: `admin_binance_monitor_alert:${stats.monitor_status}:${new Date().toISOString().slice(0, 16)}`,
