@@ -11,6 +11,8 @@ const b64Sql = readFileSync('supabase/migrations/20260608203000_050_b6_4_binance
 const b66Sql = readFileSync('supabase/migrations/20260609120000_052_b6_6_entry_submitted_protection_pending_fix.sql', 'utf8');
 const b67Sql = readFileSync('supabase/migrations/20260609130000_053_b6_7_monitor_row_isolation_and_visibility.sql', 'utf8');
 const monitorFn = readFileSync('supabase/functions/binance-testnet-monitor/index.ts', 'utf8');
+const executionFn = readFileSync('supabase/functions/binance-testnet-execution/index.ts', 'utf8');
+const xb1Sql = readFileSync('supabase/migrations/20260614190000_070_xb1_capital_profit_lock_real_integration.sql', 'utf8');
 const cryptoFix1Sql = readFileSync('supabase/migrations/20260611120000_059_crypto_fix_1_testnet_risk_leverage_truth.sql', 'utf8');
 const liveCronHeaderSql = readFileSync('supabase/migrations/20260613170000_067_live_cron_header_rebuild.sql', 'utf8');
 
@@ -103,3 +105,12 @@ assert.match(liveCronHeaderSql, /'x-hashibot-cron-token',[\s\S]*cron_pg_token/, 
 assert.doesNotMatch(liveCronHeaderSql, /'Authorization',\s*'Bearer ' \|\| \(SELECT cron_pg_token/, 'live cron header rebuild never sends cron_pg_token directly in Authorization');
 
 console.log('SQL constraint tests passed');
+
+assert.match(executionFn, /applyMarginFallbackToPlan/, 'real execution path calls margin fallback integration');
+assert.match(executionFn, /margin_asset_selected/, 'execution logs/payloads include selected margin asset');
+assert.match(executionFn, /diagnose_margin_fallback/, 'safe diagnostic trigger exists for insufficient USDT fallback proof');
+assert.match(monitorFn, /profitLockStudyUpdate/, 'real monitor loop records profit-lock study metrics');
+assert.match(monitorFn, /mode !== "testnet_action"/, 'profit-lock actions are config gated in monitor');
+assert.match(monitorFn, /replacement_sl_not_verified[\s\S]*oldSlAlgoId/, 'old SL cancellation only occurs after replacement verification');
+assert.match(xb1Sql, /ADD COLUMN IF NOT EXISTS selected_margin_asset/, 'XB1 migration adds real margin proof columns');
+assert.match(xb1Sql, /ADD COLUMN IF NOT EXISTS highest_positive_r_observed/, 'XB1 migration adds profit-lock study columns');

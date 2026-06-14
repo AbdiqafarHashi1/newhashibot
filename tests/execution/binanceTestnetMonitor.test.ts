@@ -20,6 +20,8 @@ async function run() {
   assert.equal(nativeTp1.updates.remaining_quantity, 1);
   assert.equal(nativeTp1.updates.profit_lock_r, 0.3);
   assert.equal(nativeTp1.updates.replacement_sl_price, 103);
+  assert.equal(nativeTp1.updates.reached_0_5r, true, 'monitor loop records profit-lock study R thresholds from real tick data');
+  assert.equal(nativeTp1.updates.highest_positive_r_observed, 1.1, 'monitor loop records highest positive R');
   assert.equal(nativeTp1.replacementStopOrders[0].stopPrice, 103);
 
   const nativeTp2 = processExecutionMonitorTick({ ...native, tp1_closed_at: new Date().toISOString() }, { positionAmt: 0, openOrders: [{ algoId: 'sl' }], markPrice: 121 }, { tp2: { orderId: 'tp2', status: 'FILLED' } });

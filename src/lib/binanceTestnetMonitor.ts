@@ -125,7 +125,16 @@ export interface MonitorExecutionRow {
   max_hold_minutes?: number | null;
   expiry_reason?: string | null;
   last_monitor_checked_at?: string | null;
+  highest_positive_r_observed?: number | null;
+  highest_positive_pnl_observed?: number | null;
+  max_adverse_r_observed?: number | null;
+  reached_0_1r?: boolean | null;
+  reached_0_2r?: boolean | null;
+  reached_0_3r?: boolean | null;
+  reached_0_5r?: boolean | null;
+  later_reversed_after_positive_excursion?: boolean | null;
 }
+
 
 export interface BinanceOrderSnapshot {
   orderId: string;
@@ -225,6 +234,31 @@ export function computeTimeStopDeadline(row: MonitorExecutionRow): string | null
   const startMs = start ? new Date(start).getTime() : NaN;
   if (!minutes || !Number.isFinite(startMs)) return null;
   return new Date(startMs + minutes * 60_000).toISOString();
+}
+
+
+function applyProfitLockStudyMetrics(out: MonitorUpdate, row: MonitorExecutionRow, truth: BinanceTruthSnapshot): void {
+  const entry = row.entry_price ?? 0;
+  const sl = row.original_sl_price ?? row.intended_sl ?? 0;
+  const mark = truth.markPrice ?? 0;
+  const risk = Math.abs(entry - sl);
+  const currentR = entry > 0 && risk > 0 && mark > 0 ? (row.direction === 'buy' ? (mark - entry) / risk : (entry - mark) / risk) : 0;
+  const highestR = Math.max(row.highest_positive_r_observed ?? 0, currentR, 0);
+  const highestPnl = Math.max(row.highest_positive_pnl_observed ?? 0, truth.unrealizedPnl ?? 0, 0);
+  out.updates.current_r = Number(currentR.toFixed(6));
+  out.updates.profit_lock_r_current = Number(currentR.toFixed(6));
+  out.updates.current_pnl = truth.unrealizedPnl ?? 0;
+  out.updates.highest_positive_r_observed = Number(highestR.toFixed(6));
+  out.updates.highest_positive_pnl_observed = highestPnl;
+  out.updates.max_adverse_r_observed = Math.min(row.max_adverse_r_observed ?? 0, currentR, 0);
+  out.updates.reached_0_1r = Boolean(row.reached_0_1r) || highestR >= 0.1;
+  out.updates.reached_0_2r = Boolean(row.reached_0_2r) || highestR >= 0.2;
+  out.updates.reached_0_3r = Boolean(row.reached_0_3r) || highestR >= 0.3;
+  out.updates.reached_0_5r = Boolean(row.reached_0_5r) || highestR >= 0.5;
+  out.updates.later_reversed_after_positive_excursion = row.later_reversed_after_positive_excursion || (highestR >= 0.3 && currentR < 0.05);
+  out.updates.lock_recommendation = (row.tp1_filled || row.tp1_closed_at) ? 'study_after_tp1_lock_candidate' : 'study_only';
+  out.updates.profit_lock_engine_mode = 'study_only';
+  out.updates.profit_lock_skipped_reason = 'profit_lock_action_disabled_study_only';
 }
 
 function addEvent(out: MonitorUpdate, type: MonitorEventType, message: string, telegram = true) {
@@ -349,6 +383,7 @@ export function processExecutionMonitorTick(
   if (maxHoldMinutes) out.updates.max_hold_minutes = maxHoldMinutes;
   const hasPosition = Math.abs(truth.positionAmt) > 0;
   const hasOpenOrders = truth.openOrders.length > 0;
+  if (hasPosition) applyProfitLockStudyMetrics(out, row, truth);
 
   if (deadline && Date.now() >= new Date(deadline).getTime() && isMonitorActiveStatus(row.status)) {
     const remaining = row.remaining_quantity ?? row.volume ?? Math.abs(truth.positionAmt);

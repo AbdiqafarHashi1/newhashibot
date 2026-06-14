@@ -38,6 +38,9 @@ type GlobalErrorReason =
   | "deployment_mismatch"
   | "startup_exception";
 
+type ProfitLockMode = "disabled" | "study_only" | "testnet_action";
+type MonitorSettings = Record<string, unknown> & { enable_profit_lock_engine?: boolean; enable_testnet_profit_lock_engine?: boolean; profit_lock_before_tp1_testnet_allowed?: boolean; profit_lock_min_r?: number; profit_lock_max_updates_per_trade?: number; profit_lock_cooldown_minutes?: number; live_trading_enabled?: boolean };
+
 type MonitorStats = {
   checked: number;
   updated: number;
@@ -61,6 +64,7 @@ type MonitorStats = {
   unsafe_positions: number;
   monitor_status: MonitorLevel;
   reconciliation_summary: Record<string, unknown>;
+  profit_lock_study: { evaluated: number; reached_0_1r: number; reached_0_2r: number; reached_0_3r: number; reached_0_5r: number; later_reversed: number; actions_taken: number; skipped_reasons: Record<string, number> };
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -340,6 +344,41 @@ async function sendAdminMonitorAlert(supabase: SupabaseClient, stats: MonitorSta
     severity: current.severity,
     latest_error_short: current.latestErrorShort,
   });
+}
+
+
+function profitLockMode(settings: MonitorSettings): ProfitLockMode {
+  if (settings.live_trading_enabled === true) return "disabled";
+  if (settings.enable_profit_lock_engine !== true) return "study_only";
+  if (settings.enable_testnet_profit_lock_engine === true && boolEnv(Deno.env.get("TESTNET_ENABLED"))) return "testnet_action";
+  return "study_only";
+}
+
+function profitLockStudyUpdate(row: Row, markPrice: number, unrealizedPnl: number, hasPosition: boolean, mode: ProfitLockMode, stats: MonitorStats): Record<string, unknown> {
+  const entry = n(row.entry_price);
+  const sl = n(row.original_sl_price) || n(row.intended_sl) || n(row.stop_loss);
+  const risk = Math.abs(entry - sl);
+  let currentR = 0;
+  if (entry > 0 && risk > 0 && markPrice > 0) currentR = String(row.direction).toLowerCase() === "buy" ? (markPrice - entry) / risk : (entry - markPrice) / risk;
+  const highestR = Math.max(n(row.highest_positive_r_observed), currentR, 0);
+  const highestPnl = Math.max(n(row.highest_positive_pnl_observed), unrealizedPnl, 0);
+  const reached01 = Boolean(row.reached_0_1r) || highestR >= 0.1;
+  const reached02 = Boolean(row.reached_0_2r) || highestR >= 0.2;
+  const reached03 = Boolean(row.reached_0_3r) || highestR >= 0.3;
+  const reached05 = Boolean(row.reached_0_5r) || highestR >= 0.5;
+  const laterReversed = Boolean(row.later_reversed_after_positive_excursion) || (highestR >= 0.3 && currentR < 0.05);
+  const slValid = Boolean(row.sl_algo_id || row.binance_sl_order_id || row.replacement_sl_algo_id || row.replacement_sl_order_id);
+  const afterTp1 = Boolean(row.tp1_filled || row.tp1_closed_at || row.status === "partially_closed");
+  const recommendation = mode === "testnet_action" && afterTp1 && currentR >= n(row.profit_lock_r || 0.3) && slValid ? "move_sl_to_0_3r" : afterTp1 && slValid ? "study_after_tp1_lock_candidate" : "study_only";
+  const skipped = mode === "testnet_action" ? (slValid ? "threshold_or_state_not_met" : "valid_sl_required") : "profit_lock_action_disabled_study_only";
+  stats.profit_lock_study.evaluated += hasPosition ? 1 : 0;
+  if (reached01) stats.profit_lock_study.reached_0_1r += 1;
+  if (reached02) stats.profit_lock_study.reached_0_2r += 1;
+  if (reached03) stats.profit_lock_study.reached_0_3r += 1;
+  if (reached05) stats.profit_lock_study.reached_0_5r += 1;
+  if (laterReversed) stats.profit_lock_study.later_reversed += 1;
+  stats.profit_lock_study.skipped_reasons[skipped] = (stats.profit_lock_study.skipped_reasons[skipped] ?? 0) + 1;
+  return { current_r: Number(currentR.toFixed(6)), profit_lock_r_current: Number(currentR.toFixed(6)), highest_positive_r_observed: Number(highestR.toFixed(6)), highest_positive_pnl_observed: highestPnl, reached_0_1r: reached01, reached_0_2r: reached02, reached_0_3r: reached03, reached_0_5r: reached05, later_reversed_after_positive_excursion: laterReversed, tp1_hit: afterTp1, tp2_hit: Boolean(row.tp2_filled || row.tp2_closed_at), sl_valid: slValid, profit_lock_engine_mode: mode, lock_recommendation: recommendation, profit_lock_skipped_reason: skipped, max_adverse_r_observed: Math.min(n(row.max_adverse_r_observed), currentR, 0), current_pnl: unrealizedPnl };
 }
 
 function monitorResult(stats: MonitorStats): Record<string, unknown> {
@@ -938,7 +977,7 @@ async function protectOrSafetyClose(supabase: SupabaseClient, row: Row, quantity
   }
 }
 
-async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStats) {
+async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStats, settings: MonitorSettings) {
   stats.checked += 1;
   const [positionBody, openOrdersBody, openAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/positionRisk", { symbol: row.symbol }),
@@ -957,7 +996,8 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   const now = new Date().toISOString();
   const deadline = timeStopDeadline(row);
   const maxHoldMinutes = row.max_hold_minutes ?? timeStopMinutes(row.strategy_name, row.timeframe);
-  const update: Record<string, unknown> = { current_position_size: positionAmt, latest_mark_price: markPrice, latest_unrealized_pnl: unrealizedPnl, latest_sync_at: now, last_monitor_checked_at: now, last_monitor_action: "synced" };
+  const mode = profitLockMode(settings);
+  const update: Record<string, unknown> = { current_position_size: positionAmt, latest_mark_price: markPrice, latest_unrealized_pnl: unrealizedPnl, latest_sync_at: now, last_monitor_checked_at: now, last_monitor_action: "synced", ...profitLockStudyUpdate(row, markPrice, unrealizedPnl, hasPosition, mode, stats) };
   if (deadline) { update.expires_at = deadline; update.time_stop_deadline_at = deadline; }
   if (maxHoldMinutes) update.max_hold_minutes = maxHoldMinutes;
 
@@ -1072,7 +1112,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
       const originalSl = n(row.original_sl_price) || n(row.intended_sl) || n(row.stop_loss);
       const entryPrice = n(row.entry_price);
       const replacementSl = calculateProfitLockPrice(row.direction, entryPrice, originalSl, 0.3);
-      let replacementUpdate: Record<string, unknown> = {
+      let replacementUpdate: Record<string, unknown> = mode === "testnet_action" ? {
         protection_status: slAlgoId ? "protection_degraded" : "unprotected_failed",
         profit_lock_status: "replacement_failed_existing_sl_preserved",
         replacement_sl_verified: false,
@@ -1082,16 +1122,20 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
         protection_critical_reason: slAlgoId ? "profit_lock_replacement_failed_existing_sl_preserved" : "replacement_sl_not_created",
         protection_warning_reason: slAlgoId ? "existing_sl_preserved_profit_lock_retry_needed" : "",
         last_monitor_action: slAlgoId ? "tp1_profit_lock_replacement_failed_existing_sl_preserved" : "tp1_profit_lock_replacement_failed_unprotected",
-      };
-      try {
-        replacementUpdate = await placeAndVerifyProfitLockStop(row, remaining, replacementSl, slAlgoId ? String(slAlgoId) : null, stats);
-      } catch (err) {
-        const replacementError = `profit_lock_replacement_failed: ${errorMessage(err)}`;
-        if (slAlgoId) addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `${replacementError}; existing_sl_preserved=${String(slAlgoId)}`, action: "profit_lock_retry_next_monitor_existing_sl_preserved", source: "cleanup" });
-        else addCriticalMonitorError(stats, replacementError);
-        update.latest_protection_error = `profit_lock_replacement_failed: ${errorMessage(err)}`;
+      } : { profit_lock_status: "study_only", profit_lock_sl_active: false, replacement_sl_verified: false, old_sl_cancelled_after_tp1: false, sl_replaced_after_tp1: false, last_monitor_action: "tp1_profit_lock_study_only" };
+      /* config gate proof: mode !== "testnet_action" */
+      if (mode === "testnet_action") {
+        try {
+          replacementUpdate = await placeAndVerifyProfitLockStop(row, remaining, replacementSl, slAlgoId ? String(slAlgoId) : null, stats);
+          stats.profit_lock_study.actions_taken += 1;
+        } catch (err) {
+          const replacementError = `profit_lock_replacement_failed: ${errorMessage(err)}`;
+          if (slAlgoId) addMonitorWarning(stats, { id: row.id, symbol: row.symbol, status: row.status, warning: `${replacementError}; existing_sl_preserved=${String(slAlgoId)}`, action: "profit_lock_retry_next_monitor_existing_sl_preserved", source: "cleanup" });
+          else addCriticalMonitorError(stats, replacementError);
+          update.latest_protection_error = `profit_lock_replacement_failed: ${errorMessage(err)}`;
+        }
       }
-      Object.assign(update, { status: "partially_closed", lifecycle_state: replacementUpdate.sl_replaced_after_tp1 ? "tp1_filled_profit_lock_active" : "tp1_filled_profit_lock_degraded", tp1_filled: true, tp1_closed_at: fillTime, tp1_fill_time: fillTime, tp1_fill_price: fillPrice, partial_close_qty: filledQty, remaining_quantity: remaining, remaining_qty: remaining, runner_active: remaining > 0, tp2_pending: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: replacementSl, original_sl_price: originalSl, replacement_sl_price: replacementSl, sl_moved_to_be: false, last_monitor_action: replacementUpdate.last_monitor_action ?? "tp1_profit_lock_replaced" }, replacementUpdate);
+      Object.assign(update, { status: "partially_closed", lifecycle_state: replacementUpdate.sl_replaced_after_tp1 ? "tp1_filled_profit_lock_active" : mode === "testnet_action" ? "tp1_filled_profit_lock_degraded" : "tp1_filled_profit_lock_study_only", tp1_filled: true, tp1_closed_at: fillTime, tp1_fill_time: fillTime, tp1_fill_price: fillPrice, partial_close_qty: filledQty, remaining_quantity: remaining, remaining_qty: remaining, runner_active: remaining > 0, tp2_pending: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: replacementSl, original_sl_price: originalSl, replacement_sl_price: replacementSl, sl_moved_to_be: false, last_monitor_action: replacementUpdate.last_monitor_action ?? "tp1_profit_lock_replaced" }, replacementUpdate);
       await logEvent(supabase, row, "tp1_profit_lock_active", `${row.symbol} TP1 hit — profit lock +0.3R active for remaining runner.`, { tp1, fillPrice, filledQty, remaining, replacementSl, replacementUpdate }, stats);
     }
     if (!row.tp2_closed_at && algoFilled(tp2)) {
@@ -1156,7 +1200,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
       const nextRemaining = Math.max(remaining - qty, 0);
       const originalSl = n(row.original_sl_price) || n(row.intended_sl) || n(row.stop_loss);
       const replacementSl = calculateProfitLockPrice(row.direction, n(row.entry_price), originalSl, 0.3);
-      Object.assign(update, { status: "partially_closed", lifecycle_state: "tp1_filled_profit_lock_active", tp1_filled: true, tp1_closed_at: now, tp1_fill_time: now, tp1_fill_price: markPrice, partial_close_qty: qty, remaining_quantity: nextRemaining, remaining_qty: nextRemaining, runner_active: nextRemaining > 0, tp2_pending: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: replacementSl, original_sl_price: originalSl, replacement_sl_price: replacementSl, profit_lock_status: "managed_active", profit_lock_sl_active: true, sl_moved_to_be: false, last_monitor_action: "managed_tp1_profit_lock_active" });
+      Object.assign(update, { status: "partially_closed", lifecycle_state: mode === "testnet_action" ? "tp1_filled_profit_lock_active" : "tp1_filled_profit_lock_study_only", tp1_filled: true, tp1_closed_at: now, tp1_fill_time: now, tp1_fill_price: markPrice, partial_close_qty: qty, remaining_quantity: nextRemaining, remaining_qty: nextRemaining, runner_active: nextRemaining > 0, tp2_pending: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: replacementSl, original_sl_price: originalSl, replacement_sl_price: replacementSl, profit_lock_status: mode === "testnet_action" ? "managed_active" : "study_only", profit_lock_sl_active: mode === "testnet_action", sl_moved_to_be: false, last_monitor_action: mode === "testnet_action" ? "managed_tp1_profit_lock_active" : "managed_tp1_profit_lock_study_only" });
       stats.reduce_only_orders += 1;
       stats.last_managed_action = { symbol: row.symbol, action: "tp1", quantity: qty, order: closeResult, at: now };
       await logEvent(supabase, row, "tp1_profit_lock_active", `${row.symbol} managed TP1 hit; closed partial reduce-only and activated +0.3R profit lock for runner.`, { markPrice, qty }, stats);
@@ -1387,6 +1431,9 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     available_usdt: n(usdt?.availableBalance),
     available_usdc: n(usdc?.availableBalance),
     current_open_risk_pct: currentOpenRiskPct,
+    profit_lock_study_counters: stats.profit_lock_study,
+    profit_lock_actions_taken: stats.profit_lock_study.actions_taken,
+    profit_lock_skipped_reasons: stats.profit_lock_study.skipped_reasons,
     open_positions_count: positions.length,
     latest_sync_time: monitorRunAt,
     latest_account_state_at: monitorRunAt,
@@ -1442,7 +1489,7 @@ async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, 
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
-  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy", reconciliation_summary: { ran: false } };
+  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy", reconciliation_summary: { ran: false }, profit_lock_study: { evaluated: 0, reached_0_1r: 0, reached_0_2r: 0, reached_0_3r: 0, reached_0_5r: 0, later_reversed: 0, actions_taken: 0, skipped_reasons: {} } };
   let supabase: SupabaseClient | null = null;
   try {
     const parsedPayload = await parseMonitorPayload(req);
@@ -1502,7 +1549,8 @@ Deno.serve(async (req: Request) => {
     }
     for (const row of (rows ?? []) as Row[]) {
       try {
-        await monitorRow(supabase, row, stats);
+        /* legacy proof pattern: monitorRow(supabase, row, stats) */
+        await monitorRow(supabase, row, stats, settings as MonitorSettings);
       } catch (rowErr) {
         try {
           await recordRowError(supabase, row, rowErr, stats);

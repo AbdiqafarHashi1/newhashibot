@@ -14,7 +14,7 @@ const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protecte
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
+type Action = "status" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -22,7 +22,7 @@ type BracketMode = "exchange_native" | "managed_exit_fallback" | "failed";
 type ProtectionStatus = "protected" | "protected_native" | "pending_protection" | "protection_pending" | "protection_failed" | "protection_recovered" | "protected_managed" | "pending_managed_protection" | "unprotected_failed";
 type GovernorState = "normal" | "defensive" | "aggressive_allowed" | "paused";
 type TestnetGovernorMode = "normal" | "readonly" | "off_for_testing";
-type ExecutionFailureCode = "margin_type_change_blocked" | "leverage_change_blocked" | "leverage_change_failed" | "symbol_configuration_mismatch" | "execution_api_error";
+type ExecutionFailureCode = "margin_type_change_blocked" | "leverage_change_blocked" | "leverage_change_failed" | "symbol_configuration_mismatch" | "insufficient_margin" | "execution_api_error";
 
 interface SignalRow {
   id: string;
@@ -93,7 +93,26 @@ interface ExecutionSettings {
   stress_risk_pct: number;
   stress_leverage: number;
   stress_ignore_open_risk_limit: boolean;
+  enable_usdc_margin_backup?: boolean | null;
+  prefer_margin_asset?: string | null;
+  allow_margin_assets?: string | null;
+  max_retry_assets?: number | null;
 }
+
+type MarginAsset = "USDT" | "USDC";
+type MarginFallbackReason = "sufficient_usdt_margin" | "insufficient_usdt_margin" | "usdc_backup_used" | "usdc_market_unavailable" | "insufficient_total_margin" | "symbol_not_supported_for_usdc" | "exchange_rejected" | "usdc_backup_disabled";
+
+interface MarginSelection {
+  placeOrder: boolean;
+  selectedMarginAsset: MarginAsset | null;
+  selectedSymbol: string | null;
+  backupAttempted: boolean;
+  backupAssetUsed: MarginAsset | null;
+  reasons: MarginFallbackReason[];
+  retryDecision: "none" | "try_usdc_once" | "do_not_retry";
+  finalStatus: "ready" | "blocked";
+}
+
 
 interface AccountState {
   totalMarginBalance: number;
@@ -185,7 +204,52 @@ interface OrderPlan {
   adjusted_risk_pct: number;
   adjusted_max_leverage: number;
   total_open_risk_after_trade?: number;
+  originalSymbol?: string;
+  marginAssetSelected?: MarginAsset;
+  marginFallbackAttempted?: boolean;
+  marginFallbackUsed?: boolean;
+  marginFallbackReason?: string;
 }
+
+function toUsdcEquivalentSymbol(symbol: string): string {
+  const upper = symbol.toUpperCase();
+  return upper.endsWith("USDT") ? `${upper.slice(0, -4)}USDC` : upper;
+}
+
+function parseAllowedMarginAssets(settings: ExecutionSettings): MarginAsset[] {
+  const raw = String(settings.allow_margin_assets ?? "USDT,USDC").toUpperCase().split(",").map((x) => x.trim()).filter(Boolean);
+  const assets = raw.filter((x): x is MarginAsset => x === "USDT" || x === "USDC");
+  return assets.length ? assets : ["USDT", "USDC"];
+}
+
+function selectMarginAssetForExecution(input: { symbol: string; requestedMargin: number; availableUsdt: number; availableUsdc: number; enableUsdcMarginBackup: boolean; allowMarginAssets?: MarginAsset[]; supportedUsdtSymbols: string[]; supportedUsdcSymbols: string[]; maxRetryAssets?: number }): MarginSelection {
+  const symbol = input.symbol.toUpperCase();
+  const usdcSymbol = toUsdcEquivalentSymbol(symbol);
+  const allow = input.allowMarginAssets ?? ["USDT", "USDC"];
+  const maxRetryAssets = input.maxRetryAssets ?? 2;
+  const usdtSupported = input.supportedUsdtSymbols.map((x) => x.toUpperCase()).includes(symbol);
+  const usdcSupported = input.supportedUsdcSymbols.map((x) => x.toUpperCase()).includes(usdcSymbol);
+  const reasons: MarginFallbackReason[] = [];
+  if (usdtSupported && input.availableUsdt >= input.requestedMargin) return { placeOrder: true, selectedMarginAsset: "USDT", selectedSymbol: symbol, backupAttempted: false, backupAssetUsed: null, reasons: ["sufficient_usdt_margin"], retryDecision: "none", finalStatus: "ready" };
+  reasons.push("insufficient_usdt_margin");
+  const canTryUsdc = input.enableUsdcMarginBackup && allow.includes("USDC") && maxRetryAssets >= 2;
+  if (!canTryUsdc) {
+    reasons.push("usdc_backup_disabled");
+    if (input.availableUsdt + input.availableUsdc < input.requestedMargin) reasons.push("insufficient_total_margin");
+    return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: false, backupAssetUsed: null, reasons, retryDecision: "do_not_retry", finalStatus: "blocked" };
+  }
+  if (!symbol.endsWith("USDT")) return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: true, backupAssetUsed: null, reasons: [...reasons, "symbol_not_supported_for_usdc"], retryDecision: "do_not_retry", finalStatus: "blocked" };
+  if (!usdcSupported) return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: true, backupAssetUsed: null, reasons: [...reasons, "usdc_market_unavailable"], retryDecision: "do_not_retry", finalStatus: "blocked" };
+  if (input.availableUsdc >= input.requestedMargin) return { placeOrder: true, selectedMarginAsset: "USDC", selectedSymbol: usdcSymbol, backupAttempted: true, backupAssetUsed: "USDC", reasons: [...reasons, "usdc_backup_used"], retryDecision: "try_usdc_once", finalStatus: "ready" };
+  return { placeOrder: false, selectedMarginAsset: null, selectedSymbol: null, backupAttempted: true, backupAssetUsed: null, reasons: [...reasons, "insufficient_total_margin"], retryDecision: "do_not_retry", finalStatus: "blocked" };
+}
+
+async function fetchSupportedMarginSymbols(): Promise<{ usdt: string[]; usdc: string[] }> {
+  const data = await binanceRequest<{ symbols: Array<{ symbol: string; status: string }> }>("GET", "/fapi/v1/exchangeInfo");
+  const trading = data.symbols.filter((x) => x.status === "TRADING").map((x) => x.symbol.toUpperCase());
+  return { usdt: trading.filter((x) => x.endsWith("USDT")), usdc: trading.filter((x) => x.endsWith("USDC")) };
+}
+
 
 interface BinanceSymbolTruth {
   symbol: string;
@@ -326,6 +390,7 @@ function classifyExecutionError(error: unknown, fallbackCode: ExecutionFailureCo
   if (error instanceof BinanceApiError) {
     if (error.path === "/fapi/v1/marginType") return { code: "margin_type_change_blocked", message, details: { path: error.path, status: error.status, binance_code: error.code, binance_message: error.exchangeMessage } };
     if (error.path === "/fapi/v1/leverage") return { code: "leverage_change_failed", message, details: { path: error.path, status: error.status, binance_code: error.code, binance_message: error.exchangeMessage } };
+    if (error.code === -2019 || error.exchangeMessage.toLowerCase().includes("margin")) return { code: "insufficient_margin", message, details: { path: error.path, status: error.status, binance_code: error.code, binance_message: error.exchangeMessage } };
     return { code: fallbackCode, message, details: { path: error.path, status: error.status, binance_code: error.code, binance_message: error.exchangeMessage } };
   }
   return { code: fallbackCode, message, details: {} };
@@ -735,7 +800,7 @@ async function getSettings(supabase: SupabaseClient): Promise<ExecutionSettings>
     kill_switch_enabled: false, auto_execute_testnet: false, max_open_testnet_positions: 3, max_open_testnet_positions_allowed_max: 10, max_total_open_risk_pct: 3, one_active_execution_per_symbol: true,
     testnet_enabled_at: null, fallback_account_balance: 10000, capital_basis: "available_usdt", testnet_capital_override_usdt: null,
     max_capital_used_usdt: null, testnet_risk_a: 2, testnet_risk_a_plus: 2, max_testnet_risk_pct: 2,
-    testnet_leverage_a: 10, testnet_leverage_a_plus: 10, testnet_max_leverage: 10, governor_enabled: true, testnet_governor_mode: "normal", governor_state: "normal", stress_override_enabled: true, stress_risk_pct: 2.0, stress_leverage: 10, stress_ignore_open_risk_limit: true, daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
+    testnet_leverage_a: 10, testnet_leverage_a_plus: 10, testnet_max_leverage: 10, governor_enabled: true, testnet_governor_mode: "normal", governor_state: "normal", stress_override_enabled: true, stress_risk_pct: 2.0, stress_leverage: 10, stress_ignore_open_risk_limit: true, enable_usdc_margin_backup: false, prefer_margin_asset: "USDT", allow_margin_assets: "USDT,USDC", max_retry_assets: 2, daily_start_equity: null, current_equity: null, daily_realized_pnl: null, daily_unrealized_pnl: null, daily_pnl_pct: null, max_daily_loss_pct: 2, max_unrealized_drawdown_pct: 1.5, aggressive_allowed_profit_pct: 1.5, defensive_loss_pct: 1, max_consecutive_failed_executions: 3, max_consecutive_closed_sl: 3, last_governor_reason: null, last_governor_checked_at: null, bot_paused: false, bot_paused_reason: null, ...(data ?? {}),
   } as ExecutionSettings;
 }
 
@@ -819,6 +884,7 @@ function commonExecutionFields(plan: OrderPlan): Json {
     raw_available_usdt: plan.capital.raw_available_usdt, raw_available_usdc: plan.capital.raw_available_usdc, selected_capital_used: plan.capital.selected_capital_used,
     max_capital_cap_applied: plan.capital.max_capital_cap_applied, risk_pct: plan.riskPct, risk_amount: plan.riskAmount, notional: plan.notional,
     risk_source: plan.risk_source, leverage_source: plan.leverage_source, stress_mode: plan.stress_mode, open_risk_guard: plan.open_risk_guard, governor_state: plan.governor_state, governor_reason: plan.governor_reason, risk_multiplier: plan.risk_multiplier, adjusted_risk_pct: plan.adjusted_risk_pct, adjusted_max_leverage: plan.adjusted_max_leverage,
+    original_symbol: plan.originalSymbol ?? plan.symbol, executed_symbol: plan.symbol, selected_margin_asset: plan.marginAssetSelected ?? "USDT", margin_asset_selected: plan.marginAssetSelected ?? "USDT", prefer_margin_asset: "USDT", margin_backup_attempted: plan.marginFallbackAttempted ?? false, margin_backup_asset_used: plan.marginFallbackUsed ? plan.marginAssetSelected : null, margin_fallback_used: plan.marginFallbackUsed ?? false, insufficient_margin_reason: plan.marginFallbackReason ?? "", requested_margin: plan.marginRequired, requested_notional: plan.notional,
     intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity,
   };
 }
@@ -1020,6 +1086,70 @@ async function maybePlaceProtection(supabase: SupabaseClient, executionId: strin
   return bracket;
 }
 
+
+async function applyMarginFallbackToPlan(signal: SignalRow, originalPlan: OrderPlan, settings: ExecutionSettings): Promise<{ plan: OrderPlan; selection: MarginSelection; diagnostics: Json }> {
+  const supported = await fetchSupportedMarginSymbols();
+  const selection = selectMarginAssetForExecution({
+    symbol: originalPlan.symbol,
+    requestedMargin: originalPlan.marginRequired,
+    availableUsdt: originalPlan.capital.raw_available_usdt,
+    availableUsdc: originalPlan.capital.raw_available_usdc,
+    enableUsdcMarginBackup: envBool("TESTNET_ENABLED", false) && settings.testnet_enabled === true && settings.enable_usdc_margin_backup === true,
+    allowMarginAssets: parseAllowedMarginAssets(settings),
+    supportedUsdtSymbols: supported.usdt,
+    supportedUsdcSymbols: supported.usdc,
+    maxRetryAssets: Number(settings.max_retry_assets ?? 2),
+  });
+  const diagnostics: Json = {
+    original_symbol: originalPlan.symbol,
+    executed_symbol: selection.selectedSymbol ?? originalPlan.symbol,
+    margin_asset_selected: selection.selectedMarginAsset,
+    prefer_margin_asset: settings.prefer_margin_asset ?? "USDT",
+    usdt_available: originalPlan.capital.raw_available_usdt,
+    usdc_available: originalPlan.capital.raw_available_usdc,
+    requested_margin: originalPlan.marginRequired,
+    requested_notional: originalPlan.notional,
+    leverage: originalPlan.leverage,
+    risk_percent: originalPlan.riskPct,
+    fallback_attempted: selection.backupAttempted,
+    fallback_used: selection.backupAssetUsed === "USDC",
+    fallback_reason: selection.reasons.join(","),
+    exchange_error_code: "",
+    exchange_error_message: "",
+    final_execution_status: selection.placeOrder ? "ready" : "skipped",
+    supported_usdt_count: supported.usdt.length,
+    supported_usdc_count: supported.usdc.length,
+  };
+  if (!selection.placeOrder || !selection.selectedSymbol) return { plan: originalPlan, selection, diagnostics };
+  const selectedSignal = selection.selectedSymbol === originalPlan.symbol ? signal : { ...signal, symbol: selection.selectedSymbol };
+  const selectedRules = selection.selectedSymbol === originalPlan.symbol ? originalPlan.rules : await getRules(selection.selectedSymbol);
+  const plan = selection.selectedSymbol === originalPlan.symbol ? originalPlan : buildPlan(selectedSignal, selectedRules, originalPlan.capital, settings, { state: originalPlan.governor_state, reason: originalPlan.governor_reason, risk_multiplier: originalPlan.risk_multiplier, adjusted_max_leverage: originalPlan.adjusted_max_leverage, adjusted_max_open_positions: 0, daily_pnl_pct: null, unrealized_pnl: null, current_equity: null, blocks_execution: false, execution_allowed: true, testnet_governor_mode: settings.testnet_governor_mode ?? "normal" });
+  plan.originalSymbol = originalPlan.symbol;
+  plan.marginAssetSelected = selection.selectedMarginAsset ?? "USDT";
+  plan.marginFallbackAttempted = selection.backupAttempted;
+  plan.marginFallbackUsed = selection.backupAssetUsed === "USDC";
+  plan.marginFallbackReason = selection.reasons.join(",");
+  return { plan, selection, diagnostics: { ...diagnostics, executed_symbol: plan.symbol, requested_margin: plan.marginRequired, requested_notional: plan.notional } };
+}
+
+async function createMarginSkipped(supabase: SupabaseClient, signal: SignalRow, selection: MarginSelection, diagnostics: Json): Promise<Json> {
+  const reason = selection.reasons.at(-1) ?? "insufficient_total_margin";
+  return createSkipped(supabase, signal, reason, {
+    original_symbol: diagnostics.original_symbol,
+    executed_symbol: diagnostics.executed_symbol,
+    selected_margin_asset: selection.selectedMarginAsset,
+    margin_asset_selected: selection.selectedMarginAsset,
+    insufficient_margin_reason: reason,
+    margin_backup_attempted: selection.backupAttempted,
+    margin_fallback_used: false,
+    margin_backup_asset_used: selection.backupAssetUsed,
+    requested_margin: diagnostics.requested_margin,
+    requested_notional: diagnostics.requested_notional,
+    last_exchange_error: reason,
+    raw_exchange_response: { margin_selection: selection, margin_diagnostics: { ...diagnostics, final_execution_status: "skipped" } },
+  });
+}
+
 async function executeSignal(supabase: SupabaseClient, signalId: string, manual: boolean): Promise<Json> {
   assertLiveTradingImpossible();
   const settings = await getSettings(supabase);
@@ -1067,7 +1197,16 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   const { count: openCount } = await supabase.from("execution_orders").select("id", { count: "exact", head: true }).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
   if (!ignoreOpenRisk && (openCount ?? 0) >= maxOpenAllowed) return createSkipped(supabase, sig, "skipped_max_open_positions", { governor_state: governor.state, governor_reason: governor.reason, adjusted_max_open_positions: maxOpenAllowed });
   let plan: OrderPlan;
-  try { plan = buildPlan(sig, await getRules(sig.symbol), await capitalSnapshot(settings), settings, governor); }
+  let marginSelection: MarginSelection | null = null;
+  let marginDiagnostics: Json = {};
+  try {
+    const initialPlan = buildPlan(sig, await getRules(sig.symbol), await capitalSnapshot(settings), settings, governor);
+    const prepared = await applyMarginFallbackToPlan(sig, initialPlan, settings);
+    plan = prepared.plan;
+    marginSelection = prepared.selection;
+    marginDiagnostics = prepared.diagnostics;
+    if (!prepared.selection.placeOrder) return createMarginSkipped(supabase, sig, prepared.selection, prepared.diagnostics);
+  }
   catch (e) { return createSkipped(supabase, sig, e instanceof Error ? e.message : "skipped_invalid_sizing"); }
   const currentRisk = await currentOpenRiskPct(supabase);
   const riskCap = maxTotalOpenRiskPct(settings);
@@ -1076,7 +1215,8 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   plan.total_open_risk_after_trade = totalRiskAfter;
   const { data: exec } = await supabase.from("execution_orders").insert({ signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, ...expiryFields(sig), ...commonExecutionFields(plan) }).select("id").single();
   const executionId = String((exec as { id: string }).id);
-  await logEvent(supabase, executionId, "planned", "Order plan created", { plan });
+  await logEvent(supabase, executionId, "planned", "Order plan created", { plan, margin_selection: marginSelection, margin_diagnostics: marginDiagnostics });
+  await logEvent(supabase, executionId, "margin_asset_selected", "USDT/USDC margin asset selected before Binance entry placement", marginDiagnostics);
   try {
     const symbolConfiguration = await configureSymbolForExecution(plan);
     if (!symbolConfiguration.ok && symbolConfiguration.failure) {
@@ -1087,16 +1227,16 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
     }
     await logEvent(supabase, executionId, "symbol_configuration_checked", "Symbol configuration inspected before entry placement", { symbol_configuration: symbolConfiguration });
     const entry = await binanceRequest<{ orderId: number; status?: string }>("POST", "/fapi/v1/order", { symbol: plan.symbol, side: plan.entrySide, type: "LIMIT", timeInForce: "GTC", quantity: plan.quantity, price: plan.entryPrice }, true);
-    await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: String(entry.orderId), binance_entry_order_id: String(entry.orderId), raw_exchange_response: { entry, plan, symbol_configuration: symbolConfiguration }, last_exchange_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "entry_submitted", "Entry LIMIT order placed on /fapi/v1/order", { orderId: entry.orderId, entry_type: "LIMIT" });
+    await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: String(entry.orderId), binance_entry_order_id: String(entry.orderId), raw_exchange_response: { entry, plan, symbol_configuration: symbolConfiguration, margin_selection: marginSelection, margin_diagnostics: marginDiagnostics }, last_exchange_error: "", updated_at: new Date().toISOString() }).eq("id", executionId);
+    await logEvent(supabase, executionId, "entry_submitted", "Entry LIMIT order placed on /fapi/v1/order", { orderId: entry.orderId, entry_type: "LIMIT", ...marginDiagnostics, final_execution_status: "entry_submitted" });
     await sendExecutionTelegram(supabase, sig.id, "auto_executed", ["Auto execution submitted", `Symbol: ${plan.symbol}`, `Side: ${plan.side}`, `Strategy: ${sig.strategy_name}`, `Timeframe: ${sig.timeframe}`, `Grade: ${sig.grade}`, `Leverage: ${plan.leverage}x`, `Leverage source: ${plan.leverage_source}`, `Execution Mode: ${settings.execution_mode}`, `Stress Mode: ${plan.stress_mode ? "ON" : "OFF"}`, `Risk Source: ${plan.risk_source}`, `Governor: ${plan.governor_state}`, `Governor reason: ${plan.governor_reason}`, `Effective risk %: ${plan.adjusted_risk_pct}`, `Effective max leverage: ${plan.adjusted_max_leverage}x`, `Capital basis: ${plan.capital.capital_basis}`, `Capital used: ${plan.capital.selected_capital_used.toFixed(2)}`, `Risk %: ${plan.riskPct}`, `Daily PnL %: ${governor.daily_pnl_pct ?? "unknown"}`, `Unrealized PnL: ${governor.unrealized_pnl ?? "unknown"}`, `Risk amount: ${plan.riskAmount.toFixed(2)}`, `Notional: ${plan.notional.toFixed(2)}`, `Qty: ${plan.quantity}`, `Entry: ${plan.entryPrice}`, `SL: ${plan.stopLoss}`, `TP1: ${plan.tp1}`, `TP2: ${plan.tp2}`, `Protection: pending`, `Bracket mode: pending`, `Entry order: ${entry.orderId}`, "SL order: pending", "TP1 order: pending", "TP2 order: pending", "TP1 close %: 50%", "TP2 close %: 50%", "Move SL to BE after TP1: yes", `Open risk: ${plan.riskPct}%`, `Total open risk after this trade: ${totalRiskAfter}%`, `Open Risk Guard: ${plan.open_risk_guard}`]);
     if (entry.status === "FILLED") await maybePlaceProtection(supabase, executionId, sig.id, plan);
     return { success: true, execution_id: executionId, status: "entry_submitted", plan };
   } catch (e) {
     const classified = classifyExecutionError(e);
     const msg = `${classified.code}: ${classified.message}`;
-    await supabase.from("execution_orders").update({ status: "failed", error_message: msg, last_exchange_error: classified.code, bracket_mode: "failed", protection_status: "unprotected_failed", raw_exchange_response: { plan, execution_failure: classified }, updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, classified.code, msg, classified.details);
+    await supabase.from("execution_orders").update({ status: "failed", error_message: msg, last_exchange_error: classified.code, bracket_mode: "failed", protection_status: "unprotected_failed", raw_exchange_response: { plan, margin_selection: marginSelection, margin_diagnostics: { ...marginDiagnostics, exchange_error_code: classified.details.binance_code ?? classified.code, exchange_error_message: classified.message, final_execution_status: "failed" }, execution_failure: classified }, insufficient_margin_reason: classified.code === "insufficient_margin" ? "exchange_rejected" : (plan.marginFallbackReason ?? ""), updated_at: new Date().toISOString() }).eq("id", executionId);
+    await logEvent(supabase, executionId, classified.code, msg, { ...classified.details, ...marginDiagnostics, exchange_error_code: classified.details.binance_code ?? classified.code, exchange_error_message: classified.message, final_execution_status: "failed" });
     await sendExecutionTelegram(supabase, sig.id, "failed", [`Execution failed: ${msg}`, `Signal: ${sig.symbol}`]);
     return { success: false, execution_id: executionId, error: msg, reason_code: classified.code, details: classified.details };
   }
@@ -1362,13 +1502,38 @@ async function manualTestFlow(supabase: SupabaseClient, signalId: string): Promi
   };
 }
 
+
+async function diagnoseMarginFallback(supabase: SupabaseClient, signalId: string): Promise<Json> {
+  assertLiveTradingImpossible();
+  const validated = await validateSelectedSignal(supabase, signalId);
+  if (!isSignalRow(validated)) return validated;
+  const settings = await getSettings(supabase);
+  const governor = await evaluateGovernor(supabase, settings);
+  const initial = buildPlan(validated, await getRules(validated.symbol), await capitalSnapshot(settings), settings, governor);
+  initial.capital.raw_available_usdt = 0;
+  const prepared = await applyMarginFallbackToPlan(validated, initial, { ...settings, enable_usdc_margin_backup: true });
+  const proof = { ...prepared.diagnostics, diagnostic_mode: true, simulated_usdt_available: 0, final_execution_status: prepared.selection.placeOrder ? "diagnostic_ready_no_order_placed" : "diagnostic_skip_no_order_placed" };
+  const skipped = await createSkipped(supabase, validated, prepared.selection.placeOrder ? "diagnostic_usdc_backup_available_no_order_placed" : (prepared.selection.reasons.at(-1) ?? "diagnostic_margin_unavailable"), {
+    selected_margin_asset: prepared.selection.selectedMarginAsset,
+    margin_asset_selected: prepared.selection.selectedMarginAsset,
+    margin_backup_attempted: prepared.selection.backupAttempted,
+    margin_backup_asset_used: prepared.selection.backupAssetUsed,
+    margin_fallback_used: prepared.selection.backupAssetUsed === "USDC",
+    insufficient_margin_reason: prepared.selection.reasons.join(","),
+    requested_margin: proof.requested_margin,
+    requested_notional: proof.requested_notional,
+    raw_exchange_response: { margin_diagnostic_proof: proof, margin_selection: prepared.selection },
+  });
+  return { ...skipped, diagnostic: proof, margin_selection: prepared.selection };
+}
+
 async function statusPayload(supabase: SupabaseClient): Promise<Json> {
   const settings = await getSettings(supabase);
   const [executions, failed, skipped, latestError] = await Promise.all([
     supabase.from("execution_orders").select("*").eq("exchange", "binance_usdm_testnet").order("created_at", { ascending: false }).limit(25),
     supabase.from("execution_orders").select("id", { count: "exact", head: true }).eq("status", "failed"),
     supabase.from("execution_orders").select("id", { count: "exact", head: true }).eq("status", "skipped"),
-    supabase.from("execution_orders").select("last_exchange_error,error_message").eq("exchange", "binance_usdm_testnet").not("error_message", "eq", "").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("execution_orders").select("last_exchange_error,error_message,insufficient_margin_reason,margin_backup_attempted,margin_backup_asset_used,margin_fallback_used,selected_margin_asset,status").eq("exchange", "binance_usdm_testnet").not("insufficient_margin_reason", "is", null).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const capital = await capitalSnapshot(settings).catch(() => zeroCapital(settings));
   const account_state = await fetchAccountState().catch(() => null);
@@ -1378,7 +1543,7 @@ async function statusPayload(supabase: SupabaseClient): Promise<Json> {
   const governorIgnored = (settings.testnet_governor_mode ?? "normal") === "off_for_testing";
   const effectiveRiskPct = stressModeActive(settings) ? Number(settings.stress_risk_pct ?? 2) : null;
   const effectiveLeverage = stressModeActive(settings) ? Number(settings.stress_leverage ?? 10) : null;
-  return { success: true, settings, capital, account_state, governor: governor ? { ...governor, effective_state: governorIgnored ? "IGNORED" : governor.state, display_state: governorIgnored ? "IGNORED" : governor.state } : governor, execution_allowed: governorIgnored ? true : (governor ? !governor.blocks_execution : settings.governor_state !== "paused"), current_open_risk_pct, max_total_open_risk_pct, remaining_risk_capacity_pct: stressOpenRiskIgnored(settings) ? null : Math.max(0, max_total_open_risk_pct - current_open_risk_pct), effective_risk_pct: effectiveRiskPct, effective_leverage: effectiveLeverage, risk_source: stressModeActive(settings) ? "testnet_stress_override" : "normal_arbitrated_grade_signal_sizing", leverage_source: stressModeActive(settings) ? "testnet_stress_override" : "normal_leverage_logic", governor_display: { mode: String(settings.testnet_governor_mode ?? "normal").toUpperCase(), state: governorIgnored ? "IGNORED" : String(governor?.state ?? settings.governor_state ?? "normal").toUpperCase(), execution_allowed: governorIgnored ? true : (governor ? !governor.blocks_execution : settings.governor_state !== "paused") }, env: { execution_mode: Deno.env.get("EXECUTION_MODE") || "signal_only", exchange: Deno.env.get("EXCHANGE") || "binance_usdm_testnet", testnet_enabled: envBool("TESTNET_ENABLED", false), live_trading_enabled: envBool("LIVE_TRADING_ENABLED", false), base_url: safeBaseUrl(), api_key_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY")), api_secret_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_SECRET")) }, executions: executions.data ?? [], failed_count: failed.count ?? 0, skipped_count: skipped.count ?? 0, latest_error: latestError.data ?? null };
+  return { success: true, settings, capital, account_state, governor: governor ? { ...governor, effective_state: governorIgnored ? "IGNORED" : governor.state, display_state: governorIgnored ? "IGNORED" : governor.state } : governor, execution_allowed: governorIgnored ? true : (governor ? !governor.blocks_execution : settings.governor_state !== "paused"), current_open_risk_pct, max_total_open_risk_pct, remaining_risk_capacity_pct: stressOpenRiskIgnored(settings) ? null : Math.max(0, max_total_open_risk_pct - current_open_risk_pct), effective_risk_pct: effectiveRiskPct, effective_leverage: effectiveLeverage, risk_source: stressModeActive(settings) ? "testnet_stress_override" : "normal_arbitrated_grade_signal_sizing", leverage_source: stressModeActive(settings) ? "testnet_stress_override" : "normal_leverage_logic", governor_display: { mode: String(settings.testnet_governor_mode ?? "normal").toUpperCase(), state: governorIgnored ? "IGNORED" : String(governor?.state ?? settings.governor_state ?? "normal").toUpperCase(), execution_allowed: governorIgnored ? true : (governor ? !governor.blocks_execution : settings.governor_state !== "paused") }, env: { execution_mode: Deno.env.get("EXECUTION_MODE") || "signal_only", exchange: Deno.env.get("EXCHANGE") || "binance_usdm_testnet", testnet_enabled: envBool("TESTNET_ENABLED", false), live_trading_enabled: envBool("LIVE_TRADING_ENABLED", false), base_url: safeBaseUrl(), api_key_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY")), api_secret_configured: Boolean(Deno.env.get("BINANCE_TESTNET_API_SECRET")) }, executions: executions.data ?? [], failed_count: failed.count ?? 0, skipped_count: skipped.count ?? 0, latest_error: latestError.data ?? null, last_insufficient_margin: latestError.data ? { reason: (latestError.data as Json).insufficient_margin_reason ?? (latestError.data as Json).last_exchange_error, backup_attempted: (latestError.data as Json).margin_backup_attempted, backup_asset_used: (latestError.data as Json).margin_backup_asset_used, fallback_used: (latestError.data as Json).margin_fallback_used, selected_asset: (latestError.data as Json).selected_margin_asset, final_result: (latestError.data as Json).status } : null };
 }
 
 async function resetTestnetGovernor(supabase: SupabaseClient): Promise<Json> {
@@ -1420,7 +1585,7 @@ async function resetTestnetGovernor(supabase: SupabaseClient): Promise<Json> {
 }
 
 async function updateSettings(supabase: SupabaseClient, patch: Json): Promise<Json> {
-  const allowed = ["auto_execute_testnet", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "testnet_governor_mode", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl", "stress_override_enabled", "stress_risk_pct", "stress_leverage", "stress_ignore_open_risk_limit", "bot_paused", "bot_paused_reason"];
+  const allowed = ["enable_usdc_margin_backup", "prefer_margin_asset", "allow_margin_assets", "max_retry_assets", "enable_profit_lock_engine", "enable_testnet_profit_lock_engine", "profit_lock_before_tp1_testnet_allowed", "profit_lock_min_r", "profit_lock_aggressive_min_r", "profit_lock_max_updates_per_trade", "profit_lock_cooldown_minutes", "auto_execute_testnet", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "testnet_governor_mode", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl", "stress_override_enabled", "stress_risk_pct", "stress_leverage", "stress_ignore_open_risk_limit", "bot_paused", "bot_paused_reason"];
   const update: Json = { updated_at: new Date().toISOString() };
   for (const key of allowed) if (key in patch) update[key] = patch[key];
   if ("testnet_governor_mode" in update && !["normal", "readonly", "off_for_testing"].includes(String(update.testnet_governor_mode))) throw new Error("Invalid testnet_governor_mode");
@@ -1439,6 +1604,7 @@ Deno.serve(async (req: Request) => {
     const action = body.action ?? "status";
     let payload: Json;
     if (action === "status") payload = await statusPayload(supabase);
+    else if (action === "diagnose_margin_fallback") payload = await diagnoseMarginFallback(supabase, cleanSignalId(body.signal_id));
     else if (action === "test_connection") { assertLiveTradingImpossible(); payload = { success: true, account: await binanceRequest("GET", "/fapi/v2/account", {}, true), base_url: safeBaseUrl() }; }
     else if (action === "validate_symbol") payload = { success: true, rules: await getRules(body.symbol ?? "BTCUSDT") };
     else if (action === "positions") { assertLiveTradingImpossible(); payload = { success: true, positions: await binanceRequest("GET", "/fapi/v2/positionRisk", {}, true) }; }

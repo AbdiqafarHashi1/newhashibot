@@ -13,6 +13,11 @@ import {
   verifyNativeProtectionOpenOrders,
   governorPausedVisibility,
   governorAllowsTestnetExecution,
+  selectMarginAssetForExecution,
+  toUsdcEquivalentSymbol,
+  decideProfitLockAction,
+  summarizeProfitLockStudy,
+  recommendCapitalGovernor,
   type EntryFill,
   type ManagedExitClient,
   type NativeProtectionClient,
@@ -27,6 +32,23 @@ async function run() {
   assert.equal(governorAllowsTestnetExecution('normal', true), false, 'normal governor mode blocks when governor blocks');
   assert.equal(governorAllowsTestnetExecution('readonly', true), true, 'readonly governor mode calculates but does not block testnet execution');
   assert.equal(governorAllowsTestnetExecution('off_for_testing', true), true, 'off_for_testing bypasses governor block for testnet execution');
+  assert.equal(toUsdcEquivalentSymbol('BTCUSDT'), 'BTCUSDC', 'USDT symbols map to USDC equivalents');
+  assert.deepEqual(selectMarginAssetForExecution({ symbol: 'BTCUSDT', requestedMargin: 100, availableUsdt: 150, availableUsdc: 1000, enableUsdcMarginBackup: true, supportedUsdtSymbols: ['BTCUSDT'], supportedUsdcSymbols: ['BTCUSDC'] }).selectedMarginAsset, 'USDT', 'USDT is preferred first');
+  const usdcBackup = selectMarginAssetForExecution({ symbol: 'BTCUSDT', requestedMargin: 100, availableUsdt: 50, availableUsdc: 1000, enableUsdcMarginBackup: true, supportedUsdtSymbols: ['BTCUSDT'], supportedUsdcSymbols: ['BTCUSDC'] });
+  assert.equal(usdcBackup.selectedMarginAsset, 'USDC', 'USDC backup is selected when USDT margin is insufficient');
+  assert.equal(usdcBackup.selectedSymbol, 'BTCUSDC');
+  assert.equal(usdcBackup.reasons.includes('usdc_backup_used'), true);
+  assert.equal(selectMarginAssetForExecution({ symbol: 'ETHUSDT', requestedMargin: 100, availableUsdt: 50, availableUsdc: 1000, enableUsdcMarginBackup: true, supportedUsdtSymbols: ['ETHUSDT'], supportedUsdcSymbols: [] }).reasons.includes('usdc_market_unavailable'), true, 'unavailable USDC market is explicit');
+  assert.equal(selectMarginAssetForExecution({ symbol: 'BTCUSDT', requestedMargin: 100, availableUsdt: 50, availableUsdc: 50, enableUsdcMarginBackup: true, supportedUsdtSymbols: ['BTCUSDT'], supportedUsdcSymbols: ['BTCUSDC'] }).reasons.includes('insufficient_total_margin'), true, 'insufficient total margin is explicit');
+
+  const lockCfg = { enableProfitLockEngine: true, enableTestnetProfitLockEngine: true, testnetEnabled: true, liveTrading: false, profitLockMinR: 0.3, profitLockAggressiveMinR: 0.15, profitLockBeforeTp1TestnetAllowed: false, profitLockMaxUpdatesPerTrade: 3, profitLockCooldownMinutes: 5 };
+  assert.equal(decideProfitLockAction(lockCfg, { currentR: 0.35, currentUnrealizedPnl: 20, tp1Hit: true, reversalRisk: 'medium', validSlExists: true, existingSlPrice: 90, updatesThisTrade: 0, minutesSinceLastUpdate: 10, stopUpdateAlreadyVerified: true }).action, 'move_sl_to_0_3r', 'after TP1 profit lock can move SL to +0.3R');
+  assert.equal(decideProfitLockAction(lockCfg, { currentR: 0.35, currentUnrealizedPnl: 20, tp1Hit: false, reversalRisk: 'high', validSlExists: true, existingSlPrice: 90, updatesThisTrade: 0, minutesSinceLastUpdate: 10, stopUpdateAlreadyVerified: true }).action, 'research_only', 'before TP1 remains research-only by default');
+  assert.equal(decideProfitLockAction({ ...lockCfg, liveTrading: true }, { currentR: 1, currentUnrealizedPnl: 20, tp1Hit: true, reversalRisk: 'high', validSlExists: true, existingSlPrice: 90, updatesThisTrade: 0, minutesSinceLastUpdate: 10, stopUpdateAlreadyVerified: true }).reason, 'live_mode_action_forbidden', 'no live profit-lock action');
+  assert.equal(decideProfitLockAction(lockCfg, { currentR: 1, currentUnrealizedPnl: 20, tp1Hit: true, reversalRisk: 'high', validSlExists: true, existingSlPrice: 90, updatesThisTrade: 0, minutesSinceLastUpdate: 1, stopUpdateAlreadyVerified: true }).reason, 'cooldown_active', 'profit-lock cooldown is enforced');
+  assert.equal(decideProfitLockAction(lockCfg, { currentR: 1, currentUnrealizedPnl: 20, tp1Hit: true, reversalRisk: 'high', validSlExists: true, existingSlPrice: 90, updatesThisTrade: 0, minutesSinceLastUpdate: 10, stopUpdateAlreadyVerified: true }).neverCancelOldSlBeforeVerification, true, 'old SL is never cancelled before replacement verification');
+  assert.equal(summarizeProfitLockStudy([{ r: 0.35, unrealizedPnl: 12, reversedAfter: true }, { r: 0.12, unrealizedPnl: 3 }]).reached_0_3r, 1, 'study records +0.3R reach counts');
+  assert.equal(recommendCapitalGovernor({ openPositions: 2, maxOpenPositions: 5, sameDirectionExposurePct: 65, sameSymbolExposurePct: 10, marginUsagePct: 20, dailyPnlPct: 1 }), 'warn', 'capital governor emits research recommendation without enforcement');
   const proof = buildE2EProtectionProof({ entryOrderId: 'entry-1', positionSize: 0.1, bracketMode: 'exchange_native', protectionStatus: 'protected_native', slOrderId: 'sl-1', tp1OrderId: 'tp1-1', tp2OrderId: 'tp2-1' });
   assert.equal(proof.entry_submitted, true, 'E2E proof includes entry_submitted');
   assert.equal(proof.native_sl_order_detected, true, 'E2E proof includes native SL detection');
