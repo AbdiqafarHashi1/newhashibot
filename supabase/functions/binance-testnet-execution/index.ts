@@ -14,7 +14,7 @@ const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protecte
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
+type Action = "status" | "diagnose_bybit_testnet_connection" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -492,6 +492,64 @@ class BinanceApiError extends Error {
     this.code = code;
     this.exchangeMessage = exchangeMessage;
   }
+}
+
+
+function bybitBaseUrl(): string {
+  const base = Deno.env.get("BYBIT_TESTNET_BASE_URL") || "https://api-testnet.bybit.com";
+  if (!base.includes("testnet")) throw new Error("Bybit health check is testnet-only: base URL must include testnet");
+  return base.replace(/\/$/, "");
+}
+
+async function bybitRequest<T>(method: "GET", path: string, params: Record<string, string | number | boolean> = {}): Promise<T> {
+  const apiKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
+  const apiSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
+  if (!apiKey || !apiSecret) throw new Error("BYBIT_TESTNET_API_KEY and BYBIT_TESTNET_API_SECRET are required");
+  const recvWindow = 5000;
+  const timestamp = String(Date.now());
+  const query = stringifyParams(params);
+  const signature = await hmacSha256Hex(apiSecret, `${timestamp}${apiKey}${recvWindow}${query}`);
+  const res = await fetch(`${bybitBaseUrl()}${path}${query ? `?${query}` : ""}`, {
+    method,
+    headers: { "X-BAPI-API-KEY": apiKey, "X-BAPI-TIMESTAMP": timestamp, "X-BAPI-RECV-WINDOW": String(recvWindow), "X-BAPI-SIGN": signature },
+    signal: AbortSignal.timeout(10000),
+  });
+  const data = await res.json().catch(() => ({})) as { retCode?: number; retMsg?: string; result?: T };
+  if (!res.ok || data.retCode !== 0) throw new Error(`Bybit ${path} failed: ${data.retCode ?? res.status} ${data.retMsg ?? res.statusText}`);
+  return data.result as T;
+}
+
+async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise<Json> {
+  const missing: string[] = [];
+  const apiKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
+  const apiSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
+  const enabled = envBool("BYBIT_TESTNET_ENABLED", false);
+  if (!apiKey) missing.push("BYBIT_TESTNET_API_KEY");
+  if (!apiSecret) missing.push("BYBIT_TESTNET_API_SECRET");
+  if (!enabled) missing.push("BYBIT_TESTNET_ENABLED=true");
+  const checks: Json = { api_key_exists: Boolean(apiKey), api_secret_exists: Boolean(apiSecret), bybit_testnet_enabled: enabled, base_url: bybitBaseUrl(), base_url_is_testnet: bybitBaseUrl().includes("testnet") };
+  let connected = false;
+  let safeForTestOrder = false;
+  let errorReason = "";
+  let missingPermissions: string[] = [];
+  try {
+    if (missing.length) throw new Error(`Missing configuration: ${missing.join(", ")}`);
+    const [balances, positions, openOrders, instruments] = await Promise.all([
+      bybitRequest("GET", "/v5/account/wallet-balance", { accountType: "UNIFIED" }),
+      bybitRequest("GET", "/v5/position/list", { category: "linear", settleCoin: "USDT" }),
+      bybitRequest("GET", "/v5/order/realtime", { category: "linear", openOnly: 0 }),
+      bybitRequest<{ list?: Array<{ symbol?: string; status?: string }> }>("GET", "/v5/market/instruments-info", { category: "linear" }),
+    ]);
+    const supported = new Set((instruments.list ?? []).filter((row) => row.status === "Trading").map((row) => row.symbol));
+    Object.assign(checks, { auth: true, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders) });
+    connected = true;
+    safeForTestOrder = enabled && supported.has("BTCUSDT") && supported.has("ETHUSDT") && supported.has("SOLUSDT");
+  } catch (e) {
+    errorReason = e instanceof Error ? e.message : String(e);
+    if (/permission|forbidden|denied|api key/i.test(errorReason)) missingPermissions = ["Bybit read wallet/position/order permission may be missing or key is invalid"];
+  }
+  await supabase.from("execution_provider_controls").update({ status: connected ? "connected" : "disconnected", last_status_at: new Date().toISOString(), last_error: errorReason || null, metadata: { bybit_health: { connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason, checks } }, updated_at: new Date().toISOString() }).eq("provider_name", "bybit");
+  return { success: connected, connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason || null, checks };
 }
 
 async function binanceRequest<T>(method: "GET" | "POST" | "DELETE", path: string, params: Record<string, string | number | boolean> = {}, signed = false): Promise<T> {
@@ -1604,6 +1662,7 @@ Deno.serve(async (req: Request) => {
     const action = body.action ?? "status";
     let payload: Json;
     if (action === "status") payload = await statusPayload(supabase);
+    else if (action === "diagnose_bybit_testnet_connection") payload = await diagnoseBybitTestnetConnection(supabase);
     else if (action === "diagnose_margin_fallback") payload = await diagnoseMarginFallback(supabase, cleanSignalId(body.signal_id));
     else if (action === "test_connection") { assertLiveTradingImpossible(); payload = { success: true, account: await binanceRequest("GET", "/fapi/v2/account", {}, true), base_url: safeBaseUrl() }; }
     else if (action === "validate_symbol") payload = { success: true, rules: await getRules(body.symbol ?? "BTCUSDT") };

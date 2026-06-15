@@ -52,6 +52,7 @@ type ExecutionSettingsSnapshot = {
 
 type ProviderControl = {
   provider_name: 'binance' | 'bybit' | 'mt5';
+  provider?: 'binance' | 'bybit' | 'mt5';
   enabled: boolean;
   parallel_enabled: boolean;
   primary_provider: boolean;
@@ -59,9 +60,20 @@ type ProviderControl = {
   profit_lock_enabled: boolean;
   monitor_enabled: boolean;
   protection_recovery_enabled: boolean;
+  recovery_enabled?: boolean | null;
   provider_kill_switch: boolean;
+  kill_switch?: boolean | null;
   status: string;
   last_error: string | null;
+};
+
+type ProviderControlsErrorKind = 'missing_table' | 'rls_blocked' | 'rows_missing' | 'query_failed' | '';
+
+type ProviderGlobalControls = {
+  id: number;
+  primary_provider: 'binance' | 'bybit' | 'mt5';
+  parallel_mode_enabled: boolean;
+  live_trading_enabled: boolean;
 };
 
 type OperatorRoutingSnapshot = {
@@ -138,6 +150,8 @@ export default function Execution() {
   const [result, setResult] = useState<ActionResult | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<'all' | 'binance' | 'bybit' | 'mt5'>('binance');
   const [providerControls, setProviderControls] = useState<ProviderControl[]>([]);
+  const [providerGlobalControls, setProviderGlobalControls] = useState<ProviderGlobalControls | null>(null);
+  const [providerControlsError, setProviderControlsError] = useState<{ kind: ProviderControlsErrorKind; message: string }>({ kind: '', message: '' });
 
   const executions = useMemo(() => {
     const rows = status?.executions ?? [];
@@ -217,13 +231,34 @@ export default function Execution() {
     return callExecution('update_settings', { settings: settingsPatch });
   }
 
+  function classifyProviderControlsError(message: string): { kind: ProviderControlsErrorKind; message: string } {
+    const lower = message.toLowerCase();
+    if (lower.includes('does not exist') || lower.includes('schema cache') || lower.includes('42p01')) return { kind: 'missing_table', message: 'Provider controls table missing.' };
+    if (lower.includes('row-level security') || lower.includes('permission denied') || lower.includes('42501') || lower.includes('forbidden')) return { kind: 'rls_blocked', message: 'Provider controls blocked by RLS policy.' };
+    return { kind: 'query_failed', message: `Provider controls query failed: ${message}` };
+  }
+
   async function updateProviderControl(providerName: ProviderControl['provider_name'], patch: Partial<ProviderControl>) {
     const { error } = await supabase
       .from('execution_provider_controls')
       .update({ ...patch, updated_at: new Date().toISOString() })
       .eq('provider_name', providerName);
     if (error) {
-      setResult({ success: false, error: error.message });
+      const classified = classifyProviderControlsError(error.message);
+      setProviderControlsError(classified);
+      setResult({ success: false, error: classified.message });
+      return;
+    }
+    await load();
+  }
+
+  async function updateProviderGlobalControls(patch: Partial<ProviderGlobalControls>) {
+    const safePatch = { ...patch, live_trading_enabled: false, updated_at: new Date().toISOString() };
+    const { error } = await supabase.from('execution_provider_global_controls').update(safePatch).eq('id', 1);
+    if (error) {
+      const classified = classifyProviderControlsError(error.message);
+      setProviderControlsError(classified);
+      setResult({ success: false, error: classified.message });
       return;
     }
     await load();
@@ -257,7 +292,7 @@ export default function Execution() {
     setLoading(true);
     const dayStart = new Date();
     dayStart.setUTCHours(0, 0, 0, 0);
-    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes] = await Promise.all([
+    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes] = await Promise.all([
       fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
@@ -270,6 +305,7 @@ export default function Execution() {
       supabase.from('telegram_deliveries').select('id', { count: 'exact', head: true }).eq('destination_channel', 'free').eq('delivery_type', 'free_selected_signal').eq('delivery_status', 'sent').gte('created_at', dayStart.toISOString()),
       supabase.from('telegram_deliveries').select('destination_channel,delivery_status,error_message,created_at').order('created_at', { ascending: false }).limit(50),
       supabase.from('execution_provider_controls').select('*').order('provider_name'),
+      supabase.from('execution_provider_global_controls').select('*').eq('id', 1).maybeSingle(),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -283,7 +319,17 @@ export default function Execution() {
       if (!health[channel]) health[channel] = { latest_status: row.delivery_status, latest_error: row.error_message, latest_at: row.created_at };
     }
     setOperatorRouting({ last_admin_alert: adminAlertRes.data ?? null, last_admin_digest: adminDigestRes.data ?? null, free_selected_today: freeSelectedRes.count ?? 0, telegram_health: health });
-    setProviderControls((providerControlsRes.data ?? []) as ProviderControl[]);
+    const controlsError = providerControlsRes.error ?? providerGlobalControlsRes.error;
+    if (controlsError) {
+      setProviderControlsError(classifyProviderControlsError(controlsError.message));
+      setProviderControls([]);
+      setProviderGlobalControls(null);
+    } else {
+      const controls = (providerControlsRes.data ?? []) as ProviderControl[];
+      setProviderControls(controls);
+      setProviderGlobalControls((providerGlobalControlsRes.data ?? null) as ProviderGlobalControls | null);
+      setProviderControlsError(controls.length === 0 ? { kind: 'rows_missing', message: 'Provider controls rows missing.' } : { kind: '', message: '' });
+    }
     setLoading(false);
   }, [session]);
 
@@ -400,8 +446,19 @@ export default function Execution() {
             <h2 className="font-semibold text-sm">Provider Controls</h2>
             <p className="text-xs text-zinc-500 mt-0.5">Binance ON/OFF, Bybit ON/OFF, parallel mode, primary provider, read-only mode, provider kill switches, and per-provider monitor/profit-lock/recovery controls.</p>
           </div>
-          <Badge variant={providerControls.some((control) => control.parallel_enabled) ? 'blue' : 'gray'}>{providerControls.some((control) => control.parallel_enabled) ? 'Parallel Mode ON' : 'Parallel Mode OFF'}</Badge>
+          <Badge variant={providerGlobalControls?.parallel_mode_enabled ? 'blue' : 'gray'}>{providerGlobalControls?.parallel_mode_enabled ? 'Parallel Mode ON' : 'Parallel Mode OFF'}</Badge>
         </div>
+        <div className="flex flex-wrap gap-3 mb-4">
+          <button type="button" onClick={() => updateProviderGlobalControls({ parallel_mode_enabled: !providerGlobalControls?.parallel_mode_enabled })} className={`rounded-lg border px-3 py-2 text-sm ${providerGlobalControls?.parallel_mode_enabled ? 'border-blue-500/40 bg-blue-500/10 text-blue-200' : 'border-zinc-800 bg-zinc-950 text-zinc-400'}`}>Parallel Mode: {providerGlobalControls?.parallel_mode_enabled ? 'ON' : 'OFF'}</button>
+          <label className="text-sm text-zinc-400 flex items-center gap-2">Primary Provider
+            <select value={providerGlobalControls?.primary_provider ?? providerControls.find((control) => control.primary_provider)?.provider_name ?? 'binance'} onChange={(event) => updateProviderGlobalControls({ primary_provider: event.target.value as 'binance' | 'bybit' | 'mt5' })} className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200">
+              <option value="binance">Binance</option><option value="bybit">Bybit</option><option value="mt5">MT5</option>
+            </select>
+          </label>
+          <button type="button" onClick={() => callExecution('diagnose_bybit_testnet_connection')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Diagnose Bybit Testnet</button>
+          <Badge variant="gray">Live Trading: OFF</Badge>
+        </div>
+        {providerControlsError.message && <div className={`mb-4 rounded-lg border p-3 text-sm ${providerControlsError.kind === 'rls_blocked' || providerControlsError.kind === 'missing_table' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'}`}>{providerControlsError.message}</div>}
         <div className="grid md:grid-cols-3 gap-3">
           {providerControls.map((control) => (
             <div key={control.provider_name} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
@@ -412,8 +469,7 @@ export default function Execution() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {[
                   ['enabled', 'ON/OFF'],
-                  ['parallel_enabled', 'Parallel'],
-                  ['primary_provider', 'Primary'],
+
                   ['read_only', 'Read-only'],
                   ['profit_lock_enabled', 'Profit Lock'],
                   ['monitor_enabled', 'Monitor'],
@@ -433,7 +489,7 @@ export default function Execution() {
               {control.last_error && <div className="mt-3 text-xs text-red-300">{control.last_error}</div>}
             </div>
           ))}
-          {providerControls.length === 0 && <div className="text-sm text-zinc-500">Provider controls table not migrated yet.</div>}
+          {providerControls.length === 0 && !providerControlsError.message && <div className="text-sm text-zinc-500">Provider controls rows missing.</div>}
         </div>
       </div>
 
