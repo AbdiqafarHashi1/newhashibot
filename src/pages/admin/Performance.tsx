@@ -697,7 +697,7 @@ export default function Performance() {
           .limit(5000),
         supabase.from('strategy_configs').select('strategy_name').order('strategy_name'),
         supabase.from('execution_orders')
-          .select('id,signal_id,symbol,direction,execution_mode,status,latest_auto_skip_reason,error_message,last_exchange_error,latest_monitor_error,latest_sync_error,entry_price,stop_loss,tp1,tp2,entry_order_id,binance_entry_order_id,sl_algo_id,tp1_algo_id,tp2_algo_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,entry_filled_at,protection_submitted_at,protected_at,protection_status,bracket_mode,native_protection_verified,managed_fallback_active,current_position_size,remaining_quantity,remaining_qty,runner_active,profit_lock_sl_active,tp1_filled,tp2_filled,tp1_closed_at,tp2_closed_at,sl_closed_at,timeout_closed_at,stale_checked_at,stale_cleanup_reason,last_monitor_action,latest_mark_price,latest_unrealized_pnl,created_at,updated_at')
+          .select('id,signal_id,symbol,direction,execution_mode,execution_provider,provider_status,provider_fill_price,provider_fee,provider_slippage,status,latest_auto_skip_reason,error_message,last_exchange_error,latest_monitor_error,latest_sync_error,entry_price,stop_loss,tp1,tp2,entry_order_id,binance_entry_order_id,sl_algo_id,tp1_algo_id,tp2_algo_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,entry_filled_at,protection_submitted_at,protected_at,protection_status,bracket_mode,native_protection_verified,managed_fallback_active,current_position_size,remaining_quantity,remaining_qty,runner_active,profit_lock_sl_active,tp1_filled,tp2_filled,tp1_closed_at,tp2_closed_at,sl_closed_at,timeout_closed_at,stale_checked_at,stale_cleanup_reason,last_monitor_action,latest_mark_price,latest_unrealized_pnl,created_at,updated_at')
           .order('created_at', { ascending: false })
           .limit(5000),
         supabase.from('execution_settings')
@@ -977,7 +977,7 @@ export default function Performance() {
             <BarChart2 size={22} className="text-blue-400" />
             Performance Truth Separation
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Three separate truths: strategy signal performance, Binance testnet execution performance, and bot health/protection safety.</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Separate truths: Signal Performance (paper/theoretical), Execution Performance by provider (Binance, Bybit, MT5, combined), and bot health/protection safety. Provider results are never mixed unless the Combined view is explicitly selected.</p>
           <p className="text-xs text-zinc-500 mt-2">
             {baselineStartedAt ? `Current baseline started: ${fmtDateTime(baselineStartedAt)}` : 'Baseline: all available trading history'}
           </p>
@@ -1337,7 +1337,7 @@ export default function Performance() {
         <div className="flex items-start gap-2 mb-3">
           <Activity size={16} className="text-cyan-400 mt-0.5" />
           <div>
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Binance Testnet Execution Performance</h2>
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Execution Performance — Binance / Bybit / MT5 / Combined</h2>
             <p className="text-xs text-zinc-500 mt-1">Execution truth only. Unfilled limit entries are shown as no_trade and are excluded from bot win rate, PF, R, TP, and SL stats.</p>
           </div>
         </div>
