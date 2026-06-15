@@ -11,13 +11,16 @@ function jsonResponse(payload: unknown): Response {
 async function run() {
   assert.throws(() => new ExchangeProviderBybit({ baseUrl: 'https://api.bybit.com' }), /testnet-only/, 'Bybit adapter refuses live domain');
 
-  const calls: Array<{ url: string; method: string; body?: string | null }> = [];
+  const calls: Array<{ url: string; method: string; body?: string | null; headers?: Record<string, string> }> = [];
+  const authDebug: unknown[] = [];
   const bybit = new ExchangeProviderBybit({
     apiKey: 'key',
     apiSecret: 'secret',
     now: () => 1781308800073,
+    debugAuth: true,
+    logger: { debug: (_message: string, details?: unknown) => { authDebug.push(details); } },
     fetchImpl: (async (url: RequestInfo | URL, init?: RequestInit) => {
-      calls.push({ url: String(url), method: String(init?.method), body: init?.body?.toString() });
+      calls.push({ url: String(url), method: String(init?.method), body: init?.body?.toString(), headers: init?.headers as Record<string, string> });
       if (String(url).includes('/v5/account/wallet-balance')) return jsonResponse({ retCode: 0, retMsg: 'OK', result: { list: [{ coin: [{ coin: 'USDT', availableToWithdraw: '100', equity: '125' }] }] } });
       if (String(url).includes('/v5/position/list')) return jsonResponse({ retCode: 0, retMsg: 'OK', result: { list: [{ symbol: 'ETHUSDT', side: 'Buy', size: '0.2', avgPrice: '3000', markPrice: '3010', unrealisedPnl: '2' }] } });
       if (String(url).includes('/v5/order/realtime')) return jsonResponse({ retCode: 0, retMsg: 'OK', result: { list: [{ orderId: 'sl-1', symbol: 'ETHUSDT', side: 'Sell', orderType: 'Market', orderStatus: 'New', qty: '0.2', triggerPrice: '2900', reduceOnly: true }] } });
@@ -32,11 +35,20 @@ async function run() {
   assert.equal(account.balances[0].asset, 'USDT');
   assert.equal(account.positions[0].symbol, 'ETHUSDT');
   assert.equal(account.openOrders[0].providerOrderId, 'sl-1');
+  const walletCall = calls.find((call) => call.url.includes('/v5/account/wallet-balance'));
+  assert.equal(walletCall?.url, 'https://api-testnet.bybit.com/v5/account/wallet-balance?accountType=UNIFIED', 'Bybit GET query string is deterministic and included in the URL');
+  assert.equal(walletCall?.headers?.['X-BAPI-API-KEY'], 'key', 'Bybit sends API key header');
+  assert.equal(walletCall?.headers?.['X-BAPI-TIMESTAMP'], '1781308800073', 'Bybit sends millisecond timestamp header');
+  assert.equal(walletCall?.headers?.['X-BAPI-RECV-WINDOW'], '5000', 'Bybit sends recv_window header');
+  assert.equal(walletCall?.headers?.['X-BAPI-SIGN'], '3f72e113827b035c8832d7248adbd22f7cb9aaa5f92463c3044fd5ad3175c8b8', 'Bybit GET signature signs timestamp + apiKey + recvWindow + queryString');
+  assert.deepEqual(authDebug[0], { endpoint: '/v5/account/wallet-balance', method: 'GET', timestamp: '1781308800073', recv_window: 5000, pre_sign_string: '1781308800073[REDACTED_API_KEY]5000accountType=UNIFIED', signature_length: 64 }, 'Bybit auth debug logs safe signing metadata only');
 
   const entry = await bybit.placeEntry({ signalId: 'sig-1', symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100 });
   assert.equal(entry.ok, true);
   assert.equal(entry.providerOrderId, 'order-1');
-  assert.equal(calls.some((call) => call.url.startsWith('https://api-testnet.bybit.com/v5/order/create')), true, 'Bybit uses testnet REST endpoint');
+  const entryCall = calls.find((call) => call.url.startsWith('https://api-testnet.bybit.com/v5/order/create'));
+  assert.equal(Boolean(entryCall), true, 'Bybit uses testnet REST endpoint');
+  assert.equal(entryCall?.headers?.['X-BAPI-SIGN'], '7eeabc1e6adbbcd79736fdf62d7f0a757a795dba1d248df7a84d031e2820c84e', 'Bybit POST signature signs timestamp + apiKey + recvWindow + requestBody');
 
   const sl = await bybit.placeSL({ symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100, metadata: { executionId: 'exec-1' } });
   assert.equal(sl.status, 'sl_submitted');
