@@ -31,6 +31,8 @@ type ParityRow = {
   created_at: string;
 };
 
+type ProviderControl = { provider_name: string; enabled: boolean; read_only: boolean; monitor_enabled: boolean; protection_recovery_enabled: boolean; provider_kill_switch: boolean; status: string; };
+
 type ProviderPerformance = {
   provider_name: string;
   executions: number;
@@ -53,20 +55,25 @@ export default function ProviderComparison() {
   const [performance, setPerformance] = useState<ProviderPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [controls, setControls] = useState<ProviderControl[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       setError('');
-      const [parityRes, performanceRes] = await Promise.all([
+      const [parityRes, performanceRes, controlsRes] = await Promise.all([
         supabase.from('provider_parity_audit').select('*').order('created_at', { ascending: false }).limit(100),
         supabase.from('provider_execution_performance').select('*').order('provider_name'),
+        supabase.from('execution_provider_controls').select('provider_name,enabled,read_only,monitor_enabled,protection_recovery_enabled,provider_kill_switch,status').order('provider_name'),
       ]);
       if (cancelled) return;
-      if (parityRes.error || performanceRes.error) setError(parityRes.error?.message ?? performanceRes.error?.message ?? 'Unable to load provider comparison data');
+      if (parityRes.error || performanceRes.error || controlsRes.error) setError(parityRes.error?.message ?? performanceRes.error?.message ?? controlsRes.error?.message ?? 'Unable to load provider comparison data');
       setRows((parityRes.data ?? []) as ParityRow[]);
-      setPerformance((performanceRes.data ?? []) as ProviderPerformance[]);
+      const perfRows = (performanceRes.data ?? []) as ProviderPerformance[];
+      const byProvider = new Map(perfRows.map((row) => [row.provider_name, row]));
+      setPerformance(['binance', 'bybit', 'mt5'].map((provider_name) => byProvider.get(provider_name) ?? { provider_name, executions: 0, wins: 0, losses: 0, execution_failures: 0, protected_count: 0, protection_failures: 0, profit_lock_successes: 0, avg_slippage: null, avg_hold_minutes: null }));
+      setControls((controlsRes.data ?? []) as ProviderControl[]);
       setLoading(false);
     }
     void load();
@@ -92,6 +99,8 @@ export default function ProviderComparison() {
 
       {error && <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
 
+      <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-sm text-blue-200">Provider comparison ready; waiting for provider data. Binance includes legacy execution rows where <code>execution_provider</code> is null. Bybit stays empty until real Bybit test executions exist; MT5 is placeholder only.</div>
+
       <section className="grid md:grid-cols-3 gap-4 mb-6">
         {performance.map((provider) => (
           <div key={provider.provider_name} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
@@ -99,6 +108,8 @@ export default function ProviderComparison() {
               <h2 className="font-semibold uppercase text-sm">{provider.provider_name}</h2>
               <Badge variant={provider.provider_name === 'binance' ? 'green' : provider.provider_name === 'bybit' ? 'blue' : 'gray'}>{provider.executions} executions</Badge>
             </div>
+            {provider.executions === 0 && <div className="mb-3 text-xs text-zinc-500">{provider.provider_name === 'bybit' ? 'No Bybit executions yet' : provider.provider_name === 'mt5' ? 'MT5 placeholder only' : 'No Binance executions yet'}</div>}
+            {controls.find((control) => control.provider_name === provider.provider_name) && <div className="mb-3 text-xs text-zinc-400">Controls: {controls.find((control) => control.provider_name === provider.provider_name)?.enabled ? 'enabled' : 'disabled'} · {controls.find((control) => control.provider_name === provider.provider_name)?.read_only ? 'read-only' : 'write testnet'} · {controls.find((control) => control.provider_name === provider.provider_name)?.provider_kill_switch ? 'kill switch' : 'kill switch off'}</div>}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div><div className="text-zinc-500">Win Rate</div><div className="font-mono text-zinc-100">{pct(provider.wins, provider.wins + provider.losses)}</div></div>
               <div><div className="text-zinc-500">Execution Failure</div><div className="font-mono text-zinc-100">{pct(provider.execution_failures, provider.executions)}</div></div>
@@ -114,7 +125,7 @@ export default function ProviderComparison() {
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 mb-6">
         <h2 className="font-semibold text-sm flex items-center gap-2 mb-3"><Zap size={16} className="text-yellow-400" />Automatic Provider Rankings</h2>
-        {rankings.length === 0 ? <p className="text-sm text-zinc-500">No parity events recorded yet.</p> : (
+        {rankings.length === 0 ? <p className="text-sm text-zinc-500">No parity rows yet because parallel test has not run</p> : (
           <div className="flex flex-wrap gap-2">{rankings.map(([provider, count]) => <Badge key={provider} variant="purple">{provider}: {count}</Badge>)}</div>
         )}
       </section>
@@ -127,7 +138,7 @@ export default function ProviderComparison() {
               <tr><th className="px-3 py-2 text-left">Signal</th><th className="px-3 py-2 text-left">Symbol</th><th className="px-3 py-2 text-left">Event</th><th className="px-3 py-2 text-left">Binance</th><th className="px-3 py-2 text-left">Bybit</th><th className="px-3 py-2 text-left">Fill Diff</th><th className="px-3 py-2 text-left">Protection</th><th className="px-3 py-2 text-left">Recovery</th><th className="px-3 py-2 text-left">Profit Lock</th><th className="px-3 py-2 text-left">Best</th></tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
-              {loading ? <tr><td className="px-3 py-4 text-zinc-500" colSpan={10}>Loading…</td></tr> : rows.length === 0 ? <tr><td className="px-3 py-4 text-zinc-500" colSpan={10}>No parity audit rows yet. Parallel mode will populate this table.</td></tr> : rows.map((row) => (
+              {loading ? <tr><td className="px-3 py-4 text-zinc-500" colSpan={10}>Loading…</td></tr> : rows.length === 0 ? <tr><td className="px-3 py-4 text-zinc-500" colSpan={10}>No parity rows yet because parallel test has not run</td></tr> : rows.map((row) => (
                 <tr key={row.id} className="hover:bg-zinc-800/40">
                   <td className="px-3 py-2 font-mono text-xs text-zinc-400">{row.signal_id ?? row.execution_group_id ?? '—'}</td>
                   <td className="px-3 py-2"><div className="font-medium">{row.symbol}</div><div className="text-xs text-zinc-500">{row.direction ?? '—'}</div></td>
