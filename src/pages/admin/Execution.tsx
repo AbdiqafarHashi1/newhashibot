@@ -199,6 +199,12 @@ export default function Execution() {
     latest_monitor_result: monitorState?.latest_monitor_result,
   });
   const monitorUnhealthyReason = monitorTruth.level === 'healthy' ? '' : monitorTruth.reason;
+  const entryEngineOn = status?.settings?.auto_execute_testnet === true && status?.settings?.kill_switch_enabled !== true && status?.settings?.bot_paused !== true;
+  const monitorEngineOn = status?.settings?.bot_paused !== true;
+  const recoveryEngineOn = status?.settings?.bot_paused !== true;
+  const emergencyStopOn = status?.settings?.bot_paused === true;
+  const killSwitchOn = status?.settings?.kill_switch_enabled === true;
+  const existingPositionsProtected = monitorTruth.level !== 'critical' && !openExecutions.some((execution) => ['protection_failed', 'unprotected'].includes(String(execution.protection_status ?? execution.status)));
   const monitorTruthStatus = monitorTruth.label;
   const profitLockMode = status?.settings?.enable_profit_lock_engine !== true
     ? 'disabled'
@@ -403,6 +409,23 @@ export default function Execution() {
         </div>
       )}
 
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-sm">GLOBAL CONTROL ROOM</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Entries, monitoring, recovery, kill switch and emergency stop are separate states. Kill switch blocks entries only; emergency stop blocks all engines.</p>
+          </div>
+          <Badge variant={existingPositionsProtected ? 'green' : 'red'}>Existing positions protected: {existingPositionsProtected ? 'YES' : 'NO'}</Badge>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Entries</div><div className={entryEngineOn ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{entryEngineOn ? 'ON' : 'OFF'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Monitor</div><div className={monitorEngineOn ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{monitorEngineOn ? 'ON' : 'OFF'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Recovery</div><div className={recoveryEngineOn ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{recoveryEngineOn ? 'ON' : 'OFF'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Kill Switch</div><div className={killSwitchOn ? 'text-red-300 mt-1' : 'text-emerald-300 mt-1'}>{killSwitchOn ? 'ON' : 'OFF'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Emergency Stop</div><div className={emergencyStopOn ? 'text-red-300 mt-1' : 'text-emerald-300 mt-1'}>{emergencyStopOn ? 'ON' : 'OFF'}</div></div>
+        </div>
+      </div>
+
       <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-xl p-4 mb-6 flex gap-3">
         <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
         <div className="text-sm text-yellow-300/90">
@@ -470,9 +493,12 @@ export default function Execution() {
               <option value="binance">Binance</option><option value="bybit">Bybit</option><option value="mt5">MT5</option>
             </select>
           </label>
-          <button type="button" onClick={() => runBybitDebug('health')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Bybit Health Check</button>
-          <button type="button" onClick={() => runBybitDebug('account_capital')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Bybit Account/Capital Debug</button>
-          <button type="button" onClick={() => runBybitDebug('positions_orders')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Bybit Positions/Orders Debug</button>
+          <button type="button" onClick={() => runBybitDebug('health')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Test Bybit Connection <span className="sr-only">Bybit Health Check</span></button>
+          <button type="button" onClick={() => runBybitDebug('account_capital')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Diagnose Bybit Account <span className="sr-only">Bybit Account/Capital Debug</span></button>
+          <button type="button" onClick={() => runBybitDebug('balances')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Fetch Balances</button>
+          <button type="button" onClick={() => runBybitDebug('positions_orders')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Fetch Positions / Fetch Orders <span className="sr-only">Bybit Positions/Orders Debug</span></button>
+          <button type="button" onClick={() => runBybitDebug('symbols')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Validate Symbols</button>
+          <button type="button" onClick={() => runBybitDebug('dry_run_signal')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Dry Run Signal</button>
           <Badge variant="gray">Live Trading: OFF</Badge>
         </div>
         {providerControlsError.message && <div className={`mb-4 rounded-lg border p-3 text-sm ${providerControlsError.kind === 'rls_blocked' || providerControlsError.kind === 'missing_table' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'}`}>{providerControlsError.message}</div>}
@@ -603,7 +629,7 @@ export default function Execution() {
             <h2 className="font-semibold text-sm">Binance Testnet Monitor</h2>
             <p className="text-xs text-zinc-500 mt-0.5">1-minute bot supervisor snapshot. Binance Demo only — live trading remains disabled.</p>
           </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full border ${monitorTruth.level === 'critical' || monitorTruth.level === 'stale' ? 'border-red-500/30 bg-red-500/10 text-red-300' : monitorTruth.level === 'degraded' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
+          <span className={`text-xs px-2 py-0.5 rounded-full border ${monitorTruth.level === 'critical' || monitorTruth.level === 'stale' ? 'border-red-500/30 bg-red-500/10 text-red-300' : monitorTruth.level === 'warning' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
             {monitorTruthStatus} · {monitorResultStatus}
           </span>
         </div>
