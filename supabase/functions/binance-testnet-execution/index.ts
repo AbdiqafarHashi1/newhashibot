@@ -475,7 +475,23 @@ async function hmacSha256Hex(secret: string, payload: string): Promise<string> {
 }
 
 function stringifyParams(params: Record<string, string | number | boolean>): string {
-  return Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
+  return Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== "")
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
+}
+
+function logBybitAuthDebug(details: { endpoint: string; method: string; timestamp: string; recvWindow: number; preSign: string; signature: string; apiKey: string }): void {
+  if (!envBool("BYBIT_DEBUG_AUTH", false)) return;
+  console.log("Bybit V5 auth debug", {
+    endpoint: details.endpoint,
+    method: details.method,
+    timestamp: details.timestamp,
+    recv_window: details.recvWindow,
+    pre_sign_string: details.preSign.replace(details.apiKey, "[REDACTED_API_KEY]"),
+    signature_length: details.signature.length,
+  });
 }
 
 class BinanceApiError extends Error {
@@ -508,7 +524,9 @@ async function bybitRequest<T>(method: "GET", path: string, params: Record<strin
   const recvWindow = 5000;
   const timestamp = String(Date.now());
   const query = stringifyParams(params);
-  const signature = await hmacSha256Hex(apiSecret, `${timestamp}${apiKey}${recvWindow}${query}`);
+  const preSign = `${timestamp}${apiKey}${recvWindow}${query}`;
+  const signature = await hmacSha256Hex(apiSecret, preSign);
+  logBybitAuthDebug({ endpoint: path, method, timestamp, recvWindow, preSign, signature, apiKey });
   const res = await fetch(`${bybitBaseUrl()}${path}${query ? `?${query}` : ""}`, {
     method,
     headers: { "X-BAPI-API-KEY": apiKey, "X-BAPI-TIMESTAMP": timestamp, "X-BAPI-RECV-WINDOW": String(recvWindow), "X-BAPI-SIGN": signature },

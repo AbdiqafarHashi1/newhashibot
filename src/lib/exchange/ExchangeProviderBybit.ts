@@ -12,6 +12,8 @@ type BybitConfig = {
   recvWindow?: number;
   fetchImpl?: typeof fetch;
   now?: () => number;
+  debugAuth?: boolean;
+  logger?: Pick<Console, 'debug'>;
 };
 
 type BybitResponse<T> = { retCode: number; retMsg: string; result: T; time?: number };
@@ -23,7 +25,11 @@ function side(side: 'long' | 'short'): 'Buy' | 'Sell' { return side === 'long' ?
 function closeSide(sideValue: 'long' | 'short'): 'Buy' | 'Sell' { return sideValue === 'long' ? 'Sell' : 'Buy'; }
 function safeNumber(value: unknown): number { const n = Number(value); return Number.isFinite(n) ? n : 0; }
 function jsonQuery(params: Record<string, string | number | boolean | undefined>): string {
-  return Object.entries(params).filter(([, value]) => value !== undefined && value !== '').sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`).join('&');
+  return Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
 }
 async function hmacSha256(secret: string, payload: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -57,8 +63,18 @@ export class ExchangeProviderBybit implements ExchangeProvider {
     const timestamp = String(this.now());
     const body = method === 'POST' ? JSON.stringify(params) : '';
     const query = method === 'GET' ? jsonQuery(params as Record<string, string | number | boolean | undefined>) : '';
-    const payload = `${timestamp}${this.config.apiKey}${this.recvWindow}${method === 'GET' ? query : body}`;
-    const signature = await hmacSha256(this.config.apiSecret as string, payload);
+    const preSign = `${timestamp}${this.config.apiKey}${this.recvWindow}${method === 'GET' ? query : body}`;
+    const signature = await hmacSha256(this.config.apiSecret as string, preSign);
+    if (this.config.debugAuth) {
+      (this.config.logger ?? console).debug('Bybit V5 auth debug', {
+        endpoint: path,
+        method,
+        timestamp,
+        recv_window: this.recvWindow,
+        pre_sign_string: preSign.replace(this.config.apiKey as string, '[REDACTED_API_KEY]'),
+        signature_length: signature.length,
+      });
+    }
     const res = await this.fetchImpl(`${this.baseUrl}${path}${query ? `?${query}` : ''}`, {
       method,
       headers: {
