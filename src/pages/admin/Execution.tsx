@@ -129,6 +129,14 @@ interface ActionResult {
   admin_action_needed?: string;
   result?: Record<string, unknown>;
   rules?: Record<string, unknown>;
+  checks?: Record<string, unknown>;
+  connected?: boolean;
+  safe_for_test_order?: boolean;
+  missing_permissions?: string[];
+  error_reason?: string | null;
+  balances?: unknown[];
+  positions?: unknown[];
+  open_orders?: unknown[];
   account_state?: Record<string, unknown> | null;
   governor?: Record<string, unknown>;
   cleaned_count?: number;
@@ -152,6 +160,7 @@ export default function Execution() {
   const [providerControls, setProviderControls] = useState<ProviderControl[]>([]);
   const [providerGlobalControls, setProviderGlobalControls] = useState<ProviderGlobalControls | null>(null);
   const [providerControlsError, setProviderControlsError] = useState<{ kind: ProviderControlsErrorKind; message: string }>({ kind: '', message: '' });
+  const [bybitDebug, setBybitDebug] = useState<ActionResult | null>(null);
 
   const executions = useMemo(() => {
     const rows = status?.executions ?? [];
@@ -349,6 +358,12 @@ export default function Execution() {
   }
 
 
+  async function runBybitDebug(label: string) {
+    const data = await callExecution('diagnose_bybit_testnet_connection', { debug_panel: label });
+    setBybitDebug(data);
+    return data;
+  }
+
   async function resetTestnetGovernor() {
     await callExecution('reset_testnet_governor');
   }
@@ -455,7 +470,9 @@ export default function Execution() {
               <option value="binance">Binance</option><option value="bybit">Bybit</option><option value="mt5">MT5</option>
             </select>
           </label>
-          <button type="button" onClick={() => callExecution('diagnose_bybit_testnet_connection')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Diagnose Bybit Testnet</button>
+          <button type="button" onClick={() => runBybitDebug('health')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Bybit Health Check</button>
+          <button type="button" onClick={() => runBybitDebug('account_capital')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Bybit Account/Capital Debug</button>
+          <button type="button" onClick={() => runBybitDebug('positions_orders')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Bybit Positions/Orders Debug</button>
           <Badge variant="gray">Live Trading: OFF</Badge>
         </div>
         {providerControlsError.message && <div className={`mb-4 rounded-lg border p-3 text-sm ${providerControlsError.kind === 'rls_blocked' || providerControlsError.kind === 'missing_table' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'}`}>{providerControlsError.message}</div>}
@@ -491,6 +508,27 @@ export default function Execution() {
           ))}
           {providerControls.length === 0 && !providerControlsError.message && <div className="text-sm text-zinc-500">Provider controls rows missing.</div>}
         </div>
+      </div>
+
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-sm">Bybit Testnet Monitor</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Read-only Bybit diagnostics for health, account/capital, positions and open orders. These controls never place trades.</p>
+          </div>
+          <Badge variant={bybitDebug?.connected ? 'green' : 'gray'}>{bybitDebug?.connected ? 'Connected' : 'Empty / not checked'}</Badge>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Health</div><div className={bybitDebug?.connected ? 'text-emerald-300 mt-1' : 'text-zinc-400 mt-1'}>{bybitDebug ? (bybitDebug.connected ? 'healthy' : 'not connected') : 'No Bybit health check run'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Safe For Test Order</div><div className="text-zinc-200 mt-1">{bybitDebug?.safe_for_test_order ? 'YES' : 'NO'}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Capital Rows</div><div className="text-zinc-200 mt-1">{bybitDebug?.balances?.length ?? 0}</div></div>
+          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Positions / Orders</div><div className="text-zinc-200 mt-1">{bybitDebug?.positions?.length ?? 0} / {bybitDebug?.open_orders?.length ?? 0}</div></div>
+        </div>
+        <details className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-xs text-zinc-400" open={Boolean(bybitDebug)}>
+          <summary className="cursor-pointer text-zinc-300">Bybit account/capital/positions/orders raw debug</summary>
+          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words">{JSON.stringify({ checks: bybitDebug?.checks ?? {}, balances: bybitDebug?.balances ?? [], positions: bybitDebug?.positions ?? [], open_orders: bybitDebug?.open_orders ?? [], missing_permissions: bybitDebug?.missing_permissions ?? [], error_reason: bybitDebug?.error_reason ?? null }, null, 2)}</pre>
+        </details>
       </div>
 
       {/* Bot State Control Panel */}

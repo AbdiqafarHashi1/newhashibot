@@ -532,6 +532,9 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
   let safeForTestOrder = false;
   let errorReason = "";
   let missingPermissions: string[] = [];
+  let balancesPayload: unknown[] = [];
+  let positionsPayload: unknown[] = [];
+  let openOrdersPayload: unknown[] = [];
   try {
     if (missing.length) throw new Error(`Missing configuration: ${missing.join(", ")}`);
     const [balances, positions, openOrders, instruments] = await Promise.all([
@@ -540,8 +543,11 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
       bybitRequest("GET", "/v5/order/realtime", { category: "linear", openOnly: 0 }),
       bybitRequest<{ list?: Array<{ symbol?: string; status?: string }> }>("GET", "/v5/market/instruments-info", { category: "linear" }),
     ]);
+    balancesPayload = ((balances as { list?: unknown[] })?.list ?? []) as unknown[];
+    positionsPayload = ((positions as { list?: unknown[] })?.list ?? []) as unknown[];
+    openOrdersPayload = ((openOrders as { list?: unknown[] })?.list ?? []) as unknown[];
     const supported = new Set((instruments.list ?? []).filter((row) => row.status === "Trading").map((row) => row.symbol));
-    Object.assign(checks, { auth: true, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders) });
+    Object.assign(checks, { auth: true, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders), balances_count: Array.isArray((balances as { list?: unknown[] })?.list) ? (balances as { list?: unknown[] }).list?.length ?? 0 : 0, positions_count: Array.isArray((positions as { list?: unknown[] })?.list) ? (positions as { list?: unknown[] }).list?.length ?? 0 : 0, open_orders_count: Array.isArray((openOrders as { list?: unknown[] })?.list) ? (openOrders as { list?: unknown[] }).list?.length ?? 0 : 0 });
     connected = true;
     safeForTestOrder = enabled && supported.has("BTCUSDT") && supported.has("ETHUSDT") && supported.has("SOLUSDT");
   } catch (e) {
@@ -549,7 +555,7 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
     if (/permission|forbidden|denied|api key/i.test(errorReason)) missingPermissions = ["Bybit read wallet/position/order permission may be missing or key is invalid"];
   }
   await supabase.from("execution_provider_controls").update({ status: connected ? "connected" : "disconnected", last_status_at: new Date().toISOString(), last_error: errorReason || null, metadata: { bybit_health: { connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason, checks } }, updated_at: new Date().toISOString() }).eq("provider_name", "bybit");
-  return { success: connected, connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason || null, checks };
+  return { success: connected, connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason || null, checks, balances: balancesPayload, positions: positionsPayload, open_orders: openOrdersPayload };
 }
 
 async function binanceRequest<T>(method: "GET" | "POST" | "DELETE", path: string, params: Record<string, string | number | boolean> = {}, signed = false): Promise<T> {
