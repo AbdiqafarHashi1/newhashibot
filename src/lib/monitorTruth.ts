@@ -1,4 +1,4 @@
-export type MonitorTruthLevel = 'healthy' | 'degraded' | 'critical' | 'stale';
+export type MonitorTruthLevel = 'healthy' | 'warning' | 'critical' | 'stale';
 
 export interface MonitorTruthInput {
   latest_monitor_run_at?: string | null;
@@ -40,12 +40,14 @@ export function getMonitorTruth(input: MonitorTruthInput): { level: MonitorTruth
   const critical = count(result.unsafe_positions_count ?? result.unsafe_positions) > 0
     || count(result.critical_errors_count) > 0
     || count(reconciliation.unprotected_position_count) > 0
+    || count(reconciliation.orphan_position_count) > 0
+    || count(reconciliation.protection_failed_count) > 0
     || count(reconciliation.missing_sl_count) > 0
     || count(reconciliation.unresolved_critical_count) > 0
     || count(reconciliation.account_fetch_failed_count) > 0
     || count(reconciliation.reconciliation_failed_count) > 0
     || ['error', 'failed', 'completed_with_sync_error'].includes(status);
-  if (critical) return { level: 'critical', label: 'CRITICAL', reason: shortOperatorText(input.latest_monitor_error || input.latest_sync_error || 'critical monitor blocker exists'), runAgeSeconds: runAge, accountAgeSeconds: accountAge };
+  if (critical) return { level: 'critical', label: 'CRITICAL', reason: shortOperatorText(input.latest_monitor_error || input.latest_sync_error || 'position missing SL, orphan position, protection failure, or account fetch failure exists'), runAgeSeconds: runAge, accountAgeSeconds: accountAge };
 
   const checked = count(result.checked);
   const protectedCount = count(result.protected);
@@ -59,12 +61,15 @@ export function getMonitorTruth(input: MonitorTruthInput): { level: MonitorTruth
     && !result.latest_monitor_error
     && !result.latest_monitor_warning;
   const degradedSignals = count(result.warnings_count) > 0
+    || count(reconciliation.missing_tp1_count) > 0
+    || count(reconciliation.missing_tp2_count) > 0
+    || count(reconciliation.recovery_pending_count) > 0
     || count(result.row_errors_count) > 0
     || count(reconciliation.protection_degraded_count) > 0
     || count(reconciliation.duplicate_conditional_count) > 0
     || count(reconciliation.stale_or_orphan_order_count) > 0
     || Boolean(input.latest_monitor_error || input.latest_sync_error);
   const degraded = degradedSignals || (status === 'degraded' && !hasCleanProtectedState);
-  if (degraded) return { level: 'degraded', label: 'DEGRADED', reason: shortOperatorText(input.latest_monitor_error || input.latest_sync_error || 'recoverable warning; protected positions remain safe'), runAgeSeconds: runAge, accountAgeSeconds: accountAge };
+  if (degraded) return { level: 'warning', label: 'WARNING', reason: shortOperatorText(input.latest_monitor_error || input.latest_sync_error || 'missing TP, stale monitor warning, duplicate/order cleanup, or recovery pending'), runAgeSeconds: runAge, accountAgeSeconds: accountAge };
   return { level: 'healthy', label: 'HEALTHY', reason: 'latest monitor invocation and account fetch are recent with no unsafe positions', runAgeSeconds: runAge, accountAgeSeconds: accountAge };
 }

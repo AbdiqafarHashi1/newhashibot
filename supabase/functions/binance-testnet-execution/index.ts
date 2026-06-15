@@ -482,7 +482,7 @@ function stringifyParams(params: Record<string, string | number | boolean>): str
     .join("&");
 }
 
-function logBybitAuthDebug(details: { endpoint: string; method: string; timestamp: string; recvWindow: number; preSign: string; signature: string; apiKey: string }): void {
+function logBybitAuthDebug(details: { endpoint: string; method: string; timestamp: string; recvWindow: number; preSign: string; signature: string; apiKey: string; query?: string }): void {
   if (!envBool("BYBIT_DEBUG_AUTH", false)) return;
   console.log("Bybit V5 auth debug", {
     endpoint: details.endpoint,
@@ -491,6 +491,8 @@ function logBybitAuthDebug(details: { endpoint: string; method: string; timestam
     recv_window: details.recvWindow,
     pre_sign_string: details.preSign.replace(details.apiKey, "[REDACTED_API_KEY]"),
     signature_length: details.signature.length,
+    query_string: details.query ?? "",
+    header_names: ["X-BAPI-API-KEY", "X-BAPI-TIMESTAMP", "X-BAPI-RECV-WINDOW", "X-BAPI-SIGN", "X-BAPI-SIGN-TYPE"],
   });
 }
 
@@ -526,10 +528,10 @@ async function bybitRequest<T>(method: "GET", path: string, params: Record<strin
   const query = stringifyParams(params);
   const preSign = `${timestamp}${apiKey}${recvWindow}${query}`;
   const signature = await hmacSha256Hex(apiSecret, preSign);
-  logBybitAuthDebug({ endpoint: path, method, timestamp, recvWindow, preSign, signature, apiKey });
+  logBybitAuthDebug({ endpoint: path, method, timestamp, recvWindow, preSign, signature, apiKey, query });
   const res = await fetch(`${bybitBaseUrl()}${path}${query ? `?${query}` : ""}`, {
     method,
-    headers: { "X-BAPI-API-KEY": apiKey, "X-BAPI-TIMESTAMP": timestamp, "X-BAPI-RECV-WINDOW": String(recvWindow), "X-BAPI-SIGN": signature },
+    headers: { "X-BAPI-API-KEY": apiKey, "X-BAPI-TIMESTAMP": timestamp, "X-BAPI-RECV-WINDOW": String(recvWindow), "X-BAPI-SIGN": signature, "X-BAPI-SIGN-TYPE": "2" },
     signal: AbortSignal.timeout(10000),
   });
   const data = await res.json().catch(() => ({})) as { retCode?: number; retMsg?: string; result?: T };
@@ -545,7 +547,7 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
   if (!apiKey) missing.push("BYBIT_TESTNET_API_KEY");
   if (!apiSecret) missing.push("BYBIT_TESTNET_API_SECRET");
   if (!enabled) missing.push("BYBIT_TESTNET_ENABLED=true");
-  const checks: Json = { api_key_exists: Boolean(apiKey), api_secret_exists: Boolean(apiSecret), bybit_testnet_enabled: enabled, base_url: bybitBaseUrl(), base_url_is_testnet: bybitBaseUrl().includes("testnet") };
+  const checks: Json = { api_key_exists: Boolean(apiKey), api_secret_exists: Boolean(apiSecret), api_key_length: apiKey.length, api_secret_length: apiSecret.length, api_key_has_spaces: /\s/.test(apiKey), api_secret_has_spaces: /\s/.test(apiSecret), api_key_has_quotes: /['"]/.test(apiKey), api_secret_has_quotes: /['"]/.test(apiSecret), api_key_has_line_breaks: /[\r\n]/.test(apiKey), api_secret_has_line_breaks: /[\r\n]/.test(apiSecret), bybit_testnet_enabled: enabled, base_url: bybitBaseUrl(), base_url_is_testnet: bybitBaseUrl().includes("testnet"), auth_contract: "timestamp + apiKey + recvWindow + queryString", auth_ok: false, root_cause: null };
   let connected = false;
   let safeForTestOrder = false;
   let errorReason = "";
@@ -565,11 +567,12 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
     positionsPayload = ((positions as { list?: unknown[] })?.list ?? []) as unknown[];
     openOrdersPayload = ((openOrders as { list?: unknown[] })?.list ?? []) as unknown[];
     const supported = new Set((instruments.list ?? []).filter((row) => row.status === "Trading").map((row) => row.symbol));
-    Object.assign(checks, { auth: true, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders), balances_count: Array.isArray((balances as { list?: unknown[] })?.list) ? (balances as { list?: unknown[] }).list?.length ?? 0 : 0, positions_count: Array.isArray((positions as { list?: unknown[] })?.list) ? (positions as { list?: unknown[] }).list?.length ?? 0 : 0, open_orders_count: Array.isArray((openOrders as { list?: unknown[] })?.list) ? (openOrders as { list?: unknown[] }).list?.length ?? 0 : 0 });
+    Object.assign(checks, { auth: true, auth_ok: true, root_cause: null, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders), balances_count: Array.isArray((balances as { list?: unknown[] })?.list) ? (balances as { list?: unknown[] }).list?.length ?? 0 : 0, positions_count: Array.isArray((positions as { list?: unknown[] })?.list) ? (positions as { list?: unknown[] }).list?.length ?? 0 : 0, open_orders_count: Array.isArray((openOrders as { list?: unknown[] })?.list) ? (openOrders as { list?: unknown[] }).list?.length ?? 0 : 0 });
     connected = true;
     safeForTestOrder = enabled && supported.has("BTCUSDT") && supported.has("ETHUSDT") && supported.has("SOLUSDT");
   } catch (e) {
     errorReason = e instanceof Error ? e.message : String(e);
+    Object.assign(checks, { auth_ok: false, root_cause: /10004|sign/i.test(errorReason) ? "G_SECRET_MISMATCH" : /timestamp|10002/i.test(errorReason) ? "D_BAD_TIMESTAMP" : /api key|permission|forbidden|denied/i.test(errorReason) ? "A_BAD_CREDENTIALS" : "UNKNOWN", exact_reason: /10004|sign/i.test(errorReason) ? "Bybit V5 formula, sorted query, recv_window, and headers are correct; 10004 indicates the loaded API secret does not match the key or stale credentials are deployed." : errorReason });
     if (/permission|forbidden|denied|api key/i.test(errorReason)) missingPermissions = ["Bybit read wallet/position/order permission may be missing or key is invalid"];
   }
   await supabase.from("execution_provider_controls").update({ status: connected ? "connected" : "disconnected", last_status_at: new Date().toISOString(), last_error: errorReason || null, metadata: { bybit_health: { connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason, checks } }, updated_at: new Date().toISOString() }).eq("provider_name", "bybit");

@@ -18,23 +18,89 @@ type BybitConfig = {
 
 type BybitResponse<T> = { retCode: number; retMsg: string; result: T; time?: number };
 
+export type BybitAuthRootCause = 'A_BAD_CREDENTIALS' | 'B_BAD_SIGNING_FORMULA' | 'C_BAD_QUERY_ORDERING' | 'D_BAD_TIMESTAMP' | 'E_BAD_RECV_WINDOW' | 'F_BAD_HEADERS' | 'G_SECRET_MISMATCH' | 'UNKNOWN';
+
+export interface BybitAuthValidationReport {
+  auth_ok: boolean;
+  root_cause: BybitAuthRootCause | null;
+  endpoint: '/v5/account/wallet-balance';
+  method: 'GET';
+  timestamp: string;
+  recv_window: number;
+  query_string: string;
+  pre_sign_payload_redacted: string;
+  header_names: string[];
+  signature_length: number;
+  response_code: number;
+  retCode?: number;
+  retMsg?: string;
+  key_audit: { exists: boolean; length: number; has_spaces: boolean; has_quotes: boolean; has_line_breaks: boolean };
+  secret_audit: { exists: boolean; length: number; has_spaces: boolean; has_quotes: boolean; has_line_breaks: boolean };
+  official_contract: 'timestamp + apiKey + recvWindow + queryString';
+  exact_reason: string;
+}
+
+
 const provider = 'bybit' as const;
 const TESTNET_URL = 'https://api-testnet.bybit.com';
 
 function side(side: 'long' | 'short'): 'Buy' | 'Sell' { return side === 'long' ? 'Buy' : 'Sell'; }
 function closeSide(sideValue: 'long' | 'short'): 'Buy' | 'Sell' { return sideValue === 'long' ? 'Sell' : 'Buy'; }
 function safeNumber(value: unknown): number { const n = Number(value); return Number.isFinite(n) ? n : 0; }
-function jsonQuery(params: Record<string, string | number | boolean | undefined>): string {
+export function bybitV5QueryString(params: Record<string, string | number | boolean | undefined>): string {
   return Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
     .join('&');
 }
-async function hmacSha256(secret: string, payload: string): Promise<string> {
+export async function bybitV5HmacSha256(secret: string, payload: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+
+function credentialAudit(value: string): { exists: boolean; length: number; has_spaces: boolean; has_quotes: boolean; has_line_breaks: boolean } {
+  return { exists: value.length > 0, length: value.length, has_spaces: /\s/.test(value), has_quotes: /['"]/.test(value), has_line_breaks: /[\r\n]/.test(value) };
+}
+
+function classifyBybitAuthFailure(status: number, retCode?: number, retMsg?: string, key = '', secret = ''): { root: BybitAuthRootCause; reason: string } {
+  const msg = String(retMsg ?? '').toLowerCase();
+  if (!key || !secret) return { root: 'A_BAD_CREDENTIALS', reason: 'missing Bybit API key or secret' };
+  if (credentialAudit(key).has_spaces || credentialAudit(key).has_quotes || credentialAudit(key).has_line_breaks) return { root: 'A_BAD_CREDENTIALS', reason: 'API key contains spaces, quotes, or line breaks' };
+  if (credentialAudit(secret).has_spaces || credentialAudit(secret).has_quotes || credentialAudit(secret).has_line_breaks) return { root: 'G_SECRET_MISMATCH', reason: 'API secret contains spaces, quotes, or line breaks; re-copy the secret exactly from Bybit' };
+  if (retCode === 10002 || msg.includes('timestamp')) return { root: 'D_BAD_TIMESTAMP', reason: 'Bybit rejected timestamp/recv-window freshness' };
+  if (retCode === 10004 || msg.includes('sign')) return { root: 'G_SECRET_MISMATCH', reason: 'V5 signing formula, sorted query, recv_window, and required headers were used; retCode 10004 therefore indicates the configured secret does not match this key or stale credentials are loaded' };
+  if (status === 401 || msg.includes('api key')) return { root: 'A_BAD_CREDENTIALS', reason: 'Bybit rejected API key or account permissions' };
+  return { root: 'UNKNOWN', reason: `unclassified Bybit auth response ${retCode ?? status}: ${retMsg ?? ''}`.trim() };
+}
+
+export async function validateBybitV5WalletAuth(config: BybitConfig = {}): Promise<BybitAuthValidationReport> {
+  const apiKey = config.apiKey ?? '';
+  const apiSecret = config.apiSecret ?? '';
+  const recvWindow = config.recvWindow ?? 5000;
+  const timestamp = String((config.now ?? Date.now)());
+  const query = bybitV5QueryString({ accountType: 'UNIFIED' });
+  const preSign = `${timestamp}${apiKey}${recvWindow}${query}`;
+  const signature = apiSecret ? await bybitV5HmacSha256(apiSecret, preSign) : '';
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-BAPI-API-KEY': apiKey, 'X-BAPI-TIMESTAMP': timestamp, 'X-BAPI-RECV-WINDOW': String(recvWindow), 'X-BAPI-SIGN': signature, 'X-BAPI-SIGN-TYPE': '2' };
+  let responseCode = 0;
+  let retCode: number | undefined;
+  let retMsg: string | undefined;
+  try {
+    if (!apiKey || !apiSecret) throw new Error('missing Bybit API key or secret');
+    const res = await (config.fetchImpl ?? fetch)(`${(config.baseUrl ?? TESTNET_URL).replace(/\/$/, '')}/v5/account/wallet-balance?${query}`, { method: 'GET', headers });
+    responseCode = res.status;
+    const data = await res.json().catch(() => ({})) as BybitResponse<unknown>;
+    retCode = data.retCode;
+    retMsg = data.retMsg;
+  } catch (error) {
+    retMsg = error instanceof Error ? error.message : String(error);
+  }
+  const ok = responseCode >= 200 && responseCode < 300 && retCode === 0;
+  const classified = ok ? null : classifyBybitAuthFailure(responseCode, retCode, retMsg, apiKey, apiSecret);
+  return { auth_ok: ok, root_cause: classified?.root ?? null, endpoint: '/v5/account/wallet-balance', method: 'GET', timestamp, recv_window: recvWindow, query_string: query, pre_sign_payload_redacted: preSign.replace(apiKey, '[REDACTED_API_KEY]'), header_names: Object.keys(headers).sort(), signature_length: signature.length, response_code: responseCode, retCode, retMsg, key_audit: credentialAudit(apiKey), secret_audit: credentialAudit(apiSecret), official_contract: 'timestamp + apiKey + recvWindow + queryString', exact_reason: ok ? 'auth_ok=true; Bybit V5 wallet-balance accepted the signature' : classified?.reason ?? 'unknown Bybit auth failure' };
 }
 
 export class ExchangeProviderBybit implements ExchangeProvider {
@@ -62,9 +128,9 @@ export class ExchangeProviderBybit implements ExchangeProvider {
     this.ensureKeys();
     const timestamp = String(this.now());
     const body = method === 'POST' ? JSON.stringify(params) : '';
-    const query = method === 'GET' ? jsonQuery(params as Record<string, string | number | boolean | undefined>) : '';
+    const query = method === 'GET' ? bybitV5QueryString(params as Record<string, string | number | boolean | undefined>) : '';
     const preSign = `${timestamp}${this.config.apiKey}${this.recvWindow}${method === 'GET' ? query : body}`;
-    const signature = await hmacSha256(this.config.apiSecret as string, preSign);
+    const signature = await bybitV5HmacSha256(this.config.apiSecret as string, preSign);
     if (this.config.debugAuth) {
       (this.config.logger ?? console).debug('Bybit V5 auth debug', {
         endpoint: path,
@@ -83,6 +149,7 @@ export class ExchangeProviderBybit implements ExchangeProvider {
         'X-BAPI-TIMESTAMP': timestamp,
         'X-BAPI-RECV-WINDOW': String(this.recvWindow),
         'X-BAPI-SIGN': signature,
+        'X-BAPI-SIGN-TYPE': '2',
       },
       body: method === 'POST' ? body : undefined,
     });
