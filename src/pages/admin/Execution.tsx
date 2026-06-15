@@ -143,6 +143,25 @@ export default function Execution() {
   });
   const monitorUnhealthyReason = monitorTruth.level === 'healthy' ? '' : monitorTruth.reason;
   const monitorTruthStatus = monitorTruth.label;
+  const profitLockMode = status?.settings?.enable_profit_lock_engine !== true
+    ? 'disabled'
+    : status?.settings?.enable_testnet_profit_lock_engine === true
+      ? 'testnet_action'
+      : 'study_only';
+  const allowMarginAssets = String(status?.settings?.allow_margin_assets ?? 'USDT,USDC').split(',').map(asset => asset.trim().toUpperCase()).filter(Boolean);
+  const fallbackAttempts = executions.filter(e => e.margin_backup_attempted);
+  const lastFallbackAttempt = fallbackAttempts[0];
+  const successfulFallbacks = executions.filter(e => e.margin_backup_attempted && (e.margin_backup_asset_used === 'USDC' || e.selected_margin_asset === 'USDC') && e.status !== 'failed' && e.status !== 'skipped').length;
+  const failedFallbacks = executions.filter(e => e.margin_backup_attempted && (e.status === 'failed' || e.insufficient_margin_reason)).length;
+  const unsupportedSymbolCount = executions.filter(e => e.insufficient_margin_reason === 'usdc_market_unavailable').length;
+  const openTradesUnderMonitoring = openExecutions.filter(e => { const checked = e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).getTime() : NaN; return Number.isFinite(checked) && Date.now() - checked <= 2 * 60_000; }).length;
+  const tradesEligibleForLock = openExecutions.filter(e => Number(e.current_r ?? e.profit_lock_r_current ?? 0) >= Number(status?.settings?.profit_lock_min_r ?? 0.3)).length;
+  const tradesAlreadyLocked = executions.filter(e => e.profit_lock_sl_active || e.profit_lock_status === 'locked' || e.status === 'closed_profit_lock').length;
+  const slReplacementsVerified = executions.filter(e => e.replacement_sl_verified).length;
+  const slReplacementFailures = executions.filter(e => e.profit_lock_skipped_reason || (e.lock_recommendation && !e.replacement_sl_verified && Number(e.profit_lock_action_count ?? 0) > 0)).length;
+  const oldSlPreservedCount = executions.filter(e => e.old_sl_preserved !== false).length;
+  const recoveryTotal = slReplacementsVerified + slReplacementFailures;
+  const recoverySuccessRate = recoveryTotal > 0 ? `${Math.round((slReplacementsVerified / recoveryTotal) * 100)}%` : '—';
   const nowMs = Date.now();
   const secondsSinceEntryFill = (e: BinanceExecutionOrder): number | null => {
     const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
@@ -421,8 +440,127 @@ export default function Execution() {
       </div>
 
 
+      <div className="grid xl:grid-cols-2 gap-4 mb-6">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 className="font-semibold text-sm">USDT/USDC Capital Controls</h2>
+              <p className="text-xs text-zinc-500 mt-0.5">Admin controls for existing X-B margin fallback flags only.</p>
+            </div>
+            <StatusBadge active={status?.settings?.enable_usdc_margin_backup === true} activeLabel="USDC BACKUP ON" inactiveLabel="USDC BACKUP OFF" />
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="font-semibold text-sm">USDC Margin Backup</div>
+                <ToggleButtons disabled={acting} value={status?.settings?.enable_usdc_margin_backup === true} onToggle={value => updateExecutionSettings({ enable_usdc_margin_backup: value })} />
+              </div>
+              <p className="text-xs text-zinc-500 mb-3">If USDT margin is insufficient, attempt USDC-supported contract execution when available.</p>
+              <div className="space-y-2 text-xs">
+                <ProofRow label="Current setting" value={status?.settings?.enable_usdc_margin_backup ? 'ON' : 'OFF'} />
+                <ProofRow label="Last fallback attempt" value={lastFallbackAttempt?.updated_at ? new Date(lastFallbackAttempt.updated_at).toLocaleString() : lastFallbackAttempt?.created_at ? new Date(lastFallbackAttempt.created_at).toLocaleString() : '—'} />
+                <ProofRow label="Successful fallbacks" value={String(successfulFallbacks)} />
+                <ProofRow label="Failed fallbacks" value={String(failedFallbacks)} />
+                <ProofRow label="Unsupported symbol count" value={String(unsupportedSymbolCount)} />
+              </div>
+            </div>
+            <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
+              <label className="block text-xs text-zinc-500 mb-1.5">Preferred Margin Asset</label>
+              <select value={status?.settings?.prefer_margin_asset ?? 'USDT'} disabled={acting} onChange={e => updateExecutionSettings({ prefer_margin_asset: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm mb-3">
+                <option value="USDT">USDT</option>
+                <option value="USDC">USDC</option>
+              </select>
+              <ProofRow label="Current active asset preference" value={String(status?.settings?.prefer_margin_asset ?? 'USDT')} />
+              <div className="mt-4 text-xs text-zinc-500 mb-2">Margin Asset Allow List</div>
+              <div className="flex gap-3 mb-3">
+                {['USDT', 'USDC'].map(asset => (
+                  <label key={asset} className="inline-flex items-center gap-2 text-xs text-zinc-300">
+                    <input type="checkbox" checked={allowMarginAssets.includes(asset)} disabled={acting} onChange={e => {
+                      const next = new Set(allowMarginAssets);
+                      if (e.target.checked) next.add(asset); else next.delete(asset);
+                      updateExecutionSettings({ allow_margin_assets: Array.from(next).sort().join(',') || 'USDT' });
+                    }} /> {asset}
+                  </label>
+                ))}
+              </div>
+              <ProofRow label="Runtime value" value={String(status?.settings?.allow_margin_assets ?? 'USDT,USDC')} />
+            </div>
+          </div>
+          <div className="mt-4 rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
+            <h3 className="font-semibold text-sm mb-3">Margin Diagnostics</h3>
+            <div className="grid sm:grid-cols-2 gap-2 text-xs">
+              <ProofRow label="Available USDT" value={String(status?.capital?.raw_available_usdt ?? status?.account_state?.availableUsdt ?? '—')} />
+              <ProofRow label="Available USDC" value={String(status?.capital?.raw_available_usdc ?? status?.account_state?.availableUsdc ?? '—')} />
+              <ProofRow label="Last insufficient margin event" value={String(status?.last_insufficient_margin?.reason ?? '—')} />
+              <ProofRow label="Last fallback reason" value={String(lastFallbackAttempt?.insufficient_margin_reason ?? status?.last_insufficient_margin?.reason ?? '—')} />
+              <ProofRow label="Last exchange rejection" value={String(status?.latest_error?.last_exchange_error ?? status?.latest_error?.error_message ?? '—')} />
+            </div>
+          </div>
+        </div>
 
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 className="font-semibold text-sm">Profit Lock Control Panel</h2>
+              <p className="text-xs text-zinc-500 mt-0.5">Expose existing X-B profit-lock flags and runtime state without changing strategy logic.</p>
+            </div>
+            <ModeBadge mode={profitLockMode} />
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <ControlCard title="Profit Lock Engine" status={status?.settings?.enable_profit_lock_engine === true} onToggle={value => updateExecutionSettings({ enable_profit_lock_engine: value })} disabled={acting}>
+              <ProofRow label="Current mode" value={profitLockMode} />
+              <ProofRow label="Maps to" value="enable_profit_lock_engine" />
+            </ControlCard>
+            <ControlCard title="Testnet Profit Lock" status={status?.settings?.enable_testnet_profit_lock_engine === true} onToggle={value => updateExecutionSettings({ enable_testnet_profit_lock_engine: value })} disabled={acting}>
+              <ProofRow label="Maps to" value="enable_testnet_profit_lock_engine" />
+              <div className="mt-2 text-xs text-yellow-200 bg-yellow-500/10 border border-yellow-500/20 rounded p-2">Only affects Binance Testnet.</div>
+            </ControlCard>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4 mt-4 text-xs">
+            <label className="block rounded-lg bg-zinc-950/60 border border-zinc-800 p-4"><span className="text-zinc-500">Before TP1 Profit Lock</span><select value={status?.settings?.profit_lock_before_tp1 ?? 'research_only'} disabled={acting} onChange={e => updateExecutionSettings({ profit_lock_before_tp1: e.target.value, profit_lock_before_tp1_testnet_allowed: e.target.value === 'testnet_action' })} className="mt-2 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-2"><option value="disabled">DISABLED</option><option value="research_only">RESEARCH ONLY</option><option value="testnet_action">TESTNET ACTION</option></select><div className="mt-2 text-zinc-500">Maps to profit_lock_before_tp1</div></label>
+            <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4"><div className="flex items-center justify-between gap-3"><span className="text-zinc-500">Profit Lock After TP1</span><ToggleButtons disabled={acting} value={status?.settings?.profit_lock_after_tp1 !== false} onToggle={value => updateExecutionSettings({ profit_lock_after_tp1: value })} /></div><div className="mt-2 text-zinc-500">Maps to profit_lock_after_tp1</div></div>
+          </div>
+          <div className="mt-4 rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
+            <h3 className="font-semibold text-sm mb-3">Profit Lock Parameters</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              <NumberSetting label="Profit Lock Min R" value={status?.settings?.profit_lock_min_r ?? 0.3} step="0.01" onChange={value => updateExecutionSettings({ profit_lock_min_r: value })} disabled={acting} />
+              <NumberSetting label="Aggressive Min R" value={status?.settings?.profit_lock_aggressive_min_r ?? 0.15} step="0.01" onChange={value => updateExecutionSettings({ profit_lock_aggressive_min_r: value })} disabled={acting} />
+              <NumberSetting label="Buffer R" value={status?.settings?.profit_lock_buffer_r ?? 0.03} step="0.01" onChange={value => updateExecutionSettings({ profit_lock_buffer_r: value })} disabled={acting} />
+              <NumberSetting label="Cooldown Minutes" value={status?.settings?.profit_lock_cooldown_minutes ?? 5} step="1" onChange={value => updateExecutionSettings({ profit_lock_cooldown_minutes: value })} disabled={acting} />
+              <NumberSetting label="Max Updates Per Trade" value={status?.settings?.profit_lock_max_updates_per_trade ?? 3} step="1" onChange={value => updateExecutionSettings({ profit_lock_max_updates_per_trade: value })} disabled={acting} />
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <div className="grid xl:grid-cols-2 gap-4 mb-6">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <h2 className="font-semibold text-sm mb-3">Live Status Panel</h2>
+          <div className="grid sm:grid-cols-2 gap-2 text-xs">
+            <ProofRow label="Profit Lock Engine" value={status?.settings?.enable_profit_lock_engine ? 'ON' : 'OFF'} />
+            <ProofRow label="Testnet Action" value={status?.settings?.enable_testnet_profit_lock_engine ? 'ON' : 'OFF'} />
+            <ProofRow label="Current Mode" value={profitLockMode} />
+            <ProofRow label="Open Trades Under Monitoring" value={String(openTradesUnderMonitoring)} />
+            <ProofRow label="Trades Eligible For Lock" value={String(tradesEligibleForLock)} />
+            <ProofRow label="Trades Already Locked" value={String(tradesAlreadyLocked)} />
+            <ProofRow label="SL Replacements Verified" value={String(slReplacementsVerified)} />
+            <ProofRow label="SL Replacement Failures" value={String(slReplacementFailures)} />
+            <ProofRow label="Old SL Preserved Count" value={String(oldSlPreservedCount)} />
+            <ProofRow label="Recovery Success Rate" value={recoverySuccessRate} />
+          </div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <h2 className="font-semibold text-sm mb-3">Safety Guards</h2>
+          <div className="grid sm:grid-cols-2 gap-3 text-xs">
+            <GuardBadge label="LIVE TRADING" value="DISABLED" tone="red" />
+            <GuardBadge label="TESTNET" value={status?.env?.testnet_enabled ? 'ACTIVE' : 'DISABLED'} tone={status?.env?.testnet_enabled ? 'green' : 'red'} />
+            <GuardBadge label="USDC BACKUP" value={status?.settings?.enable_usdc_margin_backup ? 'ON' : 'OFF'} tone={status?.settings?.enable_usdc_margin_backup ? 'green' : 'red'} />
+            <GuardBadge label="PROFIT LOCK" value={status?.settings?.enable_profit_lock_engine ? 'ON' : 'OFF'} tone={status?.settings?.enable_profit_lock_engine ? (profitLockMode === 'study_only' ? 'yellow' : 'green') : 'red'} />
+            <GuardBadge label="BEFORE TP1 ACTION" value={status?.settings?.profit_lock_before_tp1 === 'testnet_action' ? 'ON' : 'OFF'} tone={status?.settings?.profit_lock_before_tp1 === 'research_only' ? 'yellow' : status?.settings?.profit_lock_before_tp1 === 'testnet_action' ? 'green' : 'red'} />
+            <GuardBadge label="AFTER TP1 ACTION" value={status?.settings?.profit_lock_after_tp1 !== false ? 'ON' : 'OFF'} tone={status?.settings?.profit_lock_after_tp1 !== false ? 'green' : 'red'} />
+          </div>
+        </div>
+      </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
         <div className="flex items-center justify-between gap-3 mb-4">
@@ -672,6 +810,32 @@ export default function Execution() {
       </div>
     </AdminLayout>
   );
+}
+
+function ToggleButtons({ value, onToggle, disabled }: { value: boolean; onToggle: (value: boolean) => void; disabled?: boolean }) {
+  return <div className="inline-flex rounded-lg border border-zinc-800 overflow-hidden"><button disabled={disabled || value} onClick={() => onToggle(true)} className={`px-3 py-1 text-xs font-semibold disabled:opacity-60 ${value ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'}`}>ON</button><button disabled={disabled || !value} onClick={() => onToggle(false)} className={`px-3 py-1 text-xs font-semibold border-l border-zinc-800 disabled:opacity-60 ${!value ? 'bg-red-500/20 text-red-300' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'}`}>OFF</button></div>;
+}
+
+function StatusBadge({ active, activeLabel, inactiveLabel }: { active: boolean; activeLabel: string; inactiveLabel: string }) {
+  return <span className={`text-xs px-2 py-0.5 rounded-full border ${active ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>{active ? activeLabel : inactiveLabel}</span>;
+}
+
+function ModeBadge({ mode }: { mode: string }) {
+  const cls = mode === 'testnet_action' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : mode === 'study_only' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-red-500/30 bg-red-500/10 text-red-300';
+  return <span className={`text-xs px-2 py-0.5 rounded-full border ${cls}`}>{mode.toUpperCase()}</span>;
+}
+
+function ControlCard({ title, status, onToggle, disabled, children }: { title: string; status: boolean; onToggle: (value: boolean) => void; disabled?: boolean; children: ReactNode }) {
+  return <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4"><div className="flex items-center justify-between gap-3 mb-3"><div><div className="font-semibold text-sm">{title}</div><div className={status ? 'text-xs text-emerald-300 mt-1' : 'text-xs text-red-300 mt-1'}>Status: {status ? 'ON' : 'OFF'}</div></div><ToggleButtons value={status} onToggle={onToggle} disabled={disabled} /></div><div className="space-y-2 text-xs">{children}</div></div>;
+}
+
+function NumberSetting({ label, value, step, disabled, onChange }: { label: string; value: number; step: string; disabled?: boolean; onChange: (value: number) => void }) {
+  return <label className="block"><span className="text-zinc-500">{label}</span><input type="number" step={step} value={value} disabled={disabled} onChange={e => onChange(Number(e.target.value))} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /><div className="mt-1 text-[11px] text-zinc-600">Current: {value}</div></label>;
+}
+
+function GuardBadge({ label, value, tone }: { label: string; value: string; tone: 'green' | 'yellow' | 'red' }) {
+  const cls = tone === 'green' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : tone === 'yellow' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-red-500/30 bg-red-500/10 text-red-300';
+  return <div className={`rounded-lg border p-3 ${cls}`}><div className="text-[11px] opacity-80">{label}</div><div className="font-mono font-semibold mt-1">{value}</div></div>;
 }
 
 function minutesRemaining(expiresAt?: string | null): string {
