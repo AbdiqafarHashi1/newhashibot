@@ -171,7 +171,7 @@ export class ExchangeProviderBybit implements ExchangeProvider {
     return (result.list ?? []).filter((row) => safeNumber(row.size) !== 0).map((row) => ({ providerPositionId: String(row.positionIdx ?? row.symbol), symbol: String(row.symbol), side: String(row.side).toLowerCase() === 'buy' ? 'long' : 'short', quantity: safeNumber(row.size), entryPrice: safeNumber(row.avgPrice), markPrice: safeNumber(row.markPrice), unrealizedPnl: safeNumber(row.unrealisedPnl), metadata: row }));
   }
   async getOpenOrders(symbol?: string): Promise<ExchangeOrder[]> {
-    const result = await this.request<{ list?: Array<Record<string, unknown>> }>('GET', '/v5/order/realtime', { category: this.category, symbol, openOnly: 0 });
+    const result = await this.request<{ list?: Array<Record<string, unknown>> }>('GET', '/v5/order/realtime', { category: this.category, ...(symbol ? { symbol } : { settleCoin: 'USDT' }), openOnly: 0 });
     return (result.list ?? []).map((row) => ({ providerOrderId: String(row.orderId), symbol: String(row.symbol), side: String(row.side), type: String(row.orderType ?? row.stopOrderType ?? row.orderFilter), status: String(row.orderStatus), quantity: safeNumber(row.qty), price: safeNumber(row.price), triggerPrice: safeNumber(row.triggerPrice), reduceOnly: row.reduceOnly === true || row.reduceOnly === 'true', metadata: row }));
   }
 

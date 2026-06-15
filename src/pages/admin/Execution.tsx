@@ -161,6 +161,12 @@ export default function Execution() {
   const [providerGlobalControls, setProviderGlobalControls] = useState<ProviderGlobalControls | null>(null);
   const [providerControlsError, setProviderControlsError] = useState<{ kind: ProviderControlsErrorKind; message: string }>({ kind: '', message: '' });
   const [bybitDebug, setBybitDebug] = useState<ActionResult | null>(null);
+  const providerStatus = useMemo(() => new Map(providerControls.map((control) => [control.provider_name, control])), [providerControls]);
+  const requestedPrimaryProvider = providerGlobalControls?.primary_provider ?? providerControls.find((control) => control.primary_provider)?.provider_name ?? 'binance';
+  const bybitConnected = providerStatus.get('bybit')?.status === 'connected' || bybitDebug?.connected === true;
+  const bybitDiagnosticsIncomplete = !bybitConnected;
+  const effectivePrimaryProvider = requestedPrimaryProvider === 'bybit' && bybitDiagnosticsIncomplete ? 'binance' : requestedPrimaryProvider;
+  const providerSafetyWarning = bybitDiagnosticsIncomplete ? 'Bybit diagnostics incomplete' : '';
 
   const executions = useMemo(() => {
     const rows = status?.executions ?? [];
@@ -268,6 +274,17 @@ export default function Execution() {
   }
 
   async function updateProviderGlobalControls(patch: Partial<ProviderGlobalControls>) {
+    const requestedPrimary = patch.primary_provider;
+    if (requestedPrimary && requestedPrimary !== 'binance') {
+      const requestedControl = providerStatus.get(requestedPrimary);
+      if (!requestedControl || requestedControl.status !== 'connected') {
+        setProviderControlsError({ kind: 'query_failed', message: 'Bybit diagnostics incomplete' });
+        setResult({ success: false, error: 'Bybit diagnostics incomplete', reason: 'Disconnected providers cannot become active execution providers. Primary Provider remains Binance.' });
+        const { error: forceError } = await supabase.from('execution_provider_global_controls').update({ primary_provider: 'binance', live_trading_enabled: false, updated_at: new Date().toISOString() }).eq('id', 1);
+        if (!forceError) await load();
+        return;
+      }
+    }
     const safePatch = { ...patch, live_trading_enabled: false, updated_at: new Date().toISOString() };
     const { error } = await supabase.from('execution_provider_global_controls').update(safePatch).eq('id', 1);
     if (error) {
@@ -392,6 +409,13 @@ export default function Execution() {
   }
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (!session || requestedPrimaryProvider !== 'bybit' || !bybitDiagnosticsIncomplete) return;
+    void supabase
+      .from('execution_provider_global_controls')
+      .update({ primary_provider: 'binance', live_trading_enabled: false, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+  }, [bybitDiagnosticsIncomplete, requestedPrimaryProvider, session]);
 
   return (
     <AdminLayout>
@@ -489,8 +513,8 @@ export default function Execution() {
         <div className="flex flex-wrap gap-3 mb-4">
           <button type="button" onClick={() => updateProviderGlobalControls({ parallel_mode_enabled: !providerGlobalControls?.parallel_mode_enabled })} className={`rounded-lg border px-3 py-2 text-sm ${providerGlobalControls?.parallel_mode_enabled ? 'border-blue-500/40 bg-blue-500/10 text-blue-200' : 'border-zinc-800 bg-zinc-950 text-zinc-400'}`}>Parallel Mode: {providerGlobalControls?.parallel_mode_enabled ? 'ON' : 'OFF'}</button>
           <label className="text-sm text-zinc-400 flex items-center gap-2">Primary Provider
-            <select value={providerGlobalControls?.primary_provider ?? providerControls.find((control) => control.primary_provider)?.provider_name ?? 'binance'} onChange={(event) => updateProviderGlobalControls({ primary_provider: event.target.value as 'binance' | 'bybit' | 'mt5' })} className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200">
-              <option value="binance">Binance</option><option value="bybit">Bybit</option><option value="mt5">MT5</option>
+            <select value={effectivePrimaryProvider} onChange={(event) => updateProviderGlobalControls({ primary_provider: event.target.value as 'binance' | 'bybit' | 'mt5' })} className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200">
+              <option value="binance">Binance</option><option value="bybit" disabled={!bybitConnected}>Bybit</option><option value="mt5" disabled={providerStatus.get('mt5')?.status !== 'connected'}>MT5</option>
             </select>
           </label>
           <button type="button" onClick={() => runBybitDebug('health')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Test Bybit Connection <span className="sr-only">Bybit Health Check</span></button>
@@ -501,6 +525,7 @@ export default function Execution() {
           <button type="button" onClick={() => runBybitDebug('dry_run_signal')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Dry Run Signal</button>
           <Badge variant="gray">Live Trading: OFF</Badge>
         </div>
+        {providerSafetyWarning && <div className="mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">{providerSafetyWarning}. Primary Provider forced to Binance until Bybit health is connected.</div>}
         {providerControlsError.message && <div className={`mb-4 rounded-lg border p-3 text-sm ${providerControlsError.kind === 'rls_blocked' || providerControlsError.kind === 'missing_table' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'}`}>{providerControlsError.message}</div>}
         <div className="grid md:grid-cols-3 gap-3">
           {providerControls.map((control) => (
@@ -563,6 +588,13 @@ export default function Execution() {
         const paused = status?.settings?.bot_paused === true;
         const running = !killActive && !paused && status?.settings?.auto_execute_testnet === true;
         const botState = killActive ? 'kill_switch' : paused ? 'paused' : running ? 'running' : 'idle';
+        const autoOffReason = killActive
+          ? 'OFF because kill_switch_enabled=true'
+          : paused
+            ? `OFF because bot_paused=true${status?.settings?.bot_paused_reason ? ` (${status.settings.bot_paused_reason})` : ''}`
+            : status?.settings?.auto_execute_testnet !== true
+              ? 'OFF because auto_execute_testnet=false'
+              : 'ON';
         const stateConfig = {
           kill_switch: { label: 'Kill Switch ON', sub: 'No new entries. Monitor still manages open positions.', ring: 'border-red-500/50', bg: 'bg-red-500/10', dot: 'bg-red-400', text: 'text-red-300' },
           paused:      { label: 'Bot Paused',     sub: 'No new entries. Monitor still manages open positions.', ring: 'border-yellow-500/50', bg: 'bg-yellow-500/10', dot: 'bg-yellow-400', text: 'text-yellow-300' },
@@ -580,6 +612,7 @@ export default function Execution() {
                   {paused && status?.settings?.bot_paused_reason && (
                     <div className="text-xs text-yellow-300/80 mt-1">Pause reason: {status.settings.bot_paused_reason}</div>
                   )}
+                  <div className="text-xs text-zinc-400 mt-1">Auto execution reason: {autoOffReason}</div>
                   <div className="text-xs text-zinc-600 mt-1">Scanner, Signal Mode, Telegram signals and outcome tracking are unaffected by bot state.</div>
                 </div>
               </div>
