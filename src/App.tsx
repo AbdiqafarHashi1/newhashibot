@@ -50,6 +50,7 @@ import Modes from './pages/admin/Modes';
 import BacktestLab from './pages/admin/BacktestLab';
 import Handoff from './pages/admin/Handoff';
 import Performance from './pages/admin/Performance';
+import ProviderComparison from './pages/admin/ProviderComparison';
 import Customers from './pages/admin/Customers';
 
 // Smart redirect after login based on role
@@ -126,6 +127,7 @@ function App() {
           <Route path="/admin/scheduler"          element={<RequireAdmin><SchedulerGuide /></RequireAdmin>} />
           <Route path="/admin/outcomes"          element={<RequireAdmin><OutcomeTracking /></RequireAdmin>} />
           <Route path="/admin/performance"       element={<RequireAdmin><Performance /></RequireAdmin>} />
+          <Route path="/admin/provider-comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
           <Route path="/admin/checklist"         element={<RequireAdmin><SetupChecklist /></RequireAdmin>} />
           <Route path="/admin/strategy-config"   element={<RequireAdmin><StrategyConfig /></RequireAdmin>} />
           <Route path="/admin/execution"         element={<RequireAdmin><Execution /></RequireAdmin>} />

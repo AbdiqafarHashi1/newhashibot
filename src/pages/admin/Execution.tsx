@@ -49,6 +49,21 @@ type ExecutionSettingsSnapshot = {
   last_managed_exit_action?: Record<string, unknown> | null;
 };
 
+
+type ProviderControl = {
+  provider_name: 'binance' | 'bybit' | 'mt5';
+  enabled: boolean;
+  parallel_enabled: boolean;
+  primary_provider: boolean;
+  read_only: boolean;
+  profit_lock_enabled: boolean;
+  monitor_enabled: boolean;
+  protection_recovery_enabled: boolean;
+  provider_kill_switch: boolean;
+  status: string;
+  last_error: string | null;
+};
+
 type OperatorRoutingSnapshot = {
   last_admin_alert?: { created_at?: string; delivery_status?: string; error_message?: string; delivery_type?: string } | null;
   last_admin_digest?: { created_at?: string; delivery_status?: string; error_message?: string; delivery_type?: string } | null;
@@ -121,8 +136,27 @@ export default function Execution() {
   const [cleaning, setCleaning] = useState(false);
   const [cleanupMsg, setCleanupMsg] = useState('');
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<'all' | 'binance' | 'bybit' | 'mt5'>('binance');
+  const [providerControls, setProviderControls] = useState<ProviderControl[]>([]);
 
-  const executions = useMemo(() => status?.executions ?? [], [status?.executions]);
+  const executions = useMemo(() => {
+    const rows = status?.executions ?? [];
+    if (selectedProvider === 'all') return rows;
+    return rows.filter((execution) => (execution.execution_provider ?? 'binance') === selectedProvider);
+  }, [selectedProvider, status?.executions]);
+  const allProviderExecutions = useMemo(() => status?.executions ?? [], [status?.executions]);
+  const providerCards = useMemo(() => {
+    const providers = ['binance', 'bybit', 'mt5'] as const;
+    return providers.map((provider) => {
+      const rows = allProviderExecutions.filter((execution) => (execution.execution_provider ?? 'binance') === provider);
+      const active = rows.filter((execution) => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed'].includes(execution.status));
+      const pnl = rows.reduce((sum, execution) => sum + Number(execution.current_pnl ?? execution.latest_unrealized_pnl ?? 0), 0);
+      const protectedCount = active.filter((execution) => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
+      const recoveryFailures = rows.filter((execution) => execution.protection_status === 'protection_failed' || execution.latest_protection_error || execution.latest_monitor_error).length;
+      const profitLockActive = rows.filter((execution) => execution.profit_lock_sl_active || execution.profit_lock_status === 'locked' || execution.status === 'closed_profit_lock').length;
+      return { provider, rows, active, pnl, protectedCount, recoveryFailures, profitLockActive };
+    });
+  }, [allProviderExecutions]);
   const openExecutions = useMemo(() => executions.filter(e => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
   const failedExecutions = executions.filter(e => e.status === 'failed');
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
@@ -183,6 +217,18 @@ export default function Execution() {
     return callExecution('update_settings', { settings: settingsPatch });
   }
 
+  async function updateProviderControl(providerName: ProviderControl['provider_name'], patch: Partial<ProviderControl>) {
+    const { error } = await supabase
+      .from('execution_provider_controls')
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('provider_name', providerName);
+    if (error) {
+      setResult({ success: false, error: error.message });
+      return;
+    }
+    await load();
+  }
+
   async function callExecution(action: string, payload: Record<string, unknown> = {}): Promise<ActionResult> {
     if (!session) return { success: false, error: 'No admin session' } as ActionResult;
     setActing(true);
@@ -211,7 +257,7 @@ export default function Execution() {
     setLoading(true);
     const dayStart = new Date();
     dayStart.setUTCHours(0, 0, 0, 0);
-    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes] = await Promise.all([
+    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes] = await Promise.all([
       fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
@@ -223,6 +269,7 @@ export default function Execution() {
       supabase.from('telegram_deliveries').select('created_at,delivery_status,error_message,delivery_type').eq('destination_channel', 'admin').like('delivery_type', 'admin_%digest%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('telegram_deliveries').select('id', { count: 'exact', head: true }).eq('destination_channel', 'free').eq('delivery_type', 'free_selected_signal').eq('delivery_status', 'sent').gte('created_at', dayStart.toISOString()),
       supabase.from('telegram_deliveries').select('destination_channel,delivery_status,error_message,created_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('execution_provider_controls').select('*').order('provider_name'),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -236,6 +283,7 @@ export default function Execution() {
       if (!health[channel]) health[channel] = { latest_status: row.delivery_status, latest_error: row.error_message, latest_at: row.created_at };
     }
     setOperatorRouting({ last_admin_alert: adminAlertRes.data ?? null, last_admin_digest: adminDigestRes.data ?? null, free_selected_today: freeSelectedRes.count ?? 0, telegram_health: health });
+    setProviderControls((providerControlsRes.data ?? []) as ProviderControl[]);
     setLoading(false);
   }, [session]);
 
@@ -281,8 +329,8 @@ export default function Execution() {
   return (
     <AdminLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Binance USD-M Testnet Execution</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Testnet-only connector for qualified HashiBot crypto signals. BINANCE TESTNET — NOT LIVE.</p>
+        <h1 className="text-2xl font-bold">Execution Overview</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">Scanner → Arbitrator → Signal → Exchange Router → Exchange Adapters. Binance testnet remains the only active adapter — NOT LIVE.</p>
       </div>
 
       {governorMode === 'off_for_testing' && (
@@ -298,6 +346,94 @@ export default function Execution() {
         <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
         <div className="text-sm text-yellow-300/90">
           <strong>Testnet only.</strong> Live trading is blocked by env and database guards. API keys stay server-side in Supabase Edge Function secrets and are never shown here.
+        </div>
+      </div>
+
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-sm">Execution Overview</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Provider-aware execution routing foundation. Binance remains operational; Bybit and MT5 are placeholders until adapters are enabled.</p>
+          </div>
+          <select
+            value={selectedProvider}
+            onChange={(event) => setSelectedProvider(event.target.value as 'all' | 'binance' | 'bybit' | 'mt5')}
+            className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200"
+          >
+            <option value="binance">Binance</option>
+            <option value="bybit">Bybit</option>
+            <option value="mt5">MT5</option>
+            <option value="all">All Providers</option>
+          </select>
+        </div>
+        <div className="grid md:grid-cols-3 gap-3">
+          {providerCards.map((card) => (
+            <button
+              key={card.provider}
+              type="button"
+              onClick={() => setSelectedProvider(card.provider)}
+              className={`text-left rounded-xl border p-4 transition-colors ${selectedProvider === card.provider ? 'border-blue-500/50 bg-blue-500/10' : 'border-zinc-800 bg-zinc-950/60 hover:border-zinc-700'}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-semibold uppercase text-sm text-zinc-100">{card.provider}</div>
+                <Badge variant={card.provider === 'binance' ? 'green' : 'gray'}>{card.provider === 'binance' ? 'adapter ready' : 'pending'}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
+                <div><div className="text-zinc-500">Active Positions</div><div className="font-mono text-zinc-200">{card.active.length}</div></div>
+                <div><div className="text-zinc-500">Executions</div><div className="font-mono text-zinc-200">{card.rows.length}</div></div>
+                <div><div className="text-zinc-500">PnL</div><div className={`font-mono ${card.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>{card.pnl.toFixed(2)}</div></div>
+                <div><div className="text-zinc-500">Protection Health</div><div className="font-mono text-zinc-200">{card.active.length ? `${card.protectedCount}/${card.active.length}` : '—'}</div></div>
+                <div><div className="text-zinc-500">Recovery Health</div><div className={card.recoveryFailures ? 'font-mono text-yellow-300' : 'font-mono text-emerald-300'}>{card.recoveryFailures ? `${card.recoveryFailures} issue(s)` : 'OK'}</div></div>
+                <div><div className="text-zinc-500">Monitor Health</div><div className="font-mono text-zinc-200">{card.provider === 'binance' ? monitorTruthStatus : 'Not wired'}</div></div>
+                <div className="col-span-2"><div className="text-zinc-500">Profit Lock Status</div><div className="font-mono text-zinc-200">{card.profitLockActive} locked/protected</div></div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-sm">Provider Controls</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Binance ON/OFF, Bybit ON/OFF, parallel mode, primary provider, read-only mode, provider kill switches, and per-provider monitor/profit-lock/recovery controls.</p>
+          </div>
+          <Badge variant={providerControls.some((control) => control.parallel_enabled) ? 'blue' : 'gray'}>{providerControls.some((control) => control.parallel_enabled) ? 'Parallel Mode ON' : 'Parallel Mode OFF'}</Badge>
+        </div>
+        <div className="grid md:grid-cols-3 gap-3">
+          {providerControls.map((control) => (
+            <div key={control.provider_name} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="font-semibold uppercase text-sm">{control.provider_name}</div>
+                <Badge variant={control.provider_kill_switch ? 'red' : control.status === 'connected' ? 'green' : control.status === 'degraded' ? 'yellow' : 'gray'}>{control.provider_kill_switch ? 'kill switch' : control.status}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {[
+                  ['enabled', 'ON/OFF'],
+                  ['parallel_enabled', 'Parallel'],
+                  ['primary_provider', 'Primary'],
+                  ['read_only', 'Read-only'],
+                  ['profit_lock_enabled', 'Profit Lock'],
+                  ['monitor_enabled', 'Monitor'],
+                  ['protection_recovery_enabled', 'Recovery'],
+                  ['provider_kill_switch', 'Kill Switch'],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => updateProviderControl(control.provider_name, { [key]: !Boolean(control[key as keyof ProviderControl]) } as Partial<ProviderControl>)}
+                    className={`rounded-lg border px-2 py-2 text-left ${Boolean(control[key as keyof ProviderControl]) ? 'border-blue-500/40 bg-blue-500/10 text-blue-200' : 'border-zinc-800 bg-zinc-900 text-zinc-500'}`}
+                  >
+                    {label}: {Boolean(control[key as keyof ProviderControl]) ? 'ON' : 'OFF'}
+                  </button>
+                ))}
+              </div>
+              {control.last_error && <div className="mt-3 text-xs text-red-300">{control.last_error}</div>}
+            </div>
+          ))}
+          {providerControls.length === 0 && <div className="text-sm text-zinc-500">Provider controls table not migrated yet.</div>}
         </div>
       </div>
 

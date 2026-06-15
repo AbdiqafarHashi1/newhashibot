@@ -396,6 +396,16 @@ export interface ExecutionOrder {
   tp2: number | null;
   volume: number;
   execution_mode: string;
+  execution_provider?: string | null;
+  provider_order_id?: string | null;
+  provider_position_id?: string | null;
+  provider_status?: string | null;
+  provider_error?: string | null;
+  provider_fill_price?: number | null;
+  provider_fee?: number | null;
+  provider_slippage?: number | null;
+  provider_metadata?: Record<string, unknown> | null;
+  execution_group_id?: string | null;
   status: 'pending' | 'sent_to_bridge' | 'accepted' | 'rejected' | 'filled' | 'failed' | 'cancelled' | 'skipped' | 'entry_submitted' | 'entry_filled' | 'protected' | 'pending_protection' | 'protection_pending' | 'protection_failed' | 'protection_recovered' | 'partially_closed' | 'protected_managed' | 'pending_managed_protection' | 'stale_closed' | 'closed_tp' | 'closed_sl' | 'closed_breakeven' | string;
   latest_auto_skip_reason?: string | null;
   protection_status?: 'unprotected' | 'pending_protection' | 'protection_pending' | 'protection_failed' | 'protection_recovered' | 'protected' | 'protected_native' | 'protected_managed' | 'pending_managed_protection' | 'unprotected_failed' | null;
