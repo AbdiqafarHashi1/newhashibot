@@ -238,6 +238,18 @@ export default function Execution() {
     const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
     return Number.isFinite(value) ? Math.max(0, Math.floor((nowMs - value) / 1000)) : null;
   };
+  const approvedExecutionProofRows = useMemo(() => signals
+    .filter(signal => ['A', 'A+'].includes(String(signal.grade ?? '').toUpperCase()))
+    .slice(0, 20)
+    .map(signal => {
+      const rows = allProviderExecutions.filter(execution => execution.signal_id === signal.id);
+      const binance = rows.find(execution => (execution.execution_provider ?? 'binance') === 'binance');
+      const bybit = rows.find(execution => execution.execution_provider === 'bybit');
+      const blocker = [binance, bybit].find(row => row?.latest_auto_skip_reason || row?.error_message || row?.last_exchange_error);
+      const submitted = rows.some(row => Boolean(row.entry_order_id || row.binance_entry_order_id));
+      const created = rows.length > 0;
+      return { signal, rows, binance, bybit, blocker, submitted, created };
+    }), [allProviderExecutions, signals]);
   const protectionSlaState = (e: BinanceExecutionOrder): 'pass' | 'fail' | 'pending' | 'n/a' => {
     if (['closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'cancelled', 'failed', 'skipped'].includes(e.status)) return 'n/a';
     if (e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' || e.status === 'protected_native' || e.status === 'protected_managed') return 'pass';
@@ -503,6 +515,41 @@ export default function Execution() {
         </div>
       </div>
 
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-sm">Execution Proof Panel</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Latest 20 approved A/A+ signals with provider rows, submitted order proof, and exact blocker text. No live trading.</p>
+          </div>
+          <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_approved_signal')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 hover:border-emerald-400">Execute Latest Approved Signal on Enabled Testnet Providers</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-xs">
+            <thead className="text-zinc-500">
+              <tr className="border-b border-zinc-800">
+                <th className="py-2 pr-3 text-left">signal</th><th className="py-2 pr-3 text-left">grade</th><th className="py-2 pr-3 text-left">should execute</th><th className="py-2 pr-3 text-left">Binance result</th><th className="py-2 pr-3 text-left">Bybit result</th><th className="py-2 pr-3 text-left">blocker</th><th className="py-2 pr-3 text-left">created execution row</th><th className="py-2 pr-3 text-left">submitted order</th><th className="py-2 pr-3 text-left">error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {approvedExecutionProofRows.map(({ signal, binance, bybit, blocker, created, submitted }) => (
+                <tr key={signal.id} className="border-b border-zinc-900 text-zinc-300">
+                  <td className="py-2 pr-3 font-mono">{signal.symbol} <span className="text-zinc-600">{signal.id.slice(0, 8)}</span></td>
+                  <td className="py-2 pr-3">{signal.grade}</td>
+                  <td className="py-2 pr-3 text-emerald-300">yes</td>
+                  <td className="py-2 pr-3">{binance?.status ?? 'no row'}</td>
+                  <td className="py-2 pr-3">{bybit?.status ?? 'no row'}</td>
+                  <td className="py-2 pr-3 text-yellow-300">{String(blocker?.latest_auto_skip_reason ?? blocker?.error_message ?? blocker?.last_exchange_error ?? '—')}</td>
+                  <td className="py-2 pr-3">{created ? 'yes' : 'no'}</td>
+                  <td className="py-2 pr-3">{submitted ? 'yes' : 'no'}</td>
+                  <td className="py-2 pr-3 text-red-300">{String(blocker?.error_message ?? blocker?.last_exchange_error ?? '—')}</td>
+                </tr>
+              ))}
+              {approvedExecutionProofRows.length === 0 && <tr><td colSpan={9} className="py-4 text-zinc-500">No approved A/A+ signals loaded yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
         <div className="flex items-center justify-between gap-3 mb-4">
