@@ -35,13 +35,15 @@ async function run() {
   assert.equal(account.balances[0].asset, 'USDT');
   assert.equal(account.positions[0].symbol, 'ETHUSDT');
   assert.equal(account.openOrders[0].providerOrderId, 'sl-1');
+  assert.match(calls.find((call) => call.url.includes('/v5/position/list'))?.url ?? '', /category=linear&settleCoin=USDT/, 'Bybit positions include required V5 params');
+  assert.match(calls.find((call) => call.url.includes('/v5/order/realtime'))?.url ?? '', /category=linear&openOnly=0&settleCoin=USDT/, 'Bybit open orders include required V5 params');
   const walletCall = calls.find((call) => call.url.includes('/v5/account/wallet-balance'));
   assert.equal(walletCall?.url, 'https://api-testnet.bybit.com/v5/account/wallet-balance?accountType=UNIFIED', 'Bybit GET query string is deterministic and included in the URL');
   assert.equal(walletCall?.headers?.['X-BAPI-API-KEY'], 'key', 'Bybit sends API key header');
   assert.equal(walletCall?.headers?.['X-BAPI-TIMESTAMP'], '1781308800073', 'Bybit sends millisecond timestamp header');
   assert.equal(walletCall?.headers?.['X-BAPI-RECV-WINDOW'], '5000', 'Bybit sends recv_window header');
   assert.equal(walletCall?.headers?.['X-BAPI-SIGN'], '3f72e113827b035c8832d7248adbd22f7cb9aaa5f92463c3044fd5ad3175c8b8', 'Bybit GET signature signs timestamp + apiKey + recvWindow + queryString');
-  assert.deepEqual(authDebug[0], { endpoint: '/v5/account/wallet-balance', method: 'GET', timestamp: '1781308800073', recv_window: 5000, pre_sign_string: '1781308800073[REDACTED_API_KEY]5000accountType=UNIFIED', signature_length: 64 }, 'Bybit auth debug logs safe signing metadata only');
+  assert.deepEqual(authDebug.find((entry) => (entry as { endpoint?: string }).endpoint === '/v5/account/wallet-balance'), { endpoint: '/v5/account/wallet-balance', method: 'GET', timestamp: '1781308800073', recv_window: 5000, pre_sign_string: '1781308800073[REDACTED_API_KEY]5000accountType=UNIFIED', signature_length: 64 }, 'Bybit auth debug logs safe signing metadata only');
 
   const entry = await bybit.placeEntry({ signalId: 'sig-1', symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100 });
   assert.equal(entry.ok, true);
@@ -51,6 +53,7 @@ async function run() {
   assert.equal(entryCall?.headers?.['X-BAPI-SIGN'], '7eeabc1e6adbbcd79736fdf62d7f0a757a795dba1d248df7a84d031e2820c84e', 'Bybit POST signature signs timestamp + apiKey + recvWindow + requestBody');
 
   const sl = await bybit.placeSL({ symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100, metadata: { executionId: 'exec-1' } });
+  assert.equal(authDebug.some((entry) => (entry as { retCode?: number }).retCode === 0), true, 'Bybit logs safe request result debug with retCode/retMsg');
   assert.equal(sl.status, 'sl_submitted');
   assert.match(calls.at(-1)?.body ?? '', /"reduceOnly":true/, 'Bybit protection orders are reduce-only');
 

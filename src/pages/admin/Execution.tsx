@@ -54,6 +54,7 @@ type ProviderControl = {
   provider_name: 'binance' | 'bybit' | 'mt5';
   provider?: 'binance' | 'bybit' | 'mt5';
   enabled: boolean;
+  entry_enabled?: boolean | null;
   parallel_enabled: boolean;
   primary_provider: boolean;
   read_only: boolean;
@@ -205,7 +206,8 @@ export default function Execution() {
     latest_monitor_result: monitorState?.latest_monitor_result,
   });
   const monitorUnhealthyReason = monitorTruth.level === 'healthy' ? '' : monitorTruth.reason;
-  const entryEngineOn = status?.settings?.auto_execute_testnet === true && status?.settings?.kill_switch_enabled !== true && status?.settings?.bot_paused !== true;
+  const selectedProviderControl = providerControls.find((control) => control.provider_name === (selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider));
+  const entryEngineOn = status?.settings?.auto_execute_testnet === true && status?.settings?.testnet_enabled === true && status?.settings?.kill_switch_enabled !== true && status?.settings?.bot_paused !== true && selectedProviderControl?.enabled === true && (selectedProviderControl?.entry_enabled ?? selectedProviderControl?.enabled) === true && selectedProviderControl?.provider_kill_switch !== true;
   const monitorEngineOn = status?.settings?.bot_paused !== true;
   const recoveryEngineOn = status?.settings?.bot_paused !== true;
   const emergencyStopOn = status?.settings?.bot_paused === true;
@@ -493,7 +495,7 @@ export default function Execution() {
                 <div><div className="text-zinc-500">PnL</div><div className={`font-mono ${card.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>{card.pnl.toFixed(2)}</div></div>
                 <div><div className="text-zinc-500">Protection Health</div><div className="font-mono text-zinc-200">{card.active.length ? `${card.protectedCount}/${card.active.length}` : '—'}</div></div>
                 <div><div className="text-zinc-500">Recovery Health</div><div className={card.recoveryFailures ? 'font-mono text-yellow-300' : 'font-mono text-emerald-300'}>{card.recoveryFailures ? `${card.recoveryFailures} issue(s)` : 'OK'}</div></div>
-                <div><div className="text-zinc-500">Monitor Health</div><div className="font-mono text-zinc-200">{card.provider === 'binance' ? monitorTruthStatus : 'Not wired'}</div></div>
+                <div><div className="text-zinc-500">Monitor Health</div><div className="font-mono text-zinc-200">{card.provider === 'binance' ? monitorTruthStatus : (providerStatus.get(card.provider)?.monitor_enabled ? 'Enabled' : 'Off')}</div></div>
                 <div className="col-span-2"><div className="text-zinc-500">Profit Lock Status</div><div className="font-mono text-zinc-200">{card.profitLockActive} locked/protected</div></div>
               </div>
             </button>
@@ -506,7 +508,7 @@ export default function Execution() {
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="font-semibold text-sm">Provider Controls</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Binance ON/OFF, Bybit ON/OFF, parallel mode, primary provider, read-only mode, provider kill switches, and per-provider monitor/profit-lock/recovery controls.</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Global: Testnet execution {status?.settings?.auto_execute_testnet ? 'ON' : 'OFF'} · Parallel mode {providerGlobalControls?.parallel_mode_enabled ? 'ON' : 'OFF'} · Primary {effectivePrimaryProvider} · Live Trading: OFF. Providers expose independent Entry, Monitor, Recovery and Kill Switch state.</p>
           </div>
           <Badge variant={providerGlobalControls?.parallel_mode_enabled ? 'blue' : 'gray'}>{providerGlobalControls?.parallel_mode_enabled ? 'Parallel Mode ON' : 'Parallel Mode OFF'}</Badge>
         </div>
@@ -537,7 +539,7 @@ export default function Execution() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {[
                   ['enabled', 'ON/OFF'],
-
+                  ['entry_enabled', 'Entry'],
                   ['read_only', 'Read-only'],
                   ['profit_lock_enabled', 'Profit Lock'],
                   ['monitor_enabled', 'Monitor'],
@@ -618,20 +620,20 @@ export default function Execution() {
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
                 <button
-                  disabled={acting || (!paused && !killActive)}
-                  onClick={() => updateExecutionSettings({ bot_paused: false, kill_switch_enabled: false })}
+                  disabled={acting}
+                  onClick={() => updateExecutionSettings({ start_bot: true, provider: selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider, auto_execute_testnet: true, testnet_enabled: true, execution_mode: 'testnet', bot_paused: false, bot_paused_reason: null, kill_switch_enabled: false, live_trading_enabled: false })}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors">
                   <CheckCircle2 size={14} />Start Bot
                 </button>
                 <button
-                  disabled={acting || paused}
-                  onClick={() => updateExecutionSettings({ bot_paused: true, bot_paused_reason: 'Manual pause by admin' })}
+                  disabled={acting || !entryEngineOn}
+                  onClick={() => updateExecutionSettings({ pause_entries: true, provider: selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider, bot_paused: false, bot_paused_reason: 'Entries paused by admin; monitor/recovery remain enabled' })}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-yellow-600 hover:bg-yellow-500 text-white disabled:opacity-40 transition-colors">
                   <PauseCircle size={14} />Pause Bot
                 </button>
                 <button
-                  disabled={acting || killActive}
-                  onClick={() => updateExecutionSettings({ kill_switch_enabled: true })}
+                  disabled={acting || selectedProviderControl?.provider_kill_switch === true}
+                  onClick={() => updateExecutionSettings({ provider_kill_switch: true, provider: selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider, kill_switch_enabled: false })}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-red-700 hover:bg-red-600 text-white disabled:opacity-40 transition-colors">
                   <StopCircle size={14} />Kill Switch
                 </button>

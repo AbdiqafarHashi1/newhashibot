@@ -154,6 +154,7 @@ export class ExchangeProviderBybit implements ExchangeProvider {
       body: method === 'POST' ? body : undefined,
     });
     const data = await res.json() as BybitResponse<T>;
+    (this.config.logger ?? console).debug('Bybit V5 safe debug', { endpoint: path, params, retCode: data.retCode ?? res.status, retMsg: data.retMsg ?? res.statusText });
     if (!res.ok || data.retCode !== 0) throw new Error(`Bybit ${path} failed: ${data.retCode} ${data.retMsg}`);
     return data.result;
   }
