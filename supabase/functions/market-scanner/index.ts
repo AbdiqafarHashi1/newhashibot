@@ -3804,9 +3804,7 @@ async function runScanPipeline(
             // This is gated by server-side env and DB settings in the execution
             // function. It only receives the just-created signal id, so old
             // historical signals are never auto-submitted from the scanner.
-            const executionResult = tgResult.sent
-              ? await tryAutoExecuteTestnet(sigData.id as string)
-              : { called: false, success: false, reason: "telegram_signal_not_sent" };
+            const executionResult = await tryAutoExecuteTestnet(sigData.id as string);
 
             if (ev.name === "MicroScalper") {
               await supabase.from("strategy_candidates").update({
