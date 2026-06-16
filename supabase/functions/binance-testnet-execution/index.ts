@@ -14,7 +14,7 @@ const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protecte
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "diagnose_bybit_testnet_connection" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
+type Action = "status" | "execution_readiness" | "parallel_dry_run" | "diagnose_bybit_testnet_connection" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -535,6 +535,7 @@ async function bybitRequest<T>(method: "GET", path: string, params: Record<strin
     signal: AbortSignal.timeout(10000),
   });
   const data = await res.json().catch(() => ({})) as { retCode?: number; retMsg?: string; result?: T };
+  console.log("Bybit V5 safe debug", { endpoint: path, params, retCode: data.retCode ?? res.status, retMsg: data.retMsg ?? res.statusText });
   if (!res.ok || data.retCode !== 0) throw new Error(`Bybit ${path} failed: ${data.retCode ?? res.status} ${data.retMsg ?? res.statusText}`);
   return data.result as T;
 }
@@ -543,11 +544,9 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
   const missing: string[] = [];
   const apiKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
   const apiSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
-  const enabled = envBool("BYBIT_TESTNET_ENABLED", false);
   if (!apiKey) missing.push("BYBIT_TESTNET_API_KEY");
   if (!apiSecret) missing.push("BYBIT_TESTNET_API_SECRET");
-  if (!enabled) missing.push("BYBIT_TESTNET_ENABLED=true");
-  const checks: Json = { api_key_exists: Boolean(apiKey), api_secret_exists: Boolean(apiSecret), api_key_length: apiKey.length, api_secret_length: apiSecret.length, api_key_has_spaces: /\s/.test(apiKey), api_secret_has_spaces: /\s/.test(apiSecret), api_key_has_quotes: /['"]/.test(apiKey), api_secret_has_quotes: /['"]/.test(apiSecret), api_key_has_line_breaks: /[\r\n]/.test(apiKey), api_secret_has_line_breaks: /[\r\n]/.test(apiSecret), bybit_testnet_enabled: enabled, base_url: bybitBaseUrl(), base_url_is_testnet: bybitBaseUrl().includes("testnet"), auth_contract: "timestamp + apiKey + recvWindow + queryString", auth_ok: false, root_cause: null };
+  const checks: Json = { api_key_exists: Boolean(apiKey), api_secret_exists: Boolean(apiSecret), api_key_length: apiKey.length, api_secret_length: apiSecret.length, api_key_has_spaces: /\s/.test(apiKey), api_secret_has_spaces: /\s/.test(apiSecret), api_key_has_quotes: /['"]/.test(apiKey), api_secret_has_quotes: /['"]/.test(apiSecret), api_key_has_line_breaks: /[\r\n]/.test(apiKey), api_secret_has_line_breaks: /[\r\n]/.test(apiSecret), bybit_testnet_enabled: true, source_of_truth: "execution_provider_controls", base_url: bybitBaseUrl(), base_url_is_testnet: bybitBaseUrl().includes("testnet"), auth_contract: "timestamp + apiKey + recvWindow + queryString", auth_ok: false, root_cause: null };
   let connected = false;
   let safeForTestOrder = false;
   let errorReason = "";
@@ -567,16 +566,16 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
     positionsPayload = ((positions as { list?: unknown[] })?.list ?? []) as unknown[];
     openOrdersPayload = ((openOrders as { list?: unknown[] })?.list ?? []) as unknown[];
     const supported = new Set((instruments.list ?? []).filter((row) => row.status === "Trading").map((row) => row.symbol));
-    Object.assign(checks, { auth: true, auth_ok: true, root_cause: null, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, request_contract: { wallet_balance: { endpoint: "/v5/account/wallet-balance", method: "GET", required_params: ["accountType"], actual_params: { accountType: "UNIFIED" } }, position_list: { endpoint: "/v5/position/list", method: "GET", required_params: ["category", "settleCoin|baseCoin|symbol"], actual_params: { category: "linear", settleCoin: "USDT" } }, order_realtime: { endpoint: "/v5/order/realtime", method: "GET", required_params: ["category", "symbol|settleCoin"], actual_params: { category: "linear", settleCoin: "USDT", openOnly: 0 } } }, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders), balances_count: Array.isArray((balances as { list?: unknown[] })?.list) ? (balances as { list?: unknown[] }).list?.length ?? 0 : 0, positions_count: Array.isArray((positions as { list?: unknown[] })?.list) ? (positions as { list?: unknown[] }).list?.length ?? 0 : 0, open_orders_count: Array.isArray((openOrders as { list?: unknown[] })?.list) ? (openOrders as { list?: unknown[] }).list?.length ?? 0 : 0 });
+    Object.assign(checks, { auth: true, auth_ok: true, root_cause: null, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, balances_ok: true, positions_ok: true, orders_ok: true, request_contract: { wallet_balance: { endpoint: "/v5/account/wallet-balance", method: "GET", required_params: ["accountType"], actual_params: { accountType: "UNIFIED" } }, position_list: { endpoint: "/v5/position/list", method: "GET", required_params: ["category", "settleCoin|baseCoin|symbol"], actual_params: { category: "linear", settleCoin: "USDT" } }, order_realtime: { endpoint: "/v5/order/realtime", method: "GET", required_params: ["category", "symbol|settleCoin"], actual_params: { category: "linear", settleCoin: "USDT", openOnly: 0 } } }, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders), balances_count: Array.isArray((balances as { list?: unknown[] })?.list) ? (balances as { list?: unknown[] }).list?.length ?? 0 : 0, positions_count: Array.isArray((positions as { list?: unknown[] })?.list) ? (positions as { list?: unknown[] }).list?.length ?? 0 : 0, open_orders_count: Array.isArray((openOrders as { list?: unknown[] })?.list) ? (openOrders as { list?: unknown[] }).list?.length ?? 0 : 0 });
     connected = true;
-    safeForTestOrder = enabled && supported.has("BTCUSDT") && supported.has("ETHUSDT") && supported.has("SOLUSDT");
+    safeForTestOrder = supported.has("BTCUSDT") && supported.has("ETHUSDT") && supported.has("SOLUSDT");
   } catch (e) {
     errorReason = e instanceof Error ? e.message : String(e);
     Object.assign(checks, { auth_ok: false, root_cause: /10004|sign/i.test(errorReason) ? "G_SECRET_MISMATCH" : /timestamp|10002/i.test(errorReason) ? "D_BAD_TIMESTAMP" : /api key|permission|forbidden|denied/i.test(errorReason) ? "A_BAD_CREDENTIALS" : "UNKNOWN", exact_reason: /10004|sign/i.test(errorReason) ? "Bybit V5 formula, sorted query, recv_window, and headers are correct; 10004 indicates the loaded API secret does not match the key or stale credentials are deployed." : errorReason });
     if (/permission|forbidden|denied|api key/i.test(errorReason)) missingPermissions = ["Bybit read wallet/position/order permission may be missing or key is invalid"];
   }
   await supabase.from("execution_provider_controls").update({ status: connected ? "connected" : "disconnected", last_status_at: new Date().toISOString(), last_error: errorReason || null, metadata: { bybit_health: { connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason, checks } }, updated_at: new Date().toISOString() }).eq("provider_name", "bybit");
-  return { success: connected, connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason || null, checks, balances: balancesPayload, positions: positionsPayload, open_orders: openOrdersPayload };
+  return { success: connected, connected, auth_ok: checks.auth_ok === true, balances_ok: checks.balances_ok === true, positions_ok: checks.positions_ok === true, orders_ok: checks.orders_ok === true, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason || null, checks, balances: balancesPayload, positions: positionsPayload, open_orders: openOrdersPayload };
 }
 
 async function binanceRequest<T>(method: "GET" | "POST" | "DELETE", path: string, params: Record<string, string | number | boolean> = {}, signed = false): Promise<T> {
@@ -876,6 +875,47 @@ function buildPlan(signal: SignalRow, rules: SymbolRules, capital: CapitalSnapsh
     stopDistancePct: stopDistance / entry, capital, quantity, tp1Quantity, tp2Quantity, notional, marginRequired: notional / lev.leverage, rules, adjustments,
     governor_state: decision.state, governor_reason: decision.reason, risk_multiplier: decision.risk_multiplier, adjusted_risk_pct: riskPct, adjusted_max_leverage: decision.adjusted_max_leverage,
   };
+}
+
+interface ProviderRuntimeControl {
+  provider_name: string;
+  enabled: boolean;
+  entry_enabled?: boolean | null;
+  monitor_enabled: boolean;
+  protection_recovery_enabled: boolean;
+  recovery_enabled?: boolean | null;
+  provider_kill_switch: boolean;
+  kill_switch?: boolean | null;
+  read_only: boolean;
+  status: string;
+  last_error?: string | null;
+}
+
+async function getProviderControl(supabase: SupabaseClient, providerName: "binance" | "bybit"): Promise<ProviderRuntimeControl> {
+  const { data } = await supabase.from("execution_provider_controls").select("*").eq("provider_name", providerName).maybeSingle();
+  const row = (data ?? {}) as Json;
+  return {
+    provider_name: providerName,
+    enabled: row.enabled === true,
+    entry_enabled: typeof row.entry_enabled === "boolean" ? row.entry_enabled : row.enabled === true,
+    monitor_enabled: row.monitor_enabled === true,
+    protection_recovery_enabled: row.protection_recovery_enabled === true,
+    recovery_enabled: row.recovery_enabled === true || row.protection_recovery_enabled === true,
+    provider_kill_switch: row.provider_kill_switch === true || row.kill_switch === true,
+    kill_switch: row.kill_switch === true || row.provider_kill_switch === true,
+    read_only: row.read_only === true,
+    status: String(row.status ?? "disconnected"),
+    last_error: typeof row.last_error === "string" ? row.last_error : null,
+  };
+}
+
+function providerEntryBlocked(provider: ProviderRuntimeControl): string | null {
+  if (!provider.enabled) return "provider_disabled";
+  if (provider.entry_enabled !== true) return "provider_entry_disabled";
+  if (provider.provider_kill_switch || provider.kill_switch) return "provider_kill_switch";
+  if (provider.read_only) return "provider_read_only";
+  if (provider.status !== "connected") return `provider_${provider.status}`;
+  return null;
 }
 
 async function getSettings(supabase: SupabaseClient): Promise<ExecutionSettings> {
@@ -1242,6 +1282,9 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   const { data: signal, error } = await supabase.from("signals").select("*").eq("id", signalId).maybeSingle();
   if (error || !signal) throw new Error("Signal not found");
   const sig = signal as SignalRow;
+  const binanceControl = await getProviderControl(supabase, "binance");
+  const binanceBlocker = providerEntryBlocked(binanceControl);
+  if (binanceBlocker) return createSkipped(supabase, sig, binanceBlocker, { provider: "binance", db_row_source: "execution_provider_controls.provider_name=binance" });
   if (settings.kill_switch_enabled) return createSkipped(supabase, sig, "skipped_kill_switch");
   if (settings.bot_paused) return createSkipped(supabase, sig, "skipped_bot_paused", { bot_paused_reason: settings.bot_paused_reason });
   if (settings.execution_mode !== "testnet" || !settings.testnet_enabled) return createSkipped(supabase, sig, "skipped_auto_disabled");
@@ -1298,7 +1341,7 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   const totalRiskAfter = currentRisk + plan.riskPct;
   if (!manual && !ignoreOpenRisk && totalRiskAfter > riskCap + 1e-9) return createSkipped(supabase, sig, "skipped_total_open_risk_cap", { current_open_risk_pct: currentRisk, proposed_risk_pct: plan.riskPct, max_total_open_risk_pct: riskCap });
   plan.total_open_risk_after_trade = totalRiskAfter;
-  const { data: exec } = await supabase.from("execution_orders").insert({ signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, ...expiryFields(sig), ...commonExecutionFields(plan) }).select("id").single();
+  const { data: exec } = await supabase.from("execution_orders").insert({ signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, execution_provider: "binance", provider_status: "pending", provider_entry_enabled: true, ...expiryFields(sig), ...commonExecutionFields(plan) }).select("id").single();
   const executionId = String((exec as { id: string }).id);
   await logEvent(supabase, executionId, "planned", "Order plan created", { plan, margin_selection: marginSelection, margin_diagnostics: marginDiagnostics });
   await logEvent(supabase, executionId, "margin_asset_selected", "USDT/USDC margin asset selected before Binance entry placement", marginDiagnostics);
@@ -1669,15 +1712,51 @@ async function resetTestnetGovernor(supabase: SupabaseClient): Promise<Json> {
   };
 }
 
+async function executionReadiness(supabase: SupabaseClient, providerName: "binance" | "bybit"): Promise<Json> {
+  const settings = await getSettings(supabase);
+  const control = await getProviderControl(supabase, providerName);
+  const globalBlockers = [
+    settings.live_trading_enabled ? "live_trading_enabled" : null,
+    settings.execution_mode !== "testnet" ? "execution_mode_not_testnet" : null,
+    !settings.testnet_enabled ? "db_testnet_disabled" : null,
+    !settings.auto_execute_testnet ? "auto_execute_testnet_false" : null,
+    settings.bot_paused ? "bot_paused" : null,
+    settings.kill_switch_enabled ? "global_kill_switch" : null,
+  ].filter(Boolean);
+  const providerBlocker = providerEntryBlocked(control);
+  return { accepted: globalBlockers.length === 0 && !providerBlocker, provider: providerName, blocker: providerBlocker ?? globalBlockers[0] ?? null, db_row_source: { global: "execution_settings.id=1", provider: `execution_provider_controls.provider_name=${providerName}` }, function_path_reached: "executionReadiness", would_submit_order: globalBlockers.length === 0 && !providerBlocker };
+}
+
+async function parallelDryRun(supabase: SupabaseClient, signalId: string): Promise<Json> {
+  const binance = await executionReadiness(supabase, "binance");
+  const bybit = await executionReadiness(supabase, "bybit");
+  const validated = await validateSelectedSignal(supabase, signalId);
+  return { success: true, accepted: [binance, bybit].some((r) => (r as Json).accepted === true), provider: "parallel", blocker: null, db_row_source: { global: "execution_settings.id=1", providers: "execution_provider_controls" }, function_path_reached: "parallelDryRun -> validateSelectedSignal", would_submit_order: false, signal_valid: isSignalRow(validated), results: [binance, bybit] };
+}
+
 async function updateSettings(supabase: SupabaseClient, patch: Json): Promise<Json> {
-  const allowed = ["enable_usdc_margin_backup", "prefer_margin_asset", "allow_margin_assets", "max_retry_assets", "enable_profit_lock_engine", "enable_testnet_profit_lock_engine", "profit_lock_before_tp1", "profit_lock_before_tp1_testnet_allowed", "profit_lock_min_r", "profit_lock_aggressive_min_r", "profit_lock_buffer_r", "profit_lock_after_tp1", "profit_lock_max_updates_per_trade", "profit_lock_cooldown_minutes", "auto_execute_testnet", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "testnet_governor_mode", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl", "stress_override_enabled", "stress_risk_pct", "stress_leverage", "stress_ignore_open_risk_limit", "bot_paused", "bot_paused_reason"];
+  const allowed = ["enable_usdc_margin_backup", "prefer_margin_asset", "allow_margin_assets", "max_retry_assets", "enable_profit_lock_engine", "enable_testnet_profit_lock_engine", "profit_lock_before_tp1", "profit_lock_before_tp1_testnet_allowed", "profit_lock_min_r", "profit_lock_aggressive_min_r", "profit_lock_buffer_r", "profit_lock_after_tp1", "profit_lock_max_updates_per_trade", "profit_lock_cooldown_minutes", "auto_execute_testnet", "auto_execute_enabled", "emergency_stop", "capital_basis", "testnet_capital_override_usdt", "max_capital_used_usdt", "testnet_risk_a", "testnet_risk_a_plus", "max_testnet_risk_pct", "testnet_leverage_a", "testnet_leverage_a_plus", "testnet_max_leverage", "max_open_testnet_positions", "max_total_open_risk_pct", "one_active_execution_per_symbol", "kill_switch_enabled", "execution_mode", "testnet_enabled", "governor_enabled", "testnet_governor_mode", "daily_start_equity", "max_daily_loss_pct", "max_unrealized_drawdown_pct", "aggressive_allowed_profit_pct", "defensive_loss_pct", "max_consecutive_failed_executions", "max_consecutive_closed_sl", "stress_override_enabled", "stress_risk_pct", "stress_leverage", "stress_ignore_open_risk_limit", "bot_paused", "bot_paused_reason"];
   const update: Json = { updated_at: new Date().toISOString() };
   for (const key of allowed) if (key in patch) update[key] = patch[key];
   if ("testnet_governor_mode" in update && !["normal", "readonly", "off_for_testing"].includes(String(update.testnet_governor_mode))) throw new Error("Invalid testnet_governor_mode");
+  if ("auto_execute_testnet" in update) update.auto_execute_enabled = update.auto_execute_testnet;
+  if (patch.start_bot === true) { update.auto_execute_testnet = true; update.auto_execute_enabled = true; update.testnet_enabled = true; update.execution_mode = "testnet"; update.bot_paused = false; update.bot_paused_reason = null; update.kill_switch_enabled = false; update.emergency_stop = false; }
+  if (patch.emergency_stop === true) { update.auto_execute_testnet = false; update.auto_execute_enabled = false; update.emergency_stop = true; update.kill_switch_enabled = true; }
   update.live_trading_enabled = false;
   const { data, error } = await supabase.from("execution_settings").update(update).eq("id", 1).select("*").single();
   if (error) throw new Error(error.message);
-  return { success: true, settings: data as Json };
+  if (patch.start_bot === true || patch.pause_entries === true || patch.provider_kill_switch === true || patch.emergency_stop === true) {
+    const providerName = String(patch.provider ?? "binance");
+    if (["binance", "bybit"].includes(providerName)) {
+      const providerUpdate: Json = { updated_at: new Date().toISOString() };
+      if (patch.start_bot === true) Object.assign(providerUpdate, { enabled: true, entry_enabled: true, read_only: false, provider_kill_switch: false, kill_switch: false });
+      if (patch.pause_entries === true) Object.assign(providerUpdate, { entry_enabled: false });
+      if (patch.provider_kill_switch === true) Object.assign(providerUpdate, { entry_enabled: false, provider_kill_switch: true, kill_switch: true });
+      if (patch.emergency_stop === true) Object.assign(providerUpdate, { entry_enabled: false, monitor_enabled: false, protection_recovery_enabled: false, recovery_enabled: false, provider_kill_switch: true, kill_switch: true });
+      await supabase.from("execution_provider_controls").update(providerUpdate).eq("provider_name", providerName);
+    }
+  }
+  return { success: true, settings: data as Json, provider: patch.provider ?? null, db_write_result: { execution_settings: data, provider_controls_updated: Boolean(patch.start_bot || patch.pause_entries || patch.provider_kill_switch || patch.emergency_stop) } };
 }
 
 Deno.serve(async (req: Request) => {
@@ -1685,10 +1764,12 @@ Deno.serve(async (req: Request) => {
   try {
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     await requireAdminOrInternal(req, supabase);
-    const body = await req.json().catch(() => ({})) as { action?: Action; signal_id?: string; symbol?: string; execution_id?: string; manual?: boolean; settings?: Json };
+    const body = await req.json().catch(() => ({})) as { action?: Action; signal_id?: string; symbol?: string; execution_id?: string; manual?: boolean; settings?: Json; provider?: string };
     const action = body.action ?? "status";
     let payload: Json;
     if (action === "status") payload = await statusPayload(supabase);
+    else if (action === "execution_readiness") payload = await executionReadiness(supabase, (body.provider === "bybit" ? "bybit" : "binance") as "binance" | "bybit");
+    else if (action === "parallel_dry_run") payload = await parallelDryRun(supabase, cleanSignalId(body.signal_id));
     else if (action === "diagnose_bybit_testnet_connection") payload = await diagnoseBybitTestnetConnection(supabase);
     else if (action === "diagnose_margin_fallback") payload = await diagnoseMarginFallback(supabase, cleanSignalId(body.signal_id));
     else if (action === "test_connection") { assertLiveTradingImpossible(); payload = { success: true, account: await binanceRequest("GET", "/fapi/v2/account", {}, true), base_url: safeBaseUrl() }; }
