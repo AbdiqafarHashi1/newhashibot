@@ -5,7 +5,7 @@ import { StrategyConfig } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { Settings, Save, RotateCcw, CheckCircle, XCircle, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
-type StrategyName = 'MicroScalper' | 'CompressionBreakout' | 'SwingContinuation' | 'ForexMicroScalper' | 'ForexSwingContinuation';
+type StrategyName = 'MicroScalper' | 'CompressionBreakout' | 'SwingContinuation' | 'QuickScalp' | 'ForexMicroScalper' | 'ForexSwingContinuation';
 type FieldGroup = 'Quality Gates' | 'Timeframes' | 'Indicators' | 'Entry Filters' | 'Stop/TP/Risk' | 'Strategy-Specific';
 
 type ParamField = {
@@ -111,6 +111,14 @@ const STRATEGY_DEFINITIONS: Record<StrategyName, StrategyDefinition> = {
     allowedTimeframes: ['15m', '1h'],
     codeNotes: 'Scanner uses RSI, ATR%, pullback bars, stop ATR, TP1, and TP2; Backtest Lab also uses EMA/RSI/ATR lengths and momentum lookback.',
   },
+  QuickScalp: {
+    description: 'Crypto 5m/15m high-selectivity impulse scalp with volume expansion, EMA alignment, momentum acceleration, ATR expansion, and fast protection.',
+    defaultMeta: { enabled: true, market_type: 'crypto', signal_style: 'scalper', risk_mode: 'balanced', allowed_timeframes: ['5m', '15m'], min_score: 82, min_rr: 1.15, min_stop_distance_pct: 0.18, min_tp1_distance_pct: 0.25, min_tp2_distance_pct: 0.40, max_bars_in_trade: 12 },
+    defaultParams: { ema_fast: 20, ema_slow: 50, atr_len: 14, min_atr_pct: 0.12, max_atr_pct: 2.5, stop_atr_mult: 0.95, tp1_r: 0.55, tp2_r: 1.15, min_volume_expansion: 1.15, max_extension_atr: 1.15, no_entry_timeout_bars: 3 },
+    params: [...indicatorFields.filter((f) => ['ema_fast', 'ema_slow', 'atr_len'].includes(f.key)), ...volatilityFields, ...stopFields, { key: 'min_volume_expansion', label: 'Min Volume Expansion', helper: 'Rejects dead/low-volume impulses below this volume expansion ratio.', group: 'Entry Filters', min: 0, step: 0.05 }, { key: 'max_extension_atr', label: 'Max Extension ATR', helper: 'Rejects late entries after price extends too far from EMA20.', group: 'Entry Filters', min: 0, step: 0.05 }, { key: 'no_entry_timeout_bars', label: 'No-entry Timeout Bars', helper: 'Cancels stale QuickScalp setups if entry is not reached quickly.', group: 'Strategy-Specific', min: 1, step: 1 }],
+    allowedTimeframes: ['5m', '15m'],
+    codeNotes: 'Scanner evaluates volume expansion, liquidity proxy, EMA alignment, momentum acceleration, ATR expansion, impulse quality, spread quality, no-entry timeout, and fast exit metadata.',
+  },
   ForexMicroScalper: {
     description: 'Forex 15m conservative micro scalper using the MicroScalper evaluator and TwelveData candles.',
     defaultMeta: { enabled: true, market_type: 'forex', signal_style: 'forex_signal', risk_mode: 'conservative', allowed_timeframes: ['15m'], min_score: 80, min_rr: 1.4, min_stop_distance_pct: 0.06, min_tp1_distance_pct: 0.08, min_tp2_distance_pct: 0.12, max_bars_in_trade: 32 },
@@ -183,8 +191,8 @@ function validateStrategy(name: string, edit: EditState): string[] {
   if (name.startsWith('Forex') && edit.allowed_timeframes.some((tf) => !['15m', '1h'].includes(tf))) {
     errors.push('Forex strategies currently allow only 15m and 1h.');
   }
-  if (name === 'MicroScalper' && edit.allowed_timeframes.some((tf) => ['1h', '4h'].includes(tf))) {
-    errors.push('MicroScalper scanner supports only 5m and 15m.');
+  if ((name === 'MicroScalper' || name === 'QuickScalp') && edit.allowed_timeframes.some((tf) => ['1h', '4h'].includes(tf))) {
+    errors.push(`${name} scanner supports only 5m and 15m.`);
   }
   if ((name === 'SwingContinuation' || name === 'ForexSwingContinuation') && edit.allowed_timeframes.includes('5m')) {
     errors.push('Swing strategies do not support 5m in the scanner.');

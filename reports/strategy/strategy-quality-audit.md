@@ -1,0 +1,14 @@
+# X-F Strategy Quality Audit
+
+Truth boundary: this audit does not invent performance. Live signal/outcome metrics must be populated from `signals`, `strategy_candidates`, `signal_updates`, and execution lifecycle rows. Where repository-local historical rows are not available in this checkout, the decision is **observe/research** rather than inflated approval.
+
+| Strategy | Total | Closed | Open | Expired | Win Rate | PF | Avg R | TP1 | TP2 | SL | Expiry | Avg Hold | Best TF | Worst TF | Best Symbol Group | Worst Symbol Group | Best Regime | Worst Regime | Avg Opportunity | Avg Arbitrator |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|---|---|---|---:|---:|
+| MicroScalper | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | 5m/15m | 1h/4h unsupported | majors/high liquidity | low liquidity alts | momentum trend | range chop | from market_context.opportunity_score | selected_arbitration_score |
+| CompressionBreakout | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | 15m/1h | dead 5m ranges | liquid compression names | illiquid/no volume | compression→expansion | fakeout chop | from market_context.opportunity_score | selected_arbitration_score |
+| SwingContinuation | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | 1h/15m | 5m unsupported | majors/trending alts | choppy alts | trend pullback reclaim | range chop | from market_context.opportunity_score | selected_arbitration_score |
+| QuickScalp | new/no completed production sample | 0 | 0 | 0 | N/A | N/A | N/A | N/A | N/A | N/A | N/A | target 15-60m | 5m/15m | 1h+ unsupported | high liquidity impulse | dead markets | fast momentum expansion | late/overextended | emitted in score_breakdown | selected_arbitration_score |
+| ForexMicroScalper | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | 15m/1h | unsupported lower TF | EURUSD/GBPUSD/USDJPY | unsupported pairs | session momentum | spread/news chop | from market_context.opportunity_score | selected_arbitration_score |
+| ForexSwingContinuation | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | DB-derived | 1h | 5m unsupported | majors | unsupported pairs | session trend | news chop | from market_context.opportunity_score | selected_arbitration_score |
+
+Required SQL view: aggregate by strategy/timeframe/symbol/regime and join `risk_profile_snapshot->score_breakdown`, `arbitrator_decision->market_intelligence`, and candidate `score_breakdown`.
