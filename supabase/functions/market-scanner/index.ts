@@ -30,7 +30,7 @@ interface EvalResult {
   rejection_reason: string; score_breakdown: Record<string, number | string | boolean>;
 }
 
-type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "ForexMicroScalper" | "ForexSwingContinuation";
+type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation";
 
 interface StrategyEvaluationStats {
   evaluated: number;
@@ -607,6 +607,73 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
 }
 
 // ─── CompressionBreakout ──────────────────────────────────────────────────────
+
+
+function evalQuickScalp(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
+  if (!["5m", "15m"].includes(timeframe)) return strategyZeroReject("unsupported_timeframe");
+  if (candles.length < 55) return strategyZeroReject("insufficient_candles");
+  if (hasInvalidCandles(candles)) return strategyZeroReject("invalid_candles");
+  const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2] ?? last;
+  const price = last.close;
+  const atr = ind.atr14;
+  if (atr <= 0 || price <= 0) return strategyZeroReject("invalid_atr_or_price");
+  const minScore = params.min_score ?? 82;
+  const minRr = params.min_rr ?? 1.15;
+  const maxBars = params.max_bars_in_trade ?? (timeframe === "5m" ? 9 : 4);
+  const stopAtr = params.stop_atr_mult ?? 0.95;
+  const tp1R = params.tp1_r ?? 0.55;
+  const tp2R = params.tp2_r ?? 1.15;
+  const direction: "buy" | "sell" = ind.ema20 >= ind.ema50 && last.close >= prev.close ? "buy" : "sell";
+  const candleOk = direction === "buy" ? last.close > last.open : last.close < last.open;
+  const emaOk = direction === "buy" ? last.close > ind.ema20 && ind.ema20 >= ind.ema50 : last.close < ind.ema20 && ind.ema20 <= ind.ema50;
+  const closes = candles.map((c) => c.close);
+  const mom1 = calcMomentumScore(closes, 1);
+  const mom3 = calcMomentumScore(closes, 3);
+  const directionalMomentum = direction === "buy" ? mom3 : -mom3;
+  const accelerating = direction === "buy" ? mom1 > mom3 * 0.45 : -mom1 > -mom3 * 0.45;
+  const volumeExpansion = ind.avg_volume > 0 ? last.volume / ind.avg_volume : 0;
+  const bodyAtr = Math.abs(last.close - last.open) / atr;
+  const rangeAtr = (last.high - last.low) / atr;
+  const extensionAtr = direction === "buy" ? (price - ind.ema20) / atr : (ind.ema20 - price) / atr;
+  const spreadProxy = price > 0 ? ((last.high - last.low) / price) * 100 : 0;
+  const entry_low = price * 0.9999, entry_high = price * 1.0001;
+  const stop_loss = direction === "buy" ? price - atr * stopAtr : price + atr * stopAtr;
+  const tp1 = direction === "buy" ? price + atr * tp1R : price - atr * tp1R;
+  const tp2 = direction === "buy" ? price + atr * tp2R : price - atr * tp2R;
+  const risk = Math.abs(price - stop_loss), reward = Math.abs(tp2 - price);
+  const risk_reward = risk > 0 ? parseFloat((reward / risk).toFixed(2)) : 0;
+  const volumeScore = clampScore(Math.min(volumeExpansion / 1.45, 1.25) * 80);
+  const liquidityScore = clampScore(ind.avg_volume > 0 ? 82 : 35);
+  const emaScore = emaOk ? 86 : 35;
+  const momentumScore = clampScore(Math.max(0, directionalMomentum) * 70 + (accelerating ? 18 : 0) + (candleOk ? 12 : 0));
+  const atrScore = clampScore(ind.atr_pct >= 0.12 && ind.atr_pct <= 2.5 ? 84 : ind.atr_pct < 0.12 ? 30 : 58);
+  const impulseScore = clampScore(Math.min(bodyAtr / 0.45, 1.2) * 54 + Math.min(rangeAtr / 1.1, 1.2) * 26 + (extensionAtr < 1.05 ? 18 : 0));
+  const finalScore = clampScore(volumeScore * 0.18 + liquidityScore * 0.12 + emaScore * 0.18 + momentumScore * 0.24 + atrScore * 0.14 + impulseScore * 0.14);
+  let primaryFailedGate = "";
+  if (volumeExpansion < 1.15) primaryFailedGate = "volume_expansion_failed";
+  else if (!emaOk) primaryFailedGate = "ema_alignment_failed";
+  else if (!candleOk || !accelerating || directionalMomentum < 0.25) primaryFailedGate = "momentum_acceleration_failed";
+  else if (ind.atr_pct < 0.12) primaryFailedGate = "dead_market_rejected";
+  else if (extensionAtr > 1.15) primaryFailedGate = "late_entry_overextended";
+  else if (spreadProxy > 1.6) primaryFailedGate = "spread_quality_failed";
+  else if (risk_reward < minRr) primaryFailedGate = "rr_too_low";
+  else if (finalScore < minScore) primaryFailedGate = "confidence_too_low";
+  const raw = primaryFailedGate || "passed";
+  const score_breakdown: Record<string, number | string | boolean> = {
+    primary_failed_gate: raw, raw_rejection_reason: raw, evaluator_called: true,
+    volume_expansion_score: volumeScore, liquidity_score: liquidityScore, ema_alignment_score: emaScore,
+    momentum_acceleration_score: momentumScore, atr_expansion_score: atrScore, impulse_quality_score: impulseScore,
+    spread_quality_score: clampScore(100 - spreadProxy * 45), price_extension_atr: parseFloat(extensionAtr.toFixed(3)),
+    body_atr: parseFloat(bodyAtr.toFixed(3)), volume_expansion: parseFloat(volumeExpansion.toFixed(3)),
+    max_bars_in_trade: maxBars, no_entry_timeout_bars: timeframe === "5m" ? 3 : 2,
+    early_cancellation_logic: "cancel_if_momentum_or_volume_fails_before_entry", stale_setup_detection: "extension_gt_1.15_atr_or_no_entry_timeout",
+    momentum_failure_exit: "exit_if_directional_momentum_turns_negative", volatility_collapse_exit: "exit_if_atr_pct_below_0.12", trend_failure_exit: "exit_if_ema20_alignment_lost",
+  };
+  const reason = primaryFailedGate ? `QuickScalp rejected: ${primaryFailedGate}` : `QuickScalp ${direction}: volume expansion, EMA alignment, momentum acceleration, ATR expansion and impulse quality confirmed.`;
+  const grade = finalScore >= 90 ? "A+" : finalScore >= 82 ? "A" : finalScore >= 75 ? "B" : "C";
+  return { status: primaryFailedGate ? "rejected" : "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade: primaryFailedGate ? "reject" : grade, reason, rejection_reason: primaryFailedGate, score_breakdown };
+}
 
 function evalCompressionBreakout(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
   const box_lookback = Math.max(10, Math.floor(params.box_lookback ?? 36));
@@ -1272,6 +1339,7 @@ function classifyMarketContext(ind: Indicators, candles: Candle[]): MarketContex
   let preferred_strategy: StrategyName | "none" = "none";
   if (compressionState >= 58 && breakoutState >= 58 && overextension < 75 && chopLevel < 72) preferred_strategy = "CompressionBreakout";
   else if (trendStrength >= 62 && reclaimState >= 58 && chopLevel < 58 && overextension < 82) preferred_strategy = "SwingContinuation";
+  else if (momentumStrength >= 72 && overextension < 58 && volatilityExpansion >= 55 && chopLevel < 52) preferred_strategy = "QuickScalp";
   else if (momentumStrength >= 58 && overextension < 72 && volatilityExpansion >= 38 && chopLevel < 68) preferred_strategy = "MicroScalper";
 
   const positiveStates = [
@@ -1303,6 +1371,9 @@ function classifyMarketContext(ind: Indicators, candles: Candle[]): MarketContex
 }
 
 function marketRoleFit(e: EvalEntry, ctx: MarketContext): number {
+  if (e.name === "QuickScalp") {
+    return clampScore(ctx.momentum_strength * 0.34 + ctx.volatility_expansion * 0.24 + (100 - ctx.overextension) * 0.24 + (100 - ctx.chop_level) * 0.18);
+  }
   if (e.name === "MicroScalper" || e.name === "ForexMicroScalper") {
     return clampScore(ctx.momentum_strength * 0.38 + (100 - ctx.overextension) * 0.24 + ctx.volatility_expansion * 0.20 + (100 - ctx.chop_level) * 0.18);
   }
@@ -1325,6 +1396,10 @@ function strategyFreshnessScore(e: EvalEntry, ctx: MarketContext): number {
     const strictReclaim = scoreBreakdownBool(b, "strict_reclaim_confirmed");
     const reclaimByQuality = scoreBreakdownBool(b, "reclaim_by_quality");
     return clampScore((strictReclaim ? 78 : reclaimByQuality ? 56 : 35) + ctx.reclaim_state * 0.16 + (100 - ctx.chop_level) * 0.06);
+  }
+  if (e.name === "QuickScalp") {
+    const extension = scoreBreakdownNumber(b, "price_extension_atr");
+    return clampScore(94 - Math.max(0, extension - 0.6) * 34 + ctx.momentum_strength * 0.08 + ctx.volatility_expansion * 0.06);
   }
   if (e.name === "MicroScalper" || e.name === "ForexMicroScalper") {
     const extension = scoreBreakdownNumber(b, "price_extension_atr");
@@ -1371,6 +1446,16 @@ function strategyIdentityFit(e: EvalEntry): number {
       scoreBreakdownNumber(b, "momentum_score") * 0.22 +
       scoreBreakdownNumber(b, "ema_slope_score") * 0.10 +
       scoreBreakdownNumber(b, "rr_score") * 0.10,
+    );
+  }
+  if (e.name === "QuickScalp") {
+    return clampScore(
+      scoreBreakdownNumber(b, "volume_expansion_score") * 0.18 +
+      scoreBreakdownNumber(b, "liquidity_score") * 0.12 +
+      scoreBreakdownNumber(b, "ema_alignment_score") * 0.18 +
+      scoreBreakdownNumber(b, "momentum_acceleration_score") * 0.24 +
+      scoreBreakdownNumber(b, "atr_expansion_score") * 0.14 +
+      scoreBreakdownNumber(b, "impulse_quality_score") * 0.14,
     );
   }
   if (e.name === "MicroScalper") {
@@ -1695,6 +1780,18 @@ interface StrategyRiskRule {
 }
 
 const STRATEGY_RISK_RULES: Record<string, StrategyRiskRule> = {
+  QuickScalp: {
+    riskClass: "fast_selective_scalp",
+    signalRisk: { conservative: 0.2, balanced: 0.3, aggressive: 0.4 },
+    personalBase: [0.25, 0.4], personalAPlusMax: 0.6,
+    propBase: [0.1, 0.2], propAPlusMax: 0.25,
+    leverage: {
+      signal_mode: { normal: [2, 4], aPlusMax: 5 },
+      personal_mode: { normal: [3, 6], aPlusMax: 8 },
+      prop_mode: { normal: [1, 2], aPlusMax: 3 },
+    },
+    warning: "Fast scalp. Requires aggressive TP1, rapid profit lock, and no late entries.",
+  },
   MicroScalper: {
     riskClass: "frequent_scalper",
     signalRisk: { conservative: 0.25, balanced: 0.4, aggressive: 0.5 },
@@ -2906,20 +3003,21 @@ async function runScanPipeline(
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
     const isForex = name.startsWith("Forex");
     const isMicroScalper = name === "MicroScalper";
+    const isQuickScalp = name === "QuickScalp";
     return {
       strategy_name: name,
       config_source:         cfg ? "db" : "fallback",
       enabled:               (cfg?.enabled as boolean)                      ?? true,
       signal_style:          (cfg?.signal_style as string)                  ?? (isForex ? "forex_signal" : "scalper"),
       risk_mode:             (cfg?.risk_mode as string)                     ?? (isForex ? "conservative" : "balanced"),
-      min_score:             (cfg?.min_score as number)                     ?? (isMicroScalper ? 72 : isForex ? 78 : 75),
-      min_rr:                (cfg?.min_rr as number)                        ?? (isMicroScalper ? 1.2 : isForex ? 1.4 : 1.2),
+      min_score:             (cfg?.min_score as number)                     ?? (isQuickScalp ? 82 : isMicroScalper ? 72 : isForex ? 78 : 75),
+      min_rr:                (cfg?.min_rr as number)                        ?? (isQuickScalp ? 1.15 : isMicroScalper ? 1.2 : isForex ? 1.4 : 1.2),
       min_stop_distance_pct: (cfg?.min_stop_distance_pct as number)         ?? (isForex ? 0.08 : 0.18),
       min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? (isForex ? 0.10 : 0.25),
       min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? (isForex ? 0.16 : 0.40),
-      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (name === "SwingContinuation" ? 96 : name === "CompressionBreakout" ? 48 : isMicroScalper ? 24 : isForex ? 48 : 32),
+      max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (name === "SwingContinuation" ? 96 : name === "CompressionBreakout" ? 48 : isQuickScalp ? 12 : isMicroScalper ? 24 : isForex ? 48 : 32),
       allowed_symbols:       (cfg?.allowed_symbols as string[])             ?? (isForex ? [...C2_FOREX_SYMBOLS] : []),
-      allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isMicroScalper ? ["5m", "15m"] : isForex ? forexTimeframes() : []),
+      allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isQuickScalp ? ["5m", "15m"] : isMicroScalper ? ["5m", "15m"] : isForex ? forexTimeframes() : []),
       params:                (cfg?.params as Record<string, number>)        ?? {},
     };
   };
@@ -2995,7 +3093,7 @@ async function runScanPipeline(
   let lastForexScanAt: string | null = null, nextAllowedForexScanAt: string | null = null;
   let forexSkipReason = config.signal_enable_forex ? "" : "forex_disabled_for_mvp";
   let forexProviderCacheHits = 0;
-  const strategyNames: StrategyName[] = ["MicroScalper", "CompressionBreakout", "SwingContinuation", "ForexMicroScalper", "ForexSwingContinuation"];
+  const strategyNames: StrategyName[] = ["MicroScalper", "CompressionBreakout", "SwingContinuation", "QuickScalp", "ForexMicroScalper", "ForexSwingContinuation"];
   const strategyEvaluationSummary = Object.fromEntries(strategyNames.map((name) => [name, {
     evaluated: 0,
     candidate_count: 0,
@@ -3255,6 +3353,7 @@ async function runScanPipeline(
           evaluateStrategy("ForexSwingContinuation", fxSwConfig, () => evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }));
         } else {
           const msConfig  = getStratCfg("MicroScalper");
+          const qsConfig  = getStratCfg("QuickScalp");
           const cbConfig  = getStratCfg("CompressionBreakout");
           const swConfig  = getStratCfg("SwingContinuation");
           const msRuntime = microScalperRuntimeParams(msConfig, tf);
@@ -3268,6 +3367,7 @@ async function runScanPipeline(
             }
           }
           evaluateStrategy("MicroScalper", msConfig, () => withMicroScalperDiagnostics(evalMicroScalper(candles, ind, tf, msRuntime.params, fifteenMinuteCandles), msConfig, msRuntime));
+          evaluateStrategy("QuickScalp", qsConfig, () => evalQuickScalp(candles, ind, tf, { ...qsConfig.params, min_score: qsConfig.min_score, min_rr: qsConfig.min_rr, max_bars_in_trade: qsConfig.max_bars_in_trade }));
           evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, max_bars_in_trade: cbConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
           evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, max_bars_in_trade: swConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
         }
