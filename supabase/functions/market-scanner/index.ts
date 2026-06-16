@@ -63,6 +63,8 @@ interface ScannerConfig {
   min_auto_send_grade: string; scan_crypto_enabled: boolean; scan_forex_enabled: boolean;
   signal_enable_crypto: boolean; signal_enable_forex: boolean;
   scan_interval_minutes: number; schedule_enabled: boolean;
+  max_symbols_per_scan?: number; min_24h_volume?: number; min_liquidity?: number;
+  exclude_symbols?: string[]; include_symbols?: string[];
 }
 
 interface StrategyConfig {
@@ -1230,6 +1232,13 @@ interface MarketContext {
   reclaim_state: number;
   preferred_strategy: StrategyName | "none";
   mixed_market: boolean;
+  opportunity_score: number;
+  expected_move_bucket: string;
+  risk_quality: string;
+  liquidity_quality: string;
+  strategy_match: string;
+  recent_move_pct: number;
+  invalidation_distance_atr: number;
 }
 
 function classifyMarketContext(ind: Indicators, candles: Candle[]): MarketContext {
@@ -1257,6 +1266,8 @@ function classifyMarketContext(ind: Indicators, candles: Candle[]): MarketContex
   const pullbackState = clampScore((distanceFromEmaAtr <= 0.9 ? 45 : 0) + trendStrength * 0.35 + (bodyAtr >= 0.20 ? 20 : 0));
   const reclaimState = clampScore(((last.close > ind.ema20 && last.close > last.open) || (last.close < ind.ema20 && last.close < last.open) ? 40 : 0) + pullbackState * 0.45 + momentumStrength * 0.15);
   const atrRegime = ind.atr_pct > 3.5 ? "very_high" : ind.atr_pct > 2.0 ? "high" : ind.atr_pct < 0.15 ? "very_low" : ind.atr_pct < 0.5 ? "low" : "normal";
+  const recentMovePct = price > 0 && candles.length > 12 ? Math.abs(((price - candles[candles.length - 12].close) / price) * 100) : 0;
+  const invalidationDistanceAtr = atr > 0 ? Math.max(0.1, distanceFromEmaAtr) : 0;
 
   let preferred_strategy: StrategyName | "none" = "none";
   if (compressionState >= 58 && breakoutState >= 58 && overextension < 75 && chopLevel < 72) preferred_strategy = "CompressionBreakout";
@@ -1270,13 +1281,24 @@ function classifyMarketContext(ind: Indicators, candles: Candle[]): MarketContex
   ].filter(Boolean).length;
   const mixed_market = preferred_strategy === "none" || positiveStates !== 1 || chopLevel >= 72;
 
+  const opportunityScore = clampScore(
+    trendStrength * 0.20 + momentumStrength * 0.18 + volatilityExpansion * 0.14 +
+    compressionState * 0.10 + breakoutState * 0.13 + (100 - chopLevel) * 0.13 +
+    Math.max(0, 100 - overextension) * 0.07 + Math.min(recentMovePct * 8, 100) * 0.05,
+  );
+  const expectedMoveBucket = opportunityScore >= 78 && ind.atr_pct >= 0.7 ? "1-2pct_clean_move" : opportunityScore >= 65 ? "0.5-1pct_profit_lock_candidate" : "low_expected_move";
+  const riskQuality = overextension > 82 || chopLevel > 76 ? "poor" : overextension < 65 && chopLevel < 62 ? "clean" : "mixed";
+  const liquidityQuality = ind.avg_volume > 0 ? "available" : "unknown";
+
   return {
     regime: ind.regime, trend_strength: trendStrength, momentum_strength: momentumStrength,
     volatility_expansion: volatilityExpansion, volatility_contraction: volatilityContraction,
     compression_state: compressionState, range_state: rangeState, chop_level: chopLevel,
     atr_regime: atrRegime, distance_from_ema_atr: parseFloat(distanceFromEmaAtr.toFixed(3)),
     overextension, breakout_state: breakoutState, pullback_state: pullbackState, reclaim_state: reclaimState,
-    preferred_strategy, mixed_market,
+    preferred_strategy, mixed_market, opportunity_score: opportunityScore, expected_move_bucket: expectedMoveBucket,
+    risk_quality: riskQuality, liquidity_quality: liquidityQuality, strategy_match: preferred_strategy,
+    recent_move_pct: parseFloat(recentMovePct.toFixed(3)), invalidation_distance_atr: parseFloat(invalidationDistanceAtr.toFixed(3)),
   };
 }
 
@@ -1409,7 +1431,9 @@ function arbitrationScore(e: EvalEntry, ctx?: MarketContext): number {
   const gradeQualityBonus = r.grade === "A+" ? 0.04 : r.grade === "A" ? 0.015 : 0;
   const mixedMarketPenalty = ctx?.mixed_market && r.grade !== "A+" ? 0.04 : 0;
   const swingChopPenalty = ctx && (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") && ctx.chop_level >= 58 && r.grade !== "A+" ? 0.09 : 0;
-  return parseFloat(Math.max(0, (scorePct * 0.21) + (identityPct * 0.15) + (roleFitPct * 0.22) + (freshnessPct * 0.10) + (rrPct * 0.15) + (distMargin * 0.09) + (gradePct * 0.08) + gradeQualityBonus + preferredBonus - mixedMarketPenalty - swingChopPenalty - overextensionPenalty(e)).toFixed(4));
+  const opportunityPct = ctx ? ctx.opportunity_score / 100 : 0.55;
+  const riskQualityPenalty = ctx?.risk_quality === "poor" ? 0.08 : ctx?.risk_quality === "mixed" ? 0.025 : 0;
+  return parseFloat(Math.max(0, (scorePct * 0.18) + (identityPct * 0.13) + (roleFitPct * 0.20) + (freshnessPct * 0.08) + (opportunityPct * 0.12) + (rrPct * 0.14) + (distMargin * 0.08) + (gradePct * 0.07) + gradeQualityBonus + preferredBonus - mixedMarketPenalty - swingChopPenalty - overextensionPenalty(e) - riskQualityPenalty).toFixed(4));
 }
 
 function arbitrationLossReason(entry: EvalEntry, selected: EvalEntry | undefined, ctx: MarketContext): string {
@@ -1912,6 +1936,63 @@ async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 11
     const raw: unknown[][] = await res.json();
     return raw.map((k) => ({ symbol, market_type: "crypto", timeframe, open_time: new Date(k[0] as number).toISOString(), open: parseFloat(k[1] as string), high: parseFloat(k[2] as string), low: parseFloat(k[3] as string), close: parseFloat(k[4] as string), volume: parseFloat(k[5] as string), source: "binance" }));
   } catch { return null; }
+}
+
+type BinanceUniverseRow = {
+  symbol: string;
+  market_type: "crypto";
+  is_active: boolean;
+  universe_rank: number;
+  universe_reason: string;
+  quote_volume: number;
+  price_change_pct: number;
+  volatility_proxy: number;
+};
+
+const DEFAULT_STABLECOIN_BASES = new Set(["USDC", "FDUSD", "TUSD", "BUSD", "DAI", "USDP", "USDE", "SUSDE", "EUR", "TRY", "BRL"]);
+
+function scannerCsvSet(value: unknown): Set<string> {
+  if (Array.isArray(value)) return new Set(value.map((x) => normalizeSymbol(String(x))).filter(Boolean));
+  return new Set(String(value ?? "").split(",").map((x) => normalizeSymbol(x)).filter(Boolean));
+}
+
+async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null }> {
+  const maxSymbols = Math.max(10, Math.min(Number(config.max_symbols_per_scan ?? Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? 80), 250));
+  const minVolume = Math.max(0, Number(config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000));
+  const include = scannerCsvSet(config.include_symbols);
+  const exclude = scannerCsvSet(config.exclude_symbols);
+  const stableExclusions = scannerCsvSet(Deno.env.get("SCANNER_STABLECOIN_EXCLUSIONS"));
+  for (const s of DEFAULT_STABLECOIN_BASES) stableExclusions.add(s);
+  try {
+    const [exchangeRes, tickerRes] = await Promise.all([
+      fetch("https://fapi.binance.com/fapi/v1/exchangeInfo", { signal: AbortSignal.timeout(8000) }),
+      fetch("https://fapi.binance.com/fapi/v1/ticker/24hr", { signal: AbortSignal.timeout(8000) }),
+    ]);
+    if (!exchangeRes.ok || !tickerRes.ok) throw new Error(`Binance universe HTTP ${exchangeRes.status}/${tickerRes.status}`);
+    const exchangeInfo = await exchangeRes.json() as { symbols?: Array<{ symbol?: string; status?: string; contractType?: string; quoteAsset?: string; baseAsset?: string }> };
+    const tickers = await tickerRes.json() as Array<Record<string, string>>;
+    const tradable = new Map((exchangeInfo.symbols ?? [])
+      .filter((s) => s.status === "TRADING" && s.contractType === "PERPETUAL" && s.quoteAsset === "USDT" && !stableExclusions.has(String(s.baseAsset ?? "").toUpperCase()))
+      .map((s) => [String(s.symbol ?? "").toUpperCase(), s]));
+    const ranked = tickers
+      .map((t) => {
+        const symbol = normalizeSymbol(String(t.symbol ?? ""));
+        const quoteVolume = Number(t.quoteVolume ?? 0);
+        const priceChangePct = Math.abs(Number(t.priceChangePercent ?? 0));
+        const high = Number(t.highPrice ?? 0);
+        const low = Number(t.lowPrice ?? 0);
+        const last = Number(t.lastPrice ?? 0);
+        const volatilityProxy = last > 0 ? ((high - low) / last) * 100 : 0;
+        const score = Math.log10(Math.max(quoteVolume, 1)) * 18 + priceChangePct * 2.2 + volatilityProxy * 1.4;
+        return { symbol, market_type: "crypto" as const, is_active: true, universe_rank: score, universe_reason: "dynamic_binance_usdt_perp_liquidity_volume_volatility", quote_volume: quoteVolume, price_change_pct: priceChangePct, volatility_proxy: volatilityProxy };
+      })
+      .filter((row) => tradable.has(row.symbol) && (row.quote_volume >= minVolume || include.has(row.symbol)) && !exclude.has(row.symbol))
+      .sort((a, b) => b.universe_rank - a.universe_rank);
+    const includedRows = Array.from(include).filter((symbol) => tradable.has(symbol) && !ranked.some((row) => row.symbol === symbol)).map((symbol) => ({ symbol, market_type: "crypto" as const, is_active: true, universe_rank: 999, universe_reason: "configured_include_symbol", quote_volume: 0, price_change_pct: 0, volatility_proxy: 0 }));
+    return { symbols: [...includedRows, ...ranked].slice(0, maxSymbols), warning: null };
+  } catch (e) {
+    return { symbols: [], warning: `dynamic_binance_universe_failed: ${e instanceof Error ? e.message : String(e)}` };
+  }
 }
 
 // ─── TwelveData ───────────────────────────────────────────────────────────────
@@ -3000,10 +3081,21 @@ async function runScanPipeline(
     return result;
   }
 
-  const { data: symbols } = await supabase.from("symbols").select("*").eq("is_active", true);
+  const { data: configuredSymbols } = await supabase.from("symbols").select("*").eq("is_active", true);
+  const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null };
+  if (dynamicUniverse.warning) errors.push(`[WARN] ${dynamicUniverse.warning}`);
+  const configuredForex = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "forex");
+  const configuredCryptoFallback = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "crypto");
+  const symbols = [
+    ...(dynamicUniverse.symbols.length > 0 ? dynamicUniverse.symbols : configuredCryptoFallback),
+    ...configuredForex,
+  ];
   if (!symbols || symbols.length === 0) {
     await supabase.from("scanner_runs").update({ status: "failed", finished_at: new Date().toISOString(), error_message: "No active symbols" }).eq("id", runId);
     throw new Error("No active symbols configured");
+  }
+  if (dynamicUniverse.symbols.length > 0) {
+    errors.push(`[INFO] dynamic_binance_universe symbols=${dynamicUniverse.symbols.length} min_24h_volume=${config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000}`);
   }
 
   const forexTfPlan = forexTimeframePlan();
@@ -3018,7 +3110,7 @@ async function runScanPipeline(
     nextAllowedForexScanAt = forexThrottle.nextAllowedForexScanAt;
     if (forexThrottle.reason && !forexThrottle.rateLimited) errors.push(`[WARN] ${forexThrottle.reason}`);
 
-    forexBudget = buildForexScanBudget(symbols as Array<Record<string, unknown>>, forexScanTimeframes, runType);
+    forexBudget = buildForexScanBudget(configuredSymbols as Array<Record<string, unknown>>, forexScanTimeframes, runType);
     forexProviderCallsPlanned = forexBudget.plannedProviderCalls;
     forexProviderCallLimit = forexBudget.maxProviderCalls;
     forexBudgetLimited = forexBudget.budgetLimited;
@@ -3508,6 +3600,18 @@ async function runScanPipeline(
               selected_strategy: ev.name,
               arbitration_score: selectedArbitrationScore,
               competing_candidates: arbitrationCandidates,
+              market_intelligence: {
+                opportunity_score: marketContext.opportunity_score,
+                expected_move_bucket: marketContext.expected_move_bucket,
+                risk_quality: marketContext.risk_quality,
+                liquidity_quality: marketContext.liquidity_quality,
+                trend_score: marketContext.trend_strength,
+                volatility_score: marketContext.volatility_expansion,
+                strategy_match: marketContext.strategy_match,
+                recent_move_pct: marketContext.recent_move_pct,
+                invalidation_distance_atr: marketContext.invalidation_distance_atr,
+                provider_availability: { binance: true, bybit: "monitored_separately", mt5: "placeholder" },
+              },
             };
 
             if (!riskCheck.passed) {
@@ -3909,6 +4013,11 @@ Deno.serve(async (req: Request) => {
       signal_enable_forex: signalEnableForex,
       scan_interval_minutes: configRow.scan_interval_minutes ?? 5,
       schedule_enabled: configRow.schedule_enabled ?? false,
+      max_symbols_per_scan: configRow.max_symbols_per_scan ?? 80,
+      min_24h_volume: configRow.min_24h_volume ?? 10_000_000,
+      min_liquidity: configRow.min_liquidity ?? 10_000_000,
+      exclude_symbols: configRow.exclude_symbols ?? [],
+      include_symbols: configRow.include_symbols ?? [],
     };
 
     if (runType === "scheduled" && !config.schedule_enabled) {

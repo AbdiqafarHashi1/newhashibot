@@ -99,6 +99,8 @@ export function resolveTelegramChannels(eventType: string, override?: TelegramCh
     || type.includes("execution_rejection")
   ) return ["admin"];
   if (isEventIntelligence(type)) return isMajorBroadMarketEvent(event ?? { event_type: eventType, text: "" }, type) ? ["free", "vip"] : ["vip"];
+  if (type.includes("signal_preview") || type.includes("opportunity_teaser") || type.includes("educational") || type.includes("market_update")) return ["free"];
+  if (type.includes("signal_created") || type.includes("vip_signal") || type.includes("entry_triggered") || type.includes("tp1_hit") || type.includes("tp2_hit") || type.includes("sl_moved") || type.includes("profit_locked") || type.includes("invalidated") || type.includes("closed")) return ["vip"];
   if (type.includes("morning_brief") || type.includes("market_wrap") || type.includes("news_digest") || type.includes("watchlist") || type.includes("pattern") || type.includes("sentiment") || type.includes("market_analytics")) return ["free", "vip"];
   if (type.includes("highest_confidence_setup") || type.includes("free_selected_signal")) return ["free"];
   return ["vip"];

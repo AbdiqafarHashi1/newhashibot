@@ -1370,6 +1370,78 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   }
 }
 
+function providerNeutralSignal(sig: SignalRow): Json {
+  return {
+    symbol_base: String(sig.symbol ?? "").replace(/(USDT|USDC)$/i, ""),
+    direction: sig.direction,
+    entry_zone: { low: sig.entry_low, high: sig.entry_high },
+    sl: sig.stop_loss,
+    tp1: sig.tp1,
+    tp2: sig.tp2,
+    strategy: sig.strategy_name,
+    timeframe: sig.timeframe,
+    grade: sig.grade,
+    confidence: sig.confidence_score,
+    risk_model: sig.risk_profile_snapshot ?? {},
+  };
+}
+
+async function createProviderPlaceholder(supabase: SupabaseClient, sig: SignalRow, provider: "bybit" | "mt5", executionGroupId: string, reason: string): Promise<Json> {
+  const exchange = provider === "bybit" ? "bybit_usdt_testnet" : "mt5_placeholder";
+  const providerSymbol = provider === "bybit" ? String(sig.symbol).replace(/USDC$/i, "USDT") : String(sig.symbol);
+  const control = provider === "bybit" ? await getProviderControl(supabase, "bybit") : { enabled: false, entry_enabled: false, status: "placeholder", last_error: "MT5 placeholder not enabled", metadata: {} };
+  const blocker = provider === "bybit" ? providerEntryBlocked(control as ProviderRuntimeControl) : "mt5_placeholder_not_enabled";
+  const status = blocker ? "skipped" : "pending";
+  const metadata = {
+    execution_group_id: executionGroupId,
+    execution_provider: provider,
+    provider_status: blocker ? "provider_skipped" : "provider_ready",
+    provider_entry_enabled: !blocker,
+    latest_auto_skip_reason: blocker ?? null,
+    error_message: blocker ?? null,
+    raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, provider_symbol: providerSymbol, provider_control: control },
+  };
+  const { data } = await supabase.from("execution_orders").insert({
+    signal_id: sig.id,
+    exchange,
+    environment: "testnet",
+    symbol: providerSymbol,
+    direction: sig.direction,
+    side: sig.direction === "buy" ? "long" : "short",
+    execution_mode: "testnet",
+    status,
+    entry_price: entryPrice(sig),
+    stop_loss: sig.stop_loss,
+    tp1: sig.tp1,
+    tp2: sig.tp2,
+    volume: 0,
+    quantity: 0,
+    ...expiryFields(sig),
+    ...metadata,
+  }).select("id").single();
+  if (data?.id) await logEvent(supabase, String(data.id), blocker ? "provider_skipped" : "provider_ready", `${provider} execution row created by provider-neutral router`, metadata);
+  return { provider, exchange, success: !blocker, skipped: Boolean(blocker), reason: blocker, execution_id: data?.id ?? null, symbol: providerSymbol };
+}
+
+async function routeSignalToEnabledProviders(supabase: SupabaseClient, signalId: string, manual: boolean): Promise<Json> {
+  assertLiveTradingImpossible();
+  const { data: signal, error } = await supabase.from("signals").select("*").eq("id", signalId).maybeSingle();
+  if (error || !signal) throw new Error("Signal not found");
+  const sig = signal as SignalRow;
+  const executionGroupId = crypto.randomUUID();
+  const [binance, bybit, mt5] = await Promise.allSettled([
+    executeSignal(supabase, signalId, manual),
+    createProviderPlaceholder(supabase, sig, "bybit", executionGroupId, "same_approved_signal_provider_neutral_router"),
+    createProviderPlaceholder(supabase, sig, "mt5", executionGroupId, "future_provider_placeholder"),
+  ]);
+  const results = [binance, bybit, mt5].map((r) => r.status === "fulfilled" ? r.value : { success: false, error: r.reason instanceof Error ? r.reason.message : String(r.reason) });
+  const binanceResult = results[0] as Json;
+  if (typeof binanceResult.execution_id === "string") {
+    await supabase.from("execution_orders").update({ execution_group_id: executionGroupId, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_group_attached_at: new Date().toISOString() } }).eq("id", binanceResult.execution_id);
+  }
+  return { success: results.some((r) => (r as Json).success === true), execution_group_id: executionGroupId, provider_neutral_signal: providerNeutralSignal(sig), results };
+}
+
 async function getPosition(symbol: string): Promise<{ positionAmt: string; markPrice?: string; entryPrice?: string; unrealizedProfit?: string } | null> {
   const positions = await binanceRequest<Array<{ symbol: string; positionAmt: string; markPrice?: string; entryPrice?: string; unrealizedProfit?: string }>>("GET", "/fapi/v2/positionRisk", { symbol }, true);
   return positions.find((p) => p.symbol === symbol) ?? null;
@@ -1799,7 +1871,7 @@ Deno.serve(async (req: Request) => {
       else {
         const settings = await getSettings(supabase);
         const governor = await evaluateGovernor(supabase, settings);
-        payload = governor.blocks_execution ? governorPausedPayload(governor, settings) : await executeSignal(supabase, validated.id, Boolean(body.manual));
+        payload = governor.blocks_execution ? governorPausedPayload(governor, settings) : await routeSignalToEnabledProviders(supabase, validated.id, Boolean(body.manual));
       }
     }
     else if (action === "clean_stale_execution_rows") payload = await cleanStaleRowsForSymbols(supabase, body.symbol ? [body.symbol] : undefined);
