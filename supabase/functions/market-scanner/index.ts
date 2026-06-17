@@ -2970,13 +2970,13 @@ async function tryAutoSendTelegram(
 }
 
 async function tryAutoExecuteTestnet(signalId: string): Promise<{ called: boolean; success: boolean; reason: string }> {
-  if (!envBool("TESTNET_ENABLED", false)) return { called: false, success: false, reason: "TESTNET_ENABLED_not_true" };
-  if ((Deno.env.get("EXECUTION_MODE") ?? "signal_only") !== "testnet") return { called: false, success: false, reason: "EXECUTION_MODE_not_testnet" };
-  if ((Deno.env.get("EXCHANGE") ?? "binance_usdm_testnet") !== "binance_usdm_testnet") return { called: false, success: false, reason: "EXCHANGE_not_binance_usdm_testnet" };
+  // Runtime execution_settings/provider controls are the source of truth for testnet execution.
+  // Do not let stale scanner env flags silently prevent approved signals from reaching the
+  // provider-neutral router; the execution function still enforces live-trading/testnet gates.
   if (envBool("LIVE_TRADING_ENABLED", false)) return { called: false, success: false, reason: "LIVE_TRADING_ENABLED_guard" };
   const url = `${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`;
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!url || !serviceRole) return { called: false, success: false, reason: "supabase_internal_config_missing" };
+  if (!Deno.env.get("SUPABASE_URL") || !serviceRole) return { called: false, success: false, reason: "supabase_internal_config_missing" };
   try {
     const res = await fetch(url, {
       method: "POST",

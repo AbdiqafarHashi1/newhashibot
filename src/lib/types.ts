@@ -524,6 +524,11 @@ export interface ScannerRun {
 export interface BinanceExecutionOrder extends Omit<ExecutionOrder, 'status'> {
   exchange: string;
   environment: 'testnet' | 'live';
+  execution_provider?: 'binance' | 'bybit' | 'mt5' | string | null;
+  provider_status?: string | null;
+  provider_symbol?: string | null;
+  provider_entry_enabled?: boolean | null;
+  execution_group_id?: string | null;
   side: 'long' | 'short' | string;
   leverage: number | null;
   quantity: number | null;
