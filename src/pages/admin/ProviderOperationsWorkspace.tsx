@@ -13,6 +13,9 @@ const STATUS_COLORS: Record<string, string> = {
   pending_submit: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/20',
   entry_submitted: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   entry_filled: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+  synced_closed: 'text-zinc-300 bg-zinc-800 border-zinc-700',
+  protection_failed: 'text-red-300 bg-red-500/10 border-red-500/20',
+  partially_protected: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/20',
   protected_native: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
   sl_submitted: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
   tp_submitted: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
@@ -82,6 +85,40 @@ type ProviderSymbolCacheRow = {
   provider: 'binance' | 'bybit';
   symbol: string;
   status: string;
+};
+
+type MonitorHeartbeat = {
+  provider: string;
+  environment: string;
+  run_id: string;
+  trigger_source?: string | null;
+  is_automatic?: boolean | null;
+  started_at: string;
+  completed_at?: string | null;
+  success: boolean;
+  monitor_status: string;
+  positions_seen: number;
+  orders_seen: number;
+  executions_checked: number;
+  protections_created: number;
+  protections_missing: number;
+  stale_orders_cleaned: number;
+  positions_closed: number;
+  latest_recovery_action?: string | null;
+  latest_telegram_event?: string | null;
+  errors?: unknown;
+};
+
+type MonitorSchedule = {
+  provider: string;
+  environment: string;
+  job_name: string;
+  cron_expression?: string | null;
+  function_name: string;
+  scheduled: boolean;
+  status: string;
+  adapter_status: string;
+  updated_at?: string | null;
 };
 
 type OperatorRoutingSnapshot = {
@@ -177,6 +214,8 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
   const [providerControls, setProviderControls] = useState<ProviderControl[]>([]);
   const [providerGlobalControls, setProviderGlobalControls] = useState<ProviderGlobalControls | null>(null);
   const [providerSymbolCache, setProviderSymbolCache] = useState<ProviderSymbolCacheRow[]>([]);
+  const [monitorHeartbeats, setMonitorHeartbeats] = useState<MonitorHeartbeat[]>([]);
+  const [monitorSchedules, setMonitorSchedules] = useState<MonitorSchedule[]>([]);
   const [providerControlsError, setProviderControlsError] = useState<{ kind: ProviderControlsErrorKind; message: string }>({ kind: '', message: '' });
   const [bybitDebug, setBybitDebug] = useState<ActionResult | null>(null);
   const providerStatus = useMemo(() => new Map(providerControls.map((control) => [control.provider_name, control])), [providerControls]);
@@ -192,6 +231,76 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
     return rows.filter((execution) => (execution.execution_provider ?? 'binance') === selectedProvider);
   }, [selectedProvider, status?.executions]);
   const allProviderExecutions = useMemo(() => status?.executions ?? [], [status?.executions]);
+  const latestHeartbeatByProvider = useMemo(() => {
+    const map = new Map<string, MonitorHeartbeat>();
+    monitorHeartbeats.forEach(row => {
+      const key = `${row.provider}:${row.environment}`;
+      const existing = map.get(key);
+      if (!existing || new Date(row.started_at).getTime() > new Date(existing.started_at).getTime()) map.set(key, row);
+    });
+    return map;
+  }, [monitorHeartbeats]);
+  const latestAutomaticHeartbeatByProvider = useMemo(() => {
+    const map = new Map<string, MonitorHeartbeat>();
+    monitorHeartbeats.filter(row => row.is_automatic === true || row.trigger_source === 'pg_cron').forEach(row => {
+      const key = `${row.provider}:${row.environment}`;
+      const existing = map.get(key);
+      if (!existing || new Date(row.started_at).getTime() > new Date(existing.started_at).getTime()) map.set(key, row);
+    });
+    return map;
+  }, [monitorHeartbeats]);
+  const latestManualHeartbeatByProvider = useMemo(() => {
+    const map = new Map<string, MonitorHeartbeat>();
+    monitorHeartbeats.filter(row => row.is_automatic !== true && row.trigger_source !== 'pg_cron').forEach(row => {
+      const key = `${row.provider}:${row.environment}`;
+      const existing = map.get(key);
+      if (!existing || new Date(row.started_at).getTime() > new Date(existing.started_at).getTime()) map.set(key, row);
+    });
+    return map;
+  }, [monitorHeartbeats]);
+  const scheduleByProvider = useMemo(() => {
+    const map = new Map<string, MonitorSchedule>();
+    monitorSchedules.forEach(row => map.set(`${row.provider}:${row.environment}`, row));
+    return map;
+  }, [monitorSchedules]);
+  const runAgeLabel = (value?: string | null) => {
+    if (!value) return 'never';
+    const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
+    if (!Number.isFinite(minutes)) return 'unknown';
+    if (minutes < 1) return '<1m';
+    if (minutes < 60) return `${minutes}m`;
+    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  };
+  const protectionCommandPlatforms = useMemo(() => {
+    const platformDefs = [
+      { key: 'binance:testnet', provider: 'binance', label: 'Binance', environment: 'testnet', adapterPending: false },
+      { key: 'bybit:demo', provider: 'bybit', label: 'Bybit', environment: 'demo', adapterPending: false },
+      { key: 'mt5:personal', provider: 'mt5', label: 'MT5 Personal', environment: 'personal', adapterPending: true },
+      { key: 'mt5:prop', provider: 'mt5', label: 'MT5 Prop', environment: 'prop', adapterPending: true },
+    ];
+    return platformDefs.map(platform => {
+      const rows = allProviderExecutions.filter(execution => {
+        const executionProvider = execution.execution_provider ?? 'binance';
+        if (platform.provider === 'mt5') return executionProvider === 'mt5' && String(execution.environment ?? '').includes(platform.environment);
+        return executionProvider === platform.provider;
+      });
+      const active = rows.filter(execution => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'partially_protected', 'protection_failed'].includes(execution.status));
+      const heartbeat = latestHeartbeatByProvider.get(platform.key);
+      const automaticHeartbeat = latestAutomaticHeartbeatByProvider.get(platform.key);
+      const manualHeartbeat = latestManualHeartbeatByProvider.get(platform.key);
+      const schedule = scheduleByProvider.get(platform.key);
+      const protectedPositions = active.filter(execution => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
+      const missingSl = active.filter(execution => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
+      const missingTp1 = active.filter(execution => execution.protection_status === 'missing_tp1' || execution.tp1_status === 'missing').length;
+      const missingTp2 = active.filter(execution => execution.protection_status === 'missing_tp2' || execution.tp2_status === 'missing').length;
+      const pendingProtection = active.filter(execution => ['pending_protection', 'protection_pending', 'pending_managed_protection'].includes(String(execution.protection_status ?? execution.status))).length;
+      const failedProtection = active.filter(execution => ['protection_failed', 'unprotected_failed'].includes(String(execution.protection_status ?? execution.status))).length;
+      const expired = active.filter(execution => ['expired', 'expired_closed'].includes(String(execution.expiry_status)) || String(execution.status).includes('expired')).length;
+      const recoveryIssues = active.filter(execution => execution.latest_protection_error || execution.latest_monitor_error || ['cleanup_failed', 'expiry_close_failed', 'protection_retry_failed'].includes(String(execution.recovery_status))).length;
+      const latestTelegram = rows.map(execution => execution.latest_telegram_event_at || '').filter(Boolean).sort().at(-1) ?? heartbeat?.latest_telegram_event ?? '';
+      return { ...platform, rows, active, heartbeat, automaticHeartbeat, manualHeartbeat, schedule, providerStatus: platform.adapterPending ? 'adapter_pending' : providerStatus.get(platform.provider as 'binance' | 'bybit' | 'mt5')?.status ?? 'unknown', monitorStatus: platform.adapterPending ? 'not_available' : heartbeat?.monitor_status ?? 'no_heartbeat', activePositions: platform.adapterPending ? null : active.length, protectedPositions, unprotectedPositions: Math.max(active.length - protectedPositions, 0), missingSl, missingTp1, missingTp2, pendingProtection, failedProtection, staleOrders: heartbeat?.stale_orders_cleaned ?? 0, expired, recoveryIssues, latestRecoveryAction: platform.adapterPending ? 'adapter_pending' : heartbeat?.latest_recovery_action ?? '—', latestTelegram, latestError: platform.adapterPending ? 'MT5 adapter not connected' : Array.isArray(heartbeat?.errors) ? String((heartbeat?.errors as unknown[])[0] ?? '—') : '—' };
+    });
+  }, [allProviderExecutions, latestHeartbeatByProvider, latestAutomaticHeartbeatByProvider, latestManualHeartbeatByProvider, providerStatus, scheduleByProvider]);
   const providerCards = useMemo(() => {
     const providers = ['binance', 'bybit', 'mt5'] as const;
     return providers.map((provider) => {
@@ -199,9 +308,15 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       const active = rows.filter((execution) => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed'].includes(execution.status));
       const pnl = rows.reduce((sum, execution) => sum + Number(execution.current_pnl ?? execution.latest_unrealized_pnl ?? 0), 0);
       const protectedCount = active.filter((execution) => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
+      const missingSl = active.filter((execution) => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
+      const missingTp1 = active.filter((execution) => execution.protection_status === 'missing_tp1' || execution.tp1_status === 'missing').length;
+      const missingTp2 = active.filter((execution) => execution.protection_status === 'missing_tp2' || execution.tp2_status === 'missing').length;
+      const expired = active.filter((execution) => ['expired', 'expired_closed'].includes(String(execution.expiry_status)) || String(execution.status).includes('expired')).length;
+      const latestLifecycle = rows.map((execution) => execution.last_monitor_checked_at || execution.latest_sync_at || execution.updated_at || '').filter(Boolean).sort().at(-1) ?? '';
+      const latestTelegram = rows.map((execution) => execution.latest_telegram_event_at || '').filter(Boolean).sort().at(-1) ?? '';
       const recoveryFailures = rows.filter((execution) => execution.protection_status === 'protection_failed' || execution.latest_protection_error || execution.latest_monitor_error).length;
       const profitLockActive = rows.filter((execution) => execution.profit_lock_sl_active || execution.profit_lock_status === 'locked' || execution.status === 'closed_profit_lock').length;
-      return { provider, rows, active, pnl, protectedCount, recoveryFailures, profitLockActive };
+      return { provider, rows, active, pnl, protectedCount, missingSl, missingTp1, missingTp2, expired, latestLifecycle, latestTelegram, recoveryFailures, profitLockActive };
     });
   }, [allProviderExecutions]);
   const openExecutions = useMemo(() => executions.filter(e => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
@@ -367,7 +482,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
     setLoading(true);
     const dayStart = new Date();
     dayStart.setUTCHours(0, 0, 0, 0);
-    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes, providerSymbolCacheRes] = await Promise.all([
+    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes, providerSymbolCacheRes, monitorHeartbeatRes, monitorScheduleRes] = await Promise.all([
       fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
@@ -382,6 +497,8 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       supabase.from('execution_provider_controls').select('*').order('provider_name'),
       supabase.from('execution_provider_global_controls').select('*').eq('id', 1).maybeSingle(),
       supabase.from('provider_symbol_cache').select('provider,symbol,status').in('provider', ['binance', 'bybit']).limit(5000),
+      supabase.from('execution_monitor_heartbeats').select('*').order('started_at', { ascending: false }).limit(50),
+      supabase.from('execution_monitor_schedules').select('*').order('provider'),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -407,6 +524,8 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       setProviderControlsError(controls.length === 0 ? { kind: 'rows_missing', message: 'Provider controls rows missing.' } : { kind: '', message: '' });
     }
     setProviderSymbolCache(((providerSymbolCacheRes.data ?? []) as ProviderSymbolCacheRow[]));
+    setMonitorHeartbeats(((monitorHeartbeatRes.data ?? []) as MonitorHeartbeat[]));
+    setMonitorSchedules(((monitorScheduleRes.data ?? []) as MonitorSchedule[]));
     setLoading(false);
   }, [session]);
 
@@ -516,6 +635,56 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
+            <h2 className="font-semibold text-sm">Protection Command Center</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Platform-wide lifecycle truth from execution rows and monitor heartbeats. MT5 adapters stay explicitly pending until connected.</p>
+          </div>
+          <Badge variant="blue">Live Trading: OFF</Badge>
+        </div>
+        <div className="grid xl:grid-cols-4 md:grid-cols-2 gap-3">
+          {protectionCommandPlatforms.map(platform => (
+            <div key={platform.key} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 text-xs">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <div className="font-semibold text-zinc-100">{platform.label}</div>
+                  <div className="text-zinc-500">Environment: {platform.environment}</div>
+                </div>
+                <Badge variant={platform.adapterPending ? 'gray' : platform.monitorStatus === 'healthy' ? 'green' : platform.monitorStatus === 'no_heartbeat' ? 'yellow' : 'red'}>{platform.adapterPending ? 'adapter pending' : platform.monitorStatus}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <ProofRow label="Provider status" value={platform.providerStatus} />
+                <ProofRow label="Last run" value={platform.heartbeat?.started_at ? new Date(platform.heartbeat.started_at).toLocaleString() : platform.adapterPending ? 'not_available' : 'no heartbeat'} />
+                <ProofRow label="Last success" value={platform.heartbeat?.success && platform.heartbeat.completed_at ? new Date(platform.heartbeat.completed_at).toLocaleString() : platform.adapterPending ? 'not_available' : '—'} />
+                <ProofRow label="Scheduled" value={platform.schedule?.scheduled ? `yes · ${platform.schedule.cron_expression ?? 'cron'}` : platform.adapterPending ? 'no · adapter_pending' : 'no'} />
+                <ProofRow label="Last automatic" value={platform.automaticHeartbeat?.started_at ? new Date(platform.automaticHeartbeat.started_at).toLocaleString() : platform.adapterPending ? 'not_available' : 'missing'} />
+                <ProofRow label="Last manual" value={platform.manualHeartbeat?.started_at ? new Date(platform.manualHeartbeat.started_at).toLocaleString() : '—'} />
+                <ProofRow label="Run age" value={runAgeLabel(platform.automaticHeartbeat?.started_at ?? platform.heartbeat?.started_at)} />
+                <ProofRow label="Latest result" value={platform.heartbeat ? (platform.heartbeat.success ? 'success' : 'failure') : platform.adapterPending ? 'not_available' : 'missing'} />
+                <ProofRow label="Active positions" value={platform.activePositions === null ? 'unknown/not_connected' : String(platform.activePositions)} />
+                <ProofRow label="Protected" value={platform.adapterPending ? 'unknown' : String(platform.protectedPositions)} />
+                <ProofRow label="Unprotected" value={platform.adapterPending ? 'unknown' : String(platform.unprotectedPositions)} />
+                <ProofRow label="Missing SL" value={platform.adapterPending ? 'unknown' : String(platform.missingSl)} />
+                <ProofRow label="Missing TP1" value={platform.adapterPending ? 'unknown' : String(platform.missingTp1)} />
+                <ProofRow label="Missing TP2" value={platform.adapterPending ? 'unknown' : String(platform.missingTp2)} />
+                <ProofRow label="Pending / Failed" value={platform.adapterPending ? 'unknown' : `${platform.pendingProtection} / ${platform.failedProtection}`} />
+                <ProofRow label="Stale / Expired" value={platform.adapterPending ? 'unknown' : `${platform.staleOrders} / ${platform.expired}`} />
+                <ProofRow label="Recovery issues" value={platform.adapterPending ? 'unknown' : String(platform.recoveryIssues)} />
+              </div>
+              {!platform.adapterPending && (!platform.schedule?.scheduled || !platform.automaticHeartbeat?.started_at || (Date.now() - new Date(platform.automaticHeartbeat.started_at).getTime()) > 5 * 60_000) && (
+                <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-red-200">Automatic monitor stale or missing.</div>
+              )}
+              <div className="mt-3 space-y-1 text-zinc-500">
+                <div>Latest recovery: <span className="text-zinc-300">{platform.latestRecoveryAction}</span></div>
+                <div>Latest Telegram: <span className="text-zinc-300">{platform.latestTelegram ? String(platform.latestTelegram) : '—'}</span></div>
+                <div>Latest error: <span className={platform.latestError && platform.latestError !== '—' ? 'text-red-300' : 'text-zinc-300'}>{platform.latestError}</span></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
             <h2 className="font-semibold text-sm">Provider Operations</h2>
             <p className="text-xs text-zinc-500 mt-0.5">Provider-aware execution routing foundation. Binance remains operational; Bybit and MT5 are placeholders until adapters are enabled.</p>
           </div>
@@ -548,8 +717,11 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
                 <div><div className="text-zinc-500">PnL</div><div className={`font-mono ${card.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>{card.pnl.toFixed(2)}</div></div>
                 <div><div className="text-zinc-500">Protection Health</div><div className="font-mono text-zinc-200">{card.active.length ? `${card.protectedCount}/${card.active.length}` : '—'}</div></div>
                 <div><div className="text-zinc-500">Recovery Health</div><div className={card.recoveryFailures ? 'font-mono text-yellow-300' : 'font-mono text-emerald-300'}>{card.recoveryFailures ? `${card.recoveryFailures} issue(s)` : 'OK'}</div></div>
+                <div><div className="text-zinc-500">Missing SL/TP1/TP2</div><div className={card.missingSl + card.missingTp1 + card.missingTp2 ? 'font-mono text-red-300' : 'font-mono text-emerald-300'}>{card.missingSl}/{card.missingTp1}/{card.missingTp2}</div></div>
+                <div><div className="text-zinc-500">Expired Positions</div><div className={card.expired ? 'font-mono text-yellow-300' : 'font-mono text-zinc-200'}>{card.expired}</div></div>
                 <div><div className="text-zinc-500">Monitor Health</div><div className="font-mono text-zinc-200">{card.provider === 'binance' ? monitorTruthStatus : (providerStatus.get(card.provider)?.monitor_enabled ? 'Enabled' : 'Off')}</div></div>
                 <div className="col-span-2"><div className="text-zinc-500">Profit Lock Status</div><div className="font-mono text-zinc-200">{card.profitLockActive} locked/protected</div></div>
+                <div className="col-span-2"><div className="text-zinc-500">Latest Lifecycle / Telegram</div><div className="font-mono text-zinc-200">{card.latestLifecycle ? new Date(card.latestLifecycle).toLocaleString() : '—'} / {card.latestTelegram ? new Date(card.latestTelegram).toLocaleString() : '—'}</div></div>
               </div>
             </button>
           ))}
@@ -1155,27 +1327,27 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
                   <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span><div className="mt-1 text-[11px] text-zinc-500">Entry: {e.entry_filled_at ? 'filled' : e.binance_entry_order_id || e.entry_order_id ? 'submitted' : '—'}</div><div className={freshnessState(e) === 'fresh' ? 'mt-1 text-[11px] text-emerald-300' : 'mt-1 text-[11px] text-yellow-300'}>{freshnessState(e)}</div></td>
                   <td className="px-4 py-3 text-xs text-yellow-300">{e.latest_auto_skip_reason || e.error_message || e.last_exchange_error || '—'}</td>
                   <td className="px-4 py-3 text-xs">{e.entry_order_id || e.binance_entry_order_id ? 'yes' : 'no'}</td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>Protection mode: {e.bracket_mode || 'pending'}</div><div>TP1 status: {e.tp1_closed_at || e.tp1_filled ? 'filled/closed' : e.tp1_algo_id || e.binance_tp1_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>TP2 status: {e.tp2_closed_at ? 'filled/closed' : e.tp2_algo_id || e.binance_tp2_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>SL/BE status: {e.sl_closed_at ? 'closed' : e.sl_moved_to_be ? `BE ${e.be_stop_level ?? ''}` : e.sl_algo_id || e.binance_sl_order_id ? 'open/native SL' : e.bracket_mode === 'managed_exit_fallback' ? 'managed SL' : 'pending'}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
+                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>Protection mode: {e.bracket_mode || 'pending'}</div><div>TP1 status: {e.tp1_status || (e.tp1_closed_at || e.tp1_filled ? 'filled/closed' : e.tp1_algo_id || e.binance_tp1_order_id || e.tp1_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending')}</div><div>TP2 status: {e.tp2_status || (e.tp2_closed_at ? 'filled/closed' : e.tp2_algo_id || e.binance_tp2_order_id || e.tp2_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending')}</div><div>SL/BE status: {e.sl_status || (e.sl_closed_at ? 'closed' : e.sl_moved_to_be ? `BE ${e.be_stop_level ?? ''}` : e.sl_algo_id || e.binance_sl_order_id || e.sl_order_id ? 'open/native SL' : e.bracket_mode === 'managed_exit_fallback' ? 'managed SL' : 'pending')}</div><div>Expiry: {e.expiry_status ?? 'active'} · Recovery: {e.recovery_status ?? 'none'}</div><div>Last TG: {e.last_telegram_event_sent ?? '—'}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500 font-mono">
                     <div className="font-semibold text-zinc-400 mb-1">{e.bracket_mode === 'exchange_native' ? 'Native algo orders' : e.bracket_mode === 'managed_exit_fallback' ? 'Managed fallback' : 'Pending'}</div>
                     <div>Entry: {e.entry_order_id || e.binance_entry_order_id || '—'}</div>
-                    {(e.sl_algo_id || e.binance_sl_order_id) && (
+                    {(e.sl_algo_id || e.binance_sl_order_id || e.sl_order_id) && (
                       <div className="mt-1 text-zinc-400">
-                        <div>SL algo: {e.sl_algo_id || e.binance_sl_order_id}</div>
+                        <div>SL algo: {e.sl_algo_id || e.binance_sl_order_id || e.sl_order_id}</div>
                         {e.sl_client_algo_id && <div className="text-zinc-600">client: {e.sl_client_algo_id}</div>}
                         <div>trigger: {e.intended_sl ?? e.stop_loss ?? '—'} · STOP_MARKET · reduceOnly</div>
                       </div>
                     )}
-                    {(e.tp1_algo_id || e.binance_tp1_order_id) && (
+                    {(e.tp1_algo_id || e.binance_tp1_order_id || e.tp1_order_id) && (
                       <div className="mt-1 text-zinc-400">
-                        <div>TP1 algo: {e.tp1_algo_id || e.binance_tp1_order_id}</div>
+                        <div>TP1 algo: {e.tp1_algo_id || e.binance_tp1_order_id || e.tp1_order_id}</div>
                         {e.tp1_client_algo_id && <div className="text-zinc-600">client: {e.tp1_client_algo_id}</div>}
                         <div>trigger: {e.intended_tp1 ?? e.tp1 ?? '—'} · TP_MARKET · qty: {e.tp1_quantity ?? '—'}</div>
                       </div>
                     )}
-                    {(e.tp2_algo_id || e.binance_tp2_order_id) && (
+                    {(e.tp2_algo_id || e.binance_tp2_order_id || e.tp2_order_id) && (
                       <div className="mt-1 text-zinc-400">
-                        <div>TP2 algo: {e.tp2_algo_id || e.binance_tp2_order_id}</div>
+                        <div>TP2 algo: {e.tp2_algo_id || e.binance_tp2_order_id || e.tp2_order_id}</div>
                         {e.tp2_client_algo_id && <div className="text-zinc-600">client: {e.tp2_client_algo_id}</div>}
                         <div>trigger: {e.intended_tp2 ?? e.tp2 ?? '—'} · TP_MARKET · qty: {e.tp2_quantity ?? '—'}</div>
                       </div>

@@ -1461,6 +1461,45 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
 }
 
 
+
+async function writeMonitorHeartbeat(supabase: SupabaseClient, heartbeat: Record<string, unknown>) {
+  await supabase.from("execution_monitor_heartbeats").upsert({
+    provider: "binance",
+    trigger_source: String(heartbeat.trigger_source ?? "unknown"),
+    is_automatic: heartbeat.is_automatic === true,
+    environment: "testnet",
+    updated_at: new Date().toISOString(),
+    ...heartbeat,
+  }, { onConflict: "provider,environment,run_id" });
+}
+
+function heartbeatFromStats(runId: string, startedAt: string, completedAt: string, success: boolean, stats: MonitorStats, triggerSource = "manual", isAutomatic = false): Record<string, unknown> {
+  const reconciliation = (stats.reconciliation_summary ?? {}) as Record<string, unknown>;
+  const openPositions = Array.isArray(reconciliation.open_position_symbols) ? reconciliation.open_position_symbols.length : 0;
+  const openOrders = Array.isArray(reconciliation.open_order_symbols) ? reconciliation.open_order_symbols.length : 0;
+  const latestRecovery = stats.last_managed_action ? String((stats.last_managed_action as Record<string, unknown>).action ?? "managed_action") : stats.cancelled_orders > 0 ? "stale_orders_cleaned" : stats.protected > 0 ? "protection_verified" : null;
+  return {
+    run_id: runId,
+    trigger_source: triggerSource,
+    is_automatic: isAutomatic,
+    started_at: startedAt,
+    completed_at: completedAt,
+    success,
+    monitor_status: stats.monitor_status,
+    positions_seen: openPositions,
+    orders_seen: openOrders,
+    executions_checked: stats.checked,
+    protections_created: stats.protected + stats.managed,
+    protections_missing: Number(reconciliation.unprotected_position_count ?? 0) + Number(reconciliation.protection_degraded_count ?? 0),
+    stale_orders_cleaned: stats.cancelled_orders + stats.stale_cleaned,
+    positions_closed: stats.closed_synced + stats.stale_closed + stats.safety_closed,
+    latest_recovery_action: latestRecovery,
+    latest_telegram_event: stats.telegram_sent > 0 ? "binance_monitor_alert" : null,
+    errors: [...stats.critical_errors, ...stats.row_errors.map((e) => e.error), ...stats.warnings.map((w) => w.warning)],
+    metadata: monitorResult(stats),
+  };
+}
+
 async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, stats: MonitorStats) {
   const message = errorMessage(err);
   const stack = errorStack(err);
@@ -1489,10 +1528,16 @@ async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, 
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
+  const startedAt = new Date().toISOString();
+  const runId = crypto.randomUUID();
+  let triggerSource = "manual";
+  let isAutomatic = false;
   const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy", reconciliation_summary: { ran: false }, profit_lock_study: { evaluated: 0, reached_0_1r: 0, reached_0_2r: 0, reached_0_3r: 0, reached_0_5r: 0, later_reversed: 0, actions_taken: 0, skipped_reasons: {} } };
   let supabase: SupabaseClient | null = null;
   try {
     const parsedPayload = await parseMonitorPayload(req);
+    triggerSource = String(parsedPayload.payload.source ?? parsedPayload.payload.triggered_by ?? "manual");
+    isAutomatic = triggerSource === "pg_cron" || parsedPayload.payload.is_automatic === true;
     if (parsedPayload.error) return globalErrorResponse("invalid_payload", parsedPayload.error, stats);
     if (parsedPayload.payload.expected_monitor_version && parsedPayload.payload.expected_monitor_version !== MONITOR_VERSION) {
       return globalErrorResponse("deployment_mismatch", `Deployed monitor version ${MONITOR_VERSION} does not match expected ${parsedPayload.payload.expected_monitor_version}`, stats, { expected_monitor_version: parsedPayload.payload.expected_monitor_version });
@@ -1583,13 +1628,16 @@ Deno.serve(async (req: Request) => {
         latest_monitor_result: monitorResult(stats),
         updated_at: new Date().toISOString(),
       });
-      return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, monitor_status: stats.monitor_status, global_error: "", ...stats });
+      await writeMonitorHeartbeat(supabase, heartbeatFromStats(runId, startedAt, new Date().toISOString(), true, stats, triggerSource, isAutomatic)).catch(() => null);
+    return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, monitor_status: stats.monitor_status, global_error: "", run_id: runId, ...stats });
     }
-    return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, monitor_status: stats.monitor_status, global_error: "", ...stats });
+    await writeMonitorHeartbeat(supabase, heartbeatFromStats(runId, startedAt, new Date().toISOString(), true, stats, triggerSource, isAutomatic)).catch(() => null);
+    return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, monitor_status: stats.monitor_status, global_error: "", run_id: runId, ...stats });
   } catch (err) {
     addCriticalMonitorError(stats, errorMessage(err));
     stats.monitor_status = "critical_error";
     await safeSettingsUpdate(supabase, { latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: stats.monitor_status, latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), monitor_version: MONITOR_VERSION, ...monitorResult(stats) }, updated_at: new Date().toISOString() });
-    return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, monitor_status: stats.monitor_status, global_error: "startup_exception", error: errorMessage(err), ...stats }, 500);
+    if (supabase) await writeMonitorHeartbeat(supabase, heartbeatFromStats(runId, startedAt, new Date().toISOString(), false, stats, triggerSource, isAutomatic)).catch(() => null);
+    return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, monitor_status: stats.monitor_status, global_error: "startup_exception", error: errorMessage(err), run_id: runId, ...stats }, 500);
   }
 });
