@@ -10,6 +10,7 @@ import { getMonitorTruth, shortOperatorText } from '../../lib/monitorTruth';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+  pending_submit: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/20',
   entry_submitted: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   entry_filled: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
   protected_native: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
@@ -75,6 +76,12 @@ type ProviderGlobalControls = {
   primary_provider: 'binance' | 'bybit' | 'mt5';
   parallel_mode_enabled: boolean;
   live_trading_enabled: boolean;
+};
+
+type ProviderSymbolCacheRow = {
+  provider: 'binance' | 'bybit';
+  symbol: string;
+  status: string;
 };
 
 type OperatorRoutingSnapshot = {
@@ -160,6 +167,7 @@ export default function Execution() {
   const [selectedProvider, setSelectedProvider] = useState<'all' | 'binance' | 'bybit' | 'mt5'>('binance');
   const [providerControls, setProviderControls] = useState<ProviderControl[]>([]);
   const [providerGlobalControls, setProviderGlobalControls] = useState<ProviderGlobalControls | null>(null);
+  const [providerSymbolCache, setProviderSymbolCache] = useState<ProviderSymbolCacheRow[]>([]);
   const [providerControlsError, setProviderControlsError] = useState<{ kind: ProviderControlsErrorKind; message: string }>({ kind: '', message: '' });
   const [bybitDebug, setBybitDebug] = useState<ActionResult | null>(null);
   const providerStatus = useMemo(() => new Map(providerControls.map((control) => [control.provider_name, control])), [providerControls]);
@@ -179,7 +187,7 @@ export default function Execution() {
     const providers = ['binance', 'bybit', 'mt5'] as const;
     return providers.map((provider) => {
       const rows = allProviderExecutions.filter((execution) => (execution.execution_provider ?? 'binance') === provider);
-      const active = rows.filter((execution) => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed'].includes(execution.status));
+      const active = rows.filter((execution) => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed'].includes(execution.status));
       const pnl = rows.reduce((sum, execution) => sum + Number(execution.current_pnl ?? execution.latest_unrealized_pnl ?? 0), 0);
       const protectedCount = active.filter((execution) => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
       const recoveryFailures = rows.filter((execution) => execution.protection_status === 'protection_failed' || execution.latest_protection_error || execution.latest_monitor_error).length;
@@ -187,7 +195,7 @@ export default function Execution() {
       return { provider, rows, active, pnl, protectedCount, recoveryFailures, profitLockActive };
     });
   }, [allProviderExecutions]);
-  const openExecutions = useMemo(() => executions.filter(e => ['pending', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
+  const openExecutions = useMemo(() => executions.filter(e => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
   const failedExecutions = executions.filter(e => e.status === 'failed');
   const skippedExecutions = executions.filter(e => e.status === 'skipped');
   const selectedSignalValid = useMemo(() => Boolean(selectedSignalId && signals.some(s => s.id === selectedSignalId)), [selectedSignalId, signals]);
@@ -238,23 +246,35 @@ export default function Execution() {
     const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
     return Number.isFinite(value) ? Math.max(0, Math.floor((nowMs - value) / 1000)) : null;
   };
+  const providerSymbolStatus = useMemo(() => {
+    const map = new Map<string, ProviderSymbolCacheRow>();
+    providerSymbolCache.forEach(row => map.set(`${row.provider}:${row.symbol.toUpperCase()}`, row));
+    return map;
+  }, [providerSymbolCache]);
   const approvedExecutionProofRows = useMemo(() => signals
     .filter(signal => ['A', 'A+'].includes(String(signal.grade ?? '').toUpperCase()))
     .slice(0, 20)
     .map(signal => {
+      const symbol = String(signal.symbol ?? '').toUpperCase();
+      const bybitSymbol = symbol.replace(/USDC$/i, 'USDT');
+      const binanceSupported = providerSymbolStatus.get(`binance:${symbol}`)?.status === 'TRADING';
+      const bybitSupported = providerSymbolStatus.get(`bybit:${bybitSymbol}`)?.status === 'Trading';
       const rows = allProviderExecutions.filter(execution => execution.signal_id === signal.id);
       const binance = rows.find(execution => (execution.execution_provider ?? 'binance') === 'binance');
       const bybit = rows.find(execution => execution.execution_provider === 'bybit');
       const blocker = [binance, bybit].find(row => row?.latest_auto_skip_reason || row?.error_message || row?.last_exchange_error);
       const submitted = rows.some(row => Boolean(row.entry_order_id || row.binance_entry_order_id));
       const created = rows.length > 0;
-      return { signal, rows, binance, bybit, blocker, submitted, created };
-    }), [allProviderExecutions, signals]);
+      const setupBlocker = !providerGlobalControls ? 'missing_global_provider_controls' : providerControls.length === 0 ? 'missing_provider_controls' : '';
+      const supportBlocker = !binanceSupported || !bybitSupported ? `unsupported provider symbol: ${!binanceSupported ? 'binance' : ''}${!binanceSupported && !bybitSupported ? '+' : ''}${!bybitSupported ? 'bybit' : ''}` : '';
+      const shouldExecute = !setupBlocker && !supportBlocker && providerGlobalControls?.parallel_mode_enabled === true;
+      return { signal, rows, binance, bybit, blocker, submitted, created, shouldExecute, binanceSupported, bybitSupported, setupBlocker, supportBlocker };
+    }), [allProviderExecutions, providerControls.length, providerGlobalControls, providerSymbolStatus, signals]);
   const protectionSlaState = (e: BinanceExecutionOrder): 'pass' | 'fail' | 'pending' | 'n/a' => {
     if (['closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'cancelled', 'failed', 'skipped'].includes(e.status)) return 'n/a';
     if (e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' || e.status === 'protected_native' || e.status === 'protected_managed') return 'pass';
     const seconds = secondsSinceEntryFill(e);
-    if (seconds === null) return ['entry_submitted', 'entry_filled', 'pending_protection', 'pending_managed_protection'].includes(e.status) ? 'pending' : 'n/a';
+    if (seconds === null) return ['pending_submit', 'entry_submitted', 'entry_filled', 'pending_protection', 'pending_managed_protection'].includes(e.status) ? 'pending' : 'n/a';
     return seconds > 60 ? 'fail' : 'pending';
   };
   const freshnessState = (e: BinanceExecutionOrder): 'fresh' | 'stale' => {
@@ -338,7 +358,7 @@ export default function Execution() {
     setLoading(true);
     const dayStart = new Date();
     dayStart.setUTCHours(0, 0, 0, 0);
-    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes] = await Promise.all([
+    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes, providerSymbolCacheRes] = await Promise.all([
       fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
@@ -352,6 +372,7 @@ export default function Execution() {
       supabase.from('telegram_deliveries').select('destination_channel,delivery_status,error_message,created_at').order('created_at', { ascending: false }).limit(50),
       supabase.from('execution_provider_controls').select('*').order('provider_name'),
       supabase.from('execution_provider_global_controls').select('*').eq('id', 1).maybeSingle(),
+      supabase.from('provider_symbol_cache').select('provider,symbol,status').in('provider', ['binance', 'bybit']).limit(5000),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -376,6 +397,7 @@ export default function Execution() {
       setProviderGlobalControls((providerGlobalControlsRes.data ?? null) as ProviderGlobalControls | null);
       setProviderControlsError(controls.length === 0 ? { kind: 'rows_missing', message: 'Provider controls rows missing.' } : { kind: '', message: '' });
     }
+    setProviderSymbolCache(((providerSymbolCacheRes.data ?? []) as ProviderSymbolCacheRow[]));
     setLoading(false);
   }, [session]);
 
@@ -532,14 +554,14 @@ export default function Execution() {
               </tr>
             </thead>
             <tbody>
-              {approvedExecutionProofRows.map(({ signal, binance, bybit, blocker, created, submitted }) => (
+              {approvedExecutionProofRows.map(({ signal, binance, bybit, blocker, created, submitted, shouldExecute, binanceSupported, bybitSupported, setupBlocker, supportBlocker }) => (
                 <tr key={signal.id} className="border-b border-zinc-900 text-zinc-300">
                   <td className="py-2 pr-3 font-mono">{signal.symbol} <span className="text-zinc-600">{signal.id.slice(0, 8)}</span></td>
                   <td className="py-2 pr-3">{signal.grade}</td>
-                  <td className="py-2 pr-3 text-emerald-300">yes</td>
-                  <td className="py-2 pr-3">{binance?.status ?? 'no row'}</td>
-                  <td className="py-2 pr-3">{bybit?.status ?? 'no row'}</td>
-                  <td className="py-2 pr-3 text-yellow-300">{String(blocker?.latest_auto_skip_reason ?? blocker?.error_message ?? blocker?.last_exchange_error ?? '—')}</td>
+                  <td className={shouldExecute ? 'py-2 pr-3 text-emerald-300' : 'py-2 pr-3 text-yellow-300'}>{shouldExecute ? 'yes' : 'research-only'}</td>
+                  <td className="py-2 pr-3">{binance?.status ?? (binanceSupported ? 'no row' : 'unsupported')}</td>
+                  <td className="py-2 pr-3">{bybit?.status ?? (bybitSupported ? 'no row' : 'unsupported')}</td>
+                  <td className="py-2 pr-3 text-yellow-300">{String(blocker?.latest_auto_skip_reason || blocker?.error_message || blocker?.last_exchange_error || setupBlocker || supportBlocker || '—')}</td>
                   <td className="py-2 pr-3">{created ? 'yes' : 'no'}</td>
                   <td className="py-2 pr-3">{submitted ? 'yes' : 'no'}</td>
                   <td className="py-2 pr-3 text-red-300">{String(blocker?.error_message ?? blocker?.last_exchange_error ?? '—')}</td>
@@ -1093,17 +1115,20 @@ export default function Execution() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Stress Test Timer</th><th className="text-left px-4 py-3">Lock/Capital</th><th className="text-left px-4 py-3">Sync</th>
+                <th className="text-left px-4 py-3">Provider</th><th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Blocker</th><th className="text-left px-4 py-3">Submitted Order</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Stress Test Timer</th><th className="text-left px-4 py-3">Lock/Capital</th><th className="text-left px-4 py-3">Sync</th>
               </tr>
             </thead>
             <tbody>
-              {executions.length === 0 ? <tr><td colSpan={10} className="px-4 py-8 text-center text-zinc-500">No Binance testnet executions yet.</td></tr> : executions.map(e => (
+              {executions.length === 0 ? <tr><td colSpan={13} className="px-4 py-8 text-center text-zinc-500">No Binance testnet executions yet.</td></tr> : executions.map(e => (
                 <tr key={e.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
+                  <td className="px-4 py-3 uppercase text-xs text-zinc-300">{e.execution_provider ?? 'binance'}</td>
                   <td className="px-4 py-3 font-mono font-semibold text-xs">{e.symbol}</td>
                   <td className="px-4 py-3"><span className={e.side === 'long' ? 'text-emerald-400' : 'text-red-400'}>{e.side}</span></td>
                   <td className="px-4 py-3 text-xs text-zinc-400"><div>{e.leverage ? `${e.leverage}x` : '—'}</div><div className="text-[11px] text-zinc-600">{e.leverage_source ?? '—'}</div><div className="text-[11px] text-zinc-600">Risk: {e.risk_pct ?? '—'}% · {e.risk_source ?? '—'}</div></td>
                   <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
                   <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span><div className="mt-1 text-[11px] text-zinc-500">Entry: {e.entry_filled_at ? 'filled' : e.binance_entry_order_id || e.entry_order_id ? 'submitted' : '—'}</div><div className={freshnessState(e) === 'fresh' ? 'mt-1 text-[11px] text-emerald-300' : 'mt-1 text-[11px] text-yellow-300'}>{freshnessState(e)}</div></td>
+                  <td className="px-4 py-3 text-xs text-yellow-300">{e.latest_auto_skip_reason || e.error_message || e.last_exchange_error || '—'}</td>
+                  <td className="px-4 py-3 text-xs">{e.entry_order_id || e.binance_entry_order_id ? 'yes' : 'no'}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>Protection mode: {e.bracket_mode || 'pending'}</div><div>TP1 status: {e.tp1_closed_at || e.tp1_filled ? 'filled/closed' : e.tp1_algo_id || e.binance_tp1_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>TP2 status: {e.tp2_closed_at ? 'filled/closed' : e.tp2_algo_id || e.binance_tp2_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending'}</div><div>SL/BE status: {e.sl_closed_at ? 'closed' : e.sl_moved_to_be ? `BE ${e.be_stop_level ?? ''}` : e.sl_algo_id || e.binance_sl_order_id ? 'open/native SL' : e.bracket_mode === 'managed_exit_fallback' ? 'managed SL' : 'pending'}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
                   <td className="px-4 py-3 text-xs text-zinc-500 font-mono">
                     <div className="font-semibold text-zinc-400 mb-1">{e.bracket_mode === 'exchange_native' ? 'Native algo orders' : e.bracket_mode === 'managed_exit_fallback' ? 'Managed fallback' : 'Pending'}</div>

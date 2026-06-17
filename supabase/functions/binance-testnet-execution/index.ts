@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
-const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection"];
+const ACTIVE_STATUSES = ["pending", "pending_submit", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection"];
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
@@ -961,9 +961,36 @@ interface ProviderRuntimeControl {
   last_error?: string | null;
 }
 
+
+function setupBlocker(provider: string, blocker: string, detail: string, extra: Json = {}): Json {
+  return { provider, success: false, blocker, detail, ...extra };
+}
+
+function isMissingRowError(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null)?.code ?? "");
+  return code === "PGRST116";
+}
+
+function insertFailureDetail(error: unknown, table: string): string {
+  const msg = error instanceof Error ? error.message : String((error as { message?: unknown } | null)?.message ?? error ?? "returned data=null");
+  return `${table} insert failed: ${msg}`;
+}
+
+async function insertExecutionOrderRow(supabase: SupabaseClient, row: Json, provider: "binance" | "bybit"): Promise<{ id: string } | { error: Json }> {
+  const { data, error } = await supabase.from("execution_orders").insert(row).select("id").maybeSingle();
+  if (error || !data?.id) {
+    return { error: setupBlocker(provider, "execution_order_insert_failed", insertFailureDetail(error, "execution_orders"), { table: "execution_orders", signal_id: row.signal_id ?? null, symbol: row.symbol ?? null }) };
+  }
+  return { id: String(data.id) };
+}
+
 async function getProviderControl(supabase: SupabaseClient, providerName: "binance" | "bybit"): Promise<ProviderRuntimeControl> {
-  const { data } = await supabase.from("execution_provider_controls").select("*").eq("provider_name", providerName).maybeSingle();
-  const row = (data ?? {}) as Json;
+  const { data, error } = await supabase.from("execution_provider_controls").select("*").eq("provider_name", providerName).maybeSingle();
+  if (error || !data) {
+    const blocker = providerName === "binance" ? "missing_provider_control_binance" : "missing_provider_control_bybit";
+    throw new Error(`${blocker}: execution_provider_controls provider_name=${providerName} not found${error && !isMissingRowError(error) ? ` (${error.message})` : ""}`);
+  }
+  const row = data as Json;
   return {
     provider_name: providerName,
     enabled: row.enabled === true,
@@ -1072,6 +1099,32 @@ async function getRules(symbol: string): Promise<SymbolRules> {
   return { symbol: row.symbol, baseAsset: (row as any).baseAsset, quoteAsset: (row as any).quoteAsset, pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision, tickSize: Number(price?.tickSize ?? 0.01), stepSize: Number(lot?.stepSize ?? 0.001), minQty: Number(lot?.minQty ?? 0.001), minNotional: Number(minNotional?.notional ?? minNotional?.minNotional ?? 5) };
 }
 
+function precisionFromStep(value: number): number {
+  const text = String(value);
+  return text.includes(".") ? text.replace(/0+$/, "").split(".")[1]?.length ?? 0 : 0;
+}
+
+async function getBybitRules(symbol: string): Promise<SymbolRules> {
+  const data = await bybitRequest<{ list?: Array<Record<string, unknown>> }>("GET", "/v5/market/instruments-info", { category: "linear", symbol, settleCoin: "USDT" });
+  const row = (data.list ?? []).find((item) => String(item.symbol).toUpperCase() === symbol.toUpperCase() && String(item.status) === "Trading");
+  if (!row) throw new Error(`symbol_not_supported: ${symbol} is not valid/trading on Bybit linear USDT testnet`);
+  const lot = (row.lotSizeFilter ?? {}) as Record<string, unknown>;
+  const price = (row.priceFilter ?? {}) as Record<string, unknown>;
+  const tickSize = Number(price.tickSize ?? 0.01);
+  const stepSize = Number(lot.qtyStep ?? 0.001);
+  return {
+    symbol: String(row.symbol),
+    baseAsset: String(row.baseCoin ?? ""),
+    quoteAsset: String(row.quoteCoin ?? row.settleCoin ?? "USDT"),
+    pricePrecision: precisionFromStep(tickSize),
+    quantityPrecision: precisionFromStep(stepSize),
+    tickSize,
+    stepSize,
+    minQty: Number(lot.minOrderQty ?? stepSize),
+    minNotional: Number(lot.minNotionalValue ?? 5),
+  };
+}
+
 function commonExecutionFields(plan: OrderPlan): Json {
   return {
     leverage: plan.leverage, quantity: plan.quantity, volume: plan.quantity, entry_price: plan.entryPrice, stop_loss: plan.stopLoss, tp1: plan.tp1, tp2: plan.tp2,
@@ -1174,13 +1227,14 @@ function expiryFields(signal: SignalRow): Json {
 
 async function createSkipped(supabase: SupabaseClient, signal: SignalRow, reason: string, metadata: Json = {}): Promise<Json> {
   const normalized = reason.startsWith("skipped_") ? reason : `skipped_${reason}`;
-  const { data } = await supabase.from("execution_orders").insert({
+  const inserted = await insertExecutionOrderRow(supabase, {
     signal_id: signal.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: signal.symbol, direction: signal.direction,
     side: signal.direction === "buy" ? "long" : "short", entry_price: entryPrice(signal), stop_loss: signal.stop_loss, tp1: signal.tp1, tp2: signal.tp2,
     volume: 0, quantity: 0, execution_mode: "testnet", status: "skipped", error_message: normalized, latest_auto_skip_reason: normalized, ...metadata,
-  }).select("id").single();
-  if (data?.id) await logEvent(supabase, data.id as string, normalized, normalized, metadata);
-  return { success: false, skipped: true, reason: normalized, ...metadata };
+  }, "binance");
+  if ("error" in inserted) return inserted.error;
+  await logEvent(supabase, inserted.id, normalized, normalized, metadata);
+  return { success: false, skipped: true, reason: normalized, execution_id: inserted.id, ...metadata };
 }
 
 function nativeExitPayload(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", triggerPrice: number, quantity: number, label: "sl" | "tp1" | "tp2"): Record<string, string | number | boolean> {
@@ -1412,8 +1466,9 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   const totalRiskAfter = currentRisk + plan.riskPct;
   if (!manual && !ignoreOpenRisk && totalRiskAfter > riskCap + 1e-9) return createSkipped(supabase, sig, "skipped_total_open_risk_cap", { current_open_risk_pct: currentRisk, proposed_risk_pct: plan.riskPct, max_total_open_risk_pct: riskCap });
   plan.total_open_risk_after_trade = totalRiskAfter;
-  const { data: exec } = await supabase.from("execution_orders").insert({ signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, execution_provider: "binance", provider_status: "pending", provider_entry_enabled: true, ...expiryFields(sig), ...commonExecutionFields(plan) }).select("id").single();
-  const executionId = String((exec as { id: string }).id);
+  const insertedExec = await insertExecutionOrderRow(supabase, { signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending_submit", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, execution_provider: "binance", provider_status: "pending_submit", provider_entry_enabled: true, ...expiryFields(sig), ...commonExecutionFields(plan) }, "binance");
+  if ("error" in insertedExec) return insertedExec.error;
+  const executionId = insertedExec.id;
   await logEvent(supabase, executionId, "planned", "Order plan created", { plan, margin_selection: marginSelection, margin_diagnostics: marginDiagnostics });
   await logEvent(supabase, executionId, "margin_asset_selected", "USDT/USDC margin asset selected before Binance entry placement", marginDiagnostics);
   try {
@@ -1422,7 +1477,7 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
       await supabase.from("execution_orders").update({ status: "failed", error_message: symbolConfiguration.failure.reason, last_exchange_error: symbolConfiguration.failure.code, bracket_mode: "failed", protection_status: "unprotected_failed", raw_exchange_response: { plan, symbol_configuration: symbolConfiguration, execution_failure: symbolConfiguration.failure }, updated_at: new Date().toISOString() }).eq("id", executionId);
       await logEvent(supabase, executionId, symbolConfiguration.failure.code, symbolConfiguration.failure.reason, symbolConfiguration.failure.details);
       await sendExecutionTelegram(supabase, sig.id, "failed", [`Execution failed: ${symbolConfiguration.failure.reason}`, `Signal: ${sig.symbol}`]);
-      return { success: false, execution_id: executionId, error: symbolConfiguration.failure.reason, reason_code: symbolConfiguration.failure.code, symbol_configuration: symbolConfiguration };
+      return { provider: "binance", success: false, submitted_order: false, execution_id: executionId, error: symbolConfiguration.failure.reason, reason_code: symbolConfiguration.failure.code, symbol_configuration: symbolConfiguration };
     }
     await logEvent(supabase, executionId, "symbol_configuration_checked", "Symbol configuration inspected before entry placement", { symbol_configuration: symbolConfiguration });
     const entry = await binanceRequest<{ orderId: number; status?: string }>("POST", "/fapi/v1/order", { symbol: plan.symbol, side: plan.entrySide, type: "LIMIT", timeInForce: "GTC", quantity: plan.quantity, price: plan.entryPrice }, true);
@@ -1430,14 +1485,14 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
     await logEvent(supabase, executionId, "entry_submitted", "Entry LIMIT order placed on /fapi/v1/order", { orderId: entry.orderId, entry_type: "LIMIT", ...marginDiagnostics, final_execution_status: "entry_submitted" });
     await sendExecutionTelegram(supabase, sig.id, "auto_executed", ["Auto execution submitted", `Symbol: ${plan.symbol}`, `Side: ${plan.side}`, `Strategy: ${sig.strategy_name}`, `Timeframe: ${sig.timeframe}`, `Grade: ${sig.grade}`, `Leverage: ${plan.leverage}x`, `Leverage source: ${plan.leverage_source}`, `Execution Mode: ${settings.execution_mode}`, `Stress Mode: ${plan.stress_mode ? "ON" : "OFF"}`, `Risk Source: ${plan.risk_source}`, `Governor: ${plan.governor_state}`, `Governor reason: ${plan.governor_reason}`, `Effective risk %: ${plan.adjusted_risk_pct}`, `Effective max leverage: ${plan.adjusted_max_leverage}x`, `Capital basis: ${plan.capital.capital_basis}`, `Capital used: ${plan.capital.selected_capital_used.toFixed(2)}`, `Risk %: ${plan.riskPct}`, `Daily PnL %: ${governor.daily_pnl_pct ?? "unknown"}`, `Unrealized PnL: ${governor.unrealized_pnl ?? "unknown"}`, `Risk amount: ${plan.riskAmount.toFixed(2)}`, `Notional: ${plan.notional.toFixed(2)}`, `Qty: ${plan.quantity}`, `Entry: ${plan.entryPrice}`, `SL: ${plan.stopLoss}`, `TP1: ${plan.tp1}`, `TP2: ${plan.tp2}`, `Protection: pending`, `Bracket mode: pending`, `Entry order: ${entry.orderId}`, "SL order: pending", "TP1 order: pending", "TP2 order: pending", "TP1 close %: 50%", "TP2 close %: 50%", "Move SL to BE after TP1: yes", `Open risk: ${plan.riskPct}%`, `Total open risk after this trade: ${totalRiskAfter}%`, `Open Risk Guard: ${plan.open_risk_guard}`]);
     if (entry.status === "FILLED") await maybePlaceProtection(supabase, executionId, sig.id, plan);
-    return { success: true, execution_id: executionId, status: "entry_submitted", plan };
+    return { provider: "binance", success: true, submitted_order: true, execution_id: executionId, status: "entry_submitted", plan };
   } catch (e) {
     const classified = classifyExecutionError(e);
     const msg = `${classified.code}: ${classified.message}`;
     await supabase.from("execution_orders").update({ status: "failed", error_message: msg, last_exchange_error: classified.code, bracket_mode: "failed", protection_status: "unprotected_failed", raw_exchange_response: { plan, margin_selection: marginSelection, margin_diagnostics: { ...marginDiagnostics, exchange_error_code: classified.details.binance_code ?? classified.code, exchange_error_message: classified.message, final_execution_status: "failed" }, execution_failure: classified }, insufficient_margin_reason: classified.code === "insufficient_margin" ? "exchange_rejected" : (plan.marginFallbackReason ?? ""), updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, classified.code, msg, { ...classified.details, ...marginDiagnostics, exchange_error_code: classified.details.binance_code ?? classified.code, exchange_error_message: classified.message, final_execution_status: "failed" });
     await sendExecutionTelegram(supabase, sig.id, "failed", [`Execution failed: ${msg}`, `Signal: ${sig.symbol}`]);
-    return { success: false, execution_id: executionId, error: msg, reason_code: classified.code, details: classified.details };
+    return { provider: "binance", success: false, submitted_order: false, execution_id: executionId, error: msg, reason_code: classified.code, details: classified.details };
   }
 }
 
@@ -1473,52 +1528,86 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     entry_price: entryPrice(sig), stop_loss: sig.stop_loss, tp1: sig.tp1, tp2: sig.tp2, ...expiryFields(sig),
   };
   if (finalBlocker) {
-    const { data } = await supabase.from("execution_orders").insert({ ...baseRow, status: "skipped", volume: 0, quantity: 0, latest_auto_skip_reason: finalBlocker, error_message: finalBlocker, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, provider_control: control } }).select("id").single();
-    if (data?.id) await logEvent(supabase, String(data.id), "provider_skipped", "Bybit testnet entry blocked by exact gate", { blocker: finalBlocker, control });
-    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: false, skipped: true, reason: finalBlocker, execution_id: data?.id ?? null, symbol: providerSymbol };
+    const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", volume: 0, quantity: 0, latest_auto_skip_reason: finalBlocker, error_message: finalBlocker, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, provider_control: control } }, "bybit");
+    if ("error" in inserted) return inserted.error;
+    await logEvent(supabase, inserted.id, "provider_skipped", "Bybit testnet entry blocked by exact gate", { blocker: finalBlocker, control });
+    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: false, submitted_order: false, skipped: true, reason: finalBlocker, execution_id: inserted.id, symbol: providerSymbol };
   }
   const governor = await evaluateGovernor(supabase, settings);
-  if (!manual && governor.blocks_execution) return { provider: "bybit", success: false, skipped: true, reason: governor.reason };
+  if (!manual && governor.blocks_execution) {
+    const reasonText = governor.reason || "skipped_governor_paused";
+    const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", provider_status: "provider_skipped", volume: 0, quantity: 0, latest_auto_skip_reason: reasonText, error_message: reasonText, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, governor } }, "bybit");
+    if ("error" in inserted) return inserted.error;
+    await logEvent(supabase, inserted.id, "provider_skipped", "Bybit testnet entry blocked by governor", { governor });
+    return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: reasonText, execution_id: inserted.id };
+  }
   let plan: OrderPlan;
-  try { plan = buildPlan({ ...sig, symbol: providerSymbol }, await getRules(providerSymbol), await capitalSnapshot(settings), settings, governor); }
-  catch (e) { return { provider: "bybit", success: false, skipped: true, reason: e instanceof Error ? e.message : "skipped_invalid_sizing" }; }
-  const { data } = await supabase.from("execution_orders").insert({ ...baseRow, status: "pending", quantity: plan.quantity, volume: plan.quantity, risk_pct: plan.riskPct, leverage: plan.leverage, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, plan } }).select("id").single();
-  const executionId = String((data as { id: string }).id);
+  try { plan = buildPlan({ ...sig, symbol: providerSymbol }, await getBybitRules(providerSymbol), await capitalSnapshot(settings), settings, governor); }
+  catch (e) {
+    const reasonText = e instanceof Error ? e.message : "skipped_invalid_sizing";
+    const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", provider_status: "provider_skipped", volume: 0, quantity: 0, latest_auto_skip_reason: reasonText, error_message: reasonText, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason } }, "bybit");
+    if ("error" in inserted) return inserted.error;
+    await logEvent(supabase, inserted.id, "provider_skipped", "Bybit testnet entry blocked before submit", { reason: reasonText });
+    return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: reasonText, execution_id: inserted.id };
+  }
+  const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "pending_submit", provider_status: "pending_submit", quantity: plan.quantity, volume: plan.quantity, risk_pct: plan.riskPct, leverage: plan.leverage, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, plan } }, "bybit");
+  if ("error" in inserted) return inserted.error;
+  const executionId = inserted.id;
   try {
     const entry = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: sig.direction === "buy" ? "Buy" : "Sell", orderType: "Limit", qty: String(plan.quantity), price: String(plan.entryPrice), timeInForce: "GTC", orderLinkId: `hb-${sig.id}-bybit-entry` });
     await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: entry.orderId ?? entry.orderLinkId ?? "bybit_entry_submitted", raw_exchange_response: { entry, plan, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "entry_submitted", "Bybit testnet entry LIMIT order submitted", { entry, plan });
-    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: true, status: "entry_submitted", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? null };
+    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: true, submitted_order: true, status: "entry_submitted", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? null };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await supabase.from("execution_orders").update({ status: "failed", error_message: msg, last_exchange_error: msg, provider_status: "provider_failed", raw_exchange_response: { plan, error: msg, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "provider_execution_failed", "Bybit provider failure isolated", { error: msg });
-    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: false, error: msg, execution_id: executionId, symbol: providerSymbol };
+    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: false, submitted_order: false, error: msg, execution_id: executionId, symbol: providerSymbol };
   }
 }
 
 async function routeSignalToEnabledProviders(supabase: SupabaseClient, signalId: string, manual: boolean): Promise<Json> {
   assertLiveTradingImpossible();
-  const { data: signal, error } = await supabase.from("signals").select("*").eq("id", signalId).maybeSingle();
-  if (error || !signal) throw new Error("Signal not found");
-  const sig = signal as SignalRow;
   const executionGroupId = crypto.randomUUID();
-  const { data: globalControls } = await supabase.from("execution_provider_global_controls").select("primary_provider,parallel_mode_enabled,live_trading_enabled").eq("id", 1).maybeSingle();
-  const global = (globalControls ?? {}) as Json;
-  if (global.live_trading_enabled === true) throw new Error("Live trading guard blocked execution_provider_global_controls.live_trading_enabled");
+  const [settingsRead, scannerRead, globalRead, binanceControlRead, bybitControlRead, signalRead] = await Promise.all([
+    supabase.from("execution_settings").select("id,live_trading_enabled").eq("id", 1).maybeSingle(),
+    supabase.from("scanner_config").select("id").eq("id", 1).maybeSingle(),
+    supabase.from("execution_provider_global_controls").select("primary_provider,parallel_mode_enabled,live_trading_enabled,mirror_required_for_vip,execute_supported_provider_only").eq("id", 1).maybeSingle(),
+    supabase.from("execution_provider_controls").select("provider_name,status").eq("provider_name", "binance").maybeSingle(),
+    supabase.from("execution_provider_controls").select("provider_name,status").eq("provider_name", "bybit").maybeSingle(),
+    supabase.from("signals").select("*").eq("id", signalId).maybeSingle(),
+  ]);
+  const setupBlockers: Json[] = [];
+  if (settingsRead.error || !settingsRead.data) setupBlockers.push(setupBlocker("router", "missing_execution_settings", `execution_settings id=1 not found${settingsRead.error && !isMissingRowError(settingsRead.error) ? ` (${settingsRead.error.message})` : ""}`));
+  if (scannerRead.error || !scannerRead.data) setupBlockers.push(setupBlocker("router", "missing_scanner_config", `scanner_config id=1 not found${scannerRead.error && !isMissingRowError(scannerRead.error) ? ` (${scannerRead.error.message})` : ""}`));
+  if (globalRead.error || !globalRead.data) setupBlockers.push(setupBlocker("router", "missing_global_provider_controls", `execution_provider_global_controls id=1 not found${globalRead.error && !isMissingRowError(globalRead.error) ? ` (${globalRead.error.message})` : ""}`));
+  if (binanceControlRead.error || !binanceControlRead.data) setupBlockers.push(setupBlocker("binance", "missing_provider_control_binance", `execution_provider_controls provider_name=binance not found${binanceControlRead.error && !isMissingRowError(binanceControlRead.error) ? ` (${binanceControlRead.error.message})` : ""}`));
+  if (bybitControlRead.error || !bybitControlRead.data) setupBlockers.push(setupBlocker("bybit", "missing_provider_control_bybit", `execution_provider_controls provider_name=bybit not found${bybitControlRead.error && !isMissingRowError(bybitControlRead.error) ? ` (${bybitControlRead.error.message})` : ""}`));
+  if (signalRead.error || !signalRead.data) setupBlockers.push(setupBlocker("router", "missing_signal", `signals id=${signalId} not found${signalRead.error && !isMissingRowError(signalRead.error) ? ` (${signalRead.error.message})` : ""}`));
+  if (setupBlockers.length > 0) return { success: false, execution_group_id: executionGroupId, setup_blocked: true, results: setupBlockers };
+  const sig = signalRead.data as SignalRow;
+  const global = globalRead.data as Json;
+  if (settingsRead.data.live_trading_enabled === true || global.live_trading_enabled === true) return { success: false, execution_group_id: executionGroupId, setup_blocked: true, results: [setupBlocker("router", "unknown_null_row", "Live trading guard blocked provider-neutral router because live_trading_enabled=true")] };
   const parallel = global.parallel_mode_enabled === true;
   const primary = String(global.primary_provider ?? "binance");
   const selectedProviders = parallel ? ["binance", "bybit"] : [primary === "bybit" ? "bybit" : "binance"];
   const mirrorRequiredForVip = global.mirror_required_for_vip === true;
   const executeSupportedProviderOnly = global.execute_supported_provider_only !== false;
   const binanceSupported = await providerSupportsSymbol(supabase, "binance", sig.symbol);
-  const bybitSupported = await providerSupportsSymbol(supabase, "bybit", sig.symbol.replace(/USDC$/i, "USDT"));
-  if (parallel && mirrorRequiredForVip && (!binanceSupported || !bybitSupported)) return { success: false, skipped: true, reason: "mirror_required_symbol_not_supported", symbol: sig.symbol, binance_tradable: binanceSupported, bybit_tradable: bybitSupported };
+  const bybitSymbol = sig.symbol.replace(/USDC$/i, "USDT");
+  const bybitSupported = await providerSupportsSymbol(supabase, "bybit", bybitSymbol);
+  if (parallel && mirrorRequiredForVip && (!binanceSupported || !bybitSupported)) return { success: false, skipped: true, blocker: "missing_symbol_cache", reason: "mirror_required_symbol_not_supported", symbol: sig.symbol, binance_tradable: binanceSupported, bybit_tradable: bybitSupported };
   const tasks: Array<Promise<Json>> = [];
-  if (selectedProviders.includes("binance") && (binanceSupported || !executeSupportedProviderOnly)) tasks.push(executeSignal(supabase, signalId, manual));
-  if (selectedProviders.includes("bybit") && (bybitSupported || !executeSupportedProviderOnly)) tasks.push(executeBybitSignal(supabase, sig, executionGroupId, manual, parallel ? "parallel_mode_provider_neutral_router" : "primary_provider_router"));
+  const taskProviders: string[] = [];
+  if (selectedProviders.includes("binance")) { taskProviders.push("binance"); tasks.push((binanceSupported || !executeSupportedProviderOnly) ? executeSignal(supabase, signalId, manual) : Promise.resolve(setupBlocker("binance", "missing_symbol_cache", `provider_symbol_cache provider=binance symbol=${sig.symbol} not tradable`, { symbol: sig.symbol }))); }
+  if (selectedProviders.includes("bybit")) { taskProviders.push("bybit"); tasks.push((bybitSupported || !executeSupportedProviderOnly) ? executeBybitSignal(supabase, sig, executionGroupId, manual, parallel ? "parallel_mode_provider_neutral_router" : "primary_provider_router") : Promise.resolve(setupBlocker("bybit", "missing_symbol_cache", `provider_symbol_cache provider=bybit symbol=${bybitSymbol} not tradable`, { symbol: bybitSymbol }))); }
   const settled = await Promise.allSettled(tasks);
-  const results = settled.map((r) => r.status === "fulfilled" ? r.value : { success: false, error: r.reason instanceof Error ? r.reason.message : String(r.reason), isolated: true });
+  const results = settled.map((r, index) => {
+    if (r.status === "fulfilled") return r.value;
+    const message = r.reason instanceof Error ? r.reason.message : String(r.reason);
+    const named = ["missing_execution_settings", "missing_scanner_config", "missing_global_provider_controls", "missing_provider_control_binance", "missing_provider_control_bybit", "missing_signal", "missing_symbol_cache", "execution_order_insert_failed", "provider_result_insert_failed"].find((blocker) => message.includes(blocker));
+    return { provider: taskProviders[index] ?? "unknown", success: false, blocker: named ?? "unknown_null_row", detail: message, isolated: true };
+  });
   for (const result of results) {
     if (typeof (result as Json).execution_id === "string") {
       await supabase.from("execution_orders").update({ execution_group_id: executionGroupId, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_group_attached_at: new Date().toISOString(), provider_result: result } }).eq("id", String((result as Json).execution_id));
@@ -1533,6 +1622,7 @@ async function executeLatestApprovedSignal(supabase: SupabaseClient): Promise<Js
     .from("signals")
     .select("*")
     .eq("market_type", "crypto")
+    .in("status", ["approved", "waiting", "active", "new"])
     .in("grade", ["A", "A+"])
     .order("created_at", { ascending: false })
     .limit(1)
