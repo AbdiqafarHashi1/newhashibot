@@ -618,10 +618,10 @@ export default function Execution() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => updateProviderControl(control.provider_name, { [key]: !Boolean(control[key as keyof ProviderControl]) } as Partial<ProviderControl>)}
-                    className={`rounded-lg border px-2 py-2 text-left ${Boolean(control[key as keyof ProviderControl]) ? 'border-blue-500/40 bg-blue-500/10 text-blue-200' : 'border-zinc-800 bg-zinc-900 text-zinc-500'}`}
+                    onClick={() => updateProviderControl(control.provider_name, { [key]: !control[key as keyof ProviderControl] } as Partial<ProviderControl>)}
+                    className={`rounded-lg border px-2 py-2 text-left ${control[key as keyof ProviderControl] ? 'border-blue-500/40 bg-blue-500/10 text-blue-200' : 'border-zinc-800 bg-zinc-900 text-zinc-500'}`}
                   >
-                    {label}: {Boolean(control[key as keyof ProviderControl]) ? 'ON' : 'OFF'}
+                    {label}: {control[key as keyof ProviderControl] ? 'ON' : 'OFF'}
                   </button>
                 ))}
               </div>

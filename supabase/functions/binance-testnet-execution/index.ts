@@ -1090,13 +1090,13 @@ async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string,
 }
 
 async function getRules(symbol: string): Promise<SymbolRules> {
-  const data = await binanceRequest<{ symbols: Array<{ symbol: string; status: string; pricePrecision: number; quantityPrecision: number; filters: Array<{ filterType: string; tickSize?: string; stepSize?: string; minQty?: string; notional?: string; minNotional?: string }> }> }>("GET", "/fapi/v1/exchangeInfo");
+  const data = await binanceRequest<{ symbols: Array<{ symbol: string; status: string; pricePrecision: number; quantityPrecision: number; baseAsset?: string; quoteAsset?: string; filters: Array<{ filterType: string; tickSize?: string; stepSize?: string; minQty?: string; notional?: string; minNotional?: string }> }> }>("GET", "/fapi/v1/exchangeInfo");
   const row = data.symbols.find((s) => s.symbol === symbol && s.status === "TRADING");
   if (!row) throw new Error(`symbol_not_supported: ${symbol} is not valid/trading on Binance USD-M testnet`);
   const lot = row.filters.find((f) => f.filterType === "LOT_SIZE");
   const price = row.filters.find((f) => f.filterType === "PRICE_FILTER");
   const minNotional = row.filters.find((f) => f.filterType === "MIN_NOTIONAL" || f.filterType === "NOTIONAL");
-  return { symbol: row.symbol, baseAsset: (row as any).baseAsset, quoteAsset: (row as any).quoteAsset, pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision, tickSize: Number(price?.tickSize ?? 0.01), stepSize: Number(lot?.stepSize ?? 0.001), minQty: Number(lot?.minQty ?? 0.001), minNotional: Number(minNotional?.notional ?? minNotional?.minNotional ?? 5) };
+  return { symbol: row.symbol, baseAsset: row.baseAsset, quoteAsset: row.quoteAsset, pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision, tickSize: Number(price?.tickSize ?? 0.01), stepSize: Number(lot?.stepSize ?? 0.001), minQty: Number(lot?.minQty ?? 0.001), minNotional: Number(minNotional?.notional ?? minNotional?.minNotional ?? 5) };
 }
 
 function precisionFromStep(value: number): number {
