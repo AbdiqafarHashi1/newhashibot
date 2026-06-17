@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { ExchangeProviderBybit } from '../../src/lib/exchange/ExchangeProviderBybit.js';
+import { ExchangeProviderBybit, createBybitOrderLinkId } from '../../src/lib/exchange/ExchangeProviderBybit.js';
 import { ExchangeProviderMT5 } from '../../src/lib/exchange/ExchangeProviderMT5.js';
 import { executeSignalAcrossProviders } from '../../src/lib/exchange/executionRouter.js';
 import type { ExchangeProvider, EntryRequest } from '../../src/lib/exchange/exchangeProvider.js';
@@ -47,12 +47,19 @@ async function run() {
   assert.equal(walletCall?.headers?.['X-BAPI-SIGN'], '3f72e113827b035c8832d7248adbd22f7cb9aaa5f92463c3044fd5ad3175c8b8', 'Bybit GET signature signs timestamp + apiKey + recvWindow + queryString');
   assert.deepEqual(authDebug.find((entry) => (entry as { endpoint?: string }).endpoint === '/v5/account/wallet-balance'), { endpoint: '/v5/account/wallet-balance', method: 'GET', timestamp: '1781308800073', recv_window: 5000, pre_sign_string: '1781308800073[REDACTED_API_KEY]5000accountType=UNIFIED', signature_length: 64 }, 'Bybit auth debug logs safe signing metadata only');
 
+  const longOrderLinkId = createBybitOrderLinkId('123e4567-e89b-12d3-a456-426614174000-with-extra-tracing-data', 'entry', 1781308800073);
+  assert.equal(longOrderLinkId.length <= 45, true, 'Bybit orderLinkId helper caps IDs at 45 characters');
+  assert.equal(longOrderLinkId, 'hb_123e4567e89b12d3_entry_mqbl9mq1', 'Bybit orderLinkId keeps a traceable signal prefix, purpose, and timestamp');
+
   const entry = await bybit.placeEntry({ signalId: 'sig-1', symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100 });
   assert.equal(entry.ok, true);
   assert.equal(entry.providerOrderId, 'order-1');
   const entryCall = calls.find((call) => call.url.startsWith('https://api-testnet.bybit.com/v5/order/create'));
   assert.equal(Boolean(entryCall), true, 'Bybit uses testnet REST endpoint by default');
-  assert.equal(entryCall?.headers?.['X-BAPI-SIGN'], '7eeabc1e6adbbcd79736fdf62d7f0a757a795dba1d248df7a84d031e2820c84e', 'Bybit POST signature signs timestamp + apiKey + recvWindow + requestBody');
+  const entryPayload = JSON.parse(entryCall?.body ?? '{}') as { orderLinkId?: string };
+  assert.equal(entryPayload.orderLinkId, 'hb_sig1_entry_mqbl9mq1', 'Bybit entry orderLinkId is short and traceable');
+  assert.equal((entryPayload.orderLinkId ?? '').length <= 45, true, 'Bybit entry orderLinkId stays within the V5 45-character limit');
+  assert.equal(entryCall?.headers?.['X-BAPI-SIGN'], '987b87b4daffa5582a4a893d200402f802fcb15070c1881a3ec5b9080ec675ee', 'Bybit POST signature signs timestamp + apiKey + recvWindow + requestBody');
 
   const sl = await bybit.placeSL({ symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100, metadata: { executionId: 'exec-1' } });
   assert.equal(authDebug.some((entry) => (entry as { retCode?: number }).retCode === 0), true, 'Bybit logs safe request result debug with retCode/retMsg');

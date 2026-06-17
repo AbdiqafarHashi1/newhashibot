@@ -603,6 +603,19 @@ function bybitBaseUrl(): string {
   return base;
 }
 
+
+const BYBIT_ORDER_LINK_ID_MAX_LENGTH = 45;
+const BYBIT_ORDER_LINK_ID_SHORT_ID_LENGTH = 16;
+function sanitizeBybitOrderLinkIdPart(value: unknown): string {
+  return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, BYBIT_ORDER_LINK_ID_SHORT_ID_LENGTH);
+}
+function createBybitOrderLinkId(sourceId: unknown, purpose: 'entry' | 'close' | 'sl' | 'tp1' | 'tp2', timestamp = Date.now()): string {
+  const shortId = sanitizeBybitOrderLinkIdPart(sourceId) || 'na';
+  const purposePart = sanitizeBybitOrderLinkIdPart(purpose) || 'ord';
+  const timestampPart = Math.max(0, Math.floor(timestamp)).toString(36);
+  const orderLinkId = `hb_${shortId}_${purposePart}_${timestampPart}`;
+  return orderLinkId.length <= BYBIT_ORDER_LINK_ID_MAX_LENGTH ? orderLinkId : orderLinkId.slice(0, BYBIT_ORDER_LINK_ID_MAX_LENGTH);
+}
 function bybitExchangeName(): string { return `bybit_usdt_${bybitEnvironment()}`; }
 function bybitExecutionEnvironment(): string { return bybitEnvironment() === "live" ? "live" : bybitEnvironment(); }
 
@@ -1607,7 +1620,7 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
   if (existingResponse) return existingResponse;
   const executionId = inserted.id;
   try {
-    const entry = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: sig.direction === "buy" ? "Buy" : "Sell", orderType: "Limit", qty: String(plan.quantity), price: String(plan.entryPrice), timeInForce: "GTC", orderLinkId: `hb-${sig.id}-bybit-entry` });
+    const entry = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: sig.direction === "buy" ? "Buy" : "Sell", orderType: "Limit", qty: String(plan.quantity), price: String(plan.entryPrice), timeInForce: "GTC", orderLinkId: createBybitOrderLinkId(sig.id, 'entry') });
     await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: entry.orderId ?? entry.orderLinkId ?? "bybit_entry_submitted", raw_exchange_response: { entry, plan, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "entry_submitted", `Bybit ${bybitEnvironment()} entry LIMIT order submitted`, { entry, plan, sizing_diagnostics: { equity_used: plan.capital.equity_used, available_balance: plan.capital.raw_available_balance, available_usdt: plan.capital.raw_available_usdt, available_usdc: plan.capital.raw_available_usdc, collateral_coin: "USDT", risk_amount: plan.riskAmount, leverage: plan.leverage, final_quantity: plan.quantity } });
     return { provider: "bybit", exchange: bybitExchangeName(), success: true, submitted_order: true, status: "entry_submitted", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? null };

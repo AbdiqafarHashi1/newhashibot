@@ -47,6 +47,24 @@ export interface BybitAuthValidationReport {
 const provider = 'bybit' as const;
 const BYBIT_URLS: Record<BybitEnvironment, string> = { demo: 'https://api-demo.bybit.com', testnet: 'https://api-testnet.bybit.com', live: 'https://api.bybit.com' };
 
+const BYBIT_ORDER_LINK_ID_MAX_LENGTH = 45;
+const BYBIT_ORDER_LINK_ID_SHORT_ID_LENGTH = 16;
+
+function sanitizeOrderLinkIdPart(value: unknown): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, BYBIT_ORDER_LINK_ID_SHORT_ID_LENGTH);
+}
+
+export function createBybitOrderLinkId(sourceId: unknown, purpose: 'entry' | 'close' | 'sl' | 'tp1' | 'tp2', timestamp: number = Date.now()): string {
+  const shortId = sanitizeOrderLinkIdPart(sourceId) || 'na';
+  const timestampPart = Math.max(0, Math.floor(timestamp)).toString(36);
+  const purposePart = sanitizeOrderLinkIdPart(purpose) || 'ord';
+  const orderLinkId = `hb_${shortId}_${purposePart}_${timestampPart}`;
+  return orderLinkId.length <= BYBIT_ORDER_LINK_ID_MAX_LENGTH ? orderLinkId : orderLinkId.slice(0, BYBIT_ORDER_LINK_ID_MAX_LENGTH);
+}
+
 function side(side: 'long' | 'short'): 'Buy' | 'Sell' { return side === 'long' ? 'Buy' : 'Sell'; }
 function closeSide(sideValue: 'long' | 'short'): 'Buy' | 'Sell' { return sideValue === 'long' ? 'Sell' : 'Buy'; }
 function safeNumber(value: unknown): number { const n = Number(value); return Number.isFinite(n) ? n : 0; }
@@ -184,7 +202,7 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   }
 
   async placeEntry(request: EntryRequest): Promise<ProviderResult> {
-    const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: side(request.side), orderType: request.entryPrice ? 'Limit' : 'Market', qty: String(request.quantity), price: request.entryPrice ? String(request.entryPrice) : undefined, timeInForce: request.entryPrice ? 'GTC' : 'IOC', orderLinkId: request.signalId ? `hb-${request.signalId}-bybit-entry` : undefined });
+    const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: side(request.side), orderType: request.entryPrice ? 'Limit' : 'Market', qty: String(request.quantity), price: request.entryPrice ? String(request.entryPrice) : undefined, timeInForce: request.entryPrice ? 'GTC' : 'IOC', orderLinkId: request.signalId ? createBybitOrderLinkId(request.signalId, 'entry', this.now()) : undefined });
     return { provider, ok: true, providerOrderId: result.orderId, status: 'entry_submitted', metadata: result };
   }
   async cancelEntry(request: ReconcileRequest): Promise<ProviderResult> {
@@ -194,12 +212,12 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   async closePosition(request: ReconcileRequest & { quantity?: number; reason?: string }): Promise<ProviderResult> {
     const position = (await this.getPositions()).find((row) => row.symbol === request.symbol);
     if (!position) return { provider, ok: true, status: 'no_position' };
-    const result = await this.request<{ orderId: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: closeSide(position.side === 'long' ? 'long' : 'short'), orderType: 'Market', qty: String(request.quantity ?? position.quantity), reduceOnly: true, timeInForce: 'IOC', orderLinkId: `hb-${request.executionId ?? request.symbol}-bybit-close` });
+    const result = await this.request<{ orderId: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: closeSide(position.side === 'long' ? 'long' : 'short'), orderType: 'Market', qty: String(request.quantity ?? position.quantity), reduceOnly: true, timeInForce: 'IOC', orderLinkId: createBybitOrderLinkId(request.executionId ?? request.symbol, 'close', this.now()) });
     return { provider, ok: true, providerOrderId: result.orderId, status: 'close_submitted', metadata: { ...result, reason: request.reason } };
   }
   private async placeProtection(request: ProtectionRequest, label: 'sl' | 'tp1' | 'tp2'): Promise<ProviderResult> {
     const triggerPrice = label === 'sl' ? request.stopLoss : label === 'tp1' ? request.tp1 : request.tp2;
-    const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: closeSide(request.side), orderType: 'Market', qty: String(request.quantity), triggerPrice: String(triggerPrice), triggerDirection: request.side === 'long' ? (label === 'sl' ? 2 : 1) : (label === 'sl' ? 1 : 2), reduceOnly: true, orderFilter: 'StopOrder', orderLinkId: `hb-${request.metadata?.executionId ?? request.symbol}-bybit-${label}` });
+    const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: closeSide(request.side), orderType: 'Market', qty: String(request.quantity), triggerPrice: String(triggerPrice), triggerDirection: request.side === 'long' ? (label === 'sl' ? 2 : 1) : (label === 'sl' ? 1 : 2), reduceOnly: true, orderFilter: 'StopOrder', orderLinkId: createBybitOrderLinkId(request.metadata?.executionId ?? request.symbol, label, this.now()) });
     return { provider, ok: true, providerOrderId: result.orderId, status: `${label}_submitted`, metadata: { ...result, label } };
   }
   async placeSL(request: ProtectionRequest) { return this.placeProtection(request, 'sl'); }
