@@ -117,8 +117,8 @@ function splitQty(total: number, part: 1 | 2): string {
 function lifecycleEventKey(row: Json, event: string) { return `bybit:${row.id}:${event}`; }
 function telegramText(row: Json, event: string, state: Json) {
   return [
-    `Bybit Demo lifecycle: ${event}`,
-    `Provider: Bybit Demo (not live trading)`,
+    `Bybit Testnet lifecycle: ${event}`,
+    `Provider: Bybit Testnet (not live trading)`,
     `Symbol: ${row.symbol}`,
     `Side: ${String(state.side ?? row.side ?? row.direction ?? "—").toUpperCase()}`,
     `Entry: ${row.entry_price ?? "—"}`,

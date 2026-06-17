@@ -274,7 +274,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
   const protectionCommandPlatforms = useMemo(() => {
     const platformDefs = [
       { key: 'binance:testnet', provider: 'binance', label: 'Binance', environment: 'testnet', adapterPending: false },
-      { key: 'bybit:demo', provider: 'bybit', label: 'Bybit', environment: 'demo', adapterPending: false },
+      { key: 'bybit:testnet', provider: 'bybit', label: 'Bybit', environment: 'testnet', adapterPending: false },
       { key: 'mt5:personal', provider: 'mt5', label: 'MT5 Personal', environment: 'personal', adapterPending: true },
       { key: 'mt5:prop', provider: 'mt5', label: 'MT5 Prop', environment: 'prop', adapterPending: true },
     ];
@@ -291,13 +291,13 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       const schedule = scheduleByProvider.get(platform.key);
       const protectedPositions = active.filter(execution => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
       const missingSl = active.filter(execution => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
-      const missingTp1 = active.filter(execution => execution.protection_status === 'missing_tp1' || execution.tp1_status === 'missing').length;
-      const missingTp2 = active.filter(execution => execution.protection_status === 'missing_tp2' || execution.tp2_status === 'missing').length;
+      const missingTp1 = active.filter(execution => String(execution.protection_status) === 'missing_tp1' || execution.tp1_status === 'missing').length;
+      const missingTp2 = active.filter(execution => String(execution.protection_status) === 'missing_tp2' || execution.tp2_status === 'missing').length;
       const pendingProtection = active.filter(execution => ['pending_protection', 'protection_pending', 'pending_managed_protection'].includes(String(execution.protection_status ?? execution.status))).length;
       const failedProtection = active.filter(execution => ['protection_failed', 'unprotected_failed'].includes(String(execution.protection_status ?? execution.status))).length;
       const expired = active.filter(execution => ['expired', 'expired_closed'].includes(String(execution.expiry_status)) || String(execution.status).includes('expired')).length;
       const recoveryIssues = active.filter(execution => execution.latest_protection_error || execution.latest_monitor_error || ['cleanup_failed', 'expiry_close_failed', 'protection_retry_failed'].includes(String(execution.recovery_status))).length;
-      const latestTelegram = rows.map(execution => execution.latest_telegram_event_at || '').filter(Boolean).sort().at(-1) ?? heartbeat?.latest_telegram_event ?? '';
+      const latestTelegram = rows.map(execution => execution.latest_telegram_event_at || '').filter(Boolean).sort().slice(-1)[0] ?? heartbeat?.latest_telegram_event ?? '';
       return { ...platform, rows, active, heartbeat, automaticHeartbeat, manualHeartbeat, schedule, providerStatus: platform.adapterPending ? 'adapter_pending' : providerStatus.get(platform.provider as 'binance' | 'bybit' | 'mt5')?.status ?? 'unknown', monitorStatus: platform.adapterPending ? 'not_available' : heartbeat?.monitor_status ?? 'no_heartbeat', activePositions: platform.adapterPending ? null : active.length, protectedPositions, unprotectedPositions: Math.max(active.length - protectedPositions, 0), missingSl, missingTp1, missingTp2, pendingProtection, failedProtection, staleOrders: heartbeat?.stale_orders_cleaned ?? 0, expired, recoveryIssues, latestRecoveryAction: platform.adapterPending ? 'adapter_pending' : heartbeat?.latest_recovery_action ?? '—', latestTelegram, latestError: platform.adapterPending ? 'MT5 adapter not connected' : Array.isArray(heartbeat?.errors) ? String((heartbeat?.errors as unknown[])[0] ?? '—') : '—' };
     });
   }, [allProviderExecutions, latestHeartbeatByProvider, latestAutomaticHeartbeatByProvider, latestManualHeartbeatByProvider, providerStatus, scheduleByProvider]);
@@ -309,12 +309,12 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       const pnl = rows.reduce((sum, execution) => sum + Number(execution.current_pnl ?? execution.latest_unrealized_pnl ?? 0), 0);
       const protectedCount = active.filter((execution) => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
       const missingSl = active.filter((execution) => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
-      const missingTp1 = active.filter((execution) => execution.protection_status === 'missing_tp1' || execution.tp1_status === 'missing').length;
-      const missingTp2 = active.filter((execution) => execution.protection_status === 'missing_tp2' || execution.tp2_status === 'missing').length;
+      const missingTp1 = active.filter((execution) => String(execution.protection_status) === 'missing_tp1' || execution.tp1_status === 'missing').length;
+      const missingTp2 = active.filter((execution) => String(execution.protection_status) === 'missing_tp2' || execution.tp2_status === 'missing').length;
       const expired = active.filter((execution) => ['expired', 'expired_closed'].includes(String(execution.expiry_status)) || String(execution.status).includes('expired')).length;
-      const latestLifecycle = rows.map((execution) => execution.last_monitor_checked_at || execution.latest_sync_at || execution.updated_at || '').filter(Boolean).sort().at(-1) ?? '';
-      const latestTelegram = rows.map((execution) => execution.latest_telegram_event_at || '').filter(Boolean).sort().at(-1) ?? '';
-      const recoveryFailures = rows.filter((execution) => execution.protection_status === 'protection_failed' || execution.latest_protection_error || execution.latest_monitor_error).length;
+      const latestLifecycle = rows.map((execution) => execution.last_monitor_checked_at || execution.latest_sync_at || execution.updated_at || '').filter(Boolean).sort().slice(-1)[0] ?? '';
+      const latestTelegram = rows.map((execution) => execution.latest_telegram_event_at || '').filter(Boolean).sort().slice(-1)[0] ?? '';
+      const recoveryFailures = rows.filter((execution) => String(execution.protection_status) === 'protection_failed' || execution.latest_protection_error || execution.latest_monitor_error).length;
       const profitLockActive = rows.filter((execution) => execution.profit_lock_sl_active || execution.profit_lock_status === 'locked' || execution.status === 'closed_profit_lock').length;
       return { provider, rows, active, pnl, protectedCount, missingSl, missingTp1, missingTp2, expired, latestLifecycle, latestTelegram, recoveryFailures, profitLockActive };
     });
@@ -735,7 +735,11 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
             <h2 className="font-semibold text-sm">Execution Proof Panel</h2>
             <p className="text-xs text-zinc-500 mt-0.5">Latest 20 approved A/A+ signals with provider rows, submitted order proof, and exact blocker text. No live trading.</p>
           </div>
-          <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_approved_signal')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 hover:border-emerald-400">Execute Latest Approved Signal on Enabled Testnet Providers</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_binance_supported_signal')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 hover:border-emerald-400">Execute Latest Binance-Supported Signal on Binance</button>
+            <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_bybit_supported_signal')} className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200 hover:border-blue-400">Execute Latest Bybit-Supported Signal on Bybit</button>
+            <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_mirror_supported_signal')} className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-sm text-purple-200 hover:border-purple-400">Execute Latest Signal on All Eligible Providers</button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs">
@@ -783,8 +787,16 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
           <button type="button" onClick={() => runBybitDebug('account_capital')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Diagnose Bybit Account <span className="sr-only">Bybit Account/Capital Debug</span></button>
           <button type="button" onClick={() => runBybitDebug('balances')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Fetch Balances</button>
           <button type="button" onClick={() => runBybitDebug('positions_orders')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Fetch Positions / Fetch Orders <span className="sr-only">Bybit Positions/Orders Debug</span></button>
+          <button type="button" onClick={() => callExecution('sync_binance_tradable_symbols')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Sync Binance Executable Symbols</button>
+          <button type="button" onClick={() => callExecution('sync_bybit_tradable_symbols')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Sync Bybit Executable Symbols</button>
+          <button type="button" onClick={() => callExecution('show_executable_universe')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Show Executable Universe</button>
           <button type="button" onClick={() => runBybitDebug('symbols')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Validate Symbols</button>
           <button type="button" onClick={() => runBybitDebug('dry_run_signal')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Dry Run Signal</button>
+          <button type="button" onClick={() => callExecution('place_tiny_binance_test_order')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Place Tiny Binance Test Order</button>
+          <button type="button" onClick={() => callExecution('place_tiny_bybit_test_order')} className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">Place Tiny Bybit Test Order</button>
+          <button type="button" onClick={() => callExecution('cancel_test_orders', { symbol })} className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">Cancel Test Orders</button>
+          <button type="button" onClick={() => callExecution('run_binance_monitor_now')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300">Run Binance Monitor Now</button>
+          <button type="button" onClick={() => callExecution('run_bybit_monitor_now')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300">Run Bybit Monitor Now</button>
           <Badge variant="gray">Live Trading: OFF</Badge>
         </div>
         {providerSafetyWarning && <div className="mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">{providerSafetyWarning}. Primary Provider forced to Binance until Bybit health is connected.</div>}
@@ -828,7 +840,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
           <div>
             <h2 className="font-semibold text-sm">Bybit Environment Diagnostics</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Read-only Bybit Demo/Testnet/Live diagnostics for environment routing, account reachability, wallet access, instruments, and order permission visibility. These controls never place trades.</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Read-only Bybit Testnet diagnostics for environment routing, account reachability, wallet access, instruments, and order permission visibility. These controls never place trades.</p>
           </div>
           <Badge variant={bybitDebug?.connected ? 'green' : 'gray'}>{bybitDebug?.connected ? 'Connected' : 'Empty / not checked'}</Badge>
         </div>
