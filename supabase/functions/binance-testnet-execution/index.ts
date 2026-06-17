@@ -227,6 +227,8 @@ interface CapitalSnapshot {
   raw_total_wallet_balance: number;
   raw_available_usdt: number;
   raw_available_usdc: number;
+  raw_available_balance: number;
+  equity_used: number;
   selected_capital_used: number;
   max_capital_cap_applied: boolean;
   fallback_used: boolean;
@@ -758,7 +760,7 @@ function leverageForSignal(signal: SignalRow, settings: ExecutionSettings, gover
 }
 
 function zeroCapital(settings: ExecutionSettings): CapitalSnapshot {
-  return { capital_basis: settings.capital_basis ?? "available_usdt", raw_total_margin_balance: 0, raw_total_wallet_balance: 0, raw_available_usdt: 0, raw_available_usdc: 0, selected_capital_used: 0, max_capital_cap_applied: false, fallback_used: false };
+  return { capital_basis: settings.capital_basis ?? "available_usdt", raw_total_margin_balance: 0, raw_total_wallet_balance: 0, raw_available_usdt: 0, raw_available_usdc: 0, raw_available_balance: 0, equity_used: 0, selected_capital_used: 0, max_capital_cap_applied: false, fallback_used: false };
 }
 
 async function fetchAccountState(): Promise<AccountState> {
@@ -914,6 +916,7 @@ async function capitalSnapshot(settings: ExecutionSettings): Promise<CapitalSnap
       raw_total_wallet_balance: account.totalWalletBalance,
       raw_available_usdt: account.availableUsdt,
       raw_available_usdc: account.availableUsdc,
+      raw_available_balance: account.availableBalance || account.availableUsdt + account.availableUsdc,
     };
   } catch {
     snapshot.fallback_used = true;
@@ -921,14 +924,12 @@ async function capitalSnapshot(settings: ExecutionSettings): Promise<CapitalSnap
 
   let selected = 0;
   if (settings.capital_basis === "manual_override") selected = Number(settings.testnet_capital_override_usdt ?? 0);
-  else if (settings.capital_basis === "available_usdc_plus_usdt") selected = snapshot.raw_available_usdt + snapshot.raw_available_usdc;
-  else if (settings.capital_basis === "total_margin_balance") selected = snapshot.raw_total_margin_balance;
-  else if (settings.capital_basis === "total_wallet_balance") selected = snapshot.raw_total_wallet_balance;
-  else selected = snapshot.raw_available_usdt;
+  else selected = snapshot.raw_total_margin_balance || snapshot.raw_total_wallet_balance;
   if (!Number.isFinite(selected) || selected <= 0) {
     selected = Number(settings.fallback_account_balance ?? 10000);
     snapshot.fallback_used = true;
   }
+  snapshot.equity_used = selected;
   const cap = Number(settings.max_capital_used_usdt);
   snapshot.max_capital_cap_applied = Number.isFinite(cap) && cap > 0 && selected > cap;
   snapshot.selected_capital_used = snapshot.max_capital_cap_applied ? cap : selected;
@@ -951,13 +952,15 @@ function buildPlan(signal: SignalRow, rules: SymbolRules, capital: CapitalSnapsh
   if (!Number.isFinite(stopDistance) || stopDistance <= 0) throw new Error("skipped_invalid_sizing: Invalid stop loss distance");
   const riskAmount = capital.selected_capital_used * (riskPct / 100);
   const rawQty = riskAmount / stopDistance;
-  const maxLeveredQty = (capital.selected_capital_used * lev.leverage) / entry;
+  const availableMargin = capital.raw_available_balance > 0 ? capital.raw_available_balance : capital.raw_available_usdt + capital.raw_available_usdc;
+  const marginCapacity = availableMargin > 0 ? Math.min(capital.selected_capital_used, availableMargin) : capital.selected_capital_used;
+  const maxLeveredQty = (marginCapacity * lev.leverage) / entry;
   const quantity = floorToStep(Math.min(rawQty, maxLeveredQty), rules.stepSize, rules.quantityPrecision);
   const tp1Quantity = floorToStep(quantity * 0.5, rules.stepSize, rules.quantityPrecision);
   const tp2Quantity = floorToStep(quantity - tp1Quantity, rules.stepSize, rules.quantityPrecision);
   const notional = quantity * entry;
   const adjustments: string[] = [];
-  if (rawQty > maxLeveredQty) adjustments.push("Quantity capped by selected leverage and capital margin capacity");
+  if (rawQty > maxLeveredQty) adjustments.push("Quantity capped by leverage and available margin capacity after risk sizing");
   if (tp1Quantity + tp2Quantity < quantity) adjustments.push("TP quantities rounded below full position size to respect step size");
   if (lev.leverage_source === "capped_to_max") adjustments.push(`Leverage capped to ${lev.leverage}x`);
   if (stressModeActive(settings)) adjustments.push("Testnet stress override applied: risk/leverage ignore signal, grade, arbitration, confidence, and dynamic leverage sizing");
@@ -1004,12 +1007,22 @@ function insertFailureDetail(error: unknown, table: string): string {
   return `${table} insert failed: ${msg}`;
 }
 
-async function insertExecutionOrderRow(supabase: SupabaseClient, row: Json, provider: "binance" | "bybit"): Promise<{ id: string } | { error: Json }> {
-  const { data, error } = await supabase.from("execution_orders").insert(row).select("id").maybeSingle();
+async function insertExecutionOrderRow(supabase: SupabaseClient, row: Json, provider: "binance" | "bybit"): Promise<{ id: string; existing?: boolean; status?: string } | { error: Json }> {
+  const { data, error } = await supabase.from("execution_orders").insert(row).select("id,status").maybeSingle();
   if (error || !data?.id) {
+    const code = String((error as { code?: unknown } | null)?.code ?? "");
+    if (code === "23505" && row.signal_id && row.exchange && row.environment) {
+      const existing = await supabase.from("execution_orders").select("id,status").eq("signal_id", String(row.signal_id)).eq("exchange", String(row.exchange)).eq("environment", String(row.environment)).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!existing.error && existing.data?.id) return { id: String(existing.data.id), existing: true, status: String((existing.data as Json).status ?? "") };
+    }
     return { error: setupBlocker(provider, "execution_order_insert_failed", insertFailureDetail(error, "execution_orders"), { table: "execution_orders", signal_id: row.signal_id ?? null, symbol: row.symbol ?? null }) };
   }
-  return { id: String(data.id) };
+  return { id: String(data.id), status: String((data as Json).status ?? row.status ?? "") };
+}
+
+function existingExecutionResponse(provider: "binance" | "bybit", inserted: { id: string; existing?: boolean; status?: string }, extra: Json = {}): Json | null {
+  if (!inserted.existing) return null;
+  return { provider, success: false, skipped: true, reason: "existing_execution_order", submitted_order: false, duplicate_order_prevented: true, execution_id: inserted.id, status: inserted.status ?? null, ...extra };
 }
 
 async function getProviderControl(supabase: SupabaseClient, providerName: "binance" | "bybit"): Promise<ProviderRuntimeControl> {
@@ -1157,7 +1170,7 @@ function commonExecutionFields(plan: OrderPlan): Json {
   return {
     leverage: plan.leverage, quantity: plan.quantity, volume: plan.quantity, entry_price: plan.entryPrice, stop_loss: plan.stopLoss, tp1: plan.tp1, tp2: plan.tp2,
     capital_basis: plan.capital.capital_basis, raw_total_margin_balance: plan.capital.raw_total_margin_balance, raw_total_wallet_balance: plan.capital.raw_total_wallet_balance,
-    raw_available_usdt: plan.capital.raw_available_usdt, raw_available_usdc: plan.capital.raw_available_usdc, selected_capital_used: plan.capital.selected_capital_used,
+    raw_available_usdt: plan.capital.raw_available_usdt, raw_available_usdc: plan.capital.raw_available_usdc, raw_available_balance: plan.capital.raw_available_balance, equity_used: plan.capital.equity_used, selected_capital_used: plan.capital.selected_capital_used,
     max_capital_cap_applied: plan.capital.max_capital_cap_applied, risk_pct: plan.riskPct, risk_amount: plan.riskAmount, notional: plan.notional,
     risk_source: plan.risk_source, leverage_source: plan.leverage_source, stress_mode: plan.stress_mode, open_risk_guard: plan.open_risk_guard, governor_state: plan.governor_state, governor_reason: plan.governor_reason, risk_multiplier: plan.risk_multiplier, adjusted_risk_pct: plan.adjusted_risk_pct, adjusted_max_leverage: plan.adjusted_max_leverage,
     original_symbol: plan.originalSymbol ?? plan.symbol, executed_symbol: plan.symbol, selected_margin_asset: plan.marginAssetSelected ?? "USDT", margin_asset_selected: plan.marginAssetSelected ?? "USDT", prefer_margin_asset: "USDT", margin_backup_attempted: plan.marginFallbackAttempted ?? false, margin_backup_asset_used: plan.marginFallbackUsed ? plan.marginAssetSelected : null, margin_fallback_used: plan.marginFallbackUsed ?? false, insufficient_margin_reason: plan.marginFallbackReason ?? "", requested_margin: plan.marginRequired, requested_notional: plan.notional,
@@ -1261,6 +1274,8 @@ async function createSkipped(supabase: SupabaseClient, signal: SignalRow, reason
     volume: 0, quantity: 0, execution_mode: "testnet", status: "skipped", error_message: normalized, latest_auto_skip_reason: normalized, ...metadata,
   }, "binance");
   if ("error" in inserted) return inserted.error;
+  const existingResponse = existingExecutionResponse("binance", inserted, { exchange: "binance_usdm_testnet", ...metadata });
+  if (existingResponse) return existingResponse;
   await logEvent(supabase, inserted.id, normalized, normalized, metadata);
   return { success: false, skipped: true, reason: normalized, execution_id: inserted.id, ...metadata };
 }
@@ -1496,8 +1511,10 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   plan.total_open_risk_after_trade = totalRiskAfter;
   const insertedExec = await insertExecutionOrderRow(supabase, { signal_id: sig.id, exchange: "binance_usdm_testnet", environment: "testnet", symbol: sig.symbol, direction: sig.direction, side: plan.side, execution_mode: "testnet", status: "pending_submit", testnet_enabled_at: settings.testnet_enabled_at, current_open_risk_pct: currentRisk, total_open_risk_after_trade: totalRiskAfter, execution_provider: "binance", provider_status: "pending_submit", provider_entry_enabled: true, ...expiryFields(sig), ...commonExecutionFields(plan) }, "binance");
   if ("error" in insertedExec) return insertedExec.error;
+  const existingExecResponse = existingExecutionResponse("binance", insertedExec, { exchange: "binance_usdm_testnet" });
+  if (existingExecResponse) return existingExecResponse;
   const executionId = insertedExec.id;
-  await logEvent(supabase, executionId, "planned", "Order plan created", { plan, margin_selection: marginSelection, margin_diagnostics: marginDiagnostics });
+  await logEvent(supabase, executionId, "planned", "Order plan created", { plan, margin_selection: marginSelection, margin_diagnostics: marginDiagnostics, sizing_diagnostics: { equity_used: plan.capital.equity_used, available_balance: plan.capital.raw_available_balance, available_usdt: plan.capital.raw_available_usdt, available_usdc: plan.capital.raw_available_usdc, collateral_coin: plan.marginAssetSelected ?? "USDT", risk_amount: plan.riskAmount, leverage: plan.leverage, final_quantity: plan.quantity } });
   await logEvent(supabase, executionId, "margin_asset_selected", "USDT/USDC margin asset selected before Binance entry placement", marginDiagnostics);
   try {
     const symbolConfiguration = await configureSymbolForExecution(plan);
@@ -1558,6 +1575,8 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
   if (finalBlocker) {
     const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", volume: 0, quantity: 0, latest_auto_skip_reason: finalBlocker, error_message: finalBlocker, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, provider_control: control } }, "bybit");
     if ("error" in inserted) return inserted.error;
+    const existingResponse = existingExecutionResponse("bybit", inserted, { exchange: bybitExchangeName(), symbol: providerSymbol });
+    if (existingResponse) return existingResponse;
     await logEvent(supabase, inserted.id, "provider_skipped", `Bybit ${bybitEnvironment()} entry blocked by exact gate`, { blocker: finalBlocker, control });
     return { provider: "bybit", exchange: bybitExchangeName(), success: false, submitted_order: false, skipped: true, reason: finalBlocker, execution_id: inserted.id, symbol: providerSymbol };
   }
@@ -1566,6 +1585,8 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     const reasonText = governor.reason || "skipped_governor_paused";
     const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", provider_status: "provider_skipped", volume: 0, quantity: 0, latest_auto_skip_reason: reasonText, error_message: reasonText, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, governor } }, "bybit");
     if ("error" in inserted) return inserted.error;
+    const existingResponse = existingExecutionResponse("bybit", inserted, { exchange: bybitExchangeName(), symbol: providerSymbol });
+    if (existingResponse) return existingResponse;
     await logEvent(supabase, inserted.id, "provider_skipped", `Bybit ${bybitEnvironment()} entry blocked by governor`, { governor });
     return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: reasonText, execution_id: inserted.id };
   }
@@ -1575,16 +1596,20 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     const reasonText = e instanceof Error ? e.message : "skipped_invalid_sizing";
     const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", provider_status: "provider_skipped", volume: 0, quantity: 0, latest_auto_skip_reason: reasonText, error_message: reasonText, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason } }, "bybit");
     if ("error" in inserted) return inserted.error;
+    const existingResponse = existingExecutionResponse("bybit", inserted, { exchange: bybitExchangeName(), symbol: providerSymbol });
+    if (existingResponse) return existingResponse;
     await logEvent(supabase, inserted.id, "provider_skipped", `Bybit ${bybitEnvironment()} entry blocked before submit`, { reason: reasonText });
     return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: reasonText, execution_id: inserted.id };
   }
-  const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "pending_submit", provider_status: "pending_submit", quantity: plan.quantity, volume: plan.quantity, risk_pct: plan.riskPct, leverage: plan.leverage, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, plan } }, "bybit");
+  const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "pending_submit", provider_status: "pending_submit", ...commonExecutionFields({ ...plan, marginAssetSelected: "USDT" }), raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, plan, sizing_diagnostics: { equity_used: plan.capital.equity_used, available_balance: plan.capital.raw_available_balance, available_usdt: plan.capital.raw_available_usdt, available_usdc: plan.capital.raw_available_usdc, collateral_coin: "USDT", risk_amount: plan.riskAmount, leverage: plan.leverage, final_quantity: plan.quantity } } }, "bybit");
   if ("error" in inserted) return inserted.error;
+  const existingResponse = existingExecutionResponse("bybit", inserted, { exchange: bybitExchangeName(), symbol: providerSymbol });
+  if (existingResponse) return existingResponse;
   const executionId = inserted.id;
   try {
     const entry = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: sig.direction === "buy" ? "Buy" : "Sell", orderType: "Limit", qty: String(plan.quantity), price: String(plan.entryPrice), timeInForce: "GTC", orderLinkId: `hb-${sig.id}-bybit-entry` });
     await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: entry.orderId ?? entry.orderLinkId ?? "bybit_entry_submitted", raw_exchange_response: { entry, plan, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "entry_submitted", `Bybit ${bybitEnvironment()} entry LIMIT order submitted`, { entry, plan });
+    await logEvent(supabase, executionId, "entry_submitted", `Bybit ${bybitEnvironment()} entry LIMIT order submitted`, { entry, plan, sizing_diagnostics: { equity_used: plan.capital.equity_used, available_balance: plan.capital.raw_available_balance, available_usdt: plan.capital.raw_available_usdt, available_usdc: plan.capital.raw_available_usdc, collateral_coin: "USDT", risk_amount: plan.riskAmount, leverage: plan.leverage, final_quantity: plan.quantity } });
     return { provider: "bybit", exchange: bybitExchangeName(), success: true, submitted_order: true, status: "entry_submitted", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? null };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
