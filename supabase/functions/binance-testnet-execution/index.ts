@@ -581,16 +581,42 @@ class BinanceApiError extends Error {
 }
 
 
+type BybitEnvironment = "demo" | "testnet" | "live";
+
+function bybitEnvironment(): BybitEnvironment {
+  const raw = String(Deno.env.get("BYBIT_ENVIRONMENT") || Deno.env.get("BYBIT_MODE") || "testnet").toLowerCase().trim();
+  if (raw === "demo" || raw === "bybit_demo") return "demo";
+  if (raw === "live" || raw === "mainnet" || raw === "bybit_live") return "live";
+  return "testnet";
+}
+
 function bybitBaseUrl(): string {
-  const base = Deno.env.get("BYBIT_TESTNET_BASE_URL") || "https://api-testnet.bybit.com";
-  if (!base.includes("testnet")) throw new Error("Bybit health check is testnet-only: base URL must include testnet");
-  return base.replace(/\/$/, "");
+  const environment = bybitEnvironment();
+  const explicit = Deno.env.get("BYBIT_BASE_URL") || Deno.env.get("BYBIT_TESTNET_BASE_URL") || "";
+  const fallback = environment === "demo" ? "https://api-demo.bybit.com" : environment === "live" ? "https://api.bybit.com" : "https://api-testnet.bybit.com";
+  const base = (explicit || fallback).replace(/\/$/, "");
+  if (environment === "demo" && !base.includes("api-demo.bybit.com")) throw new Error("Bybit Demo Trading requires BYBIT_BASE_URL=https://api-demo.bybit.com or no override");
+  if (environment === "testnet" && !base.includes("testnet")) throw new Error("Bybit testnet requires a testnet base URL");
+  if (environment === "live" && (base.includes("testnet") || base.includes("api-demo"))) throw new Error("Bybit live requires the mainnet base URL");
+  return base;
+}
+
+function bybitExchangeName(): string { return `bybit_usdt_${bybitEnvironment()}`; }
+function bybitExecutionEnvironment(): string { return bybitEnvironment() === "live" ? "live" : bybitEnvironment(); }
+
+function bybitCredentials(): { apiKey: string; apiSecret: string; keySource: string; secretSource: string } {
+  const environment = bybitEnvironment();
+  const demoOrLiveKey = Deno.env.get("BYBIT_API_KEY") ?? "";
+  const demoOrLiveSecret = Deno.env.get("BYBIT_API_SECRET") ?? "";
+  const testnetKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
+  const testnetSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
+  if (environment === "testnet") return { apiKey: testnetKey || demoOrLiveKey, apiSecret: testnetSecret || demoOrLiveSecret, keySource: testnetKey ? "BYBIT_TESTNET_API_KEY" : "BYBIT_API_KEY", secretSource: testnetSecret ? "BYBIT_TESTNET_API_SECRET" : "BYBIT_API_SECRET" };
+  return { apiKey: demoOrLiveKey || testnetKey, apiSecret: demoOrLiveSecret || testnetSecret, keySource: demoOrLiveKey ? "BYBIT_API_KEY" : "BYBIT_TESTNET_API_KEY", secretSource: demoOrLiveSecret ? "BYBIT_API_SECRET" : "BYBIT_TESTNET_API_SECRET" };
 }
 
 async function bybitRequest<T>(method: "GET" | "POST", path: string, params: Record<string, string | number | boolean> = {}): Promise<T> {
-  const apiKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
-  const apiSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
-  if (!apiKey || !apiSecret) throw new Error("BYBIT_TESTNET_API_KEY and BYBIT_TESTNET_API_SECRET are required");
+  const { apiKey, apiSecret, keySource, secretSource } = bybitCredentials();
+  if (!apiKey || !apiSecret) throw new Error(`Bybit API credentials are required for ${bybitEnvironment()} (${keySource}/${secretSource})`);
   const recvWindow = 5000;
   const timestamp = String(Date.now());
   const query = method === "GET" ? stringifyParams(params) : "";
@@ -612,11 +638,12 @@ async function bybitRequest<T>(method: "GET" | "POST", path: string, params: Rec
 
 async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise<Json> {
   const missing: string[] = [];
-  const apiKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
-  const apiSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
-  if (!apiKey) missing.push("BYBIT_TESTNET_API_KEY");
-  if (!apiSecret) missing.push("BYBIT_TESTNET_API_SECRET");
-  const checks: Json = { api_key_exists: Boolean(apiKey), api_secret_exists: Boolean(apiSecret), api_key_length: apiKey.length, api_secret_length: apiSecret.length, api_key_has_spaces: /\s/.test(apiKey), api_secret_has_spaces: /\s/.test(apiSecret), api_key_has_quotes: /['"]/.test(apiKey), api_secret_has_quotes: /['"]/.test(apiSecret), api_key_has_line_breaks: /[\r\n]/.test(apiKey), api_secret_has_line_breaks: /[\r\n]/.test(apiSecret), bybit_testnet_enabled: true, source_of_truth: "execution_provider_controls", base_url: bybitBaseUrl(), base_url_is_testnet: bybitBaseUrl().includes("testnet"), auth_contract: "timestamp + apiKey + recvWindow + queryString", auth_ok: false, root_cause: null };
+  const creds = bybitCredentials();
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
+  if (!apiKey) missing.push("BYBIT_API_KEY");
+  if (!apiSecret) missing.push("BYBIT_API_SECRET");
+  const checks: Json = { api_key_exists: Boolean(apiKey), api_secret_exists: Boolean(apiSecret), api_key_length: apiKey.length, api_secret_length: apiSecret.length, api_key_has_spaces: /\s/.test(apiKey), api_secret_has_spaces: /\s/.test(apiSecret), api_key_has_quotes: /['"]/.test(apiKey), api_secret_has_quotes: /['"]/.test(apiSecret), api_key_has_line_breaks: /[\r\n]/.test(apiKey), api_secret_has_line_breaks: /[\r\n]/.test(apiSecret), bybit_environment: bybitEnvironment(), bybit_demo_enabled: bybitEnvironment() === "demo", source_of_truth: "execution_provider_controls", base_url: bybitBaseUrl(), base_url_environment_match: bybitEnvironment() === "demo" ? bybitBaseUrl().includes("api-demo") : bybitEnvironment() === "testnet" ? bybitBaseUrl().includes("testnet") : bybitBaseUrl() === "https://api.bybit.com", auth_contract: "timestamp + apiKey + recvWindow + queryString", auth_ok: false, root_cause: null, api_key_source: creds.keySource, api_secret_source: creds.secretSource, current_api_key_status: apiKey ? "configured" : "missing", current_provider_status: "unchecked", latest_error_code: null, latest_error_message: null };
   let connected = false;
   let safeForTestOrder = false;
   let errorReason = "";
@@ -636,16 +663,17 @@ async function diagnoseBybitTestnetConnection(supabase: SupabaseClient): Promise
     positionsPayload = ((positions as { list?: unknown[] })?.list ?? []) as unknown[];
     openOrdersPayload = ((openOrders as { list?: unknown[] })?.list ?? []) as unknown[];
     const supported = new Set((instruments.list ?? []).filter((row) => row.status === "Trading").map((row) => row.symbol));
-    Object.assign(checks, { auth: true, auth_ok: true, root_cause: null, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, balances_ok: true, positions_ok: true, orders_ok: true, request_contract: { wallet_balance: { endpoint: "/v5/account/wallet-balance", method: "GET", required_params: ["accountType"], actual_params: { accountType: "UNIFIED" } }, position_list: { endpoint: "/v5/position/list", method: "GET", required_params: ["category", "settleCoin|baseCoin|symbol"], actual_params: { category: "linear", settleCoin: "USDT" } }, order_realtime: { endpoint: "/v5/order/realtime", method: "GET", required_params: ["category", "symbol|settleCoin"], actual_params: { category: "linear", settleCoin: "USDT", openOnly: 0 } } }, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders), balances_count: Array.isArray((balances as { list?: unknown[] })?.list) ? (balances as { list?: unknown[] }).list?.length ?? 0 : 0, positions_count: Array.isArray((positions as { list?: unknown[] })?.list) ? (positions as { list?: unknown[] }).list?.length ?? 0 : 0, open_orders_count: Array.isArray((openOrders as { list?: unknown[] })?.list) ? (openOrders as { list?: unknown[] }).list?.length ?? 0 : 0 });
+    Object.assign(checks, { auth: true, auth_ok: true, root_cause: null, balances_fetch: true, positions_fetch: true, open_orders_fetch: true, instruments_fetch: true, balances_ok: true, positions_ok: true, orders_ok: true, instruments_ok: true, account_reachable: true, wallet_reachable: true, linear_instruments_reachable: true, order_creation_allowed: true, current_provider_status: "connected", request_contract: { wallet_balance: { endpoint: "/v5/account/wallet-balance", method: "GET", required_params: ["accountType"], actual_params: { accountType: "UNIFIED" } }, position_list: { endpoint: "/v5/position/list", method: "GET", required_params: ["category", "settleCoin|baseCoin|symbol"], actual_params: { category: "linear", settleCoin: "USDT" } }, order_realtime: { endpoint: "/v5/order/realtime", method: "GET", required_params: ["category", "symbol|settleCoin"], actual_params: { category: "linear", settleCoin: "USDT", openOnly: 0 } } }, symbols: { BTCUSDT: supported.has("BTCUSDT"), ETHUSDT: supported.has("ETHUSDT"), SOLUSDT: supported.has("SOLUSDT") }, balance_payload_present: Boolean(balances), positions_payload_present: Boolean(positions), open_orders_payload_present: Boolean(openOrders), balances_count: Array.isArray((balances as { list?: unknown[] })?.list) ? (balances as { list?: unknown[] }).list?.length ?? 0 : 0, positions_count: Array.isArray((positions as { list?: unknown[] })?.list) ? (positions as { list?: unknown[] }).list?.length ?? 0 : 0, open_orders_count: Array.isArray((openOrders as { list?: unknown[] })?.list) ? (openOrders as { list?: unknown[] }).list?.length ?? 0 : 0 });
     connected = true;
     safeForTestOrder = supported.has("BTCUSDT") && supported.has("ETHUSDT") && supported.has("SOLUSDT");
   } catch (e) {
     errorReason = e instanceof Error ? e.message : String(e);
-    Object.assign(checks, { auth_ok: false, root_cause: /10004|sign/i.test(errorReason) ? "G_SECRET_MISMATCH" : /timestamp|10002/i.test(errorReason) ? "D_BAD_TIMESTAMP" : /api key|permission|forbidden|denied/i.test(errorReason) ? "A_BAD_CREDENTIALS" : "UNKNOWN", exact_reason: /10004|sign/i.test(errorReason) ? "Bybit V5 formula, sorted query, recv_window, and headers are correct; 10004 indicates the loaded API secret does not match the key or stale credentials are deployed." : errorReason });
+    const codeMatch = errorReason.match(/(?:failed: )?(\d{4,8})/);
+    Object.assign(checks, { auth_ok: false, account_reachable: false, wallet_reachable: false, linear_instruments_reachable: false, order_creation_allowed: false, current_provider_status: /10024/.test(errorReason) ? "restricted" : "disconnected", latest_error_code: codeMatch?.[1] ?? null, latest_error_message: errorReason, root_cause: /10004|sign/i.test(errorReason) ? "G_SECRET_MISMATCH" : /timestamp|10002/i.test(errorReason) ? "D_BAD_TIMESTAMP" : /api key|permission|forbidden|denied/i.test(errorReason) ? "A_BAD_CREDENTIALS" : "UNKNOWN", exact_reason: /10004|sign/i.test(errorReason) ? "Bybit V5 formula, sorted query, recv_window, and headers are correct; 10004 indicates the loaded API secret does not match the key or stale credentials are deployed." : errorReason });
     if (/permission|forbidden|denied|api key/i.test(errorReason)) missingPermissions = ["Bybit read wallet/position/order permission may be missing or key is invalid"];
   }
-  await supabase.from("execution_provider_controls").update({ status: connected ? "connected" : "disconnected", last_status_at: new Date().toISOString(), last_error: errorReason || null, metadata: { bybit_health: { connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason, checks } }, updated_at: new Date().toISOString() }).eq("provider_name", "bybit");
-  return { success: connected, connected, auth_ok: checks.auth_ok === true, balances_ok: checks.balances_ok === true, positions_ok: checks.positions_ok === true, orders_ok: checks.orders_ok === true, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason || null, checks, balances: balancesPayload, positions: positionsPayload, open_orders: openOrdersPayload };
+  await supabase.from("execution_provider_controls").update({ status: connected ? "connected" : /10024/.test(errorReason) ? "restricted" : "disconnected", last_status_at: new Date().toISOString(), last_error: errorReason || null, metadata: { bybit_health: { connected, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason, checks } }, updated_at: new Date().toISOString() }).eq("provider_name", "bybit");
+  return { success: connected, connected, environment: bybitEnvironment(), base_url: bybitBaseUrl(), api_key_source: creds.keySource, api_secret_source: creds.secretSource, latest_error_code: checks.latest_error_code ?? null, latest_error_message: checks.latest_error_message ?? null, current_api_key_status: checks.current_api_key_status, current_provider_status: checks.current_provider_status, account_reachable: checks.account_reachable === true, wallet_reachable: checks.wallet_reachable === true, linear_instruments_reachable: checks.linear_instruments_reachable === true, order_creation_allowed: checks.order_creation_allowed === true, auth_ok: checks.auth_ok === true, balances_ok: checks.balances_ok === true, positions_ok: checks.positions_ok === true, orders_ok: checks.orders_ok === true, safe_for_test_order: safeForTestOrder, missing_permissions: missingPermissions, error_reason: errorReason || null, checks, balances: balancesPayload, positions: positionsPayload, open_orders: openOrdersPayload };
 }
 
 async function binanceRequest<T>(method: "GET" | "POST" | "DELETE", path: string, params: Record<string, string | number | boolean> = {}, signed = false): Promise<T> {
@@ -1523,22 +1551,22 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
   const globalBlocker = settings.kill_switch_enabled ? "skipped_kill_switch" : settings.bot_paused ? "skipped_bot_paused" : settings.execution_mode !== "testnet" || !settings.testnet_enabled ? "skipped_auto_disabled" : autoBlocker;
   const finalBlocker = blocker ?? globalBlocker;
   const baseRow: Json = {
-    signal_id: sig.id, exchange: "bybit_usdt_testnet", environment: "testnet", symbol: providerSymbol, direction: sig.direction, side: sig.direction === "buy" ? "long" : "short", execution_mode: "testnet",
+    signal_id: sig.id, exchange: bybitExchangeName(), environment: bybitExecutionEnvironment(), symbol: providerSymbol, direction: sig.direction, side: sig.direction === "buy" ? "long" : "short", execution_mode: "testnet",
     execution_group_id: executionGroupId, execution_provider: "bybit", provider_entry_enabled: !finalBlocker, provider_status: finalBlocker ? "provider_skipped" : "pending",
     entry_price: entryPrice(sig), stop_loss: sig.stop_loss, tp1: sig.tp1, tp2: sig.tp2, ...expiryFields(sig),
   };
   if (finalBlocker) {
     const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", volume: 0, quantity: 0, latest_auto_skip_reason: finalBlocker, error_message: finalBlocker, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, provider_control: control } }, "bybit");
     if ("error" in inserted) return inserted.error;
-    await logEvent(supabase, inserted.id, "provider_skipped", "Bybit testnet entry blocked by exact gate", { blocker: finalBlocker, control });
-    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: false, submitted_order: false, skipped: true, reason: finalBlocker, execution_id: inserted.id, symbol: providerSymbol };
+    await logEvent(supabase, inserted.id, "provider_skipped", `Bybit ${bybitEnvironment()} entry blocked by exact gate`, { blocker: finalBlocker, control });
+    return { provider: "bybit", exchange: bybitExchangeName(), success: false, submitted_order: false, skipped: true, reason: finalBlocker, execution_id: inserted.id, symbol: providerSymbol };
   }
   const governor = await evaluateGovernor(supabase, settings);
   if (!manual && governor.blocks_execution) {
     const reasonText = governor.reason || "skipped_governor_paused";
     const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", provider_status: "provider_skipped", volume: 0, quantity: 0, latest_auto_skip_reason: reasonText, error_message: reasonText, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, governor } }, "bybit");
     if ("error" in inserted) return inserted.error;
-    await logEvent(supabase, inserted.id, "provider_skipped", "Bybit testnet entry blocked by governor", { governor });
+    await logEvent(supabase, inserted.id, "provider_skipped", `Bybit ${bybitEnvironment()} entry blocked by governor`, { governor });
     return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: reasonText, execution_id: inserted.id };
   }
   let plan: OrderPlan;
@@ -1547,7 +1575,7 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     const reasonText = e instanceof Error ? e.message : "skipped_invalid_sizing";
     const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", provider_status: "provider_skipped", volume: 0, quantity: 0, latest_auto_skip_reason: reasonText, error_message: reasonText, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason } }, "bybit");
     if ("error" in inserted) return inserted.error;
-    await logEvent(supabase, inserted.id, "provider_skipped", "Bybit testnet entry blocked before submit", { reason: reasonText });
+    await logEvent(supabase, inserted.id, "provider_skipped", `Bybit ${bybitEnvironment()} entry blocked before submit`, { reason: reasonText });
     return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: reasonText, execution_id: inserted.id };
   }
   const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "pending_submit", provider_status: "pending_submit", quantity: plan.quantity, volume: plan.quantity, risk_pct: plan.riskPct, leverage: plan.leverage, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, plan } }, "bybit");
@@ -1556,13 +1584,13 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
   try {
     const entry = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: sig.direction === "buy" ? "Buy" : "Sell", orderType: "Limit", qty: String(plan.quantity), price: String(plan.entryPrice), timeInForce: "GTC", orderLinkId: `hb-${sig.id}-bybit-entry` });
     await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: entry.orderId ?? entry.orderLinkId ?? "bybit_entry_submitted", raw_exchange_response: { entry, plan, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
-    await logEvent(supabase, executionId, "entry_submitted", "Bybit testnet entry LIMIT order submitted", { entry, plan });
-    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: true, submitted_order: true, status: "entry_submitted", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? null };
+    await logEvent(supabase, executionId, "entry_submitted", `Bybit ${bybitEnvironment()} entry LIMIT order submitted`, { entry, plan });
+    return { provider: "bybit", exchange: bybitExchangeName(), success: true, submitted_order: true, status: "entry_submitted", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? null };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await supabase.from("execution_orders").update({ status: "failed", error_message: msg, last_exchange_error: msg, provider_status: "provider_failed", raw_exchange_response: { plan, error: msg, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "provider_execution_failed", "Bybit provider failure isolated", { error: msg });
-    return { provider: "bybit", exchange: "bybit_usdt_testnet", success: false, submitted_order: false, error: msg, execution_id: executionId, symbol: providerSymbol };
+    return { provider: "bybit", exchange: bybitExchangeName(), success: false, submitted_order: false, error: msg, execution_id: executionId, symbol: providerSymbol };
   }
 }
 

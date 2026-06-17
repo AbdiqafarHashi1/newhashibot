@@ -4,10 +4,13 @@ import { decideProfitLockAction } from '../binanceTruthExecution.js';
 
 export type BybitCategory = 'linear' | 'inverse';
 
+export type BybitEnvironment = 'demo' | 'testnet' | 'live';
+
 type BybitConfig = {
   apiKey?: string;
   apiSecret?: string;
   baseUrl?: string;
+  environment?: BybitEnvironment;
   category?: BybitCategory;
   recvWindow?: number;
   fetchImpl?: typeof fetch;
@@ -42,7 +45,7 @@ export interface BybitAuthValidationReport {
 
 
 const provider = 'bybit' as const;
-const TESTNET_URL = 'https://api-testnet.bybit.com';
+const BYBIT_URLS: Record<BybitEnvironment, string> = { demo: 'https://api-demo.bybit.com', testnet: 'https://api-testnet.bybit.com', live: 'https://api.bybit.com' };
 
 function side(side: 'long' | 'short'): 'Buy' | 'Sell' { return side === 'long' ? 'Buy' : 'Sell'; }
 function closeSide(sideValue: 'long' | 'short'): 'Buy' | 'Sell' { return sideValue === 'long' ? 'Sell' : 'Buy'; }
@@ -90,7 +93,7 @@ export async function validateBybitV5WalletAuth(config: BybitConfig = {}): Promi
   let retMsg: string | undefined;
   try {
     if (!apiKey || !apiSecret) throw new Error('missing Bybit API key or secret');
-    const res = await (config.fetchImpl ?? fetch)(`${(config.baseUrl ?? TESTNET_URL).replace(/\/$/, '')}/v5/account/wallet-balance?${query}`, { method: 'GET', headers });
+    const res = await (config.fetchImpl ?? fetch)(`${(config.baseUrl ?? BYBIT_URLS[config.environment ?? 'testnet']).replace(/\/$/, '')}/v5/account/wallet-balance?${query}`, { method: 'GET', headers });
     responseCode = res.status;
     const data = await res.json().catch(() => ({})) as BybitResponse<unknown>;
     retCode = data.retCode;
@@ -104,7 +107,7 @@ export async function validateBybitV5WalletAuth(config: BybitConfig = {}): Promi
 }
 
 export class ExchangeProviderBybit implements ExchangeProvider {
-  readonly metadata: ExchangeProviderMetadata = { id: provider, label: 'Bybit USDT Perpetual', environment: 'testnet', supportsNativeProtection: true, supportsProfitLock: true };
+  readonly metadata: ExchangeProviderMetadata;
   private readonly baseUrl: string;
   private readonly category: BybitCategory;
   private readonly recvWindow: number;
@@ -112,8 +115,12 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   private readonly now: () => number;
 
   constructor(private readonly config: BybitConfig = {}) {
-    this.baseUrl = config.baseUrl ?? TESTNET_URL;
-    if (!this.baseUrl.includes('testnet')) throw new Error('Bybit provider is testnet-only in Phase X-D');
+    const environment = config.environment ?? 'testnet';
+    this.metadata = { id: provider, label: 'Bybit USDT Perpetual', environment, supportsNativeProtection: true, supportsProfitLock: true };
+    this.baseUrl = config.baseUrl ?? BYBIT_URLS[environment];
+    if (environment === 'demo' && !this.baseUrl.includes('api-demo.bybit.com')) throw new Error('Bybit demo provider must use https://api-demo.bybit.com');
+    if (environment === 'testnet' && !this.baseUrl.includes('testnet')) throw new Error('Bybit testnet provider must use a testnet domain');
+    if (environment === 'live' && (this.baseUrl.includes('testnet') || this.baseUrl.includes('api-demo'))) throw new Error('Bybit live provider must use the mainnet domain');
     this.category = config.category ?? 'linear';
     this.recvWindow = config.recvWindow ?? 5000;
     this.fetchImpl = config.fetchImpl ?? fetch;
@@ -121,7 +128,7 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   }
 
   private ensureKeys(): void {
-    if (!this.config.apiKey || !this.config.apiSecret) throw new Error('BYBIT_TESTNET_API_KEY and BYBIT_TESTNET_API_SECRET are required');
+    if (!this.config.apiKey || !this.config.apiSecret) throw new Error('BYBIT_API_KEY and BYBIT_API_SECRET are required for the configured Bybit environment');
   }
 
   private async request<T>(method: 'GET' | 'POST', path: string, params: Record<string, unknown> = {}): Promise<T> {

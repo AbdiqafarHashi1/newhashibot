@@ -9,7 +9,9 @@ function jsonResponse(payload: unknown): Response {
 }
 
 async function run() {
-  assert.throws(() => new ExchangeProviderBybit({ baseUrl: 'https://api.bybit.com' }), /testnet-only/, 'Bybit adapter refuses live domain');
+  assert.throws(() => new ExchangeProviderBybit({ baseUrl: 'https://api.bybit.com' }), /testnet provider must use a testnet domain/, 'Bybit testnet adapter refuses live domain');
+  const demoBybit = new ExchangeProviderBybit({ environment: 'demo', apiKey: 'key', apiSecret: 'secret' });
+  assert.equal(demoBybit.metadata.environment, 'demo', 'Bybit adapter supports Demo Trading environment');
 
   const calls: Array<{ url: string; method: string; body?: string | null; headers?: Record<string, string> }> = [];
   const authDebug: unknown[] = [];
@@ -49,7 +51,7 @@ async function run() {
   assert.equal(entry.ok, true);
   assert.equal(entry.providerOrderId, 'order-1');
   const entryCall = calls.find((call) => call.url.startsWith('https://api-testnet.bybit.com/v5/order/create'));
-  assert.equal(Boolean(entryCall), true, 'Bybit uses testnet REST endpoint');
+  assert.equal(Boolean(entryCall), true, 'Bybit uses testnet REST endpoint by default');
   assert.equal(entryCall?.headers?.['X-BAPI-SIGN'], '7eeabc1e6adbbcd79736fdf62d7f0a757a795dba1d248df7a84d031e2820c84e', 'Bybit POST signature signs timestamp + apiKey + recvWindow + requestBody');
 
   const sl = await bybit.placeSL({ symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100, metadata: { executionId: 'exec-1' } });

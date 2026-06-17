@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const executionUi = readFileSync('src/pages/admin/Execution.tsx', 'utf8');
+const executionUi = readFileSync('src/pages/admin/ProviderOperationsWorkspace.tsx', 'utf8');
+const executionHub = readFileSync('src/pages/admin/Execution.tsx', 'utf8');
 const providerMigration = readFileSync('supabase/migrations/20260615170000_073_provider_controls_e2e_repair.sql', 'utf8');
 const executionFunction = readFileSync('supabase/functions/binance-testnet-execution/index.ts', 'utf8');
 
@@ -10,8 +11,10 @@ assert.match(executionUi, /\['enabled', 'ON\/OFF'\][\s\S]*\['read_only', 'Read-o
 assert.match(executionUi, /Bybit Health Check/, 'Bybit health check action exists in UI');
 assert.match(executionUi, /Bybit Account\/Capital Debug/, 'Bybit account/capital debug action exists in UI');
 assert.match(executionUi, /Bybit Positions\/Orders Debug/, 'Bybit positions/orders debug action exists in UI');
-assert.match(executionUi, /Bybit Testnet Monitor/, 'Bybit monitor panel exists');
-assert.match(executionUi, /No Bybit health check run/, 'Bybit empty state renders before diagnostics run');
+assert.match(executionUi, /Bybit Environment Diagnostics/, 'Bybit environment diagnostics panel exists');
+assert.match(executionUi, /Linear Instruments Reachable/, 'Bybit linear instruments visibility exists');
+assert.match(executionUi, /Order Creation Allowed/, 'Bybit order creation visibility exists');
+assert.match(executionUi, /Not checked/, 'Bybit empty state renders before diagnostics run');
 assert.match(executionUi, /balances: bybitDebug\?\.balances \?\? \[\]/, 'Bybit balances render separately from other providers');
 assert.match(executionUi, /positions: bybitDebug\?\.positions \?\? \[\]/, 'Bybit positions render separately from other providers');
 assert.match(executionUi, /open_orders: bybitDebug\?\.open_orders \?\? \[\]/, 'Bybit orders render separately from other providers');
@@ -36,10 +39,13 @@ assert.match(executionFunction, /if \(envBool\("LIVE_TRADING_ENABLED", false\)\)
 assert.match(executionFunction, /if \(mode !== "testnet"\) throw new Error\("Execution disabled: EXECUTION_MODE is not testnet"\)/, 'invalid execution mode is rejected');
 assert.match(executionFunction, /if \(exchange !== "binance_usdm_testnet"\) throw new Error\("Execution disabled: EXCHANGE must be binance_usdm_testnet"\)/, 'invalid exchange env is rejected');
 assert.match(executionFunction, /BINANCE_TESTNET_BASE_URL must be https:\/\/demo-fapi\.binance\.com/, 'live Binance URL is rejected');
-assert.match(executionFunction, /Bybit health check is testnet-only: base URL must include testnet/, 'live Bybit URL is rejected');
+assert.match(executionFunction, /api-demo\.bybit\.com/, 'Bybit Demo Trading base URL is supported');
+assert.match(executionFunction, /BYBIT_ENVIRONMENT/, 'Bybit environment secret is read');
+assert.match(executionFunction, /BYBIT_API_KEY/, 'Bybit Demo Trading API key secret is read');
 assert.match(executionFunction, /balances: balancesPayload, positions: positionsPayload, open_orders: openOrdersPayload/, 'Bybit debug response can display real account, capital, positions and orders data');
 assert.match(executionFunction, /console\.log\("Bybit V5 safe debug", \{ endpoint: path, params, retCode:/, 'Bybit V5 requests log safe endpoint/params/retCode/retMsg');
 assert.match(executionFunction, /providerEntryBlocked/, 'provider entry gates are isolated from global execution gates');
 assert.match(executionFunction, /executionReadiness/, 'dry-run readiness proof action exists');
 
+assert.match(executionHub, /Provider Operations Center/, 'execution page is now Provider Operations Center navigation');
 console.log('execution admin UI tests passed');

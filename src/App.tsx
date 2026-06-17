@@ -51,6 +51,10 @@ import BacktestLab from './pages/admin/BacktestLab';
 import Handoff from './pages/admin/Handoff';
 import Performance from './pages/admin/Performance';
 import ProviderComparison from './pages/admin/ProviderComparison';
+import BinanceOperations from './pages/admin/BinanceOperations';
+import BybitOperations from './pages/admin/BybitOperations';
+import MT5PersonalOperations from './pages/admin/MT5PersonalOperations';
+import MT5PropOperations from './pages/admin/MT5PropOperations';
 import Customers from './pages/admin/Customers';
 
 // Smart redirect after login based on role
@@ -128,6 +132,11 @@ function App() {
           <Route path="/admin/outcomes"          element={<RequireAdmin><OutcomeTracking /></RequireAdmin>} />
           <Route path="/admin/performance"       element={<RequireAdmin><Performance /></RequireAdmin>} />
           <Route path="/admin/provider-comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
+          <Route path="/admin/providers/binance" element={<RequireAdmin><BinanceOperations /></RequireAdmin>} />
+          <Route path="/admin/providers/bybit" element={<RequireAdmin><BybitOperations /></RequireAdmin>} />
+          <Route path="/admin/providers/mt5-personal" element={<RequireAdmin><MT5PersonalOperations /></RequireAdmin>} />
+          <Route path="/admin/providers/mt5-prop" element={<RequireAdmin><MT5PropOperations /></RequireAdmin>} />
+          <Route path="/admin/providers/comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
           <Route path="/admin/checklist"         element={<RequireAdmin><SetupChecklist /></RequireAdmin>} />
           <Route path="/admin/strategy-config"   element={<RequireAdmin><StrategyConfig /></RequireAdmin>} />
           <Route path="/admin/execution"         element={<RequireAdmin><Execution /></RequireAdmin>} />
