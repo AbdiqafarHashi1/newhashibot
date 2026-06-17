@@ -27,16 +27,37 @@ function stringifyParams(params: Record<string, string | number | boolean>) {
   return new URLSearchParams(Object.entries(params).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, String(v)])).toString();
 }
 
+type BybitEnvironment = "demo" | "testnet" | "live";
+
+function bybitEnvironment(): BybitEnvironment {
+  const raw = String(Deno.env.get("BYBIT_ENVIRONMENT") || Deno.env.get("BYBIT_MODE") || "testnet").toLowerCase().trim();
+  if (raw === "demo" || raw === "bybit_demo") return "demo";
+  if (raw === "live" || raw === "mainnet" || raw === "bybit_live") return "live";
+  return "testnet";
+}
+
 function bybitBaseUrl(): string {
-  const base = Deno.env.get("BYBIT_TESTNET_BASE_URL") || "https://api-testnet.bybit.com";
-  if (!base.includes("testnet")) throw new Error("Bybit monitor is testnet-only: BYBIT_TESTNET_BASE_URL must include testnet");
-  return base.replace(/\/$/, "");
+  const environment = bybitEnvironment();
+  const explicit = Deno.env.get("BYBIT_BASE_URL") || Deno.env.get("BYBIT_TESTNET_BASE_URL") || "";
+  const fallback = environment === "demo" ? "https://api-demo.bybit.com" : environment === "live" ? "https://api.bybit.com" : "https://api-testnet.bybit.com";
+  const base = (explicit || fallback).replace(/\/$/, "");
+  if (environment === "demo" && !base.includes("api-demo.bybit.com")) throw new Error("Bybit Demo Trading requires BYBIT_BASE_URL=https://api-demo.bybit.com or no override");
+  if (environment === "testnet" && !base.includes("testnet")) throw new Error("Bybit testnet requires a testnet base URL");
+  if (environment === "live" && (base.includes("testnet") || base.includes("api-demo"))) throw new Error("Bybit live requires the mainnet base URL");
+  return base;
+}
+
+function bybitCredentials(): { apiKey: string; apiSecret: string } {
+  const demoOrLiveKey = Deno.env.get("BYBIT_API_KEY") ?? "";
+  const demoOrLiveSecret = Deno.env.get("BYBIT_API_SECRET") ?? "";
+  const testnetKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
+  const testnetSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
+  return bybitEnvironment() === "testnet" ? { apiKey: testnetKey || demoOrLiveKey, apiSecret: testnetSecret || demoOrLiveSecret } : { apiKey: demoOrLiveKey || testnetKey, apiSecret: demoOrLiveSecret || testnetSecret };
 }
 
 async function bybitRequest<T>(path: string, params: Record<string, string | number | boolean> = {}): Promise<T> {
-  const apiKey = Deno.env.get("BYBIT_TESTNET_API_KEY") ?? "";
-  const apiSecret = Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? "";
-  if (!apiKey || !apiSecret) throw new Error("BYBIT_TESTNET_API_KEY and BYBIT_TESTNET_API_SECRET are required");
+  const { apiKey, apiSecret } = bybitCredentials();
+  if (!apiKey || !apiSecret) throw new Error(`Bybit API credentials are required for ${bybitEnvironment()}`);
   const recvWindow = 5000;
   const timestamp = String(Date.now());
   const query = stringifyParams(params);
@@ -75,7 +96,7 @@ async function monitorBybit(supabase: SupabaseClient): Promise<Json> {
     const unrealizedPnl = activePositions.reduce((sum, p) => sum + Number(p.unrealisedPnl ?? 0), 0);
     Object.assign(stats, { account_sync: true, balance_sync: true, open_positions_sync: true, open_orders_sync: true, wallet_balance: Number((usdt as Json).walletBalance ?? 0), available_balance: Number((usdt as Json).availableToWithdraw ?? (usdt as Json).availableToBorrow ?? 0), equity: Number((usdt as Json).equity ?? 0), unrealized_pnl: unrealizedPnl, bybit_positions_count: positionSymbols.size, bybit_open_orders_count: orderList.length, active_symbols: Array.from(new Set([...positionSymbols, ...orderSymbols])), positions: activePositions.map((p) => ({ symbol: p.symbol, side: p.side, size: p.size, leverage: p.leverage, margin_mode: p.tradeMode ?? p.marginMode, entry_price: p.avgPrice, mark_price: p.markPrice, liquidation_price: p.liqPrice, unrealized_pnl: p.unrealisedPnl })), open_orders: orderList.map((o) => ({ symbol: o.symbol, order_id: o.orderId, side: o.side, type: o.orderType ?? o.stopOrderType, qty: o.qty, price: o.price, trigger_price: o.triggerPrice, reduce_only: o.reduceOnly })) });
 
-    const { data: rows } = await supabase.from("execution_orders").select("id,signal_id,symbol,status,protection_status").eq("exchange", "bybit_usdt_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
+    const { data: rows } = await supabase.from("execution_orders").select("id,signal_id,symbol,status,protection_status").eq("exchange", `bybit_usdt_${bybitEnvironment()}`).eq("environment", bybitEnvironment() === "live" ? "live" : bybitEnvironment()).in("status", ACTIVE_STATUSES);
     for (const row of (rows ?? []) as Array<Json & { id: string; symbol: string; status: string }>) {
       stats.rows_checked = Number(stats.rows_checked) + 1;
       const hasPosition = positionSymbols.has(row.symbol);
@@ -86,12 +107,12 @@ async function monitorBybit(supabase: SupabaseClient): Promise<Json> {
     }
     Object.assign(stats, { protection_sync: true, recovery_sync: true, profit_lock_sync: true });
     const result = { ...stats, last_monitor_run_at: startedAt, last_successful_sync_at: new Date().toISOString(), monitor_health: "healthy", wallet, open_position_symbols: Array.from(positionSymbols), open_order_symbols: Array.from(orderSymbols) };
-    await updateProvider(supabase, { status: "connected", last_status_at: new Date().toISOString(), last_error: null, metadata: { bybit_monitor: result } });
+    await updateProvider(supabase, { status: "connected", last_status_at: new Date().toISOString(), last_error: null, metadata: { bybit_monitor: { ...result, environment: bybitEnvironment(), base_url: bybitBaseUrl() } } });
     await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_successful_sync_at: result.last_successful_sync_at, bybit_latest_monitor_error: null, bybit_latest_monitor_result: result, updated_at: new Date().toISOString() }).eq("id", 1);
     return { success: true, provider: "bybit", last_monitor_run_at: startedAt, last_successful_sync_at: result.last_successful_sync_at, monitor_health: "healthy", latest_error: null, ...stats };
   } catch (e) {
     latestError = e instanceof Error ? e.message : String(e);
-    await updateProvider(supabase, { status: "degraded", last_status_at: new Date().toISOString(), last_error: latestError, metadata: { bybit_monitor: { ...stats, last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError } } });
+    await updateProvider(supabase, { status: "degraded", last_status_at: new Date().toISOString(), last_error: latestError, metadata: { bybit_monitor: { ...stats, environment: bybitEnvironment(), base_url: bybitBaseUrl(), last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError } } });
     await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_monitor_error: latestError, bybit_latest_monitor_result: { ...stats, last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError }, updated_at: new Date().toISOString() }).eq("id", 1);
     await routeTelegramEvent(supabase, { event_id: `provider_bybit_monitor_error:${startedAt}`, event_type: "provider_bybit_monitor_failure", text: `Bybit monitor failure\nFreshness: ${startedAt}\nError: ${latestError}`, source: "bybit-testnet-monitor", channels: ["admin"], dedupe: false });
     return { success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError, ...stats };
