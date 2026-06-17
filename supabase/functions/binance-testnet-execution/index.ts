@@ -14,7 +14,7 @@ const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protecte
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "execution_readiness" | "parallel_dry_run" | "diagnose_bybit_testnet_connection" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "execute_latest_approved_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
+type Action = "status" | "sync_binance_tradable_symbols" | "sync_bybit_tradable_symbols" | "show_executable_universe" | "execute_latest_binance_supported_signal" | "execute_latest_bybit_supported_signal" | "execute_latest_mirror_supported_signal" | "execution_readiness" | "parallel_dry_run" | "diagnose_bybit_testnet_connection" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "execute_latest_approved_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -40,6 +40,8 @@ interface SignalRow {
   status: string;
   data_source: string | null;
   source: string | null;
+  confidence_score?: number | null;
+  risk_profile_snapshot?: Record<string, unknown> | null;
   recommended_risk_pct: number | null;
   suggested_leverage_min: number | null;
   suggested_leverage_max: number | null;
@@ -145,12 +147,78 @@ interface GovernorDecision {
 
 interface SymbolRules {
   symbol: string;
+  baseAsset?: string;
+  quoteAsset?: string;
   pricePrecision: number;
   quantityPrecision: number;
   tickSize: number;
   stepSize: number;
   minQty: number;
   minNotional: number;
+}
+
+interface ProviderSymbolRow { provider: string; symbol: string; base?: string; quote?: string; status: string; tick_size?: number; step_size?: number; min_qty?: number; min_notional?: number; last_synced_at: string; raw?: Json; }
+
+function filterValue(filters: Array<Record<string, unknown>>, type: string, key: string, fallback = 0): number {
+  const row = filters.find((f) => String(f.filterType) === type);
+  const n = Number(row?.[key] ?? fallback);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+async function upsertProviderSymbols(supabase: SupabaseClient, rows: ProviderSymbolRow[]): Promise<void> {
+  if (!rows.length) return;
+  await supabase.from("provider_symbol_cache").upsert(rows.map((r) => ({
+    provider: r.provider, symbol: r.symbol, base_asset: r.base ?? null, quote_asset: r.quote ?? null, status: r.status,
+    tick_size: r.tick_size ?? null, step_size: r.step_size ?? null, min_qty: r.min_qty ?? null, min_notional: r.min_notional ?? null,
+    last_synced_at: r.last_synced_at, raw_exchange_info: r.raw ?? {}, updated_at: r.last_synced_at,
+  })), { onConflict: "provider,symbol" });
+}
+
+async function syncBinanceTradableSymbols(supabase: SupabaseClient): Promise<Json> {
+  const data = await binanceRequest<{ symbols: Array<{ symbol: string; status: string; baseAsset?: string; quoteAsset?: string; pricePrecision: number; quantityPrecision: number; filters: Array<Record<string, unknown>> }> }>("GET", "/fapi/v1/exchangeInfo");
+  const now = new Date().toISOString();
+  const rows = data.symbols.filter((s) => s.status === "TRADING" && String(s.quoteAsset ?? "") === "USDT").map((s) => ({
+    provider: "binance", symbol: s.symbol.toUpperCase(), base: s.baseAsset, quote: s.quoteAsset, status: s.status,
+    tick_size: filterValue(s.filters, "PRICE_FILTER", "tickSize", 0.01), step_size: filterValue(s.filters, "LOT_SIZE", "stepSize", 0.001),
+    min_qty: filterValue(s.filters, "LOT_SIZE", "minQty", 0.001), min_notional: filterValue(s.filters, "MIN_NOTIONAL", "notional", filterValue(s.filters, "NOTIONAL", "minNotional", 5)), last_synced_at: now, raw: s as unknown as Json,
+  }));
+  await upsertProviderSymbols(supabase, rows);
+  return { success: true, provider: "binance", tradable_count: rows.length, symbols: rows.map((r) => r.symbol), last_synced_at: now };
+}
+
+async function syncBybitTradableSymbols(supabase: SupabaseClient): Promise<Json> {
+  const data = await bybitRequest<{ list?: Array<Record<string, unknown>> }>("GET", "/v5/market/instruments-info", { category: "linear", settleCoin: "USDT" });
+  const now = new Date().toISOString();
+  const rows = (data.list ?? []).filter((s) => String(s.status) === "Trading" && (String(s.quoteCoin) === "USDT" || String(s.settleCoin) === "USDT")).map((s) => {
+    const lot = (s.lotSizeFilter ?? {}) as Record<string, unknown>; const price = (s.priceFilter ?? {}) as Record<string, unknown>;
+    return { provider: "bybit", symbol: String(s.symbol).toUpperCase(), base: String(s.baseCoin ?? ""), quote: String(s.quoteCoin ?? s.settleCoin ?? "USDT"), status: String(s.status), tick_size: Number(price.tickSize ?? 0), step_size: Number(lot.qtyStep ?? 0), min_qty: Number(lot.minOrderQty ?? 0), min_notional: Number(lot.minNotionalValue ?? 0), last_synced_at: now, raw: s as Json };
+  });
+  await upsertProviderSymbols(supabase, rows);
+  return { success: true, provider: "bybit", tradable_count: rows.length, symbols: rows.map((r) => r.symbol), last_synced_at: now };
+}
+
+async function providerSupportsSymbol(supabase: SupabaseClient, provider: "binance" | "bybit", symbol: string): Promise<boolean> {
+  const { data } = await supabase.from("provider_symbol_cache").select("symbol,status,last_synced_at").eq("provider", provider).eq("symbol", symbol.toUpperCase()).maybeSingle();
+  if (data && ["TRADING", "Trading"].includes(String((data as Json).status))) return true;
+  const synced = provider === "binance" ? await syncBinanceTradableSymbols(supabase).catch(() => null) : await syncBybitTradableSymbols(supabase).catch(() => null);
+  return Array.isArray(synced?.symbols) && (synced!.symbols as string[]).includes(symbol.toUpperCase());
+}
+
+async function showExecutableUniverse(supabase: SupabaseClient): Promise<Json> {
+  const [binance, bybit] = await Promise.all([syncBinanceTradableSymbols(supabase).catch((e) => ({ success:false, error:String(e) })), syncBybitTradableSymbols(supabase).catch((e) => ({ success:false, error:String(e) }))]);
+  const b = new Set(((binance as Json).symbols as string[] | undefined) ?? []); const y = new Set(((bybit as Json).symbols as string[] | undefined) ?? []);
+  const intersection = [...b].filter((x) => y.has(x)).sort();
+  return { success: true, binance_count: b.size, bybit_count: y.size, mirror_count: intersection.length, binance_symbols: [...b].sort(), bybit_symbols: [...y].sort(), mirror_symbols: intersection };
+}
+
+async function latestSupportedSignal(supabase: SupabaseClient, provider: "binance" | "bybit" | "mirror"): Promise<SignalRow | null> {
+  const { data } = await supabase.from("signals").select("*").eq("market_type", "crypto").in("grade", ["A", "A+"]).order("created_at", { ascending: false }).limit(50);
+  for (const row of (data ?? []) as SignalRow[]) {
+    const b = provider === "bybit" ? true : await providerSupportsSymbol(supabase, "binance", row.symbol);
+    const y = provider === "binance" ? true : await providerSupportsSymbol(supabase, "bybit", row.symbol.replace(/USDC$/i, "USDT"));
+    if (b && y) return row;
+  }
+  return null;
 }
 
 interface CapitalSnapshot {
@@ -997,11 +1065,11 @@ async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string,
 async function getRules(symbol: string): Promise<SymbolRules> {
   const data = await binanceRequest<{ symbols: Array<{ symbol: string; status: string; pricePrecision: number; quantityPrecision: number; filters: Array<{ filterType: string; tickSize?: string; stepSize?: string; minQty?: string; notional?: string; minNotional?: string }> }> }>("GET", "/fapi/v1/exchangeInfo");
   const row = data.symbols.find((s) => s.symbol === symbol && s.status === "TRADING");
-  if (!row) throw new Error(`Symbol ${symbol} is not valid/trading on Binance USD-M testnet`);
+  if (!row) throw new Error(`symbol_not_supported: ${symbol} is not valid/trading on Binance USD-M testnet`);
   const lot = row.filters.find((f) => f.filterType === "LOT_SIZE");
   const price = row.filters.find((f) => f.filterType === "PRICE_FILTER");
   const minNotional = row.filters.find((f) => f.filterType === "MIN_NOTIONAL" || f.filterType === "NOTIONAL");
-  return { symbol: row.symbol, pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision, tickSize: Number(price?.tickSize ?? 0.01), stepSize: Number(lot?.stepSize ?? 0.001), minQty: Number(lot?.minQty ?? 0.001), minNotional: Number(minNotional?.notional ?? minNotional?.minNotional ?? 5) };
+  return { symbol: row.symbol, baseAsset: (row as any).baseAsset, quoteAsset: (row as any).quoteAsset, pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision, tickSize: Number(price?.tickSize ?? 0.01), stepSize: Number(lot?.stepSize ?? 0.001), minQty: Number(lot?.minQty ?? 0.001), minNotional: Number(minNotional?.notional ?? minNotional?.minNotional ?? 5) };
 }
 
 function commonExecutionFields(plan: OrderPlan): Json {
@@ -1284,6 +1352,7 @@ async function executeSignal(supabase: SupabaseClient, signalId: string, manual:
   const { data: signal, error } = await supabase.from("signals").select("*").eq("id", signalId).maybeSingle();
   if (error || !signal) throw new Error("Signal not found");
   const sig = signal as SignalRow;
+  if (!(await providerSupportsSymbol(supabase, "binance", sig.symbol))) return createSkipped(supabase, sig, "symbol_not_supported", { provider: "binance", symbol: sig.symbol, blocker: "not_trading_on_binance_usdm_testnet" });
   const binanceControl = await getProviderControl(supabase, "binance");
   const binanceBlocker = providerEntryBlocked(binanceControl);
   if (binanceBlocker) return createSkipped(supabase, sig, binanceBlocker, { provider: "binance", db_row_source: "execution_provider_controls.provider_name=binance" });
@@ -1392,7 +1461,8 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
   const settings = await getSettings(supabase);
   const control = await getProviderControl(supabase, "bybit");
   const providerSymbol = String(sig.symbol).replace(/USDC$/i, "USDT");
-  const blocker = providerEntryBlocked(control);
+  const symbolSupported = await providerSupportsSymbol(supabase, "bybit", providerSymbol);
+  const blocker = symbolSupported ? providerEntryBlocked(control) : "symbol_not_supported";
   if (settings.live_trading_enabled) throw new Error("Live trading impossible guard blocked execution_settings.live_trading_enabled");
   const autoBlocker = !manual && !settings.auto_execute_testnet ? "auto_execute_testnet_false" : null;
   const globalBlocker = settings.kill_switch_enabled ? "skipped_kill_switch" : settings.bot_paused ? "skipped_bot_paused" : settings.execution_mode !== "testnet" || !settings.testnet_enabled ? "skipped_auto_disabled" : autoBlocker;
@@ -1439,9 +1509,14 @@ async function routeSignalToEnabledProviders(supabase: SupabaseClient, signalId:
   const parallel = global.parallel_mode_enabled === true;
   const primary = String(global.primary_provider ?? "binance");
   const selectedProviders = parallel ? ["binance", "bybit"] : [primary === "bybit" ? "bybit" : "binance"];
+  const mirrorRequiredForVip = global.mirror_required_for_vip === true;
+  const executeSupportedProviderOnly = global.execute_supported_provider_only !== false;
+  const binanceSupported = await providerSupportsSymbol(supabase, "binance", sig.symbol);
+  const bybitSupported = await providerSupportsSymbol(supabase, "bybit", sig.symbol.replace(/USDC$/i, "USDT"));
+  if (parallel && mirrorRequiredForVip && (!binanceSupported || !bybitSupported)) return { success: false, skipped: true, reason: "mirror_required_symbol_not_supported", symbol: sig.symbol, binance_tradable: binanceSupported, bybit_tradable: bybitSupported };
   const tasks: Array<Promise<Json>> = [];
-  if (selectedProviders.includes("binance")) tasks.push(executeSignal(supabase, signalId, manual));
-  if (selectedProviders.includes("bybit")) tasks.push(executeBybitSignal(supabase, sig, executionGroupId, manual, parallel ? "parallel_mode_provider_neutral_router" : "primary_provider_router"));
+  if (selectedProviders.includes("binance") && (binanceSupported || !executeSupportedProviderOnly)) tasks.push(executeSignal(supabase, signalId, manual));
+  if (selectedProviders.includes("bybit") && (bybitSupported || !executeSupportedProviderOnly)) tasks.push(executeBybitSignal(supabase, sig, executionGroupId, manual, parallel ? "parallel_mode_provider_neutral_router" : "primary_provider_router"));
   const settled = await Promise.allSettled(tasks);
   const results = settled.map((r) => r.status === "fulfilled" ? r.value : { success: false, error: r.reason instanceof Error ? r.reason.message : String(r.reason), isolated: true });
   for (const result of results) {
@@ -1871,6 +1946,12 @@ Deno.serve(async (req: Request) => {
     const action = body.action ?? "status";
     let payload: Json;
     if (action === "status") payload = await statusPayload(supabase);
+    else if (action === "sync_binance_tradable_symbols") payload = await syncBinanceTradableSymbols(supabase);
+    else if (action === "sync_bybit_tradable_symbols") payload = await syncBybitTradableSymbols(supabase);
+    else if (action === "show_executable_universe") payload = await showExecutableUniverse(supabase);
+    else if (action === "execute_latest_binance_supported_signal") { const sig = await latestSupportedSignal(supabase, "binance"); payload = sig ? await executeSignal(supabase, sig.id, true) : { success:false, reason:"no_binance_supported_signal" }; }
+    else if (action === "execute_latest_bybit_supported_signal") { const sig = await latestSupportedSignal(supabase, "bybit"); payload = sig ? await executeBybitSignal(supabase, sig, crypto.randomUUID(), true, "manual_bybit_supported_test") : { success:false, reason:"no_bybit_supported_signal" }; }
+    else if (action === "execute_latest_mirror_supported_signal") { const sig = await latestSupportedSignal(supabase, "mirror"); payload = sig ? await routeSignalToEnabledProviders(supabase, sig.id, true) : { success:false, reason:"no_mirror_supported_signal" }; }
     else if (action === "execution_readiness") payload = await executionReadiness(supabase, (body.provider === "bybit" ? "bybit" : "binance") as "binance" | "bybit");
     else if (action === "parallel_dry_run") payload = await parallelDryRun(supabase, cleanSignalId(body.signal_id));
     else if (action === "diagnose_bybit_testnet_connection") payload = await diagnoseBybitTestnetConnection(supabase);

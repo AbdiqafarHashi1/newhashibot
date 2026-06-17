@@ -110,6 +110,7 @@ interface ArbitratorDecision {
   daily_lock_state: boolean; cooldown_state: boolean;
   paper_execution_intent_created: boolean;
   selected_strategy?: string; arbitration_score?: number; competing_candidates?: Array<Record<string, unknown>>;
+  market_intelligence?: Record<string, unknown>;
 }
 
 interface RiskState {
@@ -2092,6 +2093,42 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
   }
 }
 
+
+type ExecutionUniverse = { binance: Set<string>; bybit: Set<string>; selected: Set<string>; intersection: Set<string>; mode: string; mirrorRequiredForVip: boolean; executeSupportedProviderOnly: boolean; warning: string | null };
+
+async function fetchBinanceTestnetSymbols(): Promise<Set<string>> {
+  const res = await fetch("https://demo-fapi.binance.com/fapi/v1/exchangeInfo", { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`binance_testnet_exchangeInfo_http_${res.status}`);
+  const data = await res.json() as { symbols?: Array<{ symbol?: string; status?: string; quoteAsset?: string }> };
+  return new Set((data.symbols ?? []).filter((s) => s.status === "TRADING" && s.quoteAsset === "USDT").map((s) => normalizeSymbol(String(s.symbol ?? ""))).filter(Boolean));
+}
+
+async function fetchBybitTestnetSymbols(): Promise<Set<string>> {
+  const res = await fetch("https://api-testnet.bybit.com/v5/market/instruments-info?category=linear&settleCoin=USDT", { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`bybit_testnet_instruments_http_${res.status}`);
+  const data = await res.json() as { retCode?: number; retMsg?: string; result?: { list?: Array<Record<string, unknown>> } };
+  if (data.retCode !== 0) throw new Error(`bybit_testnet_instruments_${data.retCode}_${data.retMsg}`);
+  return new Set((data.result?.list ?? []).filter((s) => String(s.status) === "Trading" && (String(s.quoteCoin) === "USDT" || String(s.settleCoin) === "USDT")).map((s) => normalizeSymbol(String(s.symbol ?? ""))).filter(Boolean));
+}
+
+async function loadExecutionUniverse(supabase: ReturnType<typeof createClient>): Promise<ExecutionUniverse> {
+  let binance = new Set<string>(), bybit = new Set<string>(), warning: string | null = null;
+  try { [binance, bybit] = await Promise.all([fetchBinanceTestnetSymbols(), fetchBybitTestnetSymbols()]); }
+  catch (e) { warning = `execution_universe_sync_failed: ${e instanceof Error ? e.message : String(e)}`; }
+  const { data } = await supabase.from("execution_provider_global_controls").select("primary_provider,parallel_mode_enabled,mirror_required_for_vip,execute_supported_provider_only").eq("id", 1).maybeSingle();
+  const global = (data ?? {}) as Record<string, unknown>;
+  const parallel = global.parallel_mode_enabled === true;
+  const primary = String(global.primary_provider ?? "binance");
+  const intersection = new Set([...binance].filter((x) => bybit.has(x)));
+  const selected = parallel ? intersection : primary === "bybit" ? bybit : binance;
+  return { binance, bybit, selected, intersection, mode: parallel ? "parallel" : primary, mirrorRequiredForVip: global.mirror_required_for_vip === true, executeSupportedProviderOnly: global.execute_supported_provider_only !== false, warning };
+}
+
+function executionTradability(symbol: string, universe: ExecutionUniverse): Record<string, unknown> {
+  const normalized = normalizeSymbol(symbol);
+  return { research_eligible: true, execution_eligible: universe.selected.has(normalized), binance_tradable: universe.binance.has(normalized), bybit_tradable: universe.bybit.has(normalized), execution_universe_mode: universe.mode, mirror_required_for_vip: universe.mirrorRequiredForVip };
+}
+
 // ─── TwelveData ───────────────────────────────────────────────────────────────
 // C2 forex signal mode uses TwelveData as the single real-data provider.
 // Finnhub remains available only for explicit diagnostics because the deployed
@@ -3184,6 +3221,8 @@ async function runScanPipeline(
   if (dynamicUniverse.warning) errors.push(`[WARN] ${dynamicUniverse.warning}`);
   const configuredForex = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "forex");
   const configuredCryptoFallback = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "crypto");
+  const executionUniverse = await loadExecutionUniverse(supabase);
+  if (executionUniverse.warning) errors.push(`[WARN] ${executionUniverse.warning}`);
   const symbols = [
     ...(dynamicUniverse.symbols.length > 0 ? dynamicUniverse.symbols : configuredCryptoFallback),
     ...configuredForex,
@@ -3710,9 +3749,11 @@ async function runScanPipeline(
                 strategy_match: marketContext.strategy_match,
                 recent_move_pct: marketContext.recent_move_pct,
                 invalidation_distance_atr: marketContext.invalidation_distance_atr,
-                provider_availability: { binance: true, bybit: "monitored_separately", mt5: "placeholder" },
+                provider_availability: executionTradability(sym.symbol, executionUniverse),
               },
             };
+
+            const tradability = executionTradability(sym.symbol, executionUniverse);
 
             if (!riskCheck.passed) {
               riskBlockedCount++;
@@ -3726,10 +3767,16 @@ async function runScanPipeline(
                 invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
                 status: "cancelled", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
                 created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
-                arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata },
+                arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata, execution_tradability: tradability },
                 risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
                 ...riskLeverageRecommendation,
               });
+              continue;
+            }
+
+            if (marketType === "crypto" && tradability.execution_eligible !== true) {
+              await supabase.from("strategy_candidates").update({ status: "research_only", rejection_reason: "symbol_not_in_execution_universe", score_breakdown: { ...expiryScoreBreakdown, ...tradability, signal_insert: "blocked_research_only", telegram_eligibility: "research_only" } }).eq("id", cId);
+              errors.push(`[RESEARCH_ONLY] ${sym.symbol} not executable for ${executionUniverse.mode}`);
               continue;
             }
 
@@ -3744,7 +3791,7 @@ async function runScanPipeline(
               invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
               status: "waiting", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
               created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
-              arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata },
+              arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata, execution_tradability: tradability },
               risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
               ...riskLeverageRecommendation,
             }).select("*").single();
