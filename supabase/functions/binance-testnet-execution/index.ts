@@ -1307,10 +1307,12 @@ function nativeExitPayload(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_M
   };
 }
 
-async function fetchNativeOpenProtection(symbol: string): Promise<Json[]> {
+async function fetchNativeOpenProtection(symbol?: string): Promise<Json[]> {
+  const params = symbol ? { symbol } : {};
+  const algoParams = symbol ? { symbol, algoType: "CONDITIONAL" } : { algoType: "CONDITIONAL" };
   const [regular, algo] = await Promise.all([
-    binanceRequest<Array<Json>>("GET", "/fapi/v1/openOrders", { symbol }, true).catch(() => []),
-    binanceRequest<Json>("GET", "/fapi/v1/openAlgoOrders", { symbol, algoType: "CONDITIONAL" }, true).catch(() => ({ orders: [] })),
+    binanceRequest<Array<Json>>("GET", "/fapi/v1/openOrders", params, true).catch(() => []),
+    binanceRequest<Json>("GET", "/fapi/v1/openAlgoOrders", algoParams, true).catch(() => ({ orders: [] })),
   ]);
   const algoOrders = Array.isArray(algo) ? algo : Array.isArray((algo as Json).orders) ? (algo as { orders: Json[] }).orders : [];
   return [...regular, ...algoOrders];
@@ -2120,12 +2122,12 @@ async function syncTradeManagementTruth(supabase: SupabaseClient, providerName: 
   try {
     if (providerName === "binance") {
       positions = (await binanceRequest<Json[]>("GET", "/fapi/v2/positionRisk", {}, true)).filter((p) => Math.abs(Number(p.positionAmt ?? 0)) > 0);
-      openOrders = await binanceRequest<Json[]>("GET", "/fapi/v1/openOrders", {}, true);
+      openOrders = await fetchNativeOpenProtection();
     } else {
       const p = await bybitRequest("GET", "/v5/position/list", { category: "linear", settleCoin: "USDT" }) as Json;
-      const o = await bybitRequest("GET", "/v5/order/realtime", { category: "linear", openOnly: 0 }) as Json;
-      positions = (((p.result as Json | undefined)?.list ?? []) as Json[]).filter((row) => Math.abs(Number(row.size ?? 0)) > 0);
-      openOrders = (((o.result as Json | undefined)?.list ?? []) as Json[]);
+      const o = await bybitRequest("GET", "/v5/order/realtime", { category: "linear", settleCoin: "USDT", openOnly: 0 }) as Json;
+      positions = (((p as Json | undefined)?.list ?? []) as Json[]).filter((row) => Math.abs(Number(row.size ?? 0)) > 0);
+      openOrders = (((o as Json | undefined)?.list ?? []) as Json[]);
     }
     let protectedCount = 0;
     let unsafeCount = 0;
@@ -2171,9 +2173,9 @@ async function syncTradeManagementTruth(supabase: SupabaseClient, providerName: 
         await supabase.from("trade_management_truth").update({ protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now }).eq("provider", providerName).eq("environment", environment).eq("symbol", String(row.symbol)).eq("side", String(row.side));
       }
     }
-    return { success: true, provider: providerName, open_positions_found: positions.length, protected_count: protectedCount, unsafe_count: unsafeCount, closed_marked: closedMarked, latest_sync_at: now };
+    return { success: true, provider: providerName, wallet_reachable: true, positions_fetch_success: true, orders_fetch_success: true, open_positions_found: positions.length, open_orders_found: openOrders.length, protected_count: protectedCount, unsafe_count: unsafeCount, closed_marked: closedMarked, latest_sync_at: now };
   } catch (e) {
-    return { success: false, provider: providerName, open_positions_found: 0, protected_count: 0, unsafe_count: 0, blocker: e instanceof Error ? e.message : String(e), latest_sync_at: now };
+    return { success: false, provider: providerName, wallet_reachable: false, positions_fetch_success: false, orders_fetch_success: false, open_positions_found: 0, open_orders_found: 0, protected_count: 0, unsafe_count: 0, blocker: e instanceof Error ? e.message : String(e), latest_sync_at: now };
   }
 }
 
@@ -2205,7 +2207,7 @@ function classifyRawProtection(providerName: "binance" | "bybit", row: Json, ope
   return { sl, tp1, tp2, status: sl && tp1 && tp2 ? "protected" : !sl ? "missing_sl" : "missing_tp" };
 }
 async function fetchProviderOpenOrders(providerName: "binance" | "bybit", symbol?: string): Promise<Json[]> {
-  if (providerName === "binance") return await binanceRequest<Json[]>("GET", "/fapi/v1/openOrders", symbol ? { symbol } : {}, true);
+  if (providerName === "binance") return await fetchNativeOpenProtection(symbol);
   const result = await bybitRequest<Json>("GET", "/v5/order/realtime", { category: "linear", ...(symbol ? { symbol } : { settleCoin: "USDT" }), openOnly: 0 });
   return (((result as Json).list ?? []) as Json[]);
 }
@@ -2216,7 +2218,12 @@ async function placeProviderProtectionOrder(providerName: "binance" | "bybit", r
   const qty = Math.abs(Number(row.qty ?? 0));
   if (!Number.isFinite(qty) || qty <= 0) throw new Error(`${providerName} ${label} quantity unavailable for ${row.symbol}`);
   if (providerName === "binance") {
-    return await binanceRequest<Json>("POST", "/fapi/v1/order", { symbol: String(row.symbol), side: truthSideFromRow(row), type: label === "sl" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", stopPrice: Number(triggerPrice.toFixed(8)), quantity: qty, reduceOnly: true, workingType: "MARK_PRICE", newClientOrderId: `hb_${label}_${Date.now()}`.slice(0, 36) }, true);
+    const planLike = {
+      symbol: String(row.symbol),
+      closeSide: truthSideFromRow(row),
+    } as OrderPlan;
+    const placed = await submitAlgoExitOrder(planLike, label === "sl" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", Number(triggerPrice.toFixed(8)), qty, label);
+    return placed.raw;
   }
   return await bybitRequest<Json>("POST", "/v5/order/create", { category: "linear", symbol: String(row.symbol), side: bybitCloseSideFromRow(row), orderType: "Market", qty: String(qty), triggerPrice: String(Number(triggerPrice.toFixed(8))), triggerDirection: String(row.side).toLowerCase() === "long" ? (label === "sl" ? 2 : 1) : (label === "sl" ? 1 : 2), reduceOnly: true, orderFilter: "StopOrder", orderLinkId: createBybitOrderLinkId(row.execution_order_id ?? row.symbol, label) });
 }
@@ -2233,7 +2240,7 @@ async function repairTruthRowWithExchangeConfirmation(supabase: SupabaseClient, 
     const after = await fetchProviderOpenOrders(providerName, String(row.symbol));
     const confirmed = classifyRawProtection(providerName, row, after);
     const ok = confirmed.status === "protected";
-    const update = { sl_present: Boolean(confirmed.sl), tp1_present: Boolean(confirmed.tp1), tp2_present: Boolean(confirmed.tp2), sl_order_id: String(confirmed.sl?.orderId ?? confirmed.sl?.orderId ?? "") || null, tp1_order_id: String(confirmed.tp1?.orderId ?? "") || null, tp2_order_id: String(confirmed.tp2?.orderId ?? "") || null, protection_status: confirmed.status, recovery_status: ok ? "repair_succeeded" : "repair_failed", monitor_status: ok ? "synced" : "error", latest_error: ok ? null : `${providerName} exchange confirmation missing after order placement`, latest_sync_at: now, last_action_taken: action, updated_at: now };
+    const update = { sl_present: Boolean(confirmed.sl), tp1_present: Boolean(confirmed.tp1), tp2_present: Boolean(confirmed.tp2), sl_order_id: String(confirmed.sl?.orderId ?? confirmed.sl?.algoId ?? "") || null, tp1_order_id: String(confirmed.tp1?.orderId ?? confirmed.tp1?.algoId ?? "") || null, tp2_order_id: String(confirmed.tp2?.orderId ?? confirmed.tp2?.algoId ?? "") || null, protection_status: confirmed.status, recovery_status: ok ? "repair_succeeded" : "repair_failed", monitor_status: ok ? "synced" : "error", latest_error: ok ? null : `${providerName} exchange confirmation missing after order placement`, latest_sync_at: now, last_action_taken: action, updated_at: now };
     await supabase.from("trade_management_truth").update(update).eq("provider", row.provider).eq("environment", row.environment).eq("symbol", row.symbol).eq("side", row.side);
     return { provider: providerName, symbol: row.symbol, attempted: true, successful: ok, placed, confirmed: { sl: Boolean(confirmed.sl), tp1: Boolean(confirmed.tp1), tp2: Boolean(confirmed.tp2) }, blocker: ok ? null : update.latest_error };
   } catch (e) {
@@ -2251,7 +2258,8 @@ async function tradeManagementAction(supabase: SupabaseClient, action: string, p
   if (action === "repair_all_protection_now" || action === "run_profit_lock_now" || action === "run_full_trade_management_proof") {
     const sync = [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")];
     const { data } = await supabase.from("trade_management_truth").select("*").neq("protection_status", "closed");
-    const unsafe = ((data ?? []) as Json[]).filter((row) => ["binance", "bybit"].includes(String(row.provider)) && row.protection_status !== "protected");
+    const successfulSyncProviders = new Set(sync.filter((r) => (r as Json).success === true).map((r) => String((r as Json).provider)));
+    const unsafe = ((data ?? []) as Json[]).filter((row) => ["binance", "bybit"].includes(String(row.provider)) && successfulSyncProviders.has(String(row.provider)) && row.protection_status !== "protected");
     const repairs: Json[] = [];
     for (const row of unsafe) repairs.push(await repairTruthRowWithExchangeConfirmation(supabase, row, action));
     const afterSync = [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")];
@@ -2260,7 +2268,9 @@ async function tradeManagementAction(supabase: SupabaseClient, action: string, p
       const syncRow = afterSync.find((r) => (r as Json).provider === providerName) as Json | undefined;
       const rows = ((truthAfter ?? []) as Json[]).filter((row) => row.provider === providerName);
       const blocker = (syncRow?.success === false ? String(syncRow.blocker) : null) ?? rows.find((row) => row.latest_error)?.latest_error ?? repairs.find((r) => r.provider === providerName && r.successful === false)?.blocker ?? null;
-      return { wallet_reachable: syncRow?.success !== false, positions_found: Number(syncRow?.open_positions_found ?? rows.length), orders_found: rows.filter((row) => row.sl_present || row.tp1_present || row.tp2_present).length, sl_proven: rows.length > 0 && rows.every((row) => row.sl_present === true), tp1_proven: rows.length > 0 && rows.every((row) => row.tp1_present === true), tp2_proven: rows.length > 0 && rows.every((row) => row.tp2_present === true), repair_attempted: repairs.some((r) => r.provider === providerName), repair_successful: repairs.filter((r) => r.provider === providerName).every((r) => r.successful === true), telegram_sent: false, exact_blocker: blocker };
+      const providerRepairs = repairs.filter((r) => r.provider === providerName);
+      const repairAttempted = providerRepairs.length > 0;
+      return { wallet_reachable: syncRow?.wallet_reachable === true, positions_fetch_success: syncRow?.positions_fetch_success === true, orders_fetch_success: syncRow?.orders_fetch_success === true, positions_found: Number(syncRow?.open_positions_found ?? rows.length), orders_found: Number(syncRow?.open_orders_found ?? rows.filter((row) => row.sl_present || row.tp1_present || row.tp2_present).length), repair_attempted: repairAttempted, repair_successful: repairAttempted && providerRepairs.every((r) => r.successful === true), sl_proven: rows.length > 0 && rows.every((row) => row.sl_present === true), tp1_proven: rows.length > 0 && rows.every((row) => row.tp1_present === true), tp2_proven: rows.length > 0 && rows.every((row) => row.tp2_present === true), exact_blocker: blocker };
     };
     const stillUnsafe = ((truthAfter ?? []) as Json[]).filter((row) => row.protection_status !== "protected");
     let telegram: unknown = null;
