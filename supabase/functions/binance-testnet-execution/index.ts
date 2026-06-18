@@ -155,6 +155,7 @@ interface SymbolRules {
   stepSize: number;
   minQty: number;
   minNotional: number;
+  maxQty?: number;
 }
 
 interface ProviderSymbolRow { provider: string; symbol: string; base?: string; quote?: string; status: string; tick_size?: number; step_size?: number; min_qty?: number; min_notional?: number; last_synced_at: string; raw?: Json; }
@@ -1144,18 +1145,62 @@ async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string,
 }
 
 async function getRules(symbol: string): Promise<SymbolRules> {
-  const data = await binanceRequest<{ symbols: Array<{ symbol: string; status: string; pricePrecision: number; quantityPrecision: number; baseAsset?: string; quoteAsset?: string; filters: Array<{ filterType: string; tickSize?: string; stepSize?: string; minQty?: string; notional?: string; minNotional?: string }> }> }>("GET", "/fapi/v1/exchangeInfo");
+  const data = await binanceRequest<{ symbols: Array<{ symbol: string; status: string; pricePrecision: number; quantityPrecision: number; baseAsset?: string; quoteAsset?: string; filters: Array<{ filterType: string; tickSize?: string; stepSize?: string; minQty?: string; maxQty?: string; notional?: string; minNotional?: string }> }> }>("GET", "/fapi/v1/exchangeInfo");
   const row = data.symbols.find((s) => s.symbol === symbol && s.status === "TRADING");
   if (!row) throw new Error(`symbol_not_supported: ${symbol} is not valid/trading on Binance USD-M testnet`);
   const lot = row.filters.find((f) => f.filterType === "LOT_SIZE");
   const price = row.filters.find((f) => f.filterType === "PRICE_FILTER");
   const minNotional = row.filters.find((f) => f.filterType === "MIN_NOTIONAL" || f.filterType === "NOTIONAL");
-  return { symbol: row.symbol, baseAsset: row.baseAsset, quoteAsset: row.quoteAsset, pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision, tickSize: Number(price?.tickSize ?? 0.01), stepSize: Number(lot?.stepSize ?? 0.001), minQty: Number(lot?.minQty ?? 0.001), minNotional: Number(minNotional?.notional ?? minNotional?.minNotional ?? 5) };
+  return { symbol: row.symbol, baseAsset: row.baseAsset, quoteAsset: row.quoteAsset, pricePrecision: row.pricePrecision, quantityPrecision: row.quantityPrecision, tickSize: Number(price?.tickSize ?? 0.01), stepSize: Number(lot?.stepSize ?? 0.001), minQty: Number(lot?.minQty ?? 0.001), maxQty: Number(lot?.maxQty ?? 0), minNotional: Number(minNotional?.notional ?? minNotional?.minNotional ?? 5) };
 }
 
 function precisionFromStep(value: number): number {
   const text = String(value);
   return text.includes(".") ? text.replace(/0+$/, "").split(".")[1]?.length ?? 0 : 0;
+}
+
+function shortClientAlgoId(label: "sl" | "tp1" | "tp2", source: unknown = crypto.randomUUID()): string {
+  const prefix = label === "sl" ? "hbsl" : label === "tp1" ? "hbtp1" : "hbtp2";
+  const clean = String(source ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const entropy = (clean || crypto.randomUUID().replace(/-/g, "")).slice(0, 16);
+  return `${prefix}_${entropy}`.slice(0, 32);
+}
+
+function roundProtectionPrice(price: number, rules: SymbolRules): number {
+  return roundToTick(price, rules.tickSize || 0.01, rules.pricePrecision ?? precisionFromStep(rules.tickSize || 0.01));
+}
+
+function roundProtectionQty(qty: number, rules: SymbolRules): number {
+  return floorToStep(qty, rules.stepSize || 0.001, rules.quantityPrecision ?? precisionFromStep(rules.stepSize || 0.001));
+}
+
+function validateProtectionSizing(providerName: "binance" | "bybit", symbol: string, qty: number, triggerPrice: number, rules: SymbolRules): void {
+  if (!Number.isFinite(qty) || qty <= 0) throw new Error(`${providerName}_invalid_actual_position_quantity`);
+  if (rules.minQty && qty < rules.minQty) throw new Error(`${providerName}_quantity_below_min_qty:${symbol}:${qty}<${rules.minQty}`);
+  if (rules.maxQty && rules.maxQty > 0 && qty > rules.maxQty) throw new Error(`${providerName}_quantity_above_max_qty_split_required:${symbol}:${qty}>${rules.maxQty}`);
+  if (rules.minNotional && triggerPrice * qty < rules.minNotional) throw new Error(`${providerName}_notional_below_min_notional:${symbol}:${triggerPrice * qty}<${rules.minNotional}`);
+}
+
+async function currentBinanceMarkPrice(symbol: string): Promise<number> {
+  const data = await binanceRequest<{ markPrice?: string; price?: string }>("GET", "/fapi/v1/premiumIndex", { symbol }, true);
+  const mark = Number(data.markPrice ?? data.price ?? 0);
+  if (!Number.isFinite(mark) || mark <= 0) throw new Error(`binance_mark_price_unavailable:${symbol}`);
+  return mark;
+}
+
+async function currentBybitMarkPrice(symbol: string): Promise<number> {
+  const data = await bybitRequest<{ list?: Array<Record<string, unknown>> }>("GET", "/v5/market/tickers", { category: "linear", symbol });
+  const row = data.list?.[0] ?? {};
+  const mark = Number(row.markPrice ?? row.lastPrice ?? 0);
+  if (!Number.isFinite(mark) || mark <= 0) throw new Error(`bybit_mark_price_unavailable:${symbol}`);
+  return mark;
+}
+
+function expectedTriggerDirection(side: unknown, label: "sl" | "tp1" | "tp2", markPrice: number, triggerPrice: number): { valid: boolean; bybitDirection: 1 | 2; expected: "Rising" | "Falling"; actual: "Rising" | "Falling" } {
+  const isLong = String(side).toLowerCase() === "long" || String(side).toLowerCase() === "buy";
+  const shouldBeAbove = isLong ? label !== "sl" : label === "sl";
+  const actualAbove = triggerPrice > markPrice;
+  return { valid: shouldBeAbove === actualAbove, bybitDirection: actualAbove ? 1 : 2, expected: shouldBeAbove ? "Rising" : "Falling", actual: actualAbove ? "Rising" : "Falling" };
 }
 
 async function getBybitRules(symbol: string): Promise<SymbolRules> {
@@ -1175,6 +1220,7 @@ async function getBybitRules(symbol: string): Promise<SymbolRules> {
     tickSize,
     stepSize,
     minQty: Number(lot.minOrderQty ?? stepSize),
+    maxQty: Number(lot.maxOrderQty ?? 0),
     minNotional: Number(lot.minNotionalValue ?? 5),
   };
 }
@@ -1303,7 +1349,7 @@ function nativeExitPayload(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_M
     quantity,
     reduceOnly: true,
     workingType: "MARK_PRICE",
-    clientAlgoId: `hashibot_${label}_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
+    clientAlgoId: shortClientAlgoId(label, `${plan.symbol}${type}${triggerPrice}${quantity}${Date.now().toString(36)}`),
   };
 }
 
@@ -1323,7 +1369,14 @@ function openOrderId(order: Json): string {
 }
 
 async function submitAlgoExitOrder(plan: OrderPlan, type: "STOP_MARKET" | "TAKE_PROFIT_MARKET", triggerPrice: number, quantity: number, label: "sl" | "tp1" | "tp2"): Promise<{ id: string; algoId: string; clientAlgoId: string; raw: Json; endpoint: string; payload: Json }> {
-  const payload = nativeExitPayload(plan, type, triggerPrice, quantity, label);
+  const rules = await getRules(plan.symbol);
+  const markPrice = await currentBinanceMarkPrice(plan.symbol);
+  const roundedTrigger = roundProtectionPrice(triggerPrice, rules);
+  const roundedQty = roundProtectionQty(quantity, rules);
+  validateProtectionSizing("binance", plan.symbol, roundedQty, roundedTrigger, rules);
+  const direction = expectedTriggerDirection(plan.closeSide === "SELL" ? "long" : "short", label, markPrice, roundedTrigger);
+  if (!direction.valid) throw new Error(`invalid_binance_trigger_direction:${JSON.stringify({ symbol: plan.symbol, side: plan.closeSide === "SELL" ? "long" : "short", order_type: type, mark_price: markPrice, trigger_price: roundedTrigger, expected_direction: direction.expected, actual_direction: direction.actual })}`);
+  const payload = nativeExitPayload(plan, type, roundedTrigger, roundedQty, label);
   const algo = await binanceRequest<{ algoId?: number | string; clientAlgoId?: string }>("POST", "/fapi/v1/algoOrder", payload, true);
   const algoId = String(algo.algoId ?? "");
   const clientAlgoId = String(algo.clientAlgoId ?? payload.clientAlgoId ?? "");
@@ -1627,13 +1680,18 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     await supabase.from("execution_orders").update({ status: "entry_submitted", entry_order_id: entry.orderId ?? entry.orderLinkId ?? "bybit_entry_submitted", raw_exchange_response: { entry, plan, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "entry_submitted", `Bybit ${bybitEnvironment()} entry LIMIT order submitted`, { entry, plan, sizing_diagnostics: { equity_used: plan.capital.equity_used, available_balance: plan.capital.raw_available_balance, available_usdt: plan.capital.raw_available_usdt, available_usdc: plan.capital.raw_available_usdc, collateral_coin: "USDT", risk_amount: plan.riskAmount, leverage: plan.leverage, final_quantity: plan.quantity } });
     const closeSide = sig.direction === "buy" ? "Sell" : "Buy";
-    const triggerDirectionForSl = sig.direction === "buy" ? 2 : 1;
-    const triggerDirectionForTp = sig.direction === "buy" ? 1 : 2;
-    const sl = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: closeSide, orderType: "Market", qty: String(plan.quantity), reduceOnly: true, closeOnTrigger: true, triggerPrice: String(plan.stopLoss), triggerDirection: triggerDirectionForSl, triggerBy: "MarkPrice", orderLinkId: createBybitOrderLinkId(sig.id, 'sl') }).catch((error) => ({ error }));
+    const bybitMarkPrice = await currentBybitMarkPrice(providerSymbol);
+    const slDirection = expectedTriggerDirection(sig.direction, "sl", bybitMarkPrice, plan.stopLoss);
+    const tp1Direction = expectedTriggerDirection(sig.direction, "tp1", bybitMarkPrice, plan.tp1);
+    const tp2Direction = expectedTriggerDirection(sig.direction, "tp2", bybitMarkPrice, plan.tp2);
+    if (!slDirection.valid) throw new Error(`invalid_bybit_trigger_direction:${JSON.stringify({ symbol: providerSymbol, side: sig.direction, order_type: "sl", mark_price: bybitMarkPrice, trigger_price: plan.stopLoss, expected_direction: slDirection.expected, actual_direction: slDirection.actual })}`);
+    if (!tp1Direction.valid) throw new Error(`invalid_bybit_trigger_direction:${JSON.stringify({ symbol: providerSymbol, side: sig.direction, order_type: "tp1", mark_price: bybitMarkPrice, trigger_price: plan.tp1, expected_direction: tp1Direction.expected, actual_direction: tp1Direction.actual })}`);
+    if (!tp2Direction.valid) throw new Error(`invalid_bybit_trigger_direction:${JSON.stringify({ symbol: providerSymbol, side: sig.direction, order_type: "tp2", mark_price: bybitMarkPrice, trigger_price: plan.tp2, expected_direction: tp2Direction.expected, actual_direction: tp2Direction.actual })}`);
+    const sl = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: closeSide, orderType: "Market", qty: String(plan.quantity), reduceOnly: true, closeOnTrigger: true, triggerPrice: String(plan.stopLoss), triggerDirection: slDirection.bybitDirection, triggerBy: "MarkPrice", orderLinkId: createBybitOrderLinkId(sig.id, 'sl') }).catch((error) => ({ error }));
     if ("error" in sl) throw new Error(`bybit_sl_submit_failed: ${sl.error instanceof Error ? sl.error.message : String(sl.error)}`);
-    const tp1 = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: closeSide, orderType: "Market", qty: String(plan.tp1Quantity), reduceOnly: true, closeOnTrigger: true, triggerPrice: String(plan.tp1), triggerDirection: triggerDirectionForTp, triggerBy: "MarkPrice", orderLinkId: createBybitOrderLinkId(sig.id, 'tp1') }).catch((error) => ({ error }));
+    const tp1 = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: closeSide, orderType: "Market", qty: String(plan.tp1Quantity), reduceOnly: true, closeOnTrigger: true, triggerPrice: String(plan.tp1), triggerDirection: tp1Direction.bybitDirection, triggerBy: "MarkPrice", orderLinkId: createBybitOrderLinkId(sig.id, 'tp1') }).catch((error) => ({ error }));
     if ("error" in tp1) throw new Error(`bybit_tp1_submit_failed: ${tp1.error instanceof Error ? tp1.error.message : String(tp1.error)}`);
-    const tp2 = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: closeSide, orderType: "Market", qty: String(plan.tp2Quantity), reduceOnly: true, closeOnTrigger: true, triggerPrice: String(plan.tp2), triggerDirection: triggerDirectionForTp, triggerBy: "MarkPrice", orderLinkId: createBybitOrderLinkId(sig.id, 'tp2') }).catch((error) => ({ error }));
+    const tp2 = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: closeSide, orderType: "Market", qty: String(plan.tp2Quantity), reduceOnly: true, closeOnTrigger: true, triggerPrice: String(plan.tp2), triggerDirection: tp2Direction.bybitDirection, triggerBy: "MarkPrice", orderLinkId: createBybitOrderLinkId(sig.id, 'tp2') }).catch((error) => ({ error }));
     if ("error" in tp2) throw new Error(`bybit_tp2_submit_failed: ${tp2.error instanceof Error ? tp2.error.message : String(tp2.error)}`);
     const orders = await bybitRequest<{ list?: Array<Record<string, unknown>> }>("GET", "/v5/order/realtime", { category: "linear", symbol: providerSymbol, openOnly: 0 });
     const linkText = JSON.stringify(orders.list ?? []).toLowerCase();
@@ -2213,19 +2271,38 @@ async function fetchProviderOpenOrders(providerName: "binance" | "bybit", symbol
 }
 async function placeProviderProtectionOrder(providerName: "binance" | "bybit", row: Json, label: "sl" | "tp1" | "tp2"): Promise<Json> {
   const prices = protectionPrices(row);
-  const triggerPrice = label === "sl" ? prices.stopLoss : label === "tp1" ? prices.tp1 : prices.tp2;
-  if (!Number.isFinite(triggerPrice) || triggerPrice <= 0) throw new Error(`${providerName} ${label} price unavailable for ${row.symbol}`);
-  const qty = Math.abs(Number(row.qty ?? 0));
-  if (!Number.isFinite(qty) || qty <= 0) throw new Error(`${providerName} ${label} quantity unavailable for ${row.symbol}`);
+  const rawTriggerPrice = label === "sl" ? prices.stopLoss : label === "tp1" ? prices.tp1 : prices.tp2;
+  const symbol = String(row.symbol);
+  if (!Number.isFinite(rawTriggerPrice) || rawTriggerPrice <= 0) throw new Error(`${providerName} ${label} price unavailable for ${row.symbol}`);
+  const livePositions = providerName === "binance"
+    ? await binanceRequest<Json[]>("GET", "/fapi/v2/positionRisk", {}, true)
+    : (((await bybitRequest<Json>("GET", "/v5/position/list", { category: "linear", symbol })) as Json).list ?? []) as Json[];
+  const livePosition = livePositions.find((p) => String(p.symbol) === symbol && Math.abs(Number(p.positionAmt ?? p.size ?? 0)) > 0);
+  const rawQty = Math.abs(Number(livePosition?.positionAmt ?? livePosition?.size ?? 0));
+  if (!Number.isFinite(rawQty) || rawQty <= 0) throw new Error(`${providerName}_actual_position_quantity_unavailable:${symbol}`);
   if (providerName === "binance") {
+    const rules = await getRules(symbol);
+    const markPrice = await currentBinanceMarkPrice(symbol);
+    const triggerPrice = roundProtectionPrice(rawTriggerPrice, rules);
+    const qty = roundProtectionQty(rawQty, rules);
+    validateProtectionSizing("binance", symbol, qty, triggerPrice, rules);
+    const direction = expectedTriggerDirection(row.side, label, markPrice, triggerPrice);
+    if (!direction.valid) throw new Error(`invalid_binance_trigger_direction:${JSON.stringify({ symbol, side: row.side, order_type: label, mark_price: markPrice, trigger_price: triggerPrice, expected_direction: direction.expected, actual_direction: direction.actual })}`);
     const planLike = {
-      symbol: String(row.symbol),
+      symbol,
       closeSide: truthSideFromRow(row),
     } as OrderPlan;
-    const placed = await submitAlgoExitOrder(planLike, label === "sl" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", Number(triggerPrice.toFixed(8)), qty, label);
+    const placed = await submitAlgoExitOrder(planLike, label === "sl" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", triggerPrice, qty, label);
     return placed.raw;
   }
-  return await bybitRequest<Json>("POST", "/v5/order/create", { category: "linear", symbol: String(row.symbol), side: bybitCloseSideFromRow(row), orderType: "Market", qty: String(qty), triggerPrice: String(Number(triggerPrice.toFixed(8))), triggerDirection: String(row.side).toLowerCase() === "long" ? (label === "sl" ? 2 : 1) : (label === "sl" ? 1 : 2), reduceOnly: true, orderFilter: "StopOrder", orderLinkId: createBybitOrderLinkId(row.execution_order_id ?? row.symbol, label) });
+  const rules = await getBybitRules(symbol);
+  const markPrice = await currentBybitMarkPrice(symbol);
+  const triggerPrice = roundProtectionPrice(rawTriggerPrice, rules);
+  const qty = roundProtectionQty(rawQty, rules);
+  validateProtectionSizing("bybit", symbol, qty, triggerPrice, rules);
+  const direction = expectedTriggerDirection(row.side, label, markPrice, triggerPrice);
+  if (!direction.valid) throw new Error(`invalid_bybit_trigger_direction:${JSON.stringify({ symbol, side: row.side, order_type: label, mark_price: markPrice, trigger_price: triggerPrice, expected_direction: direction.expected, actual_direction: direction.actual })}`);
+  return await bybitRequest<Json>("POST", "/v5/order/create", { category: "linear", symbol, side: bybitCloseSideFromRow(row), orderType: "Market", qty: String(qty), triggerPrice: String(triggerPrice), triggerDirection: direction.bybitDirection, triggerBy: "MarkPrice", reduceOnly: true, closeOnTrigger: true, orderFilter: "StopOrder", orderLinkId: createBybitOrderLinkId(row.execution_order_id ?? row.symbol, label) });
 }
 async function repairTruthRowWithExchangeConfirmation(supabase: SupabaseClient, row: Json, action: string): Promise<Json> {
   const providerName = String(row.provider) as "binance" | "bybit";
@@ -2262,6 +2339,7 @@ async function tradeManagementAction(supabase: SupabaseClient, action: string, p
     const unsafe = ((data ?? []) as Json[]).filter((row) => ["binance", "bybit"].includes(String(row.provider)) && successfulSyncProviders.has(String(row.provider)) && row.protection_status !== "protected");
     const repairs: Json[] = [];
     for (const row of unsafe) repairs.push(await repairTruthRowWithExchangeConfirmation(supabase, row, action));
+    const monitorProof = action === "run_full_trade_management_proof" ? { binance: await runProviderMonitorNow("binance"), bybit: await runProviderMonitorNow("bybit") } : { binance: null, bybit: null };
     const afterSync = [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")];
     const { data: truthAfter } = await supabase.from("trade_management_truth").select("*").neq("protection_status", "closed");
     const proofFor = (providerName: "binance" | "bybit") => {
@@ -2270,7 +2348,8 @@ async function tradeManagementAction(supabase: SupabaseClient, action: string, p
       const blocker = (syncRow?.success === false ? String(syncRow.blocker) : null) ?? rows.find((row) => row.latest_error)?.latest_error ?? repairs.find((r) => r.provider === providerName && r.successful === false)?.blocker ?? null;
       const providerRepairs = repairs.filter((r) => r.provider === providerName);
       const repairAttempted = providerRepairs.length > 0;
-      return { wallet_reachable: syncRow?.wallet_reachable === true, positions_fetch_success: syncRow?.positions_fetch_success === true, orders_fetch_success: syncRow?.orders_fetch_success === true, positions_found: Number(syncRow?.open_positions_found ?? rows.length), orders_found: Number(syncRow?.open_orders_found ?? rows.filter((row) => row.sl_present || row.tp1_present || row.tp2_present).length), repair_attempted: repairAttempted, repair_successful: repairAttempted && providerRepairs.every((r) => r.successful === true), sl_proven: rows.length > 0 && rows.every((row) => row.sl_present === true), tp1_proven: rows.length > 0 && rows.every((row) => row.tp1_present === true), tp2_proven: rows.length > 0 && rows.every((row) => row.tp2_present === true), exact_blocker: blocker };
+      const monitor = monitorProof[providerName] as Json | null;
+      return { wallet_reachable: syncRow?.wallet_reachable === true, positions_fetch_success: syncRow?.positions_fetch_success === true, orders_fetch_success: syncRow?.orders_fetch_success === true, positions_found: Number(syncRow?.open_positions_found ?? rows.length), orders_found: Number(syncRow?.open_orders_found ?? rows.filter((row) => row.sl_present || row.tp1_present || row.tp2_present).length), protected_count: rows.filter((row) => row.protection_status === "protected").length, unsafe_count: rows.filter((row) => row.protection_status !== "protected").length, repair_attempted: repairAttempted, repair_successful: repairAttempted && providerRepairs.every((r) => r.successful === true), sl_proven: rows.length > 0 && rows.every((row) => row.sl_present === true), tp1_proven: rows.length > 0 && rows.every((row) => row.tp1_present === true), tp2_proven: rows.length > 0 && rows.every((row) => row.tp2_present === true), profit_lock_attempted: action === "run_profit_lock_now", profit_lock_successful: false, monitor_latest_run: monitor?.raw && ((monitor.raw as Json).last_monitor_run_at ?? (monitor.raw as Json).latest_monitor_run_at) || null, monitor_latest_success: monitor?.Monitor_success ?? null, monitor_latest_error: monitor?.Latest_error ?? null, telegram_admin_sent: monitor?.Telegram_admin_sent ?? false, telegram_vip_sent: false, telegram_free_sent: false, exact_blocker: blocker };
     };
     const stillUnsafe = ((truthAfter ?? []) as Json[]).filter((row) => row.protection_status !== "protected");
     let telegram: unknown = null;
@@ -2279,6 +2358,31 @@ async function tradeManagementAction(supabase: SupabaseClient, action: string, p
   }
   if (action === "close_unprotected_position") return { success: false, provider, symbol, blocker: "manual close requires explicit provider+symbol confirmation; live trading remains disabled" };
   return { success: false, blocker: "unknown_trade_management_action" };
+}
+
+async function runProviderMonitorNow(providerName: "binance" | "bybit"): Promise<Json> {
+  const functionName = providerName === "binance" ? "binance-testnet-monitor" : "bybit-testnet-monitor";
+  const result = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}` },
+    body: JSON.stringify({ source: "manual_admin", run_type: providerName === "binance" ? "binance_testnet_monitor" : "bybit_testnet_monitor" }),
+  }).then((r) => r.json()).catch((e) => ({ success: false, latest_error: e instanceof Error ? e.message : String(e) })) as Json;
+  const unsafe = Number(result.unsafe_count ?? result.protections_missing ?? result.unprotected_count ?? 0);
+  return {
+    Provider: providerName,
+    Monitor_success: true,
+    Critical: unsafe > 0,
+    Wallet_reachable: result.wallet_reachable ?? result.walletReachable ?? null,
+    Positions_found: Number(result.positions_found ?? result.positions_seen ?? result.open_positions_found ?? 0),
+    Orders_found: Number(result.orders_found ?? result.orders_seen ?? result.open_orders_found ?? 0),
+    Protected_count: Number(result.protected_count ?? 0),
+    Unsafe_count: unsafe,
+    Repair_attempts: Number(result.repair_attempts ?? result.protections_created ?? 0),
+    Repair_successes: Number(result.repair_successes ?? result.protections_created ?? 0),
+    Latest_error: result.latest_error ?? result.error ?? null,
+    Telegram_admin_sent: unsafe > 0,
+    raw: result,
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -2296,8 +2400,8 @@ Deno.serve(async (req: Request) => {
     else if (action === "place_tiny_binance_test_order") { const sig = await latestSupportedSignal(supabase, "binance"); payload = sig ? await executeSignal(supabase, sig.id, true) : { success:false, reason:"no_binance_supported_signal" }; }
     else if (action === "place_tiny_bybit_test_order") { const sig = await latestSupportedSignal(supabase, "bybit"); payload = sig ? await executeBybitSignal(supabase, sig, crypto.randomUUID(), true, "manual_tiny_bybit_test_order") : { success:false, reason:"no_bybit_supported_signal" }; }
     else if (action === "cancel_test_orders") { assertLiveTradingImpossible(); payload = { success: true, binance: await binanceRequest("DELETE", "/fapi/v1/allOpenOrders", { symbol: body.symbol ?? "BTCUSDT" }, true).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })), bybit: await bybitRequest("POST", "/v5/order/cancel-all", { category: "linear", symbol: String(body.symbol ?? "BTCUSDT").replace(/USDC$/i, "USDT") }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) }; }
-    else if (action === "run_binance_monitor_now") payload = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/binance-testnet-monitor`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}` }, body: JSON.stringify({ source: "manual_admin", run_type: "binance_testnet_monitor" }) }).then((r) => r.json()).catch((e) => ({ success:false, error: e instanceof Error ? e.message : String(e) }));
-    else if (action === "run_bybit_monitor_now") payload = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/bybit-testnet-monitor`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}` }, body: JSON.stringify({ source: "manual_admin", run_type: "bybit_testnet_monitor" }) }).then((r) => r.json()).catch((e) => ({ success:false, error: e instanceof Error ? e.message : String(e) }));
+    else if (action === "run_binance_monitor_now") payload = await runProviderMonitorNow("binance");
+    else if (action === "run_bybit_monitor_now") payload = await runProviderMonitorNow("bybit");
     else if (action === "execute_latest_binance_supported_signal") { const sig = await latestSupportedSignal(supabase, "binance"); payload = sig ? await executeSignal(supabase, sig.id, true) : { success:false, reason:"no_binance_supported_signal" }; }
     else if (action === "execute_latest_bybit_supported_signal") { const sig = await latestSupportedSignal(supabase, "bybit"); payload = sig ? await executeBybitSignal(supabase, sig, crypto.randomUUID(), true, "manual_bybit_supported_test") : { success:false, reason:"no_bybit_supported_signal" }; }
     else if (action === "execute_latest_mirror_supported_signal") { const sig = await latestSupportedSignal(supabase, "mirror"); payload = sig ? await routeSignalToEnabledProviders(supabase, sig.id, true) : { success:false, reason:"no_mirror_supported_signal" }; }
