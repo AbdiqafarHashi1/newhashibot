@@ -30,6 +30,8 @@ const adminNav: NavItem[] = [
   { to: '/admin/providers/binance', label: 'Binance Legacy Ops', icon: Database },
   { to: '/admin/providers/bybit', label: 'Bybit Legacy Ops', icon: ShieldCheck },
   { to: '/admin/signals', label: 'Signals Manager', icon: Radio },
+  { to: '/admin/performance', label: 'Performance', icon: Activity },
+  { to: '/admin/backtest-lab', label: 'Backtest Lab', icon: FileText },
   { to: '/admin/candidates', label: 'Candidate Setups', icon: CheckCircle },
   { to: '/admin/rejected', label: 'Rejected Setups', icon: AlertTriangle },
   { to: '/admin/telegram', label: 'Telegram Logs', icon: FileText },

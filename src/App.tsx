@@ -151,6 +151,7 @@ function App() {
           <Route path="/admin/execution"         element={<RequireAdmin><Execution /></RequireAdmin>} />
           <Route path="/admin/trading-brain"     element={<RequireAdmin><TradingBrain /></RequireAdmin>} />
           <Route path="/admin/modes"             element={<RequireAdmin><Modes /></RequireAdmin>} />
+          <Route path="/admin/backtest"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
           <Route path="/admin/backtest-lab"      element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
           <Route path="/admin/handoff"           element={<RequireAdmin><Handoff /></RequireAdmin>} />
 
