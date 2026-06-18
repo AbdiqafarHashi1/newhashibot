@@ -222,8 +222,12 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   }
   private async placeProtection(request: ProtectionRequest, label: 'sl' | 'tp1' | 'tp2'): Promise<ProviderResult> {
     const triggerPrice = label === 'sl' ? request.stopLoss : label === 'tp1' ? request.tp1 : request.tp2;
-    const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: closeSide(request.side), orderType: 'Market', qty: String(request.quantity), triggerPrice: String(triggerPrice), triggerDirection: request.side === 'long' ? (label === 'sl' ? 2 : 1) : (label === 'sl' ? 1 : 2), reduceOnly: true, orderFilter: 'StopOrder', orderLinkId: createBybitOrderLinkId(request.metadata?.executionId ?? request.symbol, label, this.now()) });
-    return { provider, ok: true, providerOrderId: result.orderId, status: `${label}_submitted`, metadata: { ...result, label } };
+    const orderLinkId = createBybitOrderLinkId(request.metadata?.executionId ?? request.symbol, label, this.now());
+    const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: closeSide(request.side), orderType: 'Market', qty: String(request.quantity), triggerPrice: String(triggerPrice), triggerDirection: request.side === 'long' ? (label === 'sl' ? 2 : 1) : (label === 'sl' ? 1 : 2), triggerBy: 'MarkPrice', reduceOnly: true, closeOnTrigger: true, orderFilter: 'StopOrder', orderLinkId });
+    const open = await this.getOpenOrders(request.symbol);
+    const confirmed = open.find((order) => order.providerOrderId === String(result.orderId) || String(order.metadata?.orderLinkId ?? '') === String(result.orderLinkId ?? orderLinkId)) ?? open.find((order) => order.symbol === request.symbol && String(order.side).toLowerCase() === closeSide(request.side).toLowerCase() && Math.abs(Number(order.triggerPrice ?? 0) - Number(triggerPrice)) < 1e-9);
+    if (!confirmed) return { provider, ok: false, providerOrderId: result.orderId, status: `${label}_confirmation_missing`, error: 'exchange confirmation missing', metadata: { ...result, orderLinkId, label, openOrders: open.length } };
+    return { provider, ok: true, providerOrderId: result.orderId, status: `${label}_submitted`, metadata: { ...result, orderLinkId, label, confirmedStatus: confirmed.status } };
   }
   async placeStopLoss(request: ProtectionRequest) { return this.placeSL(request); }
   async placeSL(request: ProtectionRequest) { return this.placeProtection(request, 'sl'); }
