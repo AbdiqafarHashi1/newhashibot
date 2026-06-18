@@ -66,7 +66,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex overflow-x-hidden">
-      <aside className={`fixed inset-y-0 left-0 z-40 w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col transition-transform duration-200 ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 w-[82vw] max-w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col transition-transform duration-200 md:w-60 md:max-w-none ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <Link to="/admin/operator" className="h-14 flex items-center px-5 border-b border-zinc-800 gap-2 shrink-0 hover:bg-zinc-800/40 transition-colors">
           <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
             <Zap size={14} className="text-white" />
@@ -94,7 +94,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                   active ? 'bg-blue-600/20 text-blue-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
                 }`}>
                 <Icon size={14} />
-                {item.label}
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
