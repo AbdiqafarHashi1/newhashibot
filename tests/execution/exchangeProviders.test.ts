@@ -64,7 +64,7 @@ async function run() {
   const sl = await bybit.placeSL({ symbol: 'ETHUSDT', side: 'long', quantity: 0.2, stopLoss: 2900, tp1: 3050, tp2: 3100, metadata: { executionId: 'exec-1' } });
   assert.equal(authDebug.some((entry) => (entry as { retCode?: number }).retCode === 0), true, 'Bybit logs safe request result debug with retCode/retMsg');
   assert.equal(sl.status, 'sl_submitted');
-  assert.match(calls.at(-1)?.body ?? '', /"reduceOnly":true/, 'Bybit protection orders are reduce-only');
+  assert.match([...calls].reverse().find((call) => call.url.includes('/v5/order/create'))?.body ?? '', /"reduceOnly":true/, 'Bybit protection orders are reduce-only');
 
   const mt5 = new ExchangeProviderMT5();
   assert.equal((await mt5.placeEntry()).status, 'not_implemented', 'MT5 is stubbed only');

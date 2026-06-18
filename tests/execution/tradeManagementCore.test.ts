@@ -27,10 +27,10 @@ class FakeProvider implements ExchangeProvider {
   async cancelEntry(_request: ReconcileRequest): Promise<ProviderResult> { return { provider: 'binance', ok: true }; }
   async cancelOrder(request: ReconcileRequest) { return this.cancelEntry(request); }
   async closePosition(): Promise<ProviderResult> { return { provider: 'binance', ok: true }; }
-  async placeSL(_request: ProtectionRequest): Promise<ProviderResult> { this.placed.push('sl'); return { provider: 'binance', ok: true, providerOrderId: 'new-sl' }; }
+  async placeSL(request: ProtectionRequest): Promise<ProviderResult> { this.placed.push('sl'); this.orders.push({ providerOrderId: 'new-sl', symbol: request.symbol, side: 'SELL', type: 'STOP_MARKET', status: 'NEW', reduceOnly: true, triggerPrice: request.stopLoss }); return { provider: 'binance', ok: true, providerOrderId: 'new-sl' }; }
   async placeStopLoss(request: ProtectionRequest) { return this.placeSL(request); }
-  async placeTP1(_request: ProtectionRequest): Promise<ProviderResult> { this.placed.push('tp1'); return { provider: 'binance', ok: true, providerOrderId: 'new-tp1' }; }
-  async placeTP2(_request: ProtectionRequest): Promise<ProviderResult> { this.placed.push('tp2'); return { provider: 'binance', ok: true, providerOrderId: 'new-tp2' }; }
+  async placeTP1(request: ProtectionRequest): Promise<ProviderResult> { this.placed.push('tp1'); this.orders.push({ providerOrderId: 'new-tp1', symbol: request.symbol, side: 'SELL', type: 'TAKE_PROFIT_MARKET', status: 'NEW', reduceOnly: true, triggerPrice: request.tp1 }); return { provider: 'binance', ok: true, providerOrderId: 'new-tp1' }; }
+  async placeTP2(request: ProtectionRequest): Promise<ProviderResult> { this.placed.push('tp2'); this.orders.push({ providerOrderId: 'new-tp2', symbol: request.symbol, side: 'SELL', type: 'TAKE_PROFIT_MARKET', status: 'NEW', reduceOnly: true, triggerPrice: request.tp2 }); return { provider: 'binance', ok: true, providerOrderId: 'new-tp2' }; }
   async placeTakeProfit(request: ProtectionRequest, target: 'tp1' | 'tp2') { return target === 'tp1' ? this.placeTP1(request) : this.placeTP2(request); }
   async verifyProtection(): Promise<ProviderResult<{ verified: boolean; missing: string[] }>> { return { provider: 'binance', ok: true, data: { verified: true, missing: [] } }; }
   async classifyProtectionState(): Promise<ProviderResult<{ state: 'safe'; reason: string }>> { return { provider: 'binance', ok: true, data: { state: 'safe', reason: 'test' } }; }
@@ -47,7 +47,7 @@ class FakeProvider implements ExchangeProvider {
 const provider = new FakeProvider();
 provider.positions = [{ symbol: 'BTCUSDT', side: 'long', quantity: 2, entryPrice: 100, markPrice: 101, unrealizedPnl: 2 }];
 provider.orders = [
-  { providerOrderId: 'sl-1', symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', status: 'NEW', reduceOnly: true },
+  { providerOrderId: 'sl-1', symbol: 'BTCUSDT', side: 'SELL', type: 'STOP_MARKET', status: 'NEW', reduceOnly: true, triggerPrice: 90 },
   { providerOrderId: 'tp1-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', status: 'NEW', reduceOnly: true, triggerPrice: 110 },
   { providerOrderId: 'tp2-1', symbol: 'BTCUSDT', side: 'SELL', type: 'TAKE_PROFIT_MARKET', status: 'NEW', reduceOnly: true, triggerPrice: 120 },
 ];

@@ -15,6 +15,7 @@ const executionFn = readFileSync('supabase/functions/binance-testnet-execution/i
 const xb1Sql = readFileSync('supabase/migrations/20260614190000_070_xb1_capital_profit_lock_real_integration.sql', 'utf8');
 const cryptoFix1Sql = readFileSync('supabase/migrations/20260611120000_059_crypto_fix_1_testnet_risk_leverage_truth.sql', 'utf8');
 const liveCronHeaderSql = readFileSync('supabase/migrations/20260613170000_067_live_cron_header_rebuild.sql', 'utf8');
+const tradeSupervisorSql = readFileSync('supabase/migrations/20260618100000_080_trade_supervisor_always_on.sql', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -103,6 +104,17 @@ assert.match(liveCronHeaderSql, /'apikey',[\s\S]*supabase_anon_key/, 'live cron 
 assert.match(liveCronHeaderSql, /'Authorization',[\s\S]*'Bearer ' \|\|[\s\S]*supabase_anon_key/, 'live cron header rebuild sends anon key bearer Authorization');
 assert.match(liveCronHeaderSql, /'x-hashibot-cron-token',[\s\S]*cron_pg_token/, 'live cron header rebuild sends cron token only as custom header');
 assert.doesNotMatch(liveCronHeaderSql, /'Authorization',\s*'Bearer ' \|\| \(SELECT cron_pg_token/, 'live cron header rebuild never sends cron_pg_token directly in Authorization');
+
+
+assert.match(tradeSupervisorSql, /hashibot_trade_supervisor_1m_binance/, 'X-G.7 schedules Binance trade supervisor cron');
+assert.match(tradeSupervisorSql, /hashibot_trade_supervisor_1m_bybit/, 'X-G.7 schedules Bybit trade supervisor cron');
+assert.match(tradeSupervisorSql, /run_trade_supervisor_cycle/, 'X-G.7 cron invokes supervisor action');
+assert.match(tradeSupervisorSql, /trade_supervisor_interval_minutes/, 'X-G.7 exposes supervisor interval in DB config');
+assert.match(tradeSupervisorSql, /trade_supervisor_last_run_at/, 'X-G.7 exposes supervisor last run in DB config');
+assert.match(tradeSupervisorSql, /profit_lock_eligible/, 'X-G.7 adds profit lock hook fields');
+assert.match(executionFn, /runTradeSupervisorCycle/, 'X-G.7 execution function has shared supervisor cycle');
+assert.match(executionFn, /run_binance_monitor_now[\s\S]*runTradeSupervisorCycle\(supabase, "binance"/, 'Binance monitor action routes to supervisor');
+assert.match(executionFn, /run_bybit_monitor_now[\s\S]*runTradeSupervisorCycle\(supabase, "bybit"/, 'Bybit monitor action routes to supervisor');
 
 console.log('SQL constraint tests passed');
 
