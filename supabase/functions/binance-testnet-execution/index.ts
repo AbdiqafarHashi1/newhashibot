@@ -14,7 +14,7 @@ const ACTIVE_STATUSES = ["pending", "pending_submit", "entry_submitted", "entry_
 const RETRYABLE_STATUSES = ["skipped", "failed", "cancelled", "stale_closed", "closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual"];
 const TERMINAL_STATUSES = ["closed_tp", "closed_tp2", "closed_profit_lock", "closed_sl", "closed_breakeven", "closed_timeout", "closed_expired", "closed_expired_after_tp1", "closed_manual", "cancelled", "failed", "skipped", "stale_closed"];
 
-type Action = "status" | "sync_all_positions_now" | "repair_all_protection_now" | "run_profit_lock_now" | "close_unprotected_position" | "prove_binance_trade_management" | "prove_bybit_trade_management" | "sync_binance_tradable_symbols" | "sync_bybit_tradable_symbols" | "show_executable_universe" | "place_tiny_binance_test_order" | "place_tiny_bybit_test_order" | "cancel_test_orders" | "run_binance_monitor_now" | "run_bybit_monitor_now" | "execute_latest_binance_supported_signal" | "execute_latest_bybit_supported_signal" | "execute_latest_mirror_supported_signal" | "execution_readiness" | "parallel_dry_run" | "diagnose_bybit_testnet_connection" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "execute_latest_approved_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
+type Action = "status" | "sync_all_positions_now" | "repair_all_protection_now" | "run_profit_lock_now" | "close_unprotected_position" | "prove_binance_trade_management" | "prove_bybit_trade_management" | "run_full_trade_management_proof" | "sync_binance_tradable_symbols" | "sync_bybit_tradable_symbols" | "show_executable_universe" | "place_tiny_binance_test_order" | "place_tiny_bybit_test_order" | "cancel_test_orders" | "run_binance_monitor_now" | "run_bybit_monitor_now" | "execute_latest_binance_supported_signal" | "execute_latest_bybit_supported_signal" | "execute_latest_mirror_supported_signal" | "execution_readiness" | "parallel_dry_run" | "diagnose_bybit_testnet_connection" | "diagnose_margin_fallback" | "test_connection" | "validate_symbol" | "dry_run" | "execute_signal" | "execute_latest_approved_signal" | "positions" | "cancel_orders" | "close_position" | "sync_execution" | "update_settings" | "refresh_account_state" | "evaluate_governor" | "reset_testnet_governor" | "clean_stale_execution_rows" | "manual_test_flow";
 type Json = Record<string, unknown>;
 type Side = "BUY" | "SELL";
 type CapitalBasis = "available_usdt" | "available_usdc_plus_usdt" | "total_margin_balance" | "total_wallet_balance" | "manual_override";
@@ -2177,18 +2177,95 @@ async function syncTradeManagementTruth(supabase: SupabaseClient, providerName: 
   }
 }
 
+
+function truthSideFromRow(row: Json): "BUY" | "SELL" {
+  return String(row.side).toLowerCase() === "long" ? "SELL" : "BUY";
+}
+function bybitCloseSideFromRow(row: Json): "Buy" | "Sell" {
+  return String(row.side).toLowerCase() === "long" ? "Sell" : "Buy";
+}
+function protectionPrices(row: Json): { entry: number; stopLoss: number; tp1: number; tp2: number } {
+  const entry = Number(row.entry_price ?? row.mark_price ?? 0);
+  const isLong = String(row.side).toLowerCase() === "long";
+  return { entry, stopLoss: isLong ? entry * 0.99 : entry * 1.01, tp1: isLong ? entry * 1.01 : entry * 0.99, tp2: isLong ? entry * 1.02 : entry * 0.98 };
+}
+function orderSideMatches(order: Json, closeSide: string): boolean {
+  return !order.side || String(order.side).toLowerCase() === closeSide.toLowerCase();
+}
+function isReduceOnlyOrder(order: Json): boolean {
+  return String(order.reduceOnly ?? "").toLowerCase() === "true" || order.closePosition === true;
+}
+function classifyRawProtection(providerName: "binance" | "bybit", row: Json, openOrders: Json[]): { sl?: Json; tp1?: Json; tp2?: Json; status: string } {
+  const closeSide = providerName === "binance" ? truthSideFromRow(row) : bybitCloseSideFromRow(row);
+  const matching = openOrders.filter((order) => String(order.symbol ?? "") === String(row.symbol) && isReduceOnlyOrder(order) && orderSideMatches(order, closeSide));
+  const stops = matching.filter((order) => /stop/i.test(String(order.type ?? order.orderType ?? order.stopOrderType ?? order.orderFilter ?? "")) && !/take/i.test(String(order.type ?? order.orderType ?? order.stopOrderType ?? "")));
+  const takes = matching.filter((order) => /take|profit|tp/i.test(String(order.type ?? order.orderType ?? order.stopOrderType ?? order.orderFilter ?? order.orderLinkId ?? "")));
+  const [tp1, tp2] = takes.sort((a, b) => Number(a.triggerPrice ?? a.stopPrice ?? a.price ?? 0) - Number(b.triggerPrice ?? b.stopPrice ?? b.price ?? 0));
+  const sl = stops[0];
+  return { sl, tp1, tp2, status: sl && tp1 && tp2 ? "protected" : !sl ? "missing_sl" : "missing_tp" };
+}
+async function fetchProviderOpenOrders(providerName: "binance" | "bybit", symbol?: string): Promise<Json[]> {
+  if (providerName === "binance") return await binanceRequest<Json[]>("GET", "/fapi/v1/openOrders", symbol ? { symbol } : {}, true);
+  const result = await bybitRequest<Json>("GET", "/v5/order/realtime", { category: "linear", ...(symbol ? { symbol } : { settleCoin: "USDT" }), openOnly: 0 });
+  return (((result as Json).list ?? []) as Json[]);
+}
+async function placeProviderProtectionOrder(providerName: "binance" | "bybit", row: Json, label: "sl" | "tp1" | "tp2"): Promise<Json> {
+  const prices = protectionPrices(row);
+  const triggerPrice = label === "sl" ? prices.stopLoss : label === "tp1" ? prices.tp1 : prices.tp2;
+  if (!Number.isFinite(triggerPrice) || triggerPrice <= 0) throw new Error(`${providerName} ${label} price unavailable for ${row.symbol}`);
+  const qty = Math.abs(Number(row.qty ?? 0));
+  if (!Number.isFinite(qty) || qty <= 0) throw new Error(`${providerName} ${label} quantity unavailable for ${row.symbol}`);
+  if (providerName === "binance") {
+    return await binanceRequest<Json>("POST", "/fapi/v1/order", { symbol: String(row.symbol), side: truthSideFromRow(row), type: label === "sl" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", stopPrice: Number(triggerPrice.toFixed(8)), quantity: qty, reduceOnly: true, workingType: "MARK_PRICE", newClientOrderId: `hb_${label}_${Date.now()}`.slice(0, 36) }, true);
+  }
+  return await bybitRequest<Json>("POST", "/v5/order/create", { category: "linear", symbol: String(row.symbol), side: bybitCloseSideFromRow(row), orderType: "Market", qty: String(qty), triggerPrice: String(Number(triggerPrice.toFixed(8))), triggerDirection: String(row.side).toLowerCase() === "long" ? (label === "sl" ? 2 : 1) : (label === "sl" ? 1 : 2), reduceOnly: true, orderFilter: "StopOrder", orderLinkId: createBybitOrderLinkId(row.execution_order_id ?? row.symbol, label) });
+}
+async function repairTruthRowWithExchangeConfirmation(supabase: SupabaseClient, row: Json, action: string): Promise<Json> {
+  const providerName = String(row.provider) as "binance" | "bybit";
+  const now = new Date().toISOString();
+  const placed: Json = {};
+  try {
+    const before = await fetchProviderOpenOrders(providerName, String(row.symbol));
+    const beforeState = classifyRawProtection(providerName, row, before);
+    if (!beforeState.sl) placed.sl = await placeProviderProtectionOrder(providerName, row, "sl");
+    if (!beforeState.tp1) placed.tp1 = await placeProviderProtectionOrder(providerName, row, "tp1");
+    if (!beforeState.tp2) placed.tp2 = await placeProviderProtectionOrder(providerName, row, "tp2");
+    const after = await fetchProviderOpenOrders(providerName, String(row.symbol));
+    const confirmed = classifyRawProtection(providerName, row, after);
+    const ok = confirmed.status === "protected";
+    const update = { sl_present: Boolean(confirmed.sl), tp1_present: Boolean(confirmed.tp1), tp2_present: Boolean(confirmed.tp2), sl_order_id: String(confirmed.sl?.orderId ?? confirmed.sl?.orderId ?? "") || null, tp1_order_id: String(confirmed.tp1?.orderId ?? "") || null, tp2_order_id: String(confirmed.tp2?.orderId ?? "") || null, protection_status: confirmed.status, recovery_status: ok ? "repair_succeeded" : "repair_failed", monitor_status: ok ? "synced" : "error", latest_error: ok ? null : `${providerName} exchange confirmation missing after order placement`, latest_sync_at: now, last_action_taken: action, updated_at: now };
+    await supabase.from("trade_management_truth").update(update).eq("provider", row.provider).eq("environment", row.environment).eq("symbol", row.symbol).eq("side", row.side);
+    return { provider: providerName, symbol: row.symbol, attempted: true, successful: ok, placed, confirmed: { sl: Boolean(confirmed.sl), tp1: Boolean(confirmed.tp1), tp2: Boolean(confirmed.tp2) }, blocker: ok ? null : update.latest_error };
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+    await supabase.from("trade_management_truth").update({ recovery_status: "repair_failed", monitor_status: "error", latest_error: err, latest_sync_at: now, last_action_taken: action, updated_at: now }).eq("provider", row.provider).eq("environment", row.environment).eq("symbol", row.symbol).eq("side", row.side);
+    return { provider: providerName, symbol: row.symbol, attempted: true, successful: false, placed, blocker: err };
+  }
+}
+
 async function tradeManagementAction(supabase: SupabaseClient, action: string, provider?: string, symbol?: string): Promise<Json> {
   assertLiveTradingImpossible();
   if (action === "sync_all_positions_now") return { success: true, results: [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")] };
   if (action === "prove_binance_trade_management") return syncTradeManagementTruth(supabase, "binance");
   if (action === "prove_bybit_trade_management") return syncTradeManagementTruth(supabase, "bybit");
-  if (action === "repair_all_protection_now" || action === "run_profit_lock_now") {
+  if (action === "repair_all_protection_now" || action === "run_profit_lock_now" || action === "run_full_trade_management_proof") {
     const sync = [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")];
-    const now = new Date().toISOString();
     const { data } = await supabase.from("trade_management_truth").select("*").neq("protection_status", "closed");
-    const unsafe = ((data ?? []) as Json[]).filter((row) => row.protection_status !== "protected");
-    for (const row of unsafe) await supabase.from("trade_management_truth").update({ recovery_status: "repair_attempted", latest_error: "runtime repair requires provider order endpoint confirmation; not marked protected", latest_sync_at: now, last_action_taken: action, updated_at: now }).eq("provider", row.provider).eq("environment", row.environment).eq("symbol", row.symbol).eq("side", row.side);
-    return { success: true, action, sync, repair_attempts: unsafe.length, repair_successes: 0, blocker: unsafe.length ? "order placement confirmation not returned by exchange in this action" : null };
+    const unsafe = ((data ?? []) as Json[]).filter((row) => ["binance", "bybit"].includes(String(row.provider)) && row.protection_status !== "protected");
+    const repairs: Json[] = [];
+    for (const row of unsafe) repairs.push(await repairTruthRowWithExchangeConfirmation(supabase, row, action));
+    const afterSync = [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")];
+    const { data: truthAfter } = await supabase.from("trade_management_truth").select("*").neq("protection_status", "closed");
+    const proofFor = (providerName: "binance" | "bybit") => {
+      const syncRow = afterSync.find((r) => (r as Json).provider === providerName) as Json | undefined;
+      const rows = ((truthAfter ?? []) as Json[]).filter((row) => row.provider === providerName);
+      const blocker = (syncRow?.success === false ? String(syncRow.blocker) : null) ?? rows.find((row) => row.latest_error)?.latest_error ?? repairs.find((r) => r.provider === providerName && r.successful === false)?.blocker ?? null;
+      return { wallet_reachable: syncRow?.success !== false, positions_found: Number(syncRow?.open_positions_found ?? rows.length), orders_found: rows.filter((row) => row.sl_present || row.tp1_present || row.tp2_present).length, sl_proven: rows.length > 0 && rows.every((row) => row.sl_present === true), tp1_proven: rows.length > 0 && rows.every((row) => row.tp1_present === true), tp2_proven: rows.length > 0 && rows.every((row) => row.tp2_present === true), repair_attempted: repairs.some((r) => r.provider === providerName), repair_successful: repairs.filter((r) => r.provider === providerName).every((r) => r.successful === true), telegram_sent: false, exact_blocker: blocker };
+    };
+    const stillUnsafe = ((truthAfter ?? []) as Json[]).filter((row) => row.protection_status !== "protected");
+    let telegram: unknown = null;
+    if (stillUnsafe.length) telegram = await routeTelegramEvent(supabase, { event_type: "critical_unprotected_position", channels: ["admin"], dedupe: false, source: "binance-testnet-execution", text: [`Trade management critical alert`, ...stillUnsafe.map((row) => `${String(row.provider).toUpperCase()} ${row.symbol} ${row.side}: ${row.latest_error ?? row.protection_status}`)].join("\n") });
+    return { success: stillUnsafe.length === 0, action, sync, after_sync: afterSync, repair_attempts: repairs.length, repair_successes: repairs.filter((r) => r.successful).length, repairs, telegram, Binance: proofFor("binance"), Bybit: proofFor("bybit"), blocker: stillUnsafe.length ? "one_or_more_positions_still_unprotected_after_real_exchange_repair_attempt" : null };
   }
   if (action === "close_unprotected_position") return { success: false, provider, symbol, blocker: "manual close requires explicit provider+symbol confirmation; live trading remains disabled" };
   return { success: false, blocker: "unknown_trade_management_action" };
@@ -2214,7 +2291,7 @@ Deno.serve(async (req: Request) => {
     else if (action === "execute_latest_binance_supported_signal") { const sig = await latestSupportedSignal(supabase, "binance"); payload = sig ? await executeSignal(supabase, sig.id, true) : { success:false, reason:"no_binance_supported_signal" }; }
     else if (action === "execute_latest_bybit_supported_signal") { const sig = await latestSupportedSignal(supabase, "bybit"); payload = sig ? await executeBybitSignal(supabase, sig, crypto.randomUUID(), true, "manual_bybit_supported_test") : { success:false, reason:"no_bybit_supported_signal" }; }
     else if (action === "execute_latest_mirror_supported_signal") { const sig = await latestSupportedSignal(supabase, "mirror"); payload = sig ? await routeSignalToEnabledProviders(supabase, sig.id, true) : { success:false, reason:"no_mirror_supported_signal" }; }
-    else if (["sync_all_positions_now", "repair_all_protection_now", "run_profit_lock_now", "close_unprotected_position", "prove_binance_trade_management", "prove_bybit_trade_management"].includes(action)) payload = await tradeManagementAction(supabase, action, body.provider, body.symbol);
+    else if (["sync_all_positions_now", "repair_all_protection_now", "run_profit_lock_now", "close_unprotected_position", "prove_binance_trade_management", "prove_bybit_trade_management", "run_full_trade_management_proof"].includes(action)) payload = await tradeManagementAction(supabase, action, body.provider, body.symbol);
     else if (action === "execution_readiness") payload = await executionReadiness(supabase, (body.provider === "bybit" ? "bybit" : "binance") as "binance" | "bybit");
     else if (action === "parallel_dry_run") payload = await parallelDryRun(supabase, cleanSignalId(body.signal_id));
     else if (action === "diagnose_bybit_testnet_connection") payload = await diagnoseBybitTestnetConnection(supabase);

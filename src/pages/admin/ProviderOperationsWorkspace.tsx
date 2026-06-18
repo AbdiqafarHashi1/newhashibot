@@ -210,6 +210,9 @@ type TradeManagementTruthUiRow = {
   tp2_present: boolean;
   profit_lock_status: string | null;
   protection_status: string | null;
+  monitor_status?: string | null;
+  recovery_status?: string | null;
+  last_action_taken?: string | null;
   latest_sync_at: string | null;
   latest_error: string | null;
 };
@@ -292,7 +295,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
   const protectionCommandPlatforms = useMemo(() => {
     const platformDefs = [
       { key: 'binance:testnet', provider: 'binance', label: 'Binance', environment: 'testnet', adapterPending: false },
-      { key: 'bybit:testnet', provider: 'bybit', label: 'Bybit', environment: 'testnet', adapterPending: false },
+      { key: 'bybit:demo', provider: 'bybit', label: 'Bybit', environment: 'demo', adapterPending: false },
       { key: 'mt5:personal', provider: 'mt5', label: 'MT5 Personal', environment: 'personal', adapterPending: true },
       { key: 'mt5:prop', provider: 'mt5', label: 'MT5 Prop', environment: 'prop', adapterPending: true },
     ];
@@ -307,18 +310,19 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       const automaticHeartbeat = latestAutomaticHeartbeatByProvider.get(platform.key);
       const manualHeartbeat = latestManualHeartbeatByProvider.get(platform.key);
       const schedule = scheduleByProvider.get(platform.key);
-      const protectedPositions = active.filter(execution => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
-      const missingSl = active.filter(execution => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
-      const missingTp1 = active.filter(execution => String(execution.protection_status) === 'missing_tp1' || execution.tp1_status === 'missing').length;
-      const missingTp2 = active.filter(execution => String(execution.protection_status) === 'missing_tp2' || execution.tp2_status === 'missing').length;
+      const truthRows = tradeTruthRows.filter(row => row.provider === platform.provider);
+      const protectedPositions = truthRows.length ? truthRows.filter(row => row.protection_status === 'protected').length : active.filter(execution => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
+      const missingSl = truthRows.length ? truthRows.filter(row => !row.sl_present).length : active.filter(execution => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
+      const missingTp1 = truthRows.length ? truthRows.filter(row => !row.tp1_present).length : active.filter(execution => String(execution.protection_status) === 'missing_tp1' || execution.tp1_status === 'missing').length;
+      const missingTp2 = truthRows.length ? truthRows.filter(row => !row.tp2_present).length : active.filter(execution => String(execution.protection_status) === 'missing_tp2' || execution.tp2_status === 'missing').length;
       const pendingProtection = active.filter(execution => ['pending_protection', 'protection_pending', 'pending_managed_protection'].includes(String(execution.protection_status ?? execution.status))).length;
       const failedProtection = active.filter(execution => ['protection_failed', 'unprotected_failed'].includes(String(execution.protection_status ?? execution.status))).length;
       const expired = active.filter(execution => ['expired', 'expired_closed'].includes(String(execution.expiry_status)) || String(execution.status).includes('expired')).length;
       const recoveryIssues = active.filter(execution => execution.latest_protection_error || execution.latest_monitor_error || ['cleanup_failed', 'expiry_close_failed', 'protection_retry_failed'].includes(String(execution.recovery_status))).length;
       const latestTelegram = rows.map(execution => execution.latest_telegram_event_at || '').filter(Boolean).sort().slice(-1)[0] ?? heartbeat?.latest_telegram_event ?? '';
-      return { ...platform, rows, active, heartbeat, automaticHeartbeat, manualHeartbeat, schedule, providerStatus: platform.adapterPending ? 'adapter_pending' : providerStatus.get(platform.provider as 'binance' | 'bybit' | 'mt5')?.status ?? 'unknown', monitorStatus: platform.adapterPending ? 'not_available' : heartbeat?.monitor_status ?? 'no_heartbeat', activePositions: platform.adapterPending ? null : active.length, protectedPositions, unprotectedPositions: Math.max(active.length - protectedPositions, 0), missingSl, missingTp1, missingTp2, pendingProtection, failedProtection, staleOrders: heartbeat?.stale_orders_cleaned ?? 0, expired, recoveryIssues, latestRecoveryAction: platform.adapterPending ? 'adapter_pending' : heartbeat?.latest_recovery_action ?? '—', latestTelegram, latestError: platform.adapterPending ? 'MT5 adapter not connected' : Array.isArray(heartbeat?.errors) ? String((heartbeat?.errors as unknown[])[0] ?? '—') : '—' };
+      return { ...platform, rows, active, heartbeat, automaticHeartbeat, manualHeartbeat, schedule, providerStatus: platform.adapterPending ? 'adapter_pending' : providerStatus.get(platform.provider as 'binance' | 'bybit' | 'mt5')?.status ?? 'unknown', monitorStatus: platform.adapterPending ? 'not_available' : heartbeat?.monitor_status ?? 'no_heartbeat', activePositions: platform.adapterPending ? null : (truthRows.length || active.length), protectedPositions, unprotectedPositions: Math.max((truthRows.length || active.length) - protectedPositions, 0), missingSl, missingTp1, missingTp2, pendingProtection, failedProtection, staleOrders: heartbeat?.stale_orders_cleaned ?? 0, expired, recoveryIssues, latestRecoveryAction: platform.adapterPending ? 'adapter_pending' : (truthRows.map(row => row.last_action_taken || row.recovery_status || '').filter(Boolean).sort().slice(-1)[0] || heartbeat?.latest_recovery_action || '—'), latestTelegram, latestError: platform.adapterPending ? 'MT5 adapter not connected' : (truthRows.find(row => row.latest_error)?.latest_error || (Array.isArray(heartbeat?.errors) ? String((heartbeat?.errors as unknown[])[0] ?? '—') : '—')) };
     });
-  }, [allProviderExecutions, latestHeartbeatByProvider, latestAutomaticHeartbeatByProvider, latestManualHeartbeatByProvider, providerStatus, scheduleByProvider]);
+  }, [allProviderExecutions, latestHeartbeatByProvider, latestAutomaticHeartbeatByProvider, latestManualHeartbeatByProvider, providerStatus, scheduleByProvider, tradeTruthRows]);
   const providerCards = useMemo(() => {
     const providers = ['binance', 'bybit', 'mt5'] as const;
     return providers.map((provider) => {
@@ -517,7 +521,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       supabase.from('provider_symbol_cache').select('provider,symbol,status').in('provider', ['binance', 'bybit']).limit(5000),
       supabase.from('execution_monitor_heartbeats').select('*').order('started_at', { ascending: false }).limit(50),
       supabase.from('execution_monitor_schedules').select('*').order('provider'),
-      supabase.from('active_trade_management_truth').select('provider,symbol,side,qty,entry_price,mark_price,unrealized_pnl,sl_present,tp1_present,tp2_present,profit_lock_status,protection_status,latest_sync_at,latest_error').in('provider', ['binance', 'bybit']).order('latest_sync_at', { ascending: false }),
+      supabase.from('active_trade_management_truth').select('provider,symbol,side,qty,entry_price,mark_price,unrealized_pnl,sl_present,tp1_present,tp2_present,profit_lock_status,protection_status,monitor_status,recovery_status,last_action_taken,latest_sync_at,latest_error').in('provider', ['binance', 'bybit']).order('latest_sync_at', { ascending: false }),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -713,6 +717,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
             <button type="button" disabled={acting} onClick={() => callExecution('sync_all_positions_now')} className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">Sync all positions now</button>
             <button type="button" disabled={acting} onClick={() => callExecution('repair_all_protection_now')} className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">Repair all protection now</button>
             <button type="button" disabled={acting} onClick={() => callExecution('run_profit_lock_now')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Run profit lock now</button>
+            <button type="button" disabled={acting} onClick={() => callExecution('run_full_trade_management_proof')} className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-sm text-purple-200">Run full proof</button>
           </div>
         </div>
         <div className="overflow-x-auto">
