@@ -26,7 +26,6 @@ import Account from './pages/app/Account';
 import PackageRequest from './pages/app/PackageRequest';
 
 // Admin pages
-import ControlRoom from './pages/admin/ControlRoom';
 import ScannerStatus from './pages/admin/ScannerStatus';
 import ScannerConfig from './pages/admin/ScannerConfig';
 import ProviderHealth from './pages/admin/ProviderHealth';
@@ -56,6 +55,7 @@ import BybitOperations from './pages/admin/BybitOperations';
 import MT5PersonalOperations from './pages/admin/MT5PersonalOperations';
 import MT5PropOperations from './pages/admin/MT5PropOperations';
 import Customers from './pages/admin/Customers';
+import OperatorPanel from './pages/admin/operator/OperatorPanel';
 
 // Smart redirect after login based on role
 function AuthRedirect() {
@@ -74,7 +74,7 @@ function AuthRedirect() {
       <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
-  if (profile.role === 'admin') return <Navigate to="/admin/control-room" replace />;
+  if (profile.role === 'admin') return <Navigate to="/admin/operator" replace />;
   return <Navigate to="/app/dashboard" replace />;
 }
 
@@ -112,7 +112,16 @@ function App() {
           <Route path="/app/account"     element={<RequireAuth><Account /></RequireAuth>} />
 
           {/* Admin */}
-          <Route path="/admin/control-room"    element={<RequireAdmin><ControlRoom /></RequireAdmin>} />
+
+          <Route path="/admin/operator" element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
+          <Route path="/admin/operator/signals" element={<RequireAdmin><OperatorPanel section="signals" /></RequireAdmin>} />
+          <Route path="/admin/operator/executions" element={<RequireAdmin><OperatorPanel section="executions" /></RequireAdmin>} />
+          <Route path="/admin/operator/trade-manager" element={<RequireAdmin><OperatorPanel section="trade-manager" /></RequireAdmin>} />
+          <Route path="/admin/operator/telegram" element={<RequireAdmin><OperatorPanel section="telegram" /></RequireAdmin>} />
+          <Route path="/admin/operator/settings" element={<RequireAdmin><OperatorPanel section="settings" /></RequireAdmin>} />
+          <Route path="/admin/operator/intelligence" element={<RequireAdmin><OperatorPanel section="intelligence" /></RequireAdmin>} />
+          <Route path="/admin/operator/runtime-proof" element={<RequireAdmin><OperatorPanel section="runtime-proof" /></RequireAdmin>} />
+          <Route path="/admin/control-room"    element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
           <Route path="/admin/scanner"          element={<RequireAdmin><ScannerStatus /></RequireAdmin>} />
           <Route path="/admin/scanner-config"   element={<RequireAdmin><ScannerConfig /></RequireAdmin>} />
           <Route path="/admin/providers"        element={<RequireAdmin><ProviderHealth /></RequireAdmin>} />

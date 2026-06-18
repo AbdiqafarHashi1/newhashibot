@@ -197,6 +197,23 @@ interface ActionResult {
   symbols_checked?: number;
 }
 
+type TradeManagementTruthUiRow = {
+  provider: string;
+  symbol: string;
+  side: string;
+  qty: number | string;
+  entry_price: number | string | null;
+  mark_price: number | string | null;
+  unrealized_pnl: number | string | null;
+  sl_present: boolean;
+  tp1_present: boolean;
+  tp2_present: boolean;
+  profit_lock_status: string | null;
+  protection_status: string | null;
+  latest_sync_at: string | null;
+  latest_error: string | null;
+};
+
 export default function ProviderOperationsWorkspace({ provider = 'binance', mode = 'crypto' }: { provider?: 'binance' | 'bybit' | 'mt5'; mode?: 'crypto' | 'mt5_personal' | 'mt5_prop' }) {
   const { session } = useAuth();
   const [status, setStatus] = useState<StatusPayload | null>(null);
@@ -218,6 +235,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
   const [monitorSchedules, setMonitorSchedules] = useState<MonitorSchedule[]>([]);
   const [providerControlsError, setProviderControlsError] = useState<{ kind: ProviderControlsErrorKind; message: string }>({ kind: '', message: '' });
   const [bybitDebug, setBybitDebug] = useState<ActionResult | null>(null);
+  const [tradeTruthRows, setTradeTruthRows] = useState<TradeManagementTruthUiRow[]>([]);
   const providerStatus = useMemo(() => new Map(providerControls.map((control) => [control.provider_name, control])), [providerControls]);
   const requestedPrimaryProvider = providerGlobalControls?.primary_provider ?? providerControls.find((control) => control.primary_provider)?.provider_name ?? 'binance';
   const bybitConnected = providerStatus.get('bybit')?.status === 'connected' || bybitDebug?.connected === true;
@@ -482,7 +500,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
     setLoading(true);
     const dayStart = new Date();
     dayStart.setUTCHours(0, 0, 0, 0);
-    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes, providerSymbolCacheRes, monitorHeartbeatRes, monitorScheduleRes] = await Promise.all([
+    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes, providerSymbolCacheRes, monitorHeartbeatRes, monitorScheduleRes, tradeTruthRes] = await Promise.all([
       fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
@@ -499,6 +517,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
       supabase.from('provider_symbol_cache').select('provider,symbol,status').in('provider', ['binance', 'bybit']).limit(5000),
       supabase.from('execution_monitor_heartbeats').select('*').order('started_at', { ascending: false }).limit(50),
       supabase.from('execution_monitor_schedules').select('*').order('provider'),
+      supabase.from('active_trade_management_truth').select('provider,symbol,side,qty,entry_price,mark_price,unrealized_pnl,sl_present,tp1_present,tp2_present,profit_lock_status,protection_status,latest_sync_at,latest_error').in('provider', ['binance', 'bybit']).order('latest_sync_at', { ascending: false }),
     ]);
     const statusPayload = statusRes as StatusPayload;
     setStatus(statusPayload);
@@ -526,6 +545,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
     setProviderSymbolCache(((providerSymbolCacheRes.data ?? []) as ProviderSymbolCacheRow[]));
     setMonitorHeartbeats(((monitorHeartbeatRes.data ?? []) as MonitorHeartbeat[]));
     setMonitorSchedules(((monitorScheduleRes.data ?? []) as MonitorSchedule[]));
+    setTradeTruthRows(((tradeTruthRes.data ?? []) as TradeManagementTruthUiRow[]));
     setLoading(false);
   }, [session]);
 
@@ -679,6 +699,34 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-sm">Trade Management Truth</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Exchange-truth-first Binance/Bybit positions from trade_management_truth. No copied provider data and no readiness cards.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={acting} onClick={() => callExecution('sync_all_positions_now')} className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">Sync all positions now</button>
+            <button type="button" disabled={acting} onClick={() => callExecution('repair_all_protection_now')} className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">Repair all protection now</button>
+            <button type="button" disabled={acting} onClick={() => callExecution('run_profit_lock_now')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Run profit lock now</button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-xs">
+            <thead className="text-zinc-500"><tr className="border-b border-zinc-800">
+              {['Provider','Symbol','Side','Qty','Entry','Mark','PnL','SL','TP1','TP2','Profit Lock','Status','Last Sync','Error'].map(head => <th key={head} className="py-2 pr-3 text-left">{head}</th>)}
+            </tr></thead>
+            <tbody>
+              {tradeTruthRows.map((row) => <tr key={`${row.provider}:${row.symbol}:${row.side}`} className="border-b border-zinc-900 text-zinc-300">
+                <td className="py-2 pr-3 uppercase">{row.provider}</td><td className="py-2 pr-3 font-mono">{row.symbol}</td><td className="py-2 pr-3">{row.side}</td><td className="py-2 pr-3 font-mono">{row.qty}</td><td className="py-2 pr-3 font-mono">{row.entry_price ?? '—'}</td><td className="py-2 pr-3 font-mono">{row.mark_price ?? '—'}</td><td className={Number(row.unrealized_pnl ?? 0) >= 0 ? 'py-2 pr-3 font-mono text-emerald-300' : 'py-2 pr-3 font-mono text-red-300'}>{row.unrealized_pnl ?? '—'}</td><td className="py-2 pr-3">{row.sl_present ? 'YES' : 'NO'}</td><td className="py-2 pr-3">{row.tp1_present ? 'YES' : 'NO'}</td><td className="py-2 pr-3">{row.tp2_present ? 'YES' : 'NO'}</td><td className="py-2 pr-3">{row.profit_lock_status ?? 'inactive'}</td><td className="py-2 pr-3">{row.protection_status ?? 'unknown'}</td><td className="py-2 pr-3 font-mono">{row.latest_sync_at ? new Date(row.latest_sync_at).toLocaleString() : '—'}</td><td className="py-2 pr-3 text-red-300">{row.latest_error ?? '—'}</td>
+              </tr>)}
+              {tradeTruthRows.length === 0 && <tr><td colSpan={14} className="py-6 text-center text-zinc-500">No exchange positions synced into trade_management_truth.</td></tr>}
+            </tbody>
+          </table>
         </div>
       </div>
 

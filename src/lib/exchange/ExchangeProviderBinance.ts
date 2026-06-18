@@ -22,10 +22,16 @@ export class ExchangeProviderBinance implements ExchangeProvider {
   async getBalances() { return this.clients.account?.getBalances?.() ?? (await this.getAccountState()).balances; }
   async getPositions() { return this.clients.account?.getPositions?.() ?? (await this.getAccountState()).positions; }
   async getOpenOrders(symbol?: string) { return this.clients.account?.getOpenOrders?.(symbol) ?? (await this.getAccountState()).openOrders.filter(o => !symbol || o.symbol === symbol); }
+  async fetchAccount() { return this.getAccountState(); }
+  async fetchOpenPositions() { return this.getPositions(); }
+  async fetchOpenOrders(symbol?: string) { return this.getOpenOrders(symbol); }
+  async placeEntryOrder(request: EntryRequest) { return this.placeEntry(request); }
   async placeEntry(request: EntryRequest) { return this.clients.execution?.placeEntry?.(request) ?? notWired('placeEntry'); }
+  async cancelOrder(request: ReconcileRequest) { return this.cancelEntry(request); }
   async cancelEntry(request: ReconcileRequest) { return this.clients.execution?.cancelEntry?.(request) ?? notWired('cancelEntry'); }
   async closePosition(request: ReconcileRequest & { quantity?: number; reason?: string }) { return this.clients.execution?.closePosition?.(request) ?? notWired('closePosition'); }
 
+  async placeStopLoss(request: ProtectionRequest) { return this.placeSL(request); }
   async placeSL(request: ProtectionRequest) {
     if (!this.clients.protection || request.entryPrice == null) return notWired('placeSL');
     const result = await this.clients.protection.placeReduceOnlyStop({ symbol: request.symbol, direction: sideToDirection(request.side), quantity: request.quantity, entryPrice: request.entryPrice, stopLoss: request.stopLoss, tp1: request.tp1, tp2: request.tp2 });
@@ -33,6 +39,7 @@ export class ExchangeProviderBinance implements ExchangeProvider {
   }
   async placeTP1(request: ProtectionRequest) { return this.placeTP(request, 'tp1'); }
   async placeTP2(request: ProtectionRequest) { return this.placeTP(request, 'tp2'); }
+  async placeTakeProfit(request: ProtectionRequest, target: 'tp1' | 'tp2') { return target === 'tp1' ? this.placeTP1(request) : this.placeTP2(request); }
   private async placeTP(request: ProtectionRequest, label: 'tp1' | 'tp2') {
     if (!this.clients.protection || request.entryPrice == null) return notWired(`place${label.toUpperCase()}`);
     const result = await this.clients.protection.placeReduceOnlyTakeProfit({ symbol: request.symbol, direction: sideToDirection(request.side), quantity: request.quantity, entryPrice: request.entryPrice, stopLoss: request.stopLoss, tp1: request.tp1, tp2: request.tp2, targetPrice: label === 'tp1' ? request.tp1 : request.tp2, label });
@@ -47,6 +54,7 @@ export class ExchangeProviderBinance implements ExchangeProvider {
   async repairProtection(request: ProtectionRequest) { const sl = await this.placeSL(request); const tp1 = await this.placeTP1(request); const tp2 = await this.placeTP2(request); return { provider, ok: sl.ok && tp1.ok && tp2.ok, metadata: { sl, tp1, tp2 } }; }
   async replaceSL(request: ReplaceStopRequest) { return this.placeSL({ symbol: request.symbol, side: request.side, quantity: request.quantity, stopLoss: request.stopLoss, tp1: Number(request.metadata?.tp1 ?? 0), tp2: Number(request.metadata?.tp2 ?? 0), entryPrice: Number(request.metadata?.entryPrice ?? 0), metadata: request.metadata }); }
   async reconcilePosition(request: ReconcileRequest) { return { provider, ok: true, metadata: { request, positions: await this.getPositions() } }; }
+  async syncPositionProtection(request: ReconcileRequest) { return this.reconcileProtection(request); }
   async reconcileProtection(request: ReconcileRequest) { return this.verifyProtection(request); }
   async classifySafetyState(request: ReconcileRequest) {
     const status = String(request.metadata?.status ?? 'unknown');

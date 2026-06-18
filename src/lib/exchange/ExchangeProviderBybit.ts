@@ -201,10 +201,15 @@ export class ExchangeProviderBybit implements ExchangeProvider {
     return (result.list ?? []).map((row) => ({ providerOrderId: String(row.orderId), symbol: String(row.symbol), side: String(row.side), type: String(row.orderType ?? row.stopOrderType ?? row.orderFilter), status: String(row.orderStatus), quantity: safeNumber(row.qty), price: safeNumber(row.price), triggerPrice: safeNumber(row.triggerPrice), reduceOnly: row.reduceOnly === true || row.reduceOnly === 'true', metadata: row }));
   }
 
+  async fetchAccount() { return this.getAccountState(); }
+  async fetchOpenPositions() { return this.getPositions(); }
+  async fetchOpenOrders(symbol?: string) { return this.getOpenOrders(symbol); }
+  async placeEntryOrder(request: EntryRequest) { return this.placeEntry(request); }
   async placeEntry(request: EntryRequest): Promise<ProviderResult> {
     const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: side(request.side), orderType: request.entryPrice ? 'Limit' : 'Market', qty: String(request.quantity), price: request.entryPrice ? String(request.entryPrice) : undefined, timeInForce: request.entryPrice ? 'GTC' : 'IOC', orderLinkId: request.signalId ? createBybitOrderLinkId(request.signalId, 'entry', this.now()) : undefined });
     return { provider, ok: true, providerOrderId: result.orderId, status: 'entry_submitted', metadata: result };
   }
+  async cancelOrder(request: ReconcileRequest) { return this.cancelEntry(request); }
   async cancelEntry(request: ReconcileRequest): Promise<ProviderResult> {
     const result = await this.request<Record<string, unknown>>('POST', '/v5/order/cancel', { category: this.category, symbol: request.symbol, orderId: request.providerOrderId });
     return { provider, ok: true, providerOrderId: request.providerOrderId, status: 'cancelled', metadata: result };
@@ -220,9 +225,11 @@ export class ExchangeProviderBybit implements ExchangeProvider {
     const result = await this.request<{ orderId: string; orderLinkId?: string }>('POST', '/v5/order/create', { category: this.category, symbol: request.symbol, side: closeSide(request.side), orderType: 'Market', qty: String(request.quantity), triggerPrice: String(triggerPrice), triggerDirection: request.side === 'long' ? (label === 'sl' ? 2 : 1) : (label === 'sl' ? 1 : 2), reduceOnly: true, orderFilter: 'StopOrder', orderLinkId: createBybitOrderLinkId(request.metadata?.executionId ?? request.symbol, label, this.now()) });
     return { provider, ok: true, providerOrderId: result.orderId, status: `${label}_submitted`, metadata: { ...result, label } };
   }
+  async placeStopLoss(request: ProtectionRequest) { return this.placeSL(request); }
   async placeSL(request: ProtectionRequest) { return this.placeProtection(request, 'sl'); }
   async placeTP1(request: ProtectionRequest) { return this.placeProtection(request, 'tp1'); }
   async placeTP2(request: ProtectionRequest) { return this.placeProtection(request, 'tp2'); }
+  async placeTakeProfit(request: ProtectionRequest, target: 'tp1' | 'tp2') { return target === 'tp1' ? this.placeTP1(request) : this.placeTP2(request); }
   async verifyProtection(request: ReconcileRequest): Promise<ProviderResult<{ verified: boolean; missing: string[] }>> {
     const open = await this.getOpenOrders(request.symbol);
     const ids = ['sl', 'tp1', 'tp2'].map((label) => String(request.metadata?.[`${label}_order_id`] ?? request.metadata?.[`${label}_algo_id`] ?? '')).filter(Boolean);
@@ -233,6 +240,7 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   async repairProtection(request: ProtectionRequest): Promise<ProviderResult> { const sl = await this.placeSL(request); const tp1 = await this.placeTP1(request); const tp2 = await this.placeTP2(request); return { provider, ok: sl.ok && tp1.ok && tp2.ok, metadata: { sl, tp1, tp2 } }; }
   async replaceSL(request: ReplaceStopRequest): Promise<ProviderResult> { return this.placeProtection({ symbol: request.symbol, side: request.side, quantity: request.quantity, stopLoss: request.stopLoss, tp1: Number(request.metadata?.tp1 ?? 0), tp2: Number(request.metadata?.tp2 ?? 0), metadata: request.metadata }, 'sl'); }
   async reconcilePosition(request: ReconcileRequest): Promise<ProviderResult> { const positions = await this.getPositions(); return { provider, ok: true, metadata: { positions: positions.filter((position) => position.symbol === request.symbol) } }; }
+  async syncPositionProtection(request: ReconcileRequest) { return this.reconcileProtection(request); }
   async reconcileProtection(request: ReconcileRequest) { return this.verifyProtection(request); }
   async classifySafetyState(request: ReconcileRequest): Promise<ProviderResult<{ state: SafetyState; reason: string }>> {
     const protection = await this.verifyProtection(request);

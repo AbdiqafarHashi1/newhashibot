@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Users, LogOut, Menu, Activity,
   Database, Send, FileText, CheckCircle, AlertTriangle,
-  PlusCircle, User, Settings, Clock, BarChart2, ListChecks,
-  Radio, Link2, ShieldCheck, ClipboardList, Brain, Cpu, Layers, FlaskConical, PackageCheck, TrendingUp
+  User, Settings, ListChecks,
+  Radio, ShieldCheck, Brain, Cpu
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,41 +14,29 @@ type NavItem =
   | { to: string; label: string; icon: LucideIcon };
 
 const adminNav: NavItem[] = [
-  { section: 'Operations' },
-  { to: '/admin/control-room',    label: 'Control Room',        icon: LayoutDashboard },
-  { to: '/admin/scanner-config',  label: 'Scanner Config',      icon: Settings },
-  { to: '/admin/providers',       label: 'Provider Health',     icon: Database },
-  { to: '/admin/scanner',         label: 'Scanner Logs',        icon: Activity },
-  { to: '/admin/scheduler',       label: 'Scheduler Guide',     icon: Clock },
-  { section: 'Trading Brain' },
-  { to: '/admin/trading-brain',   label: 'Brain Diagnostics',   icon: Brain },
-  { to: '/admin/strategy-config', label: 'Strategy Config',     icon: Settings },
-  { to: '/admin/modes',           label: 'Mode Control',        icon: Layers },
-  { to: '/admin/execution',       label: 'Provider Operations', icon: Cpu },
-  { to: '/admin/providers/binance', label: 'Binance Ops', icon: Database },
-  { to: '/admin/providers/bybit', label: 'Bybit Ops', icon: ShieldCheck },
-  { to: '/admin/providers/mt5-personal', label: 'MT5 Personal Ops', icon: Cpu },
-  { to: '/admin/providers/mt5-prop', label: 'MT5 Prop Ops', icon: Activity },
-  { to: '/admin/providers/comparison', label: 'Provider Comparison', icon: BarChart2 },
-  { to: '/admin/backtest-lab',    label: 'Backtest Lab',        icon: FlaskConical },
-  { section: 'Signals' },
-  { to: '/admin/signals',         label: 'Signals Manager',     icon: Radio },
-  { to: '/admin/signals/new',     label: 'Create Signal',       icon: PlusCircle },
-  { to: '/admin/candidates',      label: 'Candidate Setups',    icon: CheckCircle },
-  { to: '/admin/rejected',        label: 'Rejected Setups',     icon: AlertTriangle },
-  { to: '/admin/outcomes',        label: 'Outcome Tracking',    icon: BarChart2 },
-  { to: '/admin/performance',     label: 'Performance Stats',   icon: TrendingUp },
-  { section: 'Telegram' },
-  { to: '/admin/telegram-test',   label: 'Telegram Verify',     icon: Send },
-  { to: '/admin/telegram-links',  label: 'Telegram Links',      icon: Link2 },
-  { to: '/admin/telegram',        label: 'Telegram Logs',       icon: FileText },
+  { section: 'Operator Panel' },
+  { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/admin/operator/signals', label: 'Signals', icon: Radio },
+  { to: '/admin/operator/executions', label: 'Executions', icon: Cpu },
+  { to: '/admin/operator/trade-manager', label: 'Trade Manager', icon: ShieldCheck },
+  { to: '/admin/operator/telegram', label: 'Telegram', icon: Send },
+  { to: '/admin/operator/settings', label: 'Settings', icon: Settings },
+  { to: '/admin/operator/intelligence', label: 'News Brain', icon: Brain },
+  { to: '/admin/operator/runtime-proof', label: 'Runtime Proof', icon: ListChecks },
+  { section: 'Compatibility / Deprecated' },
+  { to: '/admin/scanner', label: 'Scanner Logs', icon: Activity },
+  { to: '/admin/scanner-config', label: 'Scanner Config', icon: Settings },
+  { to: '/admin/providers', label: 'Provider Health', icon: Database },
+  { to: '/admin/providers/binance', label: 'Binance Legacy Ops', icon: Database },
+  { to: '/admin/providers/bybit', label: 'Bybit Legacy Ops', icon: ShieldCheck },
+  { to: '/admin/signals', label: 'Signals Manager', icon: Radio },
+  { to: '/admin/candidates', label: 'Candidate Setups', icon: CheckCircle },
+  { to: '/admin/rejected', label: 'Rejected Setups', icon: AlertTriangle },
+  { to: '/admin/telegram', label: 'Telegram Logs', icon: FileText },
   { section: 'Admin' },
-  { to: '/admin/customers',       label: 'Customers',           icon: ShieldCheck },
-  { to: '/admin/users',           label: 'Users / Subscribers', icon: Users },
-  { to: '/admin/access-requests', label: 'Access Requests',     icon: ClipboardList },
-  { to: '/admin/audit',           label: 'Audit Logs',          icon: FileText },
-  { to: '/admin/checklist',       label: 'MVP Test Checklist',  icon: ListChecks },
-  { to: '/admin/handoff',         label: 'Handoff & Readiness', icon: PackageCheck },
+  { to: '/admin/customers', label: 'Customers', icon: ShieldCheck },
+  { to: '/admin/users', label: 'Users / Subscribers', icon: Users },
+  { to: '/admin/audit', label: 'Audit Logs', icon: FileText },
 ];
 
 export function AdminLayout({ children }: { children: ReactNode }) {
@@ -77,7 +65,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex overflow-x-hidden">
       <aside className={`fixed inset-y-0 left-0 z-40 w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col transition-transform duration-200 ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <Link to="/admin/control-room" className="h-14 flex items-center px-5 border-b border-zinc-800 gap-2 shrink-0 hover:bg-zinc-800/40 transition-colors">
+        <Link to="/admin/operator" className="h-14 flex items-center px-5 border-b border-zinc-800 gap-2 shrink-0 hover:bg-zinc-800/40 transition-colors">
           <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
             <Zap size={14} className="text-white" />
           </div>
@@ -143,8 +131,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             <Menu size={18} />
           </button>
           <div className="flex-1 min-w-0" />
-          <span className="text-xs text-zinc-400 hidden sm:block">Signal Mode MVP</span>
-          <Link to="/admin/control-room" className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full font-bold tracking-wide">ADMIN</Link>
+          <span className="text-xs text-zinc-400 hidden sm:block">Runtime Truth</span>
+          <Link to="/admin/operator" className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full font-bold tracking-wide">ADMIN</Link>
           <Link to="/app/dashboard" className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700/80 bg-zinc-900/80 text-zinc-300" aria-label="Open user dashboard">
             <User size={14} />
           </Link>
