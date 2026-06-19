@@ -2171,70 +2171,101 @@ async function updateSettings(supabase: SupabaseClient, patch: Json): Promise<Js
 }
 
 
-async function syncTradeManagementTruth(supabase: SupabaseClient, providerName: "binance" | "bybit"): Promise<Json> {
+type ProviderExposure = {
+  wallet_reachable: boolean;
+  positions: Json[];
+  open_orders: Json[];
+  fetch_duration_ms: number;
+  error: string | null;
+  exchange_call_count: number;
+};
+
+function activeExposurePositions(providerName: "binance" | "bybit", raw: Json[]): Json[] {
+  return raw.filter((row) => Math.abs(Number(providerName === "binance" ? row.positionAmt : row.size ?? row.positionAmt ?? 0)) > 0);
+}
+
+async function fetchProviderExposure(providerName: "binance" | "bybit"): Promise<ProviderExposure> {
+  const started = Date.now();
+  try {
+    if (providerName === "binance") {
+      const [positionsRaw, openOrders] = await Promise.all([
+        binanceRequest<Json[]>("GET", "/fapi/v2/positionRisk", {}, true),
+        fetchNativeOpenProtection(),
+      ]);
+      return { wallet_reachable: true, positions: activeExposurePositions(providerName, positionsRaw), open_orders: openOrders, fetch_duration_ms: Date.now() - started, error: null, exchange_call_count: 3 };
+    }
+    const [positionsResult, ordersResult] = await Promise.all([
+      bybitRequest<Json>("GET", "/v5/position/list", { category: "linear", settleCoin: "USDT" }),
+      bybitRequest<Json>("GET", "/v5/order/realtime", { category: "linear", settleCoin: "USDT", openOnly: 0 }),
+    ]);
+    const positions = activeExposurePositions(providerName, (((positionsResult as Json).list ?? []) as Json[]));
+    const openOrders = (((ordersResult as Json).list ?? []) as Json[]);
+    return { wallet_reachable: true, positions, open_orders: openOrders, fetch_duration_ms: Date.now() - started, error: null, exchange_call_count: 2 };
+  } catch (e) {
+    return { wallet_reachable: false, positions: [], open_orders: [], fetch_duration_ms: Date.now() - started, error: e instanceof Error ? e.message : String(e), exchange_call_count: providerName === "binance" ? 3 : 2 };
+  }
+}
+
+function tradeTruthRowFromRaw(providerName: "binance" | "bybit", pos: Json, openOrders: Json[], now: string): Json | null {
+  const environment = providerName === "binance" ? "testnet" : "demo";
+  const symbol = String(pos.symbol ?? "");
+  if (!symbol) return null;
+  const qty = Math.abs(Number(pos.positionAmt ?? pos.size ?? 0));
+  const side = String(pos.positionSide ?? pos.side ?? (Number(pos.positionAmt ?? 0) >= 0 ? "long" : "short")).toLowerCase().includes("sell") || Number(pos.positionAmt ?? 0) < 0 ? "short" : "long";
+  const rowForClassification = { provider: providerName, environment, symbol, side, mark_price: Number(pos.markPrice ?? 0) || Number(pos.entryPrice ?? pos.avgPrice ?? 0) || null, entry_price: Number(pos.entryPrice ?? pos.avgPrice ?? 0) || null } as Json;
+  const classified = classifyRawProtection(providerName, rowForClassification, openOrders);
+  return {
+    provider: providerName, environment, symbol, side, qty,
+    entry_price: Number(pos.entryPrice ?? pos.avgPrice ?? 0) || null,
+    mark_price: Number(pos.markPrice ?? 0) || null,
+    unrealized_pnl: Number(pos.unRealizedProfit ?? pos.unrealisedPnl ?? 0) || 0,
+    exchange_position_id: String(pos.positionIdx ?? pos.positionId ?? symbol),
+    sl_order_id: String(classified.sl?.orderId ?? classified.sl?.algoId ?? "") || null,
+    tp1_order_id: String(classified.tp1?.orderId ?? classified.tp1?.algoId ?? "") || null,
+    tp2_order_id: String(classified.tp2?.orderId ?? classified.tp2?.algoId ?? "") || null,
+    sl_present: Boolean(classified.sl), tp1_present: Boolean(classified.tp1), tp2_present: Boolean(classified.tp2),
+    protection_status: classified.status,
+    profit_lock_eligible: false,
+    profit_lock_status: "inactive",
+    profit_lock_reason: classified.status === "protected" ? "supervisor_found_exchange_protection" : "awaiting_full_protection",
+    next_lock_check_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+    monitor_status: "synced",
+    recovery_status: "none",
+    latest_error: classified.latest_error ?? null,
+    latest_sync_at: now,
+    last_action_taken: "syncProviderPositions",
+    updated_at: now,
+  };
+}
+
+async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, providerName: "binance" | "bybit", exposure: ProviderExposure): Promise<Json> {
   assertLiveTradingImpossible();
   const now = new Date().toISOString();
   const environment = providerName === "binance" ? "testnet" : "demo";
-  let positions: Json[] = [];
-  let openOrders: Json[] = [];
-  try {
-    if (providerName === "binance") {
-      positions = (await binanceRequest<Json[]>("GET", "/fapi/v2/positionRisk", {}, true)).filter((p) => Math.abs(Number(p.positionAmt ?? 0)) > 0);
-      openOrders = await fetchNativeOpenProtection();
-    } else {
-      const p = await bybitRequest("GET", "/v5/position/list", { category: "linear", settleCoin: "USDT" }) as Json;
-      const o = await bybitRequest("GET", "/v5/order/realtime", { category: "linear", settleCoin: "USDT", openOnly: 0 }) as Json;
-      positions = (((p as Json | undefined)?.list ?? []) as Json[]).filter((row) => Math.abs(Number(row.size ?? 0)) > 0);
-      openOrders = (((o as Json | undefined)?.list ?? []) as Json[]);
-    }
-    let protectedCount = 0;
-    let unsafeCount = 0;
-    const openSymbols = new Set<string>();
-    for (const pos of positions) {
-      const symbol = String(pos.symbol ?? "");
-      if (!symbol) continue;
-      openSymbols.add(symbol);
-      const qty = Math.abs(Number(pos.positionAmt ?? pos.size ?? 0));
-      const side = String(pos.positionSide ?? pos.side ?? (Number(pos.positionAmt ?? 0) >= 0 ? "long" : "short")).toLowerCase().includes("sell") || Number(pos.positionAmt ?? 0) < 0 ? "short" : "long";
-      const rowForClassification = { provider: providerName, environment, symbol, side, mark_price: Number(pos.markPrice ?? 0) || Number(pos.entryPrice ?? pos.avgPrice ?? 0) || null, entry_price: Number(pos.entryPrice ?? pos.avgPrice ?? 0) || null } as Json;
-      const classified = classifyRawProtection(providerName, rowForClassification, openOrders);
-      const protectionStatus = classified.status;
-      if (protectionStatus === "protected") protectedCount += 1; else unsafeCount += 1;
-      await supabase.from("trade_management_truth").upsert({
-        provider: providerName, environment, symbol, side, qty,
-        entry_price: Number(pos.entryPrice ?? pos.avgPrice ?? 0) || null,
-        mark_price: Number(pos.markPrice ?? 0) || null,
-        unrealized_pnl: Number(pos.unRealizedProfit ?? pos.unrealisedPnl ?? 0) || 0,
-        exchange_position_id: String(pos.positionIdx ?? pos.positionId ?? symbol),
-        sl_order_id: String(classified.sl?.orderId ?? classified.sl?.algoId ?? "") || null,
-        tp1_order_id: String(classified.tp1?.orderId ?? classified.tp1?.algoId ?? "") || null,
-        tp2_order_id: String(classified.tp2?.orderId ?? classified.tp2?.algoId ?? "") || null,
-        sl_present: Boolean(classified.sl), tp1_present: Boolean(classified.tp1), tp2_present: Boolean(classified.tp2),
-        protection_status: protectionStatus,
-        profit_lock_eligible: false,
-        profit_lock_status: "inactive",
-        profit_lock_reason: protectionStatus === "protected" ? "supervisor_found_exchange_protection" : "awaiting_full_protection",
-        next_lock_check_at: new Date(Date.now() + 5 * 60_000).toISOString(),
-        monitor_status: "synced",
-        recovery_status: "none",
-        latest_error: null,
-        latest_sync_at: now,
-        last_action_taken: "syncProviderPositions",
-        updated_at: now,
-      }, { onConflict: "provider,environment,symbol,side" });
-    }
-    const { data: existing } = await supabase.from("trade_management_truth").select("provider,environment,symbol,side").eq("provider", providerName).eq("environment", environment).neq("protection_status", "closed");
-    let closedMarked = 0;
-    for (const row of ((existing ?? []) as Json[])) {
-      if (!openSymbols.has(String(row.symbol))) {
-        closedMarked += 1;
-        await supabase.from("trade_management_truth").update({ protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now }).eq("provider", providerName).eq("environment", environment).eq("symbol", String(row.symbol)).eq("side", String(row.side));
-      }
-    }
-    return { success: true, provider: providerName, wallet_reachable: true, positions_fetch_success: true, orders_fetch_success: true, open_positions_found: positions.length, open_orders_found: openOrders.length, protected_count: protectedCount, unsafe_count: unsafeCount, closed_marked: closedMarked, latest_sync_at: now };
-  } catch (e) {
-    return { success: false, provider: providerName, wallet_reachable: false, positions_fetch_success: false, orders_fetch_success: false, open_positions_found: 0, open_orders_found: 0, protected_count: 0, unsafe_count: 0, blocker: e instanceof Error ? e.message : String(e), latest_sync_at: now };
+  if (!exposure.wallet_reachable) return { success: false, provider: providerName, wallet_reachable: false, positions_fetch_success: false, orders_fetch_success: false, open_positions_found: 0, open_orders_found: 0, protected_count: 0, unsafe_count: 0, closed_marked: 0, blocker: exposure.error, latest_sync_at: now };
+  let protectedCount = 0;
+  let unsafeCount = 0;
+  const openSymbols = new Set<string>();
+  const rows = exposure.positions.map((pos) => tradeTruthRowFromRaw(providerName, pos, exposure.open_orders, now)).filter(Boolean) as Json[];
+  for (const row of rows) {
+    openSymbols.add(String(row.symbol));
+    if (row.protection_status === "protected") protectedCount += 1; else unsafeCount += 1;
+    await supabase.from("trade_management_truth").upsert(row, { onConflict: "provider,environment,symbol,side" });
   }
+  const { data: existing } = await supabase.from("trade_management_truth").select("provider,environment,symbol,side").eq("provider", providerName).eq("environment", environment).neq("protection_status", "closed");
+  let closedMarked = 0;
+  for (const row of ((existing ?? []) as Json[])) {
+    if (!openSymbols.has(String(row.symbol))) {
+      closedMarked += 1;
+      await supabase.from("trade_management_truth").update({ protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now }).eq("provider", providerName).eq("environment", environment).eq("symbol", String(row.symbol)).eq("side", String(row.side));
+    }
+  }
+  return { success: true, provider: providerName, wallet_reachable: true, positions_fetch_success: true, orders_fetch_success: true, open_positions_found: rows.length, open_orders_found: exposure.open_orders.length, protected_count: protectedCount, unsafe_count: unsafeCount, closed_marked: closedMarked, latest_sync_at: now, rows };
+}
+
+async function syncTradeManagementTruth(supabase: SupabaseClient, providerName: "binance" | "bybit"): Promise<Json> {
+  const exposure = await fetchProviderExposure(providerName);
+  return syncTradeManagementTruthFromExposure(supabase, providerName, exposure);
 }
 
 
@@ -2272,7 +2303,7 @@ function rawProtectionValid(row: Json, order: Json, label: "sl" | "tp"): boolean
   const direction = Number(order.triggerDirection ?? 0);
   return shouldBeAbove === actualAbove && (direction === 0 || direction === (actualAbove ? 1 : 2));
 }
-function classifyRawProtection(providerName: "binance" | "bybit", row: Json, openOrders: Json[]): { sl?: Json; tp1?: Json; tp2?: Json; status: string } {
+function classifyRawProtection(providerName: "binance" | "bybit", row: Json, openOrders: Json[]): { sl?: Json; tp1?: Json; tp2?: Json; status: string; protected: boolean; degraded: boolean; unsafe: boolean; missing_parts: string[]; duplicate_orders_found: number; matching_order_ids: string[]; latest_error: string | null } {
   const closeSide = providerName === "binance" ? truthSideFromRow(row) : bybitCloseSideFromRow(row);
   const matching = openOrders.filter((order) => String(order.symbol ?? "") === String(row.symbol) && isReduceOnlyOrder(order) && orderSideMatches(order, closeSide));
   const stops = matching.filter((order) => /stop|sl/.test(rawOrderText(order)) && !/take/.test(rawOrderText(order)) && rawProtectionValid(row, order, "sl"));
@@ -2280,23 +2311,21 @@ function classifyRawProtection(providerName: "binance" | "bybit", row: Json, ope
   const isLong = String(row.side).toLowerCase() === "long";
   const [tp1, tp2] = takes.sort((a, b) => isLong ? rawTrigger(a) - rawTrigger(b) : rawTrigger(b) - rawTrigger(a));
   const sl = stops.sort((a, b) => Math.abs(rawTrigger(a) - Number(row.mark_price ?? row.entry_price ?? 0)) - Math.abs(rawTrigger(b) - Number(row.mark_price ?? row.entry_price ?? 0)))[0];
-  return { sl, tp1, tp2, status: sl && tp1 && tp2 ? "protected" : !sl ? "missing_sl" : "missing_tp" };
+  const status = sl && tp1 && tp2 ? "protected" : !sl ? "missing_sl" : "missing_tp";
+  const missing_parts = [!sl ? "sl" : null, !tp1 ? "tp1" : null, !tp2 ? "tp2" : null].filter(Boolean) as string[];
+  return { sl, tp1, tp2, status, protected: status === "protected", degraded: missing_parts.length > 0 && missing_parts.length < 3, unsafe: status !== "protected", missing_parts, duplicate_orders_found: Math.max(0, stops.length - 1) + Math.max(0, takes.length - 2), matching_order_ids: matching.map((order) => openOrderId(order)).filter(Boolean), latest_error: status === "protected" ? null : `missing_${missing_parts.join("_")}` };
 }
 async function fetchProviderOpenOrders(providerName: "binance" | "bybit", symbol?: string): Promise<Json[]> {
   if (providerName === "binance") return await fetchNativeOpenProtection(symbol);
   const result = await bybitRequest<Json>("GET", "/v5/order/realtime", { category: "linear", ...(symbol ? { symbol } : { settleCoin: "USDT" }), openOnly: 0 });
   return (((result as Json).list ?? []) as Json[]);
 }
-async function placeProviderProtectionOrder(providerName: "binance" | "bybit", row: Json, label: "sl" | "tp1" | "tp2"): Promise<Json> {
+async function placeProviderProtectionOrder(providerName: "binance" | "bybit", row: Json, label: "sl" | "tp1" | "tp2", livePosition?: Json): Promise<Json> {
   const prices = protectionPrices(row);
   const rawTriggerPrice = label === "sl" ? prices.stopLoss : label === "tp1" ? prices.tp1 : prices.tp2;
   const symbol = String(row.symbol);
   if (!Number.isFinite(rawTriggerPrice) || rawTriggerPrice <= 0) throw new Error(`${providerName} ${label} price unavailable for ${row.symbol}`);
-  const livePositions = providerName === "binance"
-    ? await binanceRequest<Json[]>("GET", "/fapi/v2/positionRisk", {}, true)
-    : (((await bybitRequest<Json>("GET", "/v5/position/list", { category: "linear", symbol })) as Json).list ?? []) as Json[];
-  const livePosition = livePositions.find((p) => String(p.symbol) === symbol && Math.abs(Number(p.positionAmt ?? p.size ?? 0)) > 0);
-  const rawQty = Math.abs(Number(livePosition?.positionAmt ?? livePosition?.size ?? 0));
+  const rawQty = Math.abs(Number(livePosition?.positionAmt ?? livePosition?.size ?? row.qty ?? 0));
   if (!Number.isFinite(rawQty) || rawQty <= 0) throw new Error(`${providerName}_actual_position_quantity_unavailable:${symbol}`);
   if (providerName === "binance") {
     const rules = await getRules(symbol);
@@ -2322,16 +2351,17 @@ async function placeProviderProtectionOrder(providerName: "binance" | "bybit", r
   if (!direction.valid) throw new Error(`invalid_bybit_trigger_direction:${JSON.stringify({ symbol, side: row.side, order_type: label, mark_price: markPrice, trigger_price: triggerPrice, expected_direction: direction.expected, actual_direction: direction.actual })}`);
   return await bybitRequest<Json>("POST", "/v5/order/create", { category: "linear", symbol, side: bybitCloseSideFromRow(row), orderType: "Market", qty: String(qty), triggerPrice: String(triggerPrice), triggerDirection: direction.bybitDirection, triggerBy: "MarkPrice", reduceOnly: true, closeOnTrigger: true, orderFilter: "StopOrder", orderLinkId: createBybitOrderLinkId(row.execution_order_id ?? row.symbol, label) });
 }
-async function repairTruthRowWithExchangeConfirmation(supabase: SupabaseClient, row: Json, action: string): Promise<Json> {
+async function repairTruthRowWithExchangeConfirmation(supabase: SupabaseClient, row: Json, action: string, exposure?: ProviderExposure): Promise<Json> {
   const providerName = String(row.provider) as "binance" | "bybit";
   const now = new Date().toISOString();
   const placed: Json = {};
   try {
-    const before = await fetchProviderOpenOrders(providerName, String(row.symbol));
+    const before = exposure?.open_orders ?? await fetchProviderOpenOrders(providerName, String(row.symbol));
+    const livePosition = exposure?.positions.find((p) => String(p.symbol) === String(row.symbol));
     const beforeState = classifyRawProtection(providerName, row, before);
-    if (!beforeState.sl) placed.sl = await placeProviderProtectionOrder(providerName, row, "sl");
-    if (!beforeState.tp1) placed.tp1 = await placeProviderProtectionOrder(providerName, row, "tp1");
-    if (!beforeState.tp2) placed.tp2 = await placeProviderProtectionOrder(providerName, row, "tp2");
+    if (!beforeState.sl) placed.sl = await placeProviderProtectionOrder(providerName, row, "sl", livePosition);
+    if (!beforeState.tp1) placed.tp1 = await placeProviderProtectionOrder(providerName, row, "tp1", livePosition);
+    if (!beforeState.tp2) placed.tp2 = await placeProviderProtectionOrder(providerName, row, "tp2", livePosition);
     const after = await fetchProviderOpenOrders(providerName, String(row.symbol));
     const confirmed = classifyRawProtection(providerName, row, after);
     const anyConfirmed = Boolean(confirmed.sl || confirmed.tp1 || confirmed.tp2);
@@ -2381,52 +2411,82 @@ async function recordSupervisorHeartbeat(supabase: SupabaseClient, providerName:
   await supabase.from("scanner_config").update({ trade_supervisor_last_run_at: String(result.latest_run) }).eq("id", 1);
 }
 
+async function getSupervisorControls(supabase: SupabaseClient): Promise<{ supervisor_enabled: boolean; auto_repair_enabled: boolean; max_repairs_per_provider_per_cycle: number; max_duplicate_cancels_per_cycle: number }> {
+  const { data } = await supabase.from("scanner_config").select("supervisor_enabled,operator_auto_repair_enabled,max_repairs_per_provider_per_cycle,max_duplicate_cancels_per_cycle").eq("id", 1).maybeSingle();
+  return {
+    supervisor_enabled: data?.supervisor_enabled !== false,
+    auto_repair_enabled: data?.operator_auto_repair_enabled === true,
+    max_repairs_per_provider_per_cycle: Math.max(0, Number(data?.max_repairs_per_provider_per_cycle ?? 5)),
+    max_duplicate_cancels_per_cycle: Math.max(0, Number(data?.max_duplicate_cancels_per_cycle ?? 10)),
+  };
+}
+
 async function runTradeSupervisorForProvider(supabase: SupabaseClient, providerName: "binance" | "bybit", triggerSource = "manual_admin"): Promise<Json> {
   assertLiveTradingImpossible();
+  const cycleStarted = Date.now();
   const startedAt = new Date().toISOString();
   const runId = `${providerName}_${crypto.randomUUID()}`;
-  const sync = await syncTradeManagementTruth(supabase, providerName);
-  const providerRowsBefore = await supabase.from("trade_management_truth").select("*").eq("provider", providerName).neq("protection_status", "closed");
-  const unsafeBefore = ((providerRowsBefore.data ?? []) as Json[]).filter((row) => row.protection_status !== "protected");
-  const repairs: Json[] = [];
-  for (const row of unsafeBefore) repairs.push(await repairTruthRowWithExchangeConfirmation(supabase, row, "run_trade_supervisor_cycle"));
-  const afterSync = await syncTradeManagementTruth(supabase, providerName);
-  const providerRowsAfter = await supabase.from("trade_management_truth").select("*").eq("provider", providerName).neq("protection_status", "closed");
-  const rows = ((providerRowsAfter.data ?? []) as Json[]);
-  let duplicateFound = 0;
-  let duplicateCancelled = 0;
-  for (const row of rows) {
-    const openOrders = await fetchProviderOpenOrders(providerName, String(row.symbol));
-    const stats = duplicateProtectionStats(providerName, row, openOrders);
-    duplicateFound += stats.duplicate_orders_found;
-    duplicateCancelled += stats.duplicate_orders_cancelled;
+  const perf: Json = { db_query_count: 0, exchange_call_count: 0, symbols_scanned: 0, positions_scanned: 0, orders_scanned: 0, repair_attempts: 0, slowest_stage: null };
+  const controls = await getSupervisorControls(supabase).catch(() => ({ supervisor_enabled: true, auto_repair_enabled: false, max_repairs_per_provider_per_cycle: 5, max_duplicate_cancels_per_cycle: 10 }));
+  perf.db_query_count = Number(perf.db_query_count) + 1;
+  if (!controls.supervisor_enabled && triggerSource === "pg_cron") {
+    return { provider: providerName, run_id: runId, wallet_reachable: null, positions_found: 0, orders_found: 0, protected_count: 0, unsafe_count: 0, repair_attempts: 0, repair_successes: 0, duplicate_orders_found: 0, duplicate_orders_cancelled: 0, latest_run: new Date().toISOString(), latest_success: true, latest_error: null, skipped: true, blocker: "supervisor_disabled", duration_ms: Date.now() - cycleStarted, performance: perf };
   }
-  const unsafeRows = rows.filter((row) => row.protection_status !== "protected");
+  const exposureStarted = Date.now();
+  const exposure = await fetchProviderExposure(providerName);
+  perf.exchange_call_count = exposure.exchange_call_count;
+  perf.positions_scanned = exposure.positions.length;
+  perf.orders_scanned = exposure.open_orders.length;
+  perf.slowest_stage = { name: "fetchProviderExposure", duration_ms: Date.now() - exposureStarted };
+  const sync = await syncTradeManagementTruthFromExposure(supabase, providerName, exposure);
+  perf.db_query_count = Number(perf.db_query_count) + 1 + exposure.positions.length;
+  const rows = ((sync.rows ?? []) as Json[]);
+  const unsafeBefore = rows.filter((row) => row.protection_status !== "protected");
+  const repairs: Json[] = [];
+  const repairAllowed = controls.auto_repair_enabled || triggerSource !== "pg_cron";
+  for (const row of unsafeBefore.slice(0, controls.max_repairs_per_provider_per_cycle)) {
+    if (!repairAllowed) break;
+    if (Date.now() - cycleStarted > 25_000) { repairs.push({ provider: providerName, symbol: row.symbol, attempted: false, successful: false, blocker: "supervisor_cycle_time_budget_exceeded_before_repair" }); break; }
+    repairs.push(await repairTruthRowWithExchangeConfirmation(supabase, row, "run_trade_supervisor_cycle", exposure));
+  }
+  perf.repair_attempts = repairs.filter((r) => r.attempted !== false).length;
+  const verifyExposure = repairs.length > 0 ? await fetchProviderExposure(providerName) : exposure;
+  if (repairs.length > 0) perf.exchange_call_count = Number(perf.exchange_call_count) + verifyExposure.exchange_call_count;
+  const afterSync = repairs.length > 0 ? await syncTradeManagementTruthFromExposure(supabase, providerName, verifyExposure) : sync;
+  const finalRows = (((afterSync.rows ?? rows) as Json[]));
+  let duplicateFound = 0;
+  for (const row of finalRows) duplicateFound += duplicateProtectionStats(providerName, row, verifyExposure.open_orders).duplicate_orders_found;
+  const unsafeRows = finalRows.filter((row) => row.protection_status !== "protected");
   const latestRun = new Date().toISOString();
   const result: Json = {
     Provider: providerName,
     provider: providerName,
     run_id: runId,
-    wallet_reachable: sync.wallet_reachable === true || afterSync.wallet_reachable === true,
-    positions_found: Number(afterSync.open_positions_found ?? rows.length),
-    orders_found: Number(afterSync.open_orders_found ?? rows.filter((row) => row.sl_present || row.tp1_present || row.tp2_present).length),
-    protected_count: rows.filter((row) => row.protection_status === "protected").length,
+    wallet_reachable: exposure.wallet_reachable,
+    positions_found: finalRows.length,
+    orders_found: verifyExposure.open_orders.length,
+    protected_count: finalRows.filter((row) => row.protection_status === "protected").length,
     unsafe_count: unsafeRows.length,
-    repair_attempts: repairs.length,
+    repair_attempts: repairs.filter((r) => r.attempted !== false).length,
     repair_successes: repairs.filter((r) => r.successful === true).length,
     duplicate_orders_found: duplicateFound,
-    duplicate_orders_cancelled: duplicateCancelled,
+    duplicate_orders_cancelled: 0,
     latest_run: latestRun,
-    latest_success: afterSync.success === true && unsafeRows.length === 0,
-    latest_error: afterSync.success === false ? String(afterSync.blocker ?? "sync_failed") : unsafeRows[0]?.latest_error ?? null,
+    latest_success: exposure.wallet_reachable === true && unsafeRows.length === 0,
+    latest_error: exposure.error ?? unsafeRows[0]?.latest_error ?? repairs.find((r) => r.successful === false)?.blocker ?? null,
     telegram_admin_sent: false,
+    duration_ms: Date.now() - cycleStarted,
+    fetch_duration_ms: exposure.fetch_duration_ms,
+    performance: { ...perf, total_runtime_ms: Date.now() - cycleStarted, db_query_count: Number(perf.db_query_count) + (repairs.length > 0 ? 1 : 0), exchange_call_count: perf.exchange_call_count, symbols_scanned: 0 },
+    controls,
+    exposure: { wallet_reachable: exposure.wallet_reachable, positions_found: exposure.positions.length, orders_found: exposure.open_orders.length, fetch_duration_ms: exposure.fetch_duration_ms, error: exposure.error },
     sync,
     after_sync: afterSync,
     repairs,
   };
-  if (unsafeRows.length > 0) {
-    const text = formatProtectionAlert(unsafeRows, providerName === "binance" ? result : {}, providerName === "bybit" ? result : {});
-    const telegram = await routeTelegramEvent(supabase, { event_type: "critical_unprotected_position", channels: ["admin"], dedupe: true, source: "trade-supervisor", text });
+  if (exposure.error || unsafeRows.length > 0) {
+    const text = exposure.error ? `🚨 HashiBot ${providerName} provider fetch failed: ${exposure.error}` : formatProtectionAlert(unsafeRows, providerName === "binance" ? result : {}, providerName === "bybit" ? result : {});
+    const telegram = await routeTelegramEvent(supabase, { event_type: exposure.error ? "provider_fetch_failed" : "critical_unprotected_position", channels: ["admin"], dedupe: true, source: "trade-supervisor", text });
     result.telegram_admin_sent = true;
     result.telegram = telegram;
   }
@@ -2447,7 +2507,16 @@ async function tradeManagementAction(supabase: SupabaseClient, action: string, p
   if (action === "sync_all_positions_now") return { success: true, results: [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")] };
   if (action === "prove_binance_trade_management") return syncTradeManagementTruth(supabase, "binance");
   if (action === "prove_bybit_trade_management") return syncTradeManagementTruth(supabase, "bybit");
-  if (action === "repair_all_protection_now" || action === "run_profit_lock_now" || action === "run_full_trade_management_proof") {
+  if (action === "repair_all_protection_now") {
+    const providers = provider === "binance" || provider === "bybit" ? [provider] as Array<"binance" | "bybit"> : ["binance", "bybit"] as Array<"binance" | "bybit">;
+    const results: Json = {};
+    for (const p of providers) results[p] = await runTradeSupervisorForProvider(supabase, p, triggerSource);
+    const repair_attempts = providers.reduce((sum, p) => sum + Number((results[p] as Json).repair_attempts ?? 0), 0);
+    const repair_successes = providers.reduce((sum, p) => sum + Number((results[p] as Json).repair_successes ?? 0), 0);
+    const unsafe_count = providers.reduce((sum, p) => sum + Number((results[p] as Json).unsafe_count ?? 0), 0);
+    return { success: providers.every((p) => (results[p] as Json).latest_success === true), action, repair_attempts, repair_successes, unsafe_count, Binance: results.binance ?? null, Bybit: results.bybit ?? null, blocker: unsafe_count ? "one_or_more_positions_still_unprotected_after_real_exchange_repair_attempt" : null };
+  }
+  if (action === "run_profit_lock_now" || action === "run_full_trade_management_proof") {
     const sync = [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")];
     const { data } = await supabase.from("trade_management_truth").select("*").neq("protection_status", "closed");
     const successfulSyncProviders = new Set(sync.filter((r) => (r as Json).success === true).map((r) => String((r as Json).provider)));
