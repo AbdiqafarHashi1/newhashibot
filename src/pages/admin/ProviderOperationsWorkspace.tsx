@@ -481,10 +481,19 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
     setActing(true);
     setResult(null);
     try {
-      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
+      const operatorActionMap: Record<string, string> = {
+        run_binance_monitor_now: 'run_binance_monitor_now',
+        run_bybit_monitor_now: 'run_bybit_monitor_now',
+        repair_all_protection_now: 'repair_protection_now',
+        run_full_trade_management_proof: 'run_runtime_proof',
+        run_trade_supervisor_cycle: 'run_supervisor_now',
+      };
+      const routerAction = operatorActionMap[action];
+      const functionName = routerAction ? 'admin-operator-action' : 'binance-testnet-execution';
+      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/${functionName}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...payload }),
+        body: JSON.stringify({ action: routerAction ?? action, ...payload }),
       });
       const data = await res.json() as ActionResult;
       setResult(data);
