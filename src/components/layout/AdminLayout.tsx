@@ -46,6 +46,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const nav = useNavigate();
   const [sideOpen, setSideOpen] = useState(false);
+  const bottomNav = [
+    { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/admin/operator/signals', label: 'Signals', icon: Radio },
+    { to: '/admin/operator/trade-manager', label: 'Trades', icon: ShieldCheck },
+    { to: '/admin/operator/intelligence', label: 'Intel', icon: Brain },
+    { to: '/admin/operator/settings', label: 'Config', icon: Settings },
+    { to: '/admin/operator/runtime-proof', label: 'Runtime', icon: ListChecks },
+  ];
   const navRef = useRef<HTMLElement>(null);
   const scrollPosRef = useRef(0);
 
@@ -142,7 +150,19 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             <LogOut size={14} />
           </button>
         </header>
-        <main className="flex-1 p-4 md:p-6 min-w-0 overflow-x-hidden" key={loc.pathname}>{children}</main>
+        <main className="flex-1 p-4 pb-24 md:p-6 min-w-0 overflow-x-hidden" key={loc.pathname}>{children}</main>
+        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur md:hidden">
+          {bottomNav.map((item) => {
+            const active = loc.pathname === item.to;
+            const Icon = item.icon;
+            return (
+              <Link key={item.to} to={item.to} className={`flex min-w-0 flex-col items-center gap-1 px-1 py-2 text-[10px] ${active ? 'text-blue-300' : 'text-zinc-500'}`}>
+                <Icon size={15} />
+                <span className="max-w-full truncate">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );
