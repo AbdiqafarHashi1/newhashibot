@@ -5,13 +5,12 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useAdminLiveState } from '../../../hooks/useAdminLiveState';
 import { callEdgeFunction } from '../../../lib/edgeFunctionStatus';
 import { RUNTIME_PROOF_CONTRACT, runtimeTruth, statusClasses, RuntimeTruthStatus } from '../../../lib/operatorRuntime';
-import { supabase } from '../../../lib/supabase';
 import { ActionResult, OperatorActionResult } from '../../../components/admin/ActionResult';
-import { loadOperatorTruth as fetchOperatorTruth, writeOperatorRuntimeEvent, RuntimeRow } from '../../../lib/operatorTruth';
+import { loadOperatorTruth as fetchOperatorTruth, RuntimeRow } from '../../../lib/operatorTruth';
 
 type Section = 'dashboard' | 'signals' | 'executions' | 'trade-manager' | 'telegram' | 'settings' | 'intelligence' | 'runtime-proof';
 type Health = 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'OFFLINE';
-type RuntimeControlKey = 'is_enabled' | 'supervisor_enabled' | 'operator_telegram_enabled' | 'operator_news_brain_enabled' | 'auto_send_telegram' | 'operator_auto_repair_enabled';
+type RuntimeControlKey = 'scanner' | 'supervisor' | 'telegram' | 'news_brain' | 'auto_repair';
 
 const sectionTitles: Record<Section, string> = {
   dashboard: 'Operator Command Center',
@@ -25,12 +24,11 @@ const sectionTitles: Record<Section, string> = {
 };
 
 const controlLabels: Array<[RuntimeControlKey, string, string]> = [
-  ['is_enabled', 'Scanner', 'Pause or resume scanner runs from scanner_config.'],
-  ['operator_telegram_enabled', 'Telegram', 'Pause or resume Telegram runtime operations.'],
-  ['operator_news_brain_enabled', 'News Brain', 'Pause or resume News Brain runtime operations.'],
-  ['supervisor_enabled', 'Supervisor', 'Pause or resume supervisor/monitor operations.'],
-  ['auto_send_telegram', 'Signal Distribution', 'Pause or resume signal distribution.'],
-  ['operator_auto_repair_enabled', 'Auto Repair', 'Pause or resume protection repair automation.'],
+  ['scanner', 'Scanner', 'Pause or resume scanner runs from scanner_config.'],
+  ['telegram', 'Telegram', 'Pause or resume Telegram runtime operations.'],
+  ['news_brain', 'News Brain', 'Pause or resume News Brain runtime operations.'],
+  ['supervisor', 'Supervisor', 'Pause or resume supervisor/monitor operations.'],
+  ['auto_repair', 'Auto Repair', 'Pause or resume protection repair automation.'],
 ];
 
 const healthClass: Record<Health, string> = {
@@ -272,37 +270,54 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     ...(state.latestIntelligenceEvent ? [{ at: state.latestIntelligenceEvent.created_at, type: 'News', text: `${state.latestIntelligenceEvent.status} · ${state.latestIntelligenceEvent.title ?? state.latestIntelligenceEvent.event_type}` }] : []),
   ].filter((event) => event.at && event.at !== 'undefined').sort((a, b) => b.at.localeCompare(a.at)).slice(0, 40), [operatorEvents, state.recentRuns, state.latestIntelligenceEvent, deliveries, signalUpdates, heartbeats, truthRows]);
 
+  const controlFieldMap: Record<RuntimeControlKey, string> = {
+    scanner: 'is_enabled',
+    supervisor: 'supervisor_enabled',
+    telegram: 'operator_telegram_enabled',
+    news_brain: 'operator_news_brain_enabled',
+    auto_repair: 'operator_auto_repair_enabled',
+  };
+
   async function setControl(key: RuntimeControlKey, value: boolean) {
-    const started = Date.now();
-    const startedAt = new Date().toISOString();
     const action = `${value ? 'resume' : 'pause'}_${key}`;
-    setRunningAction(action);
-    setActionResult({ status: 'RUNNING', action, summary: 'Updating scanner_config and writing runtime evidence…', timestamp: startedAt, startedAt, route: 'scanner_config', functionName: 'setControl' });
-    const { error } = await supabase.from('scanner_config').update({ [key]: value, updated_at: new Date().toISOString() }).eq('id', 1);
-    await supabase.from('audit_logs').insert({ actor_user_id: session?.user.id ?? null, action, entity_type: 'scanner_config', entity_id: '1', metadata: { key, value } });
-    const runtimeEventId = await writeOperatorRuntimeEvent({ source: 'Operator Dashboard', action, result: error ? 'FAILED' : 'SUCCESS', summary: error ? `Failed to update ${key}` : `${key} set to ${value}`, route: 'scanner_config', function_name: 'setControl', error: error?.message ?? null, actor_user_id: session?.user.id ?? null, started_at: startedAt, finished_at: new Date().toISOString(), duration_ms: Date.now() - started, raw: { key, value, error } });
-    setScannerConfig((prev) => ({ ...(prev ?? {}), [key]: value }));
-    setActionResult({ status: error ? 'FAILED' : 'SUCCESS', action, summary: error ? `Failed to update ${key}` : `${key} set to ${value}`, timestamp: startedAt, startedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - started, runtimeEventId: runtimeEventId ?? undefined, route: 'scanner_config', functionName: 'setControl', error: error?.message, raw: { key, value, error } });
-    setRunningAction(null);
-    await loadOperatorTruth();
+    await runAction(action);
+    setScannerConfig((prev) => ({ ...(prev ?? {}), [controlFieldMap[key]]: value }));
   }
 
   async function runAction(action: string, provider?: string) {
     if (!session?.access_token) return;
     const started = Date.now();
     const startedAt = new Date().toISOString();
+    const route = '/functions/v1/admin-operator-action';
+    const functionName = 'admin-operator-action';
     setRunningAction(action);
-    setActionResult({ status: 'RUNNING', action, provider, summary: 'Executing backend action…', timestamp: startedAt, startedAt, route: '/functions/v1/admin-scheduler-action', functionName: 'admin-scheduler-action' });
+    setActionResult({ status: 'RUNNING', action, provider, summary: 'Executing backend operator action…', timestamp: startedAt, startedAt, route, functionName });
     try {
-      const data = await callEdgeFunction('admin-scheduler-action', { action, provider }, session.access_token) as unknown as Record<string, unknown>;
-      const ok = data?.success !== false && !data?.error;
-      const symbols = Array.isArray(data?.affected_symbols) ? (data.affected_symbols as unknown[]).map(String) : Array.isArray(data?.symbols) ? (data.symbols as unknown[]).map(String) : [];
-      const runtimeEventId = await writeOperatorRuntimeEvent({ source: 'Operator Dashboard', action, result: ok ? 'SUCCESS' : 'FAILED', summary: String(data?.summary ?? (ok ? 'Backend action completed.' : 'Backend action failed.')), provider, symbols_affected: symbols, route: '/functions/v1/admin-scheduler-action', function_name: 'admin-scheduler-action', blocker: ok ? null : String(data?.blocker ?? 'backend returned failure'), error: data?.error ? String(data.error) : null, actor_user_id: session.user.id, started_at: startedAt, finished_at: new Date().toISOString(), duration_ms: Date.now() - started, telegram_sent: typeof data?.telegram_sent === 'boolean' ? data.telegram_sent : null, raw: data ?? {} });
-      setActionResult({ status: ok ? 'SUCCESS' : 'FAILED', action, provider, summary: String(data?.summary ?? (ok ? 'Backend action completed.' : 'Backend action failed.')), timestamp: startedAt, startedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - started, symbolsAffected: symbols, runtimeEventId: runtimeEventId ?? undefined, telegramSent: typeof data?.telegram_sent === 'boolean' ? data.telegram_sent : undefined, blocker: ok ? undefined : String(data?.blocker ?? 'backend returned failure'), route: '/functions/v1/admin-scheduler-action', functionName: 'admin-scheduler-action', error: data?.error ? String(data.error) : undefined, raw: data });
+      const data = await callEdgeFunction(functionName, { action, provider }, session.access_token) as unknown as Record<string, unknown>;
+      const ok = data?.success !== false && !data?.exact_error;
+      const raw = (data?.raw && typeof data.raw === 'object' ? data.raw : data) as Record<string, unknown>;
+      const symbols = Array.isArray(raw?.affected_symbols) ? (raw.affected_symbols as unknown[]).map(String) : Array.isArray(raw?.symbols) ? (raw.symbols as unknown[]).map(String) : [];
+      setActionResult({
+        status: ok ? 'SUCCESS' : 'FAILED',
+        action,
+        provider,
+        summary: String(data?.result_summary ?? (ok ? 'Backend action completed.' : 'Backend action failed.')),
+        timestamp: startedAt,
+        startedAt: String(data?.started_at ?? startedAt),
+        finishedAt: String(data?.finished_at ?? new Date().toISOString()),
+        durationMs: Number(data?.duration_ms ?? Date.now() - started),
+        symbolsAffected: symbols,
+        runtimeEventId: data?.runtime_event_id ? String(data.runtime_event_id) : undefined,
+        telegramSent: typeof raw?.telegram_sent === 'boolean' ? raw.telegram_sent : undefined,
+        blocker: ok ? undefined : String(data?.blocker ?? 'backend returned failure'),
+        route: String(data?.route ?? route),
+        functionName: String(data?.function_name ?? functionName),
+        error: data?.exact_error ? String(data.exact_error) : undefined,
+        raw: data,
+      });
     } catch (e) {
       const error = e instanceof Error ? e.message : 'unknown error';
-      const runtimeEventId = await writeOperatorRuntimeEvent({ source: 'Operator Dashboard', action, result: 'FAILED', summary: 'ACTION_NOT_WIRED or backend call failed.', provider, route: '/functions/v1/admin-scheduler-action', function_name: 'admin-scheduler-action', blocker: 'ACTION_NOT_WIRED', error, actor_user_id: session.user.id, started_at: startedAt, finished_at: new Date().toISOString(), duration_ms: Date.now() - started, raw: { expected_action_name: action, expected_route: '/functions/v1/admin-scheduler-action', expected_function: 'admin-scheduler-action', error } });
-      setActionResult({ status: 'FAILED', action, provider, summary: 'ACTION_NOT_WIRED or backend call failed.', timestamp: startedAt, startedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - started, runtimeEventId: runtimeEventId ?? undefined, blocker: 'ACTION_NOT_WIRED', route: '/functions/v1/admin-scheduler-action', functionName: 'admin-scheduler-action', error, raw: { expected_action_name: action, expected_route: '/functions/v1/admin-scheduler-action', expected_function: 'admin-scheduler-action', error } });
+      setActionResult({ status: 'FAILED', action, provider, summary: 'Backend operator route failed.', timestamp: startedAt, startedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - started, blocker: 'ROUTE_OR_NETWORK_ERROR', route, functionName, error, raw: { expected_route: route, expected_function: functionName, error } });
     } finally {
       setRunningAction(null);
       await refresh();
@@ -313,7 +328,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   async function runProof() {
     setProofRunning(true);
     try {
-      await runAction('runtime_proof');
+      await runAction('run_runtime_proof');
       setProofRows(RUNTIME_PROOF_CONTRACT.map((item) => {
         const provider = item.label.toLowerCase().startsWith('binance') ? 'binance' : item.label.toLowerCase().startsWith('bybit') ? 'bybit' : null;
         const providerOk = provider ? providerStatus(provider) === 'LIVE' : false;
@@ -777,9 +792,10 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     const actions = [
       ['Run Scanner Now', 'run_scanner_now'],
       ['Run Supervisor Now', 'run_supervisor_now'],
-      ['Run Binance Monitor', 'run_binance_monitor'],
-      ['Run Bybit Monitor', 'run_bybit_monitor'],
+      ['Run Binance Monitor', 'run_binance_monitor_now'],
+      ['Run Bybit Monitor', 'run_bybit_monitor_now'],
       ['Repair Protection Now', 'repair_protection_now'],
+      ['Run Runtime Proof', 'run_runtime_proof'],
       ['Run Telegram Test', 'run_telegram_test'],
       ['Run News Brain', 'run_news_brain'],
     ];
