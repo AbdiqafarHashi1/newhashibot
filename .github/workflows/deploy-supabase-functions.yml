@@ -32,13 +32,5 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy real Edge Functions only
-        run: |
-          supabase functions deploy binance-testnet-execution --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy binance-testnet-monitor --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy market-scanner --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy evaluate-signal-outcomes --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy telegram-send --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy telegram-test --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy telegram-orchestrator --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
-          supabase functions deploy intelligence-engine --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
+      - name: Deploy all real Edge Functions
+        run: npm run deploy:edge-functions -- --project-ref "$SUPABASE_PROJECT_REF"
