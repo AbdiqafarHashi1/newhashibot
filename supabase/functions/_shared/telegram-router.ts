@@ -135,6 +135,38 @@ async function insertDelivery(
   return data?.id as string | undefined;
 }
 
+
+function alertDedupeKey(event: TelegramRouteEvent, channel: TelegramChannel): string {
+  return [
+    channel,
+    event.event_type.toLowerCase(),
+    String(event.source ?? "runtime").toLowerCase(),
+    String(event.symbol ?? event.market ?? "provider").toLowerCase(),
+    String(event.reason ?? event.text.split("\n")[0] ?? "").toLowerCase().slice(0, 120),
+  ].join(":");
+}
+
+async function shouldSuppressOperationalAlert(supabase: SupabaseClient, event: TelegramRouteEvent, channel: TelegramChannel): Promise<{ suppress: boolean; key: string; reason?: string }> {
+  const type = event.event_type.toLowerCase();
+  const operational = channel === "admin" && (type.includes("failure") || type.includes("failed") || type.includes("provider_") || type.includes("unprotected") || type.includes("watchdog") || type.includes("critical"));
+  if (!operational) return { suppress: false, key: "" };
+  const key = alertDedupeKey(event, channel);
+  const cooldownMinutes = eventCooldownMinutes(event);
+  const sinceIso = new Date(Date.now() - cooldownMinutes * 60_000).toISOString();
+  try {
+    const { data: existing } = await supabase.from("telegram_alert_dedupe").select("dedupe_key,last_sent_at,suppressed_count").eq("dedupe_key", key).maybeSingle();
+    if (existing?.last_sent_at && String(existing.last_sent_at) > sinceIso) {
+      await supabase.from("telegram_alert_dedupe").upsert({ dedupe_key: key, event_type: event.event_type, provider: event.source ?? null, symbol: event.symbol ?? null, last_seen: new Date().toISOString(), suppressed_count: Number(existing.suppressed_count ?? 0) + 1, metadata: { latest_text: event.text.slice(0, 500) } }, { onConflict: "dedupe_key" });
+      await supabase.from("telegram_alert_digest").insert({ digest_key: key, provider: event.source ?? null, symbol: event.symbol ?? null, event_type: event.event_type, latest_error: event.text.slice(0, 1000), metadata: { channel, suppressed: true } });
+      return { suppress: true, key, reason: "alert_cooldown" };
+    }
+    await supabase.from("telegram_alert_dedupe").upsert({ dedupe_key: key, event_type: event.event_type, provider: event.source ?? null, symbol: event.symbol ?? null, last_seen: new Date().toISOString(), last_sent_at: new Date().toISOString(), metadata: { latest_text: event.text.slice(0, 500) } }, { onConflict: "dedupe_key" });
+  } catch {
+    return { suppress: false, key };
+  }
+  return { suppress: false, key };
+}
+
 function eventDedupeKey(event: TelegramRouteEvent): string {
   return [
     event.event_type.toLowerCase(),
@@ -159,6 +191,12 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
   const sinceIso = isEventAlert ? new Date(Date.now() - eventCooldownMinutes(event) * 60_000).toISOString() : "";
 
   for (const channel of channels) {
+    const operationalAlert = await shouldSuppressOperationalAlert(supabase, event, channel);
+    if (operationalAlert.suppress) {
+      const deliveryId = await insertDelivery(supabase, { ...event, event_id: operationalAlert.key || event.event_id }, channel, config[channel] || "not_configured", "skipped", operationalAlert.reason ?? "alert_cooldown");
+      results.push({ channel, chat_id: config[channel] || "not_configured", status: "skipped", error_message: operationalAlert.reason ?? "alert_cooldown", delivery_id: deliveryId });
+      continue;
+    }
     const chatId = config[channel];
     if (!token || !chatId) {
       const error = !token ? "TELEGRAM_BOT_TOKEN missing" : `TELEGRAM_${channel.toUpperCase()}_CHAT_ID missing`;

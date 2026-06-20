@@ -127,6 +127,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRole);
+    const cronSecret = Deno.env.get("SCANNER_CRON_SECRET") ?? Deno.env.get("HASHIBOT_CRON_TOKEN") ?? "";
 
     const auth = await authorizeInternalOrAdmin(req, supabase);
     if (!auth.ok) {

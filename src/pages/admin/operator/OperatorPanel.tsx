@@ -138,6 +138,10 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   const [executionOrders, setExecutionOrders] = useState<RuntimeRow[]>([]);
   const [intelligenceEvents, setIntelligenceEvents] = useState<RuntimeRow[]>([]);
   const [intelligenceFeeds, setIntelligenceFeeds] = useState<RuntimeRow[]>([]);
+  const [runtimeProof, setRuntimeProof] = useState<RuntimeRow | null>(null);
+  const [schedulerTruth, setSchedulerTruth] = useState<RuntimeRow[]>([]);
+  const [quarantineRows, setQuarantineRows] = useState<RuntimeRow[]>([]);
+  const [readinessRows, setReadinessRows] = useState<RuntimeRow[]>([]);
   const [actionResult, setActionResult] = useState<OperatorActionResult | null>(null);
   const [runningAction, setRunningAction] = useState<string | null>(null);
 
@@ -155,6 +159,10 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     setExecutionOrders(bundle.executionOrders);
     setIntelligenceEvents(bundle.intelligenceEvents);
     setIntelligenceFeeds(bundle.intelligenceFeeds);
+    setRuntimeProof(bundle.runtimeProof);
+    setSchedulerTruth(bundle.schedulerTruth);
+    setQuarantineRows(bundle.quarantine);
+    setReadinessRows(bundle.readiness);
   }
 
   useEffect(() => {
@@ -737,7 +745,9 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       { label: 'Telegram', pass: telegramStatus === 'LIVE' && failedDeliveries.length === 0, warn: failedDeliveries.length > 0, time: state.latestTelegramDelivery?.created_at, blocker: failedDeliveries[0]?.error_message, source: 'telegram_deliveries' },
       { label: 'News Brain', pass: newsStatus === 'LIVE', warn: newsStatus === 'STALE', time: state.latestIntelligenceEvent?.created_at, blocker: state.latestIntelligenceEvent?.status === 'failed' ? state.latestIntelligenceEvent?.title : undefined, source: 'intelligence runtime tables' },
       { label: 'Signal Distribution', pass: Boolean(scannerConfig?.auto_send_telegram), warn: !scannerConfig?.auto_send_telegram, time: scannerConfig?.updated_at, blocker: !scannerConfig?.auto_send_telegram ? 'auto_send_telegram disabled' : undefined, source: 'scanner_config' },
-      { label: 'Scheduler', pass: schedulerStatus === 'LIVE', warn: schedulerStatus === 'STALE', time: state.schedulerProof.latestStartedAt, blocker: state.schedulerQueryError, source: 'scheduler runtime tables' },
+      { label: 'Scheduler', pass: schedulerTruth.length > 0 && schedulerTruth.every((row) => row.status === 'PASS'), warn: schedulerTruth.some((row) => row.status === 'WARNING'), time: schedulerTruth[0]?.last_run_at ?? state.schedulerProof.latestStartedAt, blocker: schedulerTruth.find((row) => row.status === 'FAIL')?.latest_blocker ?? state.schedulerQueryError, source: 'scheduler_truth_view' },
+      { label: 'Quarantine', pass: quarantineRows.filter((row) => row.disabled_for_execution || row.disabled_for_repair).length === 0, warn: quarantineRows.length > 0, time: quarantineRows[0]?.last_seen, blocker: quarantineRows[0]?.reason, source: 'problem_symbol_quarantine' },
+      { label: '100-Trade Readiness', pass: readinessRows.every((row) => Number(row.remaining_to_target ?? 100) === 0), warn: readinessRows.length > 0, time: runtimeProof?.generated_at, blocker: readinessRows.find((row) => Number(row.remaining_to_target ?? 100) > 0)?.provider, source: 'clean_trade_audit_view + provider_100_trade_readiness_view' },
       { label: 'Trade Protection', pass: unsafeRows('binance').length + unsafeRows('bybit').length === 0, warn: unsafeRows('binance').length + unsafeRows('bybit').length > 0, time: latestDate(truthRows, ['latest_sync_at']), blocker: unsafeRows('binance')[0]?.protection_status ?? unsafeRows('bybit')[0]?.protection_status, source: 'trade_management_truth' },
     ];
     return (
@@ -754,6 +764,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       ...truthRows.filter((row) => row.latest_error || !['protected', 'closed'].includes(String(row.protection_status))).map((row) => ({ group: String(row.provider ?? 'Protection'), severity: row.latest_error ? 'CRITICAL' : 'WARNING', first: row.created_at, last: row.latest_sync_at, symbol: row.symbol, source: 'trade_management_truth', error: row.latest_error ?? row.protection_status, action: 'Inspect protection and run Repair Protection Now.' })),
       ...heartbeats.filter((row) => row.success === false || count(row.protections_missing) > 0).map((row) => ({ group: String(row.provider ?? 'Runtime'), severity: row.success === false ? 'CRITICAL' : 'WARNING', first: row.created_at, last: row.started_at, symbol: '—', source: 'execution_monitor_heartbeats', error: row.errors ?? row.monitor_status, action: 'Run provider monitor or full runtime proof.' })),
       ...failedDeliveries.map((row) => ({ group: 'Telegram', severity: 'CRITICAL', first: row.created_at, last: row.created_at, symbol: '—', source: 'telegram_deliveries', error: row.error_message ?? row.status, action: 'Open Telegram failed sends and verify channel config.' })),
+      ...quarantineRows.filter((row) => row.disabled_for_execution || row.disabled_for_repair).map((row) => ({ group: 'Quarantine', severity: 'WARNING', first: row.first_seen, last: row.last_seen, symbol: row.symbol, source: 'problem_symbol_quarantine', error: row.reason, action: row.recommended_action ?? 'Wait for cooldown or manually inspect exchange failures.' })),
     ];
     const issues = Array.from(new Map(rawIssues.map((issue) => [`${issue.group}:${issue.symbol}:${String(issue.error)}`, issue])).values()).slice(0, 12);
     return (
@@ -763,7 +774,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
             <div key={index} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2"><b>{issue.group}</b><span className={issue.severity === 'CRITICAL' ? 'text-red-300' : 'text-yellow-300'}>{issue.severity}</span></div>
               <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-xs text-zinc-300"><span>First: {time(issue.first as string)}</span><span>Last: {time(issue.last as string)}</span><span>Symbol: {text(issue.symbol)}</span><span>Source: {issue.source}</span></div>
-              <p className="mt-2 text-zinc-200">{text(issue.error)}</p><p className="mt-1 text-zinc-500">Recommended: {issue.action}</p>
+              <p className="mt-2 text-zinc-200">{text(issue.error)}</p><p className="mt-1 text-zinc-500">Recommended: {text(issue.action)}</p>
             </div>
           ))}
           {!issues.length && <div className="text-sm text-zinc-500">No unresolved issues found in backend truth.</div>}
@@ -819,6 +830,10 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   function runtimeProofSection() {
     return (
       <Card title="Runtime Proof" icon={PlayCircle}>
+        <div className="mb-4 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm">
+          <div className="flex items-center justify-between gap-3"><b>Authoritative Runtime Proof Source</b><span className={runtimeProof?.status === 'PASS' ? 'text-emerald-300' : runtimeProof?.status === 'WARNING' ? 'text-yellow-300' : 'text-red-300'}>{String(runtimeProof?.status ?? 'FAIL')}</span></div>
+          <Row k="Source" v="runtime_proof_view" /><Row k="Blockers" v={text(runtimeProof?.blockers)} /><Row k="Generated" v={time(runtimeProof?.generated_at as string)} />
+        </div>
         <button onClick={() => void runProof()} disabled={proofRunning} className="mb-4 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white disabled:opacity-50">
           <PlayCircle size={16} className="inline" /> {proofRunning ? 'Running proof…' : 'Run Runtime Proof'}
         </button>
