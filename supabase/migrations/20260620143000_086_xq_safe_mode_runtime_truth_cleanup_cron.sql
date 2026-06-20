@@ -114,7 +114,18 @@ scanner AS (
   FROM public.scanner_runs
 ),
 sched AS (SELECT jsonb_agg(to_jsonb(s) ORDER BY job_name) AS jobs, count(*) FILTER (WHERE status='FAIL') AS fails, count(*) FILTER (WHERE status='WARNING') AS warns FROM public.scheduler_truth_view s),
-hb AS (SELECT jsonb_object_agg(provider, jsonb_build_object('status', status, 'last_success_at', last_success_at, 'last_error', last_error, 'stale_age_minutes', heartbeat_age_minutes)) AS providers FROM public.scheduler_truth_view),
+hb AS (
+  SELECT jsonb_object_agg(
+    provider,
+    jsonb_build_object(
+      'status', status,
+      'last_success_at', last_success_at,
+      'last_error', latest_blocker,
+      'stale_age_minutes', heartbeat_age_minutes
+    )
+  ) AS providers
+  FROM public.scheduler_truth_view
+),
 q AS (SELECT count(*) AS active_quarantines FROM public.problem_symbol_quarantine WHERE (disabled_for_execution OR disabled_for_repair) AND coalesce(cooldown_until, now()+interval '1 minute') > now()),
 cleanup AS (SELECT rows_deleted, error_message, finished_at FROM public.runtime_cleanup_runs ORDER BY started_at DESC LIMIT 1)
 SELECT 'runtime'::text AS scope,
