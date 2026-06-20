@@ -49,3 +49,6 @@ assert.match(executionFunction, /executionReadiness/, 'dry-run readiness proof a
 
 assert.match(executionHub, /Provider Operations Center/, 'execution page is now Provider Operations Center navigation');
 console.log('execution admin UI tests passed');
+assert.match(executionFunction, /bybitExecutionAllowedEnvironment/, 'X-P Bybit environment contract is explicit');
+assert.match(executionFunction, /Bybit execution allows testnet\/demo only; live URLs are rejected/, 'X-P allows Bybit testnet/demo while blocking live execution');
+assert.match(executionFunction, /lifecycle_state: unsafeAfterEntry \? "UNSAFE_POSITION" : "FAILED_NO_POSITION"/, 'X-P no active Bybit position becomes terminal failed after protection failure');

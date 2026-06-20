@@ -11,7 +11,7 @@ const corsHeaders = {
 
 type SupabaseClient = ReturnType<typeof createClient>;
 type Json = Record<string, unknown>;
-const ACTIVE_STATUSES = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection"];
+const ACTIVE_STATUSES = ["pending", "failed", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection"];
 
 function json(body: Json, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -88,6 +88,43 @@ async function bybitPost<T>(path: string, bodyParams: Record<string, string | nu
   const data = await res.json().catch(() => ({})) as { retCode?: number; retMsg?: string; result?: T };
   if (!res.ok || data.retCode !== 0) throw new Error(`Bybit ${path} failed: ${data.retCode ?? res.status} ${data.retMsg ?? res.statusText}`);
   return data.result as T;
+}
+
+
+type SymbolFailureReason = "EXCHANGE_MAX_QTY_EXCEEDED" | "MIN_NOTIONAL_NOT_MET" | "INVALID_TRIGGER_DIRECTION" | "UNSUPPORTED_CONDITIONAL_ORDER" | "PROTECTION_VERIFICATION_FAILED" | "PRECISION_RULE_VIOLATION" | "STALE_ORDER_LOOP" | "REPEATED_REPAIR_FAILURE" | "EXCHANGE_REJECT" | "UNKNOWN_PROVIDER_FAILURE";
+function classifySymbolFailure(error: unknown): SymbolFailureReason {
+  const text = String(error instanceof Error ? error.message : error ?? "").toLowerCase();
+  if (text.includes("trigger")) return "INVALID_TRIGGER_DIRECTION";
+  if (text.includes("notional")) return "MIN_NOTIONAL_NOT_MET";
+  if (text.includes("precision") || text.includes("step")) return "PRECISION_RULE_VIOLATION";
+  if (text.includes("protection")) return "PROTECTION_VERIFICATION_FAILED";
+  if (text.includes("repair")) return "REPEATED_REPAIR_FAILURE";
+  if (text.includes("reject") || text.includes("retcode")) return "EXCHANGE_REJECT";
+  return "UNKNOWN_PROVIDER_FAILURE";
+}
+async function activeQuarantine(supabase: SupabaseClient, symbol: string, purpose: "execution" | "repair"): Promise<Json | null> {
+  const { data } = await supabase.from("problem_symbol_quarantine").select("*").eq("provider", "bybit").eq("symbol", symbol.toUpperCase()).eq(purpose === "execution" ? "disabled_for_execution" : "disabled_for_repair", true).gt("cooldown_until", new Date().toISOString()).order("last_seen", { ascending: false }).limit(1).maybeSingle();
+  return (data as Json | null) ?? null;
+}
+async function recordSymbolFailure(supabase: SupabaseClient, symbol: string, reason: SymbolFailureReason, metadata: Json = {}) {
+  await supabase.rpc("record_symbol_failure", { p_provider: "bybit", p_symbol: symbol.toUpperCase(), p_reason: reason, p_metadata: metadata }).catch(() => null);
+}
+function n(value: unknown): number { const x = Number(value ?? 0); return Number.isFinite(x) ? x : 0; }
+function near(a: number, b: number): boolean { return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= Math.max(Math.abs(b) * 0.000001, 1e-8); }
+function activeBybitOrder(order: Json): boolean { return !["Filled", "Cancelled", "Rejected", "Deactivated"].includes(String(order.orderStatus ?? order.stopOrderStatus ?? "")); }
+function strictBybitProtectionIssues(order: Json | undefined, expected: { symbol: string; side: "LONG" | "SHORT"; close: "Buy" | "Sell"; qty: number; trigger: number; label: "sl" | "tp1" | "tp2" }): string[] {
+  if (!order) return [`${expected.label}:missing`];
+  const errors: string[] = [];
+  if (String(order.symbol ?? "") !== expected.symbol) errors.push(`${expected.label}:wrong_symbol`);
+  if (String(order.side ?? "") !== expected.close) errors.push(`${expected.label}:wrong_side`);
+  if (!activeBybitOrder(order)) errors.push(`${expected.label}:inactive`);
+  if (String(order.reduceOnly ?? "").toLowerCase() !== "true") errors.push(`${expected.label}:not_reduce_only`);
+  if (String(order.closeOnTrigger ?? "").toLowerCase() !== "true") errors.push(`${expected.label}:not_close_on_trigger`);
+  if (!near(n(order.qty ?? order.leavesQty), expected.qty)) errors.push(`${expected.label}:wrong_qty`);
+  if (!near(n(order.triggerPrice), expected.trigger)) errors.push(`${expected.label}:wrong_trigger`);
+  const expectedDirection = expected.side === "LONG" ? (expected.label === "sl" ? 2 : 1) : (expected.label === "sl" ? 1 : 2);
+  if (n(order.triggerDirection) !== expectedDirection) errors.push(`${expected.label}:wrong_trigger_direction`);
+  return errors;
 }
 
 function isActiveOrder(order: Json): boolean {
@@ -249,38 +286,51 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
         }
       }
 
+      const repairQuarantine = await activeQuarantine(supabase, row.symbol, "repair");
       const missing: string[] = [];
       if (!slOrders.length) missing.push("sl");
       if (tpOrders.length < 1) missing.push("tp1");
       if (tpOrders.length < 2) missing.push("tp2");
       try {
+        if (repairQuarantine) throw new Error("symbol_quarantined");
         if (!slOrders.length && slPrice > 0 && qty > 0) {
           const sl = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: String(qty), triggerPrice: String(slPrice), triggerDirection: side === "LONG" ? 2 : 1, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:sl` });
           stats.protections_created = Number(stats.protections_created) + 1;
           Object.assign(update, { sl_order_id: String(sl.orderId ?? sl.orderLinkId ?? ""), sl_status: "submitted" });
         }
         if (tpOrders.length < 1 && tp1Price > 0 && qty > 0) {
-          const tp1 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 1), triggerPrice: String(tp1Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: false, orderLinkId: `${baseLink}:tp1` });
+          const tp1 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 1), triggerPrice: String(tp1Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:tp1` });
           stats.protections_created = Number(stats.protections_created) + 1;
           Object.assign(update, { tp1_order_id: String(tp1.orderId ?? tp1.orderLinkId ?? ""), tp1_status: "submitted" });
         }
         if (tpOrders.length < 2 && tp2Price > 0 && qty > 0) {
-          const tp2 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 2), triggerPrice: String(tp2Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: false, orderLinkId: `${baseLink}:tp2` });
+          const tp2 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 2), triggerPrice: String(tp2Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:tp2` });
           stats.protections_created = Number(stats.protections_created) + 1;
           Object.assign(update, { tp2_order_id: String(tp2.orderId ?? tp2.orderLinkId ?? ""), tp2_status: "submitted" });
         }
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
+        await recordSymbolFailure(supabase, row.symbol, classifySymbolFailure(error), { execution_id: row.id, message: error });
         Object.assign(update, { latest_protection_error: error, last_exchange_error: error, recovery_status: "protection_retry_failed" });
         await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, recovery_status: error });
       }
 
-      const verifiedSl = slOrders.length > 0 || Boolean(update.sl_order_id);
-      const verifiedTp1 = tpOrders.length >= 1 || Boolean(update.tp1_order_id);
-      const verifiedTp2 = tpOrders.length >= 2 || Boolean(update.tp2_order_id);
-      const protectionStatus = verifiedSl && verifiedTp1 && verifiedTp2 ? "protected_native" : verifiedSl || verifiedTp1 || verifiedTp2 ? "partially_protected" : missing.includes("sl") ? "missing_sl" : "protection_failed";
+      const refreshedOrders = orderList.filter((o) => String(o.symbol) === row.symbol && isActiveOrder(o));
+      const refreshedReduce = refreshedOrders.filter((o) => String(o.reduceOnly) === "true" || o.reduceOnly === true);
+      const expectedSl = refreshedReduce.find((o) => orderKind(o) === "sl" && near(n(o.triggerPrice), slPrice));
+      const expectedTps = refreshedReduce.filter((o) => orderKind(o) === "tp").sort((a, b) => side === "LONG" ? n(a.triggerPrice) - n(b.triggerPrice) : n(b.triggerPrice) - n(a.triggerPrice));
+      const strictErrors = [
+        ...strictBybitProtectionIssues(expectedSl, { symbol: row.symbol, side: side as "LONG" | "SHORT", close, qty, trigger: slPrice, label: "sl" }),
+        ...strictBybitProtectionIssues(expectedTps[0], { symbol: row.symbol, side: side as "LONG" | "SHORT", close, qty: n(splitQty(qty, 1)), trigger: tp1Price, label: "tp1" }),
+        ...strictBybitProtectionIssues(expectedTps[1], { symbol: row.symbol, side: side as "LONG" | "SHORT", close, qty: n(splitQty(qty, 2)), trigger: tp2Price, label: "tp2" }),
+      ];
+      const verifiedSl = !strictErrors.some((e) => e.startsWith("sl:"));
+      const verifiedTp1 = !strictErrors.some((e) => e.startsWith("tp1:"));
+      const verifiedTp2 = !strictErrors.some((e) => e.startsWith("tp2:"));
+      const protectionStatus = strictErrors.length === 0 ? "protected_native" : verifiedSl || verifiedTp1 || verifiedTp2 ? "partially_protected" : missing.includes("sl") ? "missing_sl" : "protection_failed";
       stats.protections_missing = Number(stats.protections_missing) + (verifiedSl ? 0 : 1) + (verifiedTp1 ? 0 : 1) + (verifiedTp2 ? 0 : 1);
-      Object.assign(update, { status: protectionStatus === "protected_native" ? "protected_native" : "protection_failed", lifecycle_state: protectionStatus === "protected_native" ? "protected_native" : "partially_protected", protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: protectionStatus === "protected_native" && row.protection_status !== "protected_native" ? "recovered" : row.recovery_status ?? "none", sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
+      if (strictErrors.length > 0) await recordSymbolFailure(supabase, row.symbol, "PROTECTION_VERIFICATION_FAILED", { execution_id: row.id, strictErrors });
+      Object.assign(update, { status: protectionStatus === "protected_native" ? "protected_native" : "protection_failed", lifecycle_state: protectionStatus === "protected_native" ? "PROTECTION_CONFIRMED" : "UNSAFE_POSITION", position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: protectionStatus === "protected_native" && row.protection_status !== "protected_native" ? "recovered" : row.recovery_status ?? "none", sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
       await supabase.from("execution_orders").update(update).eq("id", row.id);
       if (protectionStatus === "protected_native") await sendLifecycleTelegram(supabase, row, row.protection_status === "protected_native" ? "native_protection_verified" : "native_sl_tp_placed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, sl_price: slPrice, tp1_price: tp1Price, tp2_price: tp2Price });
       else await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, sl_price: slPrice, tp1_price: tp1Price, tp2_price: tp2Price });
@@ -298,7 +348,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: new Date().toISOString(), success: false, monitor_status: "degraded", positions_seen: 0, orders_seen: 0, executions_checked: Number(stats.rows_checked), protections_created: Number(stats.protections_created), protections_missing: Number(stats.protections_missing), stale_orders_cleaned: Number(stats.stale_orders_cleaned), positions_closed: Number(stats.positions_closed), latest_recovery_action: null, errors: [latestError], metadata: stats }).catch(() => null);
     await updateProvider(supabase, { status: "degraded", last_status_at: new Date().toISOString(), last_error: latestError, metadata: { bybit_monitor: { ...stats, run_id: runId, environment: bybitEnvironment(), base_url: bybitBaseUrl(), last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError } } });
     await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_monitor_error: latestError, bybit_latest_monitor_result: { ...stats, last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError }, updated_at: new Date().toISOString() }).eq("id", 1);
-    await routeTelegramEvent(supabase, { event_id: `provider_bybit_monitor_error:${startedAt}`, event_type: "provider_bybit_monitor_failure", text: `Bybit monitor failure\nFreshness: ${startedAt}\nError: ${latestError}`, source: "bybit-testnet-monitor", channels: ["admin"], dedupe: false });
+    await routeTelegramEvent(supabase, { event_id: `provider_bybit_monitor_error:${startedAt}`, event_type: "provider_bybit_monitor_failure", text: `Bybit monitor failure\nFreshness: ${startedAt}\nError: ${latestError}`, source: "bybit-testnet-monitor", channels: ["admin"], dedupe: true, cooldown_minutes: 60 });
     return { success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError, ...stats };
   }
 }

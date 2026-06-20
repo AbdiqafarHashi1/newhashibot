@@ -126,3 +126,29 @@ assert.match(monitorFn, /mode !== "testnet_action"/, 'profit-lock actions are co
 assert.match(monitorFn, /replacement_sl_not_verified[\s\S]*oldSlAlgoId/, 'old SL cancellation only occurs after replacement verification');
 assert.match(xb1Sql, /ADD COLUMN IF NOT EXISTS selected_margin_asset/, 'XB1 migration adds real margin proof columns');
 assert.match(xb1Sql, /ADD COLUMN IF NOT EXISTS highest_positive_r_observed/, 'XB1 migration adds profit-lock study columns');
+
+const xpSql = readFileSync('supabase/migrations/20260620120000_085_xp_execution_safety_runtime_truth.sql', 'utf8');
+assert.match(xpSql, /CREATE TABLE IF NOT EXISTS public\.problem_symbol_quarantine/, 'X-P creates problem symbol quarantine table');
+for (const field of ['provider','symbol','reason','first_seen','last_seen','failure_count','cooldown_until','disabled_for_execution','disabled_for_repair','recommended_action','metadata']) {
+  assert.match(xpSql, new RegExp(field), `X-P quarantine includes ${field}`);
+}
+for (const reason of ['EXCHANGE_MAX_QTY_EXCEEDED','MIN_NOTIONAL_NOT_MET','INVALID_TRIGGER_DIRECTION','UNSUPPORTED_CONDITIONAL_ORDER','PROTECTION_VERIFICATION_FAILED','PRECISION_RULE_VIOLATION','STALE_ORDER_LOOP','REPEATED_REPAIR_FAILURE','EXCHANGE_REJECT','UNKNOWN_PROVIDER_FAILURE']) {
+  assert.match(xpSql, new RegExp(reason), `X-P supports failure reason ${reason}`);
+}
+assert.match(xpSql, /CREATE OR REPLACE FUNCTION public\.record_symbol_failure/, 'X-P records symbol failures through DB function');
+assert.match(xpSql, /disabled_for_execution = true[\s\S]*disabled_for_repair = true/, 'X-P threshold disables execution and repair');
+assert.match(xpSql, /CREATE TABLE IF NOT EXISTS public\.telegram_alert_dedupe/, 'X-P creates Telegram dedupe table');
+assert.match(xpSql, /CREATE TABLE IF NOT EXISTS public\.telegram_alert_cooldowns/, 'X-P creates Telegram cooldown table');
+assert.match(xpSql, /CREATE TABLE IF NOT EXISTS public\.telegram_alert_digest/, 'X-P creates Telegram digest table');
+assert.match(xpSql, /CREATE OR REPLACE VIEW public\.runtime_proof_view/, 'X-P creates runtime proof view');
+assert.match(xpSql, /CREATE OR REPLACE VIEW public\.scheduler_truth_view/, 'X-P creates scheduler truth view');
+assert.match(xpSql, /CREATE OR REPLACE VIEW public\.clean_trade_audit_view/, 'X-P creates clean trade audit view');
+assert.match(xpSql, /CREATE OR REPLACE VIEW public\.provider_100_trade_readiness_view/, 'X-P creates provider 100-trade readiness view');
+assert.match(xpSql, /execution_settings_live_trading_false_xp_check/, 'X-P reasserts live trading disabled');
+assert.match(executionFn, /activeQuarantine\(supabase, "binance"[\s\S]*"execution"/, 'X-P Binance execution checks quarantine before submit');
+assert.match(executionFn, /activeQuarantine\(supabase, "bybit"[\s\S]*"execution"/, 'X-P Bybit execution checks quarantine before submit');
+assert.match(executionFn, /activeQuarantine\(supabase, providerName[\s\S]*"repair"/, 'X-P supervisor checks quarantine before repair');
+assert.match(executionFn, /recordSymbolFailure\(supabase, "binance"/, 'X-P Binance failures are recorded for quarantine');
+assert.match(executionFn, /recordSymbolFailure\(supabase, "bybit"/, 'X-P Bybit failures are recorded for quarantine');
+assert.match(executionFn, /verifyBybitProtectionSet/, 'X-P Bybit protection uses strict verification helper');
+assert.doesNotMatch(executionFn, /linkText\.includes\("sl"\)/, 'X-P Bybit protection no longer verifies by link-text string matching');
