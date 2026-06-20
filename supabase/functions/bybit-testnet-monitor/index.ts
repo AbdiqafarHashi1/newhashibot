@@ -359,5 +359,9 @@ Deno.serve(async (req: Request) => {
   const payload = await req.clone().json().catch(() => ({})) as Json;
   const auth = await authorizeInternalOrAdmin(req, supabase);
   if (!auth.ok) return authJsonResponse(auth, corsHeaders);
+  const { data: cfg } = await supabase.from("scanner_config").select("safe_mode_enabled,supervisor_paused").eq("id", 1).maybeSingle();
+  if (cfg?.safe_mode_enabled === true || cfg?.supervisor_paused === true) {
+    return json({ success: true, provider: "bybit", skipped: true, blocker: cfg.safe_mode_enabled ? "safe_mode_enabled" : "supervisor_paused", monitor_health: "paused", environment: bybitEnvironment(), last_monitor_run_at: new Date().toISOString() });
+  }
   return json(await monitorBybit(supabase, payload));
 });

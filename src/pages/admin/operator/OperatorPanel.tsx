@@ -171,7 +171,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     const id = window.setInterval(() => {
       void refresh();
       void loadOperatorTruth();
-    }, 5_000);
+    }, 30_000);
     return () => window.clearInterval(id);
   }, [refresh]);
 
@@ -380,6 +380,10 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     const detailed = [['Overall Health', systemHealth], ['Scanner', runtimeToHealth(scannerStatus)], ['Scheduler', runtimeToHealth(schedulerStatus)], ['Trade Supervisor', runtimeToHealth(supervisorStatus)], ['Binance', runtimeToHealth(providerStatus('binance'))], ['Bybit', runtimeToHealth(providerStatus('bybit'))], ['Telegram', runtimeToHealth(telegramStatus)], ['News Brain', runtimeToHealth(newsStatus)]] as Array<[string, Health]>;
     return (
       <Card title="System Health Strip" icon={Activity}>
+        <div className={`mb-4 rounded-xl border p-3 text-sm ${runtimeProof?.overall_status === 'SAFE_MODE' || runtimeProof?.status === 'SAFE_MODE' ? 'border-blue-500/30 bg-blue-500/10 text-blue-100' : 'border-zinc-800 bg-zinc-950/40 text-zinc-300'}`}>
+          <b>Backend runtime_truth:</b> {String(runtimeProof?.overall_status ?? runtimeProof?.status ?? 'FAIL')} · Source: {String(runtimeProof?.source_table_function ?? 'public.runtime_truth')} · Fetched: {time(runtimeProof?.generated_at as string)}
+          {(runtimeProof?.overall_status === 'SAFE_MODE' || runtimeProof?.status === 'SAFE_MODE') && <span className="ml-2 font-bold text-blue-200">SAFE MODE — scanner, execution, supervisor, auto repair, and operational Telegram are paused.</span>}
+        </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {detailed.map(([label, value]) => {
             const lastRun = lastRunFor(label);
@@ -832,7 +836,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       <Card title="Runtime Proof" icon={PlayCircle}>
         <div className="mb-4 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm">
           <div className="flex items-center justify-between gap-3"><b>Authoritative Runtime Proof Source</b><span className={runtimeProof?.status === 'PASS' ? 'text-emerald-300' : runtimeProof?.status === 'WARNING' ? 'text-yellow-300' : 'text-red-300'}>{String(runtimeProof?.status ?? 'FAIL')}</span></div>
-          <Row k="Source" v="runtime_proof_view" /><Row k="Blockers" v={text(runtimeProof?.blockers)} /><Row k="Generated" v={time(runtimeProof?.generated_at as string)} />
+          <Row k="Source" v={text(runtimeProof?.source_table_function, 'public.runtime_truth')} /><Row k="Blockers" v={text(runtimeProof?.latest_blockers ?? runtimeProof?.blockers)} /><Row k="Generated" v={time(runtimeProof?.generated_at as string)} /><Row k="Last Automatic Run" v={time(runtimeProof?.last_automatic_run_timestamp as string)} /><Row k="Stale Age" v={text(runtimeProof?.stale_age_minutes)} />
         </div>
         <button onClick={() => void runProof()} disabled={proofRunning} className="mb-4 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white disabled:opacity-50">
           <PlayCircle size={16} className="inline" /> {proofRunning ? 'Running proof…' : 'Run Runtime Proof'}
