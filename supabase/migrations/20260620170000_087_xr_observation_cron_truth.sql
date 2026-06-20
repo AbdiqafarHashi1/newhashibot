@@ -172,6 +172,7 @@ END $$;
 DROP FUNCTION IF EXISTS public.runtime_truth_function();
 DROP VIEW IF EXISTS public.runtime_proof_view;
 DROP VIEW IF EXISTS public.runtime_truth;
+DROP VIEW IF EXISTS public.scheduler_truth_view CASCADE;
 
 CREATE OR REPLACE VIEW public.scheduler_truth_view AS
 WITH expected AS (
