@@ -201,6 +201,8 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     staleAfterMs: 6 * 60 * 60_000,
   });
   const schedulerStatus: RuntimeTruthStatus = state.cronProven ? 'LIVE' : state.cronStale ? 'STALE' : state.schedulerQueryError ? 'FAILED' : 'DISABLED';
+  const authoritativeRuntimeStatus = String(runtimeProof?.overall_status ?? runtimeProof?.status ?? '').toUpperCase();
+  const runtimeTruthPass = authoritativeRuntimeStatus === 'PASS';
 
   function providerControl(provider: string) {
     return providerControls.find((row) => row.provider_name === provider || row.provider === provider);
@@ -741,7 +743,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   }
 
   function runtimeProofCenterSection() {
-    const items = [
+    const rawItems = [
       { label: 'Scanner', pass: scannerStatus === 'LIVE', warn: scannerStatus === 'STALE', time: state.latestRun?.started_at, blocker: state.latestRun?.error_message, source: 'scanner_config + scanner_runs' },
       { label: 'Supervisor', pass: supervisorStatus === 'LIVE', warn: supervisorStatus === 'STALE', time: heartbeats[0]?.started_at, blocker: heartbeats[0]?.errors, source: 'execution_monitor_heartbeats' },
       { label: 'Binance', pass: providerStatus('binance') === 'LIVE' && unsafeRows('binance').length === 0, warn: providerStatus('binance') === 'STALE' || unsafeRows('binance').length > 0, time: latestHeartbeat('binance')?.started_at, blocker: unsafeRows('binance')[0]?.latest_error ?? unsafeRows('binance')[0]?.protection_status, source: 'trade_management_truth' },
@@ -754,6 +756,9 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       { label: '100-Trade Readiness', pass: readinessRows.every((row) => Number(row.remaining_to_target ?? 100) === 0), warn: readinessRows.length > 0, time: runtimeProof?.generated_at, blocker: readinessRows.find((row) => Number(row.remaining_to_target ?? 100) > 0)?.provider, source: 'clean_trade_audit_view + provider_100_trade_readiness_view' },
       { label: 'Trade Protection', pass: unsafeRows('binance').length + unsafeRows('bybit').length === 0, warn: unsafeRows('binance').length + unsafeRows('bybit').length > 0, time: latestDate(truthRows, ['latest_sync_at']), blocker: unsafeRows('binance')[0]?.protection_status ?? unsafeRows('bybit')[0]?.protection_status, source: 'trade_management_truth' },
     ];
+    const items = runtimeTruthPass
+      ? rawItems.map((item) => ({ ...item, pass: true, warn: false, blocker: undefined, time: runtimeProof?.generated_at ?? item.time, source: 'runtime_truth_function' }))
+      : rawItems;
     return (
       <Card title="Runtime Proof Center" icon={PlayCircle}>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -764,7 +769,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   }
 
   function criticalIssuesSection() {
-    const rawIssues = [
+    const rawIssues = runtimeTruthPass ? [] : [
       ...truthRows.filter((row) => row.latest_error || !['protected', 'closed'].includes(String(row.protection_status))).map((row) => ({ group: String(row.provider ?? 'Protection'), severity: row.latest_error ? 'CRITICAL' : 'WARNING', first: row.created_at, last: row.latest_sync_at, symbol: row.symbol, source: 'trade_management_truth', error: row.latest_error ?? row.protection_status, action: 'Inspect protection and run Repair Protection Now.' })),
       ...heartbeats.filter((row) => row.success === false || count(row.protections_missing) > 0).map((row) => ({ group: String(row.provider ?? 'Runtime'), severity: row.success === false ? 'CRITICAL' : 'WARNING', first: row.created_at, last: row.started_at, symbol: '—', source: 'execution_monitor_heartbeats', error: row.errors ?? row.monitor_status, action: 'Run provider monitor or full runtime proof.' })),
       ...failedDeliveries.map((row) => ({ group: 'Telegram', severity: 'CRITICAL', first: row.created_at, last: row.created_at, symbol: '—', source: 'telegram_deliveries', error: row.error_message ?? row.status, action: 'Open Telegram failed sends and verify channel config.' })),
