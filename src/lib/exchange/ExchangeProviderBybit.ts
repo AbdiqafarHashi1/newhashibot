@@ -68,6 +68,18 @@ export function createBybitOrderLinkId(sourceId: unknown, purpose: 'entry' | 'cl
 function side(side: 'long' | 'short'): 'Buy' | 'Sell' { return side === 'long' ? 'Buy' : 'Sell'; }
 function closeSide(sideValue: 'long' | 'short'): 'Buy' | 'Sell' { return sideValue === 'long' ? 'Sell' : 'Buy'; }
 function safeNumber(value: unknown): number { const n = Number(value); return Number.isFinite(n) ? n : 0; }
+function closeSideMatches(order: ExchangeOrder, requestSide: 'long' | 'short' | string | undefined): boolean {
+  if (requestSide !== 'long' && requestSide !== 'short') return true;
+  return String(order.side ?? '').toLowerCase() === closeSide(requestSide).toLowerCase();
+}
+function activeBybitOrder(order: ExchangeOrder): boolean {
+  return !['filled', 'cancelled', 'canceled', 'rejected', 'deactivated', 'expired'].includes(String(order.status ?? '').toLowerCase());
+}
+function nearPrice(a: unknown, b: unknown): boolean {
+  const left = safeNumber(a);
+  const right = safeNumber(b);
+  return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= Math.max(Math.abs(right) * 0.000001, 1e-8);
+}
 export function bybitV5QueryString(params: Record<string, string | number | boolean | undefined>): string {
   return Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
@@ -236,8 +248,18 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   async placeTakeProfit(request: ProtectionRequest, target: 'tp1' | 'tp2') { return target === 'tp1' ? this.placeTP1(request) : this.placeTP2(request); }
   async verifyProtection(request: ReconcileRequest): Promise<ProviderResult<{ verified: boolean; missing: string[] }>> {
     const open = await this.getOpenOrders(request.symbol);
-    const ids = ['sl', 'tp1', 'tp2'].map((label) => String(request.metadata?.[`${label}_order_id`] ?? request.metadata?.[`${label}_algo_id`] ?? '')).filter(Boolean);
-    const missing = ids.length === 0 ? ['sl', 'tp1', 'tp2'] : ids.filter((id) => !open.some((order) => order.providerOrderId === id));
+    const metadata = request.metadata ?? {};
+    const sideValue = metadata.side === 'long' || metadata.side === 'short' ? metadata.side : undefined;
+    const labels = ['sl', 'tp1', 'tp2'] as const;
+    const missing = labels.filter((label) => {
+      const id = String(metadata[`${label}_order_id`] ?? metadata[`${label}_algo_id`] ?? '').trim();
+      const trigger = metadata[label] ?? metadata[`intended_${label}`] ?? metadata[label === 'sl' ? 'stopLoss' : label];
+      return !open.some((order) => {
+        if (order.symbol !== request.symbol || !activeBybitOrder(order) || order.reduceOnly !== true || !closeSideMatches(order, sideValue)) return false;
+        if (id && (order.providerOrderId === id || String(order.metadata?.orderLinkId ?? '') === id)) return true;
+        return trigger !== undefined && nearPrice(order.triggerPrice, trigger);
+      });
+    });
     return { provider, ok: missing.length === 0, data: { verified: missing.length === 0, missing }, metadata: { openOrders: open.length } };
   }
   async classifyProtectionState(request: ReconcileRequest): Promise<ProviderResult<{ state: SafetyState; reason: string }>> { return this.classifySafetyState(request); }
