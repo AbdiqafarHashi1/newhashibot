@@ -1,9 +1,196 @@
 import { useEffect, useState, useCallback } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
-import { Target, TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Plus, CreditCard as Edit3, ChevronDown, ChevronUp, BarChart2, Zap, Clock, DollarSign, Activity, Lock, PauseCircle, PlayCircle, Info } from 'lucide-react';
+import { Target, Shield, AlertTriangle, XCircle, RefreshCw, Plus, CreditCard as Edit3, ChevronDown, ChevronUp, Zap, Lock, PauseCircle, PlayCircle, Info, TrendingUp, TrendingDown, Activity, Clock } from 'lucide-react';
 
-// ── Types ─────────────────────────────────────────────────────
+// ── Live Bybit Trade types ─────────────────────────────────────
+interface BybitTrade {
+  id: string;
+  symbol: string;
+  direction: string;
+  status: string;
+  entry_price: number | null;
+  current_price: number | null;
+  latest_mark_price: number | null;
+  stop_loss: number | null;
+  tp1: number | null;
+  tp2: number | null;
+  quantity: number | null;
+  leverage: number | null;
+  latest_unrealized_pnl: number | null;
+  protection_status: string | null;
+  opened_at: string | null;
+  created_at: string;
+}
+
+interface BybitLiveData {
+  wallet_balance: number | null;
+  equity: number | null;
+  unrealized_pnl: number | null;
+  available_balance: number | null;
+  bybit_positions_count: number | null;
+  bybit_open_orders_count: number | null;
+  last_sync: string | null;
+}
+
+// ── Live Bybit Trades Panel ───────────────────────────────────
+const ACTIVE_STATUSES = ['entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'tp1_hit', 'sl_moved_to_be'];
+
+function tradeAge(opened?: string | null): string {
+  if (!opened) return '—';
+  const mins = Math.floor((Date.now() - new Date(opened).getTime()) / 60000);
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
+
+function LiveBybitTrades({ trades, liveData }: { trades: BybitTrade[]; liveData: BybitLiveData | null }) {
+  const totalUnrealized = trades.reduce((s, t) => s + (t.latest_unrealized_pnl ?? 0), 0);
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 shadow-lg shadow-black/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Activity size={14} className="text-blue-400" />
+          <span className="text-sm font-semibold text-zinc-100">Live Bybit Positions</span>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${trades.length > 0 ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : 'border-zinc-700 bg-zinc-800 text-zinc-500'}`}>
+            {trades.length} open
+          </span>
+        </div>
+        {liveData && (
+          <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+            {liveData.wallet_balance != null && (
+              <span>Wallet: <span className="text-zinc-300 font-medium">{usd(liveData.wallet_balance)}</span></span>
+            )}
+            {liveData.equity != null && (
+              <span>Equity: <span className="text-zinc-300 font-medium">{usd(liveData.equity)}</span></span>
+            )}
+            {liveData.unrealized_pnl != null && (
+              <span>Unrealized: <span className={`font-medium ${liveData.unrealized_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{usd(liveData.unrealized_pnl)}</span></span>
+            )}
+            {liveData.last_sync && (
+              <span className="hidden sm:inline">Synced: <span className="text-zinc-400">{new Date(liveData.last_sync).toLocaleTimeString()}</span></span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {trades.length === 0 ? (
+        <div className="px-4 py-6 text-center text-zinc-600 text-xs">No open Bybit positions right now.</div>
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="sm:hidden divide-y divide-zinc-800/60">
+            {trades.map(t => {
+              const pnl = t.latest_unrealized_pnl ?? 0;
+              const isLong = t.direction === 'long';
+              return (
+                <div key={t.id} className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {isLong
+                        ? <TrendingUp size={12} className="text-emerald-400" />
+                        : <TrendingDown size={12} className="text-red-400" />}
+                      <span className="text-sm font-bold text-zinc-100">{t.symbol}</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${isLong ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                        {t.direction}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-bold ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{usd(pnl)}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 text-xs">
+                    <div><span className="text-zinc-600">Entry</span><br /><span className="text-zinc-300">{t.entry_price?.toFixed(2) ?? '—'}</span></div>
+                    <div><span className="text-zinc-600">Mark</span><br /><span className="text-zinc-300">{(t.latest_mark_price ?? t.current_price)?.toFixed(2) ?? '—'}</span></div>
+                    <div><span className="text-zinc-600">SL</span><br /><span className="text-red-400">{t.stop_loss?.toFixed(2) ?? '—'}</span></div>
+                    <div><span className="text-zinc-600">TP1</span><br /><span className="text-emerald-400">{t.tp1?.toFixed(2) ?? '—'}</span></div>
+                    <div><span className="text-zinc-600">Qty</span><br /><span className="text-zinc-300">{t.quantity ?? '—'}</span></div>
+                    <div><span className="text-zinc-600">Age</span><br /><span className="text-zinc-400 flex items-center gap-1"><Clock size={9} />{tradeAge(t.opened_at)}</span></div>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <span className={`px-1.5 py-0.5 rounded border ${
+                      t.protection_status === 'protected' || t.protection_status === 'protected_native' || t.protection_status === 'protected_managed'
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                        : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
+                    }`}>
+                      {t.protection_status ?? 'unprotected'}
+                    </span>
+                    <span className="text-zinc-600">{t.status}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="min-w-full text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800 text-zinc-500 text-left">
+                  <th className="px-4 py-2 font-medium">Symbol</th>
+                  <th className="px-2 py-2 font-medium">Dir</th>
+                  <th className="px-2 py-2 font-medium">Entry</th>
+                  <th className="px-2 py-2 font-medium">Mark</th>
+                  <th className="px-2 py-2 font-medium">SL</th>
+                  <th className="px-2 py-2 font-medium">TP1</th>
+                  <th className="px-2 py-2 font-medium">Qty</th>
+                  <th className="px-2 py-2 font-medium">Unrealized</th>
+                  <th className="px-2 py-2 font-medium">Protection</th>
+                  <th className="px-2 py-2 font-medium">Age</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900">
+                {trades.map(t => {
+                  const pnl = t.latest_unrealized_pnl ?? 0;
+                  const isLong = t.direction === 'long';
+                  const isProtected = ['protected', 'protected_native', 'protected_managed'].includes(t.protection_status ?? '');
+                  return (
+                    <tr key={t.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="px-4 py-2.5 font-bold text-zinc-100">{t.symbol}</td>
+                      <td className="px-2 py-2.5">
+                        <span className={`flex items-center gap-1 font-bold ${isLong ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {isLong ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                          {t.direction?.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 text-zinc-300">{t.entry_price?.toFixed(2) ?? '—'}</td>
+                      <td className="px-2 py-2.5 text-zinc-300">{(t.latest_mark_price ?? t.current_price)?.toFixed(2) ?? '—'}</td>
+                      <td className="px-2 py-2.5 text-red-400">{t.stop_loss?.toFixed(2) ?? '—'}</td>
+                      <td className="px-2 py-2.5 text-emerald-400">{t.tp1?.toFixed(2) ?? '—'}</td>
+                      <td className="px-2 py-2.5 text-zinc-400">{t.quantity ?? '—'}</td>
+                      <td className={`px-2 py-2.5 font-bold ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{usd(pnl)}</td>
+                      <td className="px-2 py-2.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          isProtected
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                            : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
+                        }`}>
+                          {isProtected ? 'protected' : (t.protection_status ?? 'unprotected')}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 text-zinc-500 flex items-center gap-1">
+                        <Clock size={9} /> {tradeAge(t.opened_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {trades.length > 0 && (
+            <div className="px-4 py-2.5 border-t border-zinc-800 flex items-center justify-between">
+              <span className="text-xs text-zinc-600">{trades.length} position{trades.length !== 1 ? 's' : ''} open</span>
+              <span className={`text-xs font-bold ${totalUnrealized >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                Total unrealized: {usd(totalUnrealized)}
+              </span>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Prop Account types ────────────────────────────────────────
 interface PropAccount {
   id: string;
   label: string;
@@ -463,6 +650,8 @@ function AccountCard({
 export default function PropTradingPanel() {
   const [accounts, setAccounts] = useState<PropAccount[]>([]);
   const [sessions, setSessions] = useState<Record<string, DailySession>>({});
+  const [bybitTrades, setBybitTrades] = useState<BybitTrade[]>([]);
+  const [bybitLive, setBybitLive] = useState<BybitLiveData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -472,20 +661,50 @@ export default function PropTradingPanel() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
-  const fetchAccounts = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const query = supabase
-      .from('bybit_prop_accounts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!showArchived) query.eq('is_archived', false);
-    const { data, error: err } = await query;
-    if (err) { setError(err.message); setLoading(false); return; }
-    setAccounts(data as PropAccount[]);
 
-    if (data && data.length > 0) {
-      const ids = data.map((a: PropAccount) => a.id);
+    // Parallel: prop accounts + live bybit trades + execution settings
+    const [accountsRes, tradesRes, settingsRes] = await Promise.all([
+      supabase
+        .from('bybit_prop_accounts')
+        .select('*')
+        .eq('is_archived', showArchived ? undefined! : false)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('execution_orders')
+        .select('id,symbol,direction,status,entry_price,current_price,latest_mark_price,stop_loss,tp1,tp2,quantity,leverage,latest_unrealized_pnl,protection_status,opened_at,created_at')
+        .in('status', ACTIVE_STATUSES)
+        .or('provider.eq.bybit,execution_provider.eq.bybit'),
+      supabase
+        .from('execution_settings')
+        .select('bybit_latest_monitor_result,bybit_latest_successful_sync_at')
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (accountsRes.error) { setError(accountsRes.error.message); setLoading(false); return; }
+    setAccounts((accountsRes.data ?? []) as PropAccount[]);
+    setBybitTrades((tradesRes.data ?? []) as BybitTrade[]);
+
+    // Extract live balance data from bybit monitor result
+    const monRes = settingsRes.data?.bybit_latest_monitor_result as Record<string, unknown> | null;
+    if (monRes) {
+      setBybitLive({
+        wallet_balance: (monRes.wallet_balance as number) ?? null,
+        equity: (monRes.equity as number) ?? null,
+        unrealized_pnl: (monRes.unrealized_pnl as number) ?? null,
+        available_balance: (monRes.available_balance as number) ?? null,
+        bybit_positions_count: (monRes.bybit_positions_count as number) ?? null,
+        bybit_open_orders_count: (monRes.bybit_open_orders_count as number) ?? null,
+        last_sync: settingsRes.data?.bybit_latest_successful_sync_at ?? null,
+      });
+    }
+
+    // Fetch today's sessions for prop accounts
+    const ids = (accountsRes.data ?? []).map((a: PropAccount) => a.id);
+    if (ids.length > 0) {
       const today = new Date().toISOString().slice(0, 10);
       const { data: sess } = await supabase
         .from('prop_daily_sessions')
@@ -496,14 +715,15 @@ export default function PropTradingPanel() {
       (sess ?? []).forEach((s: DailySession) => { sessionMap[s.account_id] = s; });
       setSessions(sessionMap);
     }
+
     setLoading(false);
   }, [showArchived]);
 
-  useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const activeAccounts = accounts.filter(a => !a.is_archived || showArchived);
-  const totalBalance = activeAccounts.reduce((s, a) => s + (a.current_balance_usd ?? a.account_size_usd), 0);
-  const totalUnrealized = activeAccounts.reduce((s, a) => s + (a.unrealized_pnl_usd ?? 0), 0);
+  const liveUnrealized = bybitLive?.unrealized_pnl ?? bybitTrades.reduce((s, t) => s + (t.latest_unrealized_pnl ?? 0), 0);
+  const totalBalance = bybitLive?.wallet_balance ?? activeAccounts.reduce((s, a) => s + (a.current_balance_usd ?? a.account_size_usd), 0);
   const greenCount = activeAccounts.filter(a => a.prop_readiness_tier === 'green').length;
   const redCount = activeAccounts.filter(a => a.prop_readiness_tier === 'red').length;
 
@@ -543,7 +763,7 @@ export default function PropTradingPanel() {
     if (err) { setFormError(err.message); setSaving(false); return; }
     setShowForm(false);
     setEditingAccount(null);
-    await fetchAccounts();
+    await fetchAll();
     setSaving(false);
   }
 
@@ -569,7 +789,7 @@ export default function PropTradingPanel() {
               className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${showArchived ? 'bg-zinc-700 border-zinc-600 text-zinc-200' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-200'}`}>
               {showArchived ? 'Hide archived' : 'Show archived'}
             </button>
-            <button onClick={fetchAccounts} disabled={loading}
+            <button onClick={fetchAll} disabled={loading}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors disabled:opacity-50">
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
@@ -581,16 +801,17 @@ export default function PropTradingPanel() {
         </div>
 
         {/* Summary stats */}
-        {activeAccounts.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatChip label="Accounts" value={activeAccounts.length} />
-            <StatChip label="Total Balance" value={usd(totalBalance)} tone="blue" />
-            <StatChip label="Unrealized PnL" value={usd(totalUnrealized)}
-              tone={totalUnrealized > 0 ? 'green' : totalUnrealized < 0 ? 'red' : 'zinc'} />
-            <StatChip label="Readiness" value={`${greenCount}G · ${redCount}R`}
-              tone={redCount > 0 ? 'red' : greenCount === activeAccounts.length ? 'green' : 'yellow'} />
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatChip label="Open Positions" value={bybitTrades.length} tone={bybitTrades.length > 0 ? 'blue' : 'zinc'} />
+          <StatChip label="Live Balance" value={usd(totalBalance)} tone="blue" />
+          <StatChip label="Unrealized PnL" value={usd(liveUnrealized)}
+            tone={liveUnrealized > 0 ? 'green' : liveUnrealized < 0 ? 'red' : 'zinc'} />
+          <StatChip label="Prop Accounts" value={`${activeAccounts.length} · ${greenCount}G ${redCount}R`}
+            tone={redCount > 0 ? 'red' : 'green'} />
+        </div>
+
+        {/* Live Bybit positions — always shown */}
+        <LiveBybitTrades trades={bybitTrades} liveData={bybitLive} />
 
         {/* Form */}
         {showForm && (
