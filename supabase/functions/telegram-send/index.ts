@@ -88,9 +88,9 @@ function formatTradeManagementLines(signal: Record<string, unknown>): string[] {
   return [
     `*Management:*`,
     `• TP1 Partial: ~${plan.tp1PartialPct ?? 40}%`,
-    `• BE: ${plan.breakEvenRule}`,
-    `• Trail: ${plan.trailingStopRule}`,
-    `• Expiry: ${plan.timeStopRule}`,
+    `• BE: ${mdSafe(plan.breakEvenRule)}`,
+    `• Trail: ${mdSafe(plan.trailingStopRule)}`,
+    `• Expiry: ${mdSafe(plan.timeStopRule)}`,
     `• Signal-only: no broker/MT5/order execution.`,
   ];
 }
@@ -99,6 +99,15 @@ function titleCaseMode(value: unknown): string {
   return String(value ?? "signal_mode")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+// Escape characters that break Telegram Markdown (legacy mode) in dynamic content
+function mdSafe(value: unknown): string {
+  return String(value ?? "")
+    .replace(/\*/g, "\\*")
+    .replace(/_/g, "\\_")
+    .replace(/\[/g, "\\[")
+    .replace(/`/g, "\\`");
 }
 
 function formatRiskGuidanceLines(signal: Record<string, unknown>): string[] {
@@ -114,8 +123,8 @@ function formatRiskGuidanceLines(signal: Record<string, unknown>): string[] {
     `• Suggested Risk: ${riskPct.toFixed(2)}% of account`,
     `• Suggested Leverage: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x`,
     Number.isFinite(cap) ? `• Max Leverage Cap: ${cap.toFixed(0)}x` : null,
-    signal.strategy_specific_warning ? `• Note: ${signal.strategy_specific_warning}` : null,
-    `• Warning: ${signal.risk_warning || "Signal only. Manage risk. Not financial advice."}`,
+    signal.strategy_specific_warning ? `• Note: ${mdSafe(signal.strategy_specific_warning)}` : null,
+    `• Warning: ${mdSafe(signal.risk_warning || "Signal only. Manage risk. Not financial advice.")}`,
   ].filter(Boolean) as string[];
 }
 
@@ -129,9 +138,9 @@ function formatSignalMessage(signal: Record<string, unknown>): string {
   return [
     `🤖 *HASHIBOT ${signal.grade} SIGNAL* ${gradeEmoji}`,
     ``,
-    `*Symbol:* ${signal.symbol}`,
-    `*Market:* ${String(signal.market_type).toUpperCase()}`,
-    `*Timeframe:* ${signal.timeframe}`,
+    `*Symbol:* ${mdSafe(signal.symbol)}`,
+    `*Market:* ${mdSafe(String(signal.market_type).toUpperCase())}`,
+    `*Timeframe:* ${mdSafe(signal.timeframe)}`,
     `*Direction:* ${dirEmoji}`,
     `*Entry:* ${entryRange}`,
     `*Stop Loss:* ${Number(signal.stop_loss).toFixed(5)}`,
@@ -142,13 +151,13 @@ function formatSignalMessage(signal: Record<string, unknown>): string {
     ``,
     ...formatTradeManagementLines(signal),
     ``,
-    `*Strategy:* ${signal.strategy_name}`,
-    `*Regime:* ${signal.regime}`,
+    `*Strategy:* ${mdSafe(signal.strategy_name)}`,
+    `*Regime:* ${mdSafe(signal.regime)}`,
     `*Confidence:* ${signal.confidence_score}%`,
-    `*Data:* ${signal.data_source === "REAL DATA" ? "✅ REAL DATA" : String(signal.data_source ?? "unknown")}`,
-    `*Reason:* ${signal.reason}`,
-    `*Invalidation:* ${signal.invalidation}`,
-    `*Status:* ${String(signal.status).toUpperCase()}`,
+    `*Data:* ${signal.data_source === "REAL DATA" ? "✅ REAL DATA" : mdSafe(signal.data_source ?? "unknown")}`,
+    `*Reason:* ${mdSafe(signal.reason)}`,
+    `*Invalidation:* ${mdSafe(signal.invalidation)}`,
+    `*Status:* ${mdSafe(String(signal.status).toUpperCase())}`,
     ``,
     ...formatRiskGuidanceLines(signal),
     ``,

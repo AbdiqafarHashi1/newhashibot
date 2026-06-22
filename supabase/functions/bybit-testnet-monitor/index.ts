@@ -332,6 +332,28 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       if (strictErrors.length > 0) await recordSymbolFailure(supabase, row.symbol, "PROTECTION_VERIFICATION_FAILED", { execution_id: row.id, strictErrors });
       Object.assign(update, { status: protectionStatus === "protected_native" ? "protected_native" : "protection_failed", lifecycle_state: protectionStatus === "protected_native" ? "PROTECTION_CONFIRMED" : "UNSAFE_POSITION", position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: protectionStatus === "protected_native" && row.protection_status !== "protected_native" ? "recovered" : row.recovery_status ?? "none", sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
       await supabase.from("execution_orders").update(update).eq("id", row.id);
+      // Write unified trade truth so the operator panel can read live protection state
+      await supabase.rpc("upsert_trade_management_truth", {
+        p_execution_order_id: row.id,
+        p_provider: "bybit",
+        p_environment: bybitEnvironment(),
+        p_symbol: row.symbol,
+        p_direction: side === "LONG" ? "long" : "short",
+        p_status: update.status ?? row.status,
+        p_protection_status: protectionStatus,
+        p_sl_present: verifiedSl,
+        p_tp1_present: verifiedTp1,
+        p_tp2_present: verifiedTp2,
+        p_entry_price: Number(row.entry_price ?? 0) || null,
+        p_mark_price: currentPrice,
+        p_unrealized_pnl: Number(position?.unrealisedPnl ?? 0),
+        p_quantity: qty || null,
+        p_leverage: Number(position?.leverage ?? row.leverage ?? 0) || null,
+        p_sl_price: slPrice || null,
+        p_tp1_price: tp1Price || null,
+        p_tp2_price: tp2Price || null,
+        p_monitor_run_id: runId,
+      }).catch(() => null); // non-blocking — never let this kill the monitor
       if (protectionStatus === "protected_native") await sendLifecycleTelegram(supabase, row, row.protection_status === "protected_native" ? "native_protection_verified" : "native_sl_tp_placed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, sl_price: slPrice, tp1_price: tp1Price, tp2_price: tp2Price });
       else await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, sl_price: slPrice, tp1_price: tp1Price, tp2_price: tp2Price });
       stats.rows_updated = Number(stats.rows_updated) + 1;

@@ -201,25 +201,42 @@ function newsSourceName(source: unknown, fallback: unknown): string { if (source
 function normalizeNewsHeadlines(json: Record<string, unknown>): Array<{ title: string; url: string; source: string; published_at: string }> { const raw = (Array.isArray(json.results) ? json.results : Array.isArray(json.articles) ? json.articles : Array.isArray(json.Data) ? json.Data : Array.isArray(json.data) ? json.data : []) as Record<string, unknown>[]; return raw.slice(0, 20).map((h) => ({ title: String(h.title ?? "").slice(0, 220), url: String(h.url ?? h.guid ?? h.domain ?? ""), source: newsSourceName(h.source_info ?? h.source, h.domain), published_at: String(h.published_at ?? h.publishedAt ?? h.created_at ?? (h.published_on ? new Date(Number(h.published_on) * 1000).toISOString() : "")) })).filter((h) => h.title); }
 async function news(): Promise<FeedResult> {
   const configuredUrl = Deno.env.get("CRYPTO_NEWS_API_URL") ?? "";
-  const url = configuredUrl || "https://min-api.cryptocompare.com/data/v2/news/?lang=EN";
+  const primaryUrl = configuredUrl || "https://min-api.cryptocompare.com/data/v2/news/?lang=EN";
+  const fallbackUrl = "https://cryptopanic.com/api/free/v1/posts/?public=true";
   const key = Deno.env.get("NEWS_API_KEY") ?? "";
-  try {
-    const sep = url.includes("?") ? "&" : "?";
-    const full = key && !url.includes("auth_token") && !url.includes("apiKey") ? `${url}${sep}auth_token=${encodeURIComponent(key)}` : url;
-    const json = await fetchJson(full) as Record<string, unknown>;
+  function buildHeadlineUrl(url: string): string { const sep = url.includes("?") ? "&" : "?"; return key && !url.includes("auth_token") && !url.includes("apiKey") ? `${url}${sep}auth_token=${encodeURIComponent(key)}` : url; }
+  async function tryFetch(url: string): Promise<Array<{ title: string; url: string; source: string; published_at: string }>> {
+    const json = await fetchJson(buildHeadlineUrl(url)) as Record<string, unknown>;
+    if (String(json.Response ?? "") === "Error" || (json.Type !== undefined && Number(json.Type) !== 100 && !Array.isArray(json.Data))) throw new Error(String(json.Message ?? json.Reason ?? "provider_error_response"));
     const headlines = normalizeNewsHeadlines(json);
-    const buckets: Record<string, typeof headlines> = Object.fromEntries(NEWS_BUCKETS.map((bucket) => [bucket, []]));
-    for (const headline of headlines) {
-      const text = headline.title.toLowerCase();
-      const bucket = text.includes("etf") ? "etf" : /sec|cftc|regulat|law|court|policy/.test(text) ? "regulatory" : /binance|coinbase|kraken|exchange/.test(text) ? "exchange" : /fed|cpi|rates|dollar|macro/.test(text) ? "macro" : "ecosystem";
-      buckets[bucket].push(headline);
-    }
-    return feedResult({ feed_type: "news", value: { headlines, buckets }, classification: headlines.length ? "headlines_available" : "no_headlines", source: configuredUrl ? "CRYPTO_NEWS_API_URL" : "cryptocompare_public_news", provider: configuredUrl ? "configured_news_provider" : "cryptocompare", endpoint: configuredUrl || "https://min-api.cryptocompare.com/data/v2/news/", freshness: "live fetch", status: "available", error_message: null, update_frequency: "per intelligence run", fallback_source: configuredUrl ? "cryptocompare_public_news when CRYPTO_NEWS_API_URL unset" : null, historical_coverage: "latest provider headlines" });
-  } catch (e) {
-    const reason = e instanceof Error ? e.message : "provider failed";
-    const exact = reason.includes("HTTP 401") ? new Error(`${reason}; exact cause is auth failure: missing/expired/invalid NEWS_API_KEY or provider token`) : e;
-    return failed("news", configuredUrl ? "CRYPTO_NEWS_API_URL" : "cryptocompare_public_news", exact);
+    if (headlines.length === 0) throw new Error("no_headlines_returned");
+    return headlines;
   }
+  let headlines: Array<{ title: string; url: string; source: string; published_at: string }> = [];
+  let usedSource = configuredUrl ? "CRYPTO_NEWS_API_URL" : "cryptocompare_public_news";
+  let usedEndpoint = primaryUrl;
+  let fallbackError: string | null = null;
+  try {
+    headlines = await tryFetch(primaryUrl);
+  } catch (primaryErr) {
+    const primaryMsg = primaryErr instanceof Error ? primaryErr.message : "primary_failed";
+    if (configuredUrl) { const exact = primaryMsg.includes("HTTP 401") ? new Error(`${primaryMsg}; auth failure: invalid CRYPTO_NEWS_API_URL token`) : primaryErr instanceof Error ? primaryErr : new Error(primaryMsg); return failed("news", "CRYPTO_NEWS_API_URL", exact); }
+    try {
+      headlines = await tryFetch(fallbackUrl);
+      usedSource = "cryptopanic_public";
+      usedEndpoint = fallbackUrl;
+    } catch (fallbackErr) {
+      fallbackError = `primary: ${primaryMsg}; fallback: ${fallbackErr instanceof Error ? fallbackErr.message : "fallback_failed"}`;
+      return failed("news", "cryptocompare_and_cryptopanic", new Error(fallbackError));
+    }
+  }
+  const buckets: Record<string, typeof headlines> = Object.fromEntries(NEWS_BUCKETS.map((bucket) => [bucket, []]));
+  for (const headline of headlines) {
+    const text = headline.title.toLowerCase();
+    const bucket = text.includes("etf") ? "etf" : /sec|cftc|regulat|law|court|policy/.test(text) ? "regulatory" : /binance|coinbase|kraken|exchange/.test(text) ? "exchange" : /fed|cpi|rates|dollar|macro/.test(text) ? "macro" : "ecosystem";
+    buckets[bucket].push(headline);
+  }
+  return feedResult({ feed_type: "news", value: { headlines, buckets }, classification: "headlines_available", source: usedSource, provider: usedSource, endpoint: usedEndpoint, freshness: "live fetch", status: "available", error_message: fallbackError, update_frequency: "per intelligence run", fallback_source: configuredUrl ? null : fallbackUrl, historical_coverage: "latest provider headlines" });
 }
 async function buildFeeds(snapshots: SymbolSnapshot[]): Promise<FeedResult[]> { const coreFeeds = await Promise.all([fearGreed(), btcDominance(), funding(), openInterest(), liquidations(), news()]); const breadth = marketBreadth(snapshots); const sector = sectorRotation(snapshots); const stablecoin = stablecoinFlow([...coreFeeds, breadth]); return [...coreFeeds, breadth, sector, stablecoin]; }
 function feed(feeds: FeedResult[], type: string): FeedResult { return feeds.find((f) => f.feed_type === type) ?? unavailable(type); }

@@ -625,7 +625,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
               <div className="mt-2 font-mono text-xs text-amber-200">Restriction codes: {bybitRestrictionReason(status?.latest_error?.error_message ?? selectedProviderControl?.last_error ?? '')}</div>
             </div>
           )}
-        <p className="text-sm text-zinc-500 mt-0.5">Dedicated provider workspace. Provider truth is read from execution records; scanner, signal, risk, and adapter logic are unchanged.</p>
+        <p className="text-sm text-zinc-500 mt-0.5">{provider === 'binance' ? 'Binance Futures testnet — execution monitor, protection watchdog, and trade management truth.' : provider === 'bybit' ? 'Bybit prop platform — execution controls, protection verification, and governor state.' : 'Dedicated provider workspace. Provider truth is read from execution records; scanner, signal, risk, and adapter logic are unchanged.'}</p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {workspaceSections(provider, mode).map((section) => <div key={section} className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300">{section}</div>)}
         </div>
@@ -1500,7 +1500,8 @@ function MiniList({ title, rows }: { title: string; rows: BinanceExecutionOrder[
 function workspaceTitle(provider: string, mode: string): string {
   if (mode === 'mt5_personal') return 'MT5 Personal';
   if (mode === 'mt5_prop') return 'MT5 Prop';
-  if (provider === 'bybit') return 'Bybit';
+  if (provider === 'bybit') return 'Bybit Prop';
+  if (provider === 'binance') return 'Binance Testnet';
   if (provider === 'mt5') return 'MT5';
   return 'Binance';
 }

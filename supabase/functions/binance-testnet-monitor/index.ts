@@ -662,7 +662,7 @@ async function fetchLiveConditionalOrders(symbol: string): Promise<BinanceOrder[
   return [...(Array.isArray(regularBody) ? regularBody as BinanceOrder[] : []), ...parseOpenAlgoOrders(algoBody)];
 }
 
-async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, positionAmt: number, openOrders: BinanceOrder[], stats: MonitorStats): Promise<boolean> {
+async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, positionAmt: number, openOrders: BinanceOrder[], stats: MonitorStats, runId = ""): Promise<boolean> {
   const expected = expectedNativeProtection(row, positionAmt);
   if (expected.length < (row.tp1_filled || row.tp1_closed_at || row.status === "partially_closed" ? 2 : 3)) {
     const error = `native_protection_intent_incomplete: expected=${expected.map((item) => item.label).join(",")}`;
@@ -686,6 +686,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
       await logEvent(supabase, row, "order_cleanup_warning", `${row.symbol} duplicate/stale conditionals cancelled after live protection set was verified.`, { duplicateCancelled, expected }, stats);
     }
     await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, latest_protection_error: "", protection_critical_reason: "", last_monitor_action: "protection_watchdog_verified_live", updated_at: new Date().toISOString() }).eq("id", row.id);
+    await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", p_protection_status: "protected_native", p_sl_present: true, p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId }).catch(() => null);
     stats.protected += 1;
     stats.updated += 1;
     return true;
@@ -693,6 +694,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
 
   const unsafeReason = missingOrInvalid.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
   await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `UNSAFE_POSITION missing/mismatched live Binance protection: ${unsafeReason}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", lifecycle_state: "unsafe_position", last_monitor_action: "protection_watchdog_repairing", updated_at: new Date().toISOString() }).eq("id", row.id);
+  await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: "protection_failed", p_protection_status: "protection_failed", p_sl_present: checks.every((c) => c.label !== "sl" || c.errors.length === 0), p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId }).catch(() => null);
   await logEvent(supabase, row, "protection_failed", `${row.symbol} UNSAFE_POSITION / PROTECTION_FAILED: missing or invalid live Binance protection (${unsafeReason}); recreating missing components.`, { checks, expected }, stats);
   stats.unsafe_positions += 1;
   stats.updated += 1;
@@ -720,6 +722,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
   if (remainingErrors.length > 0) {
     const error = remainingErrors.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
     await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `protection_repair_verification_failed: ${error}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", last_monitor_action: "protection_watchdog_repair_failed", updated_at: new Date().toISOString() }).eq("id", row.id);
+    await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: "protection_failed", p_protection_status: "protection_failed", p_sl_present: checks.every((c) => c.label !== "sl" || c.errors.length === 0), p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId }).catch(() => null);
     await logEvent(supabase, row, "protection_recovery_failed", `${row.symbol} protection repair submitted but Binance did not confirm all required live conditionals: ${error}`, { created, checks, refreshed }, stats);
     stats.updated += 1;
     return false;
@@ -727,6 +730,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
 
   const now = new Date().toISOString();
   await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, managed_fallback_active: false, latest_protection_error: "", protection_critical_reason: "", lifecycle_state: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "tp1_filled_profit_lock_active" : "protected_native", protected_at: now, last_monitor_action: "protection_recovered", updated_at: now }).eq("id", row.id);
+  await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", p_protection_status: "protected_native", p_sl_present: true, p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId }).catch(() => null);
   await logEvent(supabase, row, "protection_recovered", `${row.symbol} protection_recovered: recreated missing Binance conditional components (${Object.keys(created).join(", ")}) and verified every required live SL/TP order.`, { created, checks, refreshed }, stats);
   stats.protected += 1;
   stats.updated += 1;
@@ -1177,7 +1181,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   let nativeWatchdogVerified = false;
   if (!update.status && hasPosition && ACTIVE_STATUSES.includes(row.status) && (row.bracket_mode === "exchange_native" || row.protection_status === "protected_native" || row.protection_status === "protection_failed" || row.protection_status === "pending_protection" || row.protection_status === "protection_pending")) {
     nativeWatchdogRan = true;
-    nativeWatchdogVerified = await repairNativeProtectionSet(supabase, row, positionAmt, openOrders, stats);
+    nativeWatchdogVerified = await repairNativeProtectionSet(supabase, row, positionAmt, openOrders, stats, runId);
   }
 
   const protectionStatus = nativeWatchdogVerified ? "protected_native" : String(row.protection_status ?? "");
