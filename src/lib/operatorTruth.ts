@@ -21,7 +21,7 @@ export interface OperatorTruthBundle {
   readiness: RuntimeRow[];
 }
 
-async function rows(table: string, order = 'created_at', limit = 50) {
+async function rows(table: string, order = 'created_at', limit = 100) {
   const { data, error } = await supabase.from(table).select('*').order(order, { ascending: false }).limit(limit);
   if (error) return [];
   return (data ?? []) as RuntimeRow[];
@@ -29,19 +29,19 @@ async function rows(table: string, order = 'created_at', limit = 50) {
 
 export async function loadOperatorTruth(): Promise<OperatorTruthBundle> {
   const [truth, hb, controls, cfg, sig, deliveryRows, updates, routerAudit, events, executionOrders, intelligenceEvents, intelligenceFeeds, runtimeProof, schedulerTruth, quarantine, readiness] = await Promise.all([
-    rows('trade_management_truth', 'latest_sync_at', 50),
-    rows('execution_monitor_heartbeats', 'started_at', 25),
+    rows('trade_management_truth', 'latest_sync_at', 250),
+    rows('execution_monitor_heartbeats', 'started_at', 75),
     rows('execution_provider_controls', 'updated_at', 50),
     supabase.from('scanner_config').select('*').eq('id', 1).maybeSingle(),
-    rows('signals', 'created_at', 50),
-    rows('telegram_deliveries', 'created_at', 50),
-    rows('signal_updates', 'created_at', 50),
-    rows('telegram_router_audit', 'created_at', 50),
-    rows('operator_runtime_events', 'created_at', 50),
-    rows('execution_orders', 'created_at', 50),
-    rows('intelligence_events', 'created_at', 50),
-    rows('intelligence_feed_results', 'created_at', 50),
-    supabase.rpc('runtime_truth_function'),
+    rows('signals', 'created_at', 250),
+    rows('telegram_deliveries', 'created_at', 150),
+    rows('signal_updates', 'created_at', 150),
+    rows('telegram_router_audit', 'created_at', 150),
+    rows('operator_runtime_events', 'created_at', 150),
+    rows('execution_orders', 'created_at', 250),
+    rows('intelligence_events', 'created_at', 150),
+    rows('intelligence_feed_results', 'created_at', 150),
+    supabase.from('runtime_proof_view').select('*').eq('scope', 'runtime').maybeSingle(),
     rows('scheduler_truth_view', 'last_run_at', 100),
     rows('problem_symbol_quarantine', 'last_seen', 100),
     rows('provider_100_trade_readiness_view', 'provider', 10),
@@ -59,7 +59,7 @@ export async function loadOperatorTruth(): Promise<OperatorTruthBundle> {
     executionOrders,
     intelligenceEvents,
     intelligenceFeeds,
-    runtimeProof: Array.isArray((runtimeProof as { data?: RuntimeRow[] | null }).data) ? ((runtimeProof as { data?: RuntimeRow[] | null }).data?.[0] ?? null) : ((runtimeProof as { data?: RuntimeRow | null }).data ?? null),
+    runtimeProof: (runtimeProof as { data?: RuntimeRow | null }).data ?? null,
     schedulerTruth,
     quarantine,
     readiness,

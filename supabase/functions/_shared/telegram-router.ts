@@ -106,14 +106,6 @@ export function resolveTelegramChannels(eventType: string, override?: TelegramCh
   return ["vip"];
 }
 
-function parseSafeText(value: string): string {
-  return String(value ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, " ").slice(0, 3900);
-}
-
-function isTelegramParseError(description = ""): boolean {
-  return /can't parse entities|parse entities|entity|markdown|html/i.test(description);
-}
-
 async function insertDelivery(
   supabase: SupabaseClient,
   event: TelegramRouteEvent,
@@ -266,28 +258,18 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
       const messageText = isEventAlert && !event.text.toLowerCase().includes("market intelligence alert")
         ? `Market Intelligence Alert\n\n${event.text}`
         : event.text;
-      const payload = {
-        chat_id: chatId,
-        text: parseSafeText(messageText),
-        ...(event.parse_mode ? { parse_mode: event.parse_mode } : {}),
-        disable_web_page_preview: event.disable_web_page_preview ?? true,
-      };
-      let res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: messageText,
+          parse_mode: event.parse_mode,
+          disable_web_page_preview: event.disable_web_page_preview ?? true,
+        }),
         signal: AbortSignal.timeout(8000),
       });
-      let data = await res.json().catch(() => ({})) as { ok?: boolean; result?: { message_id?: number }; description?: string };
-      if (!(res.ok && data.ok === true) && event.parse_mode && isTelegramParseError(data.description)) {
-        res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, parse_mode: undefined, text: parseSafeText(messageText) }),
-          signal: AbortSignal.timeout(8000),
-        });
-        data = await res.json().catch(() => ({})) as { ok?: boolean; result?: { message_id?: number }; description?: string };
-      }
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; result?: { message_id?: number }; description?: string };
       const ok = res.ok && data.ok === true;
       const msgId = String(data.result?.message_id ?? "");
       const error = ok ? "" : (data.description ?? res.statusText ?? "Telegram API error");

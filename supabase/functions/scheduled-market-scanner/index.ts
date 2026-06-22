@@ -40,30 +40,6 @@ function compactError(prefix: string, detail: unknown) {
   return `${prefix}: ${text}`.slice(0, 1800);
 }
 
-async function writeScannerLog(supabase: SupabaseClient, runId: string | null, level: string, message: string, metadata: Record<string, unknown> = {}) {
-  try {
-    await supabase.from("scanner_logs").insert({ scanner_run_id: runId, run_id: runId, level, message, metadata, source: "scheduled-market-scanner" });
-  } catch (_e) {
-    // scanner_logs is additive proof when present; scanner_runs remains authoritative.
-  }
-}
-
-async function createCronHeartbeat(supabase: SupabaseClient, phase: "before" | "after", success?: boolean, errorMessage?: string) {
-  try {
-    await supabase.from("cron_heartbeats").insert({
-      job_name: "hashibot_scheduled_market_scanner_5m",
-      function_name: "scheduled-market-scanner",
-      route: "/functions/v1/scheduled-market-scanner",
-      source: "cron",
-      phase,
-      success,
-      error_message: errorMessage ?? null,
-    });
-  } catch (_e) {
-    // Do not make wrapper health depend on optional heartbeat table availability.
-  }
-}
-
 async function createScheduledRun(supabase: SupabaseClient, source: string) {
   const { data, error } = await supabase.from("scanner_runs").insert({
     status: "running",
@@ -159,21 +135,10 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", market_scanner_called: false, outcome_called: false, warnings, errors }, auth.status);
     }
     supabaseForCatch = supabase;
-    await createCronHeartbeat(supabase, "before");
     runId = await createScheduledRun(supabase, source);
-    await writeScannerLog(supabase, runId, "info", "scheduled scanner run accepted", { source });
 
     const { data: cfg, error: cfgError } = await supabase.from("scanner_config").select("*").eq("id", 1).maybeSingle();
     appendWarning(warnings, cfgError?.message ? `scanner_config read warning: ${cfgError.message}` : undefined);
-
-    if (cfg?.safe_mode_enabled === true) {
-      const reason = "safe_mode_enabled";
-      warnings.push(reason);
-      await writeScannerLog(supabase, runId, "warning", reason, { safe_mode: true });
-      await finishScheduledRun(supabase, runId, { status: "failed", error_message: reason }, warnings);
-      await createCronHeartbeat(supabase, "after", false, reason);
-      return jsonResponse({ success: false, wrapper: "scheduled-market-scanner", run_type: "scheduled", run_id: runId, skipped: true, reason, safe_mode: true, market_scanner_called: false, outcome_called: false, warnings, errors });
-    }
 
     if (!cfg?.is_enabled) {
       const reason = "scanner_disabled";
@@ -208,7 +173,6 @@ Deno.serve(async (req: Request) => {
     if (!marketScannerSuccess) {
       const errorMessage = compactError("market-scanner failed", proxiedJson?.error ?? proxiedJson?.reason ?? proxiedBody ?? `HTTP ${proxy.status}`);
       errors.push(errorMessage);
-      await writeScannerLog(supabase, runId, "error", errorMessage, { market_scanner_status: marketScannerStatus });
       await finishScheduledRun(supabase, runId, {
         status: "failed",
         symbols_scanned: numberMetric(proxiedJson, "symbols_scanned"),
@@ -220,7 +184,6 @@ Deno.serve(async (req: Request) => {
         telegram_sent_count: numberMetric(proxiedJson, "telegram_sent"),
         error_message: errorMessage,
       }, warnings);
-      await createCronHeartbeat(supabase, "after", false, errorMessage);
       return jsonResponse({
         success: false,
         wrapper: "scheduled-market-scanner",
@@ -288,27 +251,6 @@ Deno.serve(async (req: Request) => {
     const telegramFailed = numberMetric(proxiedJson, "telegram_failed");
     const telegramStatus = telegramSent > 0 ? "sent" : telegramFailed > 0 ? "failed" : telegramSkipped > 0 ? "skipped" : "not_required";
 
-    const signalsCreated = numberMetric(proxiedJson, "signals_created");
-    const healthyStatus = signalsCreated === 0 ? "healthy_zero_signals" : "completed";
-    await finishScheduledRun(supabase, runId, {
-      status: healthyStatus,
-      symbols_scanned: numberMetric(proxiedJson, "symbols_scanned"),
-      crypto_symbols_scanned: numberMetric(proxiedJson, "crypto_symbols_scanned"),
-      forex_symbols_scanned: numberMetric(proxiedJson, "forex_symbols_scanned"),
-      signals_created: signalsCreated,
-      error_message: signalsCreated === 0 ? "healthy_zero_signals" : null,
-    }, warnings);
-    await supabase.from("scanner_config").update({
-      latest_run_at: new Date().toISOString(),
-      latest_success_at: new Date().toISOString(),
-      latest_automatic_run_at: new Date().toISOString(),
-      heartbeat_status: "active",
-      heartbeat_updated_at: new Date().toISOString(),
-      latest_error: null,
-    }).eq("id", 1);
-    await writeScannerLog(supabase, runId, "info", healthyStatus, { symbols_scanned: numberMetric(proxiedJson, "symbols_scanned"), signals_created: signalsCreated });
-    await createCronHeartbeat(supabase, "after", true);
-
     return jsonResponse({
       success: true,
       wrapper: "scheduled-market-scanner",
@@ -324,8 +266,7 @@ Deno.serve(async (req: Request) => {
       forex_skip_reason: proxiedJson?.forex_skip_reason ?? "",
       forex_provider_calls_attempted: numberMetric(proxiedJson, "forex_provider_calls_attempted"),
       forex_next_allowed_scan_at: proxiedJson?.forex_next_allowed_scan_at ?? null,
-      signals_created: signalsCreated,
-      scanner_result: healthyStatus,
+      signals_created: numberMetric(proxiedJson, "signals_created"),
       telegram_status: telegramStatus,
       telegram_sent: telegramSent,
       telegram_skipped: telegramSkipped,
@@ -350,9 +291,7 @@ Deno.serve(async (req: Request) => {
     const message = err instanceof Error ? err.message : "Unknown error";
     errors.push(message);
     if (supabaseForCatch && runId) {
-      await writeScannerLog(supabaseForCatch, runId, "error", message);
       await finishScheduledRun(supabaseForCatch, runId, { status: "failed", error_message: compactError("scheduled-market-scanner exception", message) }, warnings);
-      await createCronHeartbeat(supabaseForCatch, "after", false, message);
     }
     return jsonResponse({
       success: false,

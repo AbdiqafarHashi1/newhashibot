@@ -107,8 +107,7 @@ async function activeQuarantine(supabase: SupabaseClient, symbol: string, purpos
   return (data as Json | null) ?? null;
 }
 async function recordSymbolFailure(supabase: SupabaseClient, symbol: string, reason: SymbolFailureReason, metadata: Json = {}) {
-  const { error } = await supabase.rpc("record_symbol_failure", { p_provider: "bybit", p_symbol: symbol.toUpperCase(), p_reason: reason, p_metadata: metadata });
-  if (error) console.warn("record_symbol_failure failed", error.message);
+  await supabase.rpc("record_symbol_failure", { p_provider: "bybit", p_symbol: symbol.toUpperCase(), p_reason: reason, p_metadata: metadata }).catch(() => null);
 }
 function n(value: unknown): number { const x = Number(value ?? 0); return Number.isFinite(x) ? x : 0; }
 function near(a: number, b: number): boolean { return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= Math.max(Math.abs(b) * 0.000001, 1e-8); }
@@ -360,9 +359,5 @@ Deno.serve(async (req: Request) => {
   const payload = await req.clone().json().catch(() => ({})) as Json;
   const auth = await authorizeInternalOrAdmin(req, supabase);
   if (!auth.ok) return authJsonResponse(auth, corsHeaders);
-  const { data: cfg } = await supabase.from("scanner_config").select("safe_mode_enabled,supervisor_paused").eq("id", 1).maybeSingle();
-  if (cfg?.safe_mode_enabled === true || cfg?.supervisor_paused === true) {
-    return json({ success: true, provider: "bybit", skipped: true, blocker: cfg.safe_mode_enabled ? "safe_mode_enabled" : "supervisor_paused", monitor_health: "paused", environment: bybitEnvironment(), last_monitor_run_at: new Date().toISOString() });
-  }
   return json(await monitorBybit(supabase, payload));
 });

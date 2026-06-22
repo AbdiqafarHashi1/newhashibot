@@ -2506,12 +2506,11 @@ async function recordSupervisorHeartbeat(supabase: SupabaseClient, providerName:
   await supabase.from("scanner_config").update({ trade_supervisor_last_run_at: String(result.latest_run) }).eq("id", 1);
 }
 
-async function getSupervisorControls(supabase: SupabaseClient): Promise<{ supervisor_enabled: boolean; auto_repair_enabled: boolean; safe_mode_enabled: boolean; max_repairs_per_provider_per_cycle: number; max_duplicate_cancels_per_cycle: number }> {
-  const { data } = await supabase.from("scanner_config").select("supervisor_enabled,supervisor_paused,safe_mode_enabled,operator_auto_repair_enabled,auto_repair_paused,max_repairs_per_provider_per_cycle,max_duplicate_cancels_per_cycle").eq("id", 1).maybeSingle();
+async function getSupervisorControls(supabase: SupabaseClient): Promise<{ supervisor_enabled: boolean; auto_repair_enabled: boolean; max_repairs_per_provider_per_cycle: number; max_duplicate_cancels_per_cycle: number }> {
+  const { data } = await supabase.from("scanner_config").select("supervisor_enabled,operator_auto_repair_enabled,max_repairs_per_provider_per_cycle,max_duplicate_cancels_per_cycle").eq("id", 1).maybeSingle();
   return {
-    supervisor_enabled: data?.safe_mode_enabled !== true && data?.supervisor_paused !== true && data?.supervisor_enabled !== false,
-    safe_mode_enabled: data?.safe_mode_enabled === true,
-    auto_repair_enabled: data?.safe_mode_enabled !== true && data?.auto_repair_paused !== true && data?.operator_auto_repair_enabled === true,
+    supervisor_enabled: data?.supervisor_enabled !== false,
+    auto_repair_enabled: data?.operator_auto_repair_enabled === true,
     max_repairs_per_provider_per_cycle: Math.max(0, Number(data?.max_repairs_per_provider_per_cycle ?? 5)),
     max_duplicate_cancels_per_cycle: Math.max(0, Number(data?.max_duplicate_cancels_per_cycle ?? 10)),
   };
@@ -2523,10 +2522,10 @@ async function runTradeSupervisorForProvider(supabase: SupabaseClient, providerN
   const startedAt = new Date().toISOString();
   const runId = `${providerName}_${crypto.randomUUID()}`;
   const perf: Json = { db_query_count: 0, exchange_call_count: 0, symbols_scanned: 0, positions_scanned: 0, orders_scanned: 0, repair_attempts: 0, slowest_stage: null };
-  const controls = await getSupervisorControls(supabase).catch(() => ({ supervisor_enabled: true, auto_repair_enabled: false, safe_mode_enabled: false, max_repairs_per_provider_per_cycle: 5, max_duplicate_cancels_per_cycle: 10 }));
+  const controls = await getSupervisorControls(supabase).catch(() => ({ supervisor_enabled: true, auto_repair_enabled: false, max_repairs_per_provider_per_cycle: 5, max_duplicate_cancels_per_cycle: 10 }));
   perf.db_query_count = Number(perf.db_query_count) + 1;
   if (!controls.supervisor_enabled && triggerSource === "pg_cron") {
-    return { provider: providerName, run_id: runId, wallet_reachable: null, positions_found: 0, orders_found: 0, protected_count: 0, unsafe_count: 0, repair_attempts: 0, repair_successes: 0, duplicate_orders_found: 0, duplicate_orders_cancelled: 0, latest_run: new Date().toISOString(), latest_success: true, latest_error: null, skipped: true, blocker: controls.safe_mode_enabled ? "safe_mode_enabled" : "supervisor_disabled", duration_ms: Date.now() - cycleStarted, performance: perf };
+    return { provider: providerName, run_id: runId, wallet_reachable: null, positions_found: 0, orders_found: 0, protected_count: 0, unsafe_count: 0, repair_attempts: 0, repair_successes: 0, duplicate_orders_found: 0, duplicate_orders_cancelled: 0, latest_run: new Date().toISOString(), latest_success: true, latest_error: null, skipped: true, blocker: "supervisor_disabled", duration_ms: Date.now() - cycleStarted, performance: perf };
   }
   const exposureStarted = Date.now();
   const exposure = await fetchProviderExposure(providerName);
