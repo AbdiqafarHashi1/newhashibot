@@ -55,6 +55,7 @@ import BybitOperations from './pages/admin/BybitOperations';
 import MT5PersonalOperations from './pages/admin/MT5PersonalOperations';
 import MT5PropOperations from './pages/admin/MT5PropOperations';
 import Customers from './pages/admin/Customers';
+import PropTradingPanel from './pages/admin/PropTradingPanel';
 import OperatorPanel from './pages/admin/operator/OperatorPanel';
 
 // Smart redirect after login based on role
@@ -154,6 +155,7 @@ function App() {
           <Route path="/admin/backtest"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
           <Route path="/admin/backtest-lab"      element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
           <Route path="/admin/handoff"           element={<RequireAdmin><Handoff /></RequireAdmin>} />
+          <Route path="/admin/prop"              element={<RequireAdmin><PropTradingPanel /></RequireAdmin>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

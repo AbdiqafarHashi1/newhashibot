@@ -4,7 +4,7 @@ import {
   Zap, LayoutDashboard, Users, LogOut, Menu, Activity,
   Database, Send, FileText, CheckCircle, AlertTriangle,
   User, Settings, ListChecks,
-  Radio, ShieldCheck, Brain, Cpu
+  Radio, ShieldCheck, Brain, Cpu, Target
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,6 +23,8 @@ const adminNav: NavItem[] = [
   { to: '/admin/operator/settings', label: 'Settings', icon: Settings },
   { to: '/admin/operator/intelligence', label: 'News Brain', icon: Brain },
   { to: '/admin/operator/runtime-proof', label: 'Runtime Proof', icon: ListChecks },
+  { section: 'Prop Trading' },
+  { to: '/admin/prop', label: 'Prop Accounts', icon: Target },
   { section: 'Compatibility / Deprecated' },
   { to: '/admin/scanner', label: 'Scanner Logs', icon: Activity },
   { to: '/admin/scanner-config', label: 'Scanner Config', icon: Settings },
