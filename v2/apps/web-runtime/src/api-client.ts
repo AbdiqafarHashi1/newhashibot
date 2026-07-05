@@ -11,7 +11,15 @@ export type PlatformAction =
   | 'request_executor_action'
   | 'save_preferences'
   | 'control_bot'
-  | 'control_scanner';
+  | 'control_scanner'
+  | 'executor_start'
+  | 'executor_pause'
+  | 'executor_resume'
+  | 'executor_stop'
+  | 'executor_restart'
+  | 'executor_recovery'
+  | 'executor_account_sync'
+  | 'executor_telegram_test';
 
 export type PlatformRequest = { action: PlatformAction; payload: Record<string, unknown> };
 export type PlatformResponse = { ok: true; action: PlatformAction; requestId: string; message: string };
@@ -44,7 +52,9 @@ export function createV2PlatformApiClient(endpoint = '/functions/v1/platform-api
       telegramChannels: mock.listTelegramChannels,
       approvals: mock.listAdminApprovals,
       runtimeHealth: mock.getRuntimeHealth,
-      protectionStates: mock.listProtectionStates
+      protectionStates: mock.listProtectionStates,
+      allExecutors: mock.listAllExecutors,
+      monitoringSummary: mock.getMonitoringSummary
     },
     login: (payload: Record<string, unknown>) => request('login', payload),
     register: (payload: Record<string, unknown>) => request('register', payload),
@@ -56,6 +66,14 @@ export function createV2PlatformApiClient(endpoint = '/functions/v1/platform-api
     requestExecutorAction: (payload: Record<string, unknown>) => request('request_executor_action', payload),
     savePreferences: (payload: Record<string, unknown>) => request('save_preferences', payload),
     controlBot: (payload: Record<string, unknown>) => request('control_bot', payload),
-    controlScanner: (payload: Record<string, unknown>) => request('control_scanner', payload)
+    controlScanner: (payload: Record<string, unknown>) => request('control_scanner', payload),
+    startExecutor: (payload: Record<string, unknown>) => request('executor_start', payload),
+    pauseExecutor: (payload: Record<string, unknown>) => request('executor_pause', payload),
+    resumeExecutor: (payload: Record<string, unknown>) => request('executor_resume', payload),
+    stopExecutor: (payload: Record<string, unknown>) => request('executor_stop', payload),
+    restartExecutor: (payload: Record<string, unknown>) => request('executor_restart', payload),
+    recoverExecutor: (payload: Record<string, unknown>) => request('executor_recovery', payload),
+    syncExecutorAccount: (payload: Record<string, unknown>) => request('executor_account_sync', payload),
+    testExecutorTelegram: (payload: Record<string, unknown>) => request('executor_telegram_test', payload)
   };
 }
