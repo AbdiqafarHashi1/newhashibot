@@ -1,23 +1,8 @@
-# FOREX_STRATEGIES
+# V2 Forex Strategies
 
-All forex strategies are `RESEARCH_READY` and session-aware. Spread guards use cached candle/feature metadata where available.
+The forex strategies are implemented in `v2/strategies/index.ts` through the shared professional framework. They are session aware and use forex-specific volatility/RR assumptions.
 
-## London Breakout
-- Timeframes: 15m, 1h.
-- Uses: Asian high/low, London status, ATR, ADX, breakout state, spread guard.
-- No-trade: not London open, missing Asian range, spread unsuitable, no range break, invalid RR.
-
-## Forex Trend Pullback
-- Timeframes: 15m, 1h.
-- Uses: EMA20/EMA50/EMA200, ADX, RSI reset, ATR, trend state, session filter.
-- No-trade: off-hours, trend/pullback invalid, missing indicators, invalid RR.
-
-## New York Continuation
-- Timeframes: 15m, 1h.
-- Uses: NY open, London open/overlap context, EMA trend, ADX momentum, ATR, volatility regime.
-- No-trade: outside overlap, weak continuation, invalid RR.
-
-## Swing Continuation
-- Timeframes: 1h, 4h.
-- Uses: market structure, swing highs/lows, EMA50/EMA200, ATR, trend state, daily/weekly levels.
-- No-trade: no swing trend, missing levels/swings, invalid RR.
+- `forex.london-breakout`: trades only London/Asia-London conditions with Asian range structure and expansion confirmation.
+- `forex.trend-pullback`: trades liquid London/New York sessions with trend and pullback quality filters.
+- `forex.new-york-continuation`: requires New York open/overlap, trend continuation and no counter-trend state.
+- `forex.swing-continuation`: longer-duration 1h/4h continuation requiring HTF alignment, structure and stronger RR.
