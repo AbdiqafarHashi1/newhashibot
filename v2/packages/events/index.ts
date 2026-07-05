@@ -1,7 +1,6 @@
-import type { Candle, ISODateTime, Market, Timeframe, IndicatorSnapshot } from '../types/index.js';
-
+import type { Candle, ISODateTime, Market, Timeframe, IndicatorSnapshot, MarketStatus, FeedHealthStatus } from '../types/index.js';
 export type EventType = 'MarketTickReceived'|'CandleClosed'|'IndicatorsUpdated'|'StrategyCandidateCreated'|'SignalApproved'|'SignalDispatched'|'ExecutionPlanned'|'CommandQueued'|'CommandSent'|'CommandAcknowledged'|'CommandCompleted'|'CommandVerified'|'CommandFailed'|'TradeOpened'|'TradeUpdated'|'TradeClosed'|'ProtectionVerified'|'ProtectionRepairNeeded'|'RecoveryStarted'|'RecoveryCompleted'|'RecoveryFailed'|'ExecutorHeartbeat'|'AdapterHealthChanged'|'TelegramDeliveryQueued'|'TelegramDeliverySucceeded'|'TelegramDeliveryFailed'|'CustomerApproved'|'CustomerSuspended';
-export interface MarketTick { market: Market; symbol: string; price: number; volume: number; occurredAt: ISODateTime; source: string }
+export interface MarketTick { market: Market; symbol: string; price: number; volume: number; exchangeVolume?:number; tickVolume?:number; bid?:number; ask?:number; spread?:number; occurredAt: ISODateTime; latencyTimestamp?:ISODateTime; receivedAt:ISODateTime; source: string; provider:string; marketStatus:MarketStatus; feedHealth:FeedHealthStatus }
 export type EventPayloads = { MarketTickReceived: MarketTick; CandleClosed: Candle; IndicatorsUpdated: { market: Market; symbol: string; timeframe: Timeframe; snapshot: IndicatorSnapshot; candleCloseTime: ISODateTime } } & Record<Exclude<EventType,'MarketTickReceived'|'CandleClosed'|'IndicatorsUpdated'>, Record<string, unknown>>;
 export interface BaseEvent<T extends EventType=EventType, P=EventPayloads[T]> { eventId:string; eventType:T; occurredAt:ISODateTime; correlationId:string; causationId?:string; source:string; version:number; payload:P }
 export type DomainEvent = { [K in EventType]: BaseEvent<K, EventPayloads[K]> }[EventType];
