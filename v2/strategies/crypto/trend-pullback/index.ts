@@ -1,2 +1,1 @@
-export const strategyId = 'trend-pullback';
-export const status = 'placeholder-contract-only';
+export { cryptoTrendPullback as strategy } from '../../index.js';

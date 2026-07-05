@@ -1,2 +1,1 @@
-export const strategyId = 'swing-continuation';
-export const status = 'placeholder-contract-only';
+export { swingContinuation as strategy } from '../../index.js';
