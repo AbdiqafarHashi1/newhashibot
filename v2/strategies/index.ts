@@ -1,0 +1,8 @@
+import type { Candle, IndicatorSnapshot, Signal, Direction } from '../packages/types/index.js';
+export interface StrategyContext { market:string; symbol:string; timeframe:string; candles:readonly Candle[]; indicators:IndicatorSnapshot; now:string }
+export interface StrategyCandidate { candidateId:string; strategyId:string; direction:Direction; reasons:readonly string[] }
+export interface StrategyScore { score:number; confidence:number; reasons:readonly string[] }
+export interface StrategyValidationResult { valid:boolean; reasons:readonly string[] }
+export interface StrategyManagementRules { breakEven?:unknown; trailingStop?:unknown; partialClose?:unknown; timeExit?:unknown }
+export type StrategyCertificationStatus='Draft'|'Replay'|'Backtest'|'WalkForward'|'Shadow'|'Certified'|'Rejected';
+export interface Strategy { strategyId:string; version:string; certificationStatus:StrategyCertificationStatus; scan(context:StrategyContext):Promise<readonly StrategyCandidate[]>; validate(candidate:StrategyCandidate, context:StrategyContext):Promise<StrategyValidationResult>; score(candidate:StrategyCandidate, context:StrategyContext):Promise<StrategyScore>; entry(candidate:StrategyCandidate, context:StrategyContext):Promise<number>; stopLoss(candidate:StrategyCandidate, context:StrategyContext):Promise<number>; takeProfits(candidate:StrategyCandidate, context:StrategyContext):Promise<readonly number[]>; management(candidate:StrategyCandidate, context:StrategyContext):Promise<StrategyManagementRules>; exit(candidate:StrategyCandidate, context:StrategyContext):Promise<StrategyValidationResult>; returnCandidate(context:StrategyContext):Promise<StrategyCandidate|null> }

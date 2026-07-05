@@ -64,3 +64,6 @@ No files are implemented by this plan. This is the target standalone structure.
 
 ## Independence Requirement
 Everything required to build, test, deploy, and operate V2 must live under `/v2`, except external managed services such as Supabase, hosting, exchanges, Telegram, and broker infrastructure.
+
+## Implementation note
+The initial contract-only `/v2` workspace has been created. See `/v2/docs/README.md` for V2-local documentation.
