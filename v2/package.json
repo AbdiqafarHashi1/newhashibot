@@ -10,7 +10,8 @@
     "lint": "tsc --noEmit -p tsconfig.json",
     "test:execution": "rm -rf .tmp && tsc -p tsconfig.json --outDir .tmp && find .tmp/tests/execution -name \"*.test.js\" -print -exec node --test {} +",
     "test:platform": "rm -rf .tmp/platform-tests && tsc --outDir .tmp/platform-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/platform/platform-foundation.test.ts && node .tmp/platform-tests/platform-foundation.test.js && rm -rf .tmp/platform-tests",
-    "test:telegram": "rm -rf .tmp/telegram-tests && tsc --outDir .tmp/telegram-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/telegram/telegram-platform.test.ts && node .tmp/telegram-tests/tests/telegram/telegram-platform.test.js && rm -rf .tmp/telegram-tests"
+    "test:telegram": "rm -rf .tmp/telegram-tests && tsc --outDir .tmp/telegram-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/telegram/telegram-platform.test.ts && node .tmp/telegram-tests/tests/telegram/telegram-platform.test.js && rm -rf .tmp/telegram-tests",
+    "test:deployment": "node deploy/scripts/validate-deployment-package.mjs"
   },
   "devDependencies": {
     "typescript": "^5.5.3"

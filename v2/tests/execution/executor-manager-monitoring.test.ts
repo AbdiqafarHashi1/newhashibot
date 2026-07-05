@@ -82,5 +82,5 @@ test('edge functions, migrations, RLS, and root isolation are present', () => {
   for (const table of ['executor_runtime','executor_events','runtime_health','runtime_metrics','worker_health','provider_health','queue_health','monitoring_alerts','runtime_actions','runtime_statistics','capacity_history','recovery_history']) assert.match(sql, new RegExp(`create table ${table}`));
   assert.match(sql, /enable row level security/);
   const changed = execSync('git diff --name-only HEAD && git ls-files --others --exclude-standard', { encoding:'utf8' }).trim().split('\n').filter(Boolean).filter(file => !file.startsWith('.tmp/'));
-  assert.ok(changed.every(file => file.startsWith('v2/') || file.startsWith('packages/') || file.startsWith('services/') || file.startsWith('supabase/') || file.startsWith('tests/') || file.startsWith('apps/') || file.startsWith('docs/') || file.startsWith('hashibridge/') || file.startsWith('services/')), changed.join('\n'));
+  assert.ok(changed.every(file => file.startsWith('v2/') || file.startsWith('packages/') || file.startsWith('services/') || file.startsWith('supabase/') || file.startsWith('tests/') || file.startsWith('apps/') || file.startsWith('docs/') || file.startsWith('deploy/') || file === 'netlify.toml' || file === 'package.json' || file.startsWith('hashibridge/') || file.startsWith('services/')), changed.join('\n'));
 });
