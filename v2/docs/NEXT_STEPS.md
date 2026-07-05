@@ -1,8 +1,12 @@
 # NEXT_STEPS
 
-Recommended next prompt: implement strategy layer consumers that read only `IndicatorCache` snapshots and produce strategy candidates without execution side effects.
+Current V2 strategy layer is complete as a Research Ready candidate producer. It is not production certified.
 
-Remaining gaps:
-- Live Binance, Bybit, and MT5 adapters are intentionally not connected.
-- Strategy implementations are intentionally not upgraded in this market intelligence hardening pass.
-- Persistence migrations are intentionally not created.
+Required before production:
+1. Research Lab certification pipeline with historical datasets.
+2. Backtest and walk-forward testing per symbol/timeframe/session.
+3. Monte Carlo and regime sensitivity analysis.
+4. Shadow-mode live observation with immutable candidate and rejected-setup records.
+5. Performance review and approval gates before any `PRODUCTION_CERTIFIED` promotion.
+
+Recommended next build prompt: implement Arbitrator + Risk Engine + Capital Manager + Immutable Signal approval flow, consuming `StrategyCandidate` objects without execution side effects.

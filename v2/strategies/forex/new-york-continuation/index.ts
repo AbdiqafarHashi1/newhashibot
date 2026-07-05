@@ -1,2 +1,1 @@
-export const strategyId = 'new-york-continuation';
-export const status = 'placeholder-contract-only';
+export { nyContinuation as strategy } from '../../index.js';

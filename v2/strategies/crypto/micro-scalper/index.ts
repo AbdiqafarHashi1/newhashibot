@@ -1,2 +1,1 @@
-export const strategyId = 'micro-scalper';
-export const status = 'placeholder-contract-only';
+export { microScalper as strategy } from '../../index.js';
