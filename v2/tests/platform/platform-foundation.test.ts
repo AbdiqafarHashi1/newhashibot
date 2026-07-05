@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const sql = readFileSync('supabase/migrations/20260705120000_platform_foundation.sql', 'utf8');
+const baseSql = readFileSync('supabase/migrations/20260705080000_v2_platform_base_fresh_project.sql', 'utf8');
+const sql = baseSql + '\n' + readFileSync('supabase/migrations/20260705120000_platform_foundation.sql', 'utf8');
 const fn = readFileSync('supabase/functions/platform-api/index.ts', 'utf8');
 const doc = readFileSync('docs/platform/step-15-platform-foundation.md', 'utf8');
 
@@ -11,7 +12,7 @@ for (const table of ['customers','customer_profiles','customer_preferences','cus
 for (const value of ['owner','admin','customer','service_role','anonymous']) assert.match(sql, new RegExp(`'${value}'`), `role ${value} exists`);
 for (const status of ['pending','provisioning','running','paused','recovering','stopped','failed','disabled']) assert.match(sql, new RegExp(`'${status}'`), `executor status ${status} exists`);
 for (const provider of ['binance','bybit','mt5','other']) assert.match(sql, new RegExp(`'${provider}'`), `provider ${provider} exists`);
-for (const action of ['customer_registration','subscription_activation','manual_mpesa_review','executor_heartbeat','engine_event_ingestion','notification_generation','audit_logging']) assert.match(fn, new RegExp(action), `platform-api supports ${action}`);
+for (const action of ['register_customer','submit_mpesa_payment','request_account_setup','save_customer_preferences','request_executor_action','request_account_sync','request_telegram_test','review_mpesa_payment','approve_customer','reject_customer','suspend_customer','activate_subscription','update_package','approve_account_setup','pause_account','request_account_clarification','assign_executor','approve_executor','disable_executor','create_notification','update_system_settings','executor_heartbeat','ingest_engine_event','audit_log']) assert.match(fn, new RegExp(action), `platform-api supports ${action}`);
 assert.match(sql, /review_manual_mpesa_subscription/, 'manual M-Pesa approval RPC exists');
 assert.match(sql, /mpesa_transaction_code/, 'manual M-Pesa transaction code is persisted');
 assert.match(sql, /payment_screenshot_path/, 'optional payment screenshot reference is persisted');

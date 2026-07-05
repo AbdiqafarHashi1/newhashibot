@@ -52,7 +52,7 @@ test('heartbeat, capacity, provider, worker, queue, and runtime health are class
 });
 
 test('platform API client exposes executor action contracts and sanitizes forbidden secrets', async () => {
-  const api = createV2PlatformApiClient();
+  const api = createV2PlatformApiClient({ mode: 'mock' });
   await api.startExecutor({ executor_id:'exec_a', password:'hidden' });
   await api.pauseExecutor({ executor_id:'exec_a' });
   await api.resumeExecutor({ executor_id:'exec_a' });
@@ -61,7 +61,7 @@ test('platform API client exposes executor action contracts and sanitizes forbid
   await api.recoverExecutor({ executor_id:'exec_a' });
   await api.syncExecutorAccount({ executor_id:'exec_a' });
   await api.testExecutorTelegram({ executor_id:'exec_a' });
-  assert.deepEqual(api.calls.map(c => c.action), ['executor_start','executor_pause','executor_resume','executor_stop','executor_restart','executor_recovery','executor_account_sync','executor_telegram_test']);
+  assert.deepEqual(api.calls.map(c => c.action), ['request_executor_action','request_executor_action','request_executor_action','request_executor_action','request_executor_action','request_executor_action','request_account_sync','request_telegram_test']);
   assert.equal('password' in api.calls[0].payload, false);
 });
 
