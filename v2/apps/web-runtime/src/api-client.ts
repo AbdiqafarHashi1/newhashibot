@@ -3,7 +3,7 @@ import { createMockApiClient } from '../../../packages/mock-data/index.js';
 export const platformActions = [
   'login', 'register_customer', 'submit_mpesa_payment', 'request_account_setup', 'save_customer_preferences', 'request_executor_action', 'request_account_sync', 'request_telegram_test',
   'review_mpesa_payment', 'approve_customer', 'reject_customer', 'suspend_customer', 'activate_subscription', 'update_package', 'approve_account_setup', 'pause_account', 'request_account_clarification', 'assign_executor', 'approve_executor', 'disable_executor', 'create_notification', 'update_system_settings',
-  'executor_heartbeat', 'ingest_engine_event', 'audit_log'
+  'executor_heartbeat', 'ingest_engine_event', 'audit_log', 'monitoring_summary', 'retention_cleanup', 'dev_reset'
 ] as const;
 export type PlatformAction = typeof platformActions[number];
 export type PlatformRequest = { action: PlatformAction; payload: Record<string, unknown> };
@@ -14,9 +14,23 @@ export type V2PlatformApiClientOptions = { platformApiBaseUrl?: string; endpoint
 export type V2PlatformApiClient = ReturnType<typeof createV2PlatformApiClient>;
 
 const mock = createMockApiClient();
+const emptyReads = {
+  getCustomerProfile: () => null,
+  getSubscription: () => null,
+  listAccounts: () => [],
+  listExecutors: () => [],
+  listSignals: () => [],
+  listTrades: () => [],
+  listTelegramChannels: () => [],
+  listAdminApprovals: () => [],
+  getRuntimeHealth: () => ({ status: 'empty', message: 'No runtime events have been recorded yet.' }),
+  listProtectionStates: () => [],
+  listAllExecutors: () => [],
+  getMonitoringSummary: () => ({ runtime: {}, executors: [], alerts: [], capacity: [], empty: true })
+};
 const blockedSecretKeys = new Set(['apiKey', 'apiSecret', 'secret', 'password', 'privateKey', 'api_key', 'api_secret', 'credential_value', 'token']);
 export function sanitizePlatformPayload(payload: Record<string, unknown>) { return Object.fromEntries(Object.entries(payload).filter(([key]) => !blockedSecretKeys.has(key))); }
-function normalizeOptions(input?: string | V2PlatformApiClientOptions): V2PlatformApiClientOptions { return typeof input === 'string' ? { platformApiBaseUrl: input, mode: 'mock' } : input ?? {}; }
+function normalizeOptions(input?: string | V2PlatformApiClientOptions): V2PlatformApiClientOptions { return typeof input === 'string' ? { platformApiBaseUrl: input, mode: 'real' } : input ?? {}; }
 function targetUrl(base: string) { return base.endsWith('/platform-api') ? base : `${base.replace(/\/$/, '')}/platform-api`; }
 
 export function createV2PlatformApiClient(input?: string | V2PlatformApiClientOptions) {
@@ -45,18 +59,18 @@ export function createV2PlatformApiClient(input?: string | V2PlatformApiClientOp
     supportedActions: platformActions,
     request,
     read: {
-      customerProfile: mock.getCustomerProfile,
-      subscription: mock.getSubscription,
-      accounts: mock.listAccounts,
-      executors: mock.listExecutors,
-      signals: mock.listSignals,
-      trades: mock.listTrades,
-      telegramChannels: mock.listTelegramChannels,
-      approvals: mock.listAdminApprovals,
-      runtimeHealth: mock.getRuntimeHealth,
-      protectionStates: mock.listProtectionStates,
-      allExecutors: mock.listAllExecutors,
-      monitoringSummary: mock.getMonitoringSummary
+      customerProfile: (options.mode === 'mock' ? mock : emptyReads).getCustomerProfile,
+      subscription: (options.mode === 'mock' ? mock : emptyReads).getSubscription,
+      accounts: (options.mode === 'mock' ? mock : emptyReads).listAccounts,
+      executors: (options.mode === 'mock' ? mock : emptyReads).listExecutors,
+      signals: (options.mode === 'mock' ? mock : emptyReads).listSignals,
+      trades: (options.mode === 'mock' ? mock : emptyReads).listTrades,
+      telegramChannels: (options.mode === 'mock' ? mock : emptyReads).listTelegramChannels,
+      approvals: (options.mode === 'mock' ? mock : emptyReads).listAdminApprovals,
+      runtimeHealth: (options.mode === 'mock' ? mock : emptyReads).getRuntimeHealth,
+      protectionStates: (options.mode === 'mock' ? mock : emptyReads).listProtectionStates,
+      allExecutors: (options.mode === 'mock' ? mock : emptyReads).listAllExecutors,
+      monitoringSummary: (options.mode === 'mock' ? mock : emptyReads).getMonitoringSummary
     },
     login: (payload: Record<string, unknown>) => request('login', payload),
     register: (payload: Record<string, unknown>) => request('register_customer', payload),
@@ -95,6 +109,9 @@ export function createV2PlatformApiClient(input?: string | V2PlatformApiClientOp
     updateSystemSettings: (payload: Record<string, unknown>) => request('update_system_settings', payload),
     executorHeartbeat: (payload: Record<string, unknown>) => request('executor_heartbeat', payload),
     ingestEngineEvent: (payload: Record<string, unknown>) => request('ingest_engine_event', payload),
-    auditLog: (payload: Record<string, unknown>) => request('audit_log', payload)
+    auditLog: (payload: Record<string, unknown>) => request('audit_log', payload),
+    monitoringSummary: (payload: Record<string, unknown> = {}) => request('monitoring_summary', payload),
+    retentionCleanup: (payload: Record<string, unknown>) => request('retention_cleanup', payload),
+    devReset: (payload: Record<string, unknown>) => request('dev_reset', payload)
   };
 }

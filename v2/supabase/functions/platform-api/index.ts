@@ -6,7 +6,7 @@ type Json = Record<string, unknown>;
 type PlatformAction =
   | "login" | "register_customer" | "submit_mpesa_payment" | "request_account_setup" | "save_customer_preferences" | "request_executor_action" | "request_account_sync" | "request_telegram_test"
   | "review_mpesa_payment" | "approve_customer" | "reject_customer" | "suspend_customer" | "activate_subscription" | "update_package" | "approve_account_setup" | "pause_account" | "request_account_clarification" | "assign_executor" | "approve_executor" | "disable_executor" | "create_notification" | "update_system_settings"
-  | "executor_heartbeat" | "ingest_engine_event" | "audit_log";
+  | "executor_heartbeat" | "ingest_engine_event" | "audit_log" | "monitoring_summary" | "dev_reset" | "retention_cleanup";
 
 function json(body: Json, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 function text(v: unknown) { return typeof v === "string" ? v : ""; }
@@ -122,6 +122,22 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.from("engine_events").insert({ customer_id: payload.customer_id || null, executor_id: payload.executor_id || null, event_type: required(payload, "event_type"), severity: text(payload.severity) || "info", payload: sanitizePayload(obj(payload.event_payload ?? payload.payload)) }).select("id").maybeSingle();
       if (error) throw error;
       return json({ ok: true, success: true, action, engine_event_id: data?.id });
+    }
+    if (action === "monitoring_summary") {
+      const { data, error } = await supabase.rpc("v2_compact_monitoring_summary");
+      if (error) throw error;
+      return json({ ok: true, success: true, action, summary: data });
+    }
+    if (action === "retention_cleanup") {
+      const { data, error } = await supabase.rpc("v2_cleanup_retained_data", { p_dry_run: payload.dry_run !== false, p_archive: payload.archive !== false });
+      if (error) throw error;
+      return json({ ok: true, success: true, action, cleanup: data });
+    }
+    if (action === "dev_reset") {
+      if (!["owner","admin"].includes(text(payload.actor_role))) return json({ ok: false, success: false, action, error: "dev reset requires admin/owner role" }, 403);
+      const { data, error } = await supabase.rpc("v2_dev_reset", { p_confirmation: required(payload, "confirmation"), p_scopes: Array.isArray(payload.scopes) ? payload.scopes : undefined, p_dry_run: payload.dry_run !== false, p_force_live: payload.force_live === true });
+      if (error) throw error;
+      return json({ ok: true, success: true, action, reset: data });
     }
     if (action === "audit_log") {
       const { data, error } = await supabase.rpc("platform_audit", { p_action: required(payload, "audit_action"), p_entity_type: required(payload, "entity_type"), p_entity_id: payload.entity_id || null, p_customer_id: payload.customer_id || null, p_after: sanitizePayload(obj(payload.after_state)) });
