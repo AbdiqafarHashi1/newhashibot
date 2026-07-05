@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createDefaultStrategyRegistry, StrategyRunner, type StrategyContext } from '../../strategies/index.js';
 import type { Candle, IndicatorSnapshot, Market, Timeframe } from '../../packages/types/index.js';
 import type { ExtendedIndicatorSnapshot, MarketFeatures } from '../../packages/indicator-engine/index.js';
@@ -20,4 +21,4 @@ test('regime and filter coverage: bull, bear, range, compression, expansion, liq
 
 test('session filtering, duplicate prevention, multi-symbol and multi-timeframe',()=>{const s=createDefaultStrategyRegistry().get('forex.london-breakout')!;const rs=s.evaluate(ctx('forex','15m',{session:'asia'}));assert.equal(rs.status,'REJECT');assert.equal(rs.reasonCodes![0],'Session Closed');const dup=ctx('forex','15m',{session:'london'},'GBPUSD');dup.duplicateKey='x';const rd=s.evaluate(dup);assert.equal(rd.status,'REJECT');assert.equal(rd.reasonCodes![0],'Duplicate Opportunity');assert.equal(new StrategyRunner(createDefaultStrategyRegistry()).run(ctx('forex','1h',{session:'london'},'GBPUSD')).length>=3,true);});
 
-test('strategy source consumes shared indicators/features and has no execution dependencies or internal indicator calculations',()=>{const src=readFileSync('v2/strategies/index.ts','utf8');assert.match(src,/MarketFeatures|ExtendedIndicatorSnapshot/);assert.doesNotMatch(src,/from .*supabase|from .*execution|from .*binance|from .*bybit|from .*mt5\//i);assert.doesNotMatch(src,/function\s+(emaCalc|rsi|atr|adx|bollinger|donchian)/);});
+test('strategy source consumes shared indicators/features and has no execution dependencies or internal indicator calculations',()=>{const src=readFileSync(join(process.cwd(),'strategies/index.ts'),'utf8');assert.match(src,/MarketFeatures|ExtendedIndicatorSnapshot/);assert.doesNotMatch(src,/from .*supabase|from .*execution|from .*binance|from .*bybit|from .*mt5\//i);assert.doesNotMatch(src,/function\s+(emaCalc|rsi|atr|adx|bollinger|donchian)/);});
