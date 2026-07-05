@@ -37,7 +37,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.current_platform_role()
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT COALESCE((SELECT platform_role::text FROM public.profiles WHERE id = auth.uid()), (SELECT CASE WHEN role = 'admin' THEN 'admin' ELSE 'customer' END FROM public.profiles WHERE id = auth.uid()), 'anonymous')
+  SELECT COALESCE((SELECT platform_role::text FROM public.profiles WHERE auth_user_id = auth.uid() OR id = auth.uid() LIMIT 1), CASE WHEN auth.role() = 'service_role' THEN 'service_role' ELSE 'anonymous' END)
 $$;
 
 CREATE OR REPLACE FUNCTION public.is_platform_operator()
@@ -151,7 +151,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_mpesa_code ON public.subscri
 CREATE INDEX IF NOT EXISTS idx_subscriptions_customer_status ON public.subscriptions(customer_id, status);
 
 CREATE TABLE IF NOT EXISTS public.customer_accounts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE, provider public.provider_name NOT NULL, environment public.provider_environment NOT NULL DEFAULT 'testnet', label text NOT NULL DEFAULT '', status text NOT NULL DEFAULT 'pending', capabilities jsonb NOT NULL DEFAULT '{}', metadata jsonb NOT NULL DEFAULT '{}', credential_ref text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), CHECK (credential_ref = '' OR credential_ref !~ '(?i)(secret|api[_-]?key)')
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE, provider public.provider_name NOT NULL, environment public.provider_environment NOT NULL DEFAULT 'testnet', label text NOT NULL DEFAULT '', status text NOT NULL DEFAULT 'pending', capabilities jsonb NOT NULL DEFAULT '{}', metadata jsonb NOT NULL DEFAULT '{}', credential_ref text NOT NULL DEFAULT '', setup_note text NOT NULL DEFAULT '', clarification_note text NOT NULL DEFAULT '', approved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL, approved_at timestamptz, paused_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), CHECK (credential_ref = '' OR credential_ref !~ '(?i)(secret|api[_-]?key|password|private)')
 );
 CREATE INDEX IF NOT EXISTS idx_customer_accounts_owner ON public.customer_accounts(customer_id, provider, environment);
 
@@ -208,6 +208,51 @@ BEGIN
   IF p_decision = 'approved' THEN UPDATE public.customers SET status='active', activated_at=COALESCE(activated_at, now()), updated_at=now() WHERE id=v_customer; END IF;
   PERFORM public.platform_audit('subscription.manual_mpesa_reviewed','subscriptions',p_subscription_id,v_customer,jsonb_build_object('decision', p_decision, 'note', p_note));
   RETURN v_status;
+END;
+$$;
+
+
+
+CREATE OR REPLACE FUNCTION public.submit_manual_mpesa_payment(p_package_id uuid DEFAULT NULL, p_transaction_code text DEFAULT '', p_amount numeric DEFAULT 0, p_reference text DEFAULT '')
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_customer uuid; v_subscription uuid;
+BEGIN
+  v_customer := public.platform_customer_id();
+  IF v_customer IS NULL THEN RAISE EXCEPTION 'customer not found'; END IF;
+  IF trim(p_transaction_code) = '' THEN RAISE EXCEPTION 'transaction code required'; END IF;
+  INSERT INTO public.subscriptions(customer_id, package_id, status, mpesa_transaction_code, payment_screenshot_path, payment_review_status, amount, metadata)
+  VALUES (v_customer, p_package_id, 'pending_review', upper(trim(p_transaction_code)), p_reference, 'submitted', p_amount, jsonb_build_object('source','customer_submit_mpesa_payment'))
+  RETURNING id INTO v_subscription;
+  PERFORM public.platform_audit('subscription.manual_mpesa_submitted','subscriptions',v_subscription,v_customer,jsonb_build_object('amount',p_amount,'transaction_code',upper(trim(p_transaction_code))));
+  RETURN v_subscription;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.request_customer_account_setup(p_provider public.provider_name, p_environment public.provider_environment DEFAULT 'testnet', p_label text DEFAULT '', p_credential_ref text DEFAULT '', p_metadata jsonb DEFAULT '{}'::jsonb)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_customer uuid; v_account uuid;
+BEGIN
+  v_customer := public.platform_customer_id();
+  IF v_customer IS NULL THEN RAISE EXCEPTION 'customer not found'; END IF;
+  IF p_credential_ref ~* '(secret|api[_-]?key|password|private)' THEN RAISE EXCEPTION 'credential reference must not contain secret material'; END IF;
+  INSERT INTO public.customer_accounts(customer_id, provider, environment, label, status, credential_ref, metadata)
+  VALUES (v_customer, p_provider, p_environment, p_label, 'setup_requested', p_credential_ref, p_metadata)
+  RETURNING id INTO v_account;
+  PERFORM public.platform_audit('account.setup_requested','customer_accounts',v_account,v_customer,jsonb_build_object('provider',p_provider,'environment',p_environment));
+  RETURN v_account;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.save_customer_preferences(p_preferences jsonb DEFAULT '{}'::jsonb)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_customer uuid;
+BEGIN
+  v_customer := public.platform_customer_id();
+  IF v_customer IS NULL THEN RAISE EXCEPTION 'customer not found'; END IF;
+  INSERT INTO public.customer_preferences(customer_id, preferences) VALUES (v_customer, p_preferences)
+  ON CONFLICT (customer_id) DO UPDATE SET preferences = public.customer_preferences.preferences || EXCLUDED.preferences, updated_at = now();
+  PERFORM public.platform_audit('customer.preferences_saved','customer_preferences',v_customer,v_customer,p_preferences);
+  RETURN v_customer;
 END;
 $$;
 

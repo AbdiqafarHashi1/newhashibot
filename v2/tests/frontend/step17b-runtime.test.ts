@@ -29,9 +29,9 @@ test('admin routes render for admin/owner and reject non-admin users', () => {
 });
 
 test('forms call V2 API client boundary and sanitize secrets', async () => {
-  const api = createV2PlatformApiClient('/functions/v1/platform-api');
+  const api = createV2PlatformApiClient({ platformApiBaseUrl: '/functions/v1', mode: 'mock' });
   const cases = [
-    ['/login', 'login'], ['/register', 'register'], ['/mpesa', 'submit_mpesa_payment'], ['/app/accounts', 'request_account_setup'], ['/admin/mpesa', 'review_manual_mpesa'], ['/admin/telegram', 'send_telegram_test_message'], ['/admin/executors', 'request_executor_action'], ['/app/settings', 'save_preferences']
+    ['/login', 'login'], ['/register', 'register_customer'], ['/mpesa', 'submit_mpesa_payment'], ['/app/accounts', 'request_account_setup'], ['/admin/mpesa', 'review_mpesa_payment'], ['/admin/telegram', 'request_telegram_test'], ['/admin/executors', 'request_executor_action'], ['/app/settings', 'save_customer_preferences']
   ] as const;
   for (const [path, action] of cases) {
     const [form] = formsFor(path);
@@ -42,10 +42,10 @@ test('forms call V2 API client boundary and sanitize secrets', async () => {
 });
 
 test('M-Pesa and admin approval flows are wired end to end', async () => {
-  const api = createV2PlatformApiClient();
+  const api = createV2PlatformApiClient({ mode: 'mock' });
   await submitRuntimeForm(api, formsFor('/app/billing')[0], { transaction_code: 'QAB123', amount: 5000 });
   await submitRuntimeForm(api, formsFor('/admin/mpesa')[0], { subscription_id: 'sub_1', decision: 'approve', note: 'paid' });
-  assert.deepEqual(api.calls.map(call => call.action), ['submit_mpesa_payment', 'review_manual_mpesa']);
+  assert.deepEqual(api.calls.map(call => call.action), ['submit_mpesa_payment', 'review_mpesa_payment']);
 });
 
 test('Telegram manager renders exactly the three default channels and bot/scanner controls render', () => {
