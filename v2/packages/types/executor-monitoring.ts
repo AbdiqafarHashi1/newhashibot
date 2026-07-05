@@ -1,0 +1,15 @@
+import type { AdapterType, ISODateTime } from './index.js';
+
+export type ExecutorLifecycleState = 'Pending'|'Provisioning'|'Starting'|'Running'|'Paused'|'Stopping'|'Stopped'|'Recovering'|'Recovering Protection'|'Recovering Queue'|'Recovering Provider'|'Recovering Runtime'|'Failed'|'Disabled'|'Offline';
+export type RuntimeHealthStatus = 'Healthy'|'Warning'|'Critical'|'Offline'|'Unknown';
+export type RuntimeActionKind = 'start'|'pause'|'resume'|'stop'|'restart'|'recovery'|'account_sync'|'telegram_test'|'recover_queue'|'recover_protection'|'recover_provider'|'recover_runtime'|'assign_executor'|'approve_executor'|'disable_executor'|'global_start'|'global_pause'|'global_resume'|'global_stop'|'worker_start'|'worker_pause'|'worker_resume'|'worker_stop';
+export type ActorRole = 'customer'|'admin'|'system'|'worker';
+export type Subsystem = 'HashiCore'|'Scanner'|'Execution Worker'|'Command Queue'|'Trade Truth'|'Protection Engine'|'Recovery Engine'|'Telegram Platform'|'Platform API'|'Provider Health'|'Customer Executors'|'Customer Accounts';
+
+export interface ExecutorRuntime {
+  executorId: string; customerId: string; accountIds: readonly string[]; provider: AdapterType | string; state: ExecutorLifecycleState; health: RuntimeHealthStatus; capacity: { maxAccounts: number; assignedAccounts: number; maxCommandsPerMinute: number; currentCommandsPerMinute: number }; metadata: Record<string, unknown>; registeredAt: ISODateTime; updatedAt: ISODateTime; heartbeatAt?: ISODateTime;
+}
+export interface RuntimeMetrics { executorId: string; queueDepth: number; oldestQueuedCommandMs: number|null; workerLatencyMs: number; workerFailures: number; workerRecoveries: number; providerLatencyMs: number; runtimeLatencyMs: number; pipelineThroughput: number; signalsCreated: number; signalsRejected: number; plansQueued: number; ordersSent: number; ordersVerified: number; cpuPct: number; memoryMb: number; uptimeSeconds: number; }
+export interface RuntimeHealthSnapshot { executorId: string; status: RuntimeHealthStatus; subsystems: Record<Subsystem, RuntimeHealthStatus>; metrics: RuntimeMetrics; protection: { health: RuntimeHealthStatus; unprotectedTrades: number; repairQueue: number; repairSuccess: number; repairFailures: number }; queue: { health: RuntimeHealthStatus; depth: number; oldestQueuedCommandMs: number|null }; provider: { health: RuntimeHealthStatus; connected: boolean; latencyMs: number; syncStatus: 'synced'|'lagging'|'failed'|'unknown' }; worker: { health: RuntimeHealthStatus; heartbeatAt?: ISODateTime; latencyMs: number; failures: number; recoveries: number }; }
+export interface RuntimeAction { actionId: string; executorId?: string; customerId?: string; actorId: string; actorRole: ActorRole; action: RuntimeActionKind; requestedAt: ISODateTime; status: 'queued'|'accepted'|'rejected'|'completed'; reason?: string; payload: Record<string, unknown>; }
+export interface ExecutorEvent { eventId: string; executorId: string; customerId: string; type: string; severity: 'info'|'warning'|'critical'; at: ISODateTime; payload: Record<string, unknown>; }
