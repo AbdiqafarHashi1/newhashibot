@@ -1,1 +1,16 @@
-{"name":"hashibot-v2","private":true,"version":"0.0.0","type":"module","scripts":{"typecheck":"tsc --noEmit -p tsconfig.json","test":"npm run typecheck && node --test dist-disabled 2>/dev/null || true","test:contracts":"rm -rf .tmp && tsc -p tsconfig.json --outDir .tmp && node --test .tmp/tests/**/*.test.js","lint":"tsc --noEmit -p tsconfig.json"},"devDependencies":{"typescript":"^5.5.3"}}
+{
+  "name": "hashibot-v2",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run typecheck && node --test dist-disabled 2>/dev/null || true",
+    "test:contracts": "rm -rf .tmp && tsc -p tsconfig.json --outDir .tmp && find .tmp/tests -name \"*.test.js\" -print -exec node --test {} +",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test:execution": "rm -rf .tmp && tsc -p tsconfig.json --outDir .tmp && find .tmp/tests/execution -name \"*.test.js\" -print -exec node --test {} +"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}
