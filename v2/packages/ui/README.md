@@ -1,1 +1,3 @@
-# ui\n\nPlaceholder only. Future implementation must obey /v2 contracts and must not depend on V1.
+# ui
+
+Shared V2 frontend shell descriptors for layouts, navigation, cards, status badges, tables, empty states, forms, action buttons, page headers, metric cards, and alert banners.
