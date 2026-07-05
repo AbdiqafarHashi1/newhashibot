@@ -1,0 +1,39 @@
+import React from 'react';
+import { renderCustomerRoute } from '../../web-customer/index.js';
+import { renderAdminRoute } from '../../web-admin/index.js';
+import type { Session } from './auth.js';
+import type { V2PlatformApiClient } from './api-client.js';
+import { Card, DataTable, EmptyState, MetricCard, RuntimeForm, StatusBadge, type FormModel } from './components.js';
+
+type PageContext = { path: string; session: Session; api: V2PlatformApiClient };
+
+export function formsFor(path: string): FormModel[] {
+  if (path === '/login') return [{ id: 'login', title: 'Login', submitLabel: 'Sign in', fields: [{ name: 'email', label: 'Email', type: 'email' }, { name: 'password', label: 'Password', type: 'password' }], submit: (api, values) => api.login(values) }];
+  if (path === '/register') return [{ id: 'register', title: 'Register', submitLabel: 'Request access', fields: [{ name: 'full_name', label: 'Full name' }, { name: 'email', label: 'Email', type: 'email' }, { name: 'package', label: 'Package' }, { name: 'telegram_handle', label: 'Telegram handle' }], submit: (api, values) => api.register(values) }];
+  if (path === '/mpesa' || path === '/app/billing') return [{ id: 'submit_mpesa_payment', title: 'Submit M-Pesa payment', submitLabel: 'Submit for review', fields: [{ name: 'transaction_code', label: 'Transaction code' }, { name: 'amount', label: 'Amount', type: 'number' }, { name: 'reference_or_screenshot', label: 'Reference or screenshot URL' }], submit: (api, values) => api.submitMpesaPayment(values) }];
+  if (path === '/app/accounts') return [{ id: 'request_account_setup', title: 'Request secure exchange setup', submitLabel: 'Request admin setup', fields: [{ name: 'provider', label: 'Provider' }, { name: 'environment', label: 'Demo/testnet/live' }, { name: 'credential_reference', label: 'Secure credential reference' }], submit: (api, values) => api.requestAccountSetup(values) }];
+  if (path.startsWith('/admin/mpesa') || path === '/admin/billing') return [{ id: 'review_manual_mpesa', title: 'Review M-Pesa payment', submitLabel: 'Submit decision', fields: [{ name: 'subscription_id', label: 'Subscription ID' }, { name: 'decision', label: 'Approve/reject/clarify' }, { name: 'note', label: 'Operator note' }], submit: (api, values) => api.reviewManualMpesa(values) }];
+  if (path.startsWith('/admin/telegram')) return [{ id: 'send_telegram_test_message', title: 'Send Telegram test message', submitLabel: 'Send test', fields: [{ name: 'channel', label: 'FREE/VIP/ADMIN_OPS' }, { name: 'message', label: 'Message' }], submit: (api, values) => api.sendTelegramTestMessage(values) }];
+  if (path.includes('executors')) return [{ id: 'request_executor_action', title: 'Executor action request', submitLabel: 'Queue action', fields: [{ name: 'executor_id', label: 'Executor ID' }, { name: 'action', label: 'pause/start/stop/recover' }], submit: (api, values) => api.requestExecutorAction(values) }];
+  if (path.endsWith('/settings')) return [{ id: 'save_preferences', title: 'Save preferences', submitLabel: 'Save', fields: [{ name: 'timezone', label: 'Timezone' }, { name: 'risk_mode', label: 'Risk mode' }], submit: (api, values) => api.savePreferences(values) }];
+  return [];
+}
+
+function renderDescriptorBlocks(blocks: any[] = []) { return blocks.map((b, i) => React.createElement(Card, { key: i, title: b.title ?? 'Section' }, b.body ?? b.message ?? 'Ready')); }
+function renderForms(forms: FormModel[]) { return forms.map(form => React.createElement(RuntimeForm, { key: form.id, model: form })); }
+
+export function PublicPage({ path, api }: PageContext) {
+  const descriptor: any = renderCustomerRoute(path);
+  return React.createElement('main', { className: 'page public-page' }, React.createElement('h1', null, descriptor.header?.title ?? 'HashiBot V2'), descriptor.banner ? React.createElement(StatusBadge, { label: descriptor.banner.title, tone: descriptor.banner.tone }) : null, renderDescriptorBlocks(descriptor.blocks), descriptor.metrics?.map((m: any) => React.createElement(MetricCard, { key: m.label, label: m.label, value: m.value, tone: m.tone })), renderForms(formsFor(path)), React.createElement('small', null, `API: ${api.endpoint}`));
+}
+
+export function CustomerPage({ path, api }: PageContext) {
+  const descriptor: any = renderCustomerRoute(path);
+  const data = descriptor.data ?? {};
+  return React.createElement('main', { className: 'page customer-page' }, React.createElement('h1', null, descriptor.header?.title ?? 'Customer'), descriptor.banner ? React.createElement(StatusBadge, { label: descriptor.banner.title, tone: descriptor.banner.tone }) : null, descriptor.metrics?.map((m: any) => React.createElement(MetricCard, { key: m.label, label: m.label, value: m.value, tone: m.tone })), path === '/app/accounts' ? React.createElement(Card, { title: 'Connected accounts and setup requests' }, React.createElement(DataTable, { columns: ['venue', 'status', 'mode'], rows: descriptor.cards ?? [] })) : null, path === '/app/executors' ? React.createElement(Card, { title: 'Executors' }, React.createElement(DataTable, { columns: ['id', 'state', 'runtime'], rows: descriptor.executors ?? [] })) : null, path === '/app/signals' ? React.createElement(Card, { title: 'Signals' }, React.createElement(DataTable, { columns: ['symbol', 'direction', 'state', 'confidence'], rows: api.read.signals() as any })) : null, path === '/app/trades' ? React.createElement(Card, { title: 'Trades' }, React.createElement(DataTable, { columns: ['symbol', 'state', 'pnl'], rows: api.read.trades() as any })) : null, path === '/app/telegram' ? React.createElement(Card, { title: 'Telegram preferences' }, React.createElement(DataTable, { columns: ['name', 'health'], rows: data.telegramPreferences ?? api.read.telegramChannels() as any })) : null, renderForms(formsFor(path)), descriptor.empty ? React.createElement(EmptyState, { title: descriptor.empty.title, message: descriptor.empty.message }) : null);
+}
+
+export function AdminPage({ path, api }: PageContext) {
+  const descriptor: any = renderAdminRoute(path);
+  return React.createElement('main', { className: 'page admin-page' }, React.createElement('h1', null, descriptor.header?.title ?? 'Admin'), descriptor.metrics?.map((m: any) => React.createElement(MetricCard, { key: m.label, label: m.label, value: m.value, tone: m.tone })), path.includes('telegram') ? React.createElement(Card, { title: 'Telegram channels' }, React.createElement(DataTable, { columns: ['channel'], rows: (descriptor.channels ?? []).map((channel: string) => ({ channel })) })) : null, path.includes('executors') ? React.createElement(Card, { title: 'Executor control' }, React.createElement(DataTable, { columns: ['id', 'state', 'runtime'], rows: descriptor.executors ?? [] })) : null, path.includes('mpesa') || path.endsWith('/billing') ? React.createElement(Card, { title: 'Manual payment reviews' }, React.createElement(DataTable, { columns: ['customer', 'package', 'status'], rows: api.read.approvals() as any })) : null, path.includes('monitoring') || path.includes('runtime') ? React.createElement(Card, { title: 'Runtime and scanner controls', actions: [{ label: 'Pause scanner', action: 'control_scanner' }, { label: 'Restart bot', action: 'control_bot' }] }, JSON.stringify(descriptor.runtime ?? api.read.runtimeHealth())) : null, path.includes('protection') || path.includes('recovery') ? React.createElement(Card, { title: 'Protection states' }, React.createElement(DataTable, { columns: ['accountId', 'actual', 'desired'], rows: api.read.protectionStates() as any })) : null, path.includes('signals') ? React.createElement(DataTable, { columns: ['symbol', 'state', 'confidence'], rows: api.read.signals() as any }) : null, path.includes('trades') ? React.createElement(DataTable, { columns: ['symbol', 'state', 'pnl'], rows: api.read.trades() as any }) : null, renderForms(formsFor(path)));
+}
