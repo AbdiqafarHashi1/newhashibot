@@ -1,5 +1,5 @@
 # RUNTIME_CACHE
 
-This V2 foundation document describes the contract-only skeleton created under /v2. Future prompts must add implementations behind these contracts without changing V1 or introducing live trading behavior before certification.
+V2 runtime cache is memory-only. Implementations live in `packages/runtime-cache` and currently cover `CandleCache`, `IndicatorCache`, `ActiveSignalStore`, `ActiveTradeStore`, `PendingCommandStore`, `ExecutorHealthStore`, `AdapterHealthStore`, `ProtectionStateStore`, and `MarketFeedStateStore`.
 
-See source contracts in packages, execution, hashibridge, and strategies directories.
+All stores support get, set/delete, list, and clear semantics, with bounded item counts. Candle cache also supports append with max candles per key. No cache implementation writes to Supabase.
