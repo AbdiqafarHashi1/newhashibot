@@ -3,10 +3,12 @@ import { guardRoute, type Session } from './auth.js';
 import type { V2PlatformApiClient } from './api-client.js';
 import { AdminPage, CustomerPage, PublicPage } from './pages.js';
 import { ErrorState } from './components.js';
+import { customerRoutes, publicRoutes } from '../../web-customer/index.js';
+import { adminRoutes, legacyRouteAliases } from '../../web-admin/index.js';
 
-export const publicPaths = ['/', '/features', '/pricing', '/results', '/how-it-works', '/faq', '/mpesa', '/affiliate/exness', '/login', '/register'];
-export const customerPaths = ['/app/pending', '/app/suspended', '/app/expired', '/app/dashboard', '/app/billing', '/app/accounts', '/app/executors', '/app/signals', '/app/trades', '/app/risk-profile', '/app/strategies', '/app/telegram', '/app/settings', '/app/support'];
-export const adminPaths = ['/admin/dashboard', '/admin/customers', '/admin/approvals', '/admin/subscriptions', '/admin/mpesa', '/admin/packages', '/admin/accounts', '/admin/executors', '/admin/executors/detail', '/admin/signals', '/admin/trades', '/admin/telegram', '/admin/telegram/queue', '/admin/runtime', '/admin/monitoring', '/admin/protection', '/admin/recovery', '/admin/notifications', '/admin/audit-logs', '/admin/system-settings'];
+export const publicPaths = publicRoutes.filter(r => r.path !== '/logout').map(r => r.path);
+export const customerPaths = customerRoutes.map(r => r.path);
+export const adminPaths = [...adminRoutes, ...legacyRouteAliases].map(r => r.path);
 export const allRoutes = [...publicPaths, ...customerPaths, ...adminPaths];
 
 export function resolveRoute(path: string, session: Session) {
