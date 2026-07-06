@@ -1,13 +1,35 @@
-export type CustomerProfile = { id: string; name: string; email: string; approvalStatus: 'pending' | 'approved'; role: 'customer' | 'admin' };
-export const mockCustomerProfile: CustomerProfile = { id: 'cus_mock_001', name: 'Ava Patel', email: 'ava@example.test', approvalStatus: 'approved', role: 'customer' };
-export const mockPendingCustomerProfile: CustomerProfile = { ...mockCustomerProfile, id: 'cus_pending_001', approvalStatus: 'pending' };
-export const mockSubscription = { plan: 'VIP Execution', status: 'trialing', renewsOn: '2026-08-01', exnessLinked: false };
-export const mockAccounts = [{ id: 'acct_binance_1', venue: 'Binance Testnet', mode: 'crypto', status: 'connected', equity: 25000 }, { id: 'acct_mt5_1', venue: 'MT5 Demo', mode: 'forex', status: 'setup-required', equity: 10000 }];
-export const mockExecutors = [{ id: 'exec_1', customerId: 'cus_mock_001', accountId: 'acct_binance_1', runtime: 'cloud', provider: 'binance', state: 'Running', health: 'Healthy', queueDepth: 2 }, { id: 'exec_2', customerId: 'cus_mock_001', accountId: 'acct_bybit_request', runtime: 'cloud', provider: 'bybit', state: 'Pending', health: 'Unknown', queueDepth: 0 }, { id: 'exec_3', customerId: 'cus_other_002', accountId: 'acct_other', runtime: 'cloud', provider: 'binance', state: 'Paused', health: 'Warning', queueDepth: 12 }];
-export const mockSignals = [{ id: 'sig_1', symbol: 'BTCUSDT', direction: 'long', state: 'approved', confidence: 82 }, { id: 'sig_2', symbol: 'EURUSD', direction: 'short', state: 'watching', confidence: 71 }];
-export const mockTrades = [{ id: 'trd_1', signalId: 'sig_1', symbol: 'BTCUSDT', state: 'managed', pnl: 142.2 }];
-export const mockTelegramChannels = [{ id: 'free', name: 'Free Community', health: 'ready' }, { id: 'vip', name: 'VIP Signals', health: 'ready' }, { id: 'admin', name: 'Admin Alerts', health: 'degraded' }];
-export const mockAdminApprovals = [{ id: 'apr_1', customer: 'Nina Stone', package: 'VIP Signals', status: 'pending' }, { id: 'apr_2', customer: 'Marco Lee', package: 'Execution', status: 'approved' }];
-export const mockRuntimeHealth = { marketData: 'mocked', eventBus: 'planned', commandQueue: 'idle', adapters: 'disabled', HashiCore: 'Healthy', Scanner: 'Healthy', 'Execution Worker': 'Healthy', 'Command Queue': 'Healthy', 'Trade Truth': 'Healthy', 'Protection Engine': 'Healthy', 'Recovery Engine': 'Healthy', 'Telegram Platform': 'Warning', 'Platform API': 'Healthy', 'Provider Health': 'Warning', 'Customer Executors': 'Healthy', 'Customer Accounts': 'Healthy', queueDepth: 2, workerHeartbeat: '2026-07-05T18:00:00.000Z', providerLatencyMs: 220, runtimeLatencyMs: 48 };
-export const mockProtectionStates = [{ accountId: 'acct_binance_1', desired: 'sl-tp-trailing', actual: 'verified', repairNeeded: false }, { accountId: 'acct_mt5_1', desired: 'not-started', actual: 'offline', repairNeeded: true }];
-export function createMockApiClient() { return { getCustomerProfile: () => mockCustomerProfile, getSubscription: () => mockSubscription, listAccounts: () => mockAccounts, listExecutors: () => mockExecutors.filter(executor => executor.customerId === mockCustomerProfile.id), listAllExecutors: () => mockExecutors, listSignals: () => mockSignals, listTrades: () => mockTrades, listTelegramChannels: () => mockTelegramChannels, listAdminApprovals: () => mockAdminApprovals, getRuntimeHealth: () => mockRuntimeHealth, listProtectionStates: () => mockProtectionStates, getMonitoringSummary: () => ({ runtime: mockRuntimeHealth, executors: mockExecutors, alerts: [{ id: 'alrt_1', severity: 'warning', subsystem: 'Provider Health', title: 'Bybit sync pending' }], capacity: mockExecutors.map(e => ({ executorId: e.id, maxAccounts: 5, assignedAccounts: 1, currentCommandsPerMinute: e.queueDepth })) }) }; }
+export type CustomerProfile = { id: string; name: string; email: string; approvalStatus: 'pending' | 'approved' | 'suspended' | 'expired'; role: 'customer' | 'admin' };
+
+export const emptyCustomerProfile: CustomerProfile = { id: 'current-customer', name: 'Customer', email: 'customer@example.com', approvalStatus: 'approved', role: 'customer' };
+export const pendingCustomerProfile: CustomerProfile = { ...emptyCustomerProfile, approvalStatus: 'pending' };
+export const emptySubscription = { plan: 'Not active', status: 'pending', renewsOn: null, exnessLinked: false };
+export const emptyRuntimeHealth = { marketData: 'waiting-for-scanner', eventBus: 'ready', commandQueue: 'idle', adapters: 'not-configured', HashiCore: 'ready', Scanner: 'not-started', 'Execution Worker': 'not-started', 'Command Queue': 'idle', 'Trade Truth': 'ready', 'Protection Engine': 'ready', 'Recovery Engine': 'ready', 'Telegram Platform': 'not-configured', 'Platform API': 'ready', 'Provider Health': 'waiting-for-connections', 'Customer Executors': 'none-configured', 'Customer Accounts': 'none-connected', queueDepth: 0, workerHeartbeat: null, providerLatencyMs: null, runtimeLatencyMs: null };
+
+export function createMockApiClient(mode: 'production-empty' | 'local-demo' = 'production-empty') {
+  const isDemo = mode === 'local-demo';
+  const accounts = isDemo ? [{ id: 'local_acct_1', venue: 'Binance Testnet', mode: 'crypto', status: 'connected', equity: null }] : [];
+  const executors = isDemo ? [{ id: 'local_exec_1', customerId: 'current-customer', accountId: 'local_acct_1', runtime: 'cloud', provider: 'binance', state: 'Running', health: 'Healthy', queueDepth: 0 }] : [];
+  const signals: unknown[] = isDemo ? [{ id: 'local_sig_1', symbol: 'BTCUSDT', direction: 'long', state: 'local-only', confidence: null }] : [];
+  const trades: unknown[] = isDemo ? [{ id: 'local_trade_1', symbol: 'BTCUSDT', state: 'local-only', pnl: null }] : [];
+  const telegramChannels = isDemo ? [{ id: 'free', name: 'Free Community', health: 'ready' }] : [];
+  const approvals: unknown[] = [];
+  const protectionStates: unknown[] = [];
+  return {
+    mode,
+    getCustomerProfile: () => emptyCustomerProfile,
+    getSubscription: () => emptySubscription,
+    listAccounts: () => accounts,
+    listExecutors: () => executors.filter((executor: any) => executor.customerId === emptyCustomerProfile.id),
+    listAllExecutors: () => executors,
+    listSignals: () => signals,
+    listTrades: () => trades,
+    listTelegramChannels: () => telegramChannels,
+    listAdminApprovals: () => approvals,
+    getRuntimeHealth: () => emptyRuntimeHealth,
+    listProtectionStates: () => protectionStates,
+    getMonitoringSummary: () => ({ runtime: emptyRuntimeHealth, executors, alerts: [], capacity: [] })
+  };
+}
+
+export const mockCustomerProfile = emptyCustomerProfile;
+export const mockPendingCustomerProfile = pendingCustomerProfile;

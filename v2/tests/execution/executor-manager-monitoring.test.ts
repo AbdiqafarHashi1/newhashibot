@@ -72,7 +72,7 @@ test('customer and admin UI descriptors expose monitoring center controls', () =
   const admin: any = renderAdminRoute('/admin/runtime-diagnostics');
   assert.ok(admin.actions.includes('Global Pause'));
   assert.ok(admin.sections.includes('Provider Health'));
-  assert.equal((renderAdminRoute('/admin/executors') as any).executors.length, 3);
+  assert.equal((renderAdminRoute('/admin/executors') as any).table.rowCount, 0);
 });
 
 test('edge functions, migrations, RLS, and root isolation are present', () => {

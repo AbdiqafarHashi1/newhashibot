@@ -13,7 +13,7 @@ export type FetchLike = (input: string | URL | Request, init?: RequestInit) => P
 export type V2PlatformApiClientOptions = { platformApiBaseUrl?: string; endpoint?: string; getAuthToken?: TokenProvider; fetchImpl?: FetchLike; mode?: 'real' | 'mock'; onLocalLog?: (request: PlatformRequest) => void };
 export type V2PlatformApiClient = ReturnType<typeof createV2PlatformApiClient>;
 
-const mock = createMockApiClient();
+const mock = createMockApiClient('local-demo');
 const emptyReads = {
   getCustomerProfile: () => null,
   getSubscription: () => null,
