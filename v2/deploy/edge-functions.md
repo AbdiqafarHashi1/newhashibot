@@ -26,3 +26,37 @@ Deploy with `supabase functions deploy <name> --project-ref <ref>`. Verify every
 | `research-lab` | Research Lab jobs | `RESEARCH_LAB_ENABLED` | research tables/storage | POST health/job | accepted | Disabled/storage missing | Enable and create bucket |
 
 Use exponential backoff for transient 429/5xx responses: 1s, 2s, 4s, then stop and inspect logs.
+
+## HashiBridge signature contract
+
+The HashiBridge and MT5 agent-facing functions (`bridge-register`, `bridge-heartbeat`, `bridge-sync`, and `mt5-terminal-health`) require a deterministic HMAC-SHA256 signature using `HASHIBRIDGE_SHARED_SECRET`. Send these headers on every signed request:
+
+- `x-hashibridge-device-id`: bridge/device id; must match `bridge_id` or `device_id` in the body.
+- `x-hashibridge-timestamp`: ISO-8601 timestamp. Requests outside the 5-minute replay window are rejected.
+- `x-hashibridge-nonce`: unique nonce or request id for this request.
+- `x-hashibridge-signature`: lowercase hex HMAC-SHA256 of `<device-id>.<timestamp>.<nonce>.<raw-json-body>`.
+
+Signed failure modes are deterministic: missing headers return `missing_signature`, old timestamps return `stale_timestamp`, and mismatched HMAC values return `invalid_signature`. Responses never include secrets or signature material.
+
+### Verification examples
+
+```bash
+# body must be byte-for-byte identical to the body used for HMAC signing
+curl -X POST "$FN/bridge-register" \
+  -H "Content-Type: application/json" \
+  -H "x-hashibridge-device-id: $HASHIBRIDGE_DEVICE_ID" \
+  -H "x-hashibridge-timestamp: $HASHIBRIDGE_TIMESTAMP" \
+  -H "x-hashibridge-nonce: $HASHIBRIDGE_NONCE" \
+  -H "x-hashibridge-signature: $HASHIBRIDGE_SIGNATURE" \
+  --data '{"bridge_id":"hb-prod-001","customer_id":"<customer>","executor_id":"<executor>","machine_fingerprint":"host-fp","agent_version":"1.0.0","platform":"desktop","capabilities":["mt5"]}'
+
+curl -X POST "$FN/bridge-sync" \
+  -H "Content-Type: application/json" \
+  -H "x-hashibridge-device-id: $HASHIBRIDGE_DEVICE_ID" \
+  -H "x-hashibridge-timestamp: $HASHIBRIDGE_TIMESTAMP" \
+  -H "x-hashibridge-nonce: $HASHIBRIDGE_NONCE" \
+  -H "x-hashibridge-signature: $HASHIBRIDGE_SIGNATURE" \
+  --data '{"bridge_id":"hb-prod-001","executor_id":"<executor>","acknowledgements":[],"results":[],"max_batch_size":10}'
+```
+
+`mt5-account-register` and `mt5-recovery` are platform/admin/customer initiated functions; they use the normal Supabase/Platform authorization context and service-role persistence. They store credential references only and reject plaintext password/credential payloads.
