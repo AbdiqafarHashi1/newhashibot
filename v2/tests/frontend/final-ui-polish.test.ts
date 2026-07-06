@@ -56,5 +56,5 @@ test('admin operations center includes V2-exclusive production surfaces and rese
 
 test('Netlify publish path remains valid', () => {
   const netlify = execSync('cat netlify.toml', { encoding: 'utf8', cwd: '../v2' });
-  assert.match(netlify, /publish\s*=\s*"apps\/web-runtime"/);
+  assert.match(netlify, /publish\s*=\s*"apps\/web-runtime\/dist"/);
 });

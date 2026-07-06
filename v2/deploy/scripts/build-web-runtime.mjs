@@ -1,0 +1,14 @@
+import { mkdirSync, writeFileSync, cpSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { execSync } from 'node:child_process';
+execSync('rm -rf .tmp apps/web-runtime/dist && tsc -p tsconfig.json --outDir .tmp', { stdio: 'inherit' });
+const { renderAppToHtml, createSession, createV2PlatformApiClient } = await import('../../.tmp/apps/web-runtime/index.js');
+const dist = 'apps/web-runtime/dist';
+mkdirSync(dist, { recursive: true });
+const html = renderAppToHtml({ path: '/', session: createSession('visitor'), api: createV2PlatformApiClient() });
+writeFileSync(join(dist, 'index.html'), html);
+mkdirSync(join(dist, 'assets'), { recursive: true });
+writeFileSync(join(dist, 'assets', 'hashibot-runtime.txt'), 'HashiBot V2 runtime assets');
+writeFileSync(join(dist, 'favicon.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#09090b"/><path d="M35 6 14 37h15l-4 21 25-34H35l0-18Z" fill="#06b6d4"/></svg>');
+if (existsSync('.tmp/apps/web-runtime')) cpSync('.tmp/apps/web-runtime', join(dist, 'server'), { recursive: true });
+console.log(`Built ${dist}/index.html`);
