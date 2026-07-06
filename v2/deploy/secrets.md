@@ -19,3 +19,7 @@
 - `supabase secrets list --project-ref <ref>` must show all required names without printing secret values.
 - `curl -H "Authorization: Bearer $PLATFORM_API_TOKEN" "$SUPABASE_FUNCTIONS_URL/runtime-health"` must return healthy JSON.
 - Netlify deploy logs must show required `VITE_*` variables present without leaking values.
+
+## HashiBridge signing secret
+
+`HASHIBRIDGE_SHARED_SECRET` is used only to verify HMAC-SHA256 signed bridge/agent requests. Rotate it by updating Supabase secrets and the desktop agent secret store together. Do not log the secret, generated signatures, MT5 passwords, or credential values. Signed requests must include `x-hashibridge-device-id`, `x-hashibridge-timestamp`, `x-hashibridge-nonce`, and `x-hashibridge-signature`.
