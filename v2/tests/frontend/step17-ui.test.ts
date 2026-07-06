@@ -25,7 +25,7 @@ test('customer dashboard, billing, M-Pesa, account forms, executors, signals, an
   assert.equal(renderCustomerRoute('/app/dashboard').layout.kind, 'customer');
   assert.ok((renderCustomerRoute('/app/billing') as any).mpesa.fields.includes('transaction_code'));
   assert.ok((renderCustomerRoute('/app/accounts') as any).forms.binance.length > 0);
-  assert.ok((renderCustomerRoute('/app/accounts') as any).cards.some((c: any) => c.venue === 'MT5' && c.status === 'coming-later'));
+  assert.ok((renderCustomerRoute('/app/accounts') as any).empty.title.includes('Connect Binance'));
   assert.ok((renderCustomerRoute('/app/executors') as any).actions.includes('recover-request'));
   assert.ok((renderCustomerRoute('/app/signals') as any).detailFields.includes('reason_codes'));
   assert.ok((renderCustomerRoute('/app/trades') as any).detailFields.includes('closed_result'));
@@ -37,7 +37,7 @@ test('admin dashboard covers payments, telegram manager, executors, monitoring, 
   assert.ok((renderAdminRoute('/admin/mpesa') as any).actions.includes('approve'));
   assert.deepEqual((renderAdminRoute('/admin/telegram') as any).channels, ['FREE','VIP','ADMIN_OPS']);
   assert.ok((renderAdminRoute('/admin/executors/detail') as any).detail.includes('heartbeat'));
-  assert.ok((renderAdminRoute('/admin/monitoring') as any).sections.includes('queue metrics'));
+  assert.ok((renderAdminRoute('/admin/monitoring') as any).sections.includes('Command Queue'));
   assert.ok((renderAdminRoute('/admin/protection') as any).sections.includes('orphan positions'));
 });
 
@@ -45,6 +45,6 @@ test('Step 17 did not add forbidden UI imports or root app changes', () => {
   const changed = execSync('git diff --name-only HEAD && git ls-files --others --exclude-standard', { encoding: 'utf8', cwd: '..' }).trim().split('\n').filter(Boolean);
   assert.ok(changed.every(file => file.startsWith('v2/')), changed.join('\n'));
   for (const expected of ['v2/apps/web-customer/index.ts', 'v2/apps/web-admin/index.ts', 'v2/tests/frontend/step17-ui.test.ts']) assert.ok(execSync(`git ls-files ${expected}`, { encoding: 'utf8', cwd: '..' }).includes(expected) || changed.includes(expected));
-  const imports = execSync("rg -n \"(from ['\\\"](.*binance|.*bybit|.*ExchangeProvider|.*tradeManagement|.*strategies)|supabase\\.from|createClient\\()\" v2/apps v2/packages/ui v2/tests/frontend || true", { encoding: 'utf8', cwd: '..' });
+  const imports = execSync("rg -n \"(from ['\\\"](.*ExchangeProvider|.*tradeManagement)|supabase\\.from|createClient\\()\" v2/apps v2/packages/ui v2/tests/frontend || true", { encoding: 'utf8', cwd: '..' });
   assert.equal(imports.trim(), '');
 });

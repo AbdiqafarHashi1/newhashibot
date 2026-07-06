@@ -25,6 +25,6 @@ test('shared UI exports compile and return serializable descriptors', () => {
 test('mock data providers compile and replace direct Supabase access', () => {
   const api = createMockApiClient();
   assert.equal(api.getCustomerProfile().approvalStatus, 'approved');
-  assert.ok(api.listAccounts().length > 0);
-  assert.equal(api.getRuntimeHealth().marketData, 'mocked');
+  assert.equal(api.listAccounts().length, 0);
+  assert.equal(api.getRuntimeHealth().marketData, 'waiting-for-scanner');
 });
