@@ -398,3 +398,325 @@ export async function getScannerConfigCompact(): Promise<Record<string, unknown>
   if (error) throw error;
   return data;
 }
+
+// ─── Strategy Configs ────────────────────────────────────────────────────────
+
+export async function getStrategyConfigsCompact(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('strategy_configs')
+    .select('id,strategy_name,enabled,market_type,signal_style,risk_mode,min_score,min_rr,max_active_signals,one_active_signal_per_symbol,allowed_timeframes,created_at,updated_at')
+    .order('strategy_name', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Mode Configs ────────────────────────────────────────────────────────────
+
+export async function getModeConfigsCompact(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('mode_configs')
+    .select('id,slug,display_name,description,is_enabled,paper_execution_enabled,max_active_signals,allowed_timeframes,created_at,updated_at')
+    .order('slug', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Symbols ──────────────────────────────────────────────────────────────────
+
+export async function getSymbolsCompact(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('symbols')
+    .select('id,symbol,display_name,market_type,provider,is_active,created_at')
+    .order('market_type', { ascending: true })
+    .order('symbol', { ascending: true })
+    .limit(200);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getSymbolCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('symbols')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_active', true);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// ─── Candle Count (count-only, no row data) ──────────────────────────────────
+
+export async function getCandleCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('candles')
+    .select('id', { count: 'exact', head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// ─── Signal Count (count-only) ───────────────────────────────────────────────
+
+export async function getActiveSignalCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('signals')
+    .select('id', { count: 'exact', head: true })
+    .in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// ─── Candidate Count (count-only) ────────────────────────────────────────────
+
+export async function getCandidateCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('strategy_candidates')
+    .select('id', { count: 'exact', head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// ─── User Count (count-only) ────────────────────────────────────────────────
+
+export async function getUserCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// ─── Latest Forex Scanner Run ────────────────────────────────────────────────
+
+export async function getLatestForexScannerRun(): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase
+    .from('scanner_runs')
+    .select('id,started_at,finished_at,forex_symbols_scanned,market_mode,status')
+    .gt('forex_symbols_scanned', 0)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Signal Updates ──────────────────────────────────────────────────────────
+
+export async function getSignalUpdatesCompact(limit = 30): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('signal_updates')
+    .select('id,signal_id,message,created_at')
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 100));
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Outcome Telegram Deliveries ─────────────────────────────────────────────
+
+export async function getOutcomeTelegramDeliveries(limit = 50): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('telegram_deliveries')
+    .select('id,signal_id,delivery_type,chat_id,status,error_message,created_at')
+    .like('delivery_type', 'outcome_%')
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 100));
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Paper Execution Intent Count ────────────────────────────────────────────
+
+export async function getPaperIntentCount(): Promise<{ total: number; blocked: number }> {
+  const [totalRes, blockedRes] = await Promise.all([
+    supabase.from('paper_execution_intents').select('id', { count: 'exact', head: true }),
+    supabase.from('paper_execution_intents').select('id', { count: 'exact', head: true }).eq('risk_check_passed', false),
+  ]);
+  return {
+    total: totalRes.count ?? 0,
+    blocked: blockedRes.count ?? 0,
+  };
+}
+
+// ─── Rejected Candidates ─────────────────────────────────────────────────────
+
+export async function getRejectedCandidatesCompact(limit = 50, offset = 0): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  const { data, error, count } = await supabase
+    .from('strategy_candidates')
+    .select('id,symbol,market_type,timeframe,strategy_name,direction,confidence_score,grade,rejection_reason,created_at', { count: 'exact' })
+    .eq('status', 'rejected')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return { data: data ?? [], total: count ?? 0 };
+}
+
+// ─── Provider Parity Audit ───────────────────────────────────────────────────
+
+export async function getProviderParityAuditCompact(limit = 50): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('provider_parity_audit')
+    .select('id,provider,symbol,binance_tradable,bybit_tradable,parity_status,created_at')
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 100));
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Provider Execution Performance ──────────────────────────────────────────
+
+export async function getProviderExecutionPerformance(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('provider_execution_performance')
+    .select('id,provider_name,total_orders,successful_orders,failed_orders,success_rate,created_at')
+    .order('provider_name', { ascending: true })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Execution Provider Controls ─────────────────────────────────────────────
+
+export async function getExecutionProviderControls(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('execution_provider_controls')
+    .select('id,provider_name,is_enabled,primary_provider,parallel_mode_enabled,updated_at')
+    .order('provider_name', { ascending: true })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Execution Provider Global Controls ──────────────────────────────────────
+
+export async function getExecutionProviderGlobalControls(): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase
+    .from('execution_provider_global_controls')
+    .select('id,primary_provider,parallel_mode_enabled,mirror_required_for_vip,execute_supported_provider_only,live_trading_enabled,updated_at')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Provider Symbol Cache ───────────────────────────────────────────────────
+
+export async function getProviderSymbolCacheCompact(limit = 200): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('provider_symbol_cache')
+    .select('provider,symbol,status')
+    .in('provider', ['binance', 'bybit'])
+    .limit(Math.min(Math.max(limit, 1), 500));
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Execution Monitor Heartbeats ────────────────────────────────────────────
+
+export async function getExecutionMonitorHeartbeats(limit = 30): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('execution_monitor_heartbeats')
+    .select('id,provider,started_at,finished_at,status,error_message')
+    .order('started_at', { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 100));
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Execution Monitor Schedules ────────────────────────────────────────────
+
+export async function getExecutionMonitorSchedules(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('execution_monitor_schedules')
+    .select('id,provider,cron_expression,is_enabled,last_run_at,next_run_at')
+    .order('provider', { ascending: true })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Active Trade Management Truth ───────────────────────────────────────────
+
+export async function getActiveTradeManagementTruth(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('active_trade_management_truth')
+    .select('provider,symbol,side,qty,entry_price,stop_loss,take_profit,latest_sync_at')
+    .in('provider', ['binance', 'bybit'])
+    .order('latest_sync_at', { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Replay Datasets ─────────────────────────────────────────────────────────
+
+export async function getReplayDatasetsCompact(): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('replay_datasets')
+    .select('id,name,description,symbol,timeframe,candle_count,created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Telegram Admin Deliveries ──────────────────────────────────────────────
+
+export async function getTelegramAdminDeliveries(limit = 50): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('telegram_deliveries')
+    .select('id,signal_id,delivery_type,chat_id,status,error_message,destination_channel,created_at')
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 100));
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Signals with Filters ────────────────────────────────────────────────────
+
+export async function getSignalsFiltered(limit = 50, offset = 0, statusFilter?: string, marketFilter?: string): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  let query = supabase
+    .from('signals')
+    .select('id,symbol,market_type,timeframe,direction,strategy_name,grade,confidence_score,risk_reward,entry_low,entry_high,stop_loss,tp1,tp2,status,created_at,expires_at', { count: 'exact' })
+    .order('created_at', { ascending: false });
+  if (statusFilter && statusFilter !== 'all') query = query.eq('status', statusFilter);
+  if (marketFilter && marketFilter !== 'all') query = query.eq('market_type', marketFilter);
+  query = query.range(offset, offset + limit - 1);
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { data: data ?? [], total: count ?? 0 };
+}
+
+// ─── Scanner Config Telegram Fields ─────────────────────────────────────────
+
+export async function getScannerConfigTelegramFields(): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase
+    .from('scanner_config')
+    .select('allow_demo_telegram_sending,auto_send_telegram,min_auto_send_grade,min_signal_grade')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Scanner Config Schedule Fields ─────────────────────────────────────────
+
+export async function getScannerConfigScheduleFields(): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase
+    .from('scanner_config')
+    .select('auto_send_telegram,schedule_enabled,cron_job_active')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Execution Settings Monitor Fields ───────────────────────────────────────
+
+export async function getExecutionSettingsMonitorFields(): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase
+    .from('execution_settings')
+    .select('id,execution_mode,testnet_enabled,live_trading_enabled,kill_switch_enabled,auto_execute_testnet,max_open_testnet_positions,bot_paused,bot_paused_reason,latest_monitor_run_at,latest_monitor_status,latest_monitor_error')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProviderStatus, Symbol as SymbolRow } from '../../lib/types';
 import { useAdminLiveState } from '../../hooks/useAdminLiveState';
@@ -8,6 +7,7 @@ import { Badge, statusBadge } from '../../components/ui/Badge';
 import { callEdgeFunction, EdgeFunctionReachability, ADMIN_SCHEDULER_DEPLOY_INSTRUCTIONS, ADMIN_SCHEDULER_MISSING_MESSAGE } from '../../lib/edgeFunctionStatus';
 import { AlertTriangle, CheckCircle, Database, Info, RefreshCw, Wifi, ChevronDown, ChevronUp } from 'lucide-react';
 import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
+import { getProviderStatusCompact, getSymbolsCompact, getScannerConfigScheduleFields } from '../../lib/hashibotBackend';
 
 interface RuntimeConfig {
   provider?: string;
@@ -173,16 +173,13 @@ export default function ProviderHealth() {
     setLoadWarning('');
     try {
       const [p, s, cfgRes] = await Promise.all([
-        supabase.from('provider_status').select('*'),
-        supabase.from('symbols').select('*').order('market_type').order('symbol'),
-        supabase.from('scanner_config').select('auto_send_telegram,schedule_enabled,cron_job_active').eq('id', 1).maybeSingle(),
+        getProviderStatusCompact(),
+        getSymbolsCompact(),
+        getScannerConfigScheduleFields(),
       ]);
-      if (p.error || s.error || cfgRes.error) {
-        setLoadWarning(p.error?.message ?? s.error?.message ?? cfgRes.error?.message ?? 'Provider Health loaded with warnings.');
-      }
-      setProviders(Array.isArray(p.data) ? p.data : []);
-      setSymbols(Array.isArray(s.data) ? (s.data as SymbolRow[]) : []);
-      setCfg((cfgRes.data ?? null) as ScannerConfigSummary | null);
+      setProviders(p);
+      setSymbols(s as unknown as SymbolRow[]);
+      setCfg((cfgRes ?? null) as ScannerConfigSummary | null);
     } catch (e) {
       setLoadWarning(e instanceof Error ? e.message : 'Provider status query failed.');
       setProviders([]);
