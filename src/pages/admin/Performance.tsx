@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { getMonitorTruth } from '../../lib/monitorTruth';
-import { getPerformanceSummary } from '../../lib/hashibotBackend';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle, Shield, Activity } from 'lucide-react';
 import { DEFAULT_CAPITAL_ASSUMPTIONS, estimateCapitalFromR, formatMoney, formatPct, validCapitalAssumptions, CapitalAssumptions } from '../../lib/capitalAnalytics';
@@ -689,19 +688,18 @@ export default function Performance() {
     setLoading(true);
     setError('');
     try {
-      await getPerformanceSummary();
       const [sigRes, stratConfigRes, execRes, settingsRes, eventRes] = await Promise.all([
         supabase.from('signal_analytics_view')
           .select('signal_id,strategy_name,symbol,market_type,timeframe,direction,grade,data_source,current_status,outcome_category,r_result,close_price,closed_at,duration_minutes,created_at,entry_price,stop_loss,tp1,tp2')
           .eq('data_source', 'REAL DATA')
           .neq('outcome_category', 'CANCELLED')
           .order('created_at', { ascending: false })
-          .limit(250),
+          .limit(5000),
         supabase.from('strategy_configs').select('strategy_name').order('strategy_name'),
         supabase.from('execution_orders')
           .select('id,signal_id,symbol,direction,execution_mode,execution_provider,provider_status,provider_fill_price,provider_fee,provider_slippage,status,latest_auto_skip_reason,error_message,last_exchange_error,latest_monitor_error,latest_sync_error,entry_price,stop_loss,tp1,tp2,entry_order_id,binance_entry_order_id,sl_algo_id,tp1_algo_id,tp2_algo_id,binance_sl_order_id,binance_tp1_order_id,binance_tp2_order_id,entry_filled_at,protection_submitted_at,protected_at,protection_status,bracket_mode,native_protection_verified,managed_fallback_active,current_position_size,remaining_quantity,remaining_qty,runner_active,profit_lock_sl_active,tp1_filled,tp2_filled,tp1_closed_at,tp2_closed_at,sl_closed_at,timeout_closed_at,stale_checked_at,stale_cleanup_reason,last_monitor_action,latest_mark_price,latest_unrealized_pnl,created_at,updated_at')
           .order('created_at', { ascending: false })
-          .limit(250),
+          .limit(5000),
         supabase.from('execution_settings')
           .select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,latest_monitor_error,latest_sync_error,latest_account_state_at,open_binance_positions,open_binance_orders,stale_rows_cleaned,open_positions_count,latest_sync_time')
           .eq('id', 1)
@@ -709,7 +707,7 @@ export default function Performance() {
         supabase.from('execution_event_logs')
           .select('event_type,message,created_at')
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(1000),
       ]);
 
       if (sigRes.error) throw new Error(sigRes.error.message);
@@ -728,7 +726,7 @@ export default function Performance() {
       });
       setConfiguredStrategies([...names].sort());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load compact analytics');
+      setError(e instanceof Error ? e.message : 'Failed to load analytics');
     } finally {
       setLoading(false);
     }

@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { listScannerRunsCompact } from '../../lib/hashibotBackend';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 import { SchedulerProofDebug } from '../../components/admin/SchedulerProofDebug';
-import { ScannerRun } from '../../lib/types';
+import { getScannerRunsCompact, type CompactScannerRun } from '../../lib/hashibotBackend';
 import { statusBadge } from '../../components/ui/Badge';
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 
-type ScannerRunWithOutcome = ScannerRun & {
+type ScannerRunWithOutcome = CompactScannerRun & {
   outcome_checked?: boolean | null;
   outcomes_updated?: number | null;
   outcome_telegram_sent?: number | null;
   outcome_telegram_skipped?: number | null;
   outcome_telegram_failed?: number | null;
+  telegram_blocked_count?: number | null;
+  telegram_failed_count?: number | null;
+  run_type?: string;
 };
 
 function isHistoricalForexWarning(message?: string | null) {
@@ -33,7 +35,7 @@ export default function ScannerStatus() {
     const seq = loadSeq.current + 1;
     loadSeq.current = seq;
     setLoading(true);
-    const data = await listScannerRunsCompact(50);
+    const data = await getScannerRunsCompact(100);
     if (seq !== loadSeq.current) return;
     setRuns(data as ScannerRunWithOutcome[]);
     setLoading(false);
