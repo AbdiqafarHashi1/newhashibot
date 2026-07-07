@@ -33,6 +33,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/scanner', label: 'Scanner Logs', icon: Activity },
   { to: '/admin/scanner-config', label: 'Scanner Config', icon: Settings },
   { to: '/admin/performance', label: 'Performance', icon: Activity },
+  { to: '/admin/retention', label: 'Retention', icon: Database },
   { to: '/admin/backtest-lab', label: 'Backtest Lab', icon: FileText },
   { to: '/admin/candidates', label: 'Candidate Setups', icon: CheckCircle },
   { to: '/admin/rejected', label: 'Rejected Setups', icon: AlertTriangle },
