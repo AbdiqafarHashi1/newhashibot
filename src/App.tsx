@@ -56,6 +56,7 @@ import MT5PersonalOperations from './pages/admin/MT5PersonalOperations';
 import MT5PropOperations from './pages/admin/MT5PropOperations';
 import Customers from './pages/admin/Customers';
 import PropTradingPanel from './pages/admin/PropTradingPanel';
+import Retention from './pages/admin/Retention';
 import OperatorPanel from './pages/admin/operator/OperatorPanel';
 
 // Smart redirect after login based on role
@@ -141,6 +142,7 @@ function App() {
           <Route path="/admin/scheduler"          element={<RequireAdmin><SchedulerGuide /></RequireAdmin>} />
           <Route path="/admin/outcomes"          element={<RequireAdmin><OutcomeTracking /></RequireAdmin>} />
           <Route path="/admin/performance"       element={<RequireAdmin><Performance /></RequireAdmin>} />
+          <Route path="/admin/retention"         element={<RequireAdmin><Retention /></RequireAdmin>} />
           <Route path="/admin/provider-comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
           <Route path="/admin/providers/binance" element={<RequireAdmin><BinanceOperations /></RequireAdmin>} />
           <Route path="/admin/providers/bybit" element={<RequireAdmin><BybitOperations /></RequireAdmin>} />
