@@ -8,15 +8,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-
-const SCANNER_DISABLE_CANDLE_PERSISTENCE = (Deno.env.get("HASHIBOT_DISABLE_CANDLE_PERSISTENCE") ?? "true").toLowerCase() !== "false";
-const SCANNER_DISABLE_INDICATOR_SNAPSHOTS = (Deno.env.get("HASHIBOT_DISABLE_INDICATOR_SNAPSHOTS") ?? "true").toLowerCase() !== "false";
-const SCANNER_COMPACT_LOGS = (Deno.env.get("HASHIBOT_COMPACT_SCANNER_LOGS") ?? "true").toLowerCase() !== "false";
-const COMPACT_PROVIDER_LOGS = (Deno.env.get("HASHIBOT_COMPACT_PROVIDER_LOGS") ?? "true").toLowerCase() !== "false";
-const COMPACT_TELEGRAM_LOGS = (Deno.env.get("HASHIBOT_COMPACT_TELEGRAM_LOGS") ?? "true").toLowerCase() !== "false";
-const COMPACT_EXECUTION_LOGS = (Deno.env.get("HASHIBOT_COMPACT_EXECUTION_LOGS") ?? "true").toLowerCase() !== "false";
-const COMPACT_RUNTIME_FLAGS = { COMPACT_PROVIDER_LOGS, COMPACT_TELEGRAM_LOGS, COMPACT_EXECUTION_LOGS };
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Candle {
@@ -3194,7 +3185,6 @@ async function runScanPipeline(
     if (dataSource === "PROVIDER_ERROR" && forexProviderRejectionKeys.has(key)) return;
     if (dataSource === "PROVIDER_ERROR") forexProviderRejectionKeys.add(key);
     rejectedCount++;
-    if (SCANNER_COMPACT_LOGS) return;
     await supabase.from("strategy_candidates").insert({
       scanner_run_id: runId, symbol, market_type: "forex", timeframe,
       strategy_name: "ForexProviderGate", direction: "none",
@@ -3365,26 +3355,22 @@ async function runScanPipeline(
         }
         candlesFetched += candles.length;
 
-        if (!SCANNER_DISABLE_CANDLE_PERSISTENCE) {
         await supabase.from("candles").upsert(candles.map((c) => ({
           symbol: c.symbol, market_type: c.market_type, timeframe: c.timeframe,
           open_time: c.open_time, open: c.open, high: c.high, low: c.low, close: c.close,
           volume: c.volume, source: c.source,
         })), { onConflict: "symbol,timeframe,open_time" });
 
-        }
         const ind = calculateIndicators(candles);
         const marketContext = classifyMarketContext(ind, candles);
         indicatorsCalc++;
         const lastCandle = candles[candles.length - 1];
-        if (!SCANNER_DISABLE_INDICATOR_SNAPSHOTS) {
         await supabase.from("indicator_snapshots").upsert({
           symbol: sym.symbol, market_type: sym.market_type, timeframe: tf, candle_time: lastCandle.open_time,
           ema20: ind.ema20, ema50: ind.ema50, atr14: ind.atr14, rsi14: ind.rsi14,
           recent_high: ind.recent_high, recent_low: ind.recent_low,
           volatility_state: ind.volatility_state, regime: ind.regime,
         }, { onConflict: "symbol,timeframe,candle_time" });
-        }
 
         const allEvals: Array<{ name: StrategyName; result: EvalResult; cfg: StrategyConfig }> = [];
         const timeframeAllowed = (cfg: StrategyConfig) => cfg.allowed_timeframes.length === 0 || cfg.allowed_timeframes.includes(tf);
@@ -4047,7 +4033,6 @@ Deno.serve(async (req: Request) => {
         supabase_url_set: Boolean(Deno.env.get("SUPABASE_URL")),
         supabase_service_role_key_set: Boolean(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),
         scanner_cron_secret_set: Boolean(Deno.env.get("SCANNER_CRON_SECRET")),
-        compact_runtime_flags: COMPACT_RUNTIME_FLAGS,
         forex_symbol_map_sample: signalEnableForexEnv ? { EURUSD: "EUR/USD", GBPUSD: "GBP/USD", USDJPY: "USD/JPY" } : null,
         forex_supported_timeframes: ["15m", "1h"],
         forex_requested_timeframes: forexTimeframePlan(),

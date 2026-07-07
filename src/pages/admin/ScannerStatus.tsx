@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { listScannerRunsCompact } from '../../lib/hashibotBackend';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminLiveState } from '../../hooks/useAdminLiveState';
 import { SchedulerProofDebug } from '../../components/admin/SchedulerProofDebug';
@@ -33,9 +33,9 @@ export default function ScannerStatus() {
     const seq = loadSeq.current + 1;
     loadSeq.current = seq;
     setLoading(true);
-    const data = await listScannerRunsCompact(50);
+    const { data } = await supabase.from('scanner_runs').select('*').order('started_at', { ascending: false }).limit(100);
     if (seq !== loadSeq.current) return;
-    setRuns(data as ScannerRunWithOutcome[]);
+    setRuns((data ?? []) as ScannerRunWithOutcome[]);
     setLoading(false);
   }, []);
 
