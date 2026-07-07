@@ -1,30 +1,24 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { getStrategyCandidatesCompact } from '../../lib/hashibotBackend';
+import { supabase } from '../../lib/supabase';
+import { StrategyCandidate } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge } from '../../components/ui/Badge';
 
 export default function Candidates() {
-  const [candidates, setCandidates] = useState<Record<string, unknown>[]>([]);
+  const [candidates, setCandidates] = useState<StrategyCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [marketFilter, setMarketFilter] = useState('all');
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const { data } = await getStrategyCandidatesCompact(100, 0);
-        let filtered = data;
-        if (filter !== 'all') filtered = filtered.filter(c => c.status === filter);
-        if (marketFilter !== 'all') filtered = filtered.filter(c => c.market_type === marketFilter);
-        setCandidates(filtered);
-      } catch {
-        setCandidates([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    const query = supabase
+      .from('strategy_candidates')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (filter !== 'all') query.eq('status', filter);
+    if (marketFilter !== 'all') query.eq('market_type', marketFilter);
+    query.then(({ data }) => { setCandidates(data ?? []); setLoading(false); });
   }, [filter, marketFilter]);
 
   const filters = ['all', 'candidate', 'approved', 'converted_to_signal', 'rejected'];
@@ -59,10 +53,6 @@ export default function Candidates() {
         <div className="flex items-center justify-center h-48">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : candidates.length === 0 ? (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-10 text-center text-sm text-zinc-500">
-          No candidates found for this filter. Run the scanner first.
-        </div>
       ) : (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
           <table className="w-full text-xs">
@@ -75,26 +65,33 @@ export default function Candidates() {
                 <th className="text-left px-4 py-3">Dir</th>
                 <th className="text-left px-4 py-3">Grade</th>
                 <th className="text-left px-4 py-3">Score</th>
+                <th className="text-left px-4 py-3">R/R</th>
                 <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3 hidden lg:table-cell">Reason</th>
+                <th className="text-left px-4 py-3 hidden lg:table-cell">Regime</th>
+                <th className="text-left px-4 py-3 hidden xl:table-cell">Reason</th>
               </tr>
             </thead>
             <tbody>
               {candidates.map(c => (
-                <tr key={String(c.id)} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                  <td className="px-4 py-3 font-mono font-semibold text-zinc-100">{String(c.symbol ?? '')}</td>
-                  <td className="px-4 py-3 text-zinc-500 uppercase">{String(c.market_type ?? '')}</td>
-                  <td className="px-4 py-3 text-zinc-500">{String(c.timeframe ?? '')}</td>
-                  <td className="px-4 py-3 text-zinc-400">{String(c.strategy_name ?? '')}</td>
-                  <td className="px-4 py-3">{directionBadge(String(c.direction ?? ''))}</td>
-                  <td className="px-4 py-3">{gradeBadge(String(c.grade ?? ''))}</td>
-                  <td className="px-4 py-3 text-zinc-300">{Number(c.confidence_score ?? 0)}%</td>
-                  <td className="px-4 py-3">{statusBadge(String(c.status ?? ''))}</td>
-                  <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell max-w-xs truncate">{String(c.rejection_reason ?? c.reason ?? '')}</td>
+                <tr key={c.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                  <td className="px-4 py-3 font-mono font-semibold text-zinc-100">{c.symbol}</td>
+                  <td className="px-4 py-3 text-zinc-500 uppercase">{c.market_type}</td>
+                  <td className="px-4 py-3 text-zinc-500">{c.timeframe}</td>
+                  <td className="px-4 py-3 text-zinc-400">{c.strategy_name}</td>
+                  <td className="px-4 py-3">{directionBadge(c.direction)}</td>
+                  <td className="px-4 py-3">{gradeBadge(c.grade)}</td>
+                  <td className="px-4 py-3 text-zinc-300">{c.confidence_score}%</td>
+                  <td className="px-4 py-3 text-zinc-300">{c.risk_reward}R</td>
+                  <td className="px-4 py-3">{statusBadge(c.status)}</td>
+                  <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell">{c.regime}</td>
+                  <td className="px-4 py-3 text-zinc-500 hidden xl:table-cell max-w-xs truncate">{c.reason || c.rejection_reason}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {candidates.length === 0 && (
+            <div className="px-5 py-10 text-center text-sm text-zinc-600">No candidates found for this filter. Run the scanner first.</div>
+          )}
         </div>
       )}
     </AdminLayout>

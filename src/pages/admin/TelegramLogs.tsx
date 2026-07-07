@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { getTelegramDeliveriesCompact } from '../../lib/hashibotBackend';
+import { supabase } from '../../lib/supabase';
+import { TelegramDelivery } from '../../lib/types';
 import { statusBadge, Badge } from '../../components/ui/Badge';
 
 function deliveryFamily(type: string) {
@@ -13,15 +14,16 @@ function deliveryFamily(type: string) {
 }
 
 export default function TelegramLogs() {
-  const [logs, setLogs] = useState<Record<string, unknown>[]>([]);
+  const [logs, setLogs] = useState<TelegramDelivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState('');
 
   useEffect(() => {
     async function load() {
       try {
-        const { data } = await getTelegramDeliveriesCompact(150, 0);
-        setLogs(data);
+        const { data, error } = await supabase.from('telegram_deliveries').select('*').order('created_at', { ascending: false }).limit(150);
+        if (error) setWarning(error.message);
+        setLogs(data ?? []);
       } catch (e) {
         setWarning(e instanceof Error ? e.message : 'Telegram logs failed to load');
       } finally {
@@ -31,8 +33,8 @@ export default function TelegramLogs() {
     load();
   }, []);
 
-  const initialCount = logs.filter(l => deliveryFamily(String(l.delivery_type ?? '')) === 'Initial signal').length;
-  const outcomeCount = logs.filter(l => deliveryFamily(String(l.delivery_type ?? '')) === 'Outcome update').length;
+  const initialCount = logs.filter(l => deliveryFamily(l.delivery_type) === 'Initial signal').length;
+  const outcomeCount = logs.filter(l => deliveryFamily(l.delivery_type) === 'Outcome update').length;
 
   return (
     <AdminLayout>
@@ -63,23 +65,26 @@ export default function TelegramLogs() {
                 <th className="text-left px-4 py-3">Signal/Event</th>
                 <th className="text-left px-4 py-3">Chat ID</th>
                 <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Retries</th>
+                <th className="text-left px-4 py-3">TG Message ID</th>
                 <th className="text-left px-4 py-3">Reason / Error</th>
               </tr>
             </thead>
             <tbody>
               {logs.map(l => {
-                const family = deliveryFamily(String(l.delivery_type ?? ''));
-                const status = String(l.delivery_status ?? l.status ?? '');
+                const family = deliveryFamily(l.delivery_type);
                 return (
-                  <tr key={String(l.id)} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                    <td className="px-4 py-3 text-zinc-400">{new Date(String(l.created_at)).toLocaleString()}</td>
+                  <tr key={l.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                    <td className="px-4 py-3 text-zinc-400">{new Date(l.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3"><Badge variant={family === 'Outcome update' ? 'green' : family === 'Initial signal' ? 'blue' : 'gray'}>{family}</Badge></td>
-                    <td className="px-4 py-3 text-zinc-400">{String(l.delivery_type ?? '')}</td>
-                    <td className="px-4 py-3 text-zinc-400 uppercase">{String(l.destination_channel ?? 'vip')}</td>
-                    <td className="px-4 py-3 font-mono text-zinc-500">{String(l.signal_id ?? '').slice(0, 8) || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-zinc-500">{String(l.chat_id ?? '')}</td>
-                    <td className="px-4 py-3">{statusBadge(status)}</td>
-                    <td className={status === 'failed' ? 'px-4 py-3 text-red-400' : status === 'skipped' ? 'px-4 py-3 text-yellow-400' : 'px-4 py-3 text-zinc-500'}>{String(l.error_message ?? '') || '—'}</td>
+                    <td className="px-4 py-3 text-zinc-400">{l.delivery_type}</td>
+                    <td className="px-4 py-3 text-zinc-400 uppercase">{l.destination_channel ?? 'vip'}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">{l.signal_id?.slice(0, 8) ?? l.event_id?.slice(0, 12) ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">{l.destination_chat_id ?? l.chat_id}</td>
+                    <td className="px-4 py-3">{statusBadge(l.delivery_status ?? l.status)}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">{l.retry_count ?? 0}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">{l.telegram_message_id || '—'}</td>
+                    <td className={(l.delivery_status ?? l.status) === 'failed' ? 'px-4 py-3 text-red-400' : (l.delivery_status ?? l.status) === 'skipped' ? 'px-4 py-3 text-yellow-400' : 'px-4 py-3 text-zinc-500'}>{l.error_message || '—'}</td>
                   </tr>
                 );
               })}
