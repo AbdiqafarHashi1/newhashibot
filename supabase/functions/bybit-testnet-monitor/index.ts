@@ -13,6 +13,86 @@ type SupabaseClient = ReturnType<typeof createClient>;
 type Json = Record<string, unknown>;
 const ACTIVE_STATUSES = ["pending", "failed", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection"];
 
+interface ProtectionViolation {
+  missing_sl: boolean;
+  missing_tp: boolean;
+  duplicate_position: boolean;
+  orphan_position: boolean;
+  stale_order: boolean;
+  illegal_state: boolean;
+  reason: string;
+}
+
+function detectProtectionViolations(
+  hasPosition: boolean,
+  hasOrders: boolean,
+  verifiedSl: boolean,
+  verifiedTp1: boolean,
+  verifiedTp2: boolean
+): ProtectionViolation {
+  const missing_sl = hasPosition && !verifiedSl;
+  const missing_tp = hasPosition && (!verifiedTp1 || !verifiedTp2);
+  const stale_order = !hasPosition && hasOrders;
+  const illegal_state = missing_sl || missing_tp || stale_order;
+
+  let reason = "Ok";
+  if (stale_order) reason = "stale_order";
+  else if (missing_sl) reason = "missing_sl";
+  else if (missing_tp) reason = "missing_tp";
+
+  return {
+    missing_sl,
+    missing_tp,
+    duplicate_position: false,
+    orphan_position: false,
+    stale_order,
+    illegal_state,
+    reason
+  };
+}
+
+function evaluateLifecycleState(
+  status: string,
+  protection_status: string,
+  violations: ProtectionViolation
+): string {
+  if (violations.illegal_state) {
+    return 'RECOVERY_REQUIRED';
+  }
+  const s = String(status).toUpperCase();
+  if (s.includes('CLOSED_TP2') || s.includes('TP2_FILLED') || s.includes('CLOSED_TP')) {
+    return 'CLOSED';
+  }
+  if (s.includes('CLOSED') || s.includes('EXITED') || s.includes('CANCEL')) {
+    return 'CLOSED';
+  }
+  if (s.includes('FAILED')) {
+    return 'FAILED';
+  }
+  if (s.includes('TP1')) {
+    return 'TP1';
+  }
+  if (s.includes('BREAKEVEN') || s.includes('BE_HIT')) {
+    return 'BREAKEVEN';
+  }
+  if (protection_status === 'protected' || protection_status === 'protected_native') {
+    return 'PROTECTED';
+  }
+  if (s.includes('FILLED')) {
+    return 'FILLED';
+  }
+  if (s.includes('SUBMITTED') || s.includes('ORDER')) {
+    return 'ORDER_SUBMITTED';
+  }
+  if (s.includes('SIZE')) {
+    return 'POSITION_SIZED';
+  }
+  if (s.includes('QUALIFIED')) {
+    return 'QUALIFIED';
+  }
+  return 'SIGNAL_CREATED';
+}
+
 function json(body: Json, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
@@ -243,7 +323,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       const update: Json = { last_monitor_run_id: runId, last_monitor_checked_at: now, latest_monitor_error: "", latest_sync_error: "", raw_exchange_response: raw, updated_at: now, position_size: qty || null, latest_unrealized_pnl: Number(position?.unrealisedPnl ?? 0), current_price: currentPrice };
 
       if (!hasPosition && !hasOrders) {
-        Object.assign(update, { status: "synced_closed", lifecycle_state: "synced_closed", protection_status: "closed", provider_status: "synced_no_open_exposure", expiry_status: row.expiry_status ?? "closed" });
+        Object.assign(update, { status: "synced_closed", lifecycle_state: "CLOSED", protection_status: "closed", provider_status: "synced_no_open_exposure", expiry_status: row.expiry_status ?? "closed" });
         stats.positions_closed = Number(stats.positions_closed) + 1;
         await supabase.from("execution_orders").update(update).eq("id", row.id);
         await sendLifecycleTelegram(supabase, row, "position_synced_closed", { ...update, side });
@@ -256,7 +336,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
         for (const o of symbolOrders) {
           try { await bybitPost<Json>("/v5/order/cancel", { category: "linear", symbol: row.symbol, orderId: orderId(o) }); cancelled++; } catch (e) { (stats.warnings as unknown[]).push({ symbol: row.symbol, warning: e instanceof Error ? e.message : String(e), action: "cancel_stale_bybit_order" }); }
         }
-        Object.assign(update, { status: "synced_closed", lifecycle_state: "synced_closed", protection_status: "closed", provider_status: "stale_orders_cleaned", cleanup_status: cancelled ? "stale_orders_cleaned" : "stale_order_cleanup_failed", recovery_status: cancelled ? "recovered" : "cleanup_failed" });
+        Object.assign(update, { status: "synced_closed", lifecycle_state: "CLOSED", protection_status: "closed", provider_status: "stale_orders_cleaned", cleanup_status: cancelled ? "stale_orders_cleaned" : "stale_order_cleanup_failed", recovery_status: cancelled ? "recovered" : "cleanup_failed" });
         stats.stale_orders_cleaned = Number(stats.stale_orders_cleaned) + cancelled;
         await supabase.from("execution_orders").update(update).eq("id", row.id);
         await sendLifecycleTelegram(supabase, row, "stale_orders_cleaned", { ...update, side });
@@ -274,7 +354,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
         try {
           await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: closeSide(position ?? {}, row), orderType: "Market", qty: String(qty), reduceOnly: true, closeOnTrigger: false, orderLinkId: `${baseLink}:expire` });
           for (const o of symbolOrders) await bybitPost<Json>("/v5/order/cancel", { category: "linear", symbol: row.symbol, orderId: orderId(o) }).catch(() => null);
-          Object.assign(update, { status: "expired_closed", lifecycle_state: "expired_closed", protection_status: "closed", expiry_status: "expired_closed", provider_status: "expired_position_closed", cleanup_status: "stale_orders_cleaned" });
+          Object.assign(update, { status: "expired_closed", lifecycle_state: "CLOSED", protection_status: "closed", expiry_status: "expired_closed", provider_status: "expired_position_closed", cleanup_status: "stale_orders_cleaned" });
           stats.positions_closed = Number(stats.positions_closed) + 1;
           await supabase.from("execution_orders").update(update).eq("id", row.id);
           await sendLifecycleTelegram(supabase, row, "expired_closed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice });
@@ -330,7 +410,10 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       const protectionStatus = strictErrors.length === 0 ? "protected_native" : verifiedSl || verifiedTp1 || verifiedTp2 ? "partially_protected" : missing.includes("sl") ? "missing_sl" : "protection_failed";
       stats.protections_missing = Number(stats.protections_missing) + (verifiedSl ? 0 : 1) + (verifiedTp1 ? 0 : 1) + (verifiedTp2 ? 0 : 1);
       if (strictErrors.length > 0) await recordSymbolFailure(supabase, row.symbol, "PROTECTION_VERIFICATION_FAILED", { execution_id: row.id, strictErrors });
-      Object.assign(update, { status: protectionStatus === "protected_native" ? "protected_native" : "protection_failed", lifecycle_state: protectionStatus === "protected_native" ? "PROTECTION_CONFIRMED" : "UNSAFE_POSITION", position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: protectionStatus === "protected_native" && row.protection_status !== "protected_native" ? "recovered" : row.recovery_status ?? "none", sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
+      const statusValue = protectionStatus === "protected_native" ? "protected_native" : "protection_failed";
+      const violations = detectProtectionViolations(hasPosition, hasOrders, verifiedSl, verifiedTp1, verifiedTp2);
+      const unifiedLifecycle = evaluateLifecycleState(statusValue, protectionStatus, violations);
+      Object.assign(update, { status: statusValue, lifecycle_state: unifiedLifecycle, position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: protectionStatus === "protected_native" && row.protection_status !== "protected_native" ? "recovered" : row.recovery_status ?? "none", sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
       await supabase.from("execution_orders").update(update).eq("id", row.id);
       // Write unified trade truth so the operator panel can read live protection state
       await supabase.rpc("upsert_trade_management_truth", {

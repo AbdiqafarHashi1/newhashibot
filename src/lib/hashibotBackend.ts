@@ -65,6 +65,32 @@ export async function listScannerRunsCompact(limit = 50) {
   return data ?? [];
 }
 
+export async function getScannerRuns(limit = 50) {
+  return listScannerRunsCompact(limit);
+}
+
+export async function getTelegramLogs(limit = 50) {
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const { data, error } = await supabase
+    .from('telegram_deliveries')
+    .select('id,signal_id,event_id,delivery_type,destination_channel,destination_chat_id,chat_id,delivery_status,status,retry_count,telegram_message_id,success,error_message,created_at')
+    .order('created_at', { ascending: false })
+    .limit(safeLimit);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function getAuditLogs(limit = 50) {
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('id,actor_user_id,action,entity_type,entity_id,metadata,telegram_sent,created_at')
+    .order('created_at', { ascending: false })
+    .limit(safeLimit);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function getPerformanceSummary() {
   return unwrapRpc<Record<string, unknown>>(await supabase.rpc('hashibot_performance_summary'));
 }
@@ -91,6 +117,18 @@ export async function getScannerCandidates(limit = 50) {
     .limit(safeLimit);
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+export async function getCandidates(limit = 50) {
+  return getScannerCandidates(limit);
+}
+
+export async function getRetentionStatus() {
+  return getRetentionReport();
+}
+
+export async function getStorageReport() {
+  return getRetentionReport();
 }
 
 export async function getRejectedSetups(limit = 50) {

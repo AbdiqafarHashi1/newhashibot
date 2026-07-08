@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { supabase } from '../../lib/supabase';
+import { getAuditLogs } from '../../lib/hashibotBackend';
 import { AuditLog } from '../../lib/types';
 
 export default function AuditLogs() {
@@ -8,8 +8,9 @@ export default function AuditLogs() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)
-      .then(({ data }) => { setLogs(data ?? []); setLoading(false); });
+    getAuditLogs(50)
+      .then((data) => { setLogs(data as AuditLog[]); setLoading(false); })
+      .catch((err) => { console.error(err); setLoading(false); });
   }, []);
 
   return (

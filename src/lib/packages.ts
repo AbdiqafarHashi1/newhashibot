@@ -1,4 +1,4 @@
-import { Package } from './types';
+import { Package } from './types.js';
 
 export type PackageCapability = 'free_preview' | 'crypto_signal_room' | 'crypto_personal_bot' | 'forex_mt5_personal_bot' | 'forex_mt5_prop_bot';
 

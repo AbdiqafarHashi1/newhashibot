@@ -12,8 +12,10 @@ export default function RejectedSetups() {
 
   useEffect(() => {
     setLoading(true);
-    let query = supabase.from('strategy_candidates').select('*').eq('status', 'rejected')
-      .order('created_at', { ascending: false }).limit(100);
+    let query = supabase.from('strategy_candidates')
+      .select('id,symbol,market_type,timeframe,strategy_name,direction,confidence_score,risk_reward,rejection_reason,score_breakdown,regime,created_at')
+      .eq('status', 'rejected')
+      .order('created_at', { ascending: false }).limit(50);
     if (marketFilter !== 'all') query = query.eq('market_type', marketFilter);
     if (strategyFilter !== 'all') query = query.eq('strategy_name', strategyFilter);
     query.then(({ data }) => { setItems(data ?? []); setLoading(false); });

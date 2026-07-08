@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useAdminLiveState } from '../../../hooks/useAdminLiveState';
 import { callEdgeFunction } from '../../../lib/edgeFunctionStatus';
 import { RUNTIME_PROOF_CONTRACT, runtimeTruth, statusClasses, RuntimeTruthStatus } from '../../../lib/operatorRuntime';
+import { runtimeTruth as runtimeTruthSingleton } from '../../../lib/exchange/runtimeTruth';
 import { ActionResult, OperatorActionResult } from '../../../components/admin/ActionResult';
 import { loadOperatorTruth as fetchOperatorTruth, RuntimeRow } from '../../../lib/operatorTruth';
 
@@ -849,17 +850,113 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     );
   }
 
+  function runtimeOperationsSection() {
+    const truth = runtimeTruthSingleton.getTruth();
+    const components = [
+      { name: 'Scanner', ...truth.scanner, icon: Radio },
+      { name: 'Execution', ...truth.execution, icon: PlayCircle },
+      { name: 'Protection', ...truth.protection, icon: Shield },
+      { name: 'Recovery', ...truth.recovery, icon: RefreshCw },
+      { name: 'Telegram', ...truth.telegram, icon: Bell },
+      { name: 'Providers', ...truth.providers, icon: Database },
+      { name: 'Cleanup', ...truth.cleanup, icon: Activity },
+      { name: 'Retention', ...truth.retention, icon: Clock },
+    ];
+
+    const getStatusBadge = (status: 'healthy' | 'warning' | 'critical') => {
+      if (status === 'healthy') return <span className="rounded px-2 py-0.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">HEALTHY</span>;
+      if (status === 'warning') return <span className="rounded px-2 py-0.5 text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">WARNING</span>;
+      return <span className="rounded px-2 py-0.5 text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">CRITICAL</span>;
+    };
+
+    return (
+      <Card title="Authoritative Unified Runtime Operations" icon={Activity}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {components.map((c) => {
+            const Icon = c.icon;
+            return (
+              <div key={c.name} className="rounded-xl border border-zinc-800 bg-zinc-950/20 p-4 hover:border-zinc-700 transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-zinc-900 p-2 text-zinc-400">
+                      <Icon size={16} />
+                    </div>
+                    <span className="font-bold text-zinc-100">{c.name}</span>
+                  </div>
+                  {getStatusBadge(c.status)}
+                </div>
+                <div className="mt-3 space-y-1 text-xs">
+                  <div className="flex justify-between text-zinc-500">
+                    <span>Last Update:</span>
+                    <span className="text-zinc-300 font-mono">{new Date(c.lastUpdate).toLocaleTimeString()}</span>
+                  </div>
+                  <div className="text-zinc-500">
+                    <span className="block mt-1">Actions Required:</span>
+                    <span className={`block font-medium ${c.actionsRequired === 'None' ? 'text-zinc-400' : 'text-yellow-300 font-semibold'}`}>{c.actionsRequired}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 border-t border-zinc-800/60 pt-5">
+          <h4 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2">
+            <Database size={14} className="text-blue-400" /> Multi-Provider Connectivity & Runtime Sync Truth
+          </h4>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            {Object.entries(truth.providers.list).map(([key, value]) => (
+              <div key={key} className="rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-zinc-200">{value.name}</span>
+                  <span className={`inline-block h-2 w-2 rounded-full ${value.status === 'connected' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-600'}`} />
+                </div>
+                <div className="mt-2 space-y-1 font-mono text-[10px] text-zinc-400">
+                  <div className="flex justify-between">
+                    <span>Latency:</span>
+                    <span className="text-zinc-300">{value.apiLatencyMs > 0 ? `${value.apiLatencyMs}ms` : '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Positions:</span>
+                    <span className="text-zinc-300">{value.openPositions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Orders:</span>
+                    <span className="text-zinc-300">{value.openOrders}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Recovery:</span>
+                    <span className={value.recoveryRequired ? 'text-red-400 font-bold' : 'text-zinc-500'}>{value.recoveryRequired ? 'REQUIRED' : 'NONE'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Protection:</span>
+                    <span className={value.protectionOk ? 'text-emerald-400' : 'text-yellow-400 font-bold'}>{value.protectionOk ? 'OK' : 'DEGRADED'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Version:</span>
+                    <span className="text-zinc-500">{value.runtimeVersion}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   function renderSection() {
-    if (section === 'signals') return <div className="space-y-4">{statusSection()}{signalSection()}{signalPerformanceSection()}{operatorActionHistorySection()}{runtimeEventsSection()}</div>;
-    if (section === 'executions') return <div className="space-y-4">{statusSection()}{exchangeSection()}{executionDetailSection()}{supervisorTimelineSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
-    if (section === 'trade-manager') return <div className="space-y-4">{statusSection()}{tradeSupervisorSection()}{supervisorTimelineSection()}{protectionDetailSection()}{manualActionsSection()}{operatorActionHistorySection()}{runtimeEventsSection()}</div>;
-    if (section === 'telegram') return <div className="space-y-4">{statusSection()}{telegramSection()}{telegramRouterDetailSection()}{telegramDeliveryDeepSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
-    if (section === 'settings') return <div className="space-y-4">{statusSection()}{controlsSection()}{schedulerVisibilitySection()}{schedulerSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
-    if (section === 'intelligence') return <div className="space-y-4">{statusSection()}{newsSection()}{newsBrainDeepSection()}{manualActionsSection()}{operatorActionHistorySection()}{runtimeEventsSection()}</div>;
-    if (section === 'runtime-proof') return <div className="space-y-4">{statusSection()}{runtimeProofSection()}{runtimeProofCenterSection()}{operatorActionHistorySection()}</div>;
+    if (section === 'signals') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{signalSection()}{signalPerformanceSection()}{operatorActionHistorySection()}{runtimeEventsSection()}</div>;
+    if (section === 'executions') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{exchangeSection()}{executionDetailSection()}{supervisorTimelineSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
+    if (section === 'trade-manager') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{tradeSupervisorSection()}{supervisorTimelineSection()}{protectionDetailSection()}{manualActionsSection()}{operatorActionHistorySection()}{runtimeEventsSection()}</div>;
+    if (section === 'telegram') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{telegramSection()}{telegramRouterDetailSection()}{telegramDeliveryDeepSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
+    if (section === 'settings') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{controlsSection()}{schedulerVisibilitySection()}{schedulerSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
+    if (section === 'intelligence') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{newsSection()}{newsBrainDeepSection()}{manualActionsSection()}{operatorActionHistorySection()}{runtimeEventsSection()}</div>;
+    if (section === 'runtime-proof') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{runtimeProofSection()}{runtimeProofCenterSection()}{operatorActionHistorySection()}</div>;
     return (
       <div className="space-y-4">
         {statusSection()}
+        {runtimeOperationsSection()}
         {runtimeProofCenterSection()}
         {criticalIssuesSection()}
         {tradeSupervisorSection()}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { supabase } from '../../lib/supabase';
+import { getTelegramLogs } from '../../lib/hashibotBackend';
 import { TelegramDelivery } from '../../lib/types';
 import { statusBadge, Badge } from '../../components/ui/Badge';
 
@@ -21,9 +21,8 @@ export default function TelegramLogs() {
   useEffect(() => {
     async function load() {
       try {
-        const { data, error } = await supabase.from('telegram_deliveries').select('*').order('created_at', { ascending: false }).limit(150);
-        if (error) setWarning(error.message);
-        setLogs(data ?? []);
+        const data = await getTelegramLogs(50);
+        setLogs(data as TelegramDelivery[]);
       } catch (e) {
         setWarning(e instanceof Error ? e.message : 'Telegram logs failed to load');
       } finally {

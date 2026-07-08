@@ -67,10 +67,19 @@ async function run() {
   assert.match([...calls].reverse().find((call) => call.url.includes('/v5/order/create'))?.body ?? '', /"reduceOnly":true/, 'Bybit protection orders are reduce-only');
 
   const mt5 = new ExchangeProviderMT5();
-  assert.equal((await mt5.placeEntry()).status, 'not_implemented', 'MT5 is stubbed only');
+  assert.equal(mt5.metadata.id, 'mt5', 'MT5 default ID is mt5');
+  assert.equal(mt5.metadata.environment, 'personal', 'MT5 environment is personal');
 
-  const okProvider = Object.assign(Object.create(Object.getPrototypeOf(mt5)), mt5, { metadata: { ...mt5.metadata, id: 'ok' }, async placeEntry(request: EntryRequest) { return { provider: 'ok', ok: true, providerOrderId: `${request.symbol}-ok` }; } }) as ExchangeProvider;
-  const failProvider = Object.assign(Object.create(Object.getPrototypeOf(mt5)), mt5, { metadata: { ...mt5.metadata, id: 'fail' }, async placeEntry() { throw new Error('provider down'); } }) as ExchangeProvider;
+  const mt5Personal = new ExchangeProviderMT5('mt5_personal');
+  assert.equal(mt5Personal.metadata.id, 'mt5_personal');
+  assert.equal(mt5Personal.metadata.environment, 'personal');
+
+  const mt5Prop = new ExchangeProviderMT5('mt5_prop');
+  assert.equal(mt5Prop.metadata.id, 'mt5_prop');
+  assert.equal(mt5Prop.metadata.environment, 'prop');
+
+  const okProvider = Object.assign(Object.create(Object.getPrototypeOf(mt5Personal)), mt5Personal, { metadata: { ...mt5Personal.metadata, id: 'ok' }, async placeEntry(request: EntryRequest) { return { provider: 'ok', ok: true, providerOrderId: `${request.symbol}-ok` }; } }) as ExchangeProvider;
+  const failProvider = Object.assign(Object.create(Object.getPrototypeOf(mt5Personal)), mt5Personal, { metadata: { ...mt5Personal.metadata, id: 'fail' }, async placeEntry() { throw new Error('provider down'); } }) as ExchangeProvider;
   const routed = await executeSignalAcrossProviders({ signalId: 'sig-2', symbol: 'BTCUSDT', side: 'long', quantity: 1, stopLoss: 90, tp1: 110, tp2: 120 }, [{ provider: okProvider, enabled: true, primary: true }, { provider: failProvider, enabled: true }], { mode: 'parallel', executionGroupId: 'group-1' });
   assert.equal(routed.executionGroupId, 'group-1');
   assert.equal(routed.results.length, 2);

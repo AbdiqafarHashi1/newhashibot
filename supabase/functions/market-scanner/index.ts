@@ -2064,7 +2064,27 @@ function scannerCsvSet(value: unknown): Set<string> {
 }
 
 async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null }> {
-  const maxSymbols = Math.max(10, Math.min(Number(config.max_symbols_per_scan ?? Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? 80), 250));
+  // Enforce production default max symbol count.
+  // Default max_symbols_per_scan must be 15. Do not fall back to 80.
+  // If scanner_config.max_symbols_per_scan is missing/null/invalid, use 15.
+  // Allow override through DB config or env only if explicit and bounded.
+  // Hard safety cap should prevent accidental >20 symbols unless explicitly allowed by an admin setting (config.max_symbols_per_scan).
+  const envMaxRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN");
+  const envMax = envMaxRaw ? Number(envMaxRaw) : null;
+  const configMax = (config.max_symbols_per_scan !== undefined && config.max_symbols_per_scan !== null) ? Number(config.max_symbols_per_scan) : null;
+
+  let chosenMax = 15;
+  if (configMax !== null && !isNaN(configMax)) {
+    chosenMax = configMax;
+  } else if (envMax !== null && !isNaN(envMax)) {
+    chosenMax = envMax;
+  }
+
+  const isExplicitAdminConfig = configMax !== null && !isNaN(configMax);
+  const maxSymbols = isExplicitAdminConfig
+    ? Math.max(5, Math.min(chosenMax, 250))
+    : Math.max(5, Math.min(chosenMax, 20));
+
   const minVolume = Math.max(0, Number(config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000));
   const include = scannerCsvSet(config.include_symbols);
   const exclude = scannerCsvSet(config.exclude_symbols);
@@ -3226,15 +3246,58 @@ async function runScanPipeline(
     return result;
   }
 
+  // Attempt to load from hashibot_symbol_universes if it exists and has rows
+  let hashibotUniverseSymbols: any[] = [];
+  try {
+    const { data: huData, error: huError } = await supabase
+      .from("hashibot_symbol_universes")
+      .select("symbol, market_type")
+      .eq("enabled", true)
+      .eq("scan_enabled", true);
+    if (!huError && huData && huData.length > 0) {
+      hashibotUniverseSymbols = huData;
+    }
+  } catch (_err) {
+    // Gracefully ignore if table doesn't exist
+  }
+
   const { data: configuredSymbols } = await supabase.from("symbols").select("*").eq("is_active", true);
+
+  // Recommended crypto_core list by default
+  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "LINKUSDT", "TRXUSDT", "DOTUSDT", "LTCUSDT", "BCHUSDT", "NEARUSDT", "OPUSDT"];
+
   const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null };
   if (dynamicUniverse.warning) errors.push(`[WARN] ${dynamicUniverse.warning}`);
-  const configuredForex = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "forex");
-  const configuredCryptoFallback = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "crypto");
+
+  let configuredForex = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "forex");
+  let configuredCryptoFallback = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "crypto");
+
+  // If hashibot_symbol_universes had scan-enabled symbols, let's prioritize/filter by them!
+  if (hashibotUniverseSymbols.length > 0) {
+    const scanSymbolsMap = new Set(hashibotUniverseSymbols.map(s => String(s.symbol).toUpperCase()));
+    configuredCryptoFallback = configuredCryptoFallback.filter(row => scanSymbolsMap.has(String(row.symbol).toUpperCase()));
+    configuredForex = configuredForex.filter(row => scanSymbolsMap.has(String(row.symbol).toUpperCase()));
+  } else {
+    // Default crypto_core filter by default to prevent scanning 80 symbols!
+    const fallbackFiltered = configuredCryptoFallback.filter(row => cryptoCoreList.includes(String(row.symbol).toUpperCase()));
+    configuredCryptoFallback = fallbackFiltered.length > 0 ? fallbackFiltered : configuredCryptoFallback.slice(0, 15);
+  }
+
   const executionUniverse = await loadExecutionUniverse(supabase);
   if (executionUniverse.warning) errors.push(`[WARN] ${executionUniverse.warning}`);
+
+  // Enforce default max symbols cap also on final scanned list
+  const maxSymbolsCap = (config.max_symbols_per_scan !== undefined && config.max_symbols_per_scan !== null)
+    ? Math.max(5, Math.min(Number(config.max_symbols_per_scan), 250))
+    : 15;
+
+  let cryptoToScan = dynamicUniverse.symbols.length > 0 ? dynamicUniverse.symbols : configuredCryptoFallback;
+  if (cryptoToScan.length > maxSymbolsCap) {
+    cryptoToScan = cryptoToScan.slice(0, maxSymbolsCap);
+  }
+
   const symbols = [
-    ...(dynamicUniverse.symbols.length > 0 ? dynamicUniverse.symbols : configuredCryptoFallback),
+    ...cryptoToScan,
     ...configuredForex,
   ];
   if (!symbols || symbols.length === 0) {
@@ -3937,6 +4000,18 @@ async function runScanPipeline(
 
   for (const stats of Object.values(strategyEvaluationSummary)) {
     stats.arbitration_win_pct = stats.arbitration_entered > 0 ? Number(((stats.arbitration_won / stats.arbitration_entered) * 100).toFixed(2)) : 0;
+  }
+
+  // Compact logs cleanup: Delete rejected or non-converted candidates if HASHIBOT_COMPACT_SCANNER_LOGS is true
+  if (SCANNER_COMPACT_LOGS) {
+    try {
+      await supabase.from("strategy_candidates")
+        .delete()
+        .eq("scanner_run_id", runId)
+        .neq("status", "converted_to_signal");
+    } catch (e) {
+      errors.push(`[WARN] Compact candidate cleanup failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   const durationMs = Date.now() - scanStart;

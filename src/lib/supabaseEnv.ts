@@ -2,6 +2,13 @@ export const LOGIN_DEBUG_BUILD_MARKER = 'final-correct-cyyewawfc-env-reset-v1';
 export const EXPECTED_SUPABASE_PROJECT_REF = 'uqiwbzfcntlcyyewawfc';
 export const EXPECTED_SUPABASE_ORIGIN = `https://${EXPECTED_SUPABASE_PROJECT_REF}.supabase.co`;
 
+export function getViteEnv(name: string): string | null {
+  if (typeof import.meta !== 'undefined' && import.meta && import.meta.env) {
+    return import.meta.env[name] || null;
+  }
+  return null;
+}
+
 export type FrontendSupabaseUrlSource =
   | 'VITE_HASHIBOT_SUPABASE_URL'
   | 'VITE_PUBLIC_SUPABASE_URL'
@@ -215,11 +222,11 @@ function getWrongProjectWarning(source: string, projectRef: string | null): stri
 
 function selectBrowserKey(): SelectedBrowserKey {
   const orderedKeys: Array<[FrontendSupabaseKeySource, string | null]> = [
-    ['VITE_HASHIBOT_SUPABASE_ANON_KEY', nonEmpty(import.meta.env.VITE_HASHIBOT_SUPABASE_ANON_KEY)],
-    ['VITE_SUPABASE_ANON_KEY', nonEmpty(import.meta.env.VITE_SUPABASE_ANON_KEY)],
-    ['VITE_PUBLIC_SUPABASE_ANON_KEY', nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY)],
-    ['VITE_SUPABASE_PUBLISHABLE_KEY', nonEmpty(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)],
-    ['VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY', nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY)],
+    ['VITE_HASHIBOT_SUPABASE_ANON_KEY', nonEmpty(getViteEnv('VITE_HASHIBOT_SUPABASE_ANON_KEY'))],
+    ['VITE_SUPABASE_ANON_KEY', nonEmpty(getViteEnv('VITE_SUPABASE_ANON_KEY'))],
+    ['VITE_PUBLIC_SUPABASE_ANON_KEY', nonEmpty(getViteEnv('VITE_PUBLIC_SUPABASE_ANON_KEY'))],
+    ['VITE_SUPABASE_PUBLISHABLE_KEY', nonEmpty(getViteEnv('VITE_SUPABASE_PUBLISHABLE_KEY'))],
+    ['VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY', nonEmpty(getViteEnv('VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY'))],
   ];
 
   for (const [source, key] of orderedKeys) {
@@ -261,9 +268,9 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
   // Browser/Vite code intentionally reads only browser-safe VITE_* public values.
   // URL priority: VITE_HASHIBOT_SUPABASE_URL, VITE_PUBLIC_SUPABASE_URL, matching
   // VITE_SUPABASE_URL, then the known safe public fallback for the expected project.
-  const hashibotSupabaseUrl = nonEmpty(import.meta.env.VITE_HASHIBOT_SUPABASE_URL);
-  const publicSupabaseUrl = nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_URL);
-  const viteSupabaseUrl = nonEmpty(import.meta.env.VITE_SUPABASE_URL);
+  const hashibotSupabaseUrl = nonEmpty(getViteEnv('VITE_HASHIBOT_SUPABASE_URL'));
+  const publicSupabaseUrl = nonEmpty(getViteEnv('VITE_PUBLIC_SUPABASE_URL'));
+  const viteSupabaseUrl = nonEmpty(getViteEnv('VITE_SUPABASE_URL'));
   const hashibotParsed = parseSupabaseUrl(hashibotSupabaseUrl);
   const publicParsed = parseSupabaseUrl(publicSupabaseUrl);
   const viteParsed = parseSupabaseUrl(viteSupabaseUrl);
@@ -364,11 +371,11 @@ export function getFrontendSupabaseConfig(): FrontendSupabaseConfig {
     viteSupabaseUrlProjectRef: viteParsed.projectRef,
     staleViteSupabaseUrlIgnored: viteWrongProject,
     fallbackSupabaseUrlUsed: selectedUrlSource === 'safe_public_fallback',
-    rawHashibotSupabaseAnonKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_HASHIBOT_SUPABASE_ANON_KEY)),
-    rawSupabaseAnonKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_SUPABASE_ANON_KEY)),
-    rawPublicSupabaseAnonKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY)),
-    rawSupabasePublishableKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)),
-    rawPublicSupabasePublishableKeyPresent: Boolean(nonEmpty(import.meta.env.VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY)),
+    rawHashibotSupabaseAnonKeyPresent: Boolean(nonEmpty(getViteEnv('VITE_HASHIBOT_SUPABASE_ANON_KEY'))),
+    rawSupabaseAnonKeyPresent: Boolean(nonEmpty(getViteEnv('VITE_SUPABASE_ANON_KEY'))),
+    rawPublicSupabaseAnonKeyPresent: Boolean(nonEmpty(getViteEnv('VITE_PUBLIC_SUPABASE_ANON_KEY'))),
+    rawSupabasePublishableKeyPresent: Boolean(nonEmpty(getViteEnv('VITE_SUPABASE_PUBLISHABLE_KEY'))),
+    rawPublicSupabasePublishableKeyPresent: Boolean(nonEmpty(getViteEnv('VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY'))),
     browserOrigin: getBrowserOrigin(),
 
     selectedFrontendEnvSource: selectedUrlSource,

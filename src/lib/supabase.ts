@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { EXPECTED_SUPABASE_ORIGIN, getSupabaseClientConfig, logSupabaseEnvProof } from './supabaseEnv';
+import { EXPECTED_SUPABASE_ORIGIN, getSupabaseClientConfig, logSupabaseEnvProof } from './supabaseEnv.js';
 
 export const supabaseClientConfig = getSupabaseClientConfig();
 export const isSupabaseClientEnabled = supabaseClientConfig.hasValidConfig;

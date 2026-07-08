@@ -1,0 +1,8 @@
+{
+  "name": "HashiBot",
+  "description": "Trading Signal Intelligence platform for monitoring and executing trading signals across different exchanges and strategies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

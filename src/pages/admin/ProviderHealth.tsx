@@ -173,8 +173,8 @@ export default function ProviderHealth() {
     setLoadWarning('');
     try {
       const [p, s, cfgRes] = await Promise.all([
-        supabase.from('provider_status').select('*'),
-        supabase.from('symbols').select('*').order('market_type').order('symbol'),
+        supabase.from('provider_status').select('id,provider_name,market_type,status,last_success_at,last_error_at,error_message,data_source_label'),
+        supabase.from('symbols').select('id,symbol,display_name,market_type,is_active').order('market_type').order('symbol'),
         supabase.from('scanner_config').select('auto_send_telegram,schedule_enabled,cron_job_active').eq('id', 1).maybeSingle(),
       ]);
       if (p.error || s.error || cfgRes.error) {

@@ -8,6 +8,7 @@ export interface TradeManagementTruthRow {
   environment: 'testnet' | 'demo' | string;
   symbol: string;
   side: ExchangeSide | string;
+  status: string;
   qty: number;
   entry_price: number | null;
   mark_price: number | null;
@@ -95,6 +96,7 @@ export function tradeRowFromExchange(provider: ExchangeProvider, position: Excha
     environment: provider.metadata.environment,
     symbol: position.symbol,
     side: position.side,
+    status: 'entry_filled',
     qty: Math.abs(Number(position.quantity ?? 0)),
     entry_price: position.entryPrice ?? null,
     mark_price: position.markPrice ?? null,
@@ -167,4 +169,274 @@ export async function applyProfitLock(provider: ExchangeProvider, store: TradeTr
     await store.upsertTradeTruth({ ...row, profit_lock_status: result.ok ? 'locked' : 'failed', latest_error: result.ok ? null : failures[failures.length - 1], latest_sync_at: new Date().toISOString(), last_action_taken: 'applyProfitLock' });
   }
   return { provider: provider.metadata.id, checked: rows.length, locked, failures };
+}
+
+export type SharedLifecycleState =
+  | 'SIGNAL_CREATED'
+  | 'QUALIFIED'
+  | 'POSITION_SIZED'
+  | 'ORDER_SUBMITTED'
+  | 'FILLED'
+  | 'PROTECTED'
+  | 'TP1'
+  | 'BREAKEVEN'
+  | 'TP2'
+  | 'CLOSED'
+  | 'ARCHIVED'
+  | 'FAILED'
+  | 'RECOVERY_REQUIRED';
+
+export interface ProtectionViolation {
+  missing_sl: boolean;
+  missing_tp: boolean;
+  duplicate_position: boolean;
+  orphan_position: boolean;
+  stale_order: boolean;
+  illegal_state: boolean;
+  reason: string;
+}
+
+export function detectProtectionViolations(
+  position: ExchangePosition | null,
+  orders: ExchangeOrder[],
+  dbRows: TradeManagementTruthRow[]
+): ProtectionViolation {
+  const symbol = position?.symbol ?? (orders[0]?.symbol || '');
+  const hasPosition = position && Math.abs(Number(position.quantity ?? 0)) > 0;
+  const hasOrders = orders.length > 0;
+
+  const activeDbRow = dbRows.find(
+    row =>
+      row.symbol === symbol &&
+      row.protection_status !== 'closed' &&
+      row.status !== 'closed'
+  );
+  const orphan_position = hasPosition && !activeDbRow;
+
+  const activeSymbolRows = dbRows.filter(
+    row =>
+      row.symbol === symbol &&
+      row.protection_status !== 'closed' &&
+      row.status !== 'closed'
+  );
+  const duplicate_position = activeSymbolRows.length > 1;
+
+  const stale_order = !hasPosition && hasOrders;
+
+  let missing_sl = false;
+  let missing_tp = false;
+  if (hasPosition) {
+    const classification = classifyProtection(position, orders);
+    missing_sl = !classification.sl_present;
+    missing_tp = !classification.tp1_present || !classification.tp2_present;
+  }
+
+  const illegal_state =
+    missing_sl ||
+    missing_tp ||
+    orphan_position ||
+    duplicate_position ||
+    stale_order;
+
+  let reason = 'Ok';
+  if (duplicate_position) reason = 'duplicate_position';
+  else if (orphan_position) reason = 'orphan_position';
+  else if (stale_order) reason = 'stale_order';
+  else if (missing_sl) reason = 'missing_sl';
+  else if (missing_tp) reason = 'missing_tp';
+
+  return {
+    missing_sl,
+    missing_tp,
+    duplicate_position,
+    orphan_position,
+    stale_order,
+    illegal_state,
+    reason,
+  };
+}
+
+export function evaluateLifecycleState(
+  status: string,
+  protection_status: string,
+  violations: ProtectionViolation
+): SharedLifecycleState {
+  if (violations.illegal_state) {
+    return 'RECOVERY_REQUIRED';
+  }
+  const s = String(status).toUpperCase();
+  if (s.includes('CLOSED_TP2') || s.includes('TP2_FILLED') || s.includes('CLOSED_TP')) {
+    return 'CLOSED';
+  }
+  if (s.includes('CLOSED') || s.includes('EXITED') || s.includes('CANCEL')) {
+    return 'CLOSED';
+  }
+  if (s.includes('FAILED')) {
+    return 'FAILED';
+  }
+  if (s.includes('TP1')) {
+    return 'TP1';
+  }
+  if (s.includes('BREAKEVEN') || s.includes('BE_HIT')) {
+    return 'BREAKEVEN';
+  }
+  if (protection_status === 'protected') {
+    return 'PROTECTED';
+  }
+  if (s.includes('FILLED')) {
+    return 'FILLED';
+  }
+  if (s.includes('SUBMITTED') || s.includes('ORDER')) {
+    return 'ORDER_SUBMITTED';
+  }
+  if (s.includes('SIZE')) {
+    return 'POSITION_SIZED';
+  }
+  if (s.includes('QUALIFIED')) {
+    return 'QUALIFIED';
+  }
+  return 'SIGNAL_CREATED';
+}
+
+export class RecoveryEngine {
+  static async recoverPosition(
+    provider: ExchangeProvider,
+    store: TradeTruthStore,
+    row: TradeManagementTruthRow,
+    violation: ProtectionViolation
+  ): Promise<{ success: boolean; action_taken: string; error?: string }> {
+    const symbol = row.symbol;
+    if (violation.stale_order) {
+      try {
+        const orders = await provider.fetchOpenOrders(symbol);
+        for (const order of orders) {
+          await provider.cancelOrder({ symbol, providerOrderId: order.providerOrderId });
+        }
+        await store.upsertTradeTruth({
+          ...row,
+          protection_status: 'closed',
+          status: 'closed',
+          last_action_taken: 'recovery:cancelled_stale_orders',
+          latest_sync_at: new Date().toISOString()
+        });
+        return { success: true, action_taken: 'cancelled_stale_orders' };
+      } catch (err) {
+        return { success: false, action_taken: 'cancel_stale_orders_failed', error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+
+    if (violation.missing_sl || violation.missing_tp) {
+      try {
+        const results = await repairUnprotectedPositions(provider, store);
+        const success = results.repair_successes > 0;
+        return {
+          success,
+          action_taken: 'recreated_protection',
+          error: success ? undefined : results.failures.join(', ')
+        };
+      } catch (err) {
+        return { success: false, action_taken: 'recreate_protection_failed', error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+
+    await store.upsertTradeTruth({
+      ...row,
+      status: 'RECOVERY_REQUIRED',
+      recovery_status: 'repair_failed',
+      latest_error: `Unsafe violation: ${violation.reason}`,
+      last_action_taken: 'recovery:manual_intervention_required',
+      latest_sync_at: new Date().toISOString()
+    });
+    return { success: false, action_taken: 'manual_intervention_required' };
+  }
+}
+
+export interface CapitalMetrics {
+  provider: string;
+  environment: string;
+  balance: number;
+  equity: number;
+  available_margin: number;
+  used_margin: number;
+  drawdown: number;
+  peak_equity: number;
+  realized_pnl: number;
+  unrealized_pnl: number;
+  win_rate: number;
+  profit_factor: number;
+  consecutive_losses: number;
+}
+
+export class CapitalManager {
+  static calculateMetrics(
+    walletBalance: number,
+    availableMargin: number,
+    usedMargin: number,
+    trades: TradeManagementTruthRow[],
+    peakEquityStored = walletBalance
+  ): CapitalMetrics {
+    let unrealized_pnl = 0;
+    for (const t of trades) {
+      if (t.protection_status !== 'closed' && t.status !== 'closed') {
+        unrealized_pnl += Number(t.unrealized_pnl ?? 0);
+      }
+    }
+
+    const equity = walletBalance + unrealized_pnl;
+    const peak_equity = Math.max(peakEquityStored, equity);
+    const drawdown = peak_equity > 0 ? (peak_equity - equity) / peak_equity : 0;
+
+    const closedTrades = trades.filter(
+      t => t.protection_status === 'closed' || t.status === 'closed'
+    );
+
+    let realized_pnl = 0;
+    let wins = 0;
+    let grossProfit = 0;
+    let grossLoss = 0;
+
+    const sortedClosed = [...closedTrades].sort(
+      (a, b) => new Date(a.latest_sync_at).getTime() - new Date(b.latest_sync_at).getTime()
+    );
+
+    let consecutive_losses = 0;
+    let currentLossStreak = 0;
+
+    for (const t of sortedClosed) {
+      const pnl = Number(t.unrealized_pnl ?? 0);
+      realized_pnl += pnl;
+
+      if (pnl > 0) {
+        wins++;
+        grossProfit += pnl;
+        currentLossStreak = 0;
+      } else if (pnl < 0) {
+        grossLoss += Math.abs(pnl);
+        currentLossStreak++;
+        if (currentLossStreak > consecutive_losses) {
+          consecutive_losses = currentLossStreak;
+        }
+      }
+    }
+
+    const totalClosed = closedTrades.length;
+    const win_rate = totalClosed > 0 ? wins / totalClosed : 0;
+    const profit_factor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 999 : 0;
+
+    return {
+      provider: trades[0]?.provider ?? 'unknown',
+      environment: trades[0]?.environment ?? 'testnet',
+      balance: walletBalance,
+      equity,
+      available_margin: availableMargin,
+      used_margin: usedMargin,
+      drawdown,
+      peak_equity,
+      realized_pnl,
+      unrealized_pnl,
+      win_rate,
+      profit_factor,
+      consecutive_losses
+    };
+  }
 }

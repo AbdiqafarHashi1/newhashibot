@@ -1,3 +1,6 @@
+import { detectProtectionViolations, evaluateLifecycleState } from './exchange/tradeManagementCore.js';
+import type { ProtectionStatus, TradeManagementTruthRow } from './exchange/tradeManagementCore.js';
+
 export const MONITOR_ACTIVE_STATUSES = [
   'pending',
   'entry_submitted',
@@ -367,6 +370,74 @@ export function classifyExecutionLifecycleOutcome(row: Pick<MonitorExecutionRow,
 }
 
 export function processExecutionMonitorTick(
+  row: MonitorExecutionRow,
+  truth: BinanceTruthSnapshot,
+  orderById: Record<string, BinanceOrderSnapshot | undefined> = {},
+): MonitorUpdate {
+  const out = _processExecutionMonitorTick(row, truth, orderById);
+
+  // Unify with Phase 2 shared execution core
+  const positionObj = Math.abs(truth.positionAmt) > 0 ? {
+    symbol: row.symbol,
+    side: row.direction === 'buy' ? 'long' as const : 'short' as const,
+    quantity: Math.abs(truth.positionAmt),
+    entryPrice: (out.updates.entry_price as number) ?? row.entry_price ?? undefined,
+    markPrice: truth.markPrice ?? undefined,
+    unrealizedPnl: truth.unrealizedPnl ?? undefined
+  } : null;
+
+  const ordersObj = (truth.openOrders ?? []).map(o => ({
+    providerOrderId: String(o.orderId ?? o.algoId ?? ''),
+    symbol: row.symbol,
+    side: o.side,
+    type: o.type ?? o.orderType,
+    status: o.status ?? 'NEW',
+    quantity: typeof o.origQty === 'number' ? o.origQty : typeof o.quantity === 'number' ? o.quantity : undefined,
+    price: typeof o.price === 'number' ? o.price : undefined,
+    triggerPrice: typeof o.triggerPrice === 'number' ? o.triggerPrice : typeof o.stopPrice === 'number' ? o.stopPrice : undefined,
+    reduceOnly: o.reduceOnly
+  }));
+
+  const mockDbRow: TradeManagementTruthRow = {
+    provider: 'binance',
+    environment: 'testnet',
+    symbol: row.symbol,
+    side: row.direction === 'buy' ? 'long' : 'short',
+    status: (out.updates.status as string) ?? row.status,
+    qty: Math.abs(truth.positionAmt) || row.volume || 0,
+    entry_price: (out.updates.entry_price as number) ?? row.entry_price ?? null,
+    mark_price: truth.markPrice ?? null,
+    unrealized_pnl: truth.unrealizedPnl ?? null,
+    exchange_position_id: null,
+    signal_id: null,
+    execution_order_id: row.id,
+    entry_order_id: row.binance_entry_order_id ?? row.entry_order_id ?? null,
+    sl_order_id: (out.updates.replacement_sl_order_id as string) ?? row.replacement_sl_order_id ?? row.binance_sl_order_id ?? null,
+    tp1_order_id: row.binance_tp1_order_id ?? null,
+    tp2_order_id: row.binance_tp2_order_id ?? null,
+    sl_present: !(out.updates.protection_status === 'pending_protection' || out.updates.status === 'protection_failed' || out.updates.status === 'entry_submitted'),
+    tp1_present: !(out.updates.protection_status === 'pending_protection' || out.updates.status === 'protection_failed' || out.updates.status === 'entry_submitted'),
+    tp2_present: !(out.updates.protection_status === 'pending_protection' || out.updates.status === 'protection_failed' || out.updates.status === 'entry_submitted'),
+    protection_status: ((out.updates.protection_status ?? row.protection_status ?? 'unprotected') as ProtectionStatus),
+    profit_lock_status: (out.updates.profit_lock_status as string) ?? row.profit_lock_status ?? 'inactive',
+    monitor_status: 'synced',
+    recovery_status: 'none',
+    latest_error: null,
+    latest_sync_at: new Date().toISOString(),
+    last_action_taken: null
+  };
+
+  const violations = detectProtectionViolations(positionObj, ordersObj, [mockDbRow]);
+  out.updates.lifecycle_state = evaluateLifecycleState(
+    (out.updates.status as string) ?? row.status,
+    (out.updates.protection_status as string) ?? row.protection_status ?? 'unprotected',
+    violations
+  );
+
+  return out;
+}
+
+function _processExecutionMonitorTick(
   row: MonitorExecutionRow,
   truth: BinanceTruthSnapshot,
   orderById: Record<string, BinanceOrderSnapshot | undefined>,
