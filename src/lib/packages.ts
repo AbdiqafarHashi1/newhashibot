@@ -89,13 +89,23 @@ export function isKnownPackageSlug(slug?: string | null): slug is PackageCapabil
 }
 
 export function signalModeIncluded(slugOrName?: string | null) {
+  if (!slugOrName) return false;
   const slug = slugFromPackageValue(slugOrName);
-  return Boolean(slug && SIGNAL_INCLUDED_SLUGS.has(slug));
+  if (!slug) {
+    const lower = slugOrName.toLowerCase();
+    return !lower.includes('free') && !lower.includes('preview');
+  }
+  return Boolean(SIGNAL_INCLUDED_SLUGS.has(slug));
 }
 
 export function isBotPackage(slugOrName?: string | null) {
+  if (!slugOrName) return false;
   const slug = slugFromPackageValue(slugOrName);
-  return Boolean(slug && BOT_PACKAGE_SLUGS.has(slug));
+  if (!slug) {
+    const lower = slugOrName.toLowerCase();
+    return lower.includes('bot');
+  }
+  return Boolean(BOT_PACKAGE_SLUGS.has(slug));
 }
 
 export function slugFromPackageValue(value?: string | null): PackageCapability | null {

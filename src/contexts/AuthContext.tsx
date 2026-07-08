@@ -70,9 +70,9 @@ async function fetchOrCreateProfile(user: User): Promise<{ profile: Profile | nu
     return { profile: null, error: supabaseConfigErrorMessage ?? 'Supabase frontend config invalid' };
   }
 
-  const fetchPromise = supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  const fetchPromise = supabase.from('profiles').select('id, email, full_name, role, created_at').eq('id', user.id).maybeSingle();
   const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Profile fetch timed out')), 10000)
+    setTimeout(() => reject(new Error('Profile fetch timed out')), 5000)
   );
 
   let data: Profile | null = null;
@@ -86,18 +86,57 @@ async function fetchOrCreateProfile(user: User): Promise<{ profile: Profile | nu
     errMsg = (e as Error).message;
   }
 
-  if (errMsg) return { profile: null, error: errMsg };
+  if (errMsg) {
+    console.warn('Failed to load profile, using fallback:', errMsg);
+    return {
+      profile: {
+        id: user.id,
+        email: user.email ?? '',
+        full_name: (user.user_metadata?.full_name as string) ?? '',
+        role: 'user',
+        created_at: new Date().toISOString()
+      },
+      error: null
+    };
+  }
+
   if (data) return { profile: data, error: null };
 
   // Profile missing — trigger may have failed. Insert fallback.
-  const { data: inserted, error: insertErr } = await supabase
-    .from('profiles')
-    .insert({ id: user.id, email: user.email ?? '', full_name: (user.user_metadata?.full_name as string) ?? '', role: 'user' })
-    .select('*')
-    .maybeSingle();
+  try {
+    const { data: inserted, error: insertErr } = await supabase
+      .from('profiles')
+      .insert({ id: user.id, email: user.email ?? '', full_name: (user.user_metadata?.full_name as string) ?? '', role: 'user' })
+      .select('id, email, full_name, role, created_at')
+      .maybeSingle();
 
-  if (insertErr) return { profile: null, error: insertErr.message };
-  return { profile: inserted as Profile | null, error: null };
+    if (insertErr) {
+      console.warn('Failed to insert fallback profile, using local state:', insertErr.message);
+      return {
+        profile: {
+          id: user.id,
+          email: user.email ?? '',
+          full_name: (user.user_metadata?.full_name as string) ?? '',
+          role: 'user',
+          created_at: new Date().toISOString()
+        },
+        error: null
+      };
+    }
+    return { profile: inserted as Profile | null, error: null };
+  } catch (err) {
+    console.warn('Failed to handle missing profile, using memory fallback:', err);
+    return {
+      profile: {
+        id: user.id,
+        email: user.email ?? '',
+        full_name: (user.user_metadata?.full_name as string) ?? '',
+        role: 'user',
+        created_at: new Date().toISOString()
+      },
+      error: null
+    };
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

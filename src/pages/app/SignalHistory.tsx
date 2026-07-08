@@ -45,7 +45,7 @@ export default function SignalHistory() {
 
   const statuses = ['all', 'tp1_hit', 'tp2_hit', 'sl_hit', 'expired', 'cancelled'];
   const accessState = getCustomerAccessState(sub, latestRequest);
-  const hasAccess = hasFullSignalAccess(sub);
+  const hasAccess = hasFullSignalAccess(sub, latestRequest);
 
   if (!loading && !hasAccess) return (
     <AppLayout>

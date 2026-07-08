@@ -67,7 +67,7 @@ export default function Dashboard() {
   const cryptoPackage = packages.find(p => p.slug === 'crypto_signal_room');
   const requestedPackage = botSetup?.package_slug ?? latestRequest?.product_slug ?? sub?.package_name;
   const accessState = getCustomerAccessState(sub, latestRequest);
-  const hasAccess = hasFullSignalAccess(sub);
+  const hasAccess = hasFullSignalAccess(sub, latestRequest);
   const isPending = ['pending', 'pending_payment', 'pending_admin_approval'].includes(accessState);
   const isExpired = accessState === 'expired';
   const noPackage = accessState === 'no_package';
@@ -144,7 +144,17 @@ export default function Dashboard() {
               <Info label="Package" value={sub?.package_name || pkg?.name || packageDisplayName(latestRequest?.product_slug)} />
               <Info label="Price" value={formatPackagePrice(pkg, sub)} />
               <Info label="Billing period" value={billingPeriod(pkg)} />
-              <Info label="Payment" value={sub?.payment_status || latestRequest?.status || 'pending'} />
+              <Info label="Payment" value={
+                (() => {
+                  const status = sub?.payment_status || latestRequest?.status || 'pending';
+                  if (status === 'paid' || status === 'approved' || status === 'converted_to_access') return 'Paid / Approved';
+                  if (status === 'pending_payment') return 'Pending payment';
+                  if (status === 'pending_admin_approval' || status === 'pending') return 'Pending admin approval';
+                  if (status === 'rejected') return 'Rejected';
+                  if (status === 'expired') return 'Expired';
+                  return status.replace(/_/g, ' ');
+                })()
+              } />
               <Info label="Start date" value={formatDate(sub?.starts_at)} />
               <Info label="Expiry date" value={sub?.expires_at ? formatDate(sub.expires_at) : 'No expiry set'} />
             </div>

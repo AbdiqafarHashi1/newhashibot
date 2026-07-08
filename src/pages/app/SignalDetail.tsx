@@ -61,7 +61,7 @@ export default function SignalDetail() {
 
   const isRealData = signal.data_source === 'REAL DATA';
   const accessState = getCustomerAccessState(sub, latestRequest);
-  const hasAccess = hasFullSignalAccess(sub);
+  const hasAccess = hasFullSignalAccess(sub, latestRequest);
 
   if (!hasAccess) return (
     <AppLayout>

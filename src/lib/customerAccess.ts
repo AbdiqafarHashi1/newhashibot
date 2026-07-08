@@ -1,7 +1,7 @@
 import { AccessRequest, CustomerSubscription, Package } from './types';
 import { isBotPackage, packageDisplayName, signalModeIncluded, slugFromPackageValue } from './packages';
 
-export type CustomerAccessState = 'active' | 'pending_payment' | 'pending_admin_approval' | 'pending' | 'expired' | 'rejected' | 'no_package';
+export type CustomerAccessState = 'active' | 'pending_payment' | 'pending_admin_approval' | 'pending' | 'expired' | 'rejected' | 'no_package' | 'suspended';
 
 export function formatDate(value?: string | null) {
   return value ? new Date(value).toLocaleDateString() : '—';
@@ -36,19 +36,35 @@ export function getCustomerAccessState(sub?: CustomerSubscription | null, reques
   const expiresAt = sub?.expires_at ? new Date(sub.expires_at).getTime() : null;
   const isPastExpiry = expiresAt !== null && expiresAt < Date.now();
 
-  if (hasPackage && (sub?.access_status === 'expired' || sub?.payment_status === 'expired' || isPastExpiry)) return 'expired';
-  if (hasPackage && sub?.access_status === 'active' && sub.payment_status === 'paid' && signalModeIncluded(sub.package_name)) return 'active';
+  // If subscription is explicitly suspended
+  if (hasPackage && sub?.access_status === 'suspended') return 'suspended';
 
-  if (request?.status === 'rejected') return 'rejected';
-  if (request?.status === 'pending_payment') return 'pending_payment';
-  if (request && ['pending', 'pending_admin_approval', 'approved'].includes(request.status)) return 'pending_admin_approval';
+  // If subscription has expired
+  if (hasPackage && (sub?.access_status === 'expired' || sub?.payment_status === 'expired' || isPastExpiry)) return 'expired';
+
+  // If subscription is active or marked as paid
+  if (hasPackage && (sub?.access_status === 'active' || sub?.payment_status === 'paid')) {
+    if (signalModeIncluded(sub?.package_name)) {
+      return 'active';
+    }
+  }
+
+  // Handle access requests status
+  if (request) {
+    if (request.status === 'rejected') return 'rejected';
+    if (request.status === 'pending_payment') return 'pending_payment';
+    if (request.status === 'pending_admin_approval' || request.status === 'pending') return 'pending_admin_approval';
+    if (request.status === 'approved' || request.status === 'converted_to_access') return 'active';
+    if (request.status === 'expired') return 'expired';
+  }
+
   if (hasPackage) return 'pending';
 
   return 'no_package';
 }
 
-export function hasFullSignalAccess(sub?: CustomerSubscription | null) {
-  return getCustomerAccessState(sub) === 'active';
+export function hasFullSignalAccess(sub?: CustomerSubscription | null, request?: AccessRequest | null) {
+  return getCustomerAccessState(sub, request) === 'active';
 }
 
 export function accessStateLabel(state: CustomerAccessState) {
@@ -60,6 +76,7 @@ export function accessStateLabel(state: CustomerAccessState) {
     expired: 'Expired',
     rejected: 'Rejected',
     no_package: 'No package',
+    suspended: 'Suspended',
   };
   return labels[state];
 }
@@ -74,6 +91,7 @@ export function accessStateDescription(state: CustomerAccessState, packageValue?
     expired: 'Your access has expired. Renew manually with admin to unlock Signal Mode again.',
     rejected: 'Your latest request was rejected. Review the admin note if provided and submit updated payment/contact details.',
     no_package: 'Choose a package and submit manual payment/contact details for admin approval.',
+    suspended: 'Your access has been suspended. Please contact the administrator for resolution.',
   };
   return descriptions[state];
 }

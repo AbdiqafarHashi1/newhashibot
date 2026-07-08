@@ -17,12 +17,23 @@ export type RetentionCleanupRow = RetentionTarget & {
   rows_deleted: number;
 };
 
+export type RetentionBatchResult = {
+  table_name: string | null;
+  expired_before: string | null;
+  archived_count: number;
+  deleted_count: number;
+  remaining_expired: number;
+  batch_limited: boolean;
+  next_recommended_action: string;
+};
+
 export type RetentionCleanupResult = {
   mode: 'dry_run' | 'execute';
   generated_at: string;
   archive: boolean;
   targets: RetentionCleanupRow[];
   totals: { matched: number; archived: number; deleted: number };
+  batch_result?: RetentionBatchResult | null;
 };
 
 export type RuntimeHealthSummary = {
@@ -46,8 +57,8 @@ export async function previewRetentionCleanup() {
   return unwrapRpc<RetentionCleanupResult>(await supabase.rpc('hashibot_cleanup_noncritical', { p_execute: false, p_archive: true }));
 }
 
-export async function executeRetentionCleanup({ archive = true }: { archive?: boolean } = {}) {
-  return unwrapRpc<RetentionCleanupResult>(await supabase.rpc('hashibot_cleanup_noncritical', { p_execute: true, p_archive: archive }));
+export async function executeRetentionCleanup({ archive = true, batchSize = 5000 }: { archive?: boolean; batchSize?: number } = {}) {
+  return unwrapRpc<RetentionCleanupResult>(await supabase.rpc('hashibot_cleanup_noncritical', { p_execute: true, p_archive: archive, p_batch_size: batchSize }));
 }
 
 export async function getRuntimeHealthSummary() {

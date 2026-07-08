@@ -16,6 +16,8 @@ export default function Retention() {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
+  const [batchSize, setBatchSize] = useState<number>(5000);
+  const [lastBatchResult, setLastBatchResult] = useState<RetentionCleanupResult['batch_result'] | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -37,18 +39,24 @@ export default function Retention() {
   async function runPreview() {
     setWorking(true);
     setError('');
-    try { setPreview(await previewRetentionCleanup()); }
+    try { 
+      const result = await previewRetentionCleanup();
+      setPreview(result); 
+    }
     catch (e) { setError(e instanceof Error ? e.message : 'Preview failed'); }
     finally { setWorking(false); }
   }
 
   async function runCleanup() {
-    if (!window.confirm('Archive and delete expired non-critical rows now? Business-critical records are excluded by policy.')) return;
+    if (!window.confirm(`Archive and delete a safe batch of up to ${batchSize} expired non-critical rows now? Business-critical records are excluded by policy.`)) return;
     setWorking(true);
     setError('');
     try {
-      const result = await executeRetentionCleanup({ archive: true });
+      const result = await executeRetentionCleanup({ archive: true, batchSize });
       setPreview(result);
+      if (result.batch_result) {
+        setLastBatchResult(result.batch_result);
+      }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Cleanup failed');
@@ -58,6 +66,8 @@ export default function Retention() {
   }
 
   const active = preview ?? report;
+  const expiredCount = active?.totals.matched ?? 0;
+  const isBatchRequired = expiredCount > 0;
 
   return (
     <AdminLayout>
@@ -66,17 +76,66 @@ export default function Retention() {
           <h1 className="text-2xl font-bold">Platform Retention</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Bounded storage, cleanup preview, archive-safe deletion, and compact runtime health for V1 production.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 px-2 py-1.5 rounded-lg">
+            <span className="text-xs text-zinc-500">Batch Size:</span>
+            <select 
+              value={batchSize} 
+              onChange={e => setBatchSize(Number(e.target.value))}
+              disabled={loading || working}
+              className="bg-zinc-950 border-0 text-zinc-300 text-xs focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+            >
+              <option value={1000}>1,000</option>
+              <option value={2000}>2,000</option>
+              <option value={5000}>5,000</option>
+              <option value={10000}>10,000</option>
+            </select>
+          </div>
           <button onClick={load} disabled={loading || working} className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 px-3 py-2 rounded-lg text-xs disabled:opacity-50"><RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh</button>
           <button onClick={runPreview} disabled={loading || working} className="inline-flex items-center gap-2 border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/15 text-blue-200 px-3 py-2 rounded-lg text-xs disabled:opacity-50"><Archive size={13} /> Dry run</button>
-          <button onClick={runCleanup} disabled={loading || working || !active?.totals.matched} className="inline-flex items-center gap-2 border border-red-500/40 bg-red-500/10 hover:bg-red-500/15 text-red-200 px-3 py-2 rounded-lg text-xs disabled:opacity-50"><Trash2 size={13} /> Execute cleanup</button>
+          <button onClick={runCleanup} disabled={loading || working || !expiredCount} className="inline-flex items-center gap-2 border border-red-500/40 bg-red-500/10 hover:bg-red-500/15 text-red-200 px-3 py-2 rounded-lg text-xs disabled:opacity-50"><Trash2 size={13} /> Execute cleanup batch</button>
         </div>
       </div>
+
+      {isBatchRequired && (
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300 flex flex-col gap-1">
+          <span className="font-semibold">⚠️ Batch cleanup required</span>
+          <span className="text-xs text-zinc-400">Large cleanups are processed in batches of up to {batchSize} rows to prevent statement timeouts. Please execute batch cleanup repeatedly until all expired rows are cleared.</span>
+        </div>
+      )}
+
+      {lastBatchResult && (
+        <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+          <h3 className="font-semibold text-emerald-400 mb-2">Last Batch Cleanup Result:</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div>
+              <span className="text-zinc-500 block">Table Cleaned</span>
+              <span className="font-mono font-medium text-zinc-300">{lastBatchResult.table_name || '—'}</span>
+            </div>
+            <div>
+              <span className="text-zinc-500 block">Archived Count</span>
+              <span className="font-semibold text-emerald-400">{lastBatchResult.archived_count}</span>
+            </div>
+            <div>
+              <span className="text-zinc-500 block">Deleted Count</span>
+              <span className="font-semibold text-red-400">{lastBatchResult.deleted_count}</span>
+            </div>
+            <div>
+              <span className="text-zinc-500 block">Remaining in Table</span>
+              <span className="font-semibold text-zinc-300">{lastBatchResult.remaining_expired}</span>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-emerald-500/20 text-xs text-zinc-400">
+            <span className="font-semibold text-zinc-300">Recommended Next Action: </span>
+            {lastBatchResult.next_recommended_action}
+          </div>
+        </div>
+      )}
 
       {error && <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div className="text-xs text-zinc-500 uppercase tracking-wider">Expired rows</div><div className="text-2xl font-bold text-zinc-100 mt-1">{active?.totals.matched ?? '—'}</div></div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div className="text-xs text-zinc-500 uppercase tracking-wider">Expired rows</div><div className="text-2xl font-bold text-zinc-100 mt-1">{expiredCount ?? '—'}</div></div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div className="text-xs text-zinc-500 uppercase tracking-wider">Archived last run</div><div className="text-2xl font-bold text-emerald-300 mt-1">{active?.totals.archived ?? '—'}</div></div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div className="text-xs text-zinc-500 uppercase tracking-wider">Deleted last run</div><div className="text-2xl font-bold text-red-300 mt-1">{active?.totals.deleted ?? '—'}</div></div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div className="text-xs text-zinc-500 uppercase tracking-wider">Queue health</div><div className="text-2xl font-bold text-blue-300 mt-1">{fmt(health?.queues?.active_commands)}</div></div>

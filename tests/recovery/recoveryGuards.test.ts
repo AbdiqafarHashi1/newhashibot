@@ -66,4 +66,16 @@ assert.match(scanner, /SCANNER_MAX_CRYPTO_SYMBOLS/, 'market-scanner checks SCANN
 assert.match(scanner, /SCANNER_MAX_FOREX_SYMBOLS/, 'market-scanner checks SCANNER_MAX_FOREX_SYMBOLS');
 assert.match(scanner, /SCANNER_MAX_SYMBOLS_PER_SCAN/, 'market-scanner checks SCANNER_MAX_SYMBOLS_PER_SCAN');
 
+// 092 Batched retention verification
+const batchRetentionSql = readFileSync('supabase/migrations/20260708000000_092_retention_batch_cleanup_and_runtime_stability.sql', 'utf8');
+assert.match(batchRetentionSql, /p_batch_size integer DEFAULT 5000/, '092 migration defines batch size parameter with default of 5000');
+assert.match(batchRetentionSql, /v_batch_limited boolean := false/, '092 migration defines batch limited tracking variable');
+assert.match(batchRetentionSql, /LIMIT \$2/, '092 migration limits database deletion and archive by batch size');
+assert.match(batchRetentionSql, /idx_profiles_email/, '092 migration contains index on profiles email');
+
+// Scanner cap defaults verification
+assert.match(scanner, /cryptoLimit = envMaxCrypto !== null && !isNaN\(envMaxCrypto\) \? envMaxCrypto : 10/, 'market-scanner has correct crypto fallback of 10');
+assert.match(scanner, /forexLimit = envMaxForex !== null && !isNaN\(envMaxForex\) \? envMaxForex : 3/, 'market-scanner has correct forex fallback of 3');
+assert.match(scanner, /totalLimit = envMaxTotal !== null && !isNaN\(envMaxTotal\) \? envMaxTotal : 13/, 'market-scanner has correct total fallback of 13');
+
 console.log('Recovery guard tests passed');

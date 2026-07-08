@@ -45,7 +45,7 @@ export default function ActiveSignals() {
   }, [user]);
 
   const accessState = getCustomerAccessState(sub, latestRequest);
-  const hasAccess = hasFullSignalAccess(sub);
+  const hasAccess = hasFullSignalAccess(sub, latestRequest);
 
   if (!loading && !hasAccess) return (
     <AppLayout>
