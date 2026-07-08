@@ -382,12 +382,20 @@ function orderMatches(order: BinanceOpenOrder | undefined, expected: NativeCondi
   if (!order) return 'missing';
   if (order.side && String(order.side).toUpperCase() !== expected.side) return 'wrong_side';
   if (order.type && String(order.type).toUpperCase() !== expected.type) return 'wrong_type';
-  if (order.reduceOnly === false) return 'not_reduce_only';
-  if (order.closePosition === true) return 'unexpected_close_position';
+  
+  const reduceOnlyVal = String(order.reduceOnly ?? '').toLowerCase();
+  const closePositionVal = String(order.closePosition ?? '').toLowerCase();
+  
+  if (reduceOnlyVal === 'false' && closePositionVal !== 'true') return 'not_reduce_only';
+  
+  const isClosePosition = closePositionVal === 'true';
   const stop = Number((order as unknown as Record<string, unknown>).triggerPrice ?? order.stopPrice);
   if (Number.isFinite(stop) && Math.abs(stop - expected.triggerPrice) > Math.max(Math.abs(expected.triggerPrice) * 0.000001, 1e-8)) return 'wrong_stop_price';
-  const qty = Number(order.origQty);
-  if (Number.isFinite(qty) && Math.abs(qty - expected.quantity) > Math.max(expected.quantity * 0.000001, 1e-8)) return 'wrong_quantity';
+  
+  if (!isClosePosition) {
+    const qty = Number(order.origQty);
+    if (Number.isFinite(qty) && Math.abs(qty - expected.quantity) > Math.max(expected.quantity * 0.000001, 1e-8)) return 'wrong_quantity';
+  }
   return null;
 }
 

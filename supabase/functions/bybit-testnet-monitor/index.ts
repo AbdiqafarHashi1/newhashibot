@@ -187,7 +187,11 @@ async function activeQuarantine(supabase: SupabaseClient, symbol: string, purpos
   return (data as Json | null) ?? null;
 }
 async function recordSymbolFailure(supabase: SupabaseClient, symbol: string, reason: SymbolFailureReason, metadata: Json = {}) {
-  await supabase.rpc("record_symbol_failure", { p_provider: "bybit", p_symbol: symbol.toUpperCase(), p_reason: reason, p_metadata: metadata }).catch(() => null);
+  try {
+    await supabase.rpc("record_symbol_failure", { p_provider: "bybit", p_symbol: symbol.toUpperCase(), p_reason: reason, p_metadata: metadata });
+  } catch (_e) {
+    // Ignore RPC failure
+  }
 }
 function n(value: unknown): number { const x = Number(value ?? 0); return Number.isFinite(x) ? x : 0; }
 function near(a: number, b: number): boolean { return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= Math.max(Math.abs(b) * 0.000001, 1e-8); }

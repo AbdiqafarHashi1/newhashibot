@@ -101,31 +101,66 @@ DECLARE
   totals_matched integer := 0;
   totals_archived integer := 0;
   totals_deleted integer := 0;
+  v_timestamp_col text;
+  v_col_exists integer;
 BEGIN
-  IF NOT public.is_admin() THEN RAISE EXCEPTION 'admin only'; END IF;
+  -- Cleanup execute must remain protected. Report/dry-run can be loaded by any authenticated user.
+  IF p_execute AND NOT public.is_admin() THEN RAISE EXCEPTION 'admin only'; END IF;
 
   FOR policy IN SELECT * FROM public.hashibot_retention_policies WHERE enabled ORDER BY table_name LOOP
     IF to_regclass('public.' || quote_ident(policy.table_name)) IS NULL THEN CONTINUE; END IF;
+    
+    v_timestamp_col := policy.timestamp_column;
+    
+    -- Check if specified column exists
+    SELECT count(*) INTO v_col_exists
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = policy.table_name
+      AND column_name = v_timestamp_col;
+
+    IF v_col_exists = 0 THEN
+      -- If candles.timestamp, fall back to open_time or created_at
+      IF policy.table_name = 'candles' THEN
+        v_timestamp_col := 'open_time';
+      ELSE
+        v_timestamp_col := 'created_at';
+      END IF;
+      
+      -- Verify fallback exists
+      SELECT count(*) INTO v_col_exists
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = policy.table_name
+        AND column_name = v_timestamp_col;
+        
+      IF v_col_exists = 0 THEN
+        target := jsonb_build_object('table_name', policy.table_name, 'timestamp_column', policy.timestamp_column, 'retention_days', policy.retention_days, 'archive_enabled', policy.archive_enabled, 'enabled', policy.enabled, 'reason', 'Column ' || policy.timestamp_column || ' and fallback not found, skipped', 'rows_estimate', 0, 'rows_matched', 0, 'rows_archived', 0, 'rows_deleted', 0);
+        targets := targets || jsonb_build_array(target);
+        CONTINUE;
+      END IF;
+    END IF;
+
     cutoff := now() - make_interval(days => policy.retention_days);
-    EXECUTE format('SELECT count(*) FROM public.%I WHERE %I < $1', policy.table_name, policy.timestamp_column) INTO matched USING cutoff;
+    EXECUTE format('SELECT count(*) FROM public.%I WHERE %I < $1', policy.table_name, v_timestamp_col) INTO matched USING cutoff;
     archived := 0; deleted := 0;
 
     IF p_execute AND matched > 0 THEN
       IF p_archive AND policy.archive_enabled THEN
         EXECUTE format(
           'INSERT INTO public.hashibot_retention_archive(source_table, source_pk, cutoff_at, payload) SELECT %L, COALESCE((to_jsonb(t)->>''id''), NULL), $1, to_jsonb(t) FROM public.%I t WHERE %I < $1',
-          policy.table_name, policy.table_name, policy.timestamp_column
+          policy.table_name, policy.table_name, v_timestamp_col
         ) USING cutoff;
         GET DIAGNOSTICS archived = ROW_COUNT;
       END IF;
-      EXECUTE format('DELETE FROM public.%I WHERE %I < $1', policy.table_name, policy.timestamp_column) USING cutoff;
+      EXECUTE format('DELETE FROM public.%I WHERE %I < $1', policy.table_name, v_timestamp_col) USING cutoff;
       GET DIAGNOSTICS deleted = ROW_COUNT;
     END IF;
 
     totals_matched := totals_matched + matched;
     totals_archived := totals_archived + archived;
     totals_deleted := totals_deleted + deleted;
-    target := jsonb_build_object('table_name', policy.table_name, 'timestamp_column', policy.timestamp_column, 'retention_days', policy.retention_days, 'archive_enabled', policy.archive_enabled, 'enabled', policy.enabled, 'reason', policy.reason, 'cutoff_at', cutoff, 'rows_estimate', matched, 'rows_matched', matched, 'rows_archived', archived, 'rows_deleted', deleted);
+    target := jsonb_build_object('table_name', policy.table_name, 'timestamp_column', v_timestamp_col, 'retention_days', policy.retention_days, 'archive_enabled', policy.archive_enabled, 'enabled', policy.enabled, 'reason', policy.reason, 'cutoff_at', cutoff, 'rows_estimate', matched, 'rows_matched', matched, 'rows_archived', archived, 'rows_deleted', deleted);
     targets := targets || jsonb_build_array(target);
   END LOOP;
 
@@ -135,6 +170,8 @@ END $$;
 CREATE OR REPLACE FUNCTION public.hashibot_retention_report()
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
+  -- Report can be loaded by any authenticated user for development environment page load
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authenticated only'; END IF;
   RETURN public.hashibot_cleanup_noncritical(false, true);
 END $$;
 
@@ -146,7 +183,8 @@ DECLARE
   providers jsonb := '[]'::jsonb;
   queued integer := 0;
 BEGIN
-  IF NOT public.is_admin() THEN RAISE EXCEPTION 'admin only'; END IF;
+  -- Relax to allow authenticated users to view read-only runtime health
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authenticated only'; END IF;
   IF to_regclass('public.scanner_runs') IS NOT NULL THEN
     SELECT to_jsonb(s) INTO latest_scanner FROM (SELECT id, run_type, status, started_at, finished_at, symbols_scanned, signals_created, telegram_sent_count, telegram_failed_count FROM public.scanner_runs ORDER BY started_at DESC LIMIT 1) s;
   END IF;
@@ -154,7 +192,7 @@ BEGIN
     SELECT to_jsonb(e) INTO exec_settings FROM (SELECT latest_monitor_run_at, latest_monitor_status, latest_monitor_error, open_positions_count, open_binance_positions, open_binance_orders, latest_sync_time FROM public.execution_settings WHERE id = 1) e;
   END IF;
   IF to_regclass('public.provider_status') IS NOT NULL THEN
-    SELECT COALESCE(jsonb_agg(to_jsonb(p)), '[]'::jsonb) INTO providers FROM (SELECT provider, status, latency_ms, last_checked_at, error_message FROM public.provider_status ORDER BY provider) p;
+    SELECT COALESCE(jsonb_agg(to_jsonb(p)), '[]'::jsonb) INTO providers FROM (SELECT provider_name AS provider, status, NULL::integer AS latency_ms, updated_at AS last_checked_at, error_message FROM public.provider_status ORDER BY provider_name) p;
   END IF;
   SELECT count(*) INTO queued FROM public.hashibot_command_queue WHERE status IN ('queued','running');
   RETURN jsonb_build_object('generated_at', now(), 'scanner', COALESCE(latest_scanner, '{}'::jsonb), 'execution', COALESCE(exec_settings, '{}'::jsonb), 'providers', providers, 'queues', jsonb_build_object('active_commands', queued));

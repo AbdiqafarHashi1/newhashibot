@@ -305,10 +305,22 @@ function protectionOrderIssues(order: BinanceTruthSnapshot['openOrders'][number]
   if (!order) return ['missing'];
   if (order.side && String(order.side).toUpperCase() !== intent.side) issues.push('wrong_side');
   if (order.type && String(order.type).toUpperCase() !== intent.type) issues.push('wrong_type');
-  if (order.reduceOnly === false) issues.push('not_reduce_only');
-  if (order.closePosition === true) issues.push('unexpected_close_position');
-  const qty = num(order.origQty ?? order.quantity);
-  if (qty !== null && intent.quantity > 0 && Math.abs(qty - intent.quantity) > Math.max(intent.quantity * 0.000001, 1e-8)) issues.push('wrong_quantity');
+  
+  const reduceOnlyVal = String(order.reduceOnly ?? '').toLowerCase();
+  const closePositionVal = String(order.closePosition ?? '').toLowerCase();
+  
+  if (reduceOnlyVal === 'false' && closePositionVal !== 'true') {
+    issues.push('not_reduce_only');
+  }
+  
+  const isClosePosition = closePositionVal === 'true';
+  if (!isClosePosition) {
+    const qty = num(order.origQty ?? order.quantity);
+    if (qty !== null && intent.quantity > 0 && Math.abs(qty - intent.quantity) > Math.max(intent.quantity * 0.000001, 1e-8)) {
+      issues.push('wrong_quantity');
+    }
+  }
+  
   const price = num(order.triggerPrice ?? order.stopPrice ?? order.price);
   if (price !== null && intent.price && Math.abs(price - intent.price) > Math.max(Math.abs(intent.price) * 0.000001, 1e-8)) issues.push('wrong_price');
   return issues;

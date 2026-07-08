@@ -167,8 +167,8 @@ CREATE OR REPLACE FUNCTION public.hashibot_provider_health_summary()
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE providers jsonb := '[]'::jsonb; universe jsonb := '{}'::jsonb;
 BEGIN
-  IF NOT public.is_admin() THEN RAISE EXCEPTION 'admin only'; END IF;
-  IF to_regclass('public.provider_status') IS NOT NULL THEN SELECT COALESCE(jsonb_agg(to_jsonb(p)), '[]'::jsonb) INTO providers FROM (SELECT provider, status, latency_ms, last_checked_at, error_message FROM public.provider_status ORDER BY provider) p; END IF;
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authenticated only'; END IF;
+  IF to_regclass('public.provider_status') IS NOT NULL THEN SELECT COALESCE(jsonb_agg(to_jsonb(p)), '[]'::jsonb) INTO providers FROM (SELECT provider_name AS provider, status, NULL::integer AS latency_ms, updated_at AS last_checked_at, error_message FROM public.provider_status ORDER BY provider_name) p; END IF;
   universe := public.hashibot_symbol_universe_report();
   RETURN jsonb_build_object('generated_at', now(), 'providers', providers, 'symbol_universe', universe);
 END $$;

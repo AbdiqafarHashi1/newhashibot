@@ -2065,25 +2065,23 @@ function scannerCsvSet(value: unknown): Set<string> {
 
 async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null }> {
   // Enforce production default max symbol count.
-  // Default max_symbols_per_scan must be 15. Do not fall back to 80.
-  // If scanner_config.max_symbols_per_scan is missing/null/invalid, use 15.
-  // Allow override through DB config or env only if explicit and bounded.
-  // Hard safety cap should prevent accidental >20 symbols unless explicitly allowed by an admin setting (config.max_symbols_per_scan).
-  const envMaxRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN");
-  const envMax = envMaxRaw ? Number(envMaxRaw) : null;
+  // Enforce: crypto max 10, forex max 3, total max 13
+  const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS");
+  const envMaxCrypto = envMaxCryptoRaw ? Number(envMaxCryptoRaw) : null;
+  const envMaxTotalRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN");
+  const envMaxTotal = envMaxTotalRaw ? Number(envMaxTotalRaw) : null;
   const configMax = (config.max_symbols_per_scan !== undefined && config.max_symbols_per_scan !== null) ? Number(config.max_symbols_per_scan) : null;
 
-  let chosenMax = 15;
-  if (configMax !== null && !isNaN(configMax)) {
-    chosenMax = configMax;
-  } else if (envMax !== null && !isNaN(envMax)) {
-    chosenMax = envMax;
+  let cryptoLimit = 10;
+  if (envMaxCrypto !== null && !isNaN(envMaxCrypto)) {
+    cryptoLimit = envMaxCrypto;
+  } else if (envMaxTotal !== null && !isNaN(envMaxTotal)) {
+    cryptoLimit = Math.min(envMaxTotal, 10);
+  } else if (configMax !== null && !isNaN(configMax)) {
+    cryptoLimit = Math.min(configMax, 10);
   }
 
-  const isExplicitAdminConfig = configMax !== null && !isNaN(configMax);
-  const maxSymbols = isExplicitAdminConfig
-    ? Math.max(5, Math.min(chosenMax, 250))
-    : Math.max(5, Math.min(chosenMax, 20));
+  const maxSymbols = cryptoLimit;
 
   const minVolume = Math.max(0, Number(config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000));
   const include = scannerCsvSet(config.include_symbols);
@@ -3286,20 +3284,36 @@ async function runScanPipeline(
   const executionUniverse = await loadExecutionUniverse(supabase);
   if (executionUniverse.warning) errors.push(`[WARN] ${executionUniverse.warning}`);
 
-  // Enforce default max symbols cap also on final scanned list
-  const maxSymbolsCap = (config.max_symbols_per_scan !== undefined && config.max_symbols_per_scan !== null)
-    ? Math.max(5, Math.min(Number(config.max_symbols_per_scan), 250))
-    : 15;
+  // Enforce production default max symbol counts: crypto max 10, forex max 3, total max 13
+  const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS");
+  const envMaxCrypto = envMaxCryptoRaw ? Number(envMaxCryptoRaw) : null;
+  const envMaxForexRaw = Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS");
+  const envMaxForex = envMaxForexRaw ? Number(envMaxForexRaw) : null;
+  const envMaxTotalRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN");
+  const envMaxTotal = envMaxTotalRaw ? Number(envMaxTotalRaw) : null;
+
+  const cryptoLimit = envMaxCrypto !== null && !isNaN(envMaxCrypto) ? envMaxCrypto : 10;
+  const forexLimit = envMaxForex !== null && !isNaN(envMaxForex) ? envMaxForex : 3;
+  const totalLimit = envMaxTotal !== null && !isNaN(envMaxTotal) ? envMaxTotal : 13;
 
   let cryptoToScan = dynamicUniverse.symbols.length > 0 ? dynamicUniverse.symbols : configuredCryptoFallback;
-  if (cryptoToScan.length > maxSymbolsCap) {
-    cryptoToScan = cryptoToScan.slice(0, maxSymbolsCap);
+  if (cryptoToScan.length > cryptoLimit) {
+    cryptoToScan = cryptoToScan.slice(0, cryptoLimit);
   }
 
-  const symbols = [
+  let forexToScan = configuredForex;
+  if (forexToScan.length > forexLimit) {
+    forexToScan = forexToScan.slice(0, forexLimit);
+  }
+
+  let symbols = [
     ...cryptoToScan,
-    ...configuredForex,
+    ...forexToScan,
   ];
+
+  if (symbols.length > totalLimit) {
+    symbols = symbols.slice(0, totalLimit);
+  }
   if (!symbols || symbols.length === 0) {
     await supabase.from("scanner_runs").update({ status: "failed", finished_at: new Date().toISOString(), error_message: "No active symbols" }).eq("id", runId);
     throw new Error("No active symbols configured");

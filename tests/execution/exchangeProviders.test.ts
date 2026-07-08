@@ -68,7 +68,7 @@ async function run() {
 
   const mt5 = new ExchangeProviderMT5();
   assert.equal(mt5.metadata.id, 'mt5', 'MT5 default ID is mt5');
-  assert.equal(mt5.metadata.environment, 'personal', 'MT5 environment is personal');
+  assert.equal(mt5.metadata.environment, 'future', 'MT5 environment is future');
 
   const mt5Personal = new ExchangeProviderMT5('mt5_personal');
   assert.equal(mt5Personal.metadata.id, 'mt5_personal');

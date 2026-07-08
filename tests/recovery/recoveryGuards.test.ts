@@ -61,4 +61,9 @@ assert.match(recoverySql, /hashibridge_instances ADD COLUMN IF NOT EXISTS shared
 assert.match(recoverySql, /hashibridge_instances ADD COLUMN IF NOT EXISTS execution_enabled boolean NOT NULL DEFAULT false/, 'MT5 remains disabled unless enabled');
 assert.match(retentionPage, /No retention targets returned|—/, 'admin pages provide empty states instead of fake success');
 
+// Env-based scanner limit guards
+assert.match(scanner, /SCANNER_MAX_CRYPTO_SYMBOLS/, 'market-scanner checks SCANNER_MAX_CRYPTO_SYMBOLS');
+assert.match(scanner, /SCANNER_MAX_FOREX_SYMBOLS/, 'market-scanner checks SCANNER_MAX_FOREX_SYMBOLS');
+assert.match(scanner, /SCANNER_MAX_SYMBOLS_PER_SCAN/, 'market-scanner checks SCANNER_MAX_SYMBOLS_PER_SCAN');
+
 console.log('Recovery guard tests passed');

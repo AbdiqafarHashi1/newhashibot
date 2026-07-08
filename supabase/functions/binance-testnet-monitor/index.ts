@@ -527,10 +527,22 @@ async function verifyOpenProtectionSet(row: Row, expected: Array<{ label: string
     if (!order) { errors.push(`${item.label}:missing`); continue; }
     if (String(order.side ?? item.side).toUpperCase() !== item.side) errors.push(`${item.label}:wrong_side`);
     if (String(order.type ?? item.type).toUpperCase() !== item.type) errors.push(`${item.label}:wrong_type`);
-    if ((order.reduceOnly as unknown) === false) errors.push(`${item.label}:not_reduce_only`);
-    if ((order.closePosition as unknown) === true) errors.push(`${item.label}:unexpected_close_position`);
-    const qty = n(order.origQty ?? order.quantity);
-    if (qty > 0 && Math.abs(qty - item.quantity) > Math.max(item.quantity * 0.000001, 1e-8)) errors.push(`${item.label}:wrong_quantity`);
+    
+    const reduceOnlyVal = String(order.reduceOnly ?? "").toLowerCase();
+    const closePositionVal = String(order.closePosition ?? "").toLowerCase();
+    
+    if (reduceOnlyVal === "false" && closePositionVal !== "true") {
+      errors.push(`${item.label}:not_reduce_only`);
+    }
+    
+    const isClosePosition = closePositionVal === "true";
+    if (!isClosePosition) {
+      const qty = n(order.origQty ?? order.quantity);
+      if (qty > 0 && Math.abs(qty - item.quantity) > Math.max(item.quantity * 0.000001, 1e-8)) {
+        errors.push(`${item.label}:wrong_quantity`);
+      }
+    }
+    
     const trigger = n(order.triggerPrice ?? order.stopPrice ?? order.price);
     if (trigger > 0 && Math.abs(trigger - item.triggerPrice) > Math.max(item.triggerPrice * 0.000001, 1e-8)) errors.push(`${item.label}:wrong_trigger_price`);
   }
@@ -568,10 +580,18 @@ function orderMatchesProtectionIntent(order: BinanceOrder, expected: ProtectionE
   if (side && side !== expected.side) return false;
   const type = String(order.type ?? (order as Record<string, unknown>).orderType ?? "").toUpperCase();
   if (type && type !== expected.type) return false;
-  if ((order.reduceOnly as unknown) === false) return false;
-  if ((order.closePosition as unknown) === true) return false;
-  const qty = n(order.origQty ?? order.quantity);
-  if (qty > 0 && expected.quantity > 0 && Math.abs(qty - expected.quantity) > Math.max(expected.quantity * 0.000001, 1e-8)) return false;
+  
+  const reduceOnlyVal = String(order.reduceOnly ?? "").toLowerCase();
+  const closePositionVal = String(order.closePosition ?? "").toLowerCase();
+  
+  if (reduceOnlyVal === "false" && closePositionVal !== "true") return false;
+  
+  const isClosePosition = closePositionVal === "true";
+  if (!isClosePosition) {
+    const qty = n(order.origQty ?? order.quantity);
+    if (qty > 0 && expected.quantity > 0 && Math.abs(qty - expected.quantity) > Math.max(expected.quantity * 0.000001, 1e-8)) return false;
+  }
+  
   const trigger = n(order.triggerPrice ?? order.stopPrice ?? order.price);
   if (trigger > 0 && expected.triggerPrice > 0 && Math.abs(trigger - expected.triggerPrice) > Math.max(Math.abs(expected.triggerPrice) * 0.000001, 1e-8)) return false;
   return true;
@@ -612,10 +632,22 @@ function checkNativeProtection(openOrders: BinanceOrder[], expected: ProtectionE
     else if (!orderMatchesProtectionIntent(order, item)) {
       if (String(order.side ?? "").toUpperCase() !== item.side) errors.push("wrong_side");
       if (String(order.type ?? (order as Record<string, unknown>).orderType ?? "").toUpperCase() !== item.type) errors.push("wrong_type");
-      if ((order.reduceOnly as unknown) === false) errors.push("not_reduce_only");
-      if ((order.closePosition as unknown) === true) errors.push("unexpected_close_position");
-      const qty = n(order.origQty ?? order.quantity);
-      if (qty > 0 && Math.abs(qty - item.quantity) > Math.max(item.quantity * 0.000001, 1e-8)) errors.push("wrong_quantity");
+      
+      const reduceOnlyVal = String(order.reduceOnly ?? "").toLowerCase();
+      const closePositionVal = String(order.closePosition ?? "").toLowerCase();
+      
+      if (reduceOnlyVal === "false" && closePositionVal !== "true") {
+        errors.push("not_reduce_only");
+      }
+      
+      const isClosePosition = closePositionVal === "true";
+      if (!isClosePosition) {
+        const qty = n(order.origQty ?? order.quantity);
+        if (qty > 0 && Math.abs(qty - item.quantity) > Math.max(item.quantity * 0.000001, 1e-8)) {
+          errors.push("wrong_quantity");
+        }
+      }
+      
       const trigger = n(order.triggerPrice ?? order.stopPrice ?? order.price);
       if (trigger > 0 && Math.abs(trigger - item.triggerPrice) > Math.max(Math.abs(item.triggerPrice) * 0.000001, 1e-8)) errors.push("wrong_trigger_price");
     }
