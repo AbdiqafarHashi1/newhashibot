@@ -375,28 +375,33 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       if (!slOrders.length) missing.push("sl");
       if (tpOrders.length < 1) missing.push("tp1");
       if (tpOrders.length < 2) missing.push("tp2");
+      let repairAttempted = false;
+      let repairError = "";
       try {
         if (repairQuarantine) throw new Error("symbol_quarantined");
         if (!slOrders.length && slPrice > 0 && qty > 0) {
+          repairAttempted = true;
           const sl = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: String(qty), triggerPrice: String(slPrice), triggerDirection: side === "LONG" ? 2 : 1, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:sl` });
           stats.protections_created = Number(stats.protections_created) + 1;
           Object.assign(update, { sl_order_id: String(sl.orderId ?? sl.orderLinkId ?? ""), sl_status: "submitted" });
         }
         if (tpOrders.length < 1 && tp1Price > 0 && qty > 0) {
+          repairAttempted = true;
           const tp1 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 1), triggerPrice: String(tp1Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:tp1` });
           stats.protections_created = Number(stats.protections_created) + 1;
           Object.assign(update, { tp1_order_id: String(tp1.orderId ?? tp1.orderLinkId ?? ""), tp1_status: "submitted" });
         }
         if (tpOrders.length < 2 && tp2Price > 0 && qty > 0) {
+          repairAttempted = true;
           const tp2 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 2), triggerPrice: String(tp2Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:tp2` });
           stats.protections_created = Number(stats.protections_created) + 1;
           Object.assign(update, { tp2_order_id: String(tp2.orderId ?? tp2.orderLinkId ?? ""), tp2_status: "submitted" });
         }
       } catch (e) {
-        const error = e instanceof Error ? e.message : String(e);
-        await recordSymbolFailure(supabase, row.symbol, classifySymbolFailure(error), { execution_id: row.id, message: error });
-        Object.assign(update, { latest_protection_error: error, last_exchange_error: error, recovery_status: "protection_retry_failed" });
-        await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, recovery_status: error });
+        repairError = e instanceof Error ? e.message : String(e);
+        await recordSymbolFailure(supabase, row.symbol, classifySymbolFailure(repairError), { execution_id: row.id, message: repairError });
+        Object.assign(update, { latest_protection_error: repairError, last_exchange_error: repairError, recovery_status: "protection_retry_failed" });
+        await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, recovery_status: repairError });
       }
 
       const refreshedOrders = orderList.filter((o) => String(o.symbol) === row.symbol && isActiveOrder(o));
@@ -417,7 +422,36 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       const statusValue = protectionStatus === "protected_native" ? "protected_native" : "protection_failed";
       const violations = detectProtectionViolations(hasPosition, hasOrders, verifiedSl, verifiedTp1, verifiedTp2);
       const unifiedLifecycle = evaluateLifecycleState(statusValue, protectionStatus, violations);
-      Object.assign(update, { status: statusValue, lifecycle_state: unifiedLifecycle, position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: protectionStatus === "protected_native" && row.protection_status !== "protected_native" ? "recovered" : row.recovery_status ?? "none", sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
+
+      let r_repair_attempts = Number(row.repair_attempts ?? 0);
+      let r_recovery_status = "healthy";
+      let r_latest_error = null;
+      let r_last_action_taken = "exchange_confirmed_protection";
+
+      if (protectionStatus === "protected_native") {
+        if (repairAttempted) {
+          r_repair_attempts += 1;
+          r_recovery_status = "repair_succeeded";
+          r_last_action_taken = "recreated_protection_orders";
+        } else {
+          r_repair_attempts = 0;
+          r_recovery_status = "healthy";
+          r_last_action_taken = "exchange_confirmed_protection";
+        }
+      } else {
+        if (repairAttempted) {
+          r_repair_attempts += 1;
+          r_recovery_status = repairError ? "recovery_required" : "repairing";
+          r_last_action_taken = repairError ? "repair_failed" : "repair_attempted";
+          r_latest_error = repairError || strictErrors.join(", ");
+        } else {
+          r_recovery_status = "recovery_required";
+          r_last_action_taken = "orphan_detected";
+          r_latest_error = repairQuarantine ? "symbol_quarantined" : strictErrors.join(", ");
+        }
+      }
+
+      Object.assign(update, { status: statusValue, lifecycle_state: unifiedLifecycle, position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: r_recovery_status, repair_attempts: r_repair_attempts, sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
       await supabase.from("execution_orders").update(update).eq("id", row.id);
       // Write unified trade truth so the operator panel can read live protection state
       try {
@@ -441,6 +475,10 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
           p_tp1_price: tp1Price || null,
           p_tp2_price: tp2Price || null,
           p_monitor_run_id: runId,
+          p_repair_attempts: r_repair_attempts,
+          p_recovery_status: r_recovery_status,
+          p_latest_error: r_latest_error,
+          p_last_action_taken: r_last_action_taken,
         });
       } catch (_e) {
         // non-blocking — never let this kill the monitor
@@ -458,6 +496,38 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
     return { success: true, provider: "bybit", last_monitor_run_at: startedAt, last_successful_sync_at: result.last_successful_sync_at, monitor_health: "healthy", latest_error: null, ...stats };
   } catch (e) {
     latestError = e instanceof Error ? e.message : String(e);
+    try {
+      const { data: activeRows } = await supabase.from("execution_orders").select("*").eq("exchange", `bybit_usdt_${bybitEnvironment()}`).eq("environment", bybitEnvironment() === "live" ? "live" : bybitEnvironment()).in("status", ACTIVE_STATUSES);
+      for (const row of (activeRows ?? []) as any) {
+        await supabase.rpc("upsert_trade_management_truth", {
+          p_execution_order_id: row.id,
+          p_provider: "bybit",
+          p_environment: bybitEnvironment(),
+          p_symbol: row.symbol,
+          p_direction: String(row.direction).toLowerCase(),
+          p_status: "protection_failed",
+          p_protection_status: "protection_failed",
+          p_sl_present: false,
+          p_tp1_present: false,
+          p_tp2_present: false,
+          p_entry_price: Number(row.entry_price ?? 0) || null,
+          p_mark_price: null,
+          p_unrealized_pnl: 0,
+          p_quantity: Number(row.quantity ?? row.volume ?? 0) || null,
+          p_leverage: Number(row.leverage ?? 0) || null,
+          p_sl_price: Number(row.intended_sl ?? row.stop_loss ?? 0) || null,
+          p_tp1_price: Number(row.intended_tp1 ?? row.tp1 ?? 0) || null,
+          p_tp2_price: Number(row.intended_tp2 ?? row.tp2 ?? 0) || null,
+          p_monitor_run_id: runId,
+          p_repair_attempts: Number(row.repair_attempts ?? 0),
+          p_recovery_status: "provider_unavailable",
+          p_latest_error: latestError,
+          p_last_action_taken: "provider_health_failed"
+        }).catch(() => null);
+      }
+    } catch (_rowErr) {
+      // non-blocking
+    }
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: new Date().toISOString(), success: false, monitor_status: "degraded", positions_seen: 0, orders_seen: 0, executions_checked: Number(stats.rows_checked), protections_created: Number(stats.protections_created), protections_missing: Number(stats.protections_missing), stale_orders_cleaned: Number(stats.stale_orders_cleaned), positions_closed: Number(stats.positions_closed), latest_recovery_action: null, errors: [latestError], metadata: stats }).catch(() => null);
     await updateProvider(supabase, { status: "degraded", last_status_at: new Date().toISOString(), last_error: latestError, metadata: { bybit_monitor: { ...stats, run_id: runId, environment: bybitEnvironment(), base_url: bybitBaseUrl(), last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError } } });
     await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_monitor_error: latestError, bybit_latest_monitor_result: { ...stats, last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError }, updated_at: new Date().toISOString() }).eq("id", 1);

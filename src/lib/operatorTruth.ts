@@ -19,6 +19,8 @@ export interface OperatorTruthBundle {
   schedulerTruth: RuntimeRow[];
   quarantine: RuntimeRow[];
   readiness: RuntimeRow[];
+  customerSubscriptions: RuntimeRow[];
+  accessRequests: RuntimeRow[];
 }
 
 async function rows(table: string, order = 'created_at', limit = 100) {
@@ -28,7 +30,11 @@ async function rows(table: string, order = 'created_at', limit = 100) {
 }
 
 export async function loadOperatorTruth(): Promise<OperatorTruthBundle> {
-  const [truth, hb, controls, cfg, sig, deliveryRows, updates, routerAudit, events, executionOrders, intelligenceEvents, intelligenceFeeds, runtimeProof, schedulerTruth, quarantine, readiness] = await Promise.all([
+  const [
+    truth, hb, controls, cfg, sig, deliveryRows, updates, routerAudit, events, 
+    executionOrders, intelligenceEvents, intelligenceFeeds, runtimeProof, 
+    schedulerTruth, quarantine, readiness, customerSubscriptions, accessRequests
+  ] = await Promise.all([
     rows('trade_management_truth', 'latest_sync_at', 250),
     rows('execution_monitor_heartbeats', 'started_at', 75),
     rows('execution_provider_controls', 'updated_at', 50),
@@ -45,6 +51,8 @@ export async function loadOperatorTruth(): Promise<OperatorTruthBundle> {
     rows('scheduler_truth_view', 'last_run_at', 100),
     rows('problem_symbol_quarantine', 'last_seen', 100),
     rows('provider_100_trade_readiness_view', 'provider', 10),
+    rows('customer_subscriptions', 'created_at', 150),
+    rows('access_requests', 'created_at', 100),
   ]);
   return {
     tradeTruth: truth,
@@ -63,6 +71,8 @@ export async function loadOperatorTruth(): Promise<OperatorTruthBundle> {
     schedulerTruth,
     quarantine,
     readiness,
+    customerSubscriptions,
+    accessRequests,
   };
 }
 

@@ -150,7 +150,59 @@ class MockSupabaseClient {
     ],
     intelligence_events: [],
     signal_updates: [],
-    audit_logs: []
+    audit_logs: [],
+    trade_management_truth: [
+      {
+        provider: 'binance',
+        environment: 'testnet',
+        symbol: 'BTCUSDT',
+        side: 'long',
+        status: 'entry_filled',
+        qty: 0.25,
+        entry_price: 68500,
+        mark_price: 68650,
+        unrealized_pnl: 37.5,
+        exchange_position_id: 'pos-binance-btc',
+        signal_id: 'sig-binance-btc',
+        execution_order_id: 'exec-binance-btc',
+        sl_present: false,
+        tp1_present: true,
+        tp2_present: true,
+        protection_status: 'missing_sl',
+        profit_lock_status: 'inactive',
+        monitor_status: 'synced',
+        recovery_status: 'none',
+        latest_error: 'Missing Stop Loss order on Binance Testnet exchange',
+        latest_sync_at: new Date().toISOString(),
+        last_action_taken: 'syncProviderPositions',
+        repair_attempts: 0
+      },
+      {
+        provider: 'bybit',
+        environment: 'testnet',
+        symbol: 'ETHUSDT',
+        side: 'short',
+        status: 'entry_filled',
+        qty: 1.5,
+        entry_price: 3500,
+        mark_price: 3495,
+        unrealized_pnl: 7.5,
+        exchange_position_id: 'pos-bybit-eth',
+        signal_id: 'sig-bybit-eth',
+        execution_order_id: 'exec-bybit-eth',
+        sl_present: true,
+        tp1_present: false,
+        tp2_present: false,
+        protection_status: 'missing_tp',
+        profit_lock_status: 'inactive',
+        monitor_status: 'synced',
+        recovery_status: 'none',
+        latest_error: 'Missing Take Profit orders on Bybit Testnet exchange',
+        latest_sync_at: new Date().toISOString(),
+        last_action_taken: 'syncProviderPositions',
+        repair_attempts: 0
+      }
+    ]
   };
 
   public auth = {

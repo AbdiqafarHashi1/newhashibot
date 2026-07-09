@@ -2,9 +2,9 @@ import { ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Users, LogOut, Menu, Activity,
-  Database, Send, FileText, CheckCircle, AlertTriangle,
+  Database, Send, FileText,
   User, Settings, ListChecks,
-  Radio, ShieldCheck, Brain, Cpu, Target
+  Radio, ShieldCheck, Brain, Cpu, Target, ClipboardList, Newspaper, Clock
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,35 +14,33 @@ type NavItem =
   | { to: string; label: string; icon: LucideIcon };
 
 const adminNav: NavItem[] = [
-  { section: 'Operator Panel' },
-  { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/admin/operator/signals', label: 'Signals', icon: Radio },
-  { to: '/admin/operator/executions', label: 'Executions', icon: Cpu },
-  { to: '/admin/operator/trade-manager', label: 'Trade Manager', icon: ShieldCheck },
-  { to: '/admin/operator/telegram', label: 'Telegram', icon: Send },
-  { to: '/admin/operator/settings', label: 'Settings', icon: Settings },
-  { to: '/admin/operator/intelligence', label: 'News Brain', icon: Brain },
-  { to: '/admin/operator/runtime-proof', label: 'Runtime Proof', icon: ListChecks },
-  { section: 'Binance Testnet' },
-  { to: '/admin/providers/binance', label: 'Execution Monitor', icon: Activity },
-  { to: '/admin/providers', label: 'Provider Health', icon: Database },
-  { section: 'Bybit Prop' },
-  { to: '/admin/prop', label: 'Prop Accounts', icon: Target },
-  { to: '/admin/providers/bybit', label: 'Bybit Operations', icon: ShieldCheck },
-  { section: 'History & Analysis' },
-  { to: '/admin/scanner', label: 'Scanner Logs', icon: Activity },
-  { to: '/admin/scanner-config', label: 'Scanner Config', icon: Settings },
-  { to: '/admin/performance', label: 'Performance', icon: Activity },
-  { to: '/admin/retention', label: 'Retention', icon: Database },
-  { to: '/admin/backtest-lab', label: 'Backtest Lab', icon: FileText },
-  { to: '/admin/candidates', label: 'Candidate Setups', icon: CheckCircle },
-  { to: '/admin/rejected', label: 'Rejected Setups', icon: AlertTriangle },
-  { to: '/admin/telegram', label: 'Telegram Logs', icon: FileText },
-  { to: '/admin/signals', label: 'Signals Manager', icon: Radio },
-  { section: 'Admin' },
-  { to: '/admin/customers', label: 'Customers', icon: ShieldCheck },
-  { to: '/admin/users', label: 'Users / Subscribers', icon: Users },
-  { to: '/admin/audit', label: 'Audit Logs', icon: FileText },
+  { section: 'HashiCore' },
+  { to: '/admin/operator', label: 'Command Center', icon: LayoutDashboard },
+  { to: '/admin/operator/runtime-proof', label: 'Runtime & Proofs', icon: ListChecks },
+  { to: '/admin/checklist', label: 'Testing Cockpit', icon: Activity },
+
+  { section: 'Operations' },
+  { to: '/admin/operator/signals', label: 'Signals & Scanner', icon: Radio },
+  { to: '/admin/operator/executions', label: 'Execution Engine', icon: Cpu },
+  { to: '/admin/operator/trade-manager', label: 'Protection & Recovery', icon: ShieldCheck },
+  { to: '/admin/prop', label: 'Prop Providers', icon: Target },
+
+  { section: 'Customers' },
+  { to: '/admin/access-requests', label: 'Access Requests', icon: ClipboardList },
+  { to: '/admin/customers', label: 'Customer Management', icon: Users },
+  { to: '/admin/telegram-links', label: 'Telegram Links', icon: Send },
+
+  { section: 'Intelligence' },
+  { to: '/admin/operator/telegram', label: 'Telegram Brain', icon: Brain },
+  { to: '/admin/operator/intelligence', label: 'Market Intelligence', icon: Newspaper },
+  { to: '/admin/performance', label: 'Performance Analytics', icon: Activity },
+  { to: '/admin/outcomes', label: 'Outcome Tracking', icon: FileText },
+
+  { section: 'Platform' },
+  { to: '/admin/retention', label: 'Retention & Storage', icon: Database },
+  { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },
+  { to: '/admin/operator/settings', label: 'Settings & Secrets', icon: Settings },
+  { to: '/admin/scheduler', label: 'Scheduler Guide', icon: Clock },
 ];
 
 export function AdminLayout({ children }: { children: ReactNode }) {

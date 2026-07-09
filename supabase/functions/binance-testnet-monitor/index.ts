@@ -719,7 +719,31 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
     }
     await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, latest_protection_error: "", protection_critical_reason: "", last_monitor_action: "protection_watchdog_verified_live", updated_at: new Date().toISOString() }).eq("id", row.id);
     try {
-      await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", p_protection_status: "protected_native", p_sl_present: true, p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId });
+      await supabase.rpc("upsert_trade_management_truth", {
+        p_execution_order_id: row.id,
+        p_provider: "binance",
+        p_environment: "testnet",
+        p_symbol: row.symbol,
+        p_direction: row.direction,
+        p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native",
+        p_protection_status: "protected_native",
+        p_sl_present: true,
+        p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0),
+        p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0),
+        p_entry_price: Number(row.entry_price ?? 0) || null,
+        p_mark_price: null,
+        p_unrealized_pnl: 0,
+        p_quantity: Math.abs(positionAmt) || null,
+        p_leverage: Number(row.leverage ?? 0) || null,
+        p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null,
+        p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null,
+        p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null,
+        p_monitor_run_id: runId,
+        p_repair_attempts: Number(row.repair_attempts ?? 0),
+        p_recovery_status: "healthy",
+        p_latest_error: null,
+        p_last_action_taken: "exchange_confirmed_protection"
+      });
     } catch (_e) {
       // non-blocking
     }
@@ -729,9 +753,33 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
   }
 
   const unsafeReason = missingOrInvalid.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
-  await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `UNSAFE_POSITION missing/mismatched live Binance protection: ${unsafeReason}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", lifecycle_state: "unsafe_position", last_monitor_action: "protection_watchdog_repairing", updated_at: new Date().toISOString() }).eq("id", row.id);
+  await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `UNSAFE_POSITION missing/mismatched live Binance protection: ${unsafeReason}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", lifecycle_state: "unsafe_position", last_monitor_action: "protection_watchdog_repairing", repair_attempts: Number(row.repair_attempts ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", row.id);
   try {
-    await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: "protection_failed", p_protection_status: "protection_failed", p_sl_present: checks.every((c) => c.label !== "sl" || c.errors.length === 0), p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId });
+    await supabase.rpc("upsert_trade_management_truth", {
+      p_execution_order_id: row.id,
+      p_provider: "binance",
+      p_environment: "testnet",
+      p_symbol: row.symbol,
+      p_direction: row.direction,
+      p_status: "protection_failed",
+      p_protection_status: "protection_failed",
+      p_sl_present: checks.every((c) => c.label !== "sl" || c.errors.length === 0),
+      p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0),
+      p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0),
+      p_entry_price: Number(row.entry_price ?? 0) || null,
+      p_mark_price: null,
+      p_unrealized_pnl: 0,
+      p_quantity: Math.abs(positionAmt) || null,
+      p_leverage: Number(row.leverage ?? 0) || null,
+      p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null,
+      p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null,
+      p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null,
+      p_monitor_run_id: runId,
+      p_repair_attempts: Number(row.repair_attempts ?? 0) + 1,
+      p_recovery_status: "repairing",
+      p_latest_error: `UNSAFE_POSITION missing/mismatched live Binance protection: ${unsafeReason}`,
+      p_last_action_taken: "repair_attempted"
+    });
   } catch (_e) {
     // non-blocking
   }
@@ -761,9 +809,33 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
   const remainingErrors = checks.filter((item) => item.errors.length > 0);
   if (remainingErrors.length > 0) {
     const error = remainingErrors.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
-    await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `protection_repair_verification_failed: ${error}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", last_monitor_action: "protection_watchdog_repair_failed", updated_at: new Date().toISOString() }).eq("id", row.id);
+    await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `protection_repair_verification_failed: ${error}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", last_monitor_action: "protection_watchdog_repair_failed", repair_attempts: Number(row.repair_attempts ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", row.id);
     try {
-      await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: "protection_failed", p_protection_status: "protection_failed", p_sl_present: checks.every((c) => c.label !== "sl" || c.errors.length === 0), p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId });
+      await supabase.rpc("upsert_trade_management_truth", {
+        p_execution_order_id: row.id,
+        p_provider: "binance",
+        p_environment: "testnet",
+        p_symbol: row.symbol,
+        p_direction: row.direction,
+        p_status: "protection_failed",
+        p_protection_status: "protection_failed",
+        p_sl_present: checks.every((c) => c.label !== "sl" || c.errors.length === 0),
+        p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0),
+        p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0),
+        p_entry_price: Number(row.entry_price ?? 0) || null,
+        p_mark_price: null,
+        p_unrealized_pnl: 0,
+        p_quantity: Math.abs(positionAmt) || null,
+        p_leverage: Number(row.leverage ?? 0) || null,
+        p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null,
+        p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null,
+        p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null,
+        p_monitor_run_id: runId,
+        p_repair_attempts: Number(row.repair_attempts ?? 0) + 1,
+        p_recovery_status: "recovery_required",
+        p_latest_error: `protection_repair_verification_failed: ${error}`,
+        p_last_action_taken: "repair_failed"
+      });
     } catch (_e) {
       // non-blocking
     }
@@ -773,9 +845,33 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
   }
 
   const now = new Date().toISOString();
-  await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, managed_fallback_active: false, latest_protection_error: "", protection_critical_reason: "", lifecycle_state: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "tp1_filled_profit_lock_active" : "protected_native", protected_at: now, last_monitor_action: "protection_recovered", updated_at: now }).eq("id", row.id);
+  await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, managed_fallback_active: false, latest_protection_error: "", protection_critical_reason: "", lifecycle_state: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "tp1_filled_profit_lock_active" : "protected_native", protected_at: now, last_monitor_action: "protection_recovered", repair_attempts: Number(row.repair_attempts ?? 0) + 1, updated_at: now }).eq("id", row.id);
   try {
-    await supabase.rpc("upsert_trade_management_truth", { p_execution_order_id: row.id, p_provider: "binance", p_environment: "testnet", p_symbol: row.symbol, p_direction: row.direction, p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", p_protection_status: "protected_native", p_sl_present: true, p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0), p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0), p_entry_price: Number(row.entry_price ?? 0) || null, p_mark_price: null, p_unrealized_pnl: 0, p_quantity: Math.abs(positionAmt) || null, p_leverage: Number(row.leverage ?? 0) || null, p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null, p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null, p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null, p_monitor_run_id: runId });
+    await supabase.rpc("upsert_trade_management_truth", {
+      p_execution_order_id: row.id,
+      p_provider: "binance",
+      p_environment: "testnet",
+      p_symbol: row.symbol,
+      p_direction: row.direction,
+      p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native",
+      p_protection_status: "protected_native",
+      p_sl_present: true,
+      p_tp1_present: !expected.some((e) => e.label === "tp1") || checks.every((c) => c.label !== "tp1" || c.errors.length === 0),
+      p_tp2_present: checks.every((c) => c.label !== "tp2" || c.errors.length === 0),
+      p_entry_price: Number(row.entry_price ?? 0) || null,
+      p_mark_price: null,
+      p_unrealized_pnl: 0,
+      p_quantity: Math.abs(positionAmt) || null,
+      p_leverage: Number(row.leverage ?? 0) || null,
+      p_sl_price: expected.find((e) => e.label === "sl")?.triggerPrice ?? null,
+      p_tp1_price: expected.find((e) => e.label === "tp1")?.triggerPrice ?? null,
+      p_tp2_price: expected.find((e) => e.label === "tp2")?.triggerPrice ?? null,
+      p_monitor_run_id: runId,
+      p_repair_attempts: Number(row.repair_attempts ?? 0) + 1,
+      p_recovery_status: "repair_succeeded",
+      p_latest_error: null,
+      p_last_action_taken: "recreated_protection_orders"
+    });
   } catch (_e) {
     // non-blocking
   }
@@ -1686,8 +1782,43 @@ Deno.serve(async (req: Request) => {
     await writeMonitorHeartbeat(supabase, heartbeatFromStats(runId, startedAt, new Date().toISOString(), true, stats, triggerSource, isAutomatic)).catch(() => null);
     return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: true, monitor_status: stats.monitor_status, global_error: "", run_id: runId, ...stats });
   } catch (err) {
-    addCriticalMonitorError(stats, errorMessage(err));
+    const errorMsg = errorMessage(err);
+    addCriticalMonitorError(stats, errorMsg);
     stats.monitor_status = "critical_error";
+    if (supabase) {
+      try {
+        const { data: activeRows } = await supabase.from("execution_orders").select("*").eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
+        for (const row of (activeRows ?? []) as any) {
+          await supabase.rpc("upsert_trade_management_truth", {
+            p_execution_order_id: row.id,
+            p_provider: "binance",
+            p_environment: "testnet",
+            p_symbol: row.symbol,
+            p_direction: String(row.direction).toLowerCase(),
+            p_status: "protection_failed",
+            p_protection_status: "protection_failed",
+            p_sl_present: false,
+            p_tp1_present: false,
+            p_tp2_present: false,
+            p_entry_price: Number(row.entry_price ?? 0) || null,
+            p_mark_price: null,
+            p_unrealized_pnl: 0,
+            p_quantity: Number(row.quantity ?? row.volume ?? 0) || null,
+            p_leverage: Number(row.leverage ?? 0) || null,
+            p_sl_price: Number(row.intended_sl ?? row.stop_loss ?? 0) || null,
+            p_tp1_price: Number(row.intended_tp1 ?? row.tp1 ?? 0) || null,
+            p_tp2_price: Number(row.intended_tp2 ?? row.tp2 ?? 0) || null,
+            p_monitor_run_id: runId,
+            p_repair_attempts: Number(row.repair_attempts ?? 0),
+            p_recovery_status: "provider_unavailable",
+            p_latest_error: errorMsg,
+            p_last_action_taken: "provider_health_failed"
+          }).catch(() => null);
+        }
+      } catch (_rowErr) {
+        // non-blocking
+      }
+    }
     await safeSettingsUpdate(supabase, { latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: stats.monitor_status, latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), monitor_version: MONITOR_VERSION, ...monitorResult(stats) }, updated_at: new Date().toISOString() });
     if (supabase) await writeMonitorHeartbeat(supabase, heartbeatFromStats(runId, startedAt, new Date().toISOString(), false, stats, triggerSource, isAutomatic)).catch(() => null);
     return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, monitor_status: stats.monitor_status, global_error: "startup_exception", error: errorMessage(err), run_id: runId, ...stats }, 500);

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getFrontendSupabaseUrl } from './supabaseEnv';
-import { isSupabaseMocked } from './supabase';
+import { supabase, isSupabaseMocked } from './supabase';
 export type EdgeFunctionReachability = 'deployed' | 'missing' | 'forbidden' | 'unreachable' | 'unknown';
 
 export interface EdgeFunctionCallResult<T = Record<string, unknown>> {
@@ -52,11 +52,113 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
         status: 'active',
         message: 'Mock scheduler action is active and healthy.'
       };
+    } else if (functionName === 'admin-operator-action') {
+      const action = String(body.action ?? '');
+      
+      // Simulate Live Multi-User Lock
+      const lockKey = `hashibot_lock_${action}`;
+      const now = Date.now();
+      const existingLock = localStorage.getItem(lockKey);
+      
+      if (existingLock && now - Number(existingLock) < 8000) {
+        // Lock collision simulation
+        mockData = {
+          success: false,
+          error: 'MUTEX_LOCK_CONFLICT',
+          blocker: `Action '${action}' is currently locked by another operator run.`,
+          result_summary: 'Overlapping operator execution blocked by Live Sync Lock.'
+        };
+      } else {
+        // Acquire Lock
+        localStorage.setItem(lockKey, now.toString());
+        
+        // Handle specific administrative actions
+        if (action === 'repair_protection_now') {
+          const truthList = supabase.tables['trade_management_truth'] || [];
+          const affected: string[] = [];
+          
+          truthList.forEach((row: any) => {
+            if (row.protection_status !== 'protected') {
+              row.sl_present = true;
+              row.tp1_present = true;
+              row.tp2_present = true;
+              row.protection_status = 'protected';
+              row.recovery_status = 'repair_succeeded';
+              row.last_action_taken = 'recreated_protection_orders';
+              row.latest_error = null;
+              row.latest_sync_at = new Date().toISOString();
+              row.repair_attempts = Number(row.repair_attempts ?? 0) + 1;
+              affected.push(row.symbol);
+            }
+          });
+          
+          mockData = {
+            success: true,
+            status: 'SUCCESS',
+            result_summary: `Successfully repaired protection for symbols: ${affected.join(', ') || 'None'}.`,
+            affected_symbols: affected,
+            duration_ms: 150,
+            started_at: new Date(now).toISOString(),
+            finished_at: new Date().toISOString()
+          };
+        } else if (action === 'run_binance_monitor_now' || action === 'run_bybit_monitor_now' || action === 'run_supervisor_now') {
+          const targetProvider = action.includes('binance') ? 'binance' : action.includes('bybit') ? 'bybit' : null;
+          const truthList = supabase.tables['trade_management_truth'] || [];
+          const affected: string[] = [];
+          
+          truthList.forEach((row: any) => {
+            if (!targetProvider || row.provider === targetProvider) {
+              row.latest_sync_at = new Date().toISOString();
+              row.last_action_taken = 'manual_monitor_sync_success';
+              affected.push(row.symbol);
+            }
+          });
+          
+          mockData = {
+            success: true,
+            status: 'SUCCESS',
+            result_summary: `Monitor run succeeded. Synced ${affected.length} open position rows.`,
+            duration_ms: 200,
+            started_at: new Date(now).toISOString(),
+            finished_at: new Date().toISOString()
+          };
+        } else if (action === 'run_runtime_proof') {
+          mockData = {
+            success: true,
+            status: 'PASS',
+            can_operate_testnet_demo_now: true,
+            blockers: [],
+            checks: [
+              { check: 'binance_exposure_fetch_reachable', status: 'PASS' },
+              { check: 'bybit_exposure_fetch_reachable', status: 'PASS' },
+              { check: 'cron_jobs_visible', status: 'PASS' },
+              { check: 'supervisor_heartbeat_visible', status: 'PASS' },
+              { check: 'scanner_config_visible', status: 'PASS' }
+            ],
+            duration_ms: 300,
+            live_trading_disabled: true
+          };
+        } else {
+          mockData = {
+            success: true,
+            status: 'SUCCESS',
+            result_summary: `Operator action '${action}' completed successfully in Mock Sandbox.`,
+            duration_ms: 100,
+            started_at: new Date(now).toISOString(),
+            finished_at: new Date().toISOString()
+          };
+        }
+        
+        // Release Lock with a tiny delay
+        setTimeout(() => {
+          localStorage.removeItem(lockKey);
+        }, 1000);
+      }
     }
     
     return {
-      ok: true,
-      status: 200,
+      ok: mockData.success !== false,
+      status: mockData.success !== false ? 200 : 409,
       data: mockData as T,
       text: JSON.stringify(mockData),
       reachability: 'deployed',
