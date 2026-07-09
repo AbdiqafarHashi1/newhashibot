@@ -173,6 +173,9 @@ const DEFAULT_STATE: AdminLiveState = {
 export function useAdminLiveState(session: { access_token: string } | null) {
   const [state, setState] = useState<AdminLiveState>(DEFAULT_STATE);
   const refreshSeq = useRef(0);
+  const runtimeConfigRef = useRef<RuntimeProviderConfig | null>(null);
+  const runtimeConfigErrorRef = useRef<string | null>(null);
+  const adminSchedulerRef = useRef<{ status: EdgeFunctionReachability; message: string | null } | null>(null);
 
   const refresh = useCallback(async () => {
     const seq = refreshSeq.current + 1;
@@ -251,62 +254,68 @@ export function useAdminLiveState(session: { access_token: string } | null) {
     const cronStale = schedulerProof.status === 'stale';
     const cronDetected = cronProven;
 
-    // Runtime provider config — fetch live from edge function
-    let runtimeConfig: RuntimeProviderConfig | null = null;
-    let runtimeConfigError: string | null = null;
-    try {
-      const supabaseUrl = getFrontendSupabaseUrl();
-      const res = await fetch(`${supabaseUrl}/functions/v1/market-scanner`, {
-        method: 'POST',
-        headers: {
-          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store',
-        },
-        body: JSON.stringify({ debug_provider_config: true }),
-      });
-      const json = await res.json() as Record<string, unknown>;
-      if (json?.success) {
-        runtimeConfig = {
-          provider: String(json.provider ?? 'unknown'),
-          fallbacks: Array.isArray(json.fallbacks) ? (json.fallbacks as string[]) : [],
-          demo_fallback: Boolean(json.demo_fallback),
-          finnhub_api_key_set: Boolean(json.finnhub_api_key_set),
-          twelvedata_api_key_set: Boolean(json.twelvedata_api_key_set),
-          fetched_at: new Date().toISOString(),
-          raw: json,
-          crypto_provider: String(json.crypto_provider ?? 'binance'),
-          market_mode: String(json.market_mode ?? 'crypto_only'),
-          signal_enable_crypto: Boolean(json.signal_enable_crypto ?? true),
-          signal_enable_forex: Boolean(json.signal_enable_forex ?? false),
-          forex_disabled: Boolean((json.forex_disabled ?? json.forex_disabled_for_mvp) ?? json.signal_enable_forex === false),
-          forex_scan_min_interval_minutes: typeof json.forex_scan_min_interval_minutes === 'number' ? json.forex_scan_min_interval_minutes : 60,
-          forex_max_provider_calls_per_scan: typeof json.forex_max_provider_calls_per_scan === 'number' ? json.forex_max_provider_calls_per_scan : 6,
-          telegram_enabled: Boolean(json.telegram_enabled),
-          enable_signal_mode_output: Boolean(json.enable_signal_mode_output),
-          telegram_bot_token_set: Boolean(json.telegram_bot_token_set),
-          telegram_default_channel_id_set: Boolean(json.telegram_default_channel_id_set),
-          telegram_chat_id_set: Boolean(json.telegram_chat_id_set),
-          telegram_admin_chat_id_set: Boolean(json.telegram_admin_chat_id_set),
-          telegram_free_chat_id_set: Boolean(json.telegram_free_chat_id_set),
-          supabase_url_set: Boolean(json.supabase_url_set),
-          supabase_service_role_key_set: Boolean(json.supabase_service_role_key_set),
-          scanner_cron_secret_set: Boolean(json.scanner_cron_secret_set),
-        };
-      } else {
-        runtimeConfigError = json?.error ? String(json.error) : 'Could not fetch runtime config';
+    // Runtime provider config — fetch live from edge function (using ref cache to solve performance slowness)
+    let runtimeConfig = runtimeConfigRef.current;
+    let runtimeConfigError = runtimeConfigErrorRef.current;
+    if (!runtimeConfig) {
+      try {
+        const supabaseUrl = getFrontendSupabaseUrl();
+        const res = await fetch(`${supabaseUrl}/functions/v1/market-scanner`, {
+          method: 'POST',
+          headers: {
+            ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store',
+          },
+          body: JSON.stringify({ debug_provider_config: true }),
+        });
+        const json = await res.json() as Record<string, unknown>;
+        if (json?.success) {
+          runtimeConfig = {
+            provider: String(json.provider ?? 'unknown'),
+            fallbacks: Array.isArray(json.fallbacks) ? (json.fallbacks as string[]) : [],
+            demo_fallback: Boolean(json.demo_fallback),
+            finnhub_api_key_set: Boolean(json.finnhub_api_key_set),
+            twelvedata_api_key_set: Boolean(json.twelvedata_api_key_set),
+            fetched_at: new Date().toISOString(),
+            raw: json,
+            crypto_provider: String(json.crypto_provider ?? 'binance'),
+            market_mode: String(json.market_mode ?? 'crypto_only'),
+            signal_enable_crypto: Boolean(json.signal_enable_crypto ?? true),
+            signal_enable_forex: Boolean(json.signal_enable_forex ?? false),
+            forex_disabled: Boolean((json.forex_disabled ?? json.forex_disabled_for_mvp) ?? json.signal_enable_forex === false),
+            forex_scan_min_interval_minutes: typeof json.forex_scan_min_interval_minutes === 'number' ? json.forex_scan_min_interval_minutes : 60,
+            forex_max_provider_calls_per_scan: typeof json.forex_max_provider_calls_per_scan === 'number' ? json.forex_max_provider_calls_per_scan : 6,
+            telegram_enabled: Boolean(json.telegram_enabled),
+            enable_signal_mode_output: Boolean(json.enable_signal_mode_output),
+            telegram_bot_token_set: Boolean(json.telegram_bot_token_set),
+            telegram_default_channel_id_set: Boolean(json.telegram_default_channel_id_set),
+            telegram_chat_id_set: Boolean(json.telegram_chat_id_set),
+            telegram_admin_chat_id_set: Boolean(json.telegram_admin_chat_id_set),
+            telegram_free_chat_id_set: Boolean(json.telegram_free_chat_id_set),
+            supabase_url_set: Boolean(json.supabase_url_set),
+            supabase_service_role_key_set: Boolean(json.supabase_service_role_key_set),
+            scanner_cron_secret_set: Boolean(json.scanner_cron_secret_set),
+          };
+          runtimeConfigRef.current = runtimeConfig;
+        } else {
+          runtimeConfigError = json?.error ? String(json.error) : 'Could not fetch runtime config';
+          runtimeConfigErrorRef.current = runtimeConfigError;
+        }
+      } catch (e) {
+        runtimeConfigError = e instanceof Error ? e.message : 'Network error fetching runtime config';
+        runtimeConfigErrorRef.current = runtimeConfigError;
       }
-    } catch (e) {
-      runtimeConfigError = e instanceof Error ? e.message : 'Network error fetching runtime config';
     }
 
-    let adminSchedulerActionStatus: EdgeFunctionReachability = 'unknown';
-    let adminSchedulerActionMessage: string | null = null;
-    if (session?.access_token) {
+    let adminSchedulerActionStatus: EdgeFunctionReachability = adminSchedulerRef.current?.status ?? 'unknown';
+    let adminSchedulerActionMessage: string | null = adminSchedulerRef.current?.message ?? null;
+    if (session?.access_token && !adminSchedulerRef.current) {
       try {
         const adminStatus = await callEdgeFunction('admin-scheduler-action', { action: 'status' }, session.access_token);
         adminSchedulerActionStatus = adminStatus.reachability;
         adminSchedulerActionMessage = adminStatus.message;
+        adminSchedulerRef.current = { status: adminSchedulerActionStatus, message: adminSchedulerActionMessage };
       } catch (e) {
         adminSchedulerActionStatus = 'unreachable';
         adminSchedulerActionMessage = e instanceof Error ? e.message : 'admin-scheduler-action status check failed';

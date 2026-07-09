@@ -811,7 +811,7 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
               </tr>
             </thead>
             <tbody>
-              {approvedExecutionProofRows.map(({ signal, binance, bybit, blocker, created, submitted, shouldExecute, binanceSupported, bybitSupported, setupBlocker, supportBlocker }) => (
+              {approvedExecutionProofRows.map(({ signal, binance, bybit, blocker, shouldExecute, binanceSupported, bybitSupported, setupBlocker, supportBlocker }) => (
                 <tr key={signal.id} className="border-b border-zinc-900 text-zinc-300">
                   <td className="py-2 pr-3 font-mono">{signal.symbol} <span className="text-zinc-600">{signal.id.slice(0, 8)}</span></td>
                   <td className="py-2 pr-3">{signal.grade}</td>
@@ -819,8 +819,12 @@ export default function ProviderOperationsWorkspace({ provider = 'binance', mode
                   <td className="py-2 pr-3">{binance?.status ?? (binanceSupported ? 'no row' : 'unsupported')}</td>
                   <td className="py-2 pr-3">{bybit?.status ?? (bybitSupported ? 'no row' : 'unsupported')}</td>
                   <td className="py-2 pr-3 text-yellow-300">{String(blocker?.latest_auto_skip_reason || blocker?.error_message || blocker?.last_exchange_error || setupBlocker || supportBlocker || '—')}</td>
-                  <td className="py-2 pr-3">{created ? 'yes' : 'no'}</td>
-                  <td className="py-2 pr-3">{submitted ? 'yes' : 'no'}</td>
+                  <td className="py-2 pr-3">
+                    B: <span className={binance ? 'text-emerald-400' : 'text-zinc-500'}>{binance ? 'yes' : 'no'}</span> · By: <span className={bybit ? 'text-blue-400' : 'text-zinc-500'}>{bybit ? 'yes' : 'no'}</span>
+                  </td>
+                  <td className="py-2 pr-3">
+                    B: <span className={binance?.entry_order_id || binance?.binance_entry_order_id ? 'text-emerald-400' : 'text-zinc-500'}>{binance?.entry_order_id || binance?.binance_entry_order_id ? 'yes' : 'no'}</span> · By: <span className={bybit?.entry_order_id || bybit?.binance_entry_order_id ? 'text-blue-400' : 'text-zinc-500'}>{bybit?.entry_order_id || bybit?.binance_entry_order_id ? 'yes' : 'no'}</span>
+                  </td>
                   <td className="py-2 pr-3 text-red-300">{String(blocker?.error_message ?? blocker?.last_exchange_error ?? '—')}</td>
                 </tr>
               ))}

@@ -1,4 +1,4 @@
-export type RuntimeTruthStatus = 'LIVE' | 'STALE' | 'FAILED' | 'DISABLED';
+export type RuntimeTruthStatus = 'LIVE' | 'STALE' | 'FAILED' | 'DISABLED' | 'NOT RUN' | 'UNKNOWN' | 'DESYNCHRONIZED' | 'NO DATA';
 
 export interface RuntimeHeartbeat {
   label?: string;
@@ -11,7 +11,7 @@ export interface RuntimeHeartbeat {
 export function runtimeTruth({ at, enabled = true, error, staleAfterMs = 120_000 }: RuntimeHeartbeat): RuntimeTruthStatus {
   if (!enabled) return 'DISABLED';
   if (error) return 'FAILED';
-  if (!at) return 'STALE';
+  if (!at) return 'NOT RUN';
   const age = Date.now() - new Date(at).getTime();
   if (!Number.isFinite(age) || age > staleAfterMs) return 'STALE';
   return 'LIVE';
@@ -20,8 +20,12 @@ export function runtimeTruth({ at, enabled = true, error, staleAfterMs = 120_000
 export function statusClasses(status: RuntimeTruthStatus): string {
   if (status === 'LIVE') return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300';
   if (status === 'FAILED') return 'border-red-500/30 bg-red-500/10 text-red-300';
+  if (status === 'DESYNCHRONIZED') return 'border-red-500/50 bg-red-950/20 text-red-400 font-bold animate-pulse';
   if (status === 'DISABLED') return 'border-zinc-700 bg-zinc-900 text-zinc-400';
-  return 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300';
+  if (status === 'NOT RUN') return 'border-yellow-600/30 bg-yellow-600/5 text-yellow-500 font-mono';
+  if (status === 'STALE') return 'border-amber-500/30 bg-amber-500/10 text-amber-300';
+  if (status === 'NO DATA') return 'border-zinc-800 bg-zinc-950/20 text-zinc-500';
+  return 'border-zinc-800 bg-zinc-950/20 text-zinc-400';
 }
 
 export interface ProviderNeutralTradePlan {

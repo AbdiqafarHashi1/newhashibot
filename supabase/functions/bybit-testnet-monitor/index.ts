@@ -289,6 +289,27 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
   const isAutomatic = triggerSource === "pg_cron" || payload.is_automatic === true;
   let latestError = "";
   const stats: Json = { account_sync: false, balance_sync: false, open_positions_sync: false, open_orders_sync: false, protection_sync: false, recovery_sync: false, profit_lock_sync: false, rows_checked: 0, rows_updated: 0, protections_created: 0, protections_missing: 0, stale_orders_cleaned: 0, positions_closed: 0, warnings: [] };
+
+  const providerControl = await supabase.from("execution_provider_controls").select("enabled").eq("provider_name", "bybit").maybeSingle().then((r) => r.data).catch(() => null);
+  const { apiKey, apiSecret } = bybitCredentials();
+  const hasKeys = Boolean(apiKey && apiSecret);
+
+  if (providerControl && !providerControl.enabled) {
+    const completedAt = new Date().toISOString();
+    const result = { success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "healthy", latest_error: "PROVIDER_DISABLED", blocker: "PROVIDER_DISABLED" };
+    await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: false, monitor_status: "healthy", latest_recovery_action: null, errors: ["PROVIDER_DISABLED"], metadata: result });
+    await updateProvider(supabase, { status: "disconnected", last_status_at: new Date().toISOString(), last_error: "PROVIDER_DISABLED", metadata: { bybit_monitor: result } });
+    return result;
+  }
+
+  if (!hasKeys) {
+    const completedAt = new Date().toISOString();
+    const result = { success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "healthy", latest_error: "NO_API_KEYS", blocker: "NO_API_KEYS" };
+    await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: false, monitor_status: "healthy", latest_recovery_action: null, errors: ["NO_API_KEYS"], metadata: result });
+    await updateProvider(supabase, { status: "disconnected", last_status_at: new Date().toISOString(), last_error: "NO_API_KEYS", metadata: { bybit_monitor: result } });
+    return result;
+  }
+
   try {
     const [wallet, positions, orders] = await Promise.all([
       bybitRequest<Json>("/v5/account/wallet-balance", { accountType: "UNIFIED" }),

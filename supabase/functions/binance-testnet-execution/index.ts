@@ -1452,7 +1452,32 @@ async function submitBracketOrders(supabase: SupabaseClient, executionId: string
     const missing = [sl.id, tp1.id, tp2.id].filter((id) => !orderIds.has(String(id)));
     const raw = { sl, tp1, tp2, verified_open_orders: openOrders, verification_mismatches: mismatches };
     if (missing.length > 0 || mismatches.length > 0) throw new Error(`Native protection verification failed; missing/mismatched open reduce-only orders: ${[...missing, ...mismatches].join(",")}`);
-    await supabase.from("execution_orders").update({ status: "protected_native", bracket_mode: "exchange_native", protection_status: "protected_native", sl_order_id: sl.algoId, tp1_order_id: tp1.algoId, tp2_order_id: tp2.algoId, binance_sl_order_id: sl.algoId, binance_tp1_order_id: tp1.algoId, binance_tp2_order_id: tp2.algoId, sl_algo_id: sl.algoId, tp1_algo_id: tp1.algoId, tp2_algo_id: tp2.algoId, sl_client_algo_id: sl.clientAlgoId, tp1_client_algo_id: tp1.clientAlgoId, tp2_client_algo_id: tp2.clientAlgoId, native_protection_verified: true, managed_fallback_active: false, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: "", raw_exchange_response: raw, updated_at: new Date().toISOString() }).eq("id", executionId);
+    await supabase.from("execution_orders").update({ status: "protected_native", bracket_mode: "exchange_native", protection_status: "protected_native", sl_order_id: sl.algoId, tp1_order_id: tp1.algoId, tp2_order_id: tp2.algoId, binance_sl_order_id: sl.algoId, binance_tp1_order_id: tp1.algoId, binance_tp2_order_id: tp2.algoId, sl_algo_id: sl.algoId, tp1_algo_id: tp1.algoId, tp2_algo_id: tp2.algoId, sl_client_algo_id: sl.clientAlgoId, tp1_client_algo_id: tp1.clientAlgoId, tp2_client_algo_id: tp2.clientAlgoId, native_protection_verified: true, managed_fallback_active: false, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: "", raw_exchange_response: raw, recovery_status: "healthy", repair_attempts: 0, last_action_taken: "initial_protection_placed", updated_at: new Date().toISOString() }).eq("id", executionId);
+    await supabase.rpc("upsert_trade_management_truth", {
+      p_execution_order_id: executionId,
+      p_provider: "binance",
+      p_environment: "testnet",
+      p_symbol: plan.symbol,
+      p_direction: plan.side === "BUY" ? "long" : "short",
+      p_status: "protected_native",
+      p_protection_status: "protected_native",
+      p_sl_present: true,
+      p_tp1_present: true,
+      p_tp2_present: true,
+      p_entry_price: Number(plan.entryPrice),
+      p_mark_price: null,
+      p_unrealized_pnl: 0,
+      p_quantity: Number(plan.quantity),
+      p_leverage: Number(plan.leverage),
+      p_sl_price: Number(plan.stopLoss),
+      p_tp1_price: Number(plan.tp1),
+      p_tp2_price: Number(plan.tp2),
+      p_monitor_run_id: "",
+      p_repair_attempts: 0,
+      p_recovery_status: "healthy",
+      p_latest_error: null,
+      p_last_action_taken: "initial_protection_placed"
+    }).catch((err) => console.error("upsert_trade_management_truth failed", err));
     await logEvent(supabase, executionId, "protected_native", "SL/TP reduce-only algo protection submitted and verified on Binance algo-order endpoints", raw);
     return { mode: "exchange_native", protection: "protected_native", sl_order_id: sl.algoId, tp1_order_id: tp1.algoId, tp2_order_id: tp2.algoId, sl_algo_id: sl.algoId, tp1_algo_id: tp1.algoId, tp2_algo_id: tp2.algoId, raw };
   } catch (e) {
@@ -1460,7 +1485,32 @@ async function submitBracketOrders(supabase: SupabaseClient, executionId: string
     const fallbackSafe = plan.stopLoss > 0 && plan.tp1 > 0 && plan.tp2 > 0 && plan.tp1Quantity > 0 && plan.tp2Quantity > 0;
     if (fallbackSafe) {
       const raw = { intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, error };
-      await supabase.from("execution_orders").update({ status: "protection_failed", bracket_mode: "exchange_native", protection_status: "protection_failed", native_protection_verified: false, managed_fallback_active: false, intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, protection_critical_reason: "entry_filled_without_verified_sl_tp1_tp2", updated_at: new Date().toISOString() }).eq("id", executionId);
+      await supabase.from("execution_orders").update({ status: "protection_failed", bracket_mode: "exchange_native", protection_status: "protection_failed", native_protection_verified: false, managed_fallback_active: false, intended_sl: plan.stopLoss, intended_tp1: plan.tp1, intended_tp2: plan.tp2, tp1_quantity: plan.tp1Quantity, tp2_quantity: plan.tp2Quantity, remaining_quantity: plan.quantity, tp1_filled: false, sl_moved_to_be: false, be_stop_level: null, latest_protection_error: error, raw_exchange_response: raw, last_exchange_error: error, protection_critical_reason: "entry_filled_without_verified_sl_tp1_tp2", recovery_status: "recovery_required", latest_error: error, repair_attempts: 1, last_action_taken: "initial_protection_failed", updated_at: new Date().toISOString() }).eq("id", executionId);
+      await supabase.rpc("upsert_trade_management_truth", {
+        p_execution_order_id: executionId,
+        p_provider: "binance",
+        p_environment: "testnet",
+        p_symbol: plan.symbol,
+        p_direction: plan.side === "BUY" ? "long" : "short",
+        p_status: "protection_failed",
+        p_protection_status: "protection_failed",
+        p_sl_present: false,
+        p_tp1_present: false,
+        p_tp2_present: false,
+        p_entry_price: Number(plan.entryPrice),
+        p_mark_price: null,
+        p_unrealized_pnl: 0,
+        p_quantity: Number(plan.quantity),
+        p_leverage: Number(plan.leverage),
+        p_sl_price: Number(plan.stopLoss),
+        p_tp1_price: Number(plan.tp1),
+        p_tp2_price: Number(plan.tp2),
+        p_monitor_run_id: "",
+        p_repair_attempts: 1,
+        p_recovery_status: "recovery_required",
+        p_latest_error: error,
+        p_last_action_taken: "initial_protection_failed"
+      }).catch((err) => console.error("upsert_trade_management_truth failed", err));
       await logEvent(supabase, executionId, "protection_failed", "Exchange-native SL/TP unavailable or unverified; trade remains PROTECTION_FAILED until monitor recovery verifies SL+TP1+TP2", raw);
       return { mode: "exchange_native", protection: "protection_failed", raw, error };
     }
@@ -1790,6 +1840,31 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     const verification = verifyBybitProtectionSet(providerSymbol, sig.direction === "buy" ? "long" : "short", plan, { sl, tp1, tp2 }, orders.list ?? []);
     if (!verification.verified) throw new Error(`bybit_protection_verify_failed: ${verification.errors.join(",")}`);
     await supabase.from("execution_orders").update({ status: "protected_native", lifecycle_state: "PROTECTION_CONFIRMED", position_confirmed: true, sl_confirmed: true, tp1_confirmed: true, tp2_confirmed: true, provider_status: "provider_submitted", protection_status: "protected_native", native_protection_verified: true, sl_order_id: sl.orderId ?? sl.orderLinkId ?? null, tp1_order_id: tp1.orderId ?? tp1.orderLinkId ?? null, tp2_order_id: tp2.orderId ?? tp2.orderLinkId ?? null, raw_exchange_response: { entry, sl, tp1, tp2, protection_verify: orders, verification, plan, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
+    await supabase.rpc("upsert_trade_management_truth", {
+      p_execution_order_id: executionId,
+      p_provider: "bybit",
+      p_environment: "demo",
+      p_symbol: providerSymbol,
+      p_direction: sig.direction === "buy" ? "long" : "short",
+      p_status: "protected_native",
+      p_protection_status: "protected_native",
+      p_sl_present: true,
+      p_tp1_present: true,
+      p_tp2_present: true,
+      p_entry_price: Number(plan.entryPrice),
+      p_mark_price: null,
+      p_unrealized_pnl: 0,
+      p_quantity: Number(plan.quantity),
+      p_leverage: Number(plan.leverage),
+      p_sl_price: Number(plan.stopLoss),
+      p_tp1_price: Number(plan.tp1),
+      p_tp2_price: Number(plan.tp2),
+      p_monitor_run_id: "",
+      p_repair_attempts: 0,
+      p_recovery_status: "healthy",
+      p_latest_error: null,
+      p_last_action_taken: "initial_protection_placed"
+    }).catch((err) => console.error("upsert_trade_management_truth failed", err));
     await logEvent(supabase, executionId, "protection_verified", `Bybit ${bybitEnvironment()} SL/TP1/TP2 conditionals submitted and verified`, { sl, tp1, tp2 });
     return { provider: "bybit", exchange: bybitExchangeName(), success: true, submitted_order: true, status: "protected_native", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? null, sl_order_id: sl.orderId ?? null, tp1_order_id: tp1.orderId ?? null, tp2_order_id: tp2.orderId ?? null };
   } catch (e) {
@@ -1798,6 +1873,34 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     await recordSymbolFailure(supabase, "bybit", providerSymbol, classifySymbolFailure(msg), { execution_id: executionId, reasonCode, message: msg });
     const unsafeAfterEntry = msg.includes("bybit_sl_submit_failed") || msg.includes("bybit_tp1_submit_failed") || msg.includes("bybit_tp2_submit_failed") || msg.includes("bybit_protection_verify_failed");
     await supabase.from("execution_orders").update({ status: unsafeAfterEntry ? "protection_failed" : "failed", lifecycle_state: unsafeAfterEntry ? "UNSAFE_POSITION" : "FAILED_NO_POSITION", position_confirmed: unsafeAfterEntry, manual_review_required: unsafeAfterEntry, error_message: `${reasonCode}: ${msg}`, last_exchange_error: reasonCode, provider_status: "provider_failed", protection_status: unsafeAfterEntry ? "protection_failed" : "unprotected_failed", raw_exchange_response: { plan, error: msg, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
+    
+    if (unsafeAfterEntry && plan) {
+      await supabase.rpc("upsert_trade_management_truth", {
+        p_execution_order_id: executionId,
+        p_provider: "bybit",
+        p_environment: "demo",
+        p_symbol: providerSymbol,
+        p_direction: sig.direction === "buy" ? "long" : "short",
+        p_status: "protection_failed",
+        p_protection_status: "protection_failed",
+        p_sl_present: false,
+        p_tp1_present: false,
+        p_tp2_present: false,
+        p_entry_price: Number(plan.entryPrice),
+        p_mark_price: null,
+        p_unrealized_pnl: 0,
+        p_quantity: Number(plan.quantity),
+        p_leverage: Number(plan.leverage),
+        p_sl_price: Number(plan.stopLoss),
+        p_tp1_price: Number(plan.tp1),
+        p_tp2_price: Number(plan.tp2),
+        p_monitor_run_id: "",
+        p_repair_attempts: 1,
+        p_recovery_status: "recovery_required",
+        p_latest_error: msg,
+        p_last_action_taken: "initial_protection_failed"
+      }).catch((err) => console.error("upsert_trade_management_truth failed", err));
+    }
     await logEvent(supabase, executionId, reasonCode, "Bybit provider failure isolated", { error: msg });
     return { provider: "bybit", exchange: bybitExchangeName(), success: false, submitted_order: false, blocker: reasonCode, error: msg, execution_id: executionId, symbol: providerSymbol };
   }
@@ -2354,6 +2457,54 @@ async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, pr
       await supabase.from("trade_management_truth").update({ protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now }).eq("provider", providerName).eq("environment", environment).eq("symbol", String(row.symbol)).eq("side", String(row.side));
     }
   }
+
+  // Strict reconciliation trigger for execution_orders
+  const activeStatuses = ["pending", "entry_submitted", "entry_filled", "protected", "protected_native", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection", "partially_closed"];
+  const { data: activeExecutions } = await supabase.from("execution_orders")
+    .select("*")
+    .eq("execution_provider", providerName)
+    .in("status", activeStatuses);
+
+  if (activeExecutions && activeExecutions.length > 0) {
+    for (const exec of activeExecutions) {
+      const execSymbol = String(exec.symbol).toUpperCase();
+      const posAmt = Math.abs(Number(exposure.positions.find(p => String(p.symbol).toUpperCase() === execSymbol)?.positionAmt ?? 0));
+      const hasPos = posAmt > 0;
+
+      if (!hasPos) {
+        // If there is no position on the exchange, this execution order is closed!
+        await supabase.from("execution_orders").update({
+          status: "closed_synced",
+          protection_status: "unprotected",
+          native_protection_verified: false,
+          remaining_quantity: 0,
+          current_position_size: 0,
+          last_monitor_action: "sync_all_positions_now_reconciliation",
+          updated_at: now
+        }).eq("id", exec.id);
+      } else {
+        // If there is a position, let's sync the SL/TP status from the exchange's open orders!
+        const symbolOrders = exposure.open_orders.filter(o => String(o.symbol).toUpperCase() === execSymbol);
+        const rowLike = { symbol: execSymbol, side: exec.side, provider: providerName, environment };
+        const confirmed = classifyRawProtection(providerName, rowLike, symbolOrders);
+        const ok = confirmed.status === "protected";
+        
+        await supabase.from("execution_orders").update({
+          status: ok ? "protected_native" : "entry_filled",
+          protection_status: confirmed.status === "protected" ? "protected_native" : confirmed.status,
+          native_protection_verified: ok,
+          current_position_size: Number(exposure.positions.find(p => String(p.symbol).toUpperCase() === execSymbol)?.positionAmt ?? posAmt),
+          latest_mark_price: Number(exposure.positions.find(p => String(p.symbol).toUpperCase() === execSymbol)?.markPrice ?? 0),
+          sl_order_id: String(confirmed.sl?.orderId ?? confirmed.sl?.algoId ?? "") || null,
+          tp1_order_id: String(confirmed.tp1?.orderId ?? confirmed.tp1?.algoId ?? "") || null,
+          tp2_order_id: String(confirmed.tp2?.orderId ?? confirmed.tp2?.algoId ?? "") || null,
+          last_monitor_checked_at: now,
+          updated_at: now
+        }).eq("id", exec.id);
+      }
+    }
+  }
+
   return { success: true, provider: providerName, wallet_reachable: true, positions_fetch_success: true, orders_fetch_success: true, open_positions_found: rows.length, open_orders_found: exposure.open_orders.length, protected_count: protectedCount, unsafe_count: unsafeCount, closed_marked: closedMarked, latest_sync_at: now, rows };
 }
 
@@ -2522,6 +2673,62 @@ async function runTradeSupervisorForProvider(supabase: SupabaseClient, providerN
   const startedAt = new Date().toISOString();
   const runId = `${providerName}_${crypto.randomUUID()}`;
   const perf: Json = { db_query_count: 0, exchange_call_count: 0, symbols_scanned: 0, positions_scanned: 0, orders_scanned: 0, repair_attempts: 0, slowest_stage: null };
+
+  const providerControl = await getProviderControl(supabase, providerName).catch(() => null);
+  const hasKeys = providerName === "binance"
+    ? Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY") && Deno.env.get("BINANCE_TESTNET_API_SECRET"))
+    : Boolean((Deno.env.get("BYBIT_TESTNET_API_KEY") && Deno.env.get("BYBIT_TESTNET_API_SECRET")) || (Deno.env.get("BYBIT_API_KEY") && Deno.env.get("BYBIT_API_SECRET")));
+
+  if (providerControl && !providerControl.enabled) {
+    const result = {
+      provider: providerName,
+      run_id: runId,
+      wallet_reachable: false,
+      positions_found: 0,
+      orders_found: 0,
+      protected_count: 0,
+      unsafe_count: 0,
+      repair_attempts: 0,
+      repair_successes: 0,
+      duplicate_orders_found: 0,
+      duplicate_orders_cancelled: 0,
+      latest_run: new Date().toISOString(),
+      latest_success: false,
+      latest_error: "PROVIDER_DISABLED",
+      skipped: true,
+      blocker: "PROVIDER_DISABLED",
+      duration_ms: Date.now() - cycleStarted,
+      performance: perf,
+    };
+    await recordSupervisorHeartbeat(supabase, providerName, result, startedAt, triggerSource);
+    return result;
+  }
+
+  if (!hasKeys) {
+    const result = {
+      provider: providerName,
+      run_id: runId,
+      wallet_reachable: false,
+      positions_found: 0,
+      orders_found: 0,
+      protected_count: 0,
+      unsafe_count: 0,
+      repair_attempts: 0,
+      repair_successes: 0,
+      duplicate_orders_found: 0,
+      duplicate_orders_cancelled: 0,
+      latest_run: new Date().toISOString(),
+      latest_success: false,
+      latest_error: "NO_API_KEYS",
+      skipped: true,
+      blocker: "NO_API_KEYS",
+      duration_ms: Date.now() - cycleStarted,
+      performance: perf,
+    };
+    await recordSupervisorHeartbeat(supabase, providerName, result, startedAt, triggerSource);
+    return result;
+  }
+
   const controls = await getSupervisorControls(supabase).catch(() => ({ supervisor_enabled: true, auto_repair_enabled: false, max_repairs_per_provider_per_cycle: 5, max_duplicate_cancels_per_cycle: 10 }));
   perf.db_query_count = Number(perf.db_query_count) + 1;
   if (!controls.supervisor_enabled && triggerSource === "pg_cron") {

@@ -10,6 +10,7 @@ const FUNCTION_NAME = "admin-operator-action";
 const ROUTE = "/functions/v1/admin-operator-action";
 const SUPPORTED_ACTIONS = [
   "run_scanner_now", "run_supervisor_now", "run_binance_monitor_now", "run_bybit_monitor_now", "repair_protection_now", "run_runtime_proof", "run_telegram_test", "run_news_brain",
+  "refresh_exchange", "retry_verification", "retry_protection",
   "pause_scanner", "resume_scanner", "pause_supervisor", "resume_supervisor", "pause_telegram", "resume_telegram", "pause_news_brain", "resume_news_brain", "pause_auto_repair", "resume_auto_repair",
 ] as const;
 type Action = typeof SUPPORTED_ACTIONS[number];
@@ -31,15 +32,43 @@ async function verifyAdmin(req: Request, supabase: ReturnType<typeof createClien
 }
 
 async function insertEvent(supabase: ReturnType<typeof createClient>, row: Json): Promise<string | null> {
-  const compat = { ...row, result: row.status, error: row.exact_error, actor_user_id: row.user_id, raw: row.result_json, summary: row.result_summary ?? "" };
-  const { data, error } = await supabase.from("operator_runtime_events").insert(compat).select("id").maybeSingle();
+  const cleanRow = {
+    source: String(row.source ?? ""),
+    action: String(row.action ?? ""),
+    result: String(row.status ?? "RUNNING"),
+    summary: String(row.result_summary ?? ""),
+    provider: row.provider ? String(row.provider) : null,
+    symbols_affected: Array.isArray(row.symbols_affected) ? row.symbols_affected : [],
+    route: row.route ? String(row.route) : null,
+    function_name: row.function_name ? String(row.function_name) : null,
+    blocker: row.blocker ? String(row.blocker) : null,
+    error: row.exact_error ? String(row.exact_error) : null,
+    raw: row.result_json && typeof row.result_json === "object" ? row.result_json : {},
+    actor_user_id: row.user_id ? String(row.user_id) : null,
+    started_at: row.started_at ? String(row.started_at) : null,
+    finished_at: row.finished_at ? String(row.finished_at) : null,
+    duration_ms: row.duration_ms !== undefined ? Number(row.duration_ms) : null,
+    telegram_sent: typeof row.telegram_sent === "boolean" ? row.telegram_sent : false,
+  };
+  const { data, error } = await supabase.from("operator_runtime_events").insert(cleanRow).select("id").maybeSingle();
   if (error) console.error("operator_runtime_events insert failed", error.message);
   return data?.id ? String(data.id) : null;
 }
 async function updateEvent(supabase: ReturnType<typeof createClient>, id: string | null, patch: Json) {
   if (!id) return;
-  const compat = { ...patch, result: patch.status, error: patch.exact_error, raw: patch.result_json, summary: patch.result_summary ?? "" };
-  await supabase.from("operator_runtime_events").update(compat).eq("id", id);
+  const cleanPatch: Json = {};
+  if (patch.status !== undefined) cleanPatch.result = String(patch.status);
+  if (patch.result_summary !== undefined) cleanPatch.summary = String(patch.result_summary);
+  if (patch.symbols_affected !== undefined) cleanPatch.symbols_affected = patch.symbols_affected;
+  if (patch.blocker !== undefined) cleanPatch.blocker = patch.blocker ? String(patch.blocker) : null;
+  if (patch.exact_error !== undefined) cleanPatch.error = patch.exact_error ? String(patch.exact_error) : null;
+  if (patch.result_json !== undefined) cleanPatch.raw = patch.result_json && typeof patch.result_json === "object" ? patch.result_json : {};
+  if (patch.finished_at !== undefined) cleanPatch.finished_at = String(patch.finished_at);
+  if (patch.duration_ms !== undefined) cleanPatch.duration_ms = Number(patch.duration_ms);
+  if (patch.telegram_sent !== undefined) cleanPatch.telegram_sent = Boolean(patch.telegram_sent);
+
+  const { error } = await supabase.from("operator_runtime_events").update(cleanPatch).eq("id", id);
+  if (error) console.error("operator_runtime_events update failed", error.message);
 }
 
 async function invoke(functionName: string, body: Json) {
@@ -72,6 +101,9 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
   if (action === "run_binance_monitor_now") return await invoke("binance-testnet-execution", { action, provider: "binance", source: FUNCTION_NAME });
   if (action === "run_bybit_monitor_now") return await invoke("binance-testnet-execution", { action, provider: "bybit", source: FUNCTION_NAME });
   if (action === "repair_protection_now") return await invoke("binance-testnet-execution", { action: "repair_all_protection_now", provider: provider ?? "all", source: FUNCTION_NAME });
+  if (action === "refresh_exchange") return await invoke("binance-testnet-execution", { action: "sync_all_positions_now", source: FUNCTION_NAME });
+  if (action === "retry_verification") return await invoke("binance-testnet-execution", { action: "run_trade_supervisor_cycle", provider: provider ?? "all", source: FUNCTION_NAME });
+  if (action === "retry_protection") return await invoke("binance-testnet-execution", { action: "repair_all_protection_now", provider: provider ?? "all", source: FUNCTION_NAME });
   if (action === "run_runtime_proof") {
     const proofStarted = Date.now();
     const checks: Json[] = [];

@@ -924,8 +924,35 @@ async function submitProtectionForRow(
       tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
       intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
       latest_protection_error: "", tp1_filled: false, sl_moved_to_be: false,
+      recovery_status: "healthy", latest_error: null, repair_attempts: Number(row.repair_attempts ?? 0),
+      last_action_taken: "initial_protection_placed",
       protected_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }).eq("id", row.id);
+    await supabase.rpc("upsert_trade_management_truth", {
+      p_execution_order_id: row.id,
+      p_provider: "binance",
+      p_environment: row.environment || "testnet",
+      p_symbol: row.symbol,
+      p_direction: row.direction,
+      p_status: "protected_native",
+      p_protection_status: "protected_native",
+      p_sl_present: true,
+      p_tp1_present: true,
+      p_tp2_present: true,
+      p_entry_price: Number(row.entry_price ?? 0) || null,
+      p_mark_price: null,
+      p_unrealized_pnl: 0,
+      p_quantity: quantity,
+      p_leverage: Number(row.leverage ?? 0) || null,
+      p_sl_price: slTrigger,
+      p_tp1_price: tp1Trigger,
+      p_tp2_price: tp2Trigger,
+      p_monitor_run_id: "",
+      p_repair_attempts: Number(row.repair_attempts ?? 0),
+      p_recovery_status: "healthy",
+      p_latest_error: null,
+      p_last_action_taken: "initial_protection_placed"
+    }).catch((err) => console.error("upsert_trade_management_truth failed", err));
     await logEvent(supabase, row, "protected_native", `Monitor placed native SL/TP: sl=${slTrigger} tp1=${tp1Trigger} tp2=${tp2Trigger} qty=${quantity}`, { slOrder, tp1Order, tp2Order, verification }, stats);
     stats.updated += 1;
     stats.protected += 1;
@@ -937,8 +964,38 @@ async function submitProtectionForRow(
       native_protection_verified: false, managed_fallback_active: false,
       intended_sl: sl, intended_tp1: tp1Price, intended_tp2: tp2Price,
       tp1_quantity: tp1Qty, tp2_quantity: tp2Qty, remaining_quantity: quantity,
-      latest_protection_error: error, updated_at: new Date().toISOString(),
+      latest_protection_error: error,
+      recovery_status: "recovery_required",
+      latest_error: error,
+      repair_attempts: Number(row.repair_attempts ?? 0) + 1,
+      last_action_taken: "initial_protection_failed",
+      updated_at: new Date().toISOString(),
     }).eq("id", row.id);
+    await supabase.rpc("upsert_trade_management_truth", {
+      p_execution_order_id: row.id,
+      p_provider: "binance",
+      p_environment: row.environment || "testnet",
+      p_symbol: row.symbol,
+      p_direction: row.direction,
+      p_status: "protection_failed",
+      p_protection_status: "protection_failed",
+      p_sl_present: false,
+      p_tp1_present: false,
+      p_tp2_present: false,
+      p_entry_price: Number(row.entry_price ?? 0) || null,
+      p_mark_price: null,
+      p_unrealized_pnl: 0,
+      p_quantity: quantity,
+      p_leverage: Number(row.leverage ?? 0) || null,
+      p_sl_price: slTrigger,
+      p_tp1_price: tp1Trigger,
+      p_tp2_price: tp2Trigger,
+      p_monitor_run_id: "",
+      p_repair_attempts: Number(row.repair_attempts ?? 0) + 1,
+      p_recovery_status: "recovery_required",
+      p_latest_error: error,
+      p_last_action_taken: "initial_protection_failed"
+    }).catch((err) => console.error("upsert_trade_management_truth failed", err));
     await logEvent(supabase, row, "protection_recovery_failed", `Monitor protection recovery failed verification: ${error}`, { error }, stats);
     stats.updated += 1;
     stats.unsafe_positions += 1;

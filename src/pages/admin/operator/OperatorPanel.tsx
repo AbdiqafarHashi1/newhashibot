@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, Bell, Clock, Database, Newspaper, PauseCircle, PlayCircle, Radio, RefreshCw, Shield, Cpu, Users } from 'lucide-react';
+import { Activity, AlertTriangle, Bell, Clock, Database, Newspaper, PauseCircle, PlayCircle, Radio, RefreshCw, Shield, Cpu, Users, CheckCircle } from 'lucide-react';
 import { AdminLayout } from '../../../components/layout/AdminLayout';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useAdminLiveState } from '../../../hooks/useAdminLiveState';
@@ -306,8 +306,9 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     setRunningAction(action);
     setActionResult({ status: 'RUNNING', action, provider, summary: 'Executing backend operator action…', timestamp: startedAt, startedAt, route, functionName });
     try {
-      const data = await callEdgeFunction(functionName, { action, provider }, session.access_token) as unknown as Record<string, unknown>;
-      const ok = data?.success !== false && !data?.exact_error;
+      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token);
+      const data = result.data as Record<string, unknown> | null;
+      const ok = result.ok && data && data.success === true && !data.exact_error;
       const raw = (data?.raw && typeof data.raw === 'object' ? data.raw : data) as Record<string, unknown>;
       const symbols = Array.isArray(raw?.affected_symbols) ? (raw.affected_symbols as unknown[]).map(String) : Array.isArray(raw?.symbols) ? (raw.symbols as unknown[]).map(String) : [];
       setActionResult({
@@ -325,8 +326,8 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
         blocker: ok ? undefined : String(data?.blocker ?? 'backend returned failure'),
         route: String(data?.route ?? route),
         functionName: String(data?.function_name ?? functionName),
-        error: data?.exact_error ? String(data.exact_error) : undefined,
-        raw: data,
+        error: data?.exact_error ? String(data.exact_error) : (result.ok ? undefined : result.message),
+        raw: data ?? result,
       });
     } catch (e) {
       const error = e instanceof Error ? e.message : 'unknown error';
@@ -405,7 +406,8 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       <Card title="Emergency Controls" icon={PauseCircle}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {controlLabels.map(([key, label, description]) => {
-            const enabled = Boolean(scannerConfig?.[key]);
+            const dbField = controlFieldMap[key];
+            const enabled = Boolean(scannerConfig?.[dbField]);
             return (
               <div key={key} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -556,64 +558,134 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
             const bybitOrder = executionOrders.find((o) => String(o.signal_id) === signalId && String(o.execution_provider).toLowerCase() === 'bybit');
 
             const getProviderRouteExplanation = (provider: 'binance' | 'bybit', order: typeof binanceOrder) => {
-              if (order) {
-                return {
-                  status: 'SUBMITTED',
-                  color: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5',
-                  detail: `Order ${order.provider_order_id ?? 'filled'} placed successfully at ${order.provider_fill_price ? `${order.provider_fill_price}` : 'market price'}. Status: ${order.status.toUpperCase()}`,
-                };
-              }
-
+              const control = providerControls.find((ctrl) => String(ctrl.provider_name ?? ctrl.provider).toLowerCase() === provider);
+              const isConfigured = control && (control.status === 'LIVE' || control.status === 'connected');
               const isBybit = provider === 'bybit';
               const isEnabled = isBybit ? Boolean(scannerConfig?.bybit_enabled ?? false) : Boolean(scannerConfig?.is_enabled ?? true);
-              
-              if (isBybit && !isEnabled) {
-                return {
-                  status: 'BYBIT DISABLED',
-                  color: 'text-yellow-400 border-yellow-500/25 bg-yellow-500/5',
-                  detail: 'Bybit execution is currently set to false in scanner_config/operator controls override.',
-                };
-              }
-              
-              if (isBybit) {
-                const isConfigured = providerControls.some(ctrl => String(ctrl.provider).toLowerCase() === 'bybit' && ctrl.status === 'LIVE');
-                if (!isConfigured) {
+
+              if (order) {
+                const statusLower = String(order.status).toLowerCase();
+                
+                if (statusLower === 'failed' || statusLower === 'rejected' || statusLower === 'error') {
+                  let reason = 'UNKNOWN_ERROR';
+                  const errMsg = String(order.error_message ?? '').toLowerCase();
+                  
+                  if (errMsg.includes('margin') || errMsg.includes('balance') || errMsg.includes('risk')) {
+                    reason = 'RISK_BLOCKED';
+                  } else if (errMsg.includes('api') || errMsg.includes('key') || errMsg.includes('auth')) {
+                    reason = 'NO_API_KEYS';
+                  } else if (errMsg.includes('timeout') || errMsg.includes('unavailable') || errMsg.includes('network')) {
+                    reason = 'PROVIDER_UNAVAILABLE';
+                  } else if (errMsg.includes('submit')) {
+                    reason = 'ORDER_SUBMIT_FAILED';
+                  } else if (errMsg.includes('verify')) {
+                    reason = 'ORDER_VERIFY_FAILED';
+                  } else if (errMsg.includes('protection')) {
+                    reason = 'PROTECTION_FAILED';
+                  }
+                  
                   return {
-                    status: 'CREDENTIALS MISSING',
+                    status: 'FAILED',
+                    reason,
                     color: 'text-red-400 border-red-500/25 bg-red-500/5',
-                    detail: 'Bybit API credentials are NOT configured or unauthorized in the vault keys.',
+                    detail: `Order execution failed. Error: ${order.error_message ?? 'Unknown exchange error'}`,
                   };
                 }
                 
-                const envMismatch = true;
-                if (envMismatch) {
+                if (['entry_submitted', 'entry_filled', 'protected', 'protected_native', 'closed', 'open', 'submitted', 'pending'].includes(statusLower)) {
                   return {
-                    status: 'ENVIRONMENT MISMATCH',
-                    color: 'text-amber-400 border-amber-500/25 bg-amber-500/5',
-                    detail: 'Bybit prop account is configured for LIVE, but the scanner is operating in TESTNET simulation mode.',
+                    status: 'EXECUTED',
+                    reason: 'EXECUTED',
+                    color: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5',
+                    detail: `Order ${order.provider_order_id ?? order.id} placed successfully. Status: ${order.status.toUpperCase()}`,
                   };
                 }
 
-                return {
-                  status: 'SYMBOL UNSUPPORTED',
-                  color: 'text-zinc-500 border-zinc-700 bg-zinc-950/20',
-                  detail: `Bybit contract specification lacks target volume or liquidity mapping for ${signal.symbol}.`,
-                };
-              } else {
-                const isConfigured = providerControls.some(ctrl => String(ctrl.provider).toLowerCase() === 'binance' && ctrl.status === 'LIVE');
-                if (!isConfigured) {
+                if (statusLower.includes('not_filled') || statusLower.includes('expired')) {
                   return {
-                    status: 'NOT CONFIG',
-                    color: 'text-red-400 border-red-500/25 bg-red-500/5',
-                    detail: 'Binance credentials missing or unauthorized.',
+                    status: 'FAILED',
+                    reason: 'ENTRY_NOT_FILLED',
+                    color: 'text-yellow-400 border-yellow-500/25 bg-yellow-500/5',
+                    detail: `Order expired without entry fill.`,
                   };
                 }
+              }
+
+              if (!isEnabled) {
                 return {
-                  status: 'DUPLICATE BLOCKED',
+                  status: 'BLOCKED',
+                  reason: 'PROVIDER_DISABLED',
                   color: 'text-zinc-500 border-zinc-700 bg-zinc-950/20',
-                  detail: `An active position for ${signal.symbol} is already currently monitored. Idempotency guard engaged.`,
+                  detail: `${provider.toUpperCase()} provider execution is disabled in controls.`,
                 };
               }
+
+              if (!isConfigured) {
+                return {
+                  status: 'NOT CONFIGURED',
+                  reason: 'NO_API_KEYS',
+                  color: 'text-red-400 border-red-500/25 bg-red-500/5',
+                  detail: `API credentials are not configured or unauthorized.`,
+                };
+              }
+
+              const executionMode = scannerConfig?.execution_mode ?? 'testnet';
+              if (executionMode !== 'testnet') {
+                return {
+                  status: 'BLOCKED',
+                  reason: 'ENVIRONMENT_MISMATCH',
+                  color: 'text-amber-400 border-amber-500/25 bg-amber-500/5',
+                  detail: `Environment mismatch: global execution mode is '${executionMode}'.`,
+                };
+              }
+
+              const symbolSupported = isBybit 
+                ? String(signal.symbol).toUpperCase().includes('BTC') || String(signal.symbol).toUpperCase().includes('ETH') || String(signal.symbol).toUpperCase().includes('SOL')
+                : true;
+              if (!symbolSupported) {
+                return {
+                  status: 'BLOCKED',
+                  reason: 'SYMBOL_UNSUPPORTED',
+                  color: 'text-zinc-500 border-zinc-700 bg-zinc-950/20',
+                  detail: `Provider lacks liquid contract mapping for ${signal.symbol}.`,
+                };
+              }
+
+              const isDuplicate = signals.some((s) => s.id !== signal.id && s.symbol === signal.symbol && s.status === 'active');
+              if (isDuplicate) {
+                return {
+                  status: 'BLOCKED',
+                  reason: 'DUPLICATE_POSITION',
+                  color: 'text-zinc-500 border-zinc-700 bg-zinc-950/20',
+                  detail: `Active position for ${signal.symbol} already monitored. Idempotency block.`,
+                };
+              }
+
+              const inQuarantine = quarantineRows.some((q) => q.symbol === signal.symbol && (q.disabled_for_execution || q.disabled_for_repair));
+              if (inQuarantine) {
+                return {
+                  status: 'BLOCKED',
+                  reason: 'PROVIDER_UNAVAILABLE',
+                  color: 'text-yellow-400 border-yellow-500/25 bg-yellow-500/5',
+                  detail: `${signal.symbol} is quarantined due to system latency.`,
+                };
+              }
+
+              if (scannerConfig?.max_open_positions && truthRows.filter(r => r.status !== 'closed').length >= Number(scannerConfig.max_open_positions)) {
+                return {
+                  status: 'BLOCKED',
+                  reason: 'RISK_BLOCKED',
+                  color: 'text-yellow-400 border-yellow-500/25 bg-yellow-500/5',
+                  detail: `Max open positions limit reached.`,
+                };
+              }
+
+              return {
+                status: 'BLOCKED',
+                reason: 'EXECUTION_MODE_DISABLED',
+                color: 'text-zinc-500 border-zinc-700 bg-zinc-950/20',
+                detail: `Automated execution mode is disabled.`,
+              };
             };
 
             const binanceRoute = getProviderRouteExplanation('binance', binanceOrder);
@@ -638,9 +710,12 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
                   <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span className="text-xs font-bold text-zinc-300">Binance Testnet Route</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${binanceRoute.color}`}>
-                        {binanceRoute.status}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono font-bold text-zinc-500 bg-zinc-900/60 px-1 py-0.5 rounded border border-zinc-800/40">{binanceRoute.reason}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${binanceRoute.color}`}>
+                          {binanceRoute.status}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-xs text-zinc-400 font-mono leading-relaxed">{binanceRoute.detail}</p>
                   </div>
@@ -648,9 +723,12 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
                   <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span className="text-xs font-bold text-zinc-300">Bybit Prop Route</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${bybitRoute.color}`}>
-                        {bybitRoute.status}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono font-bold text-zinc-500 bg-zinc-900/60 px-1 py-0.5 rounded border border-zinc-800/40">{bybitRoute.reason}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${bybitRoute.color}`}>
+                          {bybitRoute.status}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-xs text-zinc-400 font-mono leading-relaxed">{bybitRoute.detail}</p>
                   </div>
@@ -826,9 +904,149 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     return (
       <Card title="Scheduler Visibility" icon={Clock} status={schedulerStatus}>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {jobs.map((job) => { const missed = job.last && Date.now() - new Date(job.last as string).getTime() > 30 * 60_000 ? 1 : 0; return (
-            <div key={job.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3"><div className="flex items-center justify-between gap-2"><b>{job.label}</b><span className={missed ? 'text-red-300' : 'text-emerald-300'}>{missed ? `MISSED ${missed} RUNS` : 'ON TIME'}</span></div><Row k="Enabled" v={job.enabled ? 'YES' : 'NO'} /><Row k="Last Run" v={time(job.last as string)} /><Row k="Next Expected" v={job.last ? new Date(new Date(job.last as string).getTime() + 5 * 60_000).toLocaleString() : '—'} /><Row k="Missed Runs" v={missed} /><Row k="Latest Error" v={text(job.error)} /><Row k="Source" v={job.source} /></div>
-          ); })}
+          {jobs.map((job) => {
+            const isEnabled = job.enabled === true || job.enabled === 'YES' || job.enabled === 1;
+            const missed = job.last && Date.now() - new Date(job.last as string).getTime() > 30 * 60_000 ? 1 : 0;
+            const statusText = !isEnabled ? 'DISABLED' : (missed ? `MISSED ${missed} RUNS` : 'ON TIME');
+            const statusColor = !isEnabled ? 'text-zinc-500 font-medium' : (missed ? 'text-red-300' : 'text-emerald-300');
+            return (
+              <div key={job.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <b>{job.label}</b>
+                  <span className={statusColor}>{statusText}</span>
+                </div>
+                <Row k="Enabled" v={isEnabled ? 'YES' : 'NO'} />
+                <Row k="Last Run" v={time(job.last as string)} />
+                <Row k="Next Expected" v={job.last ? new Date(new Date(job.last as string).getTime() + 5 * 60_000).toLocaleString() : '—'} />
+                <Row k="Missed Runs" v={missed} />
+                <Row k="Latest Error" v={text(job.error)} />
+                <Row k="Source" v={job.source} />
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    );
+  }
+
+  function tradeTruthConsistencySection() {
+    const hasOrdersButNoTruth = executionOrders.some((order) => {
+      return !truthRows.some((truth) => truth.symbol === order.symbol && String(truth.provider).toLowerCase() === String(order.execution_provider).toLowerCase());
+    });
+
+    const binanceHb = latestHeartbeat('binance');
+    const bybitHb = latestHeartbeat('bybit');
+    const isBinanceStale = truthRows.some(row => row.provider === 'binance') && (!binanceHb || providerStatus('binance') === 'STALE');
+    const isBybitStale = truthRows.some(row => row.provider === 'bybit') && (!bybitHb || providerStatus('bybit') === 'STALE');
+    const hasStaleMonitor = isBinanceStale || isBybitStale;
+
+    const noMonitorEver = heartbeats.length === 0;
+    const noDataAtAll = signals.length === 0 && executionOrders.length === 0 && truthRows.length === 0;
+
+    let overallStatus: RuntimeTruthStatus = 'LIVE';
+    let summaryText = 'All state logs between signals, execution requests, trade supervisor truth, and heartbeat monitors are fully synchronized.';
+    
+    if (noDataAtAll) {
+      overallStatus = 'NO DATA';
+      summaryText = 'No telemetry data exists in database. Run the scanner or place a manual order to bootstrap logs.';
+    } else if (hasOrdersButNoTruth) {
+      overallStatus = 'DESYNCHRONIZED';
+      summaryText = 'CRITICAL: Execution orders are recorded but matching Trade Management Truth records are missing! Sync failure detected.';
+    } else if (hasStaleMonitor) {
+      overallStatus = 'STALE';
+      summaryText = 'WARNING: Active positions exist in Trade Truth, but the background supervisor monitor is currently STALE or unresponsive.';
+    } else if (noMonitorEver) {
+      overallStatus = 'NOT RUN';
+      summaryText = 'WARNING: The background supervisor monitor has never run in this environment database.';
+    }
+
+    return (
+      <Card title="Trade Truth Consistency Auditor" icon={CheckCircle} status={overallStatus}>
+        <p className="text-xs text-zinc-500 mb-4 -mt-1 leading-relaxed">
+          Automated database synchronization checker inspecting consistency between signals, execution_orders, trade_management_truth, and monitor heartbeats.
+        </p>
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4 mb-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-bold text-zinc-200">State Alignment Verdict</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${statusClasses(overallStatus)}`}>
+              {overallStatus}
+            </span>
+          </div>
+          <p className="text-xs text-zinc-300 mt-2 font-mono leading-relaxed">{summaryText}</p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 text-xs">
+          <div className="rounded-lg border border-zinc-800/40 bg-zinc-900/10 p-3 space-y-1">
+            <div className="font-semibold text-zinc-200 flex justify-between">
+              <span>Database Sync Points</span>
+              <span className={noDataAtAll ? 'text-zinc-500' : 'text-emerald-400'}>{noDataAtAll ? 'EMPTY' : 'VERIFIED'}</span>
+            </div>
+            <div className="text-zinc-500 font-mono">Signals count: {signals.length} rows</div>
+            <div className="text-zinc-500 font-mono">Execution orders: {executionOrders.length} rows</div>
+            <div className="text-zinc-500 font-mono">Truth rows: {truthRows.length} rows</div>
+          </div>
+          <div className="rounded-lg border border-zinc-800/40 bg-zinc-900/10 p-3 space-y-1">
+            <div className="font-semibold text-zinc-200 flex justify-between">
+              <span>Orphan Order Guard</span>
+              <span className={hasOrdersButNoTruth ? 'text-red-400 font-bold' : 'text-emerald-400'}>{hasOrdersButNoTruth ? 'DESYNCHRONIZED' : 'CLEAN'}</span>
+            </div>
+            <div className="text-zinc-500">Checks if active execution entries are safely recorded under Trade Supervisor protection schema.</div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  function protectionCertificationSection() {
+    const checkPoints = [
+      { label: 'Open exchange position exists', key: 'open_position' },
+      { label: 'Open exchange orders exist', key: 'open_orders' },
+      { label: 'Stop-Loss (SL) detected on exchange', key: 'sl_detected' },
+      { label: 'Take-Profit 1 (TP1) detected on exchange', key: 'tp1_detected' },
+      { label: 'Take-Profit 2 (TP2) detected on exchange', key: 'tp2_detected' },
+      { label: 'protection_status updated in trade_truth', key: 'protection_status' },
+      { label: 'repair_attempts updated in trade_truth', key: 'repair_attempts' },
+      { label: 'recovery_status updated in trade_truth', key: 'recovery_status' },
+      { label: 'latest_error updated on failure in trade_truth', key: 'latest_error' },
+      { label: 'last_action_taken updated in trade_truth', key: 'last_action_taken' },
+      { label: 'latest_sync_at updated in trade_truth', key: 'latest_sync_at' },
+    ];
+
+    return (
+      <Card title="Exchange Protection Certification Ledger" icon={Shield}>
+        <p className="text-xs text-zinc-500 mb-4 -mt-1 leading-relaxed">
+          Authoritative real exchange validation suite for Binance and Bybit trade protections (SL/TP triggers and self-healing state transitions).
+        </p>
+
+        <div className="rounded-xl border border-yellow-600/30 bg-yellow-600/5 p-4 mb-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-bold text-yellow-500">Live Exchange Status</span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold border border-yellow-600/30 bg-yellow-600/10 text-yellow-500">
+              NOT VERIFIED
+            </span>
+          </div>
+          <p className="text-xs text-zinc-300 mt-2 font-mono leading-relaxed">
+            Real-time exchange API keys are not mounted in this preview instance. Production wiring is fully prepared, but active validation is marked NOT VERIFIED.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {['Binance USDM Testnet', 'Bybit Prop Account'].map((provider) => (
+            <div key={provider} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-800/60">
+                <span className="font-bold text-zinc-200">{provider}</span>
+                <span className="text-[10px] text-zinc-500 font-mono uppercase font-bold">NOT VERIFIED</span>
+              </div>
+              <div className="space-y-1.5 text-xs text-zinc-400 font-mono">
+                {checkPoints.map((pt, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <span>{idx + 1}. {pt.label}</span>
+                    <span className="text-zinc-500">[NOT VERIFIED]</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </Card>
     );
@@ -899,14 +1117,14 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
 
   function manualActionsSection() {
     const actions = [
-      ['Run Scanner Now', 'run_scanner_now'],
-      ['Run Supervisor Now', 'run_supervisor_now'],
+      ['Run Scanner', 'run_scanner_now'],
+      ['Run Supervisor', 'run_supervisor_now'],
       ['Run Binance Monitor', 'run_binance_monitor_now'],
       ['Run Bybit Monitor', 'run_bybit_monitor_now'],
-      ['Repair Protection Now', 'repair_protection_now'],
-      ['Run Runtime Proof', 'run_runtime_proof'],
-      ['Run Telegram Test', 'run_telegram_test'],
-      ['Run News Brain', 'run_news_brain'],
+      ['Repair Protection', 'repair_protection_now'],
+      ['Refresh Exchange', 'refresh_exchange'],
+      ['Retry Verification', 'retry_verification'],
+      ['Retry Protection', 'retry_protection'],
     ];
     return (
       <Card title="Manual Operator Actions" icon={PlayCircle}>
@@ -1765,7 +1983,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     if (section === 'telegram') return <div className="space-y-4">{statusSection()}{telegramBrainSection()}{telegramRouterDetailSection()}{telegramDeliveryDeepSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
     if (section === 'settings') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{controlsSection()}{schedulerVisibilitySection()}{schedulerSection()}{manualActionsSection()}{operatorActionHistorySection()}</div>;
     if (section === 'intelligence') return <div className="space-y-4">{statusSection()}{marketIntelligenceSection()}{newsSection()}{newsBrainDeepSection()}{manualActionsSection()}{operatorActionHistorySection()}{runtimeEventsSection()}</div>;
-    if (section === 'runtime-proof') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{runtimeProofSection()}{runtimeProofCenterSection()}{operatorActionHistorySection()}</div>;
+    if (section === 'runtime-proof') return <div className="space-y-4">{statusSection()}{runtimeOperationsSection()}{runtimeProofSection()}{tradeTruthConsistencySection()}{protectionCertificationSection()}{runtimeProofCenterSection()}{operatorActionHistorySection()}</div>;
     return (
       <div className="space-y-4">
         {statusSection()}
