@@ -19,15 +19,7 @@ type Json = Record<string, unknown>;
 function json(body: Json, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 function errText(e: unknown) { return e instanceof Error ? e.message : String(e ?? "unknown error"); }
 async function parse(res: Response): Promise<unknown> { const t = await res.text(); try { return JSON.parse(t); } catch { return t; } }
-function successOf(raw: unknown) {
-  if (!raw || typeof raw !== "object") return true;
-  const obj = raw as Json;
-  if (obj.success === false) return false;
-  if (obj.latest_success === false) return false;
-  if (obj.error) return false;
-  if (obj.latest_error) return false;
-  return true;
-}
+function successOf(raw: unknown) { return !(raw && typeof raw === "object" && ((raw as Json).success === false || (raw as Json).error)); }
 
 async function verifyAdmin(req: Request, supabase: ReturnType<typeof createClient>) {
   const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
@@ -110,7 +102,7 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
   if (action === "run_bybit_monitor_now") return await invoke("binance-testnet-execution", { action, provider: "bybit", source: FUNCTION_NAME });
   if (action === "repair_protection_now") return await invoke("binance-testnet-execution", { action: "repair_all_protection_now", provider: provider ?? "all", source: FUNCTION_NAME });
   if (action === "refresh_exchange") return await invoke("binance-testnet-execution", { action: "sync_all_positions_now", source: FUNCTION_NAME });
-  if (action === "retry_verification") return await invoke("binance-testnet-execution", { action: "retry_verification", provider: provider ?? "all", source: FUNCTION_NAME });
+  if (action === "retry_verification") return await invoke("binance-testnet-execution", { action: "run_trade_supervisor_cycle", provider: provider ?? "all", source: FUNCTION_NAME });
   if (action === "retry_protection") return await invoke("binance-testnet-execution", { action: "repair_all_protection_now", provider: provider ?? "all", source: FUNCTION_NAME });
   if (action === "run_runtime_proof") {
     const proofStarted = Date.now();
@@ -152,18 +144,18 @@ Deno.serve(async (req) => {
   if (!SUPPORTED_ACTIONS.includes(action as Action)) {
     return json({ success: false, action, requested_action: action, provider, started_at: startedAt, finished_at: new Date().toISOString(), duration_ms: Date.now() - started, runtime_event_id: null, route: ROUTE, expected_route: ROUTE, function_name: FUNCTION_NAME, result_summary: "ACTION_NOT_WIRED", exact_error: "ACTION_NOT_WIRED", blocker: "ACTION_NOT_WIRED", supported_actions: SUPPORTED_ACTIONS, raw: body }, 400);
   }
-  runtimeEventId = await insertEvent(supabase, { user_id: auth.userId, action, provider, route: ROUTE, function_name: FUNCTION_NAME, started_at: startedAt, status: "RUNNING", exact_error: null, blocker: null, result_json: body, source: "Admin Operator Action", result_summary: "Operator action started" });
+  runtimeEventId = await insertEvent(supabase, { user_id: auth.userId, action, provider, route: ROUTE, function_name: FUNCTION_NAME, started_at: startedAt, status: "RUNNING", exact_error: null, blocker: null, result_json: body, source: "admin_operator_action", result_summary: "Operator action started" });
   try {
     const raw = await runAction(supabase, action as Action, provider);
     const ok = successOf(raw);
     const finishedAt = new Date().toISOString(); const duration = Date.now() - started;
-    const exact = ok ? null : String((raw as Json)?.failed_stage ?? (raw as Json)?.error ?? (raw as Json)?.latest_error ?? "backend returned success=false");
+    const exact = ok ? null : String((raw as Json)?.error ?? (raw as Json)?.latest_error ?? "backend returned success=false");
     const summary = String((raw as Json)?.summary ?? (raw as Json)?.status ?? (ok ? "Operator action completed" : "Operator action failed"));
     await updateEvent(supabase, runtimeEventId, { finished_at: finishedAt, duration_ms: duration, status: ok ? "SUCCESS" : "FAILED", exact_error: exact, blocker: ok ? null : exact, result_json: raw, result_summary: summary });
-    return json({ success: ok, action, provider, started_at: startedAt, finished_at: finishedAt, duration_ms: duration, runtime_event_id: runtimeEventId, route: ROUTE, function_name: FUNCTION_NAME, result_summary: summary, exact_error: exact, blocker: ok ? null : exact, failed_stage: (raw as Json)?.failed_stage ?? null, raw });
+    return json({ success: ok, action, provider, started_at: startedAt, finished_at: finishedAt, duration_ms: duration, runtime_event_id: runtimeEventId, route: ROUTE, function_name: FUNCTION_NAME, result_summary: summary, exact_error: exact, blocker: ok ? null : exact, raw });
   } catch (e) {
     const finishedAt = new Date().toISOString(); const duration = Date.now() - started; const exact = errText(e);
     await updateEvent(supabase, runtimeEventId, { finished_at: finishedAt, duration_ms: duration, status: "FAILED", exact_error: exact, blocker: exact.includes("ACTION_NOT_WIRED") ? "ACTION_NOT_WIRED" : exact, result_json: { error: exact }, result_summary: "Operator action failed" });
-    return json({ success: false, action, provider, started_at: startedAt, finished_at: finishedAt, duration_ms: duration, runtime_event_id: runtimeEventId, route: ROUTE, function_name: FUNCTION_NAME, result_summary: "Operator action failed", exact_error: exact, blocker: exact.includes("ACTION_NOT_WIRED") ? "ACTION_NOT_WIRED" : exact, failed_stage: "ORDER_PAYLOAD_INVALID", raw: { error: exact } }, 500);
+    return json({ success: false, action, provider, started_at: startedAt, finished_at: finishedAt, duration_ms: duration, runtime_event_id: runtimeEventId, route: ROUTE, function_name: FUNCTION_NAME, result_summary: "Operator action failed", exact_error: exact, blocker: exact.includes("ACTION_NOT_WIRED") ? "ACTION_NOT_WIRED" : exact, raw: { error: exact } }, 500);
   }
 });

@@ -202,8 +202,7 @@ class MockSupabaseClient {
         last_action_taken: 'syncProviderPositions',
         repair_attempts: 0
       }
-    ],
-    execution_monitor_heartbeats: []
+    ]
   };
 
   public auth = {
