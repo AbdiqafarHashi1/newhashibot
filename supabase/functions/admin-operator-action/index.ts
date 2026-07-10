@@ -98,8 +98,8 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
   if (action === "run_telegram_test") return await invoke("telegram-test", { source: FUNCTION_NAME, test_mode: true, action: "send_admin_digest" });
   if (action === "run_news_brain") return await invoke("intelligence-engine", { source: FUNCTION_NAME, kind: "news_digest" });
   if (action === "run_supervisor_now") return await invoke("binance-testnet-execution", { action: "run_trade_supervisor_cycle", provider: provider ?? "all", source: FUNCTION_NAME });
-  if (action === "run_binance_monitor_now") return await invoke("binance-testnet-execution", { action, provider: "binance", source: FUNCTION_NAME });
-  if (action === "run_bybit_monitor_now") return await invoke("binance-testnet-execution", { action, provider: "bybit", source: FUNCTION_NAME });
+  if (action === "run_binance_monitor_now") return await invoke("binance-testnet-monitor", { source: FUNCTION_NAME, triggered_by: "manual_operator" });
+  if (action === "run_bybit_monitor_now") return await invoke("bybit-testnet-monitor", { source: FUNCTION_NAME, triggered_by: "manual_operator" });
   if (action === "repair_protection_now") return await invoke("binance-testnet-execution", { action: "repair_all_protection_now", provider: provider ?? "all", source: FUNCTION_NAME });
   if (action === "refresh_exchange") return await invoke("binance-testnet-execution", { action: "sync_all_positions_now", source: FUNCTION_NAME });
   if (action === "retry_verification") return await invoke("binance-testnet-execution", { action: "run_trade_supervisor_cycle", provider: provider ?? "all", source: FUNCTION_NAME });

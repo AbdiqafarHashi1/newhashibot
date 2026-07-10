@@ -1182,7 +1182,7 @@ async function protectOrSafetyClose(supabase: SupabaseClient, row: Row, quantity
   }
 }
 
-async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStats, settings: MonitorSettings) {
+async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStats, settings: MonitorSettings, runId: string) {
   stats.checked += 1;
   const [positionBody, openOrdersBody, openAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/positionRisk", { symbol: row.symbol }),
@@ -1800,7 +1800,7 @@ Deno.serve(async (req: Request) => {
     for (const row of (rows ?? []) as Row[]) {
       try {
         /* legacy proof pattern: monitorRow(supabase, row, stats) */
-        await monitorRow(supabase, row, stats, settings as MonitorSettings);
+        await monitorRow(supabase, row, stats, settings as MonitorSettings, runId);
       } catch (rowErr) {
         try {
           await recordRowError(supabase, row, rowErr, stats);

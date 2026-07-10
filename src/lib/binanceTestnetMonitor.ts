@@ -733,7 +733,6 @@ function _processExecutionMonitorTick(
     out.updates.last_monitor_action = 'orphan_protection_orders_cancelled';
     out.updates.stale_checked_at = new Date().toISOString();
     return out;
-    return out;
   }
 
 

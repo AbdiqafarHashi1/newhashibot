@@ -202,7 +202,7 @@ export function detectProtectionViolations(
   dbRows: TradeManagementTruthRow[]
 ): ProtectionViolation {
   const symbol = position?.symbol ?? (orders[0]?.symbol || '');
-  const hasPosition = position && Math.abs(Number(position.quantity ?? 0)) > 0;
+  const hasPosition = Boolean(position && Math.abs(Number(position.quantity ?? 0)) > 0);
   const hasOrders = orders.length > 0;
 
   const activeDbRow = dbRows.find(
@@ -225,7 +225,7 @@ export function detectProtectionViolations(
 
   let missing_sl = false;
   let missing_tp = false;
-  if (hasPosition) {
+  if (hasPosition && position) {
     const classification = classifyProtection(position, orders);
     missing_sl = !classification.sl_present;
     missing_tp = !classification.tp1_present || !classification.tp2_present;
