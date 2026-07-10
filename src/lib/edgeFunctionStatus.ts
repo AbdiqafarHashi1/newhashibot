@@ -102,12 +102,12 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
             finished_at: new Date().toISOString()
           };
         } else if (action === 'run_binance_monitor_now' || action === 'run_bybit_monitor_now' || action === 'run_supervisor_now') {
-          const targetProvider = action.includes('binance') ? 'binance' : action.includes('bybit') ? 'bybit' : null;
+          const targetProvider = action.includes('binance') ? 'binance' : action.includes('bybit') ? 'bybit' : 'binance';
           const truthList = supabase.tables['trade_management_truth'] || [];
           const affected: string[] = [];
           
           truthList.forEach((row: any) => {
-            if (!targetProvider || row.provider === targetProvider) {
+            if (row.provider === targetProvider) {
               row.latest_sync_at = new Date().toISOString();
               row.last_action_taken = 'manual_monitor_sync_success';
               affected.push(row.symbol);

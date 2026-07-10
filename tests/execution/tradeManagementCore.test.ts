@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import type { ExchangeProvider, ExchangeAccountState, ExchangePosition, ExchangeOrder, EntryRequest, ProtectionRequest, ProviderResult, ReconcileRequest, ReplaceStopRequest, ProfitLockRequest } from '../../src/lib/exchange/exchangeProvider.js';
-import { classifyProtection, syncProviderPositions, repairUnprotectedPositions, TradeManagementTruthRow, TradeTruthStore } from '../../src/lib/exchange/tradeManagementCore.js';
+import { classifyProtection, syncProviderPositions, repairUnprotectedPositions, manageOpenPosition, TradeManagementTruthRow, TradeTruthStore } from '../../src/lib/exchange/tradeManagementCore.js';
 
 class MemoryStore implements TradeTruthStore {
   rows = new Map<string, TradeManagementTruthRow>();
@@ -185,6 +185,26 @@ assert.equal(metrics.drawdown, 0, 'drawdown calculated correctly');
 assert.equal(metrics.realized_pnl, -100, 'correct realized PnL sum');
 assert.equal(metrics.win_rate, 0.5, 'correct win rate');
 assert.equal(metrics.consecutive_losses, 1, 'consecutive loss streak tracked correctly');
+
+// 5. Test newly unified manageOpenPosition
+console.log('Running manageOpenPosition tests...');
+const providerManage = new FakeProvider();
+providerManage.placed = [];
+providerManage.positions = [{ symbol: 'BTCUSDT', side: 'long', quantity: 2, entryPrice: 100, markPrice: 101, unrealizedPnl: 2 }];
+providerManage.orders = []; // Missing protection!
+
+const storeManage = new MemoryStore();
+const manageResult = await manageOpenPosition(providerManage, storeManage, providerManage.positions[0]);
+assert.equal(manageResult.success, true);
+assert.deepEqual(manageResult.placed, ['sl', 'tp1', 'tp2']);
+assert.equal(providerManage.placed.includes('sl'), true);
+assert.equal(providerManage.placed.includes('tp1'), true);
+assert.equal(providerManage.placed.includes('tp2'), true);
+
+const updatedRow = await storeManage.listOpenTradeTruth('binance');
+assert.equal(updatedRow.length, 1);
+assert.equal(updatedRow[0].protection_status, 'protected');
+console.log('manageOpenPosition tests passed successfully.');
 
 console.log('Phase 2 Unified Core Verification tests passed successfully.');
 console.log('trade management core tests passed');
