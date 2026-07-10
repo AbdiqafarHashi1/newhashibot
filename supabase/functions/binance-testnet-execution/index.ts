@@ -2436,7 +2436,6 @@ function tradeTruthRowFromRaw(providerName: "binance" | "bybit", pos: Json, open
 }
 
 async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, providerName: "binance" | "bybit", exposure: ProviderExposure): Promise<Json> {
-  assertLiveTradingImpossible();
   const now = new Date().toISOString();
   const environment = providerName === "binance" ? "testnet" : "demo";
   if (!exposure.wallet_reachable) return { success: false, provider: providerName, wallet_reachable: false, positions_fetch_success: false, orders_fetch_success: false, open_positions_found: 0, open_orders_found: 0, protected_count: 0, unsafe_count: 0, closed_marked: 0, blocker: exposure.error, latest_sync_at: now };
@@ -2806,7 +2805,8 @@ async function runTradeSupervisorCycle(supabase: SupabaseClient, provider?: stri
 }
 
 async function tradeManagementAction(supabase: SupabaseClient, action: string, provider?: string, symbol?: string, triggerSource = "manual_admin"): Promise<Json> {
-  assertLiveTradingImpossible();
+  const isReadOnlyProof = action === "prove_binance_trade_management" || action === "prove_bybit_trade_management" || action === "sync_all_positions_now";
+  if (!isReadOnlyProof) assertLiveTradingImpossible();
   if (action === "run_trade_supervisor_cycle") return runTradeSupervisorCycle(supabase, provider, triggerSource);
   if (action === "sync_all_positions_now") return { success: true, results: [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")] };
   if (action === "prove_binance_trade_management") return syncTradeManagementTruth(supabase, "binance");

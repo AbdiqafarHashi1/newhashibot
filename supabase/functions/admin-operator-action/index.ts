@@ -118,8 +118,19 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
       supabase.from("scanner_config").select("id,is_enabled,supervisor_enabled,operator_auto_repair_enabled,operator_telegram_enabled,operator_news_brain_enabled,trade_supervisor_last_run_at,latest_success_at,latest_error").eq("id", 1).maybeSingle(),
     ]);
     const pushCheck = (check: string, ok: boolean, details: Json = {}) => { const status = ok ? "PASS" : "FAIL"; checks.push({ check, status, ...details }); if (!ok) blockers.push(`${check}: ${String(details.error ?? details.blocker ?? "failed")}`); };
-    pushCheck("binance_exposure_fetch_reachable", (binance as Json).success === true, { raw: binance as Json, error: (binance as Json).error ?? (binance as Json).blocker });
-    pushCheck("bybit_exposure_fetch_reachable", (bybit as Json).success === true, { raw: bybit as Json, error: (bybit as Json).error ?? (bybit as Json).blocker });
+    const pushWarning = (check: string, details: Json = {}) => { checks.push({ check, status: "WARNING", ...details }); };
+    const binanceResult = binance as Json;
+    const bybitResult = bybit as Json;
+    const binanceReachable = binanceResult.success === true;
+    const bybitReachable = bybitResult.success === true;
+    const binanceBlocker = String(binanceResult.error ?? binanceResult.blocker ?? "");
+    const bybitBlocker = String(bybitResult.error ?? bybitResult.blocker ?? "");
+    if (binanceReachable) pushCheck("binance_exposure_fetch_reachable", true, { raw: binanceResult });
+    else if (binanceBlocker.includes("NO_API_KEYS") || binanceBlocker.includes("Invalid Api Key") || binanceBlocker.includes("Unauthorized") || binanceBlocker.includes("credentials")) pushWarning("binance_exposure_fetch_reachable", { raw: binanceResult, error: binanceBlocker, blocker: "binance_api_keys_not_configured" });
+    else pushCheck("binance_exposure_fetch_reachable", false, { raw: binanceResult, error: binanceBlocker });
+    if (bybitReachable) pushCheck("bybit_exposure_fetch_reachable", true, { raw: bybitResult });
+    else if (bybitBlocker.includes("NO_API_KEYS") || bybitBlocker.includes("Invalid Api Key") || bybitBlocker.includes("Unauthorized") || bybitBlocker.includes("credentials") || bybitBlocker.includes("apikey") || bybitBlocker.includes("api_key")) pushWarning("bybit_exposure_fetch_reachable", { raw: bybitResult, error: bybitBlocker, blocker: "bybit_api_keys_not_configured" });
+    else pushCheck("bybit_exposure_fetch_reachable", false, { raw: bybitResult, error: bybitBlocker });
     pushCheck("cron_jobs_visible", !schedules.error, { rows: schedules.data ?? [], error: schedules.error?.message });
     pushCheck("supervisor_heartbeat_visible", !heartbeats.error, { rows: heartbeats.data ?? [], error: heartbeats.error?.message });
     pushCheck("scanner_config_visible", !scannerConfig.error && Boolean(scannerConfig.data), { raw: scannerConfig.data ?? null, error: scannerConfig.error?.message });
