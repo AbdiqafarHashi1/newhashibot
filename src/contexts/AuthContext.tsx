@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { isSupabaseClientEnabled, supabase, supabaseClientConfig, supabaseConfigErrorMessage } from '../lib/supabase';
 import { getFrontendSupabaseDebugInfo, getSupabaseClientConfig, logSupabaseEnvProof } from '../lib/supabaseEnv';
 import { Profile } from '../lib/types';
@@ -8,6 +8,7 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  lastKnownProfile: Profile | null;
   profileError: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthActionResult>;
@@ -65,7 +66,7 @@ function isAuthFetchFailure(error: unknown): boolean {
     || /fetch/i.test(message);
 }
 
-async function fetchOrCreateProfile(user: User): Promise<{ profile: Profile | null; error: string | null }> {
+async function fetchOrCreateProfile(user: User, previousProfile?: Profile | null): Promise<{ profile: Profile | null; error: string | null }> {
   if (!isSupabaseClientEnabled) {
     return { profile: null, error: supabaseConfigErrorMessage ?? 'Supabase frontend config invalid' };
   }
@@ -87,17 +88,11 @@ async function fetchOrCreateProfile(user: User): Promise<{ profile: Profile | nu
   }
 
   if (errMsg) {
-    console.warn('Failed to load profile, using fallback:', errMsg);
-    return {
-      profile: {
-        id: user.id,
-        email: user.email ?? '',
-        full_name: (user.user_metadata?.full_name as string) ?? '',
-        role: 'user',
-        created_at: new Date().toISOString()
-      },
-      error: null
-    };
+    console.error('Failed to load profile:', errMsg);
+    if (previousProfile?.id === user.id) {
+      return { profile: previousProfile, error: errMsg };
+    }
+    return { profile: null, error: errMsg };
   }
 
   if (data) return { profile: data, error: null };
@@ -143,6 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [lastKnownProfile, setLastKnownProfile] = useState<Profile | null>(null);
+  const lastKnownProfileRef = useRef<Profile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -150,8 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initializedRef = useRef(false);
 
   async function loadProfile(u: User): Promise<string | null> {
-    const { profile: p, error } = await fetchOrCreateProfile(u);
+    const { profile: p, error } = await fetchOrCreateProfile(u, lastKnownProfileRef.current);
     setProfile(p);
+    if (p) {
+      setLastKnownProfile(p);
+      lastKnownProfileRef.current = p;
+    }
     setProfileError(error);
     return error;
   }
@@ -164,8 +165,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (user) {
-      const { profile: p, error } = await fetchOrCreateProfile(user);
+      const { profile: p, error } = await fetchOrCreateProfile(user, lastKnownProfileRef.current);
       setProfile(p);
+      if (p) {
+        setLastKnownProfile(p);
+        lastKnownProfileRef.current = p;
+      }
       setProfileError(error);
     }
   }
@@ -176,13 +181,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setUser(null);
       setProfile(null);
+      setLastKnownProfile(null);
+      lastKnownProfileRef.current = null;
       setProfileError(supabaseConfigErrorMessage);
       setLoading(false);
       return;
     }
 
     // Subscribe to auth state changes FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
 
@@ -197,6 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })();
       } else {
         setProfile(null);
+        setLastKnownProfile(null);
+        lastKnownProfileRef.current = null;
         setProfileError(null);
         if (!initializedRef.current) {
           initializedRef.current = true;
@@ -267,6 +276,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     setProfile(null);
+    setLastKnownProfile(null);
+    lastKnownProfileRef.current = null;
     setProfileError(null);
     if (isSupabaseClientEnabled) {
       await supabase.auth.signOut();
@@ -275,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, profileError, loading,
+      user, session, profile, lastKnownProfile, profileError, loading,
       signIn, signUp, signOut, refreshProfile,
       isAdmin: profile?.role === 'admin',
     }}>

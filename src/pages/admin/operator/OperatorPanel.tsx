@@ -298,7 +298,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   }
 
   async function runAction(action: string, provider?: string) {
-    if (!session?.access_token) return;
+    if (!session?.access_token || runningAction) return;
     const started = Date.now();
     const startedAt = new Date().toISOString();
     const route = '/functions/v1/admin-operator-action';
@@ -306,7 +306,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     setRunningAction(action);
     setActionResult({ status: 'RUNNING', action, provider, summary: 'Executing backend operator action…', timestamp: startedAt, startedAt, route, functionName });
     try {
-      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token);
+      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, action === 'run_runtime_proof' ? 70000 : 60000);
       const data = result.data as Record<string, unknown> | null;
       const ok = result.ok && data && data.success === true && !data.exact_error;
       const raw = (data?.raw && typeof data.raw === 'object' ? data.raw : data) as Record<string, unknown>;
@@ -334,8 +334,14 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       setActionResult({ status: 'FAILED', action, provider, summary: 'Backend operator route failed.', timestamp: startedAt, startedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - started, blocker: 'ROUTE_OR_NETWORK_ERROR', route, functionName, error, raw: { expected_route: route, expected_function: functionName, error } });
     } finally {
       setRunningAction(null);
-      await refresh();
-      await loadOperatorTruth();
+      const withTimeout = <T,>(promise: Promise<T>, label: string, timeoutMs = 10000): Promise<T | null> => Promise.race([
+        promise,
+        new Promise<null>((resolve) => globalThis.setTimeout(() => {
+          console.error(`${label} timed out after operator action cleanup`);
+          resolve(null);
+        }, timeoutMs)),
+      ]);
+      await Promise.allSettled([withTimeout(refresh(), 'admin live refresh'), withTimeout(loadOperatorTruth(), 'operator truth refresh')]);
     }
   }
 
@@ -1130,11 +1136,11 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       <Card title="Manual Operator Actions" icon={PlayCircle}>
         <div className="flex flex-wrap gap-2">
           {actions.map(([label, action]) => (
-            <button key={action} disabled={runningAction === action} onClick={() => void runAction(action, action.includes('bybit') ? 'bybit' : action.includes('binance') ? 'binance' : undefined)} className="rounded-xl bg-blue-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50">
+            <button key={action} disabled={Boolean(runningAction)} onClick={() => void runAction(action, action.includes('bybit') ? 'bybit' : action.includes('binance') ? 'binance' : undefined)} className="rounded-xl bg-blue-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50">
               {runningAction === action ? 'Running…' : label}
             </button>
           ))}
-          <button onClick={() => void runProof()} className="rounded-xl bg-red-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-red-500">
+          <button disabled={Boolean(runningAction) || proofRunning} onClick={() => void runProof()} className="rounded-xl bg-red-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-red-500">
             Run Runtime Proof
           </button>
         </div>
