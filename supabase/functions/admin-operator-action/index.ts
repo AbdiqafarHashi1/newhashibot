@@ -71,9 +71,20 @@ async function updateEvent(supabase: ReturnType<typeof createClient>, id: string
   if (error) console.error("operator_runtime_events update failed", error.message);
 }
 
-async function invoke(functionName: string, body: Json) {
+async function invoke(functionName: string, body: Json, timeoutMs = 55000) {
   const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/${functionName}`;
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`, "x-scanner-cron-secret": Deno.env.get("SCANNER_CRON_SECRET") ?? "", "x-hashibot-cron-token": Deno.env.get("SCANNER_CRON_SECRET") ?? "" }, body: JSON.stringify(body) });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`, "x-scanner-cron-secret": Deno.env.get("SCANNER_CRON_SECRET") ?? "", "x-hashibot-cron-token": Deno.env.get("SCANNER_CRON_SECRET") ?? "" }, body: JSON.stringify(body), signal: controller.signal });
+  } catch (e) {
+    const message = e instanceof DOMException && e.name === "AbortError" ? `${functionName} timed out after ${timeoutMs}ms` : errText(e);
+    console.error("operator downstream invoke failed", { functionName, body, message });
+    throw new Error(message);
+  } finally {
+    clearTimeout(timeout);
+  }
   const raw = await parse(res);
   if (!res.ok) throw new Error(`${functionName} HTTP ${res.status}: ${typeof raw === "string" ? raw : JSON.stringify(raw)}`);
   return raw;
@@ -108,7 +119,7 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     const proofStarted = Date.now();
     const checks: Json[] = [];
     const blockers: string[] = [];
-    const requiredFunctions = ["admin-operator-action", "scheduled-market-scanner", "binance-testnet-execution", "telegram-test", "intelligence-engine"];
+    const requiredFunctions = ["admin-operator-action", "scheduled-market-scanner", "binance-testnet-execution", "binance-testnet-monitor", "bybit-testnet-monitor", "telegram-test", "intelligence-engine"];
     for (const function_name of requiredFunctions) checks.push({ check: "function_declared", function_name, status: "PASS" });
     const [binance, bybit, schedules, heartbeats, scannerConfig] = await Promise.all([
       invoke("binance-testnet-execution", { action: "prove_binance_trade_management", source: FUNCTION_NAME }).catch((e) => ({ success: false, error: errText(e) })),

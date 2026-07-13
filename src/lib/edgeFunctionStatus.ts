@@ -31,6 +31,7 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
   functionName: string,
   body: Record<string, unknown>,
   token?: string | null,
+  timeoutMs = 45000,
 ): Promise<EdgeFunctionCallResult<T>> {
   if (isSupabaseMocked) {
     // Return mock successful response for key edge functions
@@ -168,14 +169,22 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
 
   try {
     const supabaseUrl = getFrontendSupabaseUrl();
-    const res = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
-      method: 'POST',
+    const controller = new AbortController();
+    const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+    let res: Response;
+    try {
+      res = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+        method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(body),
-    });
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      globalThis.clearTimeout(timeout);
+    }
     const text = await res.text();
     let data: T | null = null;
     try {
@@ -192,7 +201,10 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
       ...classified,
     };
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
+    const errMsg = error instanceof DOMException && error.name === 'AbortError'
+      ? `Edge function ${functionName} timed out after ${timeoutMs}ms`
+      : error instanceof Error ? error.message : String(error);
+    console.error('Edge function call failed', { functionName, body, error: errMsg });
     return {
       ok: false,
       status: 0,

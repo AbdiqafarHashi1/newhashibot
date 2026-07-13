@@ -17,19 +17,21 @@ export function RequireAuth({ children }: { children: JSX.Element }) {
 }
 
 export function RequireAdmin({ children }: { children: JSX.Element }) {
-  const { user, profile, profileError, loading } = useAuth();
+  const { user, profile, lastKnownProfile, profileError, loading } = useAuth();
   const loc = useLocation();
 
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: loc }} replace />;
 
   // Profile loaded, not admin — redirect
-  if (profile && profile.role !== 'admin') {
+  const effectiveProfile = profile ?? lastKnownProfile;
+
+  if (effectiveProfile && effectiveProfile.role !== 'admin') {
     return <Navigate to="/app/dashboard" replace />;
   }
 
   // Profile failed to load — show error so it doesn't spin forever
-  if (!profile && profileError) {
+  if (!effectiveProfile && profileError) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
         <div className="max-w-sm text-center space-y-3">
@@ -46,7 +48,7 @@ export function RequireAdmin({ children }: { children: JSX.Element }) {
   }
 
   // Profile still loading
-  if (!profile) return <Spinner />;
+  if (!effectiveProfile) return <Spinner />;
 
   return children;
 }
