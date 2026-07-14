@@ -1,3 +1,4 @@
+import { mapLegacyTradeTruthRow } from '../runtime/tradeTruth/index.js';
 import type { ExchangeOrder, ExchangePosition, ExchangeProvider, ExchangeProviderId, ExchangeSide, ProtectionRequest, ProviderResult } from './exchangeProvider.js';
 
 export type ProtectionStatus = 'protected' | 'missing_sl' | 'missing_tp' | 'orphan' | 'stale' | 'closed';
@@ -37,6 +38,18 @@ export interface TradeTruthStore {
   listOpenTradeTruth(provider?: ExchangeProviderId): Promise<TradeManagementTruthRow[]>;
   markClosed(provider: ExchangeProviderId, symbolsStillOpen: Set<string>, at: string): Promise<number>;
   recordTelegramLifecycle?(provider: ExchangeProviderId, event: string, row: TradeManagementTruthRow, result: ProviderResult): Promise<void>;
+}
+
+
+export async function upsertTradeTruthThroughCompatibility(store: Pick<TradeTruthStore, 'upsertTradeTruth'>, row: TradeManagementTruthRow): Promise<void> {
+  const mapped = mapLegacyTradeTruthRow(row as unknown as Record<string, unknown>);
+  if (!mapped.ok) {
+    const error = new Error(`trade_truth_contract_rejected:${mapped.error.code}:${mapped.error.message}`);
+    (error as Error & { retryable?: boolean; code?: string }).retryable = mapped.error.retryable;
+    (error as Error & { retryable?: boolean; code?: string }).code = mapped.error.code;
+    throw error;
+  }
+  await store.upsertTradeTruth(row);
 }
 
 function normalizeType(order: ExchangeOrder): string {
@@ -120,7 +133,7 @@ export async function syncProviderPositions(provider: ExchangeProvider, store: T
   try {
     const [positions, openOrders] = await Promise.all([provider.fetchOpenPositions(), provider.fetchOpenOrders()]);
     const rows = positions.filter(p => Math.abs(Number(p.quantity ?? 0)) > 0).map(position => tradeRowFromExchange(provider, position, openOrders, at));
-    for (const row of rows) await store.upsertTradeTruth(row);
+    for (const row of rows) await upsertTradeTruthThroughCompatibility(store, row);
     const closed_marked = await store.markClosed(provider.metadata.id, new Set(rows.map(row => row.symbol)), at);
     return { provider: provider.metadata.id, open_positions_found: rows.length, protected_count: rows.filter(row => row.protection_status === 'protected').length, unsafe_count: rows.filter(row => row.protection_status !== 'protected').length, closed_marked, rows };
   } catch (error) {
@@ -150,7 +163,7 @@ export async function repairUnprotectedPositions(provider: ExchangeProvider, sto
     const ok = afterProtection.protection_status === 'protected';
     const partial = afterProtection.sl_present || afterProtection.tp1_present || afterProtection.tp2_present;
     if (ok) repair_successes += 1; else failures.push(`${row.provider}:${row.symbol}:${results.find(result => !result.ok)?.error ?? afterProtection.protection_status}`);
-    await store.upsertTradeTruth({ ...row, ...afterProtection, recovery_status: ok ? 'repair_succeeded' : partial ? 'repair_attempted' : 'repair_failed', monitor_status: ok || partial ? 'synced' : 'error', latest_error: ok || partial ? null : failures[failures.length - 1], latest_sync_at: new Date().toISOString(), last_action_taken: ok ? 'repairUnprotectedPositions' : 'repair_partial' });
+    await upsertTradeTruthThroughCompatibility(store, { ...row, ...afterProtection, recovery_status: ok ? 'repair_succeeded' : partial ? 'repair_attempted' : 'repair_failed', monitor_status: ok || partial ? 'synced' : 'error', latest_error: ok || partial ? null : failures[failures.length - 1], latest_sync_at: new Date().toISOString(), last_action_taken: ok ? 'repairUnprotectedPositions' : 'repair_partial' });
   }
   return { provider: provider.metadata.id, repair_attempts: rows.length, repair_successes, failures };
 }
@@ -166,7 +179,7 @@ export async function applyProfitLock(provider: ExchangeProvider, store: TradeTr
     if (r < thresholdR || row.profit_lock_status === 'locked') continue;
     const result = await provider.executeProfitLock({ symbol: row.symbol, side: String(row.side).toLowerCase() === 'long' ? 'long' : 'short', quantity: row.qty, entryPrice: row.entry_price, stopLoss: row.entry_price, currentPrice: row.mark_price, highestPositiveR: r, metadata: { entryPrice: row.entry_price, tp1Hit: true, validSlExists: true } });
     if (result.ok) locked += 1; else failures.push(`${row.provider}:${row.symbol}:${result.error ?? 'profit_lock_failed'}`);
-    await store.upsertTradeTruth({ ...row, profit_lock_status: result.ok ? 'locked' : 'failed', latest_error: result.ok ? null : failures[failures.length - 1], latest_sync_at: new Date().toISOString(), last_action_taken: 'applyProfitLock' });
+    await upsertTradeTruthThroughCompatibility(store, { ...row, profit_lock_status: result.ok ? 'locked' : 'failed', latest_error: result.ok ? null : failures[failures.length - 1], latest_sync_at: new Date().toISOString(), last_action_taken: 'applyProfitLock' });
   }
   return { provider: provider.metadata.id, checked: rows.length, locked, failures };
 }
@@ -312,7 +325,7 @@ export class RecoveryEngine {
         for (const order of orders) {
           await provider.cancelOrder({ symbol, providerOrderId: order.providerOrderId });
         }
-        await store.upsertTradeTruth({
+        await upsertTradeTruthThroughCompatibility(store, {
           ...row,
           protection_status: 'closed',
           status: 'closed',
@@ -339,7 +352,7 @@ export class RecoveryEngine {
       }
     }
 
-    await store.upsertTradeTruth({
+    await upsertTradeTruthThroughCompatibility(store, {
       ...row,
       status: 'RECOVERY_REQUIRED',
       recovery_status: 'repair_failed',

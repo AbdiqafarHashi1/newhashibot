@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
+import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -719,7 +720,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
     }
     await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, latest_protection_error: "", protection_critical_reason: "", last_monitor_action: "protection_watchdog_verified_live", updated_at: new Date().toISOString() }).eq("id", row.id);
     try {
-      await supabase.rpc("upsert_trade_management_truth", {
+      await upsertTradeManagementTruth(supabase, {
         p_execution_order_id: row.id,
         p_provider: "binance",
         p_environment: "testnet",
@@ -755,7 +756,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
   const unsafeReason = missingOrInvalid.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
   await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `UNSAFE_POSITION missing/mismatched live Binance protection: ${unsafeReason}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", lifecycle_state: "unsafe_position", last_monitor_action: "protection_watchdog_repairing", repair_attempts: Number(row.repair_attempts ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", row.id);
   try {
-    await supabase.rpc("upsert_trade_management_truth", {
+    await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
       p_environment: "testnet",
@@ -811,7 +812,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
     const error = remainingErrors.map((item) => `${item.label}:${item.errors.join("+")}`).join(",");
     await supabase.from("execution_orders").update({ ...idUpdate, status: "protection_failed", protection_status: "protection_failed", native_protection_verified: false, latest_protection_error: `protection_repair_verification_failed: ${error}`, protection_critical_reason: "binance_position_exists_without_verified_sl_tp1_tp2", last_monitor_action: "protection_watchdog_repair_failed", repair_attempts: Number(row.repair_attempts ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", row.id);
     try {
-      await supabase.rpc("upsert_trade_management_truth", {
+      await upsertTradeManagementTruth(supabase, {
         p_execution_order_id: row.id,
         p_provider: "binance",
         p_environment: "testnet",
@@ -847,7 +848,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
   const now = new Date().toISOString();
   await supabase.from("execution_orders").update({ ...idUpdate, status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native", protection_status: "protected_native", native_protection_verified: true, managed_fallback_active: false, latest_protection_error: "", protection_critical_reason: "", lifecycle_state: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "tp1_filled_profit_lock_active" : "protected_native", protected_at: now, last_monitor_action: "protection_recovered", repair_attempts: Number(row.repair_attempts ?? 0) + 1, updated_at: now }).eq("id", row.id);
   try {
-    await supabase.rpc("upsert_trade_management_truth", {
+    await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
       p_environment: "testnet",
@@ -928,7 +929,7 @@ async function submitProtectionForRow(
       last_action_taken: "initial_protection_placed",
       protected_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }).eq("id", row.id);
-    await supabase.rpc("upsert_trade_management_truth", {
+    await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
       p_environment: row.environment || "testnet",
@@ -952,7 +953,7 @@ async function submitProtectionForRow(
       p_recovery_status: "healthy",
       p_latest_error: null,
       p_last_action_taken: "initial_protection_placed"
-    }).catch((err) => console.error("upsert_trade_management_truth failed", err));
+    }).catch((err) => console.error("trade_truth_adapter_upsert_failed", err));
     await logEvent(supabase, row, "protected_native", `Monitor placed native SL/TP: sl=${slTrigger} tp1=${tp1Trigger} tp2=${tp2Trigger} qty=${quantity}`, { slOrder, tp1Order, tp2Order, verification }, stats);
     stats.updated += 1;
     stats.protected += 1;
@@ -971,7 +972,7 @@ async function submitProtectionForRow(
       last_action_taken: "initial_protection_failed",
       updated_at: new Date().toISOString(),
     }).eq("id", row.id);
-    await supabase.rpc("upsert_trade_management_truth", {
+    await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
       p_environment: row.environment || "testnet",
@@ -995,7 +996,7 @@ async function submitProtectionForRow(
       p_recovery_status: "recovery_required",
       p_latest_error: error,
       p_last_action_taken: "initial_protection_failed"
-    }).catch((err) => console.error("upsert_trade_management_truth failed", err));
+    }).catch((err) => console.error("trade_truth_adapter_upsert_failed", err));
     await logEvent(supabase, row, "protection_recovery_failed", `Monitor protection recovery failed verification: ${error}`, { error }, stats);
     stats.updated += 1;
     stats.unsafe_positions += 1;
@@ -1846,7 +1847,7 @@ Deno.serve(async (req: Request) => {
       try {
         const { data: activeRows } = await supabase.from("execution_orders").select("*").eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
         for (const row of (activeRows ?? []) as any) {
-          await supabase.rpc("upsert_trade_management_truth", {
+          await upsertTradeManagementTruth(supabase, {
             p_execution_order_id: row.id,
             p_provider: "binance",
             p_environment: "testnet",

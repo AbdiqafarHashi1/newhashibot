@@ -1,5 +1,6 @@
 import { detectProtectionViolations, evaluateLifecycleState } from './exchange/tradeManagementCore.js';
 import type { ProtectionStatus, TradeManagementTruthRow } from './exchange/tradeManagementCore.js';
+import type { SignalDirection } from './runtimeContracts';
 
 export const MONITOR_ACTIVE_STATUSES = [
   'pending',
@@ -18,7 +19,7 @@ export const MONITOR_ACTIVE_STATUSES = [
 
 export type MonitorActiveStatus = typeof MONITOR_ACTIVE_STATUSES[number];
 export type OrderStatus = 'NEW' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED' | 'EXPIRED' | string;
-export type Direction = 'buy' | 'sell';
+export type Direction = SignalDirection;
 export type MonitorEventType =
   | 'entry_filled'
   | 'entry_cancelled'

@@ -1,3 +1,5 @@
+import type { SignalDirection } from './runtimeContracts';
+
 export interface Package {
   id: string;
   name: string;
@@ -172,7 +174,7 @@ export interface Signal {
   symbol: string;
   market_type: string;
   timeframe: string;
-  direction: 'buy' | 'sell';
+  direction: SignalDirection;
   entry_type: string;
   entry_low: number;
   entry_high: number;

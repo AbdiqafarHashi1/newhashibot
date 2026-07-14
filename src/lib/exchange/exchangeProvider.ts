@@ -1,11 +1,13 @@
-export type ExchangeProviderId = 'binance' | 'bybit' | 'mt5' | string;
-export type ExchangeSide = 'long' | 'short';
+import type { ProviderId, PositionSide } from '../runtimeContracts';
+
+export type ExchangeProviderId = ProviderId;
+export type ExchangeSide = PositionSide;
 export type SafetyState = 'safe' | 'degraded' | 'unsafe' | 'unknown';
 
 export interface ExchangeProviderMetadata {
   id: ExchangeProviderId;
   label: string;
-  environment: 'testnet' | 'live' | 'paper' | string;
+  environment: import('../runtimeContracts').EnvironmentId;
   supportsNativeProtection: boolean;
   supportsProfitLock: boolean;
 }

@@ -145,6 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Track if initial session resolution has happened to prevent double-loading
   const initializedRef = useRef(false);
+  const explicitSignOutRef = useRef(false);
+  const nullSessionConfirmTimerRef = useRef<number | null>(null);
 
   async function loadProfile(u: User): Promise<string | null> {
     const { profile: p, error } = await fetchOrCreateProfile(u, lastKnownProfileRef.current);
@@ -189,11 +191,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Subscribe to auth state changes FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, s: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
 
+      if (nullSessionConfirmTimerRef.current) { window.clearTimeout(nullSessionConfirmTimerRef.current); nullSessionConfirmTimerRef.current = null; }
+
       if (s?.user) {
+        explicitSignOutRef.current = false;
         (async () => {
           await loadProfile(s.user!);
           // Mark loading done once we have the session resolved
@@ -203,6 +208,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         })();
       } else {
+        const confirmedLogout = explicitSignOutRef.current || event === 'SIGNED_OUT';
+        if (!confirmedLogout && (user || session || lastKnownProfileRef.current)) {
+          setProfileError('Temporary auth session refresh interruption; preserving last confirmed profile.');
+          setLoading(false);
+          nullSessionConfirmTimerRef.current = window.setTimeout(() => {
+            void supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
+              const data = result.data;
+              if (data.session?.user) return;
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setProfileError('Authentication session could not be refreshed.');
+            });
+          }, 10_000);
+          return;
+        }
         setProfile(null);
         setLastKnownProfile(null);
         lastKnownProfileRef.current = null;
@@ -227,6 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
+      if (nullSessionConfirmTimerRef.current) window.clearTimeout(nullSessionConfirmTimerRef.current);
       clearTimeout(sessionTimeout);
     };
   }, []);
@@ -275,6 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    explicitSignOutRef.current = true;
     setProfile(null);
     setLastKnownProfile(null);
     lastKnownProfileRef.current = null;
