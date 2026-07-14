@@ -4,6 +4,20 @@ import { readFileSync } from 'node:fs';
 const sql = readFileSync('supabase/migrations/prepared/20260714003000_final_cron_consolidation.sql', 'utf8');
 const doc = readFileSync('docs/implementation/HASHIBOT_FINAL_CRON_CONSOLIDATION.md', 'utf8');
 
+const preparedCronSqlFiles = [
+  'supabase/migrations/prepared/20260714003000_final_cron_consolidation.sql',
+  'supabase/migrations/prepared/20260714003000_final_cron_consolidation/01_preflight.sql',
+  'supabase/migrations/prepared/20260714003000_final_cron_consolidation/02_apply_and_verify.sql',
+];
+
+for (const preparedCronSqlFile of preparedCronSqlFiles) {
+  const preparedCronSql = readFileSync(preparedCronSqlFile, 'utf8');
+  assert.ok(!preparedCronSql.includes('SUPABASE_SERVICE_ROLE_KEY'), `${preparedCronSqlFile} must not reference reserved Vault secret SUPABASE_SERVICE_ROLE_KEY`);
+  assert.ok(!preparedCronSql.includes('SUPABASE_URL'), `${preparedCronSqlFile} must not reference reserved Vault secret SUPABASE_URL`);
+  assert.ok(preparedCronSql.includes('HASHIBOT_SERVICE_ROLE_KEY'), `${preparedCronSqlFile} must require HASHIBOT_SERVICE_ROLE_KEY`);
+  assert.ok(preparedCronSql.includes('HASHIBOT_PROJECT_URL'), `${preparedCronSqlFile} must require HASHIBOT_PROJECT_URL`);
+}
+
 const canonicalJobs = [
   'hashibot_prod_scanner_5m',
   'hashibot_prod_outcome_evaluator_5m',
@@ -54,8 +68,8 @@ for (const legacy of [
   assert.ok(sql.includes(legacy), `legacy delete target not covered: ${legacy}`);
 }
 
-assert.ok(sql.includes('SUPABASE_SERVICE_ROLE_KEY'), 'service role Vault secret must be required');
-assert.ok(sql.includes('SUPABASE_URL'), 'Supabase URL Vault secret must be required');
+assert.ok(sql.includes('HASHIBOT_SERVICE_ROLE_KEY'), 'service role Vault secret must be required');
+assert.ok(sql.includes('HASHIBOT_PROJECT_URL'), 'Supabase URL Vault secret must be required');
 assert.ok(sql.includes("'Authorization', 'Bearer ' || v_service_key"), 'dispatcher must construct valid Authorization header');
 assert.ok(sql.includes("'apikey', v_service_key"), 'dispatcher must send apikey header');
 assert.ok(!sql.includes("'Authorization', 'Bearer ' || (SELECT cron_pg_token"), 'cron token must not be used as Bearer authorization');

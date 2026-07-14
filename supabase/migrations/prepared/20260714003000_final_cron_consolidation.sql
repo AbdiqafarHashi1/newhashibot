@@ -27,10 +27,10 @@ ORDER BY routine_name;
 -- 1.2 Verify required Vault secrets exist. Values are intentionally not selected.
 SELECT name, created_at, updated_at
 FROM vault.decrypted_secrets
-WHERE name IN ('SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY')
+WHERE name IN ('HASHIBOT_PROJECT_URL', 'HASHIBOT_SERVICE_ROLE_KEY')
 ORDER BY name;
 
--- STOP if either SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is absent or blank.
+-- STOP if either HASHIBOT_PROJECT_URL or HASHIBOT_SERVICE_ROLE_KEY is absent or blank.
 -- The forward migration aborts if either secret is missing.
 
 -- 1.3 Output every current HashiBot cron.job row.
@@ -194,7 +194,7 @@ DECLARE
 BEGIN
   SELECT array_agg(required.name ORDER BY required.name)
   INTO v_missing
-  FROM (VALUES ('SUPABASE_URL'), ('SUPABASE_SERVICE_ROLE_KEY')) AS required(name)
+  FROM (VALUES ('HASHIBOT_PROJECT_URL'), ('HASHIBOT_SERVICE_ROLE_KEY')) AS required(name)
   WHERE NOT EXISTS (
     SELECT 1
     FROM vault.decrypted_secrets s
@@ -246,8 +246,8 @@ BEGIN
     RAISE EXCEPTION 'unknown scheduler job: %', p_job_name USING ERRCODE = '22023';
   END IF;
 
-  SELECT decrypted_secret INTO v_supabase_url FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL' LIMIT 1;
-  SELECT decrypted_secret INTO v_service_key FROM vault.decrypted_secrets WHERE name = 'SUPABASE_SERVICE_ROLE_KEY' LIMIT 1;
+  SELECT decrypted_secret INTO v_supabase_url FROM vault.decrypted_secrets WHERE name = 'HASHIBOT_PROJECT_URL' LIMIT 1;
+  SELECT decrypted_secret INTO v_service_key FROM vault.decrypted_secrets WHERE name = 'HASHIBOT_SERVICE_ROLE_KEY' LIMIT 1;
 
   IF COALESCE(NULLIF(btrim(v_supabase_url), ''), '') = '' OR COALESCE(NULLIF(btrim(v_service_key), ''), '') = '' THEN
     RAISE EXCEPTION 'scheduler Vault secrets are missing';
@@ -530,7 +530,7 @@ SELECT jobname, active, schedule, command
 FROM cron.job
 WHERE jobname ILIKE 'hashibot%'
   AND (
-    command ILIKE '%SUPABASE_SERVICE_ROLE_KEY%'
+    command ILIKE '%HASHIBOT_SERVICE_ROLE_KEY%'
     OR command ILIKE '%supabase_anon_key%'
     OR command ILIKE '%cron_pg_token%'
     OR command ILIKE '%x-scanner-cron-secret%'

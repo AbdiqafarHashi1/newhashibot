@@ -147,7 +147,7 @@ After the execution-order, read-model, and runtime-safety migrations pass postfl
 Run only Section 1 first. Stop if:
 
 * `pg_cron`, `pg_net`, or Vault is unavailable.
-* `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is absent from `vault.decrypted_secrets`.
+* `HASHIBOT_PROJECT_URL` or `HASHIBOT_SERVICE_ROLE_KEY` is absent from `vault.decrypted_secrets`.
 * Runtime safety RPCs are missing.
 * Unknown HashiBot cron jobs appear that are not classified in `docs/implementation/HASHIBOT_FINAL_CRON_CONSOLIDATION.md`.
 * Legacy jobs are still intentionally active for an observation window.

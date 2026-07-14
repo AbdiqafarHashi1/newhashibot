@@ -103,5 +103,8 @@ assert.ok(migration2Apply.includes('required table/column preflight failed for r
 assert.ok(migration2Apply.includes('GRANT SELECT ON public.admin_active_trade_truth_read_model TO service_role'), 'Migration 2 admin views should be service_role only');
 assert.ok(!migration2Apply.includes('TO authenticated, service_role'), 'Migration 2 must not broaden authenticated access');
 assert.ok(migration3Apply.includes('incompatible populated runtime safety object'), 'Migration 3 must block incompatible populated runtime objects');
-assert.ok(migration4Apply.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Migration 4 must require service role Vault secret');
+assert.ok(migration4Apply.includes('HASHIBOT_SERVICE_ROLE_KEY'), 'Migration 4 must require service role Vault secret');
+assert.ok(migration4Apply.includes('HASHIBOT_PROJECT_URL'), 'Migration 4 must require project URL Vault secret');
+assert.ok(!migration4Apply.includes('SUPABASE_SERVICE_ROLE_KEY'), 'Migration 4 must not use reserved service role Vault secret name');
+assert.ok(!migration4Apply.includes('SUPABASE_URL'), 'Migration 4 must not use reserved project URL Vault secret name');
 assert.ok(migration4Apply.includes('runtime_acquire_worker_lease'), 'Migration 4 must require lease RPC');

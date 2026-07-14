@@ -31,10 +31,10 @@ ORDER BY routine_name;
 -- 1.2 Verify required Vault secrets exist. Values are intentionally not selected.
 SELECT name, created_at, updated_at
 FROM vault.decrypted_secrets
-WHERE name IN ('SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY')
+WHERE name IN ('HASHIBOT_PROJECT_URL', 'HASHIBOT_SERVICE_ROLE_KEY')
 ORDER BY name;
 
--- STOP if either SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is absent or blank.
+-- STOP if either HASHIBOT_PROJECT_URL or HASHIBOT_SERVICE_ROLE_KEY is absent or blank.
 -- The forward migration aborts if either secret is missing.
 
 -- 1.3 Output every current HashiBot cron.job row.

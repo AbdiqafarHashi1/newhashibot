@@ -50,8 +50,8 @@ Telegram lifecycle/reporting delivery is event-driven where possible and is not 
 
 The prepared SQL requires two Vault secrets before installation:
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `HASHIBOT_PROJECT_URL`
+- `HASHIBOT_SERVICE_ROLE_KEY`
 
 The canonical cron command stores only `SELECT public.hashibot_scheduler_dispatch('<job_name>');`. The dispatcher reads secrets from `vault.decrypted_secrets` at runtime, sends `Content-Type: application/json`, `apikey: <service role key>`, and `Authorization: Bearer <service role key>`, and applies a bounded `timeout_milliseconds` based on each job's maximum runtime. Raw keys are not embedded in `cron.job.command`.
 
@@ -79,7 +79,7 @@ The canonical cron command stores only `SELECT public.hashibot_scheduler_dispatc
 Stop before forward migration if any of these conditions exist:
 
 - `pg_cron`, `pg_net`, or Vault is unavailable.
-- `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is missing from Vault.
+- `HASHIBOT_PROJECT_URL` or `HASHIBOT_SERVICE_ROLE_KEY` is missing from Vault.
 - Runtime safety RPCs are not installed.
 - Active legacy jobs are still intentionally running for a controlled observation window.
 - Any cron job command uses a target that is not classified in this document.
