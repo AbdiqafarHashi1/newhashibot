@@ -195,13 +195,13 @@ BEGIN
 END $$;
 
 -- 2.4 Grants: preserve RLS by using security_invoker views, revoke public/anon access,
--- and grant read access only to authenticated application users and service_role.
+-- and grant read access only to service_role; authenticated access requires a later admin-specific policy decision.
 REVOKE ALL ON public.admin_active_trade_truth_read_model FROM PUBLIC, anon;
 REVOKE ALL ON public.admin_execution_orders_read_model FROM PUBLIC, anon;
 REVOKE ALL ON public.admin_runtime_overview_read_model FROM PUBLIC, anon;
-GRANT SELECT ON public.admin_active_trade_truth_read_model TO authenticated, service_role;
-GRANT SELECT ON public.admin_execution_orders_read_model TO authenticated, service_role;
-GRANT SELECT ON public.admin_runtime_overview_read_model TO authenticated, service_role;
+GRANT SELECT ON public.admin_active_trade_truth_read_model TO service_role;
+GRANT SELECT ON public.admin_execution_orders_read_model TO service_role;
+GRANT SELECT ON public.admin_runtime_overview_read_model TO service_role;
 
 DO $$
 BEGIN
@@ -210,7 +210,7 @@ BEGIN
     WHERE n.nspname = 'public' AND c.relname = 'admin_telegram_delivery_health_read_model'
   ) THEN
     EXECUTE 'REVOKE ALL ON public.admin_telegram_delivery_health_read_model FROM PUBLIC, anon';
-    EXECUTE 'GRANT SELECT ON public.admin_telegram_delivery_health_read_model TO authenticated, service_role';
+    EXECUTE 'GRANT SELECT ON public.admin_telegram_delivery_health_read_model TO service_role';
   END IF;
 END $$;
 

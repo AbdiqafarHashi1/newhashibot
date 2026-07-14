@@ -86,12 +86,15 @@ BEGIN
       ('unknown_provider_state')
   ), safe_legacy(status, mapped_status) AS (
     VALUES
-      ('pending', 'created'), ('open', 'accepted'), ('new', 'created'),
-      ('placed', 'submitted'), ('working', 'accepted'), ('partial', 'partially_filled'),
+      ('pending', 'created'), ('entry_pending', 'created'), ('open', 'accepted'), ('new', 'created'),
+      ('placed', 'submitted'), ('entry_submitted', 'submitted'), ('submitted', 'submitted'),
+      ('working', 'accepted'), ('entry_accepted', 'accepted'), ('partial', 'partially_filled'),
       ('partially_filled', 'partially_filled'), ('complete', 'filled'),
-      ('completed', 'filled'), ('filled', 'filled'), ('canceled', 'cancelled'),
+      ('completed', 'filled'), ('entry_filled', 'filled'), ('filled', 'filled'),
+      ('entry_timeout_cancelled', 'cancelled'), ('canceled', 'cancelled'),
       ('cancelled', 'cancelled'), ('rejected', 'rejected'), ('expired', 'expired'),
-      ('failed', 'failed'), ('error', 'failed'), ('unknown', 'unknown_provider_state')
+      ('entry_missing_no_position', 'expired'), ('failed', 'failed'), ('error', 'failed'),
+      ('unknown', 'unknown_provider_state')
   )
   SELECT COUNT(*)
   INTO v_bad_count
@@ -123,19 +126,26 @@ END $$;
 WITH safe_legacy(status, mapped_status) AS (
   VALUES
     ('pending', 'created'),
+    ('entry_pending', 'created'),
     ('open', 'accepted'),
     ('new', 'created'),
     ('placed', 'submitted'),
+    ('entry_submitted', 'submitted'),
+    ('submitted', 'submitted'),
     ('working', 'accepted'),
+    ('entry_accepted', 'accepted'),
     ('partial', 'partially_filled'),
     ('partially_filled', 'partially_filled'),
     ('complete', 'filled'),
     ('completed', 'filled'),
+    ('entry_filled', 'filled'),
     ('filled', 'filled'),
+    ('entry_timeout_cancelled', 'cancelled'),
     ('canceled', 'cancelled'),
     ('cancelled', 'cancelled'),
     ('rejected', 'rejected'),
     ('expired', 'expired'),
+    ('entry_missing_no_position', 'expired'),
     ('failed', 'failed'),
     ('error', 'failed'),
     ('unknown', 'unknown_provider_state')
@@ -165,19 +175,26 @@ SET migrated_at = EXCLUDED.migrated_at,
 WITH safe_legacy(status, mapped_status) AS (
   VALUES
     ('pending', 'created'),
+    ('entry_pending', 'created'),
     ('open', 'accepted'),
     ('new', 'created'),
     ('placed', 'submitted'),
+    ('entry_submitted', 'submitted'),
+    ('submitted', 'submitted'),
     ('working', 'accepted'),
+    ('entry_accepted', 'accepted'),
     ('partial', 'partially_filled'),
     ('partially_filled', 'partially_filled'),
     ('complete', 'filled'),
     ('completed', 'filled'),
+    ('entry_filled', 'filled'),
     ('filled', 'filled'),
+    ('entry_timeout_cancelled', 'cancelled'),
     ('canceled', 'cancelled'),
     ('cancelled', 'cancelled'),
     ('rejected', 'rejected'),
     ('expired', 'expired'),
+    ('entry_missing_no_position', 'expired'),
     ('failed', 'failed'),
     ('error', 'failed'),
     ('unknown', 'unknown_provider_state')

@@ -8,6 +8,51 @@
 
 BEGIN;
 
+-- 2.0 Hard compatibility gate. Existing populated runtime-safety tables are reused only
+-- when their key columns have compatible types; incompatible populated objects require
+-- operator review instead of silent additive upgrade.
+DO $$
+DECLARE
+  r record;
+  v_row_count bigint;
+  v_actual_type text;
+BEGIN
+  FOR r IN
+    SELECT * FROM (VALUES
+      ('runtime_worker_leases','lease_name','text'),
+      ('runtime_worker_leases','owner_id','text'),
+      ('runtime_worker_leases','run_id','text'),
+      ('runtime_worker_leases','expires_at','timestamp with time zone'),
+      ('runtime_worker_leases','metadata','jsonb'),
+      ('runtime_event_idempotency','idempotency_key','text'),
+      ('runtime_event_idempotency','canonical_event_id','text'),
+      ('runtime_event_idempotency','event_type','text'),
+      ('runtime_event_idempotency','occurrence_count','integer'),
+      ('runtime_event_idempotency','original_payload','jsonb'),
+      ('runtime_incidents','incident_fingerprint','text'),
+      ('runtime_incidents','severity','text'),
+      ('runtime_incidents','incident_status','text'),
+      ('runtime_incidents','occurrence_count','integer'),
+      ('runtime_incidents','details','jsonb')
+    ) AS expected(table_name, column_name, data_type)
+  LOOP
+    IF to_regclass(format('public.%I', r.table_name)) IS NOT NULL THEN
+      EXECUTE format('SELECT COUNT(*) FROM public.%I', r.table_name) INTO v_row_count;
+      IF v_row_count > 0 THEN
+        SELECT c.data_type INTO v_actual_type
+        FROM information_schema.columns c
+        WHERE c.table_schema = 'public'
+          AND c.table_name = r.table_name
+          AND c.column_name = r.column_name;
+
+        IF v_actual_type IS NOT NULL AND v_actual_type <> r.data_type THEN
+          RAISE EXCEPTION 'incompatible populated runtime safety object %.% has type %, expected %', r.table_name, r.column_name, v_actual_type, r.data_type;
+        END IF;
+      END IF;
+    END IF;
+  END LOOP;
+END $$;
+
 -- 2.1 Schema-compatible tables. Additive changes are repeat-safe; incompatible existing
 -- schemas must be fixed manually after preflight review.
 CREATE TABLE IF NOT EXISTS public.runtime_worker_leases (
