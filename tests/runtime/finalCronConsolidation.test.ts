@@ -54,8 +54,17 @@ for (const job of canonicalJobs) {
 }
 
 assert.equal(new Set(canonicalJobs).size, canonicalJobs.length, 'canonical job names must be unique');
-assert.ok(sql.includes('UPDATE cron.job SET active = false WHERE jobname = r.job_name'), 'canonical jobs must be installed disabled');
-assert.ok(sql.includes('UPDATE cron.job SET active = false WHERE jobname = r.jobname'), 'rollback must restore old jobs disabled');
+for (const preparedCronSqlFile of preparedCronSqlFiles) {
+  const preparedCronSql = readFileSync(preparedCronSqlFile, 'utf8');
+  assert.ok(!/\bUPDATE\s+cron\.job\b/i.test(preparedCronSql), `${preparedCronSqlFile} must not directly mutate cron metadata with UPDATE`);
+  assert.ok(!/\bINSERT\s+INTO\s+cron\.job\b/i.test(preparedCronSql), `${preparedCronSqlFile} must not directly mutate cron metadata with INSERT`);
+  assert.ok(!/\bDELETE\s+FROM\s+cron\.job\b/i.test(preparedCronSql), `${preparedCronSqlFile} must not directly mutate cron metadata with DELETE`);
+}
+
+assert.ok(sql.includes('PERFORM cron.alter_job(v_jobid, active := false);'), 'cron.alter_job must disable scheduled jobs by jobid');
+assert.ok(sql.includes('PERFORM cron.unschedule(r.jobid);'), 'cron.unschedule must delete jobs by jobid');
+assert.match(sql, /PERFORM cron\.schedule\(r\.job_name[\s\S]*?SELECT jobid[\s\S]*?WHERE jobname = r\.job_name[\s\S]*?PERFORM cron\.alter_job\(v_jobid, active := false\);[\s\S]*?IF v_active IS DISTINCT FROM false/s, 'canonical jobs must be scheduled, disabled through cron.alter_job, and verified active = false');
+assert.match(sql, /PERFORM cron\.schedule\(r\.jobname[\s\S]*?SELECT jobid[\s\S]*?WHERE jobname = r\.jobname[\s\S]*?PERFORM cron\.alter_job\(v_jobid, active := false\);[\s\S]*?IF v_active IS DISTINCT FROM false/s, 'rollback must restore old jobs disabled through cron.alter_job and verify active = false');
 
 for (const legacy of [
   'hashibot_trade_supervisor_1m_binance',

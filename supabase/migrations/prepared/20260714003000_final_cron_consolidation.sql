@@ -440,10 +440,31 @@ SET responsibility = EXCLUDED.responsibility,
 DO $$
 DECLARE
   r record;
+  v_jobid bigint;
+  v_active boolean;
 BEGIN
   FOR r IN SELECT job_name, schedule FROM public.hashibot_scheduler_jobs WHERE scheduler_version = '20260714003000' ORDER BY activation_order LOOP
     PERFORM cron.schedule(r.job_name, r.schedule, format('SELECT public.hashibot_scheduler_dispatch(%L);', r.job_name));
-    UPDATE cron.job SET active = false WHERE jobname = r.job_name;
+
+    SELECT jobid
+    INTO v_jobid
+    FROM cron.job
+    WHERE jobname = r.job_name;
+
+    IF v_jobid IS NULL THEN
+      RAISE EXCEPTION 'canonical cron job was not created: %', r.job_name USING ERRCODE = 'P0001';
+    END IF;
+
+    PERFORM cron.alter_job(v_jobid, active := false);
+
+    SELECT active
+    INTO v_active
+    FROM cron.job
+    WHERE jobid = v_jobid;
+
+    IF v_active IS DISTINCT FROM false THEN
+      RAISE EXCEPTION 'canonical cron job was not disabled after install: %', r.job_name USING ERRCODE = 'P0001';
+    END IF;
   END LOOP;
 END $$;
 
@@ -573,6 +594,8 @@ DELETE FROM public.hashibot_scheduler_jobs WHERE scheduler_version = '2026071400
 DO $$
 DECLARE
   r record;
+  v_jobid bigint;
+  v_active boolean;
 BEGIN
   FOR r IN
     SELECT DISTINCT ON (jobname) jobname, schedule, command
@@ -581,7 +604,26 @@ BEGIN
     ORDER BY jobname, backed_up_at DESC, jobid DESC
   LOOP
     PERFORM cron.schedule(r.jobname, r.schedule, r.command);
-    UPDATE cron.job SET active = false WHERE jobname = r.jobname;
+
+    SELECT jobid
+    INTO v_jobid
+    FROM cron.job
+    WHERE jobname = r.jobname;
+
+    IF v_jobid IS NULL THEN
+      RAISE EXCEPTION 'restored cron job was not created during rollback: %', r.jobname USING ERRCODE = 'P0001';
+    END IF;
+
+    PERFORM cron.alter_job(v_jobid, active := false);
+
+    SELECT active
+    INTO v_active
+    FROM cron.job
+    WHERE jobid = v_jobid;
+
+    IF v_active IS DISTINCT FROM false THEN
+      RAISE EXCEPTION 'restored cron job was not disabled during rollback: %', r.jobname USING ERRCODE = 'P0001';
+    END IF;
   END LOOP;
 END $$;
 

@@ -96,4 +96,4 @@ Stop after forward migration if postflight finds:
 
 ## 8. Rollback Procedure
 
-The rollback section of the prepared SQL unschedules the new canonical jobs, removes their scheduler metadata, restores backed-up legacy definitions, and marks every restored job disabled. It never reactivates legacy jobs. Any later enablement requires explicit operator approval.
+The rollback section of the prepared SQL unschedules the new canonical jobs through `cron.unschedule`, removes their scheduler metadata, restores backed-up legacy definitions through `cron.schedule`, and disables each restored job through `cron.alter_job` after a read-only `cron.job` lookup. It never reactivates legacy jobs. Any later enablement requires explicit operator approval.
