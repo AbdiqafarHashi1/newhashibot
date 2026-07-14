@@ -154,7 +154,7 @@ Run only Section 1 first. Stop if:
 
 ### 10.2 Forward Consolidation
 
-Run Section 2 only after preflight passes. The forward procedure backs up all existing HashiBot cron rows, unschedules legacy/test/supervisor jobs, installs canonical scheduler metadata, creates the backend-only scheduler dispatcher, and installs canonical cron rows with `active = false`.
+Run Section 2 only after preflight passes. The forward procedure backs up all existing HashiBot cron rows, unschedules legacy/test/supervisor jobs through `cron.unschedule`, installs canonical scheduler metadata, creates the backend-only scheduler dispatcher, creates canonical cron rows through `cron.schedule`, and immediately disables each canonical job through `cron.alter_job` after a read-only `cron.job` lookup.
 
 ### 10.3 Postflight
 
@@ -169,7 +169,7 @@ Run Section 3 and confirm:
 
 ### 10.4 Rollback
 
-Use Section 4 only if postflight fails or SQL review rejects the new scheduler. Rollback unschedules canonical jobs and restores backed-up legacy definitions as disabled. It must not be followed by enabling restored jobs without explicit operator approval.
+Use Section 4 only if postflight fails or SQL review rejects the new scheduler. Rollback unschedules canonical jobs through `cron.unschedule`, restores backed-up legacy definitions through `cron.schedule`, and disables each restored job through `cron.alter_job` after a read-only `cron.job` lookup. It must not be followed by enabling restored jobs without explicit operator approval.
 
 ## 11. Operator-Safe SQL Execution Files
 
