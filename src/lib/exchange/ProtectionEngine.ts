@@ -1,5 +1,5 @@
 import type { ExchangeProvider, ProviderResult, ProtectionRequest } from './exchangeProvider.js';
-import { detectProtectionViolations, evaluateLifecycleState, TradeManagementTruthRow } from './tradeManagementCore.js';
+import { detectProtectionViolations, evaluateLifecycleState, TradeManagementTruthRow, upsertTradeTruthThroughCompatibility } from './tradeManagementCore.js';
 
 export interface ProtectionVerificationResult {
   symbol: string;
@@ -47,7 +47,7 @@ export class ProtectionEngine {
           latest_sync_at: new Date().toISOString(),
           last_action_taken: 'verifyAndProtect_safe',
         };
-        await this.store.upsertTradeTruth(updatedRow);
+        await upsertTradeTruthThroughCompatibility(this.store, updatedRow);
 
         return {
           symbol: row.symbol,
@@ -102,7 +102,7 @@ export class ProtectionEngine {
               latest_sync_at: new Date().toISOString(),
               last_action_taken: 'verifyAndProtect_repaired_successfully',
             };
-            await this.store.upsertTradeTruth(updatedRow);
+            await upsertTradeTruthThroughCompatibility(this.store, updatedRow);
 
             return {
               symbol: row.symbol,
@@ -125,7 +125,7 @@ export class ProtectionEngine {
         last_action_taken: 'verifyAndProtect_escalated_recovery_required',
         latest_sync_at: new Date().toISOString(),
       };
-      await this.store.upsertTradeTruth(escalationRow);
+      await upsertTradeTruthThroughCompatibility(this.store, escalationRow);
 
       // Trigger alerts (no silent failures)
       console.error(`[ALERT] ProtectionEngine Recovery Required for ${row.symbol}: ${violations.reason}`);

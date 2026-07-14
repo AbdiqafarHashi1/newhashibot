@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authJsonResponse, authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
+import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -476,7 +477,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       await supabase.from("execution_orders").update(update).eq("id", row.id);
       // Write unified trade truth so the operator panel can read live protection state
       try {
-        await supabase.rpc("upsert_trade_management_truth", {
+        await upsertTradeManagementTruth(supabase, {
           p_execution_order_id: row.id,
           p_provider: "bybit",
           p_environment: bybitEnvironment(),
@@ -520,7 +521,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
     try {
       const { data: activeRows } = await supabase.from("execution_orders").select("*").eq("exchange", `bybit_usdt_${bybitEnvironment()}`).eq("environment", bybitEnvironment() === "live" ? "live" : bybitEnvironment()).in("status", ACTIVE_STATUSES);
       for (const row of (activeRows ?? []) as any) {
-        await supabase.rpc("upsert_trade_management_truth", {
+        await upsertTradeManagementTruth(supabase, {
           p_execution_order_id: row.id,
           p_provider: "bybit",
           p_environment: bybitEnvironment(),

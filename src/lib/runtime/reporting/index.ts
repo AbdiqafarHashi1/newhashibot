@@ -1,0 +1,3 @@
+export interface CanonicalRuntimeEvent { event_id: string; trade_id: string; provider_id: string; environment_id: string; event_type: string; idempotency_key: string; payload: Record<string, unknown>; created_at: string; }
+export function telegramDeliveryKey(event: Pick<CanonicalRuntimeEvent, 'event_id' | 'trade_id' | 'event_type'>): string { return ['telegram', event.trade_id, event.event_type, event.event_id].join(':'); }
+export class ReportingPipeline { event(input: Omit<CanonicalRuntimeEvent, 'idempotency_key'> & { idempotency_key?: string }): CanonicalRuntimeEvent { return { ...input, idempotency_key: input.idempotency_key ?? [input.trade_id, input.event_type, input.event_id].join(':') }; } }

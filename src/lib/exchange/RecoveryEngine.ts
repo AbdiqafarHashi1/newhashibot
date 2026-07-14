@@ -1,5 +1,5 @@
 import type { ExchangeProvider } from './exchangeProvider.js';
-import { detectProtectionViolations, TradeManagementTruthRow } from './tradeManagementCore.js';
+import { detectProtectionViolations, TradeManagementTruthRow, upsertTradeTruthThroughCompatibility } from './tradeManagementCore.js';
 
 export interface RecoveryClassification {
   type: 'provider_outage' | 'network_timeout' | 'missing_protection' | 'duplicate_trades' | 'orphan_orders' | 'partial_protection' | 'desynchronization' | 'retry_exhaustion' | 'unknown';
@@ -121,7 +121,7 @@ export class RecoveryEngine {
         repair_attempts: retryCount + 1,
         latest_sync_at: new Date().toISOString(),
       };
-      await this.store.upsertTradeTruth(escalatedRow);
+      await upsertTradeTruthThroughCompatibility(this.store, escalatedRow);
 
       return {
         success: false,
@@ -146,7 +146,7 @@ export class RecoveryEngine {
           for (const order of openOrders) {
             await this.provider.cancelOrder({ symbol: row.symbol, providerOrderId: order.providerOrderId });
           }
-          await this.store.upsertTradeTruth({
+          await upsertTradeTruthThroughCompatibility(this.store, {
             ...row,
             protection_status: 'closed',
             status: 'closed',
@@ -165,7 +165,7 @@ export class RecoveryEngine {
         latest_sync_at: new Date().toISOString(),
         last_action_taken: `recovery_retry_${classification.type}`,
       };
-      await this.store.upsertTradeTruth(updatedRow);
+      await upsertTradeTruthThroughCompatibility(this.store, updatedRow);
 
       return {
         success: true,
