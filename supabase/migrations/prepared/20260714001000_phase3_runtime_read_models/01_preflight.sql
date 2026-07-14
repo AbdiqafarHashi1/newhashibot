@@ -36,6 +36,8 @@ WHERE table_schema = 'public'
   AND column_name IN (
     'id',
     'trade_id',
+    'side',
+    'execution_order_id',
     'symbol',
     'provider',
     'environment',
@@ -56,9 +58,13 @@ WHERE table_schema = 'public'
 ORDER BY table_name, column_name;
 
 -- STOP if trade_management_truth or execution_orders is missing.
--- STOP if any column used by a static index is missing: trade_management_truth.provider,
--- trade_management_truth.environment, trade_management_truth.symbol,
+-- STOP if any column used by a static index or row identity is missing: trade_management_truth.provider,
+-- trade_management_truth.environment, trade_management_truth.symbol, trade_management_truth.side,
+-- trade_management_truth.execution_order_id, trade_management_truth.protection_status,
 -- trade_management_truth.latest_sync_at, execution_orders.status, or execution_orders.updated_at.
+-- NOTE: trade_management_truth.id/status are optional legacy columns; the production
+-- row identity is (provider, environment, symbol, side), with execution_order_id
+-- unique when present.
 
 -- 1.3 Preserve prior read-model definitions for rollback review.
 SELECT

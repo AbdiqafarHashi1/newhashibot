@@ -43,11 +43,12 @@ BEGIN
   SELECT COUNT(*)
   INTO v_missing_required
   FROM (VALUES
-    ('trade_management_truth', 'id'),
-    ('trade_management_truth', 'status'),
     ('trade_management_truth', 'provider'),
     ('trade_management_truth', 'environment'),
     ('trade_management_truth', 'symbol'),
+    ('trade_management_truth', 'side'),
+    ('trade_management_truth', 'execution_order_id'),
+    ('trade_management_truth', 'protection_status'),
     ('trade_management_truth', 'latest_sync_at'),
     ('execution_orders', 'id'),
     ('execution_orders', 'status'),
@@ -66,21 +67,13 @@ BEGIN
   END IF;
 END $$;
 
--- 2.2 Supporting indexes. Active trade indexing is based on lifecycle/closure status,
--- not protection_status. Views below contain the full canonical/legacy active definition.
+-- 2.2 Supporting indexes. Active trade indexing follows the production
+-- trade_management_truth composite identity and protection closure state. Do not
+-- require legacy surrogate id/status columns; the live table intentionally uses
+-- (provider, environment, symbol, side) with execution_order_id separately unique.
 CREATE INDEX IF NOT EXISTS idx_tmt_runtime_active_lifecycle
-  ON public.trade_management_truth (provider, environment, symbol, latest_sync_at DESC)
-  WHERE COALESCE(status, '') NOT IN (
-    'closed',
-    'archived',
-    'closed_tp2',
-    'closed_sl',
-    'closed_profit_lock',
-    'closed_manual',
-    'closed_expired',
-    'cancelled',
-    'failed'
-  );
+  ON public.trade_management_truth (provider, environment, symbol, side, latest_sync_at DESC)
+  WHERE COALESCE(protection_status, '') <> 'closed';
 
 CREATE INDEX IF NOT EXISTS idx_execution_orders_runtime_status_recent
   ON public.execution_orders (status, updated_at DESC);
@@ -115,25 +108,35 @@ END $$;
 
 -- 2.3 Views. security_invoker=true preserves caller RLS semantics on supported PostgreSQL
 -- versions used by Supabase. Public/anon access is explicitly revoked below.
+DROP VIEW IF EXISTS public.admin_runtime_overview_read_model;
+DROP VIEW IF EXISTS public.admin_active_trade_truth_read_model;
+
 CREATE OR REPLACE VIEW public.admin_active_trade_truth_read_model
 WITH (security_invoker = true)
 AS
 SELECT
-  t.id,
-  COALESCE(to_jsonb(t)->>'trade_id', t.id::text) AS trade_id,
+  COALESCE(
+    to_jsonb(t)->>'execution_order_id',
+    CONCAT_WS(':', to_jsonb(t)->>'provider', to_jsonb(t)->>'environment', to_jsonb(t)->>'symbol', to_jsonb(t)->>'side')
+  ) AS id,
+  COALESCE(
+    to_jsonb(t)->>'trade_id',
+    to_jsonb(t)->>'execution_order_id',
+    CONCAT_WS(':', to_jsonb(t)->>'provider', to_jsonb(t)->>'environment', to_jsonb(t)->>'symbol', to_jsonb(t)->>'side')
+  ) AS trade_id,
   to_jsonb(t)->>'provider' AS provider,
   to_jsonb(t)->>'environment' AS environment,
   to_jsonb(t)->>'account_id' AS account_id,
   to_jsonb(t)->>'symbol' AS symbol,
-  t.status AS legacy_or_lifecycle_status,
-  COALESCE(to_jsonb(t)->>'trade_lifecycle_state', to_jsonb(t)->>'lifecycle_state', t.status) AS lifecycle_state,
+  COALESCE(to_jsonb(t)->>'status', to_jsonb(t)->>'protection_status') AS legacy_or_lifecycle_status,
+  COALESCE(to_jsonb(t)->>'trade_lifecycle_state', to_jsonb(t)->>'lifecycle_state', to_jsonb(t)->>'status', to_jsonb(t)->>'protection_status') AS lifecycle_state,
   to_jsonb(t)->>'execution_status' AS execution_status,
   to_jsonb(t)->>'protection_status' AS protection_status,
-  to_jsonb(t)->>'monitoring_status' AS monitoring_status,
+  COALESCE(to_jsonb(t)->>'monitoring_status', to_jsonb(t)->>'monitor_status') AS monitoring_status,
   COALESCE(to_jsonb(t)->>'latest_sync_at', to_jsonb(t)->>'updated_at', to_jsonb(t)->>'created_at') AS last_runtime_timestamp
 FROM public.trade_management_truth t
 WHERE COALESCE(to_jsonb(t)->>'closed_at', to_jsonb(t)->>'archived_at', to_jsonb(t)->>'exit_at', to_jsonb(t)->>'resolved_at') IS NULL
-  AND COALESCE(to_jsonb(t)->>'trade_lifecycle_state', to_jsonb(t)->>'lifecycle_state', t.status, '') NOT IN (
+  AND COALESCE(to_jsonb(t)->>'trade_lifecycle_state', to_jsonb(t)->>'lifecycle_state', to_jsonb(t)->>'status', to_jsonb(t)->>'protection_status', '') NOT IN (
     'closed',
     'archived',
     'closed_tp2',
