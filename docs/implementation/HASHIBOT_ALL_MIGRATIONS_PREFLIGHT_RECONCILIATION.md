@@ -85,7 +85,7 @@ Safe mappings added to Migration 1 helpers: `entry_pending→created`, `entry_su
 
 | Job/responsibility | Schedule | Target | Auth/Vault | Lease | Dispatcher target | Classification |
 |---|---|---|---|---|---|---|
-| scanner | `*/5 * * * *` | `scheduled-market-scanner` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | `scanner:global` | Edge HTTP via dispatcher | REBUILD disabled |
+| scanner | `*/5 * * * *` | `scheduled-market-scanner` | `HASHIBOT_PROJECT_URL`, `HASHIBOT_SERVICE_ROLE_KEY` | `scanner:global` | Edge HTTP via dispatcher | REBUILD disabled |
 | outcome evaluator | `*/5 * * * *` | `evaluate-signal-outcomes` | same | `outcome-evaluator:global` | Edge HTTP via dispatcher | REBUILD disabled |
 | Binance monitor | `* * * * *` | `binance-testnet-monitor` | same | `monitor:binance:testnet` | Edge HTTP via dispatcher | REBUILD disabled |
 | Bybit monitor | `* * * * *` | `bybit-testnet-monitor` | same | `monitor:bybit:demo` | Edge HTTP via dispatcher | REBUILD disabled |
