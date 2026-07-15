@@ -4,6 +4,7 @@ import { ScannerRun, ProviderStatus } from '../lib/types';
 import { callEdgeFunction, EdgeFunctionReachability } from '../lib/edgeFunctionStatus';
 import { SchedulerProof, buildSchedulerProof, SCANNER_RUN_PROOF_COLUMNS, safeSchedulerError } from '../lib/adminSchedulerTruth';
 import { FrontendSupabaseDebugInfo, getFrontendSupabaseDebugInfo } from '../lib/supabaseEnv';
+import { governedRequest, startGovernedPolling, isOperatorActionRunning } from '../lib/requestGovernance';
 
 export interface RuntimeProviderConfig {
   provider: string;
@@ -188,7 +189,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       latestRawScheduledRunRes,
       recentScheduledRunsRes,
       latestManualRunRes,
-      provRes,
+      overviewRes,
       cfgRes,
       realSignalCountRes,
       realCryptoCountRes,
@@ -197,36 +198,34 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       tgRes,
       tgHealthRes,
       intelligenceHealthRes,
-      intelligenceFeedHealthRes,
       latestIntelligenceRes,
       failedIntelligenceRes,
       outcomeTgRes,
       updateRes,
       autoUpdateRes,
       manualUpdateRes,
-    ] = await Promise.all([
+    ] = await governedRequest({ key: 'admin-live-state:summary', className: 'live' }, async () => Promise.all([
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).order('started_at', { ascending: false }).limit(20),
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').or('source.eq.pg_cron,triggered_by.eq.pg_cron,is_automatic.eq.true').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'scheduled').order('started_at', { ascending: false }).limit(20),
       supabase.from('scanner_runs').select(SCANNER_RUN_PROOF_COLUMNS).ilike('run_type', 'manual').order('started_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('provider_status').select('provider,status,latency_ms,last_checked_at,error_message,updated_at'),
+      supabase.from('admin_runtime_overview_read_model').select('*').maybeSingle(),
       supabase.from('scanner_config').select('id,is_enabled,schedule_enabled,scan_interval_minutes,signal_enable_crypto,signal_enable_forex,scan_crypto_enabled,scan_forex_enabled,auto_send_telegram,allow_demo_telegram_sending,min_auto_send_grade,cron_job_active,cron_job_name,last_scheduled_scan_at,last_manual_scan_at,heartbeat_updated_at,updated_at').eq('id', 1).maybeSingle(),
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').eq('market_type', 'crypto').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
       supabase.from('signals').select('id', { count: 'exact', head: true }).eq('data_source', 'REAL DATA').eq('market_type', 'forex').in('status', ['new', 'approved', 'waiting', 'active', 'tp1_hit']),
       supabase.from('signals').select('id', { count: 'exact', head: true }).neq('data_source', 'REAL DATA'),
       supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type,destination_channel,delivery_status,retry_count').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('telegram_delivery_health').select('destination_channel,sent_count,failed_count,skipped_count,last_success_at,last_failure_at,last_delivery_at'),
+      supabase.from('admin_telegram_delivery_health_read_model').select('destination_channel,sent_count,failed_count,skipped_count,last_success_at,last_failure_at,last_delivery_at'),
       supabase.from('intelligence_event_health').select('event_type,last_generated_at,generated_count,failed_count,last_status,last_confidence'),
-      supabase.from('intelligence_feed_health').select('feed_type,status,classification,source,freshness,error_message,last_updated_at,latest_value,latest_change_pct,latest_event_at,events_24h,confidence,staleness_minutes,coverage,metadata,historical_coverage'),
       supabase.from('intelligence_events').select('event_type,title,status,confidence,created_at,data_sources').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('intelligence_events').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
       supabase.from('telegram_deliveries').select('status,created_at,error_message,delivery_type,destination_channel,delivery_status,retry_count').like('delivery_type', 'outcome_%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').ilike('message', '%source: scheduled-market-scanner%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('signal_updates').select('signal_id,new_status,created_at,reason,message').or('message.is.null,message.ilike.%source: manual_button%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-    ]);
+    ]));
 
     const runs: ScannerRun[] = (runsRes.data ?? []) as ScannerRun[];
     const recentScheduledRuns: ScannerRun[] = (recentScheduledRunsRes.data ?? []) as ScannerRun[];
@@ -330,7 +329,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       latestManualRun,
       recentRuns: runs,
       recentScheduledRuns,
-      providers: (provRes.data ?? []) as unknown as ProviderStatus[],
+      providers: overviewRes.data ? ([{ provider: 'canonical_runtime_overview', status: 'available', updated_at: String((overviewRes.data as Record<string, unknown>).generated_at ?? new Date().toISOString()) }] as unknown as ProviderStatus[]) : [],
       runtimeConfig,
       runtimeConfigError,
       latestApprovedRealSignalCount: realSignalCountRes.count ?? 0,
@@ -343,7 +342,7 @@ export function useAdminLiveState(session: { access_token: string } | null) {
       telegramConfigured: Boolean(runtimeConfig?.telegram_bot_token_set && runtimeConfig?.telegram_chat_id_set),
       telegramDeliveryHealth: (tgHealthRes.data ?? []) as AdminLiveState['telegramDeliveryHealth'],
       intelligenceHealth: (intelligenceHealthRes.data ?? []) as AdminLiveState['intelligenceHealth'],
-      intelligenceFeedHealth: (intelligenceFeedHealthRes.data ?? []) as AdminLiveState['intelligenceFeedHealth'],
+      intelligenceFeedHealth: [],
       latestIntelligenceEvent: (latestIntelligenceRes.data as AdminLiveState['latestIntelligenceEvent']) ?? null,
       failedIntelligenceEvents: failedIntelligenceRes.count ?? 0,
       autoSendTelegram: cfg?.auto_send_telegram ?? false,
@@ -360,11 +359,15 @@ export function useAdminLiveState(session: { access_token: string } | null) {
   }, [session]);
 
   useEffect(() => {
-    void refresh();
-    const id = window.setInterval(() => { void refresh(); }, 45_000);
+    const stop = startGovernedPolling({
+      key: 'admin-live-state:summary',
+      intervalMs: 60_000,
+      pauseWhen: isOperatorActionRunning,
+      run: async () => { await refresh(); },
+    });
     return () => {
       refreshSeq.current += 1;
-      window.clearInterval(id);
+      stop();
     };
   }, [refresh]);
 

@@ -9,6 +9,7 @@ import { runtimeTruth as runtimeTruthSingleton } from '../../../lib/exchange/run
 import { ActionResult, OperatorActionResult } from '../../../components/admin/ActionResult';
 import { loadOperatorTruth as fetchOperatorTruth, RuntimeRow } from '../../../lib/operatorTruth';
 import { isSupabaseMocked } from '../../../lib/supabase';
+import { startGovernedPolling, withOperatorAction, isOperatorActionRunning } from '../../../lib/requestGovernance';
 
 type Section = 'dashboard' | 'signals' | 'executions' | 'trade-manager' | 'telegram' | 'settings' | 'intelligence' | 'runtime-proof';
 type Health = 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'OFFLINE';
@@ -171,13 +172,16 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   }
 
   useEffect(() => {
-    void refresh();
-    void loadOperatorTruth();
-    const id = window.setInterval(() => {
-      void refresh();
-      void loadOperatorTruth();
-    }, 5_000);
-    return () => window.clearInterval(id);
+    const stop = startGovernedPolling({
+      key: 'operator-panel:truth',
+      intervalMs: 60_000,
+      pauseWhen: isOperatorActionRunning,
+      run: async () => {
+        await refresh();
+        await loadOperatorTruth();
+      },
+    });
+    return stop;
   }, [refresh]);
 
   const latestProviderSync = latestDate(state.providers as unknown as RuntimeRow[], ['last_success_at', 'updated_at']);
@@ -306,7 +310,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     setRunningAction(action);
     setActionResult({ status: 'RUNNING', action, provider, summary: 'Executing backend operator action…', timestamp: startedAt, startedAt, route, functionName });
     try {
-      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, 20000);
+      const result = await withOperatorAction(() => callEdgeFunction(functionName, { action, provider }, session.access_token, 20000));
       const data = result.data as Record<string, unknown> | null;
       const ok = result.ok && data && data.success === true && !data.exact_error;
       const raw = (data?.raw && typeof data.raw === 'object' ? data.raw : data) as Record<string, unknown>;
@@ -339,14 +343,6 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       setActionResult({ status: 'FAILED', action, provider, summary: 'Backend operator route failed.', timestamp: startedAt, startedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - started, blocker: 'ROUTE_OR_NETWORK_ERROR', route, functionName, error, raw: { expected_route: route, expected_function: functionName, error } });
     } finally {
       setRunningAction(null);
-      const withTimeout = <T,>(promise: Promise<T>, label: string, timeoutMs = 10000): Promise<T | null> => Promise.race([
-        promise,
-        new Promise<null>((resolve) => globalThis.setTimeout(() => {
-          console.error(`${label} timed out after operator action cleanup`);
-          resolve(null);
-        }, timeoutMs)),
-      ]);
-      await Promise.allSettled([withTimeout(refresh(), 'admin live refresh'), withTimeout(loadOperatorTruth(), 'operator truth refresh')]);
     }
   }
 
