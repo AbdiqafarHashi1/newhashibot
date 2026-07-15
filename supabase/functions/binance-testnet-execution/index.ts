@@ -7,7 +7,7 @@ import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeM
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token, x-hashibot-internal-secret, x-hashibot-correlation-id, x-hashibot-action-id, Idempotency-Key",
 };
 
 const TESTNET_BASE_URL = "https://demo-fapi.binance.com";
