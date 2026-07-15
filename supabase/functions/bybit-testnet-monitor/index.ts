@@ -14,6 +14,49 @@ type SupabaseClient = ReturnType<typeof createClient>;
 type Json = Record<string, unknown>;
 const ACTIVE_STATUSES = ["pending", "failed", "entry_submitted", "entry_filled", "protected", "protected_native", "partially_closed", "pending_protection", "protection_pending", "protection_failed", "protection_recovered", "protected_managed", "pending_managed_protection"];
 
+const MONITOR_TIMEOUT_MS = 25000;
+const MONITOR_ROW_LIMIT = 25;
+const MONITOR_CANCEL_LIMIT = 25;
+const MONITOR_REPAIR_LIMIT = 30;
+const RECENT_LEASE_MS = 45000;
+
+function elapsedMs(startedMs: number): number { return Date.now() - startedMs; }
+function assertMonitorBudget(startedMs: number, stage: string) {
+  if (elapsedMs(startedMs) > MONITOR_TIMEOUT_MS) throw new Error(`BYBIT_MONITOR_TIMEOUT:${stage}:${elapsedMs(startedMs)}ms`);
+}
+function markStage(stageTimings: Json, stage: string, startedMs: number) {
+  stageTimings[stage] = elapsedMs(startedMs);
+}
+async function withStage<T>(stageTimings: Json, stage: string, startedMs: number, fn: () => Promise<T>): Promise<T> {
+  assertMonitorBudget(startedMs, `${stage}:start`);
+  const t0 = Date.now();
+  try { return await fn(); } finally { stageTimings[stage] = Date.now() - t0; assertMonitorBudget(startedMs, `${stage}:end`); }
+}
+function latestBybitLease(settings: Json | null): { state: string; run_id: string; started_at: string } | null {
+  const result = (settings?.bybit_latest_monitor_result ?? {}) as Json;
+  const lease = (result.bybit_monitor_lease ?? {}) as Json;
+  const state = String(lease.state ?? '');
+  const run_id = String(lease.run_id ?? '');
+  const started_at = String(lease.started_at ?? '');
+  return state && run_id && started_at ? { state, run_id, started_at } : null;
+}
+function isRecentRunningBybitLease(settings: Json | null): boolean {
+  const lease = latestBybitLease(settings);
+  if (!lease || lease.state !== 'running') return false;
+  const ts = Date.parse(lease.started_at);
+  return Number.isFinite(ts) && Date.now() - ts < RECENT_LEASE_MS;
+}
+async function acquireBybitMonitorLease(supabase: SupabaseClient, runId: string, startedAt: string, triggerSource: string): Promise<boolean> {
+  const { data } = await supabase.from('execution_settings').select('bybit_latest_monitor_result').eq('id', 1).maybeSingle();
+  const settings = (data as Json | null) ?? null;
+  if (isRecentRunningBybitLease(settings)) return false;
+  await supabase.from('execution_settings').update({ bybit_latest_monitor_result: { ...((settings?.bybit_latest_monitor_result ?? {}) as Json), bybit_monitor_lease: { state: 'running', run_id: runId, started_at: startedAt, trigger_source: triggerSource, timeout_ms: MONITOR_TIMEOUT_MS } }, updated_at: new Date().toISOString() }).eq('id', 1);
+  return true;
+}
+function releaseBybitMonitorLease(result: Json, state: 'completed' | 'failed' | 'rejected', runId: string, startedAt: string): Json {
+  return { ...result, bybit_monitor_lease: { state, run_id: runId, started_at: startedAt, completed_at: new Date().toISOString(), timeout_ms: MONITOR_TIMEOUT_MS } };
+}
+
 interface ProtectionViolation {
   missing_sl: boolean;
   missing_tp: boolean;
@@ -289,15 +332,26 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
   const triggerSource = String(payload.source ?? payload.triggered_by ?? "manual");
   const isAutomatic = triggerSource === "pg_cron" || payload.is_automatic === true;
   let latestError = "";
-  const stats: Json = { account_sync: false, balance_sync: false, open_positions_sync: false, open_orders_sync: false, protection_sync: false, recovery_sync: false, profit_lock_sync: false, rows_checked: 0, rows_updated: 0, protections_created: 0, protections_missing: 0, stale_orders_cleaned: 0, positions_closed: 0, warnings: [] };
+  const startedMs = Date.now();
+  const stageTimings: Json = {};
+  const stats: Json = { account_sync: false, balance_sync: false, open_positions_sync: false, open_orders_sync: false, protection_sync: false, recovery_sync: false, profit_lock_sync: false, rows_checked: 0, rows_updated: 0, protections_created: 0, protections_missing: 0, stale_orders_cleaned: 0, positions_closed: 0, warnings: [], stage_timings: stageTimings, bounded_limits: { timeout_ms: MONITOR_TIMEOUT_MS, row_limit: MONITOR_ROW_LIMIT, cancel_limit: MONITOR_CANCEL_LIMIT, repair_limit: MONITOR_REPAIR_LIMIT } };
 
   const providerControl = await supabase.from("execution_provider_controls").select("enabled").eq("provider_name", "bybit").maybeSingle().then((r) => r.data).catch(() => null);
   const { apiKey, apiSecret } = bybitCredentials();
   const hasKeys = Boolean(apiKey && apiSecret);
+  markStage(stageTimings, "bootstrap", startedMs);
+
+  const leaseAcquired = await withStage(stageTimings, "lease_acquire", startedMs, () => acquireBybitMonitorLease(supabase, runId, startedAt, triggerSource));
+  if (!leaseAcquired) {
+    const completedAt = new Date().toISOString();
+    const result = releaseBybitMonitorLease({ success: false, provider: "bybit", run_id: runId, last_monitor_run_at: startedAt, monitor_health: "rejected", latest_error: "MONITOR_ALREADY_RUNNING", blocker: "MONITOR_ALREADY_RUNNING", stage_timings: stageTimings }, "rejected", runId, startedAt);
+    await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: false, monitor_status: "rejected", latest_recovery_action: null, errors: ["MONITOR_ALREADY_RUNNING"], metadata: result });
+    return result;
+  }
 
   if (providerControl && !providerControl.enabled) {
     const completedAt = new Date().toISOString();
-    const result = { success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "healthy", latest_error: "PROVIDER_DISABLED", blocker: "PROVIDER_DISABLED" };
+    const result = releaseBybitMonitorLease({ success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "healthy", latest_error: "PROVIDER_DISABLED", blocker: "PROVIDER_DISABLED", stage_timings: stageTimings }, "completed", runId, startedAt);
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: false, monitor_status: "healthy", latest_recovery_action: null, errors: ["PROVIDER_DISABLED"], metadata: result });
     await updateProvider(supabase, { status: "disconnected", last_status_at: new Date().toISOString(), last_error: "PROVIDER_DISABLED", metadata: { bybit_monitor: result } });
     return result;
@@ -305,18 +359,18 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
 
   if (!hasKeys) {
     const completedAt = new Date().toISOString();
-    const result = { success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "healthy", latest_error: "NO_API_KEYS", blocker: "NO_API_KEYS" };
+    const result = releaseBybitMonitorLease({ success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "healthy", latest_error: "NO_API_KEYS", blocker: "NO_API_KEYS", stage_timings: stageTimings }, "completed", runId, startedAt);
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: false, monitor_status: "healthy", latest_recovery_action: null, errors: ["NO_API_KEYS"], metadata: result });
     await updateProvider(supabase, { status: "disconnected", last_status_at: new Date().toISOString(), last_error: "NO_API_KEYS", metadata: { bybit_monitor: result } });
     return result;
   }
 
   try {
-    const [wallet, positions, orders] = await Promise.all([
+    const [wallet, positions, orders] = await withStage(stageTimings, "provider_snapshot", startedMs, () => Promise.all([
       bybitRequest<Json>("/v5/account/wallet-balance", { accountType: "UNIFIED" }),
       bybitRequest<Json>("/v5/position/list", { category: "linear", settleCoin: "USDT" }),
       bybitRequest<Json>("/v5/order/realtime", { category: "linear", settleCoin: "USDT", openOnly: 0 }),
-    ]);
+    ]));
     const positionList = Array.isArray((positions as { list?: unknown[] }).list) ? (positions as { list: Json[] }).list : [];
     const orderList = Array.isArray((orders as { list?: unknown[] }).list) ? (orders as { list: Json[] }).list : [];
     const positionSymbols = new Set(positionList.filter((p) => Math.abs(Number(p.size ?? 0)) > 0).map((p) => String(p.symbol ?? "")));
@@ -328,8 +382,12 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
     const unrealizedPnl = activePositions.reduce((sum, p) => sum + Number(p.unrealisedPnl ?? 0), 0);
     Object.assign(stats, { account_sync: true, balance_sync: true, open_positions_sync: true, open_orders_sync: true, wallet_balance: Number((usdt as Json).walletBalance ?? 0), available_balance: Number((usdt as Json).availableToWithdraw ?? (usdt as Json).availableToBorrow ?? 0), equity: Number((usdt as Json).equity ?? 0), unrealized_pnl: unrealizedPnl, bybit_positions_count: positionSymbols.size, bybit_open_orders_count: orderList.length, active_symbols: Array.from(new Set([...positionSymbols, ...orderSymbols])), positions: activePositions.map((p) => ({ symbol: p.symbol, side: p.side, size: p.size, leverage: p.leverage, margin_mode: p.tradeMode ?? p.marginMode, entry_price: p.avgPrice, mark_price: p.markPrice, liquidation_price: p.liqPrice, unrealized_pnl: p.unrealisedPnl })), open_orders: orderList.map((o) => ({ symbol: o.symbol, order_id: o.orderId, side: o.side, type: o.orderType ?? o.stopOrderType, qty: o.qty, price: o.price, trigger_price: o.triggerPrice, reduce_only: o.reduceOnly })) });
 
-    const { data: rows } = await supabase.from("execution_orders").select("*").eq("exchange", `bybit_usdt_${bybitEnvironment()}`).eq("environment", bybitEnvironment() === "live" ? "live" : bybitEnvironment()).in("status", ACTIVE_STATUSES);
+    const { data: rows } = await supabase.from("execution_orders").select("*").eq("exchange", `bybit_usdt_${bybitEnvironment()}`).eq("environment", bybitEnvironment() === "live" ? "live" : bybitEnvironment()).in("status", ACTIVE_STATUSES).order("updated_at", { ascending: true }).limit(MONITOR_ROW_LIMIT);
+    markStage(stageTimings, "load_execution_rows", startedMs);
+    let cancelBudget = MONITOR_CANCEL_LIMIT;
+    let repairBudget = MONITOR_REPAIR_LIMIT;
     for (const row of (rows ?? []) as Array<Json & { id: string; symbol: string; status: string }>) {
+      assertMonitorBudget(startedMs, `row:${row.symbol}`);
       stats.rows_checked = Number(stats.rows_checked) + 1;
       const position = activePositions.find((p) => String(p.symbol) === row.symbol) ?? null;
       const symbolOrders = orderList.filter((o) => String(o.symbol) === row.symbol && isActiveOrder(o));
@@ -359,8 +417,8 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
 
       if (!hasPosition && hasOrders) {
         let cancelled = 0;
-        for (const o of symbolOrders) {
-          try { await bybitPost<Json>("/v5/order/cancel", { category: "linear", symbol: row.symbol, orderId: orderId(o) }); cancelled++; } catch (e) { (stats.warnings as unknown[]).push({ symbol: row.symbol, warning: e instanceof Error ? e.message : String(e), action: "cancel_stale_bybit_order" }); }
+        for (const o of symbolOrders.slice(0, cancelBudget)) {
+          try { await bybitPost<Json>("/v5/order/cancel", { category: "linear", symbol: row.symbol, orderId: orderId(o) }); cancelBudget--; cancelled++; } catch (e) { (stats.warnings as unknown[]).push({ symbol: row.symbol, warning: e instanceof Error ? e.message : String(e), action: "cancel_stale_bybit_order" }); }
         }
         Object.assign(update, { status: "synced_closed", lifecycle_state: "CLOSED", protection_status: "closed", provider_status: "stale_orders_cleaned", cleanup_status: cancelled ? "stale_orders_cleaned" : "stale_order_cleanup_failed", recovery_status: cancelled ? "recovered" : "cleanup_failed" });
         stats.stale_orders_cleaned = Number(stats.stale_orders_cleaned) + cancelled;
@@ -379,7 +437,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       if (hasPosition && expired && qty > 0) {
         try {
           await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: closeSide(position ?? {}, row), orderType: "Market", qty: String(qty), reduceOnly: true, closeOnTrigger: false, orderLinkId: `${baseLink}:expire` });
-          for (const o of symbolOrders) await bybitPost<Json>("/v5/order/cancel", { category: "linear", symbol: row.symbol, orderId: orderId(o) }).catch(() => null);
+          for (const o of symbolOrders.slice(0, cancelBudget)) { await bybitPost<Json>("/v5/order/cancel", { category: "linear", symbol: row.symbol, orderId: orderId(o) }).catch(() => null); cancelBudget--; }
           Object.assign(update, { status: "expired_closed", lifecycle_state: "CLOSED", protection_status: "closed", expiry_status: "expired_closed", provider_status: "expired_position_closed", cleanup_status: "stale_orders_cleaned" });
           stats.positions_closed = Number(stats.positions_closed) + 1;
           await supabase.from("execution_orders").update(update).eq("id", row.id);
@@ -401,22 +459,24 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
       let repairError = "";
       try {
         if (repairQuarantine) throw new Error("symbol_quarantined");
-        if (!slOrders.length && slPrice > 0 && qty > 0) {
+        if (repairBudget > 0 && !slOrders.length && slPrice > 0 && qty > 0) {
           repairAttempted = true;
           const sl = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: String(qty), triggerPrice: String(slPrice), triggerDirection: side === "LONG" ? 2 : 1, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:sl` });
-          stats.protections_created = Number(stats.protections_created) + 1;
+          stats.protections_created = Number(stats.protections_created) + 1; repairBudget--;
           Object.assign(update, { sl_order_id: String(sl.orderId ?? sl.orderLinkId ?? ""), sl_status: "submitted" });
         }
-        if (tpOrders.length < 1 && tp1Price > 0 && qty > 0) {
+        if (repairBudget > 0 && tpOrders.length < 1 && tp1Price > 0 && qty > 0) {
           repairAttempted = true;
           const tp1 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 1), triggerPrice: String(tp1Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:tp1` });
           stats.protections_created = Number(stats.protections_created) + 1;
+          repairBudget--;
           Object.assign(update, { tp1_order_id: String(tp1.orderId ?? tp1.orderLinkId ?? ""), tp1_status: "submitted" });
         }
-        if (tpOrders.length < 2 && tp2Price > 0 && qty > 0) {
+        if (repairBudget > 0 && tpOrders.length < 2 && tp2Price > 0 && qty > 0) {
           repairAttempted = true;
           const tp2 = await bybitPost<Json>("/v5/order/create", { category: "linear", symbol: row.symbol, side: close, orderType: "Market", qty: splitQty(qty, 2), triggerPrice: String(tp2Price), triggerDirection: side === "LONG" ? 1 : 2, reduceOnly: true, closeOnTrigger: true, orderLinkId: `${baseLink}:tp2` });
           stats.protections_created = Number(stats.protections_created) + 1;
+          repairBudget--;
           Object.assign(update, { tp2_order_id: String(tp2.orderId ?? tp2.orderLinkId ?? ""), tp2_status: "submitted" });
         }
       } catch (e) {
@@ -426,7 +486,11 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
         await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, recovery_status: repairError });
       }
 
-      const refreshedOrders = orderList.filter((o) => String(o.symbol) === row.symbol && isActiveOrder(o));
+      const verificationOrderList = repairAttempted ? await withStage(stageTimings, `verify_${row.symbol}`, startedMs, async () => {
+        const refreshed = await bybitRequest<Json>("/v5/order/realtime", { category: "linear", symbol: row.symbol, openOnly: 0 });
+        return Array.isArray((refreshed as { list?: unknown[] }).list) ? (refreshed as { list: Json[] }).list : orderList;
+      }).catch(() => orderList) : orderList;
+      const refreshedOrders = verificationOrderList.filter((o) => String(o.symbol) === row.symbol && isActiveOrder(o));
       const refreshedReduce = refreshedOrders.filter((o) => String(o.reduceOnly) === "true" || o.reduceOnly === true);
       const expectedSl = refreshedReduce.find((o) => orderKind(o) === "sl" && near(n(o.triggerPrice), slPrice));
       const expectedTps = refreshedReduce.filter((o) => orderKind(o) === "tp").sort((a, b) => side === "LONG" ? n(a.triggerPrice) - n(b.triggerPrice) : n(b.triggerPrice) - n(a.triggerPrice));
@@ -511,7 +575,8 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
     }
     Object.assign(stats, { protection_sync: true, recovery_sync: true, profit_lock_sync: true });
     const completedAt = new Date().toISOString();
-    const result = { ...stats, run_id: runId, last_monitor_run_at: startedAt, last_successful_sync_at: completedAt, monitor_health: "healthy", wallet, open_position_symbols: Array.from(positionSymbols), open_order_symbols: Array.from(orderSymbols) };
+    markStage(stageTimings, "finalize", startedMs);
+    const result = releaseBybitMonitorLease({ ...stats, run_id: runId, last_monitor_run_at: startedAt, last_successful_sync_at: completedAt, monitor_health: "healthy", wallet, open_position_symbols: Array.from(positionSymbols), open_order_symbols: Array.from(orderSymbols) }, "completed", runId, startedAt);
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: true, monitor_status: "healthy", positions_seen: activePositions.length, orders_seen: orderList.length, executions_checked: Number(stats.rows_checked), protections_created: Number(stats.protections_created), protections_missing: Number(stats.protections_missing), stale_orders_cleaned: Number(stats.stale_orders_cleaned), positions_closed: Number(stats.positions_closed), latest_recovery_action: Number(stats.protections_created) > 0 ? "protection_created" : Number(stats.stale_orders_cleaned) > 0 ? "stale_orders_cleaned" : null, errors: [], metadata: result });
     await updateProvider(supabase, { status: "connected", last_status_at: new Date().toISOString(), last_error: null, metadata: { bybit_monitor: { ...result, environment: bybitEnvironment(), base_url: bybitBaseUrl() } } });
     await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_successful_sync_at: result.last_successful_sync_at, bybit_latest_monitor_error: null, bybit_latest_monitor_result: result, updated_at: new Date().toISOString() }).eq("id", 1);
@@ -552,7 +617,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json = {}): Promi
     }
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: new Date().toISOString(), success: false, monitor_status: "degraded", positions_seen: 0, orders_seen: 0, executions_checked: Number(stats.rows_checked), protections_created: Number(stats.protections_created), protections_missing: Number(stats.protections_missing), stale_orders_cleaned: Number(stats.stale_orders_cleaned), positions_closed: Number(stats.positions_closed), latest_recovery_action: null, errors: [latestError], metadata: stats }).catch(() => null);
     await updateProvider(supabase, { status: "degraded", last_status_at: new Date().toISOString(), last_error: latestError, metadata: { bybit_monitor: { ...stats, run_id: runId, environment: bybitEnvironment(), base_url: bybitBaseUrl(), last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError } } });
-    await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_monitor_error: latestError, bybit_latest_monitor_result: { ...stats, last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError }, updated_at: new Date().toISOString() }).eq("id", 1);
+    await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_monitor_error: latestError, bybit_latest_monitor_result: releaseBybitMonitorLease({ ...stats, last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError }, "failed", runId, startedAt), updated_at: new Date().toISOString() }).eq("id", 1);
     await routeTelegramEvent(supabase, { event_id: `provider_bybit_monitor_error:${startedAt}`, event_type: "provider_bybit_monitor_failure", text: `Bybit monitor failure\nFreshness: ${startedAt}\nError: ${latestError}`, source: "bybit-testnet-monitor", channels: ["admin"], dedupe: true, cooldown_minutes: 60 });
     return { success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "degraded", latest_error: latestError, ...stats };
   }
