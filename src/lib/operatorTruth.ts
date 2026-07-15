@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { governedRequest } from './requestGovernance';
 
 export type RuntimeRow = Record<string, unknown>;
 
@@ -21,59 +22,78 @@ export interface OperatorTruthBundle {
   readiness: RuntimeRow[];
   customerSubscriptions: RuntimeRow[];
   accessRequests: RuntimeRow[];
+  unavailableSources: Record<string, string>;
 }
+
+const unavailableSources: Record<string, string> = {};
 
 async function rows(table: string, order = 'created_at', limit = 100) {
   const { data, error } = await supabase.from(table).select('*').order(order, { ascending: false }).limit(limit);
-  if (error) return [];
+  if (error) {
+    unavailableSources[table] = error.message;
+    return [];
+  }
+  delete unavailableSources[table];
   return (data ?? []) as RuntimeRow[];
 }
 
+async function maybeSingle(table: string, select = '*', filter?: (query: ReturnType<typeof supabase.from>) => unknown) {
+  const base = supabase.from(table).select(select);
+  const query = filter ? filter(base as never) : base;
+  const { data, error } = await (query as { maybeSingle: () => Promise<{ data: unknown; error: { message: string } | null }> }).maybeSingle();
+  if (error) {
+    unavailableSources[table] = error.message;
+    return null;
+  }
+  delete unavailableSources[table];
+  return (data as RuntimeRow | null) ?? null;
+}
+
 export async function loadOperatorTruth(): Promise<OperatorTruthBundle> {
-  const [
-    truth, hb, controls, cfg, sig, deliveryRows, updates, routerAudit, events, 
-    executionOrders, intelligenceEvents, intelligenceFeeds, runtimeProof, 
-    schedulerTruth, quarantine, readiness, customerSubscriptions, accessRequests
-  ] = await Promise.all([
-    rows('trade_management_truth', 'latest_sync_at', 250),
-    rows('execution_monitor_heartbeats', 'started_at', 75),
-    rows('execution_provider_controls', 'updated_at', 50),
-    supabase.from('scanner_config').select('*').eq('id', 1).maybeSingle(),
-    rows('signals', 'created_at', 250),
-    rows('telegram_deliveries', 'created_at', 150),
-    rows('signal_updates', 'created_at', 150),
-    rows('telegram_router_audit', 'created_at', 150),
-    rows('operator_runtime_events', 'created_at', 150),
-    rows('execution_orders', 'created_at', 250),
-    rows('intelligence_events', 'created_at', 150),
-    rows('intelligence_feed_results', 'created_at', 150),
-    supabase.from('runtime_proof_view').select('*').eq('scope', 'runtime').maybeSingle(),
-    rows('scheduler_truth_view', 'last_run_at', 100),
-    rows('problem_symbol_quarantine', 'last_seen', 100),
-    rows('provider_100_trade_readiness_view', 'provider', 10),
-    rows('customer_subscriptions', 'created_at', 150),
-    rows('access_requests', 'created_at', 100),
-  ]);
-  return {
-    tradeTruth: truth,
-    heartbeats: hb,
-    providerControls: controls,
-    scannerConfig: (cfg.data as RuntimeRow) ?? null,
-    signals: sig,
-    telegramDeliveries: deliveryRows,
-    signalUpdates: updates,
-    telegramRouterAudit: routerAudit,
-    runtimeEvents: events,
-    executionOrders,
-    intelligenceEvents,
-    intelligenceFeeds,
-    runtimeProof: (runtimeProof as { data?: RuntimeRow | null }).data ?? null,
-    schedulerTruth,
-    quarantine,
-    readiness,
-    customerSubscriptions,
-    accessRequests,
-  };
+  return governedRequest({ key: 'operator-truth:canonical', className: 'summary' }, async () => {
+    const [
+      truth, controls, cfg, sig, deliveryRows, updates, events,
+      executionOrders, intelligenceEvents, intelligenceFeeds, overview,
+      quarantine, readiness, customerSubscriptions, accessRequests
+    ] = await Promise.all([
+      rows('admin_active_trade_truth_read_model', 'latest_sync_at', 250),
+      rows('execution_provider_controls', 'updated_at', 50),
+      maybeSingle('scanner_config', '*', (q) => (q as ReturnType<typeof supabase.from>).eq('id', 1)),
+      rows('signals', 'created_at', 250),
+      rows('admin_telegram_delivery_health_read_model', 'last_delivery_at', 150),
+      rows('signal_updates', 'created_at', 150),
+      rows('operator_runtime_events', 'created_at', 150),
+      rows('admin_execution_orders_read_model', 'created_at', 250),
+      rows('intelligence_events', 'created_at', 150),
+      rows('intelligence_feed_results', 'created_at', 150),
+      maybeSingle('admin_runtime_overview_read_model'),
+      rows('problem_symbol_quarantine', 'last_seen', 100),
+      rows('provider_100_trade_readiness_view', 'provider', 10),
+      rows('customer_subscriptions', 'created_at', 150),
+      rows('access_requests', 'created_at', 100),
+    ]);
+    return {
+      tradeTruth: truth,
+      heartbeats: [],
+      providerControls: controls,
+      scannerConfig: cfg,
+      signals: sig,
+      telegramDeliveries: deliveryRows,
+      signalUpdates: updates,
+      telegramRouterAudit: [],
+      runtimeEvents: events,
+      executionOrders,
+      intelligenceEvents,
+      intelligenceFeeds,
+      runtimeProof: overview,
+      schedulerTruth: overview ? [overview] : [],
+      quarantine,
+      readiness,
+      customerSubscriptions,
+      accessRequests,
+      unavailableSources: { ...unavailableSources },
+    };
+  });
 }
 
 export async function writeOperatorRuntimeEvent(event: RuntimeRow): Promise<string | null> {
