@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
+import { internalHeaders } from "../_shared/operator-invocation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-scanner-cron-secret, x-hashibot-cron-token, x-hashibot-internal-secret, x-hashibot-correlation-id, x-hashibot-action-id, Idempotency-Key",
 };
 
 type SupabaseClient = ReturnType<typeof createClient>;
@@ -158,12 +159,8 @@ Deno.serve(async (req: Request) => {
     marketScannerCalled = true;
     const proxy = await fetch(scannerUrl, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${serviceRole}`,
-        "Content-Type": "application/json",
-        ...(cronSecret ? { "x-scanner-cron-secret": cronSecret } : {}),
-      },
-      body: JSON.stringify({ run_type: "scheduled", source, market_mode: "crypto_only", scanner_run_id: runId }),
+      headers: internalHeaders(String(body.correlation_id ?? crypto.randomUUID()), String(body.action_id ?? runId ?? crypto.randomUUID())),
+      body: JSON.stringify({ run_type: "scheduled", source, market_mode: "crypto_only", scanner_run_id: runId, correlation_id: body.correlation_id, action_id: body.action_id }),
     });
     marketScannerStatus = proxy.status;
     const proxiedBody = await parseBody(proxy);
@@ -217,12 +214,8 @@ Deno.serve(async (req: Request) => {
       outcomeCalled = true;
       const outcomeRes = await fetch(`${supabaseUrl}/functions/v1/evaluate-signal-outcomes`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${serviceRole}`,
-          "Content-Type": "application/json",
-          ...(cronSecret ? { "x-scanner-cron-secret": cronSecret } : {}),
-        },
-        body: JSON.stringify({ source: "scheduled-market-scanner", scanner_run_id: runId, run_type: "scheduled", market_mode: "crypto_only" }),
+        headers: internalHeaders(String(body.correlation_id ?? crypto.randomUUID()), String(body.action_id ?? runId ?? crypto.randomUUID())),
+        body: JSON.stringify({ source: "scheduled-market-scanner", scanner_run_id: runId, run_type: "scheduled", market_mode: "crypto_only", correlation_id: body.correlation_id, action_id: body.action_id }),
       });
       outcomeStatus = outcomeRes.status;
       const outcomeBody = await parseBody(outcomeRes);

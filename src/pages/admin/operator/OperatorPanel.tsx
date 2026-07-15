@@ -298,7 +298,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   }
 
   async function runAction(action: string, provider?: string) {
-    if (!session?.access_token || runningAction) return;
+    if (!session?.access_token || runningAction === action) return;
     const started = Date.now();
     const startedAt = new Date().toISOString();
     const route = '/functions/v1/admin-operator-action';
@@ -306,7 +306,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     setRunningAction(action);
     setActionResult({ status: 'RUNNING', action, provider, summary: 'Executing backend operator action…', timestamp: startedAt, startedAt, route, functionName });
     try {
-      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, action === 'run_runtime_proof' ? 70000 : 60000);
+      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, 20000);
       const data = result.data as Record<string, unknown> | null;
       const ok = result.ok && data && data.success === true && !data.exact_error;
       const raw = (data?.raw && typeof data.raw === 'object' ? data.raw : data) as Record<string, unknown>;
@@ -323,7 +323,12 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
         symbolsAffected: symbols,
         runtimeEventId: data?.runtime_event_id ? String(data.runtime_event_id) : undefined,
         telegramSent: typeof raw?.telegram_sent === 'boolean' ? raw.telegram_sent : undefined,
-        blocker: ok ? undefined : String(data?.blocker ?? 'backend returned failure'),
+        blocker: ok ? undefined : String(data?.blocker ?? data?.error_code ?? 'backend returned failure'),
+        target: data?.target ? String(data.target) : (raw?.target ? String(raw.target) : undefined),
+        httpStatus: typeof data?.http_status === 'number' ? data.http_status : (typeof raw?.httpStatus === 'number' ? raw.httpStatus : undefined),
+        errorCode: data?.error_code ? String(data.error_code) : (raw?.errorCode ? String(raw.errorCode) : undefined),
+        timedOut: typeof data?.timed_out === 'boolean' ? data.timed_out : (typeof raw?.timedOut === 'boolean' ? raw.timedOut : undefined),
+        authFailed: typeof data?.auth_failed === 'boolean' ? data.auth_failed : (typeof raw?.authFailed === 'boolean' ? raw.authFailed : undefined),
         route: String(data?.route ?? route),
         functionName: String(data?.function_name ?? functionName),
         error: data?.exact_error ? String(data.exact_error) : (result.ok ? undefined : result.message),
@@ -1136,11 +1141,11 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
       <Card title="Manual Operator Actions" icon={PlayCircle}>
         <div className="flex flex-wrap gap-2">
           {actions.map(([label, action]) => (
-            <button key={action} disabled={Boolean(runningAction)} onClick={() => void runAction(action, action.includes('bybit') ? 'bybit' : action.includes('binance') ? 'binance' : undefined)} className="rounded-xl bg-blue-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50">
+            <button key={action} disabled={runningAction === action} onClick={() => void runAction(action, action.includes('bybit') ? 'bybit' : action.includes('binance') ? 'binance' : undefined)} className="rounded-xl bg-blue-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50">
               {runningAction === action ? 'Running…' : label}
             </button>
           ))}
-          <button disabled={Boolean(runningAction) || proofRunning} onClick={() => void runProof()} className="rounded-xl bg-red-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-red-500">
+          <button disabled={runningAction === 'run_runtime_proof' || proofRunning} onClick={() => void runProof()} className="rounded-xl bg-red-600/80 px-3 py-2 text-sm font-bold text-white hover:bg-red-500">
             Run Runtime Proof
           </button>
         </div>
