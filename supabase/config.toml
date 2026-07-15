@@ -1,0 +1,31 @@
+# HashiBot Supabase function deployment configuration.
+# Do not disable JWT globally. Internal-only functions that use the repository
+# x-hashibot-internal-secret guard set verify_jwt=false per function so the
+# Supabase gateway allows the request to reach the handler for custom M2M auth.
+
+[functions.admin-operator-action]
+verify_jwt = true
+
+[functions.scheduled-market-scanner]
+verify_jwt = false
+
+[functions.market-scanner]
+verify_jwt = false
+
+[functions.binance-testnet-execution]
+verify_jwt = false
+
+[functions.binance-testnet-monitor]
+verify_jwt = false
+
+[functions.bybit-testnet-monitor]
+verify_jwt = false
+
+[functions.telegram-test]
+verify_jwt = false
+
+[functions.intelligence-engine]
+verify_jwt = false
+
+[functions.evaluate-signal-outcomes]
+verify_jwt = false

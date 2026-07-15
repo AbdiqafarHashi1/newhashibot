@@ -6,6 +6,10 @@ export type InternalAuthResult = { ok: true; method: string } | { ok: false; sta
 
 export async function authorizeInternalOrAdmin(req: Request, supabase: SupabaseClient): Promise<InternalAuthResult> {
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const internalSecret = Deno.env.get("HASHIBOT_INTERNAL_SECRET") ?? Deno.env.get("INTERNAL_FUNCTION_SECRET") ?? "";
+  const suppliedInternalSecret = req.headers.get("x-hashibot-internal-secret") ?? "";
+  if (internalSecret && suppliedInternalSecret && suppliedInternalSecret === internalSecret) return { ok: true, method: "hashibot_internal_secret" };
+
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
 
@@ -26,6 +30,7 @@ export async function authorizeInternalOrAdmin(req: Request, supabase: SupabaseC
   }
 
   if (!token) return { ok: false, status: 401, error: "Unauthorized" };
+  if (!token.includes(".") && token !== serviceRole) return { ok: false, status: 401, error: "UNAUTHORIZED_INVALID_JWT_FORMAT" };
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return { ok: false, status: 401, error: "Unauthorized" };
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();

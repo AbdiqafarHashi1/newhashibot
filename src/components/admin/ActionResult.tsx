@@ -15,6 +15,11 @@ export interface OperatorActionResult {
   blocker?: string;
   route?: string;
   functionName?: string;
+  target?: string;
+  httpStatus?: number;
+  errorCode?: string;
+  timedOut?: boolean;
+  authFailed?: boolean;
   error?: string;
   raw?: unknown;
 }
@@ -51,6 +56,11 @@ export function ActionResult({ result }: { result: OperatorActionResult | null }
         <div><b>Runtime event:</b> {value(result.runtimeEventId)}</div>
         <div><b>Route:</b> {value(result.route)}</div>
         <div><b>Function:</b> {value(result.functionName)}</div>
+        <div><b>Target:</b> {value(result.target)}</div>
+        <div><b>HTTP:</b> {value(result.httpStatus)}</div>
+        <div><b>Error code:</b> {value(result.errorCode)}</div>
+        <div><b>Timed out:</b> {value(result.timedOut)}</div>
+        <div><b>Auth failed:</b> {value(result.authFailed)}</div>
         <div><b>Blocker:</b> {value(result.blocker)}</div>
       </div>
       {!!result.symbolsAffected?.length && <p className="mt-3 text-xs text-zinc-200"><b>Symbols affected:</b> {result.symbolsAffected.join(', ')}</p>}
