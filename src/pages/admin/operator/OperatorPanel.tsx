@@ -9,6 +9,7 @@ import { runtimeTruth as runtimeTruthSingleton } from '../../../lib/exchange/run
 import { ActionResult, OperatorActionResult } from '../../../components/admin/ActionResult';
 import { loadOperatorTruth as fetchOperatorTruth, RuntimeRow } from '../../../lib/operatorTruth';
 import { isSupabaseMocked } from '../../../lib/supabase';
+import { certifyTradeTruth, schedulerModeLabel } from '../../../lib/runtimeTruthCertification';
 
 type Section = 'dashboard' | 'signals' | 'executions' | 'trade-manager' | 'telegram' | 'settings' | 'intelligence' | 'runtime-proof';
 type Health = 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'OFFLINE';
@@ -205,7 +206,8 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     error: state.failedIntelligenceEvents > 0 && !state.latestIntelligenceEvent ? 'intelligence failures' : null,
     staleAfterMs: 6 * 60 * 60_000,
   });
-  const schedulerStatus: RuntimeTruthStatus = state.cronProven ? 'LIVE' : state.cronStale ? 'STALE' : state.schedulerQueryError ? 'FAILED' : 'DISABLED';
+  const manualSchedulerMode = schedulerModeLabel(Boolean(scannerConfig?.cron_job_active === true || scannerConfig?.schedule_enabled === true));
+  const schedulerStatus: RuntimeTruthStatus = manualSchedulerMode.label === 'Manual Mode' ? manualSchedulerMode.status : state.cronProven ? 'LIVE' : state.cronStale ? 'STALE' : state.schedulerQueryError ? 'FAILED' : 'DISABLED';
 
   function providerControl(provider: string) {
     return providerControls.find((row) => row.provider_name === provider || row.provider === provider);
@@ -539,7 +541,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     return (
       <Card title="Scheduler" icon={Clock} status={schedulerStatus}>
         <div className="grid gap-x-8 md:grid-cols-2">
-          <Row k="Cron status" v={state.cronStatusLabel} />
+          <Row k="Cron status" v={manualSchedulerMode.label === 'Manual Mode' ? 'Manual Mode' : state.cronStatusLabel} />
           <Row k="Last run" v={time(state.schedulerProof.latestStartedAt)} />
           <Row k="Next run" v={state.scanIntervalMinutes ? `~${state.scanIntervalMinutes} min cadence` : '—'} />
           <Row k="Failures" v={failures} />
@@ -608,7 +610,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
                     status: 'EXECUTED',
                     reason: 'EXECUTED',
                     color: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5',
-                    detail: `Order ${order.provider_order_id ?? order.id} placed successfully. Status: ${order.status.toUpperCase()}`,
+                    detail: `Order ${order.provider_order_id ?? order.id} placed successfully. Status: ${String(order.status ?? '').toUpperCase()}`,
                   };
                 }
 
@@ -918,7 +920,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
           {jobs.map((job) => {
             const isEnabled = job.enabled === true || job.enabled === 'YES' || job.enabled === 1;
             const missed = job.last && Date.now() - new Date(job.last as string).getTime() > 30 * 60_000 ? 1 : 0;
-            const statusText = !isEnabled ? 'DISABLED' : (missed ? `MISSED ${missed} RUNS` : 'ON TIME');
+            const statusText = !isEnabled ? 'Manual Mode' : (missed ? `MISSED ${missed} RUNS` : 'ON TIME');
             const statusColor = !isEnabled ? 'text-zinc-500 font-medium' : (missed ? 'text-red-300' : 'text-emerald-300');
             return (
               <div key={job.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
@@ -926,7 +928,7 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
                   <b>{job.label}</b>
                   <span className={statusColor}>{statusText}</span>
                 </div>
-                <Row k="Enabled" v={isEnabled ? 'YES' : 'NO'} />
+                <Row k="Enabled" v={isEnabled ? 'YES' : 'Manual Mode'} />
                 <Row k="Last Run" v={time(job.last as string)} />
                 <Row k="Next Expected" v={job.last ? new Date(new Date(job.last as string).getTime() + 5 * 60_000).toLocaleString() : '—'} />
                 <Row k="Missed Runs" v={missed} />
@@ -941,9 +943,8 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
   }
 
   function tradeTruthConsistencySection() {
-    const hasOrdersButNoTruth = executionOrders.some((order) => {
-      return !truthRows.some((truth) => truth.symbol === order.symbol && String(truth.provider).toLowerCase() === String(order.execution_provider).toLowerCase());
-    });
+    const tradeTruthCertification = certifyTradeTruth(executionOrders, truthRows);
+    const hasOrdersButNoTruth = tradeTruthCertification.orphanExecutionOrderIds.length > 0;
 
     const binanceHb = latestHeartbeat('binance');
     const bybitHb = latestHeartbeat('bybit');
@@ -954,15 +955,12 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
     const noMonitorEver = heartbeats.length === 0;
     const noDataAtAll = signals.length === 0 && executionOrders.length === 0 && truthRows.length === 0;
 
-    let overallStatus: RuntimeTruthStatus = 'LIVE';
-    let summaryText = 'All state logs between signals, execution requests, trade supervisor truth, and heartbeat monitors are fully synchronized.';
+    let overallStatus: RuntimeTruthStatus = tradeTruthCertification.status;
+    let summaryText = tradeTruthCertification.summary;
     
     if (noDataAtAll) {
       overallStatus = 'NO DATA';
       summaryText = 'No telemetry data exists in database. Run the scanner or place a manual order to bootstrap logs.';
-    } else if (hasOrdersButNoTruth) {
-      overallStatus = 'DESYNCHRONIZED';
-      summaryText = 'CRITICAL: Execution orders are recorded but matching Trade Management Truth records are missing! Sync failure detected.';
     } else if (hasStaleMonitor) {
       overallStatus = 'STALE';
       summaryText = 'WARNING: Active positions exist in Trade Truth, but the background supervisor monitor is currently STALE or unresponsive.';
@@ -995,6 +993,8 @@ export default function OperatorPanel({ section = 'dashboard' }: { section?: Sec
             <div className="text-zinc-500 font-mono">Signals count: {signals.length} rows</div>
             <div className="text-zinc-500 font-mono">Execution orders: {executionOrders.length} rows</div>
             <div className="text-zinc-500 font-mono">Truth rows: {truthRows.length} rows</div>
+            <div className="text-zinc-500 font-mono">Duplicate truth keys: {tradeTruthCertification.duplicateTruthKeys.length}</div>
+            <div className="text-zinc-500 font-mono">Orphan truth rows: {tradeTruthCertification.orphanTruthIds.length}</div>
           </div>
           <div className="rounded-lg border border-zinc-800/40 bg-zinc-900/10 p-3 space-y-1">
             <div className="font-semibold text-zinc-200 flex justify-between">
