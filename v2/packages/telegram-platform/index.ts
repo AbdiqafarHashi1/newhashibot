@@ -1,46 +1,67 @@
 export type ChannelCategory = 'FREE' | 'VIP' | 'ADMIN_OPS' | string;
 export type Severity = 'debug' | 'info' | 'warning' | 'error' | 'critical';
+export type NewsCategory = 'Breaking' | 'Macro' | 'Crypto' | 'Exchange' | 'Regulation' | 'Technology' | 'Market Impact';
 export interface TelegramEvent { type: string; severity?: Severity; customerId?: string; payload?: Record<string, unknown>; source?: string }
 export interface TelegramChannel { id: string; category: ChannelCategory; chatId: string; enabled: boolean; adminOnly?: boolean }
 export interface TelegramRoute { eventType: string; channelCategory: ChannelCategory; templateKey: string; minSeverity?: Severity; adminOnly?: boolean; enabled: boolean }
 export interface CustomerTelegramPreference { customerId: string; telegramEnabled: boolean; mutedCategories?: ChannelCategory[]; mutedEventTypes?: string[]; chatId?: string }
 export interface DeliveryQueueItem { id: string; event: TelegramEvent; channel: TelegramChannel; templateKey: string; message: string; attempts: number; status: 'queued'|'delivered'|'failed'|'dead_letter'; nextAttemptAt?: Date; lastError?: string }
 export interface DeliveryLog { queueId: string; channelId: string; eventType: string; status: string; providerMessageId?: string; error?: string; audited: boolean }
+export interface TelegramFormatStandards { timezone: 'UTC'; timestamp: 'YYYY-MM-DD HH:mm UTC'; priceDecimals: 'symbol-aware'; percentDecimals: 2; riskUnit: 'account % or fixed R'; maxMessageLength: 4096; footer: string }
+export interface SignalLifecycleStage { eventType: string; templateKey: string; requiredReference: 'signal_id'; channelCategory: 'VIP'; purpose: string }
 const severityRank: Record<string, number> = { debug: 0, info: 1, warning: 2, error: 3, critical: 4 };
+export const telegramFormatStandards: TelegramFormatStandards = { timezone: 'UTC', timestamp: 'YYYY-MM-DD HH:mm UTC', priceDecimals: 'symbol-aware', percentDecimals: 2, riskUnit: 'account % or fixed R', maxMessageLength: 4096, footer: 'HashiBot V2 • Trade responsibly • Not financial advice' };
 export const defaultTelegramChannels: TelegramChannel[] = [
   { id: 'default-free', category: 'FREE', chatId: '${TELEGRAM_FREE_CHAT_ID}', enabled: true },
   { id: 'default-vip', category: 'VIP', chatId: '${TELEGRAM_VIP_CHAT_ID}', enabled: true },
   { id: 'default-admin-ops', category: 'ADMIN_OPS', chatId: '${TELEGRAM_ADMIN_OPS_CHAT_ID}', enabled: true, adminOnly: true },
 ];
 export const mvpTemplates: Record<string, string> = {
-  free_sample_signal: '📊 Sample setup: {{symbol}} {{side}} near {{entry}}. Upgrade for full risk plan and management.',
-  vip_full_signal: '🚀 VIP Signal {{symbol}} {{side}}\nEntry: {{entry}}\nSL: {{sl}}\nTP: {{tp}}\nRisk: {{risk}}',
-  signal_update: '🔄 Signal update for {{symbol}}: {{update}}',
-  trade_opened: '✅ Trade opened: {{symbol}} {{side}} at {{price}}',
-  tp_hit: '🎯 TP hit on {{symbol}} at {{price}}',
-  sl_hit: '🛑 SL hit on {{symbol}} at {{price}}',
-  be_moved: '🟰 Break-even moved for {{symbol}} to {{price}}',
-  protection_repaired: '🛡️ Protection repaired for {{symbol}}: {{detail}}',
-  trade_closed: '🏁 Trade closed: {{symbol}} result {{result}}',
-  admin_error: '🚨 Admin error from {{source}}: {{message}}',
-  provider_health_alert: '⚕️ Provider health alert {{provider}}: {{status}}',
-  queue_backlog_alert: '📦 Queue backlog alert: {{queue}} has {{count}} pending',
-  payment_approval: '✅ Payment approved for {{customer}}. Subscription: {{package}}',
-  subscription_expiry: '⏳ Subscription expiring {{expires_at}}. Renew to keep VIP access.',
-  daily_market_summary: '🌅 Daily market summary: {{summary}}',
-  weekly_performance_summary: '📈 Weekly performance: {{summary}}',
+  free_sample_signal: '📊 FREE SETUP PREVIEW\n\nPair: {{symbol}}\nBias: {{side}}\nArea of interest: {{entry}}\nWhy you received this: selected public preview from certified crypto signal flow.\n\nVIP receives full entry, stop loss, targets, risk, and lifecycle updates.\n\nHashiBot V2 • Educational preview • Not financial advice',
+  free_market_education: '🎓 MARKET EDUCATION\n\nTopic: {{topic}}\nKey lesson: {{lesson}}\nWhy it matters: {{why_it_matters}}\n\nApply it with defined risk before every trade.\n\nHashiBot V2 • Education • Not financial advice',
+  free_trade_recap: '🏆 WINNING TRADE RECAP\n\nPair: {{symbol}}\nMove: {{move}}\nWhat worked: {{lesson}}\nVerified source: {{source}}\n\nVIP members receive the setup and updates in real time.\n\nHashiBot V2 • Verified recaps only',
+  news_digest: '📰 {{category}} NEWS\n\nHeadline: {{headline}}\nSource: {{source}}\nPublished: {{published_at}}\nMarket impact: {{market_impact}}\nWhy you received this: relevant market context for crypto traders.\n\nHashiBot V2 • Source-attributed news',
+  vip_full_signal: '🚀 VIP SIGNAL CREATED\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nDirection: {{side}}\nEntry: {{entry}}\nStop Loss: {{sl}}\nTP1: {{tp1}}\nTP2: {{tp2}}\nRisk: {{risk}}\nReason: {{reason}}\nTime: {{time}}\n\nWhy you received this: full VIP trade plan from certified crypto truth.\n\nHashiBot V2 • Wait for lifecycle updates • Not financial advice',
+  entry_triggered: '⚡ ENTRY TRIGGERED\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nTriggered price: {{price}}\nTime: {{time}}\n\nNext: position verification and protection confirmation.\n\nHashiBot V2',
+  trade_opened: '✅ POSITION OPEN\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nDirection: {{side}}\nOpen price: {{price}}\nSize/Risk: {{risk}}\nTime: {{time}}\n\nWhy you received this: the VIP signal is now active.\n\nHashiBot V2',
+  protection_confirmed: '🛡️ PROTECTION CONFIRMED\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nStop Loss: {{sl}}\nProtection status: {{status}}\nTime: {{time}}\n\nWhy you received this: active trade risk has been checked.\n\nHashiBot V2',
+  tp_hit: '🎯 TARGET HIT\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nTarget: {{target}}\nPrice: {{price}}\nResult: {{result}}\nTime: {{time}}\n\nHashiBot V2',
+  be_moved: '🟰 BREAK EVEN UPDATE\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nNew stop: {{price}}\nReason: {{reason}}\nTime: {{time}}\n\nWhy you received this: risk on the original signal changed.\n\nHashiBot V2',
+  trailing_updated: '📈 TRAILING UPDATE\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nTrailing stop: {{price}}\nReason: {{reason}}\nTime: {{time}}\n\nHashiBot V2',
+  partial_close: '📤 PARTIAL CLOSE\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nClosed: {{amount}}\nPrice: {{price}}\nRemaining: {{remaining}}\nTime: {{time}}\n\nHashiBot V2',
+  sl_hit: '🛑 STOPPED OUT\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nStop price: {{price}}\nResult: {{result}}\nTime: {{time}}\n\nWhy you received this: the original VIP signal lifecycle is complete.\n\nHashiBot V2',
+  signal_cancelled: '🚫 SIGNAL CANCELLED\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nReason: {{reason}}\nTime: {{time}}\n\nNo action required.\n\nHashiBot V2',
+  trade_closed: '🏁 TRADE CLOSED\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nFinal result: {{result}}\nClose reason: {{reason}}\nTime: {{time}}\n\nWhy you received this: the VIP trade story is complete.\n\nHashiBot V2',
+  admin_error: '🚨 OPS ALERT\n\nSubsystem: {{source}}\nSeverity: {{severity}}\nMessage: {{message}}\nTime: {{time}}\n\nWhy you received this: operator attention is required.\n\nHashiBot V2 Ops',
+  provider_health_alert: '⚕️ PROVIDER HEALTH\n\nProvider: {{provider}}\nStatus: {{status}}\nImpact: {{impact}}\nTime: {{time}}\n\nHashiBot V2 Ops',
+  queue_backlog_alert: '📦 QUEUE BACKLOG\n\nQueue: {{queue}}\nPending: {{count}}\nOldest item: {{oldest_age}}\nTime: {{time}}\n\nHashiBot V2 Ops',
+  protection_repaired: '🛡️ PROTECTION REPAIR\n\nSignal ID: {{signal_id}}\nPair: {{symbol}}\nDetail: {{detail}}\nTime: {{time}}\n\nHashiBot V2 Ops',
+  payment_approval: '✅ PAYMENT APPROVED\n\nCustomer: {{customer}}\nSubscription: {{package}}\nTime: {{time}}\n\nHashiBot V2 Ops',
+  subscription_expiry: '⏳ SUBSCRIPTION NOTICE\n\nExpires: {{expires_at}}\nAction: renew to keep VIP access.\n\nHashiBot V2',
+  daily_market_summary: '🌅 DAILY MARKET SUMMARY\n\nDate: {{date}}\nSummary: {{summary}}\nKey levels: {{levels}}\nRisk note: {{risk_note}}\n\nHashiBot V2 • Market context only',
+  weekly_performance_summary: '📈 WEEKLY PERFORMANCE\n\nWeek: {{week}}\nVerified trades: {{trade_count}}\nWin rate: {{win_rate}}\nNet result: {{net_result}}\nBest trade: {{best_trade}}\nWorst trade: {{worst_trade}}\nSource: certified crypto truth only.\n\nHashiBot V2',
 };
+export const signalLifecycle: SignalLifecycleStage[] = [
+  { eventType: 'signal.created', templateKey: 'vip_full_signal', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Publish the complete initial trade plan.' },
+  { eventType: 'signal.entry_triggered', templateKey: 'entry_triggered', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Confirm the setup reached the planned entry area.' },
+  { eventType: 'trade.opened', templateKey: 'trade_opened', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Confirm the active position.' },
+  { eventType: 'protection.confirmed', templateKey: 'protection_confirmed', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Confirm stop-loss/protection state.' },
+  { eventType: 'trade.tp_hit', templateKey: 'tp_hit', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Report target progress.' },
+  { eventType: 'trade.be_moved', templateKey: 'be_moved', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Report risk reduction.' },
+  { eventType: 'trade.trailing_updated', templateKey: 'trailing_updated', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Report trailing-stop changes.' },
+  { eventType: 'trade.partial_close', templateKey: 'partial_close', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Report partial realization.' },
+  { eventType: 'trade.closed', templateKey: 'trade_closed', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Close the trade story.' },
+  { eventType: 'trade.sl_hit', templateKey: 'sl_hit', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Close the trade story as stopped out.' },
+  { eventType: 'signal.cancelled', templateKey: 'signal_cancelled', requiredReference: 'signal_id', channelCategory: 'VIP', purpose: 'Close an unfilled or invalidated setup.' },
+];
 export const defaultTelegramRoutes: TelegramRoute[] = [
   { eventType: 'signal.sample', channelCategory: 'FREE', templateKey: 'free_sample_signal', enabled: true },
+  { eventType: 'market.education', channelCategory: 'FREE', templateKey: 'free_market_education', enabled: true },
+  { eventType: 'trade.recap', channelCategory: 'FREE', templateKey: 'free_trade_recap', enabled: true },
+  { eventType: 'news.published', channelCategory: 'FREE', templateKey: 'news_digest', enabled: true },
   { eventType: 'market.daily_summary', channelCategory: 'FREE', templateKey: 'daily_market_summary', enabled: true },
   { eventType: 'performance.weekly_summary', channelCategory: 'FREE', templateKey: 'weekly_performance_summary', enabled: true },
-  { eventType: 'signal.created', channelCategory: 'VIP', templateKey: 'vip_full_signal', enabled: true },
-  { eventType: 'signal.updated', channelCategory: 'VIP', templateKey: 'signal_update', enabled: true },
-  { eventType: 'trade.opened', channelCategory: 'VIP', templateKey: 'trade_opened', enabled: true },
-  { eventType: 'trade.tp_hit', channelCategory: 'VIP', templateKey: 'tp_hit', enabled: true },
-  { eventType: 'trade.sl_hit', channelCategory: 'VIP', templateKey: 'sl_hit', enabled: true },
-  { eventType: 'trade.be_moved', channelCategory: 'VIP', templateKey: 'be_moved', enabled: true },
-  { eventType: 'trade.closed', channelCategory: 'VIP', templateKey: 'trade_closed', enabled: true },
+  ...signalLifecycle.map(({ eventType, templateKey }) => ({ eventType, channelCategory: 'VIP' as const, templateKey, enabled: true })),
   { eventType: 'protection.repaired', channelCategory: 'ADMIN_OPS', templateKey: 'protection_repaired', minSeverity: 'warning', adminOnly: true, enabled: true },
   { eventType: 'admin.error', channelCategory: 'ADMIN_OPS', templateKey: 'admin_error', minSeverity: 'error', adminOnly: true, enabled: true },
   { eventType: 'provider.health_alert', channelCategory: 'ADMIN_OPS', templateKey: 'provider_health_alert', minSeverity: 'warning', adminOnly: true, enabled: true },
@@ -49,7 +70,7 @@ export const defaultTelegramRoutes: TelegramRoute[] = [
   { eventType: 'subscription.expiry', channelCategory: 'VIP', templateKey: 'subscription_expiry', enabled: true },
 ];
 export class TemplateRenderer { constructor(private templates = mvpTemplates) {} render(key: string, data: Record<string, unknown> = {}) { const t = this.templates[key]; if (!t) throw new Error(`Unknown Telegram template: ${key}`); return t.replace(/{{\s*([\w.]+)\s*}}/g, (_m, p) => String(data[p] ?? '')); } }
-export class MessageFormatter { format(text: string) { return text.trim().replace(/\n{3,}/g, '\n\n').slice(0, 4096); } }
+export class MessageFormatter { format(text: string) { return text.trim().replace(/\n{3,}/g, '\n\n').slice(0, telegramFormatStandards.maxMessageLength); } }
 export class ChannelRouter { constructor(private routes = defaultTelegramRoutes, private channels = defaultTelegramChannels) {} match(event: TelegramEvent) { return this.routes.filter(r => r.enabled && r.eventType === event.type && severityRank[event.severity ?? 'info'] >= severityRank[r.minSeverity ?? 'debug']).flatMap(route => this.channels.filter(c => c.enabled && c.category === route.channelCategory).map(channel => ({ route, channel }))); } }
 export class RetryClassifier { classify(error: string, attempts: number) { const permanent = /blocked|forbidden|chat not found|bad request/i.test(error); return { retryable: !permanent && attempts < 5, nextDelayMs: Math.min(60000, 1000 * 2 ** attempts) }; } }
 export class DeliveryQueue { items: DeliveryQueueItem[] = []; enqueue(item: Omit<DeliveryQueueItem, 'id'|'attempts'|'status'>) { const queued = { ...item, id: `tgq_${this.items.length + 1}`, attempts: 0, status: 'queued' as const }; this.items.push(queued); return queued; } markFailed(id: string, error: string, classifier = new RetryClassifier()) { const item = this.items.find(i => i.id === id); if (!item) throw new Error('queue item not found'); item.attempts += 1; item.lastError = error; const decision = classifier.classify(error, item.attempts); item.status = decision.retryable ? 'queued' : 'dead_letter'; item.nextAttemptAt = decision.retryable ? new Date(Date.now() + decision.nextDelayMs) : undefined; return item; } markDelivered(id: string) { const item = this.items.find(i => i.id === id); if (!item) throw new Error('queue item not found'); item.status = 'delivered'; return item; } }
@@ -57,3 +78,17 @@ export class BotManager { constructor(private tokenByCategory: Record<string, st
 export function filterByCustomerPreference(matches: ReturnType<ChannelRouter['match']>, event: TelegramEvent, preferences: CustomerTelegramPreference[] = []) { const pref = preferences.find(p => p.customerId === event.customerId); if (!pref || pref.telegramEnabled === false) return matches.filter(m => m.channel.category !== 'VIP' || !event.customerId); return matches.filter(m => !(pref.mutedCategories ?? []).includes(m.channel.category) && !(pref.mutedEventTypes ?? []).includes(event.type)); }
 export function buildDeliveryLog(item: DeliveryQueueItem, status: string, error = ''): DeliveryLog { return { queueId: item.id, channelId: item.channel.id, eventType: item.event.type, status, error, audited: true }; }
 export function assertNoTradingControls() { return true; }
+
+export type DeliveryState='QUEUED'|'SENDING'|'SENT'|'FAILED'|'RETRY_PENDING'|'DEAD_LETTERED';
+export interface ProfessionalDelivery{ id:string; idempotencyKey:string; event:TelegramEvent; channel:TelegramChannel; templateKey:string; message:string; priority:number; status:DeliveryState; attempts:number; maxAttempts:number; nextAttemptAt?:Date; providerResponse?:unknown; providerMessageId?:string; sentAt?:string; failureReason?:string; mediaOptional?:boolean; mediaFailed?:boolean }
+export interface TelegramSender{ send(channel:TelegramChannel,message:string,media?:unknown):Promise<{ok:boolean;messageId?:string;response?:unknown;error?:string}> }
+export class ProfessionalDeliveryLedger{items:ProfessionalDelivery[]=[]; enqueue(input:Omit<ProfessionalDelivery,'id'|'status'|'attempts'>){const existing=this.items.find(i=>i.idempotencyKey===input.idempotencyKey); if(existing)return existing; const item={...input,id:`tg_${this.items.length+1}`,status:'QUEUED' as DeliveryState,attempts:0}; this.items.push(item); return item;} listDue(now=new Date()){return this.items.filter(i=>['QUEUED','RETRY_PENDING'].includes(i.status)&&(!i.nextAttemptAt||i.nextAttemptAt<=now)).sort((a,b)=>b.priority-a.priority);} }
+export class ProfessionalTelegramDispatcher{constructor(private ledger:ProfessionalDeliveryLedger,private sender:TelegramSender,private now=()=>new Date()){} async drain(){const sent:ProfessionalDelivery[]=[]; for(const item of this.ledger.listDue(this.now())) sent.push(await this.sendOne(item)); return sent;} private async sendOne(item:ProfessionalDelivery){item.status='SENDING'; item.attempts++; const result=await this.sender.send(item.channel,item.message,item.mediaOptional&&!item.mediaFailed?{optional:true}:undefined); item.providerResponse=result.response??result; if(result.ok){item.status='SENT'; item.providerMessageId=result.messageId; item.sentAt=this.now().toISOString(); return item;} if(item.mediaOptional&&!item.mediaFailed){item.mediaFailed=true; item.attempts--; item.status='RETRY_PENDING'; item.nextAttemptAt=this.now(); item.failureReason='optional media failed; retrying text'; return item;} item.failureReason=result.error??'telegram send failed'; if(item.attempts>=item.maxAttempts){item.status='DEAD_LETTERED'; return item;} item.status='RETRY_PENDING'; item.nextAttemptAt=new Date(this.now().getTime()+Math.min(60_000,1000*2**item.attempts)); return item;}}
+export function lifecycleIdempotencyKey(signalId:string,eventType:string,lifecycleVersion:number){return `${signalId}:${eventType}:${lifecycleVersion}`;}
+export function priorityFor(category:ChannelCategory,eventType:string){if(category==='ADMIN_OPS')return 100; if(category==='VIP')return 90; if(eventType.includes('news')||eventType.includes('education'))return 10; return 30;}
+export interface NewsItem{headline:string;source:string;publishedAt:string;url?:string;assets?:string[];body?:string;category?:NewsCategory|string;marketImpact?:string}
+export interface NewsProvider{fetch():Promise<NewsItem[]>}
+export class NewsPipeline{private seen=new Set<string>(); constructor(private provider:NewsProvider,private now=()=>new Date()){} async fetchFresh(){try{const raw=await this.provider.fetch(); const items:NewsItem[]=[]; for(const n of raw){if(!n.headline||!n.source||!n.publishedAt)continue; if(Date.parse(n.publishedAt)<this.now().getTime()-24*60*60_000)continue; const key=n.headline.toLowerCase().replace(/\W+/g,' ').trim(); if(this.seen.has(key))continue; this.seen.add(key); items.push({...n,category:n.category??classifyNews(n),marketImpact:n.marketImpact??marketImpact(n)});} return{ok:true as const,items};}catch(error){return{ok:false as const,error:error instanceof Error?error.message:String(error),adminAlert:{type:'news.provider_failure',severity:'error' as Severity,payload:{source:'news-pipeline',message:error instanceof Error?error.message:String(error)}}};}}}
+function classifyNews(n:NewsItem):NewsCategory{const h=n.headline.toLowerCase(); if(/sec|regulat|lawsuit|court/.test(h))return'Regulation'; if(/fed|cpi|inflation|rates|macro/.test(h))return'Macro'; if(/centralized exchange|exchange|listing|delisting/.test(h))return'Exchange'; if(/hack|outage|breaking/.test(h))return'Breaking'; if(/upgrade|protocol|technology|layer/.test(h))return'Technology'; if(/bitcoin|ethereum|crypto|token|btc|eth/.test(h))return'Crypto'; return'Market Impact';}
+function marketImpact(n:NewsItem){return n.assets?.length?`Watch ${n.assets.join(', ')} volatility and liquidity.`:'Monitor market reaction; no trade result is inferred.';}
+export function renderWeeklyPerformanceCard(data:{period:string;verifiedTrades:number;winRate:number;netR:number;drawdown:number;bestTrade?:string|null;strategySplit?:Record<string,number>}):string{return [`HASHIBOT V2 WEEKLY PERFORMANCE`, `Period: ${data.period}`, `Verified trades: ${data.verifiedTrades}`, `Win rate: ${data.winRate.toFixed(2)}%`, `Net R: ${data.netR.toFixed(2)}R`, `Drawdown: ${data.drawdown.toFixed(2)}R`, `Best trade: ${data.bestTrade??'No certified data'}`, `Strategy split: ${Object.entries(data.strategySplit??{}).map(([k,v])=>`${k} ${v}`).join(', ')||'No certified data'}`].join('\n');}
