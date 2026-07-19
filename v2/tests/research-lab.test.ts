@@ -10,7 +10,7 @@ test('dataset loader stores references only and rejects raw Supabase payloads',a
 
 test('replay is deterministic and uses closed candles without live providers',async()=>{const data=candles(); const a=await new ReplayEngine().run(data); const b=await new ReplayEngine().run(data); assert.equal(a.deterministicHash,b.deterministicHash); assert.equal(a.steps,data.length); assert.ok(a.indicatorUpdates>0);});
 
-test('backtest calculates compact metrics for all eight strategies',async()=>{const result=await new BacktestEngine().run(candles(220)); assert.equal(Object.keys(result.byStrategy).length,8); assert.ok(result.summary.trades>0); assert.ok(Number.isFinite(result.summary.profitFactor)); assert.ok(result.sampleTrades.length<=20);});
+test('backtest calculates compact metrics for all registered strategies',async()=>{const result=await new BacktestEngine().run(candles(220)); assert.equal(Object.keys(result.byStrategy).length,9); assert.ok(result.summary.trades>0); assert.ok(Number.isFinite(result.summary.profitFactor)); assert.ok(result.sampleTrades.length<=20);});
 
 test('walk-forward creates train/test windows and rejects unstable overfit candidates',async()=>{const wf=await new WalkForwardEngine().run(candles(240),3); assert.equal(wf.windows.length,3); assert.ok(wf.stabilityScore>=0&&wf.stabilityScore<=1); assert.equal(typeof wf.rejectedAsOverfit,'boolean'); assert.ok(wf.windows.every(w=>w.trainStart&&w.testStart));});
 
