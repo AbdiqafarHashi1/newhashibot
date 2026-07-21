@@ -2,6 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
+import { publicSignalReference, renderProfessionalTelegramMessage, telegramTypeForSignalStatus } from "../_shared/professional-telegram.ts";
+import { paperIntentStatusForSignalStatus } from "../_shared/paper-trade-lifecycle.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -439,46 +441,14 @@ function formatOutcomeMessage(sig: SignalRow, newStatus: string, price: number |
   const tp1 = numberField(sig, "tp1");
   const tp2 = numberField(sig, "tp2");
   const marketType = String(sig.market_type ?? "unknown").toLowerCase();
-
-  if (marketType === "forex") {
-    const rResult = rMultipleForStatus(sig, newStatus);
-    return [
-      "📣 HashiBot Forex Signal Update",
-      "",
-      `Pair: ${sig.symbol}`,
-      "Market: FOREX",
-      `Event: ${eventLabel(newStatus)}`,
-      `Direction: ${String(sig.direction ?? "unknown").toUpperCase()}`,
-      `Entry: ${formatPriceForMarket(sig, entry)}`,
-      `Stop Loss: ${formatPriceForMarket(sig, stopLoss)} (${formatPips(pipDistance(sig, entry, stopLoss))})`,
-      `TP1: ${formatPriceForMarket(sig, tp1)} (${formatPips(pipDistance(sig, entry, tp1))})`,
-      ...(tp2 !== null ? [`TP2: ${formatPriceForMarket(sig, tp2)} (${formatPips(pipDistance(sig, entry, tp2))})`] : []),
-      `Outcome Price: ${formatPriceForMarket(sig, price)}`,
-      `Result: ${rResult === null ? "—" : `${rResult >= 0 ? "+" : ""}${rResult.toFixed(2)}R`}`,
-      `Original Signal Time: ${sig.created_at ? new Date(sig.created_at).toISOString() : "—"}`,
-      `Update Time: ${new Date().toISOString()}`,
-      "",
-      "Signal only. Manage lot size, spread, slippage, and risk. Not financial advice.",
-    ].join("\n");
-  }
-
-  return [
-    "📣 HashiBot Signal Update",
-    "",
-    `Symbol: ${sig.symbol}`,
-    `Market: ${String(sig.market_type ?? "unknown").toUpperCase()}`,
-    `Event: ${eventLabel(newStatus)}`,
-    `Direction: ${String(sig.direction ?? "unknown").toUpperCase()}`,
-    `Entry: ${formatPriceForMarket(sig, entry)}`,
-    `Stop Loss: ${formatPriceForMarket(sig, stopLoss)}`,
-    `TP1: ${formatPriceForMarket(sig, tp1)}`,
-    ...(tp2 !== null ? [`TP2: ${formatPriceForMarket(sig, tp2)}`] : []),
-    `Current Price: ${formatPriceForMarket(sig, price)}`,
-    `Original Signal Time: ${sig.created_at ? new Date(sig.created_at).toISOString() : "—"}`,
-    `Update Time: ${new Date().toISOString()}`,
-    "",
-    "Disclaimer: Signal Mode only. Not financial advice.",
-  ].join("\n");
+  return renderProfessionalTelegramMessage({
+    type: telegramTypeForSignalStatus(newStatus), signal_reference: publicSignalReference(sig.id), market: marketType, symbol: sig.symbol,
+    side: String(sig.direction ?? "buy").toLowerCase() === "sell" ? "sell" : "buy", strategy_display_name: String(sig.strategy_name ?? "HashiBot Strategy"),
+    strategy_version: typeof sig.strategy_version === "string" ? sig.strategy_version : undefined, timeframe: String(sig.timeframe ?? "—"), event_price: price,
+    entry_low: entry ?? undefined, entry_high: entry ?? undefined, stop_loss: stopLoss ?? undefined, tp1: tp1 ?? undefined, tp2: tp2 ?? undefined,
+    realized_r: rMultipleForStatus(sig, newStatus), closure_reason: newStatus, session_context: marketType === "forex" ? String(sig.session_context ?? "Forex session") : undefined,
+    evidence: [`Persisted lifecycle status: ${newStatus}`], occurred_at: new Date().toISOString(),
+  });
 }
 
 async function insertTelegramDelivery(
@@ -547,7 +517,7 @@ async function sendOutcomeNotification(
     text: formatOutcomeMessage(sig, newStatus, price),
     source: "evaluate-signal-outcomes",
     channels: ["vip"],
-    dedupe: false,
+    dedupe: true,
   });
 
   if (delivery?.status === "sent") return { sent: true, skipped: false, failed: false, delivery_id: delivery.delivery_id };
@@ -594,10 +564,15 @@ Deno.serve(async (req: Request) => {
       market_mode: marketMode,
       signals_checked: 0,
       signals_updated: 0,
+      paper_intents_updated: 0,
+      lifecycle_events: 0,
+      invalid_transitions: 0,
+      duplicate_events_suppressed: 0,
       updates: [] as Array<{ signal_id: string; symbol: string; from: string; to: string; price: number | null; reason: string; telegram_status?: string; telegram_reason?: string }>,
       telegram_sent: 0,
       telegram_skipped: 0,
       telegram_failed: 0,
+      telegram_duplicates_suppressed: 0,
       telegram_skip_reasons: [] as string[],
       forex_skipped: !signalEnableForex,
       forex_skipped_count: 0,
@@ -684,7 +659,7 @@ Deno.serve(async (req: Request) => {
         .eq("signal_id", sig.id)
         .eq("new_status", next)
         .maybeSingle();
-      if (existing) continue;
+      if (existing) { out.duplicate_events_suppressed++; continue; }
 
       let finalReason = reason;
       let expiryCause: string | null = null;
@@ -709,6 +684,16 @@ Deno.serve(async (req: Request) => {
         finalReason = `${reason}; expiry_cause=${expiryCause}`;
       }
 
+      const truthTimestamp = new Date().toISOString();
+      await supabase.from("signals").update({ status: next, updated_at: truthTimestamp }).eq("id", sig.id);
+      const { data: updateRow } = await supabase.from("signal_updates").insert({
+        signal_id: sig.id, update_type: "outcome_status_change", previous_status: currentStatus, old_status: currentStatus, new_status: next,
+        message: `${eventLabel(next)} via ${finalReason} (source: ${source})`, price, reason: finalReason, telegram_sent: false, created_at: truthTimestamp,
+      }).select("id").maybeSingle();
+      const paperStatus = paperIntentStatusForSignalStatus(next);
+      if (paperStatus && sig.paper_execution_intent_id) { await supabase.from("paper_execution_intents").update({ ...paperStatus, updated_at: truthTimestamp }).eq("id", String(sig.paper_execution_intent_id)); out.paper_intents_updated++; }
+      out.lifecycle_events++;
+
       const telegramResult = ["tp1_hit", "tp2_hit", "sl_hit", "expired"].includes(next)
         ? await sendOutcomeNotification(supabase, sig, next, price)
         : { sent: false, skipped: false, failed: false } as TelegramResult;
@@ -716,6 +701,7 @@ Deno.serve(async (req: Request) => {
       if (telegramResult.sent) out.telegram_sent++;
       if (telegramResult.skipped) {
         out.telegram_skipped++;
+        if (telegramResult.reason?.includes("already_sent")) out.telegram_duplicates_suppressed++;
         if (telegramResult.reason) out.telegram_skip_reasons.push(telegramResult.reason);
       }
       if (telegramResult.failed) {
@@ -723,19 +709,7 @@ Deno.serve(async (req: Request) => {
         if (telegramResult.reason) out.telegram_skip_reasons.push(telegramResult.reason);
       }
 
-      await supabase.from("signals").update({ status: next, updated_at: new Date().toISOString() }).eq("id", sig.id);
-      await supabase.from("signal_updates").insert({
-        signal_id: sig.id,
-        update_type: "outcome_status_change",
-        previous_status: currentStatus,
-        old_status: currentStatus,
-        new_status: next,
-        message: `${eventLabel(next)} via ${finalReason} (source: ${source})`,
-        price,
-        reason: finalReason,
-        telegram_sent: telegramResult.sent,
-        created_at: new Date().toISOString(),
-      });
+      if (updateRow?.id && telegramResult.sent) await supabase.from("signal_updates").update({ telegram_sent: true }).eq("id", String(updateRow.id));
 
       out.signals_updated++;
       out.updates.push({
