@@ -2,6 +2,19 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
+import {
+  ProfessionalStrategyRegistry,
+  RESEARCH_STRATEGY_CONFIG,
+  StrategyDiagnostics,
+  evaluateCryptoTrendPullback,
+  evaluateReversalExhaustion,
+  type StrategyDefinition,
+  type StrategyEvaluationContext,
+} from "../_shared/professional-strategies.ts";
+import { FOREX_RESEARCH_STRATEGIES } from "../_shared/forex-research-strategies.ts";
+import { publicSignalReference } from "../_shared/professional-telegram.ts";
+import { atrRootV1, emaRootV1, rsiRootV1, INDICATOR_VERSIONS } from "../_shared/indicator-engine.ts";
+import { arbitrate, ArbitrationDiagnostics, type ArbitrationCandidate } from "../_shared/arbitrator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,6 +54,14 @@ interface EvalResult {
 }
 
 type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation";
+const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
+  MicroScalper: "crypto.micro-scalper",
+  QuickScalp: "crypto.quick-scalp",
+  CompressionBreakout: "crypto.compression-breakout",
+  SwingContinuation: "crypto.swing-continuation",
+  ForexMicroScalper: "forex.micro-scalper",
+  ForexSwingContinuation: "forex.swing-continuation",
+};
 
 interface StrategyEvaluationStats {
   evaluated: number;
@@ -131,33 +152,15 @@ interface RiskState {
 // ─── Math helpers ─────────────────────────────────────────────────────────────
 
 function calcEMA(values: number[], period: number): number {
-  if (values.length < period) return values[values.length - 1] ?? 0;
-  const k = 2 / (period + 1);
-  let ema = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  for (let i = period; i < values.length; i++) { ema = values[i] * k + ema * (1 - k); }
-  return ema;
+  return emaRootV1(values, period);
 }
 
 function calcATR(candles: Candle[], period = 14): number {
-  if (candles.length < period + 1) return 0;
-  const trs: number[] = [];
-  for (let i = 1; i < candles.length; i++) {
-    const h = candles[i].high, l = candles[i].low, pc = candles[i - 1].close;
-    trs.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
-  }
-  return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
+  return atrRootV1(candles, period);
 }
 
 function calcRSI(closes: number[], period = 14): number {
-  if (closes.length < period + 2) return 50;
-  let gains = 0, losses = 0;
-  for (let i = closes.length - period; i < closes.length; i++) {
-    const d = closes[i] - closes[i - 1];
-    if (d > 0) gains += d; else losses -= d;
-  }
-  if (gains + losses === 0) return 50;
-  const rs = losses === 0 ? 100 : gains / losses;
-  return 100 - 100 / (1 + rs);
+  return rsiRootV1(closes, period);
 }
 
 function calcMomentumScore(closes: number[], lookback = 3): number {
@@ -1987,6 +1990,8 @@ async function createPaperIntent(
   entry_price: number, stop_loss: number, tp1: number, tp2: number,
   rp: RiskProfile, blockReason: string
 ): Promise<string | null> {
+  const { data: existing } = await supabase.from("paper_execution_intents").select("id").eq("signal_id", signalId).eq("mode_slug", modeSlug).limit(1).maybeSingle();
+  if (existing?.id) return String(existing.id);
   const equity = rp.equity_start > 0 ? rp.equity_start : 1000;
   const risk_pct = rp.risk_per_trade_pct;
   const risk_amount = risk_pct > 0 ? equity * (risk_pct / 100) : null;
@@ -2812,6 +2817,7 @@ function formatForexSignalMessage(signal: Record<string, unknown>, dataSource: s
     `🌐 *HASHIBOT FOREX ${grade === "A+" ? "A+ " : ""}SIGNAL* ${gradeEmoji}`,
     ``,
     `*Pair:* ${symbol}`,
+    `*Reference:* ${publicSignalReference(String(signal.id ?? signal.signal_id ?? symbol))}`,
     `*Market:* FOREX`,
     `*Timeframe:* ${signal.timeframe}`,
     `*Direction:* ${dirEmoji}`,
@@ -2856,6 +2862,7 @@ function formatSignalMessage(signal: Record<string, unknown>, dataSource: string
     `🤖 *HASHIBOT ${grade} SIGNAL* ${gradeEmoji}`,
     ``,
     `*Symbol:* ${signal.symbol}`,
+    `*Reference:* ${publicSignalReference(String(signal.id ?? signal.signal_id ?? signal.symbol ?? "signal"))}`,
     `*Market:* ${String(signal.market_type ?? "").toUpperCase()}`,
     `*Timeframe:* ${signal.timeframe}`,
     `*Direction:* ${dirEmoji}`,
@@ -2981,7 +2988,7 @@ async function tryAutoSendTelegram(
     source: "market-scanner",
     channels: ["vip"],
     parse_mode: "Markdown",
-    dedupe: false,
+    dedupe: true,
   });
 
   if (delivery?.status === "sent") {
@@ -3182,6 +3189,8 @@ async function runScanPipeline(
     skipped: 0,
     skip_reasons: {},
   }])) as Record<StrategyName, StrategyEvaluationStats>;
+  const professionalStrategyDiagnostics = new StrategyDiagnostics();
+  const arbitrationDiagnostics = new ArbitrationDiagnostics();
   const incrementStrategyStat = (name: string, key: keyof Omit<StrategyEvaluationStats, "skip_reasons" | "rejection_reasons">) => {
     const stats = strategyEvaluationSummary[name as StrategyName];
     if (stats) stats[key]++;
@@ -3465,42 +3474,48 @@ async function runScanPipeline(
         }
 
         const allEvals: Array<{ name: StrategyName; result: EvalResult; cfg: StrategyConfig }> = [];
-        const timeframeAllowed = (cfg: StrategyConfig) => cfg.allowed_timeframes.length === 0 || cfg.allowed_timeframes.includes(tf);
-        const evaluateStrategy = (name: StrategyName, cfg: StrategyConfig, evaluator: () => EvalResult) => {
-          if (!cfg.enabled) { recordStrategySkip(name, "strategy_disabled"); return; }
-          if (!timeframeAllowed(cfg)) { recordStrategySkip(name, `timeframe_not_allowed:${tf}`); return; }
+        const activeDefinitions: StrategyDefinition[] = [];
+        let fifteenMinuteCandles: Candle[] | undefined;
+        if (marketType === "crypto" && tf === "5m") {
           try {
-            allEvals.push({ name, cfg, result: evaluator() });
-          } catch (strategyErr) {
-            recordStrategyError(name, sym.symbol, tf, strategyErr);
-            allEvals.push({ name, cfg, result: strategyRuntimeReject(name, strategyErr) });
+            const fetched15m = await fetchBinanceCandles(sym.symbol, "15m", 110);
+            if (fetched15m && fetched15m.length >= 55) fifteenMinuteCandles = fetched15m;
+          } catch (htfErr) {
+            errors.push(`[WARN] MicroScalper ${sym.symbol} 5m HTF confirmation unavailable: ${htfErr instanceof Error ? htfErr.message : String(htfErr ?? "unknown")}`);
           }
+        }
+        const registerLegacy = (name: StrategyName, id: string, version: string, cfg: StrategyConfig, evaluator: () => EvalResult) => {
+          if (!cfg.enabled) recordStrategySkip(name, "strategy_disabled");
+          else if (cfg.allowed_timeframes.length > 0 && !cfg.allowed_timeframes.includes(tf)) recordStrategySkip(name, `timeframe_not_allowed:${tf}`);
+          activeDefinitions.push({ id, version, legacyName: name, market: marketType as "crypto" | "forex", lifecycle: "ENABLED", config: cfg, evaluate: evaluator });
         };
-
         if (marketType === "forex") {
-          const fxMsConfig = getStratCfg("ForexMicroScalper");
-          const fxSwConfig = getStratCfg("ForexSwingContinuation");
-          evaluateStrategy("ForexMicroScalper", fxMsConfig, () => evalForexMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }));
-          evaluateStrategy("ForexSwingContinuation", fxSwConfig, () => evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }));
-        } else {
-          const msConfig  = getStratCfg("MicroScalper");
-          const qsConfig  = getStratCfg("QuickScalp");
-          const cbConfig  = getStratCfg("CompressionBreakout");
-          const swConfig  = getStratCfg("SwingContinuation");
-          const msRuntime = microScalperRuntimeParams(msConfig, tf);
-          let fifteenMinuteCandles: Candle[] | undefined;
-          if (tf === "5m") {
-            try {
-              const fetched15m = await fetchBinanceCandles(sym.symbol, "15m", 110);
-              if (fetched15m && fetched15m.length >= 55) fifteenMinuteCandles = fetched15m;
-            } catch (htfErr) {
-              errors.push(`[WARN] MicroScalper ${sym.symbol} 5m HTF confirmation unavailable: ${htfErr instanceof Error ? htfErr.message : String(htfErr ?? "unknown")}`);
-            }
+          const fxMsConfig = getStratCfg("ForexMicroScalper"), fxSwConfig = getStratCfg("ForexSwingContinuation");
+          registerLegacy("ForexMicroScalper", "forex.micro-scalper", "1.0.0", fxMsConfig, () => evalForexMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }));
+          registerLegacy("ForexSwingContinuation", "forex.swing-continuation", "1.0.0", fxSwConfig, () => evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }));
+          for (const research of FOREX_RESEARCH_STRATEGIES) {
+            activeDefinitions.push({ id: research.id, version: research.version, legacyName: research.id, market: "forex", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: research.id, allowed_symbols: [...research.symbols], allowed_timeframes: [...research.timeframes] }, evaluate: (context) => research.evaluate(context) });
           }
-          evaluateStrategy("MicroScalper", msConfig, () => withMicroScalperDiagnostics(evalMicroScalper(candles, ind, tf, msRuntime.params, fifteenMinuteCandles), msConfig, msRuntime));
-          evaluateStrategy("QuickScalp", qsConfig, () => evalQuickScalp(candles, ind, tf, { ...qsConfig.params, min_score: qsConfig.min_score, min_rr: qsConfig.min_rr, max_bars_in_trade: qsConfig.max_bars_in_trade }));
-          evaluateStrategy("CompressionBreakout", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, max_bars_in_trade: cbConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
-          evaluateStrategy("SwingContinuation", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, max_bars_in_trade: swConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
+        } else {
+          const msConfig = getStratCfg("MicroScalper"), qsConfig = getStratCfg("QuickScalp"), cbConfig = getStratCfg("CompressionBreakout"), swConfig = getStratCfg("SwingContinuation");
+          const msRuntime = microScalperRuntimeParams(msConfig, tf);
+          registerLegacy("MicroScalper", "crypto.micro-scalper", "1.0.0", msConfig, () => withMicroScalperDiagnostics(evalMicroScalper(candles, ind, tf, msRuntime.params, fifteenMinuteCandles), msConfig, msRuntime));
+          registerLegacy("QuickScalp", "crypto.quick-scalp", "1.0.0", qsConfig, () => evalQuickScalp(candles, ind, tf, { ...qsConfig.params, min_score: qsConfig.min_score, min_rr: qsConfig.min_rr, max_bars_in_trade: qsConfig.max_bars_in_trade }));
+          registerLegacy("CompressionBreakout", "crypto.compression-breakout", "1.0.0", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, max_bars_in_trade: cbConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
+          registerLegacy("SwingContinuation", "crypto.swing-continuation", "1.0.0", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, max_bars_in_trade: swConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
+          activeDefinitions.push(
+            { id: "crypto.trend-pullback", version: "0.1.0-research", legacyName: "CryptoTrendPullback", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "CryptoTrendPullback" }, evaluate: evaluateCryptoTrendPullback },
+            { id: "crypto.reversal-exhaustion", version: "0.1.0-research", legacyName: "ReversalExhaustion", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "ReversalExhaustion" }, evaluate: evaluateReversalExhaustion },
+          );
+        }
+        const strategyContext: StrategyEvaluationContext = { symbol: normalizedSymbol, market: marketType as "crypto" | "forex", timeframe: tf, candles, indicators: ind, evaluated_at: new Date().toISOString() };
+        const registry = new ProfessionalStrategyRegistry(activeDefinitions, professionalStrategyDiagnostics);
+        for (const evaluation of registry.evaluate(strategyContext)) {
+          if (!evaluation.publishable) arbitrationDiagnostics.researchExcluded();
+          if (!evaluation.publishable) continue;
+          const name = evaluation.definition.legacyName as StrategyName;
+          if (evaluation.professional.rejection_reasons.includes("runtime_error")) recordStrategyError(name, sym.symbol, tf, evaluation.professional.legacy.reason);
+          allEvals.push({ name, cfg: evaluation.definition.config as StrategyConfig, result: evaluation.professional.legacy as EvalResult });
         }
 
         // ── Pre-arbitration: collect passing candidates, pick the best one ──
@@ -3583,18 +3598,32 @@ async function runScanPipeline(
           (passingEntries[passingEntries.length - 1] as EvalEntry & { _candidateId: string })._candidateId = cData.id;
         }
 
-        // Arbitrate with strategy-specific identity fit so selection is not first-valid/raw-score only.
-        passingEntries.sort((a, b) => {
-          const scoreDelta = arbitrationScore(b, marketContext) - arbitrationScore(a, marketContext);
-          if (Math.abs(scoreDelta) > 0.0001) return scoreDelta;
-          const identityDelta = strategyIdentityFit(b) - strategyIdentityFit(a);
-          if (identityDelta !== 0) return identityDelta;
-          return b.result.risk_reward - a.result.risk_reward;
-        });
+        // One pure compatibility arbitrator reproduces the legacy score → identity → RR ordering.
+        const arbitrationInput: ArbitrationCandidate[] = passingEntries.map((entry, index) => ({
+          id: String((entry as EvalEntry & { _candidateId: string })._candidateId),
+          strategyId: PROFESSIONAL_STRATEGY_IDS[entry.name], strategyVersion: "1.0.0",
+          market: marketType as "crypto" | "forex", symbol: normalizedSymbol, timeframe: tf,
+          side: entry.result.direction.toLowerCase() as "buy" | "sell", confidence: entry.result.confidence_score,
+          grade: entry.result.grade, score: arbitrationScore(entry, marketContext),
+          entry: (entry.result.entry_low + entry.result.entry_high) / 2, stop: entry.result.stop_loss,
+          targets: [entry.result.tp1, entry.result.tp2], riskReward: entry.result.risk_reward,
+          expiry: new Date(Date.now() + entry.cfg.max_bars_in_trade * (timeframeMinutes(tf) ?? 5) * 60_000).toISOString(), fresh: true,
+          lifecycle: "ENABLED", publicationMode: "LIVE", evidence: { legacy_index: index }, rejectionReasons: [],
+          priority: strategyIdentityFit(entry), eligible: true,
+        }));
+        const byCandidateId = new Map(passingEntries.map((entry) => [String((entry as EvalEntry & { _candidateId: string })._candidateId), entry]));
+        const decisionStarted = Date.now();
+        let noTradeReason = "";
+        const arbitrationDecision = arbitrate(arbitrationInput, { now: new Date(), noTradePolicy: (ranked) => {
+          const rankedEntries = ranked.map((candidate) => byCandidateId.get(candidate.id)!).filter(Boolean);
+          noTradeReason = arbitrationNoTradeReason(marketContext, rankedEntries);
+          return noTradeReason || undefined;
+        } });
+        passingEntries.splice(0, passingEntries.length, ...arbitrationDecision.considered.map((candidate) => byCandidateId.get(candidate.id)!).filter(Boolean));
+        arbitrationDiagnostics.record(arbitrationDecision, Date.now() - decisionStarted);
         const arbitrationCandidates = arbitrationSnapshot(passingEntries, marketContext);
-        const selectedArbitrationScore = passingEntries.length > 0 ? arbitrationScore(passingEntries[0], marketContext) : 0;
-        const selectedStrategyName = passingEntries[0]?.name ?? "none";
-        const noTradeReason = arbitrationNoTradeReason(marketContext, passingEntries);
+        const selectedArbitrationScore = arbitrationDecision.winner?.score ?? (passingEntries.length > 0 ? arbitrationScore(passingEntries[0], marketContext) : 0);
+        const selectedStrategyName = arbitrationDecision.winner ? (byCandidateId.get(arbitrationDecision.winner.id)?.name ?? "none") : "none";
         if (noTradeReason) {
           for (const blockedEntry of passingEntries as Array<EvalEntry & { _candidateId: string }>) {
             const r = blockedEntry.result;
@@ -3891,6 +3920,7 @@ async function runScanPipeline(
             if (!sigData) continue;
             signalsCreated++;
             incrementStrategyStat(ev.name, "signals_created");
+            professionalStrategyDiagnostics.published(PROFESSIONAL_STRATEGY_IDS[ev.name], new Date().toISOString());
             signalCreatedForThisCandidate = true;
             activeSymbolSet.add(sym.symbol);
             activeSignalBySymbol.set(sym.symbol, { id: sigData.id as string, status: String(sigData.status ?? "waiting"), created_at: String(sigData.created_at ?? new Date().toISOString()) });
@@ -4090,6 +4120,9 @@ async function runScanPipeline(
     forex_provider: forexProviderName, forex_real_data: forexProviderSuccess, forex_budget: forexBudget ? { max_pairs: forexBudget.maxPairs, max_timeframes: forexBudget.maxTimeframes, allowed_pairs: forexBudget.allowedPairs.size, planned_pairs: forexBudget.plannedPairs, planned_timeframes: forexBudget.plannedTimeframes } : null,
     forex_demo_fallback_used: false,
     strategy_evaluation_summary: strategyEvaluationSummary,
+    professional_strategy_diagnostics: professionalStrategyDiagnostics.snapshot(),
+    shared_indicator_diagnostics: { engine: "root-shared", versions: INDICATOR_VERSIONS, calculations: indicatorsCalc, production_parity: "exact_root_v1_helpers", legacy_owned: ["momentum", "regime", "range_compression", "strategy_thresholds"] },
+    arbitration_diagnostics: arbitrationDiagnostics.snapshot(),
     errors: errors.slice(0, 10),
   };
 }
