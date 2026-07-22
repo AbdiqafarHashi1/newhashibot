@@ -1,4 +1,4 @@
-import type { ProviderId, PositionSide } from '../runtimeContracts';
+import type { ProviderId, PositionSide } from '../runtimeContracts/index.js';
 
 export type ExchangeProviderId = ProviderId;
 export type ExchangeSide = PositionSide;
@@ -7,7 +7,7 @@ export type SafetyState = 'safe' | 'degraded' | 'unsafe' | 'unknown';
 export interface ExchangeProviderMetadata {
   id: ExchangeProviderId;
   label: string;
-  environment: import('../runtimeContracts').EnvironmentId;
+  environment: import('../runtimeContracts/index.js').EnvironmentId;
   supportsNativeProtection: boolean;
   supportsProfitLock: boolean;
 }

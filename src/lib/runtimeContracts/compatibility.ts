@@ -32,6 +32,14 @@ export const LEGACY_EXECUTION_STATUS_MAP: Record<string, ExecutionStatus> = {
   pending_protection: 'filled',
   protection_pending: 'filled',
   protection_failed: 'filled',
+  recovery_required: 'filled',
+  closed: 'filled',
+  closed_tp: 'filled',
+  closed_tp2: 'filled',
+  closed_profit_lock: 'filled',
+  closed_sl: 'filled',
+  closed_breakeven: 'filled',
+  closed_manual: 'filled',
   cancelled: 'cancelled',
   canceled: 'cancelled',
   entry_timeout_cancelled: 'cancelled',
@@ -56,9 +64,11 @@ export const LEGACY_PROTECTION_STATUS_MAP: Record<string, ProtectionStatus> = {
   missing_sl_tp: 'missing_sl_tp',
   protection_failed: 'failed',
   unprotected: 'failed',
+  unprotected_failed: 'failed',
   protection_recovered: 'verified',
   repair_requested: 'repair_requested',
   repairing: 'repairing',
+  closed: 'not_required',
 };
 
 export function toPositionSide(value: LegacyDirection): PositionSide | null {

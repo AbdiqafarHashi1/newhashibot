@@ -1,4 +1,4 @@
-import type { SignalDirection } from './runtimeContracts';
+import type { SignalDirection } from './runtimeContracts/index.js';
 
 export interface Package {
   id: string;

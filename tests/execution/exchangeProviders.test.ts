@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { ExchangeProviderBybit, createBybitOrderLinkId } from '../../src/lib/exchange/ExchangeProviderBybit.js';
 import { ExchangeProviderMT5 } from '../../src/lib/exchange/ExchangeProviderMT5.js';
-import { executeSignalAcrossProviders } from '../../src/lib/exchange/executionRouter.js';
+import { executeSignalAcrossProviders, executeSignalForIsolatedAccounts, executionScopeKey, validateExecutionTargets } from '../../src/lib/exchange/executionRouter.js';
 import type { ExchangeProvider, EntryRequest } from '../../src/lib/exchange/exchangeProvider.js';
+import { AccountScopedCredentialResolver, credentialSafeMetadata } from '../../src/lib/exchange/accountCredentialResolver.js';
 
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -85,6 +86,21 @@ async function run() {
   assert.equal(routed.results.length, 2);
   assert.equal(routed.results.find((result) => result.provider === 'ok')?.ok, true);
   assert.equal(routed.results.find((result) => result.provider === 'fail')?.ok, false, 'provider failure is isolated');
+
+  const accountA = { customerId: 'customer-a', accountId: 'binance-1', credentialRef: 'vault://customer-a/binance-1', instanceId: 'worker-a' };
+  const accountB = { customerId: 'customer-a', accountId: 'binance-2', credentialRef: 'vault://customer-a/binance-2', instanceId: 'worker-b' };
+  assert.notEqual(executionScopeKey('ok', accountA), executionScopeKey('ok', accountB), 'multiple accounts on one provider have independent scope keys');
+  assert.throws(() => validateExecutionTargets([{ provider: okProvider, enabled: true }], true), /execution_scope_required/, 'isolated routing rejects unscoped accounts');
+  assert.throws(() => validateExecutionTargets([{ provider: okProvider, enabled: true, scope: accountA }, { provider: okProvider, enabled: true, scope: accountA }], true), /duplicate_execution_scope/, 'one mutable execution scope cannot be routed twice');
+  const isolated = await executeSignalForIsolatedAccounts({ signalId: 'sig-3', symbol: 'BTCUSDT', side: 'long', quantity: 1, stopLoss: 90, tp1: 110, tp2: 120 }, [{ provider: okProvider, enabled: true, primary: true, scope: accountA }, { provider: okProvider, enabled: true, scope: accountB }], { mode: 'parallel', executionGroupId: 'group-isolated' });
+  assert.equal(isolated.results.length, 2);
+  assert.equal(new Set(isolated.results.map((result) => result.scopeKey)).size, 2, 'each account owns an independent result identity');
+
+  const credentials = new AccountScopedCredentialResolver({ async resolve(customerId, provider, accountId) { return { customerId, provider, accountId, credentialRef: accountA.credentialRef, apiKey: 'private-key', apiSecret: 'private-secret', enabled: true }; } });
+  const resolved = await credentials.resolve('ok', accountA);
+  assert.deepEqual(credentialSafeMetadata(resolved), { customerId: 'customer-a', provider: 'ok', accountId: 'binance-1', credentialRef: accountA.credentialRef });
+  assert.equal(JSON.stringify(credentialSafeMetadata(resolved)).includes('private-secret'), false, 'credential material cannot enter safe metadata');
+  await assert.rejects(() => credentials.resolve('ok', { ...accountA, credentialRef: 'vault://wrong' }), /execution_credential_scope_mismatch/, 'credentials fail closed on scope mismatch');
 }
 
 run().then(() => console.log('exchange provider tests passed'));

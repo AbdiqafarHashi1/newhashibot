@@ -242,7 +242,16 @@ export class ExchangeProviderBybit implements ExchangeProvider {
   }
   async classifyProtectionState(request: ReconcileRequest): Promise<ProviderResult<{ state: SafetyState; reason: string }>> { return this.classifySafetyState(request); }
   async repairProtection(request: ProtectionRequest): Promise<ProviderResult> { const sl = await this.placeSL(request); const tp1 = await this.placeTP1(request); const tp2 = await this.placeTP2(request); return { provider, ok: sl.ok && tp1.ok && tp2.ok, metadata: { sl, tp1, tp2 } }; }
-  async replaceSL(request: ReplaceStopRequest): Promise<ProviderResult> { return this.placeProtection({ symbol: request.symbol, side: request.side, quantity: request.quantity, stopLoss: request.stopLoss, tp1: Number(request.metadata?.tp1 ?? 0), tp2: Number(request.metadata?.tp2 ?? 0), metadata: request.metadata }, 'sl'); }
+  async replaceSL(request: ReplaceStopRequest): Promise<ProviderResult> {
+    const open = await this.getOpenOrders(request.symbol);
+    const oldStops = open.filter((order) => {
+      const type = `${order.type ?? ''} ${order.metadata?.stopOrderType ?? ''} ${order.metadata?.orderLinkId ?? ''}`.toLowerCase();
+      return order.reduceOnly === true && (type.includes('stop') || type.includes('_sl_'));
+    });
+    for (const order of oldStops) await this.cancelOrder({ symbol: request.symbol, providerOrderId: order.providerOrderId, metadata: request.metadata });
+    const replacement = await this.placeProtection({ symbol: request.symbol, side: request.side, quantity: request.quantity, stopLoss: request.stopLoss, tp1: Number(request.metadata?.tp1 ?? 0), tp2: Number(request.metadata?.tp2 ?? 0), metadata: request.metadata }, 'sl');
+    return { ...replacement, status: replacement.ok ? `${request.reason}_sl_replaced` : replacement.status, metadata: { ...replacement.metadata, cancelledStopIds: oldStops.map((order) => order.providerOrderId), replacementReason: request.reason } };
+  }
   async reconcilePosition(request: ReconcileRequest): Promise<ProviderResult> { const positions = await this.getPositions(); return { provider, ok: true, metadata: { positions: positions.filter((position) => position.symbol === request.symbol) } }; }
   async syncPositionProtection(request: ReconcileRequest) { return this.reconcileProtection(request); }
   async reconcileProtection(request: ReconcileRequest) { return this.verifyProtection(request); }

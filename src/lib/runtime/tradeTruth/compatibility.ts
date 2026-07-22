@@ -73,6 +73,7 @@ function lifecycleFromLegacy(status: string, protectionStatus: string | null): T
   if (normalized === 'closed' || normalized.startsWith('closed_')) return 'closed';
   if (['protected', 'protected_native', 'protected_managed'].includes(normalized) || protectionStatus === 'verified') return 'protection_verified';
   if (['pending_protection', 'protection_pending', 'pending_managed_protection'].includes(normalized) || protectionStatus === 'pending') return 'protection_pending';
+  if (normalized === 'recovery_required') return 'filled';
   if (['entry_filled', 'filled', 'partially_closed'].includes(normalized)) return 'filled';
   if (['entry_submitted', 'submitted', 'pending'].includes(normalized)) return 'order_submitted';
   if (['accepted', 'entry_accepted'].includes(normalized)) return 'order_accepted';
