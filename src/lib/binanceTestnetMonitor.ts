@@ -1,6 +1,6 @@
 import { detectProtectionViolations, evaluateLifecycleState } from './exchange/tradeManagementCore.js';
 import type { ProtectionStatus, TradeManagementTruthRow } from './exchange/tradeManagementCore.js';
-import type { SignalDirection } from './runtimeContracts';
+import type { SignalDirection } from './runtimeContracts/index.js';
 
 export const MONITOR_ACTIVE_STATUSES = [
   'pending',

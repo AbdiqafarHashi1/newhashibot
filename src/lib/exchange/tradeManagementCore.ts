@@ -43,7 +43,7 @@ export interface TradeTruthStore {
 
 export async function upsertTradeTruthThroughCompatibility(store: Pick<TradeTruthStore, 'upsertTradeTruth'>, row: TradeManagementTruthRow): Promise<void> {
   const mapped = mapLegacyTradeTruthRow(row as unknown as Record<string, unknown>);
-  if (!mapped.ok) {
+  if (mapped.ok === false) {
     const error = new Error(`trade_truth_contract_rejected:${mapped.error.code}:${mapped.error.message}`);
     (error as Error & { retryable?: boolean; code?: string }).retryable = mapped.error.retryable;
     (error as Error & { retryable?: boolean; code?: string }).code = mapped.error.code;
@@ -341,7 +341,8 @@ export class RecoveryEngine {
     if (violation.missing_sl || violation.missing_tp) {
       try {
         const results = await repairUnprotectedPositions(provider, store);
-        const success = results.repair_successes > 0;
+        const verification = await provider.verifyProtection({ symbol, executionId: row.execution_order_id ?? undefined });
+        const success = results.repair_successes > 0 || (verification.ok && verification.data?.verified === true);
         return {
           success,
           action_taken: 'recreated_protection',
