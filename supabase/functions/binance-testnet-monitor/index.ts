@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
+import { acquireExecutionLease, currentEdgeProviderCredential, enumerateExecutionAccounts, ownershipFromRow, releaseExecutionLease, resolveEdgeProviderCredential, runtimeOwnershipFields, settleExecutionAccounts, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -435,8 +436,14 @@ async function hmacSha256(secret: string, payload: string): Promise<string> {
 }
 
 async function binanceRequest(path: string, params: Record<string, string | number | boolean> = {}, method = "GET") {
-  const apiKey = Deno.env.get("BINANCE_TESTNET_API_KEY") ?? "";
-  const apiSecret = Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? "";
+  let apiKey = "";
+  let apiSecret = "";
+  try { ({ apiKey, apiSecret } = currentEdgeProviderCredential("binance")); }
+  catch (error) {
+    if (Deno.env.get("HASHIBOT_LOCAL_DEV_CREDENTIAL_FALLBACK") !== "true") throw error;
+    apiKey = Deno.env.get("BINANCE_TESTNET_API_KEY") ?? "";
+    apiSecret = Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? "";
+  }
   if (!apiKey || !apiSecret) throw new Error("Binance testnet API keys are not configured");
   const baseUrl = Deno.env.get("BINANCE_TESTNET_BASE_URL") ?? "https://demo-fapi.binance.com";
   const search = new URLSearchParams({ ...params, timestamp: String(Date.now()), recvWindow: "5000" });
@@ -1439,7 +1446,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   }
 }
 
-async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: MonitorStats) {
+async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: MonitorStats, scopeKey: string) {
   const [positionsBody, allOrdersBody, allAlgoOrdersBody, dbRows] = await Promise.all([
     binanceRequest("/fapi/v2/positionRisk", {}),
     binanceRequest("/fapi/v1/openOrders", {}),
@@ -1447,7 +1454,7 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
       addMonitorWarning(stats, { warning: `open_algo_orders_reconcile_warning: ${errorMessage(err)}`, action: "open_algo_orders_reconcile_continue", source: "account_sync" });
       return [];
     }),
-    supabase.from("execution_orders").select("*").eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").order("created_at", { ascending: false }).limit(500),
+    supabase.from("execution_orders").select("*").eq("execution_scope_key", scopeKey).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").order("created_at", { ascending: false }).limit(500),
   ]);
   if (dbRows.error) throw dbRows.error;
   const rows = (dbRows.data ?? []) as Row[];
@@ -1596,7 +1603,7 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
   };
 }
 
-async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats, monitorStatus: MonitorLevel) {
+async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats, monitorStatus: MonitorLevel, ownership: Record<string, unknown>) {
   const monitorRunAt = new Date().toISOString();
   const [accountBody, positionsBody, allOrdersBody, allAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/account", {}),
@@ -1645,6 +1652,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     latest_account_state_at: monitorRunAt,
     updated_at: monitorRunAt,
   };
+  await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: settingsUpdate, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
   const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
   if (!error) return;
 
@@ -1793,16 +1801,22 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "execution_settings_gate_closed", global_error: "", ...stats });
     }
 
-    const { data: rows, error } = await supabase.from("execution_orders").select("*").in("status", ACTIVE_STATUSES).order("created_at", { ascending: true }).limit(100);
+    const { data: rows, error } = await supabase.from("execution_orders").select("*").eq("execution_provider", "binance").not("execution_scope_key", "is", null).in("status", ACTIVE_STATUSES).order("created_at", { ascending: true }).limit(100);
     if (error) {
       const reason = isMissingTableOrColumn(error) ? "missing_table_or_column" : "db_query_failed";
       return globalErrorResponse(reason, `execution_orders query failed: ${errorMessage(error)}`, stats);
     }
     for (const row of (rows ?? []) as Row[]) {
+      let ownership;
       try {
+        ownership = ownershipFromRow(row as unknown as Record<string, unknown>, "binance");
+        const credential = await resolveEdgeProviderCredential(supabase, ownership);
+        if (!await acquireExecutionLease(supabase, ownership, runId)) throw new Error(`monitor_lease_unavailable:${ownership.execution_scope_key}`);
         /* legacy proof pattern: monitorRow(supabase, row, stats) */
-        await monitorRow(supabase, row, stats, settings as MonitorSettings, runId);
+        await withEdgeProviderCredential(credential, () => monitorRow(supabase, row, stats, settings as MonitorSettings, runId));
+        await releaseExecutionLease(supabase, ownership, runId, "completed");
       } catch (rowErr) {
+        if (ownership) await releaseExecutionLease(supabase, ownership, runId, "failed").catch(() => null);
         try {
           await recordRowError(supabase, row, rowErr, stats);
         } catch (saveErr) {
@@ -1812,15 +1826,17 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
-    try {
-      await reconcileBinanceTruthGaps(supabase, stats);
-    } catch (reconcileErr) {
-      const message = `reconcile_binance_truth_failed: ${errorMessage(reconcileErr)}`;
-      addCriticalMonitorError(stats, message);
-    }
+    const accounts = (await enumerateExecutionAccounts(supabase, "binance")).filter((account) => account.environment === "testnet");
+    const accountSync = await settleExecutionAccounts(accounts, async (ownership) => {
+      const credential = await resolveEdgeProviderCredential(supabase, ownership);
+      return withEdgeProviderCredential(credential, async () => {
+        await reconcileBinanceTruthGaps(supabase, stats, ownership.execution_scope_key);
+        await refreshAccountState(supabase, stats, stats.monitor_status, runtimeOwnershipFields(ownership));
+      });
+    });
+    for (const failed of accountSync.filter((result) => result.status === "rejected")) addCriticalMonitorError(stats, `account_sync_failed:${errorMessage((failed as PromiseRejectedResult).reason)}`);
     stats.monitor_status = classifyMonitor(stats);
     try {
-      await refreshAccountState(supabase, stats, stats.monitor_status);
       await sendAdminMonitorAlert(supabase, stats);
     } catch (syncErr) {
       const message = errorMessage(syncErr);

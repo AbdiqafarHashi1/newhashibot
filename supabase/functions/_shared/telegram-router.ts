@@ -25,6 +25,13 @@ export interface TelegramRouteEvent {
   freshness?: string;
   channel_target?: TelegramChannel | TelegramChannel[] | "auto";
   cooldown_minutes?: number;
+  customer_id?: string;
+  execution_provider?: string;
+  account_id?: string;
+  execution_instance_id?: string;
+  credential_ref?: string;
+  execution_scope_key?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TelegramRouteResult {
@@ -130,6 +137,12 @@ async function insertDelivery(
     sent_at: status === "sent" ? new Date().toISOString() : null,
     delivery_status: status,
     retry_count: retryCount,
+    customer_id: event.customer_id ?? null,
+    execution_provider: event.execution_provider ?? null,
+    account_id: event.account_id ?? null,
+    execution_instance_id: event.execution_instance_id ?? null,
+    credential_ref: event.credential_ref ?? null,
+    execution_scope_key: event.execution_scope_key ?? null,
   };
   const { data } = await supabase.from("telegram_deliveries").insert(payload).select("id").maybeSingle();
   return data?.id as string | undefined;

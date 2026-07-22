@@ -16,6 +16,9 @@ const xb1Sql = readFileSync('supabase/migrations/20260614190000_070_xb1_capital_
 const cryptoFix1Sql = readFileSync('supabase/migrations/20260611120000_059_crypto_fix_1_testnet_risk_leverage_truth.sql', 'utf8');
 const liveCronHeaderSql = readFileSync('supabase/migrations/20260613170000_067_live_cron_header_rebuild.sql', 'utf8');
 const tradeSupervisorSql = readFileSync('supabase/migrations/20260618100000_080_trade_supervisor_always_on.sql', 'utf8');
+const phase5cSql = readFileSync('supabase/migrations/20260722000000_phase5c_execution_account_ownership.sql', 'utf8');
+const ownershipEdge = readFileSync('supabase/functions/_shared/execution-ownership.ts', 'utf8');
+const bybitMonitorFn = readFileSync('supabase/functions/bybit-testnet-monitor/index.ts', 'utf8');
 
 for (const value of ['pending','entry_submitted','entry_filled','protected','pending_protection','partially_closed','closed_tp','closed_sl','closed_breakeven','cancelled','failed','skipped','stale_closed','sent_to_bridge','accepted','rejected','filled']) {
   assert.match(sql, new RegExp(`'${value}'`), `execution_orders.status allows ${value}`);
@@ -152,3 +155,15 @@ assert.match(executionFn, /recordSymbolFailure\(supabase, "binance"/, 'X-P Binan
 assert.match(executionFn, /recordSymbolFailure\(supabase, "bybit"/, 'X-P Bybit failures are recorded for quarantine');
 assert.match(executionFn, /verifyBybitProtectionSet/, 'X-P Bybit protection uses strict verification helper');
 assert.doesNotMatch(executionFn, /linkText\.includes\("sl"\)/, 'X-P Bybit protection no longer verifies by link-text string matching');
+
+assert.match(phase5cSql, /connected_execution_accounts/, 'Phase 5C persists connected account ownership');
+assert.match(phase5cSql, /resolve_execution_account_credentials/, 'Phase 5C resolves Vault credentials through service-role RPC');
+assert.match(phase5cSql, /execution_account_runtime_proof/, 'Phase 5C persists account-scoped runtime proof');
+assert.match(phase5cSql, /acquire_execution_monitor_lease/, 'Phase 5C atomically acquires account-scoped leases');
+assert.match(ownershipEdge, /AsyncLocalStorage<EdgeProviderCredential>/, 'Edge provider credentials are isolated across concurrent async account work');
+assert.match(executionFn, /enumerateExecutionAccounts\(supabase, provider/, 'ROOT execution enumerates connected provider accounts');
+assert.match(executionFn, /withEdgeProviderCredential\(credential/, 'ROOT execution constructs providers inside credential scope');
+assert.match(monitorFn, /execution_scope_key[\s\S]*acquireExecutionLease/, 'Binance monitoring requires owned rows and account leases');
+assert.match(bybitMonitorFn, /settleExecutionAccounts\(accounts/, 'Bybit account failures settle independently');
+assert.match(bybitMonitorFn, /tp1_profit_lock_activated/, 'Bybit monitor connects TP1 to profit-lock lifecycle');
+assert.match(bybitMonitorFn, /trailing_activated/, 'Bybit monitor connects trailing lifecycle');
