@@ -1,10 +1,10 @@
 import type { StrategyCandle, StrategyIndicatorSnapshot } from "./professional-strategies.ts";
 import { emaRootV1 } from "./indicator-engine.ts";
 
-export const FOREX_INSTRUMENT_IDS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"] as const;
+export const FOREX_INSTRUMENT_IDS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "EURJPY", "GBPJPY", "XAUUSD"] as const;
 export type ForexInstrumentId = typeof FOREX_INSTRUMENT_IDS[number];
 export type ForexAssetClass = "forex" | "gold";
-export type ForexSessionName = "ASIA" | "LONDON" | "NEW_YORK" | "LONDON_NEW_YORK_OVERLAP" | "CLOSED";
+export type ForexSessionName = "SYDNEY" | "TOKYO" | "ASIA" | "LONDON" | "NEW_YORK" | "LONDON_NEW_YORK_OVERLAP" | "CLOSED";
 
 export interface ForexInstrument {
   id: ForexInstrumentId;
@@ -19,15 +19,31 @@ export interface ForexInstrument {
   sessionTimezone: string;
   supportedTimeframes: readonly string[];
   productionEnabled: boolean;
+  volatilityProfile: "low" | "medium" | "high" | "metals";
+  expectedSpreadPips: { typical: number; maximum: number };
+  riskProfile: "standard" | "elevated" | "metals";
+  tradingHours: string;
+  marketCategory: "major" | "cross" | "metal";
+  tradingSessions: readonly ForexSessionName[];
+}
+
+function instrument(id: ForexInstrumentId, baseCurrency: string, quoteCurrency: string, sessionTimezone: string, marketCategory: ForexInstrument["marketCategory"], volatilityProfile: ForexInstrument["volatilityProfile"], productionEnabled: boolean): ForexInstrument {
+  const jpy = quoteCurrency === "JPY", metal = marketCategory === "metal";
+  const typical = metal ? 3 : marketCategory === "cross" ? 1.8 : volatilityProfile === "high" ? 1.5 : 1;
+  return { id, providerSymbol: `${baseCurrency}/${quoteCurrency}`, displaySymbol: `${baseCurrency}/${quoteCurrency}`, assetClass: metal ? "gold" : "forex", baseCurrency, quoteCurrency, pipSize: metal ? .1 : jpy ? .01 : .0001, pointSize: metal ? .01 : jpy ? .001 : .00001, pricePrecision: metal ? 2 : jpy ? 3 : 5, sessionTimezone, supportedTimeframes: ["15m", "1h"], productionEnabled, volatilityProfile, expectedSpreadPips: { typical, maximum: metal ? 8 : typical * 2.5 }, riskProfile: metal ? "metals" : volatilityProfile === "high" ? "elevated" : "standard", tradingHours: "Sunday 22:00-Friday 22:00 UTC (holiday exceptions)", marketCategory, tradingSessions: metal ? ["LONDON", "NEW_YORK", "LONDON_NEW_YORK_OVERLAP"] : ["SYDNEY", "TOKYO", "LONDON", "NEW_YORK", "LONDON_NEW_YORK_OVERLAP"] };
 }
 
 export const FOREX_INSTRUMENTS: Readonly<Record<ForexInstrumentId, ForexInstrument>> = {
-  EURUSD: { id: "EURUSD", providerSymbol: "EUR/USD", displaySymbol: "EUR/USD", assetClass: "forex", baseCurrency: "EUR", quoteCurrency: "USD", pipSize: .0001, pointSize: .00001, pricePrecision: 5, sessionTimezone: "Europe/London", supportedTimeframes: ["15m", "1h"], productionEnabled: true },
-  GBPUSD: { id: "GBPUSD", providerSymbol: "GBP/USD", displaySymbol: "GBP/USD", assetClass: "forex", baseCurrency: "GBP", quoteCurrency: "USD", pipSize: .0001, pointSize: .00001, pricePrecision: 5, sessionTimezone: "Europe/London", supportedTimeframes: ["15m", "1h"], productionEnabled: true },
-  USDJPY: { id: "USDJPY", providerSymbol: "USD/JPY", displaySymbol: "USD/JPY", assetClass: "forex", baseCurrency: "USD", quoteCurrency: "JPY", pipSize: .01, pointSize: .001, pricePrecision: 3, sessionTimezone: "Asia/Tokyo", supportedTimeframes: ["15m", "1h"], productionEnabled: true },
-  AUDUSD: { id: "AUDUSD", providerSymbol: "AUD/USD", displaySymbol: "AUD/USD", assetClass: "forex", baseCurrency: "AUD", quoteCurrency: "USD", pipSize: .0001, pointSize: .00001, pricePrecision: 5, sessionTimezone: "Australia/Sydney", supportedTimeframes: ["15m", "1h"], productionEnabled: false },
-  USDCAD: { id: "USDCAD", providerSymbol: "USD/CAD", displaySymbol: "USD/CAD", assetClass: "forex", baseCurrency: "USD", quoteCurrency: "CAD", pipSize: .0001, pointSize: .00001, pricePrecision: 5, sessionTimezone: "America/New_York", supportedTimeframes: ["15m", "1h"], productionEnabled: false },
-  XAUUSD: { id: "XAUUSD", providerSymbol: "XAU/USD", displaySymbol: "XAU/USD", assetClass: "gold", baseCurrency: "XAU", quoteCurrency: "USD", pipSize: .1, pointSize: .01, pricePrecision: 2, sessionTimezone: "America/New_York", supportedTimeframes: ["15m", "1h"], productionEnabled: false },
+  EURUSD: instrument("EURUSD", "EUR", "USD", "Europe/London", "major", "medium", true),
+  GBPUSD: instrument("GBPUSD", "GBP", "USD", "Europe/London", "major", "high", true),
+  USDJPY: instrument("USDJPY", "USD", "JPY", "Asia/Tokyo", "major", "medium", true),
+  AUDUSD: instrument("AUDUSD", "AUD", "USD", "Australia/Sydney", "major", "medium", true),
+  USDCAD: instrument("USDCAD", "USD", "CAD", "America/New_York", "major", "medium", true),
+  USDCHF: instrument("USDCHF", "USD", "CHF", "Europe/Zurich", "major", "low", true),
+  NZDUSD: instrument("NZDUSD", "NZD", "USD", "Pacific/Auckland", "major", "medium", true),
+  EURJPY: instrument("EURJPY", "EUR", "JPY", "Europe/London", "cross", "high", true),
+  GBPJPY: instrument("GBPJPY", "GBP", "JPY", "Europe/London", "cross", "high", true),
+  XAUUSD: instrument("XAUUSD", "XAU", "USD", "America/New_York", "metal", "metals", true),
 };
 
 export function normalizeForexInstrument(value: string): ForexInstrumentId | null {
@@ -61,17 +77,29 @@ function sessionWindow(at: Date, timeZone: string, startHour: number, endHour: n
   const clock = part.hour + part.minute / 60; return clock >= startHour && clock < endHour;
 }
 
-export function forexSession(at: string | Date): ForexSessionName {
+export interface ForexSessionContext { primary: ForexSessionName; active: readonly ForexSessionName[]; overlap: boolean; marketOpen: boolean; weekend: boolean; holiday: boolean; volatility: "closed" | "low" | "normal" | "high"; reason: string | null; }
+
+/** UTC weekly boundary plus an injected ISO-date holiday calendar. The caller owns the
+ * authoritative annual holiday feed; this pure engine remains deterministic and testable. */
+export function forexSessionContext(at: string | Date, holidays: readonly string[] = []): ForexSessionContext {
   const date = typeof at === "string" ? new Date(at) : at;
-  if (!Number.isFinite(date.getTime())) return "CLOSED";
-  const london = sessionWindow(date, "Europe/London", 8, 16);
-  const newYork = sessionWindow(date, "America/New_York", 8, 17);
-  if (london && newYork) return "LONDON_NEW_YORK_OVERLAP";
-  if (london) return "LONDON";
-  if (newYork) return "NEW_YORK";
-  const utc = zonedParts(date, "UTC");
-  if (!["Sat", "Sun"].includes(utc.weekday) && utc.hour < 8) return "ASIA";
-  return "CLOSED";
+  if (!Number.isFinite(date.getTime())) return { primary: "CLOSED", active: [], overlap: false, marketOpen: false, weekend: false, holiday: false, volatility: "closed", reason: "invalid_time" };
+  const utc = zonedParts(date, "UTC"), clock = utc.hour + utc.minute / 60;
+  const weekend = utc.weekday === "Sat" || (utc.weekday === "Fri" && clock >= 22) || (utc.weekday === "Sun" && clock < 22);
+  const holiday = holidays.includes(date.toISOString().slice(0, 10));
+  if (weekend || holiday) return { primary: "CLOSED", active: [], overlap: false, marketOpen: false, weekend, holiday, volatility: "closed", reason: holiday ? "market_holiday" : "weekly_close" };
+  const active: ForexSessionName[] = [];
+  if (sessionWindow(date, "Australia/Sydney", 8, 17)) active.push("SYDNEY");
+  if (sessionWindow(date, "Asia/Tokyo", 9, 18)) active.push("TOKYO");
+  if (sessionWindow(date, "Europe/London", 8, 16)) active.push("LONDON");
+  if (sessionWindow(date, "America/New_York", 8, 17)) active.push("NEW_YORK");
+  const overlap = active.includes("LONDON") && active.includes("NEW_YORK");
+  const primary: ForexSessionName = overlap ? "LONDON_NEW_YORK_OVERLAP" : active.includes("LONDON") ? "LONDON" : active.includes("NEW_YORK") ? "NEW_YORK" : active.includes("TOKYO") ? "TOKYO" : active.includes("SYDNEY") ? "SYDNEY" : "ASIA";
+  return { primary, active, overlap, marketOpen: true, weekend: false, holiday: false, volatility: overlap ? "high" : active.includes("LONDON") || active.includes("NEW_YORK") ? "normal" : "low", reason: null };
+}
+
+export function forexSession(at: string | Date): ForexSessionName {
+  return forexSessionContext(at).primary;
 }
 
 export function timeframeMilliseconds(timeframe: string): number | null {

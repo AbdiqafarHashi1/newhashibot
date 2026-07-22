@@ -1187,7 +1187,7 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
 function gradeIndex(g: string): number { return g === "A+" ? 3 : g === "A" ? 2 : g === "B" ? 1 : 0; }
 
 const C2_FOREX_PROVIDER = "twelvedata";
-const C2_FOREX_SYMBOLS = new Set(["EURUSD", "GBPUSD", "USDJPY"]);
+const C2_FOREX_SYMBOLS = new Set(["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "EURJPY", "GBPJPY", "XAUUSD"]);
 
 function normalizeSymbol(symbol: string): string {
   return symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();

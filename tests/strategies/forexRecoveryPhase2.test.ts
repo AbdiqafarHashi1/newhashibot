@@ -16,7 +16,7 @@ assert.equal(FOREX_INSTRUMENTS.XAUUSD.pipSize, .1);
 assert.equal(FOREX_INSTRUMENTS.XAUUSD.pricePrecision, 2);
 assert.equal(priceToPips('EURUSD', pipsToPrice('EURUSD', 12)), 12);
 assert.deepEqual(['EURUSD', 'GBPUSD', 'USDJPY'].map((id) => FOREX_INSTRUMENTS[id as 'EURUSD'].productionEnabled), [true, true, true]);
-assert.deepEqual(['AUDUSD', 'USDCAD', 'XAUUSD'].map((id) => FOREX_INSTRUMENTS[id as 'AUDUSD'].productionEnabled), [false, false, false]);
+assert.deepEqual(['AUDUSD', 'USDCAD', 'XAUUSD'].map((id) => FOREX_INSTRUMENTS[id as 'AUDUSD'].productionEnabled), [true, true, true], 'Phase 7 registry enables the expanded production universe');
 
 assert.equal(forexSession('2026-01-15T08:30:00.000Z'), 'LONDON');
 assert.equal(forexSession('2026-07-15T07:30:00.000Z'), 'LONDON', 'London DST moves the UTC boundary');
