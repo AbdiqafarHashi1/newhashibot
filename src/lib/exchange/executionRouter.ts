@@ -1,4 +1,5 @@
 import type { EntryRequest, ExchangeProvider, ExchangeProviderId, ProviderResult } from './exchangeProvider.js';
+import { createExecutionOwnership, ownershipMetadata } from './executionOwnership.js';
 
 export type ProviderExecutionMode = 'single' | 'parallel';
 
@@ -25,7 +26,7 @@ export interface ParallelExecutionResult {
 }
 
 export function executionScopeKey(provider: ExchangeProviderId, scope: ExecutionIsolationScope): string {
-  return [scope.customerId, provider, scope.accountId, scope.instanceId].map((part) => encodeURIComponent(part.trim())).join(':');
+  return createExecutionOwnership(provider, scope).scopeKey;
 }
 
 export function validateExecutionTargets(targets: ProviderExecutionTarget[], requireIsolationScope = false): void {
@@ -58,8 +59,9 @@ export async function executeSignalAcrossProviders(
   const enabledTargets = targets.filter((target) => target.enabled && !target.readonly);
   const selectedTargets = options.mode === 'parallel' ? enabledTargets : enabledTargets.filter((target) => target.primary).slice(0, 1);
   const settled = await Promise.allSettled(selectedTargets.map(async (target) => {
-    const scopeKey = target.scope ? executionScopeKey(target.provider.metadata.id, target.scope) : undefined;
-    const result = await target.provider.placeEntry({ ...request, metadata: { ...request.metadata, executionGroupId, execution_provider: target.provider.metadata.id, execution_scope_key: scopeKey, customer_id: target.scope?.customerId, account_id: target.scope?.accountId, execution_instance_id: target.scope?.instanceId, credential_ref: target.scope?.credentialRef } });
+    const ownership = target.scope ? createExecutionOwnership(target.provider.metadata.id, target.scope) : undefined;
+    const scopeKey = ownership?.scopeKey;
+    const result = await target.provider.placeEntry({ ...request, metadata: { ...request.metadata, executionGroupId, ...(ownership ? ownershipMetadata(ownership) : { execution_provider: target.provider.metadata.id }) } });
     return { target, result, scopeKey };
   }));
   const results = settled.map((entry, idx) => {

@@ -4,6 +4,9 @@ import { ExchangeProviderMT5 } from '../../src/lib/exchange/ExchangeProviderMT5.
 import { executeSignalAcrossProviders, executeSignalForIsolatedAccounts, executionScopeKey, validateExecutionTargets } from '../../src/lib/exchange/executionRouter.js';
 import type { ExchangeProvider, EntryRequest } from '../../src/lib/exchange/exchangeProvider.js';
 import { AccountScopedCredentialResolver, credentialSafeMetadata } from '../../src/lib/exchange/accountCredentialResolver.js';
+import { AccountProviderFactory } from '../../src/lib/exchange/accountProviderFactory.js';
+import { createExecutionOwnership } from '../../src/lib/exchange/executionOwnership.js';
+import { ProviderMonitor, monitorOwnedExecutions } from '../../src/lib/exchange/providerMonitor.js';
 
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -101,6 +104,32 @@ async function run() {
   assert.deepEqual(credentialSafeMetadata(resolved), { customerId: 'customer-a', provider: 'ok', accountId: 'binance-1', credentialRef: accountA.credentialRef });
   assert.equal(JSON.stringify(credentialSafeMetadata(resolved)).includes('private-secret'), false, 'credential material cannot enter safe metadata');
   await assert.rejects(() => credentials.resolve('ok', { ...accountA, credentialRef: 'vault://wrong' }), /execution_credential_scope_mismatch/, 'credentials fail closed on scope mismatch');
+
+  let factorySecret = '';
+  const factory = new AccountProviderFactory(credentials, { ok: (secret) => { factorySecret = secret.apiSecret; return okProvider; } });
+  const scoped = await factory.create('ok', accountA);
+  assert.equal(factorySecret, 'private-secret', 'credential material is delivered directly to the provider constructor');
+  assert.equal(JSON.stringify(scoped).includes('private-secret'), false, 'scoped provider descriptors never expose credential material');
+  assert.equal(Object.isFrozen(scoped.ownership), true, 'execution ownership is immutable');
+
+  const ownershipA = createExecutionOwnership('ok', accountA);
+  const ownershipB = createExecutionOwnership('ok', accountB);
+  const monitorA = new ProviderMonitor(okProvider, ownershipA);
+  const monitorFailProvider = Object.assign(Object.create(Object.getPrototypeOf(failProvider)), failProvider, { async reconcilePosition() { throw new Error('account unavailable'); } }) as ExchangeProvider;
+  const monitorB = new ProviderMonitor(monitorFailProvider, ownershipB);
+  const leaseKeys: string[] = [];
+  const leaseStore = {
+    async acquire(scopeKey: string) { leaseKeys.push(scopeKey); return true; },
+    async release() {},
+  };
+  const monitored = await monitorOwnedExecutions([
+    { monitor: monitorA, input: { symbol: 'BTCUSDT', ownership: ownershipA } },
+    { monitor: monitorB, input: { symbol: 'ETHUSDT', ownership: ownershipB } },
+  ], leaseStore, 'run-1');
+  assert.equal(new Set(leaseKeys).size, 2, 'monitor leases are account scoped');
+  assert.equal(monitored[0].status, 'fulfilled');
+  assert.equal(monitored[1].status, 'rejected', 'one account monitor failure cannot abort another account');
+  await assert.rejects(() => monitorA.run({ symbol: 'BTCUSDT', ownership: ownershipB }), /mixed_execution_ownership/, 'monitoring fails closed on mixed ownership');
 }
 
 run().then(() => console.log('exchange provider tests passed'));
