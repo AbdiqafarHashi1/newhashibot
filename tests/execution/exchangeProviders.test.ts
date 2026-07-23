@@ -72,15 +72,15 @@ async function run() {
 
   const mt5 = new ExchangeProviderMT5();
   assert.equal(mt5.metadata.id, 'mt5', 'MT5 default ID is mt5');
-  assert.equal(mt5.metadata.environment, 'future', 'MT5 environment is future');
+  assert.equal(mt5.metadata.environment, 'live', 'MT5 is a first-class live provider');
 
   const mt5Personal = new ExchangeProviderMT5('mt5_personal');
-  assert.equal(mt5Personal.metadata.id, 'mt5_personal');
-  assert.equal(mt5Personal.metadata.environment, 'personal');
+  assert.equal(mt5Personal.metadata.id, 'mt5');
+  assert.equal(mt5Personal.metadata.environment, 'live');
 
   const mt5Prop = new ExchangeProviderMT5('mt5_prop');
-  assert.equal(mt5Prop.metadata.id, 'mt5_prop');
-  assert.equal(mt5Prop.metadata.environment, 'prop');
+  assert.equal(mt5Prop.metadata.id, 'mt5');
+  assert.equal(mt5Prop.metadata.environment, 'live');
 
   const okProvider = Object.assign(Object.create(Object.getPrototypeOf(mt5Personal)), mt5Personal, { metadata: { ...mt5Personal.metadata, id: 'ok' }, async placeEntry(request: EntryRequest) { return { provider: 'ok', ok: true, providerOrderId: `${request.symbol}-ok` }; } }) as ExchangeProvider;
   const failProvider = Object.assign(Object.create(Object.getPrototypeOf(mt5Personal)), mt5Personal, { metadata: { ...mt5Personal.metadata, id: 'fail' }, async placeEntry() { throw new Error('provider down'); } }) as ExchangeProvider;

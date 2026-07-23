@@ -21,12 +21,16 @@ export class RuntimeSupervisor {
       'Scanner',
       'Arbitrator',
       'Execution',
+      'Trade Management',
       'Protection',
       'Recovery',
       'Telegram',
       'Retention',
       'Binance',
       'Bybit',
+      'MT5',
+      'Synchronization',
+      'Queue Health',
       'Customer Access',
       'Provider Health'
     ];

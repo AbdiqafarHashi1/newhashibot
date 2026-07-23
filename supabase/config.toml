@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.evaluate-signal-outcomes]
 verify_jwt = false
+
+[functions.mt5-accounts]
+verify_jwt = true
