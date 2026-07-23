@@ -58,6 +58,14 @@ import Customers from './pages/admin/Customers';
 import PropTradingPanel from './pages/admin/PropTradingPanel';
 import Retention from './pages/admin/Retention';
 import OperatorPanel from './pages/admin/operator/OperatorPanel';
+import Positions from './pages/admin/Positions';
+import Protection from './pages/admin/Protection';
+import Recovery from './pages/admin/Recovery';
+import Risk from './pages/admin/Risk';
+import Capital from './pages/admin/Capital';
+import RuntimeTruth from './pages/admin/RuntimeTruth';
+import MissionControl from './pages/admin/MissionControl';
+import PropProvider from './pages/admin/PropProvider';
 
 // Smart redirect after login based on role
 function AuthRedirect() {
@@ -116,6 +124,8 @@ function App() {
           {/* Admin */}
 
           <Route path="/admin/operator" element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
+          <Route path="/admin/mission-control" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
+          <Route path="/admin/mission" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
           <Route path="/admin/operator/signals" element={<RequireAdmin><OperatorPanel section="signals" /></RequireAdmin>} />
           <Route path="/admin/operator/executions" element={<RequireAdmin><OperatorPanel section="executions" /></RequireAdmin>} />
           <Route path="/admin/operator/trade-manager" element={<RequireAdmin><OperatorPanel section="trade-manager" /></RequireAdmin>} />
@@ -151,7 +161,18 @@ function App() {
           <Route path="/admin/providers/comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
           <Route path="/admin/checklist"         element={<RequireAdmin><SetupChecklist /></RequireAdmin>} />
           <Route path="/admin/strategy-config"   element={<RequireAdmin><StrategyConfig /></RequireAdmin>} />
+          <Route path="/admin/strategies"        element={<RequireAdmin><StrategyConfig /></RequireAdmin>} />
+          <Route path="/admin/arbitrator"        element={<RequireAdmin><Candidates /></RequireAdmin>} />
           <Route path="/admin/execution"         element={<RequireAdmin><Execution /></RequireAdmin>} />
+          <Route path="/admin/positions"         element={<RequireAdmin><Positions /></RequireAdmin>} />
+          <Route path="/admin/protection"        element={<RequireAdmin><Protection /></RequireAdmin>} />
+          <Route path="/admin/recovery"          element={<RequireAdmin><Recovery /></RequireAdmin>} />
+          <Route path="/admin/risk"              element={<RequireAdmin><Risk /></RequireAdmin>} />
+          <Route path="/admin/capital"           element={<RequireAdmin><Capital /></RequireAdmin>} />
+          <Route path="/admin/runtime-truth"     element={<RequireAdmin><RuntimeTruth /></RequireAdmin>} />
+          <Route path="/admin/runtime"           element={<RequireAdmin><RuntimeTruth /></RequireAdmin>} />
+          <Route path="/admin/prop-provider"     element={<RequireAdmin><PropProvider /></RequireAdmin>} />
+          <Route path="/admin/reporting"         element={<RequireAdmin><Performance /></RequireAdmin>} />
           <Route path="/admin/trading-brain"     element={<RequireAdmin><TradingBrain /></RequireAdmin>} />
           <Route path="/admin/modes"             element={<RequireAdmin><Modes /></RequireAdmin>} />
           <Route path="/admin/backtest"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />

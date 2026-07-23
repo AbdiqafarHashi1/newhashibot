@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { CustomerSubscription, Package, PaymentStatus, AccessStatus, TelegramStatus } from '../../lib/types';
@@ -428,8 +428,8 @@ export default function Customers() {
               </thead>
               <tbody>
                 {filtered.map(s => (
-                  <>
-                    <tr key={s.id} className="border-b border-zinc-800/60 hover:bg-zinc-800/20 transition-colors">
+                  <Fragment key={s.id}>
+                    <tr className="border-b border-zinc-800/60 hover:bg-zinc-800/20 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-medium text-zinc-200">{s.full_name || <span className="text-zinc-600 italic">—</span>}</div>
                         <div className="text-zinc-500 mt-0.5">{s.email}</div>
@@ -563,7 +563,7 @@ export default function Customers() {
                     {editingId === s.id && (
                       <EditRow key={`${s.id}-edit`} sub={s} packages={packages} onSave={handleSave} onClose={() => setEditingId(null)} />
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

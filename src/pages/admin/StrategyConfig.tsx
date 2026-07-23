@@ -5,7 +5,7 @@ import { StrategyConfig } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { Settings, Save, RotateCcw, CheckCircle, XCircle, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
-type StrategyName = 'MicroScalper' | 'CompressionBreakout' | 'SwingContinuation' | 'QuickScalp' | 'ForexMicroScalper' | 'ForexSwingContinuation';
+type StrategyName = 'MicroScalper' | 'CompressionBreakout' | 'SwingContinuation' | 'QuickScalp' | 'ForexMicroScalper' | 'ForexSwingContinuation' | 'ForexCompressionBreakout' | 'ForexQuickScalp';
 type FieldGroup = 'Quality Gates' | 'Timeframes' | 'Indicators' | 'Entry Filters' | 'Stop/TP/Risk' | 'Strategy-Specific';
 
 type ParamField = {

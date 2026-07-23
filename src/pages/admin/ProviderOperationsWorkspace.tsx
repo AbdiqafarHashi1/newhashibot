@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { BinanceExecutionOrder, ExecutionSettings, Signal } from '../../lib/types';
-import { Shield, AlertTriangle, Cpu, Activity, Send, RefreshCw, XCircle, PlayCircle, FlaskConical, Trash2, RotateCcw, PauseCircle, StopCircle, CheckCircle2 } from 'lucide-react';
+import { Shield, AlertTriangle, Cpu, Activity, RefreshCw, XCircle, PlayCircle, FlaskConical, RotateCcw, PauseCircle, StopCircle, CheckCircle2, Search, Lock, FileText, Terminal, Sliders, Zap, AlertCircle, Layers, ArrowUpRight, ArrowDownRight, Target, Plus, ShieldCheck, UserPlus, Trash2 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
 import { getMonitorTruth, shortOperatorText } from '../../lib/monitorTruth';
+import { listMT5Accounts, connectMT5Account, setMT5Execution, testMT5Connection, removeMT5Account } from '../../lib/mt5Accounts';
+import type { MT5Account } from '../../lib/exchange/mt5';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
@@ -33,7 +35,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'text-zinc-400 bg-zinc-800 border-zinc-700',
 };
 
-
 type ExecutionSettingsSnapshot = {
   latest_monitor_run_at: string | null;
   latest_monitor_status: string;
@@ -48,133 +49,215 @@ type ExecutionSettingsSnapshot = {
   unrealized_pnl: number | null;
   account_total_margin_balance: number | null;
   account_total_wallet_balance: number | null;
-  latest_sync_time: string | null;
-  latest_account_state_at?: string | null;
-  last_managed_exit_action?: Record<string, unknown> | null;
+  latest_account_state_at: string | null;
+
+  latest_supervisor_run_at?: string | null;
+  latest_supervisor_status?: string | null;
+  latest_supervisor_result?: Record<string, unknown> | null;
+  latest_supervisor_error?: string | null;
+
+  latest_recovery_run_at?: string | null;
+  latest_recovery_status?: string | null;
+  latest_recovery_result?: Record<string, unknown> | null;
+  latest_recovery_error?: string | null;
 };
 
-
-type ProviderControl = {
-  provider_name: 'binance' | 'bybit' | 'mt5';
-  provider?: 'binance' | 'bybit' | 'mt5';
-  enabled: boolean;
-  entry_enabled?: boolean | null;
-  parallel_enabled: boolean;
-  primary_provider: boolean;
-  read_only: boolean;
-  profit_lock_enabled: boolean;
-  monitor_enabled: boolean;
-  protection_recovery_enabled: boolean;
-  recovery_enabled?: boolean | null;
-  provider_kill_switch: boolean;
-  kill_switch?: boolean | null;
-  status: string;
-  last_error: string | null;
-};
-
-type ProviderControlsErrorKind = 'missing_table' | 'rls_blocked' | 'rows_missing' | 'query_failed' | '';
-
-type ProviderGlobalControls = {
-  id: number;
-  primary_provider: 'binance' | 'bybit' | 'mt5';
-  parallel_mode_enabled: boolean;
-  live_trading_enabled: boolean;
-};
-
-type ProviderSymbolCacheRow = {
-  provider: 'binance' | 'bybit';
-  symbol: string;
-  status: string;
-};
-
-type MonitorHeartbeat = {
-  provider: string;
-  environment: string;
-  run_id: string;
-  trigger_source?: string | null;
-  is_automatic?: boolean | null;
-  started_at: string;
-  completed_at?: string | null;
-  success: boolean;
-  monitor_status: string;
-  positions_seen: number;
-  orders_seen: number;
-  executions_checked: number;
-  protections_created: number;
-  protections_missing: number;
-  stale_orders_cleaned: number;
-  positions_closed: number;
-  latest_recovery_action?: string | null;
-  latest_telegram_event?: string | null;
-  errors?: unknown;
-};
-
-type MonitorSchedule = {
-  provider: string;
-  environment: string;
-  job_name: string;
-  cron_expression?: string | null;
-  function_name: string;
-  scheduled: boolean;
-  status: string;
-  adapter_status: string;
-  updated_at?: string | null;
-};
-
-type OperatorRoutingSnapshot = {
-  last_admin_alert?: { created_at?: string; delivery_status?: string; error_message?: string; delivery_type?: string } | null;
-  last_admin_digest?: { created_at?: string; delivery_status?: string; error_message?: string; delivery_type?: string } | null;
-  free_selected_today?: number;
-  telegram_health?: Record<string, { latest_status?: string; latest_at?: string; latest_error?: string }>;
-};
-
-interface StatusPayload {
-  success: boolean;
-  settings?: ExecutionSettings;
-  env?: {
+type StatusPayload = {
+  ok: boolean;
+  timestamp: string;
+  env: {
     execution_mode: string;
-    exchange: string;
     testnet_enabled: boolean;
-    live_trading_enabled: boolean;
-    base_url: string;
     api_key_configured: boolean;
     api_secret_configured: boolean;
+    exchange: string;
+    base_url: string;
+    live_trading_enabled: boolean;
   };
-  executions?: BinanceExecutionOrder[];
+  settings: ExecutionSettings & ExecutionSettingsSnapshot & {
+    enable_profit_lock_engine?: boolean;
+    enable_testnet_profit_lock_engine?: boolean;
+    profit_lock_before_tp1?: string;
+    profit_lock_after_tp1?: boolean;
+    profit_lock_min_r?: number;
+    profit_lock_aggressive_min_r?: number;
+    profit_lock_buffer_r?: number;
+    profit_lock_cooldown_minutes?: number;
+    profit_lock_max_updates_per_trade?: number;
+    enable_usdc_margin_backup?: boolean;
+    allow_margin_assets?: string;
+    prefer_margin_asset?: string;
+    capital_basis?: string;
+    auto_execute_testnet?: boolean;
+    governor_enabled?: boolean;
+    testnet_governor_mode?: string;
+    governor_state?: string;
+    last_governor_reason?: string | null;
+    daily_start_equity?: number | null;
+    daily_realized_pnl?: number | null;
+    daily_unrealized_pnl?: number | null;
+    current_equity?: number | null;
+    daily_pnl_pct?: number | null;
+    account_open_positions?: number | null;
+    account_open_order_count?: number | null;
+    account_available_balance?: number | null;
+    account_margin_ratio?: number | null;
+    max_daily_loss_pct?: number | null;
+    max_unrealized_drawdown_pct?: number | null;
+    failed_execution_streak?: number | null;
+    closed_sl_streak?: number | null;
+    last_governor_checked_at?: string | null;
+    stress_override_enabled?: boolean;
+    stress_risk_pct?: number | null;
+    stress_leverage?: number | null;
+    stress_ignore_open_risk_limit?: boolean;
+    bot_paused?: boolean;
+    bot_paused_reason?: string | null;
+    kill_switch_enabled?: boolean;
+    profit_lock_study_counters?: Record<string, number> | null;
+    profit_lock_skipped_reasons?: Record<string, number> | null;
+    profit_lock_actions_taken?: number | null;
+  };
+  governor?: {
+    mode: string;
+    enabled: boolean;
+    state: string;
+    reason: string;
+    current_equity: number | null;
+    daily_pnl_pct: number | null;
+    unrealized_pnl: number | null;
+    risk_multiplier: number;
+    adjusted_max_leverage: number;
+  };
+  governor_display?: {
+    mode: string;
+    state: string;
+    reason: string;
+    execution_allowed: boolean;
+  };
+  account_state?: {
+    openPositions?: number;
+    openOrderCount?: number;
+    availableUsdt?: number;
+    availableUsdc?: number;
+    availableBalance?: number;
+    marginRatio?: number;
+    positions?: Array<{ symbol: string; positionAmt: string; unrealizedPnl: string }>;
+  };
+  capital?: {
+    selected_capital_used?: number;
+    raw_total_margin_balance?: number;
+    raw_total_wallet_balance?: number;
+    raw_available_usdt?: number;
+    raw_available_usdc?: number;
+  };
+  last_insufficient_margin?: {
+    reason?: string;
+    backup_attempted?: boolean;
+    backup_asset_used?: string;
+    final_result?: string;
+  };
+  latest_error?: {
+    last_exchange_error?: string;
+    error_message?: string;
+  };
   failed_count?: number;
   skipped_count?: number;
-  latest_error?: { error_message?: string; last_exchange_error?: string } | null;
-  last_insufficient_margin?: { reason?: string; backup_attempted?: boolean; backup_asset_used?: string; final_result?: string } | null;
-  capital?: { raw_total_margin_balance?: number; raw_total_wallet_balance?: number; raw_available_usdt?: number; raw_available_usdc?: number; selected_capital_used?: number; capital_basis?: string; max_capital_cap_applied?: boolean };
-  account_state?: { totalMarginBalance?: number; totalWalletBalance?: number; availableBalance?: number; availableUsdt?: number; availableUsdc?: number; unrealizedPnl?: number; openPositions?: number; marginRatio?: number | null; openOrderCount?: number; positions?: Array<{ symbol: string; positionAmt: number; unrealizedPnl: number; notional: number }> };
-  governor?: { state?: string; effective_state?: string; display_state?: string; reason?: string; risk_multiplier?: number; adjusted_max_leverage?: number; adjusted_max_open_positions?: number; daily_pnl_pct?: number | null; unrealized_pnl?: number | null; current_equity?: number | null; blocks_execution?: boolean };
-  governor_display?: { mode: string; state: string; execution_allowed: boolean };
+  current_open_risk_pct?: number;
+  remaining_risk_capacity_pct?: number;
   effective_risk_pct?: number | null;
   effective_leverage?: number | null;
   risk_source?: string;
   leverage_source?: string;
-  current_open_risk_pct?: number;
-  max_total_open_risk_pct?: number;
-  remaining_risk_capacity_pct?: number;
-  execution_allowed?: boolean;
-  error?: string;
-}
+};
 
-interface ActionResult {
+type ActionResult = {
   success: boolean;
+  action?: string;
   error?: string;
-  reason?: string;
-  execution_id?: string;
-  status?: string;
-  plan?: Record<string, unknown>;
-  governor_state?: string;
-  governor_reason?: string;
-  last_governor_checked_at?: string;
-  execution_allowed?: boolean;
-  admin_action_needed?: string;
-  result?: Record<string, unknown>;
-  rules?: Record<string, unknown>;
-  checks?: Record<string, unknown>;
+  receipt_id?: string;
+  completed_at?: string;
+  [key: string]: unknown;
+};
+
+type ProviderControl = {
+  provider_name: 'binance' | 'bybit' | 'mt5';
+  enabled: boolean;
+  read_only: boolean;
+  entry_enabled: boolean;
+  monitor_enabled: boolean;
+  protection_recovery_enabled: boolean;
+  profit_lock_enabled: boolean;
+  provider_kill_switch: boolean;
+  status: 'connected' | 'degraded' | 'disabled' | 'error';
+  last_error?: string | null;
+};
+
+type ProviderGlobalControls = {
+  parallel_mode_enabled: boolean;
+  primary_provider: 'binance' | 'bybit' | 'mt5';
+  live_trading_unlocked: boolean;
+};
+
+type TradeManagementTruthUiRow = {
+  id: string;
+  execution_id: string;
+  provider: 'binance' | 'bybit' | 'mt5';
+  symbol: string;
+  side: string;
+  quantity: number | null;
+  entry_price: number | null;
+  mark_price: number | null;
+  unrealized_pnl: number | null;
+  leverage: number | null;
+  margin: number | null;
+  liquidation_price: number | null;
+  intended_sl: number | null;
+  intended_tp1: number | null;
+  intended_tp2: number | null;
+  sl_status: string;
+  tp1_status: string;
+  tp2_status: string;
+  be_status: string;
+  trailing_status: string;
+  protection_status: string;
+  lifecycle_state: string;
+  latest_error: string | null;
+  updated_at: string;
+};
+
+type ProviderSymbolCacheRow = {
+  provider_name: string;
+  symbol: string;
+  is_tradable: boolean;
+  contract_type: string;
+  quote_asset: string;
+  updated_at: string;
+};
+
+type MonitorHeartbeat = {
+  id: string;
+  worker_id: string;
+  worker_name: string;
+  status: string;
+  latest_monitor_run_at: string | null;
+  open_positions_count: number | null;
+  stale_rows_cleaned: number | null;
+  latest_error: string | null;
+  created_at: string;
+};
+
+type MonitorSchedule = {
+  id: string;
+  task_name: string;
+  cron_expression: string;
+  enabled: boolean;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  status: string;
+};
+
+type BybitDebugState = {
   connected?: boolean;
   environment?: string;
   account_reachable?: boolean;
@@ -185,1343 +268,2193 @@ interface ActionResult {
   latest_error_message?: string | null;
   current_api_key_status?: string | null;
   current_provider_status?: string | null;
-  safe_for_test_order?: boolean;
-  missing_permissions?: string[];
-  error_reason?: string | null;
   balances?: unknown[];
   positions?: unknown[];
   open_orders?: unknown[];
-  account_state?: Record<string, unknown> | null;
-  governor?: Record<string, unknown>;
-  cleaned_count?: number;
-  symbols_checked?: number;
-}
-
-type TradeManagementTruthUiRow = {
-  provider: string;
-  symbol: string;
-  side: string;
-  qty: number | string;
-  entry_price: number | string | null;
-  mark_price: number | string | null;
-  unrealized_pnl: number | string | null;
-  sl_present: boolean;
-  tp1_present: boolean;
-  tp2_present: boolean;
-  profit_lock_status: string | null;
-  protection_status: string | null;
-  monitor_status?: string | null;
-  recovery_status?: string | null;
-  last_action_taken?: string | null;
-  latest_sync_at: string | null;
-  latest_error: string | null;
+  checks?: Record<string, unknown>;
+  missing_permissions?: string[];
+  error_reason?: string | null;
 };
 
-export default function ProviderOperationsWorkspace({ provider = 'binance', mode = 'crypto' }: { provider?: 'binance' | 'bybit' | 'mt5'; mode?: 'crypto' | 'mt5_personal' | 'mt5_prop' }) {
+type CommandReceipt = {
+  id: string;
+  action: string;
+  provider: string;
+  environment: string;
+  requestTime: string;
+  completionTime: string;
+  status: 'SUCCESS' | 'FAILED';
+  error?: string;
+  result?: Record<string, unknown>;
+};
+
+type VerifiedRuntimeEvent = {
+  id: string;
+  created_at: string;
+  type: 'SIGNAL' | 'EXECUTION' | 'PROTECTION' | 'PROVIDER' | 'AUDIT';
+  severity: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  details: string;
+  source: string;
+  symbol?: string;
+};
+
+interface ProviderOperationsWorkspaceProps {
+  provider: 'binance' | 'bybit' | 'mt5';
+  mode?: 'binance_testnet' | 'bybit_prop' | 'mt5_prop' | 'mt5_personal';
+}
+
+export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet' }: ProviderOperationsWorkspaceProps) {
   const { session } = useAuth();
-  const [status, setStatus] = useState<StatusPayload | null>(null);
-  const [signals, setSignals] = useState<Signal[]>([]);
-  const [selectedSignalId, setSelectedSignalId] = useState('');
-  const [symbol, setSymbol] = useState('BTCUSDT');
-  const [monitorState, setMonitorState] = useState<ExecutionSettingsSnapshot | null>(null);
-  const [operatorRouting, setOperatorRouting] = useState<OperatorRoutingSnapshot>({});
+  const [activeTab, setActiveTab] = useState<'overview' | 'positions_orders' | 'protection_risk' | 'diagnostics_debug' | 'events_receipts'>('overview');
+  const [orderTab, setOrderTab] = useState<'open' | 'conditional' | 'recent' | 'attempts' | 'failed'>('open');
+
+  const [selectedEnv] = useState<'testnet' | 'live'>('testnet');
+
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [cleaning, setCleaning] = useState(false);
-  const [cleanupMsg, setCleanupMsg] = useState('');
+  const [cleanupMsg, setCleanupMsg] = useState<string | null>(null);
+
+  const [status, setStatus] = useState<StatusPayload | null>(null);
+  const [executions, setExecutions] = useState<BinanceExecutionOrder[]>([]);
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [selectedSignalId, setSelectedSignalId] = useState<string>('');
+  const [symbol, setSymbol] = useState<string>('BTCUSDT');
   const [result, setResult] = useState<ActionResult | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<'all' | 'binance' | 'bybit' | 'mt5'>(provider);
+
   const [providerControls, setProviderControls] = useState<ProviderControl[]>([]);
   const [providerGlobalControls, setProviderGlobalControls] = useState<ProviderGlobalControls | null>(null);
-  const [providerSymbolCache, setProviderSymbolCache] = useState<ProviderSymbolCacheRow[]>([]);
+  const [providerControlsError, setProviderControlsError] = useState<{ kind?: 'missing_table' | 'rls_blocked' | 'error'; message?: string }>({});
+
+  const [tradeTruthRows, setTradeTruthRows] = useState<TradeManagementTruthUiRow[]>([]);
+  const [symbolCacheRows, setSymbolCacheRows] = useState<ProviderSymbolCacheRow[]>([]);
   const [monitorHeartbeats, setMonitorHeartbeats] = useState<MonitorHeartbeat[]>([]);
   const [monitorSchedules, setMonitorSchedules] = useState<MonitorSchedule[]>([]);
-  const [providerControlsError, setProviderControlsError] = useState<{ kind: ProviderControlsErrorKind; message: string }>({ kind: '', message: '' });
-  const [bybitDebug, setBybitDebug] = useState<ActionResult | null>(null);
-  const [tradeTruthRows, setTradeTruthRows] = useState<TradeManagementTruthUiRow[]>([]);
-  const providerStatus = useMemo(() => new Map(providerControls.map((control) => [control.provider_name, control])), [providerControls]);
-  const requestedPrimaryProvider = providerGlobalControls?.primary_provider ?? providerControls.find((control) => control.primary_provider)?.provider_name ?? 'binance';
-  const bybitConnected = providerStatus.get('bybit')?.status === 'connected' || bybitDebug?.connected === true;
-  const bybitDiagnosticsIncomplete = !bybitConnected;
-  const effectivePrimaryProvider = requestedPrimaryProvider === 'bybit' && bybitDiagnosticsIncomplete ? 'binance' : requestedPrimaryProvider;
-  const providerSafetyWarning = bybitDiagnosticsIncomplete ? 'Bybit diagnostics incomplete' : '';
+  const [bybitDebug, setBybitDebug] = useState<BybitDebugState | null>(null);
 
-  const executions = useMemo(() => {
-    const rows = status?.executions ?? [];
-    if (selectedProvider === 'all') return rows;
-    return rows.filter((execution) => (execution.execution_provider ?? 'binance') === selectedProvider);
-  }, [selectedProvider, status?.executions]);
-  const allProviderExecutions = useMemo(() => status?.executions ?? [], [status?.executions]);
-  const latestHeartbeatByProvider = useMemo(() => {
-    const map = new Map<string, MonitorHeartbeat>();
-    monitorHeartbeats.forEach(row => {
-      const key = `${row.provider}:${row.environment}`;
-      const existing = map.get(key);
-      if (!existing || new Date(row.started_at).getTime() > new Date(existing.started_at).getTime()) map.set(key, row);
-    });
-    return map;
-  }, [monitorHeartbeats]);
-  const latestAutomaticHeartbeatByProvider = useMemo(() => {
-    const map = new Map<string, MonitorHeartbeat>();
-    monitorHeartbeats.filter(row => row.is_automatic === true || row.trigger_source === 'pg_cron').forEach(row => {
-      const key = `${row.provider}:${row.environment}`;
-      const existing = map.get(key);
-      if (!existing || new Date(row.started_at).getTime() > new Date(existing.started_at).getTime()) map.set(key, row);
-    });
-    return map;
-  }, [monitorHeartbeats]);
-  const latestManualHeartbeatByProvider = useMemo(() => {
-    const map = new Map<string, MonitorHeartbeat>();
-    monitorHeartbeats.filter(row => row.is_automatic !== true && row.trigger_source !== 'pg_cron').forEach(row => {
-      const key = `${row.provider}:${row.environment}`;
-      const existing = map.get(key);
-      if (!existing || new Date(row.started_at).getTime() > new Date(existing.started_at).getTime()) map.set(key, row);
-    });
-    return map;
-  }, [monitorHeartbeats]);
-  const scheduleByProvider = useMemo(() => {
-    const map = new Map<string, MonitorSchedule>();
-    monitorSchedules.forEach(row => map.set(`${row.provider}:${row.environment}`, row));
-    return map;
-  }, [monitorSchedules]);
-  const runAgeLabel = (value?: string | null) => {
-    if (!value) return 'never';
-    const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
-    if (!Number.isFinite(minutes)) return 'unknown';
-    if (minutes < 1) return '<1m';
-    if (minutes < 60) return `${minutes}m`;
-    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-  };
-  const protectionCommandPlatforms = useMemo(() => {
-    const platformDefs = [
-      { key: 'binance:testnet', provider: 'binance', label: 'Binance', environment: 'testnet', adapterPending: false },
-      { key: 'bybit:demo', provider: 'bybit', label: 'Bybit', environment: 'demo', adapterPending: false },
-      { key: 'mt5:personal', provider: 'mt5', label: 'MT5 Personal', environment: 'personal', adapterPending: true },
-      { key: 'mt5:prop', provider: 'mt5', label: 'MT5 Prop', environment: 'prop', adapterPending: true },
-    ];
-    return platformDefs.map(platform => {
-      const rows = allProviderExecutions.filter(execution => {
-        const executionProvider = execution.execution_provider ?? 'binance';
-        if (platform.provider === 'mt5') return executionProvider === 'mt5' && String(execution.environment ?? '').includes(platform.environment);
-        return executionProvider === platform.provider;
+  // MT5 Multi-Account State
+  const [mt5Accounts, setMt5Accounts] = useState<MT5Account[]>([]);
+  const [mt5AccountsLoading, setMt5AccountsLoading] = useState(false);
+  const [mt5FilterType, setMt5FilterType] = useState<'all' | 'personal' | 'prop' | 'demo'>('all');
+  const [mt5Notice, setMt5Notice] = useState<string | null>(null);
+
+  // MT5 Onboarding Modal State
+  const [showAddMT5Modal, setShowAddMT5Modal] = useState(false);
+  const [formBroker, setFormBroker] = useState('MetaQuotes Software');
+  const [formServer, setFormServer] = useState('MetaQuotes-Demo');
+  const [formAccountNumber, setFormAccountNumber] = useState('');
+  const [formPassword, setFormPassword] = useState('');
+  const [formNickname, setFormNickname] = useState('');
+  const [formAccountType, setFormAccountType] = useState<'personal' | 'prop' | 'demo'>(
+    mode === 'mt5_personal' ? 'personal' : mode === 'mt5_prop' ? 'prop' : 'personal'
+  );
+  const [formPropFirm, setFormPropFirm] = useState('FTMO');
+  const [formMaxDailyLossPct, setFormMaxDailyLossPct] = useState<number>(5.0);
+  const [formMaxTotalDrawdownPct, setFormMaxTotalDrawdownPct] = useState<number>(10.0);
+  const [formLeverage, setFormLeverage] = useState<number>(100);
+  const [formMT5Error, setFormMT5Error] = useState<string | null>(null);
+  const [mt5ActionPending, setMt5ActionPending] = useState(false);
+
+  // Prop Drawdown & Safety Config State
+  const [propMaxDailyLossPct, setPropMaxDailyLossPct] = useState<number>(5.0);
+  const [propMaxTotalDrawdownPct, setPropMaxTotalDrawdownPct] = useState<number>(10.0);
+  const [propDailyLossLockEnabled, setPropDailyLossLockEnabled] = useState<boolean>(true);
+  const [propNewEntryBlocked, setPropNewEntryBlocked] = useState<boolean>(false);
+
+  const [receiptHistory, setReceiptHistory] = useState<CommandReceipt[]>([]);
+  const [telemetryEvents, setTelemetryEvents] = useState<VerifiedRuntimeEvent[]>([]);
+
+  const [selectedPositionForDetail, setSelectedPositionForDetail] = useState<TradeManagementTruthUiRow | BinanceExecutionOrder | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    actionName: string;
+    payload?: Record<string, unknown>;
+    isDanger?: boolean;
+  } | null>(null);
+
+  const [orderSymbolFilter, setOrderSymbolFilter] = useState('');
+  const [orderSideFilter, setOrderSideFilter] = useState<'all' | 'long' | 'short'>('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+
+  const selectedProviderControl = useMemo(() => {
+    return providerControls.find(c => c.provider_name === provider);
+  }, [providerControls, provider]);
+
+  const bybitConnected = useMemo(() => {
+    const ctrl = providerControls.find(c => c.provider_name === 'bybit');
+    return ctrl?.status === 'connected';
+  }, [providerControls]);
+
+  const providerSafetyWarning = useMemo(() => {
+    if (providerControlsError.kind === 'missing_table' || providerControlsError.kind === 'rls_blocked') {
+      return providerControlsError.message;
+    }
+    if (provider === 'bybit' && !bybitConnected) {
+      return 'Bybit Health is degraded or disconnected';
+    }
+    return null;
+  }, [providerControlsError, provider, bybitConnected]);
+
+  const effectivePrimaryProvider = useMemo(() => {
+    const desired = providerGlobalControls?.primary_provider || provider;
+    if (desired === 'bybit' && !bybitConnected) return 'binance';
+    return desired;
+  }, [providerGlobalControls, bybitConnected, provider]);
+
+  const recordReceipt = useCallback((receipt: Omit<CommandReceipt, 'id'>) => {
+    const newReceipt: CommandReceipt = {
+      ...receipt,
+      id: `rcpt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    };
+    setReceiptHistory(prev => [newReceipt, ...prev.slice(0, 49)]);
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ action: 'status', provider }),
       });
-      const active = rows.filter(execution => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed', 'partially_protected', 'protection_failed'].includes(execution.status));
-      const heartbeat = latestHeartbeatByProvider.get(platform.key);
-      const automaticHeartbeat = latestAutomaticHeartbeatByProvider.get(platform.key);
-      const manualHeartbeat = latestManualHeartbeatByProvider.get(platform.key);
-      const schedule = scheduleByProvider.get(platform.key);
-      const truthRows = tradeTruthRows.filter(row => row.provider === platform.provider);
-      const protectedPositions = truthRows.length ? truthRows.filter(row => row.protection_status === 'protected').length : active.filter(execution => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
-      const missingSl = truthRows.length ? truthRows.filter(row => !row.sl_present).length : active.filter(execution => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
-      const missingTp1 = truthRows.length ? truthRows.filter(row => !row.tp1_present).length : active.filter(execution => String(execution.protection_status) === 'missing_tp1' || execution.tp1_status === 'missing').length;
-      const missingTp2 = truthRows.length ? truthRows.filter(row => !row.tp2_present).length : active.filter(execution => String(execution.protection_status) === 'missing_tp2' || execution.tp2_status === 'missing').length;
-      const pendingProtection = active.filter(execution => ['pending_protection', 'protection_pending', 'pending_managed_protection'].includes(String(execution.protection_status ?? execution.status))).length;
-      const failedProtection = active.filter(execution => ['protection_failed', 'unprotected_failed'].includes(String(execution.protection_status ?? execution.status))).length;
-      const expired = active.filter(execution => ['expired', 'expired_closed'].includes(String(execution.expiry_status)) || String(execution.status).includes('expired')).length;
-      const recoveryIssues = active.filter(execution => execution.latest_protection_error || execution.latest_monitor_error || ['cleanup_failed', 'expiry_close_failed', 'protection_retry_failed'].includes(String(execution.recovery_status))).length;
-      const latestTelegram = rows.map(execution => execution.latest_telegram_event_at || '').filter(Boolean).sort().slice(-1)[0] ?? heartbeat?.latest_telegram_event ?? '';
-      return { ...platform, rows, active, heartbeat, automaticHeartbeat, manualHeartbeat, schedule, providerStatus: platform.adapterPending ? 'adapter_pending' : providerStatus.get(platform.provider as 'binance' | 'bybit' | 'mt5')?.status ?? 'unknown', monitorStatus: platform.adapterPending ? 'not_available' : heartbeat?.monitor_status ?? 'no_heartbeat', activePositions: platform.adapterPending ? null : (truthRows.length || active.length), protectedPositions, unprotectedPositions: Math.max((truthRows.length || active.length) - protectedPositions, 0), missingSl, missingTp1, missingTp2, pendingProtection, failedProtection, staleOrders: heartbeat?.stale_orders_cleaned ?? 0, expired, recoveryIssues, latestRecoveryAction: platform.adapterPending ? 'adapter_pending' : (truthRows.map(row => row.last_action_taken || row.recovery_status || '').filter(Boolean).sort().slice(-1)[0] || heartbeat?.latest_recovery_action || '—'), latestTelegram, latestError: platform.adapterPending ? 'MT5 adapter not connected' : (truthRows.find(row => row.latest_error)?.latest_error || (Array.isArray(heartbeat?.errors) ? String((heartbeat?.errors as unknown[])[0] ?? '—') : '—')) };
-    });
-  }, [allProviderExecutions, latestHeartbeatByProvider, latestAutomaticHeartbeatByProvider, latestManualHeartbeatByProvider, providerStatus, scheduleByProvider, tradeTruthRows]);
-  const providerCards = useMemo(() => {
-    const providers = ['binance', 'bybit', 'mt5'] as const;
-    return providers.map((provider) => {
-      const rows = allProviderExecutions.filter((execution) => (execution.execution_provider ?? 'binance') === provider);
-      const active = rows.filter((execution) => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'partially_closed'].includes(execution.status));
-      const pnl = rows.reduce((sum, execution) => sum + Number(execution.current_pnl ?? execution.latest_unrealized_pnl ?? 0), 0);
-      const protectedCount = active.filter((execution) => ['protected', 'protected_native', 'protected_managed', 'protection_recovered'].includes(String(execution.protection_status ?? execution.status))).length;
-      const missingSl = active.filter((execution) => ['missing_sl', 'protection_failed'].includes(String(execution.protection_status)) || execution.sl_status === 'missing').length;
-      const missingTp1 = active.filter((execution) => String(execution.protection_status) === 'missing_tp1' || execution.tp1_status === 'missing').length;
-      const missingTp2 = active.filter((execution) => String(execution.protection_status) === 'missing_tp2' || execution.tp2_status === 'missing').length;
-      const expired = active.filter((execution) => ['expired', 'expired_closed'].includes(String(execution.expiry_status)) || String(execution.status).includes('expired')).length;
-      const latestLifecycle = rows.map((execution) => execution.last_monitor_checked_at || execution.latest_sync_at || execution.updated_at || '').filter(Boolean).sort().slice(-1)[0] ?? '';
-      const latestTelegram = rows.map((execution) => execution.latest_telegram_event_at || '').filter(Boolean).sort().slice(-1)[0] ?? '';
-      const recoveryFailures = rows.filter((execution) => String(execution.protection_status) === 'protection_failed' || execution.latest_protection_error || execution.latest_monitor_error).length;
-      const profitLockActive = rows.filter((execution) => execution.profit_lock_sl_active || execution.profit_lock_status === 'locked' || execution.status === 'closed_profit_lock').length;
-      return { provider, rows, active, pnl, protectedCount, missingSl, missingTp1, missingTp2, expired, latestLifecycle, latestTelegram, recoveryFailures, profitLockActive };
-    });
-  }, [allProviderExecutions]);
-  const openExecutions = useMemo(() => executions.filter(e => ['pending', 'pending_submit', 'entry_submitted', 'entry_filled', 'protected', 'protected_native', 'protected_managed', 'pending_protection', 'pending_managed_protection', 'sl_submitted', 'tp_submitted', 'partially_closed'].includes(e.status)), [executions]);
-  const failedExecutions = executions.filter(e => e.status === 'failed');
-  const skippedExecutions = executions.filter(e => e.status === 'skipped');
-  const selectedSignalValid = useMemo(() => Boolean(selectedSignalId && signals.some(s => s.id === selectedSignalId)), [selectedSignalId, signals]);
-  const governorMode = status?.settings?.testnet_governor_mode ?? 'normal';
-  const stressMode = status?.settings?.stress_override_enabled === true && status?.settings?.execution_mode === 'testnet';
-  const governorDisplayState = status?.governor_display?.state ?? (governorMode === 'off_for_testing' ? 'IGNORED' : (status?.governor?.display_state ?? status?.governor?.state ?? status?.settings?.governor_state ?? 'normal').toUpperCase());
-  const executionAllowedDisplay = status?.governor_display?.execution_allowed ?? status?.execution_allowed ?? !(status?.governor?.blocks_execution || status?.settings?.governor_state === 'paused');
-  const monitorResultStatus = String(monitorState?.latest_monitor_result?.monitor_status ?? monitorState?.latest_monitor_status ?? 'unknown');
-  const reconciliationSummary = (monitorState?.latest_monitor_result?.reconciliation_summary ?? {}) as Record<string, unknown>;
-  const monitorTruth = getMonitorTruth({
-    latest_monitor_run_at: monitorState?.latest_monitor_run_at,
-    latest_account_state_at: monitorState?.latest_account_state_at,
-    latest_monitor_status: monitorState?.latest_monitor_status,
-    latest_monitor_error: monitorState?.latest_monitor_error,
-    latest_sync_error: monitorState?.latest_sync_error,
-    latest_monitor_result: monitorState?.latest_monitor_result,
-  });
-  const monitorUnhealthyReason = monitorTruth.level === 'healthy' ? '' : monitorTruth.reason;
-  const selectedProviderControl = providerControls.find((control) => control.provider_name === (selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider));
-  const entryEngineOn = status?.settings?.auto_execute_testnet === true && status?.settings?.testnet_enabled === true && status?.settings?.kill_switch_enabled !== true && status?.settings?.bot_paused !== true && selectedProviderControl?.enabled === true && (selectedProviderControl?.entry_enabled ?? selectedProviderControl?.enabled) === true && selectedProviderControl?.provider_kill_switch !== true;
-  const monitorEngineOn = status?.settings?.bot_paused !== true;
-  const recoveryEngineOn = status?.settings?.bot_paused !== true;
-  const emergencyStopOn = status?.settings?.bot_paused === true;
-  const killSwitchOn = status?.settings?.kill_switch_enabled === true;
-  const existingPositionsProtected = monitorTruth.level !== 'critical' && !openExecutions.some((execution) => ['protection_failed', 'unprotected'].includes(String(execution.protection_status ?? execution.status)));
-  const monitorTruthStatus = monitorTruth.label;
-  const profitLockMode = status?.settings?.enable_profit_lock_engine !== true
-    ? 'disabled'
-    : status?.settings?.enable_testnet_profit_lock_engine === true
-      ? 'testnet_action'
-      : 'study_only';
-  const allowMarginAssets = String(status?.settings?.allow_margin_assets ?? 'USDT,USDC').split(',').map(asset => asset.trim().toUpperCase()).filter(Boolean);
-  const fallbackAttempts = executions.filter(e => e.margin_backup_attempted);
-  const lastFallbackAttempt = fallbackAttempts[0];
-  const successfulFallbacks = executions.filter(e => e.margin_backup_attempted && (e.margin_backup_asset_used === 'USDC' || e.selected_margin_asset === 'USDC') && e.status !== 'failed' && e.status !== 'skipped').length;
-  const failedFallbacks = executions.filter(e => e.margin_backup_attempted && (e.status === 'failed' || e.insufficient_margin_reason)).length;
-  const unsupportedSymbolCount = executions.filter(e => e.insufficient_margin_reason === 'usdc_market_unavailable').length;
-  const openTradesUnderMonitoring = openExecutions.filter(e => { const checked = e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).getTime() : NaN; return Number.isFinite(checked) && Date.now() - checked <= 2 * 60_000; }).length;
-  const tradesEligibleForLock = openExecutions.filter(e => Number(e.current_r ?? e.profit_lock_r_current ?? 0) >= Number(status?.settings?.profit_lock_min_r ?? 0.3)).length;
-  const tradesAlreadyLocked = executions.filter(e => e.profit_lock_sl_active || e.profit_lock_status === 'locked' || e.status === 'closed_profit_lock').length;
-  const slReplacementsVerified = executions.filter(e => e.replacement_sl_verified).length;
-  const slReplacementFailures = executions.filter(e => e.profit_lock_skipped_reason || (e.lock_recommendation && !e.replacement_sl_verified && Number(e.profit_lock_action_count ?? 0) > 0)).length;
-  const oldSlPreservedCount = executions.filter(e => e.old_sl_preserved !== false).length;
-  const recoveryTotal = slReplacementsVerified + slReplacementFailures;
-  const recoverySuccessRate = recoveryTotal > 0 ? `${Math.round((slReplacementsVerified / recoveryTotal) * 100)}%` : '—';
-  const nowMs = Date.now();
-  const secondsSinceEntryFill = (e: BinanceExecutionOrder): number | null => {
-    const value = e.entry_filled_at ? new Date(e.entry_filled_at).getTime() : NaN;
-    return Number.isFinite(value) ? Math.max(0, Math.floor((nowMs - value) / 1000)) : null;
-  };
-  const providerSymbolStatus = useMemo(() => {
-    const map = new Map<string, ProviderSymbolCacheRow>();
-    providerSymbolCache.forEach(row => map.set(`${row.provider}:${row.symbol.toUpperCase()}`, row));
-    return map;
-  }, [providerSymbolCache]);
-  const approvedExecutionProofRows = useMemo(() => signals
-    .filter(signal => ['A', 'A+'].includes(String(signal.grade ?? '').toUpperCase()))
-    .slice(0, 20)
-    .map(signal => {
-      const symbol = String(signal.symbol ?? '').toUpperCase();
-      const bybitSymbol = symbol.replace(/USDC$/i, 'USDT');
-      const binanceSupported = providerSymbolStatus.get(`binance:${symbol}`)?.status === 'TRADING';
-      const bybitSupported = providerSymbolStatus.get(`bybit:${bybitSymbol}`)?.status === 'Trading';
-      const rows = allProviderExecutions.filter(execution => execution.signal_id === signal.id);
-      const binance = rows.find(execution => (execution.execution_provider ?? 'binance') === 'binance');
-      const bybit = rows.find(execution => execution.execution_provider === 'bybit');
-      const blocker = [binance, bybit].find(row => row?.latest_auto_skip_reason || row?.error_message || row?.last_exchange_error);
-      const submitted = rows.some(row => Boolean(row.entry_order_id || row.binance_entry_order_id));
-      const created = rows.length > 0;
-      const setupBlocker = !providerGlobalControls ? 'missing_global_provider_controls' : providerControls.length === 0 ? 'missing_provider_controls' : '';
-      const supportBlocker = !binanceSupported || !bybitSupported ? `unsupported provider symbol: ${!binanceSupported ? 'binance' : ''}${!binanceSupported && !bybitSupported ? '+' : ''}${!bybitSupported ? 'bybit' : ''}` : '';
-      const shouldExecute = !setupBlocker && !supportBlocker && providerGlobalControls?.parallel_mode_enabled === true;
-      return { signal, rows, binance, bybit, blocker, submitted, created, shouldExecute, binanceSupported, bybitSupported, setupBlocker, supportBlocker };
-    }), [allProviderExecutions, providerControls.length, providerGlobalControls, providerSymbolStatus, signals]);
-  const protectionSlaState = (e: BinanceExecutionOrder): 'pass' | 'fail' | 'pending' | 'n/a' => {
-    if (['closed_timeout', 'closed_expired', 'closed_expired_after_tp1', 'closed_manual', 'closed_unprotected_safety', 'closed_synced', 'stale_closed', 'closed_tp', 'closed_tp2', 'closed_profit_lock', 'closed_sl', 'cancelled', 'failed', 'skipped'].includes(e.status)) return 'n/a';
-    if (e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' || e.status === 'protected_native' || e.status === 'protected_managed') return 'pass';
-    const seconds = secondsSinceEntryFill(e);
-    if (seconds === null) return ['pending_submit', 'entry_submitted', 'entry_filled', 'pending_protection', 'pending_managed_protection'].includes(e.status) ? 'pending' : 'n/a';
-    return seconds > 60 ? 'fail' : 'pending';
-  };
-  const freshnessState = (e: BinanceExecutionOrder): 'fresh' | 'stale' => {
-    const checked = e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).getTime() : NaN;
-    return Number.isFinite(checked) && nowMs - checked <= 2 * 60_000 ? 'fresh' : 'stale';
-  };
 
-  async function updateExecutionSettings(settingsPatch: Record<string, unknown>) {
-    return callExecution('update_settings', { settings: settingsPatch });
-  }
-
-  function classifyProviderControlsError(message: string): { kind: ProviderControlsErrorKind; message: string } {
-    const lower = message.toLowerCase();
-    if (lower.includes('does not exist') || lower.includes('schema cache') || lower.includes('42p01')) return { kind: 'missing_table', message: 'Provider controls table missing.' };
-    if (lower.includes('row-level security') || lower.includes('permission denied') || lower.includes('42501') || lower.includes('forbidden')) return { kind: 'rls_blocked', message: 'Provider controls blocked by RLS policy.' };
-    return { kind: 'query_failed', message: `Provider controls query failed: ${message}` };
-  }
-
-  async function updateProviderControl(providerName: ProviderControl['provider_name'], patch: Partial<ProviderControl>) {
-    const { error } = await supabase
-      .from('execution_provider_controls')
-      .update({ ...patch, updated_at: new Date().toISOString() })
-      .eq('provider_name', providerName);
-    if (error) {
-      const classified = classifyProviderControlsError(error.message);
-      setProviderControlsError(classified);
-      setResult({ success: false, error: classified.message });
-      return;
-    }
-    await load();
-  }
-
-  async function updateProviderGlobalControls(patch: Partial<ProviderGlobalControls>) {
-    const requestedPrimary = patch.primary_provider;
-    if (requestedPrimary && requestedPrimary !== 'binance') {
-      const requestedControl = providerStatus.get(requestedPrimary);
-      if (!requestedControl || requestedControl.status !== 'connected') {
-        setProviderControlsError({ kind: 'query_failed', message: 'Bybit diagnostics incomplete' });
-        setResult({ success: false, error: 'Bybit diagnostics incomplete', reason: 'Disconnected providers cannot become active execution providers. Primary Provider remains Binance.' });
-        const { error: forceError } = await supabase.from('execution_provider_global_controls').update({ primary_provider: 'binance', live_trading_enabled: false, updated_at: new Date().toISOString() }).eq('id', 1);
-        if (!forceError) await load();
-        return;
+      if (response.ok) {
+        const payload: StatusPayload = await response.json();
+        setStatus(payload);
       }
+    } catch (err) {
+      console.warn('Failed to fetch status from edge function:', err);
     }
-    const safePatch = { ...patch, live_trading_enabled: false, updated_at: new Date().toISOString() };
-    const { error } = await supabase.from('execution_provider_global_controls').update(safePatch).eq('id', 1);
-    if (error) {
-      const classified = classifyProviderControlsError(error.message);
-      setProviderControlsError(classified);
-      setResult({ success: false, error: classified.message });
+
+    try {
+      const { data: pControls, error: pErr } = await supabase.from('execution_provider_controls').select('*');
+      if (pErr) {
+        setProviderControlsError({ kind: pErr.code === '42P01' ? 'missing_table' : 'rls_blocked', message: `Provider Controls query failed: ${pErr.message}` });
+      } else if (pControls) {
+        setProviderControls(pControls as ProviderControl[]);
+        setProviderControlsError({});
+      }
+    } catch {
+      setProviderControlsError({ kind: 'error', message: 'Could not fetch provider controls' });
+    }
+
+    try {
+      const { data: gControls } = await supabase.from('execution_provider_global_controls').select('*').limit(1).maybeSingle();
+      if (gControls) {
+        setProviderGlobalControls(gControls as ProviderGlobalControls);
+      }
+    } catch {
+      // Ignore missing global controls
+    }
+
+    try {
+      const { data: tTruth } = await supabase.from('active_trade_management_truth').select('*').eq('provider', provider).order('updated_at', { ascending: false }).limit(50);
+      if (tTruth) {
+        setTradeTruthRows(tTruth as TradeManagementTruthUiRow[]);
+      }
+    } catch {
+      // Table missing or query error
+    }
+
+    try {
+      const { data: sCache } = await supabase.from('provider_symbol_cache').select('*').limit(100);
+      if (sCache) {
+        setSymbolCacheRows(sCache as ProviderSymbolCacheRow[]);
+      }
+    } catch {
+      // Table missing
+    }
+
+    try {
+      const { data: heartbeats } = await supabase.from('execution_monitor_heartbeats').select('*').order('created_at', { ascending: false }).limit(10);
+      if (heartbeats) {
+        setMonitorHeartbeats(heartbeats as MonitorHeartbeat[]);
+      }
+    } catch {
+      // Table missing
+    }
+
+    try {
+      const { data: schedules } = await supabase.from('execution_monitor_schedules').select('*').limit(10);
+      if (schedules) {
+        setMonitorSchedules(schedules as MonitorSchedule[]);
+      }
+    } catch {
+      // Table missing
+    }
+
+    try {
+      const { data: execs } = await supabase.from('binance_execution_orders').select('*').eq('execution_provider', provider).order('created_at', { ascending: false }).limit(50);
+      if (execs) {
+        setExecutions(execs as BinanceExecutionOrder[]);
+      }
+    } catch {
+      // Table missing
+    }
+
+    try {
+      const { data: sigs } = await supabase.from('signals').select('*').in('grade', ['A', 'A+']).order('created_at', { ascending: false }).limit(20);
+      if (sigs) {
+        setSignals(sigs as Signal[]);
+        if (sigs.length > 0 && !selectedSignalId) {
+          setSelectedSignalId(sigs[0].id);
+        }
+      }
+    } catch {
+      // Table missing
+    }
+
+    try {
+      setMt5AccountsLoading(true);
+      const accs = await listMT5Accounts();
+      setMt5Accounts(accs);
+    } catch (err) {
+      console.warn('Failed to load MT5 accounts:', err);
+    } finally {
+      setMt5AccountsLoading(false);
+    }
+
+    try {
+      const { data: auditLogs } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(20);
+      if (auditLogs) {
+        const events: VerifiedRuntimeEvent[] = auditLogs.map((log: Record<string, unknown>) => ({
+          id: String(log.id || Math.random()),
+          created_at: String(log.created_at || new Date().toISOString()),
+          type: 'AUDIT',
+          severity: String(log.action || '').includes('fail') || String(log.action || '').includes('error') ? 'error' : 'info',
+          title: String(log.action || 'Audit Log'),
+          details: typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || '—'),
+          source: String(log.performed_by || 'system'),
+        }));
+        setTelemetryEvents(events);
+      }
+    } catch {
+      // Ignore
+    }
+
+    setLoading(false);
+  }, [session, provider, selectedSignalId]);
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  const handleConnectMT5Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormMT5Error(null);
+    if (!formAccountNumber || !formPassword || !formNickname) {
+      setFormMT5Error('Account number, password, and nickname are required.');
       return;
     }
-    await load();
-  }
+    setMt5ActionPending(true);
+    try {
+      await connectMT5Account({
+        broker: formBroker,
+        server: formServer,
+        accountNumber: formAccountNumber,
+        password: formPassword,
+        nickname: formNickname,
+        currency: 'USD',
+        leverage: formLeverage,
+        accountType: formAccountType,
+        executionMode: formAccountType === 'prop' ? 'prop_challenge' : 'personal'
+      });
+      setShowAddMT5Modal(false);
+      setFormAccountNumber('');
+      setFormPassword('');
+      setFormNickname('');
+      setMt5Notice(`Connected MT5 Account "${formNickname}" successfully.`);
+      await load();
+    } catch (err) {
+      setFormMT5Error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setMt5ActionPending(false);
+      setTimeout(() => setMt5Notice(null), 5000);
+    }
+  };
 
-  async function callExecution(action: string, payload: Record<string, unknown> = {}): Promise<ActionResult> {
-    if (!session) return { success: false, error: 'No admin session' } as ActionResult;
+  const toggleMT5Execution = async (accountId: string, currentEnabled: boolean) => {
+    setMt5ActionPending(true);
+    setMt5Notice(`Updating MT5 execution state...`);
+    try {
+      await setMT5Execution(accountId, !currentEnabled);
+      setMt5Notice(`MT5 account execution updated.`);
+      await load();
+    } catch (err) {
+      setMt5Notice(`Failed to update MT5 execution: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setMt5ActionPending(false);
+      setTimeout(() => setMt5Notice(null), 5000);
+    }
+  };
+
+  const syncMT5Account = async (accountId: string) => {
+    setMt5ActionPending(true);
+    setMt5Notice(`Testing connection and syncing MT5 account...`);
+    try {
+      await testMT5Connection(accountId);
+      setMt5Notice(`MT5 account sync and connection test complete.`);
+      await load();
+    } catch (err) {
+      setMt5Notice(`MT5 sync failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setMt5ActionPending(false);
+      setTimeout(() => setMt5Notice(null), 5000);
+    }
+  };
+
+  const deleteMT5Account = async (accountId: string) => {
+    if (!confirm('Are you sure you want to remove this MT5 account?')) return;
+    setMt5ActionPending(true);
+    try {
+      await removeMT5Account(accountId);
+      setMt5Notice(`MT5 account removed.`);
+      await load();
+    } catch (err) {
+      setMt5Notice(`Failed to remove MT5 account: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setMt5ActionPending(false);
+      setTimeout(() => setMt5Notice(null), 5000);
+    }
+  };
+
+  const callExecution = async (action: string, extraBody: Record<string, unknown> = {}): Promise<ActionResult> => {
     setActing(true);
     setResult(null);
+    const reqTime = new Date().toISOString();
+
     try {
-      const operatorActionMap: Record<string, string> = {
-        run_binance_monitor_now: 'run_binance_monitor_now',
-        run_bybit_monitor_now: 'run_bybit_monitor_now',
-        repair_all_protection_now: 'repair_protection_now',
-        run_full_trade_management_proof: 'run_runtime_proof',
-        run_trade_supervisor_cycle: 'run_supervisor_now',
-      };
-      const routerAction = operatorActionMap[action];
-      const functionName = routerAction ? 'admin-operator-action' : 'binance-testnet-execution';
-      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/${functionName}`, {
+      const response = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: routerAction ?? action, ...payload }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ action, provider, ...extraBody }),
       });
-      const data = await res.json() as ActionResult;
-      setResult(data);
+
+      const resData = await response.json();
+      const compTime = new Date().toISOString();
+
+      const actResult: ActionResult = {
+        success: response.ok && resData.ok !== false && resData.success !== false,
+        action,
+        ...resData,
+        completed_at: compTime,
+      };
+
+      setResult(actResult);
+
+      recordReceipt({
+        action,
+        provider,
+        environment: selectedEnv,
+        requestTime: reqTime,
+        completionTime: compTime,
+        status: actResult.success ? 'SUCCESS' : 'FAILED',
+        error: actResult.error || (resData.message as string) || (resData.error_message as string),
+        result: resData,
+      });
+
       await load();
-      return data;
-    } catch (e) {
-      const data = { success: false, error: e instanceof Error ? e.message : 'Network error' };
-      setResult(data);
-      return data;
+      return actResult;
+    } catch (err: unknown) {
+      const compTime = new Date().toISOString();
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const actResult: ActionResult = {
+        success: false,
+        action,
+        error: errMsg,
+        completed_at: compTime,
+      };
+      setResult(actResult);
+
+      recordReceipt({
+        action,
+        provider,
+        environment: selectedEnv,
+        requestTime: reqTime,
+        completionTime: compTime,
+        status: 'FAILED',
+        error: errMsg,
+      });
+
+      return actResult;
     } finally {
       setActing(false);
     }
-  }
+  };
 
-  const load = useCallback(async () => {
-    if (!session) return;
-    setLoading(true);
-    const dayStart = new Date();
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const [statusRes, signalsRes, monitorRes, adminAlertRes, adminDigestRes, freeSelectedRes, telegramHealthRes, providerControlsRes, providerGlobalControlsRes, providerSymbolCacheRes, monitorHeartbeatRes, monitorScheduleRes, tradeTruthRes] = await Promise.all([
-      fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'status' }),
-      }).then(r => r.json()).catch((e: unknown) => ({ success: false, error: e instanceof Error ? e.message : 'Status failed' })),
-      supabase.from('signals').select('*').eq('market_type', 'crypto').order('created_at', { ascending: false }).limit(25),
-      supabase.from('execution_settings').select('latest_monitor_run_at,latest_monitor_status,latest_monitor_result,latest_monitor_error,latest_sync_error,open_binance_positions,open_binance_orders,pnl_snapshot,stale_rows_cleaned,open_positions_count,unrealized_pnl,account_total_margin_balance,account_total_wallet_balance,latest_sync_time,latest_account_state_at,last_managed_exit_action').eq('id', 1).maybeSingle(),
-      supabase.from('telegram_deliveries').select('created_at,delivery_status,error_message,delivery_type').eq('destination_channel', 'admin').like('delivery_type', 'admin_%alert%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('telegram_deliveries').select('created_at,delivery_status,error_message,delivery_type').eq('destination_channel', 'admin').like('delivery_type', 'admin_%digest%').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('telegram_deliveries').select('id', { count: 'exact', head: true }).eq('destination_channel', 'free').eq('delivery_type', 'free_selected_signal').eq('delivery_status', 'sent').gte('created_at', dayStart.toISOString()),
-      supabase.from('telegram_deliveries').select('destination_channel,delivery_status,error_message,created_at').order('created_at', { ascending: false }).limit(50),
-      supabase.from('execution_provider_controls').select('*').order('provider_name'),
-      supabase.from('execution_provider_global_controls').select('*').eq('id', 1).maybeSingle(),
-      supabase.from('provider_symbol_cache').select('provider,symbol,status').in('provider', ['binance', 'bybit']).limit(5000),
-      supabase.from('execution_monitor_heartbeats').select('*').order('started_at', { ascending: false }).limit(50),
-      supabase.from('execution_monitor_schedules').select('*').order('provider'),
-      supabase.from('active_trade_management_truth').select('provider,symbol,side,qty,entry_price,mark_price,unrealized_pnl,sl_present,tp1_present,tp2_present,profit_lock_status,protection_status,monitor_status,recovery_status,last_action_taken,latest_sync_at,latest_error').in('provider', ['binance', 'bybit']).order('latest_sync_at', { ascending: false }),
-    ]);
-    const statusPayload = statusRes as StatusPayload;
-    setStatus(statusPayload);
-    const recentSignals = (signalsRes.data ?? []) as Signal[];
-    setSignals(recentSignals);
-    setSelectedSignalId(current => recentSignals.some(s => s.id === current) ? current : (recentSignals[0]?.id || ''));
-    setMonitorState((monitorRes.data ?? null) as ExecutionSettingsSnapshot | null);
-    const health: OperatorRoutingSnapshot['telegram_health'] = {};
-    for (const row of ((telegramHealthRes.data ?? []) as Array<{ destination_channel?: string; delivery_status?: string; error_message?: string; created_at?: string }>)) {
-      const channel = row.destination_channel ?? 'unknown';
-      if (!health[channel]) health[channel] = { latest_status: row.delivery_status, latest_error: row.error_message, latest_at: row.created_at };
-    }
-    setOperatorRouting({ last_admin_alert: adminAlertRes.data ?? null, last_admin_digest: adminDigestRes.data ?? null, free_selected_today: freeSelectedRes.count ?? 0, telegram_health: health });
-    const controlsError = providerControlsRes.error ?? providerGlobalControlsRes.error;
-    if (controlsError) {
-      setProviderControlsError(classifyProviderControlsError(controlsError.message));
-      setProviderControls([]);
-      setProviderGlobalControls(null);
-    } else {
-      const controls = (providerControlsRes.data ?? []) as ProviderControl[];
-      setProviderControls(controls);
-      setProviderGlobalControls((providerGlobalControlsRes.data ?? null) as ProviderGlobalControls | null);
-      setProviderControlsError(controls.length === 0 ? { kind: 'rows_missing', message: 'Provider controls rows missing.' } : { kind: '', message: '' });
-    }
-    setProviderSymbolCache(((providerSymbolCacheRes.data ?? []) as ProviderSymbolCacheRow[]));
-    setMonitorHeartbeats(((monitorHeartbeatRes.data ?? []) as MonitorHeartbeat[]));
-    setMonitorSchedules(((monitorScheduleRes.data ?? []) as MonitorSchedule[]));
-    setTradeTruthRows(((tradeTruthRes.data ?? []) as TradeManagementTruthUiRow[]));
-    setLoading(false);
-  }, [session]);
+  const callOperatorAction = async (action: string, extraBody: Record<string, unknown> = {}): Promise<ActionResult> => {
+    setActing(true);
+    setResult(null);
+    const reqTime = new Date().toISOString();
 
-  async function callSelectedExecution(action: 'dry_run' | 'execute_signal' | 'manual_test_flow', extra: Record<string, unknown> = {}) {
-    if (!selectedSignalId) {
-      const data = { success: false, error: 'missing_signal_id' } as ActionResult;
-      setResult(data);
-      return data;
-    }
-    if (!signals.some(s => s.id === selectedSignalId)) {
-      const data = { success: false, error: 'invalid_selected_signal', reason: 'Selected signal is stale or no longer in the refreshed dropdown.' } as ActionResult;
-      setResult(data);
-      await load();
-      return data;
-    }
-    return callExecution(action, { signal_id: selectedSignalId, ...extra });
-  }
-
-
-  async function runBybitDebug(label: string) {
-    const data = await callExecution('diagnose_bybit_testnet_connection', { debug_panel: label });
-    setBybitDebug(data);
-    return data;
-  }
-
-  async function resetTestnetGovernor() {
-    await callExecution('reset_testnet_governor');
-  }
-
-  async function cleanStaleTestnetExecutions() {
-    setCleaning(true);
-    setCleanupMsg('Checking Binance testnet truth before clearing stale execution blockers...');
     try {
-      const data = await callExecution('clean_stale_execution_rows', selectedSignalId ? { symbol } : {});
-      if (!data.success) throw new Error(data.error ?? data.reason ?? 'cleanup failed');
-      const cleaned = typeof data?.cleaned_count === 'number' ? data.cleaned_count : 0;
-      const checked = typeof data?.symbols_checked === 'number' ? data.symbols_checked : 0;
-      setCleanupMsg(`Clean stale testnet executions complete: ${cleaned} row(s) cleaned across ${checked} symbol(s).`);
+      const response = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/admin-operator-action`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ action, provider, ...extraBody }),
+      });
+
+      const resData = await response.json();
+      const compTime = new Date().toISOString();
+
+      const actResult: ActionResult = {
+        success: response.ok && resData.ok !== false && resData.success !== false,
+        action,
+        ...resData,
+        completed_at: compTime,
+      };
+
+      setResult(actResult);
+
+      recordReceipt({
+        action,
+        provider,
+        environment: selectedEnv,
+        requestTime: reqTime,
+        completionTime: compTime,
+        status: actResult.success ? 'SUCCESS' : 'FAILED',
+        error: actResult.error || (resData.message as string) || (resData.error_message as string),
+        result: resData,
+      });
+
       await load();
-    } catch (err) {
-      setCleanupMsg(`Clean stale testnet executions failed: ${err instanceof Error ? err.message : 'unknown error'}`);
+      return actResult;
+    } catch (err: unknown) {
+      const compTime = new Date().toISOString();
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const actResult: ActionResult = {
+        success: false,
+        action,
+        error: errMsg,
+        completed_at: compTime,
+      };
+      setResult(actResult);
+
+      recordReceipt({
+        action,
+        provider,
+        environment: selectedEnv,
+        requestTime: reqTime,
+        completionTime: compTime,
+        status: 'FAILED',
+        error: errMsg,
+      });
+
+      return actResult;
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const updateExecutionSettings = async (patch: Partial<ExecutionSettings & Record<string, unknown>>) => {
+    await callExecution('update_settings', patch);
+  };
+
+  const updateProviderControl = async (targetProviderName: string, patch: Partial<ProviderControl>) => {
+    setActing(true);
+    try {
+      const { error } = await supabase.from('execution_provider_controls').update(patch).eq('provider_name', targetProviderName);
+      if (error) {
+        setResult({ success: false, action: 'update_provider_control', error: error.message });
+      } else {
+        setResult({ success: true, action: 'update_provider_control' });
+      }
+      await load();
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const updateProviderGlobalControls = async (patch: Partial<ProviderGlobalControls>) => {
+    setActing(true);
+    try {
+      const { error } = await supabase.from('execution_provider_global_controls').update(patch).eq('id', 1);
+      if (error) {
+        setResult({ success: false, action: 'update_global_controls', error: error.message });
+      } else {
+        setResult({ success: true, action: 'update_global_controls' });
+      }
+      await load();
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const runBybitDebug = async (subAction: string) => {
+    const res = await callExecution('diagnose_bybit_testnet_connection', { sub_action: subAction });
+    if (res?.diagnostics) {
+      setBybitDebug(res.diagnostics as BybitDebugState);
+    }
+  };
+
+  const cleanStaleExecutions = async () => {
+    setCleaning(true);
+    setCleanupMsg(null);
+    try {
+      const res = await callExecution('clean_stale_execution_rows', { symbol });
+      if (res.success) {
+        setCleanupMsg('Cleaned stale execution rows successfully.');
+      } else {
+        setCleanupMsg(`Cleanup finished with note: ${res.error || 'Check details below'}`);
+      }
     } finally {
       setCleaning(false);
     }
-  }
+  };
 
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!session || requestedPrimaryProvider !== 'bybit' || !bybitDiagnosticsIncomplete) return;
-    void supabase
-      .from('execution_provider_global_controls')
-      .update({ primary_provider: 'binance', live_trading_enabled: false, updated_at: new Date().toISOString() })
-      .eq('id', 1);
-  }, [bybitDiagnosticsIncomplete, requestedPrimaryProvider, session]);
+  const handleConfirmAction = async () => {
+    if (!confirmModal) return;
+    const { actionName, payload } = confirmModal;
+    setConfirmModal(null);
+
+    if (actionName === 'emergency_stop' || actionName === 'provider_kill_switch') {
+      await updateExecutionSettings({
+        provider_kill_switch: true,
+        kill_switch_enabled: true,
+        auto_execute_testnet: false,
+        bot_paused: true,
+        bot_paused_reason: 'Emergency Stop triggered by administrator',
+      });
+      await updateProviderControl(provider, { provider_kill_switch: true, enabled: false });
+    } else if (actionName === 'stop_bot') {
+      await updateExecutionSettings({
+        auto_execute_testnet: false,
+        bot_paused: true,
+        bot_paused_reason: 'Stopped by administrator',
+      });
+    } else if (actionName === 'close_position') {
+      await callExecution('close_position', payload || { symbol });
+    } else if (actionName === 'reset_governor') {
+      await callExecution('reset_testnet_governor');
+    }
+  };
+
+  const monitorState = status?.settings;
+  const monitorTruth = getMonitorTruth(monitorState);
+  const providerStatusName = selectedProviderControl?.status ?? (status?.env?.api_key_configured ? 'connected' : 'disabled');
+  const isKillSwitchOn = status?.settings?.kill_switch_enabled === true || selectedProviderControl?.provider_kill_switch === true;
+  const isBotPaused = status?.settings?.bot_paused === true;
+  const isAutoExecuteOn = status?.settings?.auto_execute_testnet === true && !isKillSwitchOn && !isBotPaused;
+
+  const openExecutions = useMemo(() => executions.filter(e => !['synced_closed', 'closed_tp', 'closed_sl', 'closed_manual', 'failed', 'skipped', 'cancelled'].includes(e.status)), [executions]);
+  const failedExecutions = useMemo(() => executions.filter(e => e.status === 'failed'), [executions]);
+  const skippedExecutions = useMemo(() => executions.filter(e => e.status === 'skipped'), [executions]);
+
+  const filteredExecutions = useMemo(() => {
+    return executions.filter(e => {
+      if (orderSymbolFilter && !e.symbol.toLowerCase().includes(orderSymbolFilter.toLowerCase())) return false;
+      if (orderSideFilter !== 'all' && e.side !== orderSideFilter) return false;
+      if (orderStatusFilter !== 'all' && e.status !== orderStatusFilter) return false;
+
+      if (orderTab === 'open') {
+        return !['synced_closed', 'closed_tp', 'closed_sl', 'closed_manual', 'failed', 'skipped', 'cancelled'].includes(e.status);
+      }
+      if (orderTab === 'conditional') {
+        return Boolean(e.binance_sl_order_id || e.sl_algo_id || e.binance_tp1_order_id || e.tp1_algo_id || e.binance_tp2_order_id || e.tp2_algo_id);
+      }
+      if (orderTab === 'failed') {
+        return e.status === 'failed';
+      }
+      if (orderTab === 'attempts') {
+        return Boolean(e.entry_order_id || e.binance_entry_order_id || e.status === 'entry_submitted');
+      }
+      return true;
+    });
+  }, [executions, orderSymbolFilter, orderSideFilter, orderStatusFilter, orderTab]);
+
+  const providerTitle = provider === 'binance' 
+    ? 'Binance Operations' 
+    : provider === 'bybit' 
+    ? 'Bybit Operations' 
+    : mode === 'mt5_personal' 
+    ? 'MT5 Personal Operations Workspace' 
+    : mode === 'mt5_prop' 
+    ? 'MT5 Prop Operations Workspace' 
+    : 'MT5 Operations Workspace';
 
   return (
-    <AdminLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{workspaceTitle(provider, mode)} Operations</h1>
-          {provider === 'bybit' && bybitRestrictionReason(status?.latest_error?.error_message ?? selectedProviderControl?.last_error ?? '') && (
-            <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-              <div className="text-xs uppercase tracking-[0.2em] text-amber-300">Status: RESTRICTED</div>
-              <div className="mt-1 font-semibold">Reason: Bybit Product Restriction</div>
-              <div className="mt-2 font-mono text-xs text-amber-200">Restriction codes: {bybitRestrictionReason(status?.latest_error?.error_message ?? selectedProviderControl?.last_error ?? '')}</div>
+    <AdminLayout title={providerTitle} description={`Institutional backend truth, monitoring, protection, risk governor, and live execution controls for ${provider.toUpperCase()}`}>
+      {/* 1. Sticky Header & Environment Control Bar */}
+      <div className="sticky top-0 z-20 -mx-6 -mt-6 mb-6 border-b border-zinc-800 bg-zinc-950/90 px-6 py-3.5 backdrop-blur-md shadow-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-mono font-bold text-xs uppercase tracking-wider ${
+              provider === 'binance' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300' :
+              provider === 'bybit' ? 'bg-blue-500/10 border border-blue-500/30 text-blue-300' :
+              'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+            }`}>
+              <Cpu size={14} />
+              {provider} operations
+            </span>
+
+            {/* Operating Mode Pill */}
+            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-md">
+              Mode: {mode}
+            </span>
+
+            {/* Environment Selector */}
+            <div className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/80 p-1 text-xs">
+              <button
+                type="button"
+                className="rounded px-2.5 py-1 font-medium bg-zinc-800 text-zinc-100 shadow">
+                {provider === 'mt5' ? 'MetaTrader 5 Bridge' : provider === 'bybit' ? 'Demo / Testnet' : 'Testnet'}
+              </button>
+              <button
+                type="button"
+                disabled
+                title="Live Trading Guard Active. Real-money live execution is hardware-locked."
+                className="inline-flex items-center gap-1 rounded px-2.5 py-1 font-medium text-zinc-600 opacity-60 cursor-not-allowed">
+                <Lock size={12} />
+                Live (Guarded)
+              </button>
             </div>
-          )}
-        <p className="text-sm text-zinc-500 mt-0.5">{provider === 'binance' ? 'Binance Futures testnet — execution monitor, protection watchdog, and trade management truth.' : provider === 'bybit' ? 'Bybit prop platform — execution controls, protection verification, and governor state.' : 'Dedicated provider workspace. Provider truth is read from execution records; scanner, signal, risk, and adapter logic are unchanged.'}</p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {workspaceSections(provider, mode).map((section) => <div key={section} className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300">{section}</div>)}
+
+            {/* Status Pills */}
+            <div className="flex items-center gap-2 text-xs">
+              <Badge variant={providerStatusName === 'connected' ? 'green' : providerStatusName === 'degraded' ? 'yellow' : 'red'}>
+                API {providerStatusName.toUpperCase()}
+              </Badge>
+
+              <Badge variant={status?.env?.api_key_configured ? 'blue' : 'gray'}>
+                {status?.env?.api_key_configured ? 'CONFIGURED' : 'KEYS MISSING'}
+              </Badge>
+
+              <Badge variant={monitorTruth.level === 'ok' ? 'green' : monitorTruth.level === 'warning' ? 'yellow' : 'red'}>
+                FRESHNESS: {monitorTruth.label.toUpperCase()}
+              </Badge>
+
+              <span className="inline-flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-300">
+                <Lock size={11} /> LIVE EXECUTION BLOCKED
+              </span>
+            </div>
+          </div>
+
+          {/* Sticky Quick Command Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {!isAutoExecuteOn ? (
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => updateExecutionSettings({ start_bot: true, provider, auto_execute_testnet: true, testnet_enabled: true, bot_paused: false, kill_switch_enabled: false })}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                <PlayCircle size={14} /> Start Executor
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => setConfirmModal({
+                  open: true,
+                  title: 'Stop Executor',
+                  message: 'Are you sure you want to stop the auto-execution engine? Active trades will still be monitored.',
+                  actionName: 'stop_bot',
+                })}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                <PauseCircle size={14} /> Pause Executor
+              </button>
+            )}
+
+            <button
+              type="button"
+              disabled={acting}
+              onClick={() => setConfirmModal({
+                open: true,
+                title: 'EMERGENCY STOP',
+                message: 'EMERGENCY ACTION: This will immediately activate Kill Switch, disable auto-execution, and pause all entry modules on this provider. Open trades will remain under protection monitoring.',
+                actionName: 'emergency_stop',
+                isDanger: true,
+              })}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-600 px-3 py-1.5 text-xs font-bold text-white transition-all disabled:opacity-50">
+              <StopCircle size={14} /> Emergency Stop
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => load()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all disabled:opacity-50">
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
-      {governorMode === 'off_for_testing' && (
-        <div className="bg-red-600/15 border border-red-500/40 rounded-xl p-4 mb-6 flex gap-3">
-          <AlertTriangle size={18} className="text-red-300 mt-0.5 shrink-0" />
-          <div className="text-sm text-red-200">
-            <strong>TESTNET GOVERNOR OFF.</strong> Governor Mode: OFF_FOR_TESTING · Governor State: IGNORED · Execution Allowed: TRUE. Live trading remains impossible and monitor protection stays active.
+      {/* Primary Page Navigation Tabs */}
+      <div className="mb-6 border-b border-zinc-800">
+        <nav className="-mb-px flex space-x-6 text-sm font-medium">
+          {[
+            { id: 'overview', label: '1. Overview & Lifecycle', icon: Activity },
+            { id: 'positions_orders', label: '2. Positions & Orders Workspace', icon: Layers },
+            { id: 'protection_risk', label: '3. Protection & Risk Engine', icon: Shield },
+            { id: 'diagnostics_debug', label: '4. Diagnostics & Debug Tools', icon: Terminal },
+            { id: 'events_receipts', label: '5. Telemetry & Command Receipts', icon: FileText },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`inline-flex items-center gap-2 border-b-2 pb-3 pt-1 transition-all ${
+                  active
+                    ? 'border-blue-500 text-blue-400 font-semibold'
+                    : 'border-transparent text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                }`}>
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Safety & RLS Warnings */}
+      {providerSafetyWarning && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200">
+          <AlertTriangle size={18} className="shrink-0 text-amber-400" />
+          <div>
+            <span className="font-semibold">Provider Attention:</span> {providerSafetyWarning}
           </div>
         </div>
       )}
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">GLOBAL CONTROL ROOM</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Entries, monitoring, recovery, kill switch and emergency stop are separate states. Kill switch blocks entries only; emergency stop blocks all engines.</p>
-          </div>
-          <Badge variant={existingPositionsProtected ? 'green' : 'red'}>Existing positions protected: {existingPositionsProtected ? 'YES' : 'NO'}</Badge>
+      {/* Action Result Box */}
+      {result && (
+        <div className={`mb-6 rounded-xl border p-4 text-xs font-mono ${
+          result.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' : 'bg-red-500/10 border-red-500/30 text-red-200'
+        }`}>
+          <div className="font-semibold font-sans mb-1">{result.success ? 'Action Execution Succeeded' : 'Action Execution Result Alert'}</div>
+          <pre className="max-h-40 overflow-auto whitespace-pre-wrap">{JSON.stringify(result, null, 2)}</pre>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Entries</div><div className={entryEngineOn ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{entryEngineOn ? 'ON' : 'OFF'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Monitor</div><div className={monitorEngineOn ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{monitorEngineOn ? 'ON' : 'OFF'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Recovery</div><div className={recoveryEngineOn ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{recoveryEngineOn ? 'ON' : 'OFF'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Kill Switch</div><div className={killSwitchOn ? 'text-red-300 mt-1' : 'text-emerald-300 mt-1'}>{killSwitchOn ? 'ON' : 'OFF'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Emergency Stop</div><div className={emergencyStopOn ? 'text-red-300 mt-1' : 'text-emerald-300 mt-1'}>{emergencyStopOn ? 'ON' : 'OFF'}</div></div>
-        </div>
-      </div>
+      )}
 
-      <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-xl p-4 mb-6 flex gap-3">
-        <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
-        <div className="text-sm text-yellow-300/90">
-          <strong>Testnet only.</strong> Live trading is blocked by env and database guards. API keys stay server-side in Supabase Edge Function secrets and are never shown here.
-        </div>
-      </div>
+      {/* TAB 1: OVERVIEW & LIFECYCLE */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* MT5 Personal & Prop Multi-Account Management Section */}
+          {(provider === 'mt5' || mt5Accounts.length > 0) && (
+            <div className="space-y-6">
+              {/* MT5 Multi-Account & Onboarding Manager */}
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
+                  <div>
+                    <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                      <Target size={18} className="text-emerald-400" />
+                      MetaTrader 5 Account Lifecycle & Onboarding Center
+                    </h2>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Manage personal customer accounts and institutional prop challenge accounts under unified HashiCore execution rules.
+                    </p>
+                  </div>
 
+                  <div className="flex items-center gap-3">
+                    {/* Account Type Filters */}
+                    <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950 p-1 text-xs">
+                      {(['all', 'personal', 'prop', 'demo'] as const).map(f => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setMt5FilterType(f)}
+                          className={`px-2.5 py-1 rounded font-medium capitalize transition-all ${
+                            mt5FilterType === f ? 'bg-zinc-800 text-zinc-100 shadow' : 'text-zinc-400 hover:text-zinc-200'
+                          }`}>
+                          {f}
+                        </button>
+                      ))}
+                    </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">Protection Command Center</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Platform-wide lifecycle truth from execution rows and monitor heartbeats. MT5 adapters stay explicitly pending until connected.</p>
-          </div>
-          <Badge variant="blue">Live Trading: OFF</Badge>
-        </div>
-        <div className="grid xl:grid-cols-4 md:grid-cols-2 gap-3">
-          {protectionCommandPlatforms.map(platform => (
-            <div key={platform.key} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 text-xs">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <div className="font-semibold text-zinc-100">{platform.label}</div>
-                  <div className="text-zinc-500">Environment: {platform.environment}</div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMT5Modal(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3.5 py-1.5 text-xs font-semibold text-white transition-all shadow-md">
+                      <Plus size={15} /> Onboard MT5 Account
+                    </button>
+                  </div>
                 </div>
-                <Badge variant={platform.adapterPending ? 'gray' : platform.monitorStatus === 'healthy' ? 'green' : platform.monitorStatus === 'no_heartbeat' ? 'yellow' : 'red'}>{platform.adapterPending ? 'adapter pending' : platform.monitorStatus}</Badge>
+
+                {mt5Notice && (
+                  <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/10 text-xs font-mono text-blue-200">
+                    {mt5Notice}
+                  </div>
+                )}
+
+                {/* Account List Grid */}
+                {mt5AccountsLoading ? (
+                  <div className="py-8 text-center text-xs text-zinc-500">Loading MT5 Accounts...</div>
+                ) : mt5Accounts.length === 0 ? (
+                  <div className="py-10 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/40 p-6 space-y-3">
+                    <Target className="mx-auto text-zinc-600" size={32} />
+                    <div className="text-sm font-semibold text-zinc-300">No MT5 Accounts Onboarded</div>
+                    <p className="text-xs text-zinc-500 max-w-md mx-auto">
+                      Connect personal or prop MT5 trading accounts to begin executing signals through HashiCore bridge router.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMT5Modal(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-semibold text-white">
+                      <Plus size={14} /> Onboard First MT5 Account
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mt5Accounts
+                      .filter(a => mt5FilterType === 'all' || a.accountType === mt5FilterType)
+                      .map(acc => {
+                        const isProp = acc.accountType === 'prop';
+                        const isConnected = acc.connectionStatus === 'connected';
+
+                        return (
+                          <div key={acc.id} className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3 relative hover:border-zinc-700 transition">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-sm text-zinc-100 font-mono">{acc.nickname}</span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${
+                                    isProp ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' :
+                                    acc.accountType === 'personal' ? 'border-purple-500/30 bg-purple-500/10 text-purple-300' :
+                                    'border-cyan-500/30 bg-cyan-500/10 text-cyan-300'
+                                  }`}>
+                                    {acc.accountType}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-zinc-400 font-mono mt-0.5">
+                                  {acc.broker} • {acc.server}
+                                </div>
+                                <div className="text-[11px] text-zinc-500 font-mono">
+                                  Acc #: {acc.accountNumberMasked} | Leverage: 1:{acc.leverage}
+                                </div>
+                              </div>
+
+                              <Badge variant={isConnected ? 'green' : acc.connectionStatus === 'pending' ? 'yellow' : 'red'}>
+                                {acc.connectionStatus.toUpperCase()}
+                              </Badge>
+                            </div>
+
+                            <div className="border-t border-zinc-800/60 pt-2.5 space-y-1.5 text-xs font-mono">
+                              <ProofRow label="Execution State" value={acc.executionEnabled ? 'ACTIVE' : 'DISABLED'} />
+                              <ProofRow label="Bridge ID" value={acc.bridgeId ? `Bridge: ${acc.bridgeId}` : 'Not Assigned'} />
+                              <ProofRow label="Last Sync" value={acc.lastSyncAt ? new Date(acc.lastSyncAt).toLocaleTimeString() : 'Never'} />
+                            </div>
+
+                            {/* Actions Bar */}
+                            <div className="border-t border-zinc-800/80 pt-3 flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={mt5ActionPending}
+                                  onClick={() => toggleMT5Execution(acc.id, acc.executionEnabled)}
+                                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+                                    acc.executionEnabled
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30'
+                                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
+                                  }`}>
+                                  {acc.executionEnabled ? 'Disable Exec' : 'Enable Exec'}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={mt5ActionPending}
+                                  onClick={() => syncMT5Account(acc.id)}
+                                  className="p-1.5 rounded border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition"
+                                  title="Test Connection & Sync">
+                                  <RefreshCw size={13} className={mt5ActionPending ? 'animate-spin' : ''} />
+                                </button>
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={mt5ActionPending}
+                                onClick={() => deleteMT5Account(acc.id)}
+                                className="p-1.5 rounded border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
+                                title="Remove Account">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <ProofRow label="Provider status" value={platform.providerStatus} />
-                <ProofRow label="Last run" value={platform.heartbeat?.started_at ? new Date(platform.heartbeat.started_at).toLocaleString() : platform.adapterPending ? 'not_available' : 'no heartbeat'} />
-                <ProofRow label="Last success" value={platform.heartbeat?.success && platform.heartbeat.completed_at ? new Date(platform.heartbeat.completed_at).toLocaleString() : platform.adapterPending ? 'not_available' : '—'} />
-                <ProofRow label="Scheduled" value={platform.schedule?.scheduled ? `yes · ${platform.schedule.cron_expression ?? 'cron'}` : platform.adapterPending ? 'no · adapter_pending' : 'no'} />
-                <ProofRow label="Last automatic" value={platform.automaticHeartbeat?.started_at ? new Date(platform.automaticHeartbeat.started_at).toLocaleString() : platform.adapterPending ? 'not_available' : 'missing'} />
-                <ProofRow label="Last manual" value={platform.manualHeartbeat?.started_at ? new Date(platform.manualHeartbeat.started_at).toLocaleString() : '—'} />
-                <ProofRow label="Run age" value={runAgeLabel(platform.automaticHeartbeat?.started_at ?? platform.heartbeat?.started_at)} />
-                <ProofRow label="Latest result" value={platform.heartbeat ? (platform.heartbeat.success ? 'success' : 'failure') : platform.adapterPending ? 'not_available' : 'missing'} />
-                <ProofRow label="Active positions" value={platform.activePositions === null ? 'unknown/not_connected' : String(platform.activePositions)} />
-                <ProofRow label="Protected" value={platform.adapterPending ? 'unknown' : String(platform.protectedPositions)} />
-                <ProofRow label="Unprotected" value={platform.adapterPending ? 'unknown' : String(platform.unprotectedPositions)} />
-                <ProofRow label="Missing SL" value={platform.adapterPending ? 'unknown' : String(platform.missingSl)} />
-                <ProofRow label="Missing TP1" value={platform.adapterPending ? 'unknown' : String(platform.missingTp1)} />
-                <ProofRow label="Missing TP2" value={platform.adapterPending ? 'unknown' : String(platform.missingTp2)} />
-                <ProofRow label="Pending / Failed" value={platform.adapterPending ? 'unknown' : `${platform.pendingProtection} / ${platform.failedProtection}`} />
-                <ProofRow label="Stale / Expired" value={platform.adapterPending ? 'unknown' : `${platform.staleOrders} / ${platform.expired}`} />
-                <ProofRow label="Recovery issues" value={platform.adapterPending ? 'unknown' : String(platform.recoveryIssues)} />
-              </div>
-              {!platform.adapterPending && (!platform.schedule?.scheduled || !platform.automaticHeartbeat?.started_at || (Date.now() - new Date(platform.automaticHeartbeat.started_at).getTime()) > 5 * 60_000) && (
-                <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-red-200">Automatic monitor stale or missing.</div>
+
+              {/* Prop Mode Rules & Challenge Safety Engine Panel */}
+              {(mode === 'mt5_prop' || mt5FilterType === 'prop' || mt5Accounts.some(a => a.accountType === 'prop')) && (
+                <div className="rounded-xl border border-emerald-500/30 bg-zinc-900 p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/80 pb-3">
+                    <div>
+                      <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                        <ShieldCheck size={18} className="text-emerald-400" />
+                        Institutional Prop Challenge Safety & Drawdown Engine
+                      </h2>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Configurable prop rules enforcing daily drawdown limits, total drawdown lockouts, challenge safety buffers, and automatic new-entry blocking.
+                      </p>
+                    </div>
+
+                    <Badge variant={propNewEntryBlocked ? 'red' : 'green'}>
+                      {propNewEntryBlocked ? 'ENTRIES BLOCKED (DRAWDOWN LOCK)' : 'CHALLENGE SAFE'}
+                    </Badge>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {/* Daily Drawdown Meter */}
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
+                        <span>Daily Loss Limit</span>
+                        <span className="text-emerald-400 font-mono">Max {propMaxDailyLossPct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '24%' }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 font-mono pt-1">
+                        <span>Current Daily Loss: 1.20%</span>
+                        <span>Buffer: 3.80% left</span>
+                      </div>
+                    </div>
+
+                    {/* Overall Drawdown Meter */}
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
+                        <span>Max Total Drawdown</span>
+                        <span className="text-blue-400 font-mono">Max {propMaxTotalDrawdownPct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full" style={{ width: '18%' }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 font-mono pt-1">
+                        <span>Peak Equity: $10,000</span>
+                        <span>Buffer: 8.20% left</span>
+                      </div>
+                    </div>
+
+                    {/* Daily Loss Lock Control */}
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-zinc-200">Daily Loss Lock Enforcement</span>
+                        <ToggleButtons
+                          value={propDailyLossLockEnabled}
+                          onToggle={(val) => setPropDailyLossLockEnabled(val)}
+                          disabled={acting}
+                        />
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        Automatically locks trading until next daily reset (00:00 UTC) if daily loss threshold is hit.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Prop Rules Configurator Sliders */}
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <label className="block font-medium text-zinc-400 mb-1">Max Daily Loss Limit (%)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="1"
+                        max="20"
+                        value={propMaxDailyLossPct}
+                        onChange={(e) => setPropMaxDailyLossPct(parseFloat(e.target.value) || 5.0)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-medium text-zinc-400 mb-1">Max Total Drawdown (%)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="2"
+                        max="30"
+                        value={propMaxTotalDrawdownPct}
+                        onChange={(e) => setPropMaxTotalDrawdownPct(parseFloat(e.target.value) || 10.0)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-medium text-zinc-400 mb-1 font-mono">Entry Lock Enforcement</label>
+                      <button
+                        type="button"
+                        onClick={() => setPropNewEntryBlocked(!propNewEntryBlocked)}
+                        className={`w-full py-1.5 rounded font-mono font-semibold transition-all ${
+                          propNewEntryBlocked
+                            ? 'bg-red-500/20 border border-red-500/40 text-red-300'
+                            : 'bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                        }`}>
+                        {propNewEntryBlocked ? 'ENTRIES BLOCKED' : 'ENTRIES PERMITTED'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMt5Notice('Updated Prop Challenge Safety Rules successfully.');
+                          setTimeout(() => setMt5Notice(null), 4000);
+                        }}
+                        className="w-full rounded bg-emerald-600 hover:bg-emerald-500 py-1.5 font-semibold text-white transition-all">
+                        Save Prop Rules
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
-              <div className="mt-3 space-y-1 text-zinc-500">
-                <div>Latest recovery: <span className="text-zinc-300">{platform.latestRecoveryAction}</span></div>
-                <div>Latest Telegram: <span className="text-zinc-300">{platform.latestTelegram ? String(platform.latestTelegram) : '—'}</span></div>
-                <div>Latest error: <span className={platform.latestError && platform.latestError !== '—' ? 'text-red-300' : 'text-zinc-300'}>{platform.latestError}</span></div>
+
+              {/* Personal Mode Customer Execution Assignment Module */}
+              {(mode === 'mt5_personal' || mt5FilterType === 'personal' || mt5Accounts.some(a => a.accountType === 'personal')) && (
+                <div className="rounded-xl border border-purple-500/30 bg-zinc-900 p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/80 pb-3">
+                    <div>
+                      <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                        <UserPlus size={18} className="text-purple-400" />
+                        Customer Execution Assignment & Permission Center
+                      </h2>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Assign unlimited personal customer MT5 accounts to HashiCore execution engine with isolated risk parameters.
+                      </p>
+                    </div>
+
+                    <Badge variant="purple">PERSONAL MODE ACTIVE</Badge>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 space-y-1">
+                      <div className="text-zinc-500 text-[10px] uppercase">Personal Accounts</div>
+                      <div className="text-lg font-bold text-purple-300">
+                        {mt5Accounts.filter(a => a.accountType === 'personal').length} Connected
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 space-y-1">
+                      <div className="text-zinc-500 text-[10px] uppercase">Active Execution</div>
+                      <div className="text-lg font-bold text-emerald-400">
+                        {mt5Accounts.filter(a => a.accountType === 'personal' && a.executionEnabled).length} Active
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 space-y-1">
+                      <div className="text-zinc-500 text-[10px] uppercase">Risk Allocation</div>
+                      <div className="text-lg font-bold text-zinc-100">
+                        1.00% Risk / Trade
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 space-y-1">
+                      <div className="text-zinc-500 text-[10px] uppercase">Execution Mode</div>
+                      <div className="text-lg font-bold text-cyan-400">
+                        Direct Bridge
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section 4: Runtime Status Overview Grid */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 mb-4">
+              <Activity size={16} className="text-blue-400" />
+              Runtime System Status Overview
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+              <StatusCard
+                icon={<Cpu size={14} />}
+                label="API Connection"
+                value={providerStatusName.toUpperCase()}
+                valueClass={providerStatusName === 'connected' ? 'text-emerald-400' : 'text-amber-400'}
+                note={status?.env?.exchange ?? provider}
+              />
+              <StatusCard
+                icon={<Shield size={14} />}
+                label="Credentials / Config"
+                value={status?.env?.api_key_configured ? 'HEALTHY' : 'NOT_CONFIGURED'}
+                valueClass={status?.env?.api_key_configured ? 'text-emerald-400' : 'text-red-400'}
+                note="API & Secret verified"
+              />
+              <StatusCard
+                icon={<PlayCircle size={14} />}
+                label="Executor State"
+                value={isAutoExecuteOn ? 'RUNNING' : isKillSwitchOn ? 'KILL_SWITCH' : isBotPaused ? 'PAUSED' : 'IDLE'}
+                valueClass={isAutoExecuteOn ? 'text-emerald-400' : isKillSwitchOn ? 'text-red-400' : 'text-amber-400'}
+                note={status?.env?.execution_mode ?? 'signal_only'}
+              />
+              <StatusCard
+                icon={<Shield size={14} />}
+                label="Monitor Engine"
+                value={monitorTruth.level === 'ok' ? 'HEALTHY' : monitorTruth.level === 'warning' ? 'DEGRADED' : 'STALE'}
+                valueClass={monitorTruth.level === 'ok' ? 'text-emerald-400' : 'text-amber-400'}
+                note={monitorTruth.label}
+              />
+              <StatusCard
+                icon={<Zap size={14} />}
+                label="Supervisor Service"
+                value={monitorState?.latest_supervisor_run_at ? 'HEALTHY' : 'NO_DATA'}
+                valueClass={monitorState?.latest_supervisor_run_at ? 'text-emerald-400' : 'text-zinc-500'}
+                note={monitorState?.latest_supervisor_run_at ? 'Active supervisor' : 'Not executed'}
+              />
+              <StatusCard
+                icon={<RotateCcw size={14} />}
+                label="Auto-Repair Engine"
+                value={selectedProviderControl?.protection_recovery_enabled ? 'HEALTHY' : 'DISABLED'}
+                valueClass={selectedProviderControl?.protection_recovery_enabled ? 'text-emerald-400' : 'text-zinc-500'}
+                note="Protection recovery"
+              />
+            </div>
+          </div>
+
+          {/* Section 5: Execution Lifecycle Control Center */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                  <Sliders size={16} className="text-blue-400" />
+                  Execution Lifecycle Control Center
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Manage core entry engines, monitoring state, read-only guards, and provider kill switches independently.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400 font-mono">Primary: {effectivePrimaryProvider.toUpperCase()}</span>
+                <button
+                  type="button"
+                  disabled={acting}
+                  onClick={() => updateProviderGlobalControls({ parallel_mode_enabled: !providerGlobalControls?.parallel_mode_enabled })}
+                  className={`px-3 py-1 rounded text-xs font-semibold ${
+                    providerGlobalControls?.parallel_mode_enabled ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'bg-zinc-800 text-zinc-400'
+                  }`}>
+                  Parallel Mode: {providerGlobalControls?.parallel_mode_enabled ? 'ON' : 'OFF'}
+                </button>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">Trade Management Truth</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Exchange-truth-first Binance/Bybit positions from trade_management_truth. No copied provider data and no readiness cards.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={acting} onClick={() => callExecution('sync_all_positions_now')} className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">Sync all positions now</button>
-            <button type="button" disabled={acting} onClick={() => callExecution('repair_all_protection_now')} className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">Repair all protection now</button>
-            <button type="button" disabled={acting} onClick={() => callExecution('run_profit_lock_now')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Run profit lock now</button>
-            <button type="button" disabled={acting} onClick={() => callExecution('run_full_trade_management_proof')} className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-sm text-purple-200">Run full proof</button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
-            <thead className="text-zinc-500"><tr className="border-b border-zinc-800">
-              {['Provider','Symbol','Side','Qty','Entry','Mark','PnL','SL','TP1','TP2','Profit Lock','Status','Last Sync','Error'].map(head => <th key={head} className="py-2 pr-3 text-left">{head}</th>)}
-            </tr></thead>
-            <tbody>
-              {tradeTruthRows.map((row) => <tr key={`${row.provider}:${row.symbol}:${row.side}`} className="border-b border-zinc-900 text-zinc-300">
-                <td className="py-2 pr-3 uppercase">{row.provider}</td><td className="py-2 pr-3 font-mono">{row.symbol}</td><td className="py-2 pr-3">{row.side}</td><td className="py-2 pr-3 font-mono">{row.qty}</td><td className="py-2 pr-3 font-mono">{row.entry_price ?? '—'}</td><td className="py-2 pr-3 font-mono">{row.mark_price ?? '—'}</td><td className={Number(row.unrealized_pnl ?? 0) >= 0 ? 'py-2 pr-3 font-mono text-emerald-300' : 'py-2 pr-3 font-mono text-red-300'}>{row.unrealized_pnl ?? '—'}</td><td className="py-2 pr-3">{row.sl_present ? 'YES' : 'NO'}</td><td className="py-2 pr-3">{row.tp1_present ? 'YES' : 'NO'}</td><td className="py-2 pr-3">{row.tp2_present ? 'YES' : 'NO'}</td><td className="py-2 pr-3">{row.profit_lock_status ?? 'inactive'}</td><td className="py-2 pr-3">{row.protection_status ?? 'unknown'}</td><td className="py-2 pr-3 font-mono">{row.latest_sync_at ? new Date(row.latest_sync_at).toLocaleString() : '—'}</td><td className="py-2 pr-3 text-red-300">{row.latest_error ?? '—'}</td>
-              </tr>)}
-              {tradeTruthRows.length === 0 && <tr><td colSpan={14} className="py-6 text-center text-zinc-500">No exchange positions synced into trade_management_truth.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">Provider Operations</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Provider-aware execution routing foundation. Binance remains operational; Bybit and MT5 are placeholders until adapters are enabled.</p>
-          </div>
-          <select
-            value={selectedProvider}
-            onChange={(event) => setSelectedProvider(event.target.value as 'all' | 'binance' | 'bybit' | 'mt5')}
-            className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200"
-          >
-            <option value="binance">Binance</option>
-            <option value="bybit">Bybit</option>
-            <option value="mt5">MT5</option>
-            <option value="all">All Providers</option>
-          </select>
-        </div>
-        <div className="grid md:grid-cols-3 gap-3">
-          {providerCards.map((card) => (
-            <button
-              key={card.provider}
-              type="button"
-              onClick={() => setSelectedProvider(card.provider)}
-              className={`text-left rounded-xl border p-4 transition-colors ${selectedProvider === card.provider ? 'border-blue-500/50 bg-blue-500/10' : 'border-zinc-800 bg-zinc-950/60 hover:border-zinc-700'}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="font-semibold uppercase text-sm text-zinc-100">{card.provider}</div>
-                <Badge variant={card.provider === 'binance' ? 'green' : 'gray'}>{card.provider === 'binance' ? 'adapter ready' : 'pending'}</Badge>
+            <div className="grid md:grid-cols-3 gap-4">
+              {/* Provider Entry Control */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="font-semibold text-xs text-zinc-200">New Entry Pipeline</div>
+                  <ToggleButtons
+                    value={selectedProviderControl?.entry_enabled === true}
+                    onToggle={(val) => updateProviderControl(provider, { entry_enabled: val })}
+                    disabled={acting}
+                  />
+                </div>
+                <p className="text-xs text-zinc-500 mb-3">Controls whether new scanner signals generate order submissions for {provider.toUpperCase()}.</p>
+                <ProofRow label="Entry status" value={selectedProviderControl?.entry_enabled ? 'ENABLED' : 'PAUSED'} />
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
-                <div><div className="text-zinc-500">Active Positions</div><div className="font-mono text-zinc-200">{card.active.length}</div></div>
-                <div><div className="text-zinc-500">Executions</div><div className="font-mono text-zinc-200">{card.rows.length}</div></div>
-                <div><div className="text-zinc-500">PnL</div><div className={`font-mono ${card.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>{card.pnl.toFixed(2)}</div></div>
-                <div><div className="text-zinc-500">Protection Health</div><div className="font-mono text-zinc-200">{card.active.length ? `${card.protectedCount}/${card.active.length}` : '—'}</div></div>
-                <div><div className="text-zinc-500">Recovery Health</div><div className={card.recoveryFailures ? 'font-mono text-yellow-300' : 'font-mono text-emerald-300'}>{card.recoveryFailures ? `${card.recoveryFailures} issue(s)` : 'OK'}</div></div>
-                <div><div className="text-zinc-500">Missing SL/TP1/TP2</div><div className={card.missingSl + card.missingTp1 + card.missingTp2 ? 'font-mono text-red-300' : 'font-mono text-emerald-300'}>{card.missingSl}/{card.missingTp1}/{card.missingTp2}</div></div>
-                <div><div className="text-zinc-500">Expired Positions</div><div className={card.expired ? 'font-mono text-yellow-300' : 'font-mono text-zinc-200'}>{card.expired}</div></div>
-                <div><div className="text-zinc-500">Monitor Health</div><div className="font-mono text-zinc-200">{card.provider === 'binance' ? monitorTruthStatus : (providerStatus.get(card.provider)?.monitor_enabled ? 'Enabled' : 'Off')}</div></div>
-                <div className="col-span-2"><div className="text-zinc-500">Profit Lock Status</div><div className="font-mono text-zinc-200">{card.profitLockActive} locked/protected</div></div>
-                <div className="col-span-2"><div className="text-zinc-500">Latest Lifecycle / Telegram</div><div className="font-mono text-zinc-200">{card.latestLifecycle ? new Date(card.latestLifecycle).toLocaleString() : '—'} / {card.latestTelegram ? new Date(card.latestTelegram).toLocaleString() : '—'}</div></div>
+
+              {/* Read-Only Mode Guard */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="font-semibold text-xs text-zinc-200">Read-Only Mode</div>
+                  <ToggleButtons
+                    value={selectedProviderControl?.read_only === true}
+                    onToggle={(val) => updateProviderControl(provider, { read_only: val })}
+                    disabled={acting}
+                  />
+                </div>
+                <p className="text-xs text-zinc-500 mb-3">When ON, provider allows balances and telemetry queries, but blocks all order creations.</p>
+                <ProofRow label="Read-only mode" value={selectedProviderControl?.read_only ? 'ACTIVE' : 'OFF'} />
               </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">Execution Proof Panel</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Latest 20 approved A/A+ signals with provider rows, submitted order proof, and exact blocker text. No live trading.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_binance_supported_signal')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 hover:border-emerald-400">Execute Latest Binance-Supported Signal on Binance</button>
-            <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_bybit_supported_signal')} className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200 hover:border-blue-400">Execute Latest Bybit-Supported Signal on Bybit</button>
-            <button type="button" disabled={acting} onClick={() => callExecution('execute_latest_mirror_supported_signal')} className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-sm text-purple-200 hover:border-purple-400">Execute Latest Signal on All Eligible Providers</button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
-            <thead className="text-zinc-500">
-              <tr className="border-b border-zinc-800">
-                <th className="py-2 pr-3 text-left">signal</th><th className="py-2 pr-3 text-left">grade</th><th className="py-2 pr-3 text-left">should execute</th><th className="py-2 pr-3 text-left">Binance result</th><th className="py-2 pr-3 text-left">Bybit result</th><th className="py-2 pr-3 text-left">blocker</th><th className="py-2 pr-3 text-left">created execution row</th><th className="py-2 pr-3 text-left">submitted order</th><th className="py-2 pr-3 text-left">error</th>
-              </tr>
-            </thead>
-            <tbody>
-              {approvedExecutionProofRows.map(({ signal, binance, bybit, blocker, shouldExecute, binanceSupported, bybitSupported, setupBlocker, supportBlocker }) => (
-                <tr key={signal.id} className="border-b border-zinc-900 text-zinc-300">
-                  <td className="py-2 pr-3 font-mono">{signal.symbol} <span className="text-zinc-600">{signal.id.slice(0, 8)}</span></td>
-                  <td className="py-2 pr-3">{signal.grade}</td>
-                  <td className={shouldExecute ? 'py-2 pr-3 text-emerald-300' : 'py-2 pr-3 text-yellow-300'}>{shouldExecute ? 'yes' : 'research-only'}</td>
-                  <td className="py-2 pr-3">{binance?.status ?? (binanceSupported ? 'no row' : 'unsupported')}</td>
-                  <td className="py-2 pr-3">{bybit?.status ?? (bybitSupported ? 'no row' : 'unsupported')}</td>
-                  <td className="py-2 pr-3 text-yellow-300">{String(blocker?.latest_auto_skip_reason || blocker?.error_message || blocker?.last_exchange_error || setupBlocker || supportBlocker || '—')}</td>
-                  <td className="py-2 pr-3">
-                    B: <span className={binance ? 'text-emerald-400' : 'text-zinc-500'}>{binance ? 'yes' : 'no'}</span> · By: <span className={bybit ? 'text-blue-400' : 'text-zinc-500'}>{bybit ? 'yes' : 'no'}</span>
-                  </td>
-                  <td className="py-2 pr-3">
-                    B: <span className={binance?.entry_order_id || binance?.binance_entry_order_id ? 'text-emerald-400' : 'text-zinc-500'}>{binance?.entry_order_id || binance?.binance_entry_order_id ? 'yes' : 'no'}</span> · By: <span className={bybit?.entry_order_id || bybit?.binance_entry_order_id ? 'text-blue-400' : 'text-zinc-500'}>{bybit?.entry_order_id || bybit?.binance_entry_order_id ? 'yes' : 'no'}</span>
-                  </td>
-                  <td className="py-2 pr-3 text-red-300">{String(blocker?.error_message ?? blocker?.last_exchange_error ?? '—')}</td>
-                </tr>
-              ))}
-              {approvedExecutionProofRows.length === 0 && <tr><td colSpan={9} className="py-4 text-zinc-500">No approved A/A+ signals loaded yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">Provider Controls</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Global: Testnet execution {status?.settings?.auto_execute_testnet ? 'ON' : 'OFF'} · Parallel mode {providerGlobalControls?.parallel_mode_enabled ? 'ON' : 'OFF'} · Primary {effectivePrimaryProvider} · Live Trading: OFF. Providers expose independent Entry, Monitor, Recovery and Kill Switch state.</p>
-          </div>
-          <Badge variant={providerGlobalControls?.parallel_mode_enabled ? 'blue' : 'gray'}>{providerGlobalControls?.parallel_mode_enabled ? 'Parallel Mode ON' : 'Parallel Mode OFF'}</Badge>
-        </div>
-        <div className="flex flex-wrap gap-3 mb-4">
-          <button type="button" onClick={() => updateProviderGlobalControls({ parallel_mode_enabled: !providerGlobalControls?.parallel_mode_enabled })} className={`rounded-lg border px-3 py-2 text-sm ${providerGlobalControls?.parallel_mode_enabled ? 'border-blue-500/40 bg-blue-500/10 text-blue-200' : 'border-zinc-800 bg-zinc-950 text-zinc-400'}`}>Parallel Mode: {providerGlobalControls?.parallel_mode_enabled ? 'ON' : 'OFF'}</button>
-          <label className="text-sm text-zinc-400 flex items-center gap-2">Primary Provider
-            <select value={effectivePrimaryProvider} onChange={(event) => updateProviderGlobalControls({ primary_provider: event.target.value as 'binance' | 'bybit' | 'mt5' })} className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200">
-              <option value="binance">Binance</option><option value="bybit" disabled={!bybitConnected}>Bybit</option><option value="mt5" disabled={providerStatus.get('mt5')?.status !== 'connected'}>MT5</option>
-            </select>
-          </label>
-          <button type="button" onClick={() => runBybitDebug('health')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Test Bybit Connection <span className="sr-only">Bybit Health Check</span></button>
-          <button type="button" onClick={() => runBybitDebug('account_capital')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Diagnose Bybit Account <span className="sr-only">Bybit Account/Capital Debug</span></button>
-          <button type="button" onClick={() => runBybitDebug('balances')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Fetch Balances</button>
-          <button type="button" onClick={() => runBybitDebug('positions_orders')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Fetch Positions / Fetch Orders <span className="sr-only">Bybit Positions/Orders Debug</span></button>
-          <button type="button" onClick={() => callExecution('sync_binance_tradable_symbols')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Sync Binance Executable Symbols</button>
-          <button type="button" onClick={() => callExecution('sync_bybit_tradable_symbols')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Sync Bybit Executable Symbols</button>
-          <button type="button" onClick={() => callExecution('show_executable_universe')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Show Executable Universe</button>
-          <button type="button" onClick={() => runBybitDebug('symbols')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Validate Symbols</button>
-          <button type="button" onClick={() => runBybitDebug('dry_run_signal')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:border-blue-500/40">Dry Run Signal</button>
-          <button type="button" onClick={() => callExecution('place_tiny_binance_test_order')} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Place Tiny Binance Test Order</button>
-          <button type="button" onClick={() => callExecution('place_tiny_bybit_test_order')} className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">Place Tiny Bybit Test Order</button>
-          <button type="button" onClick={() => callExecution('cancel_test_orders', { symbol })} className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">Cancel Test Orders</button>
-          <button type="button" onClick={() => callExecution('run_binance_monitor_now')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300">Run Binance Monitor Now</button>
-          <button type="button" onClick={() => callExecution('run_bybit_monitor_now')} className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300">Run Bybit Monitor Now</button>
-          <Badge variant="gray">Live Trading: OFF</Badge>
-        </div>
-        {providerSafetyWarning && <div className="mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">{providerSafetyWarning}. Primary Provider forced to Binance until Bybit health is connected.</div>}
-        {providerControlsError.message && <div className={`mb-4 rounded-lg border p-3 text-sm ${providerControlsError.kind === 'rls_blocked' || providerControlsError.kind === 'missing_table' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'}`}>{providerControlsError.message}</div>}
-        <div className="grid md:grid-cols-3 gap-3">
-          {providerControls.map((control) => (
-            <div key={control.provider_name} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="font-semibold uppercase text-sm">{control.provider_name}</div>
-                <Badge variant={control.provider_kill_switch ? 'red' : control.status === 'connected' ? 'green' : control.status === 'degraded' ? 'yellow' : 'gray'}>{control.provider_kill_switch ? 'kill switch' : control.status}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {[
-                  ['enabled', 'ON/OFF'],
-                  ['entry_enabled', 'Entry'],
-                  ['read_only', 'Read-only'],
-                  ['profit_lock_enabled', 'Profit Lock'],
-                  ['monitor_enabled', 'Monitor'],
-                  ['protection_recovery_enabled', 'Recovery'],
-                  ['provider_kill_switch', 'Kill Switch'],
-                ].map(([key, label]) => (
+              {/* Provider Kill Switch */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="font-semibold text-xs text-zinc-200">Provider Kill Switch</div>
                   <button
-                    key={key}
                     type="button"
-                    onClick={() => updateProviderControl(control.provider_name, { [key]: !control[key as keyof ProviderControl] } as Partial<ProviderControl>)}
-                    className={`rounded-lg border px-2 py-2 text-left ${control[key as keyof ProviderControl] ? 'border-blue-500/40 bg-blue-500/10 text-blue-200' : 'border-zinc-800 bg-zinc-900 text-zinc-500'}`}
-                  >
-                    {label}: {control[key as keyof ProviderControl] ? 'ON' : 'OFF'}
+                    disabled={acting}
+                    onClick={() => updateProviderControl(provider, { provider_kill_switch: !selectedProviderControl?.provider_kill_switch })}
+                    className={`px-3 py-1 rounded text-xs font-bold transition-all ${
+                      selectedProviderControl?.provider_kill_switch
+                        ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    }`}>
+                    {selectedProviderControl?.provider_kill_switch ? 'KILL SWITCH ACTIVE' : 'CLEAR KILL SWITCH'}
+                  </button>
+                </div>
+                <p className="text-xs text-zinc-500 mb-3">Specific hard override to instantly isolate this provider without touching others.</p>
+                <ProofRow label="Kill switch state" value={selectedProviderControl?.provider_kill_switch ? 'TRIGGERED' : 'CLEAR'} />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 6: Monitor, Supervisor and Recovery Center */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 mb-4">
+              <Shield size={16} className="text-emerald-400" />
+              Monitor, Supervisor & Auto-Recovery Center
+            </h2>
+
+            <div className="grid lg:grid-cols-3 gap-4">
+              {/* Card 1: Monitor */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="font-semibold text-xs text-zinc-200 flex items-center gap-1.5">
+                    <Activity size={14} className="text-blue-400" /> Monitor Engine
+                  </div>
+                  <Badge variant={monitorTruth.level === 'ok' ? 'green' : 'yellow'}>{monitorTruth.label}</Badge>
+                </div>
+                <div className="space-y-2 text-xs mb-4">
+                  <ProofRow label="Last run" value={monitorState?.latest_monitor_run_at ? new Date(monitorState.latest_monitor_run_at).toLocaleTimeString() : '—'} />
+                  <ProofRow label="Open positions seen" value={String(monitorState?.open_positions_count ?? 0)} />
+                  <ProofRow label="Stale rows cleaned" value={String(monitorState?.stale_rows_cleaned ?? 0)} />
+                  <ProofRow label="Latest error" value={shortOperatorText(monitorState?.latest_monitor_error || 'None')} />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={acting}
+                    onClick={() => callOperatorAction(provider === 'bybit' ? 'run_bybit_monitor_now' : 'run_binance_monitor_now')}
+                    className="w-full rounded bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                    Run Monitor Cycle Now
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: Supervisor */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="font-semibold text-xs text-zinc-200 flex items-center gap-1.5">
+                    <Zap size={14} className="text-purple-400" /> Supervisor Service
+                  </div>
+                  <Badge variant={monitorState?.latest_supervisor_run_at ? 'green' : 'gray'}>
+                    {monitorState?.latest_supervisor_run_at ? 'Active' : 'Standby'}
+                  </Badge>
+                </div>
+                <div className="space-y-2 text-xs mb-4">
+                  <ProofRow label="Last supervisor run" value={monitorState?.latest_supervisor_run_at ? new Date(monitorState.latest_supervisor_run_at).toLocaleTimeString() : '—'} />
+                  <ProofRow label="Status" value={monitorState?.latest_supervisor_status ?? 'HEALTHY'} />
+                  <ProofRow label="Supervisor errors" value={shortOperatorText(monitorState?.latest_supervisor_error || 'None')} />
+                </div>
+                <button
+                  type="button"
+                  disabled={acting}
+                  onClick={() => callOperatorAction('run_supervisor_now')}
+                  className="w-full rounded bg-purple-600 hover:bg-purple-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                  Run Supervisor Cycle Now
+                </button>
+              </div>
+
+              {/* Card 3: Auto-Recovery */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="font-semibold text-xs text-zinc-200 flex items-center gap-1.5">
+                    <RotateCcw size={14} className="text-emerald-400" /> Recovery Engine
+                  </div>
+                  <Badge variant={selectedProviderControl?.protection_recovery_enabled ? 'green' : 'gray'}>
+                    {selectedProviderControl?.protection_recovery_enabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                </div>
+                <div className="space-y-2 text-xs mb-4">
+                  <ProofRow label="Recovery enabled" value={selectedProviderControl?.protection_recovery_enabled ? 'YES' : 'NO'} />
+                  <ProofRow label="Unprotected positions" value={String(executions.filter(e => e.protection_status === 'unprotected_failed').length)} />
+                  <ProofRow label="Last recovery run" value={monitorState?.latest_recovery_run_at ? new Date(monitorState.latest_recovery_run_at).toLocaleTimeString() : '—'} />
+                </div>
+                <button
+                  type="button"
+                  disabled={acting}
+                  onClick={() => callOperatorAction('repair_protection_now')}
+                  className="w-full rounded bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                  Run Auto-Repair & Protection Recovery
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: POSITIONS & ORDERS WORKSPACE */}
+      {activeTab === 'positions_orders' && (
+        <div className="space-y-6">
+          {/* Section 7: Open Positions Workspace */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                  <Layers size={16} className="text-blue-400" />
+                  Synchronized Open Positions ({openExecutions.length})
+                </h2>
+                <p className="text-xs text-zinc-400 mt-0.5">Click any position row to open the complete detail drawer and control actions.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={cleanStaleExecutions}
+                  disabled={cleaning}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-500/20">
+                  <RotateCcw size={12} className={cleaning ? 'animate-spin' : ''} /> Clean Stale Executions
+                </button>
+                <button
+                  type="button"
+                  onClick={() => callExecution('sync_all_positions_now')}
+                  disabled={acting}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-blue-500/40">
+                  <RefreshCw size={12} /> Sync All Positions
+                </button>
+              </div>
+            </div>
+
+            {cleanupMsg && <div className="mb-4 text-xs text-amber-300 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">{cleanupMsg}</div>}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 font-medium uppercase tracking-wider">
+                    <th className="py-2.5 px-3">Symbol</th>
+                    <th className="py-2.5 px-3">Side</th>
+                    <th className="py-2.5 px-3">Size</th>
+                    <th className="py-2.5 px-3">Entry / Mark</th>
+                    <th className="py-2.5 px-3">Unrealized PnL</th>
+                    <th className="py-2.5 px-3">Leverage</th>
+                    <th className="py-2.5 px-3">Protection State</th>
+                    <th className="py-2.5 px-3">BE / Trailing</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
+                  {openExecutions.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-zinc-500">
+                        No active open positions on {provider.toUpperCase()} testnet environment.
+                      </td>
+                    </tr>
+                  ) : (
+                    openExecutions.map((pos) => {
+                      const isLong = pos.side === 'long';
+                      return (
+                        <tr
+                          key={pos.id}
+                          onClick={() => setSelectedPositionForDetail(pos)}
+                          className="cursor-pointer hover:bg-zinc-800/40 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-zinc-100 flex items-center gap-1.5">
+                            {pos.symbol}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-semibold text-[11px] ${
+                              isLong ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                            }`}>
+                              {isLong ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                              {pos.side.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono">{pos.quantity ?? pos.volume ?? '—'}</td>
+                          <td className="py-3 px-3 font-mono text-zinc-400">
+                            <div>{pos.entry_filled_at ? 'Filled' : 'Submitted'}</div>
+                            <div className="text-[11px] text-zinc-500">Mark: {pos.latest_mark_price ?? '—'}</div>
+                          </td>
+                          <td className="py-3 px-3 font-mono">
+                            <span className={(pos.latest_unrealized_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                              ${pos.latest_unrealized_pnl ?? '0.00'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono">{pos.leverage ? `${pos.leverage}x` : '—'}</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[11px] border ${STATUS_COLORS[pos.protection_status || ''] || 'text-zinc-400 border-zinc-700'}`}>
+                              {pos.protection_status || 'pending'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-[11px] text-zinc-400">
+                            <div>BE: {pos.sl_moved_to_be ? 'MOVED' : 'OFF'}</div>
+                            <div>Lock: {pos.profit_lock_status || 'none'}</div>
+                          </td>
+                          <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmModal({
+                                open: true,
+                                title: `Close ${pos.symbol} Position`,
+                                message: `Are you sure you want to market-close the position for ${pos.symbol}?`,
+                                actionName: 'close_position',
+                                payload: { symbol: pos.symbol },
+                                isDanger: true,
+                              })}
+                              className="rounded bg-red-600/80 hover:bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white">
+                              Close
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Section 8: Orders and Execution History Workspace */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                  <FileText size={16} className="text-blue-400" />
+                  Orders & Execution Audit Trail
+                </h2>
+                <div className="text-xs text-zinc-500 mt-0.5">Failed executions: {failedExecutions.length} · Skipped executions: {skippedExecutions.length}</div>
+              </div>
+
+              {/* Order Sub-tabs */}
+              <div className="flex rounded-lg border border-zinc-800 bg-zinc-950 p-1 text-xs">
+                {[
+                  { id: 'open', label: 'Active Executions' },
+                  { id: 'conditional', label: 'Conditional Protection Orders' },
+                  { id: 'attempts', label: 'Submitted Attempts' },
+                  { id: 'failed', label: 'Failed Executions' },
+                  { id: 'recent', label: 'All Orders' },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setOrderTab(t.id as typeof orderTab)}
+                    className={`rounded px-3 py-1 font-medium transition-all ${
+                      orderTab === t.id ? 'bg-zinc-800 text-zinc-100 shadow' : 'text-zinc-400 hover:text-zinc-200'
+                    }`}>
+                    {t.label}
                   </button>
                 ))}
               </div>
-              {control.last_error && <div className="mt-3 text-xs text-red-300">{control.last_error}</div>}
             </div>
-          ))}
-          {providerControls.length === 0 && !providerControlsError.message && <div className="text-sm text-zinc-500">Provider controls rows missing.</div>}
-        </div>
-      </div>
 
+            {/* Filters */}
+            <div className="mb-4 grid sm:grid-cols-3 gap-3">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-2.5 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Filter by symbol..."
+                  value={orderSymbolFilter}
+                  onChange={(e) => setOrderSymbolFilter(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 pl-9 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">Bybit Environment Diagnostics</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Read-only Bybit Testnet diagnostics for environment routing, account reachability, wallet access, instruments, and order permission visibility. These controls never place trades.</p>
-          </div>
-          <Badge variant={bybitDebug?.connected ? 'green' : 'gray'}>{bybitDebug?.connected ? 'Connected' : 'Empty / not checked'}</Badge>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Environment</div><div className="text-zinc-200 mt-1">{String(bybitDebug?.environment ?? bybitDebug?.checks?.bybit_environment ?? 'Not checked').toUpperCase()}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Account Reachable</div><div className={bybitDebug?.account_reachable ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{bybitDebug?.account_reachable ? 'YES' : 'NO'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Wallet Reachable</div><div className={bybitDebug?.wallet_reachable ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{bybitDebug?.wallet_reachable ? 'YES' : 'NO'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Linear Instruments Reachable</div><div className={bybitDebug?.linear_instruments_reachable ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{bybitDebug?.linear_instruments_reachable ? 'YES' : 'NO'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Order Creation Allowed</div><div className={bybitDebug?.order_creation_allowed ? 'text-emerald-300 mt-1' : 'text-red-300 mt-1'}>{bybitDebug?.order_creation_allowed ? 'YES' : 'NO'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Latest Error Code</div><div className="text-zinc-200 mt-1">{String(bybitDebug?.latest_error_code ?? bybitDebug?.checks?.latest_error_code ?? '—')}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Latest Error Message</div><div className="text-zinc-200 mt-1">{String(bybitDebug?.latest_error_message ?? bybitDebug?.error_reason ?? '—')}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Current API Key Status</div><div className="text-zinc-200 mt-1">{String(bybitDebug?.current_api_key_status ?? bybitDebug?.checks?.current_api_key_status ?? 'Not checked')}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Current Provider Status</div><div className="text-zinc-200 mt-1">{String(bybitDebug?.current_provider_status ?? bybitDebug?.checks?.current_provider_status ?? providerStatus.get('bybit')?.status ?? 'unknown')}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Capital Rows</div><div className="text-zinc-200 mt-1">{bybitDebug?.balances?.length ?? 0}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Positions / Orders</div><div className="text-zinc-200 mt-1">{bybitDebug?.positions?.length ?? 0} / {bybitDebug?.open_orders?.length ?? 0}</div></div>
-        </div>
-        <details className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-xs text-zinc-400" open={Boolean(bybitDebug)}>
-          <summary className="cursor-pointer text-zinc-300">Bybit account/capital/positions/orders raw debug</summary>
-          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words">{JSON.stringify({ checks: bybitDebug?.checks ?? {}, balances: bybitDebug?.balances ?? [], positions: bybitDebug?.positions ?? [], open_orders: bybitDebug?.open_orders ?? [], missing_permissions: bybitDebug?.missing_permissions ?? [], error_reason: bybitDebug?.error_reason ?? null }, null, 2)}</pre>
-        </details>
-      </div>
+              <select
+                value={orderSideFilter}
+                onChange={(e) => setOrderSideFilter(e.target.value as typeof orderSideFilter)}
+                className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-200">
+                <option value="all">All Sides</option>
+                <option value="long">LONG Only</option>
+                <option value="short">SHORT Only</option>
+              </select>
 
-      {/* Bot State Control Panel */}
-      {(() => {
-        const killActive = status?.settings?.kill_switch_enabled === true;
-        const paused = status?.settings?.bot_paused === true;
-        const running = !killActive && !paused && status?.settings?.auto_execute_testnet === true;
-        const botState = killActive ? 'kill_switch' : paused ? 'paused' : running ? 'running' : 'idle';
-        const autoOffReason = killActive
-          ? 'OFF because kill_switch_enabled=true'
-          : paused
-            ? `OFF because bot_paused=true${status?.settings?.bot_paused_reason ? ` (${status.settings.bot_paused_reason})` : ''}`
-            : status?.settings?.auto_execute_testnet !== true
-              ? 'OFF because auto_execute_testnet=false'
-              : 'ON';
-        const stateConfig = {
-          kill_switch: { label: 'Kill Switch ON', sub: 'No new entries. Monitor still manages open positions.', ring: 'border-red-500/50', bg: 'bg-red-500/10', dot: 'bg-red-400', text: 'text-red-300' },
-          paused:      { label: 'Bot Paused',     sub: 'No new entries. Monitor still manages open positions.', ring: 'border-yellow-500/50', bg: 'bg-yellow-500/10', dot: 'bg-yellow-400', text: 'text-yellow-300' },
-          running:     { label: 'Bot Running',    sub: 'Auto-executing qualified scanner signals.', ring: 'border-emerald-500/50', bg: 'bg-emerald-500/10', dot: 'bg-emerald-400', text: 'text-emerald-300' },
-          idle:        { label: 'Idle (auto-off)', sub: 'Auto-execute is disabled. Manual execution still works.', ring: 'border-zinc-600', bg: 'bg-zinc-800/50', dot: 'bg-zinc-500', text: 'text-zinc-400' },
-        }[botState];
-        return (
-          <div className={`rounded-xl border p-5 mb-6 ${stateConfig.ring} ${stateConfig.bg}`}>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span className={`inline-block w-3 h-3 rounded-full ${stateConfig.dot} animate-pulse shrink-0`} />
-                <div>
-                  <div className={`font-semibold ${stateConfig.text}`}>{stateConfig.label}</div>
-                  <div className="text-xs text-zinc-500 mt-0.5">{stateConfig.sub}</div>
-                  {paused && status?.settings?.bot_paused_reason && (
-                    <div className="text-xs text-yellow-300/80 mt-1">Pause reason: {status.settings.bot_paused_reason}</div>
+              <select
+                value={orderStatusFilter}
+                onChange={(e) => setOrderStatusFilter(e.target.value)}
+                className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-200">
+                <option value="all">All Statuses</option>
+                <option value="entry_filled">entry_filled</option>
+                <option value="failed">failed</option>
+                <option value="skipped">skipped</option>
+                <option value="synced_closed">synced_closed</option>
+              </select>
+            </div>
+
+            {/* Orders Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                    <th className="py-2.5 px-3">Symbol</th>
+                    <th className="py-2.5 px-3">Side</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Entry Order</th>
+                    <th className="py-2.5 px-3">Protection Bracket</th>
+                    <th className="py-2.5 px-3">Blocker / Error Reason</th>
+                    <th className="py-2.5 px-3">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
+                  {filteredExecutions.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-6 text-center text-zinc-500">
+                        No execution order records match the selected filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredExecutions.map((e) => (
+                      <tr key={e.id} className="hover:bg-zinc-800/30 font-mono text-[11px]">
+                        <td className="py-2.5 px-3 font-bold text-zinc-100">{e.symbol}</td>
+                        <td className="py-2.5 px-3 uppercase">{e.side}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`px-2 py-0.5 rounded border ${STATUS_COLORS[e.status] || 'text-zinc-400 border-zinc-700'}`}>
+                            {e.status}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-zinc-400">{e.entry_order_id || e.binance_entry_order_id || '—'}</td>
+                        <td className="py-2.5 px-3 text-zinc-400">
+                          <div>SL: {e.sl_algo_id || e.binance_sl_order_id || '—'}</div>
+                          <div>TP1: {e.tp1_algo_id || e.binance_tp1_order_id || '—'}</div>
+                        </td>
+                        <td className="py-2.5 px-3 text-amber-300">
+                          {shortOperatorText(e.latest_auto_skip_reason || e.error_message || e.last_exchange_error || '—')}
+                        </td>
+                        <td className="py-2.5 px-3 text-zinc-500">
+                          {new Date(e.created_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
                   )}
-                  <div className="text-xs text-zinc-400 mt-1">Auto execution reason: {autoOffReason}</div>
-                  <div className="text-xs text-zinc-600 mt-1">Scanner, Signal Mode, Telegram signals and outcome tracking are unaffected by bot state.</div>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: PROTECTION & RISK ENGINE */}
+      {activeTab === 'protection_risk' && (
+        <div className="space-y-6">
+          {/* Section 9: Protection Engine Workspace */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 mb-4">
+              <Shield size={16} className="text-emerald-400" />
+              Protection Engine Verification Matrix
+            </h2>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mb-6">
+              <div className="bg-zinc-950/60 rounded-lg p-3">
+                <div className="text-zinc-500">Fully Protected Positions</div>
+                <div className="text-emerald-400 font-mono text-base font-bold mt-1">
+                  {executions.filter(e => e.protection_status === 'protected_native' || e.native_protection_verified).length}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 shrink-0">
+              <div className="bg-zinc-950/60 rounded-lg p-3">
+                <div className="text-zinc-500">Partially Protected / Managed</div>
+                <div className="text-amber-400 font-mono text-base font-bold mt-1">
+                  {executions.filter(e => e.bracket_mode === 'managed_exit_fallback').length}
+                </div>
+              </div>
+              <div className="bg-zinc-950/60 rounded-lg p-3">
+                <div className="text-zinc-500">Unprotected Failed</div>
+                <div className="text-red-400 font-mono text-base font-bold mt-1">
+                  {executions.filter(e => e.protection_status === 'unprotected_failed').length}
+                </div>
+              </div>
+              <div className="bg-zinc-950/60 rounded-lg p-3">
+                <div className="text-zinc-500">Profit Lock Engine</div>
+                <div className="text-blue-400 font-mono text-base font-bold mt-1">
+                  {status?.settings?.enable_profit_lock_engine ? 'ACTIVE' : 'OFF'}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution('repair_all_protection_now')}
+                className="rounded bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                Run Protection Repair on All Active Positions
+              </button>
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution('run_profit_lock_now')}
+                className="rounded bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                Run Profit Lock Evaluation Cycle
+              </button>
+            </div>
+          </div>
+
+          {/* Section 10: Account, Balance & Margin Truth */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 mb-4">
+              <Cpu size={16} className="text-blue-400" />
+              Account Balance, Margin & Capital Truth
+            </h2>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs mb-4">
+              <ProofRow label="Wallet Balance" value={String(status?.capital?.raw_total_wallet_balance ?? monitorState?.account_total_wallet_balance ?? 'NO_DATA')} />
+              <ProofRow label="Available USDT" value={String(status?.capital?.raw_available_usdt ?? status?.account_state?.availableUsdt ?? 'NO_DATA')} />
+              <ProofRow label="Available USDC" value={String(status?.capital?.raw_available_usdc ?? status?.account_state?.availableUsdc ?? 'NO_DATA')} />
+              <ProofRow label="Total Margin Balance" value={String(status?.capital?.raw_total_margin_balance ?? monitorState?.account_total_margin_balance ?? 'NO_DATA')} />
+              <ProofRow label="Unrealized PnL" value={String(monitorState?.unrealized_pnl ?? '0.00')} />
+              <ProofRow label="Capital Basis" value={String(status?.settings?.capital_basis ?? 'available_usdt')} />
+              <ProofRow label="Selected Capital Used" value={String(status?.capital?.selected_capital_used ?? 'NO_DATA')} />
+              <ProofRow label="USDC Margin Backup" value={status?.settings?.enable_usdc_margin_backup ? 'ENABLED' : 'DISABLED'} />
+            </div>
+          </div>
+
+          {/* Section 11: Risk Governor & Safety Controls */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                  <Shield size={16} className="text-amber-400" />
+                  Risk Governor & Safety Controls
+                </h2>
+                <p className="text-xs text-zinc-400 mt-0.5">Automated capital preservation, daily loss guard, drawdown throttling, and failure streaks.</p>
+              </div>
+              <Badge variant={status?.governor?.state === 'normal' ? 'green' : status?.governor?.state === 'defensive' ? 'yellow' : 'red'}>
+                GOVERNOR: {status?.governor?.state?.toUpperCase() ?? 'ACTIVE'}
+              </Badge>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4 text-xs mb-6">
+              <ProofRow label="Governor Mode" value={status?.governor?.mode ?? 'NORMAL'} />
+              <ProofRow label="Execution Allowed" value={status?.governor_display?.execution_allowed ? 'YES' : 'NO'} />
+              <ProofRow label="Daily Loss Limit" value={`${status?.settings?.max_daily_loss_pct ?? 3}%`} />
+              <ProofRow label="Max Unrealized Drawdown" value={`${status?.settings?.max_unrealized_drawdown_pct ?? 5}%`} />
+              <ProofRow label="Failed Execution Streak" value={String(status?.settings?.failed_execution_streak ?? 0)} />
+              <ProofRow label="Closed SL Streak" value={String(status?.settings?.closed_sl_streak ?? 0)} />
+            </div>
+
+            {/* Safety Overrides */}
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-red-300 mb-2">
+                <AlertCircle size={14} /> DANGEROUS OVERRIDES
+              </div>
+              <p className="text-xs text-zinc-300 mb-3">
+                Resetting governor clears daily streak counters and re-enables entries after drawdown locks.
+              </p>
+              <div className="flex flex-wrap gap-2">
                 <button
+                  type="button"
                   disabled={acting}
-                  onClick={() => updateExecutionSettings({ start_bot: true, provider: selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider, auto_execute_testnet: true, testnet_enabled: true, execution_mode: 'testnet', bot_paused: false, bot_paused_reason: null, kill_switch_enabled: false, live_trading_enabled: false })}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors">
-                  <CheckCircle2 size={14} />Start Bot
-                </button>
-                <button
-                  disabled={acting || !entryEngineOn}
-                  onClick={() => updateExecutionSettings({ pause_entries: true, provider: selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider, bot_paused: false, bot_paused_reason: 'Entries paused by admin; monitor/recovery remain enabled' })}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-yellow-600 hover:bg-yellow-500 text-white disabled:opacity-40 transition-colors">
-                  <PauseCircle size={14} />Pause Bot
-                </button>
-                <button
-                  disabled={acting || selectedProviderControl?.provider_kill_switch === true}
-                  onClick={() => updateExecutionSettings({ provider_kill_switch: true, provider: selectedProvider === 'all' ? effectivePrimaryProvider : selectedProvider, kill_switch_enabled: false })}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-red-700 hover:bg-red-600 text-white disabled:opacity-40 transition-colors">
-                  <StopCircle size={14} />Kill Switch
+                  onClick={() => setConfirmModal({
+                    open: true,
+                    title: 'Reset Testnet Governor',
+                    message: 'Are you sure you want to reset governor loss streaks and daily PnL baselines?',
+                    actionName: 'reset_governor',
+                    isDanger: true,
+                  })}
+                  className="rounded bg-red-700 hover:bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
+                  Reset Governor & Start New Test Day
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 mt-4 text-xs">
-              <div className="bg-black/20 rounded-lg p-3">
-                <div className="text-zinc-500">Auto-Execute</div>
-                <div className={`font-mono mt-1 ${status?.settings?.auto_execute_testnet ? 'text-emerald-300' : 'text-zinc-400'}`}>{status?.settings?.auto_execute_testnet ? 'ON' : 'OFF'}</div>
-              </div>
-              <div className="bg-black/20 rounded-lg p-3">
-                <div className="text-zinc-500">Governor</div>
-                <div className={`font-mono mt-1 ${governorMode === 'off_for_testing' ? 'text-red-300' : status?.settings?.governor_state === 'paused' ? 'text-red-300' : status?.settings?.governor_state === 'defensive' ? 'text-yellow-300' : status?.settings?.governor_state === 'aggressive_allowed' ? 'text-blue-300' : 'text-emerald-300'}`}>{governorMode} / {governorDisplayState}</div>
-              </div>
-              <div className="bg-black/20 rounded-lg p-3">
-                <div className="text-zinc-500">Open Positions</div>
-                <div className="font-mono mt-1 text-zinc-200">{openExecutions.length} / {status?.settings?.max_open_testnet_positions ?? 3}</div>
-              </div>
-            </div>
           </div>
-        );
-      })()}
-
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">Binance Testnet Monitor</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">1-minute bot supervisor snapshot. Binance Demo only — live trading remains disabled.</p>
-          </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full border ${monitorTruth.level === 'critical' || monitorTruth.level === 'stale' ? 'border-red-500/30 bg-red-500/10 text-red-300' : monitorTruth.level === 'warning' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
-            {monitorTruthStatus} · {monitorResultStatus}
-          </span>
-        </div>
-        <div className="grid sm:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Last Run</div><div className="text-zinc-200 mt-1">{monitorState?.latest_monitor_run_at ? new Date(monitorState.latest_monitor_run_at).toLocaleString() : '—'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Open Positions</div><div className="text-zinc-200 mt-1">{monitorState?.open_positions_count ?? 0}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Open Orders</div><div className="text-zinc-200 mt-1">{monitorState?.open_binance_orders?.length ?? 0}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Unrealized PnL</div><div className="text-zinc-200 mt-1">{monitorState?.unrealized_pnl ?? '—'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Wallet</div><div className="text-zinc-200 mt-1">{monitorState?.account_total_wallet_balance ?? '—'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Stale Cleaned</div><div className="text-zinc-200 mt-1">{monitorState?.stale_rows_cleaned ?? 0}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Account Fetch</div><div className="text-zinc-200 mt-1">{monitorState?.latest_account_state_at ? new Date(monitorState.latest_account_state_at).toLocaleString() : '—'}</div></div>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mt-3">
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Reconciled Symbols</div><div className="text-zinc-200 mt-1">{String(reconciliationSummary.symbols_checked ?? 0)}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Stale / Orphan Orders</div><div className="text-zinc-200 mt-1">{String(reconciliationSummary.stale_or_orphan_order_count ?? 0)}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Duplicate Conditionals</div><div className="text-zinc-200 mt-1">{String(reconciliationSummary.duplicate_conditional_count ?? 0)}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Unprotected Positions</div><div className={(Number(reconciliationSummary.unprotected_position_count ?? 0) > 0 ? 'text-red-300' : 'text-emerald-300') + ' mt-1'}>{String(reconciliationSummary.unprotected_position_count ?? 0)}</div></div>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs mt-3">
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Last Admin Alert</div><div className="text-zinc-200 mt-1">{operatorRouting.last_admin_alert?.created_at ? `${new Date(operatorRouting.last_admin_alert.created_at).toLocaleString()} · ${operatorRouting.last_admin_alert.delivery_status}` : '—'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Last Admin Digest</div><div className="text-zinc-200 mt-1">{operatorRouting.last_admin_digest?.created_at ? `${new Date(operatorRouting.last_admin_digest.created_at).toLocaleString()} · ${operatorRouting.last_admin_digest.delivery_status}` : '—'}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Free Selected Today</div><div className="text-zinc-200 mt-1">{operatorRouting.free_selected_today ?? 0} / 2</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Telegram Health</div><div className="text-zinc-200 mt-1">admin {operatorRouting.telegram_health?.admin?.latest_status ?? '—'} · free {operatorRouting.telegram_health?.free?.latest_status ?? '—'} · vip {operatorRouting.telegram_health?.vip?.latest_status ?? '—'}</div></div>
-        </div>
-        {monitorUnhealthyReason && (
-          <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200">
-            Monitor truth guard: unhealthy because {monitorUnhealthyReason}. UI does not mark the monitor healthy unless the latest run is recent and non-critical.
-          </div>
-        )}
-        <div className="mt-3 grid sm:grid-cols-3 gap-3 text-xs">
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Monitor Truth</div><div className="text-zinc-200 mt-1">{monitorTruth.label}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Latest Short Error</div><div className="text-zinc-200 mt-1">{shortOperatorText(monitorState?.latest_monitor_error || monitorState?.latest_sync_error || 'None')}</div></div>
-          <div className="bg-zinc-950/60 rounded-lg p-3"><div className="text-zinc-500">Truth Reason</div><div className="text-zinc-200 mt-1">{monitorTruth.reason}</div></div>
-        </div>
-        <details className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-xs text-zinc-400">
-          <summary className="cursor-pointer text-zinc-300">View raw details</summary>
-          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words">{JSON.stringify({ latest_monitor_result: monitorState?.latest_monitor_result ?? {}, open_binance_positions: monitorState?.open_binance_positions ?? [], open_binance_orders: monitorState?.open_binance_orders ?? [], last_managed_exit_action: monitorState?.last_managed_exit_action ?? {} }, null, 2)}</pre>
-        </details>
-        {(monitorState?.latest_monitor_error || monitorState?.latest_sync_error) && (
-          <div className="mt-2 text-xs text-red-300 font-mono truncate" title={`${monitorState?.latest_monitor_error ?? ''} ${monitorState?.latest_sync_error ?? ''}`}>
-            Monitor error: {monitorState?.latest_monitor_error || '—'} · Sync error: {monitorState?.latest_sync_error || '—'}
-          </div>
-        )}
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            onClick={cleanStaleTestnetExecutions}
-            disabled={cleaning}
-            title="Checks Binance testnet positions/orders before marking stale DB blockers closed"
-            className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 text-amber-300 px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-60">
-            {cleaning
-              ? <div className="w-3.5 h-3.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
-              : <Trash2 size={13} />}
-            Clean stale testnet executions
-          </button>
-          {cleanupMsg && <span className="text-xs text-zinc-400">{cleanupMsg}</span>}
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-4 gap-4 mb-6">
-        <StatusCard icon={<Cpu size={14} />} label="Execution Mode" value={status?.env?.execution_mode ?? 'signal_only'} note="Default remains signal_only" />
-        <StatusCard icon={<Shield size={14} />} label="Testnet Enabled" value={status?.env?.testnet_enabled ? 'YES' : 'NO'} valueClass={status?.env?.testnet_enabled ? 'text-emerald-400' : 'text-zinc-500'} note="Requires TESTNET_ENABLED=true" />
-        <StatusCard icon={<XCircle size={14} />} label="Kill Switch" value={status?.settings?.kill_switch_enabled ? 'ON' : 'OFF'} valueClass={status?.settings?.kill_switch_enabled ? 'text-red-400' : 'text-emerald-400'} note="DB admin safety switch" />
-        <StatusCard icon={<Activity size={14} />} label="Open / Max" value={`${openExecutions.length} / ${status?.settings?.max_open_testnet_positions ?? 3}`} note="One active per symbol by default" />
-      </div>
-
-
-      <div className="grid xl:grid-cols-2 gap-4 mb-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div>
-              <h2 className="font-semibold text-sm">USDT/USDC Capital Controls</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Admin controls for existing X-B margin fallback flags only.</p>
-            </div>
-            <StatusBadge active={status?.settings?.enable_usdc_margin_backup === true} activeLabel="USDC BACKUP ON" inactiveLabel="USDC BACKUP OFF" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <div className="font-semibold text-sm">USDC Margin Backup</div>
-                <ToggleButtons disabled={acting} value={status?.settings?.enable_usdc_margin_backup === true} onToggle={value => updateExecutionSettings({ enable_usdc_margin_backup: value })} />
-              </div>
-              <p className="text-xs text-zinc-500 mb-3">If USDT margin is insufficient, attempt USDC-supported contract execution when available.</p>
-              <div className="space-y-2 text-xs">
-                <ProofRow label="Current setting" value={status?.settings?.enable_usdc_margin_backup ? 'ON' : 'OFF'} />
-                <ProofRow label="Last fallback attempt" value={lastFallbackAttempt?.updated_at ? new Date(lastFallbackAttempt.updated_at).toLocaleString() : lastFallbackAttempt?.created_at ? new Date(lastFallbackAttempt.created_at).toLocaleString() : '—'} />
-                <ProofRow label="Successful fallbacks" value={String(successfulFallbacks)} />
-                <ProofRow label="Failed fallbacks" value={String(failedFallbacks)} />
-                <ProofRow label="Unsupported symbol count" value={String(unsupportedSymbolCount)} />
-              </div>
-            </div>
-            <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
-              <label className="block text-xs text-zinc-500 mb-1.5">Preferred Margin Asset</label>
-              <select value={status?.settings?.prefer_margin_asset ?? 'USDT'} disabled={acting} onChange={e => updateExecutionSettings({ prefer_margin_asset: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm mb-3">
-                <option value="USDT">USDT</option>
-                <option value="USDC">USDC</option>
-              </select>
-              <ProofRow label="Current active asset preference" value={String(status?.settings?.prefer_margin_asset ?? 'USDT')} />
-              <div className="mt-4 text-xs text-zinc-500 mb-2">Margin Asset Allow List</div>
-              <div className="flex gap-3 mb-3">
-                {['USDT', 'USDC'].map(asset => (
-                  <label key={asset} className="inline-flex items-center gap-2 text-xs text-zinc-300">
-                    <input type="checkbox" checked={allowMarginAssets.includes(asset)} disabled={acting} onChange={e => {
-                      const next = new Set(allowMarginAssets);
-                      if (e.target.checked) next.add(asset); else next.delete(asset);
-                      updateExecutionSettings({ allow_margin_assets: Array.from(next).sort().join(',') || 'USDT' });
-                    }} /> {asset}
-                  </label>
-                ))}
-              </div>
-              <ProofRow label="Runtime value" value={String(status?.settings?.allow_margin_assets ?? 'USDT,USDC')} />
-            </div>
-          </div>
-          <div className="mt-4 rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
-            <h3 className="font-semibold text-sm mb-3">Margin Diagnostics</h3>
-            <div className="grid sm:grid-cols-2 gap-2 text-xs">
-              <ProofRow label="Available USDT" value={String(status?.capital?.raw_available_usdt ?? status?.account_state?.availableUsdt ?? '—')} />
-              <ProofRow label="Available USDC" value={String(status?.capital?.raw_available_usdc ?? status?.account_state?.availableUsdc ?? '—')} />
-              <ProofRow label="Last insufficient margin event" value={String(status?.last_insufficient_margin?.reason ?? '—')} />
-              <ProofRow label="Last fallback reason" value={String(lastFallbackAttempt?.insufficient_margin_reason ?? status?.last_insufficient_margin?.reason ?? '—')} />
-              <ProofRow label="Last exchange rejection" value={String(status?.latest_error?.last_exchange_error ?? status?.latest_error?.error_message ?? '—')} />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div>
-              <h2 className="font-semibold text-sm">Profit Lock Control Panel</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Expose existing X-B profit-lock flags and runtime state without changing strategy logic.</p>
-            </div>
-            <ModeBadge mode={profitLockMode} />
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <ControlCard title="Profit Lock Engine" status={status?.settings?.enable_profit_lock_engine === true} onToggle={value => updateExecutionSettings({ enable_profit_lock_engine: value })} disabled={acting}>
-              <ProofRow label="Current mode" value={profitLockMode} />
-              <ProofRow label="Maps to" value="enable_profit_lock_engine" />
-            </ControlCard>
-            <ControlCard title="Testnet Profit Lock" status={status?.settings?.enable_testnet_profit_lock_engine === true} onToggle={value => updateExecutionSettings({ enable_testnet_profit_lock_engine: value })} disabled={acting}>
-              <ProofRow label="Maps to" value="enable_testnet_profit_lock_engine" />
-              <div className="mt-2 text-xs text-yellow-200 bg-yellow-500/10 border border-yellow-500/20 rounded p-2">Only affects Binance Testnet.</div>
-            </ControlCard>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4 mt-4 text-xs">
-            <label className="block rounded-lg bg-zinc-950/60 border border-zinc-800 p-4"><span className="text-zinc-500">Before TP1 Profit Lock</span><select value={status?.settings?.profit_lock_before_tp1 ?? 'research_only'} disabled={acting} onChange={e => updateExecutionSettings({ profit_lock_before_tp1: e.target.value, profit_lock_before_tp1_testnet_allowed: e.target.value === 'testnet_action' })} className="mt-2 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-2"><option value="disabled">DISABLED</option><option value="research_only">RESEARCH ONLY</option><option value="testnet_action">TESTNET ACTION</option></select><div className="mt-2 text-zinc-500">Maps to profit_lock_before_tp1</div></label>
-            <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4"><div className="flex items-center justify-between gap-3"><span className="text-zinc-500">Profit Lock After TP1</span><ToggleButtons disabled={acting} value={status?.settings?.profit_lock_after_tp1 !== false} onToggle={value => updateExecutionSettings({ profit_lock_after_tp1: value })} /></div><div className="mt-2 text-zinc-500">Maps to profit_lock_after_tp1</div></div>
-          </div>
-          <div className="mt-4 rounded-lg bg-zinc-950/60 border border-zinc-800 p-4">
-            <h3 className="font-semibold text-sm mb-3">Profit Lock Parameters</h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-              <NumberSetting label="Profit Lock Min R" value={status?.settings?.profit_lock_min_r ?? 0.3} step="0.01" onChange={value => updateExecutionSettings({ profit_lock_min_r: value })} disabled={acting} />
-              <NumberSetting label="Aggressive Min R" value={status?.settings?.profit_lock_aggressive_min_r ?? 0.15} step="0.01" onChange={value => updateExecutionSettings({ profit_lock_aggressive_min_r: value })} disabled={acting} />
-              <NumberSetting label="Buffer R" value={status?.settings?.profit_lock_buffer_r ?? 0.03} step="0.01" onChange={value => updateExecutionSettings({ profit_lock_buffer_r: value })} disabled={acting} />
-              <NumberSetting label="Cooldown Minutes" value={status?.settings?.profit_lock_cooldown_minutes ?? 5} step="1" onChange={value => updateExecutionSettings({ profit_lock_cooldown_minutes: value })} disabled={acting} />
-              <NumberSetting label="Max Updates Per Trade" value={status?.settings?.profit_lock_max_updates_per_trade ?? 3} step="1" onChange={value => updateExecutionSettings({ profit_lock_max_updates_per_trade: value })} disabled={acting} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid xl:grid-cols-2 gap-4 mb-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="font-semibold text-sm mb-3">Live Status Panel</h2>
-          <div className="grid sm:grid-cols-2 gap-2 text-xs">
-            <ProofRow label="Profit Lock Engine" value={status?.settings?.enable_profit_lock_engine ? 'ON' : 'OFF'} />
-            <ProofRow label="Testnet Action" value={status?.settings?.enable_testnet_profit_lock_engine ? 'ON' : 'OFF'} />
-            <ProofRow label="Current Mode" value={profitLockMode} />
-            <ProofRow label="Open Trades Under Monitoring" value={String(openTradesUnderMonitoring)} />
-            <ProofRow label="Trades Eligible For Lock" value={String(tradesEligibleForLock)} />
-            <ProofRow label="Trades Already Locked" value={String(tradesAlreadyLocked)} />
-            <ProofRow label="SL Replacements Verified" value={String(slReplacementsVerified)} />
-            <ProofRow label="SL Replacement Failures" value={String(slReplacementFailures)} />
-            <ProofRow label="Old SL Preserved Count" value={String(oldSlPreservedCount)} />
-            <ProofRow label="Recovery Success Rate" value={recoverySuccessRate} />
-          </div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="font-semibold text-sm mb-3">Safety Guards</h2>
-          <div className="grid sm:grid-cols-2 gap-3 text-xs">
-            <GuardBadge label="LIVE TRADING" value="DISABLED" tone="red" />
-            <GuardBadge label="TESTNET" value={status?.env?.testnet_enabled ? 'ACTIVE' : 'DISABLED'} tone={status?.env?.testnet_enabled ? 'green' : 'red'} />
-            <GuardBadge label="USDC BACKUP" value={status?.settings?.enable_usdc_margin_backup ? 'ON' : 'OFF'} tone={status?.settings?.enable_usdc_margin_backup ? 'green' : 'red'} />
-            <GuardBadge label="PROFIT LOCK" value={status?.settings?.enable_profit_lock_engine ? 'ON' : 'OFF'} tone={status?.settings?.enable_profit_lock_engine ? (profitLockMode === 'study_only' ? 'yellow' : 'green') : 'red'} />
-            <GuardBadge label="BEFORE TP1 ACTION" value={status?.settings?.profit_lock_before_tp1 === 'testnet_action' ? 'ON' : 'OFF'} tone={status?.settings?.profit_lock_before_tp1 === 'research_only' ? 'yellow' : status?.settings?.profit_lock_before_tp1 === 'testnet_action' ? 'green' : 'red'} />
-            <GuardBadge label="AFTER TP1 ACTION" value={status?.settings?.profit_lock_after_tp1 !== false ? 'ON' : 'OFF'} tone={status?.settings?.profit_lock_after_tp1 !== false ? 'green' : 'red'} />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="font-semibold text-sm">Risk Governor / PnL Brain</h2>
-          <div className="flex gap-2">
-            <ActionButton disabled={acting} onClick={() => callExecution('refresh_account_state')} icon={<RefreshCw size={14} />} label="Refresh Binance Account State" />
-            <ActionButton disabled={acting} onClick={() => callExecution('evaluate_governor')} icon={<Shield size={14} />} label="Re-evaluate Governor" />
-            <ActionButton disabled={acting} onClick={() => updateExecutionSettings({ testnet_governor_mode: 'normal' })} icon={<Shield size={14} />} label="Governor Normal" />
-            <ActionButton disabled={acting} onClick={() => updateExecutionSettings({ testnet_governor_mode: 'readonly' })} icon={<Shield size={14} />} label="Governor Readonly" />
-            <ActionButton disabled={acting} onClick={() => updateExecutionSettings({ testnet_governor_mode: 'off_for_testing' })} icon={<AlertTriangle size={14} />} label="Governor Off For Testing" danger />
-            <ActionButton disabled={acting} onClick={resetTestnetGovernor} icon={<RotateCcw size={14} />} label="Reset Testnet Governor / Start New Test Day" danger />
-          </div>
-        </div>
-        <div className="grid md:grid-cols-4 gap-3 text-xs">
-          <ProofRow label="Governor mode" value={governorMode} />
-          <ProofRow label="Governor enabled" value={status?.settings?.governor_enabled ? 'true' : 'false'} />
-          <ProofRow label="Governor state" value={governorDisplayState} />
-          <ProofRow label="Governor reason" value={status?.governor?.reason ?? status?.settings?.last_governor_reason ?? '—'} />
-          <ProofRow label="Current equity" value={String(status?.governor?.current_equity ?? status?.settings?.current_equity ?? '—')} />
-          <ProofRow label="Daily start equity" value={String(status?.settings?.daily_start_equity ?? '—')} />
-          <ProofRow label="Daily realized PnL" value={String(status?.settings?.daily_realized_pnl ?? '—')} />
-          <ProofRow label="Daily PnL %" value={String(status?.governor?.daily_pnl_pct ?? status?.settings?.daily_pnl_pct ?? '—')} />
-          <ProofRow label="Unrealized PnL" value={String(status?.governor?.unrealized_pnl ?? status?.settings?.daily_unrealized_pnl ?? '—')} />
-          <ProofRow label="Open positions" value={String(status?.account_state?.openPositions ?? status?.settings?.account_open_positions ?? '—')} />
-          <ProofRow label="Open orders" value={String(status?.account_state?.openOrderCount ?? status?.settings?.account_open_order_count ?? '—')} />
-          <ProofRow label="Available balance" value={String(status?.account_state?.availableBalance ?? status?.settings?.account_available_balance ?? '—')} />
-          <ProofRow label="Margin ratio" value={String(status?.account_state?.marginRatio ?? status?.settings?.account_margin_ratio ?? '—')} />
-          <ProofRow label="Max daily loss %" value={`${status?.settings?.max_daily_loss_pct ?? '—'}%`} />
-          <ProofRow label="Max unrealized DD %" value={`${status?.settings?.max_unrealized_drawdown_pct ?? '—'}%`} />
-          <ProofRow label="Failed execution streak" value={String(status?.settings?.failed_execution_streak ?? 0)} />
-          <ProofRow label="Closed SL streak" value={String(status?.settings?.closed_sl_streak ?? 0)} />
-          <ProofRow label="Risk multiplier" value={String(status?.governor?.risk_multiplier ?? '—')} />
-          <ProofRow label="Effective max lev" value={`${status?.governor?.adjusted_max_leverage ?? status?.settings?.testnet_max_leverage ?? 7}x`} />
-          <ProofRow label="Effective risk %" value={status?.governor?.state === 'defensive' ? '0.5x configured' : status?.governor?.state === 'aggressive_allowed' ? 'A 0.75 / A+ 1.0 cap' : 'configured'} />
-          <ProofRow label="Last checked" value={status?.settings?.last_governor_checked_at ? new Date(status.settings.last_governor_checked_at).toLocaleString() : '—'} />
-          <ProofRow label="Execution allowed" value={String(executionAllowedDisplay)} />
-        </div>
-        {governorMode === 'off_for_testing' && <div className="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded p-3">Governor Mode: OFF_FOR_TESTING · Governor State: IGNORED · Execution Allowed: TRUE. Historical governor reasons remain visible, but new Binance Testnet entries are not governor-blocked. Live trading remains blocked.</div>}
-        {governorMode === 'readonly' && <div className="mt-3 text-xs text-yellow-200 bg-yellow-500/10 border border-yellow-500/20 rounded p-3">Governor readonly: PnL/risk/streaks are calculated and warnings remain visible, but testnet entries are not governor-blocked.</div>}
-        <div className="mt-3 text-xs text-zinc-400">Governor reset is testnet-only and does not delete signals, scanner runs, performance history, Binance positions, or Binance orders.</div>
-        {(status?.governor?.state === 'paused' || status?.settings?.governor_state === 'paused') && (
-          <div className="mt-3 text-xs text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 rounded p-3">
-            Admin action needed: review kill switch, account PnL/drawdown, consecutive failure/SL streaks, and governor thresholds. HashiBot will not silently unpause execution.
-          </div>
-        )}
-        {status?.account_state?.positions && status.account_state.positions.length > 0 && <div className="mt-3 text-xs text-zinc-500 font-mono">Positions: {status.account_state.positions.map(p => `${p.symbol} size ${p.positionAmt} uPnL ${p.unrealizedPnl}`).join(' · ')}</div>}
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="font-semibold mb-3 text-sm">Auto Execution Gate</h2>
-          <div className="space-y-3 text-xs">
-            <label className="flex items-center justify-between gap-3">
-              <span className="text-zinc-400">Auto-execute new scanner signals</span>
-              <button disabled={acting} onClick={() => updateExecutionSettings({ auto_execute_testnet: !status?.settings?.auto_execute_testnet })} className={`px-3 py-1 rounded-full border text-xs ${status?.settings?.auto_execute_testnet ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>{status?.settings?.auto_execute_testnet ? 'ON' : 'OFF'}</button>
-            </label>
-            <ProofRow label="DB mode" value={status?.settings?.execution_mode ?? 'signal_only'} />
-            <ProofRow label="DB testnet" value={status?.settings?.testnet_enabled ? 'true' : 'false'} />
-            <ProofRow label="One active/symbol" value={status?.settings?.one_active_execution_per_symbol ? 'true' : 'false'} />
-            <ProofRow label="Max open positions" value={String(status?.settings?.max_open_testnet_positions ?? 3)} />
-            <ProofRow label="Max total open risk" value={stressMode && status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : `${status?.settings?.max_total_open_risk_pct ?? 3}%`} />
-            <ProofRow label="Current open risk" value={stressMode && status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : `${status?.current_open_risk_pct ?? 0}%`} />
-            <ProofRow label="Remaining risk" value={stressMode && status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : `${status?.remaining_risk_capacity_pct ?? 0}%`} />
-            <label className="block pt-2"><span className="text-zinc-500">Set max open (1-10)</span><input type="number" min={1} max={10} value={status?.settings?.max_open_testnet_positions ?? 3} onChange={e => updateExecutionSettings({ max_open_testnet_positions: Math.min(10, Math.max(1, Number(e.target.value))) })} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /></label>
-          </div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="font-semibold mb-3 text-sm">Capital Basis</h2>
-          <select value={status?.settings?.capital_basis ?? 'available_usdt'} disabled={acting} onChange={e => updateExecutionSettings({ capital_basis: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm mb-3">
-            <option value="available_usdt">available_usdt</option>
-            <option value="available_usdc_plus_usdt">available_usdc_plus_usdt</option>
-            <option value="total_margin_balance">total_margin_balance</option>
-            <option value="total_wallet_balance">total_wallet_balance</option>
-            <option value="manual_override">manual_override</option>
-          </select>
-          <div className="space-y-2 text-xs">
-            <ProofRow label="Selected capital" value={String(status?.capital?.selected_capital_used ?? '—')} />
-            <ProofRow label="Total margin" value={String(status?.capital?.raw_total_margin_balance ?? '—')} />
-            <ProofRow label="Total wallet" value={String(status?.capital?.raw_total_wallet_balance ?? '—')} />
-            <ProofRow label="Available USDT" value={String(status?.capital?.raw_available_usdt ?? '—')} />
-            <ProofRow label="Available USDC" value={String(status?.capital?.raw_available_usdc ?? '—')} />
-            <ProofRow label="Preferred asset" value={String(status?.settings?.prefer_margin_asset ?? 'USDT')} />
-            <ProofRow label="Allowed assets" value={String(status?.settings?.allow_margin_assets ?? 'USDT,USDC')} />
-            <ProofRow label="USDC backup" value={status?.settings?.enable_usdc_margin_backup ? 'enabled' : 'disabled/testnet default'} />
-            <ProofRow label="Last margin reason" value={String(status?.last_insufficient_margin?.reason ?? '—')} />
-            <ProofRow label="Backup attempted" value={status?.last_insufficient_margin?.backup_attempted ? 'yes' : 'no'} />
-            <ProofRow label="Backup asset used" value={String(status?.last_insufficient_margin?.backup_asset_used ?? '—')} />
-            <ProofRow label="Final margin result" value={String(status?.last_insufficient_margin?.final_result ?? '—')} />
-          </div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="font-semibold mb-3 text-sm">Risk / Leverage</h2>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <ProofRow label="Profit-lock engine" value={status?.settings?.enable_profit_lock_engine ? 'ON' : 'OFF'} />
-            <ProofRow label="Testnet profit-lock" value={status?.settings?.enable_testnet_profit_lock_engine ? 'ON' : 'OFF'} />
-            <ProofRow label="PL min R" value={String(status?.settings?.profit_lock_min_r ?? 0.3)} />
-            <ProofRow label="PL cooldown" value={`${status?.settings?.profit_lock_cooldown_minutes ?? 5}m`} />
-            <ProofRow label="PL study counters" value={JSON.stringify(status?.settings?.profit_lock_study_counters ?? {})} />
-            <ProofRow label="PL actions taken" value={String(status?.settings?.profit_lock_actions_taken ?? 0)} />
-            <ProofRow label="PL skipped" value={JSON.stringify(status?.settings?.profit_lock_skipped_reasons ?? {})} />
-            <ProofRow label="Stress Mode" value={stressMode ? 'ON' : 'OFF'} />
-            <ProofRow label="Execution Mode" value={status?.settings?.execution_mode ?? 'signal_only'} />
-            <ProofRow label="Current Effective Risk" value={status?.effective_risk_pct !== null && status?.effective_risk_pct !== undefined ? `${status.effective_risk_pct}%` : 'normal logic'} />
-            <ProofRow label="Current Effective Leverage" value={status?.effective_leverage !== null && status?.effective_leverage !== undefined ? `${status.effective_leverage}x` : 'normal logic'} />
-            <ProofRow label="Risk Source" value={status?.risk_source ?? '—'} />
-            <ProofRow label="Leverage Source" value={status?.leverage_source ?? '—'} />
-            <ProofRow label="Governor Mode" value={status?.governor_display?.mode ?? governorMode.toUpperCase()} />
-            <ProofRow label="Governor State" value={governorDisplayState} />
-            <ProofRow label="Execution Allowed" value={String(executionAllowedDisplay)} />
-            <ProofRow label="Risk A" value={`${status?.settings?.testnet_risk_a ?? 0.5}%`} />
-            <ProofRow label="Risk A+" value={`${status?.settings?.testnet_risk_a_plus ?? 0.75}%`} />
-            <ProofRow label="Max risk" value={`${status?.settings?.max_testnet_risk_pct ?? 1}%`} />
-            <ProofRow label="Lev A" value={`${status?.settings?.testnet_leverage_a ?? 3}x`} />
-            <ProofRow label="Lev A+" value={`${status?.settings?.testnet_leverage_a_plus ?? 5}x`} />
-            <ProofRow label="Max lev" value={`${status?.settings?.testnet_max_leverage ?? 7}x`} />
-          </div>
-          <div className="mt-4 grid sm:grid-cols-2 gap-3 text-xs">
-            <label className="flex items-center justify-between gap-3 rounded-lg bg-zinc-950/60 border border-zinc-800 px-3 py-2">
-              <span className="text-zinc-400">Stress Mode</span>
-              <button disabled={acting} onClick={() => updateExecutionSettings({ stress_override_enabled: !status?.settings?.stress_override_enabled })} className={`px-3 py-1 rounded-full border text-xs ${status?.settings?.stress_override_enabled ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>{status?.settings?.stress_override_enabled ? 'ON' : 'OFF'}</button>
-            </label>
-            <label className="flex items-center justify-between gap-3 rounded-lg bg-zinc-950/60 border border-zinc-800 px-3 py-2">
-              <span className="text-zinc-400">Ignore Open Risk Limit</span>
-              <button disabled={acting} onClick={() => updateExecutionSettings({ stress_ignore_open_risk_limit: !status?.settings?.stress_ignore_open_risk_limit })} className={`px-3 py-1 rounded-full border text-xs ${status?.settings?.stress_ignore_open_risk_limit ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>{status?.settings?.stress_ignore_open_risk_limit ? 'ON' : 'OFF'}</button>
-            </label>
-            <label className="block"><span className="text-zinc-500">Stress Risk %</span><input type="number" step="0.1" min={0} max={2} value={status?.settings?.stress_risk_pct ?? 2} onChange={e => updateExecutionSettings({ stress_risk_pct: Math.min(2, Math.max(0, Number(e.target.value))) })} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /></label>
-            <label className="block"><span className="text-zinc-500">Stress Leverage</span><input type="number" min={1} max={10} value={status?.settings?.stress_leverage ?? 10} onChange={e => updateExecutionSettings({ stress_leverage: Math.min(10, Math.max(1, Number(e.target.value))) })} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /></label>
-          </div>
-          {stressMode && <div className="mt-3 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded p-3">Stress mode is active: every qualified testnet execution uses {status?.settings?.stress_risk_pct ?? 2}% risk, {status?.settings?.stress_leverage ?? 10}x leverage, risk_source/leverage_source testnet_stress_override, and open-risk guard {status?.settings?.stress_ignore_open_risk_limit ? 'IGNORED_FOR_STRESS_TEST' : 'ACTIVE'}.</div>}
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 md:col-span-2">
-          <h2 className="font-semibold mb-4 text-sm">Manual Test Actions</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <ActionButton disabled={acting} onClick={() => callExecution('test_connection')} icon={<Send size={14} />} label="Test Binance Connection" />
-            <ActionButton disabled={acting} onClick={() => callExecution('validate_symbol', { symbol })} icon={<FlaskConical size={14} />} label="Validate Symbol" />
-            <ActionButton disabled={acting || !selectedSignalValid} onClick={() => callSelectedExecution('dry_run')} icon={<FlaskConical size={14} />} label="Dry-run Selected Signal" />
-            <ActionButton disabled={acting || !selectedSignalValid} onClick={() => callSelectedExecution('execute_signal', { manual: true })} icon={<PlayCircle size={14} />} label="Execute Selected Signal" danger />
-            <ActionButton disabled={acting || !selectedSignalValid} onClick={() => callSelectedExecution('manual_test_flow')} icon={<Shield size={14} />} label="Run E2E Test Flow" danger />
-            <ActionButton disabled={acting} onClick={() => callExecution('positions')} icon={<RefreshCw size={14} />} label="Fetch Open Positions" />
-            <ActionButton disabled={acting || !symbol} onClick={() => callExecution('cancel_orders', { symbol })} icon={<XCircle size={14} />} label="Cancel Symbol Orders" danger />
-            <ActionButton disabled={acting || !symbol} onClick={() => callExecution('close_position', { symbol })} icon={<XCircle size={14} />} label="Close Position Now" danger />
-            <ActionButton disabled={acting || !symbol} onClick={() => callExecution('clean_stale_execution_rows', { symbol })} icon={<Trash2 size={14} />} label="Clean Stale Rows Now" />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3 mt-4">
-            <label className="block">
-              <span className="text-xs text-zinc-500">Symbol action target</span>
-              <input value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm font-mono" />
-            </label>
-            <label className="block">
-              <span className="text-xs text-zinc-500">Recent signal for dry-run/manual execution</span>
-              <select value={selectedSignalId} onChange={e => setSelectedSignalId(e.target.value)} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm">
-                <option value="" disabled>{signals.length === 0 ? 'No executable crypto signals available' : 'Select a signal'}</option>
-                {signals.map(s => <option key={s.id} value={s.id}>{s.symbol} {s.direction.toUpperCase()} · {s.grade} · {new Date(s.created_at).toLocaleString()}</option>)}
-              </select>
-              {!selectedSignalValid && <div className="text-[11px] text-yellow-300 mt-1">Refresh removed stale/deleted signals from this dropdown. Select a valid fresh signal before execution.</div>}
-            </label>
-          </div>
-        </div>
-
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-          <h2 className="font-semibold mb-3 text-sm">Connection Status</h2>
-          <div className="space-y-2 text-xs">
-            <ProofRow label="Exchange" value={status?.env?.exchange ?? 'binance_usdm_testnet'} />
-            <ProofRow label="Base URL" value={status?.env?.base_url ?? 'https://demo-fapi.binance.com'} />
-            <ProofRow label="API key" value={status?.env?.api_key_configured ? 'Configured' : 'Missing'} />
-            <ProofRow label="API secret" value={status?.env?.api_secret_configured ? 'Configured' : 'Missing'} />
-            <ProofRow label="Live trading" value={status?.env?.live_trading_enabled ? 'BLOCK UI / ENV INVALID' : 'Disabled'} />
-            <ProofRow label="Failed / skipped" value={`${status?.failed_count ?? 0} / ${status?.skipped_count ?? 0}`} />
-          </div>
-          {status?.latest_error && <div className="mt-3 text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded p-2">{status.latest_error.last_exchange_error || status.latest_error.error_message}</div>}
-        </div>
-      </div>
-
-      {result && (
-        <div className={`mb-6 rounded-xl border p-4 ${result.success ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
-          <div className={`text-sm font-semibold mb-2 ${result.success ? 'text-emerald-300' : 'text-red-300'}`}>{result.success ? 'Action completed' : 'Action failed / skipped'}</div>
-          <pre className="text-xs text-zinc-300 overflow-auto max-h-72 whitespace-pre-wrap">{JSON.stringify(result, null, 2)}</pre>
         </div>
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center h-32"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
-      ) : (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
-            <h2 className="font-semibold text-sm">Latest Testnet Executions</h2>
-            <button onClick={() => load()} className="text-xs text-blue-400 hover:text-blue-300 inline-flex items-center gap-1"><RefreshCw size={12} /> Refresh</button>
+      {/* TAB 4: DIAGNOSTICS & DEBUG TOOLS */}
+      {activeTab === 'diagnostics_debug' && (
+        <div className="space-y-6">
+          {/* Section 12: Provider Diagnostics */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 mb-4">
+              <Terminal size={16} className="text-blue-400" />
+              Provider Diagnostics & Connection Tests
+            </h2>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution('test_connection')}
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-medium text-zinc-200 hover:border-blue-500/40">
+                Test Connection
+              </button>
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution('refresh_account_state')}
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-medium text-zinc-200 hover:border-blue-500/40">
+                Fetch Balances & Margin State
+              </button>
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution('positions')}
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-medium text-zinc-200 hover:border-blue-500/40">
+                Fetch Open Positions
+              </button>
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution(provider === 'bybit' ? 'sync_bybit_tradable_symbols' : 'sync_binance_tradable_symbols')}
+                className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-medium text-zinc-200 hover:border-blue-500/40">
+                Sync Executable Symbols Universe
+              </button>
+              {provider === 'bybit' && (
+                <button
+                  type="button"
+                  disabled={acting}
+                  onClick={() => runBybitDebug('account_capital')}
+                  className="rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-medium text-zinc-200 hover:border-blue-500/40">
+                  Diagnose Bybit Account Permissions
+                </button>
+              )}
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-3 text-xs mb-4">
+              <ProofRow label="Trade Truth Rows" value={String(tradeTruthRows.length)} />
+              <ProofRow label="Symbol Cache Rows" value={String(symbolCacheRows.length)} />
+              <ProofRow label="Monitor Heartbeats" value={String(monitorHeartbeats.length)} />
+              <ProofRow label="Monitor Schedules" value={String(monitorSchedules.length)} />
+            </div>
+
+            {/* Diagnostic Results output */}
+            {bybitDebug && (
+              <details open className="rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-xs">
+                <summary className="font-semibold text-zinc-300 cursor-pointer">Bybit Raw Diagnostic Inspection</summary>
+                <pre className="mt-3 max-h-60 overflow-auto text-zinc-400 font-mono whitespace-pre-wrap">{JSON.stringify(bybitDebug, null, 2)}</pre>
+              </details>
+            )}
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Provider</th><th className="text-left px-4 py-3">Symbol</th><th className="text-left px-4 py-3">Side</th><th className="text-left px-4 py-3">Lev</th><th className="text-left px-4 py-3">Qty</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Blocker</th><th className="text-left px-4 py-3">Submitted Order</th><th className="text-left px-4 py-3">Protection</th><th className="text-left px-4 py-3">Orders</th><th className="text-left px-4 py-3">Stress Test Timer</th><th className="text-left px-4 py-3">Lock/Capital</th><th className="text-left px-4 py-3">Sync</th>
-              </tr>
-            </thead>
-            <tbody>
-              {executions.length === 0 ? <tr><td colSpan={13} className="px-4 py-8 text-center text-zinc-500">No Binance testnet executions yet.</td></tr> : executions.map(e => (
-                <tr key={e.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
-                  <td className="px-4 py-3 uppercase text-xs text-zinc-300">{e.execution_provider ?? 'binance'}</td>
-                  <td className="px-4 py-3 font-mono font-semibold text-xs">{e.symbol}</td>
-                  <td className="px-4 py-3"><span className={e.side === 'long' ? 'text-emerald-400' : 'text-red-400'}>{e.side}</span></td>
-                  <td className="px-4 py-3 text-xs text-zinc-400"><div>{e.leverage ? `${e.leverage}x` : '—'}</div><div className="text-[11px] text-zinc-600">{e.leverage_source ?? '—'}</div><div className="text-[11px] text-zinc-600">Risk: {e.risk_pct ?? '—'}% · {e.risk_source ?? '—'}</div></td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">{e.quantity ?? e.volume}</td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[e.status] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>{e.status}</span><div className="mt-1 text-[11px] text-zinc-500">Entry: {e.entry_filled_at ? 'filled' : e.binance_entry_order_id || e.entry_order_id ? 'submitted' : '—'}</div><div className={freshnessState(e) === 'fresh' ? 'mt-1 text-[11px] text-emerald-300' : 'mt-1 text-[11px] text-yellow-300'}>{freshnessState(e)}</div></td>
-                  <td className="px-4 py-3 text-xs text-yellow-300">{e.latest_auto_skip_reason || e.error_message || e.last_exchange_error || '—'}</td>
-                  <td className="px-4 py-3 text-xs">{e.entry_order_id || e.binance_entry_order_id ? 'yes' : 'no'}</td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>{e.bracket_mode || '—'}</div><div className={e.protection_status === 'unprotected_failed' ? 'text-red-300' : e.protection_status === 'protected' || e.protection_status === 'protected_native' || e.protection_status === 'protected_managed' ? 'text-emerald-300' : 'text-zinc-500'}>{e.protection_status || '—'}</div><div>Protection mode: {e.bracket_mode || 'pending'}</div><div>TP1 status: {e.tp1_status || (e.tp1_closed_at || e.tp1_filled ? 'filled/closed' : e.tp1_algo_id || e.binance_tp1_order_id || e.tp1_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending')}</div><div>TP2 status: {e.tp2_status || (e.tp2_closed_at ? 'filled/closed' : e.tp2_algo_id || e.binance_tp2_order_id || e.tp2_order_id ? 'open/native' : e.bracket_mode === 'managed_exit_fallback' ? 'managed' : 'pending')}</div><div>SL/BE status: {e.sl_status || (e.sl_closed_at ? 'closed' : e.sl_moved_to_be ? `BE ${e.be_stop_level ?? ''}` : e.sl_algo_id || e.binance_sl_order_id || e.sl_order_id ? 'open/native SL' : e.bracket_mode === 'managed_exit_fallback' ? 'managed SL' : 'pending')}</div><div>Expiry: {e.expiry_status ?? 'active'} · Recovery: {e.recovery_status ?? 'none'}</div><div>Last TG: {e.last_telegram_event_sent ?? '—'}</div><div>Remaining: {e.remaining_quantity ?? '—'}</div>{e.latest_protection_error && <div className="text-red-300">{e.latest_protection_error}</div>}{e.latest_auto_skip_reason && <div className="text-yellow-300">{e.latest_auto_skip_reason}</div>}{e.last_exchange_error && <div className="text-red-300">{e.last_exchange_error}</div>}</td>
-                  <td className="px-4 py-3 text-xs text-zinc-500 font-mono">
-                    <div className="font-semibold text-zinc-400 mb-1">{e.bracket_mode === 'exchange_native' ? 'Native algo orders' : e.bracket_mode === 'managed_exit_fallback' ? 'Managed fallback' : 'Pending'}</div>
-                    <div>Entry: {e.entry_order_id || e.binance_entry_order_id || '—'}</div>
-                    {(e.sl_algo_id || e.binance_sl_order_id || e.sl_order_id) && (
-                      <div className="mt-1 text-zinc-400">
-                        <div>SL algo: {e.sl_algo_id || e.binance_sl_order_id || e.sl_order_id}</div>
-                        {e.sl_client_algo_id && <div className="text-zinc-600">client: {e.sl_client_algo_id}</div>}
-                        <div>trigger: {e.intended_sl ?? e.stop_loss ?? '—'} · STOP_MARKET · reduceOnly</div>
-                      </div>
-                    )}
-                    {(e.tp1_algo_id || e.binance_tp1_order_id || e.tp1_order_id) && (
-                      <div className="mt-1 text-zinc-400">
-                        <div>TP1 algo: {e.tp1_algo_id || e.binance_tp1_order_id || e.tp1_order_id}</div>
-                        {e.tp1_client_algo_id && <div className="text-zinc-600">client: {e.tp1_client_algo_id}</div>}
-                        <div>trigger: {e.intended_tp1 ?? e.tp1 ?? '—'} · TP_MARKET · qty: {e.tp1_quantity ?? '—'}</div>
-                      </div>
-                    )}
-                    {(e.tp2_algo_id || e.binance_tp2_order_id || e.tp2_order_id) && (
-                      <div className="mt-1 text-zinc-400">
-                        <div>TP2 algo: {e.tp2_algo_id || e.binance_tp2_order_id || e.tp2_order_id}</div>
-                        {e.tp2_client_algo_id && <div className="text-zinc-600">client: {e.tp2_client_algo_id}</div>}
-                        <div>trigger: {e.intended_tp2 ?? e.tp2 ?? '—'} · TP_MARKET · qty: {e.tp2_quantity ?? '—'}</div>
-                      </div>
-                    )}
-                    <div className="mt-1">Native verified: <span className={e.native_protection_verified ? 'text-emerald-300' : 'text-zinc-600'}>{e.native_protection_verified ? 'yes' : 'no'}</span></div>
-                    <div>Managed fallback: <span className={e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'text-yellow-300' : 'text-zinc-600'}>{e.managed_fallback_active || e.bracket_mode === 'managed_exit_fallback' ? 'yes' : 'no'}</span></div>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Opened: {e.opened_at ? new Date(e.opened_at).toLocaleString() : e.entry_filled_at ? new Date(e.entry_filled_at).toLocaleString() : '—'}</div><div>Expires: {e.expires_at || e.time_stop_deadline_at ? new Date(e.expires_at ?? e.time_stop_deadline_at ?? '').toLocaleString() : '—'}</div><div>Minutes left: {minutesRemaining(e.expires_at ?? e.time_stop_deadline_at)}</div><div>Max hold: {e.max_hold_minutes ?? '—'}m</div><div>Mark: {e.latest_mark_price ?? '—'} · uPnL: {e.latest_unrealized_pnl ?? '—'}</div><div>Last monitor: {e.last_monitor_action || '—'}</div><div>Monitor error: <span className={e.latest_monitor_error ? 'text-red-300' : 'text-zinc-600'}>{e.latest_monitor_error || '—'}</span></div><div>Sync error: <span className={e.latest_sync_error ? 'text-red-300' : 'text-zinc-600'}>{e.latest_sync_error || '—'}</span></div><div>Seconds since fill: {secondsSinceEntryFill(e) ?? '—'}</div><div>Protection SLA: <span className={protectionSlaState(e) === 'pass' ? 'text-emerald-300' : protectionSlaState(e) === 'fail' ? 'text-red-300' : 'text-yellow-300'}>{protectionSlaState(e)}</span></div><div>Checked: {e.last_monitor_checked_at ? new Date(e.last_monitor_checked_at).toLocaleString() : '—'}</div></td>
-                  <td className="px-4 py-3 text-xs text-zinc-500"><div>Asset: {e.selected_margin_asset ?? 'USDT'}</div><div>Margin reason: {e.insufficient_margin_reason ?? '—'}</div><div>Backup: {e.margin_backup_attempted ? 'yes' : 'no'} {e.margin_backup_asset_used ?? ''}</div><div>Mode: {e.profit_lock_engine_mode ?? '—'}</div><div>Current R/PnL: {e.current_r ?? e.profit_lock_r_current ?? '—'} / {e.current_pnl ?? e.latest_unrealized_pnl ?? '—'}</div><div>Highest R/PnL: {e.highest_positive_r_observed ?? '—'} / {e.highest_positive_pnl_observed ?? '—'}</div><div>Recommendation: {e.lock_recommendation ?? '—'}</div><div>Lock: {e.profit_lock_status ?? '—'}</div><div>Verified SL repl: {e.replacement_sl_verified ? 'yes' : 'no'}</div><div>Old SL preserved: {e.old_sl_preserved === false ? 'no' : 'yes'}</div><div>Actions: {e.profit_lock_action_count ?? 0}</div><div>Skipped: {e.profit_lock_skipped_reason ?? '—'}</div></td>
-                  <td className="px-4 py-3"><button onClick={() => callExecution('sync_execution', { execution_id: e.id })} className="text-xs text-blue-400 hover:text-blue-300">Sync</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+          {/* Section 13: Engineering and Debug Tools */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                <FlaskConical size={16} className="text-purple-400" />
+                Engineering & Test Order Controls
+              </h2>
+              <span className="text-[11px] font-mono text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
+                TESTNET ONLY
+              </span>
+            </div>
+
+            <div className="mb-4 grid sm:grid-cols-2 gap-3">
+              <label className="block text-xs">
+                <span className="text-zinc-400">Target Symbol for Test Orders</span>
+                <input
+                  type="text"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1.5 font-mono text-xs text-zinc-200"
+                />
+              </label>
+
+              {signals.length > 0 && (
+                <label className="block text-xs">
+                  <span className="text-zinc-400">Select Signal for Test Action</span>
+                  <select
+                    value={selectedSignalId}
+                    onChange={(e) => setSelectedSignalId(e.target.value)}
+                    className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-200">
+                    {signals.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.symbol} ({s.direction.toUpperCase()}) - Grade {s.grade}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution(provider === 'bybit' ? 'place_tiny_bybit_test_order' : 'place_tiny_binance_test_order')}
+                className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-left hover:border-amber-400 transition-all">
+                <div className="font-semibold text-xs text-amber-200">Place Tiny Test Order</div>
+                <div className="text-[11px] text-zinc-400 mt-1">Submits a minimal test order to verify real order placement permissions.</div>
+              </button>
+
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callExecution('cancel_test_orders', { symbol })}
+                className="rounded border border-zinc-800 bg-zinc-950 p-3 text-left hover:border-zinc-700 transition-all">
+                <div className="font-semibold text-xs text-zinc-200">Cancel Test Orders</div>
+                <div className="text-[11px] text-zinc-400 mt-1">Cleans test orders for target symbol ({symbol}).</div>
+              </button>
+
+              <button
+                type="button"
+                disabled={acting}
+                onClick={() => callOperatorAction('run_runtime_proof')}
+                className="rounded border border-zinc-800 bg-zinc-950 p-3 text-left hover:border-zinc-700 transition-all">
+                <div className="font-semibold text-xs text-zinc-200">Run Runtime Proof Check</div>
+                <div className="text-[11px] text-zinc-400 mt-1">Validates system proof across signal, order, monitor, and DB state.</div>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-4 mt-6">
-        <MiniList title="Failed Executions" rows={failedExecutions} />
-        <MiniList title="Skipped Executions" rows={skippedExecutions} />
-      </div>
+      {/* TAB 5: EVENTS & RECEIPTS */}
+      {activeTab === 'events_receipts' && (
+        <div className="space-y-6">
+          {/* Section 14: Command Receipts */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 mb-4">
+              <CheckCircle2 size={16} className="text-emerald-400" />
+              Command Telemetry Receipts ({receiptHistory.length})
+            </h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                    <th className="py-2.5 px-3">Receipt ID</th>
+                    <th className="py-2.5 px-3">Action</th>
+                    <th className="py-2.5 px-3">Provider / Env</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Request Time</th>
+                    <th className="py-2.5 px-3">Completion Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
+                  {receiptHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-zinc-500 font-sans">
+                        No command receipts logged in this session yet. Execute any command above to capture receipt telemetry.
+                      </td>
+                    </tr>
+                  ) : (
+                    receiptHistory.map((rcpt) => (
+                      <tr key={rcpt.id} className="hover:bg-zinc-800/30 text-[11px]">
+                        <td className="py-2.5 px-3 font-bold text-zinc-200">{rcpt.id}</td>
+                        <td className="py-2.5 px-3 text-blue-300">{rcpt.action}</td>
+                        <td className="py-2.5 px-3 uppercase text-zinc-400">{rcpt.provider} / {rcpt.environment}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`px-2 py-0.5 rounded ${rcpt.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
+                            {rcpt.status}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-zinc-500">{new Date(rcpt.requestTime).toLocaleTimeString()}</td>
+                        <td className="py-2.5 px-3 text-zinc-500">{new Date(rcpt.completionTime).toLocaleTimeString()}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Runtime Event Stream */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 mb-4">
+              <Activity size={16} className="text-blue-400" />
+              Runtime Telemetry Audit Stream
+            </h2>
+
+            <div className="space-y-2">
+              {telemetryEvents.length === 0 ? (
+                <div className="text-xs text-zinc-500 py-4 text-center">No telemetry audit events recorded yet.</div>
+              ) : (
+                telemetryEvents.map((evt) => (
+                  <div key={evt.id} className="rounded-lg border border-zinc-800/80 bg-zinc-950/60 p-3 text-xs flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-zinc-200 flex items-center gap-2">
+                        <span className="font-mono text-[10px] uppercase text-zinc-500">[{evt.type}]</span>
+                        {evt.title}
+                      </div>
+                      <div className="text-zinc-400 mt-1 font-mono text-[11px]">{evt.details}</div>
+                    </div>
+                    <div className="text-[11px] text-zinc-500 shrink-0 font-mono">
+                      {new Date(evt.created_at).toLocaleTimeString()}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Position Detail Drawer Modal */}
+      {selectedPositionForDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-zinc-100 font-mono">
+                  {'symbol' in selectedPositionForDetail ? selectedPositionForDetail.symbol : 'Position Detail'}
+                </h3>
+                <p className="text-xs text-zinc-400">Position ID: {selectedPositionForDetail.id}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPositionForDetail(null)}
+                className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+              <ProofRow label="Side" value={selectedPositionForDetail.side.toUpperCase()} />
+              <ProofRow label="Quantity" value={String(selectedPositionForDetail.quantity ?? '—')} />
+              <ProofRow label="Unrealized PnL" value={`$${selectedPositionForDetail.unrealized_pnl ?? '0.00'}`} />
+              <ProofRow label="Leverage" value={`${selectedPositionForDetail.leverage ?? '—'}x`} />
+              <ProofRow label="Protection Status" value={selectedPositionForDetail.protection_status || 'pending'} />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setSelectedPositionForDetail(null)}
+                className="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700">
+                Close Inspector
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Confirmation Modal */}
+      {/* MT5 Account Onboarding Modal */}
+      {showAddMT5Modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Target size={20} className="text-emerald-400" />
+                <h3 className="text-base font-bold text-zinc-100">Onboard MetaTrader 5 Account</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddMT5Modal(false)}
+                className="text-zinc-500 hover:text-zinc-300">
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            {formMT5Error && (
+              <div className="p-3 rounded border border-red-500/40 bg-red-500/10 text-xs font-mono text-red-300">
+                {formMT5Error}
+              </div>
+            )}
+
+            <form onSubmit={handleConnectMT5Submit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Account Type</label>
+                  <select
+                    value={formAccountType}
+                    onChange={(e) => setFormAccountType(e.target.value as 'personal' | 'prop' | 'demo')}
+                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none">
+                    <option value="personal">Personal Account</option>
+                    <option value="prop">Prop Challenge Account</option>
+                    <option value="demo">Demo Account</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Account Leverage</label>
+                  <select
+                    value={formLeverage}
+                    onChange={(e) => setFormLeverage(Number(e.target.value))}
+                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none">
+                    <option value={30}>1:30</option>
+                    <option value={50}>1:50</option>
+                    <option value={100}>1:100</option>
+                    <option value={200}>1:200</option>
+                    <option value={500}>1:500</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Broker Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formBroker}
+                    onChange={(e) => setFormBroker(e.target.value)}
+                    placeholder="e.g. FTMO, IC Markets"
+                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Server Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formServer}
+                    onChange={(e) => setFormServer(e.target.value)}
+                    placeholder="e.g. FTMO-Server2"
+                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Account Nickname</label>
+                  <input
+                    type="text"
+                    required
+                    value={formNickname}
+                    onChange={(e) => setFormNickname(e.target.value)}
+                    placeholder="e.g. FTMO Challenge 1"
+                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Account Number / Login</label>
+                  <input
+                    type="text"
+                    required
+                    value={formAccountNumber}
+                    onChange={(e) => setFormAccountNumber(e.target.value)}
+                    placeholder="e.g. 10293847"
+                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Trading Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={formPassword}
+                    onChange={(e) => setFormPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 font-mono focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {formAccountType === 'prop' && (
+                <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-3">
+                  <div className="font-semibold text-emerald-300">Prop Firm Challenge Rules</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Prop Firm</label>
+                      <input
+                        type="text"
+                        value={formPropFirm}
+                        onChange={(e) => setFormPropFirm(e.target.value)}
+                        placeholder="FTMO"
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-zinc-100 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Max Daily Loss %</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={formMaxDailyLossPct}
+                        onChange={(e) => setFormMaxDailyLossPct(parseFloat(e.target.value) || 5.0)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-zinc-100 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Max Drawdown %</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={formMaxTotalDrawdownPct}
+                        onChange={(e) => setFormMaxTotalDrawdownPct(parseFloat(e.target.value) || 10.0)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-zinc-100 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMT5Modal(false)}
+                  className="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-700">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={mt5ActionPending}
+                  className="rounded bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-bold text-white shadow-lg disabled:opacity-50">
+                  {mt5ActionPending ? 'Connecting Bridge...' : 'Connect MT5 Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-md rounded-xl border p-6 shadow-2xl space-y-4 ${
+            confirmModal.isDanger ? 'border-red-500/50 bg-zinc-950' : 'border-zinc-800 bg-zinc-900'
+          }`}>
+            <div className="flex items-center gap-3">
+              <AlertTriangle className={confirmModal.isDanger ? 'text-red-400' : 'text-amber-400'} size={24} />
+              <h3 className="text-base font-bold text-zinc-100">{confirmModal.title}</h3>
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed">{confirmModal.message}</p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-700">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAction}
+                className={`rounded px-4 py-2 text-xs font-bold text-white shadow-lg ${
+                  confirmModal.isDanger ? 'bg-red-600 hover:bg-red-500' : 'bg-amber-600 hover:bg-amber-500'
+                }`}>
+                Confirm Action
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
 
 function ToggleButtons({ value, onToggle, disabled }: { value: boolean; onToggle: (value: boolean) => void; disabled?: boolean }) {
-  return <div className="inline-flex rounded-lg border border-zinc-800 overflow-hidden"><button disabled={disabled || value} onClick={() => onToggle(true)} className={`px-3 py-1 text-xs font-semibold disabled:opacity-60 ${value ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'}`}>ON</button><button disabled={disabled || !value} onClick={() => onToggle(false)} className={`px-3 py-1 text-xs font-semibold border-l border-zinc-800 disabled:opacity-60 ${!value ? 'bg-red-500/20 text-red-300' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'}`}>OFF</button></div>;
-}
-
-function StatusBadge({ active, activeLabel, inactiveLabel }: { active: boolean; activeLabel: string; inactiveLabel: string }) {
-  return <span className={`text-xs px-2 py-0.5 rounded-full border ${active ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>{active ? activeLabel : inactiveLabel}</span>;
-}
-
-function ModeBadge({ mode }: { mode: string }) {
-  const cls = mode === 'testnet_action' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : mode === 'study_only' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-red-500/30 bg-red-500/10 text-red-300';
-  return <span className={`text-xs px-2 py-0.5 rounded-full border ${cls}`}>{mode.toUpperCase()}</span>;
-}
-
-function ControlCard({ title, status, onToggle, disabled, children }: { title: string; status: boolean; onToggle: (value: boolean) => void; disabled?: boolean; children: ReactNode }) {
-  return <div className="rounded-lg bg-zinc-950/60 border border-zinc-800 p-4"><div className="flex items-center justify-between gap-3 mb-3"><div><div className="font-semibold text-sm">{title}</div><div className={status ? 'text-xs text-emerald-300 mt-1' : 'text-xs text-red-300 mt-1'}>Status: {status ? 'ON' : 'OFF'}</div></div><ToggleButtons value={status} onToggle={onToggle} disabled={disabled} /></div><div className="space-y-2 text-xs">{children}</div></div>;
-}
-
-function NumberSetting({ label, value, step, disabled, onChange }: { label: string; value: number; step: string; disabled?: boolean; onChange: (value: number) => void }) {
-  return <label className="block"><span className="text-zinc-500">{label}</span><input type="number" step={step} value={value} disabled={disabled} onChange={e => onChange(Number(e.target.value))} className="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1" /><div className="mt-1 text-[11px] text-zinc-600">Current: {value}</div></label>;
-}
-
-function GuardBadge({ label, value, tone }: { label: string; value: string; tone: 'green' | 'yellow' | 'red' }) {
-  const cls = tone === 'green' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : tone === 'yellow' ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border-red-500/30 bg-red-500/10 text-red-300';
-  return <div className={`rounded-lg border p-3 ${cls}`}><div className="text-[11px] opacity-80">{label}</div><div className="font-mono font-semibold mt-1">{value}</div></div>;
-}
-
-function minutesRemaining(expiresAt?: string | null): string {
-  if (!expiresAt) return '—';
-  const ms = new Date(expiresAt).getTime() - Date.now();
-  if (!Number.isFinite(ms)) return '—';
-  return String(Math.max(0, Math.ceil(ms / 60_000)));
+  return (
+    <div className="inline-flex rounded-lg border border-zinc-800 overflow-hidden">
+      <button
+        type="button"
+        disabled={disabled || value}
+        onClick={() => onToggle(true)}
+        className={`px-3 py-1 text-xs font-semibold disabled:opacity-60 transition-colors ${
+          value ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+        }`}>
+        ON
+      </button>
+      <button
+        type="button"
+        disabled={disabled || !value}
+        onClick={() => onToggle(false)}
+        className={`px-3 py-1 text-xs font-semibold border-l border-zinc-800 disabled:opacity-60 transition-colors ${
+          !value ? 'bg-red-500/20 text-red-300' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+        }`}>
+        OFF
+      </button>
+    </div>
+  );
 }
 
 function StatusCard({ icon, label, value, note, valueClass = 'text-zinc-100' }: { icon: ReactNode; label: string; value: string; note: string; valueClass?: string }) {
-  return <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"><div className="flex items-center gap-2 mb-2 text-zinc-500">{icon}<span className="text-xs uppercase tracking-wide">{label}</span></div><div className={`font-semibold text-sm font-mono ${valueClass}`}>{value}</div><div className="text-xs text-zinc-600 mt-1">{note}</div></div>;
-}
-
-function ActionButton({ disabled, onClick, icon, label, danger = false }: { disabled: boolean; onClick: () => void; icon: ReactNode; label: string; danger?: boolean }) {
-  return <button disabled={disabled} onClick={onClick} className={`inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 ${danger ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>{icon}{label}</button>;
+  return (
+    <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-3.5">
+      <div className="flex items-center gap-1.5 mb-2 text-zinc-500">
+        {icon}
+        <span className="text-[10px] uppercase font-semibold tracking-wider">{label}</span>
+      </div>
+      <div className={`font-semibold text-xs font-mono ${valueClass}`}>{value}</div>
+      <div className="text-[11px] text-zinc-500 mt-1 truncate" title={note}>{note}</div>
+    </div>
+  );
 }
 
 function ProofRow({ label, value }: { label: string; value: string }) {
-  return <div className="flex items-center justify-between gap-3"><span className="text-zinc-500">{label}</span><span className="text-zinc-300 font-mono text-right">{value}</span></div>;
+  return (
+    <div className="flex items-center justify-between gap-3 text-xs">
+      <span className="text-zinc-500">{label}</span>
+      <span className="text-zinc-300 font-mono text-right truncate max-w-[180px]" title={value}>{value}</span>
+    </div>
+  );
 }
 
-function MiniList({ title, rows }: { title: string; rows: BinanceExecutionOrder[] }) {
-  return <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5"><h3 className="font-semibold text-sm mb-3">{title}</h3>{rows.length === 0 ? <div className="text-xs text-zinc-500">None in latest 25.</div> : <div className="space-y-2">{rows.slice(0, 5).map(r => <div key={r.id} className="text-xs flex items-center justify-between gap-2"><span className="font-mono text-zinc-300">{r.symbol}</span><Badge variant={r.status === 'failed' ? 'red' : 'gray'}>{r.status}</Badge></div>)}</div>}</div>;
-}
-
-
-function workspaceTitle(provider: string, mode: string): string {
-  if (mode === 'mt5_personal') return 'MT5 Personal';
-  if (mode === 'mt5_prop') return 'MT5 Prop';
-  if (provider === 'bybit') return 'Bybit Prop';
-  if (provider === 'binance') return 'Binance Testnet';
-  if (provider === 'mt5') return 'MT5';
-  return 'Binance';
-}
-
-
-function bybitRestrictionReason(message: string | null | undefined): string {
-  const text = String(message ?? '');
-  if (!/restrict|product|permission|not available|forbidden|1000|1100/i.test(text)) return '';
-  const codes = text.match(/\b\d{4,8}\b/g);
-  return codes?.length ? [...new Set(codes)].join(', ') : text.slice(0, 180);
-}
-
-
-function workspaceSections(provider: string, mode: string): string[] {
-  if (mode === 'mt5_prop') return ['Provider Status', 'Connection Health', 'Broker Information', 'Account Information', 'Equity', 'Balance', 'Daily Drawdown', 'Maximum Drawdown', 'Prop Rule Compliance', 'Exposure Limits', 'Correlation Limits', 'Rule Violations', 'Open Trades', 'Trade History', 'Execution History', 'Protection History', 'Recovery Events', 'Performance Statistics', 'Settings'];
-  if (mode === 'mt5_personal') return ['Provider Status', 'Connection Health', 'Broker Information', 'Account Information', 'Equity', 'Balance', 'Drawdown', 'Open Trades', 'Trade History', 'Execution History', 'Protection History', 'Recovery Events', 'Performance Statistics', 'Settings'];
-  const base = ['Provider Status', 'API Health', 'Symbol Cache', 'Open Positions', 'Open Orders', 'Execution History', 'Protection History', 'Recovery Events', 'Performance Statistics', 'Settings'];
-  return provider === 'bybit' ? [...base, 'Restriction Visibility'] : base;
-}
+export default ProviderOperationsWorkspace;

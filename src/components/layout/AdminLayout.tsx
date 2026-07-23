@@ -2,9 +2,10 @@ import { ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Users, LogOut, Menu, Activity,
-  Database, Send, FileText,
+  Database, Send,
   User, Settings, ListChecks,
-  Radio, ShieldCheck, Brain, Cpu, Target, ClipboardList, Newspaper, Clock
+  Shield, ShieldCheck, Cpu, Target, ClipboardList,
+  Layers, Radio, Brain
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,32 +16,36 @@ type NavItem =
 
 const adminNav: NavItem[] = [
   { section: 'HashiCore' },
+  { to: '/admin/mission-control', label: 'Mission Control', icon: Activity },
   { to: '/admin/operator', label: 'Command Center', icon: LayoutDashboard },
-  { to: '/admin/operator/runtime-proof', label: 'Runtime & Proofs', icon: ListChecks },
-  { to: '/admin/checklist', label: 'Testing Cockpit', icon: Activity },
+  { to: '/admin/runtime-truth', label: 'Runtime Truth & Receipts', icon: ListChecks },
+  { to: '/admin/recovery', label: 'Recovery Center', icon: Activity },
 
-  { section: 'Operations' },
-  { to: '/admin/operator/signals', label: 'Signals & Scanner', icon: Radio },
-  { to: '/admin/operator/executions', label: 'Execution Engine', icon: Cpu },
-  { to: '/admin/operator/trade-manager', label: 'Protection & Recovery', icon: ShieldCheck },
-  { to: '/admin/prop', label: 'Prop Providers', icon: Target },
+  { section: 'Operations & Execution' },
+  { to: '/admin/execution', label: 'Execution Management', icon: Cpu },
+  { to: '/admin/positions', label: 'Positions Center', icon: Layers },
+  { to: '/admin/protection', label: 'Protection Center', icon: ShieldCheck },
+  { to: '/admin/modes', label: 'Operating Modes', icon: Zap },
+  { to: '/admin/prop-provider', label: 'MT5 & Prop Accounts', icon: Target },
 
-  { section: 'Customers' },
-  { to: '/admin/access-requests', label: 'Access Requests', icon: ClipboardList },
+  { section: 'Risk & Capital' },
+  { to: '/admin/risk', label: 'Risk Engine', icon: Shield },
+  { to: '/admin/capital', label: 'Capital Allocation', icon: Database },
+
+  { section: 'Customers & Intelligence' },
   { to: '/admin/customers', label: 'Customer Management', icon: Users },
+  { to: '/admin/access-requests', label: 'Access Requests', icon: ClipboardList },
   { to: '/admin/telegram-links', label: 'Telegram Links', icon: Send },
-
-  { section: 'Intelligence' },
-  { to: '/admin/operator/telegram', label: 'Telegram Brain', icon: Brain },
-  { to: '/admin/operator/intelligence', label: 'Market Intelligence', icon: Newspaper },
   { to: '/admin/performance', label: 'Performance Analytics', icon: Activity },
-  { to: '/admin/outcomes', label: 'Outcome Tracking', icon: FileText },
 
-  { section: 'Platform' },
-  { to: '/admin/retention', label: 'Retention & Storage', icon: Database },
+  { section: 'Platform & Providers' },
+  { to: '/admin/providers', label: 'Provider Health', icon: Zap },
+  { to: '/admin/providers/binance', label: 'Binance Operations', icon: Cpu },
+  { to: '/admin/providers/bybit', label: 'Bybit Operations', icon: Cpu },
+  { to: '/admin/providers/mt5-personal', label: 'MT5 Personal Ops', icon: Cpu },
+  { to: '/admin/providers/mt5-prop', label: 'MT5 Prop Ops', icon: Cpu },
   { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },
   { to: '/admin/operator/settings', label: 'Settings & Secrets', icon: Settings },
-  { to: '/admin/scheduler', label: 'Scheduler Guide', icon: Clock },
 ];
 
 export function AdminLayout({ children }: { children: ReactNode }) {
