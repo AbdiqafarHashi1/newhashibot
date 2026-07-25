@@ -42,6 +42,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/providers', label: 'Provider Health', icon: Zap },
   { to: '/admin/providers/binance', label: 'Binance Operations', icon: Cpu },
   { to: '/admin/providers/bybit', label: 'Bybit Operations', icon: Cpu },
+  { to: '/admin/providers/mt5', label: 'MT5 Operations Center', icon: Cpu },
   { to: '/admin/providers/mt5-personal', label: 'MT5 Personal Ops', icon: Cpu },
   { to: '/admin/providers/mt5-prop', label: 'MT5 Prop Ops', icon: Cpu },
   { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },

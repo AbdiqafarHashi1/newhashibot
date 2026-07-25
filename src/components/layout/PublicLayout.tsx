@@ -1,107 +1,24 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Menu, User, X, Zap } from 'lucide-react';
+import { 
+  Zap, LogOut, Menu, X, ChevronDown, Copy, Check, Mail, Phone, Shield
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const navLinks = [
-  { to: '/', label: 'Home' },
-  { to: '/signal-mode', label: 'Signal Mode' },
-  { to: '/personal-ea', label: 'Crypto Personal Bot' },
-  { to: '/prop-ea', label: 'Forex MT5 Prop Bot' },
-  { to: '/pricing', label: 'Pricing' },
-  { to: '/results', label: 'Results' },
-];
+interface PublicLayoutProps {
+  children: ReactNode;
+}
 
-export function PublicLayout({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function PublicLayout({ children }: PublicLayoutProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [copiedMpesa, setCopiedMpesa] = useState(false);
+  
   const loc = useLocation();
   const nav = useNavigate();
   const { session, loading, isAdmin, signOut } = useAuth();
   const isLoggedIn = Boolean(session);
-
-  async function handleSignOut() {
-    await signOut();
-    setOpen(false);
-    nav('/');
-  }
-
-  const accountLinks = loading ? null : isLoggedIn ? (
-    <>
-      {isAdmin ? (
-        <Link to="/admin/control-room" className="text-sm text-orange-300 hover:text-orange-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-orange-500/10">
-          Admin Panel
-        </Link>
-      ) : (
-        <Link to="/app/dashboard" className="text-sm text-zinc-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
-          Dashboard
-        </Link>
-      )}
-      <Link to="/app/account" className="text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
-        Account
-      </Link>
-      <button onClick={handleSignOut} className="text-sm text-zinc-400 hover:text-red-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
-        Sign Out
-      </button>
-    </>
-  ) : (
-    <>
-      <Link to="/login" className="text-sm text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-800/60">
-        Login
-      </Link>
-      <Link
-        to="/register"
-        className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg shadow-blue-600/20"
-      >
-        Get Access
-      </Link>
-    </>
-  );
-
-  const mobileAccountControls = loading ? null : isLoggedIn ? (
-    <div className="md:hidden flex items-center gap-1.5">
-      {isAdmin ? (
-        <Link
-          to="/admin/control-room"
-          className="inline-flex h-8 items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 text-[11px] font-bold tracking-wide text-orange-300 shadow-lg shadow-orange-950/10"
-          aria-label="Open admin panel"
-        >
-          ADMIN
-        </Link>
-      ) : (
-        <Link
-          to="/app/dashboard"
-          className="inline-flex h-8 items-center rounded-full border border-blue-500/25 bg-blue-500/10 px-2.5 text-[11px] font-semibold text-blue-300"
-          aria-label="Open dashboard"
-        >
-          App
-        </Link>
-      )}
-      <Link
-        to="/app/account"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700/80 bg-zinc-900/80 text-zinc-300 shadow-lg shadow-black/10"
-        aria-label="Open account"
-      >
-        <User size={14} />
-      </Link>
-      <button
-        onClick={handleSignOut}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700/80 bg-zinc-900/80 text-zinc-400 hover:border-red-500/30 hover:text-red-300"
-        aria-label="Sign out"
-      >
-        <LogOut size={14} />
-      </button>
-    </div>
-  ) : (
-    <div className="md:hidden flex items-center gap-1.5">
-      <Link to="/login" className="inline-flex h-8 items-center rounded-full border border-zinc-700/80 bg-zinc-900/80 px-3 text-xs font-medium text-zinc-300">
-        Login
-      </Link>
-      <Link to="/register" className="inline-flex h-8 items-center rounded-full bg-blue-600 px-3 text-xs font-semibold text-white shadow-lg shadow-blue-600/20">
-        Join
-      </Link>
-    </div>
-  );
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -109,117 +26,477 @@ export function PublicLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
+  // Close menus on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setProductsDropdownOpen(false);
+  }, [loc.pathname]);
+
+  async function handleSignOut() {
+    await signOut();
+    setMobileMenuOpen(false);
+    nav('/');
+  }
+
+  function handleCopyMpesa() {
+    navigator.clipboard.writeText('0748895225');
+    setCopiedMpesa(true);
+    setTimeout(() => setCopiedMpesa(false), 2000);
+  }
+
+  const isProductsActive = ['/ai-signals', '/crypto-automation', '/mt5-automation', '/signal-mode', '/personal-ea', '/prop-ea'].includes(loc.pathname);
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'border-b border-zinc-800 bg-zinc-950/95 backdrop-blur-md shadow-xl shadow-black/20' : 'bg-transparent'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-          <Link to="/" className="flex min-w-0 items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-              <Zap size={16} className="text-white" />
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
+      {/* Top Banner Notice */}
+      <div className="bg-gradient-to-r from-blue-950 via-zinc-900 to-indigo-950 border-b border-blue-900/40 text-xs py-1.5 px-4 text-center text-zinc-300">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-[10px] uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            Platform Update
+          </span>
+          <span>HashiBot Platform: AI Signals & Crypto Automation live • MT5 Infrastructure built (Demo Certification pending)</span>
+          <Link to="/pricing" className="text-blue-400 hover:text-blue-300 underline font-medium ml-1">
+            View Plans →
+          </Link>
+        </div>
+      </div>
+
+      {/* Main Header */}
+      <header className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? 'border-b border-zinc-800/80 bg-zinc-950/95 backdrop-blur-md shadow-xl shadow-black/40' : 'bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800/40'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
+              <Zap size={18} className="text-white" />
             </div>
-            <span className="font-bold text-lg tracking-tight leading-none">HashiBot</span>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-lg tracking-tight leading-none text-white">Hashi<span className="text-blue-400">Bot</span></span>
+              <span className="text-[10px] text-zinc-500 font-mono tracking-wider">MARKET INTELLIGENCE</span>
+            </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map(l => (
-              <Link
-                key={l.to}
-                to={l.to}
-                className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
-                  loc.pathname === l.to
-                    ? 'text-white bg-zinc-800'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+            <Link
+              to="/"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                loc.pathname === '/' ? 'text-white bg-zinc-800/80' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              Home
+            </Link>
+
+            {/* Products Dropdown */}
+            <div className="relative" onMouseLeave={() => setProductsDropdownOpen(false)}>
+              <button
+                onClick={() => setProductsDropdownOpen(!productsDropdownOpen)}
+                onMouseEnter={() => setProductsDropdownOpen(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                  isProductsActive ? 'text-white bg-zinc-800/80' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                 }`}
+                aria-expanded={productsDropdownOpen}
               >
-                {l.label}
-              </Link>
-            ))}
+                <span>Products</span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${productsDropdownOpen ? 'rotate-180 text-blue-400' : ''}`} />
+              </button>
+
+              {productsDropdownOpen && (
+                <div className="absolute top-full left-0 w-64 pt-2 shadow-2xl z-50">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2 space-y-1 shadow-2xl backdrop-blur-xl">
+                    <Link
+                      to="/ai-signals"
+                      className="block p-2.5 rounded-lg hover:bg-zinc-800/80 transition-colors group"
+                    >
+                      <div className="text-xs font-bold text-white group-hover:text-blue-400 flex items-center justify-between">
+                        <span>AI Signals</span>
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">Structured signals with entry, SL, TP & outcome tracking</p>
+                    </Link>
+
+                    <Link
+                      to="/crypto-automation"
+                      className="block p-2.5 rounded-lg hover:bg-zinc-800/80 transition-colors group"
+                    >
+                      <div className="text-xs font-bold text-white group-hover:text-blue-400 flex items-center justify-between">
+                        <span>Crypto Automation</span>
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">Direct Binance & Bybit execution for personal accounts</p>
+                    </Link>
+
+                    <Link
+                      to="/mt5-automation"
+                      className="block p-2.5 rounded-lg hover:bg-zinc-800/80 transition-colors group"
+                    >
+                      <div className="text-xs font-bold text-white group-hover:text-blue-400 flex items-center justify-between">
+                        <span>MT5 Automation</span>
+                        <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20">Waitlist</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">MetaTrader 5 bridge for Personal & Prop terminals</p>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link
+              to="/features"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                loc.pathname === '/features' ? 'text-white bg-zinc-800/80' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              Features
+            </Link>
+
+            <Link
+              to="/pricing"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                loc.pathname === '/pricing' ? 'text-white bg-zinc-800/80' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              Pricing
+            </Link>
+
+            <Link
+              to="/results"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                loc.pathname === '/results' ? 'text-white bg-zinc-800/80' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              Results
+            </Link>
+
+            <Link
+              to="/about"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                loc.pathname === '/about' ? 'text-white bg-zinc-800/80' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              About
+            </Link>
+
+            <Link
+              to="/contact"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                loc.pathname === '/contact' ? 'text-white bg-zinc-800/80' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              Contact
+            </Link>
           </nav>
 
+          {/* Desktop Right Actions */}
           <div className="hidden md:flex items-center gap-3">
-            {accountLinks}
+            {loading ? (
+              <div className="w-16 h-8 bg-zinc-900 animate-pulse rounded-lg" />
+            ) : isLoggedIn ? (
+              <div className="flex items-center gap-2">
+                {isAdmin ? (
+                  <Link
+                    to="/admin/operator"
+                    className="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg font-bold transition-colors"
+                  >
+                    Admin Control Room
+                  </Link>
+                ) : (
+                  <Link
+                    to="/app/dashboard"
+                    className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-800 px-3 py-1.5 rounded-lg font-semibold transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                <Link
+                  to="/app/account"
+                  className="text-xs text-zinc-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-zinc-900 transition-colors"
+                >
+                  Account
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="text-xs text-zinc-500 hover:text-red-400 px-2.5 py-1.5 rounded-lg hover:bg-zinc-900 transition-colors flex items-center gap-1"
+                >
+                  <LogOut size={13} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="text-xs text-zinc-300 hover:text-white px-3.5 py-2 rounded-lg font-medium hover:bg-zinc-900 transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/register"
+                  className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-lg shadow-blue-600/25 active:scale-95"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
           </div>
 
-          <div className="md:hidden ml-auto flex items-center gap-2">
-            {mobileAccountControls}
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center gap-2">
+            {!loading && isLoggedIn && (
+              <Link
+                to="/app/dashboard"
+                className="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-md font-bold"
+              >
+                App
+              </Link>
+            )}
             <button
-              onClick={() => setOpen(!open)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300 shadow-lg shadow-black/10 hover:border-zinc-700 hover:text-white"
-              aria-label="Open navigation menu"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white focus:outline-none"
+              aria-label="Toggle Navigation Menu"
             >
-              {open ? <X size={18} /> : <Menu size={18} />}
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
 
-        {open && (
-          <div className="md:hidden border-t border-zinc-800/80 bg-zinc-950/98 px-4 py-4 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600">Navigation</div>
-            <div className="flex flex-col gap-1">
-            {navLinks.map(l => (
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-b border-zinc-800 bg-zinc-950/98 px-4 py-5 space-y-4 shadow-2xl backdrop-blur-2xl">
+            <div className="space-y-1">
               <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className={`text-sm py-2.5 px-3 rounded-lg transition-colors ${
-                  loc.pathname === l.to ? 'text-white bg-zinc-800' : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block px-3 py-2.5 rounded-lg text-sm font-semibold ${
+                  loc.pathname === '/' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-zinc-300 hover:bg-zinc-900'
                 }`}
               >
-                {l.label}
+                Home
               </Link>
-            ))}
+
+              <div className="pt-2 pb-1 px-3 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                Products
+              </div>
+              <div className="pl-3 space-y-1 border-l-2 border-zinc-800 ml-3">
+                <Link
+                  to="/ai-signals"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-sm text-zinc-300 hover:text-blue-400 flex items-center justify-between"
+                >
+                  <span>AI Signals</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Live</span>
+                </Link>
+                <Link
+                  to="/crypto-automation"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-sm text-zinc-300 hover:text-blue-400 flex items-center justify-between"
+                >
+                  <span>Crypto Automation</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Live</span>
+                </Link>
+                <Link
+                  to="/mt5-automation"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-sm text-zinc-300 hover:text-blue-400 flex items-center justify-between"
+                >
+                  <span>MT5 Automation</span>
+                  <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">Waitlist</span>
+                </Link>
+              </div>
+
+              <div className="pt-2" />
+              <Link
+                to="/features"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-300 hover:bg-zinc-900"
+              >
+                Features
+              </Link>
+              <Link
+                to="/pricing"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-300 hover:bg-zinc-900"
+              >
+                Pricing
+              </Link>
+              <Link
+                to="/results"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-300 hover:bg-zinc-900"
+              >
+                Results
+              </Link>
+              <Link
+                to="/about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-300 hover:bg-zinc-900"
+              >
+                About
+              </Link>
+              <Link
+                to="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-300 hover:bg-zinc-900"
+              >
+                Contact
+              </Link>
+            </div>
+
+            <div className="pt-3 border-t border-zinc-800/80 flex flex-col gap-2">
+              {isLoggedIn ? (
+                <>
+                  {isAdmin ? (
+                    <Link
+                      to="/admin/operator"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-center py-2.5 bg-amber-500/20 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30"
+                    >
+                      Admin Control Room
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/app/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-center py-2.5 bg-zinc-800 text-white font-bold text-xs rounded-xl"
+                    >
+                      User Dashboard
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full text-center py-2.5 bg-zinc-900 text-red-400 font-semibold text-xs rounded-xl border border-zinc-800"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-center py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-200 font-bold text-xs rounded-xl"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-center py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/20"
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
       </header>
 
-      <main className="pt-16">{children}</main>
+      {/* Main Page Content */}
+      <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-zinc-800/60 mt-24 py-12 px-4 bg-zinc-900/20">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-10">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
-                  <Zap size={13} className="text-white" />
+      {/* Footer */}
+      <footer className="border-t border-zinc-800/80 bg-zinc-950 text-zinc-400 mt-20 pt-16 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-zinc-800/60">
+            
+            {/* Col 1: Brand */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
+                  <Zap size={18} className="text-white" />
                 </div>
-                <span className="font-bold">HashiBot</span>
+                <span className="font-extrabold text-xl text-white tracking-tight">Hashi<span className="text-blue-400">Bot</span></span>
               </div>
-              <p className="text-xs text-zinc-500 leading-relaxed max-w-xs">
-                Systematic crypto signals with structure, risk levels, and outcome tracking.
-                Rule-based strategies. No guesswork.
+              <p className="text-xs text-zinc-400 leading-relaxed max-w-sm">
+                Professional trading platform combining AI-assisted market scanning, rule-based strategy qualification, deterministic arbitration, automated execution, risk management, and operational monitoring across Crypto and MetaTrader 5.
               </p>
-            </div>
-            <div>
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3 font-medium">Products</div>
-              <div className="space-y-2">
-                <Link to="/signal-mode" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Signal Mode</Link>
-                <Link to="/personal-ea" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Crypto Personal Bot</Link>
-                <Link to="/prop-ea" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Forex MT5 Prop Bot</Link>
-                <Link to="/pricing" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Pricing</Link>
+
+              <div className="pt-2 space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-zinc-300">
+                  <Mail size={14} className="text-blue-400" />
+                  <a href="mailto:binuhashi1@gmail.com" className="hover:text-blue-400 transition-colors">
+                    binuhashi1@gmail.com
+                  </a>
+                </div>
+                <div className="flex items-center gap-2 text-zinc-300">
+                  <Phone size={14} className="text-emerald-400" />
+                  <span>M-Pesa: 0748 895 225</span>
+                  <button
+                    onClick={handleCopyMpesa}
+                    className="ml-2 text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-2 py-0.5 rounded flex items-center gap-1"
+                    title="Copy M-Pesa number"
+                  >
+                    {copiedMpesa ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    <span>{copiedMpesa ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <div>
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3 font-medium">Resources</div>
-              <div className="space-y-2">
-                <Link to="/results" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Results</Link>
-                <Link to="/faq" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">FAQ</Link>
-                {isLoggedIn ? (
-                  <Link to={isAdmin ? '/admin/control-room' : '/app/dashboard'} className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
-                    {isAdmin ? 'Admin Panel' : 'Dashboard'}
-                  </Link>
-                ) : (
-                  <Link to="/login" className="block text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Login</Link>
+
+            {/* Col 2: Products */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">Products</h3>
+              <ul className="space-y-2 text-xs">
+                <li><Link to="/ai-signals" className="hover:text-white transition-colors">AI Signals</Link></li>
+                <li><Link to="/crypto-automation" className="hover:text-white transition-colors">Crypto Automation</Link></li>
+                <li><Link to="/mt5-automation" className="hover:text-white transition-colors">MT5 Automation</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing & Plans</Link></li>
+              </ul>
+            </div>
+
+            {/* Col 3: Platform */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">Platform</h3>
+              <ul className="space-y-2 text-xs">
+                <li><Link to="/features" className="hover:text-white transition-colors">Features & Pipeline</Link></li>
+                <li><Link to="/results" className="hover:text-white transition-colors">Results & Performance</Link></li>
+                <li><Link to="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact Support</Link></li>
+              </ul>
+            </div>
+
+            {/* Col 4: Company & Account */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">Company & Access</h3>
+              <ul className="space-y-2 text-xs">
+                <li><Link to="/about" className="hover:text-white transition-colors">About HashiBot</Link></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">Log In</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Get Started</Link></li>
+                {isLoggedIn && (
+                  <li>
+                    <Link to="/app/dashboard" className="text-blue-400 hover:text-blue-300 font-semibold">
+                      Dashboard Access
+                    </Link>
+                  </li>
                 )}
+              </ul>
+            </div>
+
+          </div>
+
+          {/* Bottom Bar & Risk Disclaimer */}
+          <div className="pt-8 space-y-4">
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl text-[11px] text-zinc-500 leading-relaxed flex items-start gap-2.5">
+              <Shield size={16} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-zinc-400">Risk & Operational Disclaimer:</span> Trading foreign exchange, cryptocurrencies, and financial derivatives carries a high level of risk and may not be suitable for all investors. Past performance figures or backtested metrics are not indicative of future results. HashiBot is a trading intelligence software and automation infrastructure provider; it is not a financial advisor, broker, or fund manager.
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-600">
+              <p>© 2026 HashiBot Platform. All rights reserved.</p>
+              <div className="flex items-center gap-4">
+                <Link to="/faq" className="hover:text-zinc-400 transition-colors">FAQ</Link>
+                <Link to="/contact" className="hover:text-zinc-400 transition-colors">Contact</Link>
+                <Link to="/pricing" className="hover:text-zinc-400 transition-colors">M-Pesa Payment</Link>
               </div>
             </div>
           </div>
-          <div className="border-t border-zinc-800/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-zinc-600">© 2026 HashiBot. All rights reserved.</p>
-            <p className="text-xs text-zinc-600 text-center max-w-md">
-              Trading signals are for educational and informational purposes only. Past performance does not guarantee future results. Trade responsibly.
-            </p>
-          </div>
+
         </div>
       </footer>
     </div>

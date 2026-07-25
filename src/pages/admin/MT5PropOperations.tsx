@@ -1,2 +1,5 @@
-import ProviderOperationsWorkspace from './ProviderOperationsWorkspace';
-export default function MT5PropOperations() { return <ProviderOperationsWorkspace provider="mt5" mode="mt5_prop" />; }
+import MT5OperationsCenter from './MT5OperationsCenter';
+
+export default function MT5PropOperations() {
+  return <MT5OperationsCenter filterMode="prop" defaultTab="accounts" />;
+}

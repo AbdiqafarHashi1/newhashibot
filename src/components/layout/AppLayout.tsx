@@ -2,17 +2,21 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Radio,
-  MessageCircle, LogOut, Menu, Eye, User, Cpu, ShieldCheck, Package
+  MessageCircle, LogOut, Menu, Eye, User, ShieldCheck, Package, Server, Award, Sliders
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const userNav = [
-  { to: '/app/dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
-  { to: '/app/signals',    label: 'Active Signals',   icon: Radio },
-  { to: '/app/package-request', label: 'Package Request', icon: Package },
-  { to: '/app/telegram',   label: 'Telegram Setup',   icon: MessageCircle },
-  { to: '/app/account',    label: 'Account & Bot',    icon: Cpu },
-  { to: '/app/watchlist',  label: 'Watchlist',        icon: Eye },
+  { to: '/app/dashboard',        label: 'Dashboard',             icon: LayoutDashboard },
+  { to: '/app/signals',          label: 'Active Signals',         icon: Radio },
+  { to: '/app/crypto-execution', label: 'Crypto Automation',      icon: Zap },
+  { to: '/app/mt5-personal',     label: 'MT5 Personal Forex',     icon: Server },
+  { to: '/app/mt5-prop',         label: 'MT5 Prop Automation',    icon: Award },
+  { to: '/app/bot-setup',        label: 'Bot Setup & Account',    icon: Sliders },
+  { to: '/app/package-request',  label: 'Packages & M-Pesa',      icon: Package },
+  { to: '/app/telegram',         label: 'Telegram Setup',         icon: MessageCircle },
+  { to: '/app/watchlist',        label: 'Watchlist',              icon: Eye },
+  { to: '/app/account',          label: 'Account Profile',        icon: User },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {

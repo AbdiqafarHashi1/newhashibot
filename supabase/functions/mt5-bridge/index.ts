@@ -16,31 +16,52 @@ interface HeartbeatPayload {
 
 interface PollPayload {
   bridge_id: string;
+  max_commands?: number;
 }
 
 interface AckPayload {
   bridge_id: string;
-  command_id: number;
+  command_id: string | number;
   success: boolean;
+  error_code?: string;
   error_message?: string;
+  result?: Record<string, unknown>;
   result_data?: Record<string, unknown>;
 }
 
-interface SyncPayload {
-  account_number: string;
-  broker: string;
-  balance: number;
-  equity: number;
-  margin: number;
-  unrealized_pnl: number;
-  positions: Array<{
-    symbol: string;
-    side: "long" | "short" | "buy" | "sell";
-    quantity: number;
-    entry_price: number;
-    current_price: number;
-    unrealized_pnl: number;
-    ticket?: string;
+interface SyncStatePayload {
+  bridge_id: string;
+  account_id?: string;
+  account_number?: string;
+  broker?: string;
+  snapshot: {
+    balance: number;
+    equity: number;
+    margin: number;
+    free_margin: number;
+    floating_pnl: number;
+    commission?: number;
+    swap?: number;
+    currency?: string;
+  };
+  positions?: Array<Record<string, unknown>>;
+  orders?: Array<Record<string, unknown>>;
+}
+
+interface SyncSymbolsPayload {
+  bridge_id: string;
+  account_id: string;
+  specs: Array<{
+    canonical_symbol: string;
+    broker_symbol: string;
+    digits: number;
+    point: number;
+    contract_size: number;
+    volume_min: number;
+    volume_max: number;
+    volume_step: number;
+    stops_level_points?: number;
+    fill_policies?: string[];
   }>;
 }
 
@@ -77,12 +98,13 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: false, error: "Missing bridge_id" }, 400);
       }
 
+      const bridgeStatus = payload.status ?? "online";
       const { data, error } = await supabase
         .from("mt5_bridge_registry")
         .upsert({
           bridge_id: payload.bridge_id,
           last_heartbeat_at: new Date().toISOString(),
-          status: payload.status ?? "online",
+          status: bridgeStatus,
           ip_address: payload.ip_address,
           connection_info: payload.connection_info ?? {},
         }, { onConflict: "bridge_id" })
@@ -92,6 +114,16 @@ Deno.serve(async (req: Request) => {
       if (error) {
         return jsonResponse({ success: false, error: `Heartbeat upsert failed: ${error.message}` }, 500);
       }
+
+      // Also update connection_status in mt5_accounts linked to this bridge_id
+      await supabase
+        .from("mt5_accounts")
+        .update({
+          last_heartbeat_at: new Date().toISOString(),
+          connection_status: bridgeStatus === "online" ? "connected" : "disconnected",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("bridge_id", payload.bridge_id);
 
       return jsonResponse({ success: true, registry: data });
     }
@@ -103,48 +135,78 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: false, error: "Missing bridge_id" }, 400);
       }
 
-      // Claim pending commands for this bridge ID or unclaimed commands
-      // In MT5 bridges, they poll for unclaimed command queues
+      const maxLimit = payload.max_commands || 10;
+      const nowIso = new Date().toISOString();
+      const leaseCutoffIso = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
+      // First query primary mt5_commands table (Phase 8A)
       const { data: commands, error: selectErr } = await supabase
+        .from("mt5_commands")
+        .select("*")
+        .eq("bridge_id", payload.bridge_id)
+        .or(`status.eq.pending,and(status.eq.claimed,claimed_at.lt.${leaseCutoffIso})`)
+        .order("created_at", { ascending: true })
+        .limit(maxLimit);
+
+      if (selectErr) {
+        return jsonResponse({ success: false, error: `Failed to poll mt5_commands: ${selectErr.message}` }, 500);
+      }
+
+      if (commands && commands.length > 0) {
+        const commandIds = commands.map(c => c.id);
+
+        const { error: updateErr } = await supabase
+          .from("mt5_commands")
+          .update({
+            status: "claimed",
+            claimed_at: nowIso,
+          })
+          .in("id", commandIds);
+
+        if (updateErr) {
+          return jsonResponse({ success: false, error: `Failed to claim mt5_commands: ${updateErr.message}` }, 500);
+        }
+
+        const claimed = commands.map(c => ({
+          ...c,
+          status: "claimed",
+          claimed_at: nowIso,
+        }));
+
+        return jsonResponse({ success: true, commands: claimed });
+      }
+
+      // Check secondary legacy table mt5_commands_queue (Phase 5 fallback)
+      const { data: legacyCommands } = await supabase
         .from("mt5_commands_queue")
         .select("*")
         .eq("status", "pending")
         .order("id", { ascending: true })
-        .limit(10);
+        .limit(maxLimit);
 
-      if (selectErr) {
-        return jsonResponse({ success: false, error: `Failed to poll commands: ${selectErr.message}` }, 500);
-      }
+      if (legacyCommands && legacyCommands.length > 0) {
+        const legacyIds = legacyCommands.map(c => c.id);
+        await supabase
+          .from("mt5_commands_queue")
+          .update({
+            status: "claimed",
+            bridge_id: payload.bridge_id,
+            claimed_at: nowIso,
+          })
+          .in("id", legacyIds);
 
-      if (!commands || commands.length === 0) {
-        return jsonResponse({ success: true, commands: [] });
-      }
-
-      const commandIds = commands.map(c => c.id);
-
-      // Transition those commands to claimed
-      const { error: updateErr } = await supabase
-        .from("mt5_commands_queue")
-        .update({
+        const claimedLegacy = legacyCommands.map(c => ({
+          ...c,
+          operation: c.command_type,
           status: "claimed",
           bridge_id: payload.bridge_id,
-          claimed_at: new Date().toISOString(),
-        })
-        .in("id", commandIds);
+          claimed_at: nowIso,
+        }));
 
-      if (updateErr) {
-        return jsonResponse({ success: false, error: `Failed to claim commands: ${updateErr.message}` }, 500);
+        return jsonResponse({ success: true, commands: claimedLegacy });
       }
 
-      // Re-map to return the updated status array
-      const claimedCommands = commands.map(c => ({
-        ...c,
-        status: "claimed",
-        bridge_id: payload.bridge_id,
-        claimed_at: new Date().toISOString()
-      }));
-
-      return jsonResponse({ success: true, commands: claimedCommands });
+      return jsonResponse({ success: true, commands: [] });
     }
 
     // ─── 3. ACKNOWLEDGE COMMAND ACTION ──────────────────────────────────────
@@ -154,137 +216,219 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: false, error: "Missing bridge_id or command_id" }, 400);
       }
 
-      const status = payload.success ? "ack" : "failed";
-      const { data, error } = await supabase
-        .from("mt5_commands_queue")
+      const finalStatus = payload.success ? "acknowledged" : "failed";
+      const resultObj = payload.result || payload.result_data || {};
+      const nowIso = new Date().toISOString();
+
+      // First try primary mt5_commands table
+      const { data: updatedCommand, error: cmdErr } = await supabase
+        .from("mt5_commands")
         .update({
-          status,
-          ack_at: new Date().toISOString(),
+          status: finalStatus,
+          acknowledged_at: nowIso,
+          error_code: payload.error_code ?? null,
           error_message: payload.error_message ?? null,
-          result_data: payload.result_data ?? {},
+          result: resultObj,
         })
         .eq("id", payload.command_id)
         .select()
         .maybeSingle();
 
-      if (error) {
-        return jsonResponse({ success: false, error: `Ack update failed: ${error.message}` }, 500);
+      if (!cmdErr && updatedCommand) {
+        return jsonResponse({ success: true, command_id: payload.command_id, status: finalStatus, command: updatedCommand });
       }
 
-      return jsonResponse({ success: true, command: data });
+      // Try fallback legacy table mt5_commands_queue
+      const legacyStatus = payload.success ? "ack" : "failed";
+      const { data: legacyData, error: legacyErr } = await supabase
+        .from("mt5_commands_queue")
+        .update({
+          status: legacyStatus,
+          ack_at: nowIso,
+          error_message: payload.error_message ?? null,
+          result_data: resultObj,
+        })
+        .eq("id", payload.command_id)
+        .select()
+        .maybeSingle();
+
+      if (legacyErr) {
+        return jsonResponse({ success: false, error: `Ack update failed: ${legacyErr.message}` }, 500);
+      }
+
+      return jsonResponse({ success: true, command_id: payload.command_id, status: finalStatus, command: legacyData });
     }
 
     // ─── 4. SYNCHRONIZE STATE & EVALUATE RULES ──────────────────────────────
     if (action === "sync_state") {
-      const payload = body as SyncPayload;
-      if (!payload.account_number) {
-        return jsonResponse({ success: false, error: "Missing account_number" }, 400);
+      const payload = body as SyncStatePayload;
+      if (!payload.bridge_id) {
+        return jsonResponse({ success: false, error: "Missing bridge_id" }, 400);
       }
 
-      // Retrieve the existing profile to evaluate rules against limits
-      const { data: profile, error: profileErr } = await supabase
-        .from("mt5_account_profiles")
-        .select("*")
-        .eq("account_number", payload.account_number)
-        .maybeSingle();
+      const snap = payload.snapshot || { balance: 0, equity: 0, margin: 0, free_margin: 0, floating_pnl: 0 };
+      const positions = payload.positions || [];
+      const orders = payload.orders || [];
+      const nowIso = new Date().toISOString();
 
-      if (profileErr) {
-        return jsonResponse({ success: false, error: `Failed to fetch profile: ${profileErr.message}` }, 500);
+      // 4A. Target mt5_accounts if account_id is supplied or lookup via bridge_id
+      let targetAccountId = payload.account_id;
+      if (!targetAccountId) {
+        const { data: matchedAcc } = await supabase
+          .from("mt5_accounts")
+          .select("id")
+          .eq("bridge_id", payload.bridge_id)
+          .maybeSingle();
+        if (matchedAcc) {
+          targetAccountId = matchedAcc.id;
+        }
       }
 
-      if (!profile) {
-        return jsonResponse({ success: false, error: `No profile registered with account number ${payload.account_number}` }, 404);
+      if (targetAccountId) {
+        // Insert snapshot into mt5_account_snapshots
+        await supabase
+          .from("mt5_account_snapshots")
+          .insert({
+            account_id: targetAccountId,
+            balance: snap.balance,
+            equity: snap.equity,
+            margin: snap.margin,
+            free_margin: snap.free_margin,
+            floating_pnl: snap.floating_pnl,
+            commission: snap.commission ?? 0,
+            swap: snap.swap ?? 0,
+            currency: snap.currency ?? "USD",
+            positions,
+            orders,
+            captured_at: nowIso,
+          });
+
+        // Update mt5_accounts connection status & heartbeat
+        await supabase
+          .from("mt5_accounts")
+          .update({
+            last_sync_at: nowIso,
+            last_heartbeat_at: nowIso,
+            connection_status: "connected",
+            provider_health: "healthy",
+            updated_at: nowIso,
+          })
+          .eq("id", targetAccountId);
       }
 
-      // Check for drawdown breach rules
-      const startBalance = Number(profile.account_state?.starting_balance ?? payload.balance);
-      const drawdownLimit = Number(profile.drawdown_limit_pct ?? 5.00);
-      const maxDailyLoss = Number(profile.max_daily_loss_pct ?? 5.00);
+      // 4B. Target mt5_account_profiles (Phase 5 prop rules evaluator) if account_number exists
+      let breached = false;
+      let breachReason: string | null = null;
 
-      const maxDrawdownAmount = startBalance * (drawdownLimit / 100);
-      const maxDailyLossAmount = payload.balance * (maxDailyLoss / 100);
+      if (payload.account_number) {
+        const { data: profile } = await supabase
+          .from("mt5_account_profiles")
+          .select("*")
+          .eq("account_number", payload.account_number)
+          .maybeSingle();
 
-      // Determine if a breach has occurred
-      let isBreached = false;
-      let breachReason = "";
+        if (profile) {
+          const startBalance = Number(profile.account_state?.starting_balance ?? snap.balance);
+          const drawdownLimit = Number(profile.drawdown_limit_pct ?? 5.00);
+          const maxDailyLoss = Number(profile.max_daily_loss_pct ?? 5.00);
 
-      // Overall Drawdown check
-      const currentDrawdown = startBalance - payload.equity;
-      if (currentDrawdown >= maxDrawdownAmount) {
-        isBreached = true;
-        breachReason = `Maximum drawdown breach: Current drawdown of $${currentDrawdown.toFixed(2)} exceeds cap of $${maxDrawdownAmount.toFixed(2)} (Starting: $${startBalance.toFixed(2)}, Equity: $${payload.equity.toFixed(2)})`;
-      }
+          const maxDrawdownAmount = startBalance * (drawdownLimit / 100);
+          const maxDailyLossAmount = snap.balance * (maxDailyLoss / 100);
 
-      // Daily loss check (using simple day balance vs active equity)
-      const dailyLoss = payload.balance - payload.equity;
-      if (dailyLoss >= maxDailyLossAmount) {
-        isBreached = true;
-        breachReason = `Daily loss limit breach: Current loss of $${dailyLoss.toFixed(2)} exceeds daily limit of $${maxDailyLossAmount.toFixed(2)} (Balance: $${payload.balance.toFixed(2)}, Equity: $${payload.equity.toFixed(2)})`;
-      }
-
-      // Update account state and handle locks
-      const updatedState = {
-        balance: payload.balance,
-        equity: payload.equity,
-        margin: payload.margin,
-        unrealized_pnl: payload.unrealized_pnl,
-        positions: payload.positions ?? [],
-        last_sync_at: new Date().toISOString(),
-      };
-
-      const patch: Record<string, unknown> = {
-        account_state: updatedState,
-        broker: payload.broker ?? profile.broker,
-      };
-
-      if (isBreached && !profile.is_locked) {
-        patch.is_locked = true;
-        patch.last_breach_at = new Date().toISOString();
-        patch.is_enabled = false; // Disable automated execution
-
-        // Record a rule breach operator event
-        await supabase.from("operator_runtime_events").insert({
-          action: "mt5_rule_breach_lock",
-          provider: "mt5",
-          route: "/functions/v1/mt5-bridge",
-          function_name: "mt5-bridge",
-          started_at: new Date().toISOString(),
-          status: "CRITICAL",
-          exact_error: breachReason,
-          blocker: "Rule Violation",
-          result_summary: `MT5 Account ${payload.account_number} Locked due to Prop Rule Breach`,
-          source: "mt5_rules_evaluator",
-          raw: {
-            account_number: payload.account_number,
-            profile_mode: profile.profile_mode,
-            balance: payload.balance,
-            equity: payload.equity,
-            start_balance: startBalance,
-            drawdown_limit_pct: drawdownLimit,
-            max_daily_loss_pct: maxDailyLoss,
-            breach_reason: breachReason
+          const currentDrawdown = startBalance - snap.equity;
+          if (currentDrawdown >= maxDrawdownAmount) {
+            breached = true;
+            breachReason = `Maximum drawdown breach: Current drawdown of $${currentDrawdown.toFixed(2)} exceeds cap of $${maxDrawdownAmount.toFixed(2)}`;
           }
-        });
-      }
 
-      const { data: updatedProfile, error: updateProfileErr } = await supabase
-        .from("mt5_account_profiles")
-        .update(patch)
-        .eq("id", profile.id)
-        .select()
-        .maybeSingle();
+          const dailyLoss = snap.balance - snap.equity;
+          if (dailyLoss >= maxDailyLossAmount) {
+            breached = true;
+            breachReason = `Daily loss limit breach: Current loss of $${dailyLoss.toFixed(2)} exceeds daily limit of $${maxDailyLossAmount.toFixed(2)}`;
+          }
 
-      if (updateProfileErr) {
-        return jsonResponse({ success: false, error: `Profile sync update failed: ${updateProfileErr.message}` }, 500);
+          const patch: Record<string, unknown> = {
+            account_state: {
+              balance: snap.balance,
+              equity: snap.equity,
+              margin: snap.margin,
+              unrealized_pnl: snap.floating_pnl,
+              positions,
+              last_sync_at: nowIso,
+            },
+          };
+
+          if (breached && !profile.is_locked) {
+            patch.is_locked = true;
+            patch.last_breach_at = nowIso;
+            patch.is_enabled = false;
+
+            await supabase.from("operator_runtime_events").insert({
+              action: "mt5_rule_breach_lock",
+              provider: "mt5",
+              route: "/functions/v1/mt5-bridge",
+              function_name: "mt5-bridge",
+              started_at: nowIso,
+              status: "CRITICAL",
+              exact_error: breachReason,
+              blocker: "Rule Violation",
+              result_summary: `MT5 Account ${payload.account_number} Locked due to Prop Rule Breach`,
+              source: "mt5_rules_evaluator",
+              raw: {
+                account_number: payload.account_number,
+                balance: snap.balance,
+                equity: snap.equity,
+                breach_reason: breachReason
+              }
+            });
+          }
+
+          await supabase.from("mt5_account_profiles").update(patch).eq("id", profile.id);
+        }
       }
 
       return jsonResponse({
         success: true,
-        is_locked: updatedProfile.is_locked,
-        breached: isBreached,
-        breach_reason: breachReason || null,
-        profile: updatedProfile
+        account_id: targetAccountId || null,
+        breached,
+        breach_reason: breachReason,
       });
+    }
+
+    // ─── 5. SYNCHRONIZE SYMBOL SPECS ACTION ────────────────────────────────
+    if (action === "sync_symbols") {
+      const payload = body as SyncSymbolsPayload;
+      if (!payload.bridge_id || !payload.account_id || !Array.isArray(payload.specs)) {
+        return jsonResponse({ success: false, error: "Missing bridge_id, account_id, or specs array" }, 400);
+      }
+
+      const nowIso = new Date().toISOString();
+      const rows = payload.specs.map(spec => ({
+        account_id: payload.account_id,
+        canonical_symbol: spec.canonical_symbol,
+        broker_symbol: spec.broker_symbol,
+        digits: spec.digits,
+        point: spec.point,
+        contract_size: spec.contract_size,
+        volume_min: spec.volume_min,
+        volume_max: spec.volume_max,
+        volume_step: spec.volume_step,
+        stops_level_points: spec.stops_level_points ?? 0,
+        fill_policies: spec.fill_policies ?? ["return"],
+        synchronized_at: nowIso,
+      }));
+
+      if (rows.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from("mt5_symbol_specs")
+          .upsert(rows, { onConflict: "account_id,canonical_symbol" });
+
+        if (upsertErr) {
+          return jsonResponse({ success: false, error: `Symbol specs sync failed: ${upsertErr.message}` }, 500);
+        }
+      }
+
+      return jsonResponse({ success: true, synced_count: rows.length });
     }
 
     return jsonResponse({ success: false, error: `Unsupported action: ${action}` }, 400);

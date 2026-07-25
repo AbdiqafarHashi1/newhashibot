@@ -3271,8 +3271,8 @@ async function runScanPipeline(
 
   const { data: configuredSymbols } = await supabase.from("symbols").select("*").eq("is_active", true);
 
-  // Recommended crypto_core list by default
-  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "LINKUSDT", "TRXUSDT", "DOTUSDT", "LTCUSDT", "BCHUSDT", "NEARUSDT", "OPUSDT"];
+  // Recommended 10-symbol production crypto_core universe by default
+  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "LINKUSDT", "POLUSDT"];
 
   const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null };
   if (dynamicUniverse.warning) errors.push(`[WARN] ${dynamicUniverse.warning}`);

@@ -696,6 +696,70 @@ export interface ExecutionEventLog {
   created_at: string;
 }
 
+export interface ConnectedExecutionAccount {
+  id: string;
+  customer_id: string;
+  provider: 'binance' | 'bybit';
+  account_id: string;
+  credential_ref: string;
+  execution_instance_id: string;
+  environment: 'testnet' | 'demo' | 'live';
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MT5Account {
+  id: string;
+  user_id: string;
+  broker: string;
+  server: string;
+  account_number_masked?: string;
+  nickname: string;
+  currency: string;
+  leverage: number;
+  account_type: 'personal' | 'prop' | 'demo';
+  execution_mode: 'personal' | 'prop_challenge' | 'demo';
+  margin_mode: 'hedging' | 'netting';
+  execution_enabled: boolean;
+  connection_status: 'pending' | 'connected' | 'degraded' | 'disconnected' | 'disabled';
+  provider_health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+  bridge_id?: string | null;
+  last_heartbeat_at?: string | null;
+  last_sync_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TradeManagementTruth {
+  id: string;
+  execution_order_id?: string | null;
+  provider: string;
+  environment: string;
+  symbol: string;
+  direction: string;
+  status: string;
+  protection_status: string;
+  sl_present: boolean;
+  tp1_present: boolean;
+  tp2_present: boolean;
+  entry_price?: number | null;
+  mark_price?: number | null;
+  unrealized_pnl?: number | null;
+  quantity?: number | null;
+  leverage?: number | null;
+  sl_price?: number | null;
+  tp1_price?: number | null;
+  tp2_price?: number | null;
+  latest_sync_at?: string | null;
+  recovery_status?: string | null;
+  latest_error?: string | null;
+  last_action_taken?: string | null;
+  customer_id?: string | null;
+  account_id?: string | null;
+  execution_scope_key?: string | null;
+}
+
 export interface ExecutionSettings {
   id: number;
   execution_mode: 'signal_only' | 'testnet';
@@ -792,3 +856,5 @@ export interface ExecutionSettings {
   profit_lock_skipped_reasons?: Record<string, unknown> | null;
   updated_at: string;
 }
+
+

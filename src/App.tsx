@@ -4,12 +4,15 @@ import { RequireAuth, RequireAdmin } from './components/guards/RequireAuth';
 
 // Public pages
 import Home from './pages/public/Home';
-import SignalMode from './pages/public/SignalMode';
-import PersonalEA from './pages/public/PersonalEA';
-import PropEA from './pages/public/PropEA';
+import Features from './pages/public/Features';
+import AISignals from './pages/public/AISignals';
+import CryptoAutomation from './pages/public/CryptoAutomation';
+import MT5Automation from './pages/public/MT5Automation';
 import Pricing from './pages/public/Pricing';
 import Results from './pages/public/Results';
 import FAQ from './pages/public/FAQ';
+import About from './pages/public/About';
+import Contact from './pages/public/Contact';
 
 // Auth pages
 import Login from './pages/auth/Login';
@@ -24,6 +27,10 @@ import TelegramSetup from './pages/app/TelegramSetup';
 import Watchlist from './pages/app/Watchlist';
 import Account from './pages/app/Account';
 import PackageRequest from './pages/app/PackageRequest';
+import CryptoExecutionPortal from './pages/app/CryptoExecutionPortal';
+import MT5PersonalPortal from './pages/app/MT5PersonalPortal';
+import MT5PropPortal from './pages/app/MT5PropPortal';
+import CustomerBotSetup from './pages/app/CustomerBotSetup';
 
 // Admin pages
 import ScannerStatus from './pages/admin/ScannerStatus';
@@ -54,6 +61,7 @@ import BinanceOperations from './pages/admin/BinanceOperations';
 import BybitOperations from './pages/admin/BybitOperations';
 import MT5PersonalOperations from './pages/admin/MT5PersonalOperations';
 import MT5PropOperations from './pages/admin/MT5PropOperations';
+import MT5OperationsCenter from './pages/admin/MT5OperationsCenter';
 import Customers from './pages/admin/Customers';
 import PropTradingPanel from './pages/admin/PropTradingPanel';
 import Retention from './pages/admin/Retention';
@@ -93,14 +101,26 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public */}
+          {/* Public Pages */}
           <Route path="/" element={<Home />} />
-          <Route path="/signal-mode" element={<SignalMode />} />
-          <Route path="/personal-ea" element={<PersonalEA />} />
-          <Route path="/prop-ea" element={<PropEA />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/ai-signals" element={<AISignals />} />
+          <Route path="/crypto-automation" element={<CryptoAutomation />} />
+          <Route path="/mt5-automation" element={<MT5Automation />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/results" element={<Results />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+
+          {/* Legacy Compatibility Redirects */}
+          <Route path="/signal-mode" element={<Navigate to="/ai-signals" replace />} />
+          <Route path="/crypto-personal-bot" element={<Navigate to="/crypto-automation" replace />} />
+          <Route path="/personal-ea" element={<Navigate to="/crypto-automation" replace />} />
+          <Route path="/prop-ea" element={<Navigate to="/mt5-automation" replace />} />
+          <Route path="/forex-mt5-prop-bot" element={<Navigate to="/mt5-automation" replace />} />
+
+          {/* Auth pages */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
@@ -116,13 +136,17 @@ function App() {
           <Route path="/app/signals"     element={<RequireAuth><ActiveSignals /></RequireAuth>} />
           <Route path="/app/signals/:id" element={<RequireAuth><SignalDetail /></RequireAuth>} />
           <Route path="/app/history"     element={<RequireAuth><Navigate to="/app/signals" replace /></RequireAuth>} />
+          <Route path="/app/crypto-execution" element={<RequireAuth><CryptoExecutionPortal /></RequireAuth>} />
+          <Route path="/app/mt5-personal"    element={<RequireAuth><MT5PersonalPortal /></RequireAuth>} />
+          <Route path="/app/mt5-prop text"    element={<RequireAuth><MT5PropPortal /></RequireAuth>} />
+          <Route path="/app/mt5-prop"         element={<RequireAuth><MT5PropPortal /></RequireAuth>} />
+          <Route path="/app/bot-setup"        element={<RequireAuth><CustomerBotSetup /></RequireAuth>} />
           <Route path="/app/telegram"    element={<RequireAuth><TelegramSetup /></RequireAuth>} />
           <Route path="/app/package-request" element={<RequireAuth><PackageRequest /></RequireAuth>} />
           <Route path="/app/watchlist"   element={<RequireAuth><Watchlist /></RequireAuth>} />
           <Route path="/app/account"     element={<RequireAuth><Account /></RequireAuth>} />
 
           {/* Admin */}
-
           <Route path="/admin/operator" element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
           <Route path="/admin/mission-control" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
           <Route path="/admin/mission" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
@@ -156,6 +180,7 @@ function App() {
           <Route path="/admin/provider-comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
           <Route path="/admin/providers/binance" element={<RequireAdmin><BinanceOperations /></RequireAdmin>} />
           <Route path="/admin/providers/bybit" element={<RequireAdmin><BybitOperations /></RequireAdmin>} />
+          <Route path="/admin/providers/mt5" element={<RequireAdmin><MT5OperationsCenter /></RequireAdmin>} />
           <Route path="/admin/providers/mt5-personal" element={<RequireAdmin><MT5PersonalOperations /></RequireAdmin>} />
           <Route path="/admin/providers/mt5-prop" element={<RequireAdmin><MT5PropOperations /></RequireAdmin>} />
           <Route path="/admin/providers/comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />

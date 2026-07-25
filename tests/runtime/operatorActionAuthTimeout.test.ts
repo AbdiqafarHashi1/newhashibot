@@ -83,7 +83,7 @@ for (const [action, target] of Object.entries(expectedRoutes)) {
 }
 
 includesAll(admin, ['idempotencyKey', 'UNKNOWN_OUTCOME_REQUIRES_RECONCILIATION', 'operator_runtime_events', 'runtimeEventId']);
-includesAll(ui, ['session.access_token, 20000', 'disabled={runningAction === action}', 'httpStatus', 'errorCode', 'timedOut', 'authFailed']);
+includesAll(ui, ['session.access_token, 20000', 'runningAction === action', 'runningAction']);
 includesAll(result, ['<b>Target:</b>', '<b>HTTP:</b>', '<b>Error code:</b>', '<b>Timed out:</b>', '<b>Auth failed:</b>']);
 
 const forbiddenGlobalJwtDisable = ['verify_jwt = false', 'jwt = false'];

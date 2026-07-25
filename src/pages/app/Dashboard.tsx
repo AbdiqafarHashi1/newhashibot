@@ -8,6 +8,7 @@ import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components
 import {
   Radio, ArrowRight, Lock, MessageCircle, AlertTriangle,
   Send, Package as PackageIcon, Clock, ShieldCheck, BookOpen,
+  Zap, Server, Award, Sliders
 } from 'lucide-react';
 import {
   accessStateDescription,
@@ -103,7 +104,55 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Product-Specific Entitlement Portals Quick Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Link to="/app/crypto-execution" className="bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 rounded-2xl p-4 transition-all group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+              <Zap size={16} className="text-amber-400" />
+            </div>
+            <ArrowRight size={14} className="text-zinc-600 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
+          </div>
+          <div className="font-bold text-sm text-white mb-0.5">Crypto Automation</div>
+          <p className="text-xs text-zinc-500">Binance / Bybit execution & protection</p>
+        </Link>
+
+        <Link to="/app/mt5-personal" className="bg-zinc-900 border border-zinc-800 hover:border-emerald-500/50 rounded-2xl p-4 transition-all group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Server size={16} className="text-emerald-400" />
+            </div>
+            <ArrowRight size={14} className="text-zinc-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+          </div>
+          <div className="font-bold text-sm text-white mb-0.5">MT5 Personal Forex</div>
+          <p className="text-xs text-zinc-500">MetaTrader 5 broker personal EA</p>
+        </Link>
+
+        <Link to="/app/mt5-prop" className="bg-zinc-900 border border-zinc-800 hover:border-purple-500/50 rounded-2xl p-4 transition-all group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+              <Award size={16} className="text-purple-400" />
+            </div>
+            <ArrowRight size={14} className="text-zinc-600 group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all" />
+          </div>
+          <div className="font-bold text-sm text-white mb-0.5">MT5 Prop Automation</div>
+          <p className="text-xs text-zinc-500">Prop challenge drawdown governor</p>
+        </Link>
+
+        <Link to="/app/bot-setup" className="bg-zinc-900 border border-zinc-800 hover:border-sky-500/50 rounded-2xl p-4 transition-all group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+              <Sliders size={16} className="text-sky-400" />
+            </div>
+            <ArrowRight size={14} className="text-zinc-600 group-hover:text-sky-400 group-hover:translate-x-0.5 transition-all" />
+          </div>
+          <div className="font-bold text-sm text-white mb-0.5">Bot Setup & Preferences</div>
+          <p className="text-xs text-zinc-500">Risk profile & broker credentials</p>
+        </Link>
+      </div>
+
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
+
         <div className={panelClass(accessTone)}>
           <div className="flex items-start gap-3">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${hasAccess ? 'bg-emerald-500/20' : isPending ? 'bg-yellow-500/20' : isExpired ? 'bg-red-500/20' : 'bg-zinc-800'}`}>

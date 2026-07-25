@@ -16,7 +16,7 @@ const xb1Sql = readFileSync('supabase/migrations/20260614190000_070_xb1_capital_
 const cryptoFix1Sql = readFileSync('supabase/migrations/20260611120000_059_crypto_fix_1_testnet_risk_leverage_truth.sql', 'utf8');
 const liveCronHeaderSql = readFileSync('supabase/migrations/20260613170000_067_live_cron_header_rebuild.sql', 'utf8');
 const tradeSupervisorSql = readFileSync('supabase/migrations/20260618100000_080_trade_supervisor_always_on.sql', 'utf8');
-const phase5cSql = readFileSync('supabase/migrations/20260722000000_phase5c_execution_account_ownership.sql', 'utf8');
+const phase5cSql = readFileSync('supabase/migrations/20260722001000_phase5c_execution_account_ownership.sql', 'utf8');
 const ownershipEdge = readFileSync('supabase/functions/_shared/execution-ownership.ts', 'utf8');
 const bybitMonitorFn = readFileSync('supabase/functions/bybit-testnet-monitor/index.ts', 'utf8');
 

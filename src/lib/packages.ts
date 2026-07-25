@@ -117,7 +117,7 @@ export function slugFromPackageValue(value?: string | null): PackageCapability |
 
 export function packageStatusLabel(pkg: Package) {
   if (pkg.slug === 'crypto_signal_room') return 'Available';
-  if (pkg.slug === 'forex_mt5_prop_bot') return 'Prop-Safe Setup';
+  if (pkg.slug === 'forex_mt5_prop_bot') return 'Waitlist';
   if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return 'Managed Setup';
   return 'Preview';
 }
@@ -133,3 +133,43 @@ export function priceLabel(pkg: Package) {
 export function defaultRiskPreset(slug?: string | null) {
   return slug === 'forex_mt5_prop_bot' ? 'Conservative / Prop Safe' : 'Conservative';
 }
+
+export interface PackageEntitlements {
+  signalAccess: boolean;
+  cryptoExecution: boolean;
+  mt5Personal: boolean;
+  mt5Prop: boolean;
+  canConfigureBot: boolean;
+}
+
+export function getEntitlementsForPackage(slugOrName?: string | null, isActive: boolean = true): PackageEntitlements {
+  if (!isActive) {
+    return {
+      signalAccess: false,
+      cryptoExecution: false,
+      mt5Personal: false,
+      mt5Prop: false,
+      canConfigureBot: false,
+    };
+  }
+
+  const slug = slugFromPackageValue(slugOrName);
+  if (!slug || slug === 'free_preview') {
+    return {
+      signalAccess: false,
+      cryptoExecution: false,
+      mt5Personal: false,
+      mt5Prop: false,
+      canConfigureBot: false,
+    };
+  }
+
+  return {
+    signalAccess: true, // All active paid packages have signal access
+    cryptoExecution: slug === 'crypto_personal_bot',
+    mt5Personal: slug === 'forex_mt5_personal_bot',
+    mt5Prop: slug === 'forex_mt5_prop_bot',
+    canConfigureBot: isBotPackage(slug),
+  };
+}
+

@@ -1,298 +1,450 @@
+/**
+ * HashiBot Phase 7A-2A Root Telegram Router Service
+ * Backend-owned central routing, delivery queue, idempotency engine, retry manager,
+ * customer eligibility checks, Free channel publisher, and incentive rate limiter.
+ */
+
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  categorizeEvent,
+  TelegramEventCategory,
+  TelegramEventSeverity,
+  TelegramVisibility,
+} from "./telegram-taxonomy.ts";
+import {
+  channelRegistry,
+  getBotToken,
+  TelegramChannelKey,
+} from "./telegram-registry.ts";
+import {
+  formatEastAfricaTime,
+  renderTelegramTemplate,
+  splitMessageSafely,
+  TemplateMessagePayload,
+} from "./telegram-templates.ts";
+import {
+  CustomerEligibilityContext,
+  verifyChannelEligibility,
+} from "./telegram-eligibility.ts";
+import {
+  evaluateFreeChannelCandidate,
+  FreePublisherConfig,
+  persistPublicationDecision,
+} from "./telegram-free-publisher.ts";
+import {
+  checkAntiSpamLimits,
+  recordCampaignDelivery,
+  validateCampaignCompliance,
+} from "./telegram-incentive-engine.ts";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
-type TelegramChannel = "admin" | "free" | "vip";
-type DeliveryStatus = "sent" | "failed" | "skipped";
-type EventSeverity = "low" | "medium" | "high" | "critical";
+export type DeliveryStatus =
+  | "queued"
+  | "processing"
+  | "sent"
+  | "failed"
+  | "skipped"
+  | "retry_pending"
+  | "dead_lettered";
 
 export interface TelegramRouteEvent {
   event_id?: string | null;
   event_type: string;
-  text: string;
+  runtime_timestamp?: string;
+  text?: string;
   signal_id?: string | null;
+  trade_id?: string | null;
+  order_id?: string | null;
   source?: string;
-  channels?: TelegramChannel[];
+  channels?: TelegramChannelKey[];
+  visibility?: TelegramVisibility;
   parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
   disable_web_page_preview?: boolean;
   dedupe?: boolean;
   symbol?: string | null;
   market?: string | null;
+  provider?: string | null;
+  execution_mode?: string | null;
   reason?: string;
-  severity?: EventSeverity | string;
+  severity?: TelegramEventSeverity | string;
   confidence?: number;
-  data_source?: string;
-  freshness?: string;
-  channel_target?: TelegramChannel | TelegramChannel[] | "auto";
   cooldown_minutes?: number;
   customer_id?: string;
-  execution_provider?: string;
   account_id?: string;
+  execution_provider?: string;
   execution_instance_id?: string;
   credential_ref?: string;
   execution_scope_key?: string;
+  payload?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+
+  // Customer Eligibility & Phase 7A-2A Options
+  customerContext?: CustomerEligibilityContext;
+  freePublisherConfig?: FreePublisherConfig;
+  isCampaign?: boolean;
+  campaignId?: string;
+  campaignType?: "VIP_INVITATION" | "TRIAL" | "PRODUCT_UPDATE" | "FEATURE_ANNOUNCEMENT" | "EDUCATION";
+  publicationMode?: "preview" | "delayed" | "full";
 }
 
 export interface TelegramRouteResult {
-  channel: TelegramChannel;
+  channel: TelegramChannelKey;
   chat_id: string;
   status: DeliveryStatus;
   telegram_message_id?: string;
   error_message?: string;
   delivery_id?: string;
+  idempotency_key?: string;
 }
 
-export function vipChatId(): string {
-  return Deno.env.get("TELEGRAM_CHAT_ID") ?? Deno.env.get("TELEGRAM_DEFAULT_CHANNEL_ID") ?? "";
+/**
+ * Deterministic Idempotency Key Calculation
+ * Formula: {eventType}:{destination}:{entityId}:{lifecycleStage}
+ */
+export function buildIdempotencyKey(event: TelegramRouteEvent, destination: TelegramChannelKey): string {
+  const entityId = event.signal_id || event.trade_id || event.order_id || event.event_id || "global";
+  const stage = event.reason || event.severity || "standard";
+  return `${event.event_type.toUpperCase()}:${destination}:${entityId}:${stage}`.toLowerCase();
 }
 
-export function telegramChannelConfig(): Record<TelegramChannel, string> {
-  return {
-    admin: Deno.env.get("TELEGRAM_ADMIN_CHAT_ID") ?? "",
-    free: Deno.env.get("TELEGRAM_FREE_CHAT_ID") ?? "",
-    vip: vipChatId(),
-  };
-}
+/**
+ * Classify error as transient (retryable) vs permanent (dead-letter)
+ */
+export function classifyDeliveryError(status: number, description: string): { permanent: boolean; retryAfterSeconds: number } {
+  const desc = description.toLowerCase();
 
-function uniqueChannels(channels: TelegramChannel[]): TelegramChannel[] {
-  return Array.from(new Set(channels));
-}
-
-function normalizeTarget(target: TelegramRouteEvent["channel_target"]): TelegramChannel[] | null {
-  if (!target || target === "auto") return null;
-  return uniqueChannels(Array.isArray(target) ? target : [target]);
-}
-
-function isEventIntelligence(type: string): boolean {
-  return type.includes("event_intelligence") || type.includes("intelligence_alert") || type.includes("regime_shift") || type.includes("level_break") || type.includes("volatility_expansion") || type.includes("liquidation_cascade") || type.includes("risk_off") || type.includes("risk_on") || type.includes("trend_exhaustion") || type.includes("breakout_watch") || type.includes("liquidity_sweep");
-}
-
-function isMajorBroadMarketEvent(event: TelegramRouteEvent, type: string): boolean {
-  const severity = String(event.severity ?? "").toLowerCase();
-  const market = String(event.market ?? "").toLowerCase();
-  const symbol = String(event.symbol ?? "").toUpperCase();
-  return severity === "critical"
-    || (severity === "high" && (!symbol || symbol === "BTC" || symbol === "BTCUSDT" || symbol === "ETH" || symbol === "ETHUSDT" || ["crypto", "market", "broad_market"].includes(market)))
-    || type.includes("major")
-    || type.includes("market_wide")
-    || type.includes("liquidation_cascade")
-    || type.includes("risk_off")
-    || type.includes("risk_on")
-    || type.includes("btc_major")
-    || type.includes("news_shock");
-}
-
-export function resolveTelegramChannels(eventType: string, override?: TelegramChannel[], event?: TelegramRouteEvent): TelegramChannel[] {
-  if (override?.length) return uniqueChannels(override);
-  const explicitTarget = normalizeTarget(event?.channel_target);
-  if (explicitTarget?.length) return explicitTarget;
-
-  const type = eventType.toLowerCase();
   if (
-    type.startsWith("admin_")
-    || type.includes("failure")
-    || type.includes("failed")
-    || type.includes("watchdog")
-    || type.includes("mismatch")
-    || type.includes("critical_system")
-    || type.includes("critical_error")
-    || type.includes("cleanup")
-    || type.includes("cron_")
-    || type.includes("provider_")
-    || type.includes("unprotected")
-    || type.includes("protection_degraded")
-    || type.includes("stale_monitor")
-    || type.includes("execution_rejection")
-  ) return ["admin"];
-  if (isEventIntelligence(type)) return isMajorBroadMarketEvent(event ?? { event_type: eventType, text: "" }, type) ? ["free", "vip"] : ["vip"];
-  if (type.includes("signal_preview") || type.includes("opportunity_teaser") || type.includes("educational") || type.includes("market_update")) return ["free"];
-  if (type.includes("signal_created") || type.includes("vip_signal") || type.includes("entry_triggered") || type.includes("tp1_hit") || type.includes("tp2_hit") || type.includes("sl_moved") || type.includes("profit_locked") || type.includes("invalidated") || type.includes("closed")) return ["vip"];
-  if (type.includes("morning_brief") || type.includes("market_wrap") || type.includes("news_digest") || type.includes("watchlist") || type.includes("pattern") || type.includes("sentiment") || type.includes("market_analytics")) return ["free", "vip"];
-  if (type.includes("highest_confidence_setup") || type.includes("free_selected_signal")) return ["free"];
-  return ["vip"];
+    status === 400 ||
+    status === 401 ||
+    status === 403 ||
+    status === 404 ||
+    desc.includes("bot was blocked") ||
+    desc.includes("chat not found") ||
+    desc.includes("unauthorized") ||
+    desc.includes("forbidden") ||
+    desc.includes("bad request") ||
+    desc.includes("invalid token")
+  ) {
+    return { permanent: true, retryAfterSeconds: 0 };
+  }
+
+  if (status === 429) {
+    const match = desc.match(/retry after (\d+)/);
+    const retryAfter = match ? parseInt(match[1], 10) : 30;
+    return { permanent: false, retryAfterSeconds: retryAfter };
+  }
+
+  return { permanent: false, retryAfterSeconds: 5 };
 }
 
-async function insertDelivery(
+/**
+ * Record or update delivery state in `telegram_deliveries`
+ */
+async function recordDeliveryTruth(
   supabase: SupabaseClient,
   event: TelegramRouteEvent,
-  channel: TelegramChannel,
+  channelKey: TelegramChannelKey,
   chatId: string,
   status: DeliveryStatus,
+  idempotencyKey: string,
   errorMessage = "",
   telegramMessageId = "",
   retryCount = 0,
+  nextAttemptAt: string | null = null,
+  retryAfterSeconds = 0,
+  telegramResponse: Record<string, unknown> | null = null,
 ): Promise<string | undefined> {
-  const payload = {
+  const { defaultVisibility } = categorizeEvent(event.event_type);
+  const visibility = event.visibility || defaultVisibility;
+
+  const rowPayload = {
+    event_id: event.event_id ?? event.signal_id ?? crypto.randomUUID(),
+    event_type: event.event_type,
     signal_id: event.signal_id ?? null,
     delivery_type: event.event_type,
     chat_id: chatId || "not_configured",
-    status,
+    destination_channel: channelKey,
+    destination_chat_id: chatId || "not_configured",
+    status: status === "sent" ? "sent" : status === "skipped" ? "skipped" : "failed",
+    delivery_status: status,
     telegram_message_id: telegramMessageId,
     error_message: errorMessage,
-    event_id: event.event_id ?? event.signal_id ?? crypto.randomUUID(),
-    event_type: event.event_type,
-    destination_channel: channel,
-    destination_chat_id: chatId || "not_configured",
     sent_at: status === "sent" ? new Date().toISOString() : null,
-    delivery_status: status,
     retry_count: retryCount,
     customer_id: event.customer_id ?? null,
-    execution_provider: event.execution_provider ?? null,
+    execution_provider: event.execution_provider ?? event.provider ?? null,
     account_id: event.account_id ?? null,
     execution_instance_id: event.execution_instance_id ?? null,
     credential_ref: event.credential_ref ?? null,
     execution_scope_key: event.execution_scope_key ?? null,
+    idempotency_key: idempotencyKey,
+    routing_version: "v2.0",
+    template_version: "v2.0",
+    retry_after_seconds: retryAfterSeconds,
+    next_attempt_at: nextAttemptAt,
+    telegram_response: telegramResponse,
+    visibility,
+    dead_lettered_at: status === "dead_lettered" ? new Date().toISOString() : null,
+    dead_letter_reason: status === "dead_lettered" ? errorMessage : null,
   };
-  const { data } = await supabase.from("telegram_deliveries").insert(payload).select("id").maybeSingle();
-  return data?.id as string | undefined;
-}
 
-
-function alertDedupeKey(event: TelegramRouteEvent, channel: TelegramChannel): string {
-  return [
-    channel,
-    event.event_type.toLowerCase(),
-    String(event.source ?? "runtime").toLowerCase(),
-    String(event.symbol ?? event.market ?? "provider").toLowerCase(),
-    String(event.reason ?? event.text.split("\n")[0] ?? "").toLowerCase().slice(0, 120),
-  ].join(":");
-}
-
-async function shouldSuppressOperationalAlert(supabase: SupabaseClient, event: TelegramRouteEvent, channel: TelegramChannel): Promise<{ suppress: boolean; key: string; reason?: string }> {
-  const type = event.event_type.toLowerCase();
-  const operational = channel === "admin" && (type.includes("failure") || type.includes("failed") || type.includes("provider_") || type.includes("unprotected") || type.includes("watchdog") || type.includes("critical"));
-  if (!operational) return { suppress: false, key: "" };
-  const key = alertDedupeKey(event, channel);
-  const cooldownMinutes = eventCooldownMinutes(event);
-  const sinceIso = new Date(Date.now() - cooldownMinutes * 60_000).toISOString();
   try {
-    const { data: existing } = await supabase.from("telegram_alert_dedupe").select("dedupe_key,last_sent_at,suppressed_count").eq("dedupe_key", key).maybeSingle();
-    if (existing?.last_sent_at && String(existing.last_sent_at) > sinceIso) {
-      await supabase.from("telegram_alert_dedupe").upsert({ dedupe_key: key, event_type: event.event_type, provider: event.source ?? null, symbol: event.symbol ?? null, last_seen: new Date().toISOString(), suppressed_count: Number(existing.suppressed_count ?? 0) + 1, metadata: { latest_text: event.text.slice(0, 500) } }, { onConflict: "dedupe_key" });
-      await supabase.from("telegram_alert_digest").insert({ digest_key: key, provider: event.source ?? null, symbol: event.symbol ?? null, event_type: event.event_type, latest_error: event.text.slice(0, 1000), metadata: { channel, suppressed: true } });
-      return { suppress: true, key, reason: "alert_cooldown" };
-    }
-    await supabase.from("telegram_alert_dedupe").upsert({ dedupe_key: key, event_type: event.event_type, provider: event.source ?? null, symbol: event.symbol ?? null, last_seen: new Date().toISOString(), last_sent_at: new Date().toISOString(), metadata: { latest_text: event.text.slice(0, 500) } }, { onConflict: "dedupe_key" });
+    const { data } = await supabase.from("telegram_deliveries").insert(rowPayload).select("id").maybeSingle();
+    return data?.id as string | undefined;
   } catch {
-    return { suppress: false, key };
+    return undefined;
   }
-  return { suppress: false, key };
 }
 
-function eventDedupeKey(event: TelegramRouteEvent): string {
-  return [
-    event.event_type.toLowerCase(),
-    String(event.symbol ?? event.market ?? "market").toLowerCase(),
-    String(event.reason ?? "").toLowerCase().slice(0, 80),
-  ].join(":");
-}
-
-function eventCooldownMinutes(event: TelegramRouteEvent): number {
-  if (typeof event.cooldown_minutes === "number" && Number.isFinite(event.cooldown_minutes)) return Math.max(1, event.cooldown_minutes);
-  return 60;
-}
-
+/**
+ * Central Router dispatching method
+ */
 export async function routeTelegramEvent(supabase: SupabaseClient, event: TelegramRouteEvent): Promise<TelegramRouteResult[]> {
-  const token = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
-  const config = telegramChannelConfig();
-  const channels = resolveTelegramChannels(event.event_type, event.channels, event);
+  const botToken = getBotToken();
   const results: TelegramRouteResult[] = [];
-  const type = event.event_type.toLowerCase();
-  const isEventAlert = isEventIntelligence(type);
-  const alertKey = isEventAlert ? eventDedupeKey(event) : "";
-  const sinceIso = isEventAlert ? new Date(Date.now() - eventCooldownMinutes(event) * 60_000).toISOString() : "";
 
-  for (const channel of channels) {
-    const operationalAlert = await shouldSuppressOperationalAlert(supabase, event, channel);
-    if (operationalAlert.suppress) {
-      const deliveryId = await insertDelivery(supabase, { ...event, event_id: operationalAlert.key || event.event_id }, channel, config[channel] || "not_configured", "skipped", operationalAlert.reason ?? "alert_cooldown");
-      results.push({ channel, chat_id: config[channel] || "not_configured", status: "skipped", error_message: operationalAlert.reason ?? "alert_cooldown", delivery_id: deliveryId });
+  const { defaultVisibility } = categorizeEvent(event.event_type);
+  const visibility = event.visibility || defaultVisibility;
+
+  if (visibility === "NO_TELEGRAM") {
+    return results;
+  }
+
+  // Phase 7A-2A Rule: All execution events stay in 'admin' channel
+  const isExecutionEvent = event.event_type.startsWith("EXECUTION_") || event.event_type.startsWith("POSITION_");
+  let rawChannels: TelegramChannelKey[] = event.channels && event.channels.length > 0
+    ? event.channels
+    : channelRegistry.getChannelsForVisibility(visibility);
+
+  if (isExecutionEvent) {
+    rawChannels = ["admin"];
+  }
+
+  const payload: TemplateMessagePayload = {
+    eventType: event.event_type,
+    market: event.market ?? undefined,
+    symbol: event.symbol ?? undefined,
+    direction: (event.payload?.direction as string) ?? undefined,
+    grade: (event.payload?.grade as string) ?? undefined,
+    confidence: (event.payload?.confidence as number) ?? event.confidence ?? undefined,
+    entryLow: (event.payload?.entry_low as number) ?? undefined,
+    entryHigh: (event.payload?.entry_high as number) ?? undefined,
+    stopLoss: (event.payload?.stop_loss as number) ?? undefined,
+    tp1: (event.payload?.tp1 as number) ?? undefined,
+    tp2: (event.payload?.tp2 as number) ?? undefined,
+    tp3: (event.payload?.tp3 as number) ?? undefined,
+    riskReward: (event.payload?.risk_reward as number) ?? undefined,
+    strategyName: (event.payload?.strategy_name as string) ?? undefined,
+    regime: (event.payload?.regime as string) ?? undefined,
+    reason: event.reason ?? (event.payload?.reason as string) ?? undefined,
+    eventPrice: (event.payload?.event_price as number) ?? undefined,
+    realizedR: (event.payload?.realized_r as number) ?? undefined,
+    provider: event.provider ?? event.execution_provider ?? undefined,
+    executionMode: event.execution_mode ?? undefined,
+    accountRef: event.account_id ?? undefined,
+    customerRef: event.customer_id ?? undefined,
+    severity: String(event.severity ?? "LOW"),
+    details: event.text ?? (event.payload?.details as string) ?? undefined,
+    timestamp: event.runtime_timestamp ?? new Date().toISOString(),
+    publicationMode: event.publicationMode ?? "full",
+  };
+
+  for (const channelKey of rawChannels) {
+    // 1. Verify Customer Eligibility for channel
+    const eligibility = verifyChannelEligibility(channelKey, event.customerContext);
+    if (!eligibility.allowed) {
+      const idempotencyKey = buildIdempotencyKey(event, channelKey);
+      const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, "blocked", "skipped", idempotencyKey, `ELIGIBILITY_BLOCKED:${eligibility.reason}`);
+      results.push({ channel: channelKey, chat_id: "blocked", status: "skipped", error_message: eligibility.reason, delivery_id: deliveryId, idempotency_key: idempotencyKey });
       continue;
     }
-    const chatId = config[channel];
-    if (!token || !chatId) {
-      const error = !token ? "TELEGRAM_BOT_TOKEN missing" : `TELEGRAM_${channel.toUpperCase()}_CHAT_ID missing`;
-      const deliveryId = await insertDelivery(supabase, event, channel, chatId, "skipped", error);
-      results.push({ channel, chat_id: chatId || "not_configured", status: "skipped", error_message: error, delivery_id: deliveryId });
+
+    // 2. Free Channel Publisher Evaluation
+    if (channelKey === "free" && event.signal_id && (event.event_type.startsWith("SIGNAL_") || event.event_type === "NEW_SIGNAL")) {
+      const candidate = {
+        id: event.signal_id,
+        symbol: event.symbol ?? "",
+        market_type: event.market ?? "crypto",
+        direction: (event.payload?.direction as string) ?? "buy",
+        grade: (event.payload?.grade as string) ?? "A",
+        confidence_score: (event.payload?.confidence as number) ?? event.confidence ?? 80,
+        risk_reward: (event.payload?.risk_reward as number) ?? 2.0,
+        timeframe: (event.payload?.timeframe as string) ?? "15m",
+        strategy_name: (event.payload?.strategy_name as string) ?? "Standard",
+        entry_low: (event.payload?.entry_low as number) ?? undefined,
+        entry_high: (event.payload?.entry_high as number) ?? undefined,
+        stop_loss: (event.payload?.stop_loss as number) ?? undefined,
+        tp1: (event.payload?.tp1 as number) ?? undefined,
+        tp2: (event.payload?.tp2 as number) ?? undefined,
+        status: "active",
+        data_source: "REAL DATA",
+        created_at: event.runtime_timestamp ?? new Date().toISOString(),
+      };
+
+      const evalRes = await evaluateFreeChannelCandidate(supabase, candidate, event.freePublisherConfig);
+      await persistPublicationDecision(
+        supabase,
+        event.signal_id,
+        evalRes.decision,
+        evalRes.reason,
+        event.publicationMode ?? "full",
+        candidate
+      );
+
+      if (!evalRes.eligible) {
+        const idempotencyKey = buildIdempotencyKey(event, channelKey);
+        const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, "skipped", "skipped", idempotencyKey, `FREE_PUBLISHER_SKIPPED:${evalRes.reason}`);
+        results.push({ channel: channelKey, chat_id: "skipped", status: "skipped", error_message: evalRes.reason, delivery_id: deliveryId, idempotency_key: idempotencyKey });
+        continue;
+      }
+    }
+
+    // 3. Campaign & Anti-Spam Check for Promotional Messages
+    if (event.isCampaign || event.event_type === "VIP_INVITATION") {
+      const antiSpam = await checkAntiSpamLimits(supabase, channelKey);
+      if (!antiSpam.allowed) {
+        const idempotencyKey = buildIdempotencyKey(event, channelKey);
+        const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, "skipped", "skipped", idempotencyKey, `ANTI_SPAM_BLOCKED:${antiSpam.reason}`);
+        results.push({ channel: channelKey, chat_id: "skipped", status: "skipped", error_message: antiSpam.reason, delivery_id: deliveryId, idempotency_key: idempotencyKey });
+        continue;
+      }
+
+      if (event.text) {
+        const compliance = validateCampaignCompliance(event.text);
+        if (!compliance.compliant) {
+          const idempotencyKey = buildIdempotencyKey(event, channelKey);
+          const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, "skipped", "skipped", idempotencyKey, `COMPLIANCE_VIOLATION:${compliance.violation}`);
+          results.push({ channel: channelKey, chat_id: "skipped", status: "skipped", error_message: compliance.violation, delivery_id: deliveryId, idempotency_key: idempotencyKey });
+          continue;
+        }
+      }
+    }
+
+    const destination = channelRegistry.getDestination(channelKey);
+    const chatId = destination?.chatId || "";
+    const idempotencyKey = buildIdempotencyKey(event, channelKey);
+
+    // 4. Missing Token or Destination Config
+    if (!botToken || !chatId) {
+      const error = !botToken ? "TELEGRAM_BOT_TOKEN missing" : `TELEGRAM_${channelKey.toUpperCase()}_CHAT_ID missing`;
+      const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, chatId, "skipped", idempotencyKey, error);
+      results.push({ channel: channelKey, chat_id: chatId || "not_configured", status: "skipped", error_message: error, delivery_id: deliveryId, idempotency_key: idempotencyKey });
       continue;
     }
 
-    if (event.event_id && event.dedupe !== false) {
-      const { data: existingEvent } = await supabase.from("telegram_deliveries")
-        .select("id")
-        .eq("event_id", event.event_id)
-        .eq("destination_channel", channel)
-        .eq("status", "sent")
-        .limit(1)
-        .maybeSingle();
-      if (existingEvent) {
-        const deliveryId = await insertDelivery(supabase, event, channel, chatId, "skipped", `already_sent_event:${existingEvent.id}`);
-        results.push({ channel, chat_id: chatId, status: "skipped", error_message: "already_sent_event", delivery_id: deliveryId });
-        continue;
+    // 5. Idempotency Check
+    if (event.dedupe !== false) {
+      try {
+        let existing = null;
+        if (event.event_id) {
+          const { data } = await supabase.from("telegram_deliveries")
+            .select("id")
+            .eq("event_id", event.event_id)
+            .eq("destination_channel", channelKey)
+            .eq("status", "sent")
+            .limit(1)
+            .maybeSingle();
+          existing = data;
+        }
+        if (!existing && event.signal_id) {
+          const { data } = await supabase.from("telegram_deliveries")
+            .select("id")
+            .eq("signal_id", event.signal_id)
+            .eq("destination_channel", channelKey)
+            .eq("status", "sent")
+            .limit(1)
+            .maybeSingle();
+          existing = data;
+        }
+        if (!existing) {
+          const { data } = await supabase.from("telegram_deliveries")
+            .select("id")
+            .eq("idempotency_key", idempotencyKey)
+            .eq("delivery_status", "sent")
+            .limit(1)
+            .maybeSingle();
+          existing = data;
+        }
+
+        if (existing) {
+          const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, chatId, "skipped", idempotencyKey, `already_sent:${existing.id}`);
+          results.push({ channel: channelKey, chat_id: chatId, status: "skipped", error_message: "already_sent", delivery_id: deliveryId, idempotency_key: idempotencyKey });
+          continue;
+        }
+      } catch {
+        // Continue if DB check fails
       }
     }
 
-    if (event.signal_id) {
-      const { data: existing } = await supabase.from("telegram_deliveries")
-        .select("id")
-        .eq("signal_id", event.signal_id)
-        .eq("destination_channel", channel)
-        .eq("delivery_type", event.event_type)
-        .eq("status", "sent")
-        .limit(1)
-        .maybeSingle();
-      if (existing) {
-        const deliveryId = await insertDelivery(supabase, event, channel, chatId, "skipped", `already_sent:${existing.id}`);
-        results.push({ channel, chat_id: chatId, status: "skipped", error_message: "already_sent", delivery_id: deliveryId });
-        continue;
+    // 6. Render Message Text
+    const fullText = event.text && event.text.length > 0 ? event.text : renderTelegramTemplate(payload, channelKey);
+    const textChunks = splitMessageSafely(fullText, 4000);
+
+    let lastMessageId = "";
+    let sendSuccess = true;
+    let lastError = "";
+
+    for (const chunk of textChunks) {
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: chunk,
+            parse_mode: event.parse_mode || "Markdown",
+            disable_web_page_preview: event.disable_web_page_preview ?? true,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+
+        const data = await res.json().catch(() => ({})) as { ok?: boolean; result?: { message_id?: number }; description?: string };
+        const ok = res.ok && data.ok === true;
+
+        if (ok) {
+          lastMessageId = String(data.result?.message_id ?? "");
+        } else {
+          sendSuccess = false;
+          lastError = data.description ?? res.statusText ?? `HTTP ${res.status}`;
+          const errClassification = classifyDeliveryError(res.status, lastError);
+
+          if (errClassification.permanent) {
+            channelRegistry.markHealth(channelKey, false, new Date().toISOString(), lastError);
+            const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, chatId, "dead_lettered", idempotencyKey, lastError, "", 0, null, 0, data as Record<string, unknown>);
+            results.push({ channel: channelKey, chat_id: chatId, status: "dead_lettered", error_message: lastError, delivery_id: deliveryId, idempotency_key: idempotencyKey });
+          } else {
+            const nextAttempt = new Date(Date.now() + errClassification.retryAfterSeconds * 1000).toISOString();
+            const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, chatId, "retry_pending", idempotencyKey, lastError, "", 1, nextAttempt, errClassification.retryAfterSeconds, data as Record<string, unknown>);
+            results.push({ channel: channelKey, chat_id: chatId, status: "retry_pending", error_message: lastError, delivery_id: deliveryId, idempotency_key: idempotencyKey });
+          }
+          break;
+        }
+      } catch (e) {
+        sendSuccess = false;
+        lastError = e instanceof Error ? e.message : "Network error";
+        const nextAttempt = new Date(Date.now() + 5000).toISOString();
+        const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, chatId, "retry_pending", idempotencyKey, lastError, "", 1, nextAttempt, 5);
+        results.push({ channel: channelKey, chat_id: chatId, status: "retry_pending", error_message: lastError, delivery_id: deliveryId, idempotency_key: idempotencyKey });
+        break;
       }
     }
 
-    if (isEventAlert) {
-      const { data: recentAlert } = await supabase.from("telegram_deliveries")
-        .select("id")
-        .eq("event_type", event.event_type)
-        .eq("destination_channel", channel)
-        .eq("delivery_status", "sent")
-        .gte("created_at", sinceIso)
-        .ilike("event_id", `${alertKey}:%`)
-        .limit(1)
-        .maybeSingle();
-      if (recentAlert) {
-        const deliveryId = await insertDelivery(supabase, { ...event, event_id: `${alertKey}:${event.event_id ?? Date.now()}` }, channel, chatId, "skipped", `cooldown:${recentAlert.id}`);
-        results.push({ channel, chat_id: chatId, status: "skipped", error_message: "cooldown", delivery_id: deliveryId });
-        continue;
-      }
-    }
+    if (sendSuccess) {
+      channelRegistry.markHealth(channelKey, true);
+      const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, chatId, "sent", idempotencyKey, "", lastMessageId);
+      results.push({ channel: channelKey, chat_id: chatId, status: "sent", telegram_message_id: lastMessageId, delivery_id: deliveryId, idempotency_key: idempotencyKey });
 
-    try {
-      const routedEvent = isEventAlert ? { ...event, event_id: `${alertKey}:${event.event_id ?? Date.now()}` } : event;
-      const messageText = isEventAlert && !event.text.toLowerCase().includes("market intelligence alert")
-        ? `Market Intelligence Alert\n\n${event.text}`
-        : event.text;
-      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: messageText,
-          parse_mode: event.parse_mode,
-          disable_web_page_preview: event.disable_web_page_preview ?? true,
-        }),
-        signal: AbortSignal.timeout(8000),
-      });
-      const data = await res.json().catch(() => ({})) as { ok?: boolean; result?: { message_id?: number }; description?: string };
-      const ok = res.ok && data.ok === true;
-      const msgId = String(data.result?.message_id ?? "");
-      const error = ok ? "" : (data.description ?? res.statusText ?? "Telegram API error");
-      const deliveryId = await insertDelivery(supabase, routedEvent, channel, chatId, ok ? "sent" : "failed", error, msgId);
-      results.push({ channel, chat_id: chatId, status: ok ? "sent" : "failed", telegram_message_id: msgId, error_message: error, delivery_id: deliveryId });
-    } catch (e) {
-      const error = e instanceof Error ? e.message : "unknown";
-      const deliveryId = await insertDelivery(supabase, event, channel, chatId, "failed", error);
-      results.push({ channel, chat_id: chatId, status: "failed", error_message: error, delivery_id: deliveryId });
+      if (event.isCampaign && event.campaignId) {
+        await recordCampaignDelivery(supabase, {
+          campaignId: event.campaignId,
+          campaignType: event.campaignType ?? "VIP_INVITATION",
+          channel: channelKey,
+          content: fullText,
+        });
+      }
     }
   }
+
   return results;
 }
