@@ -389,6 +389,37 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
     markStage(stageTimings, "load_execution_rows", startedMs);
     let cancelBudget = MONITOR_CANCEL_LIMIT;
     let repairBudget = MONITOR_REPAIR_LIMIT;
+    const localSymbols = new Set(((rows ?? []) as Json[]).map((row) => String(row.symbol ?? "")));
+    const untrackedPositions = activePositions.filter((position) => !localSymbols.has(String(position.symbol ?? "")));
+    for (const position of untrackedPositions) {
+      const symbol = String(position.symbol ?? "");
+      const symbolOrders = orderList.filter((order) => String(order.symbol ?? "") === symbol && isActiveOrder(order));
+      const reduceOrders = symbolOrders.filter((order) => order.reduceOnly === true || String(order.reduceOnly) === "true");
+      const slPresent = reduceOrders.some((order) => orderKind(order) === "sl");
+      const takeOrders = reduceOrders.filter((order) => orderKind(order) === "tp");
+      const side = String(position.side ?? "").toLowerCase() === "sell" ? "short" : "long";
+      await upsertTradeManagementTruthRow(supabase, {
+        ...runtimeOwnershipFields(ownership), provider: "bybit", environment: bybitEnvironment(), symbol, side,
+        protection_status: slPresent && takeOrders.length >= 2 ? "protected" : "unprotected_failed",
+        sl_present: slPresent, tp1_present: takeOrders.length >= 1, tp2_present: takeOrders.length >= 2,
+        entry_price: Number(position.avgPrice ?? 0) || null, mark_price: Number(position.markPrice ?? 0) || null,
+        qty: Number(position.size ?? 0), unrealized_pnl: Number(position.unrealisedPnl ?? 0), monitor_status: "untracked_position",
+        recovery_status: "manual_row_recovery_required", latest_error: "unsafe_untracked_position", latest_sync_at: new Date().toISOString(), last_action_taken: "reconcile_untracked_bybit_position",
+      }, { onConflict: "execution_scope_key,provider,environment,symbol,side" });
+      (stats.warnings as Json[]).push({ symbol, warning: "unsafe_untracked_position", action: "manual_row_recovery_required" });
+    }
+    const positionSymbolSet = new Set(activePositions.map((position) => String(position.symbol ?? "")));
+    const orphanOrders = orderList.filter((order) => isActiveOrder(order) && !positionSymbolSet.has(String(order.symbol ?? "")) && !localSymbols.has(String(order.symbol ?? "")));
+    for (const order of orphanOrders.slice(0, cancelBudget)) {
+      try {
+        await bybitPost<Json>(credential, "/v5/order/cancel", { category: "linear", symbol: String(order.symbol), orderId: orderId(order) });
+        cancelBudget--;
+        stats.stale_orders_cleaned = Number(stats.stale_orders_cleaned) + 1;
+      } catch (error) {
+        (stats.warnings as Json[]).push({ symbol: order.symbol, warning: error instanceof Error ? error.message : String(error), action: "orphan_provider_order_cleanup_retry" });
+      }
+    }
+    Object.assign(stats, { untracked_positions_found: untrackedPositions.length, orphan_provider_orders_found: orphanOrders.length, reconciliation_sync: true });
     for (const row of (rows ?? []) as Array<Json & { id: string; symbol: string; status: string }>) {
       assertMonitorBudget(startedMs, `row:${row.symbol}`);
       stats.rows_checked = Number(stats.rows_checked) + 1;

@@ -6,6 +6,9 @@
 [functions.admin-operator-action]
 verify_jwt = true
 
+[functions.bybit-demo-execution]
+verify_jwt = false
+
 [functions.scheduled-market-scanner]
 verify_jwt = false
 

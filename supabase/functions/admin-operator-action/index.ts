@@ -10,7 +10,7 @@ const corsHeaders = {
 const FUNCTION_NAME = "admin-operator-action";
 const ROUTE = "/functions/v1/admin-operator-action";
 const SUPPORTED_ACTIONS = [
-  "run_scanner_now", "run_supervisor_now", "run_binance_monitor_now", "run_bybit_monitor_now", "repair_protection_now", "run_runtime_proof", "run_telegram_test", "run_news_brain",
+  "run_scanner_now", "run_monitor_now", "run_supervisor_now", "run_binance_monitor_now", "run_bybit_monitor_now", "verify_protection", "reconcile_runtime", "run_recovery_now", "sync_providers", "resume_bot", "pause_entries", "emergency_stop_runtime", "repair_protection_now", "run_runtime_proof", "run_telegram_test", "run_news_brain",
   "refresh_exchange", "retry_verification", "retry_protection",
   "pause_scanner", "resume_scanner", "pause_supervisor", "resume_supervisor", "pause_telegram", "resume_telegram", "pause_news_brain", "resume_news_brain", "pause_auto_repair", "resume_auto_repair",
 ] as const;
@@ -106,12 +106,64 @@ async function setControl(supabase: ReturnType<typeof createClient>, action: Act
   return { success: true, previous_value: Boolean(prev?.[field]), new_value: newValue, config_field: field, config_row_updated: Boolean(data?.id) };
 }
 
-async function runAction(supabase: ReturnType<typeof createClient>, action: Action, provider: string | undefined, actionId: string, correlationId: string) {
+async function runAction(supabase: ReturnType<typeof createClient>, action: Action, provider: string | undefined, actionId: string, correlationId: string, account?: { customerId?: string; accountId?: string }) {
+  if (action === "run_monitor_now") {
+    const wanted = provider === "binance" || provider === "bybit" ? [provider] : ["binance", "bybit"];
+    const results: Json = {};
+    for (const name of wanted) {
+      const target = name === "binance" ? "binance-testnet-monitor" : "bybit-testnet-monitor";
+      results[name] = await invokeInternalFunction({ target, payload: { source: FUNCTION_NAME, triggered_by: "manual_operator", provider: name }, correlationId, actionId: `${actionId}:${name}`, timeoutMs: 12000 });
+    }
+    const values = Object.values(results) as InternalInvokeResult[];
+    return { success: values.every((row) => row.ok), partialSuccess: values.some((row) => row.ok) && !values.every((row) => row.ok), target: "provider-monitors", responseBody: { providers: results }, durationMs: values.reduce((n, row) => n + row.durationMs, 0) };
+  }
+  if (action === "verify_protection") {
+    const proofAction = provider === "bybit" ? "prove_bybit_trade_management" : provider === "binance" ? "prove_binance_trade_management" : null;
+    if (proofAction) {
+      const target = provider === "bybit" ? "bybit-demo-execution" : "binance-testnet-execution";
+      const result = await invokeInternalFunction({ target, payload: { action: proofAction, source: FUNCTION_NAME, customer_id: account?.customerId, account_id: account?.accountId }, correlationId, actionId, timeoutMs: 12000 });
+      return { success: result.ok, target, responseBody: result, durationMs: result.durationMs };
+    }
+    return runAction(supabase, "run_runtime_proof", undefined, actionId, correlationId, account);
+  }
+  if (action === "reconcile_runtime" || action === "sync_providers") {
+    const result = await invokeInternalFunction({ target: "binance-testnet-execution", payload: { action: "sync_all_positions_now", source: FUNCTION_NAME, reconcile_only: true, provider, customer_id: account?.customerId, account_id: account?.accountId }, correlationId, actionId, timeoutMs: 15000 });
+    return { success: result.ok, target: "binance-testnet-execution", responseBody: result, durationMs: result.durationMs };
+  }
+  if (action === "run_recovery_now") {
+    const result = await invokeInternalFunction({ target: "binance-testnet-execution", payload: { action: "repair_all_protection_now", source: FUNCTION_NAME, provider, customer_id: account?.customerId, account_id: account?.accountId }, correlationId, actionId, timeoutMs: 15000, idempotencyKey: `operator:${action}:${provider ?? "all"}:${actionId}` });
+    return { success: result.ok, target: "binance-testnet-execution", responseBody: result, durationMs: result.durationMs };
+  }
+  if (action === "run_supervisor_now") {
+    const [heartbeats, leases, controls, scanner] = await Promise.all([
+      supabase.from("execution_monitor_heartbeats").select("provider,started_at,success,error").order("started_at", { ascending: false }).limit(20),
+      supabase.from("execution_monitor_leases").select("provider,state,expires_at").limit(20),
+      supabase.from("execution_provider_controls").select("provider_name,status,monitor_enabled,entry_enabled"),
+      supabase.from("scanner_config").select("is_enabled,last_scan_at").eq("id", 1).maybeSingle(),
+    ]);
+    const errors = [heartbeats.error, leases.error, controls.error, scanner.error].filter(Boolean);
+    return { success: errors.length === 0, target: "runtime-health-supervisor", responseBody: { read_only: true, heartbeats: heartbeats.data ?? [], leases: leases.data ?? [], provider_health: controls.data ?? [], scanner: scanner.data ?? null, actions_taken: [], recommended_actions: errors.map((e) => e?.message) }, durationMs: 0 };
+  }
+  if (action === "resume_bot" || action === "pause_entries" || action === "emergency_stop_runtime") {
+    const resume = action === "resume_bot";
+    const emergency = action === "emergency_stop_runtime";
+    const { data: previous, error: readError } = await supabase.from("execution_settings").select("execution_mode,bot_paused,kill_switch_enabled,auto_execute_testnet,live_trading_enabled").eq("id", 1).single();
+    if (readError) throw readError;
+    if (resume && previous?.execution_mode !== "testnet" && previous?.execution_mode !== "signal_only") throw new Error("certification_gate:runtime_mode_not_resumable");
+    const settingsPatch = resume
+      ? { bot_paused: false, kill_switch_enabled: false, live_trading_enabled: false }
+      : { bot_paused: true, kill_switch_enabled: emergency, auto_execute_testnet: false, live_trading_enabled: false };
+    const { error } = await supabase.from("execution_settings").update(settingsPatch).eq("id", 1);
+    if (error) throw error;
+    await supabase.from("execution_provider_controls").update({ entry_enabled: resume, updated_at: new Date().toISOString() }).in("provider_name", provider ? [provider] : ["binance", "bybit"]);
+    return { success: true, target: "execution-runtime-controls", responseBody: { previous, current: { ...previous, ...settingsPatch }, components_changed: ["entries", "execution_intent_consumption"], remains_active: ["scanner", "monitoring", "protection", "reconciliation", "mt5_agent"], cron_changed: false }, durationMs: 0 };
+  }
   if (action.startsWith("pause_") || action.startsWith("resume_")) return { success: true, target: "scanner_config", responseBody: await setControl(supabase, action), httpStatus: 200, durationMs: 0, timedOut: false, authFailed: false, errorCode: null, errorMessage: null };
   if (action === "run_runtime_proof") {
     const proofStarted = Date.now();
-    const binance = await invokeInternalFunction({ target: "binance-testnet-execution", payload: { action: "prove_binance_trade_management", source: FUNCTION_NAME }, correlationId, actionId: `${actionId}:binance-proof`, timeoutMs: 12000 });
-    const bybit = await invokeInternalFunction({ target: "binance-testnet-execution", payload: { action: "prove_bybit_trade_management", source: FUNCTION_NAME }, correlationId, actionId: `${actionId}:bybit-proof`, timeoutMs: 12000 });
+    const selection = { customer_id: account?.customerId, account_id: account?.accountId };
+    const binance = await invokeInternalFunction({ target: "binance-testnet-execution", payload: { action: "prove_binance_trade_management", source: FUNCTION_NAME, ...selection }, correlationId, actionId: `${actionId}:binance-proof`, timeoutMs: 12000 });
+    const bybit = await invokeInternalFunction({ target: "bybit-demo-execution", payload: { action: "prove_bybit_trade_management", source: FUNCTION_NAME, ...selection }, correlationId, actionId: `${actionId}:bybit-proof`, timeoutMs: 12000 });
     return { success: binance.ok && bybit.ok, target: "runtime-proof", httpStatus: binance.httpStatus === 401 || bybit.httpStatus === 401 ? 401 : 200, durationMs: Date.now() - proofStarted, timedOut: binance.timedOut || bybit.timedOut, authFailed: binance.authFailed || bybit.authFailed, errorCode: binance.errorCode ?? bybit.errorCode, errorMessage: binance.errorMessage ?? bybit.errorMessage, responseBody: { checks: [{ check: "binance_runtime_proof_target", status: binance.ok ? "PASS" : "FAIL", raw: binance }, { check: "bybit_runtime_proof_target", status: bybit.ok ? "PASS" : "FAIL", raw: bybit }], duration_ms: Date.now() - proofStarted } };
   }
   const route = routeAction(action, provider, actionId);
@@ -135,9 +187,12 @@ Deno.serve(async (req) => {
   if (!SUPPORTED_ACTIONS.includes(action as Action)) {
     return json({ success: false, action, requested_action: action, provider, started_at: startedAt, finished_at: new Date().toISOString(), duration_ms: Date.now() - started, runtime_event_id: null, route: ROUTE, expected_route: ROUTE, function_name: FUNCTION_NAME, result_summary: "ACTION_NOT_WIRED", exact_error: "ACTION_NOT_WIRED", blocker: "ACTION_NOT_WIRED", supported_actions: SUPPORTED_ACTIONS, raw: body }, 400);
   }
+  if (["resume_bot", "run_recovery_now", "emergency_stop_runtime"].includes(action) && body.confirm !== action) {
+    return json({ success: false, action, provider, route: ROUTE, function_name: FUNCTION_NAME, blocker: `confirmation_required:${action}`, error_code: "CONFIRMATION_REQUIRED", runtime_event_id: null }, 409);
+  }
   runtimeEventId = await insertEvent(supabase, { user_id: auth.userId, action, provider, route: ROUTE, function_name: FUNCTION_NAME, started_at: startedAt, status: "RUNNING", exact_error: null, blocker: null, result_json: { ...body, action_id: actionId, correlation_id: correlationId }, source: "admin_operator_action", result_summary: "Operator action started" });
   try {
-    const raw = await runAction(supabase, action as Action, provider, actionId, correlationId);
+    const raw = await runAction(supabase, action as Action, provider, actionId, correlationId, { customerId: body.customer_id ? String(body.customer_id) : undefined, accountId: body.account_id ? String(body.account_id) : undefined });
     const ok = successOf(raw);
     const finishedAt = new Date().toISOString(); const duration = Date.now() - started;
     const exact = ok ? null : String((raw as Json)?.errorMessage ?? (raw as Json)?.errorCode ?? (raw as Json)?.error ?? (raw as Json)?.latest_error ?? "backend returned success=false");

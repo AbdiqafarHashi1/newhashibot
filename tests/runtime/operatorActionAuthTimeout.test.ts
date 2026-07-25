@@ -28,6 +28,7 @@ const internalOnlyFunctions = [
   'binance-testnet-execution',
   'binance-testnet-monitor',
   'bybit-testnet-monitor',
+  'bybit-demo-execution',
   'telegram-test',
   'intelligence-engine',
   'evaluate-signal-outcomes',

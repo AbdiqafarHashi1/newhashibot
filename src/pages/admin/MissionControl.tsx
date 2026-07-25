@@ -114,6 +114,9 @@ export default function MissionControl() {
   async function runCommand(action: string, provider?: string) {
     if (!session?.access_token || runningAction === action) return;
 
+    const highRisk = ['resume_bot', 'run_recovery_now', 'emergency_stop_runtime'].includes(action);
+    if (highRisk && !window.confirm(`Confirm the high-risk operator action: ${action}. This creates one immutable operator event.`)) return;
+
     const startedAt = new Date().toISOString();
     const route = '/functions/v1/admin-operator-action';
     const functionName = 'admin-operator-action';
@@ -131,12 +134,15 @@ export default function MissionControl() {
     });
 
     try {
-      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, 20000);
+      const result = await callEdgeFunction(functionName, { action, provider, ...(highRisk ? { confirm: action } : {}) }, session.access_token, 20000);
       const data = result.data as Record<string, unknown> | null;
       const ok = result.ok && data && data.success === true && !data.exact_error;
 
+      const raw = data?.raw as Record<string, unknown> | undefined;
+      const partial = raw?.partialSuccess === true;
+      const blocked = Boolean(data?.blocker || data?.error_code === 'CONFIRMATION_REQUIRED');
       const res: OperatorActionResult = {
-        status: ok ? 'SUCCESS' : 'FAILED',
+        status: ok ? 'SUCCESS' : partial ? 'PARTIAL' : blocked ? 'BLOCKED' : 'FAILED',
         action,
         provider,
         summary: String(data?.result_summary ?? (ok ? 'Backend action completed successfully.' : 'Backend action failed.')),
@@ -148,6 +154,11 @@ export default function MissionControl() {
         blocker: ok ? undefined : String(data?.blocker ?? data?.error_code ?? 'Backend returned failure.'),
         route: String(data?.route ?? route),
         functionName: String(data?.function_name ?? functionName),
+        target: data?.target ? String(data.target) : undefined,
+        httpStatus: data?.http_status ? Number(data.http_status) : result.status,
+        errorCode: data?.error_code ? String(data.error_code) : undefined,
+        timedOut: data?.timed_out === true,
+        authFailed: data?.auth_failed === true,
         error: data?.exact_error ? String(data.exact_error) : (result.ok ? undefined : result.message),
         raw: data ?? result,
       };
@@ -954,11 +965,11 @@ export default function MissionControl() {
             </button>
 
             <button
-              onClick={() => runCommand('run_supervisor_now')}
+              onClick={() => runCommand('run_monitor_now')}
               disabled={Boolean(runningAction)}
               className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <Activity size={13} className={runningAction === 'run_supervisor_now' ? 'animate-spin' : ''} />
+              <Activity size={13} className={runningAction === 'run_monitor_now' ? 'animate-spin' : ''} />
               Run Monitor
             </button>
 
@@ -972,7 +983,7 @@ export default function MissionControl() {
             </button>
 
             <button
-              onClick={() => runCommand('repair_protection_now')}
+              onClick={() => runCommand('verify_protection')}
               disabled={Boolean(runningAction)}
               className="px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
@@ -990,7 +1001,7 @@ export default function MissionControl() {
             </button>
 
             <button
-              onClick={() => runCommand('refresh_exchange')}
+              onClick={() => runCommand('sync_providers')}
               disabled={Boolean(runningAction)}
               className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
@@ -1017,7 +1028,7 @@ export default function MissionControl() {
             </button>
 
             <button
-              onClick={() => runCommand('resume_scanner')}
+              onClick={() => runCommand('resume_bot')}
               disabled={Boolean(runningAction)}
               className="px-3 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
@@ -1026,7 +1037,7 @@ export default function MissionControl() {
             </button>
 
             <button
-              onClick={() => runCommand('pause_scanner')}
+              onClick={() => runCommand('pause_entries')}
               disabled={Boolean(runningAction)}
               className="px-3 py-2 rounded-xl border border-yellow-500/40 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
@@ -1035,10 +1046,7 @@ export default function MissionControl() {
             </button>
 
             <button
-              onClick={() => {
-                void runCommand('pause_scanner');
-                void runCommand('pause_supervisor');
-              }}
+              onClick={() => void runCommand('emergency_stop_runtime')}
               disabled={Boolean(runningAction)}
               className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 col-span-2 disabled:opacity-50"
             >
