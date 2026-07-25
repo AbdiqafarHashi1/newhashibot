@@ -2,8 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
-import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
-import { currentEdgeOwnership, currentEdgeProviderCredential, enumerateExecutionAccounts, ownershipFields, resolveEdgeProviderCredential, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
+import { upsertTradeManagementTruth, upsertTradeManagementTruthRow } from "../_shared/trade-truth/index.ts";
+import { currentEdgeOwnership, currentEdgeProviderCredential, enumerateExecutionAccounts, OperatorCredentialResolutionError, ownershipFields, resolveEdgeProviderCredential, resolveOperatorProviderCredential, runtimeOwnershipFields, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1791,6 +1791,20 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
   const autoBlocker = !manual && !settings.auto_execute_testnet ? "auto_execute_testnet_false" : null;
   const globalBlocker = settings.kill_switch_enabled ? "skipped_kill_switch" : settings.bot_paused ? "skipped_bot_paused" : settings.execution_mode !== "testnet" || !settings.testnet_enabled ? "skipped_auto_disabled" : autoBlocker;
   const finalBlocker = blocker ?? globalBlocker;
+  const bybitOwnership = currentEdgeOwnership("bybit");
+  const { data: existingBybitRows } = await supabase.from("execution_orders").select("id,status,symbol")
+    .eq("execution_scope_key", bybitOwnership.execution_scope_key).eq("signal_id", sig.id)
+    .eq("exchange", bybitExchangeName()).eq("environment", bybitExecutionEnvironment()).order("created_at", { ascending: false });
+  const activeBybitDuplicate = ((existingBybitRows ?? []) as Json[]).find((row) => ACTIVE_STATUSES.includes(String(row.status)));
+  if (activeBybitDuplicate) return { provider: "bybit", success: false, skipped: true, submitted_order: false, duplicate_order_prevented: true, reason: "skipped_duplicate_signal", execution_id: activeBybitDuplicate.id };
+  if (settings.one_active_execution_per_symbol) {
+    const { count } = await supabase.from("execution_orders").select("id", { count: "exact", head: true })
+      .eq("execution_scope_key", bybitOwnership.execution_scope_key).eq("symbol", providerSymbol).in("status", ACTIVE_STATUSES);
+    if ((count ?? 0) > 0) return { provider: "bybit", success: false, skipped: true, submitted_order: false, duplicate_order_prevented: true, reason: "skipped_active_symbol_execution", symbol: providerSymbol };
+  }
+  const { count: openBybitCount } = await supabase.from("execution_orders").select("id", { count: "exact", head: true })
+    .eq("execution_scope_key", bybitOwnership.execution_scope_key).eq("environment", bybitExecutionEnvironment()).in("status", ACTIVE_STATUSES);
+  if (!stressOpenRiskIgnored(settings) && (openBybitCount ?? 0) >= clampMaxOpenPositions(settings)) return { provider: "bybit", success: false, skipped: true, submitted_order: false, reason: "skipped_max_open_positions" };
   const baseRow: Json = {
     signal_id: sig.id, exchange: bybitExchangeName(), environment: bybitExecutionEnvironment(), symbol: providerSymbol, direction: sig.direction, side: sig.direction === "buy" ? "long" : "short", execution_mode: "testnet",
     execution_group_id: executionGroupId, execution_provider: "bybit", provider_entry_enabled: !finalBlocker, provider_status: finalBlocker ? "provider_skipped" : "pending",
@@ -1825,15 +1839,36 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     await logEvent(supabase, inserted.id, "provider_skipped", `Bybit ${bybitEnvironment()} entry blocked before submit`, { reason: reasonText });
     return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: reasonText, execution_id: inserted.id };
   }
+  const currentRisk = await currentOpenRiskPct(supabase);
+  const riskCap = maxTotalOpenRiskPct(settings);
+  if (!manual && !stressOpenRiskIgnored(settings) && currentRisk + plan.riskPct > riskCap + 1e-9) {
+    const riskBlocker = "skipped_total_open_risk_cap";
+    const skipped = await insertExecutionOrderRow(supabase, { ...baseRow, status: "skipped", provider_status: "provider_skipped", volume: 0, quantity: 0, latest_auto_skip_reason: riskBlocker, error_message: riskBlocker, raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, current_open_risk_pct: currentRisk, proposed_risk_pct: plan.riskPct, max_total_open_risk_pct: riskCap } }, "bybit");
+    if ("error" in skipped) return skipped.error;
+    return { provider: "bybit", success: false, submitted_order: false, skipped: true, reason: riskBlocker, execution_id: skipped.id };
+  }
   const inserted = await insertExecutionOrderRow(supabase, { ...baseRow, status: "pending_submit", lifecycle_state: "EXECUTION_PENDING", preflight_passed: true, execution_allowed: true, provider_status: "pending_submit", ...commonExecutionFields({ ...plan, marginAssetSelected: "USDT" }), raw_exchange_response: { provider_neutral_signal: providerNeutralSignal(sig), router_reason: reason, plan, sizing_diagnostics: { equity_used: plan.capital.equity_used, available_balance: plan.capital.raw_available_balance, available_usdt: plan.capital.raw_available_usdt, available_usdc: plan.capital.raw_available_usdc, collateral_coin: "USDT", risk_amount: plan.riskAmount, leverage: plan.leverage, final_quantity: plan.quantity } } }, "bybit");
   if ("error" in inserted) return inserted.error;
   const existingResponse = existingExecutionResponse("bybit", inserted, { exchange: bybitExchangeName(), symbol: providerSymbol });
   if (existingResponse) return existingResponse;
   const executionId = inserted.id;
+  let entryAccepted = false;
+  let positionConfirmed = false;
   try {
     const entry = await bybitRequest<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { category: "linear", symbol: providerSymbol, side: sig.direction === "buy" ? "Buy" : "Sell", orderType: "Limit", qty: String(plan.quantity), price: String(plan.entryPrice), timeInForce: "GTC", orderLinkId: createBybitOrderLinkId(sig.id, 'entry') });
+    entryAccepted = true;
     await supabase.from("execution_orders").update({ status: "entry_submitted", lifecycle_state: "ENTRY_SUBMITTED", entry_order_id: entry.orderId ?? entry.orderLinkId ?? "bybit_entry_submitted", raw_exchange_response: { entry, plan, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
     await logEvent(supabase, executionId, "entry_submitted", `Bybit ${bybitEnvironment()} entry LIMIT order submitted`, { entry, plan, sizing_diagnostics: { equity_used: plan.capital.equity_used, available_balance: plan.capital.raw_available_balance, available_usdt: plan.capital.raw_available_usdt, available_usdc: plan.capital.raw_available_usdc, collateral_coin: "USDT", risk_amount: plan.riskAmount, leverage: plan.leverage, final_quantity: plan.quantity } });
+    // An order acknowledgement is not a fill. Protection ownership starts only
+    // after exchange position truth confirms exposure, exactly as on Binance.
+    const positionsResult = await bybitRequest<Json>("GET", "/v5/position/list", { category: "linear", symbol: providerSymbol });
+    const confirmedPosition = (((positionsResult.list ?? []) as Json[])).find((position) => String(position.symbol) === providerSymbol && Number(position.size ?? 0) > 0);
+    if (!confirmedPosition) {
+      return { provider: "bybit", exchange: bybitExchangeName(), success: true, submitted_order: true, entry_status: "entry_submitted", protection_status: "awaiting_fill", status: "entry_submitted", execution_id: executionId, symbol: providerSymbol, provider_order_id: entry.orderId ?? entry.orderLinkId ?? null };
+    }
+    positionConfirmed = true;
+    await supabase.from("execution_orders").update({ status: "entry_filled", lifecycle_state: "ENTRY_FILLED", position_confirmed: true, entry_filled_at: new Date().toISOString(), current_position_size: Number(confirmedPosition.size), updated_at: new Date().toISOString() }).eq("id", executionId);
+    await logEvent(supabase, executionId, "entry_filled", `Bybit ${bybitEnvironment()} position confirmed before protection`, { symbol: providerSymbol, size: Number(confirmedPosition.size) });
     const closeSide = sig.direction === "buy" ? "Sell" : "Buy";
     const bybitMarkPrice = await currentBybitMarkPrice(providerSymbol);
     const slDirection = expectedTriggerDirection(sig.direction, "sl", bybitMarkPrice, plan.stopLoss);
@@ -1855,7 +1890,7 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: executionId,
       p_provider: "bybit",
-      p_environment: "demo",
+      p_environment: bybitExecutionEnvironment(),
       p_symbol: providerSymbol,
       p_direction: sig.direction === "buy" ? "long" : "short",
       p_status: "protected_native",
@@ -1883,14 +1918,14 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
     const msg = e instanceof Error ? e.message : String(e);
     const reasonCode = msg.includes("bybit_sl_submit_failed") ? "bybit_sl_submit_failed" : msg.includes("bybit_tp1_submit_failed") ? "bybit_tp1_submit_failed" : msg.includes("bybit_tp2_submit_failed") ? "bybit_tp2_submit_failed" : msg.includes("bybit_protection_verify_failed") ? "bybit_protection_verify_failed" : msg.toLowerCase().includes("insufficient") ? "bybit_margin_insufficient" : "bybit_entry_submit_failed";
     await recordSymbolFailure(supabase, "bybit", providerSymbol, classifySymbolFailure(msg), { execution_id: executionId, reasonCode, message: msg });
-    const unsafeAfterEntry = msg.includes("bybit_sl_submit_failed") || msg.includes("bybit_tp1_submit_failed") || msg.includes("bybit_tp2_submit_failed") || msg.includes("bybit_protection_verify_failed");
+    const unsafeAfterEntry = entryAccepted && positionConfirmed;
     await supabase.from("execution_orders").update({ status: unsafeAfterEntry ? "protection_failed" : "failed", lifecycle_state: unsafeAfterEntry ? "UNSAFE_POSITION" : "FAILED_NO_POSITION", position_confirmed: unsafeAfterEntry, manual_review_required: unsafeAfterEntry, error_message: `${reasonCode}: ${msg}`, last_exchange_error: reasonCode, provider_status: "provider_failed", protection_status: unsafeAfterEntry ? "protection_failed" : "unprotected_failed", raw_exchange_response: { plan, error: msg, provider_neutral_signal: providerNeutralSignal(sig) }, updated_at: new Date().toISOString() }).eq("id", executionId);
     
     if (unsafeAfterEntry && plan) {
       await upsertTradeManagementTruth(supabase, {
         p_execution_order_id: executionId,
         p_provider: "bybit",
-        p_environment: "demo",
+        p_environment: bybitExecutionEnvironment(),
         p_symbol: providerSymbol,
         p_direction: sig.direction === "buy" ? "long" : "short",
         p_status: "protection_failed",
@@ -1914,7 +1949,7 @@ async function executeBybitSignal(supabase: SupabaseClient, sig: SignalRow, exec
       }).catch((err) => console.error("trade_truth_adapter_upsert_failed", err));
     }
     await logEvent(supabase, executionId, reasonCode, "Bybit provider failure isolated", { error: msg });
-    return { provider: "bybit", exchange: bybitExchangeName(), success: false, submitted_order: false, blocker: reasonCode, error: msg, execution_id: executionId, symbol: providerSymbol };
+    return { provider: "bybit", exchange: bybitExchangeName(), success: false, submitted_order: entryAccepted, entry_status: entryAccepted ? (positionConfirmed ? "entry_filled" : "entry_submitted") : "not_submitted", protection_status: unsafeAfterEntry ? "protection_failed" : "not_started", blocker: reasonCode, error: msg, execution_id: executionId, symbol: providerSymbol };
   }
 }
 
@@ -2426,7 +2461,7 @@ async function fetchProviderExposure(providerName: "binance" | "bybit"): Promise
 }
 
 function tradeTruthRowFromRaw(providerName: "binance" | "bybit", pos: Json, openOrders: Json[], now: string): Json | null {
-  const environment = providerName === "binance" ? "testnet" : "demo";
+  const environment = providerName === "binance" ? "testnet" : bybitExecutionEnvironment();
   const symbol = String(pos.symbol ?? "");
   if (!symbol) return null;
   const qty = Math.abs(Number(pos.positionAmt ?? pos.size ?? 0));
@@ -2459,7 +2494,8 @@ function tradeTruthRowFromRaw(providerName: "binance" | "bybit", pos: Json, open
 
 async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, providerName: "binance" | "bybit", exposure: ProviderExposure): Promise<Json> {
   const now = new Date().toISOString();
-  const environment = providerName === "binance" ? "testnet" : "demo";
+  const environment = providerName === "binance" ? "testnet" : bybitExecutionEnvironment();
+  const ownership = currentEdgeOwnership(providerName);
   if (!exposure.wallet_reachable) return { success: false, provider: providerName, wallet_reachable: false, positions_fetch_success: false, orders_fetch_success: false, open_positions_found: 0, open_orders_found: 0, protected_count: 0, unsafe_count: 0, closed_marked: 0, blocker: exposure.error, latest_sync_at: now };
   let protectedCount = 0;
   let unsafeCount = 0;
@@ -2468,14 +2504,14 @@ async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, pr
   for (const row of rows) {
     openSymbols.add(String(row.symbol));
     if (row.protection_status === "protected") protectedCount += 1; else unsafeCount += 1;
-    await upsertTradeManagementTruthRow(supabase, row, { onConflict: "provider,environment,symbol,side" });
+    await upsertTradeManagementTruthRow(supabase, { ...row, ...runtimeOwnershipFields(ownership) }, { onConflict: "execution_scope_key,provider,environment,symbol,side" });
   }
-  const { data: existing } = await supabase.from("trade_management_truth").select("provider,environment,symbol,side").eq("provider", providerName).eq("environment", environment).neq("protection_status", "closed");
+  const { data: existing } = await supabase.from("trade_management_truth").select("provider,environment,symbol,side").eq("execution_scope_key", ownership.execution_scope_key).eq("provider", providerName).eq("environment", environment).neq("protection_status", "closed");
   let closedMarked = 0;
   for (const row of ((existing ?? []) as Json[])) {
     if (!openSymbols.has(String(row.symbol))) {
       closedMarked += 1;
-      await updateTradeManagementTruthByIdentity(supabase, { provider: providerName, environment, symbol: String(row.symbol), side: row.side }, { protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now });
+      await supabase.from("trade_management_truth").update({ protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now }).eq("execution_scope_key", ownership.execution_scope_key).eq("provider", providerName).eq("environment", environment).eq("symbol", String(row.symbol)).eq("side", row.side);
     }
   }
 
@@ -2484,12 +2520,15 @@ async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, pr
   const { data: activeExecutions } = await supabase.from("execution_orders")
     .select("*")
     .eq("execution_provider", providerName)
+    .eq("execution_scope_key", ownership.execution_scope_key)
+    .eq("environment", environment)
     .in("status", activeStatuses);
 
   if (activeExecutions && activeExecutions.length > 0) {
     for (const exec of activeExecutions) {
       const execSymbol = String(exec.symbol).toUpperCase();
-      const posAmt = Math.abs(Number(exposure.positions.find(p => String(p.symbol).toUpperCase() === execSymbol)?.positionAmt ?? 0));
+      const matchedPosition = exposure.positions.find(p => String(p.symbol).toUpperCase() === execSymbol);
+      const posAmt = Math.abs(Number(providerName === "binance" ? matchedPosition?.positionAmt ?? 0 : matchedPosition?.size ?? 0));
       const hasPos = posAmt > 0;
 
       if (!hasPos) {
@@ -2514,8 +2553,8 @@ async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, pr
           status: ok ? "protected_native" : "entry_filled",
           protection_status: confirmed.status === "protected" ? "protected_native" : confirmed.status,
           native_protection_verified: ok,
-          current_position_size: Number(exposure.positions.find(p => String(p.symbol).toUpperCase() === execSymbol)?.positionAmt ?? posAmt),
-          latest_mark_price: Number(exposure.positions.find(p => String(p.symbol).toUpperCase() === execSymbol)?.markPrice ?? 0),
+          current_position_size: Number(providerName === "binance" ? matchedPosition?.positionAmt ?? posAmt : matchedPosition?.size ?? posAmt),
+          latest_mark_price: Number(matchedPosition?.markPrice ?? 0),
           sl_order_id: String(confirmed.sl?.orderId ?? confirmed.sl?.algoId ?? "") || null,
           tp1_order_id: String(confirmed.tp1?.orderId ?? confirmed.tp1?.algoId ?? "") || null,
           tp2_order_id: String(confirmed.tp2?.orderId ?? confirmed.tp2?.algoId ?? "") || null,
@@ -2529,9 +2568,57 @@ async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, pr
   return { success: true, provider: providerName, wallet_reachable: true, positions_fetch_success: true, orders_fetch_success: true, open_positions_found: rows.length, open_orders_found: exposure.open_orders.length, protected_count: protectedCount, unsafe_count: unsafeCount, closed_marked: closedMarked, latest_sync_at: now, rows };
 }
 
-async function syncTradeManagementTruth(supabase: SupabaseClient, providerName: "binance" | "bybit"): Promise<Json> {
-  const exposure = await fetchProviderExposure(providerName);
-  return syncTradeManagementTruthFromExposure(supabase, providerName, exposure);
+async function syncTradeManagementTruth(supabase: SupabaseClient, providerName: "binance" | "bybit", selection?: { customerId?: string; accountId?: string }): Promise<Json> {
+  const environment = providerName === "binance" ? "testnet" : bybitExecutionEnvironment();
+  try {
+    const resolved = await resolveOperatorProviderCredential(supabase, providerName, environment, selection);
+    return await withEdgeProviderCredential(resolved.credential, async () => {
+      const exposure = await fetchProviderExposure(providerName);
+      // System credentials have no durable connected-account identity. They may
+      // inspect provider truth but cannot write customer/account-owned rows.
+      if (resolved.source === "system_secret") return { success: !exposure.error, provider: providerName, environment, credential_resolution: { source: resolved.source, attempted: resolved.attempts }, read_only_account_snapshot: true, writes_skipped: "system_secret_has_no_connected_account_identity", wallet_reachable: exposure.wallet_reachable, positions_fetch_success: !exposure.error, orders_fetch_success: !exposure.error, open_positions_found: exposure.positions.length, open_orders_found: exposure.open_orders.length, blocker: exposure.error };
+      const synced = await syncTradeManagementTruthFromExposure(supabase, providerName, exposure);
+      const ownership = resolved.credential.ownership;
+      return { ...synced, credential_resolution: { source: resolved.source, attempted: resolved.attempts }, account: { account_id: ownership.account_id, execution_scope_key: ownership.execution_scope_key, environment: ownership.environment } };
+    });
+  } catch (error) {
+    const blocker = error instanceof Error ? error.message : String(error);
+    return { success: false, provider: providerName, environment, blocker, wallet_reachable: false, positions_fetch_success: false, orders_fetch_success: false, read_only: true };
+  }
+}
+
+async function proveProviderReadOnly(supabase: SupabaseClient, providerName: "binance" | "bybit", selection?: { customerId?: string; accountId?: string }): Promise<Json> {
+  const environment = providerName === "binance" ? "testnet" : bybitExecutionEnvironment();
+  try {
+    const resolved = await resolveOperatorProviderCredential(supabase, providerName, environment, selection);
+    const { credential } = resolved;
+    const ownership = credential.ownership;
+    return await withEdgeProviderCredential(credential, async () => {
+      const [exposure, balance] = await Promise.all([
+        fetchProviderExposure(providerName),
+        providerName === "binance"
+          ? binanceRequest<Json>("GET", "/fapi/v2/account", {}, true)
+          : bybitRequest<Json>("GET", "/v5/account/wallet-balance", { accountType: "UNIFIED" }),
+      ]);
+      const classifications = activeExposurePositions(providerName, exposure.positions).map((position) => {
+        const row = tradeTruthRowFromRaw(providerName, position, exposure.open_orders, new Date().toISOString());
+        const state = !row ? "unknown" : row.protection_status === "protected" ? "protected" : row.protection_status === "partially_protected" ? "partially_protected" : "unsafe";
+        return { symbol: row?.symbol ?? null, state, missing_parts: row?.missing_parts ?? [] };
+      });
+      return {
+        success: !exposure.error, provider: providerName, environment, target: providerName === "binance" ? "binance-testnet-execution" : "bybit-demo-execution",
+        read_only: true, mutations_attempted: 0, wallet_reachable: exposure.wallet_reachable,
+        balances_fetch_success: Boolean(balance), positions_fetch_success: !exposure.error, orders_fetch_success: !exposure.error,
+        positions_found: exposure.positions.length, open_orders_found: exposure.open_orders.length,
+        protection: classifications, blocker: exposure.error,
+        credential_resolution: { source: resolved.source, attempted: resolved.attempts },
+        account: { account_id: ownership.account_id, execution_scope_key: ownership.execution_scope_key },
+      };
+    });
+  } catch (error) {
+    const blocker = error instanceof Error ? error.message : String(error);
+    return { success: false, provider: providerName, environment, target: providerName === "binance" ? "binance-testnet-execution" : "bybit-demo-execution", read_only: true, mutations_attempted: 0, blocker, credential_resolution: { attempted: error instanceof OperatorCredentialResolutionError ? error.attempts : { explicit_account: Boolean(selection?.accountId), operational_account: !selection?.accountId, system_secret: !selection?.accountId } } };
+  }
 }
 
 
@@ -2652,7 +2739,7 @@ function duplicateProtectionStats(providerName: "binance" | "bybit", row: Json, 
 }
 
 async function recordSupervisorHeartbeat(supabase: SupabaseClient, providerName: "binance" | "bybit", result: Json, startedAt: string, triggerSource: string): Promise<void> {
-  const environment = providerName === "binance" ? "testnet" : "demo";
+  const environment = providerName === "binance" ? "testnet" : bybitExecutionEnvironment();
   await supabase.from("execution_monitor_heartbeats").upsert({
     provider: providerName,
     environment,
@@ -2688,7 +2775,7 @@ async function getSupervisorControls(supabase: SupabaseClient): Promise<{ superv
   };
 }
 
-async function runTradeSupervisorForProvider(supabase: SupabaseClient, providerName: "binance" | "bybit", triggerSource = "manual_admin"): Promise<Json> {
+async function runTradeSupervisorForProviderWithContext(supabase: SupabaseClient, providerName: "binance" | "bybit", triggerSource = "manual_admin"): Promise<Json> {
   assertLiveTradingImpossible();
   const cycleStarted = Date.now();
   const startedAt = new Date().toISOString();
@@ -2696,9 +2783,8 @@ async function runTradeSupervisorForProvider(supabase: SupabaseClient, providerN
   const perf: Json = { db_query_count: 0, exchange_call_count: 0, symbols_scanned: 0, positions_scanned: 0, orders_scanned: 0, repair_attempts: 0, slowest_stage: null };
 
   const providerControl = await getProviderControl(supabase, providerName).catch(() => null);
-  const hasKeys = providerName === "binance"
-    ? Boolean(Deno.env.get("BINANCE_TESTNET_API_KEY") && Deno.env.get("BINANCE_TESTNET_API_SECRET"))
-    : Boolean((Deno.env.get("BYBIT_TESTNET_API_KEY") && Deno.env.get("BYBIT_TESTNET_API_SECRET")) || (Deno.env.get("BYBIT_API_KEY") && Deno.env.get("BYBIT_API_SECRET")));
+  const scopedCredential = currentEdgeProviderCredential(providerName);
+  const hasKeys = Boolean(scopedCredential.apiKey && scopedCredential.apiSecret);
 
   if (providerControl && !providerControl.enabled) {
     const result = {
@@ -2819,24 +2905,43 @@ async function runTradeSupervisorForProvider(supabase: SupabaseClient, providerN
   return result;
 }
 
-async function runTradeSupervisorCycle(supabase: SupabaseClient, provider?: string, triggerSource = "manual_admin"): Promise<Json> {
+async function runTradeSupervisorForProvider(supabase: SupabaseClient, providerName: "binance" | "bybit", triggerSource = "manual_admin", selection?: { customerId?: string; accountId?: string }): Promise<Json> {
+  const environment = providerName === "binance" ? "testnet" : bybitExecutionEnvironment();
+  try {
+    const resolved = await resolveOperatorProviderCredential(supabase, providerName, environment, selection);
+    return await withEdgeProviderCredential(resolved.credential, async () => ({
+      ...(await runTradeSupervisorForProviderWithContext(supabase, providerName, triggerSource)),
+      credential_resolution: { source: resolved.source, attempted: resolved.attempts },
+    }));
+  } catch (error) {
+    const blocker = error instanceof Error ? error.message : String(error);
+    return { provider: providerName, environment, latest_success: false, success: false, blocker, latest_error: blocker, repair_attempts: 0, repair_successes: 0 };
+  }
+}
+
+async function runTradeSupervisorCycle(supabase: SupabaseClient, provider?: string, triggerSource = "manual_admin", selection?: { customerId?: string; accountId?: string }): Promise<Json> {
   const providers = provider === "binance" || provider === "bybit" ? [provider] as Array<"binance" | "bybit"> : ["binance", "bybit"] as Array<"binance" | "bybit">;
   const results: Json = {};
-  for (const p of providers) results[p] = await runTradeSupervisorForProvider(supabase, p, triggerSource);
+  for (const p of providers) results[p] = await runTradeSupervisorForProvider(supabase, p, triggerSource, selection);
   return { success: providers.every((p) => (results[p] as Json).latest_success === true), action: "run_trade_supervisor_cycle", latest_run: new Date().toISOString(), providers: results, Binance: results.binance ?? null, Bybit: results.bybit ?? null };
 }
 
-async function tradeManagementAction(supabase: SupabaseClient, action: string, provider?: string, symbol?: string, triggerSource = "manual_admin"): Promise<Json> {
+async function tradeManagementAction(supabase: SupabaseClient, action: string, provider?: string, symbol?: string, triggerSource = "manual_admin", selection?: { customerId?: string; accountId?: string }): Promise<Json> {
   const isReadOnlyProof = action === "prove_binance_trade_management" || action === "prove_bybit_trade_management" || action === "sync_all_positions_now";
   if (!isReadOnlyProof) assertLiveTradingImpossible();
-  if (action === "run_trade_supervisor_cycle") return runTradeSupervisorCycle(supabase, provider, triggerSource);
-  if (action === "sync_all_positions_now") return { success: true, results: [await syncTradeManagementTruth(supabase, "binance"), await syncTradeManagementTruth(supabase, "bybit")] };
-  if (action === "prove_binance_trade_management") return syncTradeManagementTruth(supabase, "binance");
-  if (action === "prove_bybit_trade_management") return syncTradeManagementTruth(supabase, "bybit");
+  if (action === "run_trade_supervisor_cycle") return runTradeSupervisorCycle(supabase, provider, triggerSource, selection);
+  if (action === "sync_all_positions_now") {
+    const providers = provider === "binance" || provider === "bybit" ? [provider] as Array<"binance" | "bybit"> : ["binance", "bybit"] as Array<"binance" | "bybit">;
+    const results = [] as Json[];
+    for (const selectedProvider of providers) results.push(await syncTradeManagementTruth(supabase, selectedProvider, selection));
+    return { success: results.every((result) => result.success === true), results };
+  }
+  if (action === "prove_binance_trade_management") return proveProviderReadOnly(supabase, "binance", selection);
+  if (action === "prove_bybit_trade_management") return proveProviderReadOnly(supabase, "bybit", selection);
   if (action === "repair_all_protection_now") {
     const providers = provider === "binance" || provider === "bybit" ? [provider] as Array<"binance" | "bybit"> : ["binance", "bybit"] as Array<"binance" | "bybit">;
     const results: Json = {};
-    for (const p of providers) results[p] = await runTradeSupervisorForProvider(supabase, p, triggerSource);
+    for (const p of providers) results[p] = await runTradeSupervisorForProvider(supabase, p, triggerSource, selection);
     const repair_attempts = providers.reduce((sum, p) => sum + Number((results[p] as Json).repair_attempts ?? 0), 0);
     const repair_successes = providers.reduce((sum, p) => sum + Number((results[p] as Json).repair_successes ?? 0), 0);
     const unsafe_count = providers.reduce((sum, p) => sum + Number((results[p] as Json).unsafe_count ?? 0), 0);
@@ -2925,7 +3030,7 @@ Deno.serve(async (req: Request) => {
     else if (action === "execute_latest_binance_supported_signal") { const sig = await latestSupportedSignal(supabase, "binance"); payload = sig ? await routeSignalToEnabledProviders(supabase, sig.id, true) : { success:false, reason:"no_binance_supported_signal" }; }
     else if (action === "execute_latest_bybit_supported_signal") { const sig = await latestSupportedSignal(supabase, "bybit"); payload = sig ? await routeSignalToEnabledProviders(supabase, sig.id, true) : { success:false, reason:"no_bybit_supported_signal" }; }
     else if (action === "execute_latest_mirror_supported_signal") { const sig = await latestSupportedSignal(supabase, "mirror"); payload = sig ? await routeSignalToEnabledProviders(supabase, sig.id, true) : { success:false, reason:"no_mirror_supported_signal" }; }
-    else if (["run_trade_supervisor_cycle", "sync_all_positions_now", "repair_all_protection_now", "run_profit_lock_now", "close_unprotected_position", "prove_binance_trade_management", "prove_bybit_trade_management", "run_full_trade_management_proof"].includes(action)) payload = await tradeManagementAction(supabase, action, body.provider, body.symbol, String(body.source ?? "manual_admin"));
+    else if (["run_trade_supervisor_cycle", "sync_all_positions_now", "repair_all_protection_now", "run_profit_lock_now", "close_unprotected_position", "prove_binance_trade_management", "prove_bybit_trade_management", "run_full_trade_management_proof"].includes(action)) payload = await tradeManagementAction(supabase, action, body.provider, body.symbol, String(body.source ?? "manual_admin"), { customerId: body.customer_id ? String(body.customer_id) : undefined, accountId: body.account_id ? String(body.account_id) : undefined });
     else if (action === "execution_readiness") payload = await executionReadiness(supabase, (body.provider === "bybit" ? "bybit" : "binance") as "binance" | "bybit");
     else if (action === "parallel_dry_run") payload = await parallelDryRun(supabase, cleanSignalId(body.signal_id));
     else if (action === "diagnose_bybit_testnet_connection") payload = await diagnoseBybitTestnetConnection(supabase);

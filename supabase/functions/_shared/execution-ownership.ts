@@ -19,6 +19,16 @@ export interface EdgeProviderCredential {
   ownership: EdgeExecutionOwnership;
 }
 
+export type OperatorCredentialSource = "explicit_account" | "operational_account" | "system_secret";
+export interface OperatorCredentialResolution {
+  credential: EdgeProviderCredential;
+  source: OperatorCredentialSource;
+  attempts: Readonly<{ explicit_account: boolean; operational_account: boolean; system_secret: boolean }>;
+}
+export class OperatorCredentialResolutionError extends Error {
+  constructor(message: string, readonly attempts: OperatorCredentialResolution["attempts"]) { super(message); }
+}
+
 const providerCredentialContext = new AsyncLocalStorage<EdgeProviderCredential>();
 
 /** Provider-client factory scope; concurrent accounts receive independent async context. */
@@ -85,6 +95,89 @@ export async function enumerateExecutionAccounts(supabase: any, provider: Execut
   const { data, error } = await supabase.from("connected_execution_accounts").select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id").eq("provider", provider).eq("enabled", true);
   if (error) throw new Error(`connected_execution_accounts_query_failed:${error.message}`);
   return (data ?? []).map((row: Json) => ownershipFromRow({ ...row, execution_provider: provider }, provider));
+}
+
+/**
+ * Resolve an account for an administrator initiated provider operation.  This is
+ * deliberately separate from the customer execution enumerator: an operator
+ * action may never "pick the first customer".  A customer account is eligible
+ * only when both its customer and account identifiers were supplied explicitly.
+ */
+export async function resolveOperationalExecutionAccounts(
+  supabase: any,
+  provider: ExecutionProvider,
+  environment: EdgeExecutionOwnership["environment"],
+  selection?: { customerId?: string; accountId?: string },
+): Promise<EdgeExecutionOwnership[]> {
+  let query = supabase.from("connected_execution_accounts")
+    .select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
+    .eq("provider", provider).eq("environment", environment).eq("enabled", true);
+  const explicitlyCustomerScoped = Boolean(selection?.customerId && selection?.accountId);
+  if (explicitlyCustomerScoped) {
+    query = query.eq("customer_id", selection!.customerId).eq("account_id", selection!.accountId);
+  } else {
+    query = query.eq("is_operational", true);
+  }
+  const { data, error } = await query;
+  if (error) throw new Error(`connected_execution_accounts_query_failed:${error.message}`);
+  const rows = data ?? [];
+  if (rows.length === 0) throw new Error(`no_operational_account:${provider}:${environment}`);
+  if (!explicitlyCustomerScoped && rows.length > 1) throw new Error(`operational_account_selection_required:${provider}:${environment}`);
+  return rows.map((row: Json) => ownershipFromRow({ ...row, execution_provider: provider }, provider));
+}
+
+function systemCredential(provider: ExecutionProvider, environment: EdgeExecutionOwnership["environment"]): EdgeProviderCredential | null {
+  const apiKey = provider === "binance"
+    ? Deno.env.get("BINANCE_TESTNET_API_KEY") ?? ""
+    : Deno.env.get("BYBIT_TESTNET_API_KEY") ?? Deno.env.get("BYBIT_API_KEY") ?? "";
+  const apiSecret = provider === "binance"
+    ? Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? ""
+    : Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? Deno.env.get("BYBIT_API_SECRET") ?? "";
+  if (!apiKey || !apiSecret) return null;
+  const systemId = provider === "binance" ? "00000000-0000-4000-8000-000000000001" : "00000000-0000-4000-8000-000000000002";
+  const ownership = ownershipFromRow({
+    customer_id: "00000000-0000-4000-8000-000000000000", provider,
+    account_id: `system-${provider}-${environment}`, execution_instance_id: systemId,
+    credential_ref: "edge-function-secret", environment,
+  }, provider);
+  return { apiKey, apiSecret, ownership };
+}
+
+/** Canonical operator resolution order: explicit account, operational account, system secret. */
+export async function resolveOperatorProviderCredential(
+  supabase: any,
+  provider: ExecutionProvider,
+  environment: EdgeExecutionOwnership["environment"],
+  selection?: { customerId?: string; accountId?: string },
+): Promise<OperatorCredentialResolution> {
+  const attempts = { explicit_account: Boolean(selection?.accountId), operational_account: false, system_secret: false };
+  if (selection?.accountId) {
+    let query = supabase.from("connected_execution_accounts")
+      .select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
+      .eq("account_id", selection.accountId).eq("provider", provider).eq("environment", environment).eq("enabled", true);
+    if (selection.customerId) query = query.eq("customer_id", selection.customerId);
+    const { data, error } = await query.limit(2);
+    if (error) throw new Error(`explicit_account_query_failed:${provider}:${environment}`);
+    if (!data?.length || data.length !== 1) throw new Error(`invalid_explicit_account:${provider}:${environment}:${selection.accountId}`);
+    const ownership = ownershipFromRow({ ...data[0], execution_provider: provider }, provider);
+    return { credential: await resolveEdgeProviderCredential(supabase, ownership), source: "explicit_account", attempts };
+  }
+
+  attempts.operational_account = true;
+  const { data, error } = await supabase.from("connected_execution_accounts")
+    .select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
+    .eq("provider", provider).eq("environment", environment).eq("enabled", true).eq("is_operational", true).limit(2);
+  if (error) throw new Error(`connected_execution_accounts_query_failed:${error.message}`);
+  if ((data?.length ?? 0) > 1) throw new Error(`operational_account_selection_required:${provider}:${environment}`);
+  if (data?.length === 1) {
+    const ownership = ownershipFromRow({ ...data[0], execution_provider: provider }, provider);
+    return { credential: await resolveEdgeProviderCredential(supabase, ownership), source: "operational_account", attempts };
+  }
+
+  attempts.system_secret = true;
+  const credential = systemCredential(provider, environment);
+  if (credential) return { credential, source: "system_secret", attempts };
+  throw new OperatorCredentialResolutionError(`no_execution_credentials:${provider}:${environment}`, attempts);
 }
 
 /** Only this factory boundary receives decrypted material from the service-role RPC. */
