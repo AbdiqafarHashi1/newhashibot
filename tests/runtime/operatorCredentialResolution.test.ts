@@ -15,6 +15,9 @@ assert.match(resolver, /no_execution_credentials:\$\{provider\}:\$\{environment\
 assert.match(resolver, /OperatorCredentialResolutionError/, 'blocker must carry secret-safe attempt metadata separately');
 for (const name of ['BINANCE_TESTNET_API_KEY','BINANCE_TESTNET_API_SECRET','BYBIT_DEMO_API_KEY','BYBIT_DEMO_API_SECRET','BYBIT_TESTNET_API_KEY','BYBIT_TESTNET_API_SECRET','BYBIT_API_KEY','BYBIT_API_SECRET']) assert.ok(resolver.includes(`"${name}"`), `${name} convention missing`);
 assert.ok(resolver.indexOf('BYBIT_DEMO_API_KEY') < resolver.indexOf('BYBIT_TESTNET_API_KEY'), 'demo-specific names must precede legacy fallback');
+const demoCandidates = resolver.match(/environment === "demo"\s*\? \[([^\n]+)\]/)?.[1] ?? '';
+assert.ok(demoCandidates.includes('BYBIT_DEMO_API_KEY') && demoCandidates.includes('BYBIT_TESTNET_API_KEY'), 'normal Demo resolver retains Demo and legacy testnet candidates');
+assert.ok(!demoCandidates.includes('BYBIT_API_KEY'), 'normal Demo execution must never fall back to live-named Pair B');
 assert.ok(system < resolver.indexOf('if (credential) return'), 'system secret must be attempted before terminal blocker');
 assert.match(proof, /withEdgeProviderCredential\(credential/);
 assert.match(bybitProof, /withEdgeProviderCredential\(resolved\.credential/);
