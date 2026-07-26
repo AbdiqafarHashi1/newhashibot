@@ -23,6 +23,7 @@ export type OperatorCredentialSource = "explicit_account" | "operational_account
 export interface OperatorCredentialResolution {
   credential: EdgeProviderCredential;
   source: OperatorCredentialSource;
+  secretNames: Readonly<{ apiKey: string; apiSecret: string }>;
   attempts: Readonly<{ explicit_account: boolean; operational_account: boolean; system_secret: boolean }>;
 }
 export class OperatorCredentialResolutionError extends Error {
@@ -126,13 +127,19 @@ export async function resolveOperationalExecutionAccounts(
   return rows.map((row: Json) => ownershipFromRow({ ...row, execution_provider: provider }, provider));
 }
 
-function systemCredential(provider: ExecutionProvider, environment: EdgeExecutionOwnership["environment"]): EdgeProviderCredential | null {
-  const apiKey = provider === "binance"
-    ? Deno.env.get("BINANCE_TESTNET_API_KEY") ?? ""
-    : Deno.env.get("BYBIT_TESTNET_API_KEY") ?? Deno.env.get("BYBIT_API_KEY") ?? "";
-  const apiSecret = provider === "binance"
-    ? Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? ""
-    : Deno.env.get("BYBIT_TESTNET_API_SECRET") ?? Deno.env.get("BYBIT_API_SECRET") ?? "";
+function systemCredential(provider: ExecutionProvider, environment: EdgeExecutionOwnership["environment"]): { credential: EdgeProviderCredential; secretNames: { apiKey: string; apiSecret: string } } | null {
+  const candidates = provider === "binance"
+    ? [["BINANCE_TESTNET_API_KEY", "BINANCE_TESTNET_API_SECRET"]]
+    : environment === "demo"
+      ? [["BYBIT_DEMO_API_KEY", "BYBIT_DEMO_API_SECRET"], ["BYBIT_TESTNET_API_KEY", "BYBIT_TESTNET_API_SECRET"]]
+      : environment === "testnet"
+        ? [["BYBIT_TESTNET_API_KEY", "BYBIT_TESTNET_API_SECRET"]]
+        : [["BYBIT_API_KEY", "BYBIT_API_SECRET"]];
+  const selected = candidates.find(([keyName, secretName]) => Boolean(Deno.env.get(keyName) && Deno.env.get(secretName)));
+  if (!selected) return null;
+  const [keyName, secretName] = selected;
+  const apiKey = Deno.env.get(keyName) ?? "";
+  const apiSecret = Deno.env.get(secretName) ?? "";
   if (!apiKey || !apiSecret) return null;
   const systemId = provider === "binance" ? "00000000-0000-4000-8000-000000000001" : "00000000-0000-4000-8000-000000000002";
   const ownership = ownershipFromRow({
@@ -140,7 +147,7 @@ function systemCredential(provider: ExecutionProvider, environment: EdgeExecutio
     account_id: `system-${provider}-${environment}`, execution_instance_id: systemId,
     credential_ref: "edge-function-secret", environment,
   }, provider);
-  return { apiKey, apiSecret, ownership };
+  return { credential: { apiKey, apiSecret, ownership }, secretNames: { apiKey: keyName, apiSecret: secretName } };
 }
 
 /** Canonical operator resolution order: explicit account, operational account, system secret. */
@@ -160,7 +167,7 @@ export async function resolveOperatorProviderCredential(
     if (error) throw new Error(`explicit_account_query_failed:${provider}:${environment}`);
     if (!data?.length || data.length !== 1) throw new Error(`invalid_explicit_account:${provider}:${environment}:${selection.accountId}`);
     const ownership = ownershipFromRow({ ...data[0], execution_provider: provider }, provider);
-    return { credential: await resolveEdgeProviderCredential(supabase, ownership), source: "explicit_account", attempts };
+    return { credential: await resolveEdgeProviderCredential(supabase, ownership), source: "explicit_account", secretNames: { apiKey: "connected_execution_accounts.api_key", apiSecret: "connected_execution_accounts.api_secret" }, attempts };
   }
 
   attempts.operational_account = true;
@@ -171,12 +178,12 @@ export async function resolveOperatorProviderCredential(
   if ((data?.length ?? 0) > 1) throw new Error(`operational_account_selection_required:${provider}:${environment}`);
   if (data?.length === 1) {
     const ownership = ownershipFromRow({ ...data[0], execution_provider: provider }, provider);
-    return { credential: await resolveEdgeProviderCredential(supabase, ownership), source: "operational_account", attempts };
+    return { credential: await resolveEdgeProviderCredential(supabase, ownership), source: "operational_account", secretNames: { apiKey: "connected_execution_accounts.api_key", apiSecret: "connected_execution_accounts.api_secret" }, attempts };
   }
 
   attempts.system_secret = true;
   const credential = systemCredential(provider, environment);
-  if (credential) return { credential, source: "system_secret", attempts };
+  if (credential) return { credential: credential.credential, source: "system_secret", secretNames: credential.secretNames, attempts };
   throw new OperatorCredentialResolutionError(`no_execution_credentials:${provider}:${environment}`, attempts);
 }
 
