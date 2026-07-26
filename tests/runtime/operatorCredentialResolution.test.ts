@@ -13,7 +13,8 @@ assert.match(resolver, /invalid_explicit_account:\$\{provider\}:\$\{environment\
 assert.match(resolver, /\.eq\("is_operational", true\)/, 'implicit connected account must be operational');
 assert.match(resolver, /no_execution_credentials:\$\{provider\}:\$\{environment\}/, 'missing sources need actionable blocker');
 assert.match(resolver, /OperatorCredentialResolutionError/, 'blocker must carry secret-safe attempt metadata separately');
-for (const name of ['BINANCE_TESTNET_API_KEY','BINANCE_TESTNET_API_SECRET','BYBIT_TESTNET_API_KEY','BYBIT_TESTNET_API_SECRET','BYBIT_API_KEY','BYBIT_API_SECRET']) assert.ok(resolver.includes(`Deno.env.get("${name}")`), `${name} convention missing`);
+for (const name of ['BINANCE_TESTNET_API_KEY','BINANCE_TESTNET_API_SECRET','BYBIT_DEMO_API_KEY','BYBIT_DEMO_API_SECRET','BYBIT_TESTNET_API_KEY','BYBIT_TESTNET_API_SECRET','BYBIT_API_KEY','BYBIT_API_SECRET']) assert.ok(resolver.includes(`"${name}"`), `${name} convention missing`);
+assert.ok(resolver.indexOf('BYBIT_DEMO_API_KEY') < resolver.indexOf('BYBIT_TESTNET_API_KEY'), 'demo-specific names must precede legacy fallback');
 assert.ok(system < resolver.indexOf('if (credential) return'), 'system secret must be attempted before terminal blocker');
 assert.match(proof, /withEdgeProviderCredential\(credential/);
 assert.match(bybitProof, /withEdgeProviderCredential\(resolved\.credential/);
