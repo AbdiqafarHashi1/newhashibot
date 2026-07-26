@@ -7,6 +7,9 @@ import { classifyBybitFailure, clockDeltaMs, normalizedQuery, resolveBybitBaseUr
 type Json = Record<string, unknown>;
 const headers = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization, x-hashibot-internal-secret, x-hashibot-action-id, x-hashibot-correlation-id", "Content-Type": "application/json" };
 const readEnv = (name: string) => Deno.env.get(name);
+const PAIR_B_DIAGNOSTIC_ACTION = "diagnose_bybit_demo_pair_b";
+const PAIR_B_DEMO_BASE_URL = "https://api-demo.bybit.com";
+const PAIR_B_SECRET_NAMES = { apiKey: "BYBIT_API_KEY", apiSecret: "BYBIT_API_SECRET" } as const;
 
 class BybitReadError extends Error {
   constructor(readonly receipt: Json) { super(String(receipt.blocker)); }
@@ -46,12 +49,53 @@ async function signedGet<T>(input: { apiKey: string; apiSecret: string; baseUrl:
   return body.result as T;
 }
 
+/** One-time, secret-safe probe. This deliberately bypasses—not modifies—the normal resolver. */
+async function diagnoseBybitDemoPairB(): Promise<Json> {
+  const environment = "demo";
+  const baseUrl = PAIR_B_DEMO_BASE_URL;
+  const apiKey = readEnv(PAIR_B_SECRET_NAMES.apiKey) ?? "";
+  const apiSecret = readEnv(PAIR_B_SECRET_NAMES.apiSecret) ?? "";
+  const credential = {
+    source: "one_time_pair_b_diagnostic",
+    selected_secret_name_pair: [PAIR_B_SECRET_NAMES.apiKey, PAIR_B_SECRET_NAMES.apiSecret],
+    api_key_fingerprint: await safeFingerprint(apiKey),
+    secret_fingerprint: await safeFingerprint(apiSecret),
+  };
+  const receipt: Json = {
+    success: false, target: "bybit-demo-execution", action: PAIR_B_DIAGNOSTIC_ACTION,
+    provider: "bybit", environment, hostname: new URL(baseUrl).hostname,
+    credential, endpoint: "/v5/account/wallet-balance", http_status: null,
+    retCode: null, retMsg: null, blocker: null, read_only: true, mutations_attempted: 0,
+  };
+  if (!apiKey || !apiSecret) return { ...receipt, blocker: "BYBIT_PAIR_B_CREDENTIAL_MISSING", retMsg: "Pair B is not fully configured" };
+
+  const timestamp = String(Date.now());
+  const recvWindow = "5000";
+  const query = normalizedQuery({ accountType: "UNIFIED" });
+  const { signature } = await signBybitV5Get({ timestamp, apiKey, apiSecret, recvWindow, query });
+  try {
+    const response = await fetch(`${baseUrl}/v5/account/wallet-balance?${query}`, {
+      method: "GET",
+      headers: { "X-BAPI-API-KEY": apiKey, "X-BAPI-TIMESTAMP": timestamp, "X-BAPI-RECV-WINDOW": recvWindow, "X-BAPI-SIGN": signature, "X-BAPI-SIGN-TYPE": "2" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await response.json().catch(() => ({})) as { retCode?: number; retMsg?: string };
+    const authenticated = response.ok && body.retCode === 0;
+    const classification = authenticated ? {} : classifyBybitFailure(response.status, body.retCode, body.retMsg);
+    return { ...receipt, success: authenticated, http_status: response.status, retCode: body.retCode ?? null,
+      retMsg: body.retMsg ?? response.statusText, blocker: authenticated ? null : classification.blocker };
+  } catch (error) {
+    return { ...receipt, blocker: "BYBIT_READ_FAILED", retMsg: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers });
   const supabase = createClient(readEnv("SUPABASE_URL") ?? "", readEnv("SUPABASE_SERVICE_ROLE_KEY") ?? "");
   const auth = await authorizeInternalOrAdmin(req, supabase);
   if (!auth.ok) return new Response(JSON.stringify({ success: false, blocker: auth.error }), { status: auth.status, headers });
   const body = await req.json().catch(() => ({})) as Json;
+  if (body.action === PAIR_B_DIAGNOSTIC_ACTION) return new Response(JSON.stringify(await diagnoseBybitDemoPairB()), { status: 200, headers });
   if (body.action !== "prove_bybit_trade_management") return new Response(JSON.stringify({ success: false, blocker: "read_only_action_required" }), { status: 400, headers });
   const environment = resolveBybitEnvironment(readEnv); const baseUrl = resolveBybitBaseUrl(environment, readEnv); const clock = await serverClock(baseUrl);
   try {
