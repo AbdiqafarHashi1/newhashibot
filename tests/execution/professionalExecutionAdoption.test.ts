@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { planExecution } from '../../supabase/functions/_shared/professional-execution-planning.js';
+import { disabledAdoptionPolicy, revalidateAdoption, projectExecutionEvents, bindFill, adoptExecutionPlan, type ExecutionAdoptionPolicy, type AdoptionTruth, type AtomicExecutionClaimStore, type AppendOnlyExecutionEventStore, type ExecutionEvent, type ClaimRequest, type AtomicClaimResult } from '../../supabase/functions/_shared/professional-execution-adoption.js';
+import { BinanceTestnetAdoptionAdapter, shadowCompare, validateProofRequest } from '../../supabase/functions/_shared/professional-execution-adapters.js';
+import { verifyProtection } from '../../supabase/functions/_shared/professional-protection-verification.js';
+import { context, cryptoSpec, upstream, at } from './professionalExecutionPlanning.test.js';
+
+const plan = planExecution(context(upstream('BINANCE'), cryptoSpec('BINANCE')));
+const disabled = disabledAdoptionPolicy('BINANCE', 'TESTNET');
+assert.equal(disabled.enabled, false); assert.equal(disabled.certification_state, 'DISABLED'); assert.equal(disabled.rollout_percentage, 0); assert.ok(Object.isFrozen(disabled));
+const policy: ExecutionAdoptionPolicy = { ...disabled, policy_id: 'binance-testnet-cert', enabled: true, certification_state: 'CERTIFIED_TESTNET', rollout_percentage: 100, account_ids: [plan.routing!.account_id], execution_modes: ['TESTNET'], customer_scope: { mode: 'ALL_AUTHORIZED', customer_ids: [] }, maximum_plan_age_ms: 60_000 };
+const truth: AdoptionTruth = { provider: 'BINANCE', environment: 'TESTNET', account_id: plan.routing!.account_id, customer_id: null, execution_mode: 'TESTNET', observed_at: at, freshness: 'KNOWN', provider_health: 'HEALTHY', account_health: 'HEALTHY', provider_operational: true, available_margin: 1_000_000, contract_fingerprint: plan.capital_allocation_plan.diagnostics.contract_fingerprint, capability_fingerprint: plan.capability_fingerprint, routing_fingerprint: plan.routing_fingerprint, execution_fingerprint: plan.execution_fingerprint, canonical_symbol: plan.routing!.canonical_symbol, provider_symbol: plan.routing!.provider_symbol, active_client_ids: [], conflicting_position: false, conflicting_open_entry: false, configuration_change_safe: true };
+assert.equal(revalidateAdoption(plan, policy, truth, at).allowed, true);
+assert.ok(revalidateAdoption(plan, policy, { ...truth, environment: 'LIVE' }, at).reasons.includes('production_environment_forbidden'));
+assert.ok(revalidateAdoption(plan, policy, { ...truth, capability_fingerprint: 'drift' }, at).reasons.includes('capability_fingerprint_drift'));
+assert.ok(revalidateAdoption(plan, { ...policy, rollback_state: 'ACTIVE' }, truth, at).reasons.includes('adoption_rolled_back'));
+
+class Claims implements AtomicExecutionClaimStore { done = new Set<string>(); held = new Set<string>(); async claimBatch(reqs: readonly ClaimRequest[]) { const out: Record<string, AtomicClaimResult> = {}; for (const r of reqs) { const outcome = this.done.has(r.key) ? 'COMPLETED_NOOP' : this.held.has(r.key) ? 'CONFLICT' : 'ACQUIRED'; if (outcome === 'ACQUIRED') this.held.add(r.key); out[r.key] = { outcome, claim_token: outcome === 'ACQUIRED' ? r.key : null, existing_owner: null }; } return out; } async markCompleted(keys: readonly string[]) { keys.forEach(k => this.done.add(k)); } }
+class Events implements AppendOnlyExecutionEventStore { rows: ExecutionEvent[] = []; async append(e: ExecutionEvent) { if (this.rows.some(x => x.event_id === e.event_id)) return { appended: false, duplicate: true }; this.rows.push(e); return { appended: true, duplicate: false }; } async list() { return this.rows; } }
+let sends = 0; const transport = { async send(_op: string, _payload: Readonly<Record<string, unknown>>, id: string) { sends++; return { outcome: 'ACKNOWLEDGED' as const, provider_order_id: id, provider_position_id: null, provider_timestamp: at, raw_status: 'NEW', redacted_evidence: { ok: true }, error: null }; }, async lookup() { return { found: false, result: null }; } };
+const adapter = new BinanceTestnetAdoptionAdapter(plan, transport); const claims = new Claims(); const events = new Events();
+const before = JSON.stringify(plan);
+const adopted = await adoptExecutionPlan({ plan, policy, truth, now: at, executor_identity: 'test-worker', attempt_number: 1, lease_ms: 30_000, claim_store: claims, event_store: events, port: adapter });
+assert.equal(adopted.submitted, true); assert.deepEqual(adopted.projection.errors, []); assert.ok(sends > 0); assert.equal(JSON.stringify(plan), before); assert.equal(plan.capital_allocation_plan.allocation!.quantity, 1);
+const replay = await adoptExecutionPlan({ plan, policy, truth, now: at, executor_identity: 'test-worker-2', attempt_number: 2, lease_ms: 30_000, claim_store: claims, event_store: events, port: adapter });
+assert.equal(replay.submitted, false, 'completed replay is a provider no-op');
+const shadowPolicy = { ...policy, certification_state: 'SHADOW_COMPARE' as const };
+const shadow = await adoptExecutionPlan({ plan, policy: shadowPolicy, truth, now: at, executor_identity: 'shadow', attempt_number: 1, lease_ms: 1, claim_store: new Claims(), event_store: new Events(), port: adapter });
+assert.equal(shadow.shadow_only, true);
+
+const fill = bindFill(plan, { order_role: 'ENTRY', provider_order_id: 'o', provider_position_id: null, filled_quantity: .4, remaining_quantity: .6, average_fill_price: 100.1, fee: null, provider_timestamp: at }, { schema_version: 'fill-binding-policy/v1', policy_id: 'partial', version: '1', partial_fill_action: 'PROTECT_FILLED_AND_CANCEL_REMAINDER', maximum_wait_ms: 1000, never_increase_quantity: true });
+assert.equal(fill.protection_quantity_ceiling, .4); assert.equal(fill.action, 'CANCEL_REMAINDER_AND_PROTECT');
+const observed = plan.orders.filter(o => o.role !== 'ENTRY').map(o => ({ role: (o.role === 'STOP_LOSS' ? 'STOP' : o.role === 'TAKE_PROFIT_1' ? 'TP1' : 'TP2') as 'STOP'|'TP1'|'TP2', client_order_id: o.client_order_id, provider_order_id: `p-${o.role}`, account_id: plan.routing!.account_id, provider_symbol: plan.routing!.provider_symbol, side: o.side, quantity: o.role === 'STOP_LOSS' ? .4 : .2, trigger_price: o.trigger, active: true, reduce_only_equivalent: true, trigger_direction_correct: true }));
+const verification = verifyProtection({ execution_plan: plan, execution_attempt: 1, actual_filled_quantity: .4, actual_open_quantity: .4, remaining_entry_quantity: .6, truth_observed_at: at, verified_at: at, truth_state: 'KNOWN', observed_orders: observed, policy: { schema_version: 'protection-failure-policy/v1', policy_id: 'p', version: '1', stop_absence_grace_ms: 1000, truth_maximum_age_ms: 1000, stop_failure_action: 'RECONCILE_THEN_SAFETY_CLOSE', target_failure_action: 'RECONCILE_AND_DEGRADE', unknown_truth_action: 'OPERATOR_INCIDENT' } });
+assert.equal(verification.result, 'VERIFIED'); assert.ok(Object.isFrozen(verification));
+assert.equal(verifyProtection({ ...({ execution_plan: plan, execution_attempt: 1, actual_filled_quantity: .4, actual_open_quantity: .4, remaining_entry_quantity: .6, truth_observed_at: at, verified_at: at, truth_state: 'KNOWN', observed_orders: observed.filter(o => o.role !== 'STOP'), policy: { schema_version: 'protection-failure-policy/v1', policy_id: 'p', version: '1', stop_absence_grace_ms: 1000, truth_maximum_age_ms: 1000, stop_failure_action: 'RECONCILE_THEN_SAFETY_CLOSE', target_failure_action: 'RECONCILE_AND_DEGRADE', unknown_truth_action: 'OPERATOR_INCIDENT' } } as const) }).result, 'MISSING');
+const legacy = shadowCompare(plan, { provider:'BINANCE', account_id:plan.routing!.account_id, symbol:plan.routing!.provider_symbol, side:'BUY', entry_type:'LIMIT', quantity:1, leverage:5, entry_price:100, stop:98, tp1:102, tp2:104, time_in_force:'GTC', reduce_only_semantics:'true', protection_sequence:['STOP_LOSS','TAKE_PROFIT_1','TAKE_PROFIT_2'] });
+assert.equal(legacy.classification, 'EXACT_PARITY');
+assert.ok(validateProofRequest({ schema_version:'execution-proof-request/v1', mode:'SUBMIT_ONE', provider:'BINANCE', environment:'LIVE', account_id:'a', symbol:'BTCUSDT', maximum_authorized_test_risk:1, confirmation:'I_UNDERSTAND_TEST_EXECUTION', credentials_available:true, provider_truth_fresh:true, certified_policy:true, conflicting_proof_run:false, rollback_available:true }).includes('production_environment_forbidden'));
+assert.deepEqual(projectExecutionEvents(events.rows), projectExecutionEvents([...events.rows].reverse()), 'out-of-order events project deterministically');
+for (const active of ['supabase/functions/binance-testnet-execution/index.ts','supabase/functions/bybit-demo-execution/index.ts','supabase/functions/mt5-bridge/index.ts']) assert.ok(!readFileSync(active,'utf8').includes('professional-execution-adoption'));
+
+console.log('professional execution adoption and protection certification tests passed');

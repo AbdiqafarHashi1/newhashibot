@@ -1,3 +1,5 @@
+import { createStrategyPlan, type DeepReadonly, type StrategyPlan } from "./strategy-plan.ts";
+
 export type StrategyMarket = "crypto" | "forex";
 export type StrategyDecision = "BUY" | "SELL" | "NO_TRADE";
 export type StrategyLifecycle = "ENABLED" | "DISABLED" | "SHADOW" | "RESEARCH";
@@ -156,7 +158,7 @@ export class StrategyDiagnostics {
   snapshot(): Record<string, StrategyDiagnostic> { return Object.fromEntries([...this.values].map(([key, value]) => [key, { ...value, rejection_reasons: { ...value.rejection_reasons }, symbol_coverage: { ...value.symbol_coverage }, timeframe_coverage: { ...value.timeframe_coverage } }])); }
 }
 
-export interface RegistryEvaluation { definition: StrategyDefinition; professional: ProfessionalStrategyResult; publishable: boolean; }
+export interface RegistryEvaluation { definition: StrategyDefinition; professional: ProfessionalStrategyResult; plan: DeepReadonly<StrategyPlan>; publishable: boolean; }
 
 export class ProfessionalStrategyRegistry {
   constructor(private readonly definitions: readonly StrategyDefinition[], readonly diagnostics = new StrategyDiagnostics()) {
@@ -183,13 +185,13 @@ export class ProfessionalStrategyRegistry {
         const legacy = definition.evaluate(context);
         const professional = toProfessionalResult(definition, context, legacy);
         this.diagnostics.result(definition, professional, context.evaluated_at);
-        output.push({ definition, professional, publishable: lifecycleEnabled });
+        output.push({ definition, professional, plan: createStrategyPlan(definition, context, legacy), publishable: lifecycleEnabled });
       } catch (error) {
         this.diagnostics.failure(definition, context.evaluated_at);
         const message = error instanceof Error ? error.message : String(error ?? "unknown runtime error");
         const legacy = reject("runtime_error", { runtime_error: true, error_message: message.slice(0, 300) });
         legacy.reason = `${definition.legacyName} runtime error: ${message}`;
-        output.push({ definition, professional: toProfessionalResult(definition, context, legacy), publishable: lifecycleEnabled });
+        output.push({ definition, professional: toProfessionalResult(definition, context, legacy), plan: createStrategyPlan(definition, context, legacy), publishable: lifecycleEnabled });
       }
     }
     return output;
