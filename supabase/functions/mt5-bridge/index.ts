@@ -153,7 +153,16 @@ Deno.serve(async (req: Request) => {
       }
 
       if (commands && commands.length > 0) {
-        const commandIds = commands.map(c => c.id);
+        const certified: typeof commands = [];
+        for (const command of commands) {
+          if (command.operation === "test_connection") { certified.push(command); continue; }
+          const planId = String(command.payload?.execution_plan_id ?? ""), identity = String(command.payload?.deterministic_identity ?? "");
+          if (command.operation !== "place_order" || command.payload?.certified !== true || !planId || identity !== command.idempotency_key) continue;
+          const { data: claim } = await supabase.from("certified_runtime_claims").select("id").eq("execution_plan_id",planId).eq("account_id",String(command.account_id)).eq("state","completed").maybeSingle();
+          if (claim) certified.push(command);
+        }
+        if (!certified.length) return jsonResponse({ success:true, commands:[], uncertified_commands_blocked:true });
+        const commandIds = certified.map(c => c.id);
 
         const { error: updateErr } = await supabase
           .from("mt5_commands")
@@ -167,7 +176,7 @@ Deno.serve(async (req: Request) => {
           return jsonResponse({ success: false, error: `Failed to claim mt5_commands: ${updateErr.message}` }, 500);
         }
 
-        const claimed = commands.map(c => ({
+        const claimed = certified.map(c => ({
           ...c,
           status: "claimed",
           claimed_at: nowIso,
@@ -176,37 +185,9 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: true, commands: claimed });
       }
 
-      // Check secondary legacy table mt5_commands_queue (Phase 5 fallback)
-      const { data: legacyCommands } = await supabase
-        .from("mt5_commands_queue")
-        .select("*")
-        .eq("status", "pending")
-        .order("id", { ascending: true })
-        .limit(maxLimit);
-
-      if (legacyCommands && legacyCommands.length > 0) {
-        const legacyIds = legacyCommands.map(c => c.id);
-        await supabase
-          .from("mt5_commands_queue")
-          .update({
-            status: "claimed",
-            bridge_id: payload.bridge_id,
-            claimed_at: nowIso,
-          })
-          .in("id", legacyIds);
-
-        const claimedLegacy = legacyCommands.map(c => ({
-          ...c,
-          operation: c.command_type,
-          status: "claimed",
-          bridge_id: payload.bridge_id,
-          claimed_at: nowIso,
-        }));
-
-        return jsonResponse({ success: true, commands: claimedLegacy });
-      }
-
-      return jsonResponse({ success: true, commands: [] });
+      // The Phase 5 fallback queue has no certified plan/claim lineage and may
+      // never be polled into provider execution.
+      return jsonResponse({ success: true, commands: [], legacy_queue_disabled: true });
     }
 
     // ─── 3. ACKNOWLEDGE COMMAND ACTION ──────────────────────────────────────

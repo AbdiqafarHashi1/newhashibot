@@ -94,8 +94,7 @@ assert.equal(invalidStop.status, 'REJECTED'); assert.ok(invalidStop.diagnostics.
 const mutableAllocation = structuredClone(binanceContext.capital_allocation_plan);
 assert.equal(planExecution({ ...binanceContext, capital_allocation_plan: mutableAllocation }).status, 'REJECTED');
 
-for (const activeConsumer of ['supabase/functions/binance-testnet-execution/index.ts', 'supabase/functions/bybit-demo-execution/index.ts', 'supabase/functions/mt5-bridge/index.ts', 'src/lib/exchange/ExchangeProviderMT5.ts']) {
-  assert.ok(!readFileSync(activeConsumer, 'utf8').includes('professional-execution-planning'), `${activeConsumer} remains intentionally unmigrated`);
-}
+assert.ok(readFileSync('supabase/functions/binance-testnet-execution/index.ts','utf8').includes('professional-execution-planning'), 'active adoption boundary consumes ExecutionPlan');
+for (const transportOnly of ['supabase/functions/bybit-demo-execution/index.ts','supabase/functions/mt5-bridge/index.ts','src/lib/exchange/ExchangeProviderMT5.ts']) assert.ok(!readFileSync(transportOnly,'utf8').includes('planExecution('), `${transportOnly} never plans`);
 
 console.log('professional execution planning certification tests passed');

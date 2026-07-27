@@ -1,0 +1,30 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { loadCertifiedExecutionAccounts, CERTIFIED_ACCOUNT_TRUTH_VERSION, type CertifiedAccountTruthRow } from "../../supabase/functions/_shared/certified-account-loader.js";
+import { runCertifiedRuntime } from "../../supabase/functions/_shared/certified-runtime.js";
+import { resolveRiskPolicy, type RiskDomain } from "../../supabase/functions/_shared/professional-risk-engine.js";
+import { approved, policy as riskPolicy } from "../risk/professionalRiskEngine.test.js";
+import { cryptoSpec, policy as routingPolicy, capabilities } from "../execution/professionalExecutionPlanning.test.js";
+
+const at="2026-07-26T12:00:00.000Z", plan=approved.strategy_plan;
+function row(provider:"BINANCE"|"BYBIT", equity:number, patch:Partial<CertifiedAccountTruthRow>={}):CertifiedAccountTruthRow {
+ const account=`${provider.toLowerCase()}-active`, observed_at=at;
+ return { schema_version:CERTIFIED_ACCOUNT_TRUTH_VERSION,customer_id:`customer-${provider}`,execution_profile_id:`profile-${provider}`,account_id:account,provider,environment:provider==="BINANCE"?"TESTNET":"DEMO",account_mode:provider,enabled:true,adoption_enabled:true,customer_authorized:true,manually_locked:false,provider_operational:true,policy_version:"1.0.0",adoption_policy_version:"1.0.0",observed_at,maximum_truth_age_ms:60_000,balance:equity,equity,available_margin:equity*.9,used_margin:0,realized_daily_pnl:0,realized_weekly_pnl:0,unrealized_pnl:0,peak_equity:equity,pending_orders:0,pending_risk_pct:0,aggregate_open_risk_pct:0,open_positions:[],portfolio:{exposure_by_provider_pct:{BINANCE:0,BYBIT:0,MT5_PERSONAL:0,MT5_PROP:0},exposure_by_symbol_pct:{BTCUSDT:0},exposure_by_asset_class_pct:{CRYPTO:0},exposure_by_direction_pct:{BUY:0,SELL:0},exposure_by_base_asset_pct:{BTC:0},exposure_by_quote_currency_pct:{USDT:0},forex_currency_exposure_pct:{USD:0},correlated_symbol_exposure_pct:{BTCUSDT:0},gold_exposure_pct:0,open_risk_concentration_pct:0},market:{session:"ALWAYS_OPEN",spread:"ELIGIBLE",liquidity:"ELIGIBLE",news:"CLEAR",weekend:false,overnight:false},provider_health:"HEALTHY",risk_percent:1,leverage_ceiling:3,risk_policy:resolveRiskPolicy([riskPolicy(provider)],provider),contract_specification:cryptoSpec(provider),routing_policy:routingPolicy(provider),capabilities:capabilities(provider),allowed_strategy_ids:[plan.identity.strategy_id],minimum_signal_grade:"A",allowed_symbols:[plan.market_context.symbol],...patch };
+}
+const rows=[row("BINANCE",1000),row("BYBIT",8000)];
+const loaded=await loadCertifiedExecutionAccounts({strategy_plan:plan,now:at,repository:{async list(){return rows}}});
+assert.equal(loaded.accounts.length,2);assert.deepEqual(loaded.rejected,[]);
+const candidate={id:"winner",strategyId:plan.identity.strategy_id,strategyVersion:plan.identity.strategy_version,market:"crypto" as const,symbol:plan.market_context.symbol,timeframe:plan.market_context.timeframe,side:"buy" as const,confidence:90,grade:"A+",score:90,entry:100,stop:98,targets:[102,104],riskReward:2,expiry:"2026-07-26T13:00:00.000Z",fresh:true,lifecycle:"ENABLED" as const,publicationMode:"LIVE" as const,evidence:{},rejectionReasons:[]};
+const arbitration={decision:"WINNER" as const,winner:candidate,considered:[candidate],rejected:[],tieBreakEvidence:[],version:"arbitrator.root-compat-v1",decisionKey:"arb-active",evidence:{immutable_snapshot:true}};
+const result=runCertifiedRuntime({candidates:[candidate],strategy_plans:{winner:plan},arbitration:{now:new Date(at)},arbitration_result:arbitration,accounts:loaded.accounts});
+assert.equal(result.accounts.length,2);
+assert.equal(result.accounts[0].risk_decision.authorized_envelope?.maximum_authorized_risk_amount,10,JSON.stringify(result.accounts[0].risk_decision));
+assert.equal(result.accounts[1].risk_decision.authorized_envelope?.maximum_authorized_risk_amount,80);
+assert.notEqual(result.accounts[0].capital_allocation_plan?.allocation?.quantity,result.accounts[1].capital_allocation_plan?.allocation?.quantity);
+assert.equal(result.accounts[0].execution_plan?.routing?.account_id,"binance-active");assert.equal(result.accounts[1].execution_plan?.routing?.account_id,"bybit-active");
+for(const [label,bad] of [["stale",row("BINANCE",1000,{observed_at:"2026-07-26T10:00:00Z"})],["disabled",row("BINANCE",1000,{enabled:false})],["cross-provider",row("BINANCE",1000,{capabilities:capabilities("BYBIT")})]] as const){const x=await loadCertifiedExecutionAccounts({strategy_plan:plan,now:at,repository:{async list(){return [bad]}}});assert.equal(x.accounts.length,0,label);assert.equal(x.rejected.length,1,label)}
+const scanner=readFileSync("supabase/functions/market-scanner/index.ts","utf8");assert.ok(scanner.includes("loadCertifiedExecutionAccounts"));assert.ok(scanner.includes("runCertifiedRuntime({"));assert.ok(scanner.includes('action:"adopt_execution_plan"'));
+const executor=readFileSync("supabase/functions/binance-testnet-execution/index.ts","utf8");assert.ok(executor.includes('action === "adopt_execution_plan"'));assert.ok(executor.includes("adoptExecutionPlan({"));assert.ok(executor.includes("new BinanceTestnetAdoptionAdapter"));assert.ok(executor.includes("new BybitDemoAdoptionAdapter"));assert.ok(executor.includes("new Mt5PersonalDemoAdoptionAdapter"));assert.ok(executor.includes("new Mt5PropDemoAdoptionAdapter"));
+const bridge=readFileSync("supabase/functions/mt5-bridge/index.ts","utf8");assert.ok(bridge.includes('command.payload?.certified !== true'));assert.ok(bridge.includes('eq("state","completed")'));
+const migration=readFileSync("supabase/migrations/20260727000000_phase1ga_certified_runtime_preparation.sql","utf8");assert.ok(migration.includes("enabled boolean not null default false"));assert.ok(migration.includes("rollout_percentage numeric not null default 0"));assert.ok(migration.includes("claim_certified_execution"));assert.ok(migration.includes("certified_provider_order_bindings"));assert.ok(!migration.includes("cron.schedule"));
+console.log("Phase 1G-A active wiring tests passed");

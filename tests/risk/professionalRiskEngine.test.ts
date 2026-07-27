@@ -22,13 +22,13 @@ const strategyContext: StrategyEvaluationContext = { symbol: 'BTCUSDT', market: 
 const legacy = { status: 'candidate' as const, direction: 'buy', entry_low: 99.9, entry_high: 100.1, stop_loss: 98, tp1: 102, tp2: 104, risk_reward: 2, confidence_score: 87, grade: 'A+', reason: 'deterministic accepted fixture', rejection_reason: '', score_breakdown: { primary_failed_gate: 'passed', trend_confirmed: true, momentum_confirmed: true, final_score: 87 } };
 const definition: StrategyDefinition = { id: 'crypto.micro-scalper', version: '1.0.0', legacyName: 'MicroScalper', market: 'crypto', lifecycle: 'ENABLED', config: { strategy_name: 'MicroScalper', enabled: true, min_score: 72, min_rr: 1.2, max_bars_in_trade: 24, allowed_symbols: [], allowed_timeframes: ['5m', '15m'], params: {} }, evaluate: () => legacy };
 const plan = createStrategyPlan(definition, strategyContext, legacy);
-const approved = approveStrategyPlan(plan, { approved_at: at, arbitration: { policy_version: 'existing-v1', winner_reason: 'existing deterministic winner', competing_strategies: [] } });
+export const approved = approveStrategyPlan(plan, { approved_at: at, arbitration: { policy_version: 'existing-v1', winner_reason: 'existing deterministic winner', competing_strategies: [] } });
 
 function propPolicy(overrides: Partial<PropRiskPolicy> = {}): PropRiskPolicy {
   return { schema_version: PROP_POLICY_SCHEMA_VERSION, policy_id: 'prop-account-policy', version: 'challenge-v1', challenge_type: 'CHALLENGE', starting_balance: 100000, daily_loss_limit_pct: 5, maximum_drawdown_limit_pct: 10, drawdown_type: 'STATIC', calculation_basis: 'BALANCE_AND_EQUITY', floating_loss_treatment: 'INCLUDED', reset_time: '00:00', timezone: 'UTC', weekend_holding_rule: 'FORBIDDEN', overnight_holding_rule: 'ALLOWED', news_rule: 'FORBIDDEN', maximum_risk_per_trade_pct: 1, maximum_open_risk_pct: 3, leverage_cap: 10, safety_buffer_pct: 1, unknown_fields: [], ...overrides };
 }
 
-function policy(domain: RiskDomain, overrides: Partial<RiskPolicy> = {}): RiskPolicy {
+export function policy(domain: RiskDomain, overrides: Partial<RiskPolicy> = {}): RiskPolicy {
   return {
     schema_version: RISK_POLICY_SCHEMA_VERSION, policy_id: `${domain.toLowerCase()}-risk`, version: '1.0.0', domain, source: domain === 'MT5_PROP' ? 'PROP' : 'PROVIDER', hard: true,
     allowed_environments: ['TESTNET', 'DEMO', 'LIVE'], allowed_account_ids: [], allowed_asset_classes: ['CRYPTO', 'FOREX', 'GOLD'],
@@ -116,6 +116,11 @@ for (const domain of ['BINANCE', 'BYBIT', 'MT5_PERSONAL'] as const) {
 const bybitIndependent = evaluateRisk(approved, context('BYBIT', { account: { ...context('BYBIT').account, balance: known(20000), equity: known(20000) } }), resolveRiskPolicy([policy('BYBIT')], 'BYBIT'));
 assert.equal(bybitIndependent.authorized_envelope?.maximum_authorized_risk_amount, 200, 'Bybit authorization uses only the Bybit account snapshot');
 assert.equal(accepted.authorized_envelope?.maximum_authorized_risk_amount, 100, 'Binance authorization retains its independent snapshot');
+const binanceOneThousand = evaluateRisk(approved, context('BINANCE', { account: { ...context('BINANCE').account, balance: known(1000), equity: known(1000), available_margin: known(900), peak_equity: known(1000) } }), resolvedBinance);
+const bybitEightThousand = evaluateRisk(approved, context('BYBIT', { account: { ...context('BYBIT').account, balance: known(8000), equity: known(8000), available_margin: known(7200), peak_equity: known(8000) } }), resolveRiskPolicy([policy('BYBIT')], 'BYBIT'));
+assert.equal(binanceOneThousand.authorized_envelope?.maximum_authorized_risk_amount, 10, '1% is relative to Binance account equity');
+assert.equal(bybitEightThousand.authorized_envelope?.maximum_authorized_risk_amount, 80, '1% is relative to Bybit account equity');
+assert.notEqual(binanceOneThousand.account.id, bybitEightThousand.account.id);
 assert.throws(() => resolveRiskPolicy([policy('BINANCE')], 'BYBIT'), /risk_policy_missing/);
 
 // Prop policy is explicit, conservative and account-specific.
