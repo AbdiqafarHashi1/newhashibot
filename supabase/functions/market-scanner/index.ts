@@ -15,6 +15,9 @@ import { FOREX_RESEARCH_STRATEGIES } from "../_shared/forex-research-strategies.
 import { publicSignalReference } from "../_shared/professional-telegram.ts";
 import { atrRootV1, emaRootV1, rsiRootV1, INDICATOR_VERSIONS } from "../_shared/indicator-engine.ts";
 import { arbitrate, ArbitrationDiagnostics, type ArbitrationCandidate } from "../_shared/arbitrator.ts";
+import type { DeepReadonly, StrategyPlan } from "../_shared/strategy-plan.ts";
+import { runCertifiedRuntime } from "../_shared/certified-runtime.ts";
+import { loadCertifiedExecutionAccounts, type CertifiedAccountTruthRow } from "../_shared/certified-account-loader.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1294,6 +1297,7 @@ interface EvalEntry {
   result: EvalResult;
   cfg: StrategyConfig;
   guard: DistanceGuardResult;
+  plan: DeepReadonly<StrategyPlan>;
 }
 
 interface MarketContext {
@@ -3005,25 +3009,11 @@ async function tryAutoSendTelegram(
 }
 
 async function tryAutoExecuteTestnet(signalId: string): Promise<{ called: boolean; success: boolean; reason: string }> {
-  // Runtime execution_settings/provider controls are the source of truth for testnet execution.
-  // Do not let stale scanner env flags silently prevent approved signals from reaching the
-  // provider-neutral router; the execution function still enforces live-trading/testnet gates.
-  if (envBool("LIVE_TRADING_ENABLED", false)) return { called: false, success: false, reason: "LIVE_TRADING_ENABLED_guard" };
-  const url = `${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`;
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!Deno.env.get("SUPABASE_URL") || !serviceRole) return { called: false, success: false, reason: "supabase_internal_config_missing" };
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "execute_signal", signal_id: signalId, manual: false }),
-      signal: AbortSignal.timeout(15000),
-    });
-    const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-    return { called: true, success: Boolean(data.success), reason: String(data.reason ?? data.error ?? res.statusText) };
-  } catch (e) {
-    return { called: true, success: false, reason: e instanceof Error ? e.message : "unknown_execution_call_error" };
-  }
+  // Phase 1G-A verification: a legacy signal id is not certified execution
+  // intent. Scanner publication remains active, but automatic execution is
+  // fail-closed until this call site can persist and adopt execution-plan/v1.
+  void signalId;
+  return { called: false, success: false, reason: "certified_execution_plan_required" };
 }
 
 // ─── Heartbeat updater ────────────────────────────────────────────────────────
@@ -3473,7 +3463,7 @@ async function runScanPipeline(
         }, { onConflict: "symbol,timeframe,candle_time" });
         }
 
-        const allEvals: Array<{ name: StrategyName; result: EvalResult; cfg: StrategyConfig }> = [];
+        const allEvals: Array<{ name: StrategyName; result: EvalResult; cfg: StrategyConfig; plan: DeepReadonly<StrategyPlan> }> = [];
         const activeDefinitions: StrategyDefinition[] = [];
         let fifteenMinuteCandles: Candle[] | undefined;
         if (marketType === "crypto" && tf === "5m") {
@@ -3515,7 +3505,7 @@ async function runScanPipeline(
           if (!evaluation.publishable) continue;
           const name = evaluation.definition.legacyName as StrategyName;
           if (evaluation.professional.rejection_reasons.includes("runtime_error")) recordStrategyError(name, sym.symbol, tf, evaluation.professional.legacy.reason);
-          allEvals.push({ name, cfg: evaluation.definition.config as StrategyConfig, result: evaluation.professional.legacy as EvalResult });
+          allEvals.push({ name, cfg: evaluation.definition.config as StrategyConfig, result: evaluation.professional.legacy as EvalResult, plan: evaluation.plan });
         }
 
         // ── Pre-arbitration: collect passing candidates, pick the best one ──
@@ -3593,7 +3583,7 @@ async function runScanPipeline(
 
           incrementStrategyStat(ev.name, "distance_pass");
           incrementStrategyStat(ev.name, "arbitration_entered");
-          passingEntries.push({ name: ev.name, result: r, cfg: ev.cfg, guard });
+          passingEntries.push({ name: ev.name, result: r, cfg: ev.cfg, guard, plan: ev.plan });
           // tag candidate id for later use
           (passingEntries[passingEntries.length - 1] as EvalEntry & { _candidateId: string })._candidateId = cData.id;
         }
@@ -3624,6 +3614,25 @@ async function runScanPipeline(
         const arbitrationCandidates = arbitrationSnapshot(passingEntries, marketContext);
         const selectedArbitrationScore = arbitrationDecision.winner?.score ?? (passingEntries.length > 0 ? arbitrationScore(passingEntries[0], marketContext) : 0);
         const selectedStrategyName = arbitrationDecision.winner ? (byCandidateId.get(arbitrationDecision.winner.id)?.name ?? "none") : "none";
+        if (arbitrationDecision.winner) {
+          const selected = byCandidateId.get(arbitrationDecision.winner.id);
+          if (!selected || !Object.isFrozen(selected.plan)) throw new Error("certified_winner_strategy_plan_missing_or_mutable");
+          const { error: strategyPlanError } = await supabase.from("certified_strategy_plans").insert({
+            evaluation_id: selected.plan.provenance.evaluation_id,
+            candidate_id: arbitrationDecision.winner.id,
+            scanner_run_id: runId,
+            arbitration_decision_key: arbitrationDecision.decisionKey,
+            strategy_id: selected.plan.identity.strategy_id,
+            strategy_version: selected.plan.identity.strategy_version,
+            canonical_side: selected.plan.decision.action,
+            symbol: selected.plan.market_context.symbol,
+            market: selected.plan.identity.asset_class,
+            strategy_plan: selected.plan,
+          });
+          if (strategyPlanError) throw new Error(`certified_strategy_plan_persistence_failed:${strategyPlanError.message}`);
+
+
+        }
         if (noTradeReason) {
           for (const blockedEntry of passingEntries as Array<EvalEntry & { _candidateId: string }>) {
             const r = blockedEntry.result;
@@ -3803,6 +3812,24 @@ async function runScanPipeline(
           }
 
           if (dataSource !== "REAL DATA") continue;
+
+          // Certified execution branches only after arbitration, duplicate,
+          // grade and real-market-data gates. Compatibility SignalRow fields
+          // are never used as execution input.
+          const selectedPlan = ev.plan;
+          const loaded = await loadCertifiedExecutionAccounts({
+            strategy_plan: selectedPlan, now: strategyContext.evaluated_at,
+            repository: { async list(plan) { const { data, error } = await supabase.rpc("load_certified_execution_account_truth", { p_strategy_id:plan.identity.strategy_id, p_symbol:plan.market_context.symbol, p_evaluated_at:strategyContext.evaluated_at }); if (error) throw new Error(`certified_account_truth_load_failed:${error.message}`); return (data ?? []) as CertifiedAccountTruthRow[]; } },
+          });
+          for (const rejection of loaded.rejected) await supabase.from("certified_runtime_events").insert({ event_id:`account-rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}:${rejection.reason}`, execution_plan_id:`rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}`, account_id:rejection.account_id ?? "unknown", event_type:"ACCOUNT_REJECTED", normalized_status:"rejected", occurred_at:strategyContext.evaluated_at, payload:{...rejection,evaluation_id:selectedPlan.provenance.evaluation_id} });
+          if (loaded.accounts.length) {
+            const certified = runCertifiedRuntime({ candidates:arbitrationInput, strategy_plans:Object.fromEntries([...byCandidateId].map(([id,entry])=>[id,entry.plan])), arbitration:{now:new Date(strategyContext.evaluated_at)}, arbitration_result:arbitrationDecision, accounts:loaded.accounts });
+            for (const account of certified.accounts) {
+              const { error:artifactError } = await supabase.from("certified_runtime_artifacts").insert({ evaluation_id:selectedPlan.provenance.evaluation_id, account_id:account.account_id, strategy_plan_id:selectedPlan.provenance.evaluation_id, risk_decision:account.risk_decision, capital_allocation_plan:account.capital_allocation_plan, execution_plan:account.execution_plan });
+              if (artifactError) throw new Error(`certified_runtime_artifact_persistence_failed:${artifactError.message}`);
+              if (account.execution_plan?.status === "PLANNED") { const adoptionVersion=loaded.accounts.find((item)=>item.account_id===account.account_id)?.adoption_policy_version; const response=await fetch(`${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`,{method:"POST",headers:{Authorization:`Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,"Content-Type":"application/json"},body:JSON.stringify({action:"adopt_execution_plan",execution_plan:account.execution_plan,expected_policy_version:adoptionVersion}),signal:AbortSignal.timeout(15000)}); if(!response.ok)throw new Error(`certified_execution_adoption_failed:${response.status}`); }
+            }
+          }
 
           // ── Mode-aware arbitrator ─────────────────────────────────────────
           const modesToRun = marketType === "forex" ? ["signal_mode"] : (activeModes.length > 0 ? activeModes.map((m) => m.mode_slug) : ["signal_mode"]);

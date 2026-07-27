@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { planExecution } from '../../supabase/functions/_shared/professional-execution-planning.js';
 import { disabledAdoptionPolicy, revalidateAdoption, projectExecutionEvents, bindFill, adoptExecutionPlan, type ExecutionAdoptionPolicy, type AdoptionTruth, type AtomicExecutionClaimStore, type AppendOnlyExecutionEventStore, type ExecutionEvent, type ClaimRequest, type AtomicClaimResult } from '../../supabase/functions/_shared/professional-execution-adoption.js';
-import { BinanceTestnetAdoptionAdapter, shadowCompare, validateProofRequest } from '../../supabase/functions/_shared/professional-execution-adapters.js';
+import { BinanceTestnetAdoptionAdapter, BybitDemoAdoptionAdapter, Mt5PersonalDemoAdoptionAdapter, Mt5PropDemoAdoptionAdapter, shadowCompare, validateProofRequest } from '../../supabase/functions/_shared/professional-execution-adapters.js';
 import { verifyProtection } from '../../supabase/functions/_shared/professional-protection-verification.js';
-import { context, cryptoSpec, upstream, at } from './professionalExecutionPlanning.test.js';
+import { context, cryptoSpec, mt5Spec, upstream, at } from './professionalExecutionPlanning.test.js';
 
 const plan = planExecution(context(upstream('BINANCE'), cryptoSpec('BINANCE')));
 const disabled = disabledAdoptionPolicy('BINANCE', 'TESTNET');
@@ -39,6 +39,17 @@ const legacy = shadowCompare(plan, { provider:'BINANCE', account_id:plan.routing
 assert.equal(legacy.classification, 'EXACT_PARITY');
 assert.ok(validateProofRequest({ schema_version:'execution-proof-request/v1', mode:'SUBMIT_ONE', provider:'BINANCE', environment:'LIVE', account_id:'a', symbol:'BTCUSDT', maximum_authorized_test_risk:1, confirmation:'I_UNDERSTAND_TEST_EXECUTION', credentials_available:true, provider_truth_fresh:true, certified_policy:true, conflicting_proof_run:false, rollback_available:true }).includes('production_environment_forbidden'));
 assert.deepEqual(projectExecutionEvents(events.rows), projectExecutionEvents([...events.rows].reverse()), 'out-of-order events project deterministically');
-for (const active of ['supabase/functions/binance-testnet-execution/index.ts','supabase/functions/bybit-demo-execution/index.ts','supabase/functions/mt5-bridge/index.ts']) assert.ok(!readFileSync(active,'utf8').includes('professional-execution-adoption'));
+for (const [provider, providerPlan, Adapter] of [
+  ['BYBIT', planExecution(context(upstream('BYBIT'), cryptoSpec('BYBIT'))), BybitDemoAdoptionAdapter],
+  ['MT5_PERSONAL', planExecution(context(upstream('MT5_PERSONAL','forex'), mt5Spec('MT5_PERSONAL'))), Mt5PersonalDemoAdoptionAdapter],
+  ['MT5_PROP', planExecution(context(upstream('MT5_PROP','forex'), mt5Spec('MT5_PROP'))), Mt5PropDemoAdoptionAdapter],
+] as const) {
+  let exactPayload: Readonly<Record<string,unknown>>|null=null;
+  const exactTransport={async send(_operation:string,payload:Readonly<Record<string,unknown>>,identity:string){exactPayload=payload;return{outcome:'ACKNOWLEDGED' as const,provider_order_id:identity,provider_position_id:null,provider_timestamp:at,raw_status:'ACK',redacted_evidence:{},error:null}},async lookup(){return{found:false,result:null}}};
+  await new Adapter(providerPlan,exactTransport).submit(providerPlan.orders[0]);
+  assert.strictEqual(exactPayload,providerPlan.orders[0].provider_payload,`${provider} transports the exact provider payload object`);
+}
+assert.ok(readFileSync('supabase/functions/binance-testnet-execution/index.ts','utf8').includes('adoptExecutionPlan'), 'active root executor uses certified adoption');
+for (const transportOnly of ['supabase/functions/bybit-demo-execution/index.ts','supabase/functions/mt5-bridge/index.ts']) assert.ok(!readFileSync(transportOnly,'utf8').includes('adoptExecutionPlan('), `${transportOnly} does not own adoption`);
 
 console.log('professional execution adoption and protection certification tests passed');
