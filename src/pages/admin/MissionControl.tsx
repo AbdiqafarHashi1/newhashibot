@@ -56,8 +56,12 @@ export interface SystemTestReport {
   checks: Array<{
     name: string;
     category: string;
-    status: 'PASS' | 'WARNING' | 'FAIL' | 'BLOCKED';
+    status: 'PASS' | 'WARNING' | 'FAIL' | 'BLOCKED' | 'NOT CONFIGURED';
     detail: string;
+    observed_evidence?: string;
+    timestamp?: string;
+    source?: string;
+    exact_blocker?: string | null;
   }>;
 }
 
@@ -159,7 +163,7 @@ export default function MissionControl() {
   async function runCommand(action: string, provider?: string, extraParams: Record<string, unknown> = {}) {
     if (!session?.access_token || runningAction === action) return;
 
-    const highRisk = ['emergency_stop_runtime', 'start_hashibot'].includes(action);
+    const highRisk = ['emergency_stop_runtime', 'start_hashibot', 'resume_bot', 'run_recovery_now'].includes(action);
     if (highRisk && !window.confirm(`Confirm the critical operator action: '${action.toUpperCase()}'. This creates one immutable operator audit record.`)) return;
 
     const startedAt = new Date().toISOString();
@@ -285,7 +289,10 @@ export default function MissionControl() {
 
   // 1. Scanner Master Switch & Config
   const scannerCfg = bundle?.scannerConfig;
-  const scannerEnabled = Boolean(scannerCfg?.is_enabled);
+  const scannerEnabled = scannerCfg?.is_enabled === true;
+  const scannerStatus = !bundle || bundle.sourceErrors.scanner_config
+    ? 'UNKNOWN'
+    : !scannerCfg ? 'NOT CONFIGURED' : scannerEnabled ? 'ON (ACTIVE)' : 'OFF (PAUSED)';
   const scannerLastRun = bundle?.schedulerTruth?.[0] ?? null;
   const scannerLastRunAt = String(scannerLastRun?.started_at ?? scannerCfg?.last_scheduled_scan_at ?? '');
   const scannerAgeSec = getAgeSec(scannerLastRunAt);
@@ -340,9 +347,26 @@ export default function MissionControl() {
     const envs = new Set<string>();
     tradeTruth.forEach(t => { if (t.environment) envs.add(String(t.environment).toUpperCase()); });
     executionOrders.forEach(o => { if (o.environment) envs.add(String(o.environment).toUpperCase()); });
-    if (envs.size === 0) return 'TESTNET / DEMO';
+    if (envs.size === 0) return 'UNKNOWN';
     return Array.from(envs).join(' / ');
   }, [tradeTruth, executionOrders]);
+
+  const runtimeStatus = !bundle || bundle.sourceErrors.execution_settings
+    ? 'UNKNOWN'
+    : !bundle.executionSettings
+      ? 'NOT CONFIGURED'
+      : bundle.executionSettings.kill_switch_enabled
+        ? 'EMERGENCY STOP'
+        : bundle.executionSettings.bot_paused ? 'PAUSED' : 'ACTIVE';
+  const providerHealth = useMemo(() => {
+    if (!bundle || bundle.sourceErrors.execution_provider_controls) return 'UNKNOWN';
+    if (providerControls.length === 0) return 'NOT CONFIGURED';
+    const unhealthy = providerControls.filter(row => {
+      const status = String(row.status ?? '').toUpperCase();
+      return Boolean(row.last_error) || !['HEALTHY', 'CONNECTED', 'ACTIVE', 'READY'].includes(status);
+    });
+    return unhealthy.length === 0 ? 'ALL HEALTHY' : `${unhealthy.length} DISCONNECTED / DEGRADED`;
+  }, [bundle, providerControls]);
 
   // Compiled Timeline
   const compiledTimeline = useMemo(() => {
@@ -705,7 +729,7 @@ export default function MissionControl() {
                 <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
                   <span className="text-[10px] font-mono text-zinc-500 block">1. Runtime Status</span>
                   <div className="text-sm font-bold font-mono mt-1 text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 size={14} /> ACTIVE / CERTIFIED
+                    <CheckCircle2 size={14} /> {runtimeStatus}
                   </div>
                   <span className="text-[10px] text-zinc-500 font-mono block mt-1">Env: {activeEnv}</span>
                 </div>
@@ -714,10 +738,10 @@ export default function MissionControl() {
                 <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
                   <span className="text-[10px] font-mono text-zinc-500 block">2. Scanner Status</span>
                   <div className={`text-sm font-bold font-mono mt-1 ${scannerEnabled ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {scannerEnabled ? 'ON (ACTIVE)' : 'OFF (PAUSED)'}
+                    {scannerStatus}
                   </div>
                   <span className="text-[10px] text-zinc-500 font-mono block mt-1">
-                    Interval: {scannerCfg?.scan_interval_minutes ?? 5}m
+                    Interval: {scannerCfg?.scan_interval_minutes != null ? `${scannerCfg.scan_interval_minutes}m` : 'UNKNOWN'}
                   </span>
                 </div>
 
@@ -745,7 +769,7 @@ export default function MissionControl() {
                 <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
                   <span className="text-[10px] font-mono text-zinc-500 block">5. Enabled Execution Accounts</span>
                   <div className="text-sm font-bold font-mono mt-1 text-zinc-100">
-                    {enabledAccountsCount} / {providerControls.length || 4} Accounts
+                    {bundle?.sourceErrors.execution_provider_controls ? 'UNKNOWN' : `${enabledAccountsCount} / ${providerControls.length} Accounts`}
                   </div>
                   <span className="text-[10px] text-zinc-500 font-mono block mt-1">Independent Routing</span>
                 </div>
@@ -772,7 +796,7 @@ export default function MissionControl() {
                 <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
                   <span className="text-[10px] font-mono text-zinc-500 block">8. Monitor Health</span>
                   <div className="text-sm font-bold font-mono mt-1 text-emerald-400">
-                    {monitorHb?.started_at ? formatAge(getAgeSec(String(monitorHb.started_at))) : 'ACTIVE'}
+                    {monitorHb?.started_at ? formatAge(getAgeSec(String(monitorHb.started_at))) : 'UNKNOWN'}
                   </div>
                   <span className="text-[10px] text-zinc-500 font-mono block mt-1">Watchdog Lease Verified</span>
                 </div>
@@ -790,7 +814,7 @@ export default function MissionControl() {
                 <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
                   <span className="text-[10px] font-mono text-zinc-500 block">10. Provider Health</span>
                   <div className="text-sm font-bold font-mono mt-1 text-emerald-400">
-                    ALL HEALTHY
+                    {providerHealth}
                   </div>
                   <span className="text-[10px] text-zinc-500 font-mono block mt-1">Binance / Bybit / MT5</span>
                 </div>
@@ -801,7 +825,7 @@ export default function MissionControl() {
                   <div className={`text-sm font-bold font-mono mt-1 ${telegramFailedCount === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {telegramSentCount} Sent / {telegramFailedCount} Failed
                   </div>
-                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Channel Router Online</span>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">{telegramDeliveries.length ? 'Delivery ledger evidence' : 'UNKNOWN — no delivery evidence'}</span>
                 </div>
 
                 {/* 12. Canonical Writer Health */}
@@ -926,6 +950,27 @@ export default function MissionControl() {
                   Run Single Scan Diagnostic
                 </button>
               </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+                {[
+                  ['run_monitor_now', 'Refresh Provider Health'],
+                  ['run_supervisor_now', 'Refresh Runtime Truth'],
+                  ['run_runtime_proof', 'Run Provider Proof'],
+                  ['sync_providers', 'Refresh Execution Fleet'],
+                  ['verify_protection', 'Verify Protection'],
+                  ['pause_entries', 'Pause Runtime Entries'],
+                  ['resume_bot', 'Resume Runtime'],
+                ].map(([action, label]) => (
+                  <button
+                    key={action}
+                    onClick={() => runCommand(action)}
+                    disabled={Boolean(runningAction)}
+                    className="px-2.5 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 rounded text-[10px] font-bold font-mono transition"
+                  >
+                    {runningAction === action ? 'Running…' : label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* PART 3: ONE EXECUTION SWITCH PER ACCOUNT */}
@@ -956,11 +1001,11 @@ export default function MissionControl() {
                       </span>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
-                      binanceControl?.entry_enabled !== false
+                      binanceControl?.entry_enabled === true
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                         : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                     }`}>
-                      {binanceControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                      {!binanceControl ? 'NOT CONFIGURED' : binanceControl.entry_enabled === true ? 'EXECUTION ON' : 'EXECUTION OFF'}
                     </span>
                   </div>
 
@@ -970,14 +1015,14 @@ export default function MissionControl() {
 
                   <button
                     onClick={() => runCommand('toggle_account_execution', 'binance', { enabled: binanceControl?.entry_enabled === false })}
-                    disabled={runningAction === 'toggle_account_execution'}
+                    disabled={Boolean(runningAction) || !binanceControl}
                     className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
-                      binanceControl?.entry_enabled !== false
+                      binanceControl?.entry_enabled === true
                         ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
                         : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
                     }`}
                   >
-                    Toggle Binance Execution {binanceControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                    {binanceControl ? `Toggle Binance Execution ${binanceControl.entry_enabled === true ? 'OFF' : 'ON'}` : 'Binance Not Configured'}
                   </button>
                 </div>
 
@@ -993,11 +1038,11 @@ export default function MissionControl() {
                       </span>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
-                      bybitControl?.entry_enabled !== false
+                      bybitControl?.entry_enabled === true
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                         : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                     }`}>
-                      {bybitControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                      {!bybitControl ? 'NOT CONFIGURED' : bybitControl.entry_enabled === true ? 'EXECUTION ON' : 'EXECUTION OFF'}
                     </span>
                   </div>
 
@@ -1007,14 +1052,14 @@ export default function MissionControl() {
 
                   <button
                     onClick={() => runCommand('toggle_account_execution', 'bybit', { enabled: bybitControl?.entry_enabled === false })}
-                    disabled={runningAction === 'toggle_account_execution'}
+                    disabled={Boolean(runningAction) || !bybitControl}
                     className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
-                      bybitControl?.entry_enabled !== false
+                      bybitControl?.entry_enabled === true
                         ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
                         : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
                     }`}
                   >
-                    Toggle Bybit Execution {bybitControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                    {bybitControl ? `Toggle Bybit Execution ${bybitControl.entry_enabled === true ? 'OFF' : 'ON'}` : 'Bybit Not Configured'}
                   </button>
                 </div>
 
@@ -1030,11 +1075,11 @@ export default function MissionControl() {
                       </span>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
-                      mt5PersonalControl?.entry_enabled !== false
+                      mt5PersonalControl?.entry_enabled === true
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                         : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                     }`}>
-                      {mt5PersonalControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                      {!mt5PersonalControl ? 'NOT CONFIGURED' : mt5PersonalControl.entry_enabled === true ? 'EXECUTION ON' : 'EXECUTION OFF'}
                     </span>
                   </div>
 
@@ -1044,14 +1089,14 @@ export default function MissionControl() {
 
                   <button
                     onClick={() => runCommand('toggle_account_execution', 'mt5_personal', { enabled: mt5PersonalControl?.entry_enabled === false })}
-                    disabled={runningAction === 'toggle_account_execution'}
+                    disabled={Boolean(runningAction) || !mt5PersonalControl}
                     className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
-                      mt5PersonalControl?.entry_enabled !== false
+                      mt5PersonalControl?.entry_enabled === true
                         ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
                         : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
                     }`}
                   >
-                    Toggle MT5 Personal Execution {mt5PersonalControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                    {mt5PersonalControl ? `Toggle MT5 Personal Execution ${mt5PersonalControl.entry_enabled === true ? 'OFF' : 'ON'}` : 'MT5 Personal Not Configured'}
                   </button>
                 </div>
 
@@ -1067,11 +1112,11 @@ export default function MissionControl() {
                       </span>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
-                      mt5PropControl?.entry_enabled !== false
+                      mt5PropControl?.entry_enabled === true
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                         : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                     }`}>
-                      {mt5PropControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                      {!mt5PropControl ? 'NOT CONFIGURED' : mt5PropControl.entry_enabled === true ? 'EXECUTION ON' : 'EXECUTION OFF'}
                     </span>
                   </div>
 
@@ -1081,14 +1126,14 @@ export default function MissionControl() {
 
                   <button
                     onClick={() => runCommand('toggle_account_execution', 'mt5_prop', { enabled: mt5PropControl?.entry_enabled === false })}
-                    disabled={runningAction === 'toggle_account_execution'}
+                    disabled={Boolean(runningAction) || !mt5PropControl}
                     className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
-                      mt5PropControl?.entry_enabled !== false
+                      mt5PropControl?.entry_enabled === true
                         ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
                         : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
                     }`}
                   >
-                    Toggle MT5 Prop Execution {mt5PropControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                    {mt5PropControl ? `Toggle MT5 Prop Execution ${mt5PropControl.entry_enabled === true ? 'OFF' : 'ON'}` : 'MT5 Prop Not Configured'}
                   </button>
                 </div>
 
