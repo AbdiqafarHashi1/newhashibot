@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { providerEnvironment, safeAccountSummary, verifyProvider } from '../../supabase/functions/_shared/execution-account-onboarding.ts';
+import { canonicalBinanceTestnetSystemIdentity, isAtomicExecutionIdentity, providerEnvironment, safeAccountSummary, verifyProvider } from '../../supabase/functions/_shared/execution-account-onboarding.ts';
+import { edgeScopeKey, ownershipFromRow } from '../../supabase/functions/_shared/execution-ownership.ts';
 
 const ui=fs.readFileSync('src/pages/admin/Execution.tsx','utf8');
 const edge=fs.readFileSync('supabase/functions/execution-account-onboarding/index.ts','utf8');
 const sql=fs.readFileSync('supabase/migrations/20260728020000_phase5c_secure_account_onboarding.sql','utf8');
 const hotfix=fs.readFileSync('supabase/migrations/20260728030000_phase5c_runtime_account_adoption_hotfix.sql','utf8');
 const createHotfix=fs.readFileSync('supabase/migrations/20260728040000_phase5c_binance_create_hotfix.sql','utf8');
+const identityHotfix=fs.readFileSync('supabase/migrations/20260728050000_phase5c_binance_atomic_identity_hotfix.sql','utf8');
 const workspace=fs.readFileSync('src/pages/admin/ProviderOperationsWorkspace.tsx','utf8');
 assert.match(ui,/Add System Account/); assert.match(ui,/Add Customer Account/);
 assert.doesNotMatch(ui,/owner UUID|Provider account ID|Vault credential UUID/i,'ordinary UI never asks for internal identifiers');
@@ -43,7 +45,13 @@ assert.equal(verified.discovered_account_identity,'TEST_ACCOUNT_42'); assert.equ
 assert.equal(JSON.stringify(verified).includes('not-an-identity'),false,'credentials are never returned');
 const fallback=await verifyProvider('binance','testnet',{apiKey:'also-not-an-identity',apiSecret:'secret'},async(input)=>String(input).includes('openOrders')?new Response('[]',{status:200}):new Response(JSON.stringify({canTrade:true,assets:[],positions:[]}),{status:200}));
 assert.equal(fallback.connection_verified,true); assert.equal(fallback.first_blocker,null);
-assert.equal(fallback.discovered_account_identity,'canonical:binance:testnet:system');
+assert.equal(fallback.discovered_account_identity,'canonical-binance-testnet-system');
+assert.equal(canonicalBinanceTestnetSystemIdentity(),canonicalBinanceTestnetSystemIdentity(),'fallback is deterministic');
+assert.equal(isAtomicExecutionIdentity(fallback.discovered_account_identity!),true,'fallback is an atomic scope component');
+assert.equal(JSON.stringify(fallback).includes('secret'),false,'fallback contains no credential material');
+assert.throws(()=>edgeScopeKey({customer_id:'owner',provider:'binance',account_id:'canonical:binance:testnet:system',execution_instance_id:'instance'}),/execution_ownership_reserved_delimiter/);
+assert.throws(()=>ownershipFromRow({id:'canonical-uuid',customer_id:'owner',provider:'binance',account_id:'canonical:binance:testnet:system',execution_instance_id:'instance',credential_ref:'vault-ref',environment:'testnet'}),/EXECUTION_ACCOUNT_IDENTITY_NOT_ATOMIC provider=binance environment=testnet canonical_account_uuid=canonical-uuid identity_field=account_id failing_stage=execution_scope_construction/);
+assert.equal(edgeScopeKey({customer_id:'owner',provider:'binance',account_id:fallback.discovered_account_identity!,execution_instance_id:'instance'}),'owner:binance:canonical-binance-testnet-system:instance');
 assert.match(fallback.warnings[0],/safe canonical fallback used/i);
 assert.equal(JSON.stringify(fallback).includes('also-not-an-identity'),false);
 const invalid=await verifyProvider('binance','testnet',{apiKey:'invalid',apiSecret:'invalid'},async()=>new Response('{}',{status:401}));
@@ -69,4 +77,10 @@ assert.match(createHotfix,/rollback_onboarded_execution_account[\s\S]*DELETE FRO
 assert.match(ui,/SYSTEM_ACCOUNT_ALREADY_EXISTS[\s\S]*await load\(\)/,'duplicate response refreshes canonical state without clearing the verified form');
 assert.doesNotMatch(edge,/console\.(log|error|warn)/,'raw credentials are never logged');
 assert.doesNotMatch(edge,/placeOrder|\/order/i,'onboarding never invokes an order endpoint');
+assert.match(identityHotfix,/SET account_id=new_identity, provider_account_identity=new_identity/,'both identity fields are repaired on the existing row');
+assert.match(identityHotfix,/WHERE id=account_uuid/,'repair preserves the canonical UUID instead of inserting');
+assert.doesNotMatch(identityHotfix,/vault\.(create_secret|delete_secret)/,'repair preserves the existing Vault reference');
+assert.doesNotMatch(identityHotfix,/INSERT INTO public\.connected_execution_accounts/,'repair cannot duplicate the account');
+assert.match(identityHotfix,/CHECK \(account_id !~ ':'\)/,'reserved delimiter validation remains strict');
+assert.doesNotMatch(identityHotfix,/(execution_enabled\s*=\s*true|cron\.)/i,'repair neither enables execution nor changes cron');
 console.log('Phase 5C secure account onboarding tests passed');

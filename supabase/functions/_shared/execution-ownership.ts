@@ -68,6 +68,14 @@ export function ownershipFromRow(row: Json, provider?: ExecutionProvider): EdgeE
     credential_ref: required(row.credential_ref, "credential_ref"),
     environment: required(row.environment, "environment") as EdgeExecutionOwnership["environment"],
   } as EdgeExecutionOwnership;
+  const atomicFields = ["customer_id", "provider", "account_id", "execution_instance_id"] as const;
+  const incompatibleField = atomicFields.find((field) => String(ownership[field]).includes(":"));
+  if (incompatibleField) {
+    const canonicalUuid = String(row.id ?? row.canonical_account_id ?? "unknown");
+    throw new Error(
+      `EXECUTION_ACCOUNT_IDENTITY_NOT_ATOMIC provider=${ownership.provider} environment=${ownership.environment} canonical_account_uuid=${canonicalUuid} identity_field=${incompatibleField} failing_stage=execution_scope_construction`,
+    );
+  }
   ownership.execution_scope_key = edgeScopeKey(ownership);
   if (row.execution_scope_key && row.execution_scope_key !== ownership.execution_scope_key) throw new Error("mixed_execution_ownership:scope_key");
   return Object.freeze(ownership);
@@ -93,7 +101,7 @@ export function runtimeOwnershipFields(ownership: EdgeExecutionOwnership): Json 
 }
 
 export async function enumerateExecutionAccounts(supabase: any, provider: ExecutionProvider): Promise<EdgeExecutionOwnership[]> {
-  const { data, error } = await supabase.from("connected_execution_accounts").select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id").eq("provider", provider).eq("enabled", true).eq("monitor_enabled", true);
+  const { data, error } = await supabase.from("connected_execution_accounts").select("id,customer_id,provider,account_id,credential_ref,environment,execution_instance_id").eq("provider", provider).eq("enabled", true).eq("monitor_enabled", true);
   if (error) throw new Error(`connected_execution_accounts_query_failed:${error.message}`);
   return (data ?? []).map((row: Json) => ownershipFromRow({ ...row, execution_provider: provider }, provider));
 }
@@ -111,7 +119,7 @@ export async function resolveOperationalExecutionAccounts(
   selection?: { customerId?: string; accountId?: string },
 ): Promise<EdgeExecutionOwnership[]> {
   let query = supabase.from("connected_execution_accounts")
-    .select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
+    .select("id,customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
     .eq("provider", provider).eq("environment", environment).eq("enabled", true);
   const explicitlyCustomerScoped = Boolean(selection?.customerId && selection?.accountId);
   if (explicitlyCustomerScoped) {
@@ -160,7 +168,7 @@ export async function resolveOperatorProviderCredential(
   const attempts = { explicit_account: Boolean(selection?.accountId), operational_account: false, system_secret: false };
   if (selection?.accountId) {
     let query = supabase.from("connected_execution_accounts")
-      .select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
+      .select("id,customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
       .eq("account_id", selection.accountId).eq("provider", provider).eq("environment", environment).eq("enabled", true);
     if (selection.customerId) query = query.eq("customer_id", selection.customerId);
     const { data, error } = await query.limit(2);
@@ -172,7 +180,7 @@ export async function resolveOperatorProviderCredential(
 
   attempts.operational_account = true;
   const { data, error } = await supabase.from("connected_execution_accounts")
-    .select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
+    .select("id,customer_id,provider,account_id,credential_ref,environment,execution_instance_id,is_operational")
     .eq("provider", provider).eq("environment", environment).eq("enabled", true).eq("is_operational", true).limit(2);
   if (error) throw new Error(`connected_execution_accounts_query_failed:${error.message}`);
   if ((data?.length ?? 0) > 1) throw new Error(`operational_account_selection_required:${provider}:${environment}`);
