@@ -1,16 +1,24 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const root = process.cwd();
 const functionsRoot = join(root, 'supabase/functions');
 const skipDirectories = new Set(['_shared']);
+const configPath = join(root, 'supabase/config.toml');
+const config = existsSync(configPath) ? readFileSync(configPath, 'utf8') : '';
+const configuredNoVerifyJwtFunctions = [...config.matchAll(/\[functions\.([^\]]+)\]\s*\n\s*verify_jwt\s*=\s*false/g)]
+  .map((match) => match[1]);
 const noVerifyJwtFunctions = new Set(
-  (process.env.SUPABASE_NO_VERIFY_JWT_FUNCTIONS ?? 'telegram-orchestrator,intelligence-engine')
+  (process.env.SUPABASE_NO_VERIFY_JWT_FUNCTIONS ?? configuredNoVerifyJwtFunctions.join(','))
     .split(',')
     .map((name) => name.trim())
     .filter(Boolean),
 );
+
+if (configuredNoVerifyJwtFunctions.length && noVerifyJwtFunctions.size === 0) {
+  throw new Error('supabase/config.toml contains verify_jwt=false functions but deployment resolved none');
+}
 
 function discoverFunctions() {
   if (!existsSync(functionsRoot) || !statSync(functionsRoot).isDirectory()) {

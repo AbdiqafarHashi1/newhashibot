@@ -21,6 +21,13 @@ type Action = typeof SUPPORTED_ACTIONS[number];
 function json(body: Json, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 function errText(e: unknown) { return e instanceof Error ? e.message : String(e ?? "unknown error"); }
 function successOf(raw: unknown) { return !(raw && typeof raw === "object" && ((raw as Json).success === false || (raw as Json).error)); }
+function throwOnError(result: { error: { message: string } | null }, operation: string) {
+  if (result.error) throw new Error(`${operation}: ${result.error.message}`);
+}
+function requireUpdatedRow(result: { data: unknown[] | null; error: { message: string } | null }, operation: string) {
+  throwOnError(result, operation);
+  if (!result.data?.length) throw new Error(`${operation}: target is NOT CONFIGURED`);
+}
 
 async function verifyAdmin(req: Request, supabase: ReturnType<typeof createClient>) {
   const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
@@ -113,37 +120,26 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
 
   if (action === "start_hashibot") {
     // 1. Unpause execution & clear kill switch
-    await supabase.from("execution_settings").update({
+    throwOnError(await supabase.from("execution_settings").update({
       bot_paused: false,
       kill_switch_enabled: false,
       live_trading_enabled: false,
-      auto_execute_testnet: true,
+      // Runtime start is signal-only. Execution adoption remains an explicit,
+      // per-account operator decision after provider proof.
+      auto_execute_testnet: false,
       updated_at: new Date().toISOString()
-    }).eq("id", 1);
+    }).eq("id", 1), "start_hashibot execution_settings");
 
     // 2. Enable scanner & supervisor
-    await supabase.from("scanner_config").update({
+    throwOnError(await supabase.from("scanner_config").update({
       is_enabled: true,
+      schedule_enabled: true,
       supervisor_enabled: true,
       updated_at: new Date().toISOString()
-    }).eq("id", 1);
+    }).eq("id", 1), "start_hashibot scanner_config");
 
-    // 3. Enable execution account controls
-    if (provider) {
-      await supabase.from("execution_provider_controls").update({
-        entry_enabled: true,
-        status: "HEALTHY",
-        updated_at: new Date().toISOString()
-      }).eq("provider_name", provider);
-    } else {
-      await supabase.from("execution_provider_controls").update({
-        entry_enabled: true,
-        status: "HEALTHY",
-        updated_at: new Date().toISOString()
-      });
-    }
-
-    // 4. Trigger initial scanner cycle
+    // 3. Trigger initial scanner cycle. Provider entry controls are deliberately
+    // unchanged: starting the shared runtime must not enable unverified accounts.
     const scannerRes = await invokeInternalFunction({
       target: "scheduled-market-scanner",
       payload: { source: FUNCTION_NAME, run_type: "manual_operator_start" },
@@ -153,10 +149,12 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     });
 
     return {
-      success: true,
+      success: scannerRes.ok,
       target: "global-hashibot-runtime",
       responseBody: {
         status: "STARTED",
+        execution_adoption_changed: false,
+        execution_mode: "signal_only",
         dependency_order: [
           "runtime_validation", "provider_truth_refresh", "market_adapters",
           "scanner", "strategies", "arbitrator", "certified_runtime",
@@ -170,20 +168,20 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
   }
 
   if (action === "stop_new_activity") {
-    await supabase.from("execution_settings").update({
+    throwOnError(await supabase.from("execution_settings").update({
       bot_paused: true,
       updated_at: new Date().toISOString()
-    }).eq("id", 1);
+    }).eq("id", 1), "stop_new_activity execution_settings");
 
-    await supabase.from("scanner_config").update({
+    throwOnError(await supabase.from("scanner_config").update({
       is_enabled: false,
       updated_at: new Date().toISOString()
-    }).eq("id", 1);
+    }).eq("id", 1), "stop_new_activity scanner_config");
 
-    await supabase.from("execution_provider_controls").update({
+    throwOnError(await supabase.from("execution_provider_controls").update({
       entry_enabled: false,
       updated_at: new Date().toISOString()
-    }).in("provider_name", provider ? [provider] : ["binance", "bybit", "mt5_personal", "mt5_prop"]);
+    }).in("provider_name", provider ? [provider] : ["binance", "bybit", "mt5_personal", "mt5_prop"]), "stop_new_activity providers");
 
     return {
       success: true,
@@ -202,24 +200,24 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
   }
 
   if (action === "emergency_stop_runtime") {
-    await supabase.from("execution_settings").update({
+    throwOnError(await supabase.from("execution_settings").update({
       bot_paused: true,
       kill_switch_enabled: true,
       auto_execute_testnet: false,
       live_trading_enabled: false,
       updated_at: new Date().toISOString()
-    }).eq("id", 1);
+    }).eq("id", 1), "emergency_stop execution_settings");
 
-    await supabase.from("execution_provider_controls").update({
+    throwOnError(await supabase.from("execution_provider_controls").update({
       entry_enabled: false,
       status: "EMERGENCY_STOP",
       updated_at: new Date().toISOString()
-    });
+    }), "emergency_stop providers");
 
-    await supabase.from("scanner_config").update({
+    throwOnError(await supabase.from("scanner_config").update({
       is_enabled: false,
       updated_at: new Date().toISOString()
-    }).eq("id", 1);
+    }).eq("id", 1), "emergency_stop scanner_config");
 
     return {
       success: true,
@@ -241,16 +239,16 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     const targetProvider = provider ?? String(body.provider_name ?? "binance");
     const enable = body.enabled !== false;
 
-    await supabase.from("execution_provider_controls").update({
+    requireUpdatedRow(await supabase.from("execution_provider_controls").update({
       entry_enabled: enable,
       updated_at: new Date().toISOString()
-    }).eq("provider_name", targetProvider);
+    }).eq("provider_name", targetProvider).select("provider_name"), `toggle_account_execution ${targetProvider}`);
 
     if (targetProvider.startsWith("mt5")) {
-      await supabase.from("mt5_accounts").update({
+      requireUpdatedRow(await supabase.from("mt5_accounts").update({
         is_active: enable,
         updated_at: new Date().toISOString()
-      }).eq("provider", targetProvider);
+      }).eq("provider", targetProvider).select("id"), `toggle_account_execution ${targetProvider} mt5 account`);
     }
 
     return {
@@ -270,10 +268,10 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
 
   if (action === "toggle_scanner") {
     const enable = body.enabled !== false;
-    await supabase.from("scanner_config").update({
+    throwOnError(await supabase.from("scanner_config").update({
       is_enabled: enable,
       updated_at: new Date().toISOString()
-    }).eq("id", 1);
+    }).eq("id", 1), "toggle_scanner scanner_config");
 
     return {
       success: true,
@@ -291,7 +289,7 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
 
   if (action === "run_full_system_test") {
     const testStart = Date.now();
-    const checks: Array<{ name: string; category: string; status: "PASS" | "WARNING" | "FAIL" | "BLOCKED"; detail: string }> = [];
+    const checks: Array<{ name: string; category: string; status: "PASS" | "WARNING" | "FAIL" | "BLOCKED" | "NOT CONFIGURED"; detail: string }> = [];
 
     // 1. Auth / session
     checks.push({ name: "Authentication / Session", category: "Auth", status: "PASS", detail: "Admin JWT session verified successfully." });
@@ -304,16 +302,17 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     const { error: migErr } = await supabase.from("operator_runtime_events").select("id").limit(1);
     checks.push({ name: "Required Schema Migrations", category: "Core", status: migErr ? "FAIL" : "PASS", detail: migErr ? migErr.message : "Required audit tables present." });
 
-    // 4. RPC Access
-    checks.push({ name: "RPC Access & Function Router", category: "Network", status: "PASS", detail: "RPC bridge and internal function invocation online." });
+    // 4. Function router is proven by this authenticated invocation; RPCs are not
+    // involved in this action and therefore must not be reported as verified.
+    checks.push({ name: "Edge Function Router", category: "Network", status: "PASS", detail: "Authenticated admin-operator-action invocation reached the action router." });
 
     // 5. Scanner Dependencies
-    const { data: scData } = await supabase.from("scanner_config").select("*").eq("id", 1).maybeSingle();
+    const { data: scData, error: scErr } = await supabase.from("scanner_config").select("*").eq("id", 1).maybeSingle();
     const scEnabled = Boolean(scData?.is_enabled);
-    checks.push({ name: "Scanner Configuration", category: "Scanner", status: scEnabled ? "PASS" : "WARNING", detail: scEnabled ? "Scanner engine enabled." : "Scanner engine currently paused." });
+    checks.push({ name: "Scanner Configuration", category: "Scanner", status: scErr ? "FAIL" : scData ? (scEnabled ? "PASS" : "WARNING") : "BLOCKED", detail: scErr?.message ?? (scData ? (scEnabled ? "Scanner engine enabled." : "Scanner engine currently paused.") : "Scanner is not configured.") });
 
     // 6. Market Data Providers
-    checks.push({ name: "Market-Data Adapters (Crypto/Forex)", category: "Market Data", status: "PASS", detail: "Binance & Bybit market data feeds accessible." });
+    checks.push({ name: "Market-Data Adapters (Crypto/Forex)", category: "Market Data", status: "BLOCKED", detail: "Not exercised by this diagnostic; run a scanner cycle for provider evidence." });
 
     // 7. Account Truth Sync
     const { data: ttData } = await supabase.from("trade_management_truth").select("latest_sync_at").order("latest_sync_at", { ascending: false }).limit(1);
@@ -329,16 +328,21 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     checks.push({ name: "Bybit Provider Credentials & Route", category: "Exchange", status: bybitProof.ok ? "PASS" : "WARNING", detail: bybitProof.ok ? "Bybit Demo execution route verified." : (bybitProof.errorMessage ?? "Bybit route returned non-200") });
 
     // 10. MT5 Bridge
-    checks.push({ name: "MT5 Bridge Gateway", category: "Forex Bridge", status: "PASS", detail: "MT5 Account bridge configured and operational." });
+    const { data: mt5Data, error: mt5Err } = await supabase.from("mt5_accounts").select("id,is_active,last_heartbeat_at").eq("is_active", true).limit(1);
+    const mt5 = mt5Data?.[0];
+    const mt5Fresh = Boolean(mt5?.last_heartbeat_at) && Date.now() - new Date(mt5.last_heartbeat_at).getTime() < 300_000;
+    checks.push({ name: "MT5 Bridge Gateway", category: "Forex Bridge", status: mt5Err ? "FAIL" : mt5Fresh ? "PASS" : mt5 ? "WARNING" : "NOT CONFIGURED", detail: mt5Err?.message ?? (mt5 ? (mt5Fresh ? "Active MT5 account has a fresh heartbeat." : "MT5 configured but heartbeat is missing or stale.") : "MT5 is not configured or connected.") });
 
     // 11. Provider Health
-    const { data: pcData } = await supabase.from("execution_provider_controls").select("*");
+    const { data: pcData, error: pcErr } = await supabase.from("execution_provider_controls").select("*");
     const pcErrors = pcData?.filter((p: { last_error?: string | null }) => p.last_error) ?? [];
-    checks.push({ name: "Provider Controls & Health", category: "Execution", status: pcErrors.length === 0 ? "PASS" : "WARNING", detail: pcErrors.length === 0 ? "All provider controls report HEALTHY." : `${pcErrors.length} provider error(s) flagged.` });
+    checks.push({ name: "Provider Controls & Health", category: "Execution", status: pcErr ? "FAIL" : !pcData?.length ? "BLOCKED" : pcErrors.length === 0 ? "PASS" : "WARNING", detail: pcErr?.message ?? (!pcData?.length ? "No provider controls are configured." : pcErrors.length === 0 ? "Configured provider controls have no recorded errors." : `${pcErrors.length} provider error(s) flagged.`) });
 
     // 12. Automatic Monitoring
-    const { data: hbData } = await supabase.from("execution_monitor_heartbeats").select("started_at,success").order("started_at", { ascending: false }).limit(1);
-    checks.push({ name: "Automatic Monitoring Watchdog", category: "Safety", status: hbData?.[0]?.success !== false ? "PASS" : "WARNING", detail: "Protection monitor cycle active." });
+    const { data: hbData, error: hbErr } = await supabase.from("execution_monitor_heartbeats").select("started_at,success").order("started_at", { ascending: false }).limit(1);
+    const heartbeat = hbData?.[0];
+    const heartbeatFresh = Boolean(heartbeat?.started_at) && Date.now() - new Date(heartbeat.started_at).getTime() < 600_000;
+    checks.push({ name: "Automatic Monitoring Watchdog", category: "Safety", status: hbErr ? "FAIL" : heartbeat?.success && heartbeatFresh ? "PASS" : "WARNING", detail: hbErr?.message ?? (!heartbeat ? "No monitor heartbeat evidence." : heartbeatFresh ? `Latest monitor result: ${heartbeat.success ? "success" : "failure"}.` : "Latest monitor heartbeat is stale.") });
 
     // 13. Protection & Recovery
     const { data: unprotData } = await supabase.from("trade_management_truth").select("id").or("protection_status.ilike.%unprotect%,sl_present.eq.false");
@@ -347,13 +351,23 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     // 14. Telegram Gateway
     checks.push({ name: "Telegram Operator Broadcast", category: "Alerts", status: scData?.operator_telegram_enabled ? "PASS" : "WARNING", detail: scData?.operator_telegram_enabled ? "Telegram notification channel enabled." : "Telegram notifications paused in config." });
 
-    // 15. Canonical Writes & Projections
-    checks.push({ name: "Canonical Event Writer & Projections", category: "Audit", status: "PASS", detail: "Canonical event logging and read projection views functioning." });
+    // 15. This query verifies the projection contract; the outer handler reports
+    // the audit receipt separately and must not be inferred here.
+    checks.push({ name: "Canonical Event Projection", category: "Audit", status: migErr ? "FAIL" : "PASS", detail: migErr?.message ?? "operator_runtime_events is readable; inspect runtime_event_id for write evidence." });
 
     const hasFail = checks.some(c => c.status === "FAIL");
     const hasBlocked = checks.some(c => c.status === "BLOCKED");
     const hasWarn = checks.some(c => c.status === "WARNING");
-    const overallStatus: "PASS" | "WARNING" | "FAIL" | "BLOCKED" = hasFail ? "FAIL" : hasBlocked ? "BLOCKED" : hasWarn ? "WARNING" : "PASS";
+    const hasNotConfigured = checks.some(c => c.status === "NOT CONFIGURED");
+    const overallStatus: "PASS" | "WARNING" | "FAIL" | "BLOCKED" = hasFail ? "FAIL" : hasBlocked ? "BLOCKED" : (hasWarn || hasNotConfigured) ? "WARNING" : "PASS";
+    const observedAt = new Date().toISOString();
+    const evidenceChecks = checks.map((check) => ({
+      ...check,
+      observed_evidence: check.detail,
+      timestamp: observedAt,
+      source: check.category === "Exchange" ? "provider Edge Function receipt" : check.category === "Auth" ? "admin JWT verification" : "Supabase runtime query",
+      exact_blocker: ["PASS", "WARNING"].includes(check.status) ? null : check.detail,
+    }));
 
     return {
       success: !hasFail,
@@ -361,11 +375,11 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
       responseBody: {
         overall_status: overallStatus,
         duration_ms: Date.now() - testStart,
-        timestamp: new Date().toISOString(),
+        timestamp: observedAt,
         passed_count: checks.filter(c => c.status === "PASS").length,
         warning_count: checks.filter(c => c.status === "WARNING").length,
         failed_count: checks.filter(c => c.status === "FAIL").length,
-        checks
+        checks: evidenceChecks
       },
       durationMs: Date.now() - testStart
     };
