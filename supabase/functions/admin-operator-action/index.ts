@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { invokeInternalFunction, type InternalInvokeResult, type Json } from "../_shared/operator-invocation.ts";
+import { RUNTIME_PROOF_TARGETS, runtimeProofProviders, selectRuntimeProofAccount, validateRuntimeProofAccount, type RuntimeProofAccount, type RuntimeProofProvider } from "../_shared/runtime-proof-routing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -100,6 +101,31 @@ function routeAction(action: Action, provider: string | undefined, actionId: str
 
 async function invokeRoute(route: ActionRoute, actionId: string, correlationId: string): Promise<InternalInvokeResult> {
   return await invokeInternalFunction({ target: route.target, payload: route.payload, correlationId, actionId, timeoutMs: route.timeoutMs, idempotencyKey: route.idempotencyKey });
+}
+
+const RUNTIME_PROOF_ACCOUNT_COLUMNS = "id,customer_id,account_id,provider,environment,enabled,is_operational,execution_enabled";
+
+async function resolveRuntimeProofAccount(
+  supabase: ReturnType<typeof createClient>, provider: RuntimeProofProvider,
+  selection: { customerId?: string; accountId?: string }, useExplicit: boolean,
+): Promise<RuntimeProofAccount> {
+  const expected = RUNTIME_PROOF_TARGETS[provider];
+  if (useExplicit && selection.accountId) {
+    let query = supabase.from("connected_execution_accounts").select(RUNTIME_PROOF_ACCOUNT_COLUMNS).eq("account_id", selection.accountId);
+    if (selection.customerId) query = query.eq("customer_id", selection.customerId);
+    const { data, error } = await query;
+    if (error) throw new Error("RUNTIME_PROOF_ACCOUNT_LOOKUP_FAILED");
+    if (!data?.length) throw new Error("RUNTIME_PROOF_ACCOUNT_NOT_FOUND");
+    if (data.length !== 1) throw new Error("RUNTIME_PROOF_ACCOUNT_SELECTION_REQUIRED");
+    return validateRuntimeProofAccount(data[0] as RuntimeProofAccount, provider);
+  }
+
+  let query = supabase.from("connected_execution_accounts").select(RUNTIME_PROOF_ACCOUNT_COLUMNS)
+    .eq("provider", provider).eq("environment", expected.environment);
+  if (selection.customerId) query = query.eq("customer_id", selection.customerId);
+  const { data, error } = await query;
+  if (error) throw new Error("RUNTIME_PROOF_ACCOUNT_LOOKUP_FAILED");
+  return selectRuntimeProofAccount((data ?? []) as RuntimeProofAccount[], provider);
 }
 
 async function setControl(supabase: ReturnType<typeof createClient>, action: Action) {
@@ -527,10 +553,25 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     const proofStarted = Date.now();
     const customerId = String(body.customer_id ?? "");
     const accountId = String(body.account_id ?? "");
-    const selection = { customer_id: customerId || undefined, account_id: accountId || undefined };
-    const binance = await invokeInternalFunction({ target: "binance-testnet-execution", payload: { action: "prove_binance_trade_management", source: FUNCTION_NAME, ...selection }, correlationId, actionId: `${actionId}:binance-proof`, timeoutMs: 12000 });
-    const bybit = await invokeInternalFunction({ target: "bybit-demo-execution", payload: { action: "prove_bybit_trade_management", source: FUNCTION_NAME, ...selection }, correlationId, actionId: `${actionId}:bybit-proof`, timeoutMs: 12000 });
-    return { success: binance.ok && bybit.ok, target: "runtime-proof", httpStatus: binance.httpStatus === 401 || bybit.httpStatus === 401 ? 401 : 200, durationMs: Date.now() - proofStarted, timedOut: binance.timedOut || bybit.timedOut, authFailed: binance.authFailed || bybit.authFailed, errorCode: binance.errorCode ?? bybit.errorCode, errorMessage: binance.errorMessage ?? bybit.errorMessage, responseBody: { checks: [{ check: "binance_runtime_proof_target", status: binance.ok ? "PASS" : "FAIL", raw: binance }, { check: "bybit_runtime_proof_target", status: bybit.ok ? "PASS" : "FAIL", raw: bybit }], duration_ms: Date.now() - proofStarted } };
+    const providers = runtimeProofProviders(provider);
+    const selection = { customerId: customerId || undefined, accountId: accountId || undefined };
+    const checks: Json[] = [];
+    const results: InternalInvokeResult[] = [];
+    for (const name of providers) {
+      // An explicit identity is scoped to an explicitly selected provider. In an
+      // `all` proof every provider deliberately uses its own operational account.
+      const account = await resolveRuntimeProofAccount(supabase, name, selection, providers.length === 1);
+      const target = RUNTIME_PROOF_TARGETS[name];
+      const result = await invokeInternalFunction({
+        target: target.target,
+        payload: { action: target.action, source: FUNCTION_NAME, customer_id: account.customer_id, account_id: account.account_id },
+        correlationId, actionId: `${actionId}:${name}-proof`, timeoutMs: 12000,
+      });
+      results.push(result);
+      checks.push({ check: `${name}_runtime_proof_target`, status: result.ok ? "PASS" : "FAIL", provider: name, environment: target.environment, account_id: account.account_id, execution_enabled: false, mutations_attempted: 0, raw: result });
+    }
+    const ok = results.every((result) => result.ok);
+    return { success: ok, target: "runtime-proof", httpStatus: results.some((result) => result.httpStatus === 401) ? 401 : 200, durationMs: Date.now() - proofStarted, timedOut: results.some((result) => result.timedOut), authFailed: results.some((result) => result.authFailed), errorCode: results.find((result) => result.errorCode)?.errorCode ?? null, errorMessage: results.find((result) => result.errorMessage)?.errorMessage ?? null, responseBody: { provider_scope: provider ?? "all", checks, execution_enabled: false, mutations_attempted: 0, duration_ms: Date.now() - proofStarted } };
   }
   const route = routeAction(action, provider, actionId);
   if (!route) throw new Error(`ACTION_NOT_WIRED: ${action}`);
