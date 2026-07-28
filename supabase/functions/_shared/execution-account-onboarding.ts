@@ -1,0 +1,115 @@
+import { normalizedQuery, signBybitV5Get } from "./bybit-v5-auth.ts";
+
+export type OnboardingProvider = "binance" | "bybit";
+export type OnboardingEnvironment = "testnet" | "demo";
+export type RawCredential = { apiKey: string; apiSecret: string; passphrase?: string };
+
+export type SafeVerification = {
+  connection_verified: boolean;
+  provider: OnboardingProvider;
+  environment: OnboardingEnvironment;
+  discovered_account_identity: string | null;
+  read_permissions: { account: boolean; balances: boolean; positions: boolean; orders: boolean };
+  trading_permission: boolean;
+  warnings: string[];
+  first_blocker: string | null;
+};
+
+export function providerEnvironment(provider: string): OnboardingEnvironment {
+  if (provider === "binance") return "testnet";
+  if (provider === "bybit") return "demo";
+  throw new Error("unsupported_provider");
+}
+
+export function validateCredentialShape(provider: string, credential: RawCredential) {
+  providerEnvironment(provider);
+  if (!credential.apiKey?.trim() || !credential.apiSecret?.trim()) throw new Error("api_key_and_secret_required");
+  // Neither active provider contract has a passphrase. Reject it rather than silently
+  // creating a provider-independent credential shape.
+  if (credential.passphrase?.trim()) throw new Error("passphrase_not_supported_by_active_provider_contract");
+}
+
+async function hmacSha256(secret: string, value: string) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return Array.from(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value))))
+    .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function safeJson(response: Response): Promise<Record<string, unknown>> {
+  const value = await response.json().catch(() => ({}));
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+export async function verifyBinanceTestnet(credential: RawCredential, fetcher: typeof fetch = fetch): Promise<SafeVerification> {
+  validateCredentialShape("binance", credential);
+  const timestamp = Date.now();
+  const query = `timestamp=${timestamp}&recvWindow=10000`;
+  const signature = await hmacSha256(credential.apiSecret, query);
+  const headers = { "X-MBX-APIKEY": credential.apiKey };
+  const base = "https://testnet.binancefuture.com";
+  const [accountResponse, ordersResponse] = await Promise.all([
+    fetcher(`${base}/fapi/v2/account?${query}&signature=${signature}`, { headers }),
+    (async () => {
+      const orderQuery = `timestamp=${timestamp}&recvWindow=10000`;
+      return fetcher(`${base}/fapi/v1/openOrders?${orderQuery}&signature=${await hmacSha256(credential.apiSecret, orderQuery)}`, { headers });
+    })(),
+  ]);
+  const account = await safeJson(accountResponse);
+  const identity = typeof account.accountAlias === "string" && account.accountAlias.trim() ? account.accountAlias.trim() : null;
+  const ok = accountResponse.ok && Boolean(identity);
+  return {
+    connection_verified: ok,
+    provider: "binance", environment: "testnet", discovered_account_identity: identity,
+    read_permissions: { account: accountResponse.ok, balances: accountResponse.ok && Array.isArray(account.assets), positions: accountResponse.ok && Array.isArray(account.positions), orders: ordersResponse.ok },
+    trading_permission: account.canTrade === true,
+    warnings: accountResponse.ok && !identity ? ["Binance authenticated but did not return a stable account alias."] : [],
+    first_blocker: !accountResponse.ok ? `BINANCE_AUTH_OR_ACCOUNT_READ_FAILED_${accountResponse.status}` : !ordersResponse.ok ? `BINANCE_ORDER_READ_FAILED_${ordersResponse.status}` : !identity ? "BINANCE_STABLE_ACCOUNT_IDENTITY_UNAVAILABLE" : null,
+  };
+}
+
+async function bybitGet(path: string, params: Record<string, string>, credential: RawCredential, fetcher: typeof fetch) {
+  const timestamp = String(Date.now());
+  const recvWindow = "10000";
+  const query = normalizedQuery(params);
+  const { signature } = await signBybitV5Get({ timestamp, apiKey: credential.apiKey, apiSecret: credential.apiSecret, recvWindow, query });
+  const response = await fetcher(`https://api-demo.bybit.com${path}${query ? `?${query}` : ""}`, { headers: {
+    "X-BAPI-API-KEY": credential.apiKey, "X-BAPI-TIMESTAMP": timestamp, "X-BAPI-RECV-WINDOW": recvWindow, "X-BAPI-SIGN": signature,
+  } });
+  return { response, body: await safeJson(response) };
+}
+
+function bybitOk(value: { response: Response; body: Record<string, unknown> }) { return value.response.ok && Number(value.body.retCode) === 0; }
+
+export async function verifyBybitDemo(credential: RawCredential, fetcher: typeof fetch = fetch): Promise<SafeVerification> {
+  validateCredentialShape("bybit", credential);
+  const [keyInfo, wallet, positions, orders] = await Promise.all([
+    bybitGet("/v5/user/query-api", {}, credential, fetcher),
+    bybitGet("/v5/account/wallet-balance", { accountType: "UNIFIED" }, credential, fetcher),
+    bybitGet("/v5/position/list", { category: "linear", settleCoin: "USDT" }, credential, fetcher),
+    bybitGet("/v5/order/realtime", { category: "linear", settleCoin: "USDT" }, credential, fetcher),
+  ]);
+  const result = keyInfo.body.result as Record<string, unknown> | undefined;
+  const identity = result?.userID === undefined || result?.userID === null ? null : String(result.userID);
+  const auth = bybitOk(keyInfo);
+  const permissionText = JSON.stringify(result?.permissions ?? {}).toLowerCase();
+  const verified = auth && bybitOk(wallet) && Boolean(identity);
+  return {
+    connection_verified: verified,
+    provider: "bybit", environment: "demo", discovered_account_identity: identity,
+    read_permissions: { account: auth, balances: bybitOk(wallet), positions: bybitOk(positions), orders: bybitOk(orders) },
+    trading_permission: permissionText.includes("order") || permissionText.includes("trade"),
+    warnings: [],
+    first_blocker: !auth ? `BYBIT_AUTH_FAILED_${String(keyInfo.body.retCode ?? keyInfo.response.status)}` : !bybitOk(wallet) ? "BYBIT_WALLET_READ_FAILED" : !bybitOk(positions) ? "BYBIT_POSITION_READ_FAILED" : !bybitOk(orders) ? "BYBIT_ORDER_READ_FAILED" : !identity ? "BYBIT_STABLE_ACCOUNT_IDENTITY_UNAVAILABLE" : null,
+  };
+}
+
+export async function verifyProvider(provider: OnboardingProvider, environment: string, credential: RawCredential, fetcher: typeof fetch = fetch) {
+  if (providerEnvironment(provider) !== environment) throw new Error("provider_environment_mismatch");
+  return provider === "binance" ? verifyBinanceTestnet(credential, fetcher) : verifyBybitDemo(credential, fetcher);
+}
+
+export function safeAccountSummary(row: Record<string, unknown>) {
+  const { credential_ref, ...safe } = row;
+  const ref = String(credential_ref ?? "");
+  return { ...safe, credentials_configured: Boolean(ref), masked_credential_reference: ref ? `vault:••••${ref.slice(-8)}` : null };
+}

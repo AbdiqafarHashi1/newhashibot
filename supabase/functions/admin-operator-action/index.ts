@@ -121,7 +121,7 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
 
   if (action === "list_execution_accounts") {
     const { data, error } = await supabase.from("connected_execution_accounts")
-      .select("id,display_label,account_id,provider,environment,ownership_classification,customer_id,credential_ref,enabled,is_operational,monitor_enabled,execution_enabled,risk_profile_id,provider_health,last_synchronized_at,last_error,created_at,updated_at")
+      .select("id,display_label,account_id,provider_account_identity,adapter_identity,provider,environment,ownership_classification,customer_id,credential_ref,enabled,is_operational,monitor_enabled,execution_enabled,risk_profile_id,provider_health,credentials_verified_at,last_synchronized_at,last_error,created_at,updated_at")
       .order("created_at", { ascending: true });
     if (error) throw error;
     return { success: true, target: "connected_execution_accounts", responseBody: { accounts: data ?? [] }, durationMs: 0 };
@@ -161,10 +161,10 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
 
   if (action === "designate_operational_account") {
     const id = String(body.id ?? "");
-    const { data: account, error: readError } = await supabase.from("connected_execution_accounts").select("id,provider,environment").eq("id", id).maybeSingle();
+    const { data: account, error: readError } = await supabase.from("connected_execution_accounts").select("id,customer_id,provider,environment").eq("id", id).maybeSingle();
     if (readError) throw readError;
     if (!account) throw new Error("canonical_account_not_found");
-    throwOnError(await supabase.from("connected_execution_accounts").update({ is_operational: false }).eq("provider", account.provider).eq("environment", account.environment), "clear operational account");
+    throwOnError(await supabase.from("connected_execution_accounts").update({ is_operational: false }).eq("customer_id", account.customer_id).eq("provider", account.provider).eq("environment", account.environment), "clear operational account");
     const result = await supabase.from("connected_execution_accounts").update({ is_operational: true, updated_at: new Date().toISOString() }).eq("id", id).select("id");
     requireUpdatedRow(result, "designate operational account");
     return { success: true, target: "connected_execution_accounts", responseBody: { id }, durationMs: 0 };

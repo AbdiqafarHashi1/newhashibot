@@ -9,6 +9,8 @@ export type ExecutionAccount = {
   id: string;
   display_label: string;
   account_id: string;
+  provider_account_identity?: string | null;
+  adapter_identity?: string | null;
   provider: ExecutionProvider;
   environment: 'testnet' | 'demo';
   ownership_classification: 'customer' | 'system' | 'assigned_test_owner';
@@ -21,6 +23,7 @@ export type ExecutionAccount = {
   risk_profile_id: string | null;
   provider_health: string;
   last_synchronized_at: string | null;
+  credentials_verified_at?: string | null;
   last_error: string | null;
 };
 
