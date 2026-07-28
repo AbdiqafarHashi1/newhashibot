@@ -689,9 +689,12 @@ Deno.serve(async (req: Request) => {
   const auth = await authorizeInternalOrAdmin(req, supabase);
   if (!auth.ok) return authJsonResponse(auth, corsHeaders);
   const accounts = (await enumerateExecutionAccounts(supabase, "bybit")).filter((account) => account.environment === bybitEnvironment());
+  if (accounts.length === 0) {
+    return json({ success: true, overall_status: "DEGRADED", provider: "bybit", credential_reachability: "UNKNOWN", account_configuration: "NOT CONFIGURED", execution_adoption: "EXECUTION DISABLED", monitor_status: "NOT CONFIGURED", configured_account: false, writes_skipped: true, first_blocker: "No canonical execution-account identity", accounts_total: 0, accounts_fulfilled: 0, accounts_rejected: 0, results: [] });
+  }
   const settled = await settleExecutionAccounts(accounts, async (ownership) => {
     const credential = await resolveEdgeProviderCredential(supabase, ownership);
     return monitorBybit(supabase, payload, ownership, credential);
   });
-  return json({ success: settled.every((result) => result.status === "fulfilled"), provider: "bybit", accounts_total: accounts.length, accounts_fulfilled: settled.filter((result) => result.status === "fulfilled").length, accounts_rejected: settled.filter((result) => result.status === "rejected").length, results: settled.map((result, index) => result.status === "fulfilled" ? result.value : { success: false, execution_scope_key: accounts[index]?.execution_scope_key, error: result.reason instanceof Error ? result.reason.message : String(result.reason) }) });
+  return json({ success: true, overall_status: settled.some((result) => result.status === "rejected") ? "DEGRADED" : "PASS", provider: "bybit", account_configuration: "CONFIGURED", execution_adoption: "EXECUTION DISABLED", monitor_status: settled.some((result) => result.status === "rejected") ? "DEGRADED" : "MONITORING", configured_account: true, writes_skipped: false, first_blocker: null, accounts_total: accounts.length, accounts_fulfilled: settled.filter((result) => result.status === "fulfilled").length, accounts_rejected: settled.filter((result) => result.status === "rejected").length, results: settled.map((result, index) => result.status === "fulfilled" ? result.value : { success: false, execution_scope_key: accounts[index]?.execution_scope_key, error: result.reason instanceof Error ? result.reason.message : String(result.reason) }) });
 });
