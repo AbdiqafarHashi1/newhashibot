@@ -93,7 +93,7 @@ export function runtimeOwnershipFields(ownership: EdgeExecutionOwnership): Json 
 }
 
 export async function enumerateExecutionAccounts(supabase: any, provider: ExecutionProvider): Promise<EdgeExecutionOwnership[]> {
-  const { data, error } = await supabase.from("connected_execution_accounts").select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id").eq("provider", provider).eq("enabled", true);
+  const { data, error } = await supabase.from("connected_execution_accounts").select("customer_id,provider,account_id,credential_ref,environment,execution_instance_id").eq("provider", provider).eq("enabled", true).eq("monitor_enabled", true);
   if (error) throw new Error(`connected_execution_accounts_query_failed:${error.message}`);
   return (data ?? []).map((row: Json) => ownershipFromRow({ ...row, execution_provider: provider }, provider));
 }

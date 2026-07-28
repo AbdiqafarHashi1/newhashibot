@@ -20,7 +20,12 @@ assert.match(bybit, /p_environment: bybitExecutionEnvironment\(\)/);
 assert.ok(!execution.includes('providerName === "binance" ? "testnet" : "demo"'), 'shared truth/heartbeat environment must remain canonical');
 assert.match(execution, /resolveOperatorProviderCredential\(supabase, providerName, environment, selection\)/);
 assert.match(execution, /withEdgeProviderCredential\(resolved\.credential/);
-assert.match(operator, /action: "sync_all_positions_now"[^\n]+customer_id: account\?\.customerId, account_id: account\?\.accountId/);
-assert.match(operator, /action: "repair_all_protection_now"[^\n]+customer_id: account\?\.customerId, account_id: account\?\.accountId/);
+// Operator actions now accept the canonical API payload directly. The old
+// `account?.customerId` assertion described a removed UI-shaped wrapper and
+// would reject the snake_case connected_execution_accounts identity contract.
+assert.match(operator, /const customerId = String\(body\.customer_id \?\? ""\)/);
+assert.match(operator, /const accountId = String\(body\.account_id \?\? ""\)/);
+assert.match(operator, /action: "sync_all_positions_now"[^\n]+customer_id: customerId \|\| undefined, account_id: accountId \|\| undefined/);
+assert.match(operator, /action: "repair_all_protection_now"[^\n]+customer_id: customerId \|\| undefined, account_id: accountId \|\| undefined/);
 for (const marker of ['untrackedPositions', 'orphanOrders', 'unsafe_untracked_position', 'orphan_provider_order_cleanup_retry', 'reconciliation_sync']) assert.ok(bybitMonitor.includes(marker), `Bybit reconciliation missing ${marker}`);
 console.log('provider parity remediation tests passed');

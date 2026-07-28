@@ -328,10 +328,13 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     checks.push({ name: "Bybit Provider Credentials & Route", category: "Exchange", status: bybitProof.ok ? "PASS" : "WARNING", detail: bybitProof.ok ? "Bybit Demo execution route verified." : (bybitProof.errorMessage ?? "Bybit route returned non-200") });
 
     // 10. MT5 Bridge
-    const { data: mt5Data, error: mt5Err } = await supabase.from("mt5_accounts").select("id,is_active,last_heartbeat_at").eq("is_active", true).limit(1);
+    // execution_enabled is the canonical MT5 adoption flag.  A disabled account
+    // is still configured and may be monitored, so do not use it to decide
+    // whether MT5 exists.
+    const { data: mt5Data, error: mt5Err } = await supabase.from("mt5_accounts").select("id,execution_enabled,connection_status,last_heartbeat_at").limit(1);
     const mt5 = mt5Data?.[0];
     const mt5Fresh = Boolean(mt5?.last_heartbeat_at) && Date.now() - new Date(mt5.last_heartbeat_at).getTime() < 300_000;
-    checks.push({ name: "MT5 Bridge Gateway", category: "Forex Bridge", status: mt5Err ? "FAIL" : mt5Fresh ? "PASS" : mt5 ? "WARNING" : "NOT CONFIGURED", detail: mt5Err?.message ?? (mt5 ? (mt5Fresh ? "Active MT5 account has a fresh heartbeat." : "MT5 configured but heartbeat is missing or stale.") : "MT5 is not configured or connected.") });
+    checks.push({ name: "MT5 Bridge Gateway", category: "Forex Bridge", status: mt5Err ? "FAIL" : mt5Fresh ? "PASS" : mt5 ? "WARNING" : "NOT CONFIGURED", detail: mt5Err?.message ?? (mt5 ? (mt5Fresh ? "MT5 account has a fresh bridge heartbeat." : "MT5 configured but heartbeat is missing or stale.") : "No active MT5 bridge heartbeat or account.") });
 
     // 11. Provider Health
     const { data: pcData, error: pcErr } = await supabase.from("execution_provider_controls").select("*");
@@ -359,7 +362,7 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     const hasBlocked = checks.some(c => c.status === "BLOCKED");
     const hasWarn = checks.some(c => c.status === "WARNING");
     const hasNotConfigured = checks.some(c => c.status === "NOT CONFIGURED");
-    const overallStatus: "PASS" | "WARNING" | "FAIL" | "BLOCKED" = hasFail ? "FAIL" : hasBlocked ? "BLOCKED" : (hasWarn || hasNotConfigured) ? "WARNING" : "PASS";
+    const overallStatus: "PASS" | "DEGRADED" | "FAIL" = hasFail ? "FAIL" : (hasBlocked || hasWarn || hasNotConfigured) ? "DEGRADED" : "PASS";
     const observedAt = new Date().toISOString();
     const evidenceChecks = checks.map((check) => ({
       ...check,
@@ -420,13 +423,17 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
   }
   if (action === "run_supervisor_now") {
     const [heartbeats, leases, controls, scanner] = await Promise.all([
-      supabase.from("execution_monitor_heartbeats").select("provider,started_at,success,error").order("started_at", { ascending: false }).limit(20),
+      supabase.from("execution_monitor_heartbeats").select("provider,started_at,success,errors,monitor_status").order("started_at", { ascending: false }).limit(20),
       supabase.from("execution_monitor_leases").select("provider,state,expires_at").limit(20),
       supabase.from("execution_provider_controls").select("provider_name,status,monitor_enabled,entry_enabled"),
-      supabase.from("scanner_config").select("is_enabled,last_scan_at").eq("id", 1).maybeSingle(),
+      supabase.from("scanner_config").select("is_enabled,last_run_at").eq("id", 1).maybeSingle(),
     ]);
     const errors = [heartbeats.error, leases.error, controls.error, scanner.error].filter(Boolean);
-    return { success: errors.length === 0, target: "runtime-health-supervisor", responseBody: { read_only: true, heartbeats: heartbeats.data ?? [], leases: leases.data ?? [], provider_health: controls.data ?? [], scanner: scanner.data ?? null, actions_taken: [], recommended_actions: errors.map((e) => e?.message) }, durationMs: 0 };
+    const warnings = [
+      ...(heartbeats.data?.length ? [] : ["No execution monitor heartbeats have been recorded."]),
+      ...(controls.data?.length ? [] : ["No execution providers are configured."]),
+    ];
+    return { success: errors.length === 0, target: "runtime-health-supervisor", responseBody: { overall_status: errors.length ? "FAIL" : warnings.length ? "DEGRADED" : "PASS", read_only: true, heartbeats: heartbeats.data ?? [], leases: leases.data ?? [], provider_health: controls.data ?? [], scanner: scanner.data ?? null, warnings, actions_taken: [], recommended_actions: errors.map((e) => e?.message) }, durationMs: 0 };
   }
   if (action === "resume_bot" || action === "pause_entries") {
     const resume = action === "resume_bot";
