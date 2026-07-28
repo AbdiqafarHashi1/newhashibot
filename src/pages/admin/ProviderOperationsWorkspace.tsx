@@ -600,7 +600,11 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
         currency: 'USD',
         leverage: formLeverage,
         accountType: formAccountType,
-        executionMode: formAccountType === 'prop' ? 'prop_challenge' : 'personal'
+        executionMode: formAccountType === 'prop' ? 'prop_challenge' : formAccountType === 'demo' ? 'demo' : 'personal',
+        ownerKind: 'system',
+        credentialCapability: 'investor',
+        operational: false,
+        monitorEnabled: true
       });
       setShowAddMT5Modal(false);
       setFormAccountNumber('');

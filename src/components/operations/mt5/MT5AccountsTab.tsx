@@ -70,7 +70,7 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
       setActionSuccess('MT5 Account saved successfully.');
       setShowModal(false);
       resetForm();
-      fetchAccounts();
+      await fetchAccounts();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect MT5 account');
     } finally {

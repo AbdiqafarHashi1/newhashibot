@@ -94,7 +94,11 @@ export default function PropProvider() {
         currency: 'USD',
         leverage: 100,
         accountType: formAccountType,
-        executionMode: 'testnet_paper'
+        executionMode: formAccountType === 'prop' ? 'prop_challenge' : formAccountType === 'demo' ? 'demo' : 'personal',
+        ownerKind: 'system',
+        credentialCapability: 'investor',
+        operational: false,
+        monitorEnabled: true
       });
 
       setShowAddModal(false);

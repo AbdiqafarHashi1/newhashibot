@@ -1,7 +1,13 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const headers = {'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type'};
+const headers = {
+ 'Content-Type':'application/json',
+ 'Access-Control-Allow-Origin':'*',
+ 'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info',
+ 'Access-Control-Allow-Methods':'POST, OPTIONS',
+ 'Vary':'Origin',
+};
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const encode=(value:string)=>new TextEncoder().encode(value);
 async function key(){ const secret=Deno.env.get('MT5_CREDENTIAL_ENCRYPTION_KEY'); if(!secret) throw new Error('MT5_CREDENTIAL_ENCRYPTION_KEY is not configured'); return crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',encode(secret)),{name:'AES-GCM'},false,['encrypt']); }
@@ -11,9 +17,14 @@ async function digest(value:string){ return Array.from(new Uint8Array(await cryp
 Deno.serve(async req=>{
  if(req.method==='OPTIONS') return new Response(null,{headers});
  try {
+  if(req.method!=='POST') return reply({error:'method_not_allowed'},405);
   const url=Deno.env.get('SUPABASE_URL')!, anon=Deno.env.get('SUPABASE_ANON_KEY')!, service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const auth=createClient(url,anon,{global:{headers:{Authorization:req.headers.get('Authorization')??''}}});
-  const {data:{user}}=await auth.auth.getUser(); if(!user) return reply({error:'unauthorized'},401);
+  const authorization=req.headers.get('Authorization');
+  const match=authorization?.match(/^Bearer\s+(.+)$/i);
+  if(!match) return reply({error:'unauthorized',code:'MISSING_OR_INVALID_AUTHORIZATION'},401);
+  const auth=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
+  const {data:{user},error:authError}=await auth.auth.getUser(match[1]);
+  if(authError||!user) return reply({error:'unauthorized',code:'INVALID_JWT'},401);
   const db=createClient(url,service); const body=await req.json();
   if(body.action==='connect'){
    if(!/^\d{4,20}$/.test(String(body.accountNumber)) || String(body.password).length<4) return reply({error:'invalid_credentials'},400);
@@ -24,7 +35,7 @@ Deno.serve(async req=>{
    const {data,error}=await db.from('mt5_accounts').insert({user_id:user.id,owner_kind:ownerKind,broker:String(body.broker).trim(),server:String(body.server).trim(),account_number_ciphertext:await encrypt(String(body.accountNumber)),password_ciphertext:await encrypt(String(body.password)),account_number_hash:await digest(String(body.accountNumber)),account_number_last4:String(body.accountNumber).slice(-4),nickname:String(body.nickname).trim(),currency:String(body.currency??'USD'),leverage:Number(body.leverage),account_type:type,execution_mode:mode,credential_capability:capability,operational:body.operational===true,monitor_enabled:body.monitorEnabled!==false,execution_enabled:false,connection_status:'pending',policy:body.policy??{}}).select('id,credential_ref').single();
    if(error) throw error;
    const {data:verified,error:readError}=await db.from('mt5_accounts_safe').select('*').eq('id',data.id).single(); if(readError)throw readError;
-   return reply({accountId:data.id,credentialRef:data.credential_ref,status:'REGISTERED',account:verified});
+   return reply({accountId:data.id,ownerId:user.id,credentialRef:data.credential_ref,status:'REGISTERED',account:verified});
   }
   const accountId=String(body.accountId??'');
   const {data:owned}=await db.from('mt5_accounts').select('id,user_id,bridge_id').eq('id',accountId).single(); if(!owned||owned.user_id!==user.id) return reply({error:'not_found'},404);
