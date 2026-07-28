@@ -7,6 +7,8 @@ from typing import Dict, Any, List
 from cloud_client import CloudClient
 from mt5_client import MT5Client
 from logging_config import logger
+from config import Config
+from policy import ExecutionContext, execution_blockers
 
 class CommandProcessor:
     def __init__(self, cloud_client: CloudClient, mt5_client: MT5Client):
@@ -24,6 +26,9 @@ class CommandProcessor:
         for cmd in commands:
             cmd_id = cmd.get("id")
             operation = cmd.get("operation", "").lower()
+            operation = {"open_position": "place_order", "modify_protection": "modify_position",
+                         "partial_close": "close_position", "move_to_breakeven": "modify_position",
+                         "recover_protection": "modify_position"}.get(operation, operation)
             payload = cmd.get("payload", {})
             if not isinstance(payload, dict):
                 payload = {}
@@ -34,6 +39,23 @@ class CommandProcessor:
             error_code = None
             error_message = None
             result_data: Dict[str, Any] = {}
+
+            # Every mutating operation is fail-closed. Phase 5D deliberately has no path
+            # that silently defaults execution on, including for master credentials.
+            read_only = operation in ("test_connection", "sync_account")
+            if str(cmd.get("account_id", "")) != Config.ACCOUNT_ID:
+                self.cloud_client.ack_command(cmd_id, False, "MT5_ACCOUNT_MISMATCH", "Command is scoped to another account", {})
+                processed_count += 1
+                continue
+            if not read_only:
+                gate = cmd.get("execution_context", {})
+                blockers = execution_blockers(ExecutionContext(**{
+                    key: value for key, value in gate.items() if key in ExecutionContext.__dataclass_fields__
+                }))
+                if blockers:
+                    self.cloud_client.ack_command(cmd_id, False, blockers[0], "Execution gate rejected command", {"blockers": blockers})
+                    processed_count += 1
+                    continue
 
             try:
                 if operation in ["place_order", "place_entry"]:

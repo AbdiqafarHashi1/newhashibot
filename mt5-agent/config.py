@@ -29,6 +29,9 @@ class Config:
     ACCOUNT_NUMBER: Optional[int] = int(os.getenv("ACCOUNT_NUMBER")) if os.getenv("ACCOUNT_NUMBER") else None
     PASSWORD: Optional[str] = os.getenv("PASSWORD", None)
     SERVER: Optional[str] = os.getenv("SERVER", None)
+    ACCOUNT_ID: str = os.getenv("MT5_ACCOUNT_ID", "")
+    OWNER_ID: str = os.getenv("MT5_OWNER_ID", "")
+    CREDENTIAL_REF: str = os.getenv("MT5_CREDENTIAL_REF", "")
 
     @classmethod
     def validate(cls) -> None:

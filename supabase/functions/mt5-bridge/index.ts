@@ -120,7 +120,9 @@ Deno.serve(async (req: Request) => {
         .from("mt5_accounts")
         .update({
           last_heartbeat_at: new Date().toISOString(),
-          connection_status: bridgeStatus === "online" ? "connected" : "disconnected",
+          // Process reachability is not terminal authentication. Only a verified
+          // snapshot may promote the account to connected.
+          connection_status: bridgeStatus === "online" ? "pending" : "disconnected",
           updated_at: new Date().toISOString(),
         })
         .eq("bridge_id", payload.bridge_id);
@@ -144,7 +146,7 @@ Deno.serve(async (req: Request) => {
         .from("mt5_commands")
         .select("*")
         .eq("bridge_id", payload.bridge_id)
-        .or(`status.eq.pending,and(status.eq.claimed,claimed_at.lt.${leaseCutoffIso})`)
+        .or(`status.eq.received,and(status.eq.accepted,claimed_at.lt.${leaseCutoffIso})`)
         .order("created_at", { ascending: true })
         .limit(maxLimit);
 
@@ -155,9 +157,9 @@ Deno.serve(async (req: Request) => {
       if (commands && commands.length > 0) {
         const certified: typeof commands = [];
         for (const command of commands) {
-          if (command.operation === "test_connection") { certified.push(command); continue; }
+          if (["TEST_CONNECTION","SYNC_ACCOUNT","RECOVER_PROTECTION","MODIFY_PROTECTION","PARTIAL_CLOSE","MOVE_TO_BREAKEVEN","CLOSE_POSITION","CANCEL_ORDER"].includes(command.operation)) { certified.push(command); continue; }
           const planId = String(command.payload?.execution_plan_id ?? ""), identity = String(command.payload?.deterministic_identity ?? "");
-          if (command.operation !== "place_order" || command.payload?.certified !== true || !planId || identity !== command.idempotency_key) continue;
+          if (command.operation !== "OPEN_POSITION" || command.payload?.certified !== true || !planId || identity !== command.idempotency_key) continue;
           const { data: claim } = await supabase.from("certified_runtime_claims").select("id").eq("execution_plan_id",planId).eq("account_id",String(command.account_id)).eq("state","completed").maybeSingle();
           if (claim) certified.push(command);
         }
@@ -167,7 +169,7 @@ Deno.serve(async (req: Request) => {
         const { error: updateErr } = await supabase
           .from("mt5_commands")
           .update({
-            status: "claimed",
+            status: "accepted",
             claimed_at: nowIso,
           })
           .in("id", commandIds);
@@ -178,7 +180,7 @@ Deno.serve(async (req: Request) => {
 
         const claimed = certified.map(c => ({
           ...c,
-          status: "claimed",
+          status: "accepted",
           claimed_at: nowIso,
         }));
 
@@ -197,7 +199,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: false, error: "Missing bridge_id or command_id" }, 400);
       }
 
-      const finalStatus = payload.success ? "acknowledged" : "failed";
+      const finalStatus = payload.success ? "confirmed" : "rejected";
       const resultObj = payload.result || payload.result_data || {};
       const nowIso = new Date().toISOString();
 
@@ -212,6 +214,7 @@ Deno.serve(async (req: Request) => {
           result: resultObj,
         })
         .eq("id", payload.command_id)
+        .eq("bridge_id", payload.bridge_id)
         .select()
         .maybeSingle();
 
