@@ -3,7 +3,21 @@ import { normalizedQuery, signBybitV5Get } from "./bybit-v5-auth.ts";
 export type OnboardingProvider = "binance" | "bybit";
 export type OnboardingEnvironment = "testnet" | "demo";
 export type RawCredential = { apiKey: string; apiSecret: string; passphrase?: string };
-export const BINANCE_TESTNET_CANONICAL_SYSTEM_IDENTITY = "canonical:binance:testnet:system";
+/**
+ * Routing identities are atoms in the colon-delimited execution scope key.
+ * This value is a product-owned label, not a Binance UID or credential fingerprint.
+ */
+export const BINANCE_TESTNET_CANONICAL_SYSTEM_IDENTITY = "canonical-binance-testnet-system";
+export const EXECUTION_IDENTITY_RESERVED_DELIMITERS = [":"] as const;
+
+export function isAtomicExecutionIdentity(value: string): boolean {
+  const identity = value.trim();
+  return Boolean(identity) && !EXECUTION_IDENTITY_RESERVED_DELIMITERS.some((delimiter) => identity.includes(delimiter));
+}
+
+export function canonicalBinanceTestnetSystemIdentity(): string {
+  return BINANCE_TESTNET_CANONICAL_SYSTEM_IDENTITY;
+}
 
 export type SafeVerification = {
   connection_verified: boolean;
@@ -56,10 +70,11 @@ export async function verifyBinanceTestnet(credential: RawCredential, fetcher: t
     })(),
   ]);
   const account = await safeJson(accountResponse);
-  const nativeIdentity = typeof account.accountAlias === "string" && account.accountAlias.trim() ? account.accountAlias.trim() : null;
+  const candidateIdentity = typeof account.accountAlias === "string" && account.accountAlias.trim() ? account.accountAlias.trim() : null;
+  const nativeIdentity = candidateIdentity && isAtomicExecutionIdentity(candidateIdentity) ? candidateIdentity : null;
   // Futures Testnet does not consistently expose accountAlias. This constant is
   // scoped by owner/provider/environment and contains no credential material.
-  const identity = nativeIdentity ?? BINANCE_TESTNET_CANONICAL_SYSTEM_IDENTITY;
+  const identity = nativeIdentity ?? canonicalBinanceTestnetSystemIdentity();
   const ok = accountResponse.ok && ordersResponse.ok;
   return {
     connection_verified: ok,
