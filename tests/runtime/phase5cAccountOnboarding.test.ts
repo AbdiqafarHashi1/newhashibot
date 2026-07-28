@@ -5,6 +5,8 @@ import { providerEnvironment, safeAccountSummary, verifyProvider } from '../../s
 const ui=fs.readFileSync('src/pages/admin/Execution.tsx','utf8');
 const edge=fs.readFileSync('supabase/functions/execution-account-onboarding/index.ts','utf8');
 const sql=fs.readFileSync('supabase/migrations/20260728020000_phase5c_secure_account_onboarding.sql','utf8');
+const hotfix=fs.readFileSync('supabase/migrations/20260728030000_phase5c_runtime_account_adoption_hotfix.sql','utf8');
+const workspace=fs.readFileSync('src/pages/admin/ProviderOperationsWorkspace.tsx','utf8');
 assert.match(ui,/Add System Account/); assert.match(ui,/Add Customer Account/);
 assert.doesNotMatch(ui,/owner UUID|Provider account ID|Vault credential UUID/i,'ordinary UI never asks for internal identifiers');
 assert.match(ui,/list_customers/); assert.match(edge,/profiles.*full_name/,'canonical profile selector resolves customers');
@@ -15,6 +17,17 @@ assert.match(sql,/customer_id, provider, environment, provider_account_identity/
 assert.match(sql,/customer_id = v_owner AND provider = p_provider AND environment = p_environment AND is_operational/,'operational update is owner scoped');
 assert.match(edge,/finally[\s\S]*credential = null/); assert.doesNotMatch(edge,/console\.(log|error|warn)/,'credentials cannot enter edge logs');
 assert.doesNotMatch(edge,/system_secret/,'unsafe fake system-secret adoption is absent');
+assert.match(edge,/ACCOUNT_NOT_PERSISTED/,'missing row produces a specific failure');
+assert.match(edge,/ACCOUNT_PERSISTED_CONTRACT_MISMATCH/,'persisted state must match the requested contract');
+assert.match(edge,/\.eq\("id", accountId\)\.maybeSingle/,'creation is followed by canonical ID re-read');
+assert.match(edge,/status: "ACCOUNT_CREATED"/,'success is emitted only after persisted truth checks');
+assert.match(ui,/data\.raw\?\.responseBody/,'manager unwraps the operator envelope before refetch display');
+assert.match(ui,/Designate operational/); assert.match(ui,/await load\(\);setNotice/,'success banner follows refetch');
+assert.match(workspace,/providerAccounts\.find\(row => row\.is_operational\) \?\? providerAccounts\.find\(row => row\.enabled\)/,'selectable non-operational fallback remains visible');
+assert.match(workspace,/OPERATIONAL ACCOUNT \{canonicalAccount\.is_operational \? 'DESIGNATED' : 'NOT DESIGNATED'\}/);
+assert.match(hotfix,/customer_id = auth\.uid\(\) OR COALESCE\(public\.is_admin\(\), false\)/,'admin RLS reads canonical system accounts');
+assert.match(hotfix,/p_selectable,p_monitor_enabled,p_operational,false/,'explicit operational state is preserved and execution remains off');
+assert.match(hotfix,/customer_id=v_owner AND provider=lower\(p_provider\) AND environment=lower\(p_environment\)/,'operational designation scope vocabulary is canonical');
 
 assert.equal(providerEnvironment('binance'),'testnet'); assert.equal(providerEnvironment('bybit'),'demo');
 await assert.rejects(()=>verifyProvider('binance','demo',{apiKey:'x',apiSecret:'y'}),/provider_environment_mismatch/);
@@ -27,6 +40,13 @@ const binanceFetch:typeof fetch=async(input)=>{
 const verified=await verifyProvider('binance','testnet',{apiKey:'not-an-identity',apiSecret:'secret'},binanceFetch);
 assert.equal(verified.discovered_account_identity,'TEST_ACCOUNT_42'); assert.equal(verified.connection_verified,true);
 assert.equal(JSON.stringify(verified).includes('not-an-identity'),false,'credentials are never returned');
+const fallback=await verifyProvider('binance','testnet',{apiKey:'also-not-an-identity',apiSecret:'secret'},async(input)=>String(input).includes('openOrders')?new Response('[]',{status:200}):new Response(JSON.stringify({canTrade:true,assets:[],positions:[]}),{status:200}));
+assert.equal(fallback.connection_verified,true); assert.equal(fallback.first_blocker,null);
+assert.equal(fallback.discovered_account_identity,'canonical:binance:testnet:system');
+assert.match(fallback.warnings[0],/safe canonical fallback used/i);
+assert.equal(JSON.stringify(fallback).includes('also-not-an-identity'),false);
+const invalid=await verifyProvider('binance','testnet',{apiKey:'invalid',apiSecret:'invalid'},async()=>new Response('{}',{status:401}));
+assert.equal(invalid.connection_verified,false); assert.match(invalid.first_blocker!,/BINANCE_AUTH_OR_ACCOUNT_READ_FAILED/);
 const summary=safeAccountSummary({id:'canonical',credential_ref:'12345678-1234-4234-8234-123456789abc',execution_enabled:false});
 assert.equal('credential_ref' in summary,false); assert.equal(summary.credentials_configured,true); assert.match(String(summary.masked_credential_reference),/••••56789abc/);
 

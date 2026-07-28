@@ -3,6 +3,7 @@ import { normalizedQuery, signBybitV5Get } from "./bybit-v5-auth.ts";
 export type OnboardingProvider = "binance" | "bybit";
 export type OnboardingEnvironment = "testnet" | "demo";
 export type RawCredential = { apiKey: string; apiSecret: string; passphrase?: string };
+export const BINANCE_TESTNET_CANONICAL_SYSTEM_IDENTITY = "canonical:binance:testnet:system";
 
 export type SafeVerification = {
   connection_verified: boolean;
@@ -55,15 +56,18 @@ export async function verifyBinanceTestnet(credential: RawCredential, fetcher: t
     })(),
   ]);
   const account = await safeJson(accountResponse);
-  const identity = typeof account.accountAlias === "string" && account.accountAlias.trim() ? account.accountAlias.trim() : null;
-  const ok = accountResponse.ok && Boolean(identity);
+  const nativeIdentity = typeof account.accountAlias === "string" && account.accountAlias.trim() ? account.accountAlias.trim() : null;
+  // Futures Testnet does not consistently expose accountAlias. This constant is
+  // scoped by owner/provider/environment and contains no credential material.
+  const identity = nativeIdentity ?? BINANCE_TESTNET_CANONICAL_SYSTEM_IDENTITY;
+  const ok = accountResponse.ok && ordersResponse.ok;
   return {
     connection_verified: ok,
     provider: "binance", environment: "testnet", discovered_account_identity: identity,
     read_permissions: { account: accountResponse.ok, balances: accountResponse.ok && Array.isArray(account.assets), positions: accountResponse.ok && Array.isArray(account.positions), orders: ordersResponse.ok },
     trading_permission: account.canTrade === true,
-    warnings: accountResponse.ok && !identity ? ["Binance authenticated but did not return a stable account alias."] : [],
-    first_blocker: !accountResponse.ok ? `BINANCE_AUTH_OR_ACCOUNT_READ_FAILED_${accountResponse.status}` : !ordersResponse.ok ? `BINANCE_ORDER_READ_FAILED_${ordersResponse.status}` : !identity ? "BINANCE_STABLE_ACCOUNT_IDENTITY_UNAVAILABLE" : null,
+    warnings: accountResponse.ok && !nativeIdentity ? ["Native stable provider identity unavailable; safe canonical fallback used."] : [],
+    first_blocker: !accountResponse.ok ? `BINANCE_AUTH_OR_ACCOUNT_READ_FAILED_${accountResponse.status}` : !ordersResponse.ok ? `BINANCE_ORDER_READ_FAILED_${ordersResponse.status}` : null,
   };
 }
 

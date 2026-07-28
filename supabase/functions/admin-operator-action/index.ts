@@ -165,7 +165,9 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     if (readError) throw readError;
     if (!account) throw new Error("canonical_account_not_found");
     throwOnError(await supabase.from("connected_execution_accounts").update({ is_operational: false }).eq("customer_id", account.customer_id).eq("provider", account.provider).eq("environment", account.environment), "clear operational account");
-    const result = await supabase.from("connected_execution_accounts").update({ is_operational: true, updated_at: new Date().toISOString() }).eq("id", id).select("id");
+    const result = await supabase.from("connected_execution_accounts").update({ is_operational: true, execution_enabled: false, updated_at: new Date().toISOString() })
+      .eq("id", id).eq("customer_id", account.customer_id).eq("provider", account.provider).eq("environment", account.environment)
+      .select("id,customer_id,provider,environment,is_operational,execution_enabled");
     requireUpdatedRow(result, "designate operational account");
     return { success: true, target: "connected_execution_accounts", responseBody: { id }, durationMs: 0 };
   }

@@ -422,11 +422,17 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
         body: JSON.stringify({ action: 'list_execution_accounts' }),
       });
       const accountPayload = await accountResponse.json();
-      const accounts = (accountPayload.responseBody?.accounts ?? []) as ExecutionAccount[];
-      scopedAccount = requestedAccountId ? accounts.find(row => row.id === requestedAccountId) ?? null : null;
+      const accounts = (accountPayload.raw?.responseBody?.accounts ?? accountPayload.responseBody?.accounts ?? []) as ExecutionAccount[];
+      const environment = provider === 'bybit' ? 'demo' : 'testnet';
+      const providerAccounts = accounts.filter(row => row.provider === provider && row.environment === environment);
+      // Explicit URL selection wins; otherwise use the operational account, then
+      // a selectable account strictly as read-only diagnostic context.
+      scopedAccount = requestedAccountId
+        ? providerAccounts.find(row => row.id === requestedAccountId) ?? null
+        : providerAccounts.find(row => row.is_operational) ?? providerAccounts.find(row => row.enabled) ?? null;
       const validation = validateProviderAccount(provider === 'mt5' ? 'binance' : provider, scopedAccount);
       setCanonicalAccount(validation.valid ? scopedAccount : null);
-      setAccountConfigurationError(requestedAccountId && !validation.valid ? validation.error : !requestedAccountId ? 'No canonical execution-account identity selected' : null);
+      setAccountConfigurationError(!validation.valid ? validation.error : null);
     } catch (err) {
       setCanonicalAccount(null);
       setAccountConfigurationError(err instanceof Error ? err.message : 'Canonical account lookup failed');
@@ -965,6 +971,9 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
               </Badge>
 
               <Badge variant={canonicalAccount?.execution_enabled ? 'red' : 'gray'}>{accountStatus.execution}</Badge>
+
+              {canonicalAccount && <Badge variant={canonicalAccount.monitor_enabled ? 'green' : 'gray'}>MONITOR {canonicalAccount.monitor_enabled ? 'ENABLED' : 'DISABLED'}</Badge>}
+              {canonicalAccount && <Badge variant={canonicalAccount.is_operational ? 'blue' : 'gray'}>OPERATIONAL ACCOUNT {canonicalAccount.is_operational ? 'DESIGNATED' : 'NOT DESIGNATED'}</Badge>}
 
               <Badge variant={monitorTruth.level === 'ok' ? 'green' : monitorTruth.level === 'warning' ? 'yellow' : 'red'}>
                 FRESHNESS: {monitorTruth.label.toUpperCase()}

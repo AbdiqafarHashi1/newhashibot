@@ -50,7 +50,24 @@ Deno.serve(async (req) => {
     });
     secretJson = null;
     if (error) throw error;
-    return reply({ verification, account: safeAccountSummary((Array.isArray(data) ? data[0] : data) as Record<string, unknown>), execution_default_off: true }, 201);
+    const inserted = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+    const accountId = String(inserted?.id ?? "");
+    if (!accountId) return reply({ error: "ACCOUNT_INSERT_RESULT_MISSING" }, 500);
+    const { data: persisted, error: rereadError } = await service.from("connected_execution_accounts")
+      .select("id,display_label,account_id,provider_account_identity,adapter_identity,provider,environment,customer_id,ownership_classification,credential_ref,enabled,monitor_enabled,is_operational,execution_enabled,provider_health,credentials_verified_at,last_synchronized_at,last_error")
+      .eq("id", accountId).maybeSingle();
+    if (rereadError) return reply({ error: "ACCOUNT_CANONICAL_REREAD_FAILED", account_id: accountId }, 500);
+    if (!persisted) return reply({ error: "ACCOUNT_NOT_PERSISTED", account_id: accountId }, 500);
+    const expectedOwner = ownership === "system"
+      ? (await service.from("execution_system_owner").select("owner_id").eq("singleton", true).single()).data?.owner_id
+      : customerId;
+    const contractMatches = persisted.customer_id === expectedOwner && persisted.ownership_classification === ownership
+      && persisted.provider === provider && persisted.environment === environment
+      && Boolean(persisted.credential_ref) && persisted.enabled === (body.selectable !== false)
+      && persisted.monitor_enabled === (body.monitor_enabled !== false)
+      && persisted.is_operational === (body.operational === true) && persisted.execution_enabled === false;
+    if (!contractMatches) return reply({ error: "ACCOUNT_PERSISTED_CONTRACT_MISMATCH", account_id: accountId }, 500);
+    return reply({ status: "ACCOUNT_CREATED", verification, account: safeAccountSummary(persisted), execution_default_off: true }, 201);
   } catch (error) {
     return reply({ error: safeError(error) }, 400);
   } finally {
