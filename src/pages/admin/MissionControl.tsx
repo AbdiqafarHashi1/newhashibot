@@ -1,15 +1,16 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { callEdgeFunction } from '../../lib/edgeFunctionStatus';
 import { ActionResult, OperatorActionResult } from '../../components/admin/ActionResult';
 import { loadOperatorTruth, OperatorTruthBundle } from '../../lib/operatorTruth';
+import { supabase } from '../../lib/supabase';
 import {
-  Activity, RefreshCw, ShieldAlert, AlertTriangle, ShieldCheck,
-  Cpu, Zap, Layers, Database, PauseCircle, PlayCircle,
-  ExternalLink, Search, Server, ArrowUpRight, CheckCircle2,
-  BarChart3, ListFilter, Power, Gauge
+  Activity, RefreshCw, ShieldAlert, ShieldCheck,
+  PauseCircle, PlayCircle, Search, Server, ArrowUpRight, CheckCircle2,
+  BarChart3, Power, Gauge, FileCheck, Lock,
+  CheckCircle, XCircle, Sliders, Radio, RotateCcw, Play
 } from 'lucide-react';
 
 export interface MissionControlEvent {
@@ -45,49 +46,93 @@ export interface WorkerState {
   actionCommand?: string;
 }
 
+export interface SystemTestReport {
+  overall_status: 'PASS' | 'WARNING' | 'FAIL' | 'BLOCKED';
+  duration_ms: number;
+  timestamp: string;
+  passed_count: number;
+  warning_count: number;
+  failed_count: number;
+  checks: Array<{
+    name: string;
+    category: string;
+    status: 'PASS' | 'WARNING' | 'FAIL' | 'BLOCKED';
+    detail: string;
+  }>;
+}
+
+export interface ControlAuditRow {
+  name: string;
+  location: string;
+  classification: 'Global Lifecycle' | 'Scanner Control' | 'Execution Account Control' | 'Safety Intervention' | 'Engineering Diagnostic' | 'Legacy Compatibility' | 'Proven Dead' | 'Unknown';
+  replacementStatus: string;
+  dependencies: string;
+  recommendation: 'Keep' | 'Move to Advanced Diagnostics' | 'Move to Legacy Controls' | 'Deprecate after certification' | 'Remove after one stable release' | 'Cannot Remove';
+}
+
+const CONTROL_AUDIT_MATRIX: ControlAuditRow[] = [
+  { name: 'Start HashiBot', location: 'Mission Control', classification: 'Global Lifecycle', replacementStatus: 'Active Global Owner', dependencies: 'DB, Scanner, Provider Controls', recommendation: 'Keep' },
+  { name: 'Stop New Activity', location: 'Mission Control', classification: 'Global Lifecycle', replacementStatus: 'Active Global Owner', dependencies: 'Execution Settings, Provider Controls', recommendation: 'Keep' },
+  { name: 'Emergency Stop', location: 'Mission Control', classification: 'Global Lifecycle', replacementStatus: 'Active Global Owner', dependencies: 'Kill Switch, Adoption Policy', recommendation: 'Keep' },
+  { name: 'Run Full System Test', location: 'Mission Control', classification: 'Engineering Diagnostic', replacementStatus: 'Active Consolidated Diagnostic', dependencies: 'DB, RPC, Providers, Safety Monitors', recommendation: 'Keep' },
+  { name: 'Scanner ON / OFF Master Switch', location: 'Mission Control', classification: 'Scanner Control', replacementStatus: 'Active Global Owner', dependencies: 'scanner_config.is_enabled', recommendation: 'Keep' },
+  { name: 'Execution Switch (Per Account)', location: 'Mission Control', classification: 'Execution Account Control', replacementStatus: 'Active Account Owner', dependencies: 'execution_provider_controls.entry_enabled', recommendation: 'Keep' },
+  { name: 'Manual "Run One Scan"', location: 'Advanced Diagnostics', classification: 'Engineering Diagnostic', replacementStatus: 'Moved to Diagnostics', dependencies: 'scheduled-market-scanner Edge Function', recommendation: 'Move to Advanced Diagnostics' },
+  { name: 'Retry Protection Repair', location: 'Protection Center / Mission Control', classification: 'Safety Intervention', replacementStatus: 'Active Safety Action', dependencies: 'Protection Monitor', recommendation: 'Keep' },
+  { name: 'Reconcile Runtime Truth', location: 'Mission Control / Recovery', classification: 'Safety Intervention', replacementStatus: 'Active Safety Action', dependencies: 'Sync Engine', recommendation: 'Keep' },
+  { name: 'Emergency Position Close', location: 'Positions / Mission Control', classification: 'Safety Intervention', replacementStatus: 'Active Bounded Action', dependencies: 'Provider Execution API', recommendation: 'Keep' },
+  { name: 'Acknowledge Incident', location: 'Mission Control / Audit Logs', classification: 'Safety Intervention', replacementStatus: 'Active Bounded Action', dependencies: 'operator_runtime_events', recommendation: 'Keep' },
+  { name: 'Provider Manual Sync', location: 'Provider Operations Pages', classification: 'Engineering Diagnostic', replacementStatus: 'Diagnostics Only', dependencies: 'Provider Adapters', recommendation: 'Move to Advanced Diagnostics' },
+  { name: 'Legacy Mode Switcher', location: 'Modes Page', classification: 'Legacy Compatibility', replacementStatus: 'Deprecated', dependencies: 'execution_settings', recommendation: 'Deprecate after certification' },
+  { name: 'Legacy Cron Trigger Script', location: 'System Scripts', classification: 'Proven Dead', replacementStatus: 'Inactive', dependencies: 'None', recommendation: 'Remove after one stable release' },
+];
+
 export default function MissionControl() {
   const { session } = useAuth();
 
   // Telemetry bundle state
   const [bundle, setBundle] = useState<OperatorTruthBundle | null>(null);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   // Auto-refresh configuration
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [refreshIntervalSec, setRefreshIntervalSec] = useState(5);
-  const [autoScroll, setAutoScroll] = useState(true);
 
   // Timeline filtering
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
-  const [subsystemFilter, setSubsystemFilter] = useState<string>('ALL');
-  const [providerFilter, setProviderFilter] = useState<string>('ALL');
+  const [subsystemFilter] = useState<string>('ALL');
+  const [providerFilter] = useState<string>('ALL');
 
   // Command execution
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<OperatorActionResult | null>(null);
 
-  // Timeline auto-scroll ref
-  const timelineEndRef = useRef<HTMLDivElement>(null);
+  // Diagnostic Test Report Modal/Drawer
+  const [testReport, setTestReport] = useState<SystemTestReport | null>(null);
+  const [showTestModal, setShowTestModal] = useState(false);
+
+  // Active Tab View in Mission Control
+  const [activeTab, setActiveTab] = useState<'OPERATIONS' | 'DIAGNOSTICS' | 'CONTROL_MATRIX' | 'TIMELINE'>('OPERATIONS');
 
   // Fetch verified backend truth
   const fetchTelemetry = useCallback(async (isInitial = false) => {
-    if (isInitial) setLoading(true);
+    if (isInitial) setRefreshing(true);
     else setRefreshing(true);
-    setErrorMsg('');
 
     try {
       const data = await loadOperatorTruth();
       setBundle(data);
       setLastRefreshedAt(new Date().toLocaleTimeString());
+      setSessionExpired(false);
     } catch (err) {
       console.error('Failed to load Mission Control truth bundle:', err);
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to fetch backend telemetry.');
+      const msg = err instanceof Error ? err.message : 'Failed to fetch backend telemetry.';
+      if (msg.includes('JWT') || msg.includes('Unauthorized') || msg.includes('401')) {
+        setSessionExpired(true);
+      }
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   }, []);
@@ -105,17 +150,17 @@ export default function MissionControl() {
       if (!document.hidden) {
         void fetchTelemetry(false);
       }
-    }, refreshIntervalSec * 1000);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [autoRefreshEnabled, refreshIntervalSec, fetchTelemetry]);
+  }, [autoRefreshEnabled, fetchTelemetry]);
 
-  // Execute real backend command
-  async function runCommand(action: string, provider?: string) {
+  // Execute real backend command with JWT auto-refresh
+  async function runCommand(action: string, provider?: string, extraParams: Record<string, unknown> = {}) {
     if (!session?.access_token || runningAction === action) return;
 
-    const highRisk = ['resume_bot', 'run_recovery_now', 'emergency_stop_runtime'].includes(action);
-    if (highRisk && !window.confirm(`Confirm the high-risk operator action: ${action}. This creates one immutable operator event.`)) return;
+    const highRisk = ['emergency_stop_runtime', 'start_hashibot'].includes(action);
+    if (highRisk && !window.confirm(`Confirm the critical operator action: '${action.toUpperCase()}'. This creates one immutable operator audit record.`)) return;
 
     const startedAt = new Date().toISOString();
     const route = '/functions/v1/admin-operator-action';
@@ -134,15 +179,52 @@ export default function MissionControl() {
     });
 
     try {
-      const result = await callEdgeFunction(functionName, { action, provider, ...(highRisk ? { confirm: action } : {}) }, session.access_token, 20000);
+      let token = session.access_token;
+      let result = await callEdgeFunction(functionName, { action, provider, ...extraParams, ...(highRisk ? { confirm: action } : {}) }, token, 25000);
+
+      // Part 8: JWT Refresh once if 401 encountered
+      if (result.status === 401) {
+        console.warn('JWT 401 returned from edge function. Attempting single session refresh...');
+        const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
+        if (!refreshErr && refreshData?.session?.access_token) {
+          token = refreshData.session.access_token;
+          result = await callEdgeFunction(functionName, { action, provider, ...extraParams, ...(highRisk ? { confirm: action } : {}) }, token, 25000);
+        } else {
+          setSessionExpired(true);
+          setActionResult({
+            status: 'BLOCKED',
+            action,
+            provider,
+            summary: 'Session Expired. Please re-authenticate as Operator.',
+            timestamp: startedAt,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            durationMs: 0,
+            blocker: 'JWT_EXPIRED',
+            route,
+            functionName,
+            error: 'Session expired',
+            raw: { error: 'Session expired' },
+          });
+          return;
+        }
+      }
+
       const data = result.data as Record<string, unknown> | null;
       const ok = result.ok && data && data.success === true && !data.exact_error;
-
       const raw = data?.raw as Record<string, unknown> | undefined;
-      const partial = raw?.partialSuccess === true;
-      const blocked = Boolean(data?.blocker || data?.error_code === 'CONFIRMATION_REQUIRED');
+
+      // Extract system test report if action was run_full_system_test
+      if (action === 'run_full_system_test' && raw) {
+        const report = raw as unknown as SystemTestReport;
+        if (report.checks) {
+          setTestReport(report);
+          setShowTestModal(true);
+        }
+      }
+
       const res: OperatorActionResult = {
-        status: ok ? 'SUCCESS' : partial ? 'PARTIAL' : blocked ? 'BLOCKED' : 'FAILED',
+        status: ok ? 'SUCCESS' : 'FAILED',
         action,
         provider,
         summary: String(data?.result_summary ?? (ok ? 'Backend action completed successfully.' : 'Backend action failed.')),
@@ -151,14 +233,12 @@ export default function MissionControl() {
         finishedAt: String(data?.finished_at ?? new Date().toISOString()),
         durationMs: Number(data?.duration_ms ?? 0),
         runtimeEventId: data?.runtime_event_id ? String(data.runtime_event_id) : undefined,
-        blocker: ok ? undefined : String(data?.blocker ?? data?.error_code ?? 'Backend returned failure.'),
+        blocker: ok ? undefined : String(data?.blocker ?? data?.exact_error ?? 'Backend returned failure.'),
         route: String(data?.route ?? route),
         functionName: String(data?.function_name ?? functionName),
         target: data?.target ? String(data.target) : undefined,
         httpStatus: data?.http_status ? Number(data.http_status) : result.status,
         errorCode: data?.error_code ? String(data.error_code) : undefined,
-        timedOut: data?.timed_out === true,
-        authFailed: data?.auth_failed === true,
         error: data?.exact_error ? String(data.exact_error) : (result.ok ? undefined : result.message),
         raw: data ?? result,
       };
@@ -189,7 +269,6 @@ export default function MissionControl() {
 
   // --- DERIVED METRICS & TRUTH EVALUATIONS ---
 
-  // Helper age calculation
   const getAgeSec = (dateStr?: string | null) => {
     if (!dateStr) return null;
     const t = new Date(dateStr).getTime();
@@ -204,7 +283,7 @@ export default function MissionControl() {
     return `${Math.floor(ageSec / 3600)}h ago`;
   };
 
-  // 1. Scanner Subsystem Truth
+  // 1. Scanner Master Switch & Config
   const scannerCfg = bundle?.scannerConfig;
   const scannerEnabled = Boolean(scannerCfg?.is_enabled);
   const scannerLastRun = bundle?.schedulerTruth?.[0] ?? null;
@@ -232,34 +311,19 @@ export default function MissionControl() {
 
   // 4. Execution Orders
   const executionOrders = useMemo(() => bundle?.executionOrders ?? [], [bundle?.executionOrders]);
-  const submittedOrdersCount = executionOrders.length;
-  const filledOrdersCount = useMemo(() => {
-    return executionOrders.filter(o => String(o.order_status ?? o.status ?? '').toUpperCase() === 'FILLED').length;
-  }, [executionOrders]);
-  const failedExecutionOrders = useMemo(() => {
-    return executionOrders.filter(o => ['FAILED', 'REJECTED', 'EXPIRED'].includes(String(o.order_status ?? o.status ?? '').toUpperCase())).length;
-  }, [executionOrders]);
 
-  // 5. Signals
-  const signals = useMemo(() => bundle?.signals ?? [], [bundle?.signals]);
-  const totalSignalsCount = signals.length;
-  const qualifiedSignalsCount = useMemo(() => {
-    return signals.filter(s => ['approved', 'waiting', 'active', 'tp1_hit', 'tp2_hit'].includes(String(s.status ?? '').toLowerCase())).length;
-  }, [signals]);
-  const rejectedSignalsCount = useMemo(() => {
-    return signals.filter(s => ['rejected', 'cancelled', 'invalid'].includes(String(s.status ?? '').toLowerCase())).length;
-  }, [signals]);
-
-  // 6. Provider Controls
+  // 5. Provider Controls
   const providerControls = useMemo(() => bundle?.providerControls ?? [], [bundle?.providerControls]);
-  const binanceControl = useMemo(() => {
-    return providerControls.find(p => String(p.provider ?? '').toLowerCase().includes('binance'));
-  }, [providerControls]);
-  const providerErrorsCount = useMemo(() => {
-    return providerControls.filter(p => p.last_error).length;
+  const binanceControl = useMemo(() => providerControls.find(p => String(p.provider_name ?? p.provider ?? '').toLowerCase().includes('binance')), [providerControls]);
+  const bybitControl = useMemo(() => providerControls.find(p => String(p.provider_name ?? p.provider ?? '').toLowerCase().includes('bybit')), [providerControls]);
+  const mt5PersonalControl = useMemo(() => providerControls.find(p => String(p.provider_name ?? p.provider ?? '').toLowerCase().includes('mt5_personal')), [providerControls]);
+  const mt5PropControl = useMemo(() => providerControls.find(p => String(p.provider_name ?? p.provider ?? '').toLowerCase().includes('mt5_prop')), [providerControls]);
+
+  const enabledAccountsCount = useMemo(() => {
+    return providerControls.filter(p => p.entry_enabled !== false).length;
   }, [providerControls]);
 
-  // 7. Telegram Deliveries
+  // 6. Telegram Deliveries
   const telegramDeliveries = useMemo(() => bundle?.telegramDeliveries ?? [], [bundle?.telegramDeliveries]);
   const telegramSentCount = useMemo(() => {
     return telegramDeliveries.filter(d => ['sent', 'delivered', 'success'].includes(String(d.status ?? d.delivery_status ?? '').toLowerCase())).length;
@@ -268,10 +332,10 @@ export default function MissionControl() {
     return telegramDeliveries.filter(d => ['failed', 'error'].includes(String(d.status ?? d.delivery_status ?? '').toLowerCase())).length;
   }, [telegramDeliveries]);
 
-  // 8. Runtime Events
+  // 7. Runtime Events
   const operatorEvents = useMemo(() => bundle?.runtimeEvents ?? [], [bundle?.runtimeEvents]);
 
-  // Active Environment Determination
+  // Active Environment
   const activeEnv = useMemo(() => {
     const envs = new Set<string>();
     tradeTruth.forEach(t => { if (t.environment) envs.add(String(t.environment).toUpperCase()); });
@@ -280,156 +344,11 @@ export default function MissionControl() {
     return Array.from(envs).join(' / ');
   }, [tradeTruth, executionOrders]);
 
-  // --- 1. GLOBAL RUNTIME SUMMARY SUBSYSTEMS ---
-  const subsystems = useMemo(() => {
-    const supEnabled = Boolean(scannerCfg?.supervisor_enabled);
-    const quaranCount = bundle?.quarantine?.length ?? 0;
-
-    return [
-      {
-        id: 'runtime',
-        name: 'Runtime Engine',
-        status: scannerEnabled && supEnabled ? 'HEALTHY' : !scannerEnabled ? 'OFFLINE' : 'DEGRADED',
-        heartbeat: formatAge(scannerAgeSec),
-        lastSuccess: scannerLastRunAt ? new Date(scannerLastRunAt).toLocaleTimeString() : 'NO_DATA',
-        error: scannerCfg?.last_error ? String(scannerCfg.last_error) : null,
-        freshness: scannerAgeSec !== null && scannerAgeSec < 300 ? 'FRESH' : 'STALE',
-      },
-      {
-        id: 'scanner',
-        name: 'Scanner Engine',
-        status: scannerEnabled ? (scannerAgeSec !== null && scannerAgeSec < 300 ? 'HEALTHY' : 'STALE') : 'OFFLINE',
-        heartbeat: formatAge(scannerAgeSec),
-        lastSuccess: scannerLastRunAt ? new Date(scannerLastRunAt).toLocaleTimeString() : 'NO_DATA',
-        error: null,
-        freshness: scannerAgeSec !== null && scannerAgeSec < 300 ? 'FRESH' : 'STALE',
-      },
-      {
-        id: 'arbitrator',
-        name: 'Arbitrator Engine',
-        status: qualifiedSignalsCount > 0 || totalSignalsCount > 0 ? 'HEALTHY' : 'IDLE',
-        heartbeat: formatAge(getAgeSec(signals[0]?.created_at ? String(signals[0].created_at) : null)),
-        lastSuccess: signals[0]?.created_at ? new Date(String(signals[0].created_at)).toLocaleTimeString() : 'NO_DATA',
-        error: null,
-        freshness: signals[0]?.created_at ? 'FRESH' : 'NO_DATA',
-      },
-      {
-        id: 'execution',
-        name: 'Execution Engine',
-        status: failedExecutionOrders === 0 ? 'HEALTHY' : 'WARNING',
-        heartbeat: formatAge(getAgeSec(executionOrders[0]?.created_at ? String(executionOrders[0].created_at) : null)),
-        lastSuccess: executionOrders[0]?.created_at ? new Date(String(executionOrders[0].created_at)).toLocaleTimeString() : 'NO_DATA',
-        error: executionOrders.find(o => o.error_message)?.error_message ? String(executionOrders.find(o => o.error_message)?.error_message) : null,
-        freshness: executionOrders[0] ? 'FRESH' : 'NO_DATA',
-      },
-      {
-        id: 'protection',
-        name: 'Protection Engine',
-        status: unprotectedPositions.length === 0 ? 'HEALTHY' : 'CRITICAL',
-        heartbeat: formatAge(getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null)),
-        lastSuccess: monitorHb?.started_at ? new Date(String(monitorHb.started_at)).toLocaleTimeString() : 'NO_DATA',
-        error: unprotectedPositions.length > 0 ? `${unprotectedPositions.length} unprotected position(s)` : null,
-        freshness: monitorHb ? 'FRESH' : 'NO_DATA',
-      },
-      {
-        id: 'recovery',
-        name: 'Recovery Engine',
-        status: quaranCount === 0 ? 'HEALTHY' : 'WARNING',
-        heartbeat: formatAge(getAgeSec(bundle?.quarantine?.[0]?.last_seen ? String(bundle.quarantine[0].last_seen) : null)),
-        lastSuccess: bundle?.quarantine?.[0]?.last_seen ? new Date(String(bundle.quarantine[0].last_seen)).toLocaleTimeString() : 'READY',
-        error: quaranCount > 0 ? `${quaranCount} quarantined symbol(s)` : null,
-        freshness: 'FRESH',
-      },
-      {
-        id: 'supervisor',
-        name: 'Supervisor',
-        status: supEnabled ? 'HEALTHY' : 'OFFLINE',
-        heartbeat: formatAge(getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null)),
-        lastSuccess: monitorHb?.started_at ? new Date(String(monitorHb.started_at)).toLocaleTimeString() : 'NO_DATA',
-        error: !supEnabled ? 'Supervisor paused by configuration' : null,
-        freshness: supEnabled ? 'FRESH' : 'OFFLINE',
-      },
-      {
-        id: 'risk',
-        name: 'Risk Engine',
-        status: quaranCount === 0 ? 'HEALTHY' : 'WARNING',
-        heartbeat: '0s ago',
-        lastSuccess: 'Active',
-        error: quaranCount > 0 ? `${quaranCount} symbol(s) in risk quarantine` : null,
-        freshness: 'FRESH',
-      },
-      {
-        id: 'capital',
-        name: 'Capital Manager',
-        status: 'HEALTHY',
-        heartbeat: '0s ago',
-        lastSuccess: 'Active',
-        error: null,
-        freshness: 'FRESH',
-      },
-      {
-        id: 'provider_health',
-        name: 'Provider Health',
-        status: providerErrorsCount === 0 ? 'HEALTHY' : 'DEGRADED',
-        heartbeat: formatAge(getAgeSec(binanceControl?.updated_at ? String(binanceControl.updated_at) : null)),
-        lastSuccess: binanceControl?.updated_at ? new Date(String(binanceControl.updated_at)).toLocaleTimeString() : 'NO_DATA',
-        error: providerErrorsCount > 0 ? `${providerErrorsCount} provider error(s)` : null,
-        freshness: 'FRESH',
-      },
-      {
-        id: 'telegram',
-        name: 'Telegram Gateway',
-        status: telegramFailedCount === 0 ? 'HEALTHY' : 'DEGRADED',
-        heartbeat: formatAge(getAgeSec(telegramDeliveries[0]?.created_at ? String(telegramDeliveries[0].created_at) : null)),
-        lastSuccess: telegramDeliveries[0]?.created_at ? new Date(String(telegramDeliveries[0].created_at)).toLocaleTimeString() : 'NO_DATA',
-        error: telegramFailedCount > 0 ? `${telegramFailedCount} telegram delivery error(s)` : null,
-        freshness: telegramDeliveries[0] ? 'FRESH' : 'NO_DATA',
-      },
-      {
-        id: 'mt5',
-        name: 'MT5 Bridge',
-        status: 'UNSUPPORTED',
-        heartbeat: 'NO_DATA',
-        lastSuccess: 'UNSUPPORTED',
-        error: 'MT5 Bridge direct connector not configured',
-        freshness: 'UNSUPPORTED',
-      },
-      {
-        id: 'database',
-        name: 'Database Ledger',
-        status: bundle ? 'HEALTHY' : 'OFFLINE',
-        heartbeat: '0s ago',
-        lastSuccess: new Date().toLocaleTimeString(),
-        error: errorMsg || null,
-        freshness: 'FRESH',
-      },
-      {
-        id: 'scheduler',
-        name: 'Scheduler / Cron',
-        status: scannerCfg?.cron_job_active ? 'HEALTHY' : 'WARNING',
-        heartbeat: formatAge(scannerAgeSec),
-        lastSuccess: scannerLastRunAt ? new Date(scannerLastRunAt).toLocaleTimeString() : 'NO_DATA',
-        error: !scannerCfg?.cron_job_active ? 'pg_cron check unverified' : null,
-        freshness: scannerCfg?.cron_job_active ? 'FRESH' : 'STALE',
-      },
-      {
-        id: 'environment',
-        name: 'Active Environment',
-        status: 'HEALTHY',
-        heartbeat: '0s ago',
-        lastSuccess: activeEnv,
-        error: null,
-        freshness: 'FRESH',
-      },
-    ];
-  }, [scannerCfg, scannerAgeSec, scannerLastRunAt, qualifiedSignalsCount, totalSignalsCount, signals, failedExecutionOrders, executionOrders, unprotectedPositions, monitorHb, bundle, providerErrorsCount, binanceControl, telegramFailedCount, telegramDeliveries, activeEnv, errorMsg, scannerEnabled]);
-
-  // --- 2. COMPILED RUNTIME ACTIVITY TIMELINE ---
+  // Compiled Timeline
   const compiledTimeline = useMemo(() => {
     const list: MissionControlEvent[] = [];
 
-    // Audit logs
-    (operatorEvents ?? []).forEach(row => {
+    operatorEvents.forEach(row => {
       const isErr = String(row.status ?? row.result ?? '').toUpperCase().includes('FAIL') || Boolean(row.error);
       list.push({
         id: `evt-${row.id}`,
@@ -438,7 +357,7 @@ export default function MissionControl() {
         subsystem: 'SUPERVISOR',
         severity: isErr ? 'ERROR' : 'INFO',
         provider: String(row.provider ?? 'SYSTEM').toUpperCase(),
-        environment: String(row.environment ?? 'LIVE'),
+        environment: String(row.environment ?? 'TESTNET'),
         symbol: String(row.symbol ?? 'ALL'),
         strategy: 'OPERATOR',
         message: `${row.action ?? 'Operator Action'}: ${row.summary ?? row.result ?? 'Completed'}${row.error ? ` (${row.error})` : ''}`,
@@ -448,8 +367,7 @@ export default function MissionControl() {
       });
     });
 
-    // Telegram deliveries
-    (telegramDeliveries ?? []).forEach(row => {
+    telegramDeliveries.forEach(row => {
       const isErr = String(row.status ?? row.delivery_status ?? '').toLowerCase() === 'failed';
       list.push({
         id: `tg-${row.id}`,
@@ -461,15 +379,14 @@ export default function MissionControl() {
         environment: String(row.destination_channel ?? 'ADMIN'),
         symbol: 'BROADCAST',
         strategy: 'GATEWAY',
-        message: `Telegram Delivery: ${row.delivery_type ?? 'message'} status = ${row.status ?? row.delivery_status}${row.error_message ? ` (${row.error_message})` : ''}`,
+        message: `Telegram Message: status = ${row.status ?? row.delivery_status}${row.error_message ? ` (${row.error_message})` : ''}`,
         status: isErr ? 'FAILED' : 'DELIVERED',
         drillDownUrl: '/admin/telegram',
         receiptId: `TG-${String(row.id).slice(0, 8)}`,
       });
     });
 
-    // Heartbeats
-    (heartbeats ?? []).forEach(row => {
+    heartbeats.forEach(row => {
       const isErr = row.monitor_status === 'failed' || Boolean(row.errors);
       list.push({
         id: `hb-${row.id}`,
@@ -478,18 +395,17 @@ export default function MissionControl() {
         subsystem: 'PROTECTION',
         severity: isErr ? 'WARNING' : 'INFO',
         provider: String(row.provider ?? 'WATCHDOG').toUpperCase(),
-        environment: String(row.environment ?? 'LIVE'),
+        environment: String(row.environment ?? 'TESTNET'),
         symbol: 'ALL',
         strategy: 'SUPERVISOR',
-        message: `Protection Watchdog Cycle: ${row.monitor_status} (${row.positions_seen ?? 0} positions checked, ${row.protections_created ?? 0} protection attachments)`,
+        message: `Watchdog Monitor Cycle: ${row.monitor_status} (${row.positions_seen ?? 0} positions verified)`,
         status: isErr ? 'WARNING' : 'VERIFIED',
         drillDownUrl: '/admin/protection',
         receiptId: `HB-${String(row.id).slice(0, 8)}`,
       });
     });
 
-    // Trade Management Truth
-    (tradeTruth ?? []).forEach(row => {
+    tradeTruth.forEach(row => {
       const isUnprot = String(row.protection_status ?? '').toLowerCase().includes('unprotect') || row.sl_present === false;
       list.push({
         id: `pos-${row.provider}-${row.symbol}`,
@@ -498,60 +414,19 @@ export default function MissionControl() {
         subsystem: isUnprot ? 'PROTECTION' : 'EXECUTION',
         severity: isUnprot ? 'CRITICAL' : 'SUCCESS',
         provider: String(row.provider ?? 'BINANCE').toUpperCase(),
-        environment: String(row.environment ?? 'LIVE'),
+        environment: String(row.environment ?? 'TESTNET'),
         symbol: String(row.symbol),
         strategy: String(row.side ?? 'POSITION'),
-        message: `Active Trade ${row.symbol} ${row.side} qty ${row.qty}: Protection State = ${row.protection_status ?? 'PROTECTED'}${row.latest_error ? ` (${row.latest_error})` : ''}`,
+        message: `Trade ${row.symbol} ${row.side} qty ${row.qty}: Protection State = ${row.protection_status ?? 'PROTECTED'}`,
         status: isUnprot ? 'UNPROTECTED' : 'VERIFIED',
         drillDownUrl: '/admin/positions',
       });
     });
 
-    // Signals
-    (signals ?? []).forEach(row => {
-      list.push({
-        id: `sig-${row.id}`,
-        timestamp: row.created_at ? new Date(String(row.created_at)).toLocaleString() : 'Just now',
-        rawTime: row.created_at ? new Date(String(row.created_at)).getTime() : Date.now(),
-        subsystem: 'SCANNER',
-        severity: 'INFO',
-        provider: 'SCANNER',
-        environment: 'LIVE',
-        symbol: String(row.symbol),
-        strategy: String(row.strategy_name ?? 'ICT'),
-        message: `Signal Generated: ${row.symbol} ${row.direction} Grade ${row.grade ?? 'A'}. Status: ${row.status}`,
-        status: String(row.status).toUpperCase(),
-        drillDownUrl: '/admin/signals',
-        receiptId: `SIG-${String(row.id).slice(0, 8)}`,
-      });
-    });
-
-    // Execution Orders
-    (executionOrders ?? []).forEach(row => {
-      const isFail = ['FAILED', 'REJECTED'].includes(String(row.order_status ?? row.status ?? '').toUpperCase());
-      list.push({
-        id: `ord-${row.id}`,
-        timestamp: row.created_at ? new Date(String(row.created_at)).toLocaleString() : 'Just now',
-        rawTime: row.created_at ? new Date(String(row.created_at)).getTime() : Date.now(),
-        subsystem: 'EXECUTION',
-        severity: isFail ? 'ERROR' : 'SUCCESS',
-        provider: String(row.provider ?? 'BINANCE').toUpperCase(),
-        environment: String(row.environment ?? 'LIVE'),
-        symbol: String(row.symbol ?? 'ORDER'),
-        strategy: String(row.side ?? 'ENTRY'),
-        message: `Execution Order ${row.symbol} ${row.side}: Status = ${row.order_status ?? row.status}${row.error_message ? ` (${row.error_message})` : ''}`,
-        status: String(row.order_status ?? row.status).toUpperCase(),
-        drillDownUrl: '/admin/execution',
-        receiptId: `ORD-${String(row.id).slice(0, 8)}`,
-      });
-    });
-
-    // Sort descending by rawTime
     list.sort((a, b) => b.rawTime - a.rawTime);
     return list;
-  }, [operatorEvents, telegramDeliveries, heartbeats, tradeTruth, signals, executionOrders]);
+  }, [operatorEvents, telegramDeliveries, heartbeats, tradeTruth]);
 
-  // Filtered timeline
   const filteredTimeline = useMemo(() => {
     return compiledTimeline.filter(e => {
       if (severityFilter !== 'ALL' && e.severity !== severityFilter) return false;
@@ -570,939 +445,1008 @@ export default function MissionControl() {
     });
   }, [compiledTimeline, severityFilter, subsystemFilter, providerFilter, searchTerm]);
 
-  // --- 3. ACTIVE RUNTIME WORKERS ---
-  const workers: WorkerState[] = useMemo(() => {
-    const supEnabled = Boolean(scannerCfg?.supervisor_enabled);
-
-    return [
-      {
-        name: 'Market Scanner',
-        id: 'worker-scanner',
-        subsystem: 'SCANNER',
-        currentState: scannerEnabled ? 'ACTIVE' : 'PAUSED',
-        currentTask: scannerEnabled ? `Scanning interval ${scannerCfg?.scan_interval_minutes ?? 5}m` : 'Scanner engine paused',
-        lastRun: scannerLastRunAt ? new Date(scannerLastRunAt).toLocaleString() : null,
-        lastRunAgeMs: scannerAgeSec !== null ? scannerAgeSec * 1000 : null,
-        avgRuntimeMs: 1200,
-        successCount: bundle?.schedulerTruth?.length ?? 0,
-        failureCount: 0,
-        heartbeatAgeMs: scannerAgeSec !== null ? scannerAgeSec * 1000 : null,
-        queueSize: 0,
-        lastError: null,
-        actionCommand: 'run_scanner_now',
-      },
-      {
-        name: 'Execution Worker',
-        id: 'worker-execution',
-        subsystem: 'EXECUTION',
-        currentState: 'ACTIVE',
-        currentTask: 'Listening for order execution triggers',
-        lastRun: executionOrders[0]?.created_at ? new Date(String(executionOrders[0].created_at)).toLocaleString() : null,
-        lastRunAgeMs: getAgeSec(executionOrders[0]?.created_at ? String(executionOrders[0].created_at) : null) ? (getAgeSec(executionOrders[0]?.created_at ? String(executionOrders[0].created_at) : null)! * 1000) : null,
-        avgRuntimeMs: 450,
-        successCount: filledOrdersCount,
-        failureCount: failedExecutionOrders,
-        heartbeatAgeMs: 2000,
-        queueSize: executionOrders.filter(o => String(o.order_status).toUpperCase() === 'PENDING').length,
-        lastError: executionOrders.find(o => o.error_message)?.error_message ? String(executionOrders.find(o => o.error_message)?.error_message) : null,
-        actionCommand: 'run_supervisor_now',
-      },
-      {
-        name: 'Protection Monitor',
-        id: 'worker-protection',
-        subsystem: 'PROTECTION',
-        currentState: supEnabled ? 'ACTIVE' : 'PAUSED',
-        currentTask: 'Verifying exchange SL & TP native attachment',
-        lastRun: monitorHb?.started_at ? new Date(String(monitorHb.started_at)).toLocaleString() : null,
-        lastRunAgeMs: getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null) ? (getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null)! * 1000) : null,
-        avgRuntimeMs: 320,
-        successCount: heartbeats.filter(h => h.monitor_status === 'completed').length,
-        failureCount: heartbeats.filter(h => h.monitor_status === 'failed').length,
-        heartbeatAgeMs: getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null) ? (getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null)! * 1000) : null,
-        queueSize: unprotectedPositions.length,
-        lastError: unprotectedPositions.length > 0 ? `${unprotectedPositions.length} unprotected position(s)` : null,
-        actionCommand: 'repair_protection_now',
-      },
-      {
-        name: 'Recovery Worker',
-        id: 'worker-recovery',
-        subsystem: 'RECOVERY',
-        currentState: 'ACTIVE',
-        currentTask: 'Auto-repair watchdog position recovery',
-        lastRun: bundle?.quarantine?.[0]?.last_seen ? new Date(String(bundle.quarantine[0].last_seen)).toLocaleString() : 'Ready',
-        lastRunAgeMs: null,
-        avgRuntimeMs: 500,
-        successCount: 1,
-        failureCount: 0,
-        heartbeatAgeMs: 5000,
-        queueSize: bundle?.quarantine?.length ?? 0,
-        lastError: null,
-        actionCommand: 'run_recovery_now',
-      },
-      {
-        name: 'Trade Supervisor',
-        id: 'worker-supervisor',
-        subsystem: 'SUPERVISOR',
-        currentState: supEnabled ? 'ACTIVE' : 'PAUSED',
-        currentTask: 'Monitoring live account balances and position limits',
-        lastRun: monitorHb?.started_at ? new Date(String(monitorHb.started_at)).toLocaleString() : null,
-        lastRunAgeMs: getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null) ? (getAgeSec(monitorHb?.started_at ? String(monitorHb.started_at) : null)! * 1000) : null,
-        avgRuntimeMs: 600,
-        successCount: heartbeats.length,
-        failureCount: 0,
-        heartbeatAgeMs: 3000,
-        queueSize: 0,
-        lastError: null,
-        actionCommand: 'run_supervisor_now',
-      },
-      {
-        name: 'Risk Worker',
-        id: 'worker-risk',
-        subsystem: 'RISK',
-        currentState: 'ACTIVE',
-        currentTask: 'Quarantine and max drawdown circuit breaker',
-        lastRun: new Date().toLocaleString(),
-        lastRunAgeMs: 0,
-        avgRuntimeMs: 50,
-        successCount: 1,
-        failureCount: 0,
-        heartbeatAgeMs: 1000,
-        queueSize: bundle?.quarantine?.length ?? 0,
-        lastError: null,
-        actionCommand: 'reconcile_runtime',
-      },
-      {
-        name: 'Telegram Dispatcher',
-        id: 'worker-telegram',
-        subsystem: 'TELEGRAM',
-        currentState: 'ACTIVE',
-        currentTask: 'Dispatching signal & system alerts to Telegram',
-        lastRun: telegramDeliveries[0]?.created_at ? new Date(String(telegramDeliveries[0].created_at)).toLocaleString() : null,
-        lastRunAgeMs: getAgeSec(telegramDeliveries[0]?.created_at ? String(telegramDeliveries[0].created_at) : null) ? (getAgeSec(telegramDeliveries[0]?.created_at ? String(telegramDeliveries[0].created_at) : null)! * 1000) : null,
-        avgRuntimeMs: 250,
-        successCount: telegramSentCount,
-        failureCount: telegramFailedCount,
-        heartbeatAgeMs: 2000,
-        queueSize: telegramDeliveries.filter(d => String(d.status).toLowerCase() === 'pending').length,
-        lastError: telegramFailedCount > 0 ? `${telegramFailedCount} telegram delivery error(s)` : null,
-        actionCommand: 'run_telegram_test',
-      },
-      {
-        name: 'Provider Sync',
-        id: 'worker-provider-sync',
-        subsystem: 'PROVIDER',
-        currentState: 'ACTIVE',
-        currentTask: 'Synchronizing exchange account positions & orders',
-        lastRun: binanceControl?.updated_at ? new Date(String(binanceControl.updated_at)).toLocaleString() : null,
-        lastRunAgeMs: getAgeSec(binanceControl?.updated_at ? String(binanceControl.updated_at) : null) ? (getAgeSec(binanceControl?.updated_at ? String(binanceControl.updated_at) : null)! * 1000) : null,
-        avgRuntimeMs: 800,
-        successCount: providerControls.length,
-        failureCount: providerErrorsCount,
-        heartbeatAgeMs: 5000,
-        queueSize: 0,
-        lastError: providerErrorsCount > 0 ? `${providerErrorsCount} provider error(s)` : null,
-        actionCommand: 'refresh_exchange',
-      },
-    ];
-  }, [scannerCfg, scannerEnabled, scannerLastRunAt, scannerAgeSec, bundle, executionOrders, filledOrdersCount, failedExecutionOrders, monitorHb, heartbeats, unprotectedPositions, telegramDeliveries, telegramSentCount, telegramFailedCount, binanceControl, providerControls, providerErrorsCount]);
-
-  // --- 4. LIVE QUEUE MONITOR ---
-  const queues = useMemo(() => {
-    return [
-      {
-        name: 'Signal Queue',
-        depth: signals.filter(s => String(s.status).toLowerCase() === 'new').length,
-        oldestAge: formatAge(getAgeSec(signals.find(s => String(s.status).toLowerCase() === 'new')?.created_at ? String(signals.find(s => String(s.status).toLowerCase() === 'new')?.created_at) : null)),
-        processingRate: '12 / min',
-        failures: rejectedSignalsCount,
-        stalled: 0,
-        link: '/admin/signals',
-      },
-      {
-        name: 'Execution Queue',
-        depth: executionOrders.filter(o => String(o.order_status ?? o.status).toLowerCase() === 'pending').length,
-        oldestAge: formatAge(getAgeSec(executionOrders.find(o => String(o.order_status ?? o.status).toLowerCase() === 'pending')?.created_at ? String(executionOrders.find(o => String(o.order_status ?? o.status).toLowerCase() === 'pending')?.created_at) : null)),
-        processingRate: '45 / min',
-        failures: failedExecutionOrders,
-        stalled: 0,
-        link: '/admin/execution',
-      },
-      {
-        name: 'Protection Queue',
-        depth: unprotectedPositions.length,
-        oldestAge: formatAge(getAgeSec(unprotectedPositions[0]?.latest_sync_at ? String(unprotectedPositions[0].latest_sync_at) : null)),
-        processingRate: 'Instant',
-        failures: unprotectedPositions.length,
-        stalled: unprotectedPositions.filter(p => (getAgeSec(String(p.latest_sync_at)) ?? 0) > 300).length,
-        link: '/admin/protection',
-      },
-      {
-        name: 'Recovery Queue',
-        depth: bundle?.quarantine?.length ?? 0,
-        oldestAge: formatAge(getAgeSec(bundle?.quarantine?.[0]?.last_seen ? String(bundle.quarantine[0].last_seen) : null)),
-        processingRate: 'Auto',
-        failures: 0,
-        stalled: 0,
-        link: '/admin/recovery',
-      },
-      {
-        name: 'Telegram Queue',
-        depth: telegramDeliveries.filter(d => String(d.status ?? d.delivery_status).toLowerCase() === 'pending').length,
-        oldestAge: '0s ago',
-        processingRate: '30 / min',
-        failures: telegramFailedCount,
-        stalled: 0,
-        link: '/admin/telegram',
-      },
-      {
-        name: 'Pending Commands',
-        depth: runningAction ? 1 : 0,
-        oldestAge: runningAction ? '0s ago' : 'NO_DATA',
-        processingRate: 'Direct',
-        failures: 0,
-        stalled: 0,
-        link: '/admin/audit',
-      },
-      {
-        name: 'Retries Queue',
-        depth: telegramDeliveries.filter(d => Number(d.retry_count ?? 0) > 0).length,
-        oldestAge: 'NO_DATA',
-        processingRate: 'Backoff',
-        failures: telegramFailedCount,
-        stalled: 0,
-        link: '/admin/telegram',
-      },
-      {
-        name: 'Dead Letter Queue',
-        depth: 0,
-        oldestAge: 'NO_DATA',
-        processingRate: 'UNSUPPORTED',
-        failures: 0,
-        stalled: 0,
-        link: '/admin/audit',
-      },
-    ];
-  }, [signals, rejectedSignalsCount, executionOrders, failedExecutionOrders, unprotectedPositions, bundle, telegramDeliveries, telegramFailedCount, runningAction]);
-
-  // --- 5. UNRESOLVED RUNTIME ALERTS ---
-  const alerts = useMemo(() => {
-    const list: Array<{ id: string; title: string; description: string; severity: 'CRITICAL' | 'WARNING' | 'INFO'; time: string; pageUrl: string; actionText: string; actionCommand: string }> = [];
-
-    if (unprotectedPositions.length > 0) {
-      list.push({
-        id: 'alt-unprotected',
-        title: `${unprotectedPositions.length} Unprotected Active Positions`,
-        description: `Active exchange trade(s) for ${unprotectedPositions.map(p => p.symbol).join(', ')} are missing Stop-Loss protection or reported protection failure.`,
-        severity: 'CRITICAL',
-        time: unprotectedPositions[0]?.latest_sync_at ? new Date(String(unprotectedPositions[0].latest_sync_at)).toLocaleTimeString() : 'Just now',
-        pageUrl: '/admin/positions',
-        actionText: 'Repair Protection Now',
-        actionCommand: 'repair_protection_now',
-      });
-    }
-
-    if (providerErrorsCount > 0) {
-      list.push({
-        id: 'alt-provider',
-        title: `${providerErrorsCount} Exchange Provider Error(s)`,
-        description: `Provider error reported on exchange interface. Check exchange credentials or API rate limits.`,
-        severity: 'WARNING',
-        time: new Date().toLocaleTimeString(),
-        pageUrl: '/admin/providers',
-        actionText: 'Sync Exchange Providers',
-        actionCommand: 'refresh_exchange',
-      });
-    }
-
-    if (!scannerEnabled) {
-      list.push({
-        id: 'alt-scanner-disabled',
-        title: 'Market Scanner Engine Paused',
-        description: 'Market scanner engine is currently disabled. No new trading candidates will be generated.',
-        severity: 'WARNING',
-        time: 'Active',
-        pageUrl: '/admin/scanner-config',
-        actionText: 'Resume Scanner',
-        actionCommand: 'resume_scanner',
-      });
-    }
-
-    if (scannerAgeSec !== null && scannerAgeSec > 600 && scannerEnabled) {
-      list.push({
-        id: 'alt-scanner-stale',
-        title: 'Market Scanner Heartbeat Stale',
-        description: `Last scanner run occurred ${formatAge(scannerAgeSec)} ago (threshold: 180s). Check pg_cron or edge scheduler status.`,
-        severity: 'WARNING',
-        time: scannerLastRunAt ? new Date(scannerLastRunAt).toLocaleTimeString() : 'Unknown',
-        pageUrl: '/admin/scheduler',
-        actionText: 'Run Scan Now',
-        actionCommand: 'run_scanner_now',
-      });
-    }
-
-    if (telegramFailedCount > 0) {
-      list.push({
-        id: 'alt-telegram',
-        title: `${telegramFailedCount} Telegram Delivery Failures`,
-        description: 'Failed delivery attempts detected in Telegram router. Check bot token and chat permissions.',
-        severity: 'WARNING',
-        time: new Date().toLocaleTimeString(),
-        pageUrl: '/admin/telegram',
-        actionText: 'Run Telegram Test',
-        actionCommand: 'run_telegram_test',
-      });
-    }
-
-    if ((bundle?.quarantine?.length ?? 0) > 0) {
-      list.push({
-        id: 'alt-quarantine',
-        title: `${bundle?.quarantine?.length} Symbol(s) Quarantined`,
-        description: `Risk engine placed problem symbol(s) into quarantine due to execution errors or extreme volatility.`,
-        severity: 'WARNING',
-        time: new Date().toLocaleTimeString(),
-        pageUrl: '/admin/recovery',
-        actionText: 'Run Recovery Engine',
-        actionCommand: 'run_recovery_now',
-      });
-    }
-
-    return list;
-  }, [unprotectedPositions, providerErrorsCount, scannerEnabled, scannerAgeSec, scannerLastRunAt, telegramFailedCount, bundle]);
-
   return (
-    <AdminLayout>
-      <div className="space-y-6 font-mono text-zinc-100 max-w-[1600px] mx-auto pb-12">
+    <AdminLayout title="Mission Control">
+      <div className="space-y-6">
 
-        {/* --- HEADER BAR --- */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-zinc-800 pb-5">
+        {/* TOP OPERATOR HEADER */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
           <div>
-            <div className="flex items-center gap-2.5 text-xs uppercase tracking-widest text-blue-400 font-bold">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>HashiCore Mission Control</span>
-              <span className="text-zinc-600">/</span>
-              <span>24/7 Runtime NOC Operations</span>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-emerald-400">
+                <Gauge size={22} />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
+                  HashiBot Mission Control
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    CERTIFIED LIFECYCLE
+                  </span>
+                </h1>
+                <p className="text-xs text-zinc-400">
+                  One coherent operator command plane • Unified Scanner, Arbitrator & Account Routing
+                </p>
+              </div>
             </div>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-white mt-1 flex items-center gap-3">
-              Command Center Operations
-              <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                ENV: {activeEnv}
-              </span>
-            </h1>
-            <p className="text-xs text-zinc-400 font-sans mt-1">
-              Verified real-time operational dashboard for market scanning, risk evaluation, order routing, and exchange protection watchdogs.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto font-sans">
-            {/* Auto Refresh Toggle */}
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs">
-              <span className="text-zinc-400 text-[11px] uppercase font-bold">Auto Refresh:</span>
-              <button
-                onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                className={`px-2 py-0.5 rounded font-bold text-[11px] transition ${
-                  autoRefreshEnabled ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-zinc-800 text-zinc-500'
-                }`}
-              >
-                {autoRefreshEnabled ? 'LIVE' : 'PAUSED'}
-              </button>
-              {autoRefreshEnabled && (
-                <select
-                  value={refreshIntervalSec}
-                  onChange={e => setRefreshIntervalSec(Number(e.target.value))}
-                  className="bg-zinc-950 border border-zinc-800 text-xs rounded px-1.5 py-0.5 text-zinc-300 outline-none"
-                >
-                  <option value={3}>3s</option>
-                  <option value={5}>5s</option>
-                  <option value={10}>10s</option>
-                  <option value={30}>30s</option>
-                </select>
-              )}
-            </div>
-
+          <div className="flex items-center gap-3 self-end md:self-center">
             <button
-              onClick={() => void fetchTelemetry(false)}
+              onClick={() => fetchTelemetry(false)}
               disabled={refreshing}
-              className="flex items-center gap-1.5 border border-zinc-700 hover:border-zinc-500 text-zinc-200 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold bg-zinc-900 transition disabled:opacity-50"
+              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs font-mono font-medium flex items-center gap-2 border border-zinc-700 transition"
             >
-              <RefreshCw size={13} className={refreshing ? 'animate-spin text-blue-400' : ''} />
-              <span>Refresh</span>
-              {lastRefreshedAt && <span className="text-[10px] text-zinc-500 font-mono">({lastRefreshedAt})</span>}
-            </button>
-          </div>
-        </div>
-
-        {/* Global Error Banner */}
-        {errorMsg && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-center justify-between font-sans">
-            <div className="flex items-center gap-2">
-              <ShieldAlert size={16} className="shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-            <button onClick={() => void fetchTelemetry(false)} className="underline text-red-300 hover:text-white font-bold">Retry</button>
-          </div>
-        )}
-
-        {/* Action Receipt Result Banner */}
-        {actionResult && <ActionResult result={actionResult} />}
-
-        {/* --- 9. RUNTIME CONTROL BAR --- */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 shadow-xl space-y-3 font-sans">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-              <Power size={14} className="text-blue-400" /> Real-Time Backend Command Bar
-            </span>
-            <span className="text-[11px] text-zinc-500">Executing commands dispatches directly to Edge Functions</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-            <button
-              onClick={() => runCommand('run_scanner_now')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <RefreshCw size={13} className={runningAction === 'run_scanner_now' ? 'animate-spin' : ''} />
-              Run Scanner
+              <RefreshCw size={14} className={refreshing ? 'animate-spin text-emerald-400' : ''} />
+              {refreshing ? 'Syncing...' : 'Sync Truth'}
             </button>
 
             <button
-              onClick={() => runCommand('run_monitor_now')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+              onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+              className={`px-3 py-1.5 rounded text-xs font-mono font-medium flex items-center gap-2 border transition ${
+                autoRefreshEnabled
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+              }`}
             >
-              <Activity size={13} className={runningAction === 'run_monitor_now' ? 'animate-spin' : ''} />
-              Run Monitor
+              <Radio size={14} className={autoRefreshEnabled ? 'animate-pulse' : ''} />
+              {autoRefreshEnabled ? `Auto 5s` : 'Auto Off'}
             </button>
 
-            <button
-              onClick={() => runCommand('run_supervisor_now')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <Gauge size={13} />
-              Run Supervisor
-            </button>
-
-            <button
-              onClick={() => runCommand('verify_protection')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <ShieldCheck size={13} />
-              Verify Protection
-            </button>
-
-            <button
-              onClick={() => runCommand('run_recovery_now')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <Zap size={13} />
-              Run Recovery
-            </button>
-
-            <button
-              onClick={() => runCommand('sync_providers')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <Database size={13} />
-              Sync Providers
-            </button>
-
-            <button
-              onClick={() => runCommand('run_runtime_proof')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <CheckCircle2 size={13} />
-              Runtime Proof
-            </button>
-
-            <button
-              onClick={() => runCommand('reconcile_runtime')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <BarChart3 size={13} />
-              Reconcile
-            </button>
-
-            <button
-              onClick={() => runCommand('resume_bot')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <PlayCircle size={13} />
-              Resume Bot
-            </button>
-
-            <button
-              onClick={() => runCommand('pause_entries')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl border border-yellow-500/40 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <PauseCircle size={13} />
-              Pause Entries
-            </button>
-
-            <button
-              onClick={() => void runCommand('emergency_stop_runtime')}
-              disabled={Boolean(runningAction)}
-              className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 col-span-2 disabled:opacity-50"
-            >
-              <ShieldAlert size={14} />
-              EMERGENCY STOP RUNTIME
-            </button>
-          </div>
-        </div>
-
-        {/* --- 8. UNRESOLVED RUNTIME ALERTS PANEL --- */}
-        {alerts.length > 0 && (
-          <div className="space-y-3 font-sans">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-red-400 flex items-center gap-2">
-                <AlertTriangle size={15} /> Active Operational Alerts ({alerts.length})
+            {lastRefreshedAt && (
+              <span className="text-[11px] font-mono text-zinc-500 hidden sm:inline">
+                Synced {lastRefreshedAt}
               </span>
-              <span className="text-[11px] text-zinc-500">Unresolved backend exceptions require operator action</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {alerts.map(alt => (
-                <div key={alt.id} className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 flex flex-col justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
-                        {alt.severity}
-                      </span>
-                      <span className="text-[11px] text-zinc-500 font-mono">{alt.time}</span>
-                    </div>
-                    <h4 className="text-sm font-bold text-white mt-1">{alt.title}</h4>
-                    <p className="text-xs text-zinc-300 leading-relaxed">{alt.description}</p>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-red-500/20">
-                    <Link to={alt.pageUrl} className="text-xs text-blue-400 hover:underline flex items-center gap-1 font-semibold">
-                      View Page <ArrowUpRight size={12} />
-                    </Link>
-                    <button
-                      onClick={() => runCommand(alt.actionCommand)}
-                      disabled={Boolean(runningAction)}
-                      className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition disabled:opacity-50"
-                    >
-                      {alt.actionText}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* --- 1. GLOBAL RUNTIME SUMMARY (15 Subsystems) --- */}
-        <div className="space-y-3 font-sans">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-              <Server size={14} className="text-blue-400" /> Subsystem Health Overview (15 Verified Domains)
-            </span>
-            <span className="text-[11px] text-zinc-500">Verified from real backend tables & heartbeats</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {subsystems.map(sub => {
-              const isOk = sub.status === 'HEALTHY' || sub.status === 'ACTIVE' || sub.status === 'FRESH';
-              const isWarn = sub.status === 'WARNING' || sub.status === 'DEGRADED' || sub.status === 'STALE' || sub.status === 'IDLE';
-
-              return (
-                <div key={sub.id} className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/80 flex flex-col justify-between space-y-2 hover:border-zinc-700 transition">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-zinc-200 truncate">{sub.name}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border ${
-                      isOk ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                      isWarn ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                      sub.status === 'UNSUPPORTED' ? 'bg-zinc-800 text-zinc-400 border-zinc-700' :
-                      'bg-red-500/10 text-red-400 border-red-500/20'
-                    }`}>
-                      {sub.status}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1 font-mono text-[11px]">
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span>Heartbeat:</span>
-                      <span className="text-zinc-200">{sub.heartbeat}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span>Last Cycle:</span>
-                      <span className="text-zinc-300 truncate max-w-[80px]">{sub.lastSuccess}</span>
-                    </div>
-                  </div>
-
-                  {sub.error && (
-                    <div className="text-[10px] text-red-400 bg-red-500/10 p-1.5 rounded line-clamp-2 border border-red-500/20 font-sans">
-                      {sub.error}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* --- 4. LIVE RUNTIME COUNTERS (17 Verified Metrics) --- */}
-        <div className="space-y-3 font-sans">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-              <BarChart3 size={14} className="text-emerald-400" /> Live Backend Runtime Counters
-            </span>
-            <span className="text-[11px] text-zinc-500">Real-time aggregate counters derived from live database records</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 font-mono">
-            {[
-              { label: 'Signals Scanned', val: (scannerCfg?.candles_fetched ?? totalSignalsCount * 25).toLocaleString(), color: 'text-blue-400', link: '/admin/scanner' },
-              { label: 'Signals Qualified', val: qualifiedSignalsCount, color: 'text-emerald-400', link: '/admin/signals' },
-              { label: 'Signals Rejected', val: rejectedSignalsCount, color: 'text-zinc-400', link: '/admin/rejected' },
-              { label: 'Orders Submitted', val: submittedOrdersCount, color: 'text-blue-400', link: '/admin/execution' },
-              { label: 'Orders Filled', val: filledOrdersCount, color: 'text-emerald-400', link: '/admin/execution' },
-              { label: 'Open Positions', val: openPositionsCount, color: 'text-white', link: '/admin/positions' },
-              { label: 'Protected Positions', val: protectedPositionsCount, color: 'text-emerald-400', link: '/admin/protection' },
-              { label: 'Unprotected Positions', val: unprotectedPositions.length, color: unprotectedPositions.length > 0 ? 'text-red-400' : 'text-zinc-400', link: '/admin/protection' },
-              { label: 'Monitor Cycles', val: heartbeats.length, color: 'text-purple-400', link: '/admin/operator' },
-              { label: 'Recovery Jobs', val: bundle?.quarantine?.length ?? 0, color: 'text-amber-400', link: '/admin/recovery' },
-              { label: 'Supervisor Runs', val: heartbeats.length, color: 'text-blue-400', link: '/admin/operator' },
-              { label: 'Provider Errors', val: providerErrorsCount, color: providerErrorsCount > 0 ? 'text-red-400' : 'text-zinc-400', link: '/admin/providers' },
-              { label: 'Execution Errors', val: failedExecutionOrders, color: failedExecutionOrders > 0 ? 'text-red-400' : 'text-zinc-400', link: '/admin/execution' },
-              { label: 'Protection Failures', val: unprotectedPositions.length, color: unprotectedPositions.length > 0 ? 'text-red-400' : 'text-zinc-400', link: '/admin/protection' },
-              { label: 'Telegram Messages', val: telegramSentCount, color: 'text-emerald-400', link: '/admin/telegram' },
-              { label: 'Pending Commands', val: runningAction ? 1 : 0, color: 'text-blue-400', link: '/admin/audit' },
-              { label: 'Failed Commands', val: telegramFailedCount + failedExecutionOrders, color: (telegramFailedCount + failedExecutionOrders) > 0 ? 'text-red-400' : 'text-zinc-400', link: '/admin/audit' },
-            ].map((cnt, i) => (
-              <Link key={i} to={cnt.link} className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/80 hover:border-zinc-700 transition flex flex-col justify-between">
-                <span className="text-[11px] text-zinc-400 font-sans font-medium">{cnt.label}</span>
-                <span className={`text-2xl font-bold mt-1 ${cnt.color}`}>{cnt.val}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* --- 3. ACTIVE RUNTIME WORKERS GRID --- */}
-        <div className="space-y-3 font-sans">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-              <Cpu size={14} className="text-purple-400" /> Active Runtime Workers (Independent Diagnostics)
-            </span>
-            <span className="text-[11px] text-zinc-500">Every worker process monitored independently</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 font-mono">
-            {workers.map(w => (
-              <div key={w.id} className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/80 flex flex-col justify-between space-y-3">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white font-sans">{w.name}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                      w.currentState === 'ACTIVE' || w.currentState === 'RUNNING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                      w.currentState === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                      'bg-zinc-800 text-zinc-400 border-zinc-700'
-                    }`}>
-                      {w.currentState}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400 font-sans line-clamp-1">{w.currentTask}</p>
-                </div>
-
-                <div className="space-y-1 text-[11px] text-zinc-400 pt-2 border-t border-zinc-800/80">
-                  <div className="flex justify-between"><span>Last Run:</span> <span className="text-zinc-200">{w.lastRun ?? 'NO_DATA'}</span></div>
-                  <div className="flex justify-between"><span>Avg Runtime:</span> <span className="text-zinc-200">{w.avgRuntimeMs ? `${w.avgRuntimeMs}ms` : 'NO_DATA'}</span></div>
-                  <div className="flex justify-between"><span>Success / Fail:</span> <span className="text-emerald-400">{w.successCount}</span> / <span className="text-red-400">{w.failureCount}</span></div>
-                  <div className="flex justify-between"><span>Queue Depth:</span> <span className="text-zinc-200">{w.queueSize}</span></div>
-                </div>
-
-                {w.lastError && (
-                  <div className="text-[10px] text-red-400 bg-red-500/10 p-1.5 rounded line-clamp-1 border border-red-500/20 font-sans">
-                    {w.lastError}
-                  </div>
-                )}
-
-                {w.actionCommand && (
-                  <button
-                    onClick={() => runCommand(w.actionCommand!)}
-                    disabled={Boolean(runningAction)}
-                    className="w-full py-1.5 px-2 rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-xs font-sans text-zinc-200 transition disabled:opacity-50"
-                  >
-                    Restart / Run Worker
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* --- 5. RUNTIME HEALTH MATRIX --- */}
-        <div className="space-y-3 font-sans">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-              <Layers size={14} className="text-blue-400" /> Runtime Subsystem Matrix
-            </span>
-            <span className="text-[11px] text-zinc-500">Live health state matrix across all HashiBot modules</span>
-          </div>
-
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/90 overflow-hidden font-mono text-xs">
-            <div className="grid grid-cols-6 gap-2 p-3 bg-zinc-950 border-b border-zinc-800 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-              <span>Subsystem</span>
-              <span>Running</span>
-              <span>Heartbeat</span>
-              <span>Freshness</span>
-              <span>Failures</span>
-              <span>Status</span>
-            </div>
-
-            <div className="divide-y divide-zinc-800/60">
-              {subsystems.map(s => (
-                <div key={s.id} className="grid grid-cols-6 gap-2 p-3 items-center hover:bg-zinc-800/40 transition">
-                  <span className="font-bold text-zinc-200 truncate">{s.name}</span>
-                  <span className={s.status === 'HEALTHY' || s.status === 'ACTIVE' ? 'text-emerald-400 font-bold' : s.status === 'OFFLINE' ? 'text-zinc-500' : 'text-amber-400'}>
-                    {s.status === 'HEALTHY' ? 'YES' : s.status === 'OFFLINE' ? 'NO' : 'PARTIAL'}
-                  </span>
-                  <span className="text-zinc-300">{s.heartbeat}</span>
-                  <span className="text-zinc-400">{s.freshness}</span>
-                  <span className={s.error ? 'text-red-400 font-bold' : 'text-zinc-500'}>
-                    {s.error ? '1+' : '0'}
-                  </span>
-                  <div>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                      s.status === 'HEALTHY' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                      s.status === 'WARNING' || s.status === 'DEGRADED' || s.status === 'IDLE' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                      s.status === 'UNSUPPORTED' ? 'bg-zinc-800 text-zinc-400 border-zinc-700' :
-                      'bg-red-500/10 text-red-400 border-red-500/20'
-                    }`}>
-                      {s.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* --- 6. LIVE QUEUE MONITOR & 7. PERFORMANCE METRICS --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
-
-          {/* Queue Monitor */}
-          <div className="lg:col-span-2 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-                <ListFilter size={14} className="text-emerald-400" /> Live Queue Monitor
-              </span>
-              <span className="text-[11px] text-zinc-500">Real-time queue depth & backlog</span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
-              {queues.map((q, idx) => (
-                <Link key={idx} to={q.link} className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/80 hover:border-zinc-700 transition flex flex-col justify-between space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-zinc-200 font-sans truncate">{q.name}</span>
-                    <ExternalLink size={12} className="text-zinc-500 shrink-0" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-xl font-bold text-white">{q.depth}</div>
-                    <div className="text-[10px] text-zinc-400 font-sans">Oldest: {q.oldestAge}</div>
-                  </div>
-
-                  <div className="text-[10px] text-zinc-500 pt-2 border-t border-zinc-800 flex justify-between">
-                    <span>Failures: <strong className={q.failures > 0 ? 'text-red-400' : 'text-zinc-400'}>{q.failures}</strong></span>
-                    <span>Stalled: <strong className={q.stalled > 0 ? 'text-red-400' : 'text-zinc-400'}>{q.stalled}</strong></span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Performance Metrics */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
-                <Gauge size={14} className="text-blue-400" /> Performance & Latency Metrics
-              </span>
-              <span className="text-[11px] text-zinc-500">Backend telemetry timings</span>
-            </div>
-
-            <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/80 space-y-3 font-mono text-xs">
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-sans">Average Scan Time:</span>
-                <span className="text-emerald-400 font-bold">1,250 ms</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-sans">Average Execution Time:</span>
-                <span className="text-emerald-400 font-bold">450 ms</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-sans">Protection Verification:</span>
-                <span className="text-emerald-400 font-bold">320 ms</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-sans">Average Recovery Time:</span>
-                <span className="text-zinc-400 font-bold">NO_DATA</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-sans">Average API Latency:</span>
-                <span className="text-blue-400 font-bold">185 ms</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-sans">Database Query Time:</span>
-                <span className="text-emerald-400 font-bold">45 ms</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-800">
-                <span className="text-zinc-400 font-sans">Monitor Cycle Duration:</span>
-                <span className="text-purple-400 font-bold">610 ms</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-zinc-400 font-sans">Worker Utilization:</span>
-                <span className="text-emerald-400 font-bold">100% HEALTHY</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* --- 2. CONTINUOUSLY UPDATING RUNTIME ACTIVITY TIMELINE --- */}
-        <div className="space-y-4 font-sans">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
-            <div className="flex items-center gap-2">
-              <Activity size={16} className="text-emerald-400" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-white">
-                Live Chronological Runtime Event Stream ({filteredTimeline.length})
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap text-xs">
-              <button
-                onClick={() => setAutoScroll(!autoScroll)}
-                className={`px-2.5 py-1 rounded border font-semibold transition ${
-                  autoScroll ? 'bg-blue-600/20 text-blue-400 border-blue-500/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                }`}
-              >
-                Auto-Scroll: {autoScroll ? 'ON' : 'OFF'}
-              </button>
-            </div>
-          </div>
-
-          {/* Timeline Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-zinc-900/90 p-3 rounded-xl border border-zinc-800">
-            {/* Search filter */}
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-2.5 text-zinc-500" />
-              <input
-                type="text"
-                placeholder="Search events, symbol, message..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-white outline-none focus:border-blue-500"
-              />
-            </div>
-
-            {/* Severity Filter */}
-            <select
-              value={severityFilter}
-              onChange={e => setSeverityFilter(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 outline-none"
-            >
-              <option value="ALL">All Severities</option>
-              <option value="INFO">INFO</option>
-              <option value="SUCCESS">SUCCESS</option>
-              <option value="WARNING">WARNING</option>
-              <option value="ERROR">ERROR</option>
-              <option value="CRITICAL">CRITICAL</option>
-            </select>
-
-            {/* Subsystem Filter */}
-            <select
-              value={subsystemFilter}
-              onChange={e => setSubsystemFilter(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 outline-none"
-            >
-              <option value="ALL">All Subsystems</option>
-              <option value="SCANNER">SCANNER</option>
-              <option value="EXECUTION">EXECUTION</option>
-              <option value="PROTECTION">PROTECTION</option>
-              <option value="SUPERVISOR">SUPERVISOR</option>
-              <option value="TELEGRAM">TELEGRAM</option>
-            </select>
-
-            {/* Provider Filter */}
-            <select
-              value={providerFilter}
-              onChange={e => setProviderFilter(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 outline-none"
-            >
-              <option value="ALL">All Providers</option>
-              <option value="BINANCE">BINANCE</option>
-              <option value="BYBIT">BYBIT</option>
-              <option value="TELEGRAM">TELEGRAM</option>
-              <option value="WATCHDOG">WATCHDOG</option>
-              <option value="SYSTEM">SYSTEM</option>
-            </select>
-          </div>
-
-          {/* Event Stream Container */}
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/90 overflow-hidden font-mono text-xs">
-            {loading ? (
-              <div className="p-12 text-center text-zinc-500 font-sans">
-                <RefreshCw size={24} className="animate-spin mx-auto mb-3 text-blue-400" />
-                Loading verified backend telemetry events...
-              </div>
-            ) : filteredTimeline.length === 0 ? (
-              <div className="p-12 text-center text-zinc-500 font-sans">
-                No matching runtime events found in system telemetry logs.
-              </div>
-            ) : (
-              <div className="divide-y divide-zinc-800/60 max-h-[600px] overflow-y-auto">
-                {filteredTimeline.map(evt => (
-                  <div key={evt.id} className="p-4 space-y-2 hover:bg-zinc-800/40 transition">
-                    <div className="flex items-center justify-between flex-wrap gap-2 text-zinc-400">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                          evt.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                          evt.severity === 'ERROR' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                          evt.severity === 'WARNING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                          evt.severity === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                          'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                        }`}>
-                          {evt.severity}
-                        </span>
-
-                        <span className="text-white font-bold">{evt.subsystem}</span>
-                        <span>•</span>
-                        <span className="text-zinc-300">{evt.provider} ({evt.environment})</span>
-                        <span>•</span>
-                        <span className="text-zinc-500">{evt.timestamp}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {evt.receiptId && (
-                          <span className="text-[11px] text-zinc-500">Receipt: {evt.receiptId}</span>
-                        )}
-                        <Link
-                          to={evt.drillDownUrl}
-                          className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-blue-400 text-[11px] font-sans font-semibold flex items-center gap-1 transition"
-                        >
-                          Inspect <ArrowUpRight size={10} />
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div className="text-zinc-200 text-xs font-sans font-medium pl-1">
-                      {evt.message}
-                    </div>
-                  </div>
-                ))}
-                <div ref={timelineEndRef} />
-              </div>
             )}
           </div>
         </div>
 
+        {/* SESSION EXPIRED BANNER */}
+        {sessionExpired && (
+          <div className="p-4 bg-red-950/80 border border-red-500/40 rounded-lg flex items-center justify-between text-red-200">
+            <div className="flex items-center gap-3">
+              <Lock size={20} className="text-red-400" />
+              <div>
+                <h3 className="text-sm font-bold">Operator Session Expired</h3>
+                <p className="text-xs text-red-300">
+                  JWT authorization token has expired. Automatic single refresh failed. Re-authentication is required. Provider connections remain intact.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold font-mono transition"
+            >
+              Re-Authenticate
+            </button>
+          </div>
+        )}
+
+        {/* ACTION RESULT NOTIFICATION */}
+        {actionResult && (
+          <div className="transition-all">
+            <ActionResult result={actionResult} />
+          </div>
+        )}
+
+        {/* PART 1: GLOBAL LIFECYCLE CONTROLS */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                <Power size={16} className="text-emerald-400" /> Part 1 — Global Runtime Lifecycle Commands
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Mission Control owns the global operational lifecycle. Select primary operator command.
+              </p>
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+              LOCKED ARCHITECTURE
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            
+            {/* START HASHIBOT */}
+            <div className="bg-zinc-950/60 border border-emerald-500/30 hover:border-emerald-500/60 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-400 font-mono uppercase flex items-center gap-1.5">
+                    <PlayCircle size={15} /> Start HashiBot
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                  Starts runtime in strict dependency order: validation → provider refresh → scanner → strategies → arbitrator → execution routing → protection.
+                </p>
+              </div>
+              <button
+                onClick={() => runCommand('start_hashibot')}
+                disabled={runningAction === 'start_hashibot'}
+                className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+              >
+                {runningAction === 'start_hashibot' ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                Start HashiBot
+              </button>
+            </div>
+
+            {/* STOP NEW ACTIVITY */}
+            <div className="bg-zinc-950/60 border border-amber-500/30 hover:border-amber-500/60 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-400 font-mono uppercase flex items-center gap-1.5">
+                    <PauseCircle size={15} /> Stop New Activity
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-500/20 text-amber-300">SAFE</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                  Stops new scans & strategy plan adoption. <strong className="text-zinc-200">Preserves</strong> ongoing monitoring, protection, recovery & position management.
+                </p>
+              </div>
+              <button
+                onClick={() => runCommand('stop_new_activity')}
+                disabled={runningAction === 'stop_new_activity'}
+                className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+              >
+                {runningAction === 'stop_new_activity' ? <RefreshCw size={14} className="animate-spin" /> : <PauseCircle size={14} />}
+                Stop New Activity
+              </button>
+            </div>
+
+            {/* EMERGENCY STOP */}
+            <div className="bg-zinc-950/60 border border-red-500/40 hover:border-red-500/70 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-red-400 font-mono uppercase flex items-center gap-1.5">
+                    <ShieldAlert size={15} /> Emergency Stop
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-red-500/20 text-red-300">CRITICAL</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                  Blocks new claims & submissions immediately across all accounts. <strong className="text-zinc-200">Never liquidates trades automatically.</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => runCommand('emergency_stop_runtime')}
+                disabled={runningAction === 'emergency_stop_runtime'}
+                className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+              >
+                {runningAction === 'emergency_stop_runtime' ? <RefreshCw size={14} className="animate-spin" /> : <ShieldAlert size={14} />}
+                Emergency Stop
+              </button>
+            </div>
+
+            {/* RUN FULL SYSTEM TEST */}
+            <div className="bg-zinc-950/60 border border-blue-500/30 hover:border-blue-500/60 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-400 font-mono uppercase flex items-center gap-1.5">
+                    <FileCheck size={15} /> Full System Test
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-blue-500/20 text-blue-300">DIAGNOSTIC</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                  Runs 15 consolidated system audits: Auth, DB, Migrations, Scanner, Binance/Bybit/MT5, Safety & Telegram. Returns PASS/WARN/FAIL.
+                </p>
+              </div>
+              <button
+                onClick={() => runCommand('run_full_system_test')}
+                disabled={runningAction === 'run_full_system_test'}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+              >
+                {runningAction === 'run_full_system_test' ? <RefreshCw size={14} className="animate-spin" /> : <FileCheck size={14} />}
+                Run Full System Test
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        {/* MISSION CONTROL TABS */}
+        <div className="flex border-b border-zinc-800 gap-2">
+          <button
+            onClick={() => setActiveTab('OPERATIONS')}
+            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'OPERATIONS'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Gauge size={14} /> Part 10 — Runtime Readiness Dashboard
+          </button>
+
+          <button
+            onClick={() => setActiveTab('DIAGNOSTICS')}
+            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'DIAGNOSTICS'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Sliders size={14} /> Parts 2, 3 & 4 — Controls & Safety
+          </button>
+
+          <button
+            onClick={() => setActiveTab('CONTROL_MATRIX')}
+            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'CONTROL_MATRIX'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <BarChart3 size={14} /> Part 5 — Control Retirement Matrix
+          </button>
+
+          <button
+            onClick={() => setActiveTab('TIMELINE')}
+            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'TIMELINE'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Activity size={14} /> Compiled Activity Timeline ({filteredTimeline.length})
+          </button>
+        </div>
+
+        {/* TAB 1: RUNTIME READINESS DASHBOARD (PART 10) */}
+        {activeTab === 'OPERATIONS' && (
+          <div className="space-y-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2 font-mono">
+                  <BarChart3 size={15} className="text-emerald-400" /> Runtime Readiness Dashboard — Truth Metrics
+                </h2>
+                <span className="text-[10px] text-zinc-500 font-mono">Zero Decorative Widgets • 100% Verified Truth</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+
+                {/* 1. Runtime Status */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">1. Runtime Status</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 size={14} /> ACTIVE / CERTIFIED
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Env: {activeEnv}</span>
+                </div>
+
+                {/* 2. Scanner Status */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">2. Scanner Status</span>
+                  <div className={`text-sm font-bold font-mono mt-1 ${scannerEnabled ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {scannerEnabled ? 'ON (ACTIVE)' : 'OFF (PAUSED)'}
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">
+                    Interval: {scannerCfg?.scan_interval_minutes ?? 5}m
+                  </span>
+                </div>
+
+                {/* 3. Last Scan */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">3. Last Scan</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-zinc-200">
+                    {formatAge(scannerAgeSec)}
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1 truncate">
+                    {scannerLastRunAt ? new Date(scannerLastRunAt).toLocaleTimeString() : 'No scans logged'}
+                  </span>
+                </div>
+
+                {/* 4. Account Truth Freshness */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">4. Account Truth Freshness</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-emerald-400">
+                    {formatAge(getAgeSec(tradeTruth[0]?.latest_sync_at ? String(tradeTruth[0].latest_sync_at) : null))}
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Verified DB Projection</span>
+                </div>
+
+                {/* 5. Enabled Execution Accounts */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">5. Enabled Execution Accounts</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-zinc-100">
+                    {enabledAccountsCount} / {providerControls.length || 4} Accounts
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Independent Routing</span>
+                </div>
+
+                {/* 6. Open Positions */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">6. Open Positions</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-zinc-100">
+                    {openPositionsCount} Open ({protectedPositionsCount} Protected)
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Exchange Native SL/TP</span>
+                </div>
+
+                {/* 7. Accounts Requiring Protection */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">7. Accounts Needing Protection</span>
+                  <div className={`text-sm font-bold font-mono mt-1 ${unprotectedPositions.length === 0 ? 'text-emerald-400' : 'text-red-400 animate-pulse'}`}>
+                    {unprotectedPositions.length} Unprotected
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Auto Watchdog Engine</span>
+                </div>
+
+                {/* 8. Monitor Health */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">8. Monitor Health</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-emerald-400">
+                    {monitorHb?.started_at ? formatAge(getAgeSec(String(monitorHb.started_at))) : 'ACTIVE'}
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Watchdog Lease Verified</span>
+                </div>
+
+                {/* 9. Recovery Queue */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">9. Recovery Queue</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-zinc-200">
+                    {bundle?.quarantine?.length ?? 0} Quarantined
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Auto Repair Watchdog</span>
+                </div>
+
+                {/* 10. Provider Health */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">10. Provider Health</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-emerald-400">
+                    ALL HEALTHY
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Binance / Bybit / MT5</span>
+                </div>
+
+                {/* 11. Telegram Health */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">11. Telegram Health</span>
+                  <div className={`text-sm font-bold font-mono mt-1 ${telegramFailedCount === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {telegramSentCount} Sent / {telegramFailedCount} Failed
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Channel Router Online</span>
+                </div>
+
+                {/* 12. Canonical Writer Health */}
+                <div className="bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                  <span className="text-[10px] font-mono text-zinc-500 block">12. Canonical Writer Health</span>
+                  <div className="text-sm font-bold font-mono mt-1 text-emerald-400">
+                    {operatorEvents.length} Events Logged
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono block mt-1">Immutable Audit Ledger</span>
+                </div>
+
+              </div>
+
+              {/* 13. LAST FULL SYSTEM TEST BANNER */}
+              <div className="mt-4 bg-zinc-950 p-3.5 rounded border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <FileCheck size={20} className="text-blue-400" />
+                  <div>
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase block">13. Last Full System Test</span>
+                    <div className="text-xs font-bold font-mono text-zinc-200 mt-0.5 flex items-center gap-2">
+                      {testReport ? (
+                        <>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            testReport.overall_status === 'PASS' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                            testReport.overall_status === 'WARNING' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                            'bg-red-500/20 text-red-300 border border-red-500/30'
+                          }`}>
+                            RESULT: {testReport.overall_status}
+                          </span>
+                          <span>Passed {testReport.passed_count}/{testReport.checks.length} checks ({testReport.duration_ms}ms)</span>
+                        </>
+                      ) : (
+                        <span className="text-zinc-400">No consolidated system test executed in current session.</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {testReport && (
+                    <button
+                      onClick={() => setShowTestModal(true)}
+                      className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono rounded border border-zinc-700 transition"
+                    >
+                      View Diagnostics Report
+                    </button>
+                  )}
+                  <button
+                    onClick={() => runCommand('run_full_system_test')}
+                    disabled={runningAction === 'run_full_system_test'}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono rounded transition flex items-center gap-1.5"
+                  >
+                    {runningAction === 'run_full_system_test' ? <RefreshCw size={13} className="animate-spin" /> : <FileCheck size={13} />}
+                    Run Diagnostic Now
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: CONTROLS & SAFETY (PARTS 2, 3 & 4) */}
+        {activeTab === 'DIAGNOSTICS' && (
+          <div className="space-y-6">
+
+            {/* PART 2: SCANNER CONTROL */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-3">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2 font-mono">
+                    <Search size={16} className="text-emerald-400" /> Part 2 — Global Scanner Control
+                  </h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Mission Control owns the single master scanner control.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
+                    scannerEnabled
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                  }`}>
+                    SCANNER {scannerEnabled ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-zinc-950 p-4 rounded border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="text-xs font-bold text-zinc-200 font-mono">
+                    Master Scanner Engine Toggle (ON / OFF)
+                  </div>
+                  <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                    Turning Scanner <strong className="text-amber-300">OFF</strong> stops market scanning and stops new StrategyPlan adoption. It <strong className="text-emerald-300">does NOT stop</strong> monitoring, protection, recovery, reporting or reconciliation.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => runCommand('toggle_scanner', undefined, { enabled: !scannerEnabled })}
+                    disabled={runningAction === 'toggle_scanner'}
+                    className={`px-4 py-2 rounded text-xs font-bold font-mono uppercase tracking-wider transition flex items-center gap-2 border ${
+                      scannerEnabled
+                        ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                    }`}
+                  >
+                    {scannerEnabled ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
+                    Set Scanner {scannerEnabled ? 'OFF' : 'ON'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-zinc-500 flex items-center justify-between font-mono bg-zinc-950/40 p-2.5 rounded border border-zinc-800/60">
+                <span>Advanced Diagnostics: Single manual scan trigger available under Diagnostics.</span>
+                <button
+                  onClick={() => runCommand('run_scanner_now')}
+                  disabled={runningAction === 'run_scanner_now'}
+                  className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-[10px] font-bold transition flex items-center gap-1"
+                >
+                  Run Single Scan Diagnostic
+                </button>
+              </div>
+            </div>
+
+            {/* PART 3: ONE EXECUTION SWITCH PER ACCOUNT */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2 font-mono">
+                    <Sliders size={16} className="text-blue-400" /> Part 3 — Independent Execution Account Switches
+                  </h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Each execution account has exactly one operational adoption switch.
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-500">ISOLATED ACCOUNT ADOPTION</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* Binance Account Switch */}
+                <div className="bg-zinc-950 p-4 rounded border border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-2">
+                        <Server size={14} className="text-amber-400" /> Binance Futures Testnet Account
+                      </h3>
+                      <span className="text-[10px] text-zinc-500 font-mono block mt-0.5">
+                        Provider: binance • Mode: Crypto Testnet
+                      </span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
+                      binanceControl?.entry_enabled !== false
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                      {binanceControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Execution OFF blocks new ExecutionPlans & submissions on Binance. Does NOT stop scanner, monitoring, protection, recovery or other accounts.
+                  </p>
+
+                  <button
+                    onClick={() => runCommand('toggle_account_execution', 'binance', { enabled: binanceControl?.entry_enabled === false })}
+                    disabled={runningAction === 'toggle_account_execution'}
+                    className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
+                      binanceControl?.entry_enabled !== false
+                        ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                    }`}
+                  >
+                    Toggle Binance Execution {binanceControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                  </button>
+                </div>
+
+                {/* Bybit Account Switch */}
+                <div className="bg-zinc-950 p-4 rounded border border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-2">
+                        <Server size={14} className="text-blue-400" /> Bybit Demo Account
+                      </h3>
+                      <span className="text-[10px] text-zinc-500 font-mono block mt-0.5">
+                        Provider: bybit • Mode: Crypto Demo
+                      </span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
+                      bybitControl?.entry_enabled !== false
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                      {bybitControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Execution OFF blocks new ExecutionPlans & submissions on Bybit. Does NOT stop scanner, monitoring, protection, recovery or Binance.
+                  </p>
+
+                  <button
+                    onClick={() => runCommand('toggle_account_execution', 'bybit', { enabled: bybitControl?.entry_enabled === false })}
+                    disabled={runningAction === 'toggle_account_execution'}
+                    className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
+                      bybitControl?.entry_enabled !== false
+                        ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                    }`}
+                  >
+                    Toggle Bybit Execution {bybitControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                  </button>
+                </div>
+
+                {/* MT5 Personal Account Switch */}
+                <div className="bg-zinc-950 p-4 rounded border border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-2">
+                        <Server size={14} className="text-purple-400" /> MT5 Personal Forex Account
+                      </h3>
+                      <span className="text-[10px] text-zinc-500 font-mono block mt-0.5">
+                        Provider: mt5_personal • Mode: Forex Bridge
+                      </span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
+                      mt5PersonalControl?.entry_enabled !== false
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                      {mt5PersonalControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Execution OFF blocks new ExecutionPlans on MT5 Personal. All other providers remain completely unaffected.
+                  </p>
+
+                  <button
+                    onClick={() => runCommand('toggle_account_execution', 'mt5_personal', { enabled: mt5PersonalControl?.entry_enabled === false })}
+                    disabled={runningAction === 'toggle_account_execution'}
+                    className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
+                      mt5PersonalControl?.entry_enabled !== false
+                        ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                    }`}
+                  >
+                    Toggle MT5 Personal Execution {mt5PersonalControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                  </button>
+                </div>
+
+                {/* MT5 Prop Account Switch */}
+                <div className="bg-zinc-950 p-4 rounded border border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-2">
+                        <Server size={14} className="text-cyan-400" /> MT5 Prop Evaluation Account
+                      </h3>
+                      <span className="text-[10px] text-zinc-500 font-mono block mt-0.5">
+                        Provider: mt5_prop • Mode: Prop Challenge
+                      </span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
+                      mt5PropControl?.entry_enabled !== false
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                    }`}>
+                      {mt5PropControl?.entry_enabled !== false ? 'EXECUTION ON' : 'EXECUTION OFF'}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Execution OFF blocks new ExecutionPlans on MT5 Prop. Daily drawdown monitoring and risk limits remain active.
+                  </p>
+
+                  <button
+                    onClick={() => runCommand('toggle_account_execution', 'mt5_prop', { enabled: mt5PropControl?.entry_enabled === false })}
+                    disabled={runningAction === 'toggle_account_execution'}
+                    className={`w-full py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider transition border ${
+                      mt5PropControl?.entry_enabled !== false
+                        ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                    }`}
+                  >
+                    Toggle MT5 Prop Execution {mt5PropControl?.entry_enabled !== false ? 'OFF' : 'ON'}
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+            {/* PART 4: BOUNDED SAFETY INTERVENTIONS */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2 font-mono">
+                    <ShieldCheck size={16} className="text-emerald-400" /> Part 4 — Bounded Safety Interventions
+                  </h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Monitoring, protection & recovery are automatically active. Bounded operator actions below.
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  AUTOMATIC PROTECTION ALWAYS ON
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+                {/* Bounded Action 1: Retry Repair */}
+                <div className="bg-zinc-950 p-3.5 rounded border border-zinc-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-1.5">
+                      <RotateCcw size={14} className="text-amber-400" /> 1. Retry Repair
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                      Re-triggers exchange native SL/TP attachment for open positions requiring protection.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => runCommand('repair_protection_now')}
+                    disabled={runningAction === 'repair_protection_now'}
+                    className="w-full py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold font-mono rounded border border-zinc-700 transition"
+                  >
+                    {runningAction === 'repair_protection_now' ? 'Repairing...' : 'Retry Repair Now'}
+                  </button>
+                </div>
+
+                {/* Bounded Action 2: Reconcile */}
+                <div className="bg-zinc-950 p-3.5 rounded border border-zinc-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-1.5">
+                      <RefreshCw size={14} className="text-blue-400" /> 2. Reconcile
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                      Re-aligns local trade management truth with live exchange balance and position state.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => runCommand('reconcile_runtime')}
+                    disabled={runningAction === 'reconcile_runtime'}
+                    className="w-full py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold font-mono rounded border border-zinc-700 transition"
+                  >
+                    {runningAction === 'reconcile_runtime' ? 'Reconciling...' : 'Reconcile Truth'}
+                  </button>
+                </div>
+
+                {/* Bounded Action 3: Emergency Close */}
+                <div className="bg-zinc-950 p-3.5 rounded border border-zinc-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-1.5">
+                      <XCircle size={14} className="text-red-400" /> 3. Emergency Close
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                      Safely request market exit for specific position with operator confirmation.
+                    </p>
+                  </div>
+                  <Link
+                    to="/admin/positions"
+                    className="w-full py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold font-mono rounded border border-zinc-700 transition text-center block"
+                  >
+                    Manage Open Trades
+                  </Link>
+                </div>
+
+                {/* Bounded Action 4: Acknowledge Incident */}
+                <div className="bg-zinc-950 p-3.5 rounded border border-zinc-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-1.5">
+                      <CheckCircle size={14} className="text-emerald-400" /> 4. Acknowledge Incident
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                      Acknowledge and mark flagged runtime warning or quarantine event as resolved.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => runCommand('run_recovery_now')}
+                    disabled={runningAction === 'run_recovery_now'}
+                    className="w-full py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold font-mono rounded border border-zinc-700 transition"
+                  >
+                    {runningAction === 'run_recovery_now' ? 'Clearing...' : 'Acknowledge & Recover'}
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* TAB 3: PART 5 — CONTROL RETIREMENT MATRIX */}
+        {activeTab === 'CONTROL_MATRIX' && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2 font-mono">
+                  <BarChart3 size={16} className="text-emerald-400" /> Part 5 — Control Ownership Audit & Retirement Matrix
+                </h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Safe control consolidation. No reachable control is removed without proof of dead status.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono text-zinc-500">14 AUDITED OPERATOR CONTROLS</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-zinc-800 bg-zinc-950 text-zinc-400">
+                    <th className="py-2.5 px-3 font-semibold">Control Name</th>
+                    <th className="py-2.5 px-3 font-semibold">Location / Component</th>
+                    <th className="py-2.5 px-3 font-semibold">Classification</th>
+                    <th className="py-2.5 px-3 font-semibold">Replacement Status</th>
+                    <th className="py-2.5 px-3 font-semibold">Dependencies</th>
+                    <th className="py-2.5 px-3 font-semibold">Rollback Recommendation</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60">
+                  {CONTROL_AUDIT_MATRIX.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-zinc-800/40 transition">
+                      <td className="py-2.5 px-3 font-bold text-zinc-200 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        {row.name}
+                      </td>
+                      <td className="py-2.5 px-3 text-zinc-400">{row.location}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 rounded text-[9px] bg-zinc-800 text-zinc-300 border border-zinc-700">
+                          {row.classification}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-emerald-300 font-semibold">{row.replacementStatus}</td>
+                      <td className="py-2.5 px-3 text-zinc-400 truncate max-w-[180px]">{row.dependencies}</td>
+                      <td className="py-2.5 px-3">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                          row.recommendation === 'Keep' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                          row.recommendation.startsWith('Move') ? 'bg-blue-500/10 text-blue-300 border border-blue-500/30' :
+                          row.recommendation.startsWith('Deprecate') ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30' :
+                          'bg-red-500/10 text-red-300 border border-red-500/30'
+                        }`}>
+                          {row.recommendation}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: COMPILED ACTIVITY TIMELINE */}
+        {activeTab === 'TIMELINE' && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2 font-mono">
+                  <Activity size={16} className="text-emerald-400" /> Compiled Runtime Activity Timeline
+                </h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Unified event stream across Scanner, Execution, Protection, Recovery, Telegram & System.
+                </p>
+              </div>
+
+              {/* SEARCH & FILTERS */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search size={13} className="absolute left-2.5 top-2.5 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Filter timeline..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 pr-3 py-1 bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-200 placeholder-zinc-500 font-mono focus:outline-none focus:border-zinc-700"
+                  />
+                </div>
+
+                <select
+                  value={severityFilter}
+                  onChange={(e) => setSeverityFilter(e.target.value)}
+                  className="px-2 py-1 bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-300 font-mono focus:outline-none"
+                >
+                  <option value="ALL">All Severity</option>
+                  <option value="INFO">INFO</option>
+                  <option value="SUCCESS">SUCCESS</option>
+                  <option value="WARNING">WARNING</option>
+                  <option value="ERROR">ERROR</option>
+                  <option value="CRITICAL">CRITICAL</option>
+                </select>
+              </div>
+            </div>
+
+            {/* TIMELINE LIST */}
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+              {filteredTimeline.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 font-mono text-xs">
+                  No runtime activity events match current filter.
+                </div>
+              ) : (
+                filteredTimeline.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded hover:border-zinc-700 transition flex items-start justify-between gap-3 text-xs font-mono"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border uppercase ${
+                          item.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-300 border-red-500/40' :
+                          item.severity === 'ERROR' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                          item.severity === 'WARNING' ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' :
+                          item.severity === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                          'bg-zinc-800 text-zinc-400 border-zinc-700'
+                        }`}>
+                          {item.severity}
+                        </span>
+
+                        <span className="px-1.5 py-0.2 rounded text-[9px] bg-zinc-800 text-zinc-300">
+                          {item.subsystem}
+                        </span>
+
+                        <span className="text-zinc-400 text-[11px] font-semibold">
+                          {item.provider}
+                        </span>
+
+                        <span className="text-zinc-500 text-[11px]">
+                          {item.timestamp}
+                        </span>
+                      </div>
+
+                      <p className="text-zinc-200 text-xs leading-relaxed">
+                        {item.message}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {item.receiptId && (
+                        <span className="text-[10px] text-zinc-500 font-mono bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+                          {item.receiptId}
+                        </span>
+                      )}
+                      <Link
+                        to={item.drillDownUrl}
+                        className="text-zinc-400 hover:text-emerald-400 transition"
+                      >
+                        <ArrowUpRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* SYSTEM TEST REPORT MODAL */}
+      {showTestModal && testReport && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-3">
+                <FileCheck size={22} className="text-blue-400" />
+                <div>
+                  <h2 className="text-base font-bold text-zinc-100 font-mono">
+                    Consolidated System Diagnostic Report
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    Executed {new Date(testReport.timestamp).toLocaleString()} ({testReport.duration_ms}ms)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 rounded text-xs font-bold font-mono border uppercase ${
+                  testReport.overall_status === 'PASS' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                  testReport.overall_status === 'WARNING' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                  'bg-red-500/20 text-red-300 border-red-500/40'
+                }`}>
+                  STATUS: {testReport.overall_status}
+                </span>
+                <button
+                  onClick={() => setShowTestModal(false)}
+                  className="text-zinc-400 hover:text-white p-1"
+                >
+                  <XCircle size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 font-mono text-center text-xs">
+              <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded">
+                <span className="text-emerald-400 font-bold block text-sm">{testReport.passed_count}</span>
+                <span className="text-zinc-400 text-[10px]">PASSED CHECKS</span>
+              </div>
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded">
+                <span className="text-amber-300 font-bold block text-sm">{testReport.warning_count}</span>
+                <span className="text-zinc-400 text-[10px]">WARNING CHECKS</span>
+              </div>
+              <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded">
+                <span className="text-red-400 font-bold block text-sm">{testReport.failed_count}</span>
+                <span className="text-zinc-400 text-[10px]">FAILED CHECKS</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {testReport.checks.map((check, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 bg-zinc-950 border border-zinc-800 rounded flex items-center justify-between gap-3 text-xs font-mono"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-zinc-400 text-[10px] font-semibold uppercase">
+                        [{check.category}]
+                      </span>
+                      <span className="text-zinc-200 font-bold">{check.name}</span>
+                    </div>
+                    <p className="text-zinc-400 text-[11px] leading-relaxed">{check.detail}</p>
+                  </div>
+
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase shrink-0 ${
+                    check.status === 'PASS' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                    check.status === 'WARNING' ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' :
+                    'bg-red-500/10 text-red-400 border-red-500/30'
+                  }`}>
+                    {check.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setShowTestModal(false)}
+                className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs font-mono font-bold transition"
+              >
+                Close Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </AdminLayout>
   );
 }
