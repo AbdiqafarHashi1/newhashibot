@@ -5,6 +5,7 @@ Handles connection, account queries, order execution, position modifications, sy
 
 import sys
 import math
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from logging_config import logger
 
@@ -135,6 +136,10 @@ class MT5Client:
             "profit": float(acc.profit),
             "currency": acc.currency,
             "leverage": acc.leverage,
+            "name": acc.name,
+            "margin_level": float(acc.margin_level),
+            "trade_allowed": bool(acc.trade_allowed),
+            "trade_expert": bool(acc.trade_expert),
             "connected": True
         }
 
@@ -151,10 +156,35 @@ class MT5Client:
             "community_account": t.community_account,
             "community_connection": t.community_connection,
             "trade_allowed": t.trade_allowed,
+            "autotrading": bool(t.trade_allowed),
             "path": t.path,
             "data_path": t.data_path,
             "build": t.build,
             "name": t.name
+        }
+
+    def verify_connection(self, requested_login: int, requested_broker: str, requested_server: str) -> Dict[str, Any]:
+        """Run the complete read-only certification probe; never submits a trade request."""
+        if not self.check_connection():
+            return {"ok": False, "blocker": "MT5_BRIDGE_OFFLINE"}
+        account = self.get_account_info()
+        terminal = self.get_terminal_info()
+        if int(account.get("login", 0)) != int(requested_login):
+            return {"ok": False, "blocker": "MT5_ACCOUNT_MISMATCH"}
+        if requested_broker.casefold() not in str(account.get("broker", "")).casefold():
+            return {"ok": False, "blocker": "MT5_ACCOUNT_MISMATCH"}
+        if requested_server.casefold() != str(account.get("server", "")).casefold():
+            return {"ok": False, "blocker": "MT5_SERVER_NOT_FOUND"}
+        positions_raw = mt5.positions_get()
+        orders_raw = mt5.orders_get()
+        history_raw = mt5.history_deals_get(datetime.now() - timedelta(days=30), datetime.now())
+        required = ("name", "currency", "balance", "equity", "margin", "free_margin")
+        if positions_raw is None or orders_raw is None or history_raw is None or any(account.get(k) is None for k in required):
+            return {"ok": False, "blocker": "MT5_SNAPSHOT_FAILED"}
+        return {
+            "ok": True, "blocker": None, "account": account, "terminal": terminal,
+            "positions_read": True, "orders_read": True, "history_read": True,
+            "positions_count": len(positions_raw), "orders_count": len(orders_raw),
         }
 
     def get_positions(self) -> List[Dict[str, Any]]:

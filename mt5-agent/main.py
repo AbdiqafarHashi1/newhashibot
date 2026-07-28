@@ -18,7 +18,10 @@ from command_processor import CommandProcessor
 from state_sync import StateSyncManager
 from symbol_sync import SymbolSyncManager
 
-LOCK_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".mt5_agent.lock")
+LOCK_FILE_PATH = os.path.join(
+    os.getenv("MT5_RUNTIME_DIR", os.path.dirname(os.path.abspath(__file__))),
+    f".mt5_agent.{os.getenv('MT5_ACCOUNT_ID', 'legacy')}.lock",
+)
 
 class MT5AgentDaemon:
     def __init__(self):

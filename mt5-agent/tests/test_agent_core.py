@@ -7,6 +7,7 @@ volume normalization, command processor dispatch, single instance locking, and f
 import os
 import sys
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 # Ensure agent directory is in sys.path
@@ -68,12 +69,25 @@ class TestCommandProcessor(unittest.TestCase):
         self.mt5_client = MagicMock()
         self.processor = CommandProcessor(self.cloud_client, self.mt5_client)
 
+    def executable_command(self, command):
+        Config.ACCOUNT_ID = "account-test"
+        command["account_id"] = "account-test"
+        command["execution_context"] = {
+            "account_configured": True, "bridge_healthy": True, "terminal_authenticated": True,
+            "credential_capability": "master", "trade_permission": True, "autotrading": True,
+            "operational": True, "monitor_healthy": True, "execution_enabled": True,
+            "risk_policy_resolved": True, "capital_allocation_resolved": True,
+            "command_account_matches": True,
+            "command_expires_at": (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat(),
+        }
+        return command
+
     def test_process_place_order(self):
-        self.cloud_client.poll_commands.return_value = [{
+        self.cloud_client.poll_commands.return_value = [self.executable_command({
             "id": "cmd-1",
             "operation": "place_order",
             "payload": {"symbol": "EURUSD", "side": "buy", "volume": 0.1}
-        }]
+        })]
         self.mt5_client.place_order.return_value = {
             "success": True,
             "ticket": "999",
@@ -94,11 +108,11 @@ class TestCommandProcessor(unittest.TestCase):
         )
 
     def test_process_modify_position(self):
-        self.cloud_client.poll_commands.return_value = [{
+        self.cloud_client.poll_commands.return_value = [self.executable_command({
             "id": "cmd-2",
             "operation": "modify_position",
             "payload": {"ticket": "999", "sl": 1.0820, "tp": 1.0910}
-        }]
+        })]
         self.mt5_client.modify_position.return_value = {
             "success": True,
             "ticket": "999",

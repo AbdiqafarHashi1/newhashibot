@@ -39,7 +39,9 @@ class StateSyncManager:
             equity=equity,
             margin=margin,
             unrealized_pnl=unrealized_pnl,
-            positions=positions
+            positions=positions,
+            orders=self.mt5_client.get_orders(),
+            account_id=__import__('config').Config.ACCOUNT_ID or None
         )
 
         if success:

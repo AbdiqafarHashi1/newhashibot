@@ -31,6 +31,8 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
   const [leverage, setLeverage] = useState('100');
   const [accountType, setAccountType] = useState<'personal' | 'prop' | 'demo'>('personal');
   const [executionMode, setExecutionMode] = useState<MT5ExecutionMode>('personal');
+  const [ownerKind, setOwnerKind] = useState<'system' | 'customer'>('customer');
+  const [credentialCapability, setCredentialCapability] = useState<'investor' | 'master'>('investor');
 
   const fetchAccounts = async () => {
     setLoading(true);
@@ -63,7 +65,7 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
         currency,
         leverage: Number(leverage),
         accountType,
-        executionMode
+        executionMode, ownerKind, credentialCapability, operational: false, monitorEnabled: true
       });
       setActionSuccess('MT5 Account saved successfully.');
       setShowModal(false);
@@ -86,6 +88,8 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
     setLeverage('100');
     setAccountType('personal');
     setExecutionMode('personal');
+    setOwnerKind('customer');
+    setCredentialCapability('investor');
     setShowPassword(false);
   };
 
@@ -292,6 +296,20 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
             </div>
 
             <form onSubmit={handleSaveAccount} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Ownership</label>
+                  <select value={ownerKind} onChange={(e) => setOwnerKind(e.target.value as 'system' | 'customer')} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white">
+                    <option value="customer">Customer</option><option value="system">System</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">Credential capability</label>
+                  <select value={credentialCapability} onChange={(e) => setCredentialCapability(e.target.value as 'investor' | 'master')} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white">
+                    <option value="investor">Investor — monitoring only</option><option value="master">Master — trading capable</option>
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1 font-medium">Account Nickname</label>
