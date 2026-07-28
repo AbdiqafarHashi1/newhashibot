@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { executionAccountStatus, isOpaqueCredentialRef, providerAccountUrl, validateProviderAccount, type ExecutionAccount } from '../../src/lib/executionAccounts.js';
+
+const operator = fs.readFileSync('supabase/functions/admin-operator-action/index.ts','utf8');
+const workspace = fs.readFileSync('src/pages/admin/ProviderOperationsWorkspace.tsx','utf8');
+const manager = fs.readFileSync('src/pages/admin/Execution.tsx','utf8');
+const migration = fs.readFileSync('supabase/migrations/20260728010000_phase5b_execution_account_manager.sql','utf8');
+assert.doesNotMatch(operator, /scanner_config"\)\.select\("is_enabled,(?:last_run_at|last_scan_at)/, 'supervisor never queries nonexistent scanner freshness fields');
+assert.match(operator, /scanner_status: scannerStatus, scanner_freshness: scannerFreshness/);
+assert.match(operator, /Scanner freshness is UNKNOWN/);
+assert.match(operator, /const errors = \[heartbeats\.error, leases\.error, controls\.error\]/, 'missing scanner evidence is not a function failure');
+assert.match(workspace, /provider === 'bybit' \? 'bybit-demo-execution' : 'binance-testnet-execution'/);
+assert.match(workspace, /eq\('provider', provider\)\.eq\('environment', selectedEnv\)/);
+assert.match(workspace, /Bybit Demo/);
+assert.doesNotMatch(workspace, /Demo \/ Testnet/);
+assert.doesNotMatch(workspace, /Primary: \{effectivePrimaryProvider\.toUpperCase/);
+assert.match(workspace, /ACCOUNT NOT CONFIGURED/);
+assert.match(workspace, /WRITE OPERATIONS BLOCKED/);
+assert.match(workspace, /Global provider permission only/);
+assert.match(manager, /Execution adoption always defaults OFF/);
+assert.match(operator, /execution_enabled: false/);
+assert.match(operator, /credential_ref_must_be_opaque_vault_uuid/);
+assert.match(migration, /ALTER COLUMN credential_ref DROP NOT NULL/);
+
+const binance: ExecutionAccount = { id:'canonical-binance',display_label:'Binance A',account_id:'100',provider:'binance',environment:'testnet',ownership_classification:'system',customer_id:'owner',credential_ref:'123e4567-e89b-12d3-a456-426614174000',enabled:true,is_operational:true,monitor_enabled:true,execution_enabled:false,risk_profile_id:null,provider_health:'reachable',last_synchronized_at:null,last_error:null };
+const bybit = { ...binance, id:'canonical-bybit', provider:'bybit' as const, environment:'demo' as const };
+assert.equal(validateProviderAccount('binance', bybit).valid, false, 'Binance route rejects Bybit identity');
+assert.equal(validateProviderAccount('bybit', binance).valid, false, 'Bybit route rejects Binance identity');
+assert.equal(executionAccountStatus(null,true,true).account,'NOT CONFIGURED');
+assert.equal(executionAccountStatus(null,true,true).api,'API CONNECTED');
+assert.equal(executionAccountStatus(null,true,true).effectiveExecutionPermission,false, 'provider gate cannot override account adoption');
+assert.equal(executionAccountStatus(binance,true,true).execution,'EXECUTION DISABLED');
+assert.equal(providerAccountUrl(bybit),'/admin/providers/bybit?account_id=canonical-bybit');
+assert.equal(isOpaqueCredentialRef(binance.credential_ref!),true);
+console.log('Phase 5B execution account and provider truth tests passed');

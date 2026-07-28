@@ -14,6 +14,7 @@ const SUPPORTED_ACTIONS = [
   "toggle_account_execution", "toggle_scanner",
   "run_scanner_now", "run_monitor_now", "run_supervisor_now", "run_binance_monitor_now", "run_bybit_monitor_now", "verify_protection", "reconcile_runtime", "run_recovery_now", "sync_providers", "resume_bot", "pause_entries", "repair_protection_now", "run_runtime_proof", "run_telegram_test", "run_news_brain",
   "refresh_exchange", "retry_verification", "retry_protection",
+  "list_execution_accounts", "create_execution_account", "update_execution_account", "designate_operational_account", "test_execution_account_credentials",
   "pause_scanner", "resume_scanner", "pause_supervisor", "resume_supervisor", "pause_telegram", "resume_telegram", "pause_news_brain", "resume_news_brain", "pause_auto_repair", "resume_auto_repair",
 ] as const;
 type Action = typeof SUPPORTED_ACTIONS[number];
@@ -117,6 +118,69 @@ async function setControl(supabase: ReturnType<typeof createClient>, action: Act
 
 async function runAction(supabase: ReturnType<typeof createClient>, action: Action, provider: string | undefined, actionId: string, correlationId: string, bodyObj: Json = {}) {
   const body = (bodyObj && typeof bodyObj === 'object' ? bodyObj : {}) as Record<string, unknown>;
+
+  if (action === "list_execution_accounts") {
+    const { data, error } = await supabase.from("connected_execution_accounts")
+      .select("id,display_label,account_id,provider,environment,ownership_classification,customer_id,credential_ref,enabled,is_operational,monitor_enabled,execution_enabled,risk_profile_id,provider_health,last_synchronized_at,last_error,created_at,updated_at")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return { success: true, target: "connected_execution_accounts", responseBody: { accounts: data ?? [] }, durationMs: 0 };
+  }
+
+  if (action === "create_execution_account") {
+    const accountProvider = String(body.provider ?? "").toLowerCase();
+    const environment = String(body.environment ?? "").toLowerCase();
+    const expectedEnvironment = accountProvider === "binance" ? "testnet" : accountProvider === "bybit" ? "demo" : null;
+    if (!expectedEnvironment || environment !== expectedEnvironment) throw new Error("provider_environment_mismatch");
+    const credentialRef = String(body.credential_ref ?? "").trim();
+    if (credentialRef && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(credentialRef)) throw new Error("credential_ref_must_be_opaque_vault_uuid");
+    const row = {
+      display_label: String(body.display_label ?? "").trim(), account_id: String(body.account_id ?? "").trim(),
+      provider: accountProvider, environment, customer_id: String(body.customer_id ?? "").trim(),
+      ownership_classification: String(body.ownership_classification ?? "customer"), credential_ref: credentialRef || null,
+      enabled: body.enabled === true, monitor_enabled: body.monitor_enabled === true, execution_enabled: false,
+      risk_profile_id: body.risk_profile_id ? String(body.risk_profile_id) : null,
+    };
+    if (!row.display_label || !row.account_id || !row.customer_id) throw new Error("display_label_account_id_and_owner_required");
+    const { data, error } = await supabase.from("connected_execution_accounts").insert(row).select("id,execution_enabled").single();
+    if (error) throw error;
+    return { success: true, target: "connected_execution_accounts", responseBody: { account: data, execution_default_off: data.execution_enabled === false }, durationMs: 0 };
+  }
+
+  if (action === "update_execution_account") {
+    const id = String(body.id ?? "");
+    if (!id) throw new Error("account_id_required");
+    const allowed = ["display_label", "ownership_classification", "credential_ref", "enabled", "monitor_enabled", "execution_enabled", "risk_profile_id"];
+    const patch: Json = { updated_at: new Date().toISOString() };
+    for (const key of allowed) if (body[key] !== undefined) patch[key] = body[key] as Json[string];
+    if (patch.credential_ref !== undefined && patch.credential_ref !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(patch.credential_ref))) throw new Error("credential_ref_must_be_opaque_vault_uuid");
+    const { data, error } = await supabase.from("connected_execution_accounts").update(patch).eq("id", id).select("id");
+    requireUpdatedRow({ data, error }, "update execution account");
+    return { success: true, target: "connected_execution_accounts", responseBody: { id }, durationMs: 0 };
+  }
+
+  if (action === "designate_operational_account") {
+    const id = String(body.id ?? "");
+    const { data: account, error: readError } = await supabase.from("connected_execution_accounts").select("id,provider,environment").eq("id", id).maybeSingle();
+    if (readError) throw readError;
+    if (!account) throw new Error("canonical_account_not_found");
+    throwOnError(await supabase.from("connected_execution_accounts").update({ is_operational: false }).eq("provider", account.provider).eq("environment", account.environment), "clear operational account");
+    const result = await supabase.from("connected_execution_accounts").update({ is_operational: true, updated_at: new Date().toISOString() }).eq("id", id).select("id");
+    requireUpdatedRow(result, "designate operational account");
+    return { success: true, target: "connected_execution_accounts", responseBody: { id }, durationMs: 0 };
+  }
+
+  if (action === "test_execution_account_credentials") {
+    const id = String(body.id ?? "");
+    const { data: account, error } = await supabase.from("connected_execution_accounts").select("id,customer_id,account_id,provider,environment,credential_ref").eq("id", id).maybeSingle();
+    if (error) throw error;
+    if (!account) throw new Error("canonical_account_not_found");
+    if (!account.credential_ref) throw new Error("opaque_credential_ref_not_assigned");
+    const target = account.provider === "bybit" ? "bybit-demo-execution" : "binance-testnet-execution";
+    const result = await invokeInternalFunction({ target, payload: { action: "status", reachability_only: true, customer_id: account.customer_id, account_id: account.account_id }, correlationId, actionId, timeoutMs: 12000 });
+    await supabase.from("connected_execution_accounts").update({ provider_health: result.ok ? "reachable" : "auth_failed", last_synchronized_at: new Date().toISOString(), last_error: result.ok ? null : result.errorMessage }).eq("id", id);
+    return { success: result.ok, target, responseBody: { api_reachable: result.ok, canonical_account_configured: true, execution_adoption_changed: false }, durationMs: result.durationMs };
+  }
 
   if (action === "start_hashibot") {
     // 1. Unpause execution & clear kill switch
@@ -422,18 +486,26 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
     return { success: result.ok, target: "binance-testnet-execution", responseBody: result, durationMs: result.durationMs };
   }
   if (action === "run_supervisor_now") {
-    const [heartbeats, leases, controls, scanner] = await Promise.all([
+    const [heartbeats, leases, controls, scannerConfig, scannerEvidence] = await Promise.all([
       supabase.from("execution_monitor_heartbeats").select("provider,started_at,success,errors,monitor_status").order("started_at", { ascending: false }).limit(20),
       supabase.from("execution_monitor_leases").select("provider,state,expires_at").limit(20),
       supabase.from("execution_provider_controls").select("provider_name,status,monitor_enabled,entry_enabled"),
-      supabase.from("scanner_config").select("is_enabled,last_run_at").eq("id", 1).maybeSingle(),
+      supabase.from("scanner_config").select("is_enabled").eq("id", 1).maybeSingle(),
+      supabase.from("operator_runtime_events").select("finished_at,started_at,result,action").in("action", ["run_scanner_now", "run_scanner", "scanner_cycle"]).order("finished_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const errors = [heartbeats.error, leases.error, controls.error, scanner.error].filter(Boolean);
+    const errors = [heartbeats.error, leases.error, controls.error].filter(Boolean);
+    const evidenceAt = scannerEvidence.data?.finished_at ?? scannerEvidence.data?.started_at ?? null;
+    const ageMs = evidenceAt ? Date.now() - new Date(String(evidenceAt)).getTime() : null;
+    const scannerStatus = scannerConfig.data?.is_enabled === false ? "DISABLED" : ageMs === null ? "UNKNOWN" : ageMs <= 5 * 60_000 ? "ACTIVE" : ageMs <= 20 * 60_000 ? "IDLE" : "STALE";
+    const scannerFreshness = ageMs === null ? "NO EVIDENCE" : `${Math.max(0, Math.round(ageMs / 1000))}s`;
     const warnings = [
       ...(heartbeats.data?.length ? [] : ["No execution monitor heartbeats have been recorded."]),
       ...(controls.data?.length ? [] : ["No execution providers are configured."]),
+      ...(scannerConfig.error ? [`Scanner enablement unavailable: ${scannerConfig.error.message}`] : []),
+      ...(scannerEvidence.error ? [`Scanner freshness evidence unavailable: ${scannerEvidence.error.message}`] : []),
+      ...(ageMs === null ? ["Scanner freshness is UNKNOWN: no canonical scanner run event evidence exists."] : []),
     ];
-    return { success: errors.length === 0, target: "runtime-health-supervisor", responseBody: { overall_status: errors.length ? "FAIL" : warnings.length ? "DEGRADED" : "PASS", read_only: true, heartbeats: heartbeats.data ?? [], leases: leases.data ?? [], provider_health: controls.data ?? [], scanner: scanner.data ?? null, warnings, actions_taken: [], recommended_actions: errors.map((e) => e?.message) }, durationMs: 0 };
+    return { success: errors.length === 0, target: "runtime-health-supervisor", responseBody: { overall_status: errors.length ? "FAIL" : warnings.length ? "DEGRADED" : "PASS", read_only: true, heartbeats: heartbeats.data ?? [], leases: leases.data ?? [], provider_health: controls.data ?? [], scanner: { enabled: scannerConfig.data?.is_enabled ?? null, scanner_status: scannerStatus, scanner_freshness: scannerFreshness, evidence_at: evidenceAt }, warnings, actions_taken: [], recommended_actions: errors.map((e) => e?.message) }, durationMs: 0 };
   }
   if (action === "resume_bot" || action === "pause_entries") {
     const resume = action === "resume_bot";

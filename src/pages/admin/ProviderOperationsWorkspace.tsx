@@ -9,6 +9,8 @@ import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
 import { getMonitorTruth, shortOperatorText } from '../../lib/monitorTruth';
 import { listMT5Accounts, connectMT5Account, setMT5Execution, testMT5Connection, removeMT5Account } from '../../lib/mt5Accounts';
 import type { MT5Account } from '../../lib/exchange/mt5';
+import { useSearchParams } from 'react-router-dom';
+import { ExecutionAccount, PROVIDER_CONTRACT, executionAccountStatus, validateProviderAccount } from '../../lib/executionAccounts';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
@@ -306,10 +308,14 @@ interface ProviderOperationsWorkspaceProps {
 
 export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet' }: ProviderOperationsWorkspaceProps) {
   const { session } = useAuth();
+  const [searchParams] = useSearchParams();
+  const requestedAccountId = searchParams.get('account_id');
+  const [canonicalAccount, setCanonicalAccount] = useState<ExecutionAccount | null>(null);
+  const [accountConfigurationError, setAccountConfigurationError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'positions_orders' | 'protection_risk' | 'diagnostics_debug' | 'events_receipts'>('overview');
   const [orderTab, setOrderTab] = useState<'open' | 'conditional' | 'recent' | 'attempts' | 'failed'>('open');
 
-  const [selectedEnv] = useState<'testnet' | 'live'>('testnet');
+  const selectedEnv = provider === 'bybit' ? 'demo' : 'testnet';
 
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
@@ -398,12 +404,6 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
     return null;
   }, [providerControlsError, provider, bybitConnected]);
 
-  const effectivePrimaryProvider = useMemo(() => {
-    const desired = providerGlobalControls?.primary_provider || provider;
-    if (desired === 'bybit' && !bybitConnected) return 'binance';
-    return desired;
-  }, [providerGlobalControls, bybitConnected, provider]);
-
   const recordReceipt = useCallback((receipt: Omit<CommandReceipt, 'id'>) => {
     const newReceipt: CommandReceipt = {
       ...receipt,
@@ -415,19 +415,40 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
   const load = useCallback(async () => {
     setLoading(true);
 
+    let scopedAccount: ExecutionAccount | null = null;
     try {
-      const response = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
+      const accountResponse = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/admin-operator-action`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ action: 'list_execution_accounts' }),
+      });
+      const accountPayload = await accountResponse.json();
+      const accounts = (accountPayload.responseBody?.accounts ?? []) as ExecutionAccount[];
+      scopedAccount = requestedAccountId ? accounts.find(row => row.id === requestedAccountId) ?? null : null;
+      const validation = validateProviderAccount(provider === 'mt5' ? 'binance' : provider, scopedAccount);
+      setCanonicalAccount(validation.valid ? scopedAccount : null);
+      setAccountConfigurationError(requestedAccountId && !validation.valid ? validation.error : !requestedAccountId ? 'No canonical execution-account identity selected' : null);
+    } catch (err) {
+      setCanonicalAccount(null);
+      setAccountConfigurationError(err instanceof Error ? err.message : 'Canonical account lookup failed');
+    }
+
+    try {
+      const executionFunction = provider === 'bybit' ? 'bybit-demo-execution' : 'binance-testnet-execution';
+      const response = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/${executionFunction}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ action: 'status', provider }),
+        body: JSON.stringify({ action: 'status', provider, customer_id: scopedAccount?.customer_id, account_id: scopedAccount?.account_id }),
       });
 
       if (response.ok) {
         const payload: StatusPayload = await response.json();
-        setStatus(payload);
+        // A system-secret status response may prove API reachability, but it is
+        // not account runtime truth. Preserve only the reachability envelope
+        // until a canonical account identity has resolved.
+        setStatus(scopedAccount ? payload : { ...payload, account_state: undefined, capital: undefined, executions: [], settings: { ...payload.settings, latest_monitor_run_at: null, latest_monitor_status: 'NOT_CONFIGURED', latest_monitor_result: null, open_binance_positions: null, open_binance_orders: null, pnl_snapshot: null, stale_rows_cleaned: null, open_positions_count: null, unrealized_pnl: null, account_total_margin_balance: null, account_total_wallet_balance: null, latest_account_state_at: null } });
       }
     } catch (err) {
       console.warn('Failed to fetch status from edge function:', err);
@@ -455,7 +476,10 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
     }
 
     try {
-      const { data: tTruth } = await supabase.from('active_trade_management_truth').select('*').eq('provider', provider).order('updated_at', { ascending: false }).limit(50);
+      let truthQuery = supabase.from('active_trade_management_truth').select('*').eq('provider', provider).eq('environment', selectedEnv);
+      if (scopedAccount) truthQuery = truthQuery.eq('account_id', scopedAccount.account_id);
+      else truthQuery = truthQuery.eq('account_id', '__no_canonical_account__');
+      const { data: tTruth } = await truthQuery.order('updated_at', { ascending: false }).limit(50);
       if (tTruth) {
         setTradeTruthRows(tTruth as TradeManagementTruthUiRow[]);
       }
@@ -473,7 +497,9 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
     }
 
     try {
-      const { data: heartbeats } = await supabase.from('execution_monitor_heartbeats').select('*').order('created_at', { ascending: false }).limit(10);
+      let heartbeatQuery = supabase.from('execution_monitor_heartbeats').select('*').eq('provider', provider);
+      heartbeatQuery = scopedAccount ? heartbeatQuery.eq('account_id', scopedAccount.account_id) : heartbeatQuery.eq('account_id', '__no_canonical_account__');
+      const { data: heartbeats } = await heartbeatQuery.order('started_at', { ascending: false }).limit(10);
       if (heartbeats) {
         setMonitorHeartbeats(heartbeats as MonitorHeartbeat[]);
       }
@@ -491,7 +517,9 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
     }
 
     try {
-      const { data: execs } = await supabase.from('binance_execution_orders').select('*').eq('execution_provider', provider).order('created_at', { ascending: false }).limit(50);
+      let executionQuery = supabase.from('execution_orders').select('*').eq('execution_provider', provider).eq('environment', selectedEnv);
+      executionQuery = scopedAccount ? executionQuery.eq('account_id', scopedAccount.account_id) : executionQuery.eq('account_id', '__no_canonical_account__');
+      const { data: execs } = await executionQuery.order('created_at', { ascending: false }).limit(50);
       if (execs) {
         setExecutions(execs as BinanceExecutionOrder[]);
       }
@@ -540,7 +568,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
     }
 
     setLoading(false);
-  }, [session, provider, selectedSignalId]);
+  }, [session, provider, selectedSignalId, requestedAccountId, selectedEnv]);
 
   useEffect(() => {
     load();
@@ -633,13 +661,14 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
     const reqTime = new Date().toISOString();
 
     try {
-      const response = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/binance-testnet-execution`, {
+      const executionFunction = provider === 'bybit' ? 'bybit-demo-execution' : 'binance-testnet-execution';
+      const response = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/${executionFunction}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ action, provider, ...extraBody }),
+        body: JSON.stringify({ action, provider, customer_id: canonicalAccount?.customer_id, account_id: canonicalAccount?.account_id, ...extraBody }),
       });
 
       const resData = await response.json();
@@ -706,7 +735,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ action, provider, ...extraBody }),
+        body: JSON.stringify({ action, provider, customer_id: canonicalAccount?.customer_id, account_id: canonicalAccount?.account_id, ...extraBody }),
       });
 
       const resData = await response.json();
@@ -849,7 +878,8 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
   const providerStatusName = selectedProviderControl?.status ?? (status?.env?.api_key_configured ? 'connected' : 'disabled');
   const isKillSwitchOn = status?.settings?.kill_switch_enabled === true || selectedProviderControl?.provider_kill_switch === true;
   const isBotPaused = status?.settings?.bot_paused === true;
-  const isAutoExecuteOn = status?.settings?.auto_execute_testnet === true && !isKillSwitchOn && !isBotPaused;
+  const accountStatus = executionAccountStatus(canonicalAccount, selectedProviderControl?.entry_enabled === true, status?.env?.api_key_configured === true, selectedProviderControl?.read_only === true, isKillSwitchOn);
+  const isAutoExecuteOn = accountStatus.effectiveExecutionPermission && status?.settings?.auto_execute_testnet === true && !isBotPaused;
 
   const openExecutions = useMemo(() => executions.filter(e => !['synced_closed', 'closed_tp', 'closed_sl', 'closed_manual', 'failed', 'skipped', 'cancelled'].includes(e.status)), [executions]);
   const failedExecutions = useMemo(() => executions.filter(e => e.status === 'failed'), [executions]);
@@ -912,7 +942,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
               <button
                 type="button"
                 className="rounded px-2.5 py-1 font-medium bg-zinc-800 text-zinc-100 shadow">
-                {provider === 'mt5' ? 'MetaTrader 5 Bridge' : provider === 'bybit' ? 'Demo / Testnet' : 'Testnet'}
+                {provider === 'mt5' ? 'MetaTrader 5 Bridge' : provider === 'bybit' ? 'Bybit Demo' : 'Binance Testnet'}
               </button>
               <button
                 type="button"
@@ -930,9 +960,11 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 API {providerStatusName.toUpperCase()}
               </Badge>
 
-              <Badge variant={status?.env?.api_key_configured ? 'blue' : 'gray'}>
-                {status?.env?.api_key_configured ? 'CONFIGURED' : 'KEYS MISSING'}
+              <Badge variant={canonicalAccount ? 'blue' : 'gray'}>
+                ACCOUNT {accountStatus.account}
               </Badge>
+
+              <Badge variant={canonicalAccount?.execution_enabled ? 'red' : 'gray'}>{accountStatus.execution}</Badge>
 
               <Badge variant={monitorTruth.level === 'ok' ? 'green' : monitorTruth.level === 'warning' ? 'yellow' : 'red'}>
                 FRESHNESS: {monitorTruth.label.toUpperCase()}
@@ -949,7 +981,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
             {!isAutoExecuteOn ? (
               <button
                 type="button"
-                disabled={acting}
+                disabled={acting || !accountStatus.effectiveExecutionPermission}
                 onClick={() => updateExecutionSettings({ start_bot: true, provider, auto_execute_testnet: true, testnet_enabled: true, bot_paused: false, kill_switch_enabled: false })}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-50">
                 <PlayCircle size={14} /> Start Executor
@@ -994,6 +1026,14 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
           </div>
         </div>
       </div>
+
+      {accountConfigurationError && provider !== 'mt5' && (
+        <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-950/30 p-4 text-sm text-amber-200">
+          <div className="font-bold">ACCOUNT NOT CONFIGURED</div>
+          <div className="mt-1">{accountConfigurationError}</div>
+          <div className="mt-2 font-mono text-xs">WRITE OPERATIONS BLOCKED · {status?.env?.api_key_configured ? 'API CONNECTED via credential route; canonical identity still required' : 'API reachability not proven'}</div>
+        </div>
+      )}
 
       {/* Primary Page Navigation Tabs */}
       <div className="mb-6 border-b border-zinc-800">
@@ -1380,19 +1420,19 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 label="API Connection"
                 value={providerStatusName.toUpperCase()}
                 valueClass={providerStatusName === 'connected' ? 'text-emerald-400' : 'text-amber-400'}
-                note={status?.env?.exchange ?? provider}
+                note={PROVIDER_CONTRACT[provider === 'bybit' ? 'bybit' : 'binance'].adapter}
               />
               <StatusCard
                 icon={<Shield size={14} />}
                 label="Credentials / Config"
-                value={status?.env?.api_key_configured ? 'HEALTHY' : 'NOT_CONFIGURED'}
-                valueClass={status?.env?.api_key_configured ? 'text-emerald-400' : 'text-red-400'}
-                note="API & Secret verified"
+                value={accountStatus.account}
+                valueClass={canonicalAccount ? 'text-emerald-400' : 'text-red-400'}
+                note={canonicalAccount?.account_id ?? accountConfigurationError ?? 'No canonical execution-account identity'}
               />
               <StatusCard
                 icon={<PlayCircle size={14} />}
                 label="Executor State"
-                value={isAutoExecuteOn ? 'RUNNING' : isKillSwitchOn ? 'KILL_SWITCH' : isBotPaused ? 'PAUSED' : 'IDLE'}
+                value={canonicalAccount?.execution_enabled ? (isAutoExecuteOn ? 'RUNNING' : 'EXECUTION ENABLED / NOT RUNNING') : 'EXECUTION DISABLED'}
                 valueClass={isAutoExecuteOn ? 'text-emerald-400' : isKillSwitchOn ? 'text-red-400' : 'text-amber-400'}
                 note={status?.env?.execution_mode ?? 'signal_only'}
               />
@@ -1433,7 +1473,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-400 font-mono">Primary: {effectivePrimaryProvider.toUpperCase()}</span>
+                <span className="text-xs text-zinc-400 font-mono">Operational account: {canonicalAccount?.is_operational ? canonicalAccount.display_label : 'NOT DESIGNATED'}</span>
                 <button
                   type="button"
                   disabled={acting}
@@ -1450,15 +1490,17 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
               {/* Provider Entry Control */}
               <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className="font-semibold text-xs text-zinc-200">New Entry Pipeline</div>
+                  <div className="font-semibold text-xs text-zinc-200">Provider Entry Gate</div>
                   <ToggleButtons
                     value={selectedProviderControl?.entry_enabled === true}
                     onToggle={(val) => updateProviderControl(provider, { entry_enabled: val })}
                     disabled={acting}
                   />
                 </div>
-                <p className="text-xs text-zinc-500 mb-3">Controls whether new scanner signals generate order submissions for {provider.toUpperCase()}.</p>
+                <p className="text-xs text-zinc-500 mb-3">Global provider permission only. It never implies canonical account execution adoption.</p>
                 <ProofRow label="Entry status" value={selectedProviderControl?.entry_enabled ? 'ENABLED' : 'PAUSED'} />
+                <ProofRow label="Account adoption" value={canonicalAccount?.execution_enabled ? 'EXECUTION ENABLED' : 'EXECUTION DISABLED'} />
+                <ProofRow label="Effective permission" value={accountStatus.effectiveExecutionPermission ? 'TRUE' : 'FALSE'} />
               </div>
 
               {/* Read-Only Mode Guard */}
