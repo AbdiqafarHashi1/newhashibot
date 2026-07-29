@@ -15,7 +15,17 @@ async function action(body:Record<string,unknown>){
     body,
     headers:{Authorization:`Bearer ${session.access_token}`},
   });
-  if(error)throw error;
+  if(error){
+    let backend: { error?: { code?: string; message?: string } | string; code?: string; message?: string } | null = null;
+    const context = (error as { context?: Response }).context;
+    if(context instanceof Response){
+      try { backend = await context.clone().json(); } catch { /* A gateway response may not be JSON. */ }
+    }
+    const nested = typeof backend?.error === 'object' ? backend.error : null;
+    const code = nested?.code ?? backend?.code;
+    const message = nested?.message ?? backend?.message ?? (typeof backend?.error === 'string' ? backend.error : error.message);
+    throw new Error(code ? `${message} (${code})` : message);
+  }
   return data;
 }
 export const connectMT5Account=(input:{broker:string;server:string;accountNumber:string;password:string;nickname:string;currency:string;leverage:number;accountType:'personal'|'prop'|'demo';executionMode:MT5ExecutionMode;ownerKind:'system'|'customer';credentialCapability:'investor'|'master';operational:boolean;monitorEnabled:boolean;policy?:Record<string,unknown>})=>action({action:'connect',...input});

@@ -10,12 +10,18 @@ assert.match(frontend, /supabase\.auth\.getSession\(\)/, 'the current session is
 assert.match(frontend, /Authorization:`Bearer \$\{session\.access_token\}`/, 'the JWT is explicitly propagated to FunctionsClient');
 assert.match(frontend, /if\(!session\?\.access_token\)/, 'anonymous onboarding fails closed');
 
-assert.match(edge, /if\(req\.method==='OPTIONS'\)/, 'CORS preflight is handled');
-assert.match(edge, /'Access-Control-Allow-Methods':'POST, OPTIONS'/, 'CORS permits the onboarding method');
-assert.match(edge, /'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info'/, 'Supabase browser headers are allowed');
+assert.match(edge, /if \(req\.method === 'OPTIONS'\)/, 'CORS preflight is handled');
+assert.match(edge, /'Access-Control-Allow-Methods': 'POST, OPTIONS'/, 'CORS permits the onboarding method');
+assert.match(edge, /'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info'/, 'Supabase browser headers are allowed');
 assert.match(edge, /auth\.auth\.getUser\(match\[1\]\)/, 'the bearer JWT is validated by Supabase Auth');
-assert.match(edge, /execution_enabled:false/, 'new accounts remain execution disabled');
-assert.match(edge, /ownerId:user\.id/, 'the canonical owner UUID is returned to bridge onboarding');
+assert.match(edge, /execution_enabled: false/, 'new accounts remain execution disabled');
+assert.match(edge, /ownerId: requestedOwner/, 'the canonical owner UUID is returned to bridge onboarding');
+assert.match(edge, /MT5_ENCRYPTION_KEY_MISSING/, 'a missing credential key has a stable error code');
+assert.match(edge, /MT5_ENCRYPTION_KEY_MALFORMED/, 'a malformed credential key has a stable error code');
+assert.match(edge, /console\.error\(JSON\.stringify/, 'failures have structured logging');
+assert.doesNotMatch(edge, /console\.error\([^\n]*(password|token|ciphertext|service)/i, 'structured logs do not contain secrets');
+assert.match(edge, /insertError\?\.code === '23505'/, 'duplicate onboarding is handled idempotently');
+assert.match(frontend, /await context\.clone\(\)\.json\(\)/, 'backend JSON errors are exposed to the UI');
 
 assert.match(migration, /credential_ref uuid NOT NULL DEFAULT gen_random_uuid\(\)/, 'credential references are canonical UUIDs');
 assert.match(accountSchema, /execution_enabled boolean NOT NULL DEFAULT false/, 'the canonical schema defaults execution to disabled');
