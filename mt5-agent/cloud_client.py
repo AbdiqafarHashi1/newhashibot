@@ -22,12 +22,14 @@ class CloudClient:
         Config.validate()
         self.base_url = Config.SUPABASE_URL
         self.service_role_key = Config.SUPABASE_SERVICE_ROLE_KEY
+        self.bridge_token = Config.BRIDGE_TOKEN
         self.bridge_id = Config.BRIDGE_ID
         
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.service_role_key}",
-            "apikey": self.service_role_key
+            "apikey": self.service_role_key,
+            "X-MT5-Bridge-Token": self.bridge_token,
         }
 
     def _bridge_url(self, action: str) -> str:
@@ -56,13 +58,37 @@ class CloudClient:
                     data = {}
                 return e.code, data
             except Exception as e:
-                logger.error(f"[CloudClient] urllib POST error: {e}")
-                return 500, {"error": str(e)}
+                logger.error("operation=http_post error_code=BRIDGE_NETWORK_ERROR")
+                return 500, {"error": "BRIDGE_NETWORK_ERROR"}
+
+    def discover_accounts(self) -> List[Dict[str, Any]]:
+        """Discover only accounts assigned by the backend to this manager."""
+        code, data = self._post(self._bridge_url("discover_accounts"), {
+            "bridge_id": self.bridge_id,
+            "account_ids": [Config.ACCOUNT_ID] if Config.ACCOUNT_ID else [],
+        })
+        if code != 200 or not data.get("success"):
+            raise RuntimeError(data.get("error_code", "MT5_DISCOVERY_FAILED"))
+        return data.get("accounts", [])
+
+    def retrieve_credential(self, account_id: str, owner_id: str, credential_ref: str) -> Dict[str, Any]:
+        """Request transient plaintext from the trusted function; never read secret tables."""
+        code, data = self._post(self._bridge_url("retrieve_credential"), {
+            "bridge_id": self.bridge_id, "account_id": account_id,
+            "owner_id": owner_id, "credential_ref": credential_ref,
+            "worker_id": Config.WORKER_ID,
+        })
+        if code != 200 or not data.get("success"):
+            raise RuntimeError(data.get("error_code", "MT5_CREDENTIAL_RETRIEVAL_FAILED"))
+        return data["credential"]
 
     def send_heartbeat(self, status: str = "online", connection_info: Optional[Dict[str, Any]] = None) -> bool:
         url = self._bridge_url("heartbeat")
         payload = {
             "bridge_id": self.bridge_id,
+            "account_id": Config.ACCOUNT_ID,
+            "owner_id": Config.OWNER_ID,
+            "worker_id": Config.WORKER_ID,
             "status": status,
             "connection_info": connection_info or {}
         }
@@ -77,7 +103,8 @@ class CloudClient:
 
     def poll_commands(self) -> List[Dict[str, Any]]:
         url = self._bridge_url("poll_commands")
-        payload = {"bridge_id": self.bridge_id, "max_commands": 10}
+        payload = {"bridge_id": self.bridge_id, "account_id": Config.ACCOUNT_ID,
+                   "owner_id": Config.OWNER_ID, "worker_id": Config.WORKER_ID, "max_commands": 1}
 
         code, data = self._post(url, payload)
         if code == 200 and data.get("success"):
@@ -93,6 +120,9 @@ class CloudClient:
         url = self._bridge_url("ack_command")
         payload = {
             "bridge_id": self.bridge_id,
+            "account_id": Config.ACCOUNT_ID,
+            "owner_id": Config.OWNER_ID,
+            "worker_id": Config.WORKER_ID,
             "command_id": command_id,
             "success": success,
             "error_code": error_code,
@@ -108,11 +138,12 @@ class CloudClient:
             logger.warning(f"[CloudClient] Ack command #{command_id} failed ({code}): {data}")
             return False
 
-    def sync_state(self, account_number: str, broker: str, balance: float, equity: float, margin: float, unrealized_pnl: float, positions: List[Dict[str, Any]], orders: Optional[List[Dict[str, Any]]] = None, account_id: Optional[str] = None) -> bool:
+    def sync_state(self, account_number: str, broker: str, balance: float, equity: float, margin: float, unrealized_pnl: float, positions: List[Dict[str, Any]], orders: Optional[List[Dict[str, Any]]] = None, account_id: Optional[str] = None, snapshot_extra: Optional[Dict[str, Any]] = None, history: Optional[List[Dict[str, Any]]] = None) -> bool:
         url = self._bridge_url("sync_state")
         payload = {
             "bridge_id": self.bridge_id,
-            "account_id": account_id,
+            "account_id": account_id, "owner_id": Config.OWNER_ID,
+            "worker_id": Config.WORKER_ID,
             "account_number": str(account_number),
             "broker": broker,
             "snapshot": {
@@ -121,18 +152,20 @@ class CloudClient:
                 "margin": margin,
                 "free_margin": max(0.0, equity - margin),
                 "floating_pnl": unrealized_pnl,
-                "currency": "USD"
+                "currency": "USD", **(snapshot_extra or {})
             },
             "positions": positions,
-            "orders": orders or []
+            "orders": orders if orders is not None else [],
+            "history": history if history is not None else [],
+            "reads": {"positions": positions is not None, "orders": orders is not None, "history": history is not None},
         }
 
         code, data = self._post(url, payload)
         if code == 200 and data.get("success"):
-            logger.debug(f"[CloudClient] State sync completed for account {account_number}")
+            logger.debug("operation=snapshot_write account_id=%s error_code=NONE", account_id)
             return True
         else:
-            logger.warning(f"[CloudClient] State sync failed ({code}): {data}")
+            logger.warning("operation=snapshot_write account_id=%s error_code=MT5_SNAPSHOT_FAILED", account_id)
             return False
 
     def sync_symbol_specs(self, account_id: str, specs: List[Dict[str, Any]]) -> bool:

@@ -49,6 +49,12 @@ class ExecutionContext:
     provider_kill_switch: bool = False
     command_account_matches: bool = False
     command_expires_at: str = ""
+    terminal_initialized: bool = True
+    canonical_login_match: bool = True
+    canonical_server_match: bool = True
+    provider_adopted: bool = True
+    global_kill_switch: bool = False
+    policy_account_class_valid: bool = True
 
 
 def execution_blockers(context: ExecutionContext) -> List[str]:
@@ -56,6 +62,9 @@ def execution_blockers(context: ExecutionContext) -> List[str]:
         (context.account_configured, "MT5_ACCOUNT_NOT_CONFIGURED"),
         (context.bridge_healthy, "MT5_BRIDGE_OFFLINE"),
         (context.terminal_authenticated, "MT5_LOGIN_FAILED"),
+        (context.terminal_initialized, "MT5_INITIALIZE_FAILED"),
+        (context.canonical_login_match, "ACCOUNT_MISMATCH"),
+        (context.canonical_server_match, "SERVER_MISMATCH"),
         (context.credential_capability == "master", "MT5_INVESTOR_ONLY"),
         (context.trade_permission, "MT5_TRADE_PERMISSION_DISABLED"),
         (context.autotrading, "MT5_AUTOTRADING_DISABLED"),
@@ -67,6 +76,9 @@ def execution_blockers(context: ExecutionContext) -> List[str]:
         (not context.drawdown_locked, "MT5_DRAWDOWN_LOCKED"),
         (not context.account_kill_switch, "MT5_ACCOUNT_KILL_SWITCH"),
         (not context.provider_kill_switch, "MT5_PROVIDER_KILL_SWITCH"),
+        (not context.global_kill_switch, "MT5_GLOBAL_KILL_SWITCH"),
+        (context.provider_adopted, "MT5_PROVIDER_NOT_ADOPTED"),
+        (context.policy_account_class_valid, "MT5_POLICY_NOT_CONFIGURED"),
         (context.command_account_matches, "MT5_ACCOUNT_MISMATCH"),
     )
     blockers = [code for passed, code in checks if not passed]
