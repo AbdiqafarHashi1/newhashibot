@@ -20,6 +20,9 @@ class StateSyncManager:
 
         acc_info = self.mt5_client.get_account_info()
         positions = self.mt5_client.get_positions()
+        orders = self.mt5_client.get_orders()
+        history = self.mt5_client.get_history()
+        terminal = self.mt5_client.get_terminal_info()
         
         account_number = str(acc_info.get("login", ""))
         broker = acc_info.get("broker", "Unknown")
@@ -40,8 +43,16 @@ class StateSyncManager:
             margin=margin,
             unrealized_pnl=unrealized_pnl,
             positions=positions,
-            orders=self.mt5_client.get_orders(),
-            account_id=__import__('config').Config.ACCOUNT_ID or None
+            orders=orders,
+            history=history,
+            account_id=__import__('config').Config.ACCOUNT_ID or None,
+            snapshot_extra={
+                "margin_level": acc_info.get("margin_level"), "currency": acc_info.get("currency"),
+                "leverage": acc_info.get("leverage"), "account_name": acc_info.get("name"),
+                "server": acc_info.get("server"), "terminal_authenticated": True,
+                "trade_permission": acc_info.get("trade_allowed", False),
+                "autotrading": terminal.get("autotrading", False), "terminal": terminal,
+            },
         )
 
         if success:

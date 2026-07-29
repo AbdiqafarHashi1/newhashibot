@@ -44,17 +44,14 @@ class BridgeManager:
             lock = account_dir / "identity.json"
             lock.write_text(json.dumps({
                 "account_id": account.account_id, "owner_id": account.owner_id,
-                "login": account.login, "server": account.server,
-                "credential_ref": account.credential_ref,
+                "server": account.server,
             }), encoding="utf-8")
             env = os.environ.copy()
             env.update({
                 "MT5_ACCOUNT_ID": account.account_id, "MT5_OWNER_ID": account.owner_id,
-                "ACCOUNT_NUMBER": account.login, "SERVER": account.server,
                 "MT5_TERMINAL_PATH": account.terminal_path,
                 "MT5_TERMINAL_DATA_PATH": account.data_path,
-                "MT5_CREDENTIAL_REF": account.credential_ref,
-                "BRIDGE_ID": f"mt5:{account.account_id}",
+                "MT5_WORKER_ID": f"worker:{account.account_id}",
             })
             # Password is deliberately never placed in the manifest, command line, or manager logs.
             process = subprocess.Popen([sys.executable, self.worker_path], cwd=str(account_dir), env=env)
@@ -101,3 +98,21 @@ class BridgeManager:
         for account_id in crashed:
             self.restart(account_id)
         return crashed
+
+    def discover_and_start(self, cloud_client, terminal_paths: Dict[str, Dict[str, str]]) -> List[int]:
+        """Start exactly one worker for each backend assignment with an isolated mapping.
+
+        ``terminal_paths`` is deployment configuration keyed by canonical account UUID;
+        credentials deliberately never enter the manager or its manifests.
+        """
+        pids: List[int] = []
+        for row in cloud_client.discover_accounts():
+            account_id = row["account_id"]
+            paths = terminal_paths.get(account_id)
+            if not paths:
+                continue
+            pids.append(self.start(AccountInstance(
+                account_id, row["owner_id"], row["broker"], row["server"], "",
+                row["account_class"], row["credential_ref"], paths["terminal_path"], paths["data_path"],
+            )))
+        return pids

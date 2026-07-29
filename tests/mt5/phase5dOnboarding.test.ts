@@ -5,6 +5,9 @@ const frontend = readFileSync('src/lib/mt5Accounts.ts', 'utf8');
 const edge = readFileSync('supabase/functions/mt5-accounts/index.ts', 'utf8');
 const migration = readFileSync('supabase/migrations/20260728060000_phase5d_multi_account_mt5_bridge.sql', 'utf8');
 const accountSchema = readFileSync('supabase/migrations/20260722020000_phase8a_mt5_execution_platform.sql', 'utf8');
+const bridge = readFileSync('supabase/functions/mt5-bridge/index.ts', 'utf8');
+const finalization = readFileSync('supabase/migrations/20260729010000_phase5d_bridge_finalization.sql', 'utf8');
+const ui = readFileSync('src/lib/mt5Operations.ts', 'utf8');
 
 assert.match(frontend, /supabase\.auth\.getSession\(\)/, 'the current session is resolved at invocation time');
 assert.match(frontend, /Authorization:`Bearer \$\{session\.access_token\}`/, 'the JWT is explicitly propagated to FunctionsClient');
@@ -25,5 +28,14 @@ assert.match(frontend, /await context\.clone\(\)\.json\(\)/, 'backend JSON error
 
 assert.match(migration, /credential_ref uuid NOT NULL DEFAULT gen_random_uuid\(\)/, 'credential references are canonical UUIDs');
 assert.match(accountSchema, /execution_enabled boolean NOT NULL DEFAULT false/, 'the canonical schema defaults execution to disabled');
+assert.match(bridge, /X-MT5-Bridge-Token/, 'restricted bridge authentication is supported');
+assert.match(bridge, /decryptCredential/, 'credential decryption stays in the trusted backend');
+assert.match(bridge, /BRIDGE_ACCOUNT_SCOPE_MISMATCH/, 'all worker writes fail closed on scope mismatch');
+assert.doesNotMatch(bridge, /mt5_commands_queue/, 'the worker cannot fall back to a duplicate legacy queue');
+assert.match(finalization, /FOR UPDATE SKIP LOCKED/, 'command claim is atomic');
+assert.match(finalization, /UNIQUE|idempotency_key/, 'idempotency remains represented in the durable contract');
+assert.match(ui, /age > 120_000/);
+assert.match(ui, /age > 30_000/);
+assert.match(ui, /Investor Only/);
 
 console.log('Phase 5D authenticated MT5 onboarding contract tests passed');

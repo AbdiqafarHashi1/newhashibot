@@ -5,6 +5,7 @@ Handles connection, account queries, order execution, position modifications, sy
 
 import sys
 import math
+from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from logging_config import logger
@@ -59,26 +60,29 @@ class MT5Client:
         normalized = vol_min + steps * vol_step
         return round(normalized, 4)
 
-    def initialize(self, login: Optional[int] = None, password: Optional[str] = None, server: Optional[str] = None) -> bool:
+    def initialize(self, login: Optional[int] = None, password: Optional[str] = None, server: Optional[str] = None, portable: bool = False) -> bool:
         if not HAS_MT5:
             logger.warning("[MT5Client] MetaTrader5 package unavailable.")
             self.is_connected = False
             return False
 
-        init_kwargs = {}
+        if self.terminal_path and not Path(self.terminal_path).is_file():
+            logger.error("operation=terminal_initialize error_code=TERMINAL_NOT_FOUND")
+            return False
+        init_kwargs = {"portable": portable}
         if self.terminal_path:
             init_kwargs["path"] = self.terminal_path
 
         if not mt5.initialize(**init_kwargs):
             err = mt5.last_error()
-            logger.error(f"[MT5Client] Terminal initialization failed: {err}")
+            logger.error("operation=terminal_initialize error_code=MT5_INITIALIZE_FAILED")
             self.is_connected = False
             return False
 
         if login and password and server:
             if not mt5.login(login=login, password=password, server=server):
                 err = mt5.last_error()
-                logger.error(f"[MT5Client] Login failed for account {login} on {server}: {err}")
+                logger.error("operation=terminal_login error_code=MT5_LOGIN_FAILED")
                 self.is_connected = False
                 return False
 
@@ -92,7 +96,7 @@ class MT5Client:
         self.broker = account_info.company
         self.server = account_info.server
         self.is_connected = True
-        logger.info(f"[MT5Client] Connected successfully to MT5 Account #{self.account_number} ({self.broker} - {self.server})")
+        logger.info("operation=terminal_login error_code=NONE authenticated=true")
         return True
 
     def check_connection(self) -> bool:
@@ -166,15 +170,15 @@ class MT5Client:
     def verify_connection(self, requested_login: int, requested_broker: str, requested_server: str) -> Dict[str, Any]:
         """Run the complete read-only certification probe; never submits a trade request."""
         if not self.check_connection():
-            return {"ok": False, "blocker": "MT5_BRIDGE_OFFLINE"}
+            return {"ok": False, "blocker": "TERMINAL_DISCONNECTED"}
         account = self.get_account_info()
         terminal = self.get_terminal_info()
         if int(account.get("login", 0)) != int(requested_login):
-            return {"ok": False, "blocker": "MT5_ACCOUNT_MISMATCH"}
+            return {"ok": False, "blocker": "ACCOUNT_MISMATCH"}
         if requested_broker.casefold() not in str(account.get("broker", "")).casefold():
-            return {"ok": False, "blocker": "MT5_ACCOUNT_MISMATCH"}
+            return {"ok": False, "blocker": "ACCOUNT_MISMATCH"}
         if requested_server.casefold() != str(account.get("server", "")).casefold():
-            return {"ok": False, "blocker": "MT5_SERVER_NOT_FOUND"}
+            return {"ok": False, "blocker": "SERVER_MISMATCH"}
         positions_raw = mt5.positions_get()
         orders_raw = mt5.orders_get()
         history_raw = mt5.history_deals_get(datetime.now() - timedelta(days=30), datetime.now())
@@ -186,6 +190,16 @@ class MT5Client:
             "positions_read": True, "orders_read": True, "history_read": True,
             "positions_count": len(positions_raw), "orders_count": len(orders_raw),
         }
+
+    def get_history(self, days: int = 30) -> Optional[List[Dict[str, Any]]]:
+        if not HAS_MT5 or not self.check_connection():
+            return None
+        rows = mt5.history_deals_get(datetime.now() - timedelta(days=days), datetime.now())
+        if rows is None:
+            return None
+        return [{"ticket": str(d.ticket), "order": str(d.order), "symbol": d.symbol,
+                 "type": int(d.type), "volume": float(d.volume), "price": float(d.price),
+                 "profit": float(d.profit), "time": int(d.time)} for d in rows]
 
     def get_positions(self) -> List[Dict[str, Any]]:
         if not HAS_MT5 or not self.check_connection():

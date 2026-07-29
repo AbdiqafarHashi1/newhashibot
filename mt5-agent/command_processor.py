@@ -47,6 +47,23 @@ class CommandProcessor:
                 self.cloud_client.ack_command(cmd_id, False, "MT5_ACCOUNT_MISMATCH", "Command is scoped to another account", {})
                 processed_count += 1
                 continue
+            if cmd.get("provider", "mt5").lower() != "mt5" or (cmd.get("bridge_id") and cmd["bridge_id"] != Config.BRIDGE_ID) or (cmd.get("owner_id") and cmd["owner_id"] != Config.OWNER_ID):
+                self.cloud_client.ack_command(cmd_id, False, "MT5_COMMAND_SCOPE_MISMATCH", "Command provider/owner/bridge scope mismatch", {})
+                processed_count += 1
+                continue
+            # Expiry applies to reads too; an old verification command is not useful truth.
+            expires = cmd.get("expires_at") or cmd.get("execution_context", {}).get("command_expires_at")
+            if expires:
+                from datetime import datetime, timezone
+                try:
+                    if datetime.fromisoformat(str(expires).replace("Z", "+00:00")) <= datetime.now(timezone.utc):
+                        self.cloud_client.ack_command(cmd_id, False, "MT5_COMMAND_EXPIRED", "Command expired", {})
+                        processed_count += 1
+                        continue
+                except ValueError:
+                    self.cloud_client.ack_command(cmd_id, False, "MT5_COMMAND_EXPIRY_INVALID", "Invalid command expiry", {})
+                    processed_count += 1
+                    continue
             if not read_only:
                 gate = cmd.get("execution_context", {})
                 blockers = execution_blockers(ExecutionContext(**{

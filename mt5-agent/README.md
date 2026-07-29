@@ -2,6 +2,26 @@
 
 Production-grade Python service that bridges local MetaTrader 5 (MT5) terminals to the HashiBot Cloud execution platform.
 
+## Canonical launch contract
+
+The sole worker entry point is `main.py`. From PowerShell:
+
+```powershell
+cd <repository>\mt5-agent
+python main.py
+```
+
+Configuration deterministically loads `mt5-agent/.env` (or `MT5_ENV_FILE`). For
+the first single-account, read-only certification, normal terminal attachment
+(`MT5_PORTABLE=false`) is supported. Production multi-account hosts require one
+isolated portable terminal/data directory and account-scoped worker per UUID.
+NSSM starts the supervisor after boot; development never installs or starts it.
+
+Prefer the restricted `MT5_BRIDGE_TOKEN`; the service-role key is a temporary
+local-development fallback. MT5 credentials are decrypted only in the trusted
+`mt5-bridge` function, delivered over outbound HTTPS, used in memory, and never
+accepted in `.env` or process arguments.
+
 ---
 
 ## 🌟 Overview

@@ -13,6 +13,23 @@ export interface MT5BridgeInfo {
   last_error?: string | null;
   agent_version: string;
   runtime_mode: string;
+  health: 'Pending' | 'Starting' | 'Online' | 'Healthy' | 'Stale' | 'Offline' | 'Auth Failed' | 'Execution Disabled' | 'Investor Only' | 'Configuration Error';
+  terminal_authenticated: boolean;
+  credential_capability: 'investor' | 'master';
+  execution_enabled: boolean;
+  last_sync_at?: string | null;
+}
+
+export function mt5RuntimeHealth(account: Record<string, unknown>, now = Date.now()): MT5BridgeInfo['health'] {
+  if (account.last_error) return String(account.last_error).includes('CONFIGURATION') ? 'Configuration Error' : account.terminal_authenticated ? 'Online' : 'Auth Failed';
+  if (!account.bridge_id || !account.last_heartbeat_at) return 'Pending';
+  const age = now - new Date(String(account.last_heartbeat_at)).getTime();
+  if (age > 120_000) return 'Offline';
+  if (age > 30_000) return 'Stale';
+  if (!account.terminal_authenticated) return 'Starting';
+  if (account.credential_capability === 'investor') return 'Investor Only';
+  if (account.execution_enabled !== true) return 'Execution Disabled';
+  return 'Healthy';
 }
 
 export interface MT5CommandRecord {
@@ -132,7 +149,7 @@ export async function listMT5Bridges(): Promise<MT5BridgeInfo[]> {
 
     for (const acc of accounts ?? []) {
       const bId = acc.bridge_id || 'bridge-mt5-001';
-      const lastHb = acc.last_heartbeat_at || acc.last_sync_at || new Date().toISOString();
+      const lastHb = acc.last_heartbeat_at || acc.last_sync_at || '';
       const hbAge = (Date.now() - new Date(lastHb).getTime()) / 1000;
       
       const status: 'online' | 'degraded' | 'offline' = 
@@ -150,36 +167,19 @@ export async function listMT5Bridges(): Promise<MT5BridgeInfo[]> {
           last_heartbeat_at: lastHb,
           agent_version: 'Python 3.10 Daemon',
           runtime_mode: acc.execution_mode || 'personal'
+          ,health: mt5RuntimeHealth(acc)
+          ,terminal_authenticated: acc.terminal_authenticated === true
+          ,credential_capability: acc.credential_capability || 'investor'
+          ,execution_enabled: acc.execution_enabled === true
+          ,last_sync_at: acc.last_sync_at
         });
       }
-    }
-
-    if (bridgeMap.size === 0) {
-      bridgeMap.set('bridge-mt5-001', {
-        bridge_id: 'bridge-mt5-001',
-        status: 'offline',
-        version: '1.0.0-phase8c',
-        hostname: 'WIN-HASHIBOT-AGENT',
-        os: 'Windows Server 2022 x64',
-        last_heartbeat_at: new Date(Date.now() - 3600000).toISOString(),
-        agent_version: 'Python 3.10 Daemon',
-        runtime_mode: 'personal'
-      });
     }
 
     return Array.from(bridgeMap.values());
   } catch (err) {
     console.warn('[mt5Operations] Error fetching bridges:', err);
-    return [{
-      bridge_id: 'bridge-mt5-001',
-      status: 'offline',
-      version: '1.0.0-phase8c',
-      hostname: 'WIN-HASHIBOT-AGENT',
-      os: 'Windows Server 2022 x64',
-      last_heartbeat_at: new Date(Date.now() - 3600000).toISOString(),
-      agent_version: 'Python 3.10 Daemon',
-      runtime_mode: 'personal'
-    }];
+    return [];
   }
 }
 
@@ -352,7 +352,7 @@ export async function getMT5OperationsOverview(): Promise<MT5OperationsOverview>
 
     const accs = accounts ?? [];
     const totalAccounts = accs.length;
-    const connectedAccounts = accs.filter(a => a.connection_status === 'connected').length;
+    const connectedAccounts = accs.filter((a: Record<string, unknown>) => a.connection_status === 'connected').length;
 
     const activeBridges = bridges.filter(b => b.status === 'online').length;
     const offlineBridges = bridges.filter(b => b.status === 'offline').length;

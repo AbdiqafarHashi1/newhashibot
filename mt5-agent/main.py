@@ -19,13 +19,13 @@ from state_sync import StateSyncManager
 from symbol_sync import SymbolSyncManager
 
 LOCK_FILE_PATH = os.path.join(
-    os.getenv("MT5_RUNTIME_DIR", os.path.dirname(os.path.abspath(__file__))),
+    Config.RUNTIME_DIR,
     f".mt5_agent.{os.getenv('MT5_ACCOUNT_ID', 'legacy')}.lock",
 )
 
 class MT5AgentDaemon:
     def __init__(self):
-        Config.validate()
+        Config.validate(check_paths=True)
         setup_logging(Config.LOG_LEVEL)
         logger.info("==================================================")
         logger.info("   Starting HashiBot MT5 Terminal Agent Daemon    ")
@@ -49,6 +49,19 @@ class MT5AgentDaemon:
         self.running = True
         self.mt5_client = MT5Client(terminal_path=Config.MT5_TERMINAL_PATH)
         self.cloud_client = CloudClient()
+        discovered = self.cloud_client.discover_accounts()
+        assigned = next((a for a in discovered if a["account_id"] == Config.ACCOUNT_ID and a["owner_id"] == Config.OWNER_ID), None)
+        if not assigned:
+            raise RuntimeError("BRIDGE_ACCOUNT_SCOPE_MISMATCH")
+        # The backend alone decrypts the assigned account credential. Keep it only
+        # in this worker's memory and never emit it to logs, disk, or child args.
+        credential = self.cloud_client.retrieve_credential(
+            Config.ACCOUNT_ID, Config.OWNER_ID, assigned["credential_ref"]
+        )
+        Config.ACCOUNT_NUMBER = int(credential["login"])
+        Config.PASSWORD = credential["password"]
+        Config.SERVER = credential["server"]
+        self.credential_capability = credential["capability"]
         self.heartbeat_mgr = HeartbeatManager(self.cloud_client, self.mt5_client)
         self.command_processor = CommandProcessor(self.cloud_client, self.mt5_client)
         self.state_sync_mgr = StateSyncManager(self.cloud_client, self.mt5_client)
@@ -67,20 +80,14 @@ class MT5AgentDaemon:
         atexit.register(self._release_single_instance_lock)
 
     def _acquire_single_instance_lock(self):
-        if os.path.exists(LOCK_FILE_PATH):
-            try:
-                with open(LOCK_FILE_PATH, "r") as f:
-                    pid = f.read().strip()
-                logger.warning(f"[Daemon] Lock file exists (PID={pid}). Checking process status...")
-            except Exception:
-                pass
-            # Clean lock if stale or raise if active
-            logger.warning("[Daemon] Reclaiming lock file for single-instance daemon.")
-        
+        os.makedirs(os.path.dirname(LOCK_FILE_PATH), exist_ok=True)
         try:
-            with open(LOCK_FILE_PATH, "w") as f:
+            fd = os.open(LOCK_FILE_PATH, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            with os.fdopen(fd, "w") as f:
                 f.write(str(os.getpid()))
             logger.info(f"[Daemon] Single-instance lock acquired successfully (PID={os.getpid()}).")
+        except FileExistsError:
+            raise RuntimeError("MT5_DUPLICATE_WORKER") from None
         except Exception as e:
             logger.error(f"[Daemon] Could not create single-instance lock file: {e}")
 
@@ -102,8 +109,16 @@ class MT5AgentDaemon:
             login=Config.ACCOUNT_NUMBER,
             password=Config.PASSWORD,
             server=Config.SERVER
+            , portable=Config.MT5_PORTABLE
         )
         if connected:
+            proof = self.mt5_client.verify_connection(Config.ACCOUNT_NUMBER, "", Config.SERVER)
+            if not proof.get("ok"):
+                logger.error("operation=terminal_verify error_code=%s", proof.get("blocker"))
+                self.mt5_client.is_connected = False
+                return False
+            if self.credential_capability == "investor":
+                logger.info("operation=terminal_verify error_code=INVESTOR_AUTHENTICATED")
             logger.info("[Daemon] MetaTrader 5 connection established.")
             self.reconnect_backoff = 2.0
             return True
@@ -144,7 +159,7 @@ class MT5AgentDaemon:
                 acc_info = self.mt5_client.get_account_info()
                 acc_num = str(acc_info.get("login", ""))
                 if acc_num and acc_num != "0":
-                    self.symbol_sync_mgr.sync_symbol_specifications(account_id=acc_num)
+                    self.symbol_sync_mgr.sync_symbol_specifications(account_id=Config.ACCOUNT_ID)
                 self.last_symbol_sync = now
 
             # 5. Command Polling & Execution Tick

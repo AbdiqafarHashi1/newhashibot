@@ -44,7 +44,7 @@ export function MT5BridgesTab() {
             MT5 Bridge Daemon Management
           </h2>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Monitor python bridge daemon instances running locally on MT5 terminal hosts.
+            Monitor the outbound-only Python manager. Bridge process required until it is running locally; this browser cannot launch Windows processes.
           </p>
         </div>
         <button
@@ -102,7 +102,7 @@ export function MT5BridgesTab() {
                           bridge.status === 'online' ? 'bg-emerald-400 animate-pulse' :
                           bridge.status === 'degraded' ? 'bg-amber-400' : 'bg-red-400'
                         }`} />
-                        {bridge.status}
+                        {bridge.health}
                       </span>
                     </td>
                     <td className="p-3">
@@ -181,8 +181,8 @@ export function MT5BridgesTab() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between">
                   <span className="text-zinc-400">MT5 Terminal Connected</span>
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 size={13} /> Yes
+                  <span className={selectedBridge.terminal_authenticated ? 'text-emerald-400 font-semibold flex items-center gap-1' : 'text-amber-400 font-semibold'}>
+                    {selectedBridge.terminal_authenticated ? <><CheckCircle2 size={13} /> Authenticated</> : 'Not authenticated'}
                   </span>
                 </div>
                 <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between">
@@ -191,6 +191,8 @@ export function MT5BridgesTab() {
                     <CheckCircle2 size={13} /> Yes
                   </span>
                 </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between"><span className="text-zinc-400">Credential / Execution</span><span className="text-zinc-300">{selectedBridge.credential_capability} / {selectedBridge.execution_enabled ? 'enabled' : 'disabled'}</span></div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between"><span className="text-zinc-400">Last Sync</span><span className="text-zinc-300">{timeAgo(selectedBridge.last_sync_at)}</span></div>
                 <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between">
                   <span className="text-zinc-400">Account Bound</span>
                   <span className="text-white font-mono">{selectedBridge.connected_account || 'Active'}</span>

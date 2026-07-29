@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from bridge_manager import AccountInstance, BridgeManager
 from policy import ExecutionContext, execution_blockers, resolve_policy
+from command_processor import CommandProcessor
+from config import Config
 
 class Phase5DTests(unittest.TestCase):
     def test_policies_are_independent_and_prop_is_account_specific(self):
@@ -20,6 +22,19 @@ class Phase5DTests(unittest.TestCase):
             self.assertTrue(execution_blockers(ExecutionContext(**values)))
         values=dict(allowed.__dict__); values["credential_capability"]="investor"
         self.assertIn("MT5_INVESTOR_ONLY",execution_blockers(ExecutionContext(**values)))
+    def test_investor_and_execution_disabled_never_reach_mutation(self):
+        Config.ACCOUNT_ID="00000000-0000-0000-0000-000000000001"
+        cloud, client = MagicMock(), MagicMock()
+        base={"id":"c","account_id":Config.ACCOUNT_ID,"operation":"OPEN_POSITION","payload":{},
+              "execution_context":{"account_configured":True,"bridge_healthy":True,"terminal_authenticated":True,
+              "credential_capability":"investor","trade_permission":True,"autotrading":True,"operational":True,
+              "monitor_healthy":True,"execution_enabled":False,"risk_policy_resolved":True,
+              "capital_allocation_resolved":True,"command_account_matches":True,
+              "command_expires_at":(datetime.now(timezone.utc)+timedelta(minutes=1)).isoformat()}}
+        cloud.poll_commands.return_value=[base]
+        CommandProcessor(cloud,client).process_pending_commands()
+        client.place_order.assert_not_called()
+        self.assertIn(cloud.ack_command.call_args.args[2],("MT5_INVESTOR_ONLY","MT5_EXECUTION_DISABLED"))
     @patch("bridge_manager.subprocess.Popen")
     def test_manager_isolates_accounts_and_prevents_duplicates(self,popen):
         process=MagicMock(pid=42); process.poll.return_value=None; popen.return_value=process

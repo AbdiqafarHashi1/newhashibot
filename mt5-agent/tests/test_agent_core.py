@@ -25,13 +25,19 @@ from symbol_sync import SymbolSyncManager
 
 class TestMT5AgentConfig(unittest.TestCase):
     def test_config_validation(self):
+        old = (Config.MT5_TERMINAL_PATH, Config.ACCOUNT_ID, Config.OWNER_ID)
         Config.SUPABASE_URL = "http://localhost:3000"
         Config.SUPABASE_SERVICE_ROLE_KEY = "test-service-key"
         Config.BRIDGE_ID = "bridge-test-01"
+        Config.MT5_TERMINAL_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+        Config.ACCOUNT_ID = "00000000-0000-0000-0000-000000000001"
+        Config.OWNER_ID = "00000000-0000-0000-0000-000000000002"
         try:
             Config.validate()
         except ValueError:
             self.fail("Config.validate() raised ValueError unexpectedly!")
+        finally:
+            Config.MT5_TERMINAL_PATH, Config.ACCOUNT_ID, Config.OWNER_ID = old
 
     def test_missing_config_raises(self):
         old_url = Config.SUPABASE_URL

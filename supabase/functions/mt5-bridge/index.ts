@@ -4,8 +4,27 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-MT5-Bridge-Token",
 };
+
+const encode = new TextEncoder();
+const decode = new TextDecoder();
+function bridgeAuthorized(req: Request, service: string) {
+  const bearer = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const restricted = Deno.env.get("MT5_BRIDGE_TOKEN") ?? "";
+  const supplied = req.headers.get("X-MT5-Bridge-Token") ?? "";
+  return (restricted.length >= 32 && supplied === restricted) || (service.length > 0 && bearer === service);
+}
+async function decryptCredential(value: string) {
+  const secret = Deno.env.get("MT5_CREDENTIAL_ENCRYPTION_KEY") ?? Deno.env.get("MT5_ENCRYPTION_KEY") ?? "";
+  if (encode.encode(secret).length < 32) throw new Error("MT5_ENCRYPTION_KEY_MISSING");
+  const material = await crypto.subtle.digest("SHA-256", encode.encode(secret));
+  const key = await crypto.subtle.importKey("raw", material, { name: "AES-GCM" }, false, ["decrypt"]);
+  const hex = value.startsWith("\\x") ? value.slice(2) : value;
+  if (!/^[0-9a-f]+$/i.test(hex) || hex.length % 2) throw new Error("MT5_CREDENTIAL_CIPHERTEXT_INVALID");
+  const packed = Uint8Array.from(hex.match(/../g) ?? [], byte => Number.parseInt(byte, 16));
+  return decode.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: packed.slice(0, 12) }, key, packed.slice(12)));
+}
 
 interface HeartbeatPayload {
   bridge_id: string;
@@ -32,6 +51,8 @@ interface AckPayload {
 interface SyncStatePayload {
   bridge_id: string;
   account_id?: string;
+  owner_id?: string;
+  worker_id?: string;
   account_number?: string;
   broker?: string;
   snapshot: {
@@ -46,6 +67,8 @@ interface SyncStatePayload {
   };
   positions?: Array<Record<string, unknown>>;
   orders?: Array<Record<string, unknown>>;
+  history?: Array<Record<string, unknown>>;
+  reads?: Record<string, boolean>;
 }
 
 interface SyncSymbolsPayload {
@@ -90,6 +113,30 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json().catch(() => ({}));
+    if (!bridgeAuthorized(req, supabaseServiceKey)) {
+      return jsonResponse({ success: false, error_code: "BRIDGE_AUTHORIZATION_FAILED" }, 401);
+    }
+
+    if (action === "discover_accounts") {
+      const bridgeId = String(body.bridge_id ?? "");
+      const explicit = Array.isArray(body.account_ids) ? body.account_ids.map(String) : [];
+      let query = supabase.from("mt5_accounts").select("id,user_id,broker,server,account_type,credential_ref,credential_capability,execution_enabled,operational,bridge_id").eq("bridge_id", bridgeId);
+      if (explicit.length) query = query.in("id", explicit);
+      const { data, error } = await query;
+      if (error) return jsonResponse({ success: false, error_code: "MT5_DISCOVERY_FAILED" }, 500);
+      return jsonResponse({ success: true, accounts: (data ?? []).map(a => ({ account_id: a.id, owner_id: a.user_id, broker: a.broker, server: a.server, account_class: a.account_type, credential_ref: a.credential_ref, credential_capability: a.credential_capability, execution_enabled: a.execution_enabled, operational: a.operational, bridge_id: a.bridge_id })) });
+    }
+
+    if (action === "retrieve_credential") {
+      const { data: account, error } = await supabase.from("mt5_accounts")
+        .select("id,user_id,bridge_id,credential_ref,credential_capability,execution_enabled,operational,account_number_ciphertext,password_ciphertext,server")
+        .eq("id", String(body.account_id ?? "")).eq("user_id", String(body.owner_id ?? ""))
+        .eq("bridge_id", String(body.bridge_id ?? "")).eq("credential_ref", String(body.credential_ref ?? "")).maybeSingle();
+      if (error || !account) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
+      try {
+        return jsonResponse({ success: true, credential: { login: await decryptCredential(account.account_number_ciphertext), password: await decryptCredential(account.password_ciphertext), server: account.server, capability: account.credential_capability, execution_enabled: account.execution_enabled } });
+      } catch { return jsonResponse({ success: false, error_code: "MT5_CREDENTIAL_DECRYPTION_FAILED" }, 500); }
+    }
 
     // ─── 1. HEARTBEAT ACTION ───────────────────────────────────────────────
     if (action === "heartbeat") {
@@ -97,6 +144,10 @@ Deno.serve(async (req: Request) => {
       if (!payload.bridge_id) {
         return jsonResponse({ success: false, error: "Missing bridge_id" }, 400);
       }
+      const accountId = String((body as Record<string, unknown>).account_id ?? "");
+      const ownerId = String((body as Record<string, unknown>).owner_id ?? "");
+      const { data: scoped } = await supabase.from("mt5_accounts").select("id").eq("id", accountId).eq("user_id", ownerId).eq("bridge_id", payload.bridge_id).maybeSingle();
+      if (!scoped) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
 
       const bridgeStatus = payload.status ?? "online";
       const { data, error } = await supabase
@@ -125,7 +176,7 @@ Deno.serve(async (req: Request) => {
           connection_status: bridgeStatus === "online" ? "pending" : "disconnected",
           updated_at: new Date().toISOString(),
         })
-        .eq("bridge_id", payload.bridge_id);
+        .eq("id", accountId).eq("user_id", ownerId).eq("bridge_id", payload.bridge_id);
 
       return jsonResponse({ success: true, registry: data });
     }
@@ -136,19 +187,16 @@ Deno.serve(async (req: Request) => {
       if (!payload.bridge_id) {
         return jsonResponse({ success: false, error: "Missing bridge_id" }, 400);
       }
+      if (!(body as Record<string, unknown>).account_id || !(body as Record<string, unknown>).owner_id) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
 
-      const maxLimit = payload.max_commands || 10;
       const nowIso = new Date().toISOString();
-      const leaseCutoffIso = new Date(Date.now() - 2 * 60 * 1000).toISOString();
 
-      // First query primary mt5_commands table (Phase 8A)
-      const { data: commands, error: selectErr } = await supabase
-        .from("mt5_commands")
-        .select("*")
-        .eq("bridge_id", payload.bridge_id)
-        .or(`status.eq.received,and(status.eq.accepted,claimed_at.lt.${leaseCutoffIso})`)
-        .order("created_at", { ascending: true })
-        .limit(maxLimit);
+      const { data: commands, error: selectErr } = await supabase.rpc("claim_mt5_command", {
+        p_account_id: String((body as Record<string, unknown>).account_id),
+        p_owner_id: String((body as Record<string, unknown>).owner_id),
+        p_bridge_id: payload.bridge_id,
+        p_worker_id: String((body as Record<string, unknown>).worker_id ?? "unknown"),
+      });
 
       if (selectErr) {
         return jsonResponse({ success: false, error: `Failed to poll mt5_commands: ${selectErr.message}` }, 500);
@@ -164,20 +212,6 @@ Deno.serve(async (req: Request) => {
           if (claim) certified.push(command);
         }
         if (!certified.length) return jsonResponse({ success:true, commands:[], uncertified_commands_blocked:true });
-        const commandIds = certified.map(c => c.id);
-
-        const { error: updateErr } = await supabase
-          .from("mt5_commands")
-          .update({
-            status: "accepted",
-            claimed_at: nowIso,
-          })
-          .in("id", commandIds);
-
-        if (updateErr) {
-          return jsonResponse({ success: false, error: `Failed to claim mt5_commands: ${updateErr.message}` }, 500);
-        }
-
         const claimed = certified.map(c => ({
           ...c,
           status: "accepted",
@@ -215,6 +249,7 @@ Deno.serve(async (req: Request) => {
         })
         .eq("id", payload.command_id)
         .eq("bridge_id", payload.bridge_id)
+        .eq("account_id", String((body as Record<string, unknown>).account_id ?? ""))
         .select()
         .maybeSingle();
 
@@ -222,25 +257,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: true, command_id: payload.command_id, status: finalStatus, command: updatedCommand });
       }
 
-      // Try fallback legacy table mt5_commands_queue
-      const legacyStatus = payload.success ? "ack" : "failed";
-      const { data: legacyData, error: legacyErr } = await supabase
-        .from("mt5_commands_queue")
-        .update({
-          status: legacyStatus,
-          ack_at: nowIso,
-          error_message: payload.error_message ?? null,
-          result_data: resultObj,
-        })
-        .eq("id", payload.command_id)
-        .select()
-        .maybeSingle();
-
-      if (legacyErr) {
-        return jsonResponse({ success: false, error: `Ack update failed: ${legacyErr.message}` }, 500);
-      }
-
-      return jsonResponse({ success: true, command_id: payload.command_id, status: finalStatus, command: legacyData });
+      return jsonResponse({ success: false, error_code: "MT5_COMMAND_SCOPE_MISMATCH" }, 404);
     }
 
     // ─── 4. SYNCHRONIZE STATE & EVALUATE RULES ──────────────────────────────
@@ -269,11 +286,17 @@ Deno.serve(async (req: Request) => {
       }
 
       if (targetAccountId) {
+        const { data: target } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled")
+          .eq("id", targetAccountId).eq("user_id", payload.owner_id ?? "").eq("bridge_id", payload.bridge_id).maybeSingle();
+        if (!target) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
         // Insert snapshot into mt5_account_snapshots
-        await supabase
+        const { error: snapshotError } = await supabase
           .from("mt5_account_snapshots")
           .insert({
             account_id: targetAccountId,
+            owner_id: payload.owner_id,
+            bridge_id: payload.bridge_id,
+            worker_id: payload.worker_id,
             balance: snap.balance,
             equity: snap.equity,
             margin: snap.margin,
@@ -284,8 +307,23 @@ Deno.serve(async (req: Request) => {
             currency: snap.currency ?? "USD",
             positions,
             orders,
+            history: payload.history ?? [],
+            read_status: payload.reads ?? {},
+            broker: payload.broker,
+            server: (snap as Record<string, unknown>).server,
+            login: payload.account_number,
+            account_name: (snap as Record<string, unknown>).account_name,
+            leverage: (snap as Record<string, unknown>).leverage,
+            margin_level: (snap as Record<string, unknown>).margin_level,
+            trade_permission: (snap as Record<string, unknown>).trade_permission === true,
+            terminal_autotrading: (snap as Record<string, unknown>).autotrading === true,
+            terminal_authenticated: (snap as Record<string, unknown>).terminal_authenticated === true,
+            terminal_identity: (snap as Record<string, unknown>).terminal ?? {},
+            open_positions_count: positions.length,
+            pending_orders_count: orders.length,
             captured_at: nowIso,
           });
+        if (snapshotError) return jsonResponse({ success: false, error_code: "MT5_SNAPSHOT_WRITE_FAILED" }, 500);
 
         // Update mt5_accounts connection status & heartbeat
         await supabase
@@ -294,7 +332,9 @@ Deno.serve(async (req: Request) => {
             last_sync_at: nowIso,
             last_heartbeat_at: nowIso,
             connection_status: "connected",
-            provider_health: "healthy",
+            provider_health: "healthy", terminal_authenticated: true,
+            trade_permission: (snap as Record<string, unknown>).trade_permission === true,
+            terminal_autotrading: (snap as Record<string, unknown>).autotrading === true,
             updated_at: nowIso,
           })
           .eq("id", targetAccountId);
