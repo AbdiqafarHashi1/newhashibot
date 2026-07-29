@@ -2,47 +2,161 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const headers = {
- 'Content-Type':'application/json',
- 'Access-Control-Allow-Origin':'*',
- 'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info',
- 'Access-Control-Allow-Methods':'POST, OPTIONS',
- 'Vary':'Origin',
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  Vary: 'Origin',
 };
-const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
-const encode=(value:string)=>new TextEncoder().encode(value);
-async function key(){ const secret=Deno.env.get('MT5_CREDENTIAL_ENCRYPTION_KEY'); if(!secret) throw new Error('MT5_CREDENTIAL_ENCRYPTION_KEY is not configured'); return crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',encode(secret)),{name:'AES-GCM'},false,['encrypt']); }
-async function encrypt(value:string){ const iv=crypto.getRandomValues(new Uint8Array(12)); const ciphertext=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await key(),encode(value))); const out=new Uint8Array(iv.length+ciphertext.length); out.set(iv); out.set(ciphertext,iv.length); return `\\x${Array.from(out,b=>b.toString(16).padStart(2,'0')).join('')}`; }
-async function digest(value:string){ return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encode(value))),b=>b.toString(16).padStart(2,'0')).join(''); }
+const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+const encode = (value: string) => new TextEncoder().encode(value);
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-Deno.serve(async req=>{
- if(req.method==='OPTIONS') return new Response(null,{headers});
- try {
-  if(req.method!=='POST') return reply({error:'method_not_allowed'},405);
-  const url=Deno.env.get('SUPABASE_URL')!, anon=Deno.env.get('SUPABASE_ANON_KEY')!, service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const authorization=req.headers.get('Authorization');
-  const match=authorization?.match(/^Bearer\s+(.+)$/i);
-  if(!match) return reply({error:'unauthorized',code:'MISSING_OR_INVALID_AUTHORIZATION'},401);
-  const auth=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
-  const {data:{user},error:authError}=await auth.auth.getUser(match[1]);
-  if(authError||!user) return reply({error:'unauthorized',code:'INVALID_JWT'},401);
-  const db=createClient(url,service); const body=await req.json();
-  if(body.action==='connect'){
-   if(!/^\d{4,20}$/.test(String(body.accountNumber)) || String(body.password).length<4) return reply({error:'invalid_credentials'},400);
-   const type=body.accountType; const mode=body.executionMode;
-   if(!['personal','prop','demo'].includes(type)||!['personal','prop_challenge','demo'].includes(mode)) return reply({error:'invalid_mode'},400);
-   const capability=String(body.credentialCapability??'investor'); const ownerKind=String(body.ownerKind??'customer');
-   if(!['investor','master'].includes(capability)||!['system','customer'].includes(ownerKind)) return reply({error:'invalid_account_security_classification'},400);
-   const {data,error}=await db.from('mt5_accounts').insert({user_id:user.id,owner_kind:ownerKind,broker:String(body.broker).trim(),server:String(body.server).trim(),account_number_ciphertext:await encrypt(String(body.accountNumber)),password_ciphertext:await encrypt(String(body.password)),account_number_hash:await digest(String(body.accountNumber)),account_number_last4:String(body.accountNumber).slice(-4),nickname:String(body.nickname).trim(),currency:String(body.currency??'USD'),leverage:Number(body.leverage),account_type:type,execution_mode:mode,credential_capability:capability,operational:body.operational===true,monitor_enabled:body.monitorEnabled!==false,execution_enabled:false,connection_status:'pending',policy:body.policy??{}}).select('id,credential_ref').single();
-   if(error) throw error;
-   const {data:verified,error:readError}=await db.from('mt5_accounts_safe').select('*').eq('id',data.id).single(); if(readError)throw readError;
-   return reply({accountId:data.id,ownerId:user.id,credentialRef:data.credential_ref,status:'REGISTERED',account:verified});
+class ApiError extends Error {
+  constructor(public code: string, message: string, public status = 500, public details?: string) {
+    super(message);
   }
-  const accountId=String(body.accountId??'');
-  const {data:owned}=await db.from('mt5_accounts').select('id,user_id,bridge_id').eq('id',accountId).single(); if(!owned||owned.user_id!==user.id) return reply({error:'not_found'},404);
-  if(body.action==='remove'){ const {error}=await db.from('mt5_accounts').delete().eq('id',accountId); if(error)throw error; return reply({removed:true}); }
-  if(body.action==='set_execution'){ if(body.enabled===true)return reply({error:'MT5_EXECUTION_ADOPTION_DISABLED'},409); const {error}=await db.from('mt5_accounts').update({execution_enabled:false,disabled_at:new Date().toISOString()}).eq('id',accountId); if(error)throw error; return reply({enabled:false}); }
-  if(body.action==='set_mode'){ if(!['personal','prop_challenge','demo'].includes(body.mode)) return reply({error:'invalid_mode'},400); const {error}=await db.from('mt5_accounts').update({execution_mode:body.mode}).eq('id',accountId); if(error)throw error; return reply({mode:body.mode}); }
-  if(body.action==='test_connection'){ if(!owned.bridge_id)return reply({error:'MT5_BRIDGE_OFFLINE'},409); const {data,error}=await db.from('mt5_commands').insert({account_id:accountId,bridge_id:owned.bridge_id,operation:'TEST_CONNECTION',payload:{},status:'received',idempotency_key:`test:${crypto.randomUUID()}`}).select('id').single(); if(error)throw error; return reply({commandId:data.id,status:'received'}); }
-  return reply({error:'unsupported_action'},400);
- } catch(error){ return reply({error:error instanceof Error?error.message:'mt5_account_operation_failed'},500); }
+}
+
+type DatabaseError = { code?: string; message?: string; details?: string; hint?: string };
+
+function encryptionSecret(): Uint8Array {
+  const value = Deno.env.get('MT5_CREDENTIAL_ENCRYPTION_KEY');
+  if (!value) throw new ApiError('MT5_ENCRYPTION_KEY_MISSING', 'MT5 credential encryption is not configured. Contact an administrator.');
+  const bytes = encode(value);
+  if (bytes.byteLength < 32 || bytes.byteLength > 1024) {
+    throw new ApiError('MT5_ENCRYPTION_KEY_MALFORMED', 'MT5 credential encryption key must contain between 32 and 1024 UTF-8 bytes.');
+  }
+  return bytes;
+}
+
+async function encryptionKey() {
+  const material = await crypto.subtle.digest('SHA-256', encryptionSecret());
+  return crypto.subtle.importKey('raw', material, { name: 'AES-GCM' }, false, ['encrypt']);
+}
+
+async function encrypt(value: string) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await encryptionKey(), encode(value)));
+  const out = new Uint8Array(iv.length + ciphertext.length);
+  out.set(iv);
+  out.set(ciphertext, iv.length);
+  return `\\x${Array.from(out, byte => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+async function digest(value: string) {
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encode(value))), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function databaseFailure(operation: string, error: DatabaseError): never {
+  throw new ApiError(`MT5_DATABASE_${operation.toUpperCase()}_FAILED`, 'The MT5 account could not be persisted.', 500, error.message);
+}
+
+function safeLog(operation: string, error: unknown, context: Record<string, unknown>) {
+  const database = error as DatabaseError;
+  console.error(JSON.stringify({
+    operation,
+    error_code: error instanceof ApiError ? error.code : database?.code ?? 'UNEXPECTED_ERROR',
+    database: {
+      code: database?.code ?? null,
+      message: database?.message ?? (error instanceof Error ? error.message : 'Unknown error'),
+      details: database?.details ?? null,
+      hint: database?.hint ?? null,
+    },
+    context,
+  }));
+}
+
+Deno.serve(async req => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers });
+  let operation = 'parse_request';
+  let safeContext: Record<string, unknown> = { method: req.method };
+  try {
+    if (req.method !== 'POST') throw new ApiError('METHOD_NOT_ALLOWED', 'Only POST is supported.', 405);
+    const url = Deno.env.get('SUPABASE_URL');
+    const anon = Deno.env.get('SUPABASE_ANON_KEY');
+    const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!url || !anon || !service) throw new ApiError('SUPABASE_CONFIGURATION_MISSING', 'The account service is not configured.');
+
+    const match = req.headers.get('Authorization')?.match(/^Bearer\s+(.+)$/i);
+    if (!match) throw new ApiError('MISSING_OR_INVALID_AUTHORIZATION', 'Authentication is required.', 401);
+    operation = 'authenticate';
+    const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: { user }, error: authError } = await auth.auth.getUser(match[1]);
+    if (authError || !user) throw new ApiError('INVALID_JWT', 'The authenticated session is invalid or expired.', 401, authError?.message);
+
+    const db = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+    let body: Record<string, unknown>;
+    try { body = await req.json(); } catch { throw new ApiError('INVALID_JSON', 'Request body must be valid JSON.', 400); }
+    operation = String(body.action ?? 'unknown');
+    safeContext = { action: operation, actor_id: user.id };
+
+    if (body.action === 'connect') {
+      const accountNumber = String(body.accountNumber ?? '').trim();
+      const password = String(body.password ?? '');
+      const broker = String(body.broker ?? '').trim();
+      const server = String(body.server ?? '').trim();
+      const nickname = String(body.nickname ?? '').trim();
+      const leverage = Number(body.leverage);
+      if (!/^\d{4,20}$/.test(accountNumber) || password.length < 4) throw new ApiError('INVALID_CREDENTIALS', 'Account number or password is invalid.', 400);
+      if (!broker || !server || !nickname || !Number.isInteger(leverage) || leverage <= 0) throw new ApiError('INVALID_ACCOUNT_DETAILS', 'Broker, server, nickname, and positive whole-number leverage are required.', 400);
+      const accountType = String(body.accountType);
+      const executionMode = String(body.executionMode);
+      if (!['personal', 'prop', 'demo'].includes(accountType) || !['personal', 'prop_challenge', 'demo'].includes(executionMode)) throw new ApiError('INVALID_CLASSIFICATION', 'Account type or execution mode is invalid.', 400);
+      const capability = String(body.credentialCapability ?? 'investor');
+      const ownerKind = String(body.ownerKind ?? 'customer');
+      if (!['investor', 'master'].includes(capability) || !['system', 'customer'].includes(ownerKind)) throw new ApiError('INVALID_SECURITY_CLASSIFICATION', 'Owner kind or credential capability is invalid.', 400);
+
+      const { data: actorProfile, error: profileError } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (profileError) databaseFailure('owner_resolution', profileError);
+      const isAdmin = actorProfile?.role === 'admin';
+      const requestedOwner = String(body.ownerId ?? user.id);
+      if (!uuidPattern.test(requestedOwner)) throw new ApiError('INVALID_OWNER_ID', 'Owner ID must be a canonical UUID.', 400);
+      if ((!isAdmin && requestedOwner !== user.id) || (!isAdmin && ownerKind === 'system')) throw new ApiError('OWNER_FORBIDDEN', 'Only an administrator can onboard an account for another owner or the system.', 403);
+      safeContext = { ...safeContext, owner_id: requestedOwner, owner_kind: ownerKind, account_type: accountType, credential_capability: capability };
+
+      // Resolve encryption before database work so configuration errors never leave a partial account.
+      encryptionSecret();
+      const accountHash = await digest(accountNumber);
+      const row = {
+        user_id: requestedOwner, owner_kind: ownerKind, broker, server,
+        account_number_ciphertext: await encrypt(accountNumber), password_ciphertext: await encrypt(password),
+        account_number_hash: accountHash, account_number_last4: accountNumber.slice(-4), nickname,
+        currency: String(body.currency ?? 'USD').trim().toUpperCase(), leverage,
+        account_type: accountType, execution_mode: executionMode, credential_capability: capability,
+        operational: body.operational === true, monitor_enabled: body.monitorEnabled !== false,
+        execution_enabled: false, connection_status: 'pending', policy: body.policy ?? {},
+      };
+      let { data: inserted, error: insertError } = await db.from('mt5_accounts').insert(row).select('id,credential_ref').single();
+      if (insertError?.code === '23505') {
+        const existing = await db.from('mt5_accounts').select('id,credential_ref').eq('user_id', requestedOwner).eq('broker', broker).eq('server', server).eq('account_number_hash', accountHash).maybeSingle();
+        if (existing.error) databaseFailure('duplicate_read', existing.error);
+        if (!existing.data) throw new ApiError('MT5_ACCOUNT_DUPLICATE', 'An MT5 account with conflicting identity already exists.', 409, insertError.message);
+        inserted = existing.data;
+      } else if (insertError) databaseFailure('insert', insertError);
+      if (!inserted || !uuidPattern.test(inserted.id) || !uuidPattern.test(inserted.credential_ref)) throw new ApiError('INVALID_PERSISTED_IDENTITY', 'The database returned an invalid account identity.');
+
+      const { data: account, error: readError } = await db.from('mt5_accounts_safe').select('*').eq('id', inserted.id).eq('user_id', requestedOwner).single();
+      if (readError) databaseFailure('safe_read', readError);
+      if (account.execution_enabled !== false) throw new ApiError('UNSAFE_EXECUTION_STATE', 'The new MT5 account did not default execution off.');
+      return reply({ accountId: inserted.id, ownerId: requestedOwner, credentialRef: inserted.credential_ref, status: 'REGISTERED', account });
+    }
+
+    const accountId = String(body.accountId ?? '');
+    if (!uuidPattern.test(accountId)) throw new ApiError('INVALID_ACCOUNT_ID', 'Account ID must be a canonical UUID.', 400);
+    const { data: owned, error: ownedError } = await db.from('mt5_accounts').select('id,user_id,bridge_id').eq('id', accountId).maybeSingle();
+    if (ownedError) databaseFailure('ownership_read', ownedError);
+    if (!owned) throw new ApiError('NOT_FOUND', 'MT5 account was not found.', 404);
+    const { data: actorProfile } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle();
+    if (owned.user_id !== user.id && actorProfile?.role !== 'admin') throw new ApiError('NOT_FOUND', 'MT5 account was not found.', 404);
+    if (body.action === 'remove') { const { error } = await db.from('mt5_accounts').delete().eq('id', accountId); if (error) databaseFailure('remove', error); return reply({ removed: true }); }
+    if (body.action === 'set_execution') { if (body.enabled === true) throw new ApiError('MT5_EXECUTION_ADOPTION_DISABLED', 'MT5 execution cannot be enabled during onboarding.', 409); const { error } = await db.from('mt5_accounts').update({ execution_enabled: false, disabled_at: new Date().toISOString() }).eq('id', accountId); if (error) databaseFailure('set_execution', error); return reply({ enabled: false }); }
+    if (body.action === 'set_mode') { if (!['personal', 'prop_challenge', 'demo'].includes(String(body.mode))) throw new ApiError('INVALID_MODE', 'Execution mode is invalid.', 400); const { error } = await db.from('mt5_accounts').update({ execution_mode: body.mode }).eq('id', accountId); if (error) databaseFailure('set_mode', error); return reply({ mode: body.mode }); }
+    if (body.action === 'test_connection') { if (!owned.bridge_id) throw new ApiError('MT5_BRIDGE_OFFLINE', 'No MT5 bridge is connected.', 409); const { data, error } = await db.rpc('enqueue_mt5_command', { p_account_id: accountId, p_operation: 'TEST_CONNECTION', p_payload: {}, p_idempotency_key: `test:${crypto.randomUUID()}` }).single(); if (error) databaseFailure('test_connection', error); return reply({ commandId: data.command_id, status: data.status }); }
+    throw new ApiError('UNSUPPORTED_ACTION', 'The requested MT5 account action is not supported.', 400);
+  } catch (error) {
+    safeLog(operation, error, safeContext);
+    const apiError = error instanceof ApiError ? error : new ApiError('MT5_ACCOUNT_OPERATION_FAILED', 'The MT5 account operation failed unexpectedly.');
+    return reply({ error: { code: apiError.code, message: apiError.message, details: apiError.details ?? null } }, apiError.status);
+  }
 });
