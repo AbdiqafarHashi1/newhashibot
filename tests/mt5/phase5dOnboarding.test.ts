@@ -11,6 +11,7 @@ const ui = readFileSync('src/lib/mt5Operations.ts', 'utf8');
 const agent = readFileSync('mt5-agent/main.py', 'utf8');
 const client = readFileSync('mt5-agent/cloud_client.py', 'utf8');
 const hotfix = readFileSync('supabase/migrations/20260729020000_phase5d_bridge_registration_hotfix.sql', 'utf8');
+const commandClaimHotfix = readFileSync('supabase/migrations/20260729030000_phase5d_mt5_command_claim_type_hotfix.sql', 'utf8');
 const bridgeUi = readFileSync('src/components/operations/mt5/MT5BridgesTab.tsx', 'utf8');
 
 assert.match(frontend, /supabase\.auth\.getSession\(\)/, 'the current session is resolved at invocation time');
@@ -38,6 +39,14 @@ assert.match(bridge, /BRIDGE_ACCOUNT_SCOPE_MISMATCH/, 'all worker writes fail cl
 assert.doesNotMatch(bridge, /mt5_commands_queue/, 'the worker cannot fall back to a duplicate legacy queue');
 assert.match(finalization, /FOR UPDATE SKIP LOCKED/, 'command claim is atomic');
 assert.match(finalization, /UNIQUE|idempotency_key/, 'idempotency remains represented in the durable contract');
+assert.match(commandClaimHotfix, /r\.account_id\s*=\s*c\.account_id::text/, 'a UUID MT5 account executes against the text certified-runtime account ID');
+assert.doesNotMatch(commandClaimHotfix, /r\.account_id\s*=\s*c\.account_id(?!::text)/, 'the text/UUID comparison cannot regress');
+assert.match(commandClaimHotfix, /r\.execution_plan_id\s*=\s*c\.payload->>'execution_plan_id'/, 'execution-plan certification compares text with text');
+assert.match(commandClaimHotfix, /FOR UPDATE SKIP LOCKED/, 'the repaired command claim remains atomic');
+assert.match(commandClaimHotfix, /IF NOT FOUND THEN RETURN;/, 'an empty command queue returns normally');
+assert.match(commandClaimHotfix, /c\.account_id\s*=\s*p_account_id/, 'claiming remains account scoped with UUID operands');
+assert.match(commandClaimHotfix, /c\.expires_at IS NULL OR c\.expires_at > now\(\)/, 'expired commands remain excluded');
+assert.match(commandClaimHotfix, /c\.payload->>'deterministic_identity'\s*=\s*c\.idempotency_key/, 'idempotency certification remains required');
 assert.match(ui, /age > 120_000/);
 assert.match(ui, /age > 30_000/);
 assert.match(ui, /Investor Only/);
