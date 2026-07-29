@@ -33,6 +33,7 @@ class Config:
     SYMBOL_SYNC_INTERVAL_SECONDS = float(os.getenv("SYMBOL_SYNC_INTERVAL_SECONDS", "300"))
     ALLOW_OFFLINE_TEST_MODE = os.getenv("ALLOW_OFFLINE_TEST_MODE", "false").lower() in ("1", "true", "yes")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    AGENT_VERSION = "1.1.0-phase5d-hotfix"
 
     # Populated only after the authorized credential exchange.
     ACCOUNT_NUMBER: Optional[int] = None
@@ -54,10 +55,12 @@ class Config:
             "SUPABASE_URL": cls.SUPABASE_URL, "BRIDGE_ID": cls.BRIDGE_ID,
             "MT5_TERMINAL_PATH": cls.MT5_TERMINAL_PATH,
         }.items() if not value]
-        if not (cls.BRIDGE_TOKEN or cls.SUPABASE_SERVICE_ROLE_KEY):
-            missing.append("MT5_BRIDGE_TOKEN or SUPABASE_SERVICE_ROLE_KEY")
+        if len(cls.BRIDGE_TOKEN) < 32:
+            missing.append("MT5_BRIDGE_TOKEN (minimum 32 characters)")
         if bool(cls.ACCOUNT_ID) != bool(cls.OWNER_ID):
             missing.append("MT5_ACCOUNT_ID and MT5_OWNER_ID (both or neither)")
+        if cls.ACCOUNT_ID and not cls.CREDENTIAL_REF:
+            missing.append("MT5_CREDENTIAL_REF")
         if missing:
             raise ValueError("BRIDGE_CONFIGURATION_ERROR: missing " + ", ".join(missing))
         cls._uuid("MT5_ACCOUNT_ID", cls.ACCOUNT_ID, False)

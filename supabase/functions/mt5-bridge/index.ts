@@ -9,11 +9,15 @@ const corsHeaders = {
 
 const encode = new TextEncoder();
 const decode = new TextDecoder();
-function bridgeAuthorized(req: Request, service: string) {
-  const bearer = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+async function bridgeAuthorized(req: Request) {
   const restricted = Deno.env.get("MT5_BRIDGE_TOKEN") ?? "";
   const supplied = req.headers.get("X-MT5-Bridge-Token") ?? "";
-  return (restricted.length >= 32 && supplied === restricted) || (service.length > 0 && bearer === service);
+  if (restricted.length < 32 || supplied.length !== restricted.length) return false;
+  const expected = new Uint8Array(await crypto.subtle.digest("SHA-256", encode.encode(restricted)));
+  const actual = new Uint8Array(await crypto.subtle.digest("SHA-256", encode.encode(supplied)));
+  let difference = 0;
+  for (let i = 0; i < expected.length; i += 1) difference |= expected[i] ^ actual[i];
+  return difference === 0;
 }
 async function decryptCredential(value: string) {
   const secret = Deno.env.get("MT5_CREDENTIAL_ENCRYPTION_KEY") ?? Deno.env.get("MT5_ENCRYPTION_KEY") ?? "";
@@ -113,17 +117,50 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    if (!bridgeAuthorized(req, supabaseServiceKey)) {
-      return jsonResponse({ success: false, error_code: "BRIDGE_AUTHORIZATION_FAILED" }, 401);
+    if (!(await bridgeAuthorized(req))) {
+      return jsonResponse({ success: false, error_code: "BRIDGE_TOKEN_INVALID", message: "Bridge authentication failed" }, 401);
+    }
+
+    if (action === "register_bridge") {
+      const bridgeId = String(body.bridge_id ?? ""), workerId = String(body.worker_id ?? "");
+      if (!bridgeId || !workerId) return jsonResponse({ success: false, error_code: "BRIDGE_REGISTRATION_FAILED", message: "Bridge and worker identity are required" }, 400);
+      const { data, error } = await supabase.rpc("register_mt5_bridge", {
+        p_bridge_id: bridgeId, p_worker_id: workerId, p_hostname: String(body.hostname ?? "unknown"),
+        p_platform: String(body.platform ?? "unknown"), p_agent_version: String(body.agent_version ?? "unknown"),
+        p_process_id: String(body.process_id ?? "unknown"), p_supported_classes: body.supported_account_classes ?? ["demo", "personal", "prop"]
+      });
+      if (error) {
+        const duplicate = error.message.includes("BRIDGE_ALREADY_ACTIVE");
+        return jsonResponse({ success: false, error_code: duplicate ? "BRIDGE_ALREADY_ACTIVE" : "BRIDGE_REGISTRATION_FAILED", message: duplicate ? "Bridge ID has a healthy active lease" : "Bridge registration failed" }, duplicate ? 409 : 500);
+      }
+      return jsonResponse({ success: true, registry: data?.[0] ?? data });
+    }
+
+    if (action === "assign_account") {
+      const { data, error } = await supabase.rpc("assign_mt5_bridge_account", {
+        p_bridge_id: String(body.bridge_id ?? ""), p_worker_id: String(body.worker_id ?? ""),
+        p_account_id: String(body.account_id ?? ""), p_owner_id: String(body.owner_id ?? ""),
+        p_credential_ref: String(body.credential_ref ?? "")
+      });
+      if (error) {
+        const known = ["ACCOUNT_NOT_FOUND", "ACCOUNT_OWNER_MISMATCH", "ACCOUNT_ALREADY_ASSIGNED", "CREDENTIAL_REF_MISMATCH", "BRIDGE_ALREADY_ACTIVE"];
+        const code = known.find(value => error.message.includes(value)) ?? (error.code ? "DATABASE_ERROR" : "ACCOUNT_ASSIGNMENT_FAILED");
+        return jsonResponse({ success: false, error_code: code, message: code === "DATABASE_ERROR" ? "Database operation failed" : code.replaceAll("_", " ").toLowerCase() }, code === "DATABASE_ERROR" ? 500 : 409);
+      }
+      return jsonResponse({ success: true, assignment: data?.[0] ?? data });
     }
 
     if (action === "discover_accounts") {
       const bridgeId = String(body.bridge_id ?? "");
+      const workerId = String(body.worker_id ?? "");
+      const { data: registry, error: registryError } = await supabase.from("mt5_bridge_registry").select("bridge_id,worker_id,status,last_heartbeat_at").eq("bridge_id", bridgeId).eq("worker_id", workerId).maybeSingle();
+      if (registryError) return jsonResponse({ success: false, error_code: "DATABASE_ERROR", message: "Database operation failed" }, 500);
+      if (!registry) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH", message: "Bridge is not registered for this worker" }, 403);
       const explicit = Array.isArray(body.account_ids) ? body.account_ids.map(String) : [];
       let query = supabase.from("mt5_accounts").select("id,user_id,broker,server,account_type,credential_ref,credential_capability,execution_enabled,operational,bridge_id").eq("bridge_id", bridgeId);
       if (explicit.length) query = query.in("id", explicit);
       const { data, error } = await query;
-      if (error) return jsonResponse({ success: false, error_code: "MT5_DISCOVERY_FAILED" }, 500);
+      if (error) return jsonResponse({ success: false, error_code: "DATABASE_ERROR", message: "Database operation failed" }, 500);
       return jsonResponse({ success: true, accounts: (data ?? []).map(a => ({ account_id: a.id, owner_id: a.user_id, broker: a.broker, server: a.server, account_class: a.account_type, credential_ref: a.credential_ref, credential_capability: a.credential_capability, execution_enabled: a.execution_enabled, operational: a.operational, bridge_id: a.bridge_id })) });
     }
 
@@ -152,19 +189,24 @@ Deno.serve(async (req: Request) => {
       const bridgeStatus = payload.status ?? "online";
       const { data, error } = await supabase
         .from("mt5_bridge_registry")
-        .upsert({
-          bridge_id: payload.bridge_id,
+        .update({
           last_heartbeat_at: new Date().toISOString(),
+          lease_expires_at: new Date(Date.now() + 45_000).toISOString(),
           status: bridgeStatus,
           ip_address: payload.ip_address,
           connection_info: payload.connection_info ?? {},
-        }, { onConflict: "bridge_id" })
+          startup_stage: "heartbeat",
+          command_polling_state: "active",
+        })
+        .eq("bridge_id", payload.bridge_id)
+        .eq("worker_id", String((body as Record<string, unknown>).worker_id ?? ""))
         .select()
         .maybeSingle();
 
       if (error) {
-        return jsonResponse({ success: false, error: `Heartbeat upsert failed: ${error.message}` }, 500);
+        return jsonResponse({ success: false, error_code: "DATABASE_ERROR", message: "Database operation failed" }, 500);
       }
+      if (!data) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH", message: "Bridge lease is not owned by this worker" }, 403);
 
       // Also update connection_status in mt5_accounts linked to this bridge_id
       await supabase

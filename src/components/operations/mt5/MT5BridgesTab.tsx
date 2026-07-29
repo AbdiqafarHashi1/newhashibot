@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Server, RefreshCw, CheckCircle2, Power, RotateCcw
 } from 'lucide-react';
-import { listMT5Bridges, type MT5BridgeInfo } from '../../../lib/mt5Operations';
+import { listMT5Bridges, requestMT5BridgeControl, unassignMT5BridgeAccount, type MT5BridgeInfo } from '../../../lib/mt5Operations';
 
 export function MT5BridgesTab() {
   const [bridges, setBridges] = useState<MT5BridgeInfo[]>([]);
@@ -24,6 +24,12 @@ export function MT5BridgesTab() {
   useEffect(() => {
     fetchBridges();
   }, []);
+
+  const control = async (action: 'graceful_stop' | 'restart' | 'read_only_sync' | 'revoke') => {
+    if (!selectedBridge) return;
+    await requestMT5BridgeControl(selectedBridge.bridge_id, action);
+    await fetchBridges();
+  };
 
   const timeAgo = (iso?: string | null) => {
     if (!iso) return 'Never';
@@ -60,7 +66,7 @@ export function MT5BridgesTab() {
       <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
           <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-            Active Bridge Daemons ({bridges.length})
+            Canonically Registered Bridges ({bridges.length})
           </span>
           <span className="text-[11px] text-zinc-500">
             Protocol: <code className="text-zinc-300 font-mono">v1.0.0-phase8c</code>
@@ -110,7 +116,7 @@ export function MT5BridgesTab() {
                       <div className="text-[11px] text-zinc-500">{bridge.os}</div>
                     </td>
                     <td className="p-3 font-mono text-zinc-300">
-                      {bridge.connected_account || 'None'}
+                      {bridge.assigned_account_count} · {bridge.connected_account || 'None'}
                     </td>
                     <td className="p-3 text-zinc-400">
                       {timeAgo(bridge.last_heartbeat_at)}
@@ -173,6 +179,8 @@ export function MT5BridgesTab() {
                 <span className="text-zinc-500 block">Operating System</span>
                 <span className="text-white font-medium">{selectedBridge.os}</span>
               </div>
+              <div><span className="text-zinc-500 block">Worker / PID</span><span className="font-mono text-white">{selectedBridge.worker_id || 'unknown'} / {selectedBridge.process_id || 'unknown'}</span></div>
+              <div><span className="text-zinc-500 block">Startup / Polling</span><span className="text-white">{selectedBridge.startup_stage || 'unknown'} / {selectedBridge.command_polling_state || 'unknown'}</span></div>
             </div>
 
             {/* Connectivity Status */}
@@ -195,7 +203,7 @@ export function MT5BridgesTab() {
                 <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between"><span className="text-zinc-400">Last Sync</span><span className="text-zinc-300">{timeAgo(selectedBridge.last_sync_at)}</span></div>
                 <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between">
                   <span className="text-zinc-400">Account Bound</span>
-                  <span className="text-white font-mono">{selectedBridge.connected_account || 'Active'}</span>
+                  <span className="text-white font-mono">{selectedBridge.assigned_account_count} assigned</span>
                 </div>
                 <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex items-center justify-between">
                   <span className="text-zinc-400">Last Heartbeat</span>
@@ -204,47 +212,36 @@ export function MT5BridgesTab() {
               </div>
             </div>
 
-            {/* Capabilities Checklist */}
+            {/* Canonical assignments */}
             <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Bridge Capabilities</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                {[
-                  'Place Order',
-                  'Modify Position',
-                  'Close Position',
-                  'Cancel Order',
-                  'Sync State',
-                  'Sync Symbols'
-                ].map((cap) => (
-                  <div key={cap} className="p-2 bg-zinc-950 border border-zinc-800/80 rounded flex items-center gap-1.5 text-zinc-300">
-                    <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
-                    <span>{cap}</span>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Assigned accounts (canonical truth)</h4>
+              <div className="space-y-2 text-xs">
+                {selectedBridge.assigned_accounts.map(account => (
+                  <div key={account.id} className="p-2 bg-zinc-950 border border-zinc-800/80 rounded flex items-center justify-between text-zinc-300">
+                    <span>{account.masked} · {account.account_class} · {account.credential_capability} · execution {account.execution_enabled ? 'enabled' : 'disabled'} · terminal {account.terminal_authenticated ? 'authenticated' : 'not authenticated'} · snapshot {timeAgo(account.last_snapshot_at)}</span>
+                    <button onClick={async () => { await unassignMT5BridgeAccount(account.id); await fetchBridges(); }} className="text-amber-400 hover:text-amber-300">Safe unassign</button>
                   </div>
                 ))}
+                {!selectedBridge.assigned_accounts.length && <div className="text-zinc-500">No assigned accounts.</div>}
               </div>
             </div>
+
+            {(selectedBridge.last_error_code || selectedBridge.last_error_message) && <div className="rounded border border-red-900 bg-red-950/30 p-3 text-xs text-red-300">{selectedBridge.last_error_code}: {selectedBridge.last_error_message}</div>}
 
             {/* Future Controls - Disabled until Certification */}
             <div className="pt-3 border-t border-zinc-800 flex items-center justify-between">
               <div className="text-[11px] text-zinc-500">
-                Bridge control actions require live terminal certification.
+                Controls create requests for an already-running manager; this browser never launches a process.
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  disabled
-                  className="px-3 py-1.5 bg-zinc-800 text-zinc-600 rounded text-xs font-medium cursor-not-allowed flex items-center gap-1"
-                  title="Disabled until certification phase"
-                >
+                <button onClick={() => control('read_only_sync')} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs font-medium">Read-only test</button>
+                <button onClick={() => control('restart')} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs font-medium flex items-center gap-1">
                   <RotateCcw size={12} />
-                  Restart Bridge
+                  Request restart
                 </button>
-                <button
-                  disabled
-                  className="px-3 py-1.5 bg-zinc-800 text-zinc-600 rounded text-xs font-medium cursor-not-allowed flex items-center gap-1"
-                  title="Disabled until certification phase"
-                >
+                <button onClick={() => control('graceful_stop')} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs font-medium flex items-center gap-1">
                   <Power size={12} />
-                  Disable Bridge
+                  Request stop
                 </button>
               </div>
             </div>

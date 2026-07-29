@@ -18,6 +18,17 @@ export interface MT5BridgeInfo {
   credential_capability: 'investor' | 'master';
   execution_enabled: boolean;
   last_sync_at?: string | null;
+  registered: boolean;
+  worker_id?: string | null;
+  process_id?: string | null;
+  assigned_account_count: number;
+  assigned_accounts: Array<{ id: string; masked: string; account_class: string; credential_capability: string; execution_enabled: boolean; terminal_authenticated: boolean; last_snapshot_at?: string | null }>;
+  startup_stage?: string | null;
+  command_polling_state?: string | null;
+  last_error_code?: string | null;
+  last_error_message?: string | null;
+  control_request?: string | null;
+  lease_expires_at?: string | null;
 }
 
 export function mt5RuntimeHealth(account: Record<string, unknown>, now = Date.now()): MT5BridgeInfo['health'] {
@@ -142,45 +153,53 @@ interface AuditLogRow {
 
 export async function listMT5Bridges(): Promise<MT5BridgeInfo[]> {
   try {
-    const { data: accounts, error } = await supabase.from('mt5_accounts_safe').select('*');
-    if (error) throw error;
-
-    const bridgeMap = new Map<string, MT5BridgeInfo>();
-
-    for (const acc of accounts ?? []) {
-      const bId = acc.bridge_id || 'bridge-mt5-001';
-      const lastHb = acc.last_heartbeat_at || acc.last_sync_at || '';
+    const [{ data: registry, error }, { data: accounts, error: accountError }] = await Promise.all([
+      supabase.from('mt5_bridge_registry').select('*').order('created_at', { ascending: false }),
+      supabase.from('mt5_accounts_safe').select('*').not('bridge_id', 'is', null),
+    ]);
+    if (error || accountError) throw error || accountError;
+    return (registry ?? []).map(row => {
+      const assigned = (accounts ?? []).filter(acc => acc.bridge_id === row.bridge_id);
+      const lastHb = row.last_heartbeat_at || '';
       const hbAge = (Date.now() - new Date(lastHb).getTime()) / 1000;
-      
       const status: 'online' | 'degraded' | 'offline' = 
-        acc.connection_status === 'connected' && hbAge < 60 ? 'online' :
+        ['online', 'healthy'].includes(row.status) && hbAge < 60 ? 'online' :
         hbAge < 300 ? 'degraded' : 'offline';
-
-      if (!bridgeMap.has(bId)) {
-        bridgeMap.set(bId, {
-          bridge_id: bId,
+      const primary = assigned[0] || {};
+      return {
+          bridge_id: row.bridge_id,
           status,
-          version: '1.0.0-phase8c',
-          hostname: 'WIN-HASHIBOT-AGENT',
-          os: 'Windows Server 2022 x64',
-          connected_account: acc.account_number_masked || acc.nickname,
+          version: row.agent_version || 'unknown',
+          hostname: row.hostname || 'unknown',
+          os: row.platform || 'unknown',
+          connected_account: primary.account_number_masked || primary.nickname,
           last_heartbeat_at: lastHb,
-          agent_version: 'Python 3.10 Daemon',
-          runtime_mode: acc.execution_mode || 'personal'
-          ,health: mt5RuntimeHealth(acc)
-          ,terminal_authenticated: acc.terminal_authenticated === true
-          ,credential_capability: acc.credential_capability || 'investor'
-          ,execution_enabled: acc.execution_enabled === true
-          ,last_sync_at: acc.last_sync_at
-        });
-      }
-    }
-
-    return Array.from(bridgeMap.values());
+          agent_version: row.agent_version || 'unknown', runtime_mode: primary.execution_mode || 'unknown',
+          health: mt5RuntimeHealth({ ...primary, bridge_id: row.bridge_id, last_heartbeat_at: lastHb, last_error: row.last_error_code }),
+          terminal_authenticated: assigned.some(acc => acc.terminal_authenticated === true),
+          credential_capability: primary.credential_capability || 'investor', execution_enabled: assigned.some(acc => acc.execution_enabled === true),
+          last_sync_at: primary.last_sync_at, registered: true, worker_id: row.worker_id, process_id: row.process_id,
+          assigned_account_count: assigned.length,
+          assigned_accounts: assigned.map(acc => ({ id: acc.id, masked: acc.account_number_masked || acc.nickname || 'masked', account_class: acc.account_type || acc.execution_mode || 'unknown', credential_capability: acc.credential_capability || 'unknown', execution_enabled: acc.execution_enabled === true, terminal_authenticated: acc.terminal_authenticated === true, last_snapshot_at: acc.last_sync_at })),
+          startup_stage: row.startup_stage, command_polling_state: row.command_polling_state,
+          last_error_code: row.last_error_code, last_error_message: row.last_error_message,
+          control_request: row.control_request, lease_expires_at: row.lease_expires_at,
+      };
+    });
   } catch (err) {
     console.warn('[mt5Operations] Error fetching bridges:', err);
     return [];
   }
+}
+
+export async function requestMT5BridgeControl(bridgeId: string, action: 'graceful_stop' | 'restart' | 'read_only_sync' | 'revoke') {
+  const { error } = await supabase.rpc('request_mt5_bridge_control', { p_bridge_id: bridgeId, p_action: action });
+  if (error) throw error;
+}
+
+export async function unassignMT5BridgeAccount(accountId: string) {
+  const { error } = await supabase.rpc('unassign_mt5_bridge_account', { p_account_id: accountId });
+  if (error) throw error;
 }
 
 export async function listMT5Commands(limit = 50): Promise<MT5CommandRecord[]> {
@@ -202,7 +221,7 @@ export async function listMT5Commands(limit = 50): Promise<MT5CommandRecord[]> {
       return (queueData ?? []).map((row: CommandRow) => ({
         id: row.id,
         account_id: row.account_id,
-        bridge_id: row.bridge_id || 'bridge-mt5-001',
+        bridge_id: row.bridge_id || 'unassigned',
         symbol: row.payload?.symbol || 'EURUSD',
         operation: row.operation || row.action || 'place_order',
         status: row.status || 'pending',
@@ -222,7 +241,7 @@ export async function listMT5Commands(limit = 50): Promise<MT5CommandRecord[]> {
     return (data ?? []).map((row: CommandRow) => ({
       id: row.id,
       account_id: row.account_id,
-      bridge_id: row.bridge_id || 'bridge-mt5-001',
+      bridge_id: row.bridge_id || 'unassigned',
       symbol: row.payload?.symbol || row.symbol || 'EURUSD',
       operation: row.operation || 'place_order',
       status: row.status || 'pending',

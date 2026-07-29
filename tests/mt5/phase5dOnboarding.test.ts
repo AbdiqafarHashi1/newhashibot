@@ -8,6 +8,10 @@ const accountSchema = readFileSync('supabase/migrations/20260722020000_phase8a_m
 const bridge = readFileSync('supabase/functions/mt5-bridge/index.ts', 'utf8');
 const finalization = readFileSync('supabase/migrations/20260729010000_phase5d_bridge_finalization.sql', 'utf8');
 const ui = readFileSync('src/lib/mt5Operations.ts', 'utf8');
+const agent = readFileSync('mt5-agent/main.py', 'utf8');
+const client = readFileSync('mt5-agent/cloud_client.py', 'utf8');
+const hotfix = readFileSync('supabase/migrations/20260729020000_phase5d_bridge_registration_hotfix.sql', 'utf8');
+const bridgeUi = readFileSync('src/components/operations/mt5/MT5BridgesTab.tsx', 'utf8');
 
 assert.match(frontend, /supabase\.auth\.getSession\(\)/, 'the current session is resolved at invocation time');
 assert.match(frontend, /Authorization:`Bearer \$\{session\.access_token\}`/, 'the JWT is explicitly propagated to FunctionsClient');
@@ -37,5 +41,16 @@ assert.match(finalization, /UNIQUE|idempotency_key/, 'idempotency remains repres
 assert.match(ui, /age > 120_000/);
 assert.match(ui, /age > 30_000/);
 assert.match(ui, /Investor Only/);
+assert.match(bridge, /action === "register_bridge"/, 'first startup has an authenticated registration action');
+assert.match(bridge, /BRIDGE_TOKEN_INVALID/, 'invalid custom tokens use the stable contract');
+assert.match(hotfix, /BRIDGE_ALREADY_ACTIVE/, 'healthy duplicate leases are rejected');
+assert.match(hotfix, /lease_expires_at > now_at/, 'stale reclaim is timestamp governed');
+assert.match(hotfix, /CREDENTIAL_REF_MISMATCH/, 'explicit assignment validates its credential reference');
+assert.ok(agent.indexOf('register_bridge()') < agent.indexOf('assign_explicit_account()') && agent.indexOf('assign_explicit_account()') < agent.indexOf('discover_accounts()'), 'startup registers, assigns, then discovers');
+assert.match(agent, /ProcessLookupError/, 'dead local process locks are reclaimed');
+assert.match(agent, /except BaseException:[\s\S]*_release_single_instance_lock/, 'fatal startup releases its lock');
+assert.doesNotMatch(ui, /bridge-mt5-001|WIN-HASHIBOT-AGENT|Windows Server 2022/, 'operations truth has no fictitious bridge fallback');
+assert.match(bridgeUi, /browser never launches a process/, 'UI truthfully describes control requests');
+assert.doesNotMatch(client, /password.*logger|logger.*password/i, 'the agent never logs credentials');
 
 console.log('Phase 5D authenticated MT5 onboarding contract tests passed');

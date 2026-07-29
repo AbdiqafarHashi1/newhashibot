@@ -4,6 +4,10 @@ Handles HTTP REST interactions with HashiBot Supabase Edge Functions using reque
 """
 
 import json
+import os
+import platform
+import socket
+import time
 from typing import Dict, Any, List, Optional
 from config import Config
 from logging_config import logger
@@ -37,12 +41,19 @@ class CloudClient:
 
     def _post(self, url: str, payload: Dict[str, Any], timeout: int = 10) -> tuple[int, Dict[str, Any]]:
         if HAS_REQUESTS:
-            res = requests.post(url, json=payload, headers=self.headers, timeout=timeout)
-            try:
-                data = res.json()
-            except Exception:
-                data = {}
-            return res.status_code, data
+            for attempt in range(3):
+                try:
+                    res = requests.post(url, json=payload, headers=self.headers, timeout=timeout)
+                    try:
+                        data = res.json()
+                    except Exception:
+                        data = {}
+                    if res.status_code < 500 or attempt == 2:
+                        return res.status_code, data
+                except requests.RequestException:
+                    if attempt == 2:
+                        return 503, {"error_code": "BRIDGE_REGISTRATION_FAILED", "message": "Bridge gateway temporarily unavailable"}
+                time.sleep(0.25 * (2 ** attempt))
         else:
             data_bytes = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(url, data=data_bytes, headers=self.headers, method="POST")
@@ -61,14 +72,42 @@ class CloudClient:
                 logger.error("operation=http_post error_code=BRIDGE_NETWORK_ERROR")
                 return 500, {"error": "BRIDGE_NETWORK_ERROR"}
 
+    @staticmethod
+    def _error(data: Dict[str, Any], fallback: str) -> RuntimeError:
+        code = str(data.get("error_code") or fallback)
+        message = str(data.get("message") or "Backend request failed")
+        return RuntimeError(f"{code}: {message}")
+
+    def register_bridge(self) -> Dict[str, Any]:
+        code, data = self._post(self._bridge_url("register_bridge"), {
+            "bridge_id": self.bridge_id, "worker_id": Config.WORKER_ID,
+            "hostname": socket.gethostname(), "platform": platform.platform(),
+            "agent_version": Config.AGENT_VERSION, "process_id": str(os.getpid()),
+            "supported_account_classes": ["demo", "personal", "prop"],
+        })
+        if code != 200 or not data.get("success"):
+            raise self._error(data, "BRIDGE_REGISTRATION_FAILED")
+        return data["registry"]
+
+    def assign_explicit_account(self) -> Dict[str, Any]:
+        code, data = self._post(self._bridge_url("assign_account"), {
+            "bridge_id": self.bridge_id, "worker_id": Config.WORKER_ID,
+            "account_id": Config.ACCOUNT_ID, "owner_id": Config.OWNER_ID,
+            "credential_ref": Config.CREDENTIAL_REF,
+        })
+        if code != 200 or not data.get("success"):
+            raise self._error(data, "ACCOUNT_ASSIGNMENT_FAILED")
+        return data["assignment"]
+
     def discover_accounts(self) -> List[Dict[str, Any]]:
         """Discover only accounts assigned by the backend to this manager."""
         code, data = self._post(self._bridge_url("discover_accounts"), {
             "bridge_id": self.bridge_id,
+            "worker_id": Config.WORKER_ID,
             "account_ids": [Config.ACCOUNT_ID] if Config.ACCOUNT_ID else [],
         })
         if code != 200 or not data.get("success"):
-            raise RuntimeError(data.get("error_code", "MT5_DISCOVERY_FAILED"))
+            raise self._error(data, "BRIDGE_ACCOUNT_SCOPE_MISMATCH")
         return data.get("accounts", [])
 
     def retrieve_credential(self, account_id: str, owner_id: str, credential_ref: str) -> Dict[str, Any]:
@@ -79,7 +118,7 @@ class CloudClient:
             "worker_id": Config.WORKER_ID,
         })
         if code != 200 or not data.get("success"):
-            raise RuntimeError(data.get("error_code", "MT5_CREDENTIAL_RETRIEVAL_FAILED"))
+            raise self._error(data, "BRIDGE_ACCOUNT_SCOPE_MISMATCH")
         return data["credential"]
 
     def send_heartbeat(self, status: str = "online", connection_info: Optional[Dict[str, Any]] = None) -> bool:

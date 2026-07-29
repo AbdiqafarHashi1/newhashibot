@@ -35,29 +35,35 @@ class MT5AgentDaemon:
         logger.info(f"Poll Interval: {Config.POLL_INTERVAL_SECONDS}s | Heartbeat Interval: {Config.HEARTBEAT_INTERVAL_SECONDS}s")
 
         self._acquire_single_instance_lock()
+        atexit.register(self._release_single_instance_lock)
 
-        # Fail-closed safety check
-        if not HAS_MT5 and not Config.ALLOW_OFFLINE_TEST_MODE:
-            logger.critical(
-                "[Daemon] FAIL-CLOSED: MetaTrader5 library unavailable in current environment. "
-                "Startup aborted to protect against mock live execution. "
-                "Set ALLOW_OFFLINE_TEST_MODE=true in .env if executing offline/unit tests."
+        try:
+            # Fail-closed safety check
+            if not HAS_MT5 and not Config.ALLOW_OFFLINE_TEST_MODE:
+                raise RuntimeError("MT5_LIBRARY_UNAVAILABLE: MetaTrader5 library is unavailable")
+
+            self.running = True
+            self.mt5_client = MT5Client(terminal_path=Config.MT5_TERMINAL_PATH)
+            self.cloud_client = CloudClient()
+            logger.info("operation=startup stage=register_bridge")
+            self.cloud_client.register_bridge()
+            if Config.ACCOUNT_ID:
+                logger.info("operation=startup stage=assign_explicit_account account_id=%s", Config.ACCOUNT_ID)
+                self.cloud_client.assign_explicit_account()
+            logger.info("operation=startup stage=discover_accounts")
+            discovered = self.cloud_client.discover_accounts()
+            assigned = next((a for a in discovered if a["account_id"] == Config.ACCOUNT_ID and a["owner_id"] == Config.OWNER_ID), None)
+            if not assigned:
+                raise RuntimeError("BRIDGE_ACCOUNT_SCOPE_MISMATCH: configured account is not assigned")
+            if assigned["credential_ref"] != Config.CREDENTIAL_REF:
+                raise RuntimeError("CREDENTIAL_REF_MISMATCH: configured credential reference differs")
+            # Plaintext exists only in worker memory and is never logged or persisted.
+            credential = self.cloud_client.retrieve_credential(
+                Config.ACCOUNT_ID, Config.OWNER_ID, assigned["credential_ref"]
             )
+        except BaseException:
             self._release_single_instance_lock()
-            sys.exit(1)
-
-        self.running = True
-        self.mt5_client = MT5Client(terminal_path=Config.MT5_TERMINAL_PATH)
-        self.cloud_client = CloudClient()
-        discovered = self.cloud_client.discover_accounts()
-        assigned = next((a for a in discovered if a["account_id"] == Config.ACCOUNT_ID and a["owner_id"] == Config.OWNER_ID), None)
-        if not assigned:
-            raise RuntimeError("BRIDGE_ACCOUNT_SCOPE_MISMATCH")
-        # The backend alone decrypts the assigned account credential. Keep it only
-        # in this worker's memory and never emit it to logs, disk, or child args.
-        credential = self.cloud_client.retrieve_credential(
-            Config.ACCOUNT_ID, Config.OWNER_ID, assigned["credential_ref"]
-        )
+            raise
         Config.ACCOUNT_NUMBER = int(credential["login"])
         Config.PASSWORD = credential["password"]
         Config.SERVER = credential["server"]
@@ -77,7 +83,6 @@ class MT5AgentDaemon:
 
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
-        atexit.register(self._release_single_instance_lock)
 
     def _acquire_single_instance_lock(self):
         os.makedirs(os.path.dirname(LOCK_FILE_PATH), exist_ok=True)
@@ -87,13 +92,23 @@ class MT5AgentDaemon:
                 f.write(str(os.getpid()))
             logger.info(f"[Daemon] Single-instance lock acquired successfully (PID={os.getpid()}).")
         except FileExistsError:
-            raise RuntimeError("MT5_DUPLICATE_WORKER") from None
+            try:
+                with open(LOCK_FILE_PATH, encoding="ascii") as lock_file:
+                    existing_pid = int(lock_file.read().strip())
+                os.kill(existing_pid, 0)
+            except (ProcessLookupError, ValueError, OSError):
+                os.remove(LOCK_FILE_PATH)
+                return self._acquire_single_instance_lock()
+            raise RuntimeError(f"MT5_DUPLICATE_WORKER: account lock held by PID {existing_pid}") from None
         except Exception as e:
             logger.error(f"[Daemon] Could not create single-instance lock file: {e}")
 
     def _release_single_instance_lock(self):
         if os.path.exists(LOCK_FILE_PATH):
             try:
+                with open(LOCK_FILE_PATH, encoding="ascii") as lock_file:
+                    if int(lock_file.read().strip()) != os.getpid():
+                        return
                 os.remove(LOCK_FILE_PATH)
                 logger.info("[Daemon] Single-instance lock file released.")
             except Exception as e:
