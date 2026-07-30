@@ -73,7 +73,6 @@ import Risk from './pages/admin/Risk';
 import Capital from './pages/admin/Capital';
 import RuntimeTruth from './pages/admin/RuntimeTruth';
 import MissionControl from './pages/admin/MissionControl';
-import PropProvider from './pages/admin/PropProvider';
 
 // Smart redirect after login based on role
 function AuthRedirect() {
@@ -196,7 +195,7 @@ function App() {
           <Route path="/admin/capital"           element={<RequireAdmin><Capital /></RequireAdmin>} />
           <Route path="/admin/runtime-truth"     element={<RequireAdmin><RuntimeTruth /></RequireAdmin>} />
           <Route path="/admin/runtime"           element={<RequireAdmin><RuntimeTruth /></RequireAdmin>} />
-          <Route path="/admin/prop-provider"     element={<RequireAdmin><PropProvider /></RequireAdmin>} />
+          <Route path="/admin/prop-provider"     element={<RequireAdmin><Navigate to="/admin/providers/mt5" replace /></RequireAdmin>} />
           <Route path="/admin/reporting"         element={<RequireAdmin><Performance /></RequireAdmin>} />
           <Route path="/admin/trading-brain"     element={<RequireAdmin><TradingBrain /></RequireAdmin>} />
           <Route path="/admin/modes"             element={<RequireAdmin><Modes /></RequireAdmin>} />
