@@ -114,7 +114,7 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
       setError(err instanceof Error ? err.message : 'Failed to remove MT5 account');
     }
   };
-  const durableAction = async (key:string, run:()=>Promise<unknown>) => { setActiveAction(key); setError(null); try { const result=await run() as {commandId?:string;status?:string}; setActionSuccess(result.commandId ? `Command ${result.commandId} ${result.status}. Track lifecycle in Commands.` : `Operational request: ${result.status}`); } catch(err) { setError(err instanceof Error?err.message:'MT5 command failed'); } finally { setActiveAction(null); } };
+  const durableAction = async (key:string, run:()=>Promise<unknown>) => { setActiveAction(key); setError(null); setActionSuccess(null); try { const result=await run() as {httpStatus?:number;backendCode?:string|null;commandId?:string;commandStatus?:string;status?:string}; const status=result.commandStatus??result.status??'UNKNOWN'; setActionSuccess(result.commandId ? `HTTP ${result.httpStatus} · backend ${result.backendCode??'OK'} · command ${result.commandId} · status ${status}. Track lifecycle in Commands.` : `HTTP ${result.httpStatus} · backend ${result.backendCode??'OK'} · status ${status}`); } catch(err) { setError(err instanceof Error?err.message:'MT5 command failed'); } finally { setActiveAction(null); } };
 
   return (
     <div className="space-y-6">

@@ -86,6 +86,14 @@ Deno.serve(async req => {
     if (authError || !user) throw new ApiError('INVALID_JWT', 'The authenticated session is invalid or expired.', 401, authError?.message);
 
     const db = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+    // The enqueue RPC authorizes with auth.uid(). Calling it through the service-role
+    // client makes auth.uid() null and was the direct cause of
+    // MT5_DATABASE_TEST_CONNECTION_FAILED. Preserve the validated caller JWT for
+    // ownership checks while retaining the service client for trusted account work.
+    const userDb = createClient(url, anon, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${match[1]}` } },
+    });
     let body: Record<string, unknown>;
     try { body = await req.json(); } catch { throw new ApiError('INVALID_JSON', 'Request body must be valid JSON.', 400); }
     operation = String(body.action ?? 'unknown');
@@ -156,8 +164,10 @@ Deno.serve(async req => {
       if (!owned.bridge_id) throw new ApiError('MT5_BRIDGE_OFFLINE', 'No MT5 bridge is connected.', 409);
       const op = body.action === 'test_connection' ? 'TEST_CONNECTION' : 'SYNC_ACCOUNT';
       const bucket = Math.floor(Date.now() / 30_000); // duplicate clicks share one durable key
-      const { data, error } = await db.rpc('enqueue_mt5_command', { p_account_id: accountId, p_operation: op, p_payload: { requested_by: user.id, safe_read_only: true, expires_at: new Date(Date.now()+120_000).toISOString() }, p_idempotency_key: `${op.toLowerCase()}:${accountId}:${bucket}` }).single();
-      if (error) databaseFailure(body.action, error); return reply({ commandId: data.command_id, status: data.status, operation: op });
+      const { data, error } = await userDb.rpc('enqueue_mt5_command', { p_account_id: accountId, p_operation: op, p_payload: { requested_by: user.id, safe_read_only: true, expires_at: new Date(Date.now()+120_000).toISOString() }, p_idempotency_key: `${op.toLowerCase()}:${accountId}:${bucket}` }).single();
+      if (error) databaseFailure(body.action, error);
+      if (!data?.command_id) throw new ApiError('MT5_COMMAND_ENQUEUE_EMPTY', 'The command queue did not return a durable command.', 500);
+      return reply({ commandId: data.command_id, commandStatus: data.status, status: data.status, operation: op, httpStatus: 200 });
     }
     if (body.action === 'request_operational_adoption') {
       const { data: state } = await db.from('mt5_accounts').select('account_type,credential_capability,execution_enabled,operational').eq('id',accountId).single();

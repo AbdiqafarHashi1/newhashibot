@@ -89,7 +89,7 @@ export function MT5DashboardTab({ onNavigateTab }: Props) {
           >
             <div className="text-xs text-zinc-500 font-medium mb-1">Connected Accounts</div>
             <div className="text-2xl font-bold text-emerald-400">{overview?.connectedAccounts ?? 0}</div>
-            <div className="text-[11px] text-zinc-400 mt-1">Ready for Execution</div>
+            <div className="text-[11px] text-zinc-400 mt-1">Terminal connection only</div>
           </div>
 
           <div 
@@ -147,13 +147,13 @@ export function MT5DashboardTab({ onNavigateTab }: Props) {
           <Radio size={14} className="text-emerald-400" />
           Live Connection Telemetry
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl flex items-center gap-3">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${overview?.bridgeOnline ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
               <Server size={20} />
             </div>
             <div>
-              <div className="text-xs text-zinc-500 font-medium">Bridge Gateway</div>
+              <div className="text-xs text-zinc-500 font-medium">Bridge connected</div>
               <div className="text-sm font-semibold text-white">
                 {overview?.bridgeOnline ? 'Bridge Online' : 'Bridge Standby'}
               </div>
@@ -168,9 +168,9 @@ export function MT5DashboardTab({ onNavigateTab }: Props) {
               <Cpu size={20} />
             </div>
             <div>
-              <div className="text-xs text-zinc-500 font-medium">MT5 Terminal</div>
+              <div className="text-xs text-zinc-500 font-medium">Terminal authenticated</div>
               <div className="text-sm font-semibold text-white">
-                {overview?.mt5Connected ? 'Terminal Connected' : 'Disconnected'}
+                {overview?.terminalAuthenticated ? 'Authenticated' : 'Not authenticated'}
               </div>
               <div className="text-[11px] text-zinc-400 mt-0.5">
                 State Sync: {timeAgo(overview?.lastStateSyncAt)}
@@ -183,14 +183,22 @@ export function MT5DashboardTab({ onNavigateTab }: Props) {
               <Zap size={20} />
             </div>
             <div>
-              <div className="text-xs text-zinc-500 font-medium">Cloud Function</div>
+              <div className="text-xs text-zinc-500 font-medium">Market data active</div>
               <div className="text-sm font-semibold text-white">
-                {overview?.cloudConnected ? 'Edge Gateway Active' : 'Unreachable'}
+                {overview?.marketDataActive ? 'Fresh MT5 rows' : 'Inactive / stale'}
               </div>
               <div className="text-[11px] text-zinc-400 mt-0.5">
                 Symbol Sync: {timeAgo(overview?.lastSymbolSyncAt)}
               </div>
             </div>
+          </div>
+          <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl">
+            <div className="text-xs text-zinc-500 font-medium">Command path certified</div>
+            <div className="text-sm font-semibold text-white mt-1">{overview?.commandPathCertified ? 'PASS' : 'NOT CERTIFIED'}</div>
+          </div>
+          <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl">
+            <div className="text-xs text-zinc-500 font-medium">Execution enabled</div>
+            <div className="text-sm font-semibold text-white mt-1">{overview?.executionEnabled ? 'Enabled' : 'Disabled'}</div>
           </div>
         </div>
       </div>
