@@ -26,7 +26,7 @@ export function OperatingModesTab({
   const [selectedLiveProvider, setSelectedLiveProvider] = useState<string | null>(null);
 
   const scanCrypto = scannerConfig?.scan_crypto_enabled !== false;
-  const scanForex = Boolean(scannerConfig?.scan_forex_enabled);
+  const scanForex = scannerConfig?.scan_forex_enabled !== false;
 
   const signalModes = [
     {

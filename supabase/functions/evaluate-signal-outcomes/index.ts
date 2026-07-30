@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
-import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
+import { routeTelegramEvent } from "../_shared/telegram-router.ts";
+import { vipChatId } from "../_shared/telegram-registry.ts";
 import { publicSignalReference, renderProfessionalTelegramMessage, telegramTypeForSignalStatus } from "../_shared/professional-telegram.ts";
 import { paperIntentStatusForSignalStatus } from "../_shared/paper-trade-lifecycle.ts";
 

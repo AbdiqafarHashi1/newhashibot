@@ -240,7 +240,7 @@ export function ControlCenterTab({
             lastSyncMs={scannerAge}
             details={[
               { label: 'Crypto Adapter', value: scannerConfig?.scan_crypto_enabled !== false ? 'Enabled' : 'Disabled' },
-              { label: 'Forex Adapter', value: scannerConfig?.scan_forex_enabled ? 'Enabled' : 'Disabled' },
+              { label: 'Forex Adapter', value: scannerConfig?.scan_forex_enabled !== false ? 'Enabled' : 'Disabled' },
             ]}
             onRefresh={() => onRunAction('run_scanner_now')}
             loading={runningAction === 'run_scanner_now'}

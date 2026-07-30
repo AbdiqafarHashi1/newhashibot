@@ -14,8 +14,11 @@ import {
 import {
   channelRegistry,
   getBotToken,
+  vipChatId,
   TelegramChannelKey,
 } from "./telegram-registry.ts";
+
+export { vipChatId };
 import {
   formatEastAfricaTime,
   renderTelegramTemplate,

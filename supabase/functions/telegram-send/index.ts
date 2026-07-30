@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { routeTelegramEvent, vipChatId } from "../_shared/telegram-router.ts";
+import { routeTelegramEvent } from "../_shared/telegram-router.ts";
+import { vipChatId } from "../_shared/telegram-registry.ts";
 import { authJsonResponse, authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {

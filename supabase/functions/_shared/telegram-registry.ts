@@ -35,6 +35,10 @@ export function getVipChatId(): string {
   return "";
 }
 
+export function vipChatId(): string {
+  return getVipChatId();
+}
+
 export function getAdminChatId(): string {
   if (typeof Deno !== "undefined" && Deno.env) {
     return Deno.env.get("TELEGRAM_ADMIN_CHAT_ID") ?? getVipChatId();
