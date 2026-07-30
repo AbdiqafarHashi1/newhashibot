@@ -1,6 +1,8 @@
+import { FOREX_RUNTIME_SYMBOLS, MT5_PROVIDER_MARKET_DATA_TIMEFRAMES } from "./forex-runtime-contracts.ts";
+
 /** Durable, account-scoped MT5 market data adapter used by the one scanner. */
-export const MT5_FOREX_SYMBOLS = new Set(["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"]);
-export const MT5_TIMEFRAMES = new Set(["1m", "5m", "15m", "30m", "1h", "4h", "1d"]);
+export const MT5_FOREX_SYMBOLS = new Set<string>(FOREX_RUNTIME_SYMBOLS);
+export const MT5_TIMEFRAMES = new Set<string>(MT5_PROVIDER_MARKET_DATA_TIMEFRAMES);
 
 export function normalizeMT5Timeframe(value: string): string | null {
   const normalized = value.trim().toLowerCase().replace("m1", "1m").replace("m5", "5m").replace("m15", "15m").replace("m30", "30m").replace("h1", "1h").replace("h4", "4h").replace("d1", "1d");
