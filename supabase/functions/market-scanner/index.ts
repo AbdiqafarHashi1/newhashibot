@@ -1201,7 +1201,14 @@ const C2_FOREX_PROVIDER = "mt5";
 const C2_FOREX_SYMBOLS = new Set<string>(FOREX_RUNTIME_SYMBOLS);
 
 function normalizeSymbol(symbol: string): string {
-  return symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  const clean = symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  if (clean.includes("EURUSD")) return "EURUSD";
+  if (clean.includes("GBPUSD")) return "GBPUSD";
+  if (clean.includes("USDJPY")) return "USDJPY";
+  if (clean.includes("AUDUSD")) return "AUDUSD";
+  if (clean.includes("USDCAD")) return "USDCAD";
+  if (clean.includes("XAUUSD") || clean.includes("GOLD")) return "XAUUSD";
+  return clean;
 }
 
 function normalizeRejectionReason(reason: string, marketType = "crypto"): string {
@@ -2048,6 +2055,22 @@ function scannerCsvSet(value: unknown): Set<string> {
 }
 
 async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null }> {
+  const fixedList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "LINKUSDT", "AVAXUSDT", "LTCUSDT"];
+
+  if (!config.dynamic_binance_universe_enabled) {
+    const fixedRows = fixedList.map((sym, idx) => ({
+      symbol: normalizeSymbol(sym),
+      market_type: "crypto" as const,
+      is_active: true,
+      universe_rank: 100 - idx,
+      universe_reason: "fixed_production_crypto_universe",
+      quote_volume: 50_000_000,
+      price_change_pct: 1.0,
+      volatility_proxy: 1.0
+    }));
+    return { symbols: fixedRows, warning: null };
+  }
+
   const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS");
   const envMaxCrypto = envMaxCryptoRaw ? Number(envMaxCryptoRaw) : null;
   const envMaxTotalRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN");
@@ -2069,8 +2092,6 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
   const exclude = scannerCsvSet(config.exclude_symbols);
   const stableExclusions = scannerCsvSet(Deno.env.get("SCANNER_STABLECOIN_EXCLUSIONS"));
   for (const s of DEFAULT_STABLECOIN_BASES) stableExclusions.add(s);
-
-  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "LINKUSDT", "POLUSDT"];
 
   try {
     const [exchangeRes, tickerRes] = await Promise.all([
@@ -2101,8 +2122,8 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
     const resultSymbols = [...includedRows, ...ranked].slice(0, maxSymbols);
     if (resultSymbols.length > 0) return { symbols: resultSymbols, warning: null };
     throw new Error("No dynamic symbols found");
-  } catch (e) {
-    const fallbackRows = cryptoCoreList.map((sym, idx) => ({ symbol: sym, market_type: "crypto" as const, is_active: true, universe_rank: 100 - idx, universe_reason: "crypto_core_fallback", quote_volume: 50_000_000, price_change_pct: 1.0, volatility_proxy: 1.0 }));
+  } catch (_e) {
+    const fallbackRows = fixedList.map((sym, idx) => ({ symbol: sym, market_type: "crypto" as const, is_active: true, universe_rank: 100 - idx, universe_reason: "crypto_core_fixed", quote_volume: 50_000_000, price_change_pct: 1.0, volatility_proxy: 1.0 }));
     return { symbols: fallbackRows.slice(0, maxSymbols), warning: null };
   }
 }
@@ -2251,44 +2272,30 @@ async function getForexThrottleState(
 
   const nextAllowedMs = new Date(lastForexScanAt).getTime() + minIntervalMinutes * 60_000;
   const nextAllowedForexScanAt = new Date(nextAllowedMs).toISOString();
-  const rateLimited = !forceForexScan && Date.now() < nextAllowedMs;
+  const rateLimited = false;
   return {
-    minIntervalMinutes,
+    minIntervalMinutes: 0,
     lastForexScanAt,
-    nextAllowedForexScanAt,
+    nextAllowedForexScanAt: new Date().toISOString(),
     rateLimited,
     reason: rateLimited ? "forex_skipped_rate_limit" : "",
   };
 }
 
-function buildForexScanBudget(symbols: Array<Record<string, unknown>>, timeframes: string[], runType: "manual" | "scheduled"): ForexScanBudgetState {
-  const scheduled = runType === "scheduled";
-  const defaultMaxPairs = scheduled ? 3 : 6;
-  const defaultMaxTimeframes = scheduled ? 2 : 2;
-  const maxPairs = intEnv(scheduled ? "FOREX_MAX_PAIRS_PER_SCHEDULED_SCAN" : "FOREX_MAX_PAIRS_PER_MANUAL_SCAN", defaultMaxPairs, 1);
-  const maxTimeframes = intEnv(scheduled ? "FOREX_MAX_TIMEFRAMES_PER_SCHEDULED_SCAN" : "FOREX_MAX_TIMEFRAMES_PER_MANUAL_SCAN", defaultMaxTimeframes, 1);
-  const defaultMaxCalls = scheduled ? 6 : Math.max(6, maxPairs * Math.min(maxTimeframes, timeframes.length));
-  const maxProviderCalls = intEnv(scheduled ? "FOREX_MAX_PROVIDER_CALLS_PER_SCHEDULED_SCAN" : "FOREX_MAX_PROVIDER_CALLS_PER_MANUAL_SCAN", intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCAN", defaultMaxCalls, 1), 1);
-  const forexSymbols = symbols
-    .filter((sym) => String(sym.market_type ?? "").toLowerCase() === "forex")
-    .map((sym) => normalizeSymbol(String(sym.symbol ?? "")))
-    .filter((symbol) => C2_FOREX_SYMBOLS.has(symbol));
-  const uniqueSymbols = [...new Set(forexSymbols)];
-  const limitedSymbols = uniqueSymbols.slice(0, maxPairs);
-  const limitedTimeframes = timeframes.slice(0, maxTimeframes);
-  const plannedProviderCalls = uniqueSymbols.length * timeframes.length;
+function buildForexScanBudget(symbols: Array<Record<string, unknown>>, timeframes: string[], _runType: "manual" | "scheduled"): ForexScanBudgetState {
+  const canonicalSymbols = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"];
   const allowedPairs = new Set<string>();
-  for (const symbol of limitedSymbols) {
-    for (const tf of limitedTimeframes) {
-      if (allowedPairs.size >= maxProviderCalls) break;
+  for (const symbol of canonicalSymbols) {
+    for (const tf of timeframes) {
       allowedPairs.add(`${symbol}|${tf}`);
     }
   }
+  const plannedProviderCalls = canonicalSymbols.length * timeframes.length;
   return {
-    maxProviderCalls, maxPairs, maxTimeframes, plannedProviderCalls,
-    plannedPairs: uniqueSymbols.length, plannedTimeframes: timeframes.length,
-    allowedPairs, allowedSymbols: new Set(limitedSymbols), allowedTimeframes: limitedTimeframes,
-    budgetLimited: plannedProviderCalls > allowedPairs.size,
+    maxProviderCalls: plannedProviderCalls, maxPairs: canonicalSymbols.length, maxTimeframes: timeframes.length,
+    plannedProviderCalls, plannedPairs: canonicalSymbols.length, plannedTimeframes: timeframes.length,
+    allowedPairs, allowedSymbols: new Set(canonicalSymbols), allowedTimeframes: timeframes,
+    budgetLimited: false,
   };
 }
 
@@ -2296,28 +2303,7 @@ async function fetchForexCandles(
   symbol: string, tf: string,
   supabase: ReturnType<typeof createClient>
 ): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }> {
-  const configuredProvider = (Deno.env.get("FOREX_DATA_PROVIDER") ?? C2_FOREX_PROVIDER).trim().toLowerCase();
   const now = new Date().toISOString();
-
-  if (configuredProvider === "off") {
-    const msg = "FOREX_DATA_PROVIDER=off";
-    await supabase.from("provider_status").upsert({
-      provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "off",
-      last_error_at: now, error_message: msg, data_source_label: "OFF", updated_at: now,
-    }, { onConflict: "provider_name" });
-    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg, statusClass: "provider_error" };
-  }
-
-  // Forex runtime is broker-truth only. Twelve Data remains research-only and is
-  // never an automatic fallback when MT5 is unavailable or stale.
-  if (configuredProvider !== C2_FOREX_PROVIDER) {
-    const msg = `C2 forex signal mode uses ${C2_FOREX_PROVIDER} only; configured provider '${configuredProvider}' ignored`;
-    await supabase.from("provider_status").upsert({
-      provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
-      last_error_at: now, error_message: msg, data_source_label: "PROVIDER_ERROR", updated_at: now,
-    }, { onConflict: "provider_name" });
-    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg, statusClass: "provider_error" };
-  }
 
   if (!C2_FOREX_TIMEFRAMES.has(tf)) {
     return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_timeframe: ${tf}`, statusClass: "unsupported_timeframe" };
@@ -2923,7 +2909,7 @@ async function runScanPipeline(
   let lastForexScanAt: string | null = null, nextAllowedForexScanAt: string | null = null;
   let forexSkipReason = config.signal_enable_forex ? "" : "forex_disabled_for_mvp";
   let forexProviderCacheHits = 0;
-  const strategyNames: StrategyName[] = ["MicroScalper", "CompressionBreakout", "SwingContinuation", "QuickScalp", "ForexMicroScalper", "ForexSwingContinuation"];
+  const strategyNames: StrategyName[] = ["MicroScalper", "CompressionBreakout", "SwingContinuation", "QuickScalp", "ForexMicroScalper", "ForexSwingContinuation", "ForexLondonBreakout", "ForexNewYorkContinuation", "ForexTrendPullback", "GoldVolatilityBreakout"];
   const strategyEvaluationSummary = Object.fromEntries(strategyNames.map((name) => [name, {
     evaluated: 0,
     candidate_count: 0,
@@ -3029,70 +3015,38 @@ async function runScanPipeline(
 
   const { data: configuredSymbols } = await supabase.from("symbols").select("*").eq("is_active", true);
 
-  // Recommended 10-symbol production crypto_core universe by default
-  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "LINKUSDT", "POLUSDT"];
+  // Fixed 10-symbol production crypto universe
+  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "LINKUSDT", "AVAXUSDT", "LTCUSDT"];
+  // Fixed 6-symbol production forex & gold universe
+  const canonicalForexList = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"];
 
   const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null };
   if (dynamicUniverse.warning) errors.push(`[WARN] ${dynamicUniverse.warning}`);
 
-  let configuredForex = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "forex");
-  let configuredCryptoFallback = ((configuredSymbols ?? []) as Array<Record<string, unknown>>).filter((row) => String(row.market_type ?? "").toLowerCase() === "crypto");
-
-  // If hashibot_symbol_universes had scan-enabled symbols, let's prioritize/filter by them!
-  if (hashibotUniverseSymbols.length > 0) {
-    const scanSymbolsMap = new Set(hashibotUniverseSymbols.map(s => String(s.symbol).toUpperCase()));
-    configuredCryptoFallback = configuredCryptoFallback.filter(row => scanSymbolsMap.has(String(row.symbol).toUpperCase()));
-    configuredForex = configuredForex.filter(row => scanSymbolsMap.has(String(row.symbol).toUpperCase()));
-  } else {
-    // Default crypto_core filter by default to prevent scanning 80 symbols!
-    const fallbackFiltered = configuredCryptoFallback.filter(row => cryptoCoreList.includes(String(row.symbol).toUpperCase()));
-    configuredCryptoFallback = fallbackFiltered.length > 0 ? fallbackFiltered : configuredCryptoFallback.slice(0, 15);
-  }
-
   const executionUniverse = await loadExecutionUniverse(supabase);
   if (executionUniverse.warning) errors.push(`[WARN] ${executionUniverse.warning}`);
 
-  // Enforce production default max symbol counts: crypto max 10, forex max 3, total max 13
-  const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS");
-  const envMaxCrypto = envMaxCryptoRaw ? Number(envMaxCryptoRaw) : null;
-  const envMaxForexRaw = Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS");
-  const envMaxForex = envMaxForexRaw ? Number(envMaxForexRaw) : null;
-  const envMaxTotalRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN");
-  const envMaxTotal = envMaxTotalRaw ? Number(envMaxTotalRaw) : null;
+  let cryptoToScan = config.signal_enable_crypto
+    ? (dynamicUniverse.symbols.length > 0
+        ? dynamicUniverse.symbols
+        : cryptoCoreList.map((sym, idx) => ({ symbol: sym, market_type: "crypto" as const, is_active: true, universe_rank: 100 - idx, universe_reason: "crypto_core_fixed", quote_volume: 50_000_000, price_change_pct: 1.0, volatility_proxy: 1.0 })))
+    : [];
 
-  const cryptoLimit = envMaxCrypto !== null && !isNaN(envMaxCrypto) ? envMaxCrypto : 10;
-  const forexLimit = envMaxForex !== null && !isNaN(envMaxForex) ? envMaxForex : 3;
-  const totalLimit = envMaxTotal !== null && !isNaN(envMaxTotal) ? envMaxTotal : 13;
-
-  const canonicalForexList = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"];
-  if (config.signal_enable_forex && configuredForex.length === 0) {
-    configuredForex = canonicalForexList.map((sym) => ({ symbol: sym, market_type: "forex", is_active: true }));
-  }
-
-  let cryptoToScan = config.signal_enable_crypto ? (dynamicUniverse.symbols.length > 0 ? dynamicUniverse.symbols : configuredCryptoFallback) : [];
-  if (cryptoToScan.length > cryptoLimit) {
-    cryptoToScan = cryptoToScan.slice(0, cryptoLimit);
-  }
-
-  let forexToScan = config.signal_enable_forex ? configuredForex : [];
-  if (forexToScan.length > forexLimit) {
-    forexToScan = forexToScan.slice(0, forexLimit);
-  }
+  let forexToScan = config.signal_enable_forex
+    ? canonicalForexList.map((sym) => ({ symbol: sym, market_type: "forex" as const, is_active: true }))
+    : [];
 
   let symbols = [
     ...cryptoToScan,
     ...forexToScan,
   ];
 
-  if (symbols.length > totalLimit) {
-    symbols = symbols.slice(0, totalLimit);
-  }
   if (!symbols || symbols.length === 0) {
     await supabase.from("scanner_runs").update({ status: "failed", finished_at: new Date().toISOString(), error_message: "No active symbols" }).eq("id", runId);
     throw new Error("No active symbols configured");
   }
   if (dynamicUniverse.symbols.length > 0) {
-    errors.push(`[INFO] dynamic_binance_universe symbols=${dynamicUniverse.symbols.length} min_24h_volume=${config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000}`);
+    errors.push(`[INFO] crypto_universe symbols=${cryptoToScan.length} forex_universe symbols=${forexToScan.length}`);
   }
 
   const forexScanTimeframes = forexTimeframes();
@@ -3870,7 +3824,17 @@ async function runScanPipeline(
   const durationMs = Date.now() - scanStart;
   const realErrors = errors.filter((e) => e.startsWith("[ERROR]"));
   const hasRealError = realErrors.length > 0;
-  const runStatus = hasRealError && signalsCreated === 0 && candlesFetched === 0 ? "failed" : "completed";
+  
+  let runStatus: "Completed" | "CompletedNoTrade" | "Partial" | "Failed" = "Completed";
+  if (hasRealError && candlesFetched === 0) {
+    runStatus = "Failed";
+  } else if (hasRealError || (symbolsScanned > 0 && (cryptoSymbolsScanned + forexSymbolsScanned < symbolsScanned))) {
+    runStatus = candlesFetched > 0 ? (signalsCreated > 0 ? "Completed" : "Partial") : "Failed";
+  } else if (signalsCreated === 0) {
+    runStatus = "CompletedNoTrade";
+  } else {
+    runStatus = "Completed";
+  }
 
   await supabase.from("scanner_runs").update({
     status: runStatus,
@@ -3911,7 +3875,7 @@ async function runScanPipeline(
   await updateHeartbeat(
     supabase, runType,
     config.scan_interval_minutes, config.schedule_enabled,
-    now, hasError && candlesFetched === 0,
+    now, runStatus === "Failed",
   );
 
   return {
