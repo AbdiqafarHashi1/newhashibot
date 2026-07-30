@@ -46,7 +46,9 @@
     "test:runtime-proof-routing": "rm -rf .tmp/runtime-proof-routing-tests && mkdir -p .tmp/runtime-proof-routing-tests && esbuild tests/runtime/runtimeProofProviderRouting.test.ts --bundle --platform=node --format=esm --outfile=.tmp/runtime-proof-routing-tests/test.mjs && node .tmp/runtime-proof-routing-tests/test.mjs && rm -rf .tmp/runtime-proof-routing-tests",
     "test:provider-truth": "rm -rf .tmp/provider-truth-tests && mkdir -p .tmp/provider-truth-tests && esbuild tests/runtime/mt5CanonicalProviderTruth.test.ts --bundle --platform=node --format=esm --outfile=.tmp/provider-truth-tests/test.mjs && node .tmp/provider-truth-tests/test.mjs && rm -rf .tmp/provider-truth-tests",
     "test:forex-uniformity": "rm -rf .tmp/forex-uniformity-tests && mkdir -p .tmp/forex-uniformity-tests && esbuild tests/runtime/forexScannerUniformity.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-uniformity-tests/test.mjs && node .tmp/forex-uniformity-tests/test.mjs && rm -rf .tmp/forex-uniformity-tests",
-    "test:forex-production": "rm -rf .tmp/forex-production-tests && mkdir -p .tmp/forex-production-tests && esbuild tests/strategies/forexProductionSuite.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-production-tests/test.mjs && node .tmp/forex-production-tests/test.mjs && rm -rf .tmp/forex-production-tests"
+    "test:forex-production": "rm -rf .tmp/forex-production-tests && mkdir -p .tmp/forex-production-tests && esbuild tests/strategies/forexProductionSuite.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-production-tests/test.mjs && node .tmp/forex-production-tests/test.mjs && rm -rf .tmp/forex-production-tests",
+    "test:gold-production": "rm -rf .tmp/gold-production-tests && mkdir -p .tmp/gold-production-tests && esbuild tests/strategies/goldProduction.test.ts --bundle --platform=node --format=esm --outfile=.tmp/gold-production-tests/test.mjs && node .tmp/gold-production-tests/test.mjs && rm -rf .tmp/gold-production-tests",
+    "test:strategy-independence": "npm run test:forex-production && npm run test:gold-production"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

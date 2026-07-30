@@ -59,7 +59,7 @@ interface EvalResult {
   rejection_reason: string; score_breakdown: Record<string, number | string | boolean>;
 }
 
-type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback";
+type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback" | "GoldVolatilityBreakout";
 const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
   MicroScalper: "crypto.micro-scalper",
   QuickScalp: "crypto.quick-scalp",
@@ -70,6 +70,7 @@ const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
   ForexLondonBreakout: "forex.london-breakout",
   ForexNewYorkContinuation: "forex.new-york-continuation",
   ForexTrendPullback: "forex.trend-pullback",
+  GoldVolatilityBreakout: "gold.volatility-breakout",
 };
 
 interface StrategyEvaluationStats {
@@ -2738,7 +2739,7 @@ async function runScanPipeline(
   const { data: strategyConfigs } = await supabase.from("strategy_configs").select("strategy_name,enabled,signal_style,risk_mode,min_score,min_rr,min_stop_distance_pct,min_tp1_distance_pct,min_tp2_distance_pct,max_bars_in_trade,allowed_symbols,allowed_timeframes,params");
   const getStratCfg = (name: string): StrategyConfig => {
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
-    const isForex = name.startsWith("Forex");
+    const isForex = name.startsWith("Forex") || name === "GoldVolatilityBreakout";
     const forexContract = FOREX_STRATEGY_CONTRACTS.find((contract) => contract.legacyName === name);
     const isMicroScalper = name === "MicroScalper";
     const isQuickScalp = name === "QuickScalp";
@@ -3160,7 +3161,7 @@ async function runScanPipeline(
           for (const contract of FOREX_STRATEGY_CONTRACTS) {
             const strategyConfig = getStratCfg(contract.legacyName);
             if (!strategyConfig.enabled) { recordStrategySkip(contract.legacyName, "strategy_disabled"); continue; }
-            if (!strategyConfig.allowed_timeframes.includes(tf)) { recordStrategySkip(contract.legacyName, `timeframe_not_declared:${tf}`); continue; }
+            if (!contract.primaryTimeframes.includes(tf)) { recordStrategySkip(contract.legacyName, `context_timeframe_not_evaluated:${tf}`); continue; }
             const eligibility = forexStrategyEligibility(contract, normalizedSymbol);
             if (!eligibility.eligible) { recordStrategySkip(contract.legacyName, eligibility.reason ?? "instrument_not_eligible"); continue; }
             const registeredEvaluator = forexEvaluatorFor(contract.id);
