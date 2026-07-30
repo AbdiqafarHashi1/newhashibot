@@ -13,6 +13,9 @@ const client = readFileSync('mt5-agent/cloud_client.py', 'utf8');
 const hotfix = readFileSync('supabase/migrations/20260729020000_phase5d_bridge_registration_hotfix.sql', 'utf8');
 const commandClaimHotfix = readFileSync('supabase/migrations/20260729030000_phase5d_mt5_command_claim_type_hotfix.sql', 'utf8');
 const bridgeUi = readFileSync('src/components/operations/mt5/MT5BridgesTab.tsx', 'utf8');
+const accountsUi = readFileSync('src/components/operations/mt5/MT5AccountsTab.tsx', 'utf8');
+const dashboard = readFileSync('src/components/operations/mt5/MT5DashboardTab.tsx', 'utf8');
+const marketPublisher = readFileSync('mt5-agent/market_data.py', 'utf8');
 
 assert.match(frontend, /supabase\.auth\.getSession\(\)/, 'the current session is resolved at invocation time');
 assert.match(frontend, /Authorization:`Bearer \$\{session\.access_token\}`/, 'the JWT is explicitly propagated to FunctionsClient');
@@ -22,6 +25,13 @@ assert.match(edge, /if \(req\.method === 'OPTIONS'\)/, 'CORS preflight is handle
 assert.match(edge, /'Access-Control-Allow-Methods': 'POST, OPTIONS'/, 'CORS permits the onboarding method');
 assert.match(edge, /'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info'/, 'Supabase browser headers are allowed');
 assert.match(edge, /auth\.auth\.getUser\(match\[1\]\)/, 'the bearer JWT is validated by Supabase Auth');
+assert.match(edge, /global: \{ headers: \{ Authorization: `Bearer \$\{match\[1\]\}` \} \}/, 'enqueue RPC executes with the validated caller JWT');
+assert.match(edge, /userDb\.rpc\('enqueue_mt5_command'/, 'one canonical RPC creates the durable command');
+assert.match(edge, /Math\.floor\(Date\.now\(\) \/ 30_000\)/, 'repeat clicks retain the 30-second idempotency bucket');
+assert.match(frontend, /\/functions\/v1\/mt5-accounts/, 'the frontend action targets the deployed function route exactly');
+assert.match(frontend, /httpStatus:response\.status/, 'HTTP status is returned to the UI');
+assert.match(accountsUi, /finally \{ setActiveAction\(null\); \}/, 'loading is cleared on every outcome');
+assert.match(accountsUi, /backend.*command.*status/, 'the UI exposes backend code, command ID, and command status');
 assert.match(edge, /execution_enabled: false/, 'new accounts remain execution disabled');
 assert.match(edge, /ownerId: requestedOwner/, 'the canonical owner UUID is returned to bridge onboarding');
 assert.match(edge, /MT5_ENCRYPTION_KEY_MISSING/, 'a missing credential key has a stable error code');
@@ -29,7 +39,7 @@ assert.match(edge, /MT5_ENCRYPTION_KEY_MALFORMED/, 'a malformed credential key h
 assert.match(edge, /console\.error\(JSON\.stringify/, 'failures have structured logging');
 assert.doesNotMatch(edge, /console\.error\([^\n]*(password|token|ciphertext|service)/i, 'structured logs do not contain secrets');
 assert.match(edge, /insertError\?\.code === '23505'/, 'duplicate onboarding is handled idempotently');
-assert.match(frontend, /await context\.clone\(\)\.json\(\)/, 'backend JSON errors are exposed to the UI');
+assert.match(frontend, /data=await response\.json\(\)/, 'backend JSON errors are exposed to the UI');
 
 assert.match(migration, /credential_ref uuid NOT NULL DEFAULT gen_random_uuid\(\)/, 'credential references are canonical UUIDs');
 assert.match(accountSchema, /execution_enabled boolean NOT NULL DEFAULT false/, 'the canonical schema defaults execution to disabled');
@@ -61,5 +71,8 @@ assert.match(agent, /except BaseException:[\s\S]*_release_single_instance_lock/,
 assert.doesNotMatch(ui, /bridge-mt5-001|WIN-HASHIBOT-AGENT|Windows Server 2022/, 'operations truth has no fictitious bridge fallback');
 assert.match(bridgeUi, /browser never launches a process/, 'UI truthfully describes control requests');
 assert.doesNotMatch(client, /password.*logger|logger.*password/i, 'the agent never logs credentials');
+assert.match(marketPublisher, /REQUIRED_SYMBOLS = \("EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"\)/, 'all required runtime symbols are extracted');
+assert.match(marketPublisher, /return False[\s\S]*publish_market_data/, 'missing terminal data fails before durable publication');
+assert.doesNotMatch(dashboard, /Ready for Execution/, 'connection is not mislabeled execution ready');
 
 console.log('Phase 5D authenticated MT5 onboarding contract tests passed');

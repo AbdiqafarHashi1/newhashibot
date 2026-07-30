@@ -31,6 +31,7 @@ class Config:
     HEARTBEAT_INTERVAL_SECONDS = float(os.getenv("HEARTBEAT_INTERVAL_SECONDS", "10"))
     STATE_SYNC_INTERVAL_SECONDS = float(os.getenv("STATE_SYNC_INTERVAL_SECONDS", "5"))
     SYMBOL_SYNC_INTERVAL_SECONDS = float(os.getenv("SYMBOL_SYNC_INTERVAL_SECONDS", "300"))
+    MARKET_DATA_INTERVAL_SECONDS = float(os.getenv("MARKET_DATA_INTERVAL_SECONDS", "30"))
     ALLOW_OFFLINE_TEST_MODE = os.getenv("ALLOW_OFFLINE_TEST_MODE", "false").lower() in ("1", "true", "yes")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     AGENT_VERSION = "1.1.0-phase5d-hotfix"

@@ -94,6 +94,10 @@ export interface MT5OperationsOverview {
   runtimeStatus: string;
   bridgeOnline: boolean;
   mt5Connected: boolean;
+  terminalAuthenticated: boolean;
+  marketDataActive: boolean;
+  commandPathCertified: boolean;
+  executionEnabled: boolean;
   cloudConnected: boolean;
   lastHeartbeatAt: string | null;
   lastStateSyncAt: string | null;
@@ -368,7 +372,11 @@ export async function getMT5LatestSnapshot(accountId: string): Promise<MT5Accoun
 
 export async function getMT5OperationsOverview(): Promise<MT5OperationsOverview> {
   try {
-    const { data: accounts } = await supabase.from('mt5_accounts_safe').select('*');
+    const [{ data: accounts }, { data: marketRows }, { data: certification }] = await Promise.all([
+      supabase.from('mt5_accounts_safe').select('*'),
+      supabase.from('mt5_market_data_latest').select('last_update_at,stale'),
+      supabase.from('mt5_certification_results').select('status').eq('check_key', 'command_path'),
+    ]);
     const commands = await listMT5Commands(100);
     const bridges = await listMT5Bridges();
 
@@ -408,6 +416,10 @@ export async function getMT5OperationsOverview(): Promise<MT5OperationsOverview>
 
     const bridgeOnline = activeBridges > 0;
     const mt5Connected = connectedAccounts > 0;
+    const terminalAuthenticated = accs.some((a: Record<string, unknown>) => a.terminal_authenticated === true);
+    const marketDataActive = (marketRows ?? []).some((row: Record<string, unknown>) => row.stale === false && Date.now() - new Date(String(row.last_update_at)).getTime() <= 120_000);
+    const commandPathCertified = (certification ?? []).some((row: Record<string, unknown>) => row.status === 'PASS');
+    const executionEnabled = accs.some((a: Record<string, unknown>) => a.execution_enabled === true && a.operational === true && a.credential_capability === 'master');
     const cloudConnected = true;
 
     return {
@@ -417,9 +429,13 @@ export async function getMT5OperationsOverview(): Promise<MT5OperationsOverview>
       offlineBridges,
       pendingCommands,
       failedCommands,
-      runtimeStatus: connectedAccounts > 0 ? 'ONLINE & READY' : 'STANDBY (AWAITING AGENT)',
+      runtimeStatus: executionEnabled ? 'EXECUTION ENABLED' : terminalAuthenticated ? 'CONNECTED · EXECUTION DISABLED' : 'STANDBY (AWAITING TERMINAL)',
       bridgeOnline,
       mt5Connected,
+      terminalAuthenticated,
+      marketDataActive,
+      commandPathCertified,
+      executionEnabled,
       cloudConnected,
       lastHeartbeatAt: latestHb,
       lastStateSyncAt: latestSync,
@@ -444,6 +460,10 @@ export async function getMT5OperationsOverview(): Promise<MT5OperationsOverview>
       runtimeStatus: 'STANDBY (PRE-CERTIFICATION)',
       bridgeOnline: false,
       mt5Connected: false,
+      terminalAuthenticated: false,
+      marketDataActive: false,
+      commandPathCertified: false,
+      executionEnabled: false,
       cloudConnected: true,
       lastHeartbeatAt: null,
       lastStateSyncAt: null,

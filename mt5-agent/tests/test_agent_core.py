@@ -21,6 +21,7 @@ from mt5_client import MT5Client
 from command_processor import CommandProcessor
 from state_sync import StateSyncManager
 from symbol_sync import SymbolSyncManager
+from market_data import MarketDataPublisher, REQUIRED_SYMBOLS, SCANNER_TIMEFRAMES
 
 
 class TestMT5AgentConfig(unittest.TestCase):
@@ -69,6 +70,30 @@ class TestMT5ClientUnit(unittest.TestCase):
 
         norm2 = MT5Client.normalize_volume(0.05, vol_min=0.10, vol_max=10.0, vol_step=0.10)
         self.assertEqual(norm2, 0.10)
+
+
+class TestMarketDataPublisher(unittest.TestCase):
+    def test_six_symbols_publish_once_with_real_timeframes(self):
+        cloud, terminal = MagicMock(), MagicMock()
+        terminal.check_connection.return_value = True
+        terminal.get_symbol_info.side_effect = lambda symbol: {"broker_symbol": symbol}
+        terminal.get_market_data.side_effect = lambda canonical, broker, frames: {
+            "canonical_symbol": canonical, "broker_symbol": broker, "bid": 1.0, "ask": 1.1,
+            "candles": [{"timeframe": tf, "open": 1, "high": 2, "low": 1, "close": 1.5} for tf in frames],
+        }
+        cloud.publish_market_data.return_value = True
+        self.assertTrue(MarketDataPublisher(cloud, terminal).publish("account-id"))
+        self.assertEqual(terminal.get_market_data.call_count, len(REQUIRED_SYMBOLS))
+        cloud.publish_market_data.assert_called_once()
+        self.assertEqual({c["timeframe"] for c in cloud.publish_market_data.call_args.args[1][0]["candles"]}, set(SCANNER_TIMEFRAMES))
+
+    def test_missing_terminal_candles_rejects_entire_publication(self):
+        cloud, terminal = MagicMock(), MagicMock()
+        terminal.check_connection.return_value = True
+        terminal.get_symbol_info.return_value = {"broker_symbol": "EURUSD"}
+        terminal.get_market_data.return_value = {"candles": []}
+        self.assertFalse(MarketDataPublisher(cloud, terminal).publish("account-id"))
+        cloud.publish_market_data.assert_not_called()
 
 
 class TestCommandProcessor(unittest.TestCase):

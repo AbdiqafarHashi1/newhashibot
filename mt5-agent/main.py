@@ -17,6 +17,7 @@ from heartbeat import HeartbeatManager
 from command_processor import CommandProcessor
 from state_sync import StateSyncManager
 from symbol_sync import SymbolSyncManager
+from market_data import MarketDataPublisher
 
 LOCK_FILE_PATH = os.path.join(
     Config.RUNTIME_DIR,
@@ -72,11 +73,13 @@ class MT5AgentDaemon:
         self.command_processor = CommandProcessor(self.cloud_client, self.mt5_client)
         self.state_sync_mgr = StateSyncManager(self.cloud_client, self.mt5_client)
         self.symbol_sync_mgr = SymbolSyncManager(self.cloud_client, self.mt5_client)
+        self.market_data_publisher = MarketDataPublisher(self.cloud_client, self.mt5_client)
 
         self.last_heartbeat = 0.0
         self.last_poll = 0.0
         self.last_state_sync = 0.0
         self.last_symbol_sync = 0.0
+        self.last_market_data = 0.0
 
         self.reconnect_backoff = 2.0
         self.max_reconnect_backoff = 60.0
@@ -176,6 +179,11 @@ class MT5AgentDaemon:
                 if acc_num and acc_num != "0":
                     self.symbol_sync_mgr.sync_symbol_specifications(account_id=Config.ACCOUNT_ID)
                 self.last_symbol_sync = now
+
+            # Missing broker candles fail closed; no synthetic/provider fallback.
+            if now - self.last_market_data >= Config.MARKET_DATA_INTERVAL_SECONDS:
+                self.market_data_publisher.publish(Config.ACCOUNT_ID)
+                self.last_market_data = now
 
             # 5. Command Polling & Execution Tick
             if now - self.last_poll >= Config.POLL_INTERVAL_SECONDS:
