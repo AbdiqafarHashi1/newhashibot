@@ -26,17 +26,17 @@ assert.equal(runtimeInstrument("USDJPY")?.pip_size, 0.01);
 assert.equal(runtimePipDistance("XAUUSD", 2300, 2301), 10);
 assert.equal(roundRuntimePrice("XAUUSD", 2300.127), 2300.13);
 for (const contract of FOREX_STRATEGY_CONTRACTS) {
-  assert.deepEqual(forexStrategyEligibility(contract, "XAUUSD"), { eligible: false, reason: "gold_strategy_not_certified" });
-  assert.deepEqual(forexStrategyEligibility(contract, "EURUSD"), { eligible: true, reason: null });
+  assert.deepEqual(forexStrategyEligibility(contract, "XAUUSD"), contract.id === "gold.volatility-breakout" ? { eligible: true, reason: null } : { eligible: false, reason: "strategy_instrument_class_not_supported" });
+  assert.deepEqual(forexStrategyEligibility(contract, "EURUSD"), contract.id === "gold.volatility-breakout" ? { eligible: false, reason: "strategy_instrument_class_not_supported" } : { eligible: true, reason: null });
 }
 assert.deepEqual(forexScannerFetchPlan(), ["15m", "1h"]);
 assert.equal(new Set(forexScannerFetchPlan()).size, forexScannerFetchPlan().length, "fetch plan is deduplicated");
-assert.equal(FOREX_STRATEGY_CONTRACTS.length, 5);
+assert.equal(FOREX_STRATEGY_CONTRACTS.length, 6);
 for (const contract of FOREX_STRATEGY_CONTRACTS) {
   assert.equal(contract.lifecycle, "ENABLED");
   assert.equal(contract.version, "1.0.0");
-  assert.equal(contract.symbols.includes("XAUUSD"), false);
-  assert.deepEqual(contract.eligibleInstrumentClasses, ["fx_non_jpy", "fx_jpy"]);
+  assert.equal(contract.symbols.includes("XAUUSD"), contract.id === "gold.volatility-breakout");
+  assert.deepEqual(contract.eligibleInstrumentClasses, contract.id === "gold.volatility-breakout" ? ["metal_gold"] : ["fx_non_jpy", "fx_jpy"]);
   assert.ok(contract.minimumCandles >= 55);
   assert.ok(contract.requiredIndicators.includes("atr14"));
   assert.ok(forexStrategyTimeframes(contract).every((tf) => MT5_PROVIDER_MARKET_DATA_TIMEFRAMES.includes(tf as never)));
@@ -46,6 +46,7 @@ assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.swing-cont
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.london-breakout")?.primaryTimeframes, ["15m"]);
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.new-york-continuation")?.primaryTimeframes, ["15m", "1h"]);
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.trend-pullback")?.primaryTimeframes, ["15m", "1h"]);
+assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "gold.volatility-breakout")?.contextTimeframes, ["1h"]);
 
 const scanner = readFileSync("supabase/functions/market-scanner/index.ts", "utf8");
 assert.match(scanner, /const forexScanTimeframes = forexTimeframes\(\)/);

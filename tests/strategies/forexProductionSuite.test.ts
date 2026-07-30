@@ -12,11 +12,12 @@ const candles = Array.from({ length: 60 }, (_, index) => {
 const last = candles.at(-1)!;
 const context: StrategyEvaluationContext = { symbol: "EURUSD", market: "forex", timeframe: "15m", candles, evaluated_at: evaluatedAt, indicators: { ema20: last.close - .0001, ema50: last.close - .0006, atr14: .001, rsi14: 56, recent_high: Math.max(...candles.slice(-20).map(c => c.high)), recent_low: Math.min(...candles.slice(-20).map(c => c.low)), avg_volume: 1000, body_size: last.close - last.open, atr_pct: .1, range_compression_ratio: .7, momentum_score: .5, volatility_state: "normal", regime: "trend_up" } };
 
-assert.deepEqual(Object.keys(FOREX_PRODUCTION_EVALUATORS).sort(), ["forex.london-breakout", "forex.new-york-continuation", "forex.trend-pullback"]);
+assert.deepEqual(Object.keys(FOREX_PRODUCTION_EVALUATORS).sort(), ["forex.london-breakout", "forex.new-york-continuation", "forex.trend-pullback", "gold.volatility-breakout"]);
 for (const [id, evaluator] of Object.entries(FOREX_PRODUCTION_EVALUATORS)) {
   const contract = FOREX_STRATEGY_CONTRACTS.find(row => row.id === id);
   assert.ok(contract, `${id} has a canonical contract`);
-  assert.deepEqual(forexStrategyEligibility(contract!, "XAUUSD"), { eligible: false, reason: "gold_strategy_not_certified" });
+  assert.deepEqual(forexStrategyEligibility(contract!, "XAUUSD"), id === "gold.volatility-breakout" ? { eligible: true, reason: null } : { eligible: false, reason: "strategy_instrument_class_not_supported" });
+  if (id === "gold.volatility-breakout") continue; // Gold has dedicated bidirectional fixtures and MT5 metadata.
   const first = evaluator(context), second = evaluator(context);
   assert.deepEqual(first, second, `${id} is deterministic`);
   assert.equal(first.score_breakdown.research_only, undefined);

@@ -28,11 +28,11 @@ export type ForexRuntimeSymbol = typeof FOREX_RUNTIME_INSTRUMENTS[number]["symbo
 export const MT5_PROVIDER_MARKET_DATA_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"] as const;
 
 export interface ForexStrategyContract {
-  readonly id: "forex.micro-scalper" | "forex.swing-continuation" | "forex.london-breakout" | "forex.new-york-continuation" | "forex.trend-pullback";
-  readonly legacyName: "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback";
+  readonly id: "forex.micro-scalper" | "forex.swing-continuation" | "forex.london-breakout" | "forex.new-york-continuation" | "forex.trend-pullback" | "gold.volatility-breakout";
+  readonly legacyName: "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback" | "GoldVolatilityBreakout";
   readonly version: "1.0.0";
   readonly lifecycle: "ENABLED";
-  readonly markets: readonly ["forex"];
+  readonly markets: readonly ["forex" | "gold"];
   readonly eligibleInstrumentClasses: readonly RuntimeInstrumentClass[];
   readonly symbols: readonly ForexRuntimeSymbol[];
   readonly primaryTimeframes: readonly string[];
@@ -50,6 +50,7 @@ export const FOREX_STRATEGY_CONTRACTS: readonly ForexStrategyContract[] = [
   { id: "forex.london-breakout", legacyName: "ForexLondonBreakout", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["15m"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
   { id: "forex.new-york-continuation", legacyName: "ForexNewYorkContinuation", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["15m", "1h"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
   { id: "forex.trend-pullback", legacyName: "ForexTrendPullback", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["15m", "1h"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
+  { id: "gold.volatility-breakout", legacyName: "GoldVolatilityBreakout", version: "1.0.0", lifecycle: "ENABLED", markets: ["gold"], eligibleInstrumentClasses: ["metal_gold"], symbols: ["XAUUSD"], primaryTimeframes: ["15m"], contextTimeframes: ["1h"], minimumCandles: 64, requiredIndicators: [...BASE_INDICATORS, "range_compression_ratio"] },
 ];
 
 export function runtimeInstrument(value: string): RuntimeInstrumentContract | null {
@@ -67,7 +68,8 @@ export function roundRuntimePrice(symbol: string, price: number): number {
 export function forexStrategyEligibility(contract: ForexStrategyContract, symbol: string): { eligible: boolean; reason: string | null } {
   const instrument = runtimeInstrument(symbol);
   if (!instrument?.runtime_enabled) return { eligible: false, reason: "unsupported_symbol" };
-  if (instrument.instrument_class === "metal_gold") return { eligible: false, reason: "gold_strategy_not_certified" };
+  if (instrument.instrument_class === "metal_gold" && contract.id !== "gold.volatility-breakout") return { eligible: false, reason: "strategy_instrument_class_not_supported" };
+  if (contract.id === "gold.volatility-breakout" && instrument.instrument_class !== "metal_gold") return { eligible: false, reason: "strategy_instrument_class_not_supported" };
   return contract.eligibleInstrumentClasses.includes(instrument.instrument_class) && contract.symbols.includes(instrument.symbol as ForexRuntimeSymbol)
     ? { eligible: true, reason: null } : { eligible: false, reason: "unsupported_instrument_class" };
 }
