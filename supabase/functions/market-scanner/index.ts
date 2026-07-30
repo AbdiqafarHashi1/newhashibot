@@ -18,6 +18,7 @@ import { arbitrate, ArbitrationDiagnostics, type ArbitrationCandidate } from "..
 import type { DeepReadonly, StrategyPlan } from "../_shared/strategy-plan.ts";
 import { runCertifiedRuntime } from "../_shared/certified-runtime.ts";
 import { loadCertifiedExecutionAccounts, type CertifiedAccountTruthRow } from "../_shared/certified-account-loader.ts";
+import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1189,7 +1190,7 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
 
 function gradeIndex(g: string): number { return g === "A+" ? 3 : g === "A" ? 2 : g === "B" ? 1 : 0; }
 
-const C2_FOREX_PROVIDER = "twelvedata";
+const C2_FOREX_PROVIDER = "mt5";
 const C2_FOREX_SYMBOLS = new Set(["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "EURJPY", "GBPJPY", "XAUUSD"]);
 
 function normalizeSymbol(symbol: string): string {
@@ -2596,9 +2597,8 @@ async function fetchForexCandles(
     return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg, statusClass: "provider_error" };
   }
 
-  // C2 intentionally uses one real provider path only: TwelveData forex candles.
-  // Demo, MT5 bridge, broker feeds, and fallback chains are ignored here so forex
-  // cannot silently produce fake or Telegram-eligible provider-fallback signals.
+  // Forex runtime is broker-truth only. Twelve Data remains research-only and is
+  // never an automatic fallback when MT5 is unavailable or stale.
   if (configuredProvider !== C2_FOREX_PROVIDER) {
     const msg = `C2 forex signal mode uses ${C2_FOREX_PROVIDER} only; configured provider '${configuredProvider}' ignored`;
     await supabase.from("provider_status").upsert({
@@ -2617,17 +2617,7 @@ async function fetchForexCandles(
     return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_symbol: ${symbol}`, statusClass: "unsupported_symbol" };
   }
 
-  const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-  if (!key) {
-    const msg = "TWELVEDATA_API_KEY or FOREX_DATA_API_KEY not set";
-    await supabase.from("provider_status").upsert({
-      provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
-      last_error_at: now, error_message: msg, data_source_label: "PROVIDER_ERROR", updated_at: now,
-    }, { onConflict: "provider_name" });
-    return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: msg, statusClass: "provider_error" };
-  }
-
-  const result = await fetchTwelveDataCandles(normalized, tf, key);
+  const result = await loadMT5Candles(supabase, normalized, tf);
   if (!result.error && result.candles && result.candles.length >= 55) {
     await supabase.from("provider_status").upsert({
       provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "active",
@@ -2637,13 +2627,14 @@ async function fetchForexCandles(
     return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null, statusClass: "ok" };
   }
 
-  const msg = result.error ?? `insufficient_candles: ${result.candle_count}`;
-  const statusClass = result.error ? result.status_class : "insufficient_candles";
+  const candleCount = result.candles?.length ?? 0;
+  const msg = result.error ?? `insufficient_candles: ${candleCount}`;
+  const statusClass: ForexProviderStatusClass = result.error?.includes("STALE") ? "market_closed_or_stale" : result.error?.includes("CLOSED") ? "market_closed_or_stale" : "provider_error";
   await supabase.from("provider_status").upsert({
     provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "error",
     last_error_at: now,
-    error_message: `${normalized} ${tf}: ${statusClass}: ${msg} (mapped: ${result.mapped_symbol}, http: ${result.http_status ?? "n/a"})`,
-    data_source_label: "PROVIDER_ERROR", last_candles_count: result.candle_count, updated_at: now,
+    error_message: `${normalized} ${tf}: ${statusClass}: ${msg}`,
+    data_source_label: "PROVIDER_ERROR", last_candles_count: candleCount, updated_at: now,
   }, { onConflict: "provider_name" });
   return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `${statusClass}: ${msg}`, statusClass };
 }

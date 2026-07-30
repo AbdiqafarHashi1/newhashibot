@@ -49,7 +49,7 @@ export interface MT5CommandRecord {
   bridge_id: string;
   symbol?: string;
   operation: string;
-  status: 'pending' | 'claimed' | 'executing' | 'acknowledged' | 'failed' | 'retrying';
+  status: 'pending' | 'queued' | 'claimed' | 'executing' | 'running' | 'acknowledged' | 'confirmed' | 'succeeded' | 'rejected' | 'failed' | 'retrying';
   payload?: Record<string, unknown>;
   result?: Record<string, unknown>;
   error_code?: string;
@@ -58,6 +58,7 @@ export interface MT5CommandRecord {
   created_at: string;
   claimed_at?: string;
   acknowledged_at?: string;
+  completed_at?: string;
   duration_ms?: number;
 }
 
@@ -122,6 +123,7 @@ interface CommandRow {
   created_at: string;
   claimed_at?: string;
   acknowledged_at?: string;
+  completed_at?: string;
 }
 
 interface SymbolSpecRow {
@@ -253,6 +255,7 @@ export async function listMT5Commands(limit = 50): Promise<MT5CommandRecord[]> {
       created_at: row.created_at,
       claimed_at: row.claimed_at,
       acknowledged_at: row.acknowledged_at,
+      completed_at: row.completed_at || row.acknowledged_at,
       duration_ms: row.acknowledged_at && row.created_at ?
         new Date(row.acknowledged_at).getTime() - new Date(row.created_at).getTime() : undefined
     }));

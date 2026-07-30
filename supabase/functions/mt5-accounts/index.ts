@@ -152,7 +152,32 @@ Deno.serve(async req => {
     if (body.action === 'remove') { const { error } = await db.from('mt5_accounts').delete().eq('id', accountId); if (error) databaseFailure('remove', error); return reply({ removed: true }); }
     if (body.action === 'set_execution') { if (body.enabled === true) throw new ApiError('MT5_EXECUTION_ADOPTION_DISABLED', 'MT5 execution cannot be enabled during onboarding.', 409); const { error } = await db.from('mt5_accounts').update({ execution_enabled: false, disabled_at: new Date().toISOString() }).eq('id', accountId); if (error) databaseFailure('set_execution', error); return reply({ enabled: false }); }
     if (body.action === 'set_mode') { if (!['personal', 'prop_challenge', 'demo'].includes(String(body.mode))) throw new ApiError('INVALID_MODE', 'Execution mode is invalid.', 400); const { error } = await db.from('mt5_accounts').update({ execution_mode: body.mode }).eq('id', accountId); if (error) databaseFailure('set_mode', error); return reply({ mode: body.mode }); }
-    if (body.action === 'test_connection') { if (!owned.bridge_id) throw new ApiError('MT5_BRIDGE_OFFLINE', 'No MT5 bridge is connected.', 409); const { data, error } = await db.rpc('enqueue_mt5_command', { p_account_id: accountId, p_operation: 'TEST_CONNECTION', p_payload: {}, p_idempotency_key: `test:${crypto.randomUUID()}` }).single(); if (error) databaseFailure('test_connection', error); return reply({ commandId: data.command_id, status: data.status }); }
+    if (body.action === 'test_connection' || body.action === 'sync_account') {
+      if (!owned.bridge_id) throw new ApiError('MT5_BRIDGE_OFFLINE', 'No MT5 bridge is connected.', 409);
+      const op = body.action === 'test_connection' ? 'TEST_CONNECTION' : 'SYNC_ACCOUNT';
+      const bucket = Math.floor(Date.now() / 30_000); // duplicate clicks share one durable key
+      const { data, error } = await db.rpc('enqueue_mt5_command', { p_account_id: accountId, p_operation: op, p_payload: { requested_by: user.id, safe_read_only: true, expires_at: new Date(Date.now()+120_000).toISOString() }, p_idempotency_key: `${op.toLowerCase()}:${accountId}:${bucket}` }).single();
+      if (error) databaseFailure(body.action, error); return reply({ commandId: data.command_id, status: data.status, operation: op });
+    }
+    if (body.action === 'request_operational_adoption') {
+      const { data: state } = await db.from('mt5_accounts').select('account_type,credential_capability,execution_enabled,operational').eq('id',accountId).single();
+      if (state.account_type !== 'demo') throw new ApiError('MT5_DEMO_ONLY','Only Demo activation is supported.',409);
+      if (state.credential_capability !== 'master') throw new ApiError('MT5_INVESTOR_ONLY','Replace and validate the Demo Master credential first.',409);
+      if (!state.execution_enabled) throw new ApiError('MT5_EXECUTION_DISABLED','Execution must be explicitly enabled after certification.',409);
+      if (!state.operational) throw new ApiError('MT5_OPERATIONAL_DISABLED','Operational adoption has not been approved.',409);
+      return reply({status:'ADOPTED'});
+    }
+    if (body.action === 'replace_demo_master_credential') {
+      const { data: profile } = await db.from('profiles').select('role').eq('id',user.id).single();
+      const { data: state } = await db.from('mt5_accounts').select('account_type').eq('id',accountId).single();
+      if (profile?.role !== 'admin') throw new ApiError('ADMIN_REQUIRED','Administrator authentication is required.',403);
+      if (state.account_type !== 'demo') throw new ApiError('MT5_DEMO_ONLY','Credentials may only be replaced for Demo.',409);
+      const password = String(body.password ?? ''); if(password.length<4) throw new ApiError('INVALID_CREDENTIALS','A Demo Master credential is required.',400);
+      const { error } = await db.from('mt5_accounts').update({password_ciphertext:await encrypt(password),credential_capability:'investor',execution_enabled:false,operational:false,connection_status:'pending'}).eq('id',accountId);
+      if(error) databaseFailure('credential_replacement',error);
+      // Capability remains investor until the bridge validates login and terminal trade permission.
+      return reply({status:'VALIDATION_PENDING',capability:'investor'});
+    }
     throw new ApiError('UNSUPPORTED_ACTION', 'The requested MT5 account action is not supported.', 400);
   } catch (error) {
     safeLog(operation, error, safeContext);
