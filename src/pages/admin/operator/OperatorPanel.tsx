@@ -154,7 +154,8 @@ export default function OperatorPanel({ section: initialSection = 'dashboard' }:
     setActionResult(initialRes);
 
     try {
-      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, 20000);
+      const timeout = action === 'run_scanner_now' ? 55000 : 30000;
+      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, timeout);
       const data = result.data as Record<string, unknown> | null;
       const ok = result.ok && data && data.success === true && !data.exact_error;
 

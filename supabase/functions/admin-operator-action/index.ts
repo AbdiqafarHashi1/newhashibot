@@ -86,16 +86,16 @@ type ActionRoute = { target: string; payload: Json; timeoutMs?: number; mutating
 
 function routeAction(action: Action, provider: string | undefined, actionId: string): ActionRoute | null {
   const common = { source: FUNCTION_NAME };
-  if (action === "run_scanner_now") return { target: "scheduled-market-scanner", payload: { ...common, run_type: "manual_operator" }, timeoutMs: 12000 };
-  if (action === "run_telegram_test") return { target: "telegram-test", payload: { ...common, action: "admin_digest", test_mode: true }, timeoutMs: 12000 };
-  if (action === "run_news_brain") return { target: "intelligence-engine", payload: { ...common, kind: "news_digest" }, timeoutMs: 12000 };
-  if (action === "run_supervisor_now") return { target: "binance-testnet-execution", payload: { ...common, action: "run_trade_supervisor_cycle", provider: provider ?? "all" }, timeoutMs: 12000 };
-  if (action === "run_binance_monitor_now") return { target: "binance-testnet-monitor", payload: { ...common, triggered_by: "manual_operator" }, timeoutMs: 12000 };
-  if (action === "run_bybit_monitor_now") return { target: "bybit-testnet-monitor", payload: { ...common, triggered_by: "manual_operator" }, timeoutMs: 12000 };
-  if (action === "repair_protection_now") return { target: "binance-testnet-execution", payload: { ...common, action: "repair_all_protection_now", provider: provider ?? "all" }, timeoutMs: 15000, mutating: true, idempotencyKey: `operator:${action}:${provider ?? "all"}:${new Date().toISOString().slice(0, 16)}` };
-  if (action === "refresh_exchange") return { target: "binance-testnet-execution", payload: { ...common, action: "sync_all_positions_now" }, timeoutMs: 12000, mutating: true, idempotencyKey: `operator:${action}:${new Date().toISOString().slice(0, 16)}` };
-  if (action === "retry_verification") return { target: "binance-testnet-execution", payload: { ...common, action: "run_trade_supervisor_cycle", provider: provider ?? "all" }, timeoutMs: 15000, mutating: true, idempotencyKey: `operator:${action}:${provider ?? "all"}:${new Date().toISOString().slice(0, 16)}` };
-  if (action === "retry_protection") return { target: "binance-testnet-execution", payload: { ...common, action: "repair_all_protection_now", provider: provider ?? "all" }, timeoutMs: 15000, mutating: true, idempotencyKey: `operator:${action}:${provider ?? "all"}:${new Date().toISOString().slice(0, 16)}` };
+  if (action === "run_scanner_now") return { target: "scheduled-market-scanner", payload: { ...common, run_type: "manual_operator" }, timeoutMs: 55000 };
+  if (action === "run_telegram_test") return { target: "telegram-test", payload: { ...common, action: "admin_digest", test_mode: true }, timeoutMs: 25000 };
+  if (action === "run_news_brain") return { target: "intelligence-engine", payload: { ...common, kind: "news_digest" }, timeoutMs: 25000 };
+  if (action === "run_supervisor_now") return { target: "binance-testnet-execution", payload: { ...common, action: "run_trade_supervisor_cycle", provider: provider ?? "all" }, timeoutMs: 25000 };
+  if (action === "run_binance_monitor_now") return { target: "binance-testnet-monitor", payload: { ...common, triggered_by: "manual_operator" }, timeoutMs: 25000 };
+  if (action === "run_bybit_monitor_now") return { target: "bybit-testnet-monitor", payload: { ...common, triggered_by: "manual_operator" }, timeoutMs: 25000 };
+  if (action === "repair_protection_now") return { target: "binance-testnet-execution", payload: { ...common, action: "repair_all_protection_now", provider: provider ?? "all" }, timeoutMs: 25000, mutating: true, idempotencyKey: `operator:${action}:${provider ?? "all"}:${new Date().toISOString().slice(0, 16)}` };
+  if (action === "refresh_exchange") return { target: "binance-testnet-execution", payload: { ...common, action: "sync_all_positions_now" }, timeoutMs: 25000, mutating: true, idempotencyKey: `operator:${action}:${new Date().toISOString().slice(0, 16)}` };
+  if (action === "retry_verification") return { target: "binance-testnet-execution", payload: { ...common, action: "run_trade_supervisor_cycle", provider: provider ?? "all" }, timeoutMs: 25000, mutating: true, idempotencyKey: `operator:${action}:${provider ?? "all"}:${new Date().toISOString().slice(0, 16)}` };
+  if (action === "retry_protection") return { target: "binance-testnet-execution", payload: { ...common, action: "repair_all_protection_now", provider: provider ?? "all" }, timeoutMs: 25000, mutating: true, idempotencyKey: `operator:${action}:${provider ?? "all"}:${new Date().toISOString().slice(0, 16)}` };
   return null;
 }
 
@@ -258,7 +258,7 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
       payload: { source: FUNCTION_NAME, run_type: "manual_operator_start" },
       correlationId,
       actionId,
-      timeoutMs: 12000
+      timeoutMs: 55000
     });
 
     return {

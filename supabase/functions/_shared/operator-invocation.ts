@@ -12,7 +12,7 @@ export type InternalInvokeResult = {
   errorMessage: string | null;
 };
 
-export const DEFAULT_OPERATOR_TIMEOUT_MS = 12000;
+export const DEFAULT_OPERATOR_TIMEOUT_MS = 30000;
 
 function redact(value: unknown): unknown {
   if (typeof value === "string") {

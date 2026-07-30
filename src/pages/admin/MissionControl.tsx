@@ -184,7 +184,8 @@ export default function MissionControl() {
 
     try {
       let token = session.access_token;
-      let result = await callEdgeFunction(functionName, { action, provider, ...extraParams, ...(highRisk ? { confirm: action } : {}) }, token, 25000);
+      const timeoutMs = action === 'run_scanner_now' ? 55000 : 30000;
+      let result = await callEdgeFunction(functionName, { action, provider, ...extraParams, ...(highRisk ? { confirm: action } : {}) }, token, timeoutMs);
 
       // Part 8: JWT Refresh once if 401 encountered
       if (result.status === 401) {
@@ -192,7 +193,7 @@ export default function MissionControl() {
         const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
         if (!refreshErr && refreshData?.session?.access_token) {
           token = refreshData.session.access_token;
-          result = await callEdgeFunction(functionName, { action, provider, ...extraParams, ...(highRisk ? { confirm: action } : {}) }, token, 25000);
+          result = await callEdgeFunction(functionName, { action, provider, ...extraParams, ...(highRisk ? { confirm: action } : {}) }, token, timeoutMs);
         } else {
           setSessionExpired(true);
           setActionResult({
