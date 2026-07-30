@@ -167,6 +167,32 @@ class MT5Client:
             "name": t.name
         }
 
+    def get_market_data(self, canonical_symbol: str, broker_symbol: str, timeframes: List[str], bars: int = 140) -> Dict[str, Any]:
+        """Read broker ticks/specification/candles; never fabricate unavailable bars."""
+        if not HAS_MT5 or not self.check_connection():
+            raise RuntimeError("MT5_MARKET_DATA_UNAVAILABLE")
+        info, tick = mt5.symbol_info(broker_symbol), mt5.symbol_info_tick(broker_symbol)
+        if info is None or tick is None or float(tick.bid) <= 0 or float(tick.ask) <= 0:
+            raise RuntimeError("MT5_MARKET_DATA_UNAVAILABLE")
+        frame_map = {"1m": mt5.TIMEFRAME_M1, "5m": mt5.TIMEFRAME_M5, "15m": mt5.TIMEFRAME_M15,
+                     "30m": mt5.TIMEFRAME_M30, "1h": mt5.TIMEFRAME_H1, "4h": mt5.TIMEFRAME_H4, "1d": mt5.TIMEFRAME_D1}
+        candles = []
+        for timeframe in timeframes:
+            if timeframe not in frame_map:
+                raise ValueError("MT5_TIMEFRAME_UNSUPPORTED")
+            rows = mt5.copy_rates_from_pos(broker_symbol, frame_map[timeframe], 0, bars)
+            if rows is None:
+                continue
+            candles.extend({"timeframe": timeframe, "open_time": datetime.utcfromtimestamp(int(r["time"])).isoformat()+"Z",
+                            "open": float(r["open"]), "high": float(r["high"]), "low": float(r["low"]),
+                            "close": float(r["close"]), "tick_volume": int(r["tick_volume"])} for r in rows if float(r["open"]) > 0)
+        return {"canonical_symbol": canonical_symbol, "broker_symbol": broker_symbol, "bid": float(tick.bid), "ask": float(tick.ask),
+                "digits": int(info.digits), "point": float(info.point), "tick_size": float(info.trade_tick_size),
+                "tick_value": float(info.trade_tick_value), "contract_size": float(info.trade_contract_size),
+                "volume_min": float(info.volume_min), "volume_step": float(info.volume_step), "volume_max": float(info.volume_max),
+                "stops_level": int(info.trade_stops_level), "freeze_level": int(info.trade_freeze_level),
+                "market_open": bool(info.visible and tick.time), "last_update_at": datetime.utcfromtimestamp(int(tick.time)).isoformat()+"Z", "candles": candles}
+
     def verify_connection(self, requested_login: int, requested_broker: str, requested_server: str) -> Dict[str, Any]:
         """Run the complete read-only certification probe; never submits a trade request."""
         if not self.check_connection():

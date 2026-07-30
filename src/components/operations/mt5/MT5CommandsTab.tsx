@@ -3,6 +3,7 @@ import {
   Terminal, Search, RefreshCw
 } from 'lucide-react';
 import { listMT5Commands, type MT5CommandRecord } from '../../../lib/mt5Operations';
+import { MT5CertificationPanel } from './MT5CertificationPanel';
 
 export function MT5CommandsTab() {
   const [commands, setCommands] = useState<MT5CommandRecord[]>([]);
@@ -45,13 +46,18 @@ export function MT5CommandsTab() {
   const statusBadge = (status: string) => {
     switch (status) {
       case 'acknowledged':
+      case 'confirmed':
+      case 'succeeded':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Acknowledged</span>;
       case 'claimed':
       case 'executing':
+      case 'running':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">Claimed</span>;
       case 'pending':
+      case 'queued':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Pending</span>;
       case 'failed':
+      case 'rejected':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/20">Failed</span>;
       case 'retrying':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">Retrying</span>;
@@ -62,6 +68,7 @@ export function MT5CommandsTab() {
 
   return (
     <div className="space-y-6">
+      <MT5CertificationPanel />
       {/* Search & Filter Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-900/80 p-4 border border-zinc-800 rounded-xl">
         <div>

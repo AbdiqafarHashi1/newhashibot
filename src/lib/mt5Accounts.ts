@@ -32,4 +32,7 @@ export const connectMT5Account=(input:{broker:string;server:string;accountNumber
 export const setMT5Execution=(accountId:string,enabled:boolean)=>action({action:'set_execution',accountId,enabled});
 export const setMT5Mode=(accountId:string,mode:MT5ExecutionMode)=>action({action:'set_mode',accountId,mode});
 export const testMT5Connection=(accountId:string)=>action({action:'test_connection',accountId});
+export const syncMT5Account=(accountId:string)=>action({action:'sync_account',accountId});
+export const requestMT5OperationalAdoption=(accountId:string)=>action({action:'request_operational_adoption',accountId});
+export const replaceMT5DemoMasterCredential=(accountId:string,password:string)=>action({action:'replace_demo_master_credential',accountId,password});
 export const removeMT5Account=(accountId:string)=>action({action:'remove',accountId});

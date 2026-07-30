@@ -210,7 +210,6 @@ class CloudClient:
     def sync_symbol_specs(self, account_id: str, specs: List[Dict[str, Any]]) -> bool:
         if not account_id or not specs:
             return False
-
         url = self._bridge_url("sync_symbols")
         payload = {
             "bridge_id": self.bridge_id,
@@ -225,3 +224,11 @@ class CloudClient:
         else:
             logger.warning(f"[CloudClient] Symbol spec sync failed ({code}): {data}")
             return False
+
+    def publish_market_data(self, account_id: str, feeds: List[Dict[str, Any]]) -> bool:
+        """Publish only to the authenticated durable control plane."""
+        code, data = self._post(self._bridge_url("publish_market_data"), {
+            "bridge_id": self.bridge_id, "worker_id": Config.WORKER_ID,
+            "account_id": account_id, "owner_id": Config.OWNER_ID, "feeds": feeds,
+        }, timeout=20)
+        return code == 200 and bool(data.get("success"))

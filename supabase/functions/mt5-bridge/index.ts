@@ -497,6 +497,21 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: true, synced_count: rows.length });
     }
 
+    if (action === "publish_market_data") {
+      const accountId=String(body.account_id??""), ownerId=String(body.owner_id??""), bridgeId=String(body.bridge_id??"");
+      const {data:scope}=await supabase.from("mt5_accounts").select("id").eq("id",accountId).eq("user_id",ownerId).eq("bridge_id",bridgeId).maybeSingle();
+      if(!scope) return jsonResponse({success:false,error_code:"BRIDGE_ACCOUNT_SCOPE_MISMATCH"},403);
+      const feeds=Array.isArray(body.feeds)?body.feeds:[]; let candleCount=0;
+      for(const feed of feeds){
+        const latest={account_id:accountId,owner_id:ownerId,bridge_id:bridgeId,canonical_symbol:feed.canonical_symbol,broker_symbol:feed.broker_symbol,bid:feed.bid,ask:feed.ask,digits:feed.digits,point:feed.point,tick_size:feed.tick_size,tick_value:feed.tick_value,contract_size:feed.contract_size,volume_min:feed.volume_min,volume_step:feed.volume_step,volume_max:feed.volume_max,stops_level:feed.stops_level,freeze_level:feed.freeze_level,market_open:feed.market_open===true,stale:Date.now()-new Date(feed.last_update_at).getTime()>120000,last_update_at:feed.last_update_at};
+        const {error}=await supabase.from("mt5_market_data_latest").upsert(latest,{onConflict:"account_id,bridge_id,canonical_symbol"}); if(error)return jsonResponse({success:false,error_code:"MT5_MARKET_DATA_WRITE_FAILED"},500);
+        const candles=(Array.isArray(feed.candles)?feed.candles:[]).filter((c:Record<string,unknown>)=>Number(c.open)>0&&Number(c.close)>0).map((c:Record<string,unknown>)=>({account_id:accountId,owner_id:ownerId,bridge_id:bridgeId,canonical_symbol:feed.canonical_symbol,broker_symbol:feed.broker_symbol,...c}));
+        if(candles.length){const {error:candleError}=await supabase.from("mt5_market_candles").upsert(candles,{onConflict:"account_id,bridge_id,canonical_symbol,timeframe,open_time"});if(candleError)return jsonResponse({success:false,error_code:"MT5_CANDLE_WRITE_FAILED"},500);candleCount+=candles.length;}
+      }
+      await supabase.rpc("prune_mt5_market_data",{p_account_id:accountId});
+      return jsonResponse({success:true,feeds:feeds.length,candles:candleCount});
+    }
+
     return jsonResponse({ success: false, error: `Unsupported action: ${action}` }, 400);
 
   } catch (e) {

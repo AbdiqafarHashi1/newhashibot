@@ -3,7 +3,7 @@ import {
   UserPlus, Shield, Lock, RefreshCw, Trash2, CheckCircle2, 
   Eye, EyeOff, AlertTriangle, PlayCircle
 } from 'lucide-react';
-import { listMT5Accounts, connectMT5Account, setMT5Execution, removeMT5Account } from '../../../lib/mt5Accounts';
+import { listMT5Accounts, connectMT5Account, setMT5Execution, removeMT5Account, testMT5Connection, requestMT5OperationalAdoption } from '../../../lib/mt5Accounts';
 import type { MT5Account, MT5ExecutionMode } from '../../../lib/exchange/mt5';
 
 interface Props {
@@ -15,6 +15,7 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
 
   // Form modal state
   const [showModal, setShowModal] = useState(false);
@@ -113,6 +114,7 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
       setError(err instanceof Error ? err.message : 'Failed to remove MT5 account');
     }
   };
+  const durableAction = async (key:string, run:()=>Promise<unknown>) => { setActiveAction(key); setError(null); try { const result=await run() as {commandId?:string;status?:string}; setActionSuccess(result.commandId ? `Command ${result.commandId} ${result.status}. Track lifecycle in Commands.` : `Operational request: ${result.status}`); } catch(err) { setError(err instanceof Error?err.message:'MT5 command failed'); } finally { setActiveAction(null); } };
 
   return (
     <div className="space-y-6">
@@ -238,19 +240,20 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Test Connection Button - Disabled with Tooltip per specification */}
                         <div className="relative group">
                           <button
-                            disabled
-                            className="px-2.5 py-1 bg-zinc-800/50 border border-zinc-700/50 text-zinc-600 rounded text-[11px] font-medium cursor-not-allowed flex items-center gap-1"
+                            disabled={activeAction!==null}
+                            onClick={()=>durableAction(`test:${acc.id}`,()=>testMT5Connection(acc.id))}
+                            className="px-2.5 py-1 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded text-[11px] font-medium flex items-center gap-1"
                           >
                             <PlayCircle size={12} />
-                            Test
+                            {activeAction===`test:${acc.id}`?'Queuing…':'Sync / Test'}
                           </button>
                           <div className="absolute right-0 bottom-full mb-1 hidden group-hover:block z-20 w-44 p-2 bg-zinc-900 border border-zinc-700 rounded text-[10px] text-zinc-300 shadow-xl">
-                            Disabled until certification phase
+                            Enqueues one durable read-only command; it does not launch Python.
                           </div>
                         </div>
+                        <button disabled={activeAction!==null} onClick={()=>durableAction(`adopt:${acc.id}`,()=>requestMT5OperationalAdoption(acc.id))} className="px-2.5 py-1 bg-amber-600/10 border border-amber-500/20 text-amber-400 rounded text-[11px]">{activeAction===`adopt:${acc.id}`?'Requesting…':'Request adoption'}</button>
 
                         {/* View Runtime */}
                         <button
