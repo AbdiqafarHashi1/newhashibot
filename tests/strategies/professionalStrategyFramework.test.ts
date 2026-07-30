@@ -42,8 +42,8 @@ const ROOT_EVALUATOR_BASELINE = {
   evalQuickScalp: 'b111879bc1aed3ba2e7d0b029d1e14a2eaedbe5e8fe50c2dadeac8dc4efc7a40',
   evalCompressionBreakout: 'af23c123a433050e22bd6840f5e728356720e4fd0622f173c07eb39d882a810f',
   evalSwingContinuation: '7ba5c9a2e4648ce4c53b0df560474b4a312d11d35c362aceaa219daccd75cf8f',
-  evalForexMicroScalper: 'fd3594d4a960d5f74c692aa3da9b3992aec5e0374843d3e7ef09838215258e44',
-  evalForexSwingContinuation: '3e8933964f856eb3d0f454e176a1f8a5fa478f20a0d36256184b730bfa364786',
+  evalForexMicroScalper: '0ebd20c2f1d787422bb32e7592162d70c1808a6e9ef7955d6d89060d1cce9e88',
+  evalForexSwingContinuation: 'b3e420432f16d6ffdcc0e73e9a72744dfd7c39312fa191fe37c4d95500685746',
 };
 for (const [name, expected] of Object.entries(ROOT_EVALUATOR_BASELINE)) assert.equal(functionHash(name), expected, `${name} production formula baseline changed`);
 const candle = (index: number, close = 100) => ({ symbol: 'BTCUSDT', market_type: 'crypto', timeframe: '15m', open_time: new Date(Date.parse(at) - (60 - index) * 900_000).toISOString(), open: close - .2, high: close + .5, low: close - .5, close, volume: 1000, source: 'fixture' });

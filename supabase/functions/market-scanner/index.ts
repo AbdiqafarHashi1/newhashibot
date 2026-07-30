@@ -19,6 +19,7 @@ import type { DeepReadonly, StrategyPlan } from "../_shared/strategy-plan.ts";
 import { runCertifiedRuntime } from "../_shared/certified-runtime.ts";
 import { loadCertifiedExecutionAccounts, type CertifiedAccountTruthRow } from "../_shared/certified-account-loader.ts";
 import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
+import { FOREX_RUNTIME_INSTRUMENTS, FOREX_RUNTIME_SYMBOLS, FOREX_STRATEGY_CONTRACTS, MT5_PROVIDER_MARKET_DATA_TIMEFRAMES, forexScannerFetchPlan, forexStrategyEligibility, forexStrategyTimeframes, isForexRuntimeSymbol, roundRuntimePrice, runtimeInstrument, runtimePipDistance } from "../_shared/forex-runtime-contracts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -253,32 +254,10 @@ function strategyRuntimeReject(strategyName: string, error: unknown): EvalResult
 
 // ─── Forex-specific helpers ──────────────────────────────────────────────────
 
-function isJpyPair(symbol: string): boolean {
-  return normalizeSymbol(symbol).endsWith("JPY");
-}
-
-function forexPipSize(symbol: string): number {
-  return isJpyPair(symbol) ? 0.01 : 0.0001;
-}
-
-function forexPrecision(symbol: string): number {
-  return isJpyPair(symbol) ? 3 : 5;
-}
-
-function roundForexPrice(symbol: string, price: number): number {
-  if (!Number.isFinite(price)) return 0;
-  return Number(price.toFixed(forexPrecision(symbol)));
-}
-
-function pipDistance(symbol: string, from: number, to: number): number {
-  const pip = forexPipSize(symbol);
-  return pip > 0 && Number.isFinite(from) && Number.isFinite(to) ? parseFloat((Math.abs(to - from) / pip).toFixed(1)) : 0;
-}
-
 function forexPairType(symbol: string): string {
   const normalized = normalizeSymbol(symbol);
-  const majors = new Set(["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "AUDUSD", "NZDUSD"]);
-  return majors.has(normalized) ? "major" : normalized.length === 6 ? "minor" : "unknown";
+  const instrument = runtimeInstrument(normalized);
+  return instrument?.instrument_class === "metal_gold" ? "metal_gold" : instrument?.instrument_class === "fx_jpy" ? "fx_jpy" : instrument?.instrument_class === "fx_non_jpy" ? "fx_non_jpy" : "unknown";
 }
 
 function forexSessionContext(date = new Date()): string {
@@ -307,10 +286,10 @@ function forexZeroReject(reason: string, symbol: string): EvalResult {
 }
 
 function forexEntryBand(symbol: string, price: number, atr: number, maxPips: number): { entry_low: number; entry_high: number } {
-  const half = Math.min(atr * 0.12, forexPipSize(symbol) * maxPips);
+  const half = Math.min(atr * 0.12, (runtimeInstrument(symbol)?.pip_size ?? 0) * maxPips);
   return {
-    entry_low: roundForexPrice(symbol, price - half),
-    entry_high: roundForexPrice(symbol, price + half),
+    entry_low: roundRuntimePrice(symbol, price - half),
+    entry_high: roundRuntimePrice(symbol, price + half),
   };
 }
 
@@ -493,7 +472,7 @@ function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string,
 
 function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
   const symbol = normalizeSymbol(candles[candles.length - 1]?.symbol ?? "");
-  const min_atr_pct = params.min_atr_pct ?? (isJpyPair(symbol) ? 0.025 : 0.018);
+  const min_atr_pct = params.min_atr_pct ?? (runtimeInstrument(symbol)?.instrument_class === "fx_jpy" ? 0.025 : 0.018);
   const max_atr_pct = params.max_atr_pct ?? 0.32;
   const min_body_atr = params.min_body_atr ?? 0.18;
   const stop_atr_mult = Math.max(params.stop_atr_mult ?? 1.15, 1.25);
@@ -502,9 +481,9 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
   const min_rr = params.min_rr ?? 1.25;
   const min_score = params.min_score ?? 74;
   const momentum_lookback = Math.max(2, Math.floor(params.momentum_lookback ?? 3));
-  const min_stop_pips = Math.max(params.min_stop_pips ?? 0, isJpyPair(symbol) ? 7 : 6);
-  const min_tp1_pips = Math.max(params.min_tp1_pips ?? 0, isJpyPair(symbol) ? 8 : 7);
-  const min_tp2_pips = Math.max(params.min_tp2_pips ?? 0, isJpyPair(symbol) ? 12 : 10);
+  const min_stop_pips = Math.max(params.min_stop_pips ?? 0, runtimeInstrument(symbol)?.instrument_class === "fx_jpy" ? 7 : 6);
+  const min_tp1_pips = Math.max(params.min_tp1_pips ?? 0, runtimeInstrument(symbol)?.instrument_class === "fx_jpy" ? 8 : 7);
+  const min_tp2_pips = Math.max(params.min_tp2_pips ?? 0, runtimeInstrument(symbol)?.instrument_class === "fx_jpy" ? 12 : 10);
   const max_entry_band_pips = params.max_entry_band_pips ?? (timeframe === "5m" ? 1.2 : 1.8);
 
   if (!["5m", "15m"].includes(timeframe)) return forexZeroReject("unsupported_timeframe", symbol);
@@ -515,7 +494,7 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
   const prev = candles[candles.length - 2];
   const price = last.close;
   const atr = ind.atr14;
-  const pip = forexPipSize(symbol);
+  const pip = runtimeInstrument(symbol)?.pip_size ?? 0;
   const atrPips = atr / pip;
   const atrPct = forexAtrPct(symbol, atr, price);
   if (atr <= 0 || price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return forexZeroReject("invalid_atr_or_price", symbol);
@@ -552,14 +531,14 @@ function evalForexMicroScalper(candles: Candle[], ind: Indicators, timeframe: st
   const { entry_low, entry_high } = forexEntryBand(symbol, price, atr, max_entry_band_pips);
   const rawRisk = Math.max(atr * stop_atr_mult, pip * min_stop_pips);
   const structureStop = direction === "buy" ? Math.min(recentLow - atr * 0.12, price - rawRisk) : Math.max(recentHigh + atr * 0.12, price + rawRisk);
-  const stop_loss = roundForexPrice(symbol, structureStop);
+  const stop_loss = roundRuntimePrice(symbol, structureStop);
   const risk = Math.abs(price - stop_loss);
-  const tp1 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp1_r : price - risk * tp1_r);
-  const tp2 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp2_r : price - risk * tp2_r);
+  const tp1 = roundRuntimePrice(symbol, direction === "buy" ? price + risk * tp1_r : price - risk * tp1_r);
+  const tp2 = roundRuntimePrice(symbol, direction === "buy" ? price + risk * tp2_r : price - risk * tp2_r);
   const risk_reward = risk > 0 ? parseFloat((Math.abs(tp2 - price) / risk).toFixed(2)) : 0;
-  const stopPips = pipDistance(symbol, price, stop_loss);
-  const tp1Pips = pipDistance(symbol, price, tp1);
-  const tp2Pips = pipDistance(symbol, price, tp2);
+  const stopPips = runtimePipDistance(symbol, price, stop_loss);
+  const tp1Pips = runtimePipDistance(symbol, price, tp1);
+  const tp2Pips = runtimePipDistance(symbol, price, tp2);
 
   const trendScore = clampScore((trendConfirmed ? 45 : 15) + Math.min(emaSpreadAtr, 0.8) * 35 + (structureAligned ? 20 : 0));
   const momentumScore = clampScore((Math.max(0, directionalMomentum) * 55) + (candleInDirection ? 20 : 0) + (structureAligned ? 15 : 0) + Math.min(bodyAtr, 0.8) * 12);
@@ -1047,8 +1026,8 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   const rsi_len = Math.max(2, Math.floor(params.rsi_len ?? 14));
   const ema_fast = Math.max(2, Math.floor(params.ema_fast ?? 20));
   const ema_slow = Math.max(ema_fast + 1, Math.floor(params.ema_slow ?? 50));
-  const min_stop_pips = Math.max(params.min_stop_pips ?? 0, isJpyPair(symbol) ? 13 : 11);
-  const min_tp1_pips = Math.max(params.min_tp1_pips ?? 0, isJpyPair(symbol) ? 15 : 13);
+  const min_stop_pips = Math.max(params.min_stop_pips ?? 0, runtimeInstrument(symbol)?.instrument_class === "fx_jpy" ? 13 : 11);
+  const min_tp1_pips = Math.max(params.min_tp1_pips ?? 0, runtimeInstrument(symbol)?.instrument_class === "fx_jpy" ? 15 : 13);
 
   if (!["1h", "15m"].includes(timeframe)) return forexZeroReject("unsupported_timeframe", symbol);
   const minLen = Math.max(ema_slow + 8, atr_len + 2, rsi_len + 2, pullback_bars + 12, 60);
@@ -1059,7 +1038,7 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   const last = candles[candles.length - 1];
   const price = last.close;
   const atr = calcATR(candles, atr_len);
-  const pip = forexPipSize(symbol);
+  const pip = runtimeInstrument(symbol)?.pip_size ?? 0;
   const atrPct = forexAtrPct(symbol, atr, price);
   const atrPips = atr / pip;
   const rsi = calcRSI(closes, rsi_len);
@@ -1104,16 +1083,16 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   const { entry_low, entry_high } = forexEntryBand(symbol, price, atr, timeframe === "1h" ? 2.5 : 1.8);
   const minRisk = pip * min_stop_pips;
   const stopBuffer = Math.max(atr * 0.2, pip * 2);
-  const stop_loss = roundForexPrice(symbol, direction === "buy"
+  const stop_loss = roundRuntimePrice(symbol, direction === "buy"
     ? Math.min(pullbackLow - stopBuffer, price - Math.max(atr * stop_atr_mult, minRisk))
     : Math.max(pullbackHigh + stopBuffer, price + Math.max(atr * stop_atr_mult, minRisk)));
   const risk = Math.abs(price - stop_loss);
-  const tp1 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp1_r : price - risk * tp1_r);
-  const tp2 = roundForexPrice(symbol, direction === "buy" ? price + risk * tp2_r : price - risk * tp2_r);
+  const tp1 = roundRuntimePrice(symbol, direction === "buy" ? price + risk * tp1_r : price - risk * tp1_r);
+  const tp2 = roundRuntimePrice(symbol, direction === "buy" ? price + risk * tp2_r : price - risk * tp2_r);
   const risk_reward = risk > 0 ? parseFloat((Math.abs(tp2 - price) / risk).toFixed(2)) : 0;
-  const stopPips = pipDistance(symbol, price, stop_loss);
-  const tp1Pips = pipDistance(symbol, price, tp1);
-  const tp2Pips = pipDistance(symbol, price, tp2);
+  const stopPips = runtimePipDistance(symbol, price, stop_loss);
+  const tp1Pips = runtimePipDistance(symbol, price, tp1);
+  const tp2Pips = runtimePipDistance(symbol, price, tp2);
 
   const trendScore = clampScore((emaAligned ? 42 : 8) + Math.min(Math.max(directionalSpreadPct, 0) / 0.18, 1) * 28 + Math.min(Math.max(directionalSlope, 0) / 0.08, 1) * 22 + (directionalSpreadPips >= 2 ? 8 : 0));
   const emaSlopeScore = clampScore(35 + Math.min(Math.max(directionalSlope, -0.04) + 0.04, 0.16) / 0.16 * 65);
@@ -1186,12 +1165,33 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   return { status: "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade, reason, rejection_reason: "", score_breakdown };
 }
 
+type ForexEvaluator = (candles: Candle[], indicators: Indicators, timeframe: string, params: Record<string, number>) => EvalResult;
+const FOREX_EVALUATOR_REGISTRY = new Map<string, ForexEvaluator>([
+  ["forex.micro-scalper", evalForexMicroScalper],
+  ["forex.swing-continuation", evalForexSwingContinuation],
+]);
+function forexEvaluatorFor(strategyId: string): ForexEvaluator {
+  const evaluator = FOREX_EVALUATOR_REGISTRY.get(strategyId);
+  if (!evaluator) throw new Error(`FOREX_EVALUATOR_NOT_REGISTERED:${strategyId}`);
+  return evaluator;
+}
+function validateForexEvaluatorRegistry(): void {
+  const ids = new Set<string>();
+  for (const contract of FOREX_STRATEGY_CONTRACTS) {
+    if (ids.has(contract.id)) throw new Error(`DUPLICATE_FOREX_STRATEGY_ID:${contract.id}`);
+    ids.add(contract.id);
+    if (!FOREX_EVALUATOR_REGISTRY.has(contract.id)) throw new Error(`FOREX_EVALUATOR_NOT_REGISTERED:${contract.id}`);
+  }
+  if (FOREX_EVALUATOR_REGISTRY.size !== ids.size) throw new Error("FOREX_EVALUATOR_REGISTRY_CONTRACT_MISMATCH");
+}
+validateForexEvaluatorRegistry();
+
 // ─── Grade index ──────────────────────────────────────────────────────────────
 
 function gradeIndex(g: string): number { return g === "A+" ? 3 : g === "A" ? 2 : g === "B" ? 1 : 0; }
 
 const C2_FOREX_PROVIDER = "mt5";
-const C2_FOREX_SYMBOLS = new Set(["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "EURJPY", "GBPJPY", "XAUUSD"]);
+const C2_FOREX_SYMBOLS = new Set<string>(FOREX_RUNTIME_SYMBOLS);
 
 function normalizeSymbol(symbol: string): string {
   return symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
@@ -1214,7 +1214,7 @@ function normalizeRejectionReason(reason: string, marketType = "crypto"): string
   const normalized = map[reason] ?? reason;
   if (marketType === "forex") {
     const allowed = new Set([
-      "provider_failed", "provider_rate_limited", "provider_data_unavailable", "provider_invalid_response", "unsupported_symbol",
+      "provider_failed", "provider_rate_limited", "provider_data_unavailable", "provider_invalid_response", "unsupported_symbol", "unsupported_instrument_class", "gold_strategy_not_certified",
       "unsupported_timeframe", "insufficient_candles", "invalid_atr_or_price", "invalid_candles",
       "spread_or_distance_too_tight", "distance_guard_failed", "volatility_too_low", "volatility_too_high",
       "trend_filter_failed", "pullback_not_ready", "reclaim_not_confirmed", "momentum_failed",
@@ -1225,7 +1225,7 @@ function normalizeRejectionReason(reason: string, marketType = "crypto"): string
   return normalized;
 }
 
-const C2_FOREX_TIMEFRAMES = new Set(["15m", "1h"]);
+const C2_FOREX_TIMEFRAMES = new Set<string>(MT5_PROVIDER_MARKET_DATA_TIMEFRAMES);
 
 function intEnv(name: string, defaultValue: number, minValue = 0): number {
   const raw = Deno.env.get(name);
@@ -1234,21 +1234,8 @@ function intEnv(name: string, defaultValue: number, minValue = 0): number {
   return Number.isFinite(parsed) && parsed >= minValue ? parsed : defaultValue;
 }
 
-interface ForexTimeframePlan {
-  supported: string[];
-  unsupported: string[];
-}
-
-function forexTimeframePlan(): ForexTimeframePlan {
-  const raw = Deno.env.get("FOREX_ACTIVE_TIMEFRAMES") ?? "15m,1h";
-  const requested = [...new Set(raw.split(",").map((v) => v.trim()).filter(Boolean))];
-  const supported = requested.filter((v) => C2_FOREX_TIMEFRAMES.has(v));
-  const unsupported = requested.filter((v) => !C2_FOREX_TIMEFRAMES.has(v));
-  return { supported: supported.length ? supported : ["15m", "1h"], unsupported };
-}
-
 function forexTimeframes(): string[] {
-  return forexTimeframePlan().supported;
+  return forexScannerFetchPlan();
 }
 
 // ─── Distance guard ───────────────────────────────────────────────────────────
@@ -2013,37 +2000,6 @@ async function createPaperIntent(
   return data?.id ?? null;
 }
 
-// ─── Demo candle generator ────────────────────────────────────────────────────
-
-// C2 keeps this historical helper unused: forex demo fallback is forbidden.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function generateDemoCandles(symbol: string, market_type: string, timeframe: string, count = 110): Candle[] {
-  const seedPrices: Record<string, number> = {
-    BTCUSDT: 67000, ETHUSDT: 3500, SOLUSDT: 155, BNBUSDT: 580,
-    XRPUSDT: 0.52, ADAUSDT: 0.44, DOGEUSDT: 0.14, AVAXUSDT: 35, LINKUSDT: 14, POLUSDT: 0.88,
-    EURUSD: 1.085, GBPUSD: 1.265, USDJPY: 149.5, USDCHF: 0.905,
-    AUDUSD: 0.655, NZDUSD: 0.605, USDCAD: 1.365, EURJPY: 162.2, GBPJPY: 189.1, XAUUSD: 2320,
-  };
-  const tfMs: Record<string, number> = { "5m": 300000, "15m": 900000, "1h": 3600000, "4h": 14400000 };
-  const intervalMs = tfMs[timeframe] ?? 900000;
-  const basePrice = seedPrices[symbol] ?? 100;
-  const volatility = market_type === "crypto" ? 0.012 : 0.0035;
-  const candles: Candle[] = [];
-  let price = basePrice;
-  const now = Date.now();
-  const trend = (Math.sin(Date.now() / 1000000) > 0) ? 0.0004 : -0.0004;
-  for (let i = count; i >= 0; i--) {
-    const open = price;
-    const change = (Math.random() - 0.47 + trend) * volatility * price;
-    const close = open + change;
-    const high = Math.max(open, close) + Math.random() * volatility * 0.4 * price;
-    const low = Math.min(open, close) - Math.random() * volatility * 0.4 * price;
-    candles.push({ symbol, market_type, timeframe, open_time: new Date(now - i * intervalMs).toISOString(), open: parseFloat(open.toFixed(8)), high: parseFloat(high.toFixed(8)), low: parseFloat(Math.max(low, 0.00001).toFixed(8)), close: parseFloat(close.toFixed(8)), volume: market_type === "crypto" ? parseFloat((Math.random() * 1000 + 100).toFixed(4)) : 0, source: "demo" });
-    price = close;
-  }
-  return candles;
-}
-
 // ─── Binance ──────────────────────────────────────────────────────────────────
 
 async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 110): Promise<Candle[] | null> {
@@ -2167,25 +2123,9 @@ function executionTradability(symbol: string, universe: ExecutionUniverse): Reco
   return { research_eligible: true, execution_eligible: universe.selected.has(normalized), binance_tradable: universe.binance.has(normalized), bybit_tradable: universe.bybit.has(normalized), execution_universe_mode: universe.mode, mirror_required_for_vip: universe.mirrorRequiredForVip };
 }
 
-// ─── TwelveData ───────────────────────────────────────────────────────────────
-// C2 forex signal mode uses TwelveData as the single real-data provider.
-// Finnhub remains available only for explicit diagnostics because the deployed
-// Finnhub key/plan has returned HTTP 403 for forex candles.
-
-const TD_SYMBOL_MAP: Record<string, string> = {
-  EURUSD: "EUR/USD", GBPUSD: "GBP/USD", USDJPY: "USD/JPY", USDCHF: "USD/CHF",
-  AUDUSD: "AUD/USD", NZDUSD: "NZD/USD", USDCAD: "USD/CAD", EURJPY: "EUR/JPY",
-  GBPJPY: "GBP/JPY", XAUUSD: "XAU/USD",
-};
-
-function toTDSymbol(s: string): string { return TD_SYMBOL_MAP[s] ?? `${s.slice(0, 3)}/${s.slice(3)}`; }
-function toTDInterval(tf: string): string { return ({ "5m": "5min", "15m": "15min", "1h": "1h", "4h": "4h" } as Record<string, string>)[tf] ?? "15min"; }
-
-function parseTwelveDataDateTime(value: string): string {
-  const normalized = value.includes("T") ? value : value.replace(" ", "T");
-  const withZone = /Z$|[+-]\d{2}:?\d{2}$/.test(normalized) ? normalized : `${normalized}Z`;
-  return new Date(withZone).toISOString();
-}
+// ─── Forex runtime diagnostics ───────────────────────────────────────────────
+// Runtime Forex data is durable MT5 broker truth. Research providers are not
+// imported or invoked by this production scanner.
 
 type ForexProviderStatusClass =
   | "ok"
@@ -2200,258 +2140,9 @@ type ForexProviderStatusClass =
   | "provider_invalid_response"
   | "provider_error";
 
-interface ForexProviderFetchResult {
-  candles: Candle[] | null;
-  error: string | null;
-  provider: string;
-  mapped_symbol: string;
-  symbol_format: string;
-  http_status: number | null;
-  response_body: string;
-  status_class: ForexProviderStatusClass;
-  candle_count: number;
-  url_without_token: string;
-}
-
-interface ForexLatestPriceResult {
-  price: number | null;
-  error: string | null;
-  provider: string;
-  mapped_symbol: string;
-  symbol_format: string;
-  http_status: number | null;
-  response_body: string;
-  status_class: ForexProviderStatusClass;
-  url_without_token: string;
-}
-
-function classifyProviderHttpStatus(status: number): ForexProviderStatusClass {
-  if (status === 401) return "unauthorized_401";
-  if (status === 403) return "forbidden_403";
-  if (status === 429) return "rate_limited_429";
-  return "provider_error";
-}
-
-function classifyProviderPayload(message: string): ForexProviderStatusClass {
-  const m = message.toLowerCase();
-  if (m.includes("symbol") && (m.includes("invalid") || m.includes("not found") || m.includes("not available"))) return "invalid_symbol_format";
-  if (m.includes("rate") || m.includes("limit")) return "rate_limited_429";
-  if (m.includes("api key") || m.includes("apikey") || m.includes("unauthorized")) return "unauthorized_401";
-  if (m.includes("forbidden") || m.includes("permission") || m.includes("plan")) return "forbidden_403";
-  if (m.includes("no values") || m.includes("no_data")) return "market_closed_or_stale";
-  if (m.includes("json") || m.includes("unexpected") || m.includes("invalid response") || m.includes("invalid latest price")) return "provider_invalid_response";
-  return "provider_error";
-}
-
-function safeProviderBody(text: string): string {
-  if (!text) return "";
-  return text.replace(/apikey=[^&\s"]+/gi, "apikey=REDACTED").replace(/token=[^&\s"]+/gi, "token=REDACTED").slice(0, 500);
-}
-
-async function fetchTwelveDataCandles(symbol: string, tf: string, apiKey: string, limit = 110): Promise<ForexProviderFetchResult> {
-  const tdSymbol = toTDSymbol(symbol);
-  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(tdSymbol)}&interval=${toTDInterval(tf)}&outputsize=${limit}&apikey=REDACTED&format=JSON`;
-  const realUrl = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(tdSymbol)}&interval=${toTDInterval(tf)}&outputsize=${limit}&apikey=${apiKey}&format=JSON`;
-  try {
-    const res = await fetch(realUrl, { signal: AbortSignal.timeout(12000) });
-    const text = await res.text();
-    const safeBody = safeProviderBody(text);
-    if (!res.ok) {
-      return { candles: null, error: `TwelveData HTTP ${res.status}: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderHttpStatus(res.status), candle_count: 0, url_without_token: url };
-    }
-    let data: Record<string, unknown>;
-    try {
-      data = JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      return { candles: null, error: `TwelveData invalid JSON response: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "provider_invalid_response", candle_count: 0, url_without_token: url };
-    }
-    if (data.status === "error" || data.code) {
-      const msg = String(data.message ?? data.code ?? safeBody);
-      return { candles: null, error: `TwelveData: ${msg}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderPayload(msg), candle_count: 0, url_without_token: url };
-    }
-    const values = data.values as Array<Record<string, string>>;
-    if (!Array.isArray(values) || values.length === 0) {
-      const msg = `TwelveData: no values for ${tdSymbol} ${tf}`;
-      return { candles: null, error: msg, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "market_closed_or_stale", candle_count: 0, url_without_token: url };
-    }
-    const candles = values.reverse().map((v) => ({
-      symbol, market_type: "forex", timeframe: tf,
-      open_time: parseTwelveDataDateTime(v.datetime),
-      open: parseFloat(v.open), high: parseFloat(v.high),
-      low: parseFloat(v.low), close: parseFloat(v.close),
-      volume: parseFloat(v.volume ?? "0"), source: "twelvedata",
-    }));
-    return { candles, error: null, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "ok", candle_count: candles.length, url_without_token: url };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "TwelveData fetch failed";
-    return { candles: null, error: msg, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: null, response_body: "", status_class: classifyProviderPayload(msg), candle_count: 0, url_without_token: url };
-  }
-}
-
-async function fetchTwelveDataLatestPrice(symbol: string, apiKey: string): Promise<ForexLatestPriceResult> {
-  const tdSymbol = toTDSymbol(symbol);
-  const url = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(tdSymbol)}&apikey=REDACTED&format=JSON`;
-  const realUrl = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(tdSymbol)}&apikey=${apiKey}&format=JSON`;
-  try {
-    const res = await fetch(realUrl, { signal: AbortSignal.timeout(12000) });
-    const text = await res.text();
-    const safeBody = safeProviderBody(text);
-    if (!res.ok) return { price: null, error: `TwelveData HTTP ${res.status}: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderHttpStatus(res.status), url_without_token: url };
-    let data: Record<string, unknown>;
-    try {
-      data = JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      return { price: null, error: `TwelveData invalid JSON response: ${safeBody}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "provider_invalid_response", url_without_token: url };
-    }
-    if (data.status === "error" || data.code) {
-      const msg = String(data.message ?? data.code ?? safeBody);
-      return { price: null, error: `TwelveData: ${msg}`, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: classifyProviderPayload(msg), url_without_token: url };
-    }
-    const price = Number(data.price);
-    if (!Number.isFinite(price) || price <= 0) return { price: null, error: "TwelveData: invalid latest price", provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "provider_invalid_response", url_without_token: url };
-    return { price, error: null, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: res.status, response_body: safeBody, status_class: "ok", url_without_token: url };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "TwelveData latest price fetch failed";
-    return { price: null, error: msg, provider: "twelvedata", mapped_symbol: tdSymbol, symbol_format: "BASE/QUOTE", http_status: null, response_body: "", status_class: classifyProviderPayload(msg), url_without_token: url };
-  }
-}
-
-// ─── Finnhub ──────────────────────────────────────────────────────────────────
-
-// Finnhub requires exchange-prefixed symbols: OANDA:EUR_USD not EURUSD.
-// XAUUSD is not available on OANDA forex endpoint — skip cleanly.
-const FINNHUB_SYMBOL_MAP: Record<string, string> = {
-  EURUSD: "OANDA:EUR_USD",
-  GBPUSD: "OANDA:GBP_USD",
-  USDJPY: "OANDA:USD_JPY",
-  USDCHF: "OANDA:USD_CHF",
-  USDCAD: "OANDA:USD_CAD",
-  AUDUSD: "OANDA:AUD_USD",
-  NZDUSD: "OANDA:NZD_USD",
-  EURJPY: "OANDA:EUR_JPY",
-  GBPJPY: "OANDA:GBP_JPY",
-  EURGBP: "OANDA:EUR_GBP",
-};
-
-// Finnhub supported resolutions: 1, 5, 15, 30, 60, D, W, M
-// 4h is not natively supported — use 60 (1h) with 4x count and resample into 4h bars.
-function toFinnhubResolution(tf: string): { resolution: string; fetchCount: number; resampleTo4h: boolean } {
-  switch (tf) {
-    case "5m":  return { resolution: "5",  fetchCount: 120, resampleTo4h: false };
-    case "15m": return { resolution: "15", fetchCount: 120, resampleTo4h: false };
-    case "1h":  return { resolution: "60", fetchCount: 120, resampleTo4h: false };
-    case "4h":  return { resolution: "60", fetchCount: 480, resampleTo4h: true  };
-    case "1d":  return { resolution: "D",  fetchCount: 120, resampleTo4h: false };
-    default:    return { resolution: "15", fetchCount: 120, resampleTo4h: false };
-  }
-}
-
-function resampleTo4hCandles(candles: Candle[], symbol: string): Candle[] {
-  // Group 1h candles into 4h buckets (align to 4-hour UTC boundaries)
-  const buckets = new Map<number, Candle[]>();
-  for (const c of candles) {
-    const ts = new Date(c.open_time).getTime();
-    const bucketTs = Math.floor(ts / (4 * 3600 * 1000)) * (4 * 3600 * 1000);
-    if (!buckets.has(bucketTs)) buckets.set(bucketTs, []);
-    buckets.get(bucketTs)!.push(c);
-  }
-  const result: Candle[] = [];
-  for (const [bucketTs, group] of [...buckets.entries()].sort((a, b) => a[0] - b[0])) {
-    if (group.length === 0) continue;
-    result.push({
-      symbol,
-      market_type: "forex",
-      timeframe: "4h",
-      open_time: new Date(bucketTs).toISOString(),
-      open: group[0].open,
-      high: Math.max(...group.map(c => c.high)),
-      low: Math.min(...group.map(c => c.low)),
-      close: group[group.length - 1].close,
-      volume: group.reduce((s, c) => s + c.volume, 0),
-      source: "finnhub",
-    });
-  }
-  return result;
-}
-
-interface FinnhubFetchResult {
-  candles: Candle[] | null;
-  error: string | null;
-  mapped_symbol: string;
-  finnhub_s: string | null;
-  candle_count: number;
-  url_without_token: string;
-  http_status: number | null;
-  response_body: string;
-  status_class: ForexProviderStatusClass;
-}
-
-async function fetchFinnhubForexCandles(
-  symbol: string, tf: string, apiKey: string,
-): Promise<FinnhubFetchResult> {
-  const mappedSymbol = FINNHUB_SYMBOL_MAP[symbol];
-  if (!mappedSymbol) {
-    return { candles: null, error: `unsupported_symbol: ${symbol} has no OANDA mapping`, mapped_symbol: symbol, finnhub_s: null, candle_count: 0, url_without_token: "", http_status: null, response_body: "", status_class: "unsupported_symbol" };
-  }
-
-  const { resolution, fetchCount, resampleTo4h } = toFinnhubResolution(tf);
-  const url = `https://finnhub.io/api/v1/forex/candle?symbol=${encodeURIComponent(mappedSymbol)}&resolution=${resolution}&count=${fetchCount}&token=REDACTED`;
-  const realUrl = `https://finnhub.io/api/v1/forex/candle?symbol=${encodeURIComponent(mappedSymbol)}&resolution=${resolution}&count=${fetchCount}&token=${apiKey}`;
-
-  try {
-    const res = await fetch(realUrl, { signal: AbortSignal.timeout(12000) });
-    const text = await res.text();
-    const safeBody = safeProviderBody(text);
-    if (!res.ok) {
-      return { candles: null, error: `Finnhub HTTP ${res.status}: ${safeBody}`, mapped_symbol: mappedSymbol, finnhub_s: null, candle_count: 0, url_without_token: url, http_status: res.status, response_body: safeBody, status_class: classifyProviderHttpStatus(res.status) };
-    }
-
-    const j = JSON.parse(text) as Record<string, unknown>;
-    const s = j?.s as string | undefined;
-
-    if (s === "no_data") {
-      return { candles: null, error: `Finnhub no_data for ${mappedSymbol} ${tf} — market may be closed or symbol unavailable`, mapped_symbol: mappedSymbol, finnhub_s: "no_data", candle_count: 0, url_without_token: url, http_status: res.status, response_body: safeBody, status_class: "market_closed_or_stale" };
-    }
-
-    if (s !== "ok" || !Array.isArray(j?.c) || (j.c as number[]).length === 0) {
-      const reason = s ? `Finnhub s=${s}` : "Finnhub unexpected response structure";
-      return { candles: null, error: reason, mapped_symbol: mappedSymbol, finnhub_s: s ?? null, candle_count: 0, url_without_token: url, http_status: res.status, response_body: safeBody, status_class: classifyProviderPayload(reason) };
-    }
-
-    const c = j.c as number[], o = j.o as number[], h = j.h as number[], l = j.l as number[], t = j.t as number[], v = (j.v ?? []) as number[];
-
-    let candles: Candle[] = c.map((close, idx) => ({
-      symbol, market_type: "forex", timeframe: resampleTo4h ? "1h" : tf,
-      open_time: new Date(t[idx] * 1000).toISOString(),
-      open: Number(o[idx]), high: Number(h[idx]), low: Number(l[idx]),
-      close: Number(close), volume: Number(v[idx] ?? 0), source: "finnhub",
-    }));
-
-    if (resampleTo4h) {
-      candles = resampleTo4hCandles(candles, symbol);
-    }
-
-    return { candles, error: null, mapped_symbol: mappedSymbol, finnhub_s: "ok", candle_count: candles.length, url_without_token: url, http_status: res.status, response_body: safeBody, status_class: "ok" };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Finnhub fetch failed";
-    return { candles: null, error: msg, mapped_symbol: mappedSymbol, finnhub_s: null, candle_count: 0, url_without_token: url, http_status: null, response_body: "", status_class: classifyProviderPayload(msg) };
-  }
-}
-
-// ─── MT5 Bridge ───────────────────────────────────────────────────────────────
-
-// C2 is signal-only; MT5 bridge execution/data path is intentionally inactive.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function fetchMT5BridgeCandles(symbol: string, tf: string, bridgeUrl: string, secret: string, limit = 110): Promise<{ candles: Candle[] | null; error: string | null }> {
-  try {
-    const res = await fetch(`${bridgeUrl}/candles?symbol=${symbol}&timeframe=${tf}&limit=${limit}`, { headers: { "x-bridge-secret": secret }, signal: AbortSignal.timeout(10000) });
-    if (!res.ok) return { candles: null, error: `MT5Bridge HTTP ${res.status}` };
-    const data = await res.json() as Record<string, unknown>;
-    const raw = data.candles as Array<Record<string, unknown>>;
-    if (!Array.isArray(raw) || raw.length === 0) return { candles: null, error: "MT5Bridge: no candles" };
-    return { candles: raw.map((c) => ({ symbol, market_type: "forex", timeframe: tf, open_time: c.open_time as string, open: c.open as number, high: c.high as number, low: c.low as number, close: c.close as number, volume: (c.volume as number) ?? 0, source: "mt5_bridge" })), error: null };
-  } catch (e) { return { candles: null, error: e instanceof Error ? e.message : "MT5Bridge unreachable" }; }
-}
+// Research/diagnostic providers are isolated from the production scanner.
+// Direct bridge HTTP reads are intentionally forbidden. The scanner consumes
+// only account-scoped durable rows through MT5MarketDataProvider.
 
 // ─── Forex provider router ────────────────────────────────────────────────────
 
@@ -2476,7 +2167,7 @@ function signalMarketMode(cryptoEnabled: boolean, forexEnabled: boolean): string
 
 function forexDisabledSummary() {
   return {
-    provider: "forex",
+    provider: C2_FOREX_PROVIDER,
     fallbacks: [] as string[],
     demo_fallback: false,
     effective_provider_order: [] as string[],
@@ -2639,18 +2330,6 @@ async function fetchForexCandles(
   return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `${statusClass}: ${msg}`, statusClass };
 }
 
-async function fetchForexLatestPrice(symbol: string): Promise<ForexLatestPriceResult> {
-  const normalized = normalizeSymbol(symbol);
-  const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-  if (!C2_FOREX_SYMBOLS.has(normalized)) {
-    return { price: null, error: `unsupported_symbol: ${symbol}`, provider: C2_FOREX_PROVIDER, mapped_symbol: normalized, symbol_format: "EURUSD", http_status: null, response_body: "", status_class: "unsupported_symbol", url_without_token: "" };
-  }
-  if (!key) {
-    return { price: null, error: "TWELVEDATA_API_KEY or FOREX_DATA_API_KEY not set", provider: C2_FOREX_PROVIDER, mapped_symbol: toTDSymbol(normalized), symbol_format: "BASE/QUOTE", http_status: null, response_body: "", status_class: "unauthorized_401", url_without_token: "" };
-  }
-  return fetchTwelveDataLatestPrice(normalized, key);
-}
-
 // ─── Telegram formatter ───────────────────────────────────────────────────────
 
 
@@ -2780,7 +2459,7 @@ function asScoreBreakdown(signal: Record<string, unknown>): Record<string, unkno
 
 function forexPriceForMessage(symbol: string, value: unknown): string {
   const num = Number(value);
-  return Number.isFinite(num) && num > 0 ? num.toFixed(forexPrecision(symbol)) : "N/A";
+  return Number.isFinite(num) && num > 0 ? num.toFixed(runtimeInstrument(symbol)?.price_precision ?? 0) : "N/A";
 }
 
 function formatMaybePips(value: unknown): string | null {
@@ -3055,6 +2734,7 @@ async function runScanPipeline(
   const getStratCfg = (name: string): StrategyConfig => {
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
     const isForex = name.startsWith("Forex");
+    const forexContract = FOREX_STRATEGY_CONTRACTS.find((contract) => contract.legacyName === name);
     const isMicroScalper = name === "MicroScalper";
     const isQuickScalp = name === "QuickScalp";
     return {
@@ -3069,8 +2749,8 @@ async function runScanPipeline(
       min_tp1_distance_pct:  (cfg?.min_tp1_distance_pct as number)          ?? (isForex ? 0.10 : 0.25),
       min_tp2_distance_pct:  (cfg?.min_tp2_distance_pct as number)          ?? (isForex ? 0.16 : 0.40),
       max_bars_in_trade:     (cfg?.max_bars_in_trade as number)             ?? (name === "SwingContinuation" ? 96 : name === "CompressionBreakout" ? 48 : isQuickScalp ? 12 : isMicroScalper ? 24 : isForex ? 48 : 32),
-      allowed_symbols:       (cfg?.allowed_symbols as string[])             ?? (isForex ? [...C2_FOREX_SYMBOLS] : []),
-      allowed_timeframes:    (cfg?.allowed_timeframes as string[])          ?? (isQuickScalp ? ["5m", "15m"] : isMicroScalper ? ["5m", "15m"] : isForex ? forexTimeframes() : []),
+      allowed_symbols:       forexContract ? [...forexContract.symbols] : ((cfg?.allowed_symbols as string[]) ?? []),
+      allowed_timeframes:    forexContract ? forexStrategyTimeframes(forexContract) : ((cfg?.allowed_timeframes as string[]) ?? (isQuickScalp ? ["5m", "15m"] : isMicroScalper ? ["5m", "15m"] : [])),
       params:                (cfg?.params as Record<string, number>)        ?? {},
     };
   };
@@ -3139,7 +2819,7 @@ async function runScanPipeline(
   const errors: string[] = [];
   let binanceOk = false, binanceFailed = false;
   let forexProviderSuccess = false, forexProviderFailed = false;
-  let forexProviderName = config.signal_enable_forex ? C2_FOREX_PROVIDER : "forex";
+  let forexProviderName = C2_FOREX_PROVIDER;
   let cryptoSymbolsScanned = 0, forexSymbolsScanned = 0, forexSkippedCount = 0;
   let forexSkippedRateLimit = false, forexBudgetLimited = false;
   let forexProviderCallsAttempted = 0, forexProviderCallsPlanned = 0, forexProviderCallLimit = 0;
@@ -3313,9 +2993,7 @@ async function runScanPipeline(
     errors.push(`[INFO] dynamic_binance_universe symbols=${dynamicUniverse.symbols.length} min_24h_volume=${config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000}`);
   }
 
-  const forexTfPlan = forexTimeframePlan();
-  const forexScanTimeframes = forexTfPlan.supported;
-  const unsupportedForexTimeframes = forexTfPlan.unsupported;
+  const forexScanTimeframes = forexTimeframes();
   let forexThrottle: ForexScanThrottleState | null = null;
   let forexBudget: ForexScanBudgetState | null = null;
   if (config.signal_enable_forex) {
@@ -3330,7 +3008,6 @@ async function runScanPipeline(
     forexProviderCallLimit = forexBudget.maxProviderCalls;
     forexBudgetLimited = forexBudget.budgetLimited;
     if (forexBudgetLimited) errors.push(`[WARN] forex_provider_call_budget_limited planned=${forexProviderCallsPlanned} max=${forexProviderCallLimit} max_pairs=${forexBudget.maxPairs} max_timeframes=${forexBudget.maxTimeframes}`);
-    if (unsupportedForexTimeframes.length > 0) errors.push(`[WARN] unsupported_forex_timeframes skipped=${unsupportedForexTimeframes.join(",")}`);
 
     if (forexThrottle.rateLimited) {
       forexSkippedRateLimit = true;
@@ -3358,30 +3035,34 @@ async function runScanPipeline(
     const normalizedSymbol = normalizeSymbol(String(sym.symbol));
     const marketType = String(sym.market_type ?? "").toLowerCase();
 
-    if (marketType === "forex" && !C2_FOREX_SYMBOLS.has(normalizedSymbol)) {
+    if (marketType === "forex" && !isForexRuntimeSymbol(normalizedSymbol)) {
       forexSkippedCount++;
       for (const tf of forexScanTimeframes) {
-        await recordForexRejection(normalizedSymbol, tf, "unsupported_symbol", "PROVIDER_ERROR", "C2 initial forex set supports EURUSD, GBPUSD, and USDJPY only; XAUUSD is skipped until provider support is verified.");
+        await recordForexRejection(normalizedSymbol, tf, "unsupported_symbol", "PROVIDER_ERROR", `Unsupported Forex/Gold symbol ${normalizedSymbol}; canonical universe: ${FOREX_RUNTIME_SYMBOLS.join(", ")}`);
       }
       continue;
+    }
+    if (marketType === "forex") {
+      const eligibility = FOREX_STRATEGY_CONTRACTS.map((contract) => forexStrategyEligibility(contract, normalizedSymbol));
+      if (eligibility.every((result) => !result.eligible)) {
+        forexSkippedCount++;
+        const reason = eligibility.find((result) => result.reason === "gold_strategy_not_certified")?.reason ?? eligibility[0]?.reason ?? "unsupported_instrument_class";
+        for (const tf of forexScanTimeframes) await recordForexRejection(normalizedSymbol, tf, reason, "REAL DATA", `${normalizedSymbol} market data is enabled, but no production strategy is certified for ${runtimeInstrument(normalizedSymbol)?.instrument_class ?? "unknown"}`);
+        continue;
+      }
     }
 
     symbolsScanned++;
     if (marketType === "crypto") cryptoSymbolsScanned++;
     if (marketType === "forex") {
       forexSymbolsScanned++;
-      if (unsupportedForexTimeframes.length > 0 && (!forexBudget || forexBudget.allowedSymbols.has(normalizedSymbol))) {
-        for (const unsupportedTf of unsupportedForexTimeframes) {
-          await recordForexRejection(normalizedSymbol, unsupportedTf, "unsupported_timeframe", "PROVIDER_ERROR", `Unsupported TwelveData forex timeframe skipped before provider call: ${unsupportedTf}`);
-        }
-      }
     }
     const timeframesToScan = marketType === "forex" ? forexScanTimeframes : config.active_timeframes;
     for (const tf of timeframesToScan) {
       if (tf === "4h" && marketType === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
       if (marketType === "forex" && forexBudget && !forexBudget.allowedPairs.has(`${normalizedSymbol}|${tf}`)) {
         forexSkippedCount++;
-        await recordForexRejection(normalizedSymbol, tf, "forex_budget_limited", "PROVIDER_ERROR", `Forex provider budget skipped ${normalizedSymbol} ${tf} before TwelveData call`);
+        await recordForexRejection(normalizedSymbol, tf, "forex_budget_limited", "PROVIDER_ERROR", `Forex provider budget skipped ${normalizedSymbol} ${tf} before MT5 durable provider read`);
         continue;
       }
 
@@ -3471,9 +3152,15 @@ async function runScanPipeline(
           activeDefinitions.push({ id, version, legacyName: name, market: marketType as "crypto" | "forex", lifecycle: "ENABLED", config: cfg, evaluate: evaluator });
         };
         if (marketType === "forex") {
-          const fxMsConfig = getStratCfg("ForexMicroScalper"), fxSwConfig = getStratCfg("ForexSwingContinuation");
-          registerLegacy("ForexMicroScalper", "forex.micro-scalper", "1.0.0", fxMsConfig, () => evalForexMicroScalper(candles, ind, tf, { ...fxMsConfig.params, min_score: fxMsConfig.min_score, min_rr: fxMsConfig.min_rr }));
-          registerLegacy("ForexSwingContinuation", "forex.swing-continuation", "1.0.0", fxSwConfig, () => evalForexSwingContinuation(candles, ind, tf, { ...fxSwConfig.params, min_score: fxSwConfig.min_score, min_rr: fxSwConfig.min_rr }));
+          for (const contract of FOREX_STRATEGY_CONTRACTS) {
+            const strategyConfig = getStratCfg(contract.legacyName);
+            if (!strategyConfig.enabled) { recordStrategySkip(contract.legacyName, "strategy_disabled"); continue; }
+            if (!strategyConfig.allowed_timeframes.includes(tf)) { recordStrategySkip(contract.legacyName, `timeframe_not_declared:${tf}`); continue; }
+            const eligibility = forexStrategyEligibility(contract, normalizedSymbol);
+            if (!eligibility.eligible) { recordStrategySkip(contract.legacyName, eligibility.reason ?? "instrument_not_eligible"); continue; }
+            const registeredEvaluator = forexEvaluatorFor(contract.id);
+            registerLegacy(contract.legacyName, contract.id, contract.version, strategyConfig, () => registeredEvaluator(candles, ind, tf, { ...strategyConfig.params, min_score: strategyConfig.min_score, min_rr: strategyConfig.min_rr }));
+          }
           for (const research of FOREX_RESEARCH_STRATEGIES) {
             activeDefinitions.push({ id: research.id, version: research.version, legacyName: research.id, market: "forex", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: research.id, allowed_symbols: [...research.symbols], allowed_timeframes: [...research.timeframes] }, evaluate: (context) => research.evaluate(context) });
           }
@@ -4045,7 +3732,7 @@ async function runScanPipeline(
       provider_name: C2_FOREX_PROVIDER, market_type: "forex",
       status: "disabled",
       last_error_at: undefined,
-      error_message: "Forex disabled; set SIGNAL_ENABLE_FOREX=true and scanner_config.scan_forex_enabled=true to enable C2 TwelveData signal mode",
+      error_message: "Forex disabled; set SIGNAL_ENABLE_FOREX=true and scanner_config.scan_forex_enabled=true to enable MT5-backed unified signal mode",
       data_source_label: "DISABLED",
       updated_at: now,
     }, { onConflict: "provider_name" });
@@ -4167,17 +3854,19 @@ Deno.serve(async (req: Request) => {
       const effectiveOrder = signalEnableForexEnv ? [C2_FOREX_PROVIDER] : [];
       return new Response(JSON.stringify({
         success: true,
-        provider: signalEnableForexEnv ? C2_FOREX_PROVIDER : "forex",
+        provider: C2_FOREX_PROVIDER,
         crypto_provider: cryptoProvider,
         market_mode: signalMarketMode(signalEnableCryptoEnv, signalEnableForexEnv),
         signal_enable_crypto: signalEnableCryptoEnv,
         signal_enable_forex: signalEnableForexEnv,
         forex_disabled: !signalEnableForexEnv,
         forex_disabled_for_mvp: !signalEnableForexEnv,
-        ...(signalEnableForexEnv ? { configured_provider: configuredProvider, fallbacks: [] as string[], demo_fallback: false, c2_provider_policy: "twelvedata_only_no_demo_fallback" } : forexDisabledSummary()),
+        ...(signalEnableForexEnv ? { configured_provider: configuredProvider, fallbacks: [] as string[], demo_fallback: false, runtime_provider_policy: "mt5_durable_only_no_fallback" } : forexDisabledSummary()),
         effective_provider_order: effectiveOrder,
-        finnhub_api_key_set: Boolean(Deno.env.get("FINNHUB_API_KEY")),
-        twelvedata_api_key_set: Boolean(Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY")),
+        canonical_symbols: FOREX_RUNTIME_SYMBOLS,
+        canonical_instruments: FOREX_RUNTIME_INSTRUMENTS,
+        configuration_drift: configuredProvider !== C2_FOREX_PROVIDER ? { configured_provider: configuredProvider, canonical_provider: C2_FOREX_PROVIDER, ignored: true } : null,
+        research_providers: { twelvedata: { purpose: "research_historical", runtime_enabled: false }, finnhub: { purpose: "diagnostic", runtime_enabled: false } },
         telegram_enabled: envBool("TELEGRAM_ENABLED", false),
         enable_signal_mode_output: envBool("ENABLE_SIGNAL_MODE_OUTPUT", false),
         telegram_bot_token_set: Boolean(Deno.env.get("TELEGRAM_BOT_TOKEN")),
@@ -4189,9 +3878,10 @@ Deno.serve(async (req: Request) => {
         supabase_service_role_key_set: Boolean(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),
         scanner_cron_secret_set: Boolean(Deno.env.get("SCANNER_CRON_SECRET")),
         compact_runtime_flags: COMPACT_RUNTIME_FLAGS,
-        forex_symbol_map_sample: signalEnableForexEnv ? { EURUSD: "EUR/USD", GBPUSD: "GBP/USD", USDJPY: "USD/JPY" } : null,
-        forex_supported_timeframes: ["15m", "1h"],
-        forex_requested_timeframes: forexTimeframePlan(),
+        provider_market_data_timeframes: MT5_PROVIDER_MARKET_DATA_TIMEFRAMES,
+        strategy_primary_timeframes: Object.fromEntries(FOREX_STRATEGY_CONTRACTS.map((contract) => [contract.id, contract.primaryTimeframes])),
+        strategy_context_timeframes: Object.fromEntries(FOREX_STRATEGY_CONTRACTS.map((contract) => [contract.id, contract.contextTimeframes])),
+        scanner_fetch_plan: forexScannerFetchPlan(),
         forex_scan_min_interval_minutes: intEnv("FOREX_SCAN_MIN_INTERVAL_MINUTES", 60, 1),
         forex_max_pairs_per_scheduled_scan: intEnv("FOREX_MAX_PAIRS_PER_SCHEDULED_SCAN", 3, 1),
         forex_max_timeframes_per_scheduled_scan: intEnv("FOREX_MAX_TIMEFRAMES_PER_SCHEDULED_SCAN", 2, 1),
@@ -4199,7 +3889,6 @@ Deno.serve(async (req: Request) => {
         forex_max_pairs_per_manual_scan: intEnv("FOREX_MAX_PAIRS_PER_MANUAL_SCAN", 6, 1),
         forex_max_timeframes_per_manual_scan: intEnv("FOREX_MAX_TIMEFRAMES_PER_MANUAL_SCAN", 2, 1),
         forex_max_provider_calls_per_manual_scan: intEnv("FOREX_MAX_PROVIDER_CALLS_PER_MANUAL_SCAN", intEnv("FOREX_MAX_PROVIDER_CALLS_PER_SCAN", 12, 1), 1),
-        finnhub_symbol_map_sample: signalEnableForexEnv ? { EURUSD: "OANDA:EUR_USD", GBPUSD: "OANDA:GBP_USD", USDJPY: "OANDA:USD_JPY" } : null,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -4209,71 +3898,32 @@ Deno.serve(async (req: Request) => {
       }
 
       const requestedProvider = typeof body.provider === "string" ? body.provider.trim().toLowerCase() : C2_FOREX_PROVIDER;
+      if (requestedProvider !== C2_FOREX_PROVIDER) {
+        return new Response(JSON.stringify({ success: false, provider: requestedProvider, error: "RUNTIME_PROVIDER_DISABLED", canonical_provider: C2_FOREX_PROVIDER, fallback_attempted: false }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const testTf = typeof body.timeframe === "string" ? body.timeframe : "15m";
       const symbolsToTest = body.debug_forex_provider_test === true ? [...C2_FOREX_SYMBOLS] : [normalizeSymbol(typeof body.symbol === "string" ? body.symbol : "EURUSD")];
-      const includeQuotePrice = body.include_quote_price === true;
-
-      if (requestedProvider === "finnhub") {
-        const key = Deno.env.get("FINNHUB_API_KEY") ?? "";
-        if (!key) {
-          return new Response(JSON.stringify({ success: false, provider: "finnhub", error: "FINNHUB_API_KEY not set", classified_status: "unauthorized_401" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        const results = await Promise.all(symbolsToTest.map(async (testSymbol) => {
-          const result = await fetchFinnhubForexCandles(testSymbol, testTf, key);
-          const firstCandle = result.candles ? result.candles[0] : null;
-          const latestCandle = result.candles ? result.candles[result.candles.length - 1] : null;
-          return {
-            provider: "finnhub",
-            input_symbol: testSymbol,
-            mapped_symbol: result.mapped_symbol,
-            symbol_format_used: "OANDA:BASE_QUOTE",
-            timeframe: testTf,
-            url_without_token: result.url_without_token,
-            http_status: result.http_status,
-            response_body: result.response_body,
-            finnhub_s: result.finnhub_s,
-            classified_status: result.status_class,
-            candle_count: result.candle_count,
-            first_candle_time: firstCandle?.open_time ?? null,
-            last_candle_time: latestCandle?.open_time ?? null,
-            quote_latest_price: latestCandle?.close ?? null,
-            error: result.error,
-          };
-        }));
-        return new Response(JSON.stringify({ success: results.every(r => r.classified_status === "ok"), provider: "finnhub", creates_candidates: false, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-
-      const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-      if (!key) {
-        return new Response(JSON.stringify({ success: false, provider: C2_FOREX_PROVIDER, error: "TWELVEDATA_API_KEY or FOREX_DATA_API_KEY not set", classified_status: "unauthorized_401" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
       const results = await Promise.all(symbolsToTest.map(async (testSymbol) => {
-        const candles = await fetchTwelveDataCandles(testSymbol, testTf, key);
-        const firstCandle = candles.candles ? candles.candles[0] : null;
-        const latestCandle = candles.candles ? candles.candles[candles.candles.length - 1] : null;
-        const quote = includeQuotePrice ? await fetchForexLatestPrice(testSymbol) : null;
+        const result = await loadMT5Candles(supabase, testSymbol, testTf, 110);
+        const firstCandle = result.candles[0] ?? null;
+        const latestCandle = result.candles.at(-1) ?? null;
         return {
           provider: C2_FOREX_PROVIDER,
           input_symbol: testSymbol,
-          mapped_symbol: candles.mapped_symbol,
-          symbol_format_used: candles.symbol_format,
+          mapped_symbol: testSymbol,
+          symbol_format_used: "canonical_mt5",
           timeframe: testTf,
-          url_without_token: candles.url_without_token,
-          http_status: candles.http_status,
-          response_body: candles.response_body,
-          classified_status: candles.status_class,
-          candle_count: candles.candle_count,
+          classified_status: result.error ? "provider_error" : "ok",
+          candle_count: result.candles.length,
           first_candle_time: firstCandle?.open_time ?? null,
           last_candle_time: latestCandle?.open_time ?? null,
-          quote_latest_price: quote?.price ?? latestCandle?.close ?? null,
-          quote_http_status: quote?.http_status ?? null,
-          quote_classified_status: quote?.status_class ?? (latestCandle ? "derived_from_latest_candle" : null),
-          quote_error: quote?.error ?? null,
-          quote_provider_called: includeQuotePrice,
-          error: candles.error,
+          quote_latest_price: latestCandle?.close ?? null,
+          lineage: result.lineage ?? null,
+          fallback_attempted: false,
+          error: result.error,
         };
       }));
-      return new Response(JSON.stringify({ success: results.every(r => r.classified_status === "ok" && r.candle_count >= 55), provider: C2_FOREX_PROVIDER, creates_candidates: false, symbols_tested: symbolsToTest, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: results.every(r => r.classified_status === "ok" && r.candle_count >= 55), provider: C2_FOREX_PROVIDER, creates_candidates: false, symbols_tested: symbolsToTest, fallback_attempted: false, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");

@@ -13,8 +13,13 @@ interface RuntimeConfig {
   provider?: string;
   fallbacks?: string[];
   demo_fallback?: boolean;
-  finnhub_api_key_set?: boolean;
-  twelvedata_api_key_set?: boolean;
+  research_providers?: Record<string, { purpose: string; runtime_enabled: boolean }>;
+  canonical_symbols?: string[];
+  canonical_instruments?: Array<{ symbol: string; instrument_class: string; pip_size: number; price_precision: number; runtime_enabled: boolean }>;
+  provider_market_data_timeframes?: string[];
+  strategy_primary_timeframes?: Record<string, string[]>;
+  strategy_context_timeframes?: Record<string, string[]>;
+  scanner_fetch_plan?: string[];
   forex_symbol_map_sample?: Record<string, string> | null;
   forex_scan_min_interval_minutes?: number;
   forex_max_provider_calls_per_scan?: number;
@@ -43,7 +48,6 @@ interface ForexProviderTestRow {
   input_symbol: string;
   mapped_symbol: string;
   symbol_format_used: string;
-  http_status: number | null;
   first_candle_time: string | null;
   last_candle_time: string | null;
   candle_count: number;
@@ -282,14 +286,14 @@ export default function ProviderHealth() {
       const json = await res.json() as ForexProviderTestResult;
       setForexTestResult(json);
     } catch (e) {
-      setForexTestResult({ success: false, provider: runtimeConfig?.provider ?? 'twelvedata', error: e instanceof Error ? e.message : 'unknown' });
+      setForexTestResult({ success: false, provider: runtimeConfig?.provider ?? 'mt5', error: e instanceof Error ? e.message : 'unknown' });
     } finally {
       setTestingForex(false);
     }
   }
 
-  const forexDisabled = runtimeConfig?.signal_enable_forex === false || runtimeConfig?.forex_disabled !== false;
-  const marketMode = runtimeConfig?.market_mode ?? 'crypto_only';
+  const forexDisabled = runtimeConfig?.signal_enable_forex !== true || runtimeConfig?.forex_disabled === true;
+  const marketMode = runtimeConfig?.market_mode ?? 'runtime unavailable';
   const cryptoProviderName = runtimeConfig?.crypto_provider ?? 'binance';
   const cryptoProviderRow = providers.find(p => safeLower(p.provider_name) === 'binance');
   const cryptoActive = safeLower(cryptoProviderRow?.status) === 'active' || Boolean(cryptoProviderRow?.last_success_at);
@@ -297,13 +301,14 @@ export default function ProviderHealth() {
   const cronDetected = liveState.cronProven;
   const schedulerLabel = liveState.schedulerProof.label;
   const telegramConfigured = Boolean(runtimeConfig?.telegram_enabled && runtimeConfig.enable_signal_mode_output && runtimeConfig.telegram_bot_token_set && (runtimeConfig.telegram_default_channel_id_set || runtimeConfig.telegram_chat_id_set) && cfg?.auto_send_telegram !== false);
-  const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || ['forex', 'twelvedata'].includes(safeLower(p.provider_name)) || ['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
-  const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && !['forex', 'twelvedata'].includes(safeLower(p.provider_name)) && !['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
+  const currentRuntimeProviders = providers.filter(p => !isForexProviderRow(p) || ['forex', 'mt5'].includes(safeLower(p.provider_name)) || ['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
+  const historicalProviderRows = providers.filter(p => isForexProviderRow(p) && !['forex', 'mt5'].includes(safeLower(p.provider_name)) && !['DISABLED_FOR_MVP', 'DISABLED', 'REAL DATA', 'PROVIDER_ERROR'].includes(String(p.data_source_label ?? '')));
 
   const requiredEnv = useMemo(() => [
     { label: 'SIGNAL_ENABLE_CRYPTO=true', ok: runtimeConfig?.signal_enable_crypto !== false, expected: String(runtimeConfig?.signal_enable_crypto ?? true) },
     { label: 'SIGNAL_ENABLE_FOREX optional', ok: true, expected: String(runtimeConfig?.signal_enable_forex ?? false) },
-    { label: 'TWELVEDATA_API_KEY present when forex enabled', ok: runtimeConfig?.signal_enable_forex ? runtimeConfig?.twelvedata_api_key_set === true : true, expected: runtimeConfig?.signal_enable_forex ? String(runtimeConfig?.twelvedata_api_key_set ?? false) : 'only needed when forex enabled' },
+    { label: 'FOREX_DATA_PROVIDER=mt5', ok: runtimeConfig?.provider === 'mt5', expected: runtimeConfig?.provider ?? 'runtime unavailable' },
+    { label: 'Twelve Data runtime disabled', ok: runtimeConfig?.research_providers?.twelvedata?.runtime_enabled === false, expected: runtimeConfig?.research_providers?.twelvedata?.purpose ?? 'runtime unavailable' },
     { label: 'FOREX_SCAN_MIN_INTERVAL_MINUTES', ok: true, expected: String(runtimeConfig?.forex_scan_min_interval_minutes ?? 60) },
     { label: 'FOREX_MAX_PROVIDER_CALLS_PER_SCAN', ok: true, expected: String(runtimeConfig?.forex_max_provider_calls_per_scan ?? 6) },
     { label: 'CRYPTO_DATA_PROVIDER=binance', ok: cryptoProviderName === 'binance', expected: cryptoProviderName },
@@ -343,8 +348,8 @@ export default function ProviderHealth() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-emerald-500/8 border border-emerald-500/15 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Current Runtime Mode</div>
-          <div className="text-lg font-semibold text-emerald-400">{marketMode === 'crypto_only' ? 'Crypto-only' : marketMode}</div>
-          <div className="text-xs text-zinc-500 mt-1">Forex is separately gated and signal-only.</div>
+          <div className="text-lg font-semibold text-emerald-400">{marketMode}</div>
+          <div className="text-xs text-zinc-500 mt-1">One scanner; MT5 durable broker truth is the only Forex/Gold runtime source.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Crypto Provider</div>
@@ -353,7 +358,7 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Forex</div>
-          <div className={`text-lg font-semibold ${forexDisabled ? 'text-blue-400' : 'text-emerald-400'}`}>{forexDisabled ? 'Disabled' : `${runtimeConfig?.provider ?? 'twelvedata'} enabled`}</div>
+          <div className={`text-lg font-semibold ${forexDisabled ? 'text-blue-400' : 'text-emerald-400'}`}>{forexDisabled ? 'Disabled' : `${runtimeConfig?.provider ?? 'runtime unavailable'} enabled`}</div>
           <div className="text-xs text-zinc-500 mt-1">Signal-only real-data path. Current provider status is separate from historical rows.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -402,7 +407,7 @@ export default function ProviderHealth() {
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-sm font-semibold mb-1 flex items-center gap-2"><Info size={14} className="text-blue-400" /> Forex Provider</div>
-          <p className="text-xs text-zinc-500 mb-3">Tests EURUSD, GBPUSD, and USDJPY directly against the configured TwelveData real-data candle/price endpoints. This does not create candidates or signals, but it does consume provider credits.</p>
+          <p className="text-xs text-zinc-500 mb-3">Reads all six canonical Forex/Gold symbols through MT5MarketDataProvider and its durable latest/candle tables. It never contacts a research provider or creates signals.</p>
           <button onClick={testForexProvider} disabled={testingForex || !session}
             className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50">
             {testingForex ? <RefreshCw size={13} className="animate-spin" /> : <Wifi size={13} />}
@@ -414,7 +419,7 @@ export default function ProviderHealth() {
               {forexTestResult.results?.map(row => (
                 <div key={row.input_symbol} className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-zinc-300">
                   <span>Symbol</span><span className="font-mono">{row.input_symbol} → {row.mapped_symbol}</span>
-                  <span>HTTP / Status</span><span className="font-mono">{row.http_status ?? 'n/a'} / {row.classified_status}</span>
+                  <span>Durable read status</span><span className="font-mono">{row.classified_status}</span>
                   <span>Candles</span><span className="font-mono">{row.candle_count} ({safeDate(row.first_candle_time)} → {safeDate(row.last_candle_time)})</span>
                   <span>Latest price</span><span className="font-mono">{row.quote_latest_price ?? '—'}</span>
                   {row.error && <><span>Error</span><span className="font-mono break-words">{row.error}</span></>}
@@ -441,7 +446,15 @@ export default function ProviderHealth() {
               {requiredEnv.map(item => <Requirement key={item.label} label={item.label} ok={item.ok} expected={item.expected} />)}
             </div>
             <div className="mt-3 text-xs text-zinc-500 leading-relaxed">
-              Ignored while <code className="bg-zinc-800 px-1 rounded">SIGNAL_ENABLE_FOREX=false</code>: FOREX_DATA_PROVIDER, FOREX_PROVIDER_FALLBACKS, FOREX_DEMO_FALLBACK, TWELVEDATA_API_KEY, FOREX_DATA_API_KEY, FINNHUB_API_KEY, MT5_BRIDGE_BASE_URL, MT5_BRIDGE_SECRET. TwelveData is the only active forex scanner provider; Finnhub is diagnostic only.
+              Canonical runtime: Binance supplies Crypto market data; MT5MarketDataProvider supplies Forex/Gold from durable account-scoped tables. Twelve Data is research/historical only and runtime disabled. There is no automatic Forex fallback.
+            </div>
+            <div className="mt-3 grid gap-2 text-xs text-zinc-400">
+              <div><span className="text-zinc-500">Canonical symbols:</span> {runtimeConfig?.canonical_symbols?.join(', ') ?? 'runtime unavailable'}</div>
+              <div><span className="text-zinc-500">Instrument classes:</span> {runtimeConfig?.canonical_instruments?.map(instrument => `${instrument.symbol}:${instrument.instrument_class}`).join(', ') ?? 'runtime unavailable'}</div>
+              <div><span className="text-zinc-500">Provider-supported timeframes:</span> {runtimeConfig?.provider_market_data_timeframes?.join(', ') ?? 'runtime unavailable'}</div>
+              <div><span className="text-zinc-500">Strategy primary timeframes:</span> {runtimeConfig?.strategy_primary_timeframes ? JSON.stringify(runtimeConfig.strategy_primary_timeframes) : 'runtime unavailable'}</div>
+              <div><span className="text-zinc-500">Strategy context timeframes:</span> {runtimeConfig?.strategy_context_timeframes ? JSON.stringify(runtimeConfig.strategy_context_timeframes) : 'runtime unavailable'}</div>
+              <div><span className="text-zinc-500">Derived scanner fetch plan:</span> {runtimeConfig?.scanner_fetch_plan?.join(', ') ?? 'runtime unavailable'}</div>
             </div>
           </div>
         )}
@@ -478,7 +491,7 @@ export default function ProviderHealth() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
           <div className="text-sm font-semibold">Configured Symbols</div>
-          <div className="text-xs text-zinc-500">Crypto plus C2 forex symbols; forex requires separate enablement</div>
+          <div className="text-xs text-zinc-500">Crypto plus canonical MT5 Forex/Gold symbols; activation remains certification-gated</div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[760px]">
@@ -500,7 +513,7 @@ export default function ProviderHealth() {
                   <td className="px-5 py-2.5 font-mono font-semibold text-zinc-100">{s.symbol}</td>
                   <td className="px-5 py-2.5 text-zinc-400">{s.display_name}</td>
                   <td className="px-5 py-2.5"><Badge variant={s.market_type === 'crypto' ? 'blue' : 'cyan'}>{s.market_type}</Badge></td>
-                  <td className="px-5 py-2.5 text-zinc-400 capitalize">{s.market_type === 'crypto' ? 'binance' : 'twelvedata'}</td>
+                  <td className="px-5 py-2.5 text-zinc-400 capitalize">{s.market_type === 'crypto' ? 'binance' : 'mt5'}</td>
                   <td className="px-5 py-2.5">{s.market_type === 'crypto' ? <span className="text-xs text-emerald-400">REAL DATA (Binance API)</span> : <span className="text-xs text-cyan-400">REAL DATA only when forex enabled</span>}</td>
                   <td className="px-5 py-2.5"><Badge variant={s.is_active ? 'green' : 'gray'}>{s.is_active ? 'Active' : 'Inactive'}</Badge></td>
                 </tr>
