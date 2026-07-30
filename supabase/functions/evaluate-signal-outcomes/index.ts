@@ -5,6 +5,7 @@ import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { vipChatId } from "../_shared/telegram-registry.ts";
 import { publicSignalReference, renderProfessionalTelegramMessage, telegramTypeForSignalStatus } from "../_shared/professional-telegram.ts";
 import { paperIntentStatusForSignalStatus } from "../_shared/paper-trade-lifecycle.ts";
+import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -172,93 +173,51 @@ async function binancePrice(symbol: string): Promise<number | null> {
   }
 }
 
-const TWELVEDATA_SYMBOL_MAP: Record<string, string> = {
-  EURUSD: "EUR/USD",
-  GBPUSD: "GBP/USD",
-  USDJPY: "USD/JPY",
-};
-
 function normalizeForexSymbol(symbol: string): string {
   return symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 }
 
-async function twelveDataForexPrice(symbol: string): Promise<number | null> {
-  const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-  if (!key) return null;
-  const normalized = normalizeForexSymbol(symbol);
-  const mapped = TWELVEDATA_SYMBOL_MAP[normalized];
-  if (!mapped) return null;
-  try {
-    const res = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(mapped)}&apikey=${key}&format=JSON`, {
-      signal: AbortSignal.timeout(7000),
-    });
-    if (!res.ok) return null;
-    const j = await res.json() as { price?: string; status?: string; code?: number };
-    if (j.status === "error" || j.code) return null;
-    const price = Number(j.price);
-    return Number.isFinite(price) && price > 0 ? price : null;
-  } catch {
-    return null;
+async function mt5ForexPrice(sig: SignalRow, supabase: SupabaseClient): Promise<number | null> {
+  const result = await loadMT5Candles(supabase, sig.symbol, String(sig.timeframe ?? "15m"), 1);
+  if (result.candles && result.candles.length > 0) {
+    const last = result.candles[result.candles.length - 1];
+    return last.close > 0 ? last.close : null;
   }
+  return null;
 }
 
-async function twelveDataForexCandles(symbol: string, timeframe: string, sinceIso: string): Promise<{ candles: OutcomeCandle[] | null; source: string; reason?: string }> {
-  const key = Deno.env.get("TWELVEDATA_API_KEY") ?? Deno.env.get("FOREX_DATA_API_KEY") ?? "";
-  if (!key) return { candles: null, source: "twelvedata_forex_candles", reason: "provider_data_unavailable" };
-
-  const normalized = normalizeForexSymbol(symbol);
-  const mapped = TWELVEDATA_SYMBOL_MAP[normalized];
-  if (!mapped) return { candles: null, source: "twelvedata_forex_candles", reason: "unsupported_symbol" };
-
-  const interval = toTwelveDataInterval(timeframe);
-  if (!interval) return { candles: null, source: "twelvedata_forex_candles", reason: "unsupported_timeframe" };
-
-  try {
-    const res = await fetch(`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(mapped)}&interval=${interval}&outputsize=120&apikey=${key}&format=JSON`, {
-      signal: AbortSignal.timeout(9000),
-    });
-    const text = await res.text();
-    if (!res.ok) return { candles: null, source: "twelvedata_forex_candles", reason: res.status === 429 ? "provider_rate_limited" : "provider_data_unavailable" };
-
-    let data: Record<string, unknown>;
-    try {
-      data = JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      return { candles: null, source: "twelvedata_forex_candles", reason: "provider_invalid_response" };
-    }
-
-    if (data.status === "error" || data.code) {
-      return { candles: null, source: "twelvedata_forex_candles", reason: classifyProviderFailure(String(data.message ?? data.code ?? "provider error")) };
-    }
-
-    const values = data.values as Array<Record<string, string>>;
-    if (!Array.isArray(values) || values.length === 0) return { candles: null, source: "twelvedata_forex_candles", reason: "provider_data_unavailable" };
-
-    const sinceMs = new Date(sinceIso).getTime();
-    const candles = values
-      .map((v) => ({
-        open_time: parseTwelveDataDate(v.datetime),
-        high: Number(v.high),
-        low: Number(v.low),
-        close: Number(v.close),
-      }))
-      .filter((c) => Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close) && c.high >= c.low)
-      .sort((a, b) => new Date(a.open_time).getTime() - new Date(b.open_time).getTime())
-      .filter((c) => !Number.isFinite(sinceMs) || new Date(c.open_time).getTime() >= sinceMs - 60_000);
-
-    if (candles.length === 0) return { candles: null, source: "twelvedata_forex_candles", reason: "insufficient_candles" };
-    return { candles, source: "twelvedata_forex_candles" };
-  } catch (e) {
-    return { candles: null, source: "twelvedata_forex_candles", reason: classifyProviderFailure(e instanceof Error ? e.message : "provider error") };
+async function mt5ForexCandles(
+  supabase: SupabaseClient,
+  symbol: string,
+  timeframe: string,
+  sinceIso: string
+): Promise<{ candles: OutcomeCandle[] | null; source: string; reason?: string }> {
+  const result = await loadMT5Candles(supabase, symbol, timeframe, 120);
+  if (result.error || !result.candles || result.candles.length === 0) {
+    return { candles: null, source: "mt5_durable_candles", reason: result.error ?? "provider_data_unavailable" };
   }
+  const sinceMs = new Date(sinceIso).getTime();
+  const candles: OutcomeCandle[] = result.candles
+    .map((c: any) => ({
+      open_time: c.open_time,
+      high: Number(c.high),
+      low: Number(c.low),
+      close: Number(c.close),
+    }))
+    .filter((c: OutcomeCandle) => Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close) && c.high >= c.low)
+    .sort((a: OutcomeCandle, b: OutcomeCandle) => new Date(a.open_time).getTime() - new Date(b.open_time).getTime())
+    .filter((c: OutcomeCandle) => !Number.isFinite(sinceMs) || new Date(c.open_time).getTime() >= sinceMs - 60_000);
+
+  if (candles.length === 0) return { candles: null, source: "mt5_durable_candles", reason: "insufficient_candles" };
+  return { candles, source: "mt5_durable_candles" };
 }
 
-async function latestPrice(sig: SignalRow): Promise<{ price: number | null; source: string; reason?: string }> {
+async function latestPrice(sig: SignalRow, supabase: SupabaseClient): Promise<{ price: number | null; source: string; reason?: string }> {
   const marketType = String(sig.market_type ?? "").toLowerCase();
   if (marketType === "crypto") return { price: await binancePrice(sig.symbol), source: "binance_latest_price" };
   if (marketType === "forex") {
-    if (!parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return { price: null, source: "twelvedata_forex_price", reason: "forex_disabled" };
-    return { price: await twelveDataForexPrice(sig.symbol), source: "twelvedata_forex_price" };
+    if (!parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return { price: null, source: "mt5_durable_price", reason: "forex_disabled" };
+    return { price: await mt5ForexPrice(sig, supabase), source: "mt5_durable_price" };
   }
   return { price: null, source: "unsupported", reason: "unsupported_market_type" };
 }
@@ -581,8 +540,8 @@ Deno.serve(async (req: Request) => {
       expired: 0,
       skipped: 0,
       skipped_reasons: [] as string[],
-      price_source: signalEnableForex ? "binance_latest_price+twelvedata_forex_candles" : "binance_latest_price",
-      price_source_limitation: "Crypto uses latest ticker price. Forex uses TwelveData candles and conservative same-candle handling: if TP and SL are both touched in one candle, SL wins.",
+      price_source: signalEnableForex ? "binance_latest_price+mt5_durable_candles" : "binance_latest_price",
+      price_source_limitation: "Crypto uses latest ticker price. Forex uses MT5 durable candles and conservative same-candle handling: if TP and SL are both touched in one candle, SL wins.",
     };
 
     for (const sig of ((signals ?? []) as SignalRow[])) {
@@ -629,7 +588,7 @@ Deno.serve(async (req: Request) => {
         const sinceForOutcome = ["active", "tp1_hit"].includes(currentStatus)
           ? String(sig.updated_at ?? sig.created_at ?? new Date().toISOString())
           : String(sig.created_at ?? new Date().toISOString());
-        const candleResult = await twelveDataForexCandles(sig.symbol, String(sig.timeframe ?? "15m"), sinceForOutcome);
+        const candleResult = await mt5ForexCandles(supabase, sig.symbol, String(sig.timeframe ?? "15m"), sinceForOutcome);
         if (!candleResult.candles) {
           out.price_unavailable++;
           out.skipped_reasons.push(candleResult.reason ?? "provider_data_unavailable");
@@ -640,7 +599,7 @@ Deno.serve(async (req: Request) => {
         price = outcome.price;
         reason = outcome.reason;
       } else {
-        const priceResult = await latestPrice(sig);
+        const priceResult = await latestPrice(sig, supabase);
         price = priceResult.price;
         if (price === null) {
           out.price_unavailable++;
@@ -676,7 +635,7 @@ Deno.serve(async (req: Request) => {
           candidate = (candidateData as Record<string, unknown> | null) ?? null;
         }
         if (price === null) {
-          const priceResult = await latestPrice(sig);
+          const priceResult = await latestPrice(sig, supabase);
           price = priceResult.price;
         }
         const classified = classifyExpiryCause(sig, price, candidate);
