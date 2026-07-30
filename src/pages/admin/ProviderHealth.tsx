@@ -357,9 +357,9 @@ export default function ProviderHealth() {
           <div className={cryptoActive ? 'text-xs text-emerald-400 mt-1' : 'text-xs text-zinc-500 mt-1'}>Crypto Status: {cryptoActive ? 'Active' : 'Unknown'}</div>
         </div>
         <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4">
-          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Forex</div>
-          <div className={`text-lg font-semibold ${forexDisabled ? 'text-blue-400' : 'text-emerald-400'}`}>{forexDisabled ? 'Disabled' : `${runtimeConfig?.provider ?? 'runtime unavailable'} enabled`}</div>
-          <div className="text-xs text-zinc-500 mt-1">Signal-only real-data path. Current provider status is separate from historical rows.</div>
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Forex & Gold Feed</div>
+          <div className={`text-lg font-semibold ${forexDisabled ? 'text-blue-400' : 'text-emerald-400'}`}>{forexDisabled ? 'Disabled' : 'MT5 feed enabled'}</div>
+          <div className="text-xs text-zinc-500 mt-1">MT5 Market Data Feed. Broker-truth pipeline active.</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Telegram</div>

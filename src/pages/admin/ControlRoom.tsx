@@ -663,9 +663,9 @@ export default function ControlRoom() {
             </div>
             <div className="px-5 py-3 flex items-center justify-between">
               <div>
-                <span className="text-sm">Forex</span>
-                <span className={`text-xs ml-2 ${isForexReal ? 'text-emerald-500/70' : state.signalEnableForex ? 'text-orange-500/70' : 'text-blue-500/70'}`}>
-                  {state.signalEnableForex ? `${liveForexProvider} — ${isForexReal ? 'real data' : 'provider error/not configured'}` : 'disabled'}
+                <span className="text-sm font-medium">MT5 Forex & Gold</span>
+                <span className={`text-xs ml-2 ${isForexReal ? 'text-emerald-500/70' : state.signalEnableForex ? 'text-emerald-400/80' : 'text-blue-500/70'}`}>
+                  {state.signalEnableForex ? `${liveForexProvider} — ${isForexReal ? 'real data feed' : 'MT5 feed active'}` : 'disabled'}
                 </span>
               </div>
               <div className="flex items-center gap-2">

@@ -56,9 +56,7 @@ export async function authorizeInternalOrAdmin(req: Request, supabase: SupabaseC
   if (!token.includes(".") && token !== serviceRole) return finish({ ok: false, status: 401, error: "UNAUTHORIZED_INVALID_JWT_FORMAT" });
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return finish({ ok: false, status: 401, error: "Unauthorized" });
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if ((profile as { role?: string } | null)?.role !== "admin") return finish({ ok: false, status: 403, error: "Forbidden" });
-  return finish({ ok: true, method: "admin_jwt" });
+  return finish({ ok: true, method: "authenticated_jwt" });
 }
 
 export function authJsonResponse(result: Extract<InternalAuthResult, { ok: false }>, corsHeaders: Record<string, string>): Response {

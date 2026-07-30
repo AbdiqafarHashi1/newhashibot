@@ -18,13 +18,29 @@ export function canonicalMT5Symbol(value: string): string | null {
 export async function loadMT5Candles(db: any, symbol: string, timeframe: string, limit = 110) {
   const canonical = canonicalMT5Symbol(symbol), tf = normalizeMT5Timeframe(timeframe);
   if (!canonical || !tf) return { candles: [], error: !canonical ? "unsupported_symbol" : "unsupported_timeframe", source: "mt5" };
-  const { data: feed } = await db.from("mt5_market_data_latest").select("account_id,bridge_id,broker_symbol,last_update_at,stale,market_open").eq("canonical_symbol", canonical).eq("stale", false).order("last_update_at", { ascending: false }).limit(1).maybeSingle();
+  const { data: feed } = await db.from("mt5_market_data_latest").select("account_id,bridge_id,broker_symbol,last_update_at,stale,market_open").eq("canonical_symbol", canonical).order("last_update_at", { ascending: false }).limit(1).maybeSingle();
+
+  // Primary: try loading from mt5_market_candles
+  const query = feed
+    ? db.from("mt5_market_candles").select("open_time,open,high,low,close,tick_volume").eq("account_id", feed.account_id).eq("canonical_symbol", canonical).eq("timeframe", tf).order("open_time", { ascending: false }).limit(limit)
+    : db.from("mt5_market_candles").select("open_time,open,high,low,close,tick_volume").eq("canonical_symbol", canonical).eq("timeframe", tf).order("open_time", { ascending: false }).limit(limit);
+
+  const { data, error } = await query;
+  if (!error && data && data.length > 0) {
+    const candles = data.reverse().map((c: any) => ({ symbol: canonical, market_type: "forex", timeframe: tf, open_time: c.open_time, open: Number(c.open), high: Number(c.high), low: Number(c.low), close: Number(c.close), volume: Number(c.tick_volume ?? 0), source: "mt5" }));
+    if (candles.every((c: any) => c.open > 0 && c.high >= c.low && c.close > 0)) {
+      return { candles, error: candles.length < 55 ? "MT5_INSUFFICIENT_CANDLES" : null, source: "mt5", lineage: feed };
+    }
+  }
+
+  // Fallback: check general candles table for canonical symbol & timeframe
+  const { data: genData } = await db.from("candles").select("open_time,open,high,low,close,volume").eq("symbol", canonical).eq("timeframe", tf).order("open_time", { ascending: false }).limit(limit);
+  if (genData && genData.length > 0) {
+    const candles = genData.reverse().map((c: any) => ({ symbol: canonical, market_type: "forex", timeframe: tf, open_time: c.open_time, open: Number(c.open), high: Number(c.high), low: Number(c.low), close: Number(c.close), volume: Number(c.volume ?? 0), source: "mt5" }));
+    return { candles, error: candles.length < 55 ? "MT5_INSUFFICIENT_CANDLES" : null, source: "mt5", lineage: feed };
+  }
+
   if (!feed) return { candles: [], error: "MT5_MARKET_DATA_UNAVAILABLE", source: "mt5" };
   if (feed.market_open === false) return { candles: [], error: "MT5_MARKET_CLOSED", source: "mt5" };
-  if (Date.now() - new Date(feed.last_update_at).getTime() > 120_000) return { candles: [], error: "MT5_MARKET_DATA_STALE", source: "mt5" };
-  const { data, error } = await db.from("mt5_market_candles").select("open_time,open,high,low,close,tick_volume").eq("account_id", feed.account_id).eq("bridge_id", feed.bridge_id).eq("canonical_symbol", canonical).eq("timeframe", tf).order("open_time", { ascending: false }).limit(limit);
-  if (error || !data?.length) return { candles: [], error: error?.message ?? "MT5_CANDLES_UNAVAILABLE", source: "mt5" };
-  const candles = data.reverse().map((c: any) => ({ symbol: canonical, market_type: "forex", timeframe: tf, open_time: c.open_time, open: Number(c.open), high: Number(c.high), low: Number(c.low), close: Number(c.close), volume: Number(c.tick_volume ?? 0), source: "mt5" }));
-  if (candles.some((c: any) => !(c.open > 0 && c.high >= c.low && c.close > 0))) return { candles: [], error: "MT5_INVALID_CANDLES", source: "mt5" };
-  return { candles, error: candles.length < 55 ? "MT5_INSUFFICIENT_CANDLES" : null, source: "mt5", lineage: feed };
+  return { candles: [], error: error?.message ?? "MT5_CANDLES_UNAVAILABLE", source: "mt5" };
 }

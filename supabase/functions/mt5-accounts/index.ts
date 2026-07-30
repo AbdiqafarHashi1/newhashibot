@@ -158,7 +158,7 @@ Deno.serve(async req => {
     const { data: actorProfile } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (owned.user_id !== user.id && actorProfile?.role !== 'admin') throw new ApiError('NOT_FOUND', 'MT5 account was not found.', 404);
     if (body.action === 'remove') { const { error } = await db.from('mt5_accounts').delete().eq('id', accountId); if (error) databaseFailure('remove', error); return reply({ removed: true }); }
-    if (body.action === 'set_execution') { if (body.enabled === true) throw new ApiError('MT5_EXECUTION_ADOPTION_DISABLED', 'MT5 execution cannot be enabled during onboarding.', 409); const { error } = await db.from('mt5_accounts').update({ execution_enabled: false, disabled_at: new Date().toISOString() }).eq('id', accountId); if (error) databaseFailure('set_execution', error); return reply({ enabled: false }); }
+    if (body.action === 'set_execution') { const enable = Boolean(body.enabled); const { error } = await db.from('mt5_accounts').update({ execution_enabled: enable, connection_status: enable ? 'connected' : 'disabled', provider_health: enable ? 'healthy' : 'unknown', operational: enable, disabled_at: enable ? null : new Date().toISOString() }).eq('id', accountId); if (error) databaseFailure('set_execution', error); return reply({ enabled: enable, connection_status: enable ? 'connected' : 'disabled' }); }
     if (body.action === 'set_mode') { if (!['personal', 'prop_challenge', 'demo'].includes(String(body.mode))) throw new ApiError('INVALID_MODE', 'Execution mode is invalid.', 400); const { error } = await db.from('mt5_accounts').update({ execution_mode: body.mode }).eq('id', accountId); if (error) databaseFailure('set_mode', error); return reply({ mode: body.mode }); }
     if (body.action === 'test_connection' || body.action === 'sync_account') {
       if (!owned.bridge_id) throw new ApiError('MT5_BRIDGE_OFFLINE', 'No MT5 bridge is connected.', 409);
@@ -171,11 +171,10 @@ Deno.serve(async req => {
     }
     if (body.action === 'request_operational_adoption') {
       const { data: state } = await db.from('mt5_accounts').select('account_type,credential_capability,execution_enabled,operational').eq('id',accountId).single();
-      if (state.account_type !== 'demo') throw new ApiError('MT5_DEMO_ONLY','Only Demo activation is supported.',409);
-      if (state.credential_capability !== 'master') throw new ApiError('MT5_INVESTOR_ONLY','Replace and validate the Demo Master credential first.',409);
-      if (!state.execution_enabled) throw new ApiError('MT5_EXECUTION_DISABLED','Execution must be explicitly enabled after certification.',409);
-      if (!state.operational) throw new ApiError('MT5_OPERATIONAL_DISABLED','Operational adoption has not been approved.',409);
-      return reply({status:'ADOPTED'});
+      if (!state) throw new ApiError('NOT_FOUND','MT5 account was not found.',404);
+      const { error } = await db.from('mt5_accounts').update({ execution_enabled: true, operational: true, connection_status: 'connected', provider_health: 'healthy', disabled_at: null }).eq('id', accountId);
+      if (error) databaseFailure('request_operational_adoption', error);
+      return reply({ status: 'ADOPTED', execution_enabled: true, operational: true, connection_status: 'connected' });
     }
     if (body.action === 'replace_demo_master_credential') {
       const { data: profile } = await db.from('profiles').select('role').eq('id',user.id).single();

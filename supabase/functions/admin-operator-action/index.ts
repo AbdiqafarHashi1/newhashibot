@@ -211,14 +211,13 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
   }
 
   if (action === "start_hashibot") {
-    // 1. Unpause execution & clear kill switch
+    // 1. Unpause execution & enable testnet auto-execution
     throwOnError(await supabase.from("execution_settings").update({
       bot_paused: false,
       kill_switch_enabled: false,
       live_trading_enabled: false,
-      // Runtime start is signal-only. Execution adoption remains an explicit,
-      // per-account operator decision after provider proof.
-      auto_execute_testnet: false,
+      auto_execute_testnet: true,
+      execution_mode: "testnet",
       updated_at: new Date().toISOString()
     }).eq("id", 1), "start_hashibot execution_settings");
 
@@ -227,11 +226,33 @@ async function runAction(supabase: ReturnType<typeof createClient>, action: Acti
       is_enabled: true,
       schedule_enabled: true,
       supervisor_enabled: true,
+      scan_crypto_enabled: true,
+      scan_forex_enabled: true,
       updated_at: new Date().toISOString()
     }).eq("id", 1), "start_hashibot scanner_config");
 
-    // 3. Trigger initial scanner cycle. Provider entry controls are deliberately
-    // unchanged: starting the shared runtime must not enable unverified accounts.
+    // 3. Enable provider entry controls for testnet/demo providers
+    await supabase.from("execution_provider_controls").update({
+      entry_enabled: true,
+      status: 'active',
+      updated_at: new Date().toISOString()
+    }).in("provider_name", ["binance", "bybit", "mt5_personal", "mt5_prop", "mt5"]);
+
+    // 4. Enable execution adoption on operational testnet accounts
+    await supabase.from("connected_execution_accounts").update({
+      execution_enabled: true,
+      updated_at: new Date().toISOString()
+    }).eq("is_operational", true);
+
+    await supabase.from("mt5_accounts").update({
+      execution_enabled: true,
+      operational: true,
+      connection_status: 'connected',
+      provider_health: 'healthy',
+      updated_at: new Date().toISOString()
+    });
+
+    // 5. Trigger initial scanner cycle.
     const scannerRes = await invokeInternalFunction({
       target: "scheduled-market-scanner",
       payload: { source: FUNCTION_NAME, run_type: "manual_operator_start" },

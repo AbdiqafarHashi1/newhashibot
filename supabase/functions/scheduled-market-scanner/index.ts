@@ -157,10 +157,11 @@ Deno.serve(async (req: Request) => {
 
     const scannerUrl = `${supabaseUrl}/functions/v1/market-scanner`;
     marketScannerCalled = true;
+    const requestedMode = typeof body.market_mode === "string" && body.market_mode ? body.market_mode : "combined";
     const proxy = await fetch(scannerUrl, {
       method: "POST",
       headers: internalHeaders(String(body.correlation_id ?? crypto.randomUUID()), String(body.action_id ?? runId ?? crypto.randomUUID())),
-      body: JSON.stringify({ run_type: "scheduled", source, market_mode: "crypto_only", scanner_run_id: runId, correlation_id: body.correlation_id, action_id: body.action_id }),
+      body: JSON.stringify({ run_type: "scheduled", source, market_mode: requestedMode, scanner_run_id: runId, correlation_id: body.correlation_id, action_id: body.action_id }),
     });
     marketScannerStatus = proxy.status;
     const proxiedBody = await parseBody(proxy);
@@ -215,7 +216,7 @@ Deno.serve(async (req: Request) => {
       const outcomeRes = await fetch(`${supabaseUrl}/functions/v1/evaluate-signal-outcomes`, {
         method: "POST",
         headers: internalHeaders(String(body.correlation_id ?? crypto.randomUUID()), String(body.action_id ?? runId ?? crypto.randomUUID())),
-        body: JSON.stringify({ source: "scheduled-market-scanner", scanner_run_id: runId, run_type: "scheduled", market_mode: "crypto_only", correlation_id: body.correlation_id, action_id: body.action_id }),
+        body: JSON.stringify({ source: "scheduled-market-scanner", scanner_run_id: runId, run_type: "scheduled", market_mode: requestedMode, correlation_id: body.correlation_id, action_id: body.action_id }),
       });
       outcomeStatus = outcomeRes.status;
       const outcomeBody = await parseBody(outcomeRes);

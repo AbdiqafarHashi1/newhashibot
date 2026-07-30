@@ -41,6 +41,7 @@ async function parseBody(res: Response): Promise<unknown> {
 }
 
 export function internalHeaders(correlationId: string, actionId: string, idempotencyKey?: string): HeadersInit {
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const internalSecret = Deno.env.get("HASHIBOT_INTERNAL_SECRET") ?? Deno.env.get("INTERNAL_FUNCTION_SECRET") ?? "";
   const cronToken = Deno.env.get("HASHIBOT_CRON_TOKEN") ?? Deno.env.get("INTERNAL_CRON_TOKEN") ?? Deno.env.get("SCANNER_CRON_SECRET") ?? "";
   const headers: Record<string, string> = {
@@ -48,6 +49,7 @@ export function internalHeaders(correlationId: string, actionId: string, idempot
     "x-hashibot-correlation-id": correlationId,
     "x-hashibot-action-id": actionId,
   };
+  if (serviceRole) headers["Authorization"] = `Bearer ${serviceRole}`;
   if (internalSecret) headers["x-hashibot-internal-secret"] = internalSecret;
   else if (cronToken) headers["x-hashibot-cron-token"] = cronToken;
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;

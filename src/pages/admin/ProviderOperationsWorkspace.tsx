@@ -967,7 +967,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 ACCOUNT {accountStatus.account}
               </Badge>
 
-              <Badge variant={canonicalAccount?.execution_enabled ? 'red' : 'gray'}>{accountStatus.execution}</Badge>
+              <Badge variant={canonicalAccount?.execution_enabled ? 'green' : 'gray'}>{accountStatus.execution}</Badge>
 
               {canonicalAccount && <Badge variant={canonicalAccount.monitor_enabled ? 'green' : 'gray'}>MONITOR {canonicalAccount.monitor_enabled ? 'ENABLED' : 'DISABLED'}</Badge>}
               {canonicalAccount && <Badge variant={canonicalAccount.is_operational ? 'blue' : 'gray'}>OPERATIONAL ACCOUNT {canonicalAccount.is_operational ? 'DESIGNATED' : 'NOT DESIGNATED'}</Badge>}
@@ -976,9 +976,15 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 FRESHNESS: {monitorTruth.label.toUpperCase()}
               </Badge>
 
-              <span className="inline-flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-300">
-                <Lock size={11} /> LIVE EXECUTION BLOCKED
-              </span>
+              {isAutoExecuteOn || canonicalAccount?.execution_enabled ? (
+                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+                  <ShieldCheck size={11} /> EXECUTION ENABLED
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+                  <Lock size={11} /> EXECUTION DISABLED
+                </span>
+              )}
             </div>
           </div>
 
