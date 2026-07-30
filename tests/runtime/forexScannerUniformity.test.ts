@@ -31,7 +31,7 @@ for (const contract of FOREX_STRATEGY_CONTRACTS) {
 }
 assert.deepEqual(forexScannerFetchPlan(), ["15m", "1h"]);
 assert.equal(new Set(forexScannerFetchPlan()).size, forexScannerFetchPlan().length, "fetch plan is deduplicated");
-assert.equal(FOREX_STRATEGY_CONTRACTS.length, 2);
+assert.equal(FOREX_STRATEGY_CONTRACTS.length, 5);
 for (const contract of FOREX_STRATEGY_CONTRACTS) {
   assert.equal(contract.lifecycle, "ENABLED");
   assert.equal(contract.version, "1.0.0");
@@ -43,12 +43,16 @@ for (const contract of FOREX_STRATEGY_CONTRACTS) {
 }
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.micro-scalper")?.primaryTimeframes, ["15m"]);
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.swing-continuation")?.primaryTimeframes, ["1h"]);
+assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.london-breakout")?.primaryTimeframes, ["15m"]);
+assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.new-york-continuation")?.primaryTimeframes, ["15m", "1h"]);
+assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.trend-pullback")?.primaryTimeframes, ["15m", "1h"]);
 
 const scanner = readFileSync("supabase/functions/market-scanner/index.ts", "utf8");
 assert.match(scanner, /const forexScanTimeframes = forexTimeframes\(\)/);
 assert.match(scanner, /for \(const contract of FOREX_STRATEGY_CONTRACTS\)/);
 assert.match(scanner, /FOREX_EVALUATOR_REGISTRY/);
 assert.match(scanner, /FOREX_EVALUATOR_NOT_REGISTERED/);
+assert.match(scanner, /FOREX_PRODUCTION_EVALUATORS/);
 assert.doesNotMatch(scanner, /contract\.legacyName === "ForexMicroScalper"/);
 assert.match(scanner, /gold_strategy_not_certified/);
 assert.match(scanner, /loadMT5Candles/);

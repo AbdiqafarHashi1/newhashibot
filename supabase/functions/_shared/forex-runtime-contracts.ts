@@ -28,8 +28,8 @@ export type ForexRuntimeSymbol = typeof FOREX_RUNTIME_INSTRUMENTS[number]["symbo
 export const MT5_PROVIDER_MARKET_DATA_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"] as const;
 
 export interface ForexStrategyContract {
-  readonly id: "forex.micro-scalper" | "forex.swing-continuation";
-  readonly legacyName: "ForexMicroScalper" | "ForexSwingContinuation";
+  readonly id: "forex.micro-scalper" | "forex.swing-continuation" | "forex.london-breakout" | "forex.new-york-continuation" | "forex.trend-pullback";
+  readonly legacyName: "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback";
   readonly version: "1.0.0";
   readonly lifecycle: "ENABLED";
   readonly markets: readonly ["forex"];
@@ -47,6 +47,9 @@ const BASE_INDICATORS = ["ema20", "ema50", "atr14", "rsi14", "recent_high", "rec
 export const FOREX_STRATEGY_CONTRACTS: readonly ForexStrategyContract[] = [
   { id: "forex.micro-scalper", legacyName: "ForexMicroScalper", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["15m"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
   { id: "forex.swing-continuation", legacyName: "ForexSwingContinuation", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["1h"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
+  { id: "forex.london-breakout", legacyName: "ForexLondonBreakout", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["15m"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
+  { id: "forex.new-york-continuation", legacyName: "ForexNewYorkContinuation", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["15m", "1h"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
+  { id: "forex.trend-pullback", legacyName: "ForexTrendPullback", version: "1.0.0", lifecycle: "ENABLED", markets: ["forex"], eligibleInstrumentClasses: FX_CLASSES, symbols: FX_STRATEGY_SYMBOLS, primaryTimeframes: ["15m", "1h"], contextTimeframes: [], minimumCandles: 55, requiredIndicators: BASE_INDICATORS },
 ];
 
 export function runtimeInstrument(value: string): RuntimeInstrumentContract | null {

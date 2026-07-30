@@ -20,6 +20,7 @@ import { runCertifiedRuntime } from "../_shared/certified-runtime.ts";
 import { loadCertifiedExecutionAccounts, type CertifiedAccountTruthRow } from "../_shared/certified-account-loader.ts";
 import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
 import { FOREX_RUNTIME_INSTRUMENTS, FOREX_RUNTIME_SYMBOLS, FOREX_STRATEGY_CONTRACTS, MT5_PROVIDER_MARKET_DATA_TIMEFRAMES, forexScannerFetchPlan, forexStrategyEligibility, forexStrategyTimeframes, isForexRuntimeSymbol, roundRuntimePrice, runtimeInstrument, runtimePipDistance } from "../_shared/forex-runtime-contracts.ts";
+import { FOREX_PRODUCTION_EVALUATORS } from "../_shared/forex-production-strategies.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,7 +59,7 @@ interface EvalResult {
   rejection_reason: string; score_breakdown: Record<string, number | string | boolean>;
 }
 
-type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation";
+type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback";
 const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
   MicroScalper: "crypto.micro-scalper",
   QuickScalp: "crypto.quick-scalp",
@@ -66,6 +67,9 @@ const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
   SwingContinuation: "crypto.swing-continuation",
   ForexMicroScalper: "forex.micro-scalper",
   ForexSwingContinuation: "forex.swing-continuation",
+  ForexLondonBreakout: "forex.london-breakout",
+  ForexNewYorkContinuation: "forex.new-york-continuation",
+  ForexTrendPullback: "forex.trend-pullback",
 };
 
 interface StrategyEvaluationStats {
@@ -1165,10 +1169,11 @@ function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timefram
   return { status: "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade, reason, rejection_reason: "", score_breakdown };
 }
 
-type ForexEvaluator = (candles: Candle[], indicators: Indicators, timeframe: string, params: Record<string, number>) => EvalResult;
+type ForexEvaluator = (context: StrategyEvaluationContext, params: Record<string, number>) => EvalResult;
 const FOREX_EVALUATOR_REGISTRY = new Map<string, ForexEvaluator>([
-  ["forex.micro-scalper", evalForexMicroScalper],
-  ["forex.swing-continuation", evalForexSwingContinuation],
+  ["forex.micro-scalper", (context, params) => evalForexMicroScalper(context.candles as Candle[], context.indicators as Indicators, context.timeframe, params)],
+  ["forex.swing-continuation", (context, params) => evalForexSwingContinuation(context.candles as Candle[], context.indicators as Indicators, context.timeframe, params)],
+  ...Object.entries(FOREX_PRODUCTION_EVALUATORS).map(([id, evaluator]) => [id, (context: StrategyEvaluationContext) => evaluator(context)] as [string, ForexEvaluator]),
 ]);
 function forexEvaluatorFor(strategyId: string): ForexEvaluator {
   const evaluator = FOREX_EVALUATOR_REGISTRY.get(strategyId);
@@ -3159,9 +3164,10 @@ async function runScanPipeline(
             const eligibility = forexStrategyEligibility(contract, normalizedSymbol);
             if (!eligibility.eligible) { recordStrategySkip(contract.legacyName, eligibility.reason ?? "instrument_not_eligible"); continue; }
             const registeredEvaluator = forexEvaluatorFor(contract.id);
-            registerLegacy(contract.legacyName, contract.id, contract.version, strategyConfig, () => registeredEvaluator(candles, ind, tf, { ...strategyConfig.params, min_score: strategyConfig.min_score, min_rr: strategyConfig.min_rr }));
+            registerLegacy(contract.legacyName, contract.id, contract.version, strategyConfig, () => registeredEvaluator({ symbol: normalizedSymbol, market: "forex", timeframe: tf, candles, indicators: ind, evaluated_at: new Date().toISOString() }, { ...strategyConfig.params, min_score: strategyConfig.min_score, min_rr: strategyConfig.min_rr }));
           }
           for (const research of FOREX_RESEARCH_STRATEGIES) {
+            if (research.id in FOREX_PRODUCTION_EVALUATORS) continue;
             activeDefinitions.push({ id: research.id, version: research.version, legacyName: research.id, market: "forex", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: research.id, allowed_symbols: [...research.symbols], allowed_timeframes: [...research.timeframes] }, evaluate: (context) => research.evaluate(context) });
           }
         } else {

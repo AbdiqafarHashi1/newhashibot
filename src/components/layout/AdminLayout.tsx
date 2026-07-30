@@ -4,7 +4,7 @@ import {
   Zap, LayoutDashboard, Users, LogOut, Menu, Activity,
   Database, Send,
   User, Settings, ListChecks,
-  Shield, ShieldCheck, Cpu, Target, ClipboardList,
+  Shield, ShieldCheck, Cpu, ClipboardList,
   Layers, Radio, Brain
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -26,7 +26,6 @@ const adminNav: NavItem[] = [
   { to: '/admin/positions', label: 'Positions Center', icon: Layers },
   { to: '/admin/protection', label: 'Protection Center', icon: ShieldCheck },
   { to: '/admin/modes', label: 'Operating Modes', icon: Zap },
-  { to: '/admin/prop-provider', label: 'MT5 & Prop Accounts', icon: Target },
 
   { section: 'Risk & Capital' },
   { to: '/admin/risk', label: 'Risk Engine', icon: Shield },

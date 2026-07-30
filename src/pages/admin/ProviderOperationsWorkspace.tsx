@@ -928,7 +928,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
     : 'MT5 Operations Workspace';
 
   return (
-    <AdminLayout title={providerTitle} description={`Institutional backend truth, monitoring, protection, risk governor, and live execution controls for ${provider.toUpperCase()}`}>
+    <AdminLayout title={providerTitle} description={`Institutional backend truth, monitoring, protection, risk governor, and demo/testnet execution controls for ${provider.toUpperCase()}`}>
       {/* 1. Sticky Header & Environment Control Bar */}
       <div className="sticky top-0 z-20 -mx-6 -mt-6 mb-6 border-b border-zinc-800 bg-zinc-950/90 px-6 py-3.5 backdrop-blur-md shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -954,14 +954,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 className="rounded px-2.5 py-1 font-medium bg-zinc-800 text-zinc-100 shadow">
                 {provider === 'mt5' ? 'MetaTrader 5 Bridge' : provider === 'bybit' ? 'Bybit Demo' : 'Binance Testnet'}
               </button>
-              <button
-                type="button"
-                disabled
-                title="Live Trading Guard Active. Real-money live execution is hardware-locked."
-                className="inline-flex items-center gap-1 rounded px-2.5 py-1 font-medium text-zinc-600 opacity-60 cursor-not-allowed">
-                <Lock size={12} />
-                Live (Guarded)
-              </button>
+              <span className="inline-flex items-center gap-1 rounded px-2.5 py-1 font-medium text-zinc-500" title="No live enable action is exposed."><Lock size={12} />Live unavailable</span>
             </div>
 
             {/* Status Pills */}
