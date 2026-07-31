@@ -76,15 +76,22 @@ const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
 
 interface StrategyEvaluationStats {
   evaluated: number;
+  candidate_created: number;
   candidate_count: number;
   evaluator_pass: number;
+  candidate_passed_quality: number;
   score_pass: number;
   rr_pass: number;
   distance_pass: number;
-  duplicate_pass: number;
+  candidate_entered_arbitration: number;
   arbitration_entered: number;
+  candidate_won: number;
   arbitration_won: number;
+  signal_published: number;
   signals_created: number;
+  execution_started: number;
+  execution_completed: number;
+  duplicate_pass: number;
   accepted: number;
   rejected: number;
   rejection_count: number;
@@ -1212,6 +1219,7 @@ function normalizeSymbol(symbol: string): string {
 }
 
 function normalizeRejectionReason(reason: string, marketType = "crypto"): string {
+  if (!reason || reason === "none") return "none";
   const map: Record<string, string> = {
     risk_reward_too_low: "rr_too_low",
     distance_too_tight: "spread_or_distance_too_tight",
@@ -1231,10 +1239,13 @@ function normalizeRejectionReason(reason: string, marketType = "crypto"): string
       "provider_failed", "provider_rate_limited", "provider_data_unavailable", "provider_invalid_response", "unsupported_symbol", "unsupported_instrument_class", "gold_strategy_not_certified",
       "unsupported_timeframe", "insufficient_candles", "invalid_atr_or_price", "invalid_candles",
       "spread_or_distance_too_tight", "distance_guard_failed", "volatility_too_low", "volatility_too_high",
-      "trend_filter_failed", "pullback_not_ready", "reclaim_not_confirmed", "momentum_failed",
-      "rr_too_low", "confidence_too_low", "score_below_min", "forex_budget_limited", "duplicate_active_signal", "arbitration_blocked", "runtime_error",
+      "trend_filter_failed", "pullback_not_ready", "pullback_invalid", "reclaim_not_confirmed", "momentum_failed",
+      "rr_too_low", "confidence_too_low", "score_below_min", "forex_budget_limited", "duplicate_active_signal", "arbitration_blocked", "arbitration_no_trade",
+      "session_not_eligible", "stale_candles", "compression_not_ready", "exhaustion_unconfirmed", "breakout_not_confirmed", "range_not_compressed",
+      "mixed_choppy_market_requires_a_plus", "mixed_market_no_clear_strategy_requires_a_plus", "mixed_market_expected_value_too_low",
+      "strategy_instrument_class_not_supported", "timeframe_not_allowed", "context_timeframe_not_evaluated", "runtime_error",
     ]);
-    return allowed.has(normalized) ? normalized : "trend_filter_failed";
+    return allowed.has(normalized) ? normalized : (normalized || "trend_filter_failed");
   }
   return normalized;
 }
@@ -2912,15 +2923,22 @@ async function runScanPipeline(
   const strategyNames: StrategyName[] = ["MicroScalper", "CompressionBreakout", "SwingContinuation", "QuickScalp", "ForexMicroScalper", "ForexSwingContinuation", "ForexLondonBreakout", "ForexNewYorkContinuation", "ForexTrendPullback", "GoldVolatilityBreakout"];
   const strategyEvaluationSummary = Object.fromEntries(strategyNames.map((name) => [name, {
     evaluated: 0,
+    candidate_created: 0,
     candidate_count: 0,
     evaluator_pass: 0,
+    candidate_passed_quality: 0,
     score_pass: 0,
     rr_pass: 0,
     distance_pass: 0,
-    duplicate_pass: 0,
+    candidate_entered_arbitration: 0,
     arbitration_entered: 0,
+    candidate_won: 0,
     arbitration_won: 0,
+    signal_published: 0,
     signals_created: 0,
+    execution_started: 0,
+    execution_completed: 0,
+    duplicate_pass: 0,
     accepted: 0,
     rejected: 0,
     rejection_count: 0,
@@ -3250,8 +3268,11 @@ async function runScanPipeline(
         for (const ev of allEvals) {
           evaluationsCount++;
           incrementStrategyStat(ev.name, "evaluated");
-          incrementStrategyStat(ev.name, "candidate_count");
           const r = ev.result;
+          if (r.status !== "rejected") {
+            incrementStrategyStat(ev.name, "candidate_created");
+            incrementStrategyStat(ev.name, "candidate_count");
+          }
 
           const normalizedRejectionReason = normalizeRejectionReason(r.rejection_reason, marketType);
           const candidateScoreBreakdown = ev.name === "MicroScalper"
@@ -3286,6 +3307,7 @@ async function runScanPipeline(
 
           if (r.status === "rejected") { recordStrategyRejection(ev.name, normalizedRejectionReason); rejectedCount++; continue; }
           incrementStrategyStat(ev.name, "evaluator_pass");
+          incrementStrategyStat(ev.name, "candidate_passed_quality");
 
           // Distance guard
           const guard = checkDistanceGuards(r, ev.cfg);
@@ -3317,6 +3339,7 @@ async function runScanPipeline(
           }
 
           incrementStrategyStat(ev.name, "distance_pass");
+          incrementStrategyStat(ev.name, "candidate_entered_arbitration");
           incrementStrategyStat(ev.name, "arbitration_entered");
           passingEntries.push({ name: ev.name, result: r, cfg: ev.cfg, guard, plan: ev.plan });
           // tag candidate id for later use
@@ -3371,35 +3394,53 @@ async function runScanPipeline(
         if (noTradeReason) {
           for (const blockedEntry of passingEntries as Array<EvalEntry & { _candidateId: string }>) {
             const r = blockedEntry.result;
+            const noTradeBreakdown = {
+              ...(r.score_breakdown ?? {}),
+              rejection_stage: "arbitration",
+              rejection_rule: noTradeReason,
+              threshold: { min_score: 0.68, max_chop: 76, required_grade: "A+" },
+              measured_value: { chop_level: marketContext.chop_level, mixed_market: marketContext.mixed_market, top_score: selectedArbitrationScore },
+              required_value: { grade: "A+", preferred_strategy: marketContext.preferred_strategy },
+              strategy_id: PROFESSIONAL_STRATEGY_IDS[blockedEntry.name] || blockedEntry.name,
+              symbol: sym.symbol,
+              timeframe: tf,
+              score: arbitrationScore(blockedEntry, marketContext),
+              confidence: r.confidence_score,
+              RR: r.risk_reward,
+              entry: (r.entry_low + r.entry_high) / 2,
+              stop: r.stop_loss,
+              current_market_price: marketContext.current_price,
+              distance_percent: parseFloat(((Math.abs(marketContext.current_price - r.stop_loss) / marketContext.current_price) * 100).toFixed(4)),
+              freshness: true,
+              duplicate_state: "not_reached",
+              primary_failed_gate: noTradeReason,
+              raw_rejection_reason: noTradeReason,
+              normalized_rejection_reason: noTradeReason,
+              distance_guard: "passed",
+              arbitration: "no_trade",
+              arbitration_blocked: true,
+              arbitration_no_trade_reason: noTradeReason,
+              market_regime: marketContext.regime,
+              market_context: marketContext,
+              market_preferred_strategy: marketContext.preferred_strategy,
+              selected_strategy: "none",
+              selected_timeframe: tf,
+              selected_score: selectedArbitrationScore,
+              arbitration_score: arbitrationScore(blockedEntry, marketContext),
+              candidate_arbitration_score: arbitrationScore(blockedEntry, marketContext),
+              arbitration_candidates: arbitrationCandidates,
+              duplicate_guard: "not_reached",
+              signal_insert: "not_reached",
+              telegram_eligibility: "not_reached",
+            };
             await supabase.from("strategy_candidates").update({
               status: "rejected",
-              rejection_reason: "arbitration_no_trade",
-              score_breakdown: {
-                ...(r.score_breakdown ?? {}),
-                primary_failed_gate: "arbitration_no_trade",
-                raw_rejection_reason: "arbitration_no_trade",
-                normalized_rejection_reason: "arbitration_no_trade",
-                distance_guard: "passed",
-                arbitration: "no_trade",
-                arbitration_blocked: true,
-                arbitration_no_trade_reason: noTradeReason,
-                market_regime: marketContext.regime,
-                market_context: marketContext,
-                market_preferred_strategy: marketContext.preferred_strategy,
-                selected_strategy: "none",
-                selected_timeframe: tf,
-                selected_score: selectedArbitrationScore,
-                arbitration_score: arbitrationScore(blockedEntry, marketContext),
-                candidate_arbitration_score: arbitrationScore(blockedEntry, marketContext),
-                arbitration_candidates: arbitrationCandidates,
-                duplicate_guard: "not_reached",
-                signal_insert: "not_reached",
-                telegram_eligibility: "not_reached",
-              },
+              rejection_reason: noTradeReason,
+              score_breakdown: noTradeBreakdown,
             }).eq("id", blockedEntry._candidateId);
             incrementStrategyStat(blockedEntry.name, "arbitration_blocked");
             incrementStrategyStat(blockedEntry.name, "arbitration_losses");
-            recordStrategyRejection(blockedEntry.name, "arbitration_no_trade");
+            recordStrategyRejection(blockedEntry.name, noTradeReason);
             rejectedCount++;
           }
           continue;
@@ -3681,6 +3722,7 @@ async function runScanPipeline(
 
             if (!sigData) continue;
             signalsCreated++;
+            incrementStrategyStat(ev.name, "signal_published");
             incrementStrategyStat(ev.name, "signals_created");
             professionalStrategyDiagnostics.published(PROFESSIONAL_STRATEGY_IDS[ev.name], new Date().toISOString());
             signalCreatedForThisCandidate = true;
@@ -3735,7 +3777,11 @@ async function runScanPipeline(
             // This is gated by server-side env and DB settings in the execution
             // function. It only receives the just-created signal id, so old
             // historical signals are never auto-submitted from the scanner.
+            incrementStrategyStat(ev.name, "execution_started");
             const executionResult = await tryAutoExecuteTestnet(supabase, sigData.id as string, String(sigData.market_type ?? "crypto"));
+            if (executionResult.success) {
+              incrementStrategyStat(ev.name, "execution_completed");
+            }
 
             if (ev.name === "MicroScalper") {
               await supabase.from("strategy_candidates").update({
@@ -3878,6 +3924,32 @@ async function runScanPipeline(
     now, runStatus === "Failed",
   );
 
+  const runtimeExplainability = Object.fromEntries(strategyNames.map((name) => {
+    const stats = strategyEvaluationSummary[name];
+    const diag = professionalStrategyDiagnostics.get(PROFESSIONAL_STRATEGY_IDS[name] || name);
+    const sortedRejections = Object.entries(stats?.rejection_reasons ?? {}).sort((a, b) => b[1] - a[1]);
+    const topRejectionReason = sortedRejections.length > 0 ? sortedRejections[0][0] : "none";
+    const evalCount = stats?.evaluated ?? 0;
+    const pubCount = stats?.signal_published ?? stats?.signals_created ?? 0;
+    return [name, {
+      evaluated: evalCount,
+      eligible: evalCount - (stats?.skipped ?? 0),
+      candidate: stats?.candidate_created ?? stats?.candidate_count ?? 0,
+      quality_pass: stats?.candidate_passed_quality ?? stats?.evaluator_pass ?? 0,
+      arbitration: stats?.candidate_entered_arbitration ?? stats?.arbitration_entered ?? 0,
+      published: pubCount,
+      executed: stats?.execution_started ?? 0,
+      protected: stats?.execution_completed ?? 0,
+      closed: 0,
+      success_pct: evalCount > 0 ? parseFloat(((pubCount / evalCount) * 100).toFixed(2)) : 0,
+      runtime_failures: stats?.runtime_errors ?? 0,
+      last_candidate: diag?.last_evaluation_time ?? null,
+      last_signal: diag?.last_published_time ?? null,
+      last_execution: null,
+      last_rejection_reason: topRejectionReason,
+    }];
+  }));
+
   return {
     success: true, run_id: runId, run_type: runType, duration_ms: durationMs,
     market_mode: marketMode, signal_enable_crypto: config.signal_enable_crypto, signal_enable_forex: config.signal_enable_forex,
@@ -3893,6 +3965,7 @@ async function runScanPipeline(
     forex_provider: forexProviderName, forex_real_data: forexProviderSuccess, forex_budget: forexBudget ? { max_pairs: forexBudget.maxPairs, max_timeframes: forexBudget.maxTimeframes, allowed_pairs: forexBudget.allowedPairs.size, planned_pairs: forexBudget.plannedPairs, planned_timeframes: forexBudget.plannedTimeframes } : null,
     forex_demo_fallback_used: false,
     strategy_evaluation_summary: strategyEvaluationSummary,
+    runtime_explainability: runtimeExplainability,
     professional_strategy_diagnostics: professionalStrategyDiagnostics.snapshot(),
     shared_indicator_diagnostics: { engine: "root-shared", versions: INDICATOR_VERSIONS, calculations: indicatorsCalc, production_parity: "exact_root_v1_helpers", legacy_owned: ["momentum", "regime", "range_compression", "strategy_thresholds"] },
     arbitration_diagnostics: arbitrationDiagnostics.snapshot(),

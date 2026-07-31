@@ -42,7 +42,7 @@ export function arbitrate(candidates: readonly ArbitrationCandidate[], options: 
   const ties = eligible.length > 1 && Math.abs(eligible[0].score - eligible[1].score) <= 0.0001;
   const forced = options.forceNoTradeReason || options.noTradePolicy?.(eligible) || undefined;
   const winner = !forced ? eligible[0] : undefined;
-  for (const loser of eligible.slice(winner ? 1 : 0)) rejected.push({ candidateId: loser.id, reasons: [forced ? "arbitration_no_trade" : "arbitration_blocked"], evidence: { selected_candidate: winner?.id ?? null, force_no_trade_reason: forced ?? null } });
+  for (const loser of eligible.slice(winner ? 1 : 0)) rejected.push({ candidateId: loser.id, reasons: [forced ? forced : "arbitration_blocked"], evidence: { selected_candidate: winner?.id ?? null, force_no_trade_reason: forced ?? null } });
   const decision = winner ? "WINNER" : "NO_TRADE";
   const keyPayload = { version: ARBITRATOR_VERSION, decision, winner: winner?.id ?? null, candidates: snapshot.map((c) => ({ id: c.id, score: c.score, priority: c.priority ?? 0, rr: c.riskReward })), rejected: rejected.map((r) => ({ id: r.candidateId, reasons: r.reasons })), forced: forced ?? null };
   return { decision, winner, considered: [...eligible, ...snapshot.filter((candidate) => !eligible.some((item) => item.id === candidate.id))], rejected, tieBreakEvidence: ties ? ["score_tie", "identity_fit_priority", "risk_reward"] : [], version: ARBITRATOR_VERSION, decisionKey: hash(canonical(keyPayload)), evidence: { policy: "legacy_arbitration_score_then_identity_fit_then_rr", forced_no_trade_reason: forced ?? null, immutable_snapshot: true } };

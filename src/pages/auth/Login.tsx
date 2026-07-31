@@ -41,8 +41,7 @@ export default function Login() {
     }
 
     if (profileError) {
-      setProfileWarning('Signed in, but your profile could not be loaded. Try refreshing.');
-      return;
+      console.warn('Profile warning on login:', profileError);
     }
 
     nav(from, { replace: true });

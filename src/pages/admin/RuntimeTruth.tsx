@@ -39,16 +39,34 @@ export default function RuntimeTruth() {
         heartbeatsRes,
         truthPositionsRes,
         signalsRes,
+        orchestratorEventsRes,
       ] = await Promise.all([
         supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(25),
         supabase.from('telegram_deliveries').select('*').order('created_at', { ascending: false }).limit(25),
         supabase.from('execution_monitor_heartbeats').select('*').order('started_at', { ascending: false }).limit(25),
         supabase.from('active_trade_management_truth').select('*').order('latest_sync_at', { ascending: false }).limit(25),
         supabase.from('signals').select('*').order('created_at', { ascending: false }).limit(25),
+        supabase.from('operator_runtime_events').select('*').order('created_at', { ascending: false }).limit(50),
       ]);
 
       const compiled: VerifiedRuntimeEvent[] = [];
       let totalDrifts = 0;
+
+      // 0. Convert Operator Runtime Events (Orchestrator) to EXECUTION / PROVIDER / PROTECTION Events
+      (orchestratorEventsRes.data ?? []).forEach((row: { id: string; created_at: string; event_type: string; severity?: string; provider?: string; message: string; correlation_id?: string; duration_ms?: number; result?: string }) => {
+        const isError = row.severity === 'error' || row.severity === 'critical' || row.result === 'FAILED';
+        const isWarn = row.severity === 'warning' || row.result === 'REJECTED';
+        compiled.push({
+          id: `orch-${row.id}`,
+          timestamp: new Date(row.created_at).toLocaleString(),
+          category: row.event_type?.includes('PROTECTION') ? 'PROTECTION' : row.event_type?.includes('SIGNAL') ? 'SIGNAL' : 'EXECUTION',
+          provider: (row.provider || 'Orchestrator').toUpperCase(),
+          environment: 'Pipeline',
+          message: `[${row.event_type}] ${row.message}${row.duration_ms ? ` (${row.duration_ms}ms)` : ''}`,
+          receiptId: row.correlation_id ? `CID-${row.correlation_id.slice(0, 8)}` : `EVT-${row.id.slice(0, 8)}`,
+          status: isError ? 'VIOLATION' : isWarn ? 'WARNING' : 'VERIFIED',
+        });
+      });
 
       // 1. Convert Audit Logs to AUDIT Events
       (auditLogsRes.data ?? []).forEach((row: { id: string; created_at: string; action: string; entity_type?: string; entity_id?: string; actor_user_id?: string }) => {

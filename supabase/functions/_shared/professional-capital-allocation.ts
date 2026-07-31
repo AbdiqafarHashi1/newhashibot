@@ -1,5 +1,13 @@
 import { deepFreeze, stableFingerprint, type DeepReadonly } from "./strategy-plan.ts";
 import type { RiskDecision, RiskDomain, TruthState } from "./professional-risk-engine.ts";
+import type {
+  BrainProvider,
+  ExecutionDecision,
+  SignalContract,
+  AccountExecutionContext,
+  AccountPolicy,
+  PositionPlan,
+} from "./account-execution-brain/types.ts";
 
 export const CAPITAL_ALLOCATION_CONTEXT_VERSION = "capital-allocation-context/v1" as const;
 export const CAPITAL_ALLOCATION_PLAN_VERSION = "capital-allocation-plan/v1" as const;
@@ -288,3 +296,101 @@ export function allocateCapital(context: CapitalAllocationContext): DeepReadonly
   };
   return deepFreeze(result);
 }
+
+/**
+ * Capital Manager Sizing Engine
+ * SOLE OWNER of financial position sizing, lot/unit calculation,
+ * required margin, expected notional, and expected risk calculations.
+ */
+export function calculateCapitalManagerPositionPlan(params: {
+  provider: BrainProvider;
+  decision: ExecutionDecision;
+  signal: SignalContract;
+  context: AccountExecutionContext;
+  policy: AccountPolicy;
+  contract_spec?: {
+    quantity_step?: number;
+    quantity_precision?: number;
+    tick_size?: number;
+    price_precision?: number;
+    min_quantity?: number;
+    max_quantity?: number;
+    min_notional?: number;
+    max_notional?: number;
+    contract_size?: number;
+  };
+}): PositionPlan | null {
+  const { provider, decision, signal, context, policy, contract_spec } = params;
+
+  if (decision.decision !== "EXECUTE" && decision.decision !== "REDUCE_RISK") {
+    return null;
+  }
+
+  const slDistance = Math.abs(signal.entry_price - signal.stop_loss);
+  if (slDistance <= 0 || !Number.isFinite(slDistance)) {
+    return null;
+  }
+
+  const authorizedRiskPct = decision.authorized_risk_pct;
+  const targetRiskAmount = context.balance * (authorizedRiskPct / 100);
+  const effectiveLeverage = Math.min(context.leverage, policy.max_leverage_allowed);
+
+  let quantity = 0;
+  let contractSize = 1;
+  let expectedNotional = 0;
+
+  if (provider === "MT5_PERSONAL" || provider === "MT5_PROP") {
+    contractSize = contract_spec?.contract_size ??
+      (signal.symbol.includes("XAU") || signal.symbol.includes("XAG") ? 100 : 100000);
+    const rawLots = targetRiskAmount / (slDistance * contractSize);
+    quantity = Math.floor(rawLots * 100) / 100;
+    const minLot = contract_spec?.min_quantity ?? 0.01;
+    const maxLot = contract_spec?.max_quantity ?? 100.0;
+    if (quantity < minLot) quantity = minLot;
+    if (quantity > maxLot) quantity = maxLot;
+
+    expectedNotional = quantity * signal.entry_price * contractSize;
+  } else {
+    // BINANCE or BYBIT (Crypto futures)
+    contractSize = 1;
+    const rawQty = targetRiskAmount / slDistance;
+    const step = contract_spec?.quantity_step ?? 0.001;
+    const precision = contract_spec?.quantity_precision ?? 3;
+    quantity = floorToIncrement(rawQty, step, precision);
+    const minQty = contract_spec?.min_quantity ?? 0.001;
+    const maxQty = contract_spec?.max_quantity ?? 100000.0;
+    if (quantity < minQty) quantity = minQty;
+    if (quantity > maxQty) quantity = maxQty;
+
+    expectedNotional = quantity * signal.entry_price;
+  }
+
+  const requiredMargin = expectedNotional / effectiveLeverage;
+  const actualRiskAmount = quantity * slDistance * contractSize;
+  const actualRiskPct = context.balance > 0 ? (actualRiskAmount / context.balance) * 100 : 0;
+
+  const planIdPrefix = provider.toLowerCase().replace("_", "");
+  return Object.freeze({
+    plan_id: `plan_${planIdPrefix}_${signal.signal_id}`,
+    signal_id: signal.signal_id,
+    account_id: context.account_id,
+    symbol: signal.symbol,
+    side: signal.direction,
+    order_type: "MARKET",
+    entry_price: signal.entry_price,
+    stop_loss: signal.stop_loss,
+    take_profit_1: signal.tp1,
+    take_profit_2: signal.tp2,
+    quantity,
+    leverage: effectiveLeverage,
+    required_margin: Number(requiredMargin.toFixed(2)),
+    expected_risk_amount: Number(actualRiskAmount.toFixed(2)),
+    expected_risk_pct: Number(actualRiskPct.toFixed(2)),
+    expected_notional: Number(expectedNotional.toFixed(2)),
+    contract_size: contractSize,
+    time_in_force: "GTC",
+    reduce_only: false,
+    idempotency_key: `idemp_${planIdPrefix}_${signal.signal_id}_${context.account_id}`,
+  });
+}
+
