@@ -1,0 +1,39 @@
+# Phase 10 validation/build pipeline only. There is deliberately no deploy/apply step.
+substitutions:
+  _SERVICE: health
+  _REGION: us-central1
+steps:
+  - id: install
+    name: node:20.20.2
+    entrypoint: npm
+    args: [ci, --ignore-scripts]
+  - id: cloud-tests
+    name: node:20.20.2
+    entrypoint: npm
+    args: [run, test:cloud]
+  - id: lint
+    name: node:20.20.2
+    entrypoint: npm
+    args: [run, 'lint:cloud']
+  - id: typecheck
+    name: node:20.20.2
+    entrypoint: npm
+    args: [run, typecheck:cloud]
+  - id: formatting
+    name: node:20.20.2
+    entrypoint: bash
+    args: [-ceu, 'git diff --check && cloud/infrastructure/terraform/tests/foundation.sh']
+  - id: container-build
+    name: gcr.io/cloud-builders/docker
+    args: [build, --file, cloud/Dockerfile, --build-arg, 'SERVICE=${_SERVICE}', --build-arg, 'BUILD_ID=$BUILD_ID', --build-arg, 'REVISION=$COMMIT_SHA', --tag, 'hashibot-${_SERVICE}:$COMMIT_SHA', .]
+  - id: dependency-audit
+    name: node:20.20.2
+    entrypoint: bash
+    args: [-ceu, 'npm audit --omit=dev --audit-level=high']
+  - id: artifact-metadata
+    name: node:20.20.2
+    entrypoint: bash
+    args: [-ceu, 'printf "service=%s build=%s revision=%s region=%s\\n" "${_SERVICE}" "$BUILD_ID" "$COMMIT_SHA" "${_REGION}"']
+options:
+  logging: CLOUD_LOGGING_ONLY
+# Future publishing needs Artifact Registry writer. Future deploy is intentionally absent.

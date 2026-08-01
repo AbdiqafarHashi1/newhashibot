@@ -1,0 +1,3 @@
+# MT5 Windows Demo Deployment — BLOCKED
+
+No VM was provisioned and MT5 was not installed. Required approval evidence: demo project/region/billing, chosen Windows image and smallest tested machine type, disk size/cost, broker demo account, RDP source CIDR and operator, service identity, outbound-only agent authentication, and explicit shadow configuration. The agent must heartbeat/read snapshots/specs/positions and acknowledge commands only as `SHADOW_VALIDATED` or `SHADOW_REJECTED`; OPEN_POSITION, MODIFY_PROTECTION and CLOSE_POSITION remain disabled. Phase 13 must test restart, stale heartbeat, duplicate polling and credential rotation before certification.

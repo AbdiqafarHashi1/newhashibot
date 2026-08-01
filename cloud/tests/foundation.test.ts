@@ -1,0 +1,33 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { EVENT_TYPES, childEnvelope, parseEnvelope, serializeEnvelope, validateCommand, validateEvent, type CommandEnvelope, type EventEnvelope } from "../shared/contracts/events.ts";
+import { ConfigurationError, loadConfig } from "../shared/config/index.ts";
+import { createLogger, normalizeError, redact } from "../shared/logging/index.ts";
+import { InMemoryPubSub, classifyRetry, subscriber } from "../shared/pubsub/index.ts";
+import { InMemoryIdempotencyStore, idempotencyKey } from "../shared/idempotency/index.ts";
+import { authorizeProviderMutation } from "../shared/auth/execution-safety.ts";
+import { createService } from "../shared/service/runtime.ts";
+
+const uuid=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,"0")}`;
+const base=(type="SignalCreated"):EventEnvelope=>({event_id:uuid(1),event_type:type as EventEnvelope["event_type"],event_version:1,occurred_at:"2026-01-01T00:00:00.000Z",producer:"test",environment:"dev",correlation_id:uuid(2),causation_id:null,customer_id:null,signal_id:"sig",trade_id:null,runtime_id:"runtime",execution_scope_key:null,truth_version:1,payload:{safe:"value"}});
+const command=():CommandEnvelope=>({...base("ExecutionRequested"),command_id:uuid(3),idempotency_key:"command:v1:scope:3",authorized:true,execution_scope_key:"scope"} as CommandEnvelope);
+const env=(service="health")=>({HASHIBOT_SERVICE:service,HASHIBOT_ENVIRONMENT:"dev",GOOGLE_CLOUD_REGION:"us-central1",SERVICE_IDENTITY:`${service}@placeholder.invalid`,SUPABASE_URL:"https://placeholder.supabase.co",SUPABASE_CREDENTIAL_SECRET_REF:`projects/placeholder/secrets/${service}/versions/latest`,PUBSUB_TOPICS_JSON:'{"events":"events.v1"}',PUBSUB_SUBSCRIPTIONS_JSON:"{}",PORT:"1",RUNTIME_ENABLED:"false",PROVIDER_MUTATION_ENABLED:"false",PRODUCTION_EXECUTION_ENABLED:"false"});
+
+test("all required event types are registered",()=>assert.equal(EVENT_TYPES.length,22));
+test("event serialization validates and round trips",()=>assert.deepEqual(parseEnvelope(serializeEnvelope(base())),base()));
+test("unknown event version is rejected",()=>assert.throws(()=>validateEvent({...base(),event_version:2}),/unsupported event_version/));
+test("secret-bearing payload fields are rejected",()=>assert.throws(()=>validateEvent({...base(),payload:{api_key:"bad"}}),/prohibited secret-bearing/));
+test("correlation and causation propagate",()=>{const child=childEnvelope(base(),{...base("TradeOpened"),event_id:uuid(4),event_type:"TradeOpened",correlation_id:undefined!,causation_id:undefined!} as never);assert.equal(child.correlation_id,uuid(2));assert.equal(child.causation_id,uuid(1));});
+test("command validation requires command fields",()=>assert.equal(validateCommand(command()).event_type,"ExecutionRequested"));
+test("configuration fails closed",()=>assert.throws(()=>loadConfig({}),ConfigurationError));
+test("configuration separates secret references",()=>assert.throws(()=>loadConfig({...env(),SUPABASE_CREDENTIAL_SECRET_REF:"eyJactualcredential"}),/secret reference/));
+test("logger redacts secrets and emits required JSON fields",()=>{const lines:string[]=[];const normalized=normalizeError(new Error("token=bad timeout"));createLogger({service:"test",revision:"r",environment:"dev"},x=>lines.push(x))("ERROR","failed",{authorization:"Bearer bad",nested:{password:"bad"},error_code:normalized.error_code,retryable:normalized.retryable,error_message:normalized.message});const row=JSON.parse(lines[0]);assert.equal(row.authorization,"[REDACTED]");assert.equal(row.nested.password,"[REDACTED]");assert.equal(row.message,"failed");assert.match(row.error_message,/\[REDACTED\]/);assert.ok("latency_ms" in row);});
+test("generic redaction handles credential keys",()=>assert.deepEqual(redact({credential:"x",safe:"y"}),{credential:"[REDACTED]",safe:"y"}));
+test("retry classification is bounded",()=>{assert.equal(classifyRetry(new Error("provider unavailable")),"retryable");assert.equal(classifyRetry(new Error("invalid request")),"permanent");});
+test("subscriber ack, nack, and dead-letter semantics",async()=>{const ok=subscriber(async()=>({outcome:"completed"}));assert.equal(await ok.handle({data:Buffer.from(JSON.stringify(base())).toString("base64"),deliveryAttempt:1}),"ack");const retry=subscriber(async()=>({outcome:"retry"}),{maxAttempts:2});const data=Buffer.from(JSON.stringify(base())).toString("base64");assert.equal(await retry.handle({data,deliveryAttempt:1}),"nack");assert.equal(await retry.handle({data,deliveryAttempt:2}),"dead-letter");});
+test("in-memory Pub/Sub preserves ordering and correlation metadata",async()=>{const bus=new InMemoryPubSub();await bus.publish(base(),{orderingKey:"scope"});assert.equal(bus.published[0].orderingKey,"scope");assert.equal(bus.published[0].attributes.correlation_id,uuid(2));});
+test("idempotency returns prior result and permits stale lease takeover",async()=>{let now=1;const store=new InMemoryIdempotencyStore<string>(()=>now);const key=idempotencyKey("event","scope",uuid(1));assert.equal((await store.claim(key,1,10)).state,"claimed");assert.equal((await store.claim(key,1,10)).state,"in-progress");now=20;assert.equal((await store.claim(key,1,10)).state,"claimed");await store.complete(key,"done");assert.deepEqual(await store.claim(key,1,10),{state:"duplicate-complete",result:"done"});});
+test("idempotency rejects stale truth versions",async()=>{let now=1;const store=new InMemoryIdempotencyStore(()=>now);await store.claim("event:v1:s:i",5,1);now=3;await assert.rejects(()=>store.claim("event:v1:s:i",4,1),/STALE_TRUTH_VERSION/);});
+test("provider mutation is disabled by default",()=>assert.throws(()=>authorizeProviderMutation(loadConfig(env("execution")),command(),{executionScopeValid:true,ownershipLeaseValid:true,supabaseTruthReconciled:true}),/PROVIDER_MUTATION_DISABLED/));
+test("all service skeletons initialize with workers disabled",()=>{for(const service of ["health","scanner","strategy","risk","capital","execution","protection","recovery","provider","telegram","reporting","customer","operations","certification"]){const runtime=createService(service,env(service));assert.equal(runtime.readiness.initialized,false);assert.equal(runtime.config.runtimeEnabled,false);}});
+test("health endpoints and graceful shutdown work",async()=>{const runtime=createService("health",{...env(),PORT:"0"});const port=await runtime.start();for(const path of ["live","ready","version"]){const response=await fetch(`http://127.0.0.1:${port}/health/${path}`);assert.equal(response.status,200);const body=await response.json() as Record<string,unknown>;assert.equal(body.service,"health");}await runtime.shutdown("TEST");assert.equal(runtime.readiness.initialized,false);});

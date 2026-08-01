@@ -1,0 +1,3 @@
+# Google Cloud–Supabase Shadow Boundary
+
+Supabase remains authoritative. Phase 13 services may read existing scanner/symbol/account/provider/control/Trade Truth contracts. Shadow evidence must remain append-only and isolated, carrying runtime/source/authoritative references, policy and strategy versions, comparison, mismatch explanation, correlation, timestamp and `mutation_authorized=false`. Active signals, execution orders, lifecycle truth, protection and Telegram delivery rows must not be mutated. No schema gap has been evaluated against a real project; if existing audit/artifact/operator tables cannot safely isolate evidence, stop and propose—but do not apply—the smallest additive migration.
