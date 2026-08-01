@@ -1,0 +1,3 @@
+# Infrastructure foundation
+
+All modules are interface-only and enforce `enabled = false`. They declare ownership and future inputs without a Google provider or resources. This makes `fmt`/`validate` safe and prevented Phase 10 provisioning. Phase 11 — Portable HashiBot Core and Phase 12 — Google Cloud Runtime Services do not provision infrastructure. Only a separately approved Phase 13 — Demo Infrastructure + Shadow Certification may add a pinned Google provider and reviewed demo resources. Remote state would use a separately administered, versioned GCS bucket with one prefix and deploy identity per environment; the backend is documented but intentionally absent. Never run `apply` under the current approval.

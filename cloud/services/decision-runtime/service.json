@@ -1,0 +1,8 @@
+{
+  "service": "decision-runtime",
+  "contract_version": 1,
+  "worker_registration": "local-only",
+  "runtime_enabled": false,
+  "provider_mutation_enabled": false,
+  "production_execution_enabled": false
+}
