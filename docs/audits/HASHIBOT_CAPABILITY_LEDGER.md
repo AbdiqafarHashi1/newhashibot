@@ -96,3 +96,7 @@ No Edge Function, schedule, schema, provider call, Telegram route, customer beha
 ## 8. Phase 13 actual status
 
 No capability is `DEPLOYED_SHADOW`, `REAL_DEPENDENCY_CONNECTED`, or `SHADOW_VERIFIED`. Infrastructure and real-dependency capabilities remain **CLOUD_WIRED** at repository-contract level only; Google project, Cloud Run, Pub/Sub, Scheduler, Secret Manager, Supabase mapping, provider reads, Telegram private delivery and Windows MT5 are **BLOCKED** by missing approved project/region/billing/credit, credentials, destinations and required tooling. Customer functionality is **OUT_OF_SCOPE**. All runtime ownership remains **CUTOVER_REQUIRED** for Phase 14.
+
+## Phase 13B (2026-08-01)
+
+Google demo infrastructure and five-service pipelines are implemented and deploy-ready, but not claimed provisioned, deployed, connected, or shadow-certified. Supabase production ownership is unchanged. Provider mutations remain blocked. External credentials, secret versions, Cloud Build approval, Terraform apply, and Windows MT5 provisioning remain manual/blocked.

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail; source "$(dirname "$0")/common-demo.sh"; SHA="${1:?SHA required}"; REGISTRY="${REGISTRY:-$REGION-docker.pkg.dev/$PROJECT_ID/hashibot-demo}"
+for s in "${SERVICES[@]}"; do digest=$(gcloud artifacts docker images describe "$REGISTRY/hashibot-$s:$SHA" --format='value(image_summary.digest)'); [[ "$digest" == sha256:* ]]; gcloud run services update "hashibot-$s" --project "$PROJECT_ID" --region "$REGION" --image "$REGISTRY/hashibot-$s@$digest" --no-allow-unauthenticated --update-env-vars HASHIBOT_ENVIRONMENT=demo,RUNTIME_MODE=shadow,MUTATION_AUTHORIZED=false,PROVIDER_MUTATION_ENABLED=false,PRODUCTION_EXECUTION_ENABLED=false; done

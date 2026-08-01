@@ -73,14 +73,16 @@
     "test:all-phase6": "npm run test:all-brains && npm run test:trade-management",
     "test:runtime-orchestrator": "rm -rf .tmp/ro-tests && mkdir -p .tmp/ro-tests && esbuild tests/runtimeOrchestrator/runtimeOrchestrator.test.ts --bundle --platform=node --format=esm --outfile=.tmp/ro-tests/test.mjs && node .tmp/ro-tests/test.mjs && rm -rf .tmp/ro-tests",
     "test:all-phase7": "npm run test:all-phase6 && npm run test:runtime-orchestrator",
-    "test:strategy-independence": "npm run test:forex-production && npm run test:gold-production"
+    "test:strategy-independence": "npm run test:forex-production && npm run test:gold-production",
+    "test:cloud-deployment": "rm -rf .tmp/cloud-deployment && mkdir -p .tmp/cloud-deployment && esbuild cloud/tests/deployment.test.ts --bundle --platform=node --format=esm --outfile=.tmp/cloud-deployment/test.mjs && node --test .tmp/cloud-deployment/test.mjs && rm -rf .tmp/cloud-deployment",
+    "security:audit": "bash cloud/scripts/security-audit.sh"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
+    "@supabase/supabase-js": "^2.90.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.30.3"
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

@@ -1,4 +1,2 @@
 #!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/../infrastructure/terraform"
-if command -v tofu >/dev/null; then tofu fmt -check -recursive; elif command -v terraform >/dev/null; then terraform fmt -check -recursive; else echo "terraform/tofu unavailable; format validation skipped" >&2; fi
+set -euo pipefail; command -v terraform >/dev/null || { echo terraform-required >&2; exit 127; }; if [[ "${1:-}" == -check ]]; then terraform fmt -check cloud/infrastructure/terraform/environments/demo; else terraform fmt cloud/infrastructure/terraform/environments/demo; fi

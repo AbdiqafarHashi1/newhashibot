@@ -1,34 +1,20 @@
-# HashiBot Google Cloud foundation (Phase 10)
+# HashiBot Google Cloud demo shadow platform (Phase 13B)
 
-This directory is a **dormant, local-only foundation** for the architecture in [`docs/architecture/GOOGLE_CLOUD_MIGRATION.md`](../docs/architecture/GOOGLE_CLOUD_MIGRATION.md). It does not deploy, subscribe to production, change Supabase, or register business workers.
+This directory is **deploy-ready, not evidence of provisioning or deployment**. It targets only `hashibot-demo` in `us-central1`. Supabase remains authoritative; all Google services run with `environment=demo`, `runtime_mode=shadow`, and `mutation_authorized=false`.
 
-Locked roadmap: **Phase 10 — Google Cloud Foundation (COMPLETE); Phase 11 — Portable HashiBot Core; Phase 12 — Google Cloud Runtime Services; Phase 13 — Demo Infrastructure + Shadow Certification; Phase 14 — Demo Cutover + Certification.** Work targets the HashiBot demo only; customer functionality is outside current scope. Logical service boundaries are ownership boundaries and need not become one-for-one deployment boundaries.
+## Pipelines
 
-## Layout and ownership
+* `cloudbuild.validate.yaml`: automatic `main` validation; never pushes, provisions, or deploys.
+* `cloudbuild.shadow-deploy.yaml`: manually approved demo deployment; validates, builds five images, pushes three tags, resolves immutable digests, plans/applies the demo root, updates private Cloud Run services, and emits a certification artifact.
+* `cloudbuild.yaml`: compatibility copy of validation.
 
-- `services/`: compileable health-first boundaries for scanner, strategy, risk, capital, execution, protection, recovery, provider, Telegram, reporting, customer, operations, health, and certification.
-- `shared/`: versioned contracts, strict configuration, structured logging, health, Pub/Sub, idempotency, execution safety, service runtime, and server-only Supabase integration.
-- `infrastructure/terraform/`: interface-only modules and dev/beta/prod roots. Every root enforces `deployment_enabled = false`; no Google resources/providers are declared.
-- `scripts/`: local validation/build/start, container build, safe IaC preview, disabled deployment, and rollback preparation.
-- `tests/`: contract, safety, health, startup, shutdown, retry, logging, and idempotency tests.
+Create second-generation regional triggers: `hashibot-main-validation`, repository `AbdiqafarHashi1-newhashibot`, branch `^main$`, file `/cloud/cloudbuild.validate.yaml`, automatic; and `hashibot-shadow-deploy`, same repository, file `/cloud/cloudbuild.shadow-deploy.yaml`, manual/protected and approval-required. Both use `hashibot-runtime@hashibot-demo.iam.gserviceaccount.com`. Replace the old `hashibot-main` trigger; never make deployment automatic on `main`.
 
-Services share one multi-stage Dockerfile selected with `--build-arg SERVICE=<name>`. The final image runs as UID 10001 and receives configuration/secrets only at runtime. `cloud/cloudbuild.yaml` validates, tests, builds, audits, and emits metadata; it contains no deploy step.
+## Safe deployment
 
-## Safety and ownership
+1. Copy `environments/demo/demo.tfvars.example` to `demo.tfvars`; set only billing account and reviewed image SHA. Secret values never belong in tfvars.
+2. Run `cloud/scripts/phase13-preflight.sh`.
+3. Add enabled secret versions manually with `gcloud secrets versions add NAME --data-file=-`.
+4. Run validation, then invoke the approval-protected deployment trigger with `_DEPLOY_APPROVED=true`.
 
-Supabase remains authoritative for Auth, database, customer, signal/trade truth, reporting, Realtime, and Storage. The in-memory Pub/Sub/idempotency adapters are tests only. All workers are unregistered and `RUNTIME_ENABLED`, `PROVIDER_MUTATION_ENABLED`, and `PRODUCTION_EXECUTION_ENABLED` default false. Execution-like services must additionally prove authorization, scope, idempotency, correlation, runtime ownership lease, and Supabase reconciliation.
-
-## Local quick start
-
-```bash
-npm run typecheck:cloud
-npm run test:cloud
-bash cloud/scripts/local-start.sh health
-curl http://localhost:8080/health/live
-```
-
-Example files contain placeholders, never usable credentials. See the local development and deployment precheck runbooks before using any script.
-
-## Intentionally unimplemented
-
-There are no Google SDK adapters, production subscribers, business logic copies, provider mutations, production Supabase connections, Terraform Google resources, active remote state, artifact pushes, Cloud Run deployments, schedules, or migration routing. Those require later separately approved phases.
+Use a versioned, uniform-access GCS backend bucket with object versioning and retention. Terraform's GCS backend locks state automatically. Configure the backend outside source control before applying. Scheduler jobs start paused. The root does not provision VPC, NAT, load balancer, Cloud Armor, or a Windows VM.

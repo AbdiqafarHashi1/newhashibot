@@ -1,0 +1,32 @@
+# Validation only: this pipeline never provisions, pushes, or deploys.
+steps:
+- id: install
+  name: node:20.20.2
+  entrypoint: npm
+  args: [ci, --ignore-scripts]
+- id: tests
+  name: node:20.20.2
+  entrypoint: bash
+  args: [-ceu, 'npm run test:all-phase12 && npm run test:phase13 && npm run test:runtime-services && npm run test:cloud-deployment']
+- id: static-checks
+  name: node:20.20.2
+  entrypoint: bash
+  args: [-ceu, 'npm run lint:cloud && npm run typecheck:cloud && git diff --check && cloud/scripts/terraform-format.sh -check']
+- id: terraform-validate
+  name: hashicorp/terraform:1.9.8
+  entrypoint: sh
+  args: [-ceu, 'cloud/scripts/terraform-validate.sh']
+- id: security
+  name: node:20.20.2
+  entrypoint: bash
+  args: [-ceu, cloud/scripts/security-audit.sh]
+- id: build-five-images
+  name: gcr.io/cloud-builders/docker
+  entrypoint: bash
+  args: [-ceu, 'cloud/scripts/build-all.sh "$COMMIT_SHA"']
+- id: metadata
+  name: node:20.20.2
+  entrypoint: bash
+  args: [-ceu, 'mkdir -p artifacts && printf ''{"build_id":"%s","commit":"%s","mode":"validation"}\n'' "$BUILD_ID" "$COMMIT_SHA" > artifacts/build-metadata.json']
+options: {logging: CLOUD_LOGGING_ONLY}
+artifacts: {objects: {location: 'gs://${PROJECT_ID}-build-artifacts/validation/${BUILD_ID}', paths: ['artifacts/build-metadata.json']}}
