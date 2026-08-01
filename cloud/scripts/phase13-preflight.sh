@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
-missing=()
-for name in HASHIBOT_DEMO_PROJECT_ID HASHIBOT_DEMO_REGION HASHIBOT_BILLING_ACCOUNT; do test -n "${!name:-}" || missing+=("$name"); done
-test "${HASHIBOT_PROMO_CREDIT_CONFIRMED:-false}" = true || missing+=(HASHIBOT_PROMO_CREDIT_CONFIRMED)
-test "${HASHIBOT_PHASE13_APPLY_APPROVED:-false}" = true || missing+=(HASHIBOT_PHASE13_APPLY_APPROVED)
-command -v gcloud >/dev/null || missing+=(gcloud)
-(command -v terraform >/dev/null || command -v tofu >/dev/null) || missing+=(terraform_or_tofu)
-command -v docker >/dev/null || missing+=(docker)
-test -n "$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || true)" || missing+=(active_google_account)
-if ((${#missing[@]})); then printf 'PHASE13_BLOCKED missing=%s\n' "$(IFS=,; echo "${missing[*]}")"; exit 13; fi
-configured="$(gcloud config get-value project 2>/dev/null)"
-test "$configured" = "$HASHIBOT_DEMO_PROJECT_ID" || { echo "Configured project does not match approved project"; exit 14; }
-echo "PHASE13_PREFLIGHT_READY project=$HASHIBOT_DEMO_PROJECT_ID region=$HASHIBOT_DEMO_REGION"
+set -euo pipefail; source "$(dirname "$0")/common-demo.sh"
+for c in gcloud docker terraform curl node; do command -v "$c" >/dev/null || { echo "missing:$c" >&2; exit 1; }; done
+gcloud auth list --filter=status:ACTIVE --format='value(account)' | grep -q . || { echo no-active-google-account >&2; exit 1; }
+[[ "$(gcloud config get-value project 2>/dev/null)" == "$PROJECT_ID" ]] || { echo wrong-gcloud-project >&2; exit 1; }
+gcloud beta billing projects describe "$PROJECT_ID" --format='value(billingEnabled)' | grep -qx True || { echo billing-not-enabled >&2; exit 1; }
+required=(run.googleapis.com artifactregistry.googleapis.com pubsub.googleapis.com secretmanager.googleapis.com cloudscheduler.googleapis.com monitoring.googleapis.com logging.googleapis.com cloudbuild.googleapis.com)
+enabled=$(gcloud services list --enabled --project "$PROJECT_ID" --format='value(config.name)'); for api in "${required[@]}"; do grep -qx "$api" <<<"$enabled" || { echo "missing-api:$api" >&2; exit 1; }; done
+for secret in supabase-url supabase-server-credential binance-testnet-api-key binance-testnet-secret bybit-demo-api-key bybit-demo-secret telegram-test-bot-token telegram-private-test-chat-id forex-market-data-api-key mt5-bridge-authentication-secret internal-runtime-authentication-secret; do gcloud secrets versions list "$secret" --project "$PROJECT_ID" --filter='state=ENABLED' --format='value(name)' | grep -q . || { echo "missing-enabled-secret-version:$secret" >&2; exit 1; }; done
+echo 'Phase 13B preflight passed; credentials were not read or printed.'

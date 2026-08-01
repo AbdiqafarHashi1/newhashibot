@@ -9,5 +9,5 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["shared/**/*.ts", "services/**/*.ts", "tests/**/*.ts"]
+  "include": ["shared/**/*.ts", "services/**/*.ts", "tests/**/*.ts", "adapters/**/*.ts", "shadow/**/*.ts", "runtime/**/*.ts"]
 }

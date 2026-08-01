@@ -1,3 +1,3 @@
-# Google Cloud Demo Teardown
+# Demo teardown
 
-Pause Scheduler; stop Pub/Sub delivery; export/preserve certification evidence; scale Cloud Run to zero; stop the Windows VM; revoke secret access and runtime identities; review remaining disks/IPs/images/log sinks; run a reviewed destroy plan against the approved demo project; verify zero billable orphan resources. Supabase production is never changed. This procedure is untested because no resources exist.
+Export `PROJECT_ID=hashibot-demo`, `REGION=us-central1`, and `TEARDOWN_APPROVED=true`, then run `cloud/scripts/teardown-shadow.sh`. Review retained Artifact Registry and state objects separately. This command does not call Supabase or alter production schedules.

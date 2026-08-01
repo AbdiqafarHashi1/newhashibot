@@ -1,0 +1,8 @@
+project_id = "hashibot-demo"
+region = "us-central1"
+environment = "demo"
+deploy_approved = false
+billing_account = "REPLACE_WITH_BILLING_ACCOUNT_ID"
+monthly_budget_usd = 75
+scheduler_enabled = false
+image_tag = "REPLACE_WITH_COMMIT_SHA"

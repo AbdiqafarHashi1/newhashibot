@@ -7,7 +7,7 @@ export const EVENT_TYPES = [
 ] as const;
 
 export type EventType = typeof EVENT_TYPES[number];
-export type CloudEnvironment = "dev" | "beta" | "prod";
+export type CloudEnvironment = "dev" | "beta" | "prod" | "demo";
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
 export interface EventEnvelope<T extends EventType = EventType, P extends Json = Json> {

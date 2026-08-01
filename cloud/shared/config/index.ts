@@ -31,7 +31,7 @@ const map = (raw: string, key: string): Record<string, string> => {
 
 export function loadConfig(env: Environment = process.env): CloudConfig {
   const environment = required(env, "HASHIBOT_ENVIRONMENT");
-  if (!["dev", "beta", "prod"].includes(environment)) throw new ConfigurationError("HASHIBOT_ENVIRONMENT must be dev, beta, or prod");
+  if (environment !== "demo") throw new ConfigurationError("Cloud deployment is demo-only");
   const cfg: CloudConfig = {
     service: required(env, "HASHIBOT_SERVICE"), environment: environment as CloudEnvironment,
     region: required(env, "GOOGLE_CLOUD_REGION"), revision: env.K_REVISION || "local", buildId: env.BUILD_ID || "local",
@@ -46,6 +46,8 @@ export function loadConfig(env: Environment = process.env): CloudConfig {
     runtimeEnabled: flag(env, "RUNTIME_ENABLED"), providerMutationEnabled: flag(env, "PROVIDER_MUTATION_ENABLED"),
     productionExecutionEnabled: flag(env, "PRODUCTION_EXECUTION_ENABLED"),
   };
+  if (env.RUNTIME_MODE !== "shadow" || env.MUTATION_AUTHORIZED !== "false") throw new ConfigurationError("Runtime must be shadow with mutations denied");
+  if (cfg.providerMutationEnabled || cfg.productionExecutionEnabled) throw new ConfigurationError("Provider and production mutation gates must remain false");
   if (!/^https:\/\//.test(cfg.supabaseUrl)) throw new ConfigurationError("SUPABASE_URL must use HTTPS");
   if (/service.role|eyJ/i.test(cfg.supabaseCredentialSecretRef)) throw new ConfigurationError("SUPABASE_CREDENTIAL_SECRET_REF must be a secret reference, not a credential value");
   return Object.freeze(cfg);

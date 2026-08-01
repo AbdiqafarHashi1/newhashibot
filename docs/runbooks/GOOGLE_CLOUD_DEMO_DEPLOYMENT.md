@@ -1,3 +1,3 @@
-# Google Cloud Demo Deployment
+# Demo deployment
 
-Run `cloud/scripts/phase13-preflight.sh`; do not continue unless it reports READY. Review estimated cost and Terraform plan, obtain manual apply approval, bootstrap federated identities, apply demo-only infrastructure with the approved project/region, build immutable digests in Cloud Build, deploy five services with zero traffic ownership and mutation gates false, verify health and IAM, then enable one shadow-safe subscription/job at a time. Record every command, plan, revision and health result. This runbook was not executed in this environment.
+Run `npm ci`, `npm run test:cloud-deployment`, `cloud/scripts/security-audit.sh`, and `cloud/scripts/phase13-preflight.sh`. Review `terraform-plan-demo.sh`; then invoke the manually approved `hashibot-shadow-deploy` trigger with `_DEPLOY_APPROVED=true`. Add secret versions manually before deployment. Verify the generated certification shows all five services as demo/shadow/mutation-false. A plan or build is not proof of deployment.

@@ -1,5 +1,5 @@
-# Google Cloud Shadow Runtime
+# Google Cloud shadow runtime
 
-All messages must pass `validateShadowEnvelope`: `environment=demo`, `runtime_mode=shadow`, and `mutation_authorized=false`. Missing/incorrect fields reject before handling. Read-only provider transports expose reads and sanitized intent rendering only—no submit, cancel, close, leverage, margin or protection mutation methods. Telegram ordinary output is preview-only; the only sendable contract is a certification summary prefixed `SHADOW / DEMO CERTIFICATION` to a private admin test destination.
+Every handler validates the envelope before business dispatch: schema/event or command ID, correlation, timestamp, `demo`, `shadow`, and `mutation_authorized=false`. Invalid messages are permanent/DLQ failures. Google adapters provide bounded REST retries, explicit acknowledgement, correlation/idempotency attributes, Secret Manager fail-closed resolution, structured stdout, Monitoring writes, deployment metadata, and identity-token internal requests.
 
-`compareShadow` evaluates every supplied authoritative/shadow field and classifies exact, tolerance, expected, mismatch, blocking mismatch or insufficient evidence; no waiver path exists. Real dependencies are not connected and no shadow run counts are claimed.
+Binance testnet and Bybit demo transports expose reads and request rendering. Mutation methods reject locally, emit a critical incident with correlation evidence, and never issue HTTP. MT5 remains contracts-only until a Windows agent exists. Telegram certification output must begin `SHADOW / DEMO CERTIFICATION` and may target only the configured private test chat.
