@@ -11,11 +11,11 @@ steps:
 - id: static-checks
   name: node:20.20.2
   entrypoint: bash
-  args: [-ceu, 'npm run lint:cloud && npm run typecheck:cloud && git diff --check && cloud/scripts/terraform-format.sh -check']
+  args: [-ceu, 'npm run lint:cloud && npm run typecheck:cloud && git diff --check']
 - id: terraform-validate
   name: hashicorp/terraform:1.9.8
   entrypoint: sh
-  args: [-ceu, 'cloud/scripts/terraform-validate.sh']
+  args: [-ceu, 'terraform fmt -check cloud/infrastructure/terraform/environments/demo && cloud/scripts/terraform-validate.sh']
 - id: security
   name: node:20.20.2
   entrypoint: bash
