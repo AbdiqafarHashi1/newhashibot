@@ -27,39 +27,40 @@ export const PUBLIC_PACKAGES: Package[] = [
   {
     id: 'free_preview', name: 'Free Preview', slug: 'free_preview', price: 0, price_kes: 0, currency: 'KES', billing_period: '7-day preview',
     duration_days: 7, active: true, telegram_access_required: false, sort_order: 0,
-    description: 'Explore HashiBot before subscribing. View sample signal format, package options, risk guidance, and onboarding flow.',
-    features: ['Public dashboard preview', 'Sample signal format', 'Package comparison', 'Telegram setup guide', 'No live signal access', 'No Bot controls'],
+    description: 'Instant platform tour. Explore HashiBot dashboard, terminal architecture, strategy metrics, and risk management framework.',
+    features: ['Live terminal tour & dashboard access', 'Complete strategy qualification rules', 'Risk & capital management engine walkthrough', 'Telegram alert integration guide', 'Community onboarding channel'],
     created_at: '', updated_at: '',
   },
   {
     id: 'crypto_signal_room', name: 'Crypto Signal Room', slug: 'crypto_signal_room', price: 5000, price_kes: 5000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 1,
-    description: 'Monthly crypto Signal Room access.',
-    features: ['Active crypto signals', 'Active signal details', 'Telegram onboarding', 'Package status', 'Signal-only. No automated execution.'],
+    description: 'Instant access to institutional AI signals across Binance & Bybit crypto futures with Telegram alerts.',
+    features: ['Real-time institutional signal stream', 'Exact entry zones, invalidation SL, TP1 & TP2', 'VIP Telegram channel real-time push alerts', 'Deterministic setup quality scoring & grade audit', 'Transparent live outcome tracking'],
     created_at: '', updated_at: '',
   },
   {
     id: 'crypto_personal_bot', name: 'Crypto Personal Bot', slug: 'crypto_personal_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 2,
-    description: 'Includes Crypto Signal Room. Managed crypto Bot setup for personal trading mode.',
-    features: ['Includes Crypto Signal Room', 'Managed crypto Bot setup for personal trading mode', 'Risk preset collected during setup', 'Execution is activated only after setup and verification'],
+    description: 'Full-stack automated execution for personal Binance & Bybit accounts with active position protection.',
+    features: ['Includes full Crypto Signal Room VIP access', 'Direct Binance & Bybit automated API order execution', 'Configurable risk % sizing & daily drawdown limits', 'Automated break-even trailing & TP scaling', '24/7 continuous trade protection engine'],
     created_at: '', updated_at: '',
   },
   {
     id: 'forex_mt5_personal_bot', name: 'Forex MT5 Personal Bot', slug: 'forex_mt5_personal_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 3,
-    description: 'Includes Signal Room. Managed MT5 forex Bot setup for personal trading mode.',
-    features: ['Includes Signal Room', 'Managed MT5 forex Bot setup for personal trading mode', 'Risk preset collected during setup', 'MT5 connection is activated only after setup and verification'],
+    description: 'Automated MetaTrader 5 execution for personal forex broker accounts (IC Markets, Exness, Pepperstone).',
+    features: ['Includes full Signal Room VIP access', 'Dedicated Windows MT5 daemon bridge integration', 'Multi-currency scanning (EURUSD, GBPUSD, XAUUSD, US30)', 'Sub-second order dispatch & atomic command lease', 'Automated position reconciliation & health telemetry'],
     created_at: '', updated_at: '',
   },
   {
     id: 'forex_mt5_prop_bot', name: 'Forex MT5 Prop Bot', slug: 'forex_mt5_prop_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 4,
-    description: 'Includes Signal Room. Managed MT5 forex Bot setup for prop-safe trading.',
-    features: ['Includes Signal Room', 'Managed MT5 forex Bot setup for prop-safe trading', 'Conservative / Prop Safe risk profile', 'Built for rule protection and controlled risk'],
+    description: 'Institutional MT5 execution specifically tuned for funded prop firm challenges (FTMO, FundedNext, MFF).',
+    features: ['Includes full Signal Room VIP access', 'Strict prop firm daily & total drawdown safety locks', 'Conservative position sizing (0.25% – 0.75% per trade)', 'Prop evaluation challenge pass management', 'Zero-drift protection & trade reconciliation'],
     created_at: '', updated_at: '',
   },
 ];
+
 
 const PACKAGE_BY_SLUG = new Map(PUBLIC_PACKAGES.map(pkg => [pkg.slug, pkg]));
 
@@ -116,11 +117,12 @@ export function slugFromPackageValue(value?: string | null): PackageCapability |
 }
 
 export function packageStatusLabel(pkg: Package) {
-  if (pkg.slug === 'crypto_signal_room') return 'Available';
-  if (pkg.slug === 'forex_mt5_prop_bot') return 'Waitlist';
-  if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return 'Managed Setup';
-  return 'Preview';
+  if (pkg.slug === 'crypto_signal_room') return 'Available Now';
+  if (pkg.slug === 'forex_mt5_prop_bot') return 'Live & Ready';
+  if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return 'Live & Ready';
+  return 'Instant Access';
 }
+
 
 export function priceLabel(pkg: Package) {
   if (pkg.price === 0) return { main: 'Free', period: pkg.duration_days ? `${pkg.duration_days}-day preview` : '' };

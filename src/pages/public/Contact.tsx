@@ -165,7 +165,7 @@ export default function Contact() {
         </div>
 
         {/* Contact Form Section */}
-        <div className="max-w-3xl mx-auto bg-zinc-950 border border-zinc-800 rounded-2xl p-6 sm:p-10 shadow-2xl space-y-6">
+        <div id="contact-form" className="max-w-3xl mx-auto bg-zinc-950 border border-zinc-800 rounded-2xl p-6 sm:p-10 shadow-2xl space-y-6 scroll-mt-24">
           <div>
             <h2 className="text-2xl font-extrabold text-white">Send An Enquiry</h2>
             <p className="text-xs text-zinc-400 mt-1">Select a category and fill out the details below.</p>
@@ -298,8 +298,8 @@ export default function Contact() {
             Email Support Directly
           </a>
           <span>•</span>
-          <Link to="/pricing" className="text-blue-400 hover:underline">
-            View Pricing & Submit M-Pesa Payment
+          <Link to="/pricing#mpesa-payment-section" className="text-blue-400 hover:underline">
+            View Plans & Submit M-Pesa Payment
           </Link>
           <span>•</span>
           <Link to="/faq" className="text-blue-400 hover:underline">

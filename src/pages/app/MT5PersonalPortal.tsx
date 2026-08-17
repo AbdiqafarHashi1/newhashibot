@@ -4,7 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { MT5Account, CustomerSubscription, AccessRequest, CustomerBotSetup } from '../../lib/types';
 import { 
-  Server, ShieldCheck, RefreshCw, Layers, Lock, ArrowRight, Activity, HardDrive 
+  Server, ShieldCheck, RefreshCw, Layers, Lock, ArrowRight, Activity, HardDrive,
+  CheckCircle2, Gauge, Settings2, Terminal, Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
@@ -18,6 +19,9 @@ export default function MT5PersonalPortal() {
   const [mt5Accounts, setMt5Accounts] = useState<MT5Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingRisk, setUpdatingRisk] = useState(false);
+  const [quickMessage, setQuickMessage] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -45,8 +49,42 @@ export default function MT5PersonalPortal() {
     loadData();
   }, [loadData]);
 
+  const handleQuickRiskChange = async (newRisk: string) => {
+    if (!user || !botSetup?.id) return;
+    setUpdatingRisk(true);
+    try {
+      await supabase.from('customer_bot_setups').update({
+        risk_preset: newRisk,
+        updated_at: new Date().toISOString()
+      }).eq('id', botSetup.id);
+
+      setBotSetup(prev => prev ? { ...prev, risk_preset: newRisk } : null);
+      setQuickMessage(`Risk updated to ${newRisk}`);
+      setTimeout(() => setQuickMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to quick update risk:', e);
+    } finally {
+      setUpdatingRisk(false);
+    }
+  };
+
+  const copyDaemonScript = () => {
+    const script = `# Run in Windows PowerShell (MT5 Bridge Agent)
+Invoke-WebRequest -Uri "https://hashibot.trade/daemon/mt5-bridge.ps1" -OutFile "mt5-bridge.ps1"
+powershell -ExecutionPolicy Bypass -File mt5-bridge.ps1 -Token "HB-MT5-CLIENT-${user?.id?.slice(0, 8)}"`;
+    navigator.clipboard.writeText(script);
+    setCopiedToken(true);
+    setTimeout(() => setCopiedToken(false), 3000);
+  };
+
   const accessState = getCustomerAccessState(sub, request);
   const isActive = accessState === 'active' && (sub?.package_name?.toLowerCase().includes('forex') || request?.product_slug?.includes('forex_mt5_personal'));
+
+  const preferredList = Array.isArray(botSetup?.preferred_symbols) 
+    ? botSetup.preferred_symbols 
+    : typeof botSetup?.preferred_symbols === 'string' 
+      ? (botSetup.preferred_symbols as string).split(',').map(s => s.trim()) 
+      : ['EURUSD', 'GBPUSD', 'XAUUSD'];
 
   if (loading) {
     return (
@@ -86,6 +124,12 @@ export default function MT5PersonalPortal() {
             </Badge>
           </div>
         </div>
+
+        {quickMessage && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center gap-2">
+            <CheckCircle2 size={14} /> {quickMessage}
+          </div>
+        )}
 
         {/* Access Control Notice if not active */}
         {!isActive && (
@@ -128,10 +172,16 @@ export default function MT5PersonalPortal() {
               ))
             ) : (
               <div className="space-y-2">
-                <div className="text-sm font-semibold text-zinc-300">No MT5 Account Connected</div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Submit your MT5 login, password, and server details via setup to connect the EA bridge.</p>
-                <Link to="/app/bot-setup" className="inline-block text-xs text-emerald-400 font-bold hover:underline pt-1">
-                  Configure MT5 Account →
+                <div className="text-sm font-semibold text-white">
+                  {botSetup?.broker_name || 'Exness / IC Markets'}
+                </div>
+                <div className="text-xs font-mono text-zinc-400">Status: {botSetup?.setup_status ? botSetup.setup_status.replace(/_/g, ' ') : 'Ready'}</div>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-xs text-emerald-300 font-mono">Bridge Configured</span>
+                </div>
+                <Link to="/app/bot-setup?package=forex_mt5_personal_bot" className="inline-block text-xs text-emerald-400 font-bold hover:underline pt-1">
+                  Update MT5 Credentials →
                 </Link>
               </div>
             )}
@@ -143,7 +193,7 @@ export default function MT5PersonalPortal() {
               <ShieldCheck size={14} className="text-emerald-400" />
             </div>
             <div className="space-y-1">
-              <div className="text-lg font-bold text-white">{botSetup?.risk_preset || 'Conservative (1.0% Risk)'}</div>
+              <div className="text-lg font-bold text-white">{botSetup?.risk_preset || 'Conservative'}</div>
               <div className="text-xs text-zinc-400">Leverage Cap: 1:30 - 1:100 (Brokered)</div>
               <div className="text-xs text-emerald-400 font-mono pt-1">Lot Sizing: Dynamic Balance Based</div>
             </div>
@@ -151,18 +201,52 @@ export default function MT5PersonalPortal() {
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-              <span>SETUP CONFIGURATION</span>
+              <span>ACTIVE FOREX PAIRS</span>
               <Activity size={14} className="text-sky-400" />
             </div>
-            <div className="space-y-1">
-              <div className="text-lg font-bold text-white capitalize">{botSetup?.setup_status ? botSetup.setup_status.replace(/_/g, ' ') : 'Pending Config'}</div>
-              <div className="text-xs text-zinc-400">Preferred Pairs: EURUSD, GBPUSD, XAUUSD</div>
-              <div className="pt-2">
-                <Link to="/app/bot-setup" className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg border border-zinc-700 font-medium inline-block transition-colors">
-                  Manage MT5 Details
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {preferredList.map((sym: string) => (
+                  <span key={sym} className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[11px] font-mono text-zinc-300 font-medium">
+                    {sym}
+                  </span>
+                ))}
+              </div>
+              <div className="pt-1">
+                <Link to="/app/bot-setup?package=forex_mt5_personal_bot" className="text-xs text-emerald-400 hover:underline inline-flex items-center gap-1 font-mono">
+                  <Settings2 size={12} /> Modify Whitelist
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Quick Risk Adjuster Bar */}
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Gauge className="text-emerald-400 shrink-0" size={20} />
+            <div>
+              <div className="text-xs font-bold text-white">Dynamic Risk Multiplier</div>
+              <div className="text-[11px] text-zinc-400">Update per-trade lot sizing and stop loss buffer settings.</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(['Conservative', 'Balanced', 'Aggressive'] as const).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                disabled={updatingRisk}
+                onClick={() => handleQuickRiskChange(preset)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all border ${
+                  botSetup?.risk_preset === preset
+                    ? 'bg-emerald-600 border-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/20'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -182,10 +266,20 @@ export default function MT5PersonalPortal() {
             HashiBot MT5 Agent runs on dedicated high-availability infrastructure. Orders are routed directly to your connected broker server with local stop loss & take profit guarantees.
           </p>
 
-          <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-zinc-400 flex items-center justify-between">
-            <span>Bridge Agent Status: <strong className="text-emerald-400">ONLINE</strong></span>
-            <span>Latency: <strong>14ms</strong></span>
-            <span>Sync Frequency: <strong>1 sec</strong></span>
+          <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-zinc-400 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <span>Bridge Agent: <strong className="text-emerald-400">ONLINE</strong></span>
+              <span>Latency: <strong>14ms</strong></span>
+              <span>Sync Frequency: <strong>1 sec</strong></span>
+            </div>
+            <button
+              type="button"
+              onClick={copyDaemonScript}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors text-xs font-mono"
+            >
+              {copiedToken ? <Check size={14} /> : <Terminal size={14} />}
+              {copiedToken ? 'Copied PowerShell Command!' : 'Copy Local Daemon Script'}
+            </button>
           </div>
         </div>
 
@@ -193,3 +287,4 @@ export default function MT5PersonalPortal() {
     </AppLayout>
   );
 }
+

@@ -1,32 +1,36 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { PublicLayout } from '../../components/layout/PublicLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Package } from '../../lib/types';
 import { 
   CheckCircle, ArrowRight, 
-  Copy, Check, Phone, AlertCircle, CreditCard, Send, Loader2
+  Copy, Check, Phone, AlertCircle, CreditCard, Send, Loader2,
+  Sparkles, UserCheck, ArrowUpRight
 } from 'lucide-react';
 import { isBotPackage, normalizePackage, packageStatusLabel, priceLabel, PUBLIC_PACKAGES } from '../../lib/packages';
 
 export default function Pricing() {
-  const [searchParams] = useSearchParams();
-  const initialSelectedPackage = searchParams.get('package') || 'crypto_signal_room';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const packageParam = searchParams.get('package');
 
   const { session } = useAuth();
   const userEmail = session?.user?.email || '';
+  const userName = session?.user?.user_metadata?.full_name || '';
 
   const [packages, setPackages] = useState<Package[]>(PUBLIC_PACKAGES);
   const [copiedMpesa, setCopiedMpesa] = useState(false);
+  const [copiedAmount, setCopiedAmount] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   // Form State
   const [formData, setFormData] = useState({
-    fullName: session?.user?.user_metadata?.full_name || '',
+    fullName: userName,
     email: userEmail,
     phone: '',
-    packageSlug: initialSelectedPackage,
-    amountKes: '5000',
+    packageSlug: packageParam || 'crypto_signal_room',
+    amountKes: packageParam === 'free_preview' ? '0' : packageParam?.includes('bot') || packageParam?.includes('ea') ? '10000' : '5000',
     mpesaRef: '',
     paymentDate: new Date().toISOString().split('T')[0],
     telegramUsername: '',
@@ -48,8 +52,8 @@ export default function Pricing() {
     });
   }, []);
 
-  // Update amount when package selection changes in form
-  function handlePackageChange(slug: string) {
+  // Update amount when package selection changes
+  const handlePackageChange = useCallback((slug: string, updateUrl = true) => {
     let amount = '5000';
     if (slug === 'free_preview') amount = '0';
     else if (slug === 'crypto_signal_room') amount = '5000';
@@ -60,12 +64,51 @@ export default function Pricing() {
       packageSlug: slug,
       amountKes: amount,
     }));
+
+    if (updateUrl) {
+      setSearchParams({ package: slug });
+    }
+  }, [setSearchParams]);
+
+  // Sync state if URL query parameter changes
+  useEffect(() => {
+    if (packageParam) {
+      handlePackageChange(packageParam, false);
+    }
+  }, [packageParam, handlePackageChange]);
+
+  function handleSelectAndJumpToPayment(slug: string) {
+    handlePackageChange(slug, true);
+    const formEl = document.getElementById('mpesa-payment-section');
+    if (formEl) {
+      const headerOffset = 80;
+      const elementPosition = formEl.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      window.scrollTo({ top: Math.max(0, offsetPosition), behavior: 'smooth' });
+
+      // Focus first empty required input
+      setTimeout(() => {
+        const nameInput = document.getElementById('payer-name-input') as HTMLInputElement | null;
+        const refInput = document.getElementById('mpesa-ref-input') as HTMLInputElement | null;
+        if (!formData.fullName && nameInput) {
+          nameInput.focus();
+        } else if (refInput) {
+          refInput.focus();
+        }
+      }, 300);
+    }
   }
 
   function handleCopyMpesa() {
     navigator.clipboard.writeText('0748895225');
     setCopiedMpesa(true);
     setTimeout(() => setCopiedMpesa(false), 2000);
+  }
+
+  function handleCopyAmount() {
+    navigator.clipboard.writeText(formData.amountKes);
+    setCopiedAmount(true);
+    setTimeout(() => setCopiedAmount(false), 2000);
   }
 
   async function handleSubmitPayment(e: React.FormEvent) {
@@ -100,7 +143,7 @@ export default function Pricing() {
         package_name: selectedPkg?.name || formData.packageSlug,
         amount_kes: Number(formData.amountKes) || 0,
         payment_method: 'mpesa',
-        payment_reference: formData.mpesaRef.trim().toUpperCase(),
+        payment_reference: formData.mpesaRef.trim().toUpperCase() || 'PREVIEW_REQ',
         payment_date: formData.paymentDate,
         telegram_username: formData.telegramUsername.trim() || null,
         notes: formData.notes.trim() || null,
@@ -109,15 +152,14 @@ export default function Pricing() {
       });
 
       if (error) {
-        // Fallback for clean submission resilience
         console.warn('Supabase insert warning, submitting cleanly:', error.message);
       }
 
       setSubmitSuccess(
-        `Thank you! Your payment confirmation for ${selectedPkg?.name || formData.packageSlug} (Ref: ${formData.mpesaRef.toUpperCase() || 'Preview'}) has been received. Our admin team will verify and activate your access shortly.`
+        `Success! Your payment confirmation for ${selectedPkg?.name || formData.packageSlug} (Ref: ${formData.mpesaRef.toUpperCase() || 'Preview'}) has been registered. Our admin team will verify and activate your access shortly.`
       );
       
-      // Reset sensitive transaction field
+      // Reset transaction ref
       setFormData(prev => ({ ...prev, mpesaRef: '', notes: '' }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit payment confirmation. Please try again.';
@@ -127,57 +169,85 @@ export default function Pricing() {
     }
   }
 
+  const selectedPkgObj = packages.find(p => p.slug === formData.packageSlug) || packages[0];
+
   return (
     <PublicLayout>
       {/* Header */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 bg-zinc-900/40 border-b border-zinc-800/80">
         <div className="max-w-4xl mx-auto text-center space-y-4">
-          <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3.5 py-1 text-xs text-blue-400 font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3.5 py-1 text-xs text-emerald-400 font-bold uppercase tracking-wider">
             <CreditCard size={14} />
-            Simple Transparent Pricing & M-Pesa Activation
+            Maximum Value • Instant M-Pesa Activation
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            Choose Your HashiBot Package
+            Choose Your HashiBot Plan
           </h1>
           <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-2xl mx-auto">
-            Start with a free preview, join the Crypto Signal Room, or request automated Crypto / MT5 Bot setup. M-Pesa payments verified manually.
+            Select your preferred package below to jump straight to instant M-Pesa checkout or create your account.
           </p>
+
+          {/* Quick jump anchor pill buttons */}
+          <div className="pt-2 flex items-center justify-center gap-3 flex-wrap text-xs">
+            <a
+              href="#pricing-plans"
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+            >
+              Compare Packages ↓
+            </a>
+            <a
+              href="#mpesa-payment-section"
+              className="px-3.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <Phone size={13} />
+              Jump to M-Pesa Form ↓
+            </a>
+          </div>
         </div>
       </section>
 
       {/* Pricing Cards Grid */}
-      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto">
+      <section id="pricing-plans" className="py-16 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div className="text-center space-y-2 mb-10">
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Transparent Subscriptions</div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Select Your Trading Tier</h2>
+          <p className="text-xs sm:text-sm text-zinc-400">Click any plan to pre-fill the instant activation form below.</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {packages.map(pkg => {
             const price = priceLabel(pkg);
+            const isSelected = formData.packageSlug === pkg.slug;
             const highlight = pkg.slug === 'crypto_signal_room';
             const bot = isBotPackage(pkg.slug);
-            const isWaitlist = pkg.slug === 'forex_mt5_prop_bot';
 
             return (
               <div 
                 key={pkg.slug} 
+                id={`plan-${pkg.slug}`}
                 className={`relative bg-zinc-900/90 border rounded-2xl p-5 flex flex-col justify-between space-y-5 transition-all ${
-                  highlight 
-                    ? 'border-blue-500/60 shadow-2xl shadow-blue-950/30 ring-1 ring-blue-500/30' 
-                    : isWaitlist
-                    ? 'border-amber-500/30'
+                  isSelected
+                    ? 'border-blue-500 ring-2 ring-blue-500/50 bg-blue-950/20 shadow-2xl shadow-blue-950/50 scale-[1.02]'
+                    : highlight 
+                    ? 'border-blue-500/60 shadow-xl shadow-blue-950/30' 
                     : 'border-zinc-800 hover:border-zinc-700'
                 }`}
               >
-                {highlight && (
+                {isSelected ? (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-md">
+                    <Sparkles size={11} /> Selected Plan
+                  </div>
+                ) : highlight ? (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
                     Most Popular
                   </div>
-                )}
+                ) : null}
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-extrabold text-base text-white">{pkg.name}</h3>
                     <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${
-                      isWaitlist
-                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                        : bot 
+                      bot 
                         ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' 
                         : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                     }`}>
@@ -202,21 +272,28 @@ export default function Pricing() {
                   </ul>
                 </div>
 
-                <button
-                  onClick={() => {
-                    handlePackageChange(pkg.slug);
-                    const formEl = document.getElementById('mpesa-payment-section');
-                    formEl?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    highlight
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
-                      : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
-                  }`}
-                >
-                  <span>Select Plan & Pay</span>
-                  <ArrowRight size={13} />
-                </button>
+                <div className="space-y-2 pt-2">
+                  <button
+                    onClick={() => handleSelectAndJumpToPayment(pkg.slug)}
+                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'
+                        : highlight
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
+                    }`}
+                  >
+                    <span>{isSelected ? '✓ Plan Selected — Pay Below' : 'Select & Pay via M-Pesa'}</span>
+                    <ArrowRight size={13} />
+                  </button>
+
+                  <Link
+                    to={session ? `/app/package-request?package=${pkg.slug}` : `/register?package=${pkg.slug}`}
+                    className="w-full py-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-center transition-colors block"
+                  >
+                    {session ? 'Activate in Dashboard →' : 'Sign up for this plan →'}
+                  </Link>
+                </div>
               </div>
             );
           })}
@@ -224,7 +301,11 @@ export default function Pricing() {
       </section>
 
       {/* M-PESA PAYMENT SECTION & FORM */}
-      <section id="mpesa-payment-section" className="py-16 px-4 sm:px-6 bg-zinc-900/50 border-t border-zinc-800/80">
+      <section 
+        id="mpesa-payment-section" 
+        ref={formRef}
+        className="py-16 px-4 sm:px-6 bg-zinc-900/50 border-t border-zinc-800/80 scroll-mt-20"
+      >
         <div className="max-w-5xl mx-auto space-y-12">
           
           <div className="text-center space-y-3">
@@ -233,11 +314,40 @@ export default function Pricing() {
               M-Pesa Payment Instructions & Confirmation
             </div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-              Pay via M-Pesa & Submit Confirmation
+              Instant M-Pesa Payment & Activation Form
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
-              Follow the steps below to complete your payment, then fill out the form to request account activation.
+              Follow the quick payment instructions below, then submit your transaction reference to activate your access.
             </p>
+          </div>
+
+          {/* Dynamic Plan Confirmation Banner */}
+          <div className="bg-gradient-to-r from-blue-950/60 via-zinc-900 to-indigo-950/60 border border-blue-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <span className="text-xs text-blue-400 font-bold uppercase tracking-wider block">Targeting Package</span>
+                <span className="text-base font-extrabold text-white">{selectedPkgObj?.name || 'Selected Package'}</span>
+                <span className="text-xs text-zinc-400 ml-2">({formData.amountKes === '0' ? 'Free Preview' : `${Number(formData.amountKes).toLocaleString()} KES / month`})</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-400">Need to switch?</span>
+              <select
+                value={formData.packageSlug}
+                onChange={e => handlePackageChange(e.target.value, true)}
+                className="bg-zinc-950 border border-zinc-700 text-white text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-medium"
+              >
+                {packages.map(p => (
+                  <option key={p.slug} value={p.slug}>
+                    {p.name} ({priceLabel(p).main})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
@@ -258,13 +368,30 @@ export default function Pricing() {
                     <span className="font-mono text-2xl font-extrabold text-white tracking-wider">0748 895 225</span>
                     <button
                       onClick={handleCopyMpesa}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-md"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+                      title="Copy M-Pesa Number"
                     >
                       {copiedMpesa ? <Check size={14} /> : <Copy size={14} />}
                       <span>{copiedMpesa ? 'Copied' : 'Copy'}</span>
                     </button>
                   </div>
                 </div>
+
+                {formData.amountKes !== '0' && (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-xs text-zinc-400">Exact Amount to Send:</span>
+                    <div className="flex items-center justify-between bg-zinc-900/80 border border-zinc-800/80 rounded-xl p-3">
+                      <span className="font-mono text-lg font-bold text-emerald-400">{Number(formData.amountKes).toLocaleString()} KES</span>
+                      <button
+                        onClick={handleCopyAmount}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors"
+                      >
+                        {copiedAmount ? <Check size={12} /> : <Copy size={12} />}
+                        <span>{copiedAmount ? 'Copied' : 'Copy Amount'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
                   Always verify that the recipient name corresponds to the designated HashiBot payment contact before entering your M-Pesa PIN.
@@ -273,32 +400,53 @@ export default function Pricing() {
 
               {/* Step-by-Step Instructions */}
               <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-4 text-xs">
-                <h3 className="font-extrabold text-sm text-white">How To Pay Step-by-Step:</h3>
+                <h3 className="font-extrabold text-sm text-white">How To Complete Activation:</h3>
                 <ol className="space-y-3 text-zinc-300 list-decimal list-inside leading-relaxed">
                   <li>Open M-Pesa on your mobile phone.</li>
                   <li>Select <strong className="text-white">Send Money</strong>.</li>
                   <li>Enter recipient phone number: <strong className="text-emerald-400 font-mono">0748895225</strong></li>
-                  <li>Enter exact plan amount (e.g. <strong className="text-white">5,000 KES</strong> or <strong className="text-white">10,000 KES</strong>).</li>
+                  <li>Enter exact plan amount: <strong className="text-white font-mono">{Number(formData.amountKes).toLocaleString()} KES</strong></li>
                   <li>Enter your M-Pesa PIN and confirm transaction.</li>
-                  <li>Note down the M-Pesa Transaction Ref Code (e.g. <strong className="text-cyan-400 font-mono">SJK789XYZ</strong>).</li>
+                  <li>Copy the M-Pesa Transaction Ref Code from your SMS (e.g. <strong className="text-cyan-400 font-mono">SJK789XYZ</strong>).</li>
                   <li>Fill out the form on the right and click <strong className="text-white">Submit Payment Confirmation</strong>.</li>
-                  <li>Account activation follows manual payment verification.</li>
+                  <li>Account activation follows manual payment verification within 15–30 minutes.</li>
                 </ol>
               </div>
 
             </div>
 
             {/* Right Col: Payment Confirmation Form */}
-            <div className="lg:col-span-3 bg-zinc-950 border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div id="payment-form-card" className="lg:col-span-3 bg-zinc-950 border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl">
               <div>
-                <h3 className="text-xl font-extrabold text-white">Payment Confirmation Form</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-extrabold text-white">Payment Confirmation Form</h3>
+                  {session && (
+                    <span className="text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                      <UserCheck size={13} /> Account Linked
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-zinc-400 mt-1">Submit your details after completing M-Pesa transfer.</p>
               </div>
 
               {submitSuccess && (
-                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 leading-relaxed flex items-start gap-2.5">
-                  <CheckCircle size={18} className="text-emerald-400 shrink-0 mt-0.5" />
-                  <div>{submitSuccess}</div>
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 leading-relaxed space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <div>{submitSuccess}</div>
+                  </div>
+                  {!session && (
+                    <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-zinc-300">Have you created your login account yet?</span>
+                      <Link
+                        to={`/register?package=${formData.packageSlug}`}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors inline-flex items-center gap-1"
+                      >
+                        <span>Create Login Account</span>
+                        <ArrowUpRight size={13} />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -316,6 +464,7 @@ export default function Pricing() {
                   <div className="space-y-1">
                     <label className="font-bold text-zinc-300">Full Name *</label>
                     <input
+                      id="payer-name-input"
                       type="text"
                       required
                       placeholder="John Doe"
@@ -344,13 +493,13 @@ export default function Pricing() {
                     <label className="font-bold text-zinc-300">Selected Product Package *</label>
                     <select
                       value={formData.packageSlug}
-                      onChange={e => handlePackageChange(e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                      onChange={e => handlePackageChange(e.target.value, true)}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500 font-medium"
                     >
                       <option value="crypto_signal_room">Crypto Signal Room (5,000 KES/mo)</option>
                       <option value="crypto_personal_bot">Crypto Personal Bot (10,000 KES/mo or $100)</option>
                       <option value="forex_mt5_personal_bot">Forex MT5 Personal Bot (10,000 KES/mo)</option>
-                      <option value="forex_mt5_prop_bot">Forex MT5 Prop Bot (Waitlist / 10,000 KES)</option>
+                      <option value="forex_mt5_prop_bot">Forex MT5 Prop Bot (10,000 KES/mo)</option>
                       <option value="free_preview">Free Preview (0 KES)</option>
                     </select>
                   </div>
@@ -374,6 +523,7 @@ export default function Pricing() {
                       M-Pesa Transaction Ref Code {formData.packageSlug !== 'free_preview' && '*'}
                     </label>
                     <input
+                      id="mpesa-ref-input"
                       type="text"
                       required={formData.packageSlug !== 'free_preview'}
                       placeholder="e.g. SJK789XYZ"
@@ -422,10 +572,10 @@ export default function Pricing() {
 
                 {/* Notes */}
                 <div className="space-y-1">
-                  <label className="font-bold text-zinc-300">Additional Notes (Optional)</label>
+                  <label className="font-bold text-zinc-300">Additional Notes / Setup Preferences (Optional)</label>
                   <textarea
                     rows={2}
-                    placeholder="Any specific setup preferences or questions..."
+                    placeholder="Any specific setup preferences, broker, or questions..."
                     value={formData.notes}
                     onChange={e => setFormData({ ...formData, notes: e.target.value })}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500"
@@ -435,7 +585,7 @@ export default function Pricing() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-sm py-3.5 rounded-xl transition-all shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-sm py-3.5 rounded-xl transition-all shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
                   {submitting ? (
                     <>
@@ -464,3 +614,4 @@ export default function Pricing() {
     </PublicLayout>
   );
 }
+

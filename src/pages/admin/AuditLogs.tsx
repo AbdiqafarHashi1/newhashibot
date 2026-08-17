@@ -5,8 +5,9 @@ import { getAuditLogs } from '../../lib/hashibotBackend';
 import { AuditLog } from '../../lib/types';
 import { 
   ClipboardList, Activity, RefreshCw, Search, ShieldCheck, 
-  ArrowRight, Filter, AlertTriangle, Layers, Cpu, CreditCard, Shield, CheckCircle2
+  AlertTriangle, Layers, Cpu, CreditCard, Shield, CheckCircle2
 } from 'lucide-react';
+
 
 type AuditTab = 'pipeline' | 'operator_actions' | 'runtime_events';
 

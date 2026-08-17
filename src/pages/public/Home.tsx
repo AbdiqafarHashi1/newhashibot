@@ -3,7 +3,7 @@ import { PublicLayout } from '../../components/layout/PublicLayout';
 import { 
   ArrowRight, Shield, Activity, Cpu, CheckCircle2, 
   Terminal, Zap, Layers, BarChart2, Check,
-  CreditCard, ArrowUpRight, Search, Lock, HelpCircle
+  CreditCard, Search, Lock, HelpCircle
 } from 'lucide-react';
 
 const markets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'EURUSD', 'GBPUSD', 'XAUUSD', 'US30'];
@@ -41,19 +41,18 @@ export default function Home() {
             {/* CTAs */}
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                to="/register"
+                to="/pricing#pricing-plans"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3.5 rounded-xl transition-all shadow-xl shadow-blue-600/25 active:scale-95 text-sm"
               >
-                <span>Get Started</span>
+                <span>Get Started & Choose Plan</span>
                 <ArrowRight size={16} />
               </Link>
-              <Link
-                to="/ai-signals"
+              <a
+                href="#product-modes"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 hover:text-white font-semibold px-7 py-3.5 rounded-xl transition-all text-sm"
               >
-                <span>Explore Products</span>
-                <ArrowUpRight size={16} className="text-zinc-400" />
-              </Link>
+                <span>Explore Products ↓</span>
+              </a>
             </div>
 
             {/* Platform Badges */}
@@ -67,10 +66,11 @@ export default function Home() {
                 <span>Deterministic Arbitrator</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-amber-400" />
-                <span>MT5 Infrastructure Built</span>
+                <CheckCircle2 size={14} className="text-emerald-400" />
+                <span>MT5 Forex & Prop Automation Live</span>
               </div>
             </div>
+
 
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function Home() {
       </section>
 
       {/* 2. Product Cards */}
-      <section className="py-20 px-4 sm:px-6 bg-zinc-900/40 border-y border-zinc-800/80">
+      <section id="product-modes" className="py-20 px-4 sm:px-6 bg-zinc-900/40 border-y border-zinc-800/80 scroll-mt-20">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-3">
             <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Three Execution Modes</div>
@@ -181,12 +181,20 @@ export default function Home() {
                   </li>
                 </ul>
               </div>
-              <Link
-                to="/ai-signals"
-                className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
-              >
-                Learn About AI Signals →
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  to="/pricing?package=crypto_signal_room#mpesa-payment-section"
+                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
+                >
+                  Get AI Signals (5,000 KES) →
+                </Link>
+                <Link
+                  to="/ai-signals"
+                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1.5 block transition-colors"
+                >
+                  Explore Signal Details & Features
+                </Link>
+              </div>
             </div>
 
             {/* Crypto Automation */}
@@ -228,62 +236,75 @@ export default function Home() {
                   </li>
                 </ul>
               </div>
-              <Link
-                to="/crypto-automation"
-                className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
-              >
-                Explore Crypto Automation →
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
+                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
+                >
+                  Get Crypto Bot (10,000 KES) →
+                </Link>
+                <Link
+                  to="/crypto-automation"
+                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1.5 block transition-colors"
+                >
+                  Explore Crypto Automation Details
+                </Link>
+              </div>
             </div>
 
             {/* MT5 Automation */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between space-y-6 hover:border-amber-500/50 transition-colors shadow-xl">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between space-y-6 hover:border-purple-500/50 transition-colors shadow-xl">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                    Infrastructure Built
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Available Now
                   </span>
                   <Cpu size={20} className="text-purple-400" />
                 </div>
                 <div>
                   <h3 className="text-xl font-extrabold text-white">MT5 Automation</h3>
-                  <p className="text-xs text-zinc-400 mt-1">MetaTrader 5 execution for Personal & Prop accounts.</p>
+                  <p className="text-xs text-zinc-400 mt-1">Direct MetaTrader 5 execution for Personal & Prop accounts.</p>
                 </div>
                 <div className="text-2xl font-bold text-white">
-                  10,000 KES <span className="text-xs text-zinc-500 font-normal">/ month (Waitlist)</span>
+                  10,000 KES <span className="text-xs text-zinc-500 font-normal">/ month or $100</span>
                 </div>
                 
-                {/* Product Status Callout */}
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-200 leading-relaxed">
-                  <span className="font-bold">Current Milestone:</span> MT5 infrastructure built — controlled live demo certification is next.
-                </div>
-
                 <ul className="space-y-2 text-xs text-zinc-300">
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-amber-400 shrink-0" />
+                    <Check size={14} className="text-emerald-400 shrink-0" />
                     <span>Windows MT5 Daemon Bridge Agent</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-amber-400 shrink-0" />
+                    <Check size={14} className="text-emerald-400 shrink-0" />
                     <span>Durable command queue with 120s lease timeout</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-amber-400 shrink-0" />
+                    <Check size={14} className="text-emerald-400 shrink-0" />
                     <span>Personal & Prop Risk profile parameters</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-amber-400 shrink-0" />
+                    <Check size={14} className="text-emerald-400 shrink-0" />
                     <span>MT5 Operations Center telemetry & diagnostics</span>
                   </li>
                 </ul>
               </div>
-              <Link
-                to="/mt5-automation"
-                className="w-full text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white font-bold text-xs py-3 rounded-xl transition-all border border-zinc-700"
-              >
-                View MT5 Status & Join Waitlist →
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
+                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
+                >
+                  Get MT5 Bot (10,000 KES) →
+                </Link>
+                <Link
+                  to="/mt5-automation"
+                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1.5 block transition-colors"
+                >
+                  Explore MT5 Bridge & Specs
+                </Link>
+              </div>
             </div>
+
 
           </div>
         </div>
@@ -437,7 +458,7 @@ export default function Home() {
                 <td className="p-4 font-semibold text-white">Automated Order Execution</td>
                 <td className="p-4 text-zinc-500">Manual (No Auto-Trade)</td>
                 <td className="p-4 text-emerald-400 font-bold">Automated (Binance & Bybit)</td>
-                <td className="p-4 text-amber-300 font-bold">MT5 Daemon Bridge (Waitlist)</td>
+                <td className="p-4 text-emerald-400 font-bold">Automated (MT5 Personal & Prop Bridge)</td>
               </tr>
               <tr>
                 <td className="p-4 font-semibold text-white">API Key Requirement</td>
@@ -449,14 +470,45 @@ export default function Home() {
                 <td className="p-4 font-semibold text-white">Risk Sizing & Controls</td>
                 <td className="p-4">Defined SL/TP on Alert</td>
                 <td className="p-4 font-bold text-emerald-400">Auto Position Sizing & Limits</td>
-                <td className="p-4 font-bold text-amber-400">Personal & Prop Rules</td>
+                <td className="p-4 font-bold text-emerald-400">Personal & Prop Rules</td>
               </tr>
               <tr>
                 <td className="p-4 font-semibold text-white">Availability Status</td>
                 <td className="p-4"><span className="text-emerald-400 font-bold">Available Now</span></td>
                 <td className="p-4"><span className="text-emerald-400 font-bold">Available Now</span></td>
-                <td className="p-4"><span className="text-amber-400 font-bold">Infrastructure Built (Waitlist)</span></td>
+                <td className="p-4"><span className="text-emerald-400 font-bold">Available Now</span></td>
               </tr>
+              <tr className="bg-zinc-950/40">
+                <td className="p-4 font-semibold text-white">Action / Checkout</td>
+                <td className="p-4">
+                  <Link
+                    to="/pricing?package=crypto_signal_room#mpesa-payment-section"
+                    className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
+                  >
+                    <span>Get AI Signals</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                </td>
+                <td className="p-4">
+                  <Link
+                    to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
+                    className="inline-flex items-center gap-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
+                  >
+                    <span>Get Crypto Bot</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                </td>
+                <td className="p-4">
+                  <Link
+                    to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
+                    className="inline-flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
+                  >
+                    <span>Get MT5 Bot</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                </td>
+              </tr>
+
             </tbody>
           </table>
         </div>
@@ -468,25 +520,45 @@ export default function Home() {
           <div className="text-center space-y-3">
             <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Seamless Activation</div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white">6-Step Onboarding Lifecycle</h2>
+            <p className="text-xs sm:text-sm text-zinc-400">Click any step to jump straight to that stage of the process.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 text-center">
             {[
-              { num: '1', title: 'Choose Product', desc: 'Select AI Signals or Automation' },
-              { num: '2', title: 'Create Account', desc: 'Sign up for customer dashboard' },
-              { num: '3', title: 'Select Plan', desc: 'Pick package & review terms' },
-              { num: '4', title: 'Pay via M-Pesa', desc: 'Send exact plan amount to 0748 895 225' },
-              { num: '5', title: 'Submit Details', desc: 'Submit transaction ref & Telegram handle' },
-              { num: '6', title: 'Activation', desc: 'Manual verification & account activation' },
-            ].map((step) => (
-              <div key={step.num} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
-                <div className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 font-bold text-sm flex items-center justify-center mx-auto border border-blue-500/30">
-                  {step.num}
-                </div>
-                <h3 className="font-bold text-xs text-white">{step.title}</h3>
-                <p className="text-[11px] text-zinc-400 leading-normal">{step.desc}</p>
-              </div>
-            ))}
+              { num: '1', title: 'Choose Product', desc: 'Select AI Signals or Automation', link: '#product-modes' },
+              { num: '2', title: 'Create Account', desc: 'Sign up for customer dashboard', link: '/register' },
+              { num: '3', title: 'Select Plan', desc: 'Pick package & review terms', link: '/pricing#pricing-plans' },
+              { num: '4', title: 'Pay via M-Pesa', desc: 'Send exact plan amount to 0748 895 225', link: '/pricing#mpesa-payment-section' },
+              { num: '5', title: 'Submit Details', desc: 'Submit transaction ref & Telegram handle', link: '/pricing#mpesa-payment-section' },
+              { num: '6', title: 'Activation', desc: 'Verification & access activation', link: '/contact#contact-form' },
+            ].map((step) => {
+              const isExternalOrPage = step.link.startsWith('/');
+              return isExternalOrPage ? (
+                <Link
+                  key={step.num}
+                  to={step.link}
+                  className="bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 rounded-xl p-4 space-y-2 transition-all group block hover:scale-[1.02]"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 group-hover:bg-blue-600 group-hover:text-white font-bold text-sm flex items-center justify-center mx-auto border border-blue-500/30 transition-colors">
+                    {step.num}
+                  </div>
+                  <h3 className="font-bold text-xs text-white group-hover:text-blue-300">{step.title}</h3>
+                  <p className="text-[11px] text-zinc-400 leading-normal">{step.desc}</p>
+                </Link>
+              ) : (
+                <a
+                  key={step.num}
+                  href={step.link}
+                  className="bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 rounded-xl p-4 space-y-2 transition-all group block hover:scale-[1.02]"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 group-hover:bg-blue-600 group-hover:text-white font-bold text-sm flex items-center justify-center mx-auto border border-blue-500/30 transition-colors">
+                    {step.num}
+                  </div>
+                  <h3 className="font-bold text-xs text-white group-hover:text-blue-300">{step.title}</h3>
+                  <p className="text-[11px] text-zinc-400 leading-normal">{step.desc}</p>
+                </a>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -507,18 +579,18 @@ export default function Home() {
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              to="/pricing"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm transition-all shadow-xl shadow-blue-600/30"
+              to="/pricing#mpesa-payment-section"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 rounded-xl text-sm transition-all shadow-xl shadow-blue-600/30 active:scale-95"
             >
               <CreditCard size={18} />
-              <span>View Plans & M-Pesa Payment</span>
+              <span>Jump to Plans & M-Pesa Payment Form</span>
             </Link>
             <Link
-              to="/contact"
+              to="/contact#contact-form"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-200 font-semibold px-8 py-4 rounded-xl text-sm transition-all"
             >
               <HelpCircle size={18} />
-              <span>Contact Support</span>
+              <span>Contact Support Form</span>
             </Link>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { PublicLayout } from '../../components/layout/PublicLayout';
 import { 
   Cpu, Terminal, AlertTriangle, ArrowRight, Check,
-  Activity, Layers
+  Activity, Layers, ShieldCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -12,33 +12,40 @@ export default function MT5Automation() {
       <section className="py-16 sm:py-20 px-4 sm:px-6 bg-zinc-900/40 border-b border-zinc-800/80">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           
-          {/* Milestone Status Banner */}
-          <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-4 py-1.5 text-xs text-amber-300 font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            Milestone: MT5 Infrastructure Built — Controlled Demo Certification Next
+          {/* Status Banner */}
+          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 text-xs text-emerald-300 font-bold uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            MetaTrader 5 Bridge Live & Active
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            MetaTrader 5 Execution Infrastructure
+            Automated MetaTrader 5 Execution Infrastructure
           </h1>
 
           <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-2xl mx-auto">
-            Bridge HashiBot&apos;s market scanner and deterministic arbitrator directly to MetaTrader 5 personal and prop firm trading terminals via our dedicated Windows Daemon Bridge.
+            Directly connect HashiBot&apos;s institutional market scanner and deterministic arbitrator to MetaTrader 5 personal and prop firm trading terminals via our dedicated high-performance Windows IPC Bridge.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              to="/contact?category=MT5+waitlist+and+setup"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-amber-600/20 text-xs"
+              to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-xs"
             >
-              <span>Join MT5 Certification Waitlist</span>
+              <span>Deploy MT5 Personal Bot (10,000 KES/mo)</span>
               <ArrowRight size={14} />
             </Link>
             <Link
-              to="/pricing"
+              to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-amber-600/20 text-xs"
+            >
+              <span>Deploy MT5 Prop Bot (10,000 KES/mo)</span>
+              <ShieldCheck size={14} />
+            </Link>
+            <Link
+              to="/pricing#pricing-plans"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-semibold px-7 py-3 rounded-xl transition-all text-xs"
             >
-              <span>View MT5 Pricing Tiers</span>
+              <span>View All Pricing Plans</span>
             </Link>
           </div>
         </div>
@@ -47,7 +54,7 @@ export default function MT5Automation() {
       {/* MT5 Architecture Diagram */}
       <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-10">
         <div className="text-center space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-amber-400">Bridge Architecture</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Bridge Architecture</div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">How The MT5 Bridge Operates</h2>
           <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
             Local Windows daemon polls HashiBot cloud command queue and executes orders directly in MetaTrader 5 via MetaTrader 5 Python IPC API.
@@ -63,9 +70,9 @@ export default function MT5Automation() {
           ].map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.step} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
+              <div key={item.step} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3 shadow-md">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  <span className="font-mono text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
                     STAGE {item.step}
                   </span>
                   <Icon size={18} className="text-zinc-400" />
@@ -82,7 +89,7 @@ export default function MT5Automation() {
       <section className="py-16 px-4 sm:px-6 bg-zinc-900/50 border-y border-zinc-800/80">
         <div className="max-w-7xl mx-auto space-y-10">
           <div className="text-center space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-amber-400">Profile Configurations</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Profile Configurations</div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Personal & Prop Trading Support</h2>
           </div>
 
@@ -104,6 +111,15 @@ export default function MT5Automation() {
                 <li className="flex items-center gap-2"><Check size={14} className="text-emerald-400 shrink-0" /> Custom leverage and position sizing limits</li>
                 <li className="flex items-center gap-2"><Check size={14} className="text-emerald-400 shrink-0" /> Flexible break-even and partial profit trailing</li>
               </ul>
+              <div className="pt-2">
+                <Link
+                  to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  <span>Activate Personal MT5 Bot (10,000 KES/mo)</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
             </div>
 
             {/* Prop MT5 Bot */}
@@ -122,6 +138,15 @@ export default function MT5Automation() {
                 <li className="flex items-center gap-2"><Check size={14} className="text-amber-400 shrink-0" /> Hard daily loss locks (e.g. 3.5% daily drawdown cap)</li>
                 <li className="flex items-center gap-2"><Check size={14} className="text-amber-400 shrink-0" /> Maximum total trailing drawdown safety gate</li>
               </ul>
+              <div className="pt-2">
+                <Link
+                  to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  <span>Activate Prop MT5 Bot (10,000 KES/mo)</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
             </div>
 
           </div>
@@ -141,7 +166,7 @@ export default function MT5Automation() {
       {/* Operations Center Telemetry */}
       <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-8">
         <div className="text-center space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-amber-400">MT5 Operations Center</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-400">MT5 Operations Center</div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Full Bridge Telemetry & Diagnostics</h2>
           <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
             Monitor bridge heartbeats, execution latency, command acknowledgements, and terminal state in real time.
@@ -171,23 +196,23 @@ export default function MT5Automation() {
       <section className="py-16 px-4 sm:px-6 bg-zinc-900/60 border-t border-zinc-800/80 text-center">
         <div className="max-w-2xl mx-auto space-y-6">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Join the MT5 Certification Waitlist
+            Deploy MetaTrader 5 Automation Today
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400">
-            Be notified immediately when controlled live demo certification completes for MT5 Personal and Prop EAs.
+            Activate your MT5 Personal or Prop trading bot subscription and connect your Windows terminal.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
-              to="/contact?category=MT5+waitlist+and+setup"
-              className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-amber-600/20"
+              to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
-              Join MT5 Waitlist
+              Get Started with MT5 Bot (10,000 KES/mo)
             </Link>
             <Link
-              to="/contact"
+              to="/contact?category=MT5%20Automation#contact-form"
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs px-6 py-3 rounded-xl transition-all border border-zinc-700"
             >
-              Contact Us About MT5
+              Contact Support
             </Link>
           </div>
         </div>
@@ -195,3 +220,4 @@ export default function MT5Automation() {
     </PublicLayout>
   );
 }
+

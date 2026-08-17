@@ -53,14 +53,14 @@ export default function FAQ() {
     {
       id: 'mt5-1',
       category: 'MT5 Automation',
-      q: 'What is the current status of MetaTrader 5 support?',
-      a: 'MetaTrader 5 bridge infrastructure is fully built and operational. Controlled live demo certification is the next milestone. Customers can currently join the waitlist.',
+      q: 'How does MetaTrader 5 automation work?',
+      a: 'MetaTrader 5 automation connects HashiBot cloud signals and risk controls directly to your local MT5 terminal via our dedicated Windows Daemon Bridge, executing orders with sub-second IPC latency.',
     },
     {
       id: 'mt5-2',
       category: 'MT5 Automation',
       q: 'Can HashiBot be used on prop firm accounts?',
-      a: 'Yes. The MT5 Prop Bot tier includes conservative risk profiles (0.25% - 0.75% per trade) and hard daily loss gates specifically designed for FTMO, FundedNext, and similar prop firm accounts.',
+      a: 'Yes. The Forex MT5 Prop Bot tier includes conservative risk profiles (0.25% - 0.75% per trade) and hard daily loss gates specifically designed for FTMO, FundedNext, and similar prop firm accounts.',
     },
     // Payments & M-Pesa
     {
@@ -169,13 +169,13 @@ export default function FAQ() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
-              to="/contact"
+              to="/contact#contact-form"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
-              Contact Support
+              Contact Support Form
             </Link>
             <Link
-              to="/pricing"
+              to="/pricing#pricing-plans"
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs px-6 py-3 rounded-xl transition-all border border-zinc-700"
             >
               View Pricing & Plans

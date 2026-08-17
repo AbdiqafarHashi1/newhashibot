@@ -1,6 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PWAProvider } from './contexts/PWAContext';
+import { PWAInstallBanner } from './components/pwa/PWAInstallBanner';
+import { IOSInstallGuideModal } from './components/pwa/IOSInstallGuideModal';
+import { PWAUpdateToast } from './components/pwa/PWAUpdateToast';
 import { RequireAuth, RequireAdmin } from './components/guards/RequireAuth';
+import { ScrollToAnchor } from './components/common/ScrollToAnchor';
+
 
 // Public pages
 import Home from './pages/public/Home';
@@ -98,6 +104,7 @@ function AuthRedirect() {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToAnchor />
       <AuthProvider>
         <Routes>
           {/* Public Pages */}
@@ -207,9 +214,15 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <PWAProvider>
+          <PWAUpdateToast />
+          <PWAInstallBanner />
+          <IOSInstallGuideModal />
+        </PWAProvider>
       </AuthProvider>
     </BrowserRouter>
   );
 }
+
 
 export default App;

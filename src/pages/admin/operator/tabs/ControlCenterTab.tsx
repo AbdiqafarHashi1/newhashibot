@@ -96,19 +96,19 @@ export function ControlCenterTab({
       <RuntimeBanner status={masterStatus} version="v2026.07.23-root" mode="AUTOMATIC" pendingActions={runningAction ? 1 : 0} />
 
       {/* NOC Mission Control Shortcut */}
-      <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 flex items-center justify-between gap-4 font-sans">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400">
+      <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400 shrink-0">
             <Activity size={20} />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+            <h4 className="text-sm font-bold text-white flex flex-wrap items-center gap-2">
               HashiCore 24/7 Mission Control NOC
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30 font-bold">
                 LIVE TELEMETRY
               </span>
             </h4>
-            <p className="text-xs text-zinc-300 mt-0.5">
+            <p className="text-xs text-zinc-300 mt-1 leading-relaxed">
               Single-screen 24/7 monitoring dashboard for all 15 subsystems, workers, queues, performance, and chronological event stream.
             </p>
           </div>
@@ -116,27 +116,27 @@ export function ControlCenterTab({
 
         <Link
           to="/admin/mission-control"
-          className="shrink-0 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-lg shadow-blue-950/50"
+          className="w-full sm:w-auto shrink-0 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-950/50"
         >
           Open Mission Control <ArrowUpRight size={14} />
         </Link>
       </div>
 
       {/* 2. Primary Master Action Controls */}
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 sm:p-5 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h3 className="font-bold text-sm text-zinc-100">Master Operations Controls</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
             Direct real-time commands affecting scanner cycles, trade protection, and execution routers.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
           {!isEnabled ? (
             <button
               onClick={handleStartBot}
               disabled={Boolean(runningAction)}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-950/50 flex items-center gap-2 disabled:opacity-50"
+              className="col-span-2 sm:col-span-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <PlayCircle size={16} /> START BOT
             </button>
@@ -144,7 +144,7 @@ export function ControlCenterTab({
             <button
               onClick={handleStopBot}
               disabled={Boolean(runningAction)}
-              className="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-xs transition-all shadow-lg shadow-yellow-950/50 flex items-center gap-2 disabled:opacity-50"
+              className="col-span-2 sm:col-span-1 px-4 py-2.5 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-xs transition-all shadow-lg shadow-yellow-950/50 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <PauseCircle size={16} /> STOP NEW ENTRIES
             </button>
@@ -153,16 +153,16 @@ export function ControlCenterTab({
           <button
             onClick={() => onRunAction('run_scanner_now')}
             disabled={Boolean(runningAction)}
-            className="px-3.5 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3.5 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             <RefreshCw size={14} className={runningAction === 'run_scanner_now' ? 'animate-spin' : ''} />
-            Scan Markets Now
+            Scan Markets
           </button>
 
           <button
             onClick={() => onRunAction('repair_protection_now')}
             disabled={Boolean(runningAction)}
-            className="px-3.5 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 font-semibold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3.5 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             <Shield size={14} /> Repair Protection
           </button>
@@ -170,7 +170,7 @@ export function ControlCenterTab({
           <button
             onClick={() => setEmergencyDialogOpen(true)}
             disabled={Boolean(runningAction)}
-            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-all shadow-lg shadow-red-950/50 flex items-center gap-2 disabled:opacity-50"
+            className="col-span-2 sm:col-span-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-all shadow-lg shadow-red-950/50 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <ShieldAlert size={16} /> EMERGENCY STOP
           </button>
@@ -199,7 +199,7 @@ export function ControlCenterTab({
       )}
 
       {/* 4. Operational Summary Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
         <MetricCard
           label="Scanner Mode"
           value={isEnabled ? 'Active' : 'Paused'}

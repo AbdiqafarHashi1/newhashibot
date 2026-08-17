@@ -51,12 +51,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       {/* Top Banner Notice */}
       <div className="bg-gradient-to-r from-blue-950 via-zinc-900 to-indigo-950 border-b border-blue-900/40 text-xs py-1.5 px-4 text-center text-zinc-300">
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-[10px] uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            Platform Update
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold text-[10px] uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Platform Live
           </span>
-          <span>HashiBot Platform: AI Signals & Crypto Automation live • MT5 Infrastructure built (Demo Certification pending)</span>
-          <Link to="/pricing" className="text-blue-400 hover:text-blue-300 underline font-medium ml-1">
+          <span>HashiBot Platform: AI Signals, Crypto Automation &amp; MT5 Forex/Prop Execution are fully Live &amp; Active</span>
+          <Link to="/pricing#pricing-plans" className="text-blue-400 hover:text-blue-300 underline font-medium ml-1">
             View Plans →
           </Link>
         </div>
@@ -135,7 +135,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     >
                       <div className="text-xs font-bold text-white group-hover:text-blue-400 flex items-center justify-between">
                         <span>MT5 Automation</span>
-                        <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20">Waitlist</span>
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
                       </div>
                       <p className="text-[11px] text-zinc-400 mt-0.5">MetaTrader 5 bridge for Personal & Prop terminals</p>
                     </Link>
@@ -303,7 +303,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   className="block py-2 text-sm text-zinc-300 hover:text-blue-400 flex items-center justify-between"
                 >
                   <span>MT5 Automation</span>
-                  <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">Waitlist</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Live</span>
                 </Link>
               </div>
 
@@ -444,7 +444,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 <li><Link to="/ai-signals" className="hover:text-white transition-colors">AI Signals</Link></li>
                 <li><Link to="/crypto-automation" className="hover:text-white transition-colors">Crypto Automation</Link></li>
                 <li><Link to="/mt5-automation" className="hover:text-white transition-colors">MT5 Automation</Link></li>
-                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing & Plans</Link></li>
+                <li><Link to="/pricing#pricing-plans" className="hover:text-white transition-colors">Pricing & Plans</Link></li>
               </ul>
             </div>
 
@@ -455,7 +455,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 <li><Link to="/features" className="hover:text-white transition-colors">Features & Pipeline</Link></li>
                 <li><Link to="/results" className="hover:text-white transition-colors">Results & Performance</Link></li>
                 <li><Link to="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
-                <li><Link to="/contact" className="hover:text-white transition-colors">Contact Support</Link></li>
+                <li><Link to="/contact#contact-form" className="hover:text-white transition-colors">Contact Support</Link></li>
               </ul>
             </div>
 
@@ -491,8 +491,8 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <p>© 2026 HashiBot Platform. All rights reserved.</p>
               <div className="flex items-center gap-4">
                 <Link to="/faq" className="hover:text-zinc-400 transition-colors">FAQ</Link>
-                <Link to="/contact" className="hover:text-zinc-400 transition-colors">Contact</Link>
-                <Link to="/pricing" className="hover:text-zinc-400 transition-colors">M-Pesa Payment</Link>
+                <Link to="/contact#contact-form" className="hover:text-zinc-400 transition-colors">Contact</Link>
+                <Link to="/pricing#mpesa-payment-section" className="hover:text-zinc-400 transition-colors">M-Pesa Payment</Link>
               </div>
             </div>
           </div>

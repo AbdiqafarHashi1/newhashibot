@@ -248,9 +248,9 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
       </button>
 
       {isOpen && (
-        <div className="border-t border-zinc-800 px-4 py-4 bg-zinc-800/20 space-y-3">
+        <div className="border-t border-zinc-800 px-3.5 sm:px-4 py-4 bg-zinc-800/20 space-y-3">
           {/* Request details */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             {[
               { label: 'Full name', value: req.full_name },
               { label: 'Email', value: req.email },
@@ -262,23 +262,26 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
               { label: 'Risk preset', value: req.risk_preset || '—' },
               { label: 'Preferred contact', value: req.contact_preference || '—' },
             ].map(({ label, value }) => value ? (
-              <div key={label} className="bg-zinc-800/50 rounded px-2.5 py-1.5">
-                <div className="text-zinc-600 mb-0.5">{label}</div>
-                <div className="text-zinc-300">{value}</div>
+              <div key={label} className="bg-zinc-800/50 rounded-lg px-2.5 py-1.5">
+                <div className="text-zinc-500 mb-0.5 text-[11px]">{label}</div>
+                <div className="text-zinc-200 font-mono break-all">{value}</div>
               </div>
             ) : null)}
           </div>
           {req.notes && (
-            <div className="bg-zinc-800/50 rounded px-3 py-2 text-xs">
-              <div className="text-zinc-500 mb-0.5">Customer note</div>
-              <div className="text-zinc-300">{req.notes}</div>
+            <div className="bg-zinc-800/50 rounded-lg px-3 py-2 text-xs">
+              <div className="text-zinc-500 mb-0.5 text-[11px]">Customer note</div>
+              <div className="text-zinc-200 leading-relaxed">{req.notes}</div>
             </div>
           )}
 
           {req.bot_setup && (
-            <div className="bg-sky-500/10 border border-sky-500/20 rounded px-3 py-3 text-xs">
-              <div className="text-sky-300 font-medium mb-2">Bot setup summary (setup only, no execution)</div>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="bg-sky-500/10 border border-sky-500/20 rounded-xl px-3.5 py-3 text-xs">
+              <div className="text-sky-300 font-semibold mb-2 flex items-center gap-1.5">
+                <span>Bot Setup Summary</span>
+                <span className="text-[10px] bg-sky-500/20 px-1.5 py-0.5 rounded text-sky-200">No Execution</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   { label: 'Setup status', value: botSetupStatusLabel(req.bot_setup.setup_status) },
                   { label: 'Bot type', value: req.bot_setup.bot_type.replace(/_/g, ' ') },
@@ -291,9 +294,9 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
                   { label: 'Preferred symbols', value: Array.isArray(req.bot_setup.preferred_symbols) ? req.bot_setup.preferred_symbols.join(', ') || '—' : '—' },
                   { label: 'No-execution acknowledged', value: req.bot_setup.acknowledged_no_execution ? 'Yes' : 'No' },
                 ].map(item => (
-                  <div key={item.label} className="bg-zinc-900/60 rounded px-2 py-1.5">
-                    <div className="text-zinc-500 mb-0.5">{item.label}</div>
-                    <div className="text-zinc-300 capitalize">{item.value}</div>
+                  <div key={item.label} className="bg-zinc-900/70 rounded-lg px-2.5 py-1.5">
+                    <div className="text-zinc-500 mb-0.5 text-[11px]">{item.label}</div>
+                    <div className="text-zinc-200 capitalize font-medium">{item.value}</div>
                   </div>
                 ))}
               </div>
@@ -301,38 +304,38 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
           )}
 
           {['pending', 'pending_payment', 'pending_admin_approval'].includes(req.status) && (
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="block text-xs text-zinc-500 mb-1">Expiry date (optional)</label>
+            <div className="space-y-2.5 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-400 mb-1">Expiry date (optional)</label>
                   <input
                     type="date"
                     value={expiryInputs[req.id] ?? ''}
                     onChange={e => setExpiryInputs(p => ({ ...p, [req.id]: e.target.value }))}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-xs text-zinc-500 mb-1">Admin note</label>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-400 mb-1">Admin note</label>
                   <input
                     type="text"
                     value={noteInputs[req.id] ?? ''}
                     onChange={e => setNoteInputs(p => ({ ...p, [req.id]: e.target.value }))}
                     placeholder="Internal note..."
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
                 <button
                   onClick={() => updateStatus(req, 'converted_to_access', true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-2 rounded-lg transition-colors">
-                  <CheckCircle size={12} /> Approve & Grant Package
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-3 py-2.5 rounded-xl transition-colors shadow-sm">
+                  <CheckCircle size={14} /> Approve & Grant Package
                 </button>
                 <button
                   onClick={() => updateStatus(req, 'rejected')}
-                  className="flex items-center justify-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-2 rounded-lg transition-colors">
-                  <XCircle size={12} /> Reject
+                  className="flex items-center justify-center gap-1.5 text-xs font-semibold bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 px-3 py-2.5 rounded-xl transition-colors">
+                  <XCircle size={14} /> Reject
                 </button>
               </div>
             </div>

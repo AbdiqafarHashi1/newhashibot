@@ -98,16 +98,16 @@ export default function About() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
-              to="/pricing"
+              to="/pricing#pricing-plans"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
               View Pricing & Plans
             </Link>
             <Link
-              to="/contact"
+              to="/contact#contact-form"
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs px-6 py-3 rounded-xl transition-all border border-zinc-700"
             >
-              Contact Support
+              Contact Support Form
             </Link>
           </div>
         </div>

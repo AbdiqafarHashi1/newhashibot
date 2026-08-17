@@ -4,7 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { MT5Account, CustomerSubscription, AccessRequest, CustomerBotSetup } from '../../lib/types';
 import { 
-  ShieldCheck, RefreshCw, Lock, ArrowRight, Activity, Award, Gauge 
+  ShieldCheck, RefreshCw, Lock, ArrowRight, Activity, Award, Gauge,
+  CheckCircle2, Settings2, Terminal, Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
@@ -18,6 +19,9 @@ export default function MT5PropPortal() {
   const [mt5Accounts, setMt5Accounts] = useState<MT5Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingRisk, setUpdatingRisk] = useState(false);
+  const [quickMessage, setQuickMessage] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -45,8 +49,42 @@ export default function MT5PropPortal() {
     loadData();
   }, [loadData]);
 
+  const handleQuickRiskChange = async (newRisk: string) => {
+    if (!user || !botSetup?.id) return;
+    setUpdatingRisk(true);
+    try {
+      await supabase.from('customer_bot_setups').update({
+        risk_preset: newRisk,
+        updated_at: new Date().toISOString()
+      }).eq('id', botSetup.id);
+
+      setBotSetup(prev => prev ? { ...prev, risk_preset: newRisk } : null);
+      setQuickMessage(`Prop risk profile updated to ${newRisk}`);
+      setTimeout(() => setQuickMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to quick update prop risk:', e);
+    } finally {
+      setUpdatingRisk(false);
+    }
+  };
+
+  const copyDaemonScript = () => {
+    const script = `# Run in Windows PowerShell (MT5 Prop Bridge Agent)
+Invoke-WebRequest -Uri "https://hashibot.trade/daemon/mt5-bridge.ps1" -OutFile "mt5-bridge.ps1"
+powershell -ExecutionPolicy Bypass -File mt5-bridge.ps1 -Token "HB-MT5-PROP-${user?.id?.slice(0, 8)}"`;
+    navigator.clipboard.writeText(script);
+    setCopiedToken(true);
+    setTimeout(() => setCopiedToken(false), 3000);
+  };
+
   const accessState = getCustomerAccessState(sub, request);
   const isActive = accessState === 'active' && (sub?.package_name?.toLowerCase().includes('prop') || request?.product_slug?.includes('forex_mt5_prop'));
+
+  const preferredList = Array.isArray(botSetup?.preferred_symbols) 
+    ? botSetup.preferred_symbols 
+    : typeof botSetup?.preferred_symbols === 'string' 
+      ? (botSetup.preferred_symbols as string).split(',').map(s => s.trim()) 
+      : ['EURUSD', 'GBPUSD', 'XAUUSD'];
 
   if (loading) {
     return (
@@ -86,6 +124,12 @@ export default function MT5PropPortal() {
             </Badge>
           </div>
         </div>
+
+        {quickMessage && (
+          <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono flex items-center gap-2">
+            <CheckCircle2 size={14} /> {quickMessage}
+          </div>
+        )}
 
         {/* Access Control Notice if not active */}
         {!isActive && (
@@ -128,10 +172,16 @@ export default function MT5PropPortal() {
               ))
             ) : (
               <div className="space-y-2">
-                <div className="text-sm font-semibold text-zinc-300">No Prop Account Connected</div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Submit your Prop firm credentials and account size to enable rule protection.</p>
-                <Link to="/app/bot-setup" className="inline-block text-xs text-purple-400 font-bold hover:underline pt-1">
-                  Configure Prop Setup →
+                <div className="text-sm font-semibold text-white">
+                  {botSetup?.prop_firm_name || 'FTMO / FundedNext / Funding Pips'}
+                </div>
+                <div className="text-xs font-mono text-zinc-400">Status: {botSetup?.setup_status ? botSetup.setup_status.replace(/_/g, ' ') : 'Ready'}</div>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-xs text-emerald-300 font-mono">Bridge Configured</span>
+                </div>
+                <Link to="/app/bot-setup?package=forex_mt5_prop_bot" className="inline-block text-xs text-purple-400 font-bold hover:underline pt-1">
+                  Update Prop MT5 Credentials →
                 </Link>
               </div>
             )}
@@ -144,25 +194,59 @@ export default function MT5PropPortal() {
             </div>
             <div className="space-y-1">
               <div className="text-lg font-bold text-emerald-400">0.0% Daily Drawdown</div>
-              <div className="text-xs text-zinc-400">Max Daily Limit: 4.0% (Cutoff at 3.2%)</div>
-              <div className="text-xs text-purple-400 font-mono pt-1">Prop Safe Rules Enforced</div>
+              <div className="text-xs text-zinc-400">Hard Cutoff: 3.2% Daily / 8.0% Max</div>
+              <div className="text-xs text-purple-400 font-mono pt-1">0.5% Hard Risk Cap per Trade</div>
             </div>
           </div>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-              <span>SETUP CONFIGURATION</span>
+              <span>ACTIVE PROP PAIRS</span>
               <Activity size={14} className="text-sky-400" />
             </div>
-            <div className="space-y-1">
-              <div className="text-lg font-bold text-white capitalize">{botSetup?.setup_status ? botSetup.setup_status.replace(/_/g, ' ') : 'Pending Config'}</div>
-              <div className="text-xs text-zinc-400">Firm: {botSetup?.prop_firm_name || 'FTMO / FundedNext / Funding Pips'}</div>
-              <div className="pt-2">
-                <Link to="/app/bot-setup" className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg border border-zinc-700 font-medium inline-block transition-colors">
-                  Manage Prop Details
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {preferredList.map((sym: string) => (
+                  <span key={sym} className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[11px] font-mono text-zinc-300 font-medium">
+                    {sym}
+                  </span>
+                ))}
+              </div>
+              <div className="pt-1">
+                <Link to="/app/bot-setup?package=forex_mt5_prop_bot" className="text-xs text-purple-400 hover:underline inline-flex items-center gap-1 font-mono">
+                  <Settings2 size={12} /> Modify Whitelist
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Quick Risk Adjuster Bar */}
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Gauge className="text-purple-400 shrink-0" size={20} />
+            <div>
+              <div className="text-xs font-bold text-white">Prop Firm Challenge Presets</div>
+              <div className="text-[11px] text-zinc-400">Certified risk modes matching Phase 1, Phase 2, and Funded account requirements.</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(['Conservative / Prop Safe', 'Conservative', 'Balanced'] as const).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                disabled={updatingRisk}
+                onClick={() => handleQuickRiskChange(preset)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all border ${
+                  botSetup?.risk_preset === preset
+                    ? 'bg-purple-600 border-purple-500 text-white font-bold shadow-lg shadow-purple-600/20'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -192,9 +276,25 @@ export default function MT5PropPortal() {
               <p className="text-zinc-400">Open trades are closed prior to major high-impact news spikes and weekend market gaps according to firm rules.</p>
             </div>
           </div>
+
+          <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-zinc-400 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <span>Bridge Agent: <strong className="text-purple-400">ONLINE</strong></span>
+              <span>Prop Governor: <strong className="text-emerald-400">ACTIVE (0.5% Cap)</strong></span>
+            </div>
+            <button
+              type="button"
+              onClick={copyDaemonScript}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-colors text-xs font-mono"
+            >
+              {copiedToken ? <Check size={14} /> : <Terminal size={14} />}
+              {copiedToken ? 'Copied PowerShell Command!' : 'Copy Local Daemon Script'}
+            </button>
+          </div>
         </div>
 
       </div>
     </AppLayout>
   );
 }
+

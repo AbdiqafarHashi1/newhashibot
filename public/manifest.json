@@ -1,0 +1,86 @@
+{
+  "name": "Hashibot",
+  "short_name": "Hashibot",
+  "description": "Professional Trading Platform & Market Intelligence — Real-time AI Signals, Multi-Asset Execution, and Risk Management",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "fullscreen",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "categories": [
+    "finance",
+    "productivity",
+    "utilities"
+  ],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Signals",
+      "short_name": "Signals",
+      "description": "View live market intelligence and trade signals",
+      "url": "/app/signals",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open your trading dashboard",
+      "url": "/app/dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Crypto Execution",
+      "short_name": "Crypto",
+      "description": "Manage crypto automated execution",
+      "url": "/app/crypto-execution",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Market Scanner",
+      "short_name": "Scanner",
+      "description": "Live AI opportunity scanner",
+      "url": "/ai-signals",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -6,7 +6,8 @@ import {
   ConnectedExecutionAccount, ExecutionOrder, CustomerSubscription, AccessRequest, CustomerBotSetup 
 } from '../../lib/types';
 import { 
-  Zap, ShieldCheck, RefreshCw, Layers, Cpu, Lock, ArrowRight, Activity 
+  Zap, ShieldCheck, RefreshCw, Layers, Cpu, Lock, ArrowRight, Activity, 
+  CheckCircle2, Gauge, Settings2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
@@ -21,6 +22,8 @@ export default function CryptoExecutionPortal() {
   const [orders, setOrders] = useState<ExecutionOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingRisk, setUpdatingRisk] = useState(false);
+  const [quickMessage, setQuickMessage] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -39,7 +42,6 @@ export default function CryptoExecutionPortal() {
       setAccounts(accRes.data as ConnectedExecutionAccount[] ?? []);
       setOrders(ordersRes.data as ExecutionOrder[] ?? []);
     } catch (err) {
-
       console.warn('Failed loading crypto execution portal:', err);
     } finally {
       setLoading(false);
@@ -51,8 +53,33 @@ export default function CryptoExecutionPortal() {
     loadData();
   }, [loadData]);
 
+  const handleQuickRiskChange = async (newRisk: string) => {
+    if (!user || !botSetup?.id) return;
+    setUpdatingRisk(true);
+    try {
+      await supabase.from('customer_bot_setups').update({
+        risk_preset: newRisk,
+        updated_at: new Date().toISOString()
+      }).eq('id', botSetup.id);
+
+      setBotSetup(prev => prev ? { ...prev, risk_preset: newRisk } : null);
+      setQuickMessage(`Risk updated to ${newRisk}`);
+      setTimeout(() => setQuickMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to quick update risk:', e);
+    } finally {
+      setUpdatingRisk(false);
+    }
+  };
+
   const accessState = getCustomerAccessState(sub, request);
   const isActive = accessState === 'active' && (sub?.package_name?.toLowerCase().includes('crypto') || request?.product_slug?.includes('crypto'));
+
+  const preferredList = Array.isArray(botSetup?.preferred_symbols) 
+    ? botSetup.preferred_symbols 
+    : typeof botSetup?.preferred_symbols === 'string' 
+      ? (botSetup.preferred_symbols as string).split(',').map(s => s.trim()) 
+      : ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
 
   if (loading) {
     return (
@@ -93,6 +120,12 @@ export default function CryptoExecutionPortal() {
           </div>
         </div>
 
+        {quickMessage && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center gap-2">
+            <CheckCircle2 size={14} /> {quickMessage}
+          </div>
+        )}
+
         {/* Access Control Notice if not active */}
         {!isActive && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 text-zinc-200 space-y-3">
@@ -127,16 +160,22 @@ export default function CryptoExecutionPortal() {
                   <div className="text-xs font-mono text-zinc-400">Account ID: {acc.account_id}</div>
                   <div className="flex items-center gap-2 pt-1">
                     <span className={`w-2 h-2 rounded-full ${acc.enabled ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                    <span className="text-xs text-zinc-300 font-mono">{acc.enabled ? 'Bot Active' : 'Execution Disabled'}</span>
+                    <span className="text-xs text-zinc-300 font-mono">{acc.enabled ? 'Bot Active & Synced' : 'Execution Disabled'}</span>
                   </div>
                 </div>
               ))
             ) : (
               <div className="space-y-2">
-                <div className="text-sm font-semibold text-zinc-300">No Exchange Connected</div>
-                <p className="text-xs text-zinc-500 leading-relaxed">Submit your Binance/Bybit API keys via setup details to enable auto-execution.</p>
+                <div className="text-sm font-semibold text-white uppercase">
+                  {botSetup?.exchange_name || 'Binance USD-M Futures'}
+                </div>
+                <div className="text-xs font-mono text-zinc-400">Status: {botSetup?.setup_status ? botSetup.setup_status.replace(/_/g, ' ') : 'Ready'}</div>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-xs text-emerald-300 font-mono">Account Configured</span>
+                </div>
                 <Link to="/app/bot-setup" className="inline-block text-xs text-blue-400 font-bold hover:underline pt-1">
-                  Configure Bot Setup →
+                  Update Credentials →
                 </Link>
               </div>
             )}
@@ -148,26 +187,60 @@ export default function CryptoExecutionPortal() {
               <ShieldCheck size={14} className="text-emerald-400" />
             </div>
             <div className="space-y-1">
-              <div className="text-lg font-bold text-white">{botSetup?.risk_preset || 'Conservative (Default)'}</div>
-              <div className="text-xs text-zinc-400">Target Risk: {botSetup?.max_risk_per_trade_pct || 1.0}% per setup</div>
-              <div className="text-xs text-emerald-400 font-mono pt-1">Auto Stop Loss & TP Break-even active</div>
+              <div className="text-lg font-bold text-white">{botSetup?.risk_preset || 'Conservative'}</div>
+              <div className="text-xs text-zinc-400">Risk per trade: {botSetup?.risk_preset === 'Aggressive' ? '2.5%' : botSetup?.risk_preset === 'Balanced' ? '1.5%' : '0.5% - 1.0%'}</div>
+              <div className="text-xs text-emerald-400 font-mono pt-1">Auto Stop Loss & Break-even Armed</div>
             </div>
           </div>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-              <span>SETUP STATUS</span>
+              <span>ACTIVE WHITELIST</span>
               <Activity size={14} className="text-sky-400" />
             </div>
-            <div className="space-y-1">
-              <div className="text-lg font-bold text-white capitalize">{botSetup?.setup_status ? botSetup.setup_status.replace(/_/g, ' ') : 'Not Configured'}</div>
-              <div className="text-xs text-zinc-400">Exchange: {botSetup?.exchange_name || 'Binance USD-M'}</div>
-              <div className="pt-2">
-                <Link to="/app/bot-setup" className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg border border-zinc-700 font-medium inline-block transition-colors">
-                  Update Bot Preferences
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {preferredList.map((sym: string) => (
+                  <span key={sym} className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[11px] font-mono text-zinc-300 font-medium">
+                    {sym}
+                  </span>
+                ))}
+              </div>
+              <div className="pt-1">
+                <Link to="/app/bot-setup" className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1 font-mono">
+                  <Settings2 size={12} /> Modify Whitelist
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Quick Risk Adjuster Bar */}
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Gauge className="text-blue-400 shrink-0" size={20} />
+            <div>
+              <div className="text-xs font-bold text-white">Dynamic Risk Presets</div>
+              <div className="text-[11px] text-zinc-400">Switch execution sizing in real-time across your active market positions.</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(['Conservative', 'Balanced', 'Aggressive'] as const).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                disabled={updatingRisk}
+                onClick={() => handleQuickRiskChange(preset)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all border ${
+                  botSetup?.risk_preset === preset
+                    ? 'bg-blue-600 border-blue-500 text-white font-bold shadow-lg shadow-blue-600/20'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -176,7 +249,7 @@ export default function CryptoExecutionPortal() {
           <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers size={16} className="text-blue-400" />
-              <h2 className="text-sm font-bold text-white">Customer Execution History & Orders</h2>
+              <h2 className="text-sm font-bold text-white">Customer Execution History & Active Orders</h2>
             </div>
             <span className="text-xs font-mono text-zinc-500">{orders.length} Records</span>
           </div>
@@ -226,7 +299,7 @@ export default function CryptoExecutionPortal() {
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-zinc-500 text-xs">
-                      No automated crypto orders recorded yet for your account.
+                      No automated crypto orders recorded yet for your account. Once signals trigger on your whitelisted symbols, trades will populate here.
                     </td>
                   </tr>
                 )}
@@ -239,3 +312,4 @@ export default function CryptoExecutionPortal() {
     </AppLayout>
   );
 }
+

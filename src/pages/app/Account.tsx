@@ -8,9 +8,12 @@ import { Badge } from '../../components/ui/Badge';
 import {
   User, Radio, Cpu, Lock, ArrowRight,
   MessageCircle, CheckCircle, Clock, Package, ShieldCheck, Send, AlertTriangle,
+  Smartphone, Download, Sparkles
 } from 'lucide-react';
 import { botSetupStatusLabel, setupProgress } from '../../lib/botSetup';
 import { isBotPackage, packageDisplayName, slugFromPackageValue } from '../../lib/packages';
+import { usePWA } from '../../contexts/PWAContext';
+
 
 function StatusDot({ active }: { active: boolean }) {
   return <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-emerald-500' : 'bg-zinc-600'}`} />;
@@ -18,7 +21,9 @@ function StatusDot({ active }: { active: boolean }) {
 
 export default function Account() {
   const { profile, user } = useAuth();
+  const { isInstalled, promptInstall } = usePWA();
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
+
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
   const [botSetup, setBotSetup] = useState<CustomerBotSetup | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +88,49 @@ export default function Account() {
                 {hasAccess ? 'Active' : 'Inactive'}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Native Progressive Web App (PWA) Card */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 relative overflow-hidden">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/30 text-white">
+                <Smartphone size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-sm text-white">Native Mobile App</h3>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold uppercase tracking-wider">
+                    <Sparkles size={9} /> PWA
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  {isInstalled 
+                    ? 'Running in standalone native application mode with offline caching'
+                    : 'Install to your home screen for instant trading alerts, offline shell, and notch-safe fullscreen'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 mt-3">
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`w-2 h-2 rounded-full ${isInstalled ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-blue-400 animate-pulse'}`} />
+              <span className="text-zinc-300 font-mono text-[11px]">
+                {isInstalled ? 'STATUS: INSTALLED & ACTIVE' : 'STATUS: READY FOR INSTALL'}
+              </span>
+            </div>
+
+            {!isInstalled && (
+              <button
+                onClick={() => promptInstall()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-medium text-xs transition-colors shadow-md shadow-blue-600/20"
+              >
+                <Download size={13} />
+                Install App
+              </button>
+            )}
           </div>
         </div>
 

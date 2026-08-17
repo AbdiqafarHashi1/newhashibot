@@ -123,10 +123,11 @@ export default function Features() {
         },
         {
           name: 'MetaTrader 5 Windows Bridge Agent',
-          detail: 'Standalone Python daemon running alongside MT5 terminal for local execution.',
-          why: 'Enables direct MT5 order placement for forex personal and prop terminals.',
-          status: 'Built — Pending Certification',
+          detail: 'Dedicated Python IPC daemon running alongside MT5 terminal for local sub-second execution.',
+          why: 'Enables direct MT5 order placement for forex personal and prop firm terminals.',
+          status: 'Available',
         },
+
         {
           name: 'Durable Command Queue with Atomic Leases',
           detail: 'Commands issued with 120s atomic leases and retry policies.',
@@ -229,7 +230,7 @@ export default function Features() {
         {featureGroups.map((group) => {
           const GroupIcon = group.icon;
           return (
-            <div key={group.id} className="space-y-6">
+            <div key={group.id} id={group.id} className="space-y-6 scroll-mt-24">
               <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
                 <div className="w-10 h-10 rounded-xl bg-blue-600/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <GroupIcon size={20} />
@@ -283,17 +284,17 @@ export default function Features() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
-              to="/pricing"
+              to="/pricing#pricing-plans"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
             >
               <span>View Pricing Plans</span>
               <ArrowRight size={14} />
             </Link>
             <Link
-              to="/contact"
+              to="/contact#contact-form"
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs px-6 py-3 rounded-xl transition-all border border-zinc-700"
             >
-              Contact Support
+              Contact Support Form
             </Link>
           </div>
         </div>

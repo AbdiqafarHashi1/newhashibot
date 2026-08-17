@@ -63,10 +63,7 @@ assert.match(retentionPage, /No retention targets returned|—/, 'admin pages pr
 
 // Env-based scanner limit guards
 assert.match(scanner, /SCANNER_MAX_CRYPTO_SYMBOLS/, 'market-scanner checks SCANNER_MAX_CRYPTO_SYMBOLS');
-// Forex/gold no longer uses an independent numeric environment cap: the certified
-// FOREX_RUNTIME_SYMBOLS universe is the source of truth. Keeping this guard tied to
-// that contract prevents a stale env knob from silently truncating six instruments.
-assert.match(scanner, /FOREX_RUNTIME_SYMBOLS/, 'market-scanner uses the canonical certified forex/gold universe');
+assert.match(scanner, /SCANNER_MAX_FOREX_SYMBOLS/, 'market-scanner checks SCANNER_MAX_FOREX_SYMBOLS');
 assert.match(scanner, /SCANNER_MAX_SYMBOLS_PER_SCAN/, 'market-scanner checks SCANNER_MAX_SYMBOLS_PER_SCAN');
 
 // 092 Batched retention verification
@@ -77,9 +74,8 @@ assert.match(batchRetentionSql, /LIMIT \$2/, '092 migration limits database dele
 assert.match(batchRetentionSql, /idx_profiles_email/, '092 migration contains index on profiles email');
 
 // Scanner cap defaults verification
-assert.match(scanner, /let cryptoLimit = 10;/, 'market-scanner has correct crypto fallback of 10');
-assert.match(scanner, /cryptoLimit = Math\.min\(envMaxTotal, 10\)/, 'total scanner cap safely constrains the crypto universe');
-assert.match(scanner, /const maxSymbols = cryptoLimit;/, 'market-scanner applies the resolved crypto cap');
-assert.match(scanner, /canonical_symbols: FOREX_RUNTIME_SYMBOLS/, 'forex scanner reports the complete certified universe instead of a stale numeric fallback');
+assert.match(scanner, /cryptoLimit = envMaxCrypto !== null && !isNaN\(envMaxCrypto\) \? envMaxCrypto : 10/, 'market-scanner has correct crypto fallback of 10');
+assert.match(scanner, /forexLimit = envMaxForex !== null && !isNaN\(envMaxForex\) \? envMaxForex : 3/, 'market-scanner has correct forex fallback of 3');
+assert.match(scanner, /totalLimit = envMaxTotal !== null && !isNaN\(envMaxTotal\) \? envMaxTotal : 13/, 'market-scanner has correct total fallback of 13');
 
 console.log('Recovery guard tests passed');

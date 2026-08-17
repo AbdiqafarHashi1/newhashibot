@@ -206,34 +206,36 @@ export default function OperatorPanel({ section: initialSection = 'dashboard' }:
 
   return (
     <AdminLayout>
-      <div className="space-y-6 max-w-7xl mx-auto px-4 py-6">
+      <div className="space-y-5 max-w-7xl mx-auto">
         {/* Top Header & Horizontal Tab Navigation */}
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+        <div className="space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3.5">
             <div>
-              <h1 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
-                <Shield className="text-blue-400" size={24} /> HashiBot Operations Console
+              <h1 className="text-lg sm:text-xl font-bold text-zinc-100 flex items-center gap-2">
+                <Shield className="text-blue-400 shrink-0" size={22} />
+                <span>HashiBot Operations Console</span>
               </h1>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
                 Institutional control plane for live trading runtime, risk parameters, and exchange position management.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => {
                   void refresh();
                   void loadOperatorTruth();
                 }}
-                className="px-3.5 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-zinc-300 transition-colors flex items-center gap-1.5"
+                className="w-full sm:w-auto px-3.5 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-zinc-200 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
               >
-                <RefreshCw size={14} /> Refresh Telemetry
+                <RefreshCw size={13} className="text-blue-400" />
+                <span>Refresh Telemetry</span>
               </button>
             </div>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -241,14 +243,14 @@ export default function OperatorPanel({ section: initialSection = 'dashboard' }:
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 ${
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all flex items-center gap-2 ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/50'
-                      : 'bg-zinc-900/60 text-zinc-400 border border-zinc-800/80 hover:bg-zinc-800 hover:text-zinc-200'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-950/60 font-bold'
+                      : 'bg-zinc-900/80 text-zinc-400 border border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200'
                   }`}
                 >
-                  <Icon size={14} className={isActive ? 'text-white' : 'text-zinc-500'} />
-                  {item.label}
+                  <Icon size={14} className={isActive ? 'text-white' : 'text-zinc-400'} />
+                  <span>{item.label}</span>
                 </button>
               );
             })}
@@ -259,7 +261,7 @@ export default function OperatorPanel({ section: initialSection = 'dashboard' }:
         {actionResult && <ActionResult result={actionResult} />}
 
         {/* Tab Content Renderer */}
-        <div className="pt-2">
+        <div className="pt-1">
           {activeTab === 'dashboard' && (
             <ControlCenterTab
               scannerConfig={scannerConfig}

@@ -471,54 +471,52 @@ export default function MissionControl() {
   }, [compiledTimeline, severityFilter, subsystemFilter, providerFilter, searchTerm]);
 
   return (
-    <AdminLayout title="Mission Control">
-      <div className="space-y-6">
+    <AdminLayout>
+      <div className="space-y-5">
 
         {/* TOP OPERATOR HEADER */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-emerald-400">
-                <Gauge size={22} />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                  HashiBot Mission Control
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    CERTIFIED LIFECYCLE
-                  </span>
-                </h1>
-                <p className="text-xs text-zinc-400">
-                  One coherent operator command plane • Unified Scanner, Arbitrator & Account Routing
-                </p>
-              </div>
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 shrink-0">
+              <Gauge size={22} />
+            </div>
+            <div>
+              <h1 className="text-base sm:text-lg font-bold text-zinc-100 flex flex-wrap items-center gap-2">
+                <span>HashiBot Mission Control</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                  CERTIFIED LIFECYCLE
+                </span>
+              </h1>
+              <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                Unified Operator Command Plane • Scanner, Arbitrator & Account Routing
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 self-end md:self-center">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               onClick={() => fetchTelemetry(false)}
               disabled={refreshing}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs font-mono font-medium flex items-center gap-2 border border-zinc-700 transition"
+              className="flex-1 sm:flex-none px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-mono font-semibold flex items-center justify-center gap-2 border border-zinc-700 transition"
             >
-              <RefreshCw size={14} className={refreshing ? 'animate-spin text-emerald-400' : ''} />
+              <RefreshCw size={13} className={refreshing ? 'animate-spin text-emerald-400' : ''} />
               {refreshing ? 'Syncing...' : 'Sync Truth'}
             </button>
 
             <button
               onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-              className={`px-3 py-1.5 rounded text-xs font-mono font-medium flex items-center gap-2 border transition ${
+              className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-mono font-semibold flex items-center justify-center gap-2 border transition ${
                 autoRefreshEnabled
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                   : 'bg-zinc-800 border-zinc-700 text-zinc-400'
               }`}
             >
-              <Radio size={14} className={autoRefreshEnabled ? 'animate-pulse' : ''} />
+              <Radio size={13} className={autoRefreshEnabled ? 'animate-pulse' : ''} />
               {autoRefreshEnabled ? `Auto 5s` : 'Auto Off'}
             </button>
 
             {lastRefreshedAt && (
-              <span className="text-[11px] font-mono text-zinc-500 hidden sm:inline">
+              <span className="text-[11px] font-mono text-zinc-500 hidden lg:inline">
                 Synced {lastRefreshedAt}
               </span>
             )}
@@ -527,7 +525,7 @@ export default function MissionControl() {
 
         {/* SESSION EXPIRED BANNER */}
         {sessionExpired && (
-          <div className="p-4 bg-red-950/80 border border-red-500/40 rounded-lg flex items-center justify-between text-red-200">
+          <div className="p-4 bg-red-950/80 border border-red-500/40 rounded-xl flex items-center justify-between text-red-200">
             <div className="flex items-center gap-3">
               <Lock size={20} className="text-red-400" />
               <div>
@@ -539,7 +537,7 @@ export default function MissionControl() {
             </div>
             <button
               onClick={() => window.location.reload()}
-              className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold font-mono transition"
+              className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold font-mono transition"
             >
               Re-Authenticate
             </button>
@@ -554,8 +552,8 @@ export default function MissionControl() {
         )}
 
         {/* PART 1: GLOBAL LIFECYCLE CONTROLS */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 pb-3 gap-2">
             <div>
               <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
                 <Power size={16} className="text-emerald-400" /> Part 1 — Global Runtime Lifecycle Commands
@@ -564,7 +562,7 @@ export default function MissionControl() {
                 Mission Control owns the global operational lifecycle. Select primary operator command.
               </p>
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+            <span className="self-start sm:self-auto px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
               LOCKED ARCHITECTURE
             </span>
           </div>
@@ -572,7 +570,7 @@ export default function MissionControl() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             
             {/* START HASHIBOT */}
-            <div className="bg-zinc-950/60 border border-emerald-500/30 hover:border-emerald-500/60 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+            <div className="bg-zinc-950/60 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition group">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-emerald-400 font-mono uppercase flex items-center gap-1.5">
@@ -587,7 +585,7 @@ export default function MissionControl() {
               <button
                 onClick={() => runCommand('start_hashibot')}
                 disabled={runningAction === 'start_hashibot'}
-                className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
               >
                 {runningAction === 'start_hashibot' ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
                 Start HashiBot
@@ -595,7 +593,7 @@ export default function MissionControl() {
             </div>
 
             {/* STOP NEW ACTIVITY */}
-            <div className="bg-zinc-950/60 border border-amber-500/30 hover:border-amber-500/60 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+            <div className="bg-zinc-950/60 border border-amber-500/30 hover:border-amber-500/60 rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition group">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-amber-400 font-mono uppercase flex items-center gap-1.5">
@@ -610,7 +608,7 @@ export default function MissionControl() {
               <button
                 onClick={() => runCommand('stop_new_activity')}
                 disabled={runningAction === 'stop_new_activity'}
-                className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
               >
                 {runningAction === 'stop_new_activity' ? <RefreshCw size={14} className="animate-spin" /> : <PauseCircle size={14} />}
                 Stop New Activity
@@ -618,7 +616,7 @@ export default function MissionControl() {
             </div>
 
             {/* EMERGENCY STOP */}
-            <div className="bg-zinc-950/60 border border-red-500/40 hover:border-red-500/70 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+            <div className="bg-zinc-950/60 border border-red-500/40 hover:border-red-500/70 rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition group">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-red-400 font-mono uppercase flex items-center gap-1.5">
@@ -633,7 +631,7 @@ export default function MissionControl() {
               <button
                 onClick={() => runCommand('emergency_stop_runtime')}
                 disabled={runningAction === 'emergency_stop_runtime'}
-                className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
               >
                 {runningAction === 'emergency_stop_runtime' ? <RefreshCw size={14} className="animate-spin" /> : <ShieldAlert size={14} />}
                 Emergency Stop
@@ -641,7 +639,7 @@ export default function MissionControl() {
             </div>
 
             {/* RUN FULL SYSTEM TEST */}
-            <div className="bg-zinc-950/60 border border-blue-500/30 hover:border-blue-500/60 rounded-lg p-3.5 flex flex-col justify-between space-y-3 transition group">
+            <div className="bg-zinc-950/60 border border-blue-500/30 hover:border-blue-500/60 rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition group">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-blue-400 font-mono uppercase flex items-center gap-1.5">
@@ -656,7 +654,7 @@ export default function MissionControl() {
               <button
                 onClick={() => runCommand('run_full_system_test')}
                 disabled={runningAction === 'run_full_system_test'}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2"
               >
                 {runningAction === 'run_full_system_test' ? <RefreshCw size={14} className="animate-spin" /> : <FileCheck size={14} />}
                 Run Full System Test
@@ -667,49 +665,49 @@ export default function MissionControl() {
         </div>
 
         {/* MISSION CONTROL TABS */}
-        <div className="flex border-b border-zinc-800 gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-zinc-800 scrollbar-none -mx-1 px-1">
           <button
             onClick={() => setActiveTab('OPERATIONS')}
-            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider shrink-0 transition flex items-center gap-2 ${
               activeTab === 'OPERATIONS'
-                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm font-bold'
+                : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
             }`}
           >
-            <Gauge size={14} /> Part 10 — Runtime Readiness Dashboard
+            <Gauge size={14} /> Part 10 — Runtime Dashboard
           </button>
 
           <button
             onClick={() => setActiveTab('DIAGNOSTICS')}
-            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider shrink-0 transition flex items-center gap-2 ${
               activeTab === 'DIAGNOSTICS'
-                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm font-bold'
+                : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
             }`}
           >
-            <Sliders size={14} /> Parts 2, 3 & 4 — Controls & Safety
+            <Sliders size={14} /> Parts 2-4 — Controls & Safety
           </button>
 
           <button
             onClick={() => setActiveTab('CONTROL_MATRIX')}
-            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider shrink-0 transition flex items-center gap-2 ${
               activeTab === 'CONTROL_MATRIX'
-                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm font-bold'
+                : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
             }`}
           >
-            <BarChart3 size={14} /> Part 5 — Control Retirement Matrix
+            <BarChart3 size={14} /> Part 5 — Control Matrix
           </button>
 
           <button
             onClick={() => setActiveTab('TIMELINE')}
-            className={`px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider shrink-0 transition flex items-center gap-2 ${
               activeTab === 'TIMELINE'
-                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm font-bold'
+                : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
             }`}
           >
-            <Activity size={14} /> Compiled Activity Timeline ({filteredTimeline.length})
+            <Activity size={14} /> Activity Timeline ({filteredTimeline.length})
           </button>
         </div>
 

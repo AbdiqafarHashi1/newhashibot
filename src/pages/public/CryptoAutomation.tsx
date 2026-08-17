@@ -26,14 +26,14 @@ export default function CryptoAutomation() {
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              to="/pricing?package=crypto_personal_bot"
+              to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-xs"
             >
               <span>Get Crypto Personal Bot (10,000 KES/mo or $100)</span>
               <ArrowRight size={14} />
             </Link>
             <Link
-              to="/features"
+              to="/features#execution"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-semibold px-7 py-3 rounded-xl transition-all text-xs"
             >
               <span>Explore Platform Features</span>
@@ -162,13 +162,13 @@ export default function CryptoAutomation() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
-              to="/pricing?package=crypto_personal_bot"
+              to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
               Get Crypto Bot (10,000 KES/mo)
             </Link>
             <Link
-              to="/contact"
+              to="/contact?category=Crypto%20Automation#contact-form"
               className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs px-6 py-3 rounded-xl transition-all border border-zinc-700"
             >
               Contact Support

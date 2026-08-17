@@ -1,21 +1,161 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link rel="alternate icon" type="image/png" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Viewport with Safe Area & Notch Support -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+
+    <!-- Theme & Color Palette -->
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#09090b" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="msapplication-TileColor" content="#09090b" />
+
+    <!-- iOS Native App Optimization -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Hashibot" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
+
+    <!-- Android / Chrome Native App Settings -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Hashibot" />
+    <meta name="format-detection" content="telephone=no" />
+
     <title>HashiBot — Professional Trading Platform & Market Intelligence</title>
     <meta name="description" content="Professional trading platform combining AI-assisted market scanning, rule-based strategy evaluation, automated execution, risk management, and operational monitoring across Crypto and MetaTrader 5." />
     <meta property="og:title" content="HashiBot — Professional Trading Platform & Market Intelligence" />
     <meta property="og:description" content="Scan markets. Qualify opportunities. Execute with control. AI Signals, Crypto Automation, and MetaTrader 5 Infrastructure." />
-    <meta property="og:image" content="https://bolt.new/static/og_default.png" />
+    <meta property="og:image" content="/icons/icon-512.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="HashiBot — Professional Trading Platform & Market Intelligence" />
     <meta name="twitter:description" content="Scan markets. Qualify opportunities. Execute with control. AI Signals, Crypto Automation, and MetaTrader 5 Infrastructure." />
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
+    <meta name="twitter:image" content="/icons/icon-512.png" />
+
+    <!-- Native App Splash / Initial Skeleton Styling -->
+    <style>
+      #app-initial-skeleton {
+        position: fixed;
+        inset: 0;
+        background-color: #09090b;
+        color: #f4f4f5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        padding: env(safe-area-inset-top, 24px) 24px env(safe-area-inset-bottom, 24px) 24px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .skeleton-logo-box {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.5);
+        margin-bottom: 20px;
+        animation: pulseLogo 2s ease-in-out infinite;
+      }
+      .skeleton-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: #ffffff;
+        margin-bottom: 6px;
+      }
+      .skeleton-subtitle {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #71717a;
+        margin-bottom: 36px;
+      }
+      .skeleton-loader-bar {
+        width: 160px;
+        height: 4px;
+        background: #27272a;
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+      .skeleton-loader-progress {
+        width: 40%;
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        border-radius: 999px;
+        animation: slideLoader 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      @keyframes pulseLogo {
+        0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4)); }
+        50% { transform: scale(1.04); filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.7)); }
+      }
+      @keyframes slideLoader {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(300%); }
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-zinc-950 text-zinc-100 antialiased overscroll-none select-none">
+    <div id="root">
+      <!-- Native Instant App Loading Skeleton Shell -->
+      <div id="app-initial-skeleton" aria-label="Loading HashiBot">
+        <div class="skeleton-logo-box">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <div class="skeleton-title">Hashi<span style="color:#60a5fa">Bot</span></div>
+        <div class="skeleton-subtitle">MARKET INTELLIGENCE</div>
+        <div class="skeleton-loader-bar">
+          <div class="skeleton-loader-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progressive Web App Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+            .then(function(registration) {
+              console.log('[PWA] ServiceWorker registered with scope:', registration.scope);
+              
+              // Handle updates
+              registration.onupdatefound = function() {
+                var installingWorker = registration.installing;
+                if (!installingWorker) return;
+                installingWorker.onstatechange = function() {
+                  if (installingWorker.state === 'installed') {
+                    if (navigator.serviceWorker.controller) {
+                      console.log('[PWA] New content is available; please refresh.');
+                      window.dispatchEvent(new CustomEvent('pwa-update-available', { detail: registration }));
+                    } else {
+                      console.log('[PWA] Content is cached for offline use.');
+                    }
+                  }
+                };
+              };
+            })
+            .catch(function(error) {
+              console.warn('[PWA] ServiceWorker registration failed:', error);
+            });
+        });
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+
