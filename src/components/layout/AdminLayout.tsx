@@ -5,7 +5,7 @@ import {
   Database, Send, X,
   User, Settings, ListChecks,
   Shield, ShieldCheck, Cpu, ClipboardList,
-  Layers, Radio, Brain, ArrowLeftRight
+  Layers, Radio, ArrowLeftRight
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -91,7 +91,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
       {/* Sidebar Drawer */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-[85vw] max-w-72 bg-zinc-900/98 backdrop-blur-xl border-r border-zinc-800 flex flex-col transition-transform duration-300 ease-out md:w-60 md:max-w-none shadow-2xl md:shadow-none ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         {/* Drawer Header */}
@@ -241,7 +241,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page Content Body */}
-        <main className="flex-1 p-3.5 sm:p-5 md:p-6 pb-28 md:pb-8 min-w-0 overflow-x-hidden" key={loc.pathname}>
+        <main className="flex-1 p-3.5 sm:p-5 md:p-6 pb-28 md:pb-8 min-w-0" key={loc.pathname}>
           {children}
         </main>
 
