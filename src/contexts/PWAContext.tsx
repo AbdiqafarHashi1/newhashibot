@@ -189,10 +189,25 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultPWAContext: PWAContextType = {
+  isInstallable: false,
+  isInstalled: false,
+  isIOS: false,
+  isSafari: false,
+  isUpdateAvailable: false,
+  showIOSGuide: false,
+  setShowIOSGuide: () => {},
+  promptInstall: async () => false,
+  dismissPrompt: () => {},
+  updateApp: () => {
+    window.location.reload();
+  },
+};
+
 export function usePWA() {
   const context = useContext(PWAContext);
   if (!context) {
-    throw new Error('usePWA must be used within a PWAProvider');
+    return defaultPWAContext;
   }
   return context;
 }
