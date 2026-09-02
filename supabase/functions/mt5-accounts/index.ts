@@ -109,7 +109,7 @@ Deno.serve(async req => {
       if (!/^\d{4,20}$/.test(accountNumber) || password.length < 4) throw new ApiError('INVALID_CREDENTIALS', 'Account number or password is invalid.', 400);
       if (!broker || !server || !nickname || !Number.isInteger(leverage) || leverage <= 0) throw new ApiError('INVALID_ACCOUNT_DETAILS', 'Broker, server, nickname, and positive whole-number leverage are required.', 400);
       const accountType = String(body.accountType);
-      const executionMode = String(body.executionMode);
+      const executionMode = String(body.executionMode ?? (accountType === 'prop' ? 'prop_challenge' : 'personal'));
       if (!['personal', 'prop', 'demo'].includes(accountType) || !['personal', 'prop_challenge', 'demo'].includes(executionMode)) throw new ApiError('INVALID_CLASSIFICATION', 'Account type or execution mode is invalid.', 400);
       const capability = String(body.credentialCapability ?? 'investor');
       const ownerKind = String(body.ownerKind ?? 'customer');
@@ -160,6 +160,7 @@ Deno.serve(async req => {
     if (body.action === 'remove') { const { error } = await db.from('mt5_accounts').delete().eq('id', accountId); if (error) databaseFailure('remove', error); return reply({ removed: true }); }
     if (body.action === 'set_execution') { const enable = Boolean(body.enabled); const { error } = await db.from('mt5_accounts').update({ execution_enabled: enable, connection_status: enable ? 'connected' : 'disabled', provider_health: enable ? 'healthy' : 'unknown', operational: enable, disabled_at: enable ? null : new Date().toISOString() }).eq('id', accountId); if (error) databaseFailure('set_execution', error); return reply({ enabled: enable, connection_status: enable ? 'connected' : 'disabled' }); }
     if (body.action === 'set_mode') { if (!['personal', 'prop_challenge', 'demo'].includes(String(body.mode))) throw new ApiError('INVALID_MODE', 'Execution mode is invalid.', 400); const { error } = await db.from('mt5_accounts').update({ execution_mode: body.mode }).eq('id', accountId); if (error) databaseFailure('set_mode', error); return reply({ mode: body.mode }); }
+    if (body.action === 'update_policy') { const policy = typeof body.policy === 'object' && body.policy !== null ? body.policy : {}; const { error } = await db.from('mt5_accounts').update({ policy }).eq('id', accountId); if (error) databaseFailure('update_policy', error); return reply({ updated: true, policy }); }
     if (body.action === 'test_connection' || body.action === 'sync_account') {
       if (!owned.bridge_id) throw new ApiError('MT5_BRIDGE_OFFLINE', 'No MT5 bridge is connected.', 409);
       const op = body.action === 'test_connection' ? 'TEST_CONNECTION' : 'SYNC_ACCOUNT';

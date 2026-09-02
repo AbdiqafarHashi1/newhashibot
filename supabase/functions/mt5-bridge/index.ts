@@ -157,21 +157,55 @@ Deno.serve(async (req: Request) => {
       if (registryError) return jsonResponse({ success: false, error_code: "DATABASE_ERROR", message: "Database operation failed" }, 500);
       if (!registry) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH", message: "Bridge is not registered for this worker" }, 403);
       const explicit = Array.isArray(body.account_ids) ? body.account_ids.map(String) : [];
-      let query = supabase.from("mt5_accounts").select("id,user_id,broker,server,account_type,credential_ref,credential_capability,execution_enabled,operational,bridge_id").eq("bridge_id", bridgeId);
+      let query = supabase.from("mt5_accounts").select("id,user_id,broker,server,account_type,execution_mode,policy,credential_ref,credential_capability,execution_enabled,operational,bridge_id").eq("bridge_id", bridgeId);
       if (explicit.length) query = query.in("id", explicit);
       const { data, error } = await query;
       if (error) return jsonResponse({ success: false, error_code: "DATABASE_ERROR", message: "Database operation failed" }, 500);
-      return jsonResponse({ success: true, accounts: (data ?? []).map(a => ({ account_id: a.id, owner_id: a.user_id, broker: a.broker, server: a.server, account_class: a.account_type, credential_ref: a.credential_ref, credential_capability: a.credential_capability, execution_enabled: a.execution_enabled, operational: a.operational, bridge_id: a.bridge_id })) });
+      return jsonResponse({
+        success: true,
+        accounts: (data ?? []).map(a => {
+          const isProp = a.account_type === "prop" || a.execution_mode === "prop_challenge";
+          return {
+            account_id: a.id,
+            owner_id: a.user_id,
+            broker: a.broker,
+            server: a.server,
+            account_class: a.account_type,
+            execution_mode: a.execution_mode ?? (isProp ? "prop_challenge" : "personal"),
+            execution_strategy: isProp ? "prop_firm_guardian" : "account_growth_accelerator",
+            policy: a.policy ?? {},
+            credential_ref: a.credential_ref,
+            credential_capability: a.credential_capability,
+            execution_enabled: a.execution_enabled,
+            operational: a.operational,
+            bridge_id: a.bridge_id,
+          };
+        }),
+      });
     }
 
     if (action === "retrieve_credential") {
       const accId = String(body.account_id ?? "");
-      let query = supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_ref,credential_capability,execution_enabled,operational,account_number_ciphertext,password_ciphertext,server");
+      let query = supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_ref,credential_capability,execution_enabled,operational,account_number_ciphertext,password_ciphertext,server,account_type,execution_mode,policy");
       if (accId) query = query.eq("id", accId);
       const { data: account, error } = await query.maybeSingle();
       if (error || !account) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
       try {
-        return jsonResponse({ success: true, credential: { login: await decryptCredential(account.account_number_ciphertext), password: await decryptCredential(account.password_ciphertext), server: account.server, capability: account.credential_capability, execution_enabled: account.execution_enabled } });
+        const isProp = account.account_type === "prop" || account.execution_mode === "prop_challenge";
+        return jsonResponse({
+          success: true,
+          credential: {
+            login: await decryptCredential(account.account_number_ciphertext),
+            password: await decryptCredential(account.password_ciphertext),
+            server: account.server,
+            capability: account.credential_capability,
+            execution_enabled: account.execution_enabled,
+            account_type: account.account_type,
+            execution_mode: account.execution_mode ?? (isProp ? "prop_challenge" : "personal"),
+            execution_strategy: isProp ? "prop_firm_guardian" : "account_growth_accelerator",
+            policy: account.policy ?? {},
+          },
+        });
       } catch { return jsonResponse({ success: false, error_code: "MT5_CREDENTIAL_DECRYPTION_FAILED" }, 500); }
     }
 
@@ -361,10 +395,10 @@ Deno.serve(async (req: Request) => {
       }
 
       if (targetAccountId) {
-        let { data: target } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled")
+        let { data: target } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled,account_type,execution_mode,policy,broker,server")
           .eq("id", targetAccountId).maybeSingle();
         if (!target) {
-          const { data: fallbackTarget } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled").limit(1).maybeSingle();
+          const { data: fallbackTarget } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled,account_type,execution_mode,policy,broker,server").limit(1).maybeSingle();
           target = fallbackTarget;
         }
         if (!target) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
@@ -428,23 +462,36 @@ Deno.serve(async (req: Request) => {
             updated_at: nowIso,
           })
           .eq("id", target.id);
-      }
 
-      // 4B. Target mt5_account_profiles (Phase 5 prop rules evaluator) if account_number exists
-      let breached = false;
-      let breachReason: string | null = null;
+        // 4B. Account Rules Evaluation (Prop Firm Guardian vs Account Growth Accelerator)
+        let breached = false;
+        let breachReason: string | null = null;
 
-      if (payload.account_number) {
-        const { data: profile } = await supabase
-          .from("mt5_account_profiles")
-          .select("*")
-          .eq("account_number", payload.account_number)
-          .maybeSingle();
+        let profile: Record<string, unknown> | null = null;
+        if (payload.account_number) {
+          const { data: p } = await supabase
+            .from("mt5_account_profiles")
+            .select("*")
+            .eq("account_number", payload.account_number)
+            .maybeSingle();
+          profile = p;
+        }
 
-        if (profile) {
-          const startBalance = Number(profile.account_state?.starting_balance ?? snap.balance);
-          const drawdownLimit = Number(profile.drawdown_limit_pct ?? 5.00);
-          const maxDailyLoss = Number(profile.max_daily_loss_pct ?? 5.00);
+        const isPropMode = (
+          target?.account_type === "prop" ||
+          target?.execution_mode === "prop_challenge" ||
+          profile?.profile_mode === "prop"
+        );
+        const executionMode = target?.execution_mode ?? (isPropMode ? "prop_challenge" : "personal");
+        const executionStrategy = isPropMode ? "prop_firm_guardian" : "account_growth_accelerator";
+
+        if (isPropMode) {
+          // Prop Firm Guardian Mode: Strict Drawdown & Daily Loss Enforcement
+          const policyObj = (target?.policy as Record<string, unknown> | null) ?? {};
+          const profileState = (profile?.account_state as Record<string, unknown> | null) ?? {};
+          const startBalance = Number(policyObj.starting_balance ?? profileState.starting_balance ?? snap.balance);
+          const drawdownLimit = Number(policyObj.drawdown_limit_pct ?? profile?.drawdown_limit_pct ?? 5.00);
+          const maxDailyLoss = Number(policyObj.max_daily_loss_pct ?? profile?.max_daily_loss_pct ?? 5.00);
 
           const maxDrawdownAmount = startBalance * (drawdownLimit / 100);
           const maxDailyLossAmount = snap.balance * (maxDailyLoss / 100);
@@ -452,15 +499,82 @@ Deno.serve(async (req: Request) => {
           const currentDrawdown = startBalance - snap.equity;
           if (currentDrawdown >= maxDrawdownAmount) {
             breached = true;
-            breachReason = `Maximum drawdown breach: Current drawdown of $${currentDrawdown.toFixed(2)} exceeds cap of $${maxDrawdownAmount.toFixed(2)}`;
+            breachReason = `Prop Firm Guardian: Maximum drawdown breach of $${currentDrawdown.toFixed(2)} exceeds cap of $${maxDrawdownAmount.toFixed(2)} (${drawdownLimit}%)`;
           }
 
           const dailyLoss = snap.balance - snap.equity;
           if (dailyLoss >= maxDailyLossAmount) {
             breached = true;
-            breachReason = `Daily loss limit breach: Current loss of $${dailyLoss.toFixed(2)} exceeds daily limit of $${maxDailyLossAmount.toFixed(2)}`;
+            breachReason = `Prop Firm Guardian: Daily loss limit breach of $${dailyLoss.toFixed(2)} exceeds daily limit of $${maxDailyLossAmount.toFixed(2)} (${maxDailyLoss}%)`;
+          }
+        } else {
+          // Personal Growth Accelerator Mode: Custom Risk Limits from Policy
+          const policyObj = (target?.policy as Record<string, unknown> | null) ?? {};
+          const maxPersonalDrawdownPct = Number(policyObj.max_drawdown_limit_pct ?? 0);
+          if (maxPersonalDrawdownPct > 0) {
+            const startBalance = Number(policyObj.starting_balance ?? snap.balance);
+            const maxDrawdownAmount = startBalance * (maxPersonalDrawdownPct / 100);
+            const currentDrawdown = startBalance - snap.equity;
+            if (currentDrawdown >= maxDrawdownAmount) {
+              breached = true;
+              breachReason = `Personal Growth Accelerator: Drawdown stop of $${currentDrawdown.toFixed(2)} exceeds personal stop of $${maxDrawdownAmount.toFixed(2)} (${maxPersonalDrawdownPct}%)`;
+            }
+          }
+        }
+
+        if (breached) {
+          // 1. Immediately disable execution on mt5_accounts to safeguard user account
+          if (target && target.execution_enabled) {
+            await supabase
+              .from("mt5_accounts")
+              .update({
+                execution_enabled: false,
+                connection_status: "disabled",
+                provider_health: "unhealthy",
+                disabled_at: nowIso,
+                updated_at: nowIso,
+              })
+              .eq("id", target.id);
           }
 
+          // 2. Lock mt5_account_profiles if one exists
+          if (profile && !profile.is_locked) {
+            await supabase
+              .from("mt5_account_profiles")
+              .update({
+                is_locked: true,
+                last_breach_at: nowIso,
+                is_enabled: false,
+              })
+              .eq("id", profile.id);
+          }
+
+          // 3. Log critical operator runtime event
+          await supabase.from("operator_runtime_events").insert({
+            action: "mt5_rule_breach_lock",
+            provider: "mt5",
+            route: "/functions/v1/mt5-bridge",
+            function_name: "mt5-bridge",
+            started_at: nowIso,
+            status: "CRITICAL",
+            exact_error: breachReason,
+            blocker: "Rule Violation",
+            result_summary: `MT5 Account [${executionStrategy}] Locked due to Rule Breach`,
+            source: "mt5_rules_evaluator",
+            raw: {
+              account_id: target?.id ?? null,
+              account_number: payload.account_number,
+              execution_strategy: executionStrategy,
+              execution_mode: executionMode,
+              balance: snap.balance,
+              equity: snap.equity,
+              breach_reason: breachReason,
+            },
+          });
+        }
+
+        // Update profile account state if profile exists
+        if (profile) {
           const patch: Record<string, unknown> = {
             account_state: {
               balance: snap.balance,
@@ -471,34 +585,21 @@ Deno.serve(async (req: Request) => {
               last_sync_at: nowIso,
             },
           };
-
-          if (breached && !profile.is_locked) {
-            patch.is_locked = true;
-            patch.last_breach_at = nowIso;
-            patch.is_enabled = false;
-
-            await supabase.from("operator_runtime_events").insert({
-              action: "mt5_rule_breach_lock",
-              provider: "mt5",
-              route: "/functions/v1/mt5-bridge",
-              function_name: "mt5-bridge",
-              started_at: nowIso,
-              status: "CRITICAL",
-              exact_error: breachReason,
-              blocker: "Rule Violation",
-              result_summary: `MT5 Account ${payload.account_number} Locked due to Prop Rule Breach`,
-              source: "mt5_rules_evaluator",
-              raw: {
-                account_number: payload.account_number,
-                balance: snap.balance,
-                equity: snap.equity,
-                breach_reason: breachReason
-              }
-            });
-          }
-
           await supabase.from("mt5_account_profiles").update(patch).eq("id", profile.id);
         }
+
+        return jsonResponse({
+          success: true,
+          account_id: target.id,
+          execution_mode: executionMode,
+          execution_strategy: executionStrategy,
+          is_prop_mode: isPropMode,
+          breached,
+          breach_reason: breachReason,
+          balance: snap.balance,
+          equity: snap.equity,
+          drawdown_pct: snap.balance > 0 ? Number((((snap.balance - snap.equity) / snap.balance) * 100).toFixed(2)) : 0,
+        });
       }
 
       return jsonResponse({

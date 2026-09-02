@@ -157,7 +157,11 @@ Deno.serve(async (req: Request) => {
 
     const scannerUrl = `${supabaseUrl}/functions/v1/market-scanner`;
     marketScannerCalled = true;
-    const requestedMode = typeof body.market_mode === "string" && body.market_mode ? body.market_mode : "combined";
+    let requestedMode = typeof body.market_mode === "string" && body.market_mode ? body.market_mode : "combined";
+    // Upgrade legacy cron payloads that passed crypto_only when forex is enabled in scanner_config
+    if ((requestedMode === "crypto_only" || requestedMode === "crypto") && cfg?.scan_forex_enabled !== false && body.force_crypto_only !== true) {
+      requestedMode = "combined";
+    }
     const proxy = await fetch(scannerUrl, {
       method: "POST",
       headers: internalHeaders(String(body.correlation_id ?? crypto.randomUUID()), String(body.action_id ?? runId ?? crypto.randomUUID())),

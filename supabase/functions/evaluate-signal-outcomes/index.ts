@@ -502,9 +502,15 @@ Deno.serve(async (req: Request) => {
     const auth = await authorizeInternalOrAdmin(req, supabase);
     if (!auth.ok) return jsonResponse({ success: false, error: auth.error }, auth.status);
 
-    const signalEnableCrypto = parseBooleanEnv("SIGNAL_ENABLE_CRYPTO", true);
-    const signalEnableForex = parseBooleanEnv("SIGNAL_ENABLE_FOREX", false);
-    const marketMode = signalEnableCrypto && !signalEnableForex ? "crypto_only" : signalEnableForex ? "mixed" : "disabled";
+    const { data: cfgRow } = await supabase.from("scanner_config").select("scan_forex_enabled,signal_enable_forex,scan_crypto_enabled,signal_enable_crypto").eq("id", 1).maybeSingle();
+    const dbForexEnabled = cfgRow ? (cfgRow.scan_forex_enabled !== false && cfgRow.signal_enable_forex !== false) : true;
+    const dbCryptoEnabled = cfgRow ? (cfgRow.scan_crypto_enabled !== false && cfgRow.signal_enable_crypto !== false) : true;
+
+    const signalEnableCrypto = parseBooleanEnv("SIGNAL_ENABLE_CRYPTO", true) && dbCryptoEnabled;
+    const signalEnableForex = Deno.env.get("SIGNAL_ENABLE_FOREX") !== undefined
+      ? parseBooleanEnv("SIGNAL_ENABLE_FOREX", true)
+      : dbForexEnabled;
+    const marketMode = signalEnableCrypto && !signalEnableForex ? "crypto_only" : signalEnableForex && !signalEnableCrypto ? "forex_only" : signalEnableForex ? "mixed" : "disabled";
 
     const { data: signals, error: signalError } = await supabase
       .from("signals")

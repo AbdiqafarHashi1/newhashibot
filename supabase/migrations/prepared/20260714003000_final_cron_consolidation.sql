@@ -412,7 +412,7 @@ INSERT INTO public.hashibot_scheduler_jobs (
   scheduler_version
 )
 VALUES
-  ('hashibot_prod_scanner_5m', 'market_scanner', '*/5 * * * *', 'edge_function', 'scheduled-market-scanner', 'scanner:global', 240, 'no_pg_cron_retry; worker handles bounded retries', '{"run_type":"scheduled","market_mode":"crypto_only"}'::jsonb, 'scanner_manual_cycle_certified', 1, true, false, '20260714003000'),
+  ('hashibot_prod_scanner_5m', 'market_scanner', '*/5 * * * *', 'edge_function', 'scheduled-market-scanner', 'scanner:global', 240, 'no_pg_cron_retry; worker handles bounded retries', '{"run_type":"scheduled","market_mode":"combined"}'::jsonb, 'scanner_manual_cycle_certified', 1, true, false, '20260714003000'),
   ('hashibot_prod_outcome_evaluator_5m', 'outcome_evaluator', '2-59/5 * * * *', 'edge_function', 'evaluate-signal-outcomes', 'outcome-evaluator:global', 180, 'no_pg_cron_retry; structural errors non-retryable', '{"run_type":"scheduled"}'::jsonb, 'outcome_evaluator_certified', 2, true, false, '20260714003000'),
   ('hashibot_prod_binance_testnet_monitor_1m', 'runtime_monitor_binance_testnet', '* * * * *', 'edge_function', 'binance-testnet-monitor', 'monitor:binance:testnet', 55, 'no_pg_cron_retry; monitor/recovery classify retries', '{"run_type":"binance_testnet_monitor","provider":"binance","environment":"testnet"}'::jsonb, 'binance_monitor_certified', 3, true, false, '20260714003000'),
   ('hashibot_prod_bybit_demo_monitor_1m', 'runtime_monitor_bybit_demo', '* * * * *', 'edge_function', 'bybit-testnet-monitor', 'monitor:bybit:demo', 55, 'no_pg_cron_retry; monitor/recovery classify retries', '{"run_type":"bybit_demo_monitor","provider":"bybit","environment":"demo"}'::jsonb, 'bybit_monitor_certified', 4, true, false, '20260714003000'),
