@@ -1712,19 +1712,98 @@ If you need any assistance, contact admin@hashibot.com or use the Web Help Hub.
 `;
 }
 
+function buildZipBlob(files: { name: string; content: string }[]): Blob {
+  const enc = new TextEncoder();
+  const localHeaders: Uint8Array[] = [];
+  const centralDir: Uint8Array[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBytes = enc.encode(file.name);
+    const dataBytes = enc.encode(file.content);
+    const crc = crc32(dataBytes);
+
+    // Local file header
+    const local = new Uint8Array(30 + nameBytes.length + dataBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);  // signature
+    lv.setUint16(4, 20, true);           // version needed
+    lv.setUint16(6, 0, true);            // flags
+    lv.setUint16(8, 0, true);            // compression (stored)
+    lv.setUint16(10, 0, true);           // mod time
+    lv.setUint16(12, 0, true);           // mod date
+    lv.setUint32(14, crc, true);         // crc32
+    lv.setUint32(18, dataBytes.length, true); // compressed size
+    lv.setUint32(22, dataBytes.length, true); // uncompressed size
+    lv.setUint16(26, nameBytes.length, true); // file name length
+    lv.setUint16(28, 0, true);           // extra field length
+    local.set(nameBytes, 30);
+    local.set(dataBytes, 30 + nameBytes.length);
+
+    // Central directory entry
+    const central = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(central.buffer);
+    cv.setUint32(0, 0x02014b50, true);   // signature
+    cv.setUint16(4, 20, true);            // version made by
+    cv.setUint16(6, 20, true);            // version needed
+    cv.setUint16(8, 0, true);             // flags
+    cv.setUint16(10, 0, true);            // compression
+    cv.setUint16(12, 0, true);            // mod time
+    cv.setUint16(14, 0, true);            // mod date
+    cv.setUint32(16, crc, true);          // crc32
+    cv.setUint32(20, dataBytes.length, true); // compressed size
+    cv.setUint32(24, dataBytes.length, true); // uncompressed size
+    cv.setUint16(28, nameBytes.length, true); // file name length
+    cv.setUint16(30, 0, true);            // extra field length
+    cv.setUint16(32, 0, true);            // comment length
+    cv.setUint16(34, 0, true);            // disk number start
+    cv.setUint16(36, 0, true);            // internal attributes
+    cv.setUint32(38, 0, true);            // external attributes
+    cv.setUint32(42, offset, true);       // relative offset
+    central.set(nameBytes, 46);
+
+    localHeaders.push(local);
+    centralDir.push(central);
+    offset += local.length;
+  }
+
+  const centralDirSize = centralDir.reduce((s, c) => s + c.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);        // signature
+  ev.setUint16(4, 0, true);                  // disk number
+  ev.setUint16(6, 0, true);                  // disk with central dir
+  ev.setUint16(8, files.length, true);       // entries on disk
+  ev.setUint16(10, files.length, true);      // total entries
+  ev.setUint32(12, centralDirSize, true);    // central dir size
+  ev.setUint32(16, offset, true);            // central dir offset
+  ev.setUint16(20, 0, true);                 // comment length
+
+  const parts: Uint8Array[] = [...localHeaders, ...centralDir, eocd];
+  const total = parts.reduce((s, p) => s + p.length, 0);
+  const out = new Uint8Array(total);
+  let pos = 0;
+  for (const p of parts) { out.set(p, pos); pos += p.length; }
+  return new Blob([out], { type: 'application/zip' });
+}
+
+function crc32(data: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (const byte of data) {
+    crc ^= byte;
+    for (let i = 0; i < 8; i++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
 export async function createBridgeZipPackage(options?: {
   accountSize?: number;
   executionMode?: 'prop_firm_guardian' | 'account_growth_accelerator';
   prefillAccount?: string;
   prefillServer?: string;
-}): string | Promise<Blob> {
-  const { default: JSZip } = await import('jszip');
-  const zip = new JSZip();
-  const pyScript = generateVisualBridgeStandaloneScript(options);
-  const batLauncher = generateWindowsBatchLauncher(options);
-  const exeBuilder = generateExeBuildBatch();
-  const readme = generateQuickStartGuide(options?.prefillAccount, options?.prefillServer);
-  
+}): Promise<Blob> {
   const configObj = {
     account: options?.prefillAccount || '10011927607',
     server: options?.prefillServer || 'MetaQuotes-Demo',
@@ -1732,11 +1811,11 @@ export async function createBridgeZipPackage(options?: {
     executionMode: options?.executionMode || 'prop_firm_guardian'
   };
 
-  zip.file('HashiBot_Visual_MT5_Bridge.py', pyScript);
-  zip.file('Run_HashiBot_Bridge.bat', batLauncher);
-  zip.file('Build_Standalone_EXE.bat', exeBuilder);
-  zip.file('README_SETUP_GUIDE.txt', readme);
-  zip.file('hashibot_bridge_config.json', JSON.stringify(configObj, null, 2));
-
-  return await zip.generateAsync({ type: 'blob' });
+  return buildZipBlob([
+    { name: 'HashiBot_Visual_MT5_Bridge.py', content: generateVisualBridgeStandaloneScript(options) },
+    { name: 'Run_HashiBot_Bridge.bat', content: generateWindowsBatchLauncher(options) },
+    { name: 'Build_Standalone_EXE.bat', content: generateExeBuildBatch() },
+    { name: 'README_SETUP_GUIDE.txt', content: generateQuickStartGuide(options?.prefillAccount, options?.prefillServer) },
+    { name: 'hashibot_bridge_config.json', content: JSON.stringify(configObj, null, 2) },
+  ]);
 }
