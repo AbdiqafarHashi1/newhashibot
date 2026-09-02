@@ -108,7 +108,12 @@ export default function OutcomeTracking() {
       setLatestAutoUpdate((autoUpdateRes.data ?? null) as SignalUpdate | null);
       setLatestManualUpdate((manualUpdateRes.data ?? null) as SignalUpdate | null);
       try {
-        const probe = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/evaluate-signal-outcomes`, { method: 'OPTIONS' });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const probe = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/evaluate-signal-outcomes`, { 
+          method: 'OPTIONS',
+          signal: controller.signal 
+        }).finally(() => clearTimeout(timeoutId));
         setOutcomeFunctionStatus(probe.status === 404 ? 'missing' : probe.ok ? 'deployed' : 'unknown');
       } catch {
         setOutcomeFunctionStatus('unreachable');

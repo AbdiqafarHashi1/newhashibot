@@ -38,22 +38,19 @@ const adminNav: NavItem[] = [
   { to: '/admin/capital', label: 'Capital Allocation', icon: Database },
 
   { section: 'Customers & Intelligence' },
-  { to: '/admin/ai-agents', label: 'AI Agents Command (Gemini)', icon: Bot },
+  { to: '/admin/customers', label: 'Customer Management & Rules', icon: Users },
   { to: '/admin/customer-fleet', label: 'Customer Bot Fleet & Engines', icon: Cpu },
-  { to: '/admin/customers', label: 'Customer Management', icon: Users },
   { to: '/admin/access-requests', label: 'Access Requests', icon: ClipboardList },
   { to: '/admin/telegram-links', label: 'Telegram Links', icon: Send },
+  { to: '/admin/ai-agents', label: 'AI Agents Command (Gemini)', icon: Bot },
   { to: '/admin/performance', label: 'Performance Analytics', icon: Activity },
 
   { section: 'Platform & Providers' },
-  { to: '/admin/bridge', label: 'MT5 Bridge & Market Feeder', icon: Server },
-  { to: '/admin/providers', label: 'Provider Health', icon: Zap },
+  { to: '/admin/providers', label: 'Provider Health & Feeds', icon: Zap },
+  { to: '/admin/providers/mt5', label: 'MT5 Operations Center', icon: Server },
   { to: '/admin/providers/binance', label: 'Binance Operations', icon: Cpu },
   { to: '/admin/providers/bybit', label: 'Bybit Operations', icon: Cpu },
-  { to: '/admin/providers/mt5', label: 'MT5 Operations Center', icon: Cpu },
-  { to: '/admin/providers/mt5-personal', label: 'MT5 Personal Ops', icon: Cpu },
-  { to: '/admin/providers/mt5-prop', label: 'MT5 Prop Ops', icon: Cpu },
-  { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },
+  { to: '/admin/audit', label: 'Audit Trail & Logs', icon: ClipboardList },
   { to: '/admin/operator/settings', label: 'Settings & Secrets', icon: Settings },
 ];
 

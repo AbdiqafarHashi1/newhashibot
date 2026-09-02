@@ -60,11 +60,14 @@ export default function SignalsManager() {
     setMinAutoSendGrade(cfgRes.data?.min_auto_send_grade ?? cfgRes.data?.min_signal_grade ?? 'A');
     setDeliveries(delivRes.data ?? []);
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3500);
       const runtimeRes = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/market-scanner`, {
         method: 'POST',
         headers: { ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}), 'Content-Type': 'application/json' },
         body: JSON.stringify({ debug_provider_config: true }),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timer));
       const runtimeJson = await runtimeRes.json();
       setTelegramConfigPresent(Boolean(runtimeJson.telegram_enabled && runtimeJson.enable_signal_mode_output && runtimeJson.telegram_bot_token_set && (runtimeJson.telegram_default_channel_id_set || runtimeJson.telegram_chat_id_set)));
     } catch {

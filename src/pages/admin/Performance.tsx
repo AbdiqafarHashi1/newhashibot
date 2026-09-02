@@ -755,11 +755,11 @@ export default function Performance() {
           .limit(50),
       ]);
 
-      if (sigRes.error) throw new Error(sigRes.error.message);
-      if (stratConfigRes.error) throw new Error(stratConfigRes.error.message);
-      if (execRes.error) throw new Error(execRes.error.message);
-      if (settingsRes.error) throw new Error(settingsRes.error.message);
-      if (eventRes.error) throw new Error(eventRes.error.message);
+      if (sigRes.error) console.warn('Signal analytics query error:', sigRes.error.message);
+      if (stratConfigRes.error) console.warn('Strategy configs query error:', stratConfigRes.error.message);
+      if (execRes.error) console.warn('Execution orders query error:', execRes.error.message);
+      if (settingsRes.error) console.warn('Execution settings query error:', settingsRes.error.message);
+      if (eventRes.error) console.warn('Execution events query error:', eventRes.error.message);
 
       setSignals((sigRes.data ?? []) as SignalAnalyticsRow[]);
       setExecutionOrders((execRes.data ?? []) as ExecutionOrderRow[]);
