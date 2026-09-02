@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import JSZip from 'jszip';
 
 export type BridgePlatformType = 'mt5_forex' | 'bybit_futures' | 'binance_futures' | 'okx_futures' | 'bitget_futures';
 
@@ -1719,6 +1718,7 @@ export async function createBridgeZipPackage(options?: {
   prefillAccount?: string;
   prefillServer?: string;
 }): string | Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const pyScript = generateVisualBridgeStandaloneScript(options);
   const batLauncher = generateWindowsBatchLauncher(options);
