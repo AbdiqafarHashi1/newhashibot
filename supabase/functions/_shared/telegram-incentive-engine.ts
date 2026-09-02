@@ -125,24 +125,63 @@ export async function recordCampaignDelivery(
   }
 }
 
+export const VIP_UPGRADE_LINK = "https://hashibot.trade/vip";
+export const VIP_CONTACT_HANDLE = "@Abdihashi1";
+
+export function getUpgradeIncentiveBlock(customCta?: string): string {
+  if (customCta) return `\n\n${customCta}`;
+  return [
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `💎 *UPGRADE TO HASHIBOT VIP*`,
+    `Unlock real-time institutional Crypto & Forex setups, complete entry zones, dynamic SL/TPs, and automatic break-even trailing management.`,
+    ``,
+    `🔗 *Direct Upgrade:* [hashibot.trade/vip](${VIP_UPGRADE_LINK})`,
+    `💬 *Manual Access & Inquiries:* Text ${VIP_CONTACT_HANDLE} on Telegram`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+  ].join("\n");
+}
+
 /**
  * Contextual CTA generator for Free Channel posts
  */
 export function getContextualCTA(trigger: CtaTrigger): string {
   switch (trigger) {
     case "after_tp1":
-      return `\n\n🎯 *Want real-time updates for all market setups?*\nUpgrade to HashiBot VIP Signals for full entry ranges, TP1–TP3 guidance, and instant alerts.`;
+      return [
+        `🎯 *Target 1 Smashed!* (Real-Time Trade Management)`,
+        `VIP members had SL moved to Breakeven automatically. Never miss live execution alerts.`,
+        getUpgradeIncentiveBlock(),
+      ].join("\n");
     case "after_tp2":
-      return `\n\n🔥 *TP2 Hit!* Never miss a high-probability setup.\nJoin the HashiBot VIP Signal Room today for complete coverage.`;
+      return [
+        `🔥 *Target 2 Captured!* (Maximum Profit Lock)`,
+        `Join our VIP Signal Room to get all Crypto & Forex setups with zero delay.`,
+        getUpgradeIncentiveBlock(),
+      ].join("\n");
     case "after_stop_loss":
-      return `\n\n🛡️ *Risk Management in Action.* Consistent trading is built on strict risk control.\nExplore our strategy playbooks in the VIP Room.`;
+      return [
+        `🛡️ *Institutional Capital Preservation in Action.*`,
+        `Consistent profitability is built on rigorous 0.5%–1.0% risk sizing and automated protection.`,
+        getUpgradeIncentiveBlock(),
+      ].join("\n");
     case "after_expiry":
-      return `\n\n⌛ *Patience & Discipline.* We only take setups that meet strict institutional criteria.`;
+      return [
+        `⌛ *Patience & Discipline:* We only trade A/A+ institutional market structures.`,
+        getUpgradeIncentiveBlock(),
+      ].join("\n");
     case "quiet_market":
-      return `\n\n💡 *Quiet Market Phase:* HashiBot algorithms are scanning 24/7 across Crypto and Forex. Quality setups only.`;
+      return [
+        `💡 *Active Scanning:* HashiBot algorithms are scanning 24/7 across Crypto, Forex Majors, and Gold.`,
+        getUpgradeIncentiveBlock(),
+      ].join("\n");
     case "weekly_summary":
-      return `\n\n📊 *Ready for the week ahead?*\nGet full access to all A/A+ institutional signals with HashiBot VIP.`;
+      return [
+        `📊 *Ready for the trading week ahead?*`,
+        `Get complete real-time access to all high-grade trade signals and lifecycle management.`,
+        getUpgradeIncentiveBlock(),
+      ].join("\n");
     default:
-      return `\n\n🚀 *Upgrade to HashiBot VIP* for real-time institutional signal alerts.`;
+      return getUpgradeIncentiveBlock();
   }
 }

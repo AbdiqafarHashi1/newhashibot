@@ -5,7 +5,8 @@ import {
   Database, Send, X,
   User, Settings, ListChecks,
   Shield, ShieldCheck, Cpu, ClipboardList,
-  Layers, Radio, ArrowLeftRight
+  Layers, Radio, ArrowLeftRight, Bot, Server,
+  SlidersHorizontal, FlaskConical
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +22,11 @@ const adminNav: NavItem[] = [
   { to: '/admin/runtime-truth', label: 'Runtime Truth & Receipts', icon: ListChecks },
   { to: '/admin/recovery', label: 'Recovery Center', icon: Activity },
 
+  { section: 'Strategy & Quant Lab' },
+  { to: '/admin/strategy-config', label: 'Strategy Config & Tweaks', icon: SlidersHorizontal },
+  { to: '/admin/backtest-lab', label: 'Backtest Lab', icon: FlaskConical },
+  { to: '/admin/trading-brain', label: 'Trading Brain & HMM', icon: Bot },
+
   { section: 'Operations & Execution' },
   { to: '/admin/execution', label: 'Execution Management', icon: Cpu },
   { to: '/admin/positions', label: 'Positions Center', icon: Layers },
@@ -32,12 +38,15 @@ const adminNav: NavItem[] = [
   { to: '/admin/capital', label: 'Capital Allocation', icon: Database },
 
   { section: 'Customers & Intelligence' },
+  { to: '/admin/ai-agents', label: 'AI Agents Command (Gemini)', icon: Bot },
+  { to: '/admin/customer-fleet', label: 'Customer Bot Fleet & Engines', icon: Cpu },
   { to: '/admin/customers', label: 'Customer Management', icon: Users },
   { to: '/admin/access-requests', label: 'Access Requests', icon: ClipboardList },
   { to: '/admin/telegram-links', label: 'Telegram Links', icon: Send },
   { to: '/admin/performance', label: 'Performance Analytics', icon: Activity },
 
   { section: 'Platform & Providers' },
+  { to: '/admin/bridge', label: 'MT5 Bridge & Market Feeder', icon: Server },
   { to: '/admin/providers', label: 'Provider Health', icon: Zap },
   { to: '/admin/providers/binance', label: 'Binance Operations', icon: Cpu },
   { to: '/admin/providers/bybit', label: 'Bybit Operations', icon: Cpu },

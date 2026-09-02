@@ -33,15 +33,15 @@ export default function FAQ() {
     {
       id: 'sig-2',
       category: 'Signal Mode',
-      q: 'Do I need exchange API keys for AI Signals?',
-      a: 'No. The Crypto Signal Room package (5,000 KES/month) requires no API keys. Signals are meant for manual execution on any exchange or broker of your choice.',
+      q: 'Do I need exchange API keys for VIP Signals?',
+      a: 'No. The VIP Signal Room package (3,500 KES/month, 1,200 KES weekly trial, or $29 USD) requires no API keys. Signals are meant for manual execution on any exchange or MT5 broker of your choice.',
     },
     // Crypto Automation
     {
       id: 'crypto-1',
       category: 'Crypto Automation',
       q: 'Which exchanges are supported for crypto auto-trading?',
-      a: 'Crypto Personal Bot (10,000 KES/mo) currently supports Binance (Spot & USDT-M Futures) and Bybit (Unified Margin V5 & Futures).',
+      a: 'Crypto Personal Bot (8,500 KES/mo or $65 USD) currently supports Binance (Spot & USDT-M Futures) and Bybit (Unified Margin V5 & Futures).',
     },
     {
       id: 'crypto-2',
@@ -60,7 +60,7 @@ export default function FAQ() {
       id: 'mt5-2',
       category: 'MT5 Automation',
       q: 'Can HashiBot be used on prop firm accounts?',
-      a: 'Yes. The Forex MT5 Prop Bot tier includes conservative risk profiles (0.25% - 0.75% per trade) and hard daily loss gates specifically designed for FTMO, FundedNext, and similar prop firm accounts.',
+      a: 'Yes. The Forex MT5 Prop Bot tier (12,500 KES/mo or $95 USD) includes conservative risk profiles (0.25% - 0.75% per trade) and hard daily loss gates specifically designed for FTMO, FundedNext, and similar prop firm accounts.',
     },
     // Payments & M-Pesa
     {

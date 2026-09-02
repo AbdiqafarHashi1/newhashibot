@@ -22,6 +22,13 @@ import { loadCertifiedExecutionAccounts, type CertifiedAccountTruthRow } from ".
 import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
 import { FOREX_RUNTIME_INSTRUMENTS, FOREX_RUNTIME_SYMBOLS, FOREX_STRATEGY_CONTRACTS, MT5_PROVIDER_MARKET_DATA_TIMEFRAMES, forexScannerFetchPlan, forexStrategyEligibility, forexStrategyTimeframes, isForexRuntimeSymbol, roundRuntimePrice, runtimeInstrument, runtimePipDistance } from "../_shared/forex-runtime-contracts.ts";
 import { FOREX_PRODUCTION_EVALUATORS } from "../_shared/forex-production-strategies.ts";
+import {
+  PredictiveIntelligenceOrchestrator,
+  calculateGarmanKlassVolatility,
+  HMMRegimeClassifier,
+  KellySizingOptimizer,
+  SmartOrderRouterEngine,
+} from "../_shared/predictive-intelligence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +57,7 @@ interface Indicators {
   recent_high: number; recent_low: number; avg_volume: number;
   body_size: number; atr_pct: number; range_compression_ratio: number;
   momentum_score: number; volatility_state: string; regime: string;
+  gk_volatility?: number;
 }
 
 interface EvalResult {
@@ -226,14 +234,15 @@ function calculateIndicators(candles: Candle[]): Indicators {
   const olderRange = olderHigh - olderLow;
   const range_compression_ratio = olderRange > 0 ? recentRange / olderRange : 1;
   const momentum_score = calcMomentumScore(closes, 3);
-  const volatility_state = atr_pct > 3.0 ? "high" : atr_pct < 0.5 ? "low" : "normal";
+  const gk_volatility = calculateGarmanKlassVolatility(candles);
+  const volatility_state = atr_pct > 3.0 || gk_volatility > 0.0018 ? "high" : atr_pct < 0.5 && gk_volatility < 0.0002 ? "low" : "normal";
   let regime = "unclear";
   if (ema20 > ema50 * 1.002 && rsi14 > 52) regime = "trend_up";
   else if (ema20 < ema50 * 0.998 && rsi14 < 48) regime = "trend_down";
   else if (range_compression_ratio < 0.55) regime = "compression";
-  else if (atr_pct > 2.0) regime = "expansion";
+  else if (atr_pct > 2.0 || gk_volatility > 0.0025) regime = "expansion";
   else if (rsi14 > 45 && rsi14 < 55) regime = "ranging";
-  return { ema20, ema50, atr14, rsi14, recent_high, recent_low, avg_volume, body_size, atr_pct, range_compression_ratio, momentum_score, volatility_state, regime };
+  return { ema20, ema50, atr14, rsi14, recent_high, recent_low, avg_volume, body_size, atr_pct, range_compression_ratio, momentum_score, volatility_state, regime, gk_volatility };
 }
 
 // ─── Strategy evaluator helpers ────────────────────────────────────────────────

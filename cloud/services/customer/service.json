@@ -1,8 +1,0 @@
-{
-  "service": "customer",
-  "contract_version": 1,
-  "worker_registration": "disabled",
-  "runtime_enabled": false,
-  "provider_mutation_enabled": null,
-  "production_execution_enabled": null
-}

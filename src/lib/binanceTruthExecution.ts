@@ -499,14 +499,45 @@ function stopHit(direction: Direction, markPrice: number, stop: number): boolean
 }
 
 export function timeStopMinutes(strategyName: string | null | undefined, timeframe: string | null | undefined): number | null {
-  const key = `${String(strategyName ?? '').toLowerCase()}:${String(timeframe ?? '').toLowerCase()}`;
-  if (key === 'microscalper:5m') return 120;
-  if (key === 'microscalper:15m') return 360;
-  if (key === 'compressionbreakout:15m') return 720;
-  if (key === 'compressionbreakout:1h') return 48 * 60;
-  if (key === 'swingcontinuation:15m') return 1440;
-  if (key === 'swingcontinuation:1h') return 96 * 60;
-  return null;
+  const strat = String(strategyName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const tf = String(timeframe ?? '').toLowerCase().trim();
+
+  // Scalping strategies (rapid invalidation: 20-30 bars)
+  if (strat.includes('scalp') || strat.includes('micro')) {
+    if (tf === '1m') return 30;
+    if (tf === '3m') return 60;
+    if (tf === '5m') return 120;
+    if (tf === '15m') return 360;
+    return 180;
+  }
+
+  // Breakout strategies (compression, london, session orb, gold breakout: 30-48 bars)
+  if (strat.includes('breakout') || strat.includes('compression') || strat.includes('orb')) {
+    if (tf === '5m') return 180;
+    if (tf === '15m') return 720;
+    if (tf === '1h') return 48 * 60;
+    if (tf === '4h') return 96 * 60;
+    return 720;
+  }
+
+  // Swing & Trend Continuation strategies (wider hold: 60-96 bars)
+  if (strat.includes('swing') || strat.includes('trend') || strat.includes('continuation') || strat.includes('pullback')) {
+    if (tf === '15m') return 1440;
+    if (tf === '1h') return 96 * 60;
+    if (tf === '4h') return 168 * 60;
+    if (tf === '1d') return 30 * 24 * 60;
+    return 1440;
+  }
+
+  // Reversal & Macro Yield strategies
+  if (strat.includes('reversal') || strat.includes('exhaustion') || strat.includes('yield') || strat.includes('macro')) {
+    if (tf === '15m') return 720;
+    if (tf === '1h') return 48 * 60;
+    if (tf === '4h') return 120 * 60;
+    return 720;
+  }
+
+  return 720;
 }
 
 export function timeStopDeadline(openedAt: string | null | undefined, strategyName: string | null | undefined, timeframe: string | null | undefined): string | null {

@@ -30,7 +30,7 @@ export default function PropEA() {
               Forex MT5 Prop Bot is built specifically for strict prop firm challenges (FTMO, FundedNext, MFF) with conservative risk management, automated daily drawdown limits, and multi-symbol execution.
             </p>
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-amber-200 mb-6">
-              Subscription: <span className="font-semibold text-white">10,000 KES/month or $100/month</span>
+              Subscription: <span className="font-semibold text-white">12,500 KES/month ($95 USD)</span>
             </div>
             <p className="text-sm text-zinc-400 max-w-xl leading-relaxed mb-10">
               Direct MetaTrader 5 execution via our dedicated Windows Daemon Bridge. Protects funded accounts with strict risk fences.
@@ -39,7 +39,11 @@ export default function PropEA() {
               <Link to="/pricing?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-amber-600/20 text-sm">
                 Activate Forex MT5 Prop Bot <ArrowRight size={16} />
               </Link>
-              <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-7 py-3.5 rounded-lg font-medium transition-colors text-sm">
+              <Link to="/results#interactive-backtester" className="inline-flex items-center justify-center gap-2 bg-zinc-900 border border-amber-500/30 hover:border-amber-500/60 text-amber-300 hover:text-white px-7 py-3.5 rounded-lg font-semibold transition-colors text-sm">
+                <ShieldCheck size={16} className="text-amber-400" />
+                Run $50k Prop Backtest
+              </Link>
+              <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-6 py-3.5 rounded-lg font-medium transition-colors text-sm">
                 Contact Support
               </Link>
             </div>
@@ -100,7 +104,7 @@ export default function PropEA() {
           </p>
           <div className="flex flex-col gap-3">
             <Link to="/pricing?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-sm shadow-lg shadow-amber-600/20">
-              Subscribe to Forex MT5 Prop Bot (10,000 KES/mo) <ArrowRight size={14} />
+              Subscribe to Forex MT5 Prop Bot (12,500 KES/mo) <ArrowRight size={14} />
             </Link>
             <Link to="/mt5-automation" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 px-8 py-3 rounded-lg text-sm transition-colors">
               Explore MT5 Architecture <ArrowRight size={14} />

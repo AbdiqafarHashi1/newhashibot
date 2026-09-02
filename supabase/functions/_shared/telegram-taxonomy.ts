@@ -4,6 +4,7 @@
  */
 
 export type TelegramEventCategory =
+  | "INTELLIGENCE"
   | "SIGNALS"
   | "EXECUTION"
   | "PROTECTION"
@@ -17,6 +18,7 @@ export type TelegramVisibility =
   | "FREE_PUBLIC"
   | "VIP_SIGNAL"
   | "VIP_EXECUTION"
+  | "ALL_MEMBERS"
   | "ANALYTICS"
   | "CUSTOMER_DIRECT"
   | "ADMIN_AND_CUSTOMER"
@@ -25,6 +27,14 @@ export type TelegramVisibility =
 export type TelegramEventSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export const TELEGRAM_EVENT_TAXONOMY = {
+  INTELLIGENCE: [
+    "MORNING_BRIEF",
+    "NEWS_DIGEST",
+    "MARKET_WRAP",
+    "AI_ANALYSIS",
+    "WATCHLIST_PATTERN_UPDATE",
+    "MARKET_OUTLOOK",
+  ],
   SIGNALS: [
     "SIGNAL_QUALIFIED",
     "SIGNAL_PUBLISHED",
@@ -100,6 +110,19 @@ export const TELEGRAM_EVENT_TAXONOMY = {
 
 export function categorizeEvent(eventType: string): { category: TelegramEventCategory; defaultVisibility: TelegramVisibility } {
   const norm = eventType.toUpperCase().trim();
+
+  // Intelligence & Daily News / AI Analysis group -> Both Free & VIP get these
+  if (
+    norm.startsWith("INTELLIGENCE_") ||
+    norm.includes("MORNING_BRIEF") ||
+    norm.includes("NEWS_DIGEST") ||
+    norm.includes("MARKET_WRAP") ||
+    norm.includes("AI_ANALYSIS") ||
+    norm.includes("WATCHLIST_PATTERN") ||
+    norm.includes("MARKET_OUTLOOK")
+  ) {
+    return { category: "INTELLIGENCE", defaultVisibility: "ALL_MEMBERS" };
+  }
 
   // Signals group
   if (

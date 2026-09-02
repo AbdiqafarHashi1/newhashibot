@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Cpu, RefreshCw } from 'lucide-react';
 import { DataTable, SearchInput, FilterBar } from '../../../../components/operations';
 import { OperatorActionResult } from '../../../../components/admin/ActionResult';
+import { SmartOrderRouterVisualizer } from '../../../../components/predictive/SmartOrderRouterVisualizer';
 
 type Row = Record<string, unknown>;
 
@@ -123,6 +124,9 @@ export function ExecutionOverviewTab({
           </button>
         </div>
       </div>
+
+      {/* Multi-Venue Smart Order Router & Arbitrage Visualizer */}
+      <SmartOrderRouterVisualizer />
 
       <FilterBar>
         <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Filter by provider, symbol..." />

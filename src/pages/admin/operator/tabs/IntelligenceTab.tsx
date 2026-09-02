@@ -2,6 +2,7 @@ import React from 'react';
 import { Newspaper, RefreshCw } from 'lucide-react';
 import { DataTable } from '../../../../components/operations';
 import { OperatorActionResult } from '../../../../components/admin/ActionResult';
+import { HMMRegimeVisualizer } from '../../../../components/predictive/HMMRegimeVisualizer';
 
 type Row = Record<string, unknown>;
 
@@ -58,6 +59,9 @@ export function IntelligenceTab({
           Run News Brain Engine
         </button>
       </div>
+
+      {/* HMM Continuous Regime Microstructure Visualizer */}
+      <HMMRegimeVisualizer />
 
       <DataTable columns={columns} data={intelligenceEvents} emptyMessage="No market intelligence digests logged." />
     </div>

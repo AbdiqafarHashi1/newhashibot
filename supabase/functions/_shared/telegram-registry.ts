@@ -91,9 +91,9 @@ export class TelegramChannelRegistry {
     this.destinations.set("admin", {
       id: "dest_admin_ops",
       channelKey: "admin",
-      purpose: "HashiBot Core Operations, Supervisor, Recovery & Risk Alerts",
+      purpose: "HashiBot Backend Health, Supervisor Watchdog, System Degradation, Risk Locks, Failover & Execution Truth Alerts",
       chatId: adminChatId,
-      environment: "testnet",
+      environment: "production",
       enabled: !!adminChatId,
       supportedCategories: ["RECOVERY", "RISK", "RUNTIME", "TELEGRAM", "PROTECTION", "EXECUTION"],
       providerScope: ["all"],
@@ -106,37 +106,37 @@ export class TelegramChannelRegistry {
       configSource: "env",
     });
 
-    this.destinations.set("free", {
-      id: "dest_free_public",
-      channelKey: "free",
-      purpose: "Free Public Channel - Educational Teasers & Delayed Market Previews",
-      chatId: freeChatId,
-      environment: "testnet",
-      enabled: !!freeChatId,
-      supportedCategories: ["SIGNALS"],
-      providerScope: ["all"],
-      marketScope: ["all"],
-      packageScope: ["free_preview"],
-      ratePolicy: { maxMessagesPerMinute: 10, cooldownSeconds: 300 },
-      health: freeChatId ? "healthy" : "degraded",
+    this.destinations.set("vip", {
+      id: "dest_vip_unified",
+      channelKey: "vip",
+      purpose: "HashiBot VIP Institutional Room - Real-Time Unified Crypto, Forex & Metals Signals and Complete Trade Management Lifecycle",
+      chatId: vipChatId,
+      environment: "production",
+      enabled: !!vipChatId,
+      supportedCategories: ["SIGNALS", "PROTECTION", "EXECUTION"],
+      providerScope: ["binance", "bybit", "mt5_personal", "mt5_prop", "all"],
+      marketScope: ["crypto", "forex", "metals", "all"],
+      packageScope: ["crypto_signal_room", "crypto_personal_bot", "forex_mt5_personal_bot", "forex_mt5_prop_bot", "all_vip"],
+      ratePolicy: { maxMessagesPerMinute: 30, cooldownSeconds: 0 },
+      health: vipChatId ? "healthy" : "degraded",
       lastSuccess: null,
       lastFailure: null,
       configSource: "env",
     });
 
-    this.destinations.set("vip", {
-      id: "dest_vip_signals",
-      channelKey: "vip",
-      purpose: "VIP Signal Room - High-Grade Qualified Trading Signals & Lifecycle Updates",
-      chatId: vipChatId,
-      environment: "testnet",
-      enabled: !!vipChatId,
-      supportedCategories: ["SIGNALS", "PROTECTION"],
+    this.destinations.set("free", {
+      id: "dest_free_public",
+      channelKey: "free",
+      purpose: "HashiBot Free Public Community - Educational Previews, Daily Macro Briefs, Verified Wins & VIP Upgrade Incentives",
+      chatId: freeChatId,
+      environment: "production",
+      enabled: !!freeChatId,
+      supportedCategories: ["SIGNALS", "RUNTIME"],
       providerScope: ["all"],
-      marketScope: ["crypto", "forex", "metals"],
-      packageScope: ["crypto_signal_room", "crypto_personal_bot", "forex_mt5_personal_bot", "forex_mt5_prop_bot"],
-      ratePolicy: { maxMessagesPerMinute: 30, cooldownSeconds: 0 },
-      health: vipChatId ? "healthy" : "degraded",
+      marketScope: ["all"],
+      packageScope: ["free_preview"],
+      ratePolicy: { maxMessagesPerMinute: 10, cooldownSeconds: 300 },
+      health: freeChatId ? "healthy" : "degraded",
       lastSuccess: null,
       lastFailure: null,
       configSource: "env",
@@ -232,9 +232,11 @@ export class TelegramChannelRegistry {
       case "VIP_SIGNAL":
         return ["vip"];
       case "VIP_EXECUTION":
-        return ["vip_execution"];
+        return ["vip", "admin"];
+      case "ALL_MEMBERS":
+        return ["free", "vip", "admin"];
       case "ANALYTICS":
-        return ["analytics"];
+        return ["admin"];
       case "CUSTOMER_DIRECT":
         return ["customer_direct"];
       case "ADMIN_AND_CUSTOMER":

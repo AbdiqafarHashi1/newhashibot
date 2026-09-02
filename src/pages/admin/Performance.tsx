@@ -4,9 +4,11 @@ import { supabase } from '../../lib/supabase';
 import { getMonitorTruth } from '../../lib/monitorTruth';
 import { getPerformanceSummary } from '../../lib/hashibotBackend';
 import { gradeBadge, directionBadge } from '../../components/ui/Badge';
-import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle, Shield, Activity } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Minus, BarChart2, AlertTriangle, Shield, Activity, Compass, Brain } from 'lucide-react';
 import { DEFAULT_CAPITAL_ASSUMPTIONS, estimateCapitalFromR, formatMoney, formatPct, validCapitalAssumptions, CapitalAssumptions } from '../../lib/capitalAnalytics';
 import { calculateOpportunityRankScore, classifyStrategySurvival, classifySymbolQuality, correlationGroup, correlationPenalty, customerSpamScore } from '../../lib/capitalHardness';
+import { AlphaDecayHMMVisualizer } from '../../components/predictive/AlphaDecayHMMVisualizer';
+import { AdaptiveStrategyEngineVisualizer } from '../../components/predictive/AdaptiveStrategyEngineVisualizer';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,13 +178,53 @@ interface StrategyConfigRow {
 const RESET_CONFIRMATION_TEXT = 'RESET PERFORMANCE HISTORY';
 const BASELINE_STORAGE_KEY = 'hashibot.adminPerformance.baselineStartedAt';
 const CAPITAL_STORAGE_KEY = 'hashibot.adminPerformance.capitalAssumptions';
-const REQUIRED_STRATEGIES = [
+
+const ALL_PLATFORM_STRATEGIES = [
+  'CryptoMicroScalper',
+  'CryptoCompressionBreakout',
+  'CryptoSwingContinuation',
+  'CryptoReversalExhaustion',
+  'CryptoMomentumBreakout',
+  'QuickScalp',
+  'FXMicroScalper',
+  'LondonBreakout',
+  'NYContinuation',
+  'FXTrendPullback',
+  'SessionORB',
+  'GoldVolatilityBreakout',
+  'MacroYieldDifferential',
   'MicroScalper',
   'CompressionBreakout',
   'SwingContinuation',
   'ForexMicroScalper',
   'ForexSwingContinuation',
 ];
+
+const CRYPTO_STRATEGIES = new Set([
+  'CryptoMicroScalper',
+  'CryptoCompressionBreakout',
+  'CryptoSwingContinuation',
+  'CryptoReversalExhaustion',
+  'CryptoMomentumBreakout',
+  'QuickScalp',
+  'MicroScalper',
+  'CompressionBreakout',
+  'SwingContinuation',
+]);
+
+const FOREX_STRATEGIES = new Set([
+  'FXMicroScalper',
+  'LondonBreakout',
+  'NYContinuation',
+  'FXTrendPullback',
+  'SessionORB',
+  'GoldVolatilityBreakout',
+  'MacroYieldDifferential',
+  'ForexMicroScalper',
+  'ForexSwingContinuation',
+]);
+
+const REQUIRED_STRATEGIES = ALL_PLATFORM_STRATEGIES;
 
 const OUTCOME_COLORS: Record<string, string> = {
   WIN: 'text-emerald-400',
@@ -684,6 +726,7 @@ export default function Performance() {
   const [resetResult, setResetResult] = useState<{ rows: ResetCountRow[]; timestamp: string; remainingCounts: ResetRemainingCounts; hasMore: boolean; success: boolean; step: string; deletedCount: number } | null>(null);
   const [resetProgress, setResetProgress] = useState('');
   const [capitalAssumptions, setCapitalAssumptions] = useState<CapitalAssumptions>(() => getStoredCapitalAssumptions());
+  const [performanceTab, setPerformanceTab] = useState<'overview' | 'adaptive_brain' | 'ai_strategies' | 'execution' | 'health'>('adaptive_brain');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -722,8 +765,11 @@ export default function Performance() {
       setExecutionOrders((execRes.data ?? []) as ExecutionOrderRow[]);
       setExecutionSettings((settingsRes.data ?? null) as ExecutionSettingsRow | null);
       setExecutionEvents((eventRes.data ?? []) as ExecutionEventLogRow[]);
-      const names = new Set(REQUIRED_STRATEGIES);
+      const names = new Set(ALL_PLATFORM_STRATEGIES);
       ((stratConfigRes.data ?? []) as StrategyConfigRow[]).forEach(row => {
+        if (row.strategy_name) names.add(row.strategy_name);
+      });
+      ((sigRes.data ?? []) as SignalAnalyticsRow[]).forEach(row => {
         if (row.strategy_name) names.add(row.strategy_name);
       });
       setConfiguredStrategies([...names].sort());
@@ -797,8 +843,14 @@ export default function Performance() {
 
   const filterOpts = useMemo(() => {
     const marketScopedSignals = filters.market ? signals.filter(s => s.market_type === filters.market) : signals;
+    const marketScopedStrategies = configuredStrategies.filter(name => {
+      if (!filters.market) return true;
+      if (filters.market === 'crypto') return CRYPTO_STRATEGIES.has(name) || marketScopedSignals.some(s => s.strategy_name === name);
+      if (filters.market === 'forex') return FOREX_STRATEGIES.has(name) || marketScopedSignals.some(s => s.strategy_name === name);
+      return true;
+    });
     return {
-      strategies: configuredStrategies,
+      strategies: marketScopedStrategies,
       symbols: [...new Set(marketScopedSignals.map(s => s.symbol).filter(Boolean))].sort(),
       timeframes: [...new Set(marketScopedSignals.map(s => s.timeframe).filter(Boolean))].sort(),
       directions: [...new Set(marketScopedSignals.map(s => s.direction).filter(Boolean))].sort(),
@@ -889,13 +941,36 @@ export default function Performance() {
   const summaryCapital = useMemo(() => capitalForRows(filteredSignals, capitalAssumptions), [filteredSignals, capitalAssumptions]);
   const strategyBreakdown = useMemo(() => {
     const grouped = new Map(groupBreakdown(filteredSignals, row => row.strategy_name ?? 'unnamed').map(row => [row.key, row]));
-    return configuredStrategies.map(strategy => grouped.get(strategy) ?? {
+    const strategiesToDisplay = new Set<string>();
+
+    // Include any strategy that has signals in the current filtered view
+    for (const stratKey of grouped.keys()) {
+      if (stratKey && stratKey !== 'unnamed') {
+        strategiesToDisplay.add(stratKey);
+      }
+    }
+
+    // Include all configured platform strategies matching the market filter
+    configuredStrategies.forEach(strategy => {
+      if (filters.market === 'crypto' && !CRYPTO_STRATEGIES.has(strategy) && !grouped.has(strategy)) return;
+      if (filters.market === 'forex' && !FOREX_STRATEGIES.has(strategy) && !grouped.has(strategy)) return;
+      strategiesToDisplay.add(strategy);
+    });
+
+    if (grouped.has('unnamed')) {
+      strategiesToDisplay.add('unnamed');
+    }
+
+    return [...strategiesToDisplay].map(strategy => grouped.get(strategy) ?? {
       key: strategy,
       label: strategy,
       rows: [],
       ...calculateSummary([]),
+    }).sort((a, b) => {
+      if (b.totalSignals !== a.totalSignals) return b.totalSignals - a.totalSignals;
+      return a.label.localeCompare(b.label);
     });
-  }, [configuredStrategies, filteredSignals]);
+  }, [configuredStrategies, filteredSignals, filters.market]);
   const symbolBreakdown = useMemo(() => groupBreakdown(filteredSignals, row => row.symbol, (_key, rows) => ({
     market: [...new Set(rows.map(row => row.market_type))].join(', '),
     mostUsedStrategy: mostUsedStrategy(rows),
@@ -977,9 +1052,9 @@ export default function Performance() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BarChart2 size={22} className="text-blue-400" />
-            Performance Truth Separation
+            Performance & Quantitative Alpha Analytics
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Separate truths: Signal Performance (paper/theoretical), Execution Performance by provider (Binance, Bybit, MT5, combined), and bot health/protection safety. Provider results are never mixed unless the Combined view is explicitly selected.</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Unified performance truth: Signal Truth (paper/theoretical), AI Strategy Alpha Decay & Continuous HMM Regimes, Multi-Provider Execution, and Bot Safety Health.</p>
           <p className="text-xs text-zinc-500 mt-2">
             {baselineStartedAt ? `Current baseline started: ${fmtDateTime(baselineStartedAt)}` : 'Baseline: all available trading history'}
           </p>
@@ -991,6 +1066,70 @@ export default function Performance() {
         >
           <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
           Refresh
+        </button>
+      </div>
+
+      {/* Modern Navigation Tabs */}
+      <div className="flex items-center gap-2 mb-6 border-b border-zinc-800 pb-3 overflow-x-auto">
+        <button
+          onClick={() => setPerformanceTab('adaptive_brain')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            performanceTab === 'adaptive_brain'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/20 ring-1 ring-white/20'
+              : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800'
+          }`}
+        >
+          <Brain size={15} className={performanceTab === 'adaptive_brain' ? 'text-white animate-pulse' : 'text-indigo-400'} />
+          Market-Aware Adaptive AI Brain
+          <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold rounded-full">Active</span>
+        </button>
+
+        <button
+          onClick={() => setPerformanceTab('overview')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            performanceTab === 'overview'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+              : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800'
+          }`}
+        >
+          <BarChart2 size={15} />
+          Strategy Signal Overview
+        </button>
+
+        <button
+          onClick={() => setPerformanceTab('ai_strategies')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            performanceTab === 'ai_strategies'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+              : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800'
+          }`}
+        >
+          <Compass size={15} className="text-indigo-400" />
+          Alpha Decay & HMM Regimes
+        </button>
+
+        <button
+          onClick={() => setPerformanceTab('execution')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            performanceTab === 'execution'
+              ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20'
+              : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800'
+          }`}
+        >
+          <Activity size={15} className="text-cyan-400" />
+          Provider Execution Truth
+        </button>
+
+        <button
+          onClick={() => setPerformanceTab('health')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            performanceTab === 'health'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+              : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800'
+          }`}
+        >
+          <Shield size={15} className="text-emerald-400" />
+          Bot Protection Health
         </button>
       </div>
 
@@ -1152,298 +1291,324 @@ export default function Performance() {
         </div>
       )}
 
-      {/* ── Overall Performance Cards ── */}
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Signal Performance — Overall</h2>
-        {filteredSignals.length === 0 && !loading ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
-            {emptyMessage}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-3">
-              <StatCard label="Total Signals" value={summary.totalSignals} sub={`${summary.closedTrades} closed · ${summary.openTrades} open`} />
-              <StatCard label="Closed Signals" value={summary.closedTrades} sub="resolved or expired" />
-              <StatCard label="Open Signals" value={summary.openTrades} sub="awaiting outcome" />
-              <StatCard label="Win Rate" value={fmtWinRate(summary.winRatePct)} sub={`${summary.wins}W / ${summary.losses}L`} />
-              <StatCard label="Profit Factor" value={fmtPF(summary.profitFactor)} sub="wins vs losses only" />
-              <StatCard label="Total R" value={fmtR(summary.totalR)} sub={`avg ${summary.avgR === null ? '—' : `${summary.avgR > 0 ? '+' : ''}${summary.avgR.toFixed(2)}R`} / closed`} />
-              <StatCard label={`Estimated P/L @ ${capitalAssumptions.riskPct.toFixed(2)}%`} value={<CapitalText estimate={summaryCapital} />} sub={`on ${formatMoney(capitalAssumptions.startingCapital)} baseline`} />
-              <StatCard label="Estimated Equity" value={formatMoney(summaryCapital.estimatedFinalCapital)} sub={`max DD est. ${formatPct(summaryCapital.maxDrawdownPct)}`} />
-              <StatCard label="Average R / Closed" value={fmtR(summary.avgR)} sub={`est. ${formatPct(summaryCapital.avgReturnPct, true)} / ${formatMoney(summaryCapital.avgPnl)}`} />
-              <StatCard label="Best Trade" value={fmtR(summary.bestR)} sub={`worst: ${summary.worstR === null ? '—' : `${summary.worstR.toFixed(2)}R`}`} />
-              <StatCard label="Worst Trade" value={fmtR(summary.worstR)} sub={`best: ${summary.bestR === null ? '—' : `${summary.bestR > 0 ? '+' : ''}${summary.bestR.toFixed(2)}R`}`} />
-              <StatCard label="TP1 Hits" value={summary.tp1Hits} sub="partial wins" />
-              <StatCard label="TP2 Hits" value={summary.tp2Hits} sub="full target hits" />
-              <StatCard label="SL Hits" value={summary.slHits} sub="stop losses" />
-              <StatCard label="A vs A+" value={`${aGradeCount} / ${aPlusGradeCount}`} sub="strategy grades only" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              <StatCard label="Expired" value={summary.expired} sub="not counted as W/L" />
-              <StatCard label="Max Win Streak" value={summary.maxWinStreak} sub="WIN outcomes only" />
-              <StatCard label="Max Loss Streak" value={summary.maxLossStreak} sub="LOSS outcomes only" />
-              <StatCard label="Last Signal" value={fmtDate(summary.lastSignalTime)} sub={summary.lastSignalTime ? fmtDateTime(summary.lastSignalTime) : '—'} />
-            </div>
-          </>
-        )}
-      </section>
+      {/* ── Market-Aware Adaptive AI Brain Tab ── */}
+      {performanceTab === 'adaptive_brain' && (
+        <div className="mb-8 animate-fadeIn">
+          <AdaptiveStrategyEngineVisualizer
+            signals={signals}
+            configuredStrategies={configuredStrategies}
+            executionOrders={executionOrders}
+          />
+        </div>
+      )}
 
-      {/* ── Strategy Performance Table ── */}
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Signal Breakdown</h2>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
-                  <th className="text-left px-4 py-3 font-medium">Strategy</th>
-                  <th className="text-right px-3 py-3 font-medium">Trades</th>
-                  <th className="text-right px-3 py-3 font-medium">Closed</th>
-                  <th className="text-right px-3 py-3 font-medium">Open</th>
-                  <th className="text-right px-3 py-3 font-medium">Wins</th>
-                  <th className="text-right px-3 py-3 font-medium">Losses</th>
-                  <th className="text-right px-3 py-3 font-medium">Expired</th>
-                  <th className="text-right px-3 py-3 font-medium">Win Rate</th>
-                  <th className="text-right px-3 py-3 font-medium">PF</th>
-                  <th className="text-right px-3 py-3 font-medium">Total R</th>
-                  <th className="text-right px-3 py-3 font-medium">Est. P/L</th>
-                  <th className="text-right px-3 py-3 font-medium">Avg Est.</th>
-                  <th className="text-right px-3 py-3 font-medium">Est. DD</th>
-                  <th className="text-right px-3 py-3 font-medium">Avg R</th>
-                  <th className="text-right px-3 py-3 font-medium">Best R</th>
-                  <th className="text-right px-3 py-3 font-medium">Worst R</th>
-                  <th className="text-right px-3 py-3 font-medium">TP1</th>
-                  <th className="text-right px-3 py-3 font-medium">TP2</th>
-                  <th className="text-right px-3 py-3 font-medium">SL</th>
-                  <th className="text-right px-4 py-3 font-medium">Last Signal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {strategyBreakdown.map(row => (
-                  <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-4 py-3 font-medium text-zinc-200 max-w-[180px]"><span className="truncate block" title={row.label}>{row.label}</span></td>
-                    <td className="px-3 py-3 text-right text-zinc-300">{row.totalSignals}</td>
-                    <td className="px-3 py-3 text-right text-zinc-300">{row.closedTrades}</td>
-                    <td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td>
-                    <td className="px-3 py-3 text-right text-emerald-400">{row.wins}</td>
-                    <td className="px-3 py-3 text-right text-red-400">{row.losses}</td>
-                    <td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td>
-                    <td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td>
-                    <td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td>
-                    <td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td>
-                    {(() => { const est = capitalForRows(row.rows, capitalAssumptions); return <>
-                      <td className="px-3 py-3 text-right"><CapitalText estimate={est} /></td>
-                      <td className="px-3 py-3 text-right text-zinc-300">{formatMoney(est.avgPnl)}</td>
-                      <td className="px-3 py-3 text-right text-red-400">{formatPct(est.maxDrawdownPct)}</td>
-                    </>; })()}
-                    <td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td>
-                    <td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td>
-                    <td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td>
-                    <td className="px-3 py-3 text-right text-cyan-400">{row.tp1Hits}</td>
-                    <td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td>
-                    <td className="px-3 py-3 text-right text-red-400">{row.slHits}</td>
-                    <td className="px-4 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
+      {/* ── AI Brain: Alpha Decay & HMM Regimes Tab ── */}
+      {performanceTab === 'ai_strategies' && (
+        <div className="mb-8 animate-fadeIn">
+          <AlphaDecayHMMVisualizer />
+        </div>
+      )}
+
+      {/* ── Strategy Signal Overview Tab ── */}
+      {performanceTab === 'overview' && (
+        <>
+          {/* ── Overall Performance Cards ── */}
+          <section className="mb-8">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Signal Performance — Overall</h2>
+            {filteredSignals.length === 0 && !loading ? (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-10 text-center text-sm text-zinc-600">
+                {emptyMessage}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-3">
+                  <StatCard label="Total Signals" value={summary.totalSignals} sub={`${summary.closedTrades} closed · ${summary.openTrades} open`} />
+                  <StatCard label="Closed Signals" value={summary.closedTrades} sub="resolved or expired" />
+                  <StatCard label="Open Signals" value={summary.openTrades} sub="awaiting outcome" />
+                  <StatCard label="Win Rate" value={fmtWinRate(summary.winRatePct)} sub={`${summary.wins}W / ${summary.losses}L`} />
+                  <StatCard label="Profit Factor" value={fmtPF(summary.profitFactor)} sub="wins vs losses only" />
+                  <StatCard label="Total R" value={fmtR(summary.totalR)} sub={`avg ${summary.avgR === null ? '—' : `${summary.avgR > 0 ? '+' : ''}${summary.avgR.toFixed(2)}R`} / closed`} />
+                  <StatCard label={`Estimated P/L @ ${capitalAssumptions.riskPct.toFixed(2)}%`} value={<CapitalText estimate={summaryCapital} />} sub={`on ${formatMoney(capitalAssumptions.startingCapital)} baseline`} />
+                  <StatCard label="Estimated Equity" value={formatMoney(summaryCapital.estimatedFinalCapital)} sub={`max DD est. ${formatPct(summaryCapital.maxDrawdownPct)}`} />
+                  <StatCard label="Average R / Closed" value={fmtR(summary.avgR)} sub={`est. ${formatPct(summaryCapital.avgReturnPct, true)} / ${formatMoney(summaryCapital.avgPnl)}`} />
+                  <StatCard label="Best Trade" value={fmtR(summary.bestR)} sub={`worst: ${summary.worstR === null ? '—' : `${summary.worstR.toFixed(2)}R`}`} />
+                  <StatCard label="Worst Trade" value={fmtR(summary.worstR)} sub={`best: ${summary.bestR === null ? '—' : `${summary.bestR > 0 ? '+' : ''}${summary.bestR.toFixed(2)}R`}`} />
+                  <StatCard label="TP1 Hits" value={summary.tp1Hits} sub="partial wins" />
+                  <StatCard label="TP2 Hits" value={summary.tp2Hits} sub="full target hits" />
+                  <StatCard label="SL Hits" value={summary.slHits} sub="stop losses" />
+                  <StatCard label="A vs A+" value={`${aGradeCount} / ${aPlusGradeCount}`} sub="strategy grades only" />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <StatCard label="Expired" value={summary.expired} sub="not counted as W/L" />
+                  <StatCard label="Max Win Streak" value={summary.maxWinStreak} sub="WIN outcomes only" />
+                  <StatCard label="Max Loss Streak" value={summary.maxLossStreak} sub="LOSS outcomes only" />
+                  <StatCard label="Last Signal" value={fmtDate(summary.lastSignalTime)} sub={summary.lastSignalTime ? fmtDateTime(summary.lastSignalTime) : '—'} />
+                </div>
+              </>
+            )}
+          </section>
+
+          {/* ── Strategy Performance Table ── */}
+          <section className="mb-8">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Signal Breakdown</h2>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 font-medium">Strategy</th>
+                      <th className="text-right px-3 py-3 font-medium">Trades</th>
+                      <th className="text-right px-3 py-3 font-medium">Closed</th>
+                      <th className="text-right px-3 py-3 font-medium">Open</th>
+                      <th className="text-right px-3 py-3 font-medium">Wins</th>
+                      <th className="text-right px-3 py-3 font-medium">Losses</th>
+                      <th className="text-right px-3 py-3 font-medium">Expired</th>
+                      <th className="text-right px-3 py-3 font-medium">Win Rate</th>
+                      <th className="text-right px-3 py-3 font-medium">PF</th>
+                      <th className="text-right px-3 py-3 font-medium">Total R</th>
+                      <th className="text-right px-3 py-3 font-medium">Est. P/L</th>
+                      <th className="text-right px-3 py-3 font-medium">Avg Est.</th>
+                      <th className="text-right px-3 py-3 font-medium">Est. DD</th>
+                      <th className="text-right px-3 py-3 font-medium">Avg R</th>
+                      <th className="text-right px-3 py-3 font-medium">Best R</th>
+                      <th className="text-right px-3 py-3 font-medium">Worst R</th>
+                      <th className="text-right px-3 py-3 font-medium">TP1</th>
+                      <th className="text-right px-3 py-3 font-medium">TP2</th>
+                      <th className="text-right px-3 py-3 font-medium">SL</th>
+                      <th className="text-right px-4 py-3 font-medium">Last Signal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60">
+                    {strategyBreakdown.map(row => (
+                      <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="px-4 py-3 font-medium text-zinc-200 max-w-[180px]"><span className="truncate block" title={row.label}>{row.label}</span></td>
+                        <td className="px-3 py-3 text-right text-zinc-300">{row.totalSignals}</td>
+                        <td className="px-3 py-3 text-right text-zinc-300">{row.closedTrades}</td>
+                        <td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td>
+                        <td className="px-3 py-3 text-right text-emerald-400">{row.wins}</td>
+                        <td className="px-3 py-3 text-right text-red-400">{row.losses}</td>
+                        <td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td>
+                        <td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td>
+                        <td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td>
+                        <td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td>
+                        {(() => { const est = capitalForRows(row.rows, capitalAssumptions); return <>
+                          <td className="px-3 py-3 text-right"><CapitalText estimate={est} /></td>
+                          <td className="px-3 py-3 text-right text-zinc-300">{formatMoney(est.avgPnl)}</td>
+                          <td className="px-3 py-3 text-right text-red-400">{formatPct(est.maxDrawdownPct)}</td>
+                        </>; })()}
+                        <td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td>
+                        <td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td>
+                        <td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td>
+                        <td className="px-3 py-3 text-right text-cyan-400">{row.tp1Hits}</td>
+                        <td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td>
+                        <td className="px-3 py-3 text-right text-red-400">{row.slHits}</td>
+                        <td className="px-4 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Symbol Breakdown ── */}
+          <section className="mb-8">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Symbol Breakdown</h2>
+            {symbolBreakdown.length === 0 ? <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center text-sm text-zinc-600">{emptyMessage}</div> : (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+                <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                  {['Symbol','Market','Trades','Closed','Open','Win Rate','PF','Total R','Est. P/L','Avg Est.','Avg R','Best R','Worst R','Most Used Strategy','Last Signal'].map((h, i) => <th key={h} className={`${i < 2 || i === 11 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
+                </tr></thead>
+                <tbody className="divide-y divide-zinc-800/60">{symbolBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors">
+                  <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400 uppercase">{row.market}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{row.closedTrades}</td><td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td>{(() => { const est = capitalForRows(row.rows, capitalAssumptions); return <><td className="px-3 py-3 text-right"><CapitalText estimate={est} /></td><td className="px-3 py-3 text-right text-zinc-300">{formatMoney(est.avgPnl)}</td></>; })()}<td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td><td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td><td className="px-3 py-3 text-zinc-400">{row.mostUsedStrategy ?? '—'}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
+                </tr>)}</tbody>
+              </table></div></div>
+            )}
+          </section>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+            {/* ── Timeframe Breakdown ── */}
+            <section>
+              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Timeframe Breakdown</h2>
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+                <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Timeframe','Trades','Win Rate','PF','Total R','Est. P/L','Avg R','TP2','SL'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+                <tbody className="divide-y divide-zinc-800/60">{timeframeBreakdown.length === 0 ? <tr><td colSpan={9} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : timeframeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right"><CapitalText estimate={capitalForRows(row.rows, capitalAssumptions)} /></td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-red-400">{row.slHits}</td></tr>)}</tbody>
+              </table></div></div>
+            </section>
+
+            {/* ── Grade Breakdown ── */}
+            <section>
+              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Grade Breakdown</h2>
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+                <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Grade','Trades','Win Rate','PF','Total R','Est. P/L','Avg R'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+                <tbody className="divide-y divide-zinc-800/60">{gradeBreakdown.length === 0 ? <tr><td colSpan={7} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : gradeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3">{row.label !== '—' ? gradeBadge(row.label) : <span className="text-zinc-600">—</span>}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right"><CapitalText estimate={capitalForRows(row.rows, capitalAssumptions)} /></td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td></tr>)}</tbody>
+              </table></div></div>
+            </section>
+          </div>
+
+          <section className="mb-8">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Expiry Cause Breakdown</h2>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
+              <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Expiry Cause','Expired Signals','Total R','Last Signal'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+              <tbody className="divide-y divide-zinc-800/60">{expiryBreakdown.length === 0 ? <tr><td colSpan={4} className="px-3 py-8 text-center text-zinc-600">No expired strategy signals in this filter.</td></tr> : expiryBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td></tr>)}</tbody>
+            </table></div></div>
+          </section>
+
+          {/* ── Capital Allocation / Strategy Hardness ── */}
+          <section id="capital-allocation-strategy-hardness" className="mb-8">
+            <div className="flex items-start gap-2 mb-3">
+              <Shield size={16} className="text-purple-400 mt-0.5" />
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Capital Allocation / Strategy Hardness</h2>
+                <p className="text-xs text-zinc-500 mt-1">Research mode only: separates paper signal truth from Binance execution truth and previews future capital-ranking evidence without changing scanner, strategy entry, routing, or live execution rules.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
+              <StatCard label="100-trade readiness" value={<span className={capitalHardness.completedTradeObservationReady ? 'text-emerald-400' : 'text-yellow-400'}>{capitalHardness.completedTradeObservationReady ? 'ready' : 'observe'}</span>} sub={`${executionSummary.closedTradeCount}/100 executed closed trades`} />
+              <StatCard label="TP1 → BE/SL" value={formatPct(capitalHardness.tp1ThenBeSlRate)} sub="giveback after TP1" />
+              <StatCard label="TP1 → TP2" value={formatPct(capitalHardness.tp1ThenTp2Rate)} sub="runner usefulness" />
+              <StatCard label="Signal spam score" value={<span className={capitalHardness.spamScore >= 60 ? 'text-red-400' : capitalHardness.spamScore >= 35 ? 'text-yellow-400' : 'text-emerald-400'}>{capitalHardness.spamScore.toFixed(0)}/100</span>} sub="density + open load" />
+              <StatCard label="Governance" value="research-only" sub="no capital enforcement yet" />
+              <StatCard label="Exit decision" value={<span className="text-yellow-400">not final</span>} sub="requires 100 completed trades" />
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-zinc-800">
+                  <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Symbol Quality / Opportunity Preview</h3>
+                </div>
+                <div className="overflow-x-auto"><table className="w-full text-xs">
+                  <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Symbol','Group','Signals','Closed','Win','PF','Avg R','Class','Rank'].map((h, i) => <th key={h} className={`${i < 2 || i >= 7 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+                  <tbody className="divide-y divide-zinc-800/60">{capitalHardness.symbolRows.length === 0 ? <tr><td colSpan={9} className="px-3 py-8 text-center text-zinc-600">No symbol rows in this filter.</td></tr> : capitalHardness.symbolRows.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400">{row.group}</td><td className="px-3 py-3 text-right text-zinc-400">{row.totalSignals}</td><td className="px-3 py-3 text-right text-zinc-400">{row.closedTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-zinc-300">{row.classification}</td><td className="px-3 py-3 text-zinc-300">{row.rank.tier}</td></tr>)}</tbody>
+                </table></div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-zinc-800">
+                  <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Strategy Survival Matrix Preview</h3>
+                </div>
+                <div className="overflow-x-auto"><table className="w-full text-xs">
+                  <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Strategy','Signals','Closed','Win','TP1','TP2','SL','PF','Avg R','Survival'].map((h, i) => <th key={h} className={`${i === 0 || i === 9 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
+                  <tbody className="divide-y divide-zinc-800/60">{capitalHardness.strategyRows.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-100">{row.label}</td><td className="px-3 py-3 text-right text-zinc-400">{row.totalSignals}</td><td className="px-3 py-3 text-right text-zinc-400">{row.closedTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right text-zinc-400">{row.tp1Hits}</td><td className="px-3 py-3 text-right text-zinc-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-zinc-400">{row.slHits}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-zinc-300">{row.survival}</td></tr>)}</tbody>
+                </table></div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* ── Execution Performance Tab ── */}
+      {(performanceTab === 'execution' || performanceTab === 'overview') && (
+        <section id="binance-execution-performance" className="mb-8">
+          <div className="flex items-start gap-2 mb-3">
+            <Activity size={16} className="text-cyan-400 mt-0.5" />
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Execution Performance — Binance / Bybit / MT5 / Combined</h2>
+              <p className="text-xs text-zinc-500 mt-1">Execution truth only. Unfilled limit entries are shown as no_trade and are excluded from bot win rate, PF, R, TP, and SL stats.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
+            <StatCard label="Eligible signals" value={executionSummary.eligibleSignals} sub="qualified signal rows" />
+            <StatCard label="Execution attempted" value={executionSummary.executionAttempted} sub={`${executionSummary.entrySubmitted} entry submitted`} />
+            <StatCard label="Filled trades" value={executionSummary.entryFilled} sub="only these count as bot trades" />
+            <StatCard label="Closed trade count" value={executionSummary.closedTradeCount} sub="filled and closed only" />
+            <StatCard label="Entry timeout count" value={executionSummary.entryTimeoutCancelled} sub="no_trade · limit_entry_not_filled" />
+            <StatCard label="Skipped executions" value={executionSummary.skippedExecutions} sub="blocked before order fill" />
+            <StatCard label="Bot win rate" value={fmtWinRate(executionSummary.botWinRatePct)} sub={`${executionSummary.wins}W / ${executionSummary.losses}L filled only`} />
+            <StatCard label="Bot PF" value={fmtPF(executionSummary.botProfitFactor)} sub="filled closed trades only" />
+            <StatCard label="Bot total R" value={fmtR(executionSummary.botTotalR)} sub={executionSummary.pendingSync > 0 ? `${executionSummary.pendingSync} pending sync` : 'synced filled trades'} />
+            <StatCard label="Filled TP1" value={executionSummary.tp1Hits} sub="filled-trade count" />
+            <StatCard label="Filled TP2" value={executionSummary.tp2Hits} sub="filled-trade count" />
+            <StatCard label="Profit-Lock Count" value={executionSummary.profitLockSlHits} sub="closed_profit_lock only" />
+            <StatCard label="Direct SL Count" value={executionSummary.slHits} sub="excludes profit-lock closures" />
+            <StatCard label="Expiry Count" value={executionSummary.closedExpired + executionSummary.closedExpiredAfterTp1} sub={`${executionSummary.closedExpiredAfterTp1} after TP1`} />
+            <StatCard label="Manual Close Count" value={executionSummary.closedManual} sub="Binance manual/synced closes" />
+            <StatCard label="Open Runner Count" value={executionSummary.openRunnerCount} sub="filled open runners" />
+            <StatCard label="Protected Runner Count" value={executionSummary.protectedRunnerCount} sub="runner + profit-lock active" />
+            <StatCard label="Pending sync count" value={executionSummary.pendingSync} sub="closed but missing R truth" />
+            <StatCard label="Protection unavailable count" value={executionSummary.protectionUnavailable} sub="execution safety failures" />
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                    {['Reason','Count'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Symbol Breakdown ── */}
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Symbol Breakdown</h2>
-        {symbolBreakdown.length === 0 ? <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-8 text-center text-sm text-zinc-600">{emptyMessage}</div> : (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
-            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
-              {['Symbol','Market','Trades','Closed','Open','Win Rate','PF','Total R','Est. P/L','Avg Est.','Avg R','Best R','Worst R','Most Used Strategy','Last Signal'].map((h, i) => <th key={h} className={`${i < 2 || i === 11 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
-            </tr></thead>
-            <tbody className="divide-y divide-zinc-800/60">{symbolBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors">
-              <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400 uppercase">{row.market}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{row.closedTrades}</td><td className="px-3 py-3 text-right text-blue-400">{row.openTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td>{(() => { const est = capitalForRows(row.rows, capitalAssumptions); return <><td className="px-3 py-3 text-right"><CapitalText estimate={est} /></td><td className="px-3 py-3 text-right text-zinc-300">{formatMoney(est.avgPnl)}</td></>; })()}<td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right">{fmtR(row.bestR)}</td><td className="px-3 py-3 text-right">{fmtR(row.worstR)}</td><td className="px-3 py-3 text-zinc-400">{row.mostUsedStrategy ?? '—'}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td>
-            </tr>)}</tbody>
-          </table></div></div>
-        )}
-      </section>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-        {/* ── Timeframe Breakdown ── */}
-        <section>
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Timeframe Breakdown</h2>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
-            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Timeframe','Trades','Win Rate','PF','Total R','Est. P/L','Avg R','TP2','SL'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
-            <tbody className="divide-y divide-zinc-800/60">{timeframeBreakdown.length === 0 ? <tr><td colSpan={9} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : timeframeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right"><CapitalText estimate={capitalForRows(row.rows, capitalAssumptions)} /></td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-right text-emerald-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-red-400">{row.slHits}</td></tr>)}</tbody>
-          </table></div></div>
-        </section>
-
-        {/* ── Grade Breakdown ── */}
-        <section>
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Grade Breakdown</h2>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
-            <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Grade','Trades','Win Rate','PF','Total R','Est. P/L','Avg R'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
-            <tbody className="divide-y divide-zinc-800/60">{gradeBreakdown.length === 0 ? <tr><td colSpan={7} className="px-3 py-8 text-center text-zinc-600">{emptyMessage}</td></tr> : gradeBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3">{row.label !== '—' ? gradeBadge(row.label) : <span className="text-zinc-600">—</span>}</td><td className="px-3 py-3 text-right">{row.totalSignals}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right"><CapitalText estimate={capitalForRows(row.rows, capitalAssumptions)} /></td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td></tr>)}</tbody>
-          </table></div></div>
-        </section>
-      </div>
-
-
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Strategy Expiry Cause Breakdown</h2>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-xs">
-          <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Expiry Cause','Expired Signals','Total R','Last Signal'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
-          <tbody className="divide-y divide-zinc-800/60">{expiryBreakdown.length === 0 ? <tr><td colSpan={4} className="px-3 py-8 text-center text-zinc-600">No expired strategy signals in this filter.</td></tr> : expiryBreakdown.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-200">{row.label}</td><td className="px-3 py-3 text-right text-zinc-500">{row.expired}</td><td className="px-3 py-3 text-right">{fmtR(row.totalR)}</td><td className="px-3 py-3 text-right text-zinc-500">{fmtDate(row.lastSignalTime)}</td></tr>)}</tbody>
-        </table></div></div>
-      </section>
-
-      {/* ── Capital Allocation / Strategy Hardness ── */}
-      <section id="capital-allocation-strategy-hardness" className="mb-8">
-        <div className="flex items-start gap-2 mb-3">
-          <Shield size={16} className="text-purple-400 mt-0.5" />
-          <div>
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Capital Allocation / Strategy Hardness</h2>
-            <p className="text-xs text-zinc-500 mt-1">Research mode only: separates paper signal truth from Binance execution truth and previews future capital-ranking evidence without changing scanner, strategy entry, routing, or live execution rules.</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
-          <StatCard label="100-trade readiness" value={<span className={capitalHardness.completedTradeObservationReady ? 'text-emerald-400' : 'text-yellow-400'}>{capitalHardness.completedTradeObservationReady ? 'ready' : 'observe'}</span>} sub={`${executionSummary.closedTradeCount}/100 executed closed trades`} />
-          <StatCard label="TP1 → BE/SL" value={formatPct(capitalHardness.tp1ThenBeSlRate)} sub="giveback after TP1" />
-          <StatCard label="TP1 → TP2" value={formatPct(capitalHardness.tp1ThenTp2Rate)} sub="runner usefulness" />
-          <StatCard label="Signal spam score" value={<span className={capitalHardness.spamScore >= 60 ? 'text-red-400' : capitalHardness.spamScore >= 35 ? 'text-yellow-400' : 'text-emerald-400'}>{capitalHardness.spamScore.toFixed(0)}/100</span>} sub="density + open load" />
-          <StatCard label="Governance" value="research-only" sub="no capital enforcement yet" />
-          <StatCard label="Exit decision" value={<span className="text-yellow-400">not final</span>} sub="requires 100 completed trades" />
-        </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800">
-              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Symbol Quality / Opportunity Preview</h3>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60">
+                  {[
+                    ['Governor blocked', executionSummary.governorBlocked],
+                    ['Bot paused', executionSummary.botPaused],
+                    ['Duplicate blocked', executionSummary.duplicateBlocked],
+                    ['Same-symbol blocked', executionSummary.sameSymbolBlocked],
+                    ['Risk cap blocked', executionSummary.riskCapBlocked],
+                    ['Max position blocked', executionSummary.maxPositionBlocked],
+                    ['Missing credentials', executionSummary.missingCredentials],
+                    ['Invalid symbol', executionSummary.invalidSymbol],
+                  ].map(([label, count]) => <tr key={String(label)}><td className="px-3 py-3 text-zinc-300">{label}</td><td className="px-3 py-3 text-right text-zinc-300">{count}</td></tr>)}
+                </tbody>
+              </table>
             </div>
-            <div className="overflow-x-auto"><table className="w-full text-xs">
-              <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Symbol','Group','Signals','Closed','Win','PF','Avg R','Class','Rank'].map((h, i) => <th key={h} className={`${i < 2 || i >= 7 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
-              <tbody className="divide-y divide-zinc-800/60">{capitalHardness.symbolRows.length === 0 ? <tr><td colSpan={9} className="px-3 py-8 text-center text-zinc-600">No symbol rows in this filter.</td></tr> : capitalHardness.symbolRows.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.label}</td><td className="px-3 py-3 text-zinc-400">{row.group}</td><td className="px-3 py-3 text-right text-zinc-400">{row.totalSignals}</td><td className="px-3 py-3 text-right text-zinc-400">{row.closedTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-zinc-300">{row.classification}</td><td className="px-3 py-3 text-zinc-300">{row.rank.tier}</td></tr>)}</tbody>
-            </table></div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Bot Health Tab ── */}
+      {(performanceTab === 'health' || performanceTab === 'overview') && (
+        <section id="bot-health" className="mb-8">
+          <div className="flex items-start gap-2 mb-3">
+            <Shield size={16} className="text-emerald-400 mt-0.5" />
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Bot Health / Protection Performance</h2>
+              <p className="text-xs text-zinc-500 mt-1">System safety truth from execution rows plus monitor-synced Binance positions and orders.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
+            <StatCard label="HTTP status" value={botHealth.latestMonitorHttpStatus} sub="Supabase function response" />
+            <StatCard label="Monitor critical status" value={<span className={botHealth.monitorCriticalStatus === 'critical_error' ? 'text-red-400' : botHealth.monitorCriticalStatus === 'healthy' ? 'text-emerald-400' : 'text-yellow-400'}>{botHealth.monitorCriticalStatus}</span>} sub={botHealth.monitorStatus} />
+            <StatCard label="Monitor warnings" value={<span className={botHealth.monitorWarningsCount > 0 ? 'text-yellow-400' : 'text-emerald-400'}>{botHealth.monitorWarningsCount}</span>} sub="recoverable row/order issues" />
+            <StatCard label="Row errors" value={<span className={botHealth.monitorRowErrorsCount > 0 ? 'text-red-400' : 'text-emerald-400'}>{botHealth.monitorRowErrorsCount}</span>} sub={`${botHealth.monitorCriticalErrorsCount} critical`} />
+            <StatCard label="Protection SLA" value={<span className={botHealth.protectionSla === 'pass' ? 'text-emerald-400' : botHealth.protectionSla === 'fail' ? 'text-red-400' : 'text-yellow-400'}>{botHealth.protectionSla}</span>} sub={botHealth.avgSecondsToProtection === null ? 'avg fill→protect —' : `avg ${botHealth.avgSecondsToProtection}s fill→protect`} />
+            <StatCard label="Native protected" value={botHealth.protectedNative} sub="DB + Binance IDs" />
+            <StatCard label="Managed fallback" value={botHealth.protectedManaged} sub="HashiBot managed exits" />
+            <StatCard label="Unprotected open positions" value={<span className={botHealth.unprotectedOpenPositions > 0 ? 'text-red-400' : 'text-emerald-400'}>{botHealth.unprotectedOpenPositions}</span>} sub="unsafe if > 0" />
+            <StatCard label="Orphans cleaned" value={botHealth.orphanOrdersCleaned} sub="monitor event logs" />
+            <StatCard label="Stale rows cleaned" value={botHealth.staleRowsCleaned} sub="DB stale sync" />
+            <StatCard label="HTTP 500s" value={botHealth.monitor500Count} sub="transport/server failures" />
+            <StatCard label="Entry timeouts" value={botHealth.entryTimeoutCancelled} sub="not unprotected trades" />
+            <StatCard label="Manual close synced" value={botHealth.manualCloseSynced} sub="closed_synced/stale_closed" />
+            <StatCard label="External conditional cancels" value={botHealth.conditionalOrdersCancelledExternally} sub="event-log evidence" />
+            <StatCard label="Open Binance positions" value={botHealth.openBinancePositions.length || executionSettings?.open_positions_count || 0} sub={`${botHealth.openBinanceOrders.length} open orders`} />
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800">
-              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Strategy Survival Matrix Preview</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
+                    {['Symbol','Status','Position','SL','TP1','TP2','Native verified','Managed fallback','Safety','Last monitor'].map((h, i) => <th key={h} className={`${i < 2 || i === 8 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60">
+                  {botHealth.activeRows.length === 0 ? <tr><td colSpan={10} className="px-3 py-8 text-center text-zinc-600">No open filled Binance execution rows require protection.</td></tr> : botHealth.activeRows.map(row => {
+                    const safety = positionSafety(row);
+                    return <tr key={row.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.symbol}</td>
+                      <td className="px-3 py-3 text-zinc-300">{row.status}</td>
+                      <td className="px-3 py-3 text-right text-zinc-300">{row.current_position_size ?? row.remaining_quantity ?? '—'}</td>
+                      <td className="px-3 py-3 text-right">{row.sl_algo_id || row.binance_sl_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
+                      <td className="px-3 py-3 text-right">{row.tp1_algo_id || row.binance_tp1_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
+                      <td className="px-3 py-3 text-right">{row.tp2_algo_id || row.binance_tp2_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
+                      <td className="px-3 py-3 text-right">{row.native_protection_verified ? 'yes' : 'no'}</td>
+                      <td className="px-3 py-3 text-right">{row.managed_fallback_active ? 'yes' : 'no'}</td>
+                      <td className={`px-3 py-3 ${safety === 'safe' || safety === 'managed_fallback' ? 'text-emerald-400' : 'text-red-400'}`}>{safety}</td>
+                      <td className="px-3 py-3 text-right text-zinc-500">{row.last_monitor_action || '—'}</td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="overflow-x-auto"><table className="w-full text-xs">
-              <thead><tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">{['Strategy','Signals','Closed','Win','TP1','TP2','SL','PF','Avg R','Survival'].map((h, i) => <th key={h} className={`${i === 0 || i === 9 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}</tr></thead>
-              <tbody className="divide-y divide-zinc-800/60">{capitalHardness.strategyRows.map(row => <tr key={row.key} className="hover:bg-zinc-800/30 transition-colors"><td className="px-3 py-3 font-medium text-zinc-100">{row.label}</td><td className="px-3 py-3 text-right text-zinc-400">{row.totalSignals}</td><td className="px-3 py-3 text-right text-zinc-400">{row.closedTrades}</td><td className="px-3 py-3 text-right">{fmtWinRate(row.winRatePct)}</td><td className="px-3 py-3 text-right text-zinc-400">{row.tp1Hits}</td><td className="px-3 py-3 text-right text-zinc-400">{row.tp2Hits}</td><td className="px-3 py-3 text-right text-zinc-400">{row.slHits}</td><td className="px-3 py-3 text-right">{fmtPF(row.profitFactor)}</td><td className="px-3 py-3 text-right">{fmtR(row.avgR)}</td><td className="px-3 py-3 text-zinc-300">{row.survival}</td></tr>)}</tbody>
-            </table></div>
           </div>
-        </div>
-      </section>
-
-      {/* ── Binance Execution Performance ── */}
-      <section id="binance-execution-performance" className="mb-8">
-        <div className="flex items-start gap-2 mb-3">
-          <Activity size={16} className="text-cyan-400 mt-0.5" />
-          <div>
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Execution Performance — Binance / Bybit / MT5 / Combined</h2>
-            <p className="text-xs text-zinc-500 mt-1">Execution truth only. Unfilled limit entries are shown as no_trade and are excluded from bot win rate, PF, R, TP, and SL stats.</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
-          <StatCard label="Eligible signals" value={executionSummary.eligibleSignals} sub="qualified signal rows" />
-          <StatCard label="Execution attempted" value={executionSummary.executionAttempted} sub={`${executionSummary.entrySubmitted} entry submitted`} />
-          <StatCard label="Filled trades" value={executionSummary.entryFilled} sub="only these count as bot trades" />
-          <StatCard label="Closed trade count" value={executionSummary.closedTradeCount} sub="filled and closed only" />
-          <StatCard label="Entry timeout count" value={executionSummary.entryTimeoutCancelled} sub="no_trade · limit_entry_not_filled" />
-          <StatCard label="Skipped executions" value={executionSummary.skippedExecutions} sub="blocked before order fill" />
-          <StatCard label="Bot win rate" value={fmtWinRate(executionSummary.botWinRatePct)} sub={`${executionSummary.wins}W / ${executionSummary.losses}L filled only`} />
-          <StatCard label="Bot PF" value={fmtPF(executionSummary.botProfitFactor)} sub="filled closed trades only" />
-          <StatCard label="Bot total R" value={fmtR(executionSummary.botTotalR)} sub={executionSummary.pendingSync > 0 ? `${executionSummary.pendingSync} pending sync` : 'synced filled trades'} />
-          <StatCard label="Filled TP1" value={executionSummary.tp1Hits} sub="filled-trade count" />
-          <StatCard label="Filled TP2" value={executionSummary.tp2Hits} sub="filled-trade count" />
-          <StatCard label="Profit-Lock Count" value={executionSummary.profitLockSlHits} sub="closed_profit_lock only" />
-          <StatCard label="Direct SL Count" value={executionSummary.slHits} sub="excludes profit-lock closures" />
-          <StatCard label="Expiry Count" value={executionSummary.closedExpired + executionSummary.closedExpiredAfterTp1} sub={`${executionSummary.closedExpiredAfterTp1} after TP1`} />
-          <StatCard label="Manual Close Count" value={executionSummary.closedManual} sub="Binance manual/synced closes" />
-          <StatCard label="Open Runner Count" value={executionSummary.openRunnerCount} sub="filled open runners" />
-          <StatCard label="Protected Runner Count" value={executionSummary.protectedRunnerCount} sub="runner + profit-lock active" />
-          <StatCard label="Pending sync count" value={executionSummary.pendingSync} sub="closed but missing R truth" />
-          <StatCard label="Protection unavailable count" value={executionSummary.protectionUnavailable} sub="execution safety failures" />
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
-                  {['Reason','Count'].map((h, i) => <th key={h} className={`${i === 0 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {[
-                  ['Governor blocked', executionSummary.governorBlocked],
-                  ['Bot paused', executionSummary.botPaused],
-                  ['Duplicate blocked', executionSummary.duplicateBlocked],
-                  ['Same-symbol blocked', executionSummary.sameSymbolBlocked],
-                  ['Risk cap blocked', executionSummary.riskCapBlocked],
-                  ['Max position blocked', executionSummary.maxPositionBlocked],
-                  ['Missing credentials', executionSummary.missingCredentials],
-                  ['Invalid symbol', executionSummary.invalidSymbol],
-                ].map(([label, count]) => <tr key={String(label)}><td className="px-3 py-3 text-zinc-300">{label}</td><td className="px-3 py-3 text-right text-zinc-300">{count}</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Bot Health ── */}
-      <section id="bot-health" className="mb-8">
-        <div className="flex items-start gap-2 mb-3">
-          <Shield size={16} className="text-emerald-400 mt-0.5" />
-          <div>
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Bot Health / Protection Performance</h2>
-            <p className="text-xs text-zinc-500 mt-1">System safety truth from execution rows plus monitor-synced Binance positions and orders.</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
-          <StatCard label="HTTP status" value={botHealth.latestMonitorHttpStatus} sub="Supabase function response" />
-          <StatCard label="Monitor critical status" value={<span className={botHealth.monitorCriticalStatus === 'critical_error' ? 'text-red-400' : botHealth.monitorCriticalStatus === 'healthy' ? 'text-emerald-400' : 'text-yellow-400'}>{botHealth.monitorCriticalStatus}</span>} sub={botHealth.monitorStatus} />
-          <StatCard label="Monitor warnings" value={<span className={botHealth.monitorWarningsCount > 0 ? 'text-yellow-400' : 'text-emerald-400'}>{botHealth.monitorWarningsCount}</span>} sub="recoverable row/order issues" />
-          <StatCard label="Row errors" value={<span className={botHealth.monitorRowErrorsCount > 0 ? 'text-red-400' : 'text-emerald-400'}>{botHealth.monitorRowErrorsCount}</span>} sub={`${botHealth.monitorCriticalErrorsCount} critical`} />
-          <StatCard label="Protection SLA" value={<span className={botHealth.protectionSla === 'pass' ? 'text-emerald-400' : botHealth.protectionSla === 'fail' ? 'text-red-400' : 'text-yellow-400'}>{botHealth.protectionSla}</span>} sub={botHealth.avgSecondsToProtection === null ? 'avg fill→protect —' : `avg ${botHealth.avgSecondsToProtection}s fill→protect`} />
-          <StatCard label="Native protected" value={botHealth.protectedNative} sub="DB + Binance IDs" />
-          <StatCard label="Managed fallback" value={botHealth.protectedManaged} sub="HashiBot managed exits" />
-          <StatCard label="Unprotected open positions" value={<span className={botHealth.unprotectedOpenPositions > 0 ? 'text-red-400' : 'text-emerald-400'}>{botHealth.unprotectedOpenPositions}</span>} sub="unsafe if > 0" />
-          <StatCard label="Orphans cleaned" value={botHealth.orphanOrdersCleaned} sub="monitor event logs" />
-          <StatCard label="Stale rows cleaned" value={botHealth.staleRowsCleaned} sub="DB stale sync" />
-          <StatCard label="HTTP 500s" value={botHealth.monitor500Count} sub="transport/server failures" />
-          <StatCard label="Entry timeouts" value={botHealth.entryTimeoutCancelled} sub="not unprotected trades" />
-          <StatCard label="Manual close synced" value={botHealth.manualCloseSynced} sub="closed_synced/stale_closed" />
-          <StatCard label="External conditional cancels" value={botHealth.conditionalOrdersCancelledExternally} sub="event-log evidence" />
-          <StatCard label="Open Binance positions" value={botHealth.openBinancePositions.length || executionSettings?.open_positions_count || 0} sub={`${botHealth.openBinanceOrders.length} open orders`} />
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider">
-                  {['Symbol','Status','Position','SL','TP1','TP2','Native verified','Managed fallback','Safety','Last monitor'].map((h, i) => <th key={h} className={`${i < 2 || i === 8 ? 'text-left' : 'text-right'} px-3 py-3 font-medium`}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {botHealth.activeRows.length === 0 ? <tr><td colSpan={10} className="px-3 py-8 text-center text-zinc-600">No open filled Binance execution rows require protection.</td></tr> : botHealth.activeRows.map(row => {
-                  const safety = positionSafety(row);
-                  return <tr key={row.id} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-3 py-3 font-mono font-bold text-zinc-100">{row.symbol}</td>
-                    <td className="px-3 py-3 text-zinc-300">{row.status}</td>
-                    <td className="px-3 py-3 text-right text-zinc-300">{row.current_position_size ?? row.remaining_quantity ?? '—'}</td>
-                    <td className="px-3 py-3 text-right">{row.sl_algo_id || row.binance_sl_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
-                    <td className="px-3 py-3 text-right">{row.tp1_algo_id || row.binance_tp1_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
-                    <td className="px-3 py-3 text-right">{row.tp2_algo_id || row.binance_tp2_order_id ? <span className="text-emerald-400">yes</span> : <span className="text-red-400">no</span>}</td>
-                    <td className="px-3 py-3 text-right">{row.native_protection_verified ? 'yes' : 'no'}</td>
-                    <td className="px-3 py-3 text-right">{row.managed_fallback_active ? 'yes' : 'no'}</td>
-                    <td className={`px-3 py-3 ${safety === 'safe' || safety === 'managed_fallback' ? 'text-emerald-400' : 'text-red-400'}`}>{safety}</td>
-                    <td className="px-3 py-3 text-right text-zinc-500">{row.last_monitor_action || '—'}</td>
-                  </tr>;
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── Recent Signals Table ── */}
       <section>

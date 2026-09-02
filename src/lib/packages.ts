@@ -27,36 +27,29 @@ export const PUBLIC_PACKAGES: Package[] = [
   {
     id: 'free_preview', name: 'Free Preview', slug: 'free_preview', price: 0, price_kes: 0, currency: 'KES', billing_period: '7-day preview',
     duration_days: 7, active: true, telegram_access_required: false, sort_order: 0,
-    description: 'Instant platform tour. Explore HashiBot dashboard, terminal architecture, strategy metrics, and risk management framework.',
+    description: 'Instant platform tour. Explore dashboard analytics, live signal stream previews, strategy metrics, and risk management architecture.',
     features: ['Live terminal tour & dashboard access', 'Complete strategy qualification rules', 'Risk & capital management engine walkthrough', 'Telegram alert integration guide', 'Community onboarding channel'],
     created_at: '', updated_at: '',
   },
   {
-    id: 'crypto_signal_room', name: 'Crypto Signal Room', slug: 'crypto_signal_room', price: 5000, price_kes: 5000, currency: 'KES', billing_period: 'monthly',
+    id: 'crypto_signal_room', name: 'VIP Signal Room (Forex & Crypto)', slug: 'crypto_signal_room', price: 29, price_kes: 3500, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 1,
-    description: 'Instant access to institutional AI signals across Binance & Bybit crypto futures with Telegram alerts.',
-    features: ['Real-time institutional signal stream', 'Exact entry zones, invalidation SL, TP1 & TP2', 'VIP Telegram channel real-time push alerts', 'Deterministic setup quality scoring & grade audit', 'Transparent live outcome tracking'],
+    description: 'Instant VIP signals for Forex (Gold/XAUUSD, EURUSD, GBPUSD) and Crypto (BTC, ETH, SOL) with exact Entry, SL & TP alerts.',
+    features: ['Combined Forex (Gold/FX) & Crypto signals', 'Exact entry zones, invalidation SL, TP1 & TP2', 'VIP Telegram channel instant push alerts', 'Daily EAT Morning London & NY Market Pulse', '1,200 KES weekly trial option available', 'Deterministic setup quality scoring & grade audit'],
     created_at: '', updated_at: '',
   },
   {
-    id: 'crypto_personal_bot', name: 'Crypto Personal Bot', slug: 'crypto_personal_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
+    id: 'forex_mt5_personal_bot', name: 'Personal Auto-Bot (MT5 & Crypto)', slug: 'forex_mt5_personal_bot', price: 65, price_kes: 8500, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 2,
-    description: 'Full-stack automated execution for personal Binance & Bybit accounts with active position protection.',
-    features: ['Includes full Crypto Signal Room VIP access', 'Direct Binance & Bybit automated API order execution', 'Configurable risk % sizing & daily drawdown limits', 'Automated break-even trailing & TP scaling', '24/7 continuous trade protection engine'],
+    description: 'Fully automated algorithmic execution on personal MetaTrader 5 brokers (Exness, IC Markets) and Binance/Bybit API accounts.',
+    features: ['Includes full VIP Signal Room access', 'Dedicated Windows MT5 daemon bridge & Crypto API execution', '0.5% fixed risk calculation per trade', 'Automated break-even trailing & TP scaling', '24/7 continuous trade protection & trade reconciliation'],
     created_at: '', updated_at: '',
   },
   {
-    id: 'forex_mt5_personal_bot', name: 'Forex MT5 Personal Bot', slug: 'forex_mt5_personal_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
+    id: 'forex_mt5_prop_bot', name: 'Prop Pass Master (Funded Accounts)', slug: 'forex_mt5_prop_bot', price: 95, price_kes: 12500, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 3,
-    description: 'Automated MetaTrader 5 execution for personal forex broker accounts (IC Markets, Exness, Pepperstone).',
-    features: ['Includes full Signal Room VIP access', 'Dedicated Windows MT5 daemon bridge integration', 'Multi-currency scanning (EURUSD, GBPUSD, XAUUSD, US30)', 'Sub-second order dispatch & atomic command lease', 'Automated position reconciliation & health telemetry'],
-    created_at: '', updated_at: '',
-  },
-  {
-    id: 'forex_mt5_prop_bot', name: 'Forex MT5 Prop Bot', slug: 'forex_mt5_prop_bot', price: 10000, price_kes: 10000, currency: 'KES', billing_period: 'monthly',
-    duration_days: 30, active: true, telegram_access_required: true, sort_order: 4,
-    description: 'Institutional MT5 execution specifically tuned for funded prop firm challenges (FTMO, FundedNext, MFF).',
-    features: ['Includes full Signal Room VIP access', 'Strict prop firm daily & total drawdown safety locks', 'Conservative position sizing (0.25% – 0.75% per trade)', 'Prop evaluation challenge pass management', 'Zero-drift protection & trade reconciliation'],
+    description: 'Institutional MT5 execution specifically tuned for FTMO, FundedNext, and The5ers challenges with hard drawdown defense.',
+    features: ['Includes full VIP Signals & Bot features', '4.5% Hard daily & total drawdown safety locks', 'Conservative position sizing (0.25% – 0.75% per trade)', 'High-impact news spread & slippage protection gateway', '1-on-1 Portfolio Advisor AI support & pass tracking'],
     created_at: '', updated_at: '',
   },
 ];
@@ -124,12 +117,42 @@ export function packageStatusLabel(pkg: Package) {
 }
 
 
-export function priceLabel(pkg: Package) {
-  if (pkg.price === 0) return { main: 'Free', period: pkg.duration_days ? `${pkg.duration_days}-day preview` : '' };
-  if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return { main: '10,000 KES', period: '/month or $100/month' };
-  const amount = pkg.price_kes ?? pkg.price;
-  const period = pkg.billing_period === 'monthly' || pkg.duration_days === 30 ? `/month` : '';
-  return { main: pkg.currency === 'KES' ? `${Number(amount).toLocaleString()} KES` : `${pkg.currency} ${Number(amount).toLocaleString()}`, period };
+export function priceLabel(pkg: Package, currency: 'KES' | 'USD' = 'KES') {
+  if (pkg.price === 0 || pkg.price_kes === 0) {
+    return { main: 'Free', period: pkg.duration_days ? `${pkg.duration_days}-day preview` : '', usdEquivalent: '$0' };
+  }
+  
+  if (pkg.slug === 'crypto_signal_room') {
+    return {
+      main: currency === 'USD' ? '$29 USD' : '3,500 KES',
+      period: '/month (or 1,200 KES/week)',
+      usdEquivalent: currency === 'KES' ? '~$29/mo' : '3,500 KES/mo',
+    };
+  }
+  
+  if (pkg.slug === 'forex_mt5_personal_bot' || pkg.slug === 'crypto_personal_bot') {
+    return {
+      main: currency === 'USD' ? '$65 USD' : '8,500 KES',
+      period: '/month',
+      usdEquivalent: currency === 'KES' ? '~$65/mo' : '8,500 KES/mo',
+    };
+  }
+  
+  if (pkg.slug === 'forex_mt5_prop_bot') {
+    return {
+      main: currency === 'USD' ? '$95 USD' : '12,500 KES',
+      period: '/month',
+      usdEquivalent: currency === 'KES' ? '~$95/mo' : '12,500 KES/mo',
+    };
+  }
+
+  const amountKes = pkg.price_kes ?? pkg.price;
+  const amountUsd = pkg.price;
+  return {
+    main: currency === 'USD' ? `$${Number(amountUsd).toLocaleString()} USD` : `${Number(amountKes).toLocaleString()} KES`,
+    period: '/month',
+    usdEquivalent: currency === 'KES' ? `~$${Number(amountUsd)}/mo` : `${Number(amountKes).toLocaleString()} KES/mo`,
+  };
 }
 
 export function defaultRiskPreset(slug?: string | null) {

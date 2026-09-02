@@ -214,15 +214,13 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     return results;
   }
 
-  // Phase 7A-2A Rule: All execution events stay in 'admin' channel
-  const isExecutionEvent = event.event_type.startsWith("EXECUTION_") || event.event_type.startsWith("POSITION_");
+  // Routing Rules:
+  // - SIGNALS & QUALIFIED TRADES -> 'vip' (and 'free' if qualified/eligible)
+  // - EXECUTION/POSITION LIFECYCLE (TP1, TP2, BE lock, Fills) -> 'vip' (VIP real-time management) and 'admin' (execution truth)
+  // - RECOVERY, RISK, RUNTIME, TELEGRAM, HEALTH -> 'admin'
   let rawChannels: TelegramChannelKey[] = event.channels && event.channels.length > 0
     ? event.channels
     : channelRegistry.getChannelsForVisibility(visibility);
-
-  if (isExecutionEvent) {
-    rawChannels = ["admin"];
-  }
 
   const payload: TemplateMessagePayload = {
     eventType: event.event_type,

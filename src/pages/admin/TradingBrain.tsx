@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { StrategyCandidate, ScannerRun, StrategyConfig, ModeConfig } from '../../lib/types';
-import { Brain, ChevronDown, ChevronUp, ArrowRight, CheckCircle, XCircle, AlertTriangle, Radio, Cpu, Zap } from 'lucide-react';
+import { Brain, ChevronDown, ChevronUp, ArrowRight, CheckCircle, XCircle, AlertTriangle, Radio, Cpu, Zap, Compass, Calculator, Network } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { HMMRegimeVisualizer } from '../../components/predictive/HMMRegimeVisualizer';
+import { KellyOptimizerVisualizer } from '../../components/predictive/KellyOptimizerVisualizer';
+import { SmartOrderRouterVisualizer } from '../../components/predictive/SmartOrderRouterVisualizer';
 
 const REJECTION_COLORS: Record<string, string> = {
   insufficient_candles: 'text-zinc-500',
@@ -43,6 +46,7 @@ export default function TradingBrain() {
   const [riskBlockedCount, setRiskBlockedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeBrainTab, setActiveBrainTab] = useState<'OVERVIEW' | 'HMM_REGIME' | 'KELLY_SIZING' | 'SMART_ROUTING'>('OVERVIEW');
 
   useEffect(() => {
     async function load() {
@@ -84,13 +88,66 @@ export default function TradingBrain() {
     <AdminLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Trading Brain Diagnostics</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Strategy evaluation results, rejection analysis, and signal pipeline</p>
+        <p className="text-sm text-zinc-500 mt-0.5">Strategy evaluation results, HMM continuous regime classifier, Kelly position sizing, and smart order routing.</p>
+      </div>
+
+      {/* Predictive Intelligence Sub-navigation Tabs */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 border-b border-zinc-800">
+        <button
+          onClick={() => setActiveBrainTab('OVERVIEW')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            activeBrainTab === 'OVERVIEW'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
+              : 'text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 border border-zinc-800/80'
+          }`}
+        >
+          <Brain size={14} /> Pipeline & Scanner Diagnostics
+        </button>
+
+        <button
+          onClick={() => setActiveBrainTab('HMM_REGIME')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            activeBrainTab === 'HMM_REGIME'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-950/40'
+              : 'text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 border border-zinc-800/80'
+          }`}
+        >
+          <Compass size={14} /> Continuous HMM Regime Classifier
+        </button>
+
+        <button
+          onClick={() => setActiveBrainTab('KELLY_SIZING')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            activeBrainTab === 'KELLY_SIZING'
+              ? 'bg-amber-600 text-white shadow-lg shadow-amber-950/40'
+              : 'text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 border border-zinc-800/80'
+          }`}
+        >
+          <Calculator size={14} /> Dynamic Continuous Kelly Optimizer
+        </button>
+
+        <button
+          onClick={() => setActiveBrainTab('SMART_ROUTING')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            activeBrainTab === 'SMART_ROUTING'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950/40'
+              : 'text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 border border-zinc-800/80'
+          }`}
+        >
+          <Network size={14} /> Smart Order Router & Arbitrage Loop
+        </button>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-48">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : activeBrainTab === 'HMM_REGIME' ? (
+        <HMMRegimeVisualizer />
+      ) : activeBrainTab === 'KELLY_SIZING' ? (
+        <KellyOptimizerVisualizer />
+      ) : activeBrainTab === 'SMART_ROUTING' ? (
+        <SmartOrderRouterVisualizer />
       ) : (
         <div className="space-y-6">
           {/* Latest run stats */}

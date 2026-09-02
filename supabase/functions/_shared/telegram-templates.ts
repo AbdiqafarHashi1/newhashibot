@@ -145,6 +145,18 @@ export interface TemplateMessagePayload {
   educationalMilestones?: string[];
 }
 
+export const FREE_UPGRADE_BANNER = [
+  `━━━━━━━━━━━━━━━━━━━━━━`,
+  `💎 *UPGRADE TO HASHIBOT VIP*`,
+  `• Instant real-time Crypto & Forex/Gold setups`,
+  `• Exact entry limit zones, SL, TP1, TP2 & TP3 targets`,
+  `• Live trade management: Automatic BE lock & trailing stop updates`,
+  ``,
+  `🔗 *Instant Upgrade:* [hashibot.trade/vip](https://hashibot.trade/vip)`,
+  `💬 *Manual Access & Inquiries:* Text @Abdihashi1 on Telegram`,
+  `━━━━━━━━━━━━━━━━━━━━━━`,
+].join("\n");
+
 /**
  * Render Free Channel Signal (Preview, Delayed, Full)
  */
@@ -165,8 +177,8 @@ export function renderFreeChannelSignalTemplate(payload: TemplateMessagePayload)
       `*Timeframe:* ${escapeMarkdown(payload.details ?? "15m")}`,
       `*Market Regime:* ${escapeMarkdown(payload.regime ?? "Trending")}`,
       ``,
-      `🔒 *Entry, Stop Loss, and TP levels are locked in Preview Mode.*`,
-      payload.cta ?? `👉 *Upgrade to HashiBot VIP Signals* for actionable entry ranges, TP1–TP3 guidance, and instant alerts.`,
+      `🔒 *Entry, Stop Loss, and TP levels are locked in Free Preview.*`,
+      payload.cta ?? FREE_UPGRADE_BANNER,
       ``,
       `*Generated:* ${timeStr}`,
       `_Signal Mode guidance. Not financial advice._`,
@@ -192,8 +204,8 @@ export function renderFreeChannelSignalTemplate(payload: TemplateMessagePayload)
     `*Grade:* ${escapeMarkdown(payload.grade ?? "A")}`,
     payload.reason ? `*Analysis:* ${escapeMarkdown(payload.reason)}` : null,
     ``,
-    `⚠️ *Risk Warning:* Risk no more than 0.50% to 1.00% of account per signal. Keep strict stop loss discipline.`,
-    payload.cta ?? `🚀 *Upgrade to VIP Signals* for zero-delay alerts and complete risk profiles.`,
+    `⚠️ *Risk Warning:* Risk 0.50% to 1.00% max per setup. Maintain stop discipline.`,
+    payload.cta ?? FREE_UPGRADE_BANNER,
     ``,
     `*Time:* ${timeStr}`,
     `_Signal Mode guidance. Not financial advice._`,
@@ -333,12 +345,47 @@ export function renderTelegramTemplate(payload: TemplateMessagePayload, channelK
     return renderFreeChannelSignalTemplate(payload);
   }
 
+  // AI Analysis, Daily News & Intelligence Digest (Sent to both Free & VIP channels)
+  if (
+    eventType === "MORNING_BRIEF" ||
+    eventType === "NEWS_DIGEST" ||
+    eventType === "MARKET_WRAP" ||
+    eventType === "AI_ANALYSIS" ||
+    eventType === "WATCHLIST_PATTERN_UPDATE" ||
+    eventType.startsWith("INTELLIGENCE_")
+  ) {
+    const isFree = channelKey === "free";
+    const headerTitle =
+      eventType.includes("MORNING_BRIEF") ? "🌅 HASHIBOT AI MORNING BRIEF" :
+      eventType.includes("NEWS_DIGEST") ? "📰 HASHIBOT AI DAILY NEWS & MACRO DIGEST" :
+      eventType.includes("MARKET_WRAP") ? "🌙 HASHIBOT AI EVENING MARKET WRAP" :
+      eventType.includes("WATCHLIST_PATTERN") ? "📡 HASHIBOT AI WATCHLIST & PATTERN SCAN" :
+      "🧠 HASHIBOT AI QUANTITATIVE MARKET INTELLIGENCE";
+
+    const banner = isFree ? `\n\n${FREE_UPGRADE_BANNER}` : "";
+
+    return [
+      `*${headerTitle}*`,
+      `*Market Focus:* ${escapeMarkdown(market)} & Global Macro`,
+      `*Regime Classification:* ${escapeMarkdown(payload.regime ?? "HMM Continuous Trend Scanning")}`,
+      payload.confidence ? `*AI Confidence Score:* ${payload.confidence}%` : null,
+      ``,
+      payload.details ? `${escapeMarkdown(payload.details)}` : null,
+      payload.reason ? `\n*AI Key Insight:* ${escapeMarkdown(payload.reason)}` : null,
+      banner,
+      ``,
+      `*Timestamp:* ${timeStr}`,
+      `_Autonomous AI quantitative intelligence engine._`,
+    ].filter(Boolean).join("\n");
+  }
+
   // 1. SIGNALS GROUP TEMPLATES (VIP & Default)
   if (eventType.startsWith("SIGNAL_") || eventType === "NEW_SIGNAL") {
     const isFree = channelKey === "free";
     if (isFree) return renderFreeChannelSignalTemplate(payload);
 
-    const title = `🤖 HASHIBOT ${payload.grade ?? "A"} SIGNAL`;
+    const assetEmoji = market === "FOREX" ? "💱" : market === "METALS" ? "🥇" : "⚡";
+    const title = `${assetEmoji} HASHIBOT VIP ${payload.grade ?? "A+"} ${escapeMarkdown(market)} SIGNAL`;
     const directionEmoji = payload.direction?.toLowerCase() === "buy" ? "🟢 BUY" : "🔴 SELL";
     const entryRange = payload.entryLow && payload.entryHigh
       ? `${formatInstrumentPrice(payload.entryLow, payload.market, payload.symbol)} – ${formatInstrumentPrice(payload.entryHigh, payload.market, payload.symbol)}`
@@ -347,55 +394,92 @@ export function renderTelegramTemplate(payload: TemplateMessagePayload, channelK
     return [
       `*${title}*`,
       ``,
-      `*Symbol:* ${escapeMarkdown(symbol)} (${escapeMarkdown(market)})`,
+      `*Symbol:* ${escapeMarkdown(symbol)} [${escapeMarkdown(market)}]`,
       `*Direction:* ${directionEmoji}`,
       `*Entry Range:* ${entryRange}`,
       `*Stop Loss:* ${formatInstrumentPrice(payload.stopLoss, payload.market, payload.symbol)}`,
-      `*TP1:* ${formatInstrumentPrice(payload.tp1, payload.market, payload.symbol)}`,
-      `*TP2:* ${formatInstrumentPrice(payload.tp2, payload.market, payload.symbol)}`,
-      payload.tp3 ? `*TP3:* ${formatInstrumentPrice(payload.tp3, payload.market, payload.symbol)}` : null,
+      `*Target 1 (50%):* ${formatInstrumentPrice(payload.tp1, payload.market, payload.symbol)}`,
+      `*Target 2 (30%):* ${formatInstrumentPrice(payload.tp2, payload.market, payload.symbol)}`,
+      payload.tp3 ? `*Target 3 (Runner 20%):* ${formatInstrumentPrice(payload.tp3, payload.market, payload.symbol)}` : null,
       `*Risk/Reward:* ${payload.riskReward ? payload.riskReward.toFixed(2) : "—"}R`,
       ``,
-      `*Strategy:* ${escapeMarkdown(payload.strategyName ?? "Standard Strategy")}`,
+      `*Strategy:* ${escapeMarkdown(payload.strategyName ?? "Institutional Structure")}`,
       `*Regime:* ${escapeMarkdown(payload.regime ?? "Trending")}`,
       `*Confidence:* ${payload.confidence ? `${payload.confidence}%` : "—"}`,
       payload.reason ? `*Analysis:* ${escapeMarkdown(payload.reason)}` : null,
       ``,
+      `🛡️ *Trade Management Plan:* On TP1 hit, Stop Loss automatically adjusts to Breakeven (+fees). Risk strictly 0.5%–1.0%.`,
+      ``,
       `*Time:* ${timeStr}`,
-      `_Signal Mode guidance. Not financial advice._`,
+      `_HashiBot VIP Institutional Execution._`,
     ].filter(Boolean).join("\n");
   }
 
-  // 2. EXECUTION GROUP TEMPLATES (Admin / System Operational)
+  // 2. EXECUTION GROUP TEMPLATES (Admin & VIP Real-time Trade Updates)
   if (eventType.startsWith("EXECUTION_") || eventType.startsWith("POSITION_")) {
     const statusLabel = eventType.replace("EXECUTION_", "").replace("POSITION_", "");
+    const isVip = channelKey === "vip";
+
+    if (isVip) {
+      const pnlStr = payload.realizedR !== undefined
+        ? `\n*Realized Profit:* ${payload.realizedR >= 0 ? "🟢 +" : "🔴 "}${payload.realizedR.toFixed(2)}R`
+        : "";
+      return [
+        `⚡ *VIP TRADE UPDATE: ${escapeMarkdown(symbol)}*`,
+        ``,
+        `*Action:* ${escapeMarkdown(statusLabel)}`,
+        `*Market:* ${escapeMarkdown(market)}`,
+        `*Direction:* ${escapeMarkdown(payload.direction?.toUpperCase() ?? "—")}`,
+        payload.eventPrice ? `*Price:* ${formatInstrumentPrice(payload.eventPrice, payload.market, payload.symbol)}` : null,
+        pnlStr,
+        payload.details ? `*Status:* ${escapeMarkdown(payload.details)}` : null,
+        ``,
+        `*Time:* ${timeStr}`,
+      ].filter(Boolean).join("\n");
+    }
+
     return [
-      `⚡ *EXECUTION NOTIFICATION* ${execMode}`,
+      `⚡ *EXECUTION NOTIFICATION (BACKEND)* ${execMode}`,
       ``,
       `*Status:* ${escapeMarkdown(statusLabel)}`,
       `*Provider:* ${escapeMarkdown(provider)}`,
-      `*Symbol:* ${escapeMarkdown(symbol)}`,
+      `*Symbol:* ${escapeMarkdown(symbol)} [${escapeMarkdown(market)}]`,
       `*Direction:* ${escapeMarkdown(payload.direction?.toUpperCase() ?? "—")}`,
       payload.eventPrice ? `*Execution Price:* ${formatInstrumentPrice(payload.eventPrice, payload.market, payload.symbol)}` : null,
       payload.realizedR !== undefined ? `*Realized PnL:* ${payload.realizedR >= 0 ? "+" : ""}${payload.realizedR.toFixed(2)}R` : null,
-      payload.accountRef ? `*Account:* ${escapeMarkdown(payload.accountRef)}` : null,
-      payload.customerRef ? `*Customer:* ${escapeMarkdown(maskCustomerRef(payload.customerRef))}` : null,
+      payload.accountRef ? `*Account Ref:* ${escapeMarkdown(payload.accountRef)}` : null,
+      payload.customerRef ? `*Customer Ref:* ${escapeMarkdown(maskCustomerRef(payload.customerRef))}` : null,
       payload.details ? `*Details:* ${escapeMarkdown(payload.details)}` : null,
       ``,
       `*Time:* ${timeStr}`,
-      `_Verified execution event._`,
+      `_Verified execution backend truth event._`,
     ].filter(Boolean).join("\n");
   }
 
-  // 3. PROTECTION GROUP TEMPLATES
-  if (eventType.startsWith("PROTECTION_") || eventType.includes("BREAK_EVEN") || eventType.includes("TRAILING_STOP")) {
+  // 3. PROTECTION GROUP TEMPLATES (BE Locks & Trailing Stops for VIP & Admin)
+  if (eventType.startsWith("PROTECTION_") || eventType.includes("BREAK_EVEN") || eventType.includes("TRAILING_STOP") || eventType.includes("TP1_HIT") || eventType.includes("TP2_HIT")) {
+    const isVip = channelKey === "vip";
+    if (isVip) {
+      return [
+        `🛡️ *VIP TRADE MANAGEMENT ALERT: ${escapeMarkdown(symbol)}*`,
+        ``,
+        `*Update:* ${escapeMarkdown(eventType.replace(/_/g, " "))}`,
+        payload.eventPrice ? `*Trigger Price:* ${formatInstrumentPrice(payload.eventPrice, payload.market, payload.symbol)}` : null,
+        payload.stopLoss ? `*New Protected Stop:* ${formatInstrumentPrice(payload.stopLoss, payload.market, payload.symbol)}` : null,
+        payload.details ? `*Action:* ${escapeMarkdown(payload.details)}` : `Stop Loss moved to Breakeven. Trade is now completely risk-free.`,
+        ``,
+        `*Time:* ${timeStr}`,
+      ].filter(Boolean).join("\n");
+    }
+
     return [
-      `🛡️ *PROTECTION & RISK MANAGEMENT UPDATE*`,
+      `🛡️ *PROTECTION & RISK MANAGEMENT (BACKEND)*`,
       ``,
       `*Event:* ${escapeMarkdown(eventType)}`,
       `*Symbol:* ${escapeMarkdown(symbol)}`,
       payload.eventPrice ? `*Trigger Price:* ${formatInstrumentPrice(payload.eventPrice, payload.market, payload.symbol)}` : null,
       payload.stopLoss ? `*New SL Price:* ${formatInstrumentPrice(payload.stopLoss, payload.market, payload.symbol)}` : null,
+      payload.accountRef ? `*Account:* ${escapeMarkdown(payload.accountRef)}` : null,
       payload.details ? `*Status:* ${escapeMarkdown(payload.details)}` : null,
       ``,
       `*Time:* ${timeStr}`,

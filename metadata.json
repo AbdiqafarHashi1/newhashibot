@@ -1,6 +1,6 @@
 {
   "name": "HashiBot",
-  "description": "Trading Signal Intelligence platform for monitoring and executing trading signals across different exchanges and strategies.",
+  "description": "Trading Signal Intelligence & Multi-Asset Backtesting Arbitration Platform for monitoring and executing trading signals across Forex, Metals, and Crypto universes.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

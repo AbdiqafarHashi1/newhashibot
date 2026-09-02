@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { PublicLayout } from '../../components/layout/PublicLayout';
 import { 
-  ArrowRight, Shield, Activity, Cpu, CheckCircle2, 
+  ArrowRight, Shield, ShieldCheck, Activity, Cpu, CheckCircle2, 
   Terminal, Zap, Layers, BarChart2, Check,
-  CreditCard, Search, Lock, HelpCircle
+  CreditCard, Search, Lock, HelpCircle, TrendingUp
 } from 'lucide-react';
 
 const markets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'EURUSD', 'GBPUSD', 'XAUUSD', 'US30'];
@@ -47,11 +47,18 @@ export default function Home() {
                 <span>Get Started & Choose Plan</span>
                 <ArrowRight size={16} />
               </Link>
+              <Link
+                to="/results#performance-summary"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-950/60 border border-emerald-500/40 hover:bg-emerald-900/60 text-emerald-300 hover:text-white font-semibold px-6 py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-emerald-950/30"
+              >
+                <TrendingUp size={16} className="text-emerald-400" />
+                <span>Test Live Backtest Simulator</span>
+              </Link>
               <a
                 href="#product-modes"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 hover:text-white font-semibold px-7 py-3.5 rounded-xl transition-all text-sm"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 hover:text-white font-semibold px-5 py-3.5 rounded-xl transition-all text-sm"
               >
-                <span>Explore Products ↓</span>
+                <span>Products ↓</span>
               </a>
             </div>
 
@@ -136,181 +143,305 @@ export default function Home() {
       <section id="product-modes" className="py-20 px-4 sm:px-6 bg-zinc-900/40 border-y border-zinc-800/80 scroll-mt-20">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Three Execution Modes</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Four Execution Products</div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white">Choose Your Operational Product</h2>
             <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
-              Select structured manual signals, automated crypto execution, or MetaTrader 5 infrastructure.
+              Select structured manual signals, automated crypto execution, personal MT5 broker bridge, or prop firm challenge automation.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             
-            {/* AI Signals */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between space-y-6 hover:border-blue-500/50 transition-colors shadow-xl">
+            {/* 1. AI Signals */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-blue-500/50 transition-colors shadow-xl">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Available Now
                   </span>
-                  <Zap size={20} className="text-blue-400" />
+                  <Zap size={18} className="text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-extrabold text-white">AI Signals</h3>
-                  <p className="text-xs text-zinc-400 mt-1">Structured trading signal delivery for manual traders.</p>
+                  <h3 className="text-lg font-extrabold text-white">VIP Signal Room</h3>
+                  <p className="text-xs text-zinc-400 mt-1">Forex (Gold/FX) & Crypto signals with exact Entry, SL & TP.</p>
                 </div>
-                <div className="text-2xl font-bold text-white">
-                  5,000 KES <span className="text-xs text-zinc-500 font-normal">/ month</span>
+                <div>
+                  <div className="text-xl font-bold text-white">
+                    3,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($29 USD)</span>
+                  </div>
+                  <div className="text-[11px] text-emerald-400 font-medium mt-0.5">
+                    or 1,200 KES / 7-day trial ($10 USD)
+                  </div>
                 </div>
                 <ul className="space-y-2 text-xs text-zinc-300">
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
+                    <Check size={13} className="text-emerald-400 shrink-0" />
                     <span>Real-time Telegram & Dashboard delivery</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
+                    <Check size={13} className="text-emerald-400 shrink-0" />
                     <span>Defined entry zones, SL, TP1 & TP2</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>Transparent outcome tracking & signal history</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Transparent outcome tracking & history</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
+                    <Check size={13} className="text-emerald-400 shrink-0" />
                     <span>No exchange API keys required</span>
                   </li>
                 </ul>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <Link
                   to="/pricing?package=crypto_signal_room#mpesa-payment-section"
-                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
+                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
                 >
-                  Get AI Signals (5,000 KES) →
+                  Get VIP Signals (From 1,200 KES) →
                 </Link>
                 <Link
                   to="/ai-signals"
-                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1.5 block transition-colors"
+                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1 block transition-colors"
                 >
-                  Explore Signal Details & Features
+                  Explore Signal Details
                 </Link>
               </div>
             </div>
 
-            {/* Crypto Automation */}
-            <div className="bg-zinc-900 border border-blue-500/40 rounded-2xl p-6 flex flex-col justify-between space-y-6 hover:border-blue-500 transition-colors shadow-2xl relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
+            {/* 2. Crypto Automation */}
+            <div className="bg-zinc-900 border border-blue-500/40 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-blue-500 transition-colors shadow-2xl relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
                 Popular Choice
               </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Available Now
                   </span>
-                  <Activity size={20} className="text-cyan-400" />
+                  <Activity size={18} className="text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-extrabold text-white">Crypto Automation</h3>
+                  <h3 className="text-lg font-extrabold text-white">Crypto Personal Bot</h3>
                   <p className="text-xs text-zinc-400 mt-1">Direct Binance & Bybit automated execution for personal accounts.</p>
                 </div>
-                <div className="text-2xl font-bold text-white">
-                  10,000 KES <span className="text-xs text-zinc-500 font-normal">/ month or $100</span>
+                <div>
+                  <div className="text-xl font-bold text-white">
+                    8,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($65 USD)</span>
+                  </div>
+                  <div className="text-[11px] text-blue-400 font-medium mt-0.5">
+                    Includes full VIP Signal Room access
+                  </div>
                 </div>
                 <ul className="space-y-2 text-xs text-zinc-300">
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>Includes full Signal Room access</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Includes full VIP Signal Room access</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>Personal Binance & Bybit API key connection</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Personal Binance & Bybit API keys</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>Automated position sizing & risk controls</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Auto position sizing & risk controls</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>Write-only secrets & withdrawal protection</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Write-only secrets & IP whitelisting</span>
                   </li>
                 </ul>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <Link
                   to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
-                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
+                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
                 >
-                  Get Crypto Bot (10,000 KES) →
+                  Get Crypto Bot (8,500 KES) →
                 </Link>
                 <Link
                   to="/crypto-automation"
-                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1.5 block transition-colors"
+                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1 block transition-colors"
                 >
-                  Explore Crypto Automation Details
+                  Explore Crypto Bot Specs
                 </Link>
               </div>
             </div>
 
-            {/* MT5 Automation */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between space-y-6 hover:border-purple-500/50 transition-colors shadow-xl">
+            {/* 3. MT5 Personal Automation */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-purple-500/50 transition-colors shadow-xl">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Available Now
                   </span>
-                  <Cpu size={20} className="text-purple-400" />
+                  <Cpu size={18} className="text-purple-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-extrabold text-white">MT5 Automation</h3>
-                  <p className="text-xs text-zinc-400 mt-1">Direct MetaTrader 5 execution for Personal & Prop accounts.</p>
+                  <h3 className="text-lg font-extrabold text-white">Forex MT5 Personal</h3>
+                  <p className="text-xs text-zinc-400 mt-1">Direct MetaTrader 5 execution on your personal broker account.</p>
                 </div>
-                <div className="text-2xl font-bold text-white">
-                  10,000 KES <span className="text-xs text-zinc-500 font-normal">/ month or $100</span>
+                <div>
+                  <div className="text-xl font-bold text-white">
+                    8,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($65 USD)</span>
+                  </div>
+                  <div className="text-[11px] text-purple-400 font-medium mt-0.5">
+                    Gold, Silver, FX Majors & Minors
+                  </div>
                 </div>
                 
                 <ul className="space-y-2 text-xs text-zinc-300">
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
+                    <Check size={13} className="text-emerald-400 shrink-0" />
                     <span>Windows MT5 Daemon Bridge Agent</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>Durable command queue with 120s lease timeout</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Durable command queue with 120s lease</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>Personal & Prop Risk profile parameters</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Exness, Pepperstone, IC Markets support</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400 shrink-0" />
-                    <span>MT5 Operations Center telemetry & diagnostics</span>
+                    <Check size={13} className="text-emerald-400 shrink-0" />
+                    <span>Operations Center telemetry stream</span>
                   </li>
                 </ul>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <Link
                   to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
-                  className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
+                  className="w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/20 block"
                 >
-                  Get MT5 Bot (10,000 KES) →
+                  Get MT5 Personal (8,500 KES) →
                 </Link>
                 <Link
                   to="/mt5-automation"
-                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1.5 block transition-colors"
+                  className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1 block transition-colors"
                 >
-                  Explore MT5 Bridge & Specs
+                  Explore MT5 Architecture
                 </Link>
               </div>
             </div>
 
+            {/* 4. MT5 Prop Pass Master */}
+            <div className="bg-zinc-900 border border-amber-500/50 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-amber-400 transition-colors shadow-2xl relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-600 to-amber-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-md">
+                Prop Firm Specialist
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                    <ShieldCheck size={12} className="text-amber-400" />
+                    FTMO & FundedNext
+                  </span>
+                  <ShieldCheck size={18} className="text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">Prop Pass Master</h3>
+                  <p className="text-xs text-zinc-400 mt-1">Built specifically for passing and maintaining funded challenge accounts.</p>
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-white">
+                    12,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($95 USD)</span>
+                  </div>
+                  <div className="text-[11px] text-amber-400 font-medium mt-0.5">
+                    Hard Daily & Max Drawdown Fences
+                  </div>
+                </div>
+                
+                <ul className="space-y-2 text-xs text-zinc-300">
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-amber-400 shrink-0" />
+                    <span>Strict 0.25% - 0.75% risk sizing per trade</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-amber-400 shrink-0" />
+                    <span>Automated hard daily loss stop (4% daily max)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-amber-400 shrink-0" />
+                    <span>No weekend hold violations & news lockouts</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-amber-400 shrink-0" />
+                    <span>FTMO, FundedNext, The5ers & MFF verified</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-2 pt-2">
+                <Link
+                  to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                  className="w-full text-center bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-amber-600/20 block"
+                >
+                  Get Prop Pass Bot (12,500 KES) →
+                </Link>
+                <Link
+                  to="/prop-ea"
+                  className="w-full text-center text-amber-400/80 hover:text-amber-300 text-xs py-1 block transition-colors font-medium"
+                >
+                  View Prop Firm Safeguards & Rules
+                </Link>
+              </div>
+            </div>
 
           </div>
         </div>
       </section>
 
-      {/* 3. Why HashiBot */}
+      {/* 3. Prop Firm Passing Engine Feature Showcase */}
+      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div className="bg-gradient-to-r from-amber-950/40 via-zinc-900 to-amber-950/20 border border-amber-500/30 rounded-3xl p-8 sm:p-12 space-y-8 relative overflow-hidden shadow-2xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-4 max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3.5 py-1 text-xs text-amber-400 font-bold uppercase tracking-wider">
+                <ShieldCheck size={14} />
+                Prop Firm Challenge Engine
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+                Designed for FTMO, FundedNext & 5ers Challenges
+              </h2>
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                Prop firm challenges fail from emotional revenge trading and daily drawdown breaches. HashiBot&apos;s Prop Pass Master locks your account with mathematical equity fences, automated 1R break-even triggers, and zero overnight news exposure.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">
+                  <div className="text-amber-400 font-bold text-base font-mono">4.0% Max Daily</div>
+                  <div className="text-zinc-400 text-xs mt-0.5">Automated circuit breaker halts trading on daily limit reach.</div>
+                </div>
+                <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">
+                  <div className="text-amber-400 font-bold text-base font-mono">0.25% - 0.75%</div>
+                  <div className="text-zinc-400 text-xs mt-0.5">Conservative lot allocation dynamically scaled to balance.</div>
+                </div>
+                <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">
+                  <div className="text-amber-400 font-bold text-base font-mono">100% Rules Safe</div>
+                  <div className="text-zinc-400 text-xs mt-0.5">No toxic Martingale, no grid hedging, no weekend violations.</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 shrink-0 lg:w-72">
+              <Link
+                to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                className="w-full text-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-xl shadow-amber-600/30 flex items-center justify-center gap-2"
+              >
+                <span>Deploy Prop Bot (12,500 KES)</span>
+                <ArrowRight size={14} />
+              </Link>
+              <Link
+                to="/prop-ea"
+                className="w-full text-center bg-zinc-950 border border-zinc-800 hover:border-amber-500/50 text-zinc-300 hover:text-white font-semibold text-xs py-3 rounded-xl transition-colors"
+              >
+                Explore Prop Rules & Fences →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Why HashiBot */}
       <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12">
         <div className="text-center space-y-3">
           <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Institutional Principles</div>
@@ -367,7 +498,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. Operations Center Overview */}
+      {/* 5. Operations Center Overview */}
       <section className="py-20 px-4 sm:px-6 bg-zinc-900/50 border-y border-zinc-800/80">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
@@ -430,7 +561,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. Product Comparison */}
+      {/* 6. Product Comparison */}
       <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-10">
         <div className="text-center space-y-3">
           <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Feature Matrix</div>
@@ -442,41 +573,47 @@ export default function Home() {
             <thead>
               <tr className="border-b border-zinc-800 bg-zinc-950/80 text-zinc-300">
                 <th className="p-4 font-bold">Feature / Capability</th>
-                <th className="p-4 font-bold text-blue-400">AI Signals</th>
-                <th className="p-4 font-bold text-cyan-400">Crypto Automation</th>
-                <th className="p-4 font-bold text-amber-400">MT5 Automation</th>
+                <th className="p-4 font-bold text-blue-400">VIP Signals</th>
+                <th className="p-4 font-bold text-cyan-400">Crypto Auto-Bot</th>
+                <th className="p-4 font-bold text-purple-400">MT5 Personal</th>
+                <th className="p-4 font-bold text-amber-400">MT5 Prop Master</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
               <tr>
-                <td className="p-4 font-semibold text-white">Signal Delivery Mode</td>
-                <td className="p-4">Dashboard & Telegram</td>
-                <td className="p-4">Dashboard & Telegram</td>
-                <td className="p-4">Dashboard & Telegram</td>
+                <td className="p-4 font-semibold text-white">Execution Type</td>
+                <td className="p-4">Manual (Telegram & App)</td>
+                <td className="p-4 text-emerald-400 font-bold">Automated (Binance/Bybit)</td>
+                <td className="p-4 text-emerald-400 font-bold">Automated (MT5 Bridge)</td>
+                <td className="p-4 text-amber-400 font-bold">Automated (Prop Bridge)</td>
               </tr>
               <tr>
-                <td className="p-4 font-semibold text-white">Automated Order Execution</td>
-                <td className="p-4 text-zinc-500">Manual (No Auto-Trade)</td>
-                <td className="p-4 text-emerald-400 font-bold">Automated (Binance & Bybit)</td>
-                <td className="p-4 text-emerald-400 font-bold">Automated (MT5 Personal & Prop Bridge)</td>
+                <td className="p-4 font-semibold text-white">Target Accounts</td>
+                <td className="p-4">Any Exchange / Broker</td>
+                <td className="p-4">Personal Crypto Exch.</td>
+                <td className="p-4">Personal Broker MT5</td>
+                <td className="p-4 text-amber-300 font-medium">FTMO, FundedNext, 5ers</td>
               </tr>
               <tr>
-                <td className="p-4 font-semibold text-white">API Key Requirement</td>
-                <td className="p-4 text-emerald-400">None Required</td>
-                <td className="p-4">Personal API Key (Write-Only)</td>
-                <td className="p-4">MT5 Terminal Login</td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-white">Risk Sizing & Controls</td>
+                <td className="p-4 font-semibold text-white">Risk Sizing & Limits</td>
                 <td className="p-4">Defined SL/TP on Alert</td>
-                <td className="p-4 font-bold text-emerald-400">Auto Position Sizing & Limits</td>
-                <td className="p-4 font-bold text-emerald-400">Personal & Prop Rules</td>
+                <td className="p-4">Standard Account Sizing</td>
+                <td className="p-4">Personal Risk Matrix</td>
+                <td className="p-4 text-amber-400 font-bold">Hard 4% Daily DD Lock + 0.5% Lots</td>
               </tr>
               <tr>
-                <td className="p-4 font-semibold text-white">Availability Status</td>
-                <td className="p-4"><span className="text-emerald-400 font-bold">Available Now</span></td>
-                <td className="p-4"><span className="text-emerald-400 font-bold">Available Now</span></td>
-                <td className="p-4"><span className="text-emerald-400 font-bold">Available Now</span></td>
+                <td className="p-4 font-semibold text-white">API / Connection</td>
+                <td className="p-4 text-emerald-400 font-medium">None Required</td>
+                <td className="p-4">Personal API Key</td>
+                <td className="p-4">MT5 Windows Terminal</td>
+                <td className="p-4">MT5 Windows Terminal</td>
+              </tr>
+              <tr>
+                <td className="p-4 font-semibold text-white">Monthly Price</td>
+                <td className="p-4 font-bold text-white">3,500 KES ($29)</td>
+                <td className="p-4 font-bold text-white">8,500 KES ($65)</td>
+                <td className="p-4 font-bold text-white">8,500 KES ($65)</td>
+                <td className="p-4 font-bold text-amber-400">12,500 KES ($95)</td>
               </tr>
               <tr className="bg-zinc-950/40">
                 <td className="p-4 font-semibold text-white">Action / Checkout</td>
@@ -485,7 +622,7 @@ export default function Home() {
                     to="/pricing?package=crypto_signal_room#mpesa-payment-section"
                     className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
                   >
-                    <span>Get AI Signals</span>
+                    <span>Get Signals</span>
                     <ArrowRight size={12} />
                   </Link>
                 </td>
@@ -494,7 +631,7 @@ export default function Home() {
                     to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
                     className="inline-flex items-center gap-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
                   >
-                    <span>Get Crypto Bot</span>
+                    <span>Get Crypto</span>
                     <ArrowRight size={12} />
                   </Link>
                 </td>
@@ -503,7 +640,16 @@ export default function Home() {
                     to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
                     className="inline-flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
                   >
-                    <span>Get MT5 Bot</span>
+                    <span>Get MT5</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                </td>
+                <td className="p-4">
+                  <Link
+                    to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                    className="inline-flex items-center gap-1 bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
+                  >
+                    <span>Get Prop</span>
                     <ArrowRight size={12} />
                   </Link>
                 </td>

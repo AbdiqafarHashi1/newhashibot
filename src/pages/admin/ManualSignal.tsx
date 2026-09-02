@@ -87,7 +87,27 @@ export default function ManualSignal() {
             {field('Symbol', 'symbol', 'text', SYMBOLS)}
             {field('Timeframe', 'timeframe', 'text', ['5m','15m','1h','4h'])}
             {field('Direction', 'direction', 'text', ['buy','sell'])}
-            {field('Strategy', 'strategy_name', 'text', ['MicroScalper','CompressionBreakout','TrendContinuation','Manual'])}
+            {field('Strategy', 'strategy_name', 'text', [
+              'CryptoMicroScalper',
+              'CryptoCompressionBreakout',
+              'CryptoSwingContinuation',
+              'CryptoReversalExhaustion',
+              'CryptoMomentumBreakout',
+              'QuickScalp',
+              'FXMicroScalper',
+              'LondonBreakout',
+              'NYContinuation',
+              'FXTrendPullback',
+              'SessionORB',
+              'GoldVolatilityBreakout',
+              'MacroYieldDifferential',
+              'MicroScalper',
+              'CompressionBreakout',
+              'SwingContinuation',
+              'ForexMicroScalper',
+              'ForexSwingContinuation',
+              'Manual',
+            ])}
             {field('Entry Low', 'entry_low', 'number')}
             {field('Entry High', 'entry_high', 'number')}
             {field('Stop Loss', 'stop_loss', 'number')}

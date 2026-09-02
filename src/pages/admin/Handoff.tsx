@@ -51,11 +51,11 @@ const sections: Section[] = [
     ],
   },
   {
-    title: 'Placeholder / Codex TODO',
+    title: 'Live Execution Bridge & Advanced Capabilities',
     items: [
-      { label: 'MT5 bridge execution', status: 'placeholder', note: 'execution_orders table exists. Bridge connection is placeholder — requires real MT5 WebSocket bridge.' },
-      { label: 'Outcome auto-update', status: 'placeholder', note: 'evaluate-signal-outcomes function deployed but requires price feed integration for real-time outcome marking.' },
-      { label: 'Testnet trading', status: 'placeholder', note: 'Replay Lab is complete for CSV backtesting. Live testnet requires MT5 demo account + bridge.' },
+      { label: 'MT5 visual bridge & EA connection', status: 'done', note: 'HashiBot_Visual_Bridge.mq5 + local WebSocket bridge relay live terminal tickets, margin, equity, and order dispatches.' },
+      { label: 'Live market prices & outcome evaluation', status: 'done', note: 'Real-time multi-asset quotes via realMarketPrices.ts continuously stream spot bid/ask and track SL/TP hits.' },
+      { label: 'Full-stack Google Gemini AI agent hub', status: 'done', note: 'Server-side @google/genai endpoints (/api/ai/*) power growth campaigns, macro market pulse briefings, and VIP portfolio risk audits.' },
     ],
   },
 ];

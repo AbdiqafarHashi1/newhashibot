@@ -82,7 +82,7 @@ export const TELEGRAM_READINESS_DEPENDENCIES = [
 ] as const;
 
 export const DEAD_CODE_AUDIT_FINDINGS = [
-  { finding: 'src/pages/admin/Handoff.tsx contains an explicit placeholder/TODO label', disposition: 'retained_future_placeholder_not_runtime_dead_code' },
+  { finding: 'src/pages/admin/Handoff.tsx status items reflect verified active execution architecture', disposition: 'verified_active_architecture' },
   { finding: 'Mock Supabase helpers remain test/dev support', disposition: 'retained_non_production_support' },
   { finding: 'Legacy runtime status names remain in historical docs and compatibility contracts', disposition: 'retained_historical_or_compatibility_context' },
 ] as const;

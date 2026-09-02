@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { CustomerVisualBridge } from './pages/app/CustomerVisualBridge';
+import { AdminVisualBridgeManagement } from './pages/admin/AdminVisualBridgeManagement';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PWAProvider } from './contexts/PWAContext';
 import { PWAInstallBanner } from './components/pwa/PWAInstallBanner';
@@ -69,6 +71,8 @@ import MT5PersonalOperations from './pages/admin/MT5PersonalOperations';
 import MT5PropOperations from './pages/admin/MT5PropOperations';
 import MT5OperationsCenter from './pages/admin/MT5OperationsCenter';
 import Customers from './pages/admin/Customers';
+import CustomerFleetOps from './pages/admin/CustomerFleetOps';
+import AIAgentsCommand from './pages/admin/AIAgentsCommand';
 import PropTradingPanel from './pages/admin/PropTradingPanel';
 import Retention from './pages/admin/Retention';
 import OperatorPanel from './pages/admin/operator/OperatorPanel';
@@ -106,8 +110,9 @@ function App() {
     <BrowserRouter>
       <ScrollToAnchor />
       <AuthProvider>
-        <Routes>
-          {/* Public Pages */}
+        <PWAProvider>
+          <Routes>
+            {/* Public Pages */}
           <Route path="/" element={<Home />} />
           <Route path="/features" element={<Features />} />
           <Route path="/ai-signals" element={<AISignals />} />
@@ -146,6 +151,8 @@ function App() {
           <Route path="/app/mt5-personal"    element={<RequireAuth><MT5PersonalPortal /></RequireAuth>} />
           <Route path="/app/mt5-prop text"    element={<RequireAuth><MT5PropPortal /></RequireAuth>} />
           <Route path="/app/mt5-prop"         element={<RequireAuth><MT5PropPortal /></RequireAuth>} />
+          <Route path="/app/bridge"           element={<CustomerVisualBridge />} />
+          <Route path="/app/visual-bridge"    element={<CustomerVisualBridge />} />
           <Route path="/app/bot-setup"        element={<RequireAuth><CustomerBotSetup /></RequireAuth>} />
           <Route path="/app/telegram"    element={<RequireAuth><TelegramSetup /></RequireAuth>} />
           <Route path="/app/package-request" element={<RequireAuth><PackageRequest /></RequireAuth>} />
@@ -177,6 +184,10 @@ function App() {
           <Route path="/admin/telegram-requests" element={<RequireAdmin><TelegramLinks /></RequireAdmin>} />
           <Route path="/admin/users"            element={<RequireAdmin><UsersAccess /></RequireAdmin>} />
           <Route path="/admin/customers"        element={<RequireAdmin><Customers /></RequireAdmin>} />
+          <Route path="/admin/customer-fleet"   element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
+          <Route path="/admin/customer-engines" element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
+          <Route path="/admin/fleet"            element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
+          <Route path="/admin/ai-agents"        element={<RequireAdmin><AIAgentsCommand /></RequireAdmin>} />
           <Route path="/admin/access-requests"  element={<RequireAdmin><AccessRequests /></RequireAdmin>} />
           <Route path="/admin/audit"            element={<RequireAdmin><AuditLogs /></RequireAdmin>} />
           <Route path="/admin/scheduler"          element={<RequireAdmin><SchedulerGuide /></RequireAdmin>} />
@@ -187,6 +198,8 @@ function App() {
           <Route path="/admin/providers/binance" element={<RequireAdmin><BinanceOperations /></RequireAdmin>} />
           <Route path="/admin/providers/bybit" element={<RequireAdmin><BybitOperations /></RequireAdmin>} />
           <Route path="/admin/providers/mt5" element={<RequireAdmin><MT5OperationsCenter /></RequireAdmin>} />
+          <Route path="/admin/bridge" element={<RequireAdmin><AdminVisualBridgeManagement /></RequireAdmin>} />
+          <Route path="/admin/visual-bridge" element={<RequireAdmin><AdminVisualBridgeManagement /></RequireAdmin>} />
           <Route path="/admin/providers/mt5-personal" element={<RequireAdmin><MT5PersonalOperations /></RequireAdmin>} />
           <Route path="/admin/providers/mt5-prop" element={<RequireAdmin><MT5PropOperations /></RequireAdmin>} />
           <Route path="/admin/providers/comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
@@ -214,14 +227,13 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <PWAProvider>
-          <PWAUpdateToast />
-          <PWAInstallBanner />
-          <IOSInstallGuideModal />
-        </PWAProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  );
+        <PWAUpdateToast />
+        <PWAInstallBanner />
+        <IOSInstallGuideModal />
+      </PWAProvider>
+    </AuthProvider>
+  </BrowserRouter>
+);
 }
 
 

@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
+import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { CustomerSubscription, Package, PaymentStatus, AccessStatus, TelegramStatus } from '../../lib/types';
-import { Users, Plus, Search, RefreshCw, ChevronDown, ChevronUp, CreditCard as Edit3, Check, X, MessageCircle, CreditCard, Clock, UserCheck, UserX, Copy, CalendarPlus } from 'lucide-react';
+import { Users, Plus, Search, RefreshCw, ChevronDown, ChevronUp, CreditCard as Edit3, Check, X, MessageCircle, CreditCard, Clock, UserCheck, UserX, Copy, CalendarPlus, Cpu } from 'lucide-react';
 
 // ─── Status badge helpers ─────────────────────────────────────────────────────
 
@@ -342,11 +343,20 @@ export default function Customers() {
 
   return (
     <AdminLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Users size={22} className="text-zinc-500" /> Customer Management
-        </h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Manage subscriptions, payments, access, and Telegram invites</p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Users size={22} className="text-zinc-500" /> Customer Management
+          </h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Manage subscriptions, payments, access, and Telegram invites</p>
+        </div>
+        <Link
+          to="/admin/customer-fleet"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-semibold transition-colors self-start sm:self-auto"
+        >
+          <Cpu className="w-4 h-4 text-blue-400" />
+          Customer Bot Fleet & Engines
+        </Link>
       </div>
 
       {/* Stats */}

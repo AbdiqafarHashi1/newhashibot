@@ -1,0 +1,57 @@
+{
+  "system": {
+    "redis_url": "redis://127.0.0.1:6379/0",
+    "global_max_var_usd": 25000.0,
+    "global_max_margin_usd": 100000.0,
+    "lock_timeout_ms": 1500
+  },
+  "microstructure": {
+    "symbols": ["BTCUSDT", "ETHUSDT", "EURUSD", "GBPUSD", "XAUUSD"],
+    "gk_window_size": 14,
+    "gk_spike_threshold": 0.00045,
+    "obi_imbalance_threshold": 0.85,
+    "schmitt_alpha": 75.0,
+    "schmitt_beta": 40.0
+  },
+  "crypto_accounts": [
+    {
+      "account_id": "BINANCE_ISOLATED_TREND_01",
+      "exchange": "BINANCE",
+      "sub_account_index": 1,
+      "api_key": "BINANCE_API_KEY_1",
+      "api_secret": "BINANCE_API_SECRET_1",
+      "base_url": "https://fapi.binance.com",
+      "margin_mode": "ISOLATED"
+    },
+    {
+      "account_id": "BYBIT_ISOLATED_SCALP_02",
+      "exchange": "BYBIT",
+      "sub_account_index": 2,
+      "api_key": "BYBIT_API_KEY_2",
+      "api_secret": "BYBIT_API_SECRET_2",
+      "base_url": "https://api.bybit.com",
+      "margin_mode": "ISOLATED"
+    }
+  ],
+  "forex_accounts": [
+    {
+      "account_id": "MT5_PERSONAL_01",
+      "account_type": "PERSONAL",
+      "account_number": 1002341,
+      "starting_daily_equity": 50000.0,
+      "max_daily_loss_percent": 8.0,
+      "zmq_push_endpoint": "tcp://127.0.0.1:5555",
+      "zmq_sub_endpoint": "tcp://127.0.0.1:5556"
+    },
+    {
+      "account_id": "MT5_PROP_FTMO_02",
+      "account_type": "PROP_FIRM",
+      "prop_firm_id": "FTMO_100K_EVAL",
+      "account_number": 8849201,
+      "starting_daily_equity": 100000.0,
+      "max_daily_loss_percent": 4.5,
+      "zmq_push_endpoint": "tcp://127.0.0.1:5557",
+      "zmq_sub_endpoint": "tcp://127.0.0.1:5558"
+    }
+  ]
+}

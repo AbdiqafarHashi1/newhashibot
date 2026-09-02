@@ -3,8 +3,9 @@ import { AppLayout } from '../../components/layout/AppLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { CustomerBotSetup as CustomerBotSetupType } from '../../lib/types';
+import { saveLocalCustomerAccount } from '../../lib/customerAccountManager';
 import { 
-  Cpu, ShieldCheck, Save, KeyRound, Server, Zap, CheckCircle2,
+  Cpu, ShieldCheck, Shield, Save, KeyRound, Server, Zap, CheckCircle2,
   AlertCircle, Activity, Gauge, RefreshCw
 } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
@@ -39,6 +40,8 @@ export default function CustomerBotSetup() {
   const [propFirmName, setPropFirmName] = useState('');
   const [accountSize, setAccountSize] = useState<number>(1000);
   const [accountCurrency, setAccountCurrency] = useState('USD');
+  const [executionMode, setExecutionMode] = useState<'account_growth_accelerator' | 'prop_firm_guardian' | 'conservative_guardian'>('account_growth_accelerator');
+  const [dynamicCompounding, setDynamicCompounding] = useState(true);
   const [riskPreset, setRiskPreset] = useState(defaultRiskPreset(initialPkg));
   const [preferredSymbols, setPreferredSymbols] = useState<string>('BTCUSDT, ETHUSDT, SOLUSDT');
   const [customerNotes, setCustomerNotes] = useState('');
@@ -241,6 +244,37 @@ export default function CustomerBotSetup() {
         }
       }
 
+      // Save to unified fleet store for instant Admin visibility
+      const isProp = packageSlug.includes('prop');
+      const isCrypto = packageSlug === 'crypto_personal_bot';
+      saveLocalCustomerAccount({
+        id: `acc-${user.id}`,
+        userId: user.id,
+        userEmail: user.email || 'customer@hashibot.com',
+        userName: user.email?.split('@')[0] || 'Customer Trader',
+        platform: isCrypto ? 'crypto_binance' : 'mt5_forex',
+        accountNumber: mt5Login || (isCrypto ? (apiKey ? apiKey.slice(0, 8) : 'BINANCE-API') : '10011927607'),
+        brokerOrExchange: isCrypto ? exchangeName : (brokerName || (isProp ? propFirmName : 'MetaQuotes-Demo')),
+        accountCategory: isProp ? (accountSize >= 100000 ? '100k_prop' : '50k_prop') : (isCrypto ? 'crypto_growth_personal' : 'forex_growth_personal'),
+        executionMode: isProp ? 'prop_firm_guardian' : 'account_growth_accelerator',
+        accountSize: Number(accountSize) || 10000,
+        balance: Number(accountSize) || 10000,
+        equity: Number(accountSize) || 10000,
+        floatingPnl: 0,
+        dailyDrawdownPercent: 0,
+        dailyDrawdownLimitPercent: isProp ? 4.5 : 8.0,
+        riskPercentPerTrade: calculatedRiskPct,
+        maxConcurrentTrades: isProp ? 2 : 4,
+        maxLeverage: isProp ? 100 : 200,
+        autoTradingEnabled: true,
+        connectionState: 'connected',
+        latencyMs: 5,
+        isRealUserAccount: true,
+        assignedTier: isProp ? `$${((Number(accountSize) || 10000) / 1000).toFixed(0)}k Institutional Prop Guardian` : `$${((Number(accountSize) || 10000) / 1000).toFixed(0)}k Personal Growth Engine`,
+        activePositionsCount: 0,
+        lastHeartbeat: new Date().toISOString()
+      });
+
       setMessage({ 
         type: 'success', 
         text: 'Bot configuration and risk profile saved successfully! Your custom execution parameters are now active in the pipeline.' 
@@ -304,6 +338,25 @@ export default function CustomerBotSetup() {
               <Activity size={14} /> Open Portal →
             </Link>
           </div>
+        </div>
+
+        {/* Signal-Only Mode vs Execution Bot Guidance */}
+        <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-400 font-bold">
+              ℹ️
+            </div>
+            <div className="text-xs text-zinc-300">
+              <span className="font-bold text-emerald-300">Are you a VIP Signal Room Member? </span>
+              If you subscribed to <strong className="text-white">VIP Signals (3,500 KES)</strong>, all setups are already broadcast in real-time to your <Link to="/app/signals" className="text-emerald-400 underline font-bold">Live Signals Feed</Link> with timestamps and audio chimes for manual execution. You only need to configure bot API keys below if you upgrade to <strong>Automated Bot Execution</strong>.
+            </div>
+          </div>
+          <Link
+            to="/app/signals"
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors self-start sm:self-auto"
+          >
+            Go to Live Signals →
+          </Link>
         </div>
 
         {message && (
@@ -477,11 +530,110 @@ export default function CustomerBotSetup() {
             </div>
           </div>
 
-          {/* Risk Profile & Preferred Symbols */}
+          {/* Risk Profile & Mode Selection */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <ShieldCheck size={16} className="text-emerald-400" /> 3. Risk Profile & Whitelist Pairs
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                <ShieldCheck size={16} className="text-emerald-400" /> 3. Select Execution Mode & Risk Multipliers
+              </h2>
+              <span className="text-[11px] text-zinc-400 font-mono">
+                {packageSlug === 'crypto_personal_bot' ? 'Cloud Execution Profile' : 'MT5 Execution Profile'}
+              </span>
+            </div>
+
+            {/* Mode Selection Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                onClick={() => {
+                  setExecutionMode('account_growth_accelerator');
+                  setRiskPreset('Balanced');
+                  setDynamicCompounding(true);
+                }}
+                className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  executionMode === 'account_growth_accelerator'
+                    ? 'bg-purple-950/30 border-purple-500 text-white shadow-lg shadow-purple-500/10'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Zap size={16} className="text-purple-400" />
+                    <span className="font-bold text-sm text-white">Account Growth Accelerator</span>
+                  </div>
+                  {executionMode === 'account_growth_accelerator' && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      SELECTED
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed mb-3">
+                  Dynamic equity lot compounding, multi-TP runner pyramiding, and dynamic position scaling. Configured to scale personal capital with velocity.
+                </p>
+                <div className="flex items-center gap-3 text-[10px] font-mono text-purple-300">
+                  <span>• Dynamic Compounding</span>
+                  <span>• 1.5% - 2.5% Risk</span>
+                  <span>• Runner Scaling</span>
+                </div>
+              </div>
+
+              <div
+                onClick={() => {
+                  setExecutionMode('prop_firm_guardian');
+                  setRiskPreset('Conservative / Prop Safe');
+                  setDynamicCompounding(false);
+                }}
+                className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  executionMode !== 'account_growth_accelerator'
+                    ? 'bg-emerald-950/30 border-emerald-500 text-white shadow-lg shadow-emerald-500/10'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield size={16} className="text-emerald-400" />
+                    <span className="font-bold text-sm text-white">
+                      Prop Firm Guardian (Capital Protection)
+                    </span>
+                  </div>
+                  {executionMode !== 'account_growth_accelerator' && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      SELECTED
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed mb-3">
+                  Engineered specifically for Prop Firm Evaluations (FTMO, FundedNext, MFF, etc.) and risk-averse accounts. Strict 0.5% max risk hard cap, 3.2% daily loss lock governor, and auto-liquidate drawdown circuit breakers.
+                </p>
+                <div className="flex items-center gap-3 text-[10px] font-mono text-emerald-300">
+                  <span>• 0.5% Hard Risk Cap</span>
+                  <span>• Auto-Breakeven</span>
+                  <span>• Prop Drawdown Lockout</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Compounding and Leverage Controls */}
+            {packageSlug === 'crypto_personal_bot' && (
+              <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="font-bold text-white block">Dynamic Equity Lot Compounding</span>
+                    <span className="text-[11px] text-zinc-400">Automatically scale futures contract size as your account equity grows.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDynamicCompounding(!dynamicCompounding)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-colors border ${
+                      dynamicCompounding 
+                        ? 'bg-purple-600/20 border-purple-500 text-purple-300' 
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                    }`}
+                  >
+                    {dynamicCompounding ? '⚡ Dynamic Compounding: ON' : 'Off (Fixed Lots)'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
               <div className="space-y-1">
@@ -505,7 +657,7 @@ export default function CustomerBotSetup() {
                   value={preferredSymbols}
                   onChange={(e) => setPreferredSymbols(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500"
-                  placeholder="e.g. BTCUSDT, ETHUSDT, EURUSD"
+                  placeholder="e.g. BTCUSDT, ETHUSDT, SOLUSDT"
                 />
               </div>
             </div>
@@ -573,77 +725,128 @@ export default function CustomerBotSetup() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <KeyRound size={16} className="text-purple-400" /> 4. Secure Connection Credentials & Diagnostics
+                <KeyRound size={16} className="text-purple-400" /> 
+                {packageSlug === 'crypto_personal_bot' 
+                  ? '4. Exchange API Key & Cloud Execution Setup' 
+                  : '4. MT5 Connection & Bridge Launcher'}
               </h2>
-              <button
-                type="button"
-                onClick={handleTestConnection}
-                disabled={verification.testing}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-xs font-mono text-purple-300 hover:bg-purple-500/20 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw size={12} className={verification.testing ? 'animate-spin' : ''} />
-                {verification.testing ? 'Testing...' : 'Test Connection & Permissions'}
-              </button>
+              {packageSlug === 'crypto_personal_bot' && (
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={verification.testing}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-xs font-mono text-purple-300 hover:bg-purple-500/20 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw size={12} className={verification.testing ? 'animate-spin' : ''} />
+                  {verification.testing ? 'Testing...' : 'Test Connection & Permissions'}
+                </button>
+              )}
             </div>
 
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Credentials are encrypted using AES-GCM and stored securely. Private keys never leave encrypted memory.
-            </p>
-
             {packageSlug === 'crypto_personal_bot' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-                <div className="space-y-1">
-                  <label className="text-zinc-400 block">API KEY</label>
-                  <input
-                    type="text"
-                    value={apiKey}
-                    onChange={(e) => { setApiKey(e.target.value); setVerification({ verified: false, testing: false }); }}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
-                    placeholder="Enter Exchange API Key"
-                  />
+              <div className="space-y-4">
+                {/* Cloud Execution Banner for Crypto */}
+                <div className="p-3.5 bg-blue-950/30 border border-blue-500/30 rounded-xl flex items-start gap-3">
+                  <Zap size={18} className="text-blue-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-zinc-300 leading-relaxed">
+                    <strong className="text-blue-300 font-bold">24/7 Cloud Execution (No Desktop Bridge Required):</strong>{' '}
+                    Your Crypto Personal Bot executes orders directly on {exchangeName} via HashiBot's low-latency cloud engine based on your selected <strong>{executionMode === 'account_growth_accelerator' ? 'Growth Accelerator' : 'Capital Guardian'}</strong> mode.
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-zinc-400 block">API SECRET</label>
-                  <input
-                    type="password"
-                    value={apiSecret}
-                    onChange={(e) => { setApiSecret(e.target.value); setVerification({ verified: false, testing: false }); }}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
-                    placeholder="Enter Exchange API Secret"
-                  />
+
+                {/* API Key Inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="space-y-1">
+                    <label className="text-zinc-400 block">EXCHANGE API KEY</label>
+                    <input
+                      type="text"
+                      value={apiKey}
+                      onChange={(e) => { setApiKey(e.target.value); setVerification({ verified: false, testing: false }); }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
+                      placeholder="e.g. wF3k9P... (Binance / Bybit API Key)"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-zinc-400 block">EXCHANGE API SECRET</label>
+                    <input
+                      type="password"
+                      value={apiSecret}
+                      onChange={(e) => { setApiSecret(e.target.value); setVerification({ verified: false, testing: false }); }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
+                      placeholder="Enter API Secret"
+                    />
+                  </div>
+                </div>
+
+                {/* Exchange Security Guidelines */}
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800/80 rounded-xl space-y-2 text-xs">
+                  <span className="font-bold text-zinc-300 flex items-center gap-1.5 text-[11px]">
+                    <ShieldCheck size={14} className="text-emerald-400" /> Exchange API Security Checklist:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono text-zinc-400">
+                    <div className="flex items-center gap-1.5 text-emerald-400">
+                      <CheckCircle2 size={12} /> Enable Futures / Derivatives
+                    </div>
+                    <div className="flex items-center gap-1.5 text-emerald-400">
+                      <CheckCircle2 size={12} /> Enable Read / Query
+                    </div>
+                    <div className="flex items-center gap-1.5 text-rose-400">
+                      <AlertCircle size={12} /> NEVER Enable Withdrawals
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-                <div className="space-y-1">
-                  <label className="text-zinc-400 block">MT5 SERVER</label>
-                  <input
-                    type="text"
-                    value={mt5Server}
-                    onChange={(e) => { setMt5Server(e.target.value); setVerification({ verified: false, testing: false }); }}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
-                    placeholder="e.g. Exness-Real10"
-                  />
+              <div className="space-y-4">
+                {/* MT5 Desktop Bridge Promotion Card */}
+                <div className="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="font-bold text-sm text-emerald-300 flex items-center gap-2">
+                      <Cpu size={16} /> MetaTrader 5 Desktop Visual Bridge
+                    </div>
+                    <div className="text-xs text-zinc-300">
+                      Forex & Gold execution connects directly to your local or VPS MT5 terminal (`terminal64.exe`) with zero tokens or API keys needed.
+                    </div>
+                  </div>
+                  <Link
+                    to="/app/visual-bridge"
+                    className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors"
+                  >
+                    Open MT5 Visual Bridge →
+                  </Link>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-zinc-400 block">MT5 LOGIN / ACCOUNT #</label>
-                  <input
-                    type="text"
-                    value={mt5Login}
-                    onChange={(e) => { setMt5Login(e.target.value); setVerification({ verified: false, testing: false }); }}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
-                    placeholder="e.g. 10293847"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-zinc-400 block">TRADER PASSWORD</label>
-                  <input
-                    type="password"
-                    value={mt5Password}
-                    onChange={(e) => { setMt5Password(e.target.value); setVerification({ verified: false, testing: false }); }}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
-                    placeholder="Enter MT5 Master Password"
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                  <div className="space-y-1">
+                    <label className="text-zinc-400 block">MT5 SERVER</label>
+                    <input
+                      type="text"
+                      value={mt5Server}
+                      onChange={(e) => { setMt5Server(e.target.value); setVerification({ verified: false, testing: false }); }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
+                      placeholder="e.g. Exness-Real10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-zinc-400 block">MT5 LOGIN / ACCOUNT #</label>
+                    <input
+                      type="text"
+                      value={mt5Login}
+                      onChange={(e) => { setMt5Login(e.target.value); setVerification({ verified: false, testing: false }); }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
+                      placeholder="e.g. 10293847"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-zinc-400 block">TRADER PASSWORD</label>
+                    <input
+                      type="password"
+                      value={mt5Password}
+                      onChange={(e) => { setMt5Password(e.target.value); setVerification({ verified: false, testing: false }); }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
+                      placeholder="Enter MT5 Master Password"
+                    />
+                  </div>
                 </div>
               </div>
             )}

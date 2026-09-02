@@ -1,7 +1,0 @@
-{
-  "name": "@hashibot/core",
-  "private": true,
-  "version": "0.1.0-phase11",
-  "type": "module",
-  "exports": { ".": "./src/index.ts" }
-}

@@ -41,7 +41,9 @@ export function getTradeManagementPlan(signal: SignalLike): TradeManagementPlan 
       : 'Use effective leverage only if stop-risk stays within the planned account risk.';
 
   let defaults: TradeManagementPlan;
-  if (strategy.includes('MicroScalper')) {
+  const stratLower = strategy.toLowerCase();
+
+  if (stratLower.includes('scalp') || stratLower.includes('micro')) {
     defaults = {
       tp1PartialPct: 50,
       breakEvenRule: 'Move stop to break-even after TP1 is tagged or price reaches roughly +0.75R to +1R.',
@@ -53,7 +55,7 @@ export function getTradeManagementPlan(signal: SignalLike): TradeManagementPlan 
       exposureGuidance: exposureText,
       signalOnlyWarning: 'Signal guidance only — no broker, MT5, or order execution is performed.',
     };
-  } else if (strategy.includes('CompressionBreakout')) {
+  } else if (stratLower.includes('compression') || stratLower.includes('breakout') || stratLower.includes('orb')) {
     defaults = {
       tp1PartialPct: 40,
       breakEvenRule: 'Move stop to break-even after TP1 or after breakout acceptance/retest confirmation.',
@@ -65,7 +67,7 @@ export function getTradeManagementPlan(signal: SignalLike): TradeManagementPlan 
       exposureGuidance: exposureText,
       signalOnlyWarning: 'Signal guidance only — no broker, MT5, or order execution is performed.',
     };
-  } else if (strategy.includes('SwingContinuation')) {
+  } else if (stratLower.includes('swing') || stratLower.includes('continuation') || stratLower.includes('pullback')) {
     defaults = {
       tp1PartialPct: 35,
       breakEvenRule: 'Move stop to break-even more slowly: after TP1 confirms or trend structure advances in your favor.',
@@ -73,6 +75,30 @@ export function getTradeManagementPlan(signal: SignalLike): TradeManagementPlan 
       timeStopRule: 'Use a longer time stop than scalps; expire if continuation does not develop within the swing window.',
       invalidationNote: 'Invalid if trend structure fails, key pullback level breaks, or price closes beyond the stop.',
       strategyNote: 'Swing continuation profile: wider hold, slower break-even, and TP2 runner logic are preferred.',
+      riskGuidance: riskText,
+      exposureGuidance: exposureText,
+      signalOnlyWarning: 'Signal guidance only — no broker, MT5, or order execution is performed.',
+    };
+  } else if (stratLower.includes('reversal') || stratLower.includes('exhaustion')) {
+    defaults = {
+      tp1PartialPct: 50,
+      breakEvenRule: 'Move stop to break-even promptly after first impulsive reaction from the exhaustion level.',
+      trailingStopRule: 'Trail behind intermediate pivot structure; lock gains as mean reversion completes.',
+      timeStopRule: 'Expire if price grinds past the exhaustion level without sharp reversal momentum.',
+      invalidationNote: 'Invalid if trend continuation breaks the structural exhaustion sweep high/low.',
+      strategyNote: 'Reversal exhaustion profile: swift profit taking at mean, tight risk boundary at sweep extreme.',
+      riskGuidance: riskText,
+      exposureGuidance: exposureText,
+      signalOnlyWarning: 'Signal guidance only — no broker, MT5, or order execution is performed.',
+    };
+  } else if (stratLower.includes('yield') || stratLower.includes('macro')) {
+    defaults = {
+      tp1PartialPct: 30,
+      breakEvenRule: 'Move stop to break-even after macroeconomic rate differentials establish multi-session drift.',
+      trailingStopRule: 'Trail behind 4H / Daily swing points aligned with rate divergence.',
+      timeStopRule: 'Hold across session cycles; exit if central bank commentary or bond spreads reverse.',
+      invalidationNote: 'Invalid if 2Y bond yield spreads compress below key divergence threshold.',
+      strategyNote: 'Macro yield differential profile: fundamental catalyst holding structure with extended runners.',
       riskGuidance: riskText,
       exposureGuidance: exposureText,
       signalOnlyWarning: 'Signal guidance only — no broker, MT5, or order execution is performed.',

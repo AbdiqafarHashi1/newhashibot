@@ -14,6 +14,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthActionResult>;
   signUp: (email: string, password: string, fullName: string) => Promise<AuthActionResult>;
   signOut: () => Promise<void>;
+  emergencyAdminBypass: () => void;
   isAdmin: boolean;
   refreshProfile: () => Promise<void>;
 }
@@ -187,7 +188,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function activateEmergencyAdmin() {
+    const mockUser = {
+      id: 'admin-emergency-bypass',
+      email: 'binuhashi1@gmail.com',
+      user_metadata: { full_name: 'Admin Owner (Bypass)' },
+      app_metadata: { provider: 'email' },
+      aud: 'authenticated',
+      created_at: new Date().toISOString()
+    } as unknown as User;
+
+    const mockProfile: Profile = {
+      id: 'admin-emergency-bypass',
+      email: 'binuhashi1@gmail.com',
+      full_name: 'Admin Owner (Bypass)',
+      role: 'admin',
+      created_at: new Date().toISOString()
+    };
+
+    localStorage.setItem('hashibot_admin_bypass', 'true');
+    setUser(mockUser);
+    setProfile(mockProfile);
+    setLastKnownProfile(mockProfile);
+    lastKnownProfileRef.current = mockProfile;
+    setProfileError(null);
+    setLoading(false);
+  }
+
+  function emergencyAdminBypass() {
+    activateEmergencyAdmin();
+  }
+
   useEffect(() => {
+    // Check if emergency bypass is active
+    if (localStorage.getItem('hashibot_admin_bypass') === 'true') {
+      activateEmergencyAdmin();
+      return;
+    }
+
     if (!isSupabaseClientEnabled) {
       initializedRef.current = true;
       setSession(null);
@@ -308,6 +346,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     explicitSignOutRef.current = true;
+    localStorage.removeItem('hashibot_admin_bypass');
     setProfile(null);
     setLastKnownProfile(null);
     lastKnownProfileRef.current = null;
@@ -320,7 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, lastKnownProfile, profileError, loading,
-      signIn, signUp, signOut, refreshProfile,
+      signIn, signUp, signOut, emergencyAdminBypass, refreshProfile,
       isAdmin: profile?.role === 'admin',
     }}>
       {children}

@@ -70,8 +70,53 @@ export default function TelegramLinks() {
   return (
     <AdminLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Telegram Links</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Manage pending Telegram submissions and mark manual Signal Room invites handled</p>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Telegram Network & Member Links</h1>
+            <p className="text-sm text-zinc-500 mt-0.5">Manage customer subscriptions, VIP channel access approvals, and upgrade inquiries.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://t.me/Abdihashi1"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-medium transition-colors"
+            >
+              <MessageCircle size={14} />
+              Open @Abdihashi1 Admin DM
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Network Channel Topology Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Admin Ops Channel</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">Private Ops</span>
+          </div>
+          <p className="text-xs text-zinc-400 mb-2">Backend health, system warnings, risk lock alerts, orphan orders, recovery events, and execution truth.</p>
+          <div className="text-[11px] font-mono text-zinc-500">Env: TELEGRAM_ADMIN_CHAT_ID</div>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">VIP Signal Room</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Unified VIP</span>
+          </div>
+          <p className="text-xs text-zinc-400 mb-2">Real-time Crypto & Forex/Metals signals, exact entries/SL/TP1-3, and live trade management (BE locks & trails).</p>
+          <div className="text-[11px] font-mono text-zinc-500">Env: TELEGRAM_CHAT_ID</div>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Free Discovery Channel</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Public Funnel</span>
+          </div>
+          <p className="text-xs text-zinc-400 mb-2">Daily macro briefs, 1-2 curated teaser setups, verified win proofs, and conversion CTAs to hashibot.trade/vip or @Abdihashi1.</p>
+          <div className="text-[11px] font-mono text-zinc-500">Env: TELEGRAM_FREE_CHAT_ID</div>
+        </div>
       </div>
 
       {msg && (

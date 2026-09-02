@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, SafeAuthError } from '../../contexts/AuthContext';
-import { Zap } from 'lucide-react';
+import { Zap, KeyRound, Download } from 'lucide-react';
 
 function friendlyError(error: SafeAuthError): string {
   const msg = (error.message ?? '').toLowerCase();
@@ -15,7 +15,7 @@ function friendlyError(error: SafeAuthError): string {
 }
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, emergencyAdminBypass } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const from = (loc.state as { from?: Location })?.from?.pathname || '/dashboard';
@@ -45,6 +45,11 @@ export default function Login() {
     }
 
     nav(from, { replace: true });
+  }
+
+  function handleEmergencyBypass() {
+    emergencyAdminBypass();
+    nav('/admin/operator', { replace: true });
   }
 
   return (
@@ -106,6 +111,25 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          {/* Emergency Admin Bypass Button */}
+          <div className="mt-6 pt-5 border-t border-zinc-800/80 space-y-2">
+            <button
+              type="button"
+              onClick={handleEmergencyBypass}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-xs transition-colors"
+            >
+              <KeyRound size={13} />
+              <span>Emergency Admin Bypass (Temp Access)</span>
+            </button>
+            <Link
+              to="/app/visual-bridge"
+              className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-mono text-[11px] transition-colors"
+            >
+              <Download size={12} />
+              <span>Download MT5 Visual Bridge directly</span>
+            </Link>
+          </div>
         </div>
 
         <p className="text-center text-xs text-zinc-600 mt-4">

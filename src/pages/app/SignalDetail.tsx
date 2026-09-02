@@ -4,11 +4,11 @@ import { AppLayout } from '../../components/layout/AppLayout';
 import { supabase } from '../../lib/supabase';
 import { AccessRequest, CustomerSubscription, Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
-import { ArrowLeft, AlertTriangle, Lock, MessageCircle } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Lock, MessageCircle, Clock } from 'lucide-react';
 import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
 import { useAuth } from '../../contexts/AuthContext';
 import { accessStateDescription, accessStateLabel, getCustomerAccessState, hasFullSignalAccess } from '../../lib/customerAccess';
-
+import { formatEATTime, formatRelativeTime, formatUtcTime, getSignalFreshness } from '../../lib/timeUtils';
 
 function priceDecimals(signal: Signal) {
   if (signal.market_type === 'forex') {
@@ -62,6 +62,7 @@ export default function SignalDetail() {
   const isRealData = signal.data_source === 'REAL DATA';
   const accessState = getCustomerAccessState(sub, latestRequest);
   const hasAccess = hasFullSignalAccess(sub, latestRequest);
+  const freshness = getSignalFreshness(signal.created_at);
 
   if (!hasAccess) return (
     <AppLayout>
@@ -71,6 +72,7 @@ export default function SignalDetail() {
         </Link>
         <h1 className="text-2xl font-bold">Signal details locked</h1>
       </div>
+
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center max-w-xl">
         <Lock size={28} className="text-zinc-700 mx-auto mb-3" />
         <div className="flex items-center gap-2 justify-center mb-2">
@@ -93,15 +95,26 @@ export default function SignalDetail() {
     <AppLayout>
       <div className="mb-6">
         <Link to="/app/signals" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-100 mb-4 transition-colors">
-          <ArrowLeft size={14} /> Back to Signals
+          <ArrowLeft size={14} /> Back to Live Signals
         </Link>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold font-mono">{signal.symbol}</h1>
-          {directionBadge(signal.direction)}
-          {gradeBadge(signal.grade)}
-          {statusBadge(signal.status)}
-          <Badge variant={isRealData ? 'green' : 'orange'}>{isRealData ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}</Badge>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-mono text-white">{signal.symbol}</h1>
+            {directionBadge(signal.direction)}
+            {gradeBadge(signal.grade)}
+            {statusBadge(signal.status)}
+            <Badge variant={isRealData ? 'green' : 'orange'}>{isRealData ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}</Badge>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 ${freshness.badgeClass}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${freshness.dotColor}`} />
+              <span>{freshness.label}</span>
+            </span>
+          </div>
         </div>
+
         {!isRealData && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-orange-400/80">
             <AlertTriangle size={11} />
@@ -110,35 +123,71 @@ export default function SignalDetail() {
         )}
       </div>
 
-      <div className="max-w-2xl space-y-4">
-        {/* Price levels */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="border-b border-zinc-800 px-5 py-3">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider">Trade Plan</div>
-          </div>
-          <div className="grid grid-cols-2 divide-x divide-zinc-800">
-            <div className="p-5">
-              <div className="text-xs text-zinc-500 mb-1">Entry Zone</div>
-              <div className="font-mono text-sm text-zinc-100">{fmtSignalPrice(signal, signal.entry_low)}</div>
-              <div className="text-xs text-zinc-600">to</div>
-              <div className="font-mono text-sm text-zinc-100">{fmtSignalPrice(signal, signal.entry_high)}</div>
+      <div className="max-w-3xl space-y-5">
+        {/* Signal Execution Timing Banner */}
+        <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+          freshness.level === 'fresh'
+            ? 'bg-emerald-950/25 border-emerald-500/30 text-emerald-300'
+            : freshness.level === 'active'
+            ? 'bg-blue-950/25 border-blue-500/30 text-blue-300'
+            : 'bg-amber-950/25 border-amber-500/30 text-amber-300'
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+              <Clock size={16} />
             </div>
-            <div className="p-5 space-y-3">
-              <div>
-                <div className="text-xs text-zinc-500 mb-0.5">Stop Loss</div>
-                <div className="font-mono text-sm text-red-400">{fmtSignalPrice(signal, signal.stop_loss)}</div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">Signal Issuance Timing</div>
+              <div className="text-sm font-bold text-white flex items-center gap-2 font-mono">
+                <span>Issued {formatRelativeTime(signal.created_at)}</span>
+                <span className="text-zinc-400">({formatEATTime(signal.created_at)})</span>
               </div>
-              <div>
-                <div className="text-xs text-zinc-500 mb-0.5">TP1</div>
-                <div className="font-mono text-sm text-blue-400">{fmtSignalPrice(signal, signal.tp1)}</div>
+            </div>
+          </div>
+          <div className="text-xs font-medium text-zinc-300">
+            {freshness.subtext}
+          </div>
+        </div>
+
+        {/* Price levels */}
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="border-b border-zinc-800 px-5 py-3.5 flex items-center justify-between">
+            <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Institutional Trade Plan</div>
+            <div className="text-xs font-mono text-zinc-500">{signal.timeframe} · {signal.market_type.toUpperCase()}</div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-zinc-800">
+            <div className="p-6 flex flex-col justify-center">
+              <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5">Entry Execution Zone</div>
+              <div className="font-mono text-2xl font-extrabold text-white">
+                {fmtSignalPrice(signal, signal.entry_low)}
               </div>
-              <div>
-                <div className="text-xs text-zinc-500 mb-0.5">TP2</div>
-                <div className="font-mono text-sm text-blue-400">{fmtSignalPrice(signal, signal.tp2)}</div>
+              <div className="text-xs text-zinc-500 my-1 font-mono">to target range</div>
+              <div className="font-mono text-xl font-bold text-zinc-300">
+                {fmtSignalPrice(signal, signal.entry_high)}
               </div>
+            </div>
+
+            <div className="p-6 space-y-4">
               <div>
-                <div className="text-xs text-zinc-500 mb-0.5">Risk / Reward</div>
-                <div className="text-sm text-zinc-200">{signal.risk_reward}R</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-red-400/80 mb-0.5">Stop Loss Level</div>
+                <div className="font-mono text-lg font-extrabold text-red-400">{fmtSignalPrice(signal, signal.stop_loss)}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5">Take Profit 1</div>
+                  <div className="font-mono text-base font-bold text-emerald-400">{fmtSignalPrice(signal, signal.tp1)}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5">Take Profit 2</div>
+                  <div className="font-mono text-base font-bold text-emerald-400">{fmtSignalPrice(signal, signal.tp2)}</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-0.5">Calculated Risk / Reward</div>
+                <div className="text-sm font-bold text-zinc-200 font-mono">{signal.risk_reward}R ({signal.confidence_score}% Engine Confidence)</div>
               </div>
             </div>
           </div>
@@ -146,29 +195,30 @@ export default function SignalDetail() {
 
         <RiskGuidanceDetail signal={signal} />
 
-        {/* Signal details */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="border-b border-zinc-800 px-5 py-3">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider">Signal Details</div>
+        {/* Signal details table */}
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="border-b border-zinc-800 px-5 py-3.5">
+            <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Engine Verification Details</div>
           </div>
-          <div className="divide-y divide-zinc-800">
+
+          <div className="divide-y divide-zinc-800/80">
             {[
-              { label: 'Symbol',      value: <span className="font-mono font-bold">{signal.symbol}</span> },
-              { label: 'Market',      value: signal.market_type.toUpperCase() },
-              { label: 'Timeframe',   value: signal.timeframe },
-              { label: 'Direction',   value: directionBadge(signal.direction) },
-              { label: 'Grade',       value: gradeBadge(signal.grade) },
-              { label: 'Status',      value: statusBadge(signal.status) },
-              { label: 'Strategy',    value: signal.strategy_name },
-              { label: 'Regime',      value: signal.regime },
-              { label: 'Confidence',  value: `${signal.confidence_score}%` },
-              { label: 'Source',      value: signal.source },
-              { label: 'Data Source', value: <Badge variant={isRealData ? 'green' : 'orange'}>{isRealData ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}</Badge> },
-              { label: 'Created',     value: new Date(signal.created_at).toLocaleString() },
+              { label: 'Symbol',          value: <span className="font-mono font-bold">{signal.symbol}</span> },
+              { label: 'Market Type',     value: signal.market_type.toUpperCase() },
+              { label: 'Timeframe',       value: signal.timeframe },
+              { label: 'Direction',       value: directionBadge(signal.direction) },
+              { label: 'Quality Grade',   value: gradeBadge(signal.grade) },
+              { label: 'Current Status',  value: statusBadge(signal.status) },
+              { label: 'Strategy Engine', value: signal.strategy_name },
+              { label: 'Market Regime',   value: signal.regime },
+              { label: 'Confidence Score', value: `${signal.confidence_score}%` },
+              { label: 'Data Source',     value: <Badge variant={isRealData ? 'green' : 'orange'}>{isRealData ? 'REAL DATA' : 'PROVIDER UNVERIFIED'}</Badge> },
+              { label: 'Created (EAT)',   value: `${formatEATTime(signal.created_at)} (${formatRelativeTime(signal.created_at)})` },
+              { label: 'Created (UTC)',   value: formatUtcTime(signal.created_at) },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between px-5 py-3 gap-4">
-                <div className="text-xs text-zinc-500 w-28 shrink-0">{label}</div>
-                <div className="text-sm text-zinc-200 text-right">{value}</div>
+                <div className="text-xs text-zinc-500 w-32 shrink-0 font-medium">{label}</div>
+                <div className="text-xs sm:text-sm text-zinc-200 text-right font-mono">{value}</div>
               </div>
             ))}
           </div>
@@ -176,28 +226,32 @@ export default function SignalDetail() {
 
         {/* Reason + Invalidation */}
         {(signal.reason || signal.invalidation) && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="border-b border-zinc-800 px-5 py-3">
-              <div className="text-xs text-zinc-500 uppercase tracking-wider">Analysis</div>
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl overflow-hidden">
+            <div className="border-b border-zinc-800 px-5 py-3.5">
+              <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Technical Thesis & Market Structure</div>
             </div>
+
             {signal.reason && (
               <div className="px-5 py-4 border-b border-zinc-800/50">
-                <div className="text-xs text-zinc-500 mb-1">Reason</div>
-                <div className="text-sm text-zinc-300 leading-relaxed">{signal.reason}</div>
+                <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Confluence Breakdown</div>
+                <div className="text-xs sm:text-sm text-zinc-300 leading-relaxed">{signal.reason}</div>
               </div>
             )}
+
             {signal.invalidation && (
               <div className="px-5 py-4">
-                <div className="text-xs text-zinc-500 mb-1">Invalidation</div>
-                <div className="text-sm text-zinc-300 leading-relaxed">{signal.invalidation}</div>
+                <div className="text-xs font-bold text-red-400/80 uppercase tracking-wider mb-1">Hard Invalidation Condition</div>
+                <div className="text-xs sm:text-sm text-zinc-300 leading-relaxed">{signal.invalidation}</div>
               </div>
             )}
           </div>
         )}
 
-        <div className="flex items-start gap-2 text-xs text-zinc-600">
-          <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-          <span>Signals are generated by automated rule-based strategies. Always validate independently before executing any trade.</span>
+        <div className="flex items-start gap-2 text-xs text-zinc-500 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-400" />
+          <span>
+            <strong>Trading Reminder:</strong> Maintain strict risk management per trade (1-2% maximum balance allocation). Move stop loss to break-even once Take Profit 1 is triggered.
+          </span>
         </div>
       </div>
     </AppLayout>

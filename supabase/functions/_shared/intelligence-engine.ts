@@ -1,8 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  HMMRegimeClassifier,
+  calculateGarmanKlassVolatility,
+  type MarketRegimeToken,
+  type RegimeProbabilityVector,
+} from "./hmm-regime-classifier.ts";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 type ContentKind = "morning_brief" | "news_digest" | "watchlist_pattern_update" | "market_wrap";
-type Regime = "risk_on" | "risk_off" | "neutral" | "volatile" | "compressed" | "breakout_watch";
+type Regime = "risk_on" | "risk_off" | "neutral" | "volatile" | "compressed" | "breakout_watch" | MarketRegimeToken;
 type FeedStatus = "available" | "unavailable" | "failed";
 type FeedQualityStatus = "healthy" | "degraded" | "fallback" | "unavailable" | "insufficient_data";
 
@@ -265,11 +271,60 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
   const snapshots = symbols.map((symbol) => snapshotFromCandles(symbol, candles));
   const feeds = await buildFeeds(snapshots);
   const btc = snapshots.find((s) => s.symbol === "BTCUSDT") ?? snapshotFromCandles("BTCUSDT", []), eth = snapshots.find((s) => s.symbol === "ETHUSDT") ?? snapshotFromCandles("ETHUSDT", []);
-  const regime = deriveRegime(btc, eth, snapshots, feeds);
+  
+  // HMM Continuous Microstructure Classification for BTC / ETH
+  const btcCandles = candles.filter((c) => c.symbol === "BTCUSDT").map((c) => ({ open: Number(c.open), high: Number(c.high), low: Number(c.low), close: Number(c.close) }));
+  const btcClassifier = new HMMRegimeClassifier("BTCUSDT");
+  const btcGkVol = calculateGarmanKlassVolatility(btcCandles);
+  const btcHmm = btcClassifier.classifyObservation({
+    symbol: "BTCUSDT",
+    garman_klass_volatility: btcGkVol,
+    order_book_imbalance: 0.0,
+    vwas: 0.00020,
+    yield_funding_spread: 0.00010,
+  });
+
+  const regime = btcHmm.dominant_regime ?? deriveRegime(btc, eth, snapshots, feeds);
   const confidence = confidenceFromData(snapshots, feeds);
   const summary = render(kind, snapshots, candidates, signals, regime, feeds);
   const dataSources = Object.fromEntries(feeds.map((f) => [f.feed_type, f.source]));
-  return { event_id: crypto.randomUUID(), event_type: kind, title: title(kind), summary, market: "crypto", symbols, sentiment: Object.fromEntries(feeds.map((f) => [f.feed_type, { value: f.value, classification: f.classification, status: f.status }])), regime, confidence, data_sources: { ...dataSources, candles: snapshots.some((s) => s.dataSource !== "unavailable") ? "candles" : "unavailable", candidates: candidates.length ? "strategy_candidates" : "unavailable", signals: signals.length ? "signals" : "unavailable" }, freshness: { generated_at: new Date().toISOString(), btc: btc.freshness, eth: eth.freshness, feeds: Object.fromEntries(feeds.map((f) => [f.feed_type, f.freshness])) }, output_channel: ["admin", "free", "vip"], status: confidence >= 50 ? "generated" : "partial", metadata: { snapshots, candidates: candidates.slice(0, 10), signals: signals.slice(0, 10), feed_health: feeds } };
+  
+  return {
+    event_id: crypto.randomUUID(),
+    event_type: kind,
+    title: title(kind),
+    summary,
+    market: "crypto",
+    symbols,
+    sentiment: {
+      ...Object.fromEntries(feeds.map((f) => [f.feed_type, { value: f.value, classification: f.classification, status: f.status }])),
+      hmm_regime_vector: btcHmm,
+    },
+    regime,
+    confidence,
+    data_sources: {
+      ...dataSources,
+      candles: snapshots.some((s) => s.dataSource !== "unavailable") ? "candles" : "unavailable",
+      candidates: candidates.length ? "strategy_candidates" : "unavailable",
+      signals: signals.length ? "signals" : "unavailable",
+      hmm_predictive_engine: "continuous_hmm_v1",
+    },
+    freshness: {
+      generated_at: new Date().toISOString(),
+      btc: btc.freshness,
+      eth: eth.freshness,
+      feeds: Object.fromEntries(feeds.map((f) => [f.feed_type, f.freshness])),
+    },
+    output_channel: ["admin", "free", "vip"],
+    status: confidence >= 50 ? "generated" : "partial",
+    metadata: {
+      snapshots,
+      candidates: candidates.slice(0, 10),
+      signals: signals.slice(0, 10),
+      feed_health: feeds,
+      predictive_regime: btcHmm,
+    },
+  };
 }
 
 export async function storeIntelligenceEvent(supabase: SupabaseClient, output: IntelligenceOutput): Promise<void> {

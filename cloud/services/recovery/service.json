@@ -1,8 +1,0 @@
-{
-  "service": "recovery",
-  "contract_version": 1,
-  "worker_registration": "disabled",
-  "runtime_enabled": false,
-  "provider_mutation_enabled": false,
-  "production_execution_enabled": false
-}

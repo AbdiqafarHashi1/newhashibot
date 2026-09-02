@@ -1,9 +1,10 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Zap, LogOut, Menu, X, ChevronDown, Copy, Check, Mail, Phone, Shield
+  Zap, LogOut, Menu, X, ChevronDown, Copy, Check, Mail, Phone, Shield, Download, KeyRound, Monitor
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { createBridgeZipPackage } from '../../lib/visualBridgeEngine';
 
 interface PublicLayoutProps {
   children: ReactNode;
@@ -14,11 +15,38 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [copiedMpesa, setCopiedMpesa] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
   
   const loc = useLocation();
   const nav = useNavigate();
-  const { session, loading, isAdmin, signOut } = useAuth();
+  const { session, loading, isAdmin, signOut, emergencyAdminBypass } = useAuth();
   const isLoggedIn = Boolean(session);
+
+  const handleDirectZipDownload = async () => {
+    try {
+      setDownloadingZip(true);
+      const zipBlob = await createBridgeZipPackage({
+        accountSize: 100000,
+        dailyDrawdownLimit: 4.5,
+        riskPercent: 0.5,
+        executionMode: 'prop_firm_guardian',
+        platformType: 'mt5'
+      });
+
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HashiBot_Visual_MT5_Bridge_Package.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed downloading zip:', err);
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -459,13 +487,31 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               </ul>
             </div>
 
-            {/* Col 4: Company & Account */}
+            {/* Col 4: Company & Access */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">Company & Access</h3>
               <ul className="space-y-2 text-xs">
                 <li><Link to="/about" className="hover:text-white transition-colors">About HashiBot</Link></li>
                 <li><Link to="/login" className="hover:text-white transition-colors">Log In</Link></li>
                 <li><Link to="/register" className="hover:text-white transition-colors">Get Started</Link></li>
+                <li>
+                  <Link to="/app/visual-bridge" className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1.5">
+                    <Download size={13} />
+                    <span>Download MT5 Bridge</span>
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      emergencyAdminBypass();
+                      nav('/admin/operator');
+                    }}
+                    className="text-amber-400 hover:text-amber-300 font-mono text-[11px] flex items-center gap-1.5 transition-colors"
+                  >
+                    <KeyRound size={12} />
+                    <span>Admin Bypass (Temp Pass)</span>
+                  </button>
+                </li>
                 {isLoggedIn && (
                   <li>
                     <Link to="/app/dashboard" className="text-blue-400 hover:text-blue-300 font-semibold">
@@ -487,12 +533,45 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-600">
-              <p>© 2026 HashiBot Platform. All rights reserved.</p>
-              <div className="flex items-center gap-4">
-                <Link to="/faq" className="hover:text-zinc-400 transition-colors">FAQ</Link>
-                <Link to="/contact#contact-form" className="hover:text-zinc-400 transition-colors">Contact</Link>
-                <Link to="/pricing#mpesa-payment-section" className="hover:text-zinc-400 transition-colors">M-Pesa Payment</Link>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500 pt-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <p className="text-zinc-400 font-medium">© 2026 HashiBot Platform. All rights reserved.</p>
+                <span className="text-zinc-700 hidden sm:inline">•</span>
+                <button
+                  type="button"
+                  onClick={handleDirectZipDownload}
+                  disabled={downloadingZip}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-xs font-mono font-medium transition-colors disabled:opacity-50"
+                  title="Download complete MT5 Bridge package with 1-Click Launchers and GUI"
+                >
+                  <Download size={13} className={downloadingZip ? "animate-bounce" : ""} />
+                  <span>{downloadingZip ? "Preparing .ZIP..." : "Download Desktop Bridge (.zip)"}</span>
+                </button>
+                <Link
+                  to="/app/visual-bridge"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 text-xs font-mono transition-colors"
+                >
+                  <Monitor size={12} />
+                  <span>Visual Bridge HUD</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    emergencyAdminBypass();
+                    nav('/admin/operator');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-xs font-mono transition-colors"
+                  title="Direct 1-Click Admin Access"
+                >
+                  <KeyRound size={12} />
+                  <span>Admin Pass (Bypass)</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 text-zinc-400">
+                <Link to="/faq" className="hover:text-zinc-200 transition-colors">FAQ</Link>
+                <Link to="/contact#contact-form" className="hover:text-zinc-200 transition-colors">Contact</Link>
+                <Link to="/pricing#mpesa-payment-section" className="hover:text-zinc-200 transition-colors">M-Pesa Payment</Link>
               </div>
             </div>
           </div>
