@@ -792,6 +792,7 @@ class HashiBotVisualBridgeApp:
         self.broker_server = tk.StringVar(value="${prefillServer}")
         self.password_input = tk.StringVar(value="")
         self.custom_path = tk.StringVar(value="")
+        self.execution_mode = tk.StringVar(value="${isGrowth ? 'account_growth_accelerator' : 'prop_firm_guardian'}")
         self.account_name_text = tk.StringVar(value="--")
         self.balance_text = tk.StringVar(value="--")
         self.equity_text = tk.StringVar(value="--")
@@ -850,6 +851,12 @@ class HashiBotVisualBridgeApp:
             font=("Segoe UI", 9, "bold"), fg="${modeTextColor}", bg="${modeBadgeColor}", padx=10, pady=4
         )
         self.mode_badge.pack()
+
+        self.btn_switch_mode = tk.Button(
+            badge_frame, text="🔄 Switch Profile", bg="#27272a", fg="#a1a1aa", activebackground="#3f3f46", activeforeground="#ffffff",
+            font=("Segoe UI", 8, "bold"), relief="flat", padx=6, pady=2, command=self.toggle_mode
+        )
+        self.btn_switch_mode.pack(pady=(4, 0))
 
         # Tab Notebook
         self.notebook = ttk.Notebook(self.root)
@@ -1154,6 +1161,35 @@ class HashiBotVisualBridgeApp:
             self.custom_path.set(filename)
             self.log(f"Selected custom MT5 binary: {filename}")
 
+    def toggle_mode(self):
+        new_mode = "account_growth_accelerator" if self.execution_mode.get() == "prop_firm_guardian" else "prop_firm_guardian"
+        self.set_execution_mode(new_mode)
+        self.save_local_config()
+
+    def set_execution_mode(self, mode):
+        self.execution_mode.set(mode)
+        size_label = f"{int(self.account_size / 1000)}k" if self.account_size >= 1000 else f"{int(self.account_size)}"
+        if mode == "account_growth_accelerator":
+            self.mode_badge.config(
+                text=f"⚡ {size_label} GROWTH ACCELERATOR",
+                bg="#581c87", fg="#d8b4fe"
+            )
+            if self.risk_percent.get() <= 0.5:
+                self.risk_percent.set(1.5)
+            if self.daily_drawdown_limit.get() <= 4.5:
+                self.daily_drawdown_limit.set(8.0)
+            self.log(f"Profile switched to: ACCOUNT GROWTH ACCELERATOR (Risk: {self.risk_percent.get()}%, DD Soft Stop: {self.daily_drawdown_limit.get()}%)")
+        else:
+            self.mode_badge.config(
+                text=f"🛡️ {size_label} PROP GUARDIAN",
+                bg="#064e3b", fg="#34d399"
+            )
+            if self.risk_percent.get() > 1.0:
+                self.risk_percent.set(0.5)
+            if self.daily_drawdown_limit.get() > 5.0:
+                self.daily_drawdown_limit.set(4.5)
+            self.log(f"Profile switched to: PROP FIRM GUARDIAN (Risk: {self.risk_percent.get()}%, DD Hard Lock: {self.daily_drawdown_limit.get()}%)")
+
     def load_local_config(self):
         try:
             if os.path.exists("hashibot_bridge_config.json"):
@@ -1165,7 +1201,32 @@ class HashiBotVisualBridgeApp:
                         self.broker_server.set(str(cfg["server"]))
                     if "path" in cfg and cfg["path"]:
                         self.custom_path.set(str(cfg["path"]))
-                    self.log("Loaded cached config from hashibot_bridge_config.json")
+                    if "account_size" in cfg and cfg["account_size"]:
+                        try:
+                            self.account_size = float(cfg["account_size"])
+                            self.initial_deposit = float(cfg["account_size"])
+                        except:
+                            pass
+                    elif "accountSize" in cfg and cfg["accountSize"]:
+                        try:
+                            self.account_size = float(cfg["accountSize"])
+                            self.initial_deposit = float(cfg["accountSize"])
+                        except:
+                            pass
+                    if "daily_drawdown_limit" in cfg and cfg["daily_drawdown_limit"] is not None:
+                        try:
+                            self.daily_drawdown_limit.set(float(cfg["daily_drawdown_limit"]))
+                        except:
+                            pass
+                    if "risk_percent" in cfg and cfg["risk_percent"] is not None:
+                        try:
+                            self.risk_percent.set(float(cfg["risk_percent"]))
+                        except:
+                            pass
+                    mode_val = cfg.get("execution_mode") or cfg.get("executionMode")
+                    if mode_val:
+                        self.set_execution_mode(mode_val)
+                    self.log(f"Loaded config: Account #{self.account_number.get()}, Server: {self.broker_server.get()}, Mode: {self.execution_mode.get()}")
         except Exception as e:
             self.log(f"Config load note: {e}")
 
@@ -1175,6 +1236,12 @@ class HashiBotVisualBridgeApp:
                 "account": self.account_number.get().strip(),
                 "server": self.broker_server.get().strip(),
                 "path": self.custom_path.get().strip(),
+                "execution_mode": self.execution_mode.get(),
+                "executionMode": self.execution_mode.get(),
+                "daily_drawdown_limit": self.daily_drawdown_limit.get(),
+                "risk_percent": self.risk_percent.get(),
+                "account_size": self.account_size,
+                "accountSize": self.account_size,
                 "last_connected": datetime.datetime.now().isoformat()
             }
             with open("hashibot_bridge_config.json", "w") as f:
@@ -1501,6 +1568,8 @@ class HashiBotVisualBridgeApp:
                         "accountName": app.account_name_text.get(),
                         "terminalPath": app.terminal_path or app.mt5_path_text.get(),
                         "terminalBuild": "MetaTrader 5 x64",
+                        "executionMode": app.execution_mode.get(),
+                        "execution_mode": app.execution_mode.get(),
                         "balance": balance_val,
                         "equity": equity_val,
                         "freeMargin": free_margin_val,
@@ -1511,6 +1580,7 @@ class HashiBotVisualBridgeApp:
                         "algoTradingAllowedInMT5": app.algo_trading_allowed,
                         "riskPercentPerTrade": app.risk_percent.get(),
                         "dailyDrawdownLimitPercent": app.daily_drawdown_limit.get(),
+                        "maxSpreadPips": app.max_spread.get(),
                         "latencyMs": 4 if app.is_connected else 0,
                         "activePositions": app.active_positions_list,
                         "timestamp": datetime.datetime.now().isoformat()
@@ -1526,6 +1596,125 @@ class HashiBotVisualBridgeApp:
                 else:
                     self.send_response(404)
                     self.end_headers()
+
+            def do_POST(self):
+                app = self.bridge_app
+                content_length = int(self.headers.get('Content-Length', 0))
+                body_bytes = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                try:
+                    body = json.loads(body_bytes.decode('utf-8'))
+                except:
+                    body = {}
+
+                res_data = {"success": False}
+                path = self.path
+
+                if path.startswith("/toggle_trading"):
+                    app.toggle_trading()
+                    res_data = {"success": True, "autoTradingEnabled": app.is_auto_trading}
+
+                elif path.startswith("/panic_close"):
+                    closed = app.close_all_positions()
+                    res_data = {"success": True, "action": "panic_close_executed", "closedCount": closed}
+
+                elif path.startswith("/set_mode"):
+                    mode = body.get("mode") or body.get("execution_mode") or body.get("executionMode")
+                    if mode:
+                        app.set_execution_mode(mode)
+                        app.save_local_config()
+                        res_data = {"success": True, "executionMode": app.execution_mode.get()}
+
+                elif path.startswith("/execute") or path.startswith("/trade") or path.startswith("/signal"):
+                    if not app.is_connected:
+                        res_data = {"success": False, "error": "MT5 terminal not connected"}
+                    elif not app.is_auto_trading:
+                        res_data = {"success": False, "error": "Auto-Trading is paused on Desktop Bridge"}
+                    elif not MT5_AVAILABLE:
+                        res_data = {"success": False, "error": "MetaTrader5 Python library not available"}
+                    else:
+                        symbol = str(body.get("symbol", "EURUSD")).upper().strip()
+                        direction = str(body.get("direction", "BUY")).upper().strip()
+                        sl = float(body.get("sl", 0))
+                        tp = float(body.get("tp", 0))
+                        comment = str(body.get("comment", "HashiBot Exec"))
+
+                        # 1. Prop Guardian Drawdown Circuit Breaker
+                        balance_val = float(app.balance_text.get().replace("$", "").replace(",", "") or 0) if app.balance_text.get() != "--" else app.account_size
+                        equity_val = float(app.equity_text.get().replace("$", "").replace(",", "") or 0) if app.equity_text.get() != "--" else app.account_size
+                        current_dd = max(0.0, ((app.initial_deposit - equity_val) / app.initial_deposit) * 100) if app.initial_deposit > 0 else 0.0
+
+                        if app.execution_mode.get() == "prop_firm_guardian" and current_dd >= app.daily_drawdown_limit.get():
+                            app.log(f"🚨 [PROP GUARDIAN BREACH PROTECT] Order blocked! Daily drawdown {current_dd:.2f}% >= {app.daily_drawdown_limit.get()}% limit.")
+                            res_data = {
+                                "success": False,
+                                "error": f"PROP_GUARDIAN_LOCK: Daily drawdown is {current_dd:.2f}%, exceeding {app.daily_drawdown_limit.get()}% limit."
+                            }
+                        else:
+                            # 2. Spread Check
+                            tick = mt5.symbol_info_tick(symbol)
+                            info = mt5.symbol_info(symbol)
+                            if not tick or not info:
+                                res_data = {"success": False, "error": f"Symbol {symbol} not found or no tick received in MT5."}
+                            else:
+                                spread_pips = ((tick.ask - tick.bid) / (info.point * (10 if info.digits in [3, 5] else 1))) if info.point else 0.0
+                                if spread_pips > app.max_spread.get():
+                                    app.log(f"⚠️ Spread {spread_pips:.1f} pips exceeds max {app.max_spread.get()} pips for {symbol}. Order skipped.")
+                                    res_data = {"success": False, "error": f"Spread ({spread_pips:.1f}) exceeds max {app.max_spread.get()} pips."}
+                                else:
+                                    # 3. Dynamic lot sizing based on account size & risk percentage
+                                    volume = float(body.get("volume", 0))
+                                    if volume <= 0:
+                                        point_dist = abs(tick.ask - sl) if sl > 0 else 0
+                                        risk_cash = app.initial_deposit * (app.risk_percent.get() / 100.0)
+                                        pip_dist = (point_dist / (info.point * (10 if info.digits in [3, 5] else 1))) if info.point else 30
+                                        pip_dist = max(10, pip_dist)
+                                        pip_val_standard_lot = 10.0
+                                        computed_vol = risk_cash / (pip_dist * pip_val_standard_lot)
+                                        volume = round(max(info.volume_min, min(info.volume_max, computed_vol)), 2)
+
+                                    order_type = mt5.ORDER_TYPE_BUY if direction == "BUY" else mt5.ORDER_TYPE_SELL
+                                    price = tick.ask if direction == "BUY" else tick.bid
+                                    order_req = {
+                                        "action": mt5.TRADE_ACTION_DEAL,
+                                        "symbol": symbol,
+                                        "volume": volume,
+                                        "type": order_type,
+                                        "price": price,
+                                        "sl": sl if sl > 0 else 0.0,
+                                        "tp": tp if tp > 0 else 0.0,
+                                        "deviation": 20,
+                                        "magic": 9821,
+                                        "comment": comment,
+                                        "type_time": mt5.ORDER_TIME_GTC,
+                                        "type_filling": mt5.ORDER_FILLING_IOC
+                                    }
+                                    res = mt5.order_send(order_req)
+                                    if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                                        app.log(f"✅ EXECUTED: {direction} {volume} {symbol} @ {price:.5f} (Ticket #{res.order})")
+                                        res_data = {
+                                            "success": True,
+                                            "ticket": res.order,
+                                            "deal": res.deal,
+                                            "price": res.price,
+                                            "volume": res.volume,
+                                            "symbol": symbol,
+                                            "direction": direction
+                                        }
+                                    else:
+                                        err_code = res.retcode if res else "None"
+                                        err_comment = res.comment if res else "Failed"
+                                        app.log(f"❌ EXECUTION FAILED: {symbol} - Code: {err_code} ({err_comment})")
+                                        res_data = {"success": False, "error": f"MT5 retcode {err_code}: {err_comment}"}
+                else:
+                    res_data = {"success": False, "error": "Unknown POST route"}
+
+                payload = json.dumps(res_data).encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Content-Length', str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
 
         def run_server():
             try:
@@ -1549,34 +1738,41 @@ class HashiBotVisualBridgeApp:
         self.log("Adjusting Stop Loss to Entry (Break-Even + Spread) on all winning trades...")
         messagebox.showinfo("Break-Even Applied", "All open positions adjusted to Break-Even.")
 
+    def close_all_positions(self):
+        closed = 0
+        if MT5_AVAILABLE and self.is_connected:
+            try:
+                positions = mt5.positions_get()
+                if positions:
+                    for p in positions:
+                        action_type = mt5.ORDER_TYPE_SELL if p.type == 0 else mt5.ORDER_TYPE_BUY
+                        price = mt5.symbol_info_tick(p.symbol).bid if p.type == 0 else mt5.symbol_info_tick(p.symbol).ask
+                        req = {
+                            "action": mt5.TRADE_ACTION_DEAL,
+                            "position": p.ticket,
+                            "symbol": p.symbol,
+                            "volume": p.volume,
+                            "type": action_type,
+                            "price": price,
+                            "deviation": 20,
+                            "magic": 9821,
+                            "comment": "HashiBot Panic Close",
+                            "type_time": mt5.ORDER_TIME_GTC,
+                            "type_filling": mt5.ORDER_FILLING_IOC,
+                        }
+                        res = mt5.order_send(req)
+                        if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                            closed += 1
+                    self.log(f"All {closed} open positions liquidated on MT5.")
+            except Exception as e:
+                self.log(f"Panic close error: {e}")
+        return closed
+
     def panic_close_all(self):
         if messagebox.askyesno("Emergency Panic Close", "Are you sure you want to LIQUIDATE ALL MT5 POSITIONS immediately?"):
             self.log("🚨 PANIC CLOSE TRIGGERED: Liquidating all open orders on MT5...")
-            if MT5_AVAILABLE and self.is_connected:
-                try:
-                    positions = mt5.positions_get()
-                    if positions:
-                        for p in positions:
-                            action_type = mt5.ORDER_TYPE_SELL if p.type == 0 else mt5.ORDER_TYPE_BUY
-                            price = mt5.symbol_info_tick(p.symbol).bid if p.type == 0 else mt5.symbol_info_tick(p.symbol).ask
-                            req = {
-                                "action": mt5.TRADE_ACTION_DEAL,
-                                "position": p.ticket,
-                                "symbol": p.symbol,
-                                "volume": p.volume,
-                                "type": action_type,
-                                "price": price,
-                                "deviation": 20,
-                                "magic": 9821,
-                                "comment": "HashiBot Panic Close",
-                                "type_time": mt5.ORDER_TIME_GTC,
-                                "type_filling": mt5.ORDER_FILLING_IOC,
-                            }
-                            mt5.order_send(req)
-                        self.log("All positions liquidated.")
-                except Exception as e:
-                    self.log(f"Panic close error: {e}")
-            messagebox.showinfo("Executed", "Emergency Close order executed.")
+            count = self.close_all_positions()
+            messagebox.showinfo("Executed", f"Emergency Close order executed. {count} positions closed.")
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -1800,15 +1996,29 @@ function crc32(data: Uint8Array): number {
 
 export async function createBridgeZipPackage(options?: {
   accountSize?: number;
+  dailyDrawdownLimit?: number;
+  riskPercent?: number;
+  maxSpreadPips?: number;
   executionMode?: 'prop_firm_guardian' | 'account_growth_accelerator';
   prefillAccount?: string;
   prefillServer?: string;
 }): Promise<Blob> {
+  const isGrowth = options?.executionMode === 'account_growth_accelerator';
+  const accountSize = options?.accountSize || 100000;
+  const ddLimit = options?.dailyDrawdownLimit || (isGrowth ? 8.0 : 4.5);
+  const riskPct = options?.riskPercent || (isGrowth ? 1.5 : 0.5);
+
   const configObj = {
     account: options?.prefillAccount || '10011927607',
     server: options?.prefillServer || 'MetaQuotes-Demo',
-    accountSize: options?.accountSize || 100000,
-    executionMode: options?.executionMode || 'prop_firm_guardian'
+    account_size: accountSize,
+    accountSize: accountSize,
+    daily_drawdown_limit: ddLimit,
+    dailyDrawdownLimit: ddLimit,
+    risk_percent: riskPct,
+    riskPercent: riskPct,
+    execution_mode: isGrowth ? 'account_growth_accelerator' : 'prop_firm_guardian',
+    executionMode: isGrowth ? 'account_growth_accelerator' : 'prop_firm_guardian'
   };
 
   return buildZipBlob([

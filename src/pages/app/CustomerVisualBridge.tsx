@@ -151,6 +151,7 @@ export function CustomerVisualBridge() {
     };
     setTelemetry(updated);
     saveCustomerBridgeTelemetry(updated);
+    fetch('http://127.0.0.1:8089/toggle_trading', { method: 'POST' }).catch(() => null);
     setActionSuccess(`Auto-Trading successfully ${nextState ? 'Resumed' : 'Paused'}.`);
     setTimeout(() => setActionSuccess(null), 4000);
   };
@@ -173,6 +174,7 @@ export function CustomerVisualBridge() {
       };
       setTelemetry(updated);
       saveCustomerBridgeTelemetry(updated);
+      fetch('http://127.0.0.1:8089/panic_close', { method: 'POST' }).catch(() => null);
       setActionSuccess(`Emergency Close executed! Closed all open positions. New Balance: $${newBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`);
       setTimeout(() => setActionSuccess(null), 5000);
     }
@@ -435,6 +437,21 @@ export function CustomerVisualBridge() {
     };
     setTelemetry(updated);
     saveCustomerBridgeTelemetry(updated);
+
+    // Dispatch to local desktop bridge if running
+    fetch('http://127.0.0.1:8089/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        symbol: chosenSymbol,
+        direction: 'BUY',
+        volume: testPos.volume,
+        sl: testPos.sl,
+        tp: testPos.tp,
+        comment: 'HashiBot Signal Test'
+      })
+    }).catch(() => null);
+
     setActionSuccess(`Position #${newTicket} (${chosenSymbol} BUY ${testPos.volume} lots @ $${livePrice}) added to live positions!`);
     setTimeout(() => setActionSuccess(null), 4000);
   };
