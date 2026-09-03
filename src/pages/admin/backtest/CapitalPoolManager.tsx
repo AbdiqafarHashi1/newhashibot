@@ -11,7 +11,7 @@ export const CapitalPoolManager: React.FC<CapitalPoolManagerProps> = ({ pools, o
   const totalCombinedCapital = Object.values(pools).reduce((acc, p) => acc + p.capitalUsd, 0);
 
   return (
-    <div id="capital-pool-manager" className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6 text-slate-200">
+    <div id="capital-pool-manager" className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 mb-6 text-slate-200 min-w-0 max-w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
         <div>
           <div className="flex items-center gap-2">

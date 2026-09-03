@@ -374,10 +374,12 @@ export default function BacktestLab() {
     handleSelectPreset(BASE_DEFAULT_PRESET);
   };
 
-  // Auto-run on first load
+  // Auto-run on first load and trigger real market bars download
   useEffect(() => {
     handleRunPipelineBacktest();
-  }, [handleRunPipelineBacktest]);
+    handleSyncAllFeeds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update segregated capital pool
   const handleUpdatePool = (category: AssetCategory, updates: Partial<AssetCapitalPool>) => {
@@ -387,66 +389,76 @@ export default function BacktestLab() {
     }));
   };
 
-  // Fetch Live Multi-Asset Historical Data in One Go Across Full Universe (Uncapped / Deep Horizon)
-  const handleSyncAllFeeds = async () => {
+  // Fetch Live Multi-Asset Historical Data in One Go Across Full Universe (Parallelized & High Speed)
+  const handleSyncAllFeeds = async (rangeOverride?: string) => {
     setIsSyncingAll(true);
 
-    const rangeOption = DATE_RANGE_OPTIONS.find((o) => o.key === selectedRange) || DATE_RANGE_OPTIONS[2];
+    const rangeToUse = rangeOverride || selectedRange;
+    const rangeOption = DATE_RANGE_OPTIONS.find((o) => o.key === rangeToUse) || DATE_RANGE_OPTIONS[2];
     const targetBars = historyDepthBars || Math.max(500, rangeOption.days * 24 * (60 / (selectedTimeframe === '5m' ? 5 : selectedTimeframe === '1h' ? 60 : 15)));
 
     const updatedFeeds = { ...multiAssetFeeds };
-
-    // Sync all instruments in PIPELINE_UNIVERSE
-    for (const inst of PIPELINE_UNIVERSE) {
-      try {
-        if (updatedFeeds[inst.symbol]) {
-          updatedFeeds[inst.symbol] = { ...updatedFeeds[inst.symbol], status: 'loading' };
-        }
-
-        const resp = await fetch(`/api/market-data/history?symbol=${inst.symbol}&interval=${selectedTimeframe}&assetClass=${inst.assetClass}&range=${selectedRange}&limit=${Math.min(1000, targetBars)}`);
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.candles && data.candles.length >= 20) {
-            updatedFeeds[inst.symbol] = {
-              category: inst.category,
-              symbol: inst.symbol,
-              displayName: inst.displayName,
-              assetClass: inst.assetClass,
-              pipOrPointSize: inst.pipOrPointSize,
-              spreadPipsOrPts: inst.spreadPipsOrPts,
-              decimals: inst.decimals,
-              fridayWeekendClose: inst.fridayWeekendClose,
-              enforceSessionWindows: inst.enforceSessionWindows,
-              candles: data.candles,
-              count: data.candles.length,
-              status: 'ready',
-              source: data.source || 'live_feed',
-              lastUpdated: new Date().toISOString(),
-            };
-            continue;
-          }
-        }
-        throw new Error('API fallback');
-      } catch {
-        const synthetic = generateSyntheticSessionData(inst.symbol, inst.assetClass, inst.basePrice, targetBars, 15);
-        updatedFeeds[inst.symbol] = {
-          category: inst.category,
-          symbol: inst.symbol,
-          displayName: inst.displayName,
-          assetClass: inst.assetClass,
-          pipOrPointSize: inst.pipOrPointSize,
-          spreadPipsOrPts: inst.spreadPipsOrPts,
-          decimals: inst.decimals,
-          fridayWeekendClose: inst.fridayWeekendClose,
-          enforceSessionWindows: inst.enforceSessionWindows,
-          candles: synthetic,
-          count: synthetic.length,
-          status: 'ready',
-          source: 'session_engine',
-          lastUpdated: new Date().toISOString(),
-        };
+    PIPELINE_UNIVERSE.forEach((inst) => {
+      if (updatedFeeds[inst.symbol]) {
+        updatedFeeds[inst.symbol] = { ...updatedFeeds[inst.symbol], status: 'loading' };
       }
-    }
+    });
+    setMultiAssetFeeds({ ...updatedFeeds });
+
+    // Parallel fetch across all instruments in PIPELINE_UNIVERSE
+    const results = await Promise.all(
+      PIPELINE_UNIVERSE.map(async (inst) => {
+        try {
+          const resp = await fetch(
+            `/api/market-data/history?symbol=${inst.symbol}&interval=${selectedTimeframe}&assetClass=${inst.assetClass}&range=${rangeToUse}&limit=1000`
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.candles && data.candles.length >= 20) {
+              return {
+                category: inst.category,
+                symbol: inst.symbol,
+                displayName: inst.displayName,
+                assetClass: inst.assetClass,
+                pipOrPointSize: inst.pipOrPointSize,
+                spreadPipsOrPts: inst.spreadPipsOrPts,
+                decimals: inst.decimals,
+                fridayWeekendClose: inst.fridayWeekendClose,
+                enforceSessionWindows: inst.enforceSessionWindows,
+                candles: data.candles,
+                count: data.candles.length,
+                status: 'ready' as const,
+                source: data.source || 'live_feed',
+                lastUpdated: new Date().toISOString(),
+              };
+            }
+          }
+          throw new Error('API fallback');
+        } catch {
+          const synthetic = generateSyntheticSessionData(inst.symbol, inst.assetClass, inst.basePrice, targetBars, 15);
+          return {
+            category: inst.category,
+            symbol: inst.symbol,
+            displayName: inst.displayName,
+            assetClass: inst.assetClass,
+            pipOrPointSize: inst.pipOrPointSize,
+            spreadPipsOrPts: inst.spreadPipsOrPts,
+            decimals: inst.decimals,
+            fridayWeekendClose: inst.fridayWeekendClose,
+            enforceSessionWindows: inst.enforceSessionWindows,
+            candles: synthetic,
+            count: synthetic.length,
+            status: 'ready' as const,
+            source: 'session_engine',
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+      })
+    );
+
+    results.forEach((item) => {
+      updatedFeeds[item.symbol] = item;
+    });
 
     // Set category benchmark shortcuts
     if (updatedFeeds['EURUSD']) updatedFeeds['forex'] = updatedFeeds['EURUSD'];
@@ -520,17 +532,17 @@ export default function BacktestLab() {
 
   return (
     <AdminLayout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="p-0 sm:p-1 md:p-2 max-w-7xl mx-auto space-y-5 sm:space-y-6 w-full min-w-0">
         {/* Top Header & Mode Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl">
+              <span className="p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl shrink-0">
                 <Layers3 className="w-5 h-5" />
               </span>
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Institutional Backtest Lab & Arbitration Engine</h1>
-                <p className="text-xs text-slate-400">
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight break-words">Institutional Backtest Lab & Arbitration Engine</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
                   Cross-asset pipeline simulation with segregated capital pools, native pricing feeds, and AI arbitration showdowns.
                 </p>
               </div>
@@ -538,42 +550,42 @@ export default function BacktestLab() {
           </div>
 
           {/* Mode Switcher Buttons */}
-          <div className="flex flex-wrap items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:flex md:flex-wrap items-center p-1 bg-slate-900 border border-slate-800 rounded-xl gap-1 w-full md:w-auto">
             <button
               id="mode-btn-pipeline"
               onClick={() => setBacktestMode('pipeline_arbitration')}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-center ${
                 backtestMode === 'pipeline_arbitration'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Cpu className="w-3.5 h-3.5" />
-              Multi-Asset Pipeline
+              <Cpu className="w-3.5 h-3.5 shrink-0" />
+              <span>Multi-Asset Pipeline</span>
             </button>
             <button
               id="mode-btn-single"
               onClick={() => setBacktestMode('single_strategy')}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-center ${
                 backtestMode === 'single_strategy'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Sliders className="w-3.5 h-3.5" />
-              Single Strategy Lab
+              <Sliders className="w-3.5 h-3.5 shrink-0" />
+              <span>Single Strategy Lab</span>
             </button>
             <button
               id="mode-btn-prop-clearance"
               onClick={() => setBacktestMode('prop_firm_clearance')}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-center ${
                 backtestMode === 'prop_firm_clearance'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
                   : 'text-amber-400/90 hover:text-amber-300'
               }`}
             >
-              <Trophy className="w-3.5 h-3.5" />
-              Prop Firm Clearance Lab
+              <Trophy className="w-3.5 h-3.5 shrink-0" />
+              <span>Prop Firm Clearance Lab</span>
             </button>
           </div>
         </div>
@@ -608,11 +620,11 @@ export default function BacktestLab() {
             <CapitalPoolManager pools={capitalPools} onUpdatePool={handleUpdatePool} />
 
             {/* Strategy Pool & Arbitration Configuration Card */}
-            <div id="arbitration-controls-card" className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-slate-200">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div id="arbitration-controls-card" className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 text-slate-200">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-800">
                 <div>
                   <h3 className="font-semibold text-white text-base flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-purple-400" />
+                    <Activity className="w-4 h-4 text-purple-400 shrink-0" />
                     Strategy Pool Selection & Arbitration Policies
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
@@ -621,13 +633,13 @@ export default function BacktestLab() {
                 </div>
 
                 {/* Category Filter Tabs */}
-                <div className="flex items-center gap-1.5 p-1 bg-slate-800/80 rounded-lg border border-slate-700/60">
+                <div className="flex items-center gap-1.5 p-1 bg-slate-800/80 rounded-lg border border-slate-700/60 overflow-x-auto max-w-full no-scrollbar shrink-0">
                   {['all', 'forex', 'metals', 'crypto'].map((cat) => (
                     <button
                       key={cat}
                       id={`pool-cat-${cat}`}
                       onClick={() => setPipelineCategory(cat)}
-                      className={`px-3 py-1 text-xs font-semibold rounded-md capitalize transition-all ${
+                      className={`px-3 py-1 text-xs font-semibold rounded-md capitalize transition-all whitespace-nowrap ${
                         pipelineCategory === cat
                           ? 'bg-purple-600 text-white shadow-sm'
                           : 'text-slate-400 hover:text-slate-200'
@@ -841,14 +853,14 @@ export default function BacktestLab() {
             )}
 
             {/* Tabbed Results Section */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-slate-200">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 text-slate-200 min-w-0 max-w-full">
               {/* Tab Selector Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
-                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-800 rounded-lg border border-slate-700/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                <div className="flex items-center gap-1.5 p-1 bg-slate-800 rounded-lg border border-slate-700/80 overflow-x-auto max-w-full no-scrollbar shrink-0">
                   <button
                     id="tab-btn-trades"
                     onClick={() => setActiveResultsTab('trades')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
                       activeResultsTab === 'trades'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
@@ -860,7 +872,7 @@ export default function BacktestLab() {
                   <button
                     id="tab-btn-arbitration"
                     onClick={() => setActiveResultsTab('arbitration')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
                       activeResultsTab === 'arbitration'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
@@ -872,7 +884,7 @@ export default function BacktestLab() {
                   <button
                     id="tab-btn-alpha"
                     onClick={() => setActiveResultsTab('alpha_matrix')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
                       activeResultsTab === 'alpha_matrix'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
@@ -884,7 +896,7 @@ export default function BacktestLab() {
                   <button
                     id="tab-btn-equity"
                     onClick={() => setActiveResultsTab('equity')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
                       activeResultsTab === 'equity'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
@@ -896,7 +908,7 @@ export default function BacktestLab() {
                   <button
                     id="tab-btn-rejections"
                     onClick={() => setActiveResultsTab('rejections')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
                       activeResultsTab === 'rejections'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'

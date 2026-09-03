@@ -169,13 +169,13 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
   const def = STRATEGY_DEFINITIONS[selectedStrategy];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 max-w-full overflow-hidden">
       {/* Strategy & Asset Selection Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-slate-200 shadow-md">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 text-slate-200 shadow-md min-w-0 max-w-full">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg">
+              <span className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
                 <Sliders className="w-4 h-4" />
               </span>
               <h3 className="font-bold text-white text-base">Single Strategy & Asset Isolated Backtest Lab</h3>
@@ -185,21 +185,21 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <button
               id="btn-run-single-backtest"
               onClick={handleRunBacktest}
               disabled={isRunning}
-              className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-md transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-md transition-all"
             >
-              <Play className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
-              {isRunning ? 'Simulating Strategy...' : 'Run Single Backtest'}
+              <Play className={`w-3.5 h-3.5 shrink-0 ${isRunning ? 'animate-spin' : ''}`} />
+              <span>{isRunning ? 'Simulating Strategy...' : 'Run Single Backtest'}</span>
             </button>
 
             <button
               id="btn-save-single-strategy"
               onClick={handleSaveToConfig}
-              className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border transition-all ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border transition-all ${
                 isSaved
                   ? 'bg-emerald-900/40 border-emerald-500 text-emerald-300'
                   : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white'
@@ -208,20 +208,20 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
             >
               {isSaved ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  Saved ✓
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Saved ✓</span>
                 </>
               ) : (
                 <>
-                  <Save className="w-3.5 h-3.5" />
-                  Save Parameters
+                  <Save className="w-3.5 h-3.5 shrink-0" />
+                  <span>Save Parameters</span>
                 </>
               )}
             </button>
 
             <button
               onClick={handleResetStrategy}
-              className="p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all"
+              className="p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all shrink-0"
               title="Reset strategy parameters to defaults"
             >
               <RotateCcw className="w-3.5 h-3.5" />

@@ -115,7 +115,7 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
   return (
     <div
       id="ai-strategy-calibration-panel"
-      className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-purple-800/40 rounded-xl p-5 mb-6 text-slate-200 shadow-lg relative overflow-hidden"
+      className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-purple-800/40 rounded-xl p-4 sm:p-5 mb-6 text-slate-200 shadow-lg relative overflow-hidden min-w-0 max-w-full"
     >
       {/* Subtle Ambient Glow */}
       <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -124,11 +124,11 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800 relative z-10">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg shadow-sm">
+            <span className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg shadow-sm shrink-0">
               <Sparkles className="w-4 h-4" />
             </span>
-            <h3 className="font-bold text-white text-base tracking-wide flex items-center gap-2">
-              AI Strategy Calibration & Optimization Engine
+            <h3 className="font-bold text-white text-base tracking-wide flex items-center gap-2 flex-wrap">
+              <span>AI Strategy Calibration & Optimization Engine</span>
               <span
                 className={`px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded-full border ${
                   report.overallHealth === 'PROFITABLE'
@@ -148,17 +148,17 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
         </div>
 
         {/* Global Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           {/* 1-Click AI Apply */}
           <button
             id="btn-apply-all-ai-calibrations"
             onClick={() => onApplyAllRecommendations(report)}
             disabled={isCalibrating}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-purple-500/20 transition-all disabled:opacity-50"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-purple-500/20 transition-all disabled:opacity-50 text-center"
             title="Apply all AI recommendations and recalibrate arbitration weights"
           >
-            <Zap className={`w-3.5 h-3.5 ${isCalibrating ? 'animate-bounce' : 'text-amber-300'}`} />
-            {isCalibrating ? 'Calibrating...' : '✨ Apply AI Optimal Calibration (1-Click)'}
+            <Zap className={`w-3.5 h-3.5 shrink-0 ${isCalibrating ? 'animate-bounce' : 'text-amber-300'}`} />
+            <span>{isCalibrating ? 'Calibrating...' : '✨ Apply AI Calibration'}</span>
           </button>
 
           {/* Direct Deploy to Live/Demo Pipeline */}
@@ -167,11 +167,11 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
               id="btn-deploy-to-live-pipeline"
               onClick={handleDeployToLive}
               disabled={isDeploying || isCalibrating}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-emerald-500/20 transition-all disabled:opacity-50"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-emerald-500/20 transition-all disabled:opacity-50 text-center"
               title="Commit active calibration preset directly into production & demo strategy configurations"
             >
-              <Rocket className={`w-3.5 h-3.5 ${isDeploying ? 'animate-spin' : 'text-emerald-200'}`} />
-              {isDeploying ? 'Deploying...' : '🚀 Deploy Preset to Live & Demo'}
+              <Rocket className={`w-3.5 h-3.5 shrink-0 ${isDeploying ? 'animate-spin' : 'text-emerald-200'}`} />
+              <span>{isDeploying ? 'Deploying...' : '🚀 Deploy Preset'}</span>
             </button>
           )}
 
@@ -179,29 +179,29 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
           <button
             id="btn-save-all-preset"
             onClick={handleOpenSaveModal}
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-emerald-200 text-xs font-semibold rounded-lg border border-emerald-500/40 transition-all shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-emerald-200 text-xs font-semibold rounded-lg border border-emerald-500/40 transition-all shadow-sm"
             title="Save current calibration & arbitration conflict policy as a named preset profile"
           >
-            <Save className="w-3.5 h-3.5 text-emerald-400" />
-            Save Preset Profile
+            <Save className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Save Profile</span>
           </button>
 
           {/* Reset Defaults Button */}
           <button
             id="btn-reset-ai-calibrations"
             onClick={onResetDefaults}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-slate-700 transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-slate-700 transition-all"
             title="Reset strategy parameters, weights, and conflict policy back to base system defaults"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset to Base Defaults
+            <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+            <span>Reset Defaults</span>
           </button>
 
           {/* Toggle Accordion */}
           <button
             id="btn-toggle-ai-panel"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all shrink-0"
             title={isExpanded ? 'Collapse Calibration Panel' : 'Expand Calibration Panel'}
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -210,10 +210,10 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
       </div>
 
       {/* Preset Reference & Switcher Bar */}
-      <div className="py-2.5 px-3.5 bg-slate-950/70 border-b border-slate-800/80 -mx-5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
+      <div className="py-2.5 px-3.5 bg-slate-950/70 border-b border-slate-800/80 -mx-4 sm:-mx-5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <Bookmark className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-          <span className="text-slate-400">Active Calibration Profile:</span>
+          <span className="text-slate-400 whitespace-nowrap">Active Profile:</span>
           <select
             id="select-calibration-preset"
             value={activePreset?.id || 'base_default'}
@@ -221,7 +221,7 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
               const selected = savedPresets.find((p) => p.id === e.target.value);
               if (selected) onSelectPreset(selected);
             }}
-            className="bg-slate-800 border border-purple-500/40 rounded-lg px-2.5 py-1 text-xs text-purple-200 font-semibold focus:outline-none focus:border-purple-400 cursor-pointer"
+            className="bg-slate-800 border border-purple-500/40 rounded-lg px-2.5 py-1 text-xs text-purple-200 font-semibold focus:outline-none focus:border-purple-400 cursor-pointer max-w-full"
           >
             {savedPresets.map((p) => (
               <option key={p.id} value={p.id}>
@@ -231,13 +231,13 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
           </select>
 
           {/* Conflict Policy Badge */}
-          <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700 whitespace-nowrap">
             Policy: <strong className="text-purple-300 uppercase">{activeConflictPolicy.replace(/_/g, ' ')}</strong>
           </span>
-          <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700 whitespace-nowrap">
             Min Score: <strong className="text-indigo-300">{minArbitrationScore}</strong>
           </span>
-          <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 text-slate-300 border border-slate-700 whitespace-nowrap">
             Max Trades: <strong className="text-amber-300">{maxConcurrentTrades}</strong>
           </span>
         </div>

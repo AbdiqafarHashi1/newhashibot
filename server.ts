@@ -118,10 +118,10 @@ app.get("/api/market-data/history", async (req, res) => {
       yfInterval = interval === "5m" ? "5m" : "15m";
     } else if (customRange === "30d" || customRange === "1mo") {
       range = "1mo";
-      yfInterval = "15m";
+      yfInterval = interval === "1h" ? "60m" : "15m";
     } else if (customRange === "60d" || customRange === "2mo") {
-      range = "3mo";
-      yfInterval = "15m";
+      range = "60d";
+      yfInterval = interval === "1h" ? "60m" : "15m";
     } else if (customRange === "90d" || customRange === "3mo") {
       range = "3mo";
       yfInterval = "60m";
@@ -139,10 +139,10 @@ app.get("/api/market-data/history", async (req, res) => {
         range = "1mo";
         yfInterval = "5m";
       } else if (interval === "15m") {
-        range = "3mo";
+        range = "1mo";
         yfInterval = "15m";
       } else if (interval === "1h") {
-        range = "6mo";
+        range = "3mo";
         yfInterval = "60m";
       } else if (interval === "4h" || interval === "1d") {
         range = "1y";
@@ -150,12 +150,25 @@ app.get("/api/market-data/history", async (req, res) => {
       }
     }
 
-    const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${yfInterval}&range=${range}`;
-    const yfResp = await fetch(yfUrl, {
+    let yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${yfInterval}&range=${range}`;
+    let yfResp = await fetch(yfUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
     });
+
+    // If 15m or requested interval failed with 422 or 400, retry with 60m / 3mo which Yahoo reliably provides
+    if (!yfResp.ok && yfInterval !== "60m") {
+      console.warn(`Yahoo returned ${yfResp.status} for ${yahooSymbol} (${yfInterval}, ${range}), retrying with 60m...`);
+      yfInterval = "60m";
+      range = customRange === "180d" ? "6mo" : customRange === "365d" ? "1y" : "3mo";
+      yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${yfInterval}&range=${range}`;
+      yfResp = await fetch(yfUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+      });
+    }
 
     if (!yfResp.ok) {
       throw new Error(`Market data feed returned status HTTP ${yfResp.status}: ${yfResp.statusText}`);

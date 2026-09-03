@@ -69,11 +69,11 @@ export const MultiAssetDataManager: React.FC<MultiAssetDataManagerProps> = ({
   const totalBarsSum = feedList.reduce((acc, f) => acc + (f.candles?.length || 0), 0);
 
   return (
-    <div id="multi-asset-data-manager" className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6 text-slate-200">
+    <div id="multi-asset-data-manager" className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 mb-6 text-slate-200 min-w-0 max-w-full">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="p-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg shrink-0">
               <Layers className="w-4 h-4" />
             </span>
             <h3 className="font-semibold text-white text-base">Multi-Asset Synchronized Data Engine</h3>
@@ -86,25 +86,25 @@ export const MultiAssetDataManager: React.FC<MultiAssetDataManagerProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <button
             id="btn-sync-all-multi-asset"
             onClick={onSyncAllFeeds}
             disabled={isSyncingAll}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAll ? 'animate-spin' : ''}`} />
-            {isSyncingAll ? 'Synchronizing Cross-Asset Feeds...' : `Download & Auto-Sync Universe (${feedList.length} Assets)`}
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isSyncingAll ? 'animate-spin' : ''}`} />
+            <span>{isSyncingAll ? 'Synchronizing Feeds...' : `Download & Auto-Sync Universe (${feedList.length} Assets)`}</span>
           </button>
 
           <button
             id="btn-export-multi-asset"
             onClick={onExportFeeds}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-slate-700 transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-slate-700 transition-all shrink-0"
             title="Download full cross-asset candle dataset package as JSON"
           >
-            <Download className="w-3.5 h-3.5" />
-            Export Dataset
+            <Download className="w-3.5 h-3.5 shrink-0" />
+            <span>Export Dataset</span>
           </button>
         </div>
       </div>
@@ -114,10 +114,10 @@ export const MultiAssetDataManager: React.FC<MultiAssetDataManagerProps> = ({
         {/* Date Range Presets */}
         <div className="md:col-span-5">
           <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-blue-400" />
-            Backtest Date Horizon & Scope
+            <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span>Backtest Date Horizon & Scope</span>
           </label>
-          <div className="grid grid-cols-4 sm:grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
             {DATE_RANGE_OPTIONS.map((opt) => (
               <button
                 key={opt.key}
@@ -135,18 +135,18 @@ export const MultiAssetDataManager: React.FC<MultiAssetDataManagerProps> = ({
             ))}
           </div>
           <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-            <Info className="w-3 h-3 text-slate-500" />
-            {currentOption.description}
+            <Info className="w-3 h-3 text-slate-500 shrink-0" />
+            <span>{currentOption.description}</span>
           </p>
         </div>
 
         {/* History Horizon / Bar Count Depth (Uncapped Selection) */}
         <div className="md:col-span-4">
           <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-purple-400" />
-            Download History Depth (Bars)
+            <Layers className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+            <span>Download History Depth (Bars)</span>
           </label>
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
             {DEPTH_OPTIONS.map((depth) => (
               <button
                 key={depth.value}
@@ -171,8 +171,8 @@ export const MultiAssetDataManager: React.FC<MultiAssetDataManagerProps> = ({
         {/* Timeframe & Custom Date Inputs */}
         <div className="md:col-span-3">
           <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-blue-400" />
-            Base Resolution
+            <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span>Base Resolution</span>
           </label>
           <div className="flex gap-1">
             {['5m', '15m', '1h', '4h', '1d'].map((tf) => (

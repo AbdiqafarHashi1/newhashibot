@@ -98,27 +98,35 @@ export function evaluateStrategySetup(
     const lowerWick = Math.min(last.open, last.close) - last.low;
     const maxWickRatio = params.max_wick_ratio ?? 0.50;
 
-    if (last.close > asianHigh) {
+    const isInitialBreakBuy = prev.close <= asianHigh && last.close > asianHigh && last.close > last.open;
+    const isRetestBuy = prev.close > asianHigh && last.low <= asianHigh && last.close > asianHigh && last.close > last.open;
+
+    const isInitialBreakSell = prev.close >= asianLow && last.close < asianLow && last.close < last.open;
+    const isRetestSell = prev.close < asianLow && last.high >= asianLow && last.close < asianLow && last.close < last.open;
+
+    if (isInitialBreakBuy || isRetestBuy) {
       if (candleSpan > 0 && upperWick / candleSpan > maxWickRatio) {
         return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Judas Swing upper wick exhaustion', rejectionCause: 'judas_wick_filter' };
       }
-      const sl = price - atr * (params.stop_atr_mult ?? 1.5);
+      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price + atr * (params.tp1_r ?? 1.5);
-      const tp2 = price + atr * (params.tp2_r ?? 2.5);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A+', reason: `London Breakout Long above Asian High (${asianHigh})` };
-    } else if (last.close < asianLow) {
+      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+      const score = isInitialBreakBuy ? 92 : 88;
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score, grade: 'A+', reason: `London Breakout Long above Asian High (${asianHigh})` };
+    } else if (isInitialBreakSell || isRetestSell) {
       if (candleSpan > 0 && lowerWick / candleSpan > maxWickRatio) {
         return { ok: false, direction: 'sell', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Judas Swing lower wick exhaustion', rejectionCause: 'judas_wick_filter' };
       }
-      const sl = price + atr * (params.stop_atr_mult ?? 1.5);
+      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price - atr * (params.tp1_r ?? 1.5);
-      const tp2 = price - atr * (params.tp2_r ?? 2.5);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A+', reason: `London Breakout Short below Asian Low (${asianLow})` };
+      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+      const score = isInitialBreakSell ? 92 : 88;
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score, grade: 'A+', reason: `London Breakout Short below Asian Low (${asianLow})` };
     }
-    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside Asian Range', rejectionCause: 'inside_range' };
+    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'No breakout or retest trigger', rejectionCause: 'inside_range' };
   }
 
-  // 2. NYContinuation (12:00-16:00 UTC) with Displacement ATR
+  // 2. NYContinuation (12:00-16:00 UTC) with Displacement ATR & Pullback Bounce
   if (name === 'NYContinuation') {
     if (enforceSessionWindows && (hour < 12 || hour > 16)) {
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Outside NY Session window (12:00-16:00 UTC)', rejectionCause: 'session_closed' };
@@ -128,18 +136,22 @@ export function evaluateStrategySetup(
     if (displacement > maxDisplacementAtr) {
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Displacement overextended (> 3.2 ATR)', rejectionCause: 'overextended_atr' };
     }
-    if (price > ema20 && ema20 > ema50 && rsi > 52 && last.close > last.open) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.5);
-      const tp1 = price + atr * (params.tp1_r ?? 1.3);
-      const tp2 = price + atr * (params.tp2_r ?? 2.5);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 86, grade: 'A', reason: 'NY Session Trend Continuation Long' };
-    } else if (price < ema20 && ema20 < ema50 && rsi < 48 && last.close < last.open) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.5);
-      const tp1 = price - atr * (params.tp1_r ?? 1.3);
-      const tp2 = price - atr * (params.tp2_r ?? 2.5);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 86, grade: 'A', reason: 'NY Session Trend Continuation Short' };
+
+    const isPullbackBuy = ema20 > ema50 && prev.low <= ema20 * 1.0015 && last.close > ema20 && last.close > last.open && rsi > 50;
+    const isPullbackSell = ema20 < ema50 && prev.high >= ema20 * 0.9985 && last.close < ema20 && last.close < last.open && rsi < 50;
+
+    if (isPullbackBuy) {
+      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
+      const tp1 = price + atr * (params.tp1_r ?? 1.4);
+      const tp2 = price + atr * (params.tp2_r ?? 2.6);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A+', reason: 'NY Session EMA Pullback & Momentum Reclaim Long' };
+    } else if (isPullbackSell) {
+      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
+      const tp1 = price - atr * (params.tp1_r ?? 1.4);
+      const tp2 = price - atr * (params.tp2_r ?? 2.6);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A+', reason: 'NY Session EMA Pullback & Momentum Reclaim Short' };
     }
-    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Trend alignment not met', rejectionCause: 'trend_mismatch' };
+    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Pullback bounce condition not met', rejectionCause: 'trend_mismatch' };
   }
 
   // 3. GoldVolatilityBreakout (XAUUSD 6h Box Breakout with Friday 20:00 UTC liquidation rule)
@@ -154,20 +166,26 @@ export function evaluateStrategySetup(
     const boxLow = Math.min(...boxSlice.map((c) => c.low));
     const boxRange = boxHigh - boxLow;
 
-    if (boxRange > atr * (params.max_box_atr_range ?? 7.0)) {
+    if (boxRange > atr * (params.max_box_atr_range ?? 6.0)) {
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Box range too wide for compression', rejectionCause: 'box_too_wide' };
     }
 
-    if (last.close > boxHigh && last.close > last.open) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.5);
+    const isBreakBuy = prev.close <= boxHigh && last.close > boxHigh && last.close > last.open;
+    const isRetestBuy = prev.close > boxHigh && last.low <= boxHigh && last.close > boxHigh && last.close > last.open;
+
+    const isBreakSell = prev.close >= boxLow && last.close < boxLow && last.close < last.open;
+    const isRetestSell = prev.close < boxLow && last.high >= boxLow && last.close < boxLow && last.close < last.open;
+
+    if (isBreakBuy || isRetestBuy) {
+      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price + atr * (params.tp1_r ?? 1.5);
-      const tp2 = price + atr * (params.tp2_r ?? 3.0);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 92, grade: 'A+', reason: `Gold 6h Box Breakout Long ($${price.toFixed(2)})` };
-    } else if (last.close < boxLow && last.close < last.open) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.5);
+      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 93, grade: 'A+', reason: `Gold 6h Box Breakout Long ($${price.toFixed(2)})` };
+    } else if (isBreakSell || isRetestSell) {
+      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price - atr * (params.tp1_r ?? 1.5);
-      const tp2 = price - atr * (params.tp2_r ?? 3.0);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 92, grade: 'A+', reason: `Gold 6h Box Breakout Short ($${price.toFixed(2)})` };
+      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 93, grade: 'A+', reason: `Gold 6h Box Breakout Short ($${price.toFixed(2)})` };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Within 6h Gold box', rejectionCause: 'inside_box' };
   }
@@ -185,16 +203,19 @@ export function evaluateStrategySetup(
     const boxHigh = Math.max(...boxSlice.map((c) => c.high));
     const boxLow = Math.min(...boxSlice.map((c) => c.low));
 
-    if (last.close > boxHigh && last.close > last.open && ema20 >= ema50 * 0.999 && rsi > 52) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
+    const isBreakBuy = prev.close <= boxHigh && last.close > boxHigh && last.close > last.open && ema20 >= ema50 * 0.999 && rsi > 52;
+    const isBreakSell = prev.close >= boxLow && last.close < boxLow && last.close < last.open && ema20 <= ema50 * 1.001 && rsi < 48;
+
+    if (isBreakBuy) {
+      const sl = price - atr * (params.stop_atr_mult ?? 1.3);
       const tp1 = price + atr * (params.tp1_r ?? 1.4);
-      const tp2 = price + atr * (params.tp2_r ?? 2.6);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: 'Forex Session Micro-Breakout Long with EMA & RSI momentum' };
-    } else if (last.close < boxLow && last.close < last.open && ema20 <= ema50 * 1.001 && rsi < 48) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
+      const tp2 = price + atr * (params.tp2_r ?? 2.5);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Forex Session Micro-Breakout Long with EMA & RSI momentum' };
+    } else if (isBreakSell) {
+      const sl = price + atr * (params.stop_atr_mult ?? 1.3);
       const tp1 = price - atr * (params.tp1_r ?? 1.4);
-      const tp2 = price - atr * (params.tp2_r ?? 2.6);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: 'Forex Session Micro-Breakout Short with EMA & RSI momentum' };
+      const tp2 = price - atr * (params.tp2_r ?? 2.5);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Forex Session Micro-Breakout Short with EMA & RSI momentum' };
     }
 
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside micro breakout range', rejectionCause: 'inside_box' };
@@ -208,16 +229,16 @@ export function evaluateStrategySetup(
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Volatility below minimum threshold', rejectionCause: 'volatility_too_low' };
     }
 
-    if (rsi < (params.rsi_buy_min ?? 32) && last.close > last.open && last.close > prev.close) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.3);
-      const tp2 = price + atr * (params.tp2_r ?? 2.2);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 85, grade: 'A', reason: `Crypto Mean-reverting Long: RSI=${rsi.toFixed(1)} with Bullish Reversal Bar` };
-    } else if (rsi > (params.rsi_sell_max ?? 68) && last.close < last.open && last.close < prev.close) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.3);
-      const tp2 = price - atr * (params.tp2_r ?? 2.2);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 85, grade: 'A', reason: `Crypto Mean-reverting Short: RSI=${rsi.toFixed(1)} with Bearish Reversal Bar` };
+    if (rsi < (params.rsi_buy_min ?? 32) && prev.close < prev.open && last.close > last.open && last.close > prev.close) {
+      const sl = price - atr * (params.stop_atr_mult ?? 1.3);
+      const tp1 = price + atr * (params.tp1_r ?? 1.4);
+      const tp2 = price + atr * (params.tp2_r ?? 2.4);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Crypto Mean-reverting Long: RSI=${rsi.toFixed(1)} with Bullish Reversal Bar` };
+    } else if (rsi > (params.rsi_sell_max ?? 68) && prev.close > prev.open && last.close < last.open && last.close < prev.close) {
+      const sl = price + atr * (params.stop_atr_mult ?? 1.3);
+      const tp1 = price - atr * (params.tp1_r ?? 1.4);
+      const tp2 = price - atr * (params.tp2_r ?? 2.4);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Crypto Mean-reverting Short: RSI=${rsi.toFixed(1)} with Bearish Reversal Bar` };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'RSI not in scalp extreme with candle confirmation', rejectionCause: 'rsi_neutral' };
   }
@@ -228,18 +249,24 @@ export function evaluateStrategySetup(
     const boxSlice = window.slice(-boxLookback - 1, -1);
     const boxHigh = Math.max(...boxSlice.map((c) => c.high));
     const boxLow = Math.min(...boxSlice.map((c) => c.low));
-    const buf = atr * (params.breakout_buffer_atr ?? 0.10);
+    const buf = atr * (params.breakout_buffer_atr ?? 0.08);
 
-    if (last.close > boxHigh + buf && last.close > last.open && ema20 >= ema50 * 0.999) {
+    const isBreakBuy = prev.close <= boxHigh + buf && last.close > boxHigh + buf && last.close > last.open && ema20 >= ema50 * 0.999;
+    const isRetestBuy = prev.close > boxHigh && last.low <= boxHigh && last.close > boxHigh && last.close > last.open && ema20 >= ema50 * 0.999;
+
+    const isBreakSell = prev.close >= boxLow - buf && last.close < boxLow - buf && last.close < last.open && ema20 <= ema50 * 1.001;
+    const isRetestSell = prev.close < boxLow && last.high >= boxLow && last.close < boxLow && last.close < last.open && ema20 <= ema50 * 1.001;
+
+    if (isBreakBuy || isRetestBuy) {
       const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.4);
-      const tp2 = price + atr * (params.tp2_r ?? 2.6);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A+', reason: 'Compression Box Breakout Long with EMA alignment' };
-    } else if (last.close < boxLow - buf && last.close < last.open && ema20 <= ema50 * 1.001) {
+      const tp1 = price + atr * (params.tp1_r ?? 1.5);
+      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Compression Box Breakout Long with EMA alignment' };
+    } else if (isBreakSell || isRetestSell) {
       const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.4);
-      const tp2 = price - atr * (params.tp2_r ?? 2.6);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A+', reason: 'Compression Box Breakout Short with EMA alignment' };
+      const tp1 = price - atr * (params.tp1_r ?? 1.5);
+      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Compression Box Breakout Short with EMA alignment' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside compression boundaries', rejectionCause: 'inside_box' };
   }
@@ -247,16 +274,16 @@ export function evaluateStrategySetup(
   // 6. CryptoReversalExhaustion (RSI Extreme Sweep)
   if (name === 'CryptoReversalExhaustion') {
     const threshold = params.exhaustion_threshold ?? 75;
-    if (rsi >= threshold && last.close < last.open && last.close < prev.low) {
+    if (rsi >= threshold && prev.close > prev.open && last.close < last.open && last.close < prev.low) {
       const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.3);
-      const tp2 = price - atr * (params.tp2_r ?? 2.4);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 84, grade: 'A', reason: `Exhaustion Fade Short: RSI=${rsi.toFixed(1)} >= ${threshold} with Bearish Engulf` };
-    } else if (rsi <= (100 - threshold) && last.close > last.open && last.close > prev.high) {
+      const tp1 = price - atr * (params.tp1_r ?? 1.4);
+      const tp2 = price - atr * (params.tp2_r ?? 2.6);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Exhaustion Fade Short: RSI=${rsi.toFixed(1)} >= ${threshold} with Bearish Engulf` };
+    } else if (rsi <= (100 - threshold) && prev.close < prev.open && last.close > last.open && last.close > prev.high) {
       const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.3);
-      const tp2 = price + atr * (params.tp2_r ?? 2.4);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 84, grade: 'A', reason: `Exhaustion Fade Long: RSI=${rsi.toFixed(1)} <= ${100 - threshold} with Bullish Engulf` };
+      const tp1 = price + atr * (params.tp1_r ?? 1.4);
+      const tp2 = price + atr * (params.tp2_r ?? 2.6);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Exhaustion Fade Long: RSI=${rsi.toFixed(1)} <= ${100 - threshold} with Bullish Engulf` };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'RSI not exhausted or missing reversal bar', rejectionCause: 'not_exhausted' };
   }
@@ -265,15 +292,15 @@ export function evaluateStrategySetup(
   if (name === 'CryptoMomentumBreakout') {
     const keltnerUpper = ema20 + atr * 1.8;
     const keltnerLower = ema20 - atr * 1.8;
-    if (price > keltnerUpper && last.volume > 200 && rsi > 55) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.5);
+    if (prev.close <= keltnerUpper && price > keltnerUpper && last.volume > 200 && rsi > 55) {
+      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price + atr * (params.tp1_r ?? 1.5);
-      const tp2 = price + atr * (params.tp2_r ?? 3.0);
+      const tp2 = price + atr * (params.tp2_r ?? 2.8);
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Keltner Surge Momentum Long with Volume Confirmation' };
-    } else if (price < keltnerLower && last.volume > 200 && rsi < 45) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.5);
+    } else if (prev.close >= keltnerLower && price < keltnerLower && last.volume > 200 && rsi < 45) {
+      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price - atr * (params.tp1_r ?? 1.5);
-      const tp2 = price - atr * (params.tp2_r ?? 3.0);
+      const tp2 = price - atr * (params.tp2_r ?? 2.8);
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Keltner Surge Momentum Short with Volume Confirmation' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Within Keltner band', rejectionCause: 'inside_keltner' };
@@ -287,21 +314,21 @@ export function evaluateStrategySetup(
 
     const isBull = ema20 > ema50;
     const isBear = ema20 < ema50;
-    if (isBull && prev.low <= ema20 * 1.002 && price > ema20 && rsi > 48 && last.close > last.open) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.5);
+    if (isBull && prev.low <= ema20 * 1.0015 && price > ema20 && rsi > 48 && last.close > last.open) {
+      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price + atr * (params.tp1_r ?? 1.5);
       const tp2 = price + atr * (params.tp2_r ?? 2.8);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Swing Trend EMA Pullback & Reclaim Long' };
-    } else if (isBear && prev.high >= ema20 * 0.998 && price < ema20 && rsi < 52 && last.close < last.open) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.5);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Swing Trend EMA Pullback & Reclaim Long' };
+    } else if (isBear && prev.high >= ema20 * 0.9985 && price < ema20 && rsi < 52 && last.close < last.open) {
+      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
       const tp1 = price - atr * (params.tp1_r ?? 1.5);
       const tp2 = price - atr * (params.tp2_r ?? 2.8);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Swing Trend EMA Pullback & Reclaim Short' };
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Swing Trend EMA Pullback & Reclaim Short' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Pullback condition not primed', rejectionCause: 'no_pullback' };
   }
 
-  // 9. SessionORB (Opening Range Breakout 5m)
+  // 9. SessionORB (Opening Range Breakout 5m/15m)
   if (name === 'SessionORB') {
     if (hour !== 7 && hour !== 12 && hour !== 13) {
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Outside session opening window', rejectionCause: 'not_opening_window' };
@@ -309,16 +336,19 @@ export function evaluateStrategySetup(
     const orbRange = window.slice(-6, -1);
     const orbHigh = Math.max(...orbRange.map((c) => c.high));
     const orbLow = Math.min(...orbRange.map((c) => c.low));
-    if (last.close > orbHigh && last.close > last.open) {
+    const isBreakBuy = prev.close <= orbHigh && last.close > orbHigh && last.close > last.open;
+    const isBreakSell = prev.close >= orbLow && last.close < orbLow && last.close < last.open;
+
+    if (isBreakBuy) {
       const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.3);
-      const tp2 = price + atr * (params.tp2_r ?? 2.2);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 87, grade: 'A', reason: 'Session Opening Range Breakout Long' };
-    } else if (last.close < orbLow && last.close < last.open) {
+      const tp1 = price + atr * (params.tp1_r ?? 1.4);
+      const tp2 = price + atr * (params.tp2_r ?? 2.6);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Session Opening Range Breakout Long' };
+    } else if (isBreakSell) {
       const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.3);
-      const tp2 = price - atr * (params.tp2_r ?? 2.2);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 87, grade: 'A', reason: 'Session Opening Range Breakout Short' };
+      const tp1 = price - atr * (params.tp1_r ?? 1.4);
+      const tp2 = price - atr * (params.tp2_r ?? 2.6);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Session Opening Range Breakout Short' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside ORB range', rejectionCause: 'inside_orb' };
   }
