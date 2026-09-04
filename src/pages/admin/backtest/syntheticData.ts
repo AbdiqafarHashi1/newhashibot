@@ -71,13 +71,24 @@ export function parseCandleCSV(csvText: string): { candles: BtCandle[]; error?: 
   }
 }
 
+export function createMulberry32(seed: number): () => number {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function generateSyntheticSessionData(
   symbol: string,
   assetClass: AssetClass,
   basePrice: number,
   barsCount: number,
   timeframeMins: number,
-  seedDate: Date = new Date('2026-08-30T12:00:00Z')
+  seedDate: Date = new Date('2026-08-30T12:00:00Z'),
+  customSeed?: number
 ): BtCandle[] {
   const candles: BtCandle[] = [];
   let currentPrice = basePrice;
@@ -95,8 +106,14 @@ export function generateSyntheticSessionData(
   const isForex = assetClass === 'forex_majors' || assetClass === 'forex_crosses';
   const decimals = isForex ? (symbol.includes('JPY') ? 3 : 5) : 2;
 
-  // Add deterministic seed variance by symbol name
-  const symbolSeed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  // Add deterministic seed variance by symbol name and base price
+  const symbolSeed = symbol.split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0);
+  const initialSeed = ((customSeed ?? 1337) + symbolSeed + Math.floor(basePrice * 100)) >>> 0;
+  const rng = createMulberry32(initialSeed);
+
+  // Volatility clustering state (GARCH-like memory)
+  let volClustering = 1.0;
+  let prevReturn = 0;
 
   for (let i = 0; i < barsCount; i++) {
     const timeMs = startTime + i * stepMs;
@@ -111,17 +128,28 @@ export function generateSyntheticSessionData(
     else if (isNY) sessionVol *= 1.6;
     else if (isAsian) sessionVol *= 0.6;
 
+    // Autoregressive volatility clustering (persistence of high/low variance regimes)
+    volClustering = 0.82 * volClustering + 0.18 * (0.6 + Math.abs(prevReturn) * 12);
+    volClustering = Math.max(0.5, Math.min(2.5, volClustering));
+
+    // Heavy-tailed shock / liquidity sweep (~2% probability)
+    const isFatTailShock = rng() < 0.02;
+    const shockMultiplier = isFatTailShock ? (1.8 + rng() * 1.4) : 1.0;
+
+    const effectiveVol = sessionVol * volClustering * shockMultiplier;
+
     const phase = (i + symbolSeed) / 35;
-    const drift = Math.sin(phase) * sessionVol * 0.4;
-    const randomMove = (Math.random() - 0.49) * 2 * sessionVol;
+    const drift = Math.sin(phase) * effectiveVol * 0.35;
+    const randomMove = (rng() - 0.495) * 2 * effectiveVol;
     const delta = currentPrice * (drift + randomMove);
+    prevReturn = delta / currentPrice;
 
     const open = currentPrice;
     const close = Math.max(open * 0.5, open + delta);
-    const range = Math.abs(delta) + currentPrice * sessionVol * (0.5 + Math.random());
-    const high = Math.max(open, close) + range * Math.random() * 0.6;
-    const low = Math.min(open, close) - range * Math.random() * 0.6;
-    const volume = Math.floor(100 + Math.random() * 500 * (isLondon || isNY ? 2.5 : 1));
+    const range = Math.abs(delta) + currentPrice * effectiveVol * (0.5 + rng());
+    const high = Math.max(open, close) + range * rng() * 0.6;
+    const low = Math.min(open, close) - range * rng() * 0.6;
+    const volume = Math.floor(100 + rng() * 500 * (isLondon || isNY ? 2.5 : 1) * volClustering);
 
     candles.push({
       time: date.toISOString().replace('T', ' ').slice(0, 19),

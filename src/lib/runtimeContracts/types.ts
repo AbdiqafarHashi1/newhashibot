@@ -96,6 +96,9 @@ export const PROVIDER_IDS = [
   'mt5',
   'mt5_personal',
   'mt5_prop',
+  'ctrader',
+  'ctrader_personal',
+  'ctrader_prop',
 ] as const;
 
 export type KnownProviderId = typeof PROVIDER_IDS[number];

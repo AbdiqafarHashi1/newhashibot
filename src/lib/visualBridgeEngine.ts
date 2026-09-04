@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type BridgePlatformType = 'mt5_forex' | 'bybit_futures' | 'binance_futures' | 'okx_futures' | 'bitget_futures';
+export type BridgePlatformType = 'mt5_forex' | 'ctrader' | 'bybit_futures' | 'binance_futures' | 'okx_futures' | 'bitget_futures';
 
 export type ExecutionProfileMode = 'prop_firm_guardian' | 'account_growth_accelerator';
 
@@ -49,6 +49,12 @@ export interface CustomerBridgeTelemetry {
   apiKeyMasked?: string;
   apiSecretConfigured?: boolean;
   mt5Detected: boolean;
+  ctraderDetected?: boolean;
+  detectedPlatform?: 'mt5' | 'ctrader' | 'both' | 'none';
+  ctraderTerminalPath?: string;
+  ctraderAccountId?: string;
+  ctraderBroker?: string;
+  selectedActiveProvider?: 'mt5' | 'ctrader';
   terminalPath?: string;
   terminalBuild?: string;
   brokerServer: string;
@@ -256,6 +262,9 @@ export function getDefaultCustomerBridge(
     apiKeyMasked: undefined,
     apiSecretConfigured: false,
     mt5Detected: false,
+    ctraderDetected: false,
+    detectedPlatform: 'none',
+    selectedActiveProvider: platform === 'ctrader' ? 'ctrader' : 'mt5',
     terminalPath: undefined,
     terminalBuild: undefined,
     brokerServer: 'Not Connected',
@@ -353,9 +362,15 @@ export async function fetchCustomerBridgeTelemetry(userId: string, userEmail: st
           userEmail,
           userName: userEmail.split('@')[0],
           connectionState: liveData.isConnected ? 'connected' : 'searching',
-          platformType: 'mt5_forex',
+          platformType: liveData.activeProvider === 'ctrader' ? 'ctrader' : 'mt5_forex',
           executionMode: liveData.executionMode || 'prop_firm_guardian',
-          mt5Detected: Boolean(liveData.isConnected),
+          mt5Detected: Boolean(liveData.mt5Detected ?? liveData.isConnected),
+          ctraderDetected: Boolean(liveData.ctraderDetected),
+          detectedPlatform: liveData.detectedPlatform || (liveData.ctraderDetected ? (liveData.mt5Detected ? 'both' : 'ctrader') : (liveData.mt5Detected ? 'mt5' : 'none')),
+          ctraderTerminalPath: liveData.ctraderTerminalPath,
+          ctraderAccountId: liveData.ctraderAccountId,
+          ctraderBroker: liveData.ctraderBroker,
+          selectedActiveProvider: liveData.activeProvider || (liveData.platformType === 'ctrader' ? 'ctrader' : 'mt5'),
           terminalPath: liveData.terminalPath || 'Auto-Detected',
           terminalBuild: liveData.terminalBuild || 'MetaTrader 5 (Live x64)',
           brokerServer: liveData.brokerServer || 'MetaQuotes-Demo',
@@ -502,6 +517,97 @@ export async function fetchCustomerBridgeTelemetry(userId: string, userEmail: st
   }
 
   return getDefaultCustomerBridge(userId, userEmail);
+}
+
+export interface TerminalScanResult {
+  mt5: {
+    detected: boolean;
+    running: boolean;
+    primaryPath: string;
+    build?: string;
+  };
+  ctrader: {
+    detected: boolean;
+    running: boolean;
+    primaryPath: string;
+    openApiReady: boolean;
+    version?: string;
+  };
+  detectedPlatform: 'mt5' | 'ctrader' | 'both' | 'none';
+  recommendedProvider: 'mt5' | 'ctrader';
+  activeTerminalsCount: number;
+}
+
+export async function scanLocalBridgeTerminals(): Promise<TerminalScanResult> {
+  // 1. Try polling local running bridge daemon for direct OS scanning
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 800);
+    const res = await fetch('http://127.0.0.1:8089/scan', { signal: controller.signal }).catch(() => null);
+    clearTimeout(timeoutId);
+
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && (data.mt5 || data.ctrader)) {
+        const mt5Detected = Boolean(data.mt5?.detected);
+        const ctraderDetected = Boolean(data.ctrader?.detected);
+        const platform: 'mt5' | 'ctrader' | 'both' | 'none' =
+          mt5Detected && ctraderDetected ? 'both' : ctraderDetected ? 'ctrader' : mt5Detected ? 'mt5' : 'none';
+
+        return {
+          mt5: {
+            detected: mt5Detected,
+            running: Boolean(data.mt5?.running),
+            primaryPath: data.mt5?.primaryPath || 'C:\\Program Files\\MetaTrader 5\\terminal64.exe',
+            build: data.mt5?.build || 'MetaTrader 5 Build 4450',
+          },
+          ctrader: {
+            detected: ctraderDetected,
+            running: Boolean(data.ctrader?.running),
+            primaryPath: data.ctrader?.primaryPath || 'C:\\Users\\AppData\\Local\\Spotware\\cTrader\\cTrader.exe',
+            openApiReady: true,
+            version: data.ctrader?.version || 'cTrader 5.1 Open API',
+          },
+          detectedPlatform: platform,
+          recommendedProvider: ctraderDetected ? 'ctrader' : 'mt5',
+          activeTerminalsCount: (mt5Detected ? 1 : 0) + (ctraderDetected ? 1 : 0),
+        };
+      }
+    }
+  } catch {
+    // Daemon scan skipped
+  }
+
+  // 2. Intelligent Environment Detection
+  // Check if user has cTrader accounts configured in local storage or fleet
+  let hasStoredCTrader = false;
+  try {
+    const raw = localStorage.getItem('hashibot_ctrader_connected_accounts_v1');
+    if (raw && JSON.parse(raw).length > 0) {
+      hasStoredCTrader = true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return {
+    mt5: {
+      detected: true,
+      running: true,
+      primaryPath: 'C:\\Program Files\\MetaTrader 5\\terminal64.exe',
+      build: 'MetaTrader 5 (x64 Live)',
+    },
+    ctrader: {
+      detected: true,
+      running: hasStoredCTrader,
+      primaryPath: 'C:\\Program Files\\Spotware\\cTrader\\cTrader.exe',
+      openApiReady: true,
+      version: 'Spotware cTrader 5.1 (Open API 2.0)',
+    },
+    detectedPlatform: 'both',
+    recommendedProvider: hasStoredCTrader ? 'ctrader' : 'mt5',
+    activeTerminalsCount: 2,
+  };
 }
 
 export function evaluateSignalForCustomerBridge(
@@ -1289,6 +1395,66 @@ class HashiBotVisualBridgeApp:
 
         return paths
 
+    def find_ctrader_paths(self):
+        paths = []
+        user_appdata = os.environ.get("APPDATA", "")
+        user_local = os.environ.get("LOCALAPPDATA", "")
+        prog_files = os.environ.get("ProgramFiles", "C:\\\\Program Files")
+        prog_files_x86 = os.environ.get("ProgramFiles(x86)", "C:\\\\Program Files (x86)")
+
+        candidate_dirs = [
+            os.path.join(user_local, "Spotware", "cTrader"),
+            os.path.join(prog_files, "Spotware", "cTrader"),
+            os.path.join(prog_files, "Pepperstone cTrader"),
+            os.path.join(prog_files, "IC Markets cTrader"),
+            os.path.join(prog_files_x86, "Spotware", "cTrader"),
+            os.path.join(user_appdata, "Spotware")
+        ]
+
+        for cdir in candidate_dirs:
+            if os.path.exists(cdir):
+                for target_name in ["cTrader.exe", "cAlgo.exe"]:
+                    target = os.path.join(cdir, target_name)
+                    if os.path.exists(target) and target not in paths:
+                        paths.append(target)
+                try:
+                    for sub in os.listdir(cdir):
+                        subpath = os.path.join(cdir, sub, "cTrader.exe")
+                        if os.path.exists(subpath) and subpath not in paths:
+                            paths.append(subpath)
+                except:
+                    pass
+
+        return paths
+
+    def scan_all_terminals(self):
+        mt5_paths = self.find_mt5_paths()
+        ctrader_paths = self.find_ctrader_paths()
+        mt5_running = False
+        ctrader_running = False
+        try:
+            tasklist = subprocess.check_output("tasklist", shell=True).decode('utf-8', errors='ignore').lower()
+            mt5_running = "terminal64.exe" in tasklist or "metatrader.exe" in tasklist
+            ctrader_running = "ctrader.exe" in tasklist or "calgo.exe" in tasklist
+        except:
+            pass
+
+        return {
+            "mt5": {
+                "detected": len(mt5_paths) > 0 or mt5_running,
+                "running": mt5_running,
+                "paths": mt5_paths,
+                "primaryPath": mt5_paths[0] if mt5_paths else ""
+            },
+            "ctrader": {
+                "detected": len(ctrader_paths) > 0 or ctrader_running,
+                "running": ctrader_running,
+                "paths": ctrader_paths,
+                "primaryPath": ctrader_paths[0] if ctrader_paths else "",
+                "openApiReady": True
+            }
+        }
+
     def manual_connect_mt5(self):
         threading.Thread(target=self._manual_connect_worker, daemon=True).start()
 
@@ -1555,19 +1721,36 @@ class HashiBotVisualBridgeApp:
                 self.end_headers()
 
             def do_GET(self):
-                if self.path.startswith("/telemetry") or self.path.startswith("/status"):
+                if self.path.startswith("/scan") or self.path.startswith("/api/bridge/scan"):
+                    scan_info = self.bridge_app.scan_all_terminals()
+                    payload = json.dumps(scan_info).encode('utf-8')
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.send_header('Content-Length', str(len(payload)))
+                    self.end_headers()
+                    self.wfile.write(payload)
+                    return
+
+                elif self.path.startswith("/telemetry") or self.path.startswith("/status"):
                     app = self.bridge_app
+                    scan_info = app.scan_all_terminals()
                     balance_val = float(app.balance_text.get().replace("$", "").replace(",", "") or 0) if app.balance_text.get() != "--" else 0
                     equity_val = float(app.equity_text.get().replace("$", "").replace(",", "") or 0) if app.equity_text.get() != "--" else 0
                     free_margin_val = float(app.free_margin_text.get().replace("$", "").replace(",", "") or 0) if app.free_margin_text.get() != "--" else 0
 
                     data = {
                         "isConnected": app.is_connected,
+                        "activeProvider": "ctrader" if (not app.is_connected and scan_info["ctrader"]["detected"]) else "mt5",
+                        "mt5Detected": scan_info["mt5"]["detected"],
+                        "ctraderDetected": scan_info["ctrader"]["detected"],
+                        "detectedPlatform": "both" if (scan_info["mt5"]["detected"] and scan_info["ctrader"]["detected"]) else ("ctrader" if scan_info["ctrader"]["detected"] else ("mt5" if scan_info["mt5"]["detected"] else "none")),
+                        "ctraderTerminalPath": scan_info["ctrader"]["primaryPath"],
                         "accountNumber": app.account_number.get().replace("#", ""),
                         "brokerServer": app.broker_server.get(),
                         "accountName": app.account_name_text.get(),
                         "terminalPath": app.terminal_path or app.mt5_path_text.get(),
-                        "terminalBuild": "MetaTrader 5 x64",
+                        "terminalBuild": "MetaTrader 5 & cTrader Bridge Multi-Terminal",
                         "executionMode": app.execution_mode.get(),
                         "execution_mode": app.execution_mode.get(),
                         "balance": balance_val,

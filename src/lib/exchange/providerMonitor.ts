@@ -60,3 +60,5 @@ export async function monitorOwnedExecutions(
 
 export class BinanceMonitor extends ProviderMonitor {}
 export class BybitMonitor extends ProviderMonitor {}
+export class MT5Monitor extends ProviderMonitor {}
+export class CTraderMonitor extends ProviderMonitor {}

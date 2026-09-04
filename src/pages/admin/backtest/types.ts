@@ -72,6 +72,7 @@ export interface AssetCapitalPool {
   decimals: number;
   fridayClose: boolean;
   sessionFilter: boolean;
+  feePctPerSide?: number;
 }
 
 export interface MultiAssetFeedItem {
@@ -118,6 +119,8 @@ export interface BtTrade {
   score: number;
   reason: string;
   rejectionCause?: string;
+  feeDeductedUsd?: number;
+  riskUsd?: number;
 }
 
 export interface BtMetrics {
@@ -139,10 +142,15 @@ export interface BtMetrics {
   maxConsecWins: number;
   maxConsecLosses: number;
   maxDrawdownPct: number;
-  evaluations: number;
-  candidates: number;
-  rejected: number;
-  rejectionReasons: Record<string, number>;
+  maxDrawdownR?: number;
+  avgWinR?: number;
+  avgLossR?: number;
+  maxConsecutiveWins?: number;
+  maxConsecutiveLosses?: number;
+  evaluations?: number;
+  candidates?: number;
+  rejected?: number;
+  rejectionReasons?: Record<string, number>;
   equityCurve: { bar: number; time: string; equityR: number; equityUsd: number }[];
 }
 

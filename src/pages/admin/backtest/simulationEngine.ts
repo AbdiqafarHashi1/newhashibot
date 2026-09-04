@@ -32,13 +32,12 @@ export function runSingleStrategyEngine(
   const rejectionReasons: Record<string, number> = {};
 
   const assetMeta = STRATEGY_ASSET_MAP[strategyName] || { category: 'forex' as AssetCategory, defaultSymbol: env.symbol, decimals: 5 };
-  const riskUsdPerTrade = (env.accountSizeUsd * env.riskPctPerTrade) / 100;
   const equityCurve: { bar: number; time: string; equityR: number; equityUsd: number }[] = [];
   let cumulativeR = 0;
   let cumulativeUsd = env.accountSizeUsd;
 
   for (let i = 50; i < candles.length; i++) {
-    const window = candles.slice(0, i + 1);
+    const window = candles.slice(Math.max(0, i - 120), i + 1);
     const current = candles[i];
     evaluations++;
 
@@ -49,6 +48,8 @@ export function runSingleStrategyEngine(
     if (inTrade) {
       inTrade.durationBars++;
       const isBuy = inTrade.direction === 'buy';
+      const tradeRisk = inTrade.riskUsd || ((env.accountSizeUsd * env.riskPctPerTrade) / 100);
+      const feeUsd = inTrade.feeDeductedUsd || 0;
 
       if (env.fridayWeekendClose && dayOfWeek === 5 && hour >= 20) {
         inTrade.exitIndex = i;
@@ -58,8 +59,10 @@ export function runSingleStrategyEngine(
         const rawR = isBuy
           ? (current.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - current.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rawR * riskUsdPerTrade).toFixed(2));
+        const grossDollar = rawR * tradeRisk;
+        const netDollar = grossDollar - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netDollar.toFixed(2));
+        inTrade.pnl_r = parseFloat((netDollar / tradeRisk).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / env.accountSizeUsd) * 100).toFixed(2));
         cumulativeR += inTrade.pnl_r;
         cumulativeUsd += inTrade.pnl_net_usd;
@@ -75,9 +78,11 @@ export function runSingleStrategyEngine(
         inTrade.exitTime = current.time;
         inTrade.exitPrice = inTrade.stop_loss;
         inTrade.result = 'sl_hit';
-        inTrade.pnl_r = -1.0;
-        inTrade.pnl_net_usd = -riskUsdPerTrade;
-        inTrade.capitalPoolReturnPct = -env.riskPctPerTrade;
+        const grossDollar = -tradeRisk;
+        const netDollar = grossDollar - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netDollar.toFixed(2));
+        inTrade.pnl_r = parseFloat((netDollar / tradeRisk).toFixed(2));
+        inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / env.accountSizeUsd) * 100).toFixed(2));
         cumulativeR += inTrade.pnl_r;
         cumulativeUsd += inTrade.pnl_net_usd;
         equityCurve.push({ bar: i, time: current.time, equityR: parseFloat(cumulativeR.toFixed(2)), equityUsd: parseFloat(cumulativeUsd.toFixed(2)) });
@@ -93,8 +98,10 @@ export function runSingleStrategyEngine(
         inTrade.exitPrice = inTrade.tp2;
         inTrade.result = 'tp2_hit';
         const rMult = params.tp2_r ?? 2.5;
-        inTrade.pnl_r = rMult;
-        inTrade.pnl_net_usd = parseFloat((rMult * riskUsdPerTrade).toFixed(2));
+        const grossDollar = rMult * tradeRisk;
+        const netDollar = grossDollar - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netDollar.toFixed(2));
+        inTrade.pnl_r = parseFloat((netDollar / tradeRisk).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / env.accountSizeUsd) * 100).toFixed(2));
         cumulativeR += inTrade.pnl_r;
         cumulativeUsd += inTrade.pnl_net_usd;
@@ -111,8 +118,10 @@ export function runSingleStrategyEngine(
         inTrade.exitPrice = inTrade.tp1;
         inTrade.result = 'tp1_hit';
         const rMult = params.tp1_r ?? 1.3;
-        inTrade.pnl_r = rMult;
-        inTrade.pnl_net_usd = parseFloat((rMult * riskUsdPerTrade).toFixed(2));
+        const grossDollar = rMult * tradeRisk;
+        const netDollar = grossDollar - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netDollar.toFixed(2));
+        inTrade.pnl_r = parseFloat((netDollar / tradeRisk).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / env.accountSizeUsd) * 100).toFixed(2));
         cumulativeR += inTrade.pnl_r;
         cumulativeUsd += inTrade.pnl_net_usd;
@@ -130,8 +139,10 @@ export function runSingleStrategyEngine(
         const rawR = isBuy
           ? (current.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - current.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rawR * riskUsdPerTrade).toFixed(2));
+        const grossDollar = rawR * tradeRisk;
+        const netDollar = grossDollar - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netDollar.toFixed(2));
+        inTrade.pnl_r = parseFloat((netDollar / tradeRisk).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / env.accountSizeUsd) * 100).toFixed(2));
         cumulativeR += inTrade.pnl_r;
         cumulativeUsd += inTrade.pnl_net_usd;
@@ -151,6 +162,14 @@ export function runSingleStrategyEngine(
           evalOut.direction === 'buy'
             ? evalOut.entry + spreadAmount / 2
             : evalOut.entry - spreadAmount / 2;
+
+        const currentEquity = Math.max(100, cumulativeUsd);
+        const tradeRiskUsd = (currentEquity * env.riskPctPerTrade) / 100;
+        const stopDist = Math.max(Math.abs(entryPrice - evalOut.stop_loss), entryPrice * 0.0005);
+        const units = tradeRiskUsd / stopDist;
+        const notionalUsd = units * entryPrice;
+        const feePct = env.feePctPerSide ?? 0;
+        const roundTurnFeeUsd = feePct > 0 ? (notionalUsd * (feePct / 100) * 2) : 0;
 
         inTrade = {
           id: `trade-${strategyName}-${i}`,
@@ -177,6 +196,8 @@ export function runSingleStrategyEngine(
           grade: evalOut.grade,
           score: evalOut.score,
           reason: evalOut.reason,
+          riskUsd: tradeRiskUsd,
+          feeDeductedUsd: roundTurnFeeUsd,
         };
       } else if (!evalOut.ok && evalOut.rejectionCause) {
         rejected++;
@@ -207,9 +228,15 @@ export function runSingleStrategyEngine(
 
   let maxConsecWins = 0, curConsecWins = 0;
   let maxConsecLosses = 0, curConsecLosses = 0;
+  let peakUsd = env.accountSizeUsd, runningUsd = env.accountSizeUsd, maxDrawdownUsd = 0;
   let peakR = 0, runningR = 0, maxDrawdownR = 0;
 
   trades.forEach((t) => {
+    runningUsd += t.pnl_net_usd;
+    if (runningUsd > peakUsd) peakUsd = runningUsd;
+    const ddUsd = peakUsd - runningUsd;
+    if (ddUsd > maxDrawdownUsd) maxDrawdownUsd = ddUsd;
+
     runningR += t.pnl_r;
     if (runningR > peakR) peakR = runningR;
     const dd = peakR - runningR;
@@ -226,7 +253,7 @@ export function runSingleStrategyEngine(
     }
   });
 
-  const maxDrawdownPct = totalTrades > 0 ? (maxDrawdownR / Math.max(peakR, 1)) * 100 : 0;
+  const maxDrawdownPct = peakUsd > 0 ? (maxDrawdownUsd / peakUsd) * 100 : 0;
 
   const metrics: BtMetrics = {
     totalTrades,
@@ -247,6 +274,7 @@ export function runSingleStrategyEngine(
     maxConsecWins,
     maxConsecLosses,
     maxDrawdownPct: parseFloat(maxDrawdownPct.toFixed(1)),
+    maxDrawdownR: parseFloat(maxDrawdownR.toFixed(2)),
     evaluations,
     candidates,
     rejected,
@@ -369,12 +397,15 @@ export function runMultiAssetPipelineEngine(
           inTrade.result = 'expired';
           const isBuy = inTrade.direction === 'buy';
           const pool = capitalPools[inTrade.category] || capitalPools.forex;
-          const riskUsd = (pool.capitalUsd * pool.riskPct) / 100;
+          const riskUsd = inTrade.riskUsd || ((pool.capitalUsd * pool.riskPct) / 100);
+          const feeUsd = inTrade.feeDeductedUsd || 0;
           const rawR = isBuy
             ? (lastCandle.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
             : (inTrade.entry - lastCandle.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-          inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-          inTrade.pnl_net_usd = parseFloat((rawR * riskUsd).toFixed(2));
+          const grossUsd = rawR * riskUsd;
+          const netUsd = grossUsd - feeUsd;
+          inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+          inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
           inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
           cumulativeR += inTrade.pnl_r;
@@ -401,7 +432,8 @@ export function runMultiAssetPipelineEngine(
       inTrade.durationBars++;
       const isBuy = inTrade.direction === 'buy';
       const pool = capitalPools[inTrade.category] || capitalPools.forex;
-      const riskUsd = (pool.capitalUsd * pool.riskPct) / 100;
+      const riskUsd = inTrade.riskUsd || ((pool.capitalUsd * pool.riskPct) / 100);
+      const feeUsd = inTrade.feeDeductedUsd || 0;
 
       // Friday 20:00 UTC Liquidation for Forex & Metals
       const shouldFridayClose = feed.fridayWeekendClose !== undefined ? feed.fridayWeekendClose : pool.fridayClose;
@@ -413,8 +445,10 @@ export function runMultiAssetPipelineEngine(
         const rawR = isBuy
           ? (candle.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - candle.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rawR * riskUsd).toFixed(2));
+        const grossUsd = rawR * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
@@ -444,9 +478,11 @@ export function runMultiAssetPipelineEngine(
         inTrade.exitTime = candle.time;
         inTrade.exitPrice = inTrade.stop_loss;
         inTrade.result = 'sl_hit';
-        inTrade.pnl_r = -1.0;
-        inTrade.pnl_net_usd = -riskUsd;
-        inTrade.capitalPoolReturnPct = -pool.riskPct;
+        const grossUsd = -riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
+        inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
         cumulativeUsd += inTrade.pnl_net_usd;
@@ -476,8 +512,10 @@ export function runMultiAssetPipelineEngine(
         const rMult = isBuy
           ? (inTrade.tp2 - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - inTrade.tp2) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rMult.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rMult * riskUsd).toFixed(2));
+        const grossUsd = rMult * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
@@ -508,8 +546,10 @@ export function runMultiAssetPipelineEngine(
         const rMult = isBuy
           ? (inTrade.tp1 - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - inTrade.tp1) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rMult.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rMult * riskUsd).toFixed(2));
+        const grossUsd = rMult * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
@@ -539,8 +579,10 @@ export function runMultiAssetPipelineEngine(
         const rawR = isBuy
           ? (candle.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - candle.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rawR * riskUsd).toFixed(2));
+        const grossUsd = rawR * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
@@ -690,6 +732,21 @@ export function runMultiAssetPipelineEngine(
           ? topCand.entry + spreadAmount / 2
           : topCand.entry - spreadAmount / 2;
 
+      // Compounding position sizing based on running category pool balance:
+      const currentCategoryCapital = Math.max(100, pool.capitalUsd + categoryBalances[topCand.category].netUsd);
+      const tradeRiskUsd = (currentCategoryCapital * pool.riskPct) / 100;
+      const stopDistance = Math.max(Math.abs(entryPrice - topCand.stop_loss), entryPrice * 0.0005);
+      const positionUnits = tradeRiskUsd / stopDistance;
+      const notionalUsd = positionUnits * entryPrice;
+      const feePct = pool.feePctPerSide !== undefined
+        ? pool.feePctPerSide
+        : topCand.category === 'crypto'
+        ? 0.04
+        : topCand.category === 'forex'
+        ? 0.003
+        : 0.01;
+      const roundTurnFeeUsd = (notionalUsd * (feePct / 100)) * 2;
+
       const newTrade: BtTrade = {
         id: `trade-${topCand.strategy}-${topCand.symbol}-${i}`,
         entryIndex: i,
@@ -715,6 +772,8 @@ export function runMultiAssetPipelineEngine(
         grade: topCand.grade,
         score: topCand.score,
         reason: topCand.reason,
+        riskUsd: tradeRiskUsd,
+        feeDeductedUsd: roundTurnFeeUsd,
       };
 
       openTrades.push(newTrade);
@@ -786,6 +845,7 @@ export function runMultiAssetPipelineEngine(
   let peakEquityUsd = totalStartingCapital;
   let runningEquityUsd = totalStartingCapital;
   let maxDrawdownUsd = 0;
+  let peakR = 0, runningR = 0, maxDrawdownR = 0;
 
   trades.forEach((t) => {
     runningEquityUsd += t.pnl_net_usd;
@@ -796,6 +856,11 @@ export function runMultiAssetPipelineEngine(
     if (dd > maxDrawdownUsd) {
       maxDrawdownUsd = dd;
     }
+
+    runningR += t.pnl_r;
+    if (runningR > peakR) peakR = runningR;
+    const ddR = peakR - runningR;
+    if (ddR > maxDrawdownR) maxDrawdownR = ddR;
 
     if (t.pnl_r > 0) {
       curConsecWins++;
@@ -829,6 +894,7 @@ export function runMultiAssetPipelineEngine(
     maxConsecWins,
     maxConsecLosses,
     maxDrawdownPct: parseFloat(maxDrawdownPct.toFixed(1)),
+    maxDrawdownR: parseFloat(maxDrawdownR.toFixed(2)),
     evaluations,
     candidates: candidatesTotal,
     rejected,
@@ -986,12 +1052,15 @@ export async function runMultiAssetPipelineReplayAsync(
           inTrade.result = 'expired';
           const isBuy = inTrade.direction === 'buy';
           const pool = capitalPools[inTrade.category] || capitalPools.forex;
-          const riskUsd = (pool.capitalUsd * pool.riskPct) / 100;
+          const riskUsd = inTrade.riskUsd || ((pool.capitalUsd * pool.riskPct) / 100);
+          const feeUsd = inTrade.feeDeductedUsd || 0;
           const rawR = isBuy
             ? (lastCandle.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
             : (inTrade.entry - lastCandle.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-          inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-          inTrade.pnl_net_usd = parseFloat((rawR * riskUsd).toFixed(2));
+          const grossUsd = rawR * riskUsd;
+          const netUsd = grossUsd - feeUsd;
+          inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+          inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
           inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
           cumulativeR += inTrade.pnl_r;
@@ -1018,7 +1087,8 @@ export async function runMultiAssetPipelineReplayAsync(
       inTrade.durationBars++;
       const isBuy = inTrade.direction === 'buy';
       const pool = capitalPools[inTrade.category] || capitalPools.forex;
-      const riskUsd = (pool.capitalUsd * pool.riskPct) / 100;
+      const riskUsd = inTrade.riskUsd || ((pool.capitalUsd * pool.riskPct) / 100);
+      const feeUsd = inTrade.feeDeductedUsd || 0;
 
       // Friday 20:00 UTC Liquidation for Forex & Metals
       const shouldFridayClose = feed.fridayWeekendClose !== undefined ? feed.fridayWeekendClose : pool.fridayClose;
@@ -1030,8 +1100,10 @@ export async function runMultiAssetPipelineReplayAsync(
         const rawR = isBuy
           ? (candle.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - candle.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rawR * riskUsd).toFixed(2));
+        const grossUsd = rawR * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
@@ -1061,9 +1133,11 @@ export async function runMultiAssetPipelineReplayAsync(
         inTrade.exitTime = candle.time;
         inTrade.exitPrice = inTrade.stop_loss;
         inTrade.result = 'sl_hit';
-        inTrade.pnl_r = -1.0;
-        inTrade.pnl_net_usd = -riskUsd;
-        inTrade.capitalPoolReturnPct = -pool.riskPct;
+        const grossUsd = -riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
+        inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
         cumulativeUsd += inTrade.pnl_net_usd;
@@ -1093,8 +1167,10 @@ export async function runMultiAssetPipelineReplayAsync(
         const rMult = isBuy
           ? (inTrade.tp2 - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - inTrade.tp2) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rMult.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rMult * riskUsd).toFixed(2));
+        const grossUsd = rMult * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
@@ -1117,9 +1193,36 @@ export async function runMultiAssetPipelineReplayAsync(
 
       // Check TP1 hit
       const tp1Hit = isBuy ? candle.high >= inTrade.tp1 : candle.low <= inTrade.tp1;
-      if (tp1Hit && inTrade.result !== 'tp1_hit') {
-        inTrade.stop_loss = inTrade.entry;
+      if (tp1Hit) {
+        inTrade.exitIndex = i;
+        inTrade.exitTime = candle.time;
+        inTrade.exitPrice = inTrade.tp1;
         inTrade.result = 'tp1_hit';
+        const rMult = isBuy
+          ? (inTrade.tp1 - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
+          : (inTrade.entry - inTrade.tp1) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
+        const grossUsd = rMult * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
+        inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
+
+        cumulativeR += inTrade.pnl_r;
+        cumulativeUsd += inTrade.pnl_net_usd;
+        categoryBalances[inTrade.category].netUsd += inTrade.pnl_net_usd;
+        categoryBalances[inTrade.category].totalR += inTrade.pnl_r;
+        categoryBalances[inTrade.category].trades++;
+        categoryBalances[inTrade.category].wins++;
+
+        if (stratStatMap[inTrade.strategy]) {
+          stratStatMap[inTrade.strategy].totalR += inTrade.pnl_r;
+          stratStatMap[inTrade.strategy].netUsd += inTrade.pnl_net_usd;
+          stratStatMap[inTrade.strategy].wins++;
+        }
+
+        trades.push(inTrade);
+        openTrades.splice(tIdx, 1);
+        continue;
       }
 
       // Max Bars Expiry (36 bars)
@@ -1131,8 +1234,10 @@ export async function runMultiAssetPipelineReplayAsync(
         const rawR = isBuy
           ? (candle.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
           : (inTrade.entry - candle.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-        inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-        inTrade.pnl_net_usd = parseFloat((rawR * riskUsd).toFixed(2));
+        const grossUsd = rawR * riskUsd;
+        const netUsd = grossUsd - feeUsd;
+        inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+        inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
         inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
         cumulativeR += inTrade.pnl_r;
@@ -1278,6 +1383,21 @@ export async function runMultiAssetPipelineReplayAsync(
               ? topCand.entry + spreadAmount / 2
               : topCand.entry - spreadAmount / 2;
 
+          // Compounding position sizing based on running category pool balance:
+          const currentCategoryCapital = Math.max(100, pool.capitalUsd + categoryBalances[topCand.category].netUsd);
+          const tradeRiskUsd = (currentCategoryCapital * pool.riskPct) / 100;
+          const stopDistance = Math.max(Math.abs(entryPrice - topCand.stop_loss), entryPrice * 0.0005);
+          const positionUnits = tradeRiskUsd / stopDistance;
+          const notionalUsd = positionUnits * entryPrice;
+          const feePct = pool.feePctPerSide !== undefined
+            ? pool.feePctPerSide
+            : topCand.category === 'crypto'
+            ? 0.04
+            : topCand.category === 'forex'
+            ? 0.003
+            : 0.01;
+          const roundTurnFeeUsd = (notionalUsd * (feePct / 100)) * 2;
+
           const newTrade: BtTrade = {
             id: `trade-${topCand.strategy}-${topCand.symbol}-${i}`,
             entryIndex: i,
@@ -1303,6 +1423,8 @@ export async function runMultiAssetPipelineReplayAsync(
             grade: topCand.grade,
             score: topCand.score,
             reason: topCand.reason,
+            riskUsd: tradeRiskUsd,
+            feeDeductedUsd: roundTurnFeeUsd,
           };
 
           openTrades.push(newTrade);
@@ -1385,12 +1507,15 @@ export async function runMultiAssetPipelineReplayAsync(
       inTrade.result = 'expired';
       const isBuy = inTrade.direction === 'buy';
       const pool = capitalPools[inTrade.category] || capitalPools.forex;
-      const riskUsd = (pool.capitalUsd * pool.riskPct) / 100;
+      const riskUsd = inTrade.riskUsd || ((pool.capitalUsd * pool.riskPct) / 100);
+      const feeUsd = inTrade.feeDeductedUsd || 0;
       const rawR = isBuy
         ? (lastCandle.close - inTrade.entry) / Math.max(inTrade.entry - inTrade.stop_loss, 1e-6)
         : (inTrade.entry - lastCandle.close) / Math.max(inTrade.stop_loss - inTrade.entry, 1e-6);
-      inTrade.pnl_r = parseFloat(rawR.toFixed(2));
-      inTrade.pnl_net_usd = parseFloat((rawR * riskUsd).toFixed(2));
+      const grossUsd = rawR * riskUsd;
+      const netUsd = grossUsd - feeUsd;
+      inTrade.pnl_net_usd = parseFloat(netUsd.toFixed(2));
+      inTrade.pnl_r = parseFloat((netUsd / riskUsd).toFixed(2));
       inTrade.capitalPoolReturnPct = parseFloat(((inTrade.pnl_net_usd / pool.capitalUsd) * 100).toFixed(2));
 
       cumulativeR += inTrade.pnl_r;
@@ -1436,6 +1561,7 @@ export async function runMultiAssetPipelineReplayAsync(
   let peakEquityUsd = totalStartingCapital;
   let runningEquityUsd = totalStartingCapital;
   let maxDrawdownUsd = 0;
+  let peakR = 0, runningR = 0, maxDrawdownR = 0;
 
   trades.forEach((t) => {
     runningEquityUsd += t.pnl_net_usd;
@@ -1446,6 +1572,11 @@ export async function runMultiAssetPipelineReplayAsync(
     if (dd > maxDrawdownUsd) {
       maxDrawdownUsd = dd;
     }
+
+    runningR += t.pnl_r;
+    if (runningR > peakR) peakR = runningR;
+    const ddR = peakR - runningR;
+    if (ddR > maxDrawdownR) maxDrawdownR = ddR;
 
     if (t.pnl_r > 0) {
       curConsecWins++;
@@ -1459,6 +1590,8 @@ export async function runMultiAssetPipelineReplayAsync(
   });
 
   const maxDrawdownPct = peakEquityUsd > 0 ? (maxDrawdownUsd / peakEquityUsd) * 100 : 0;
+  const bestTrade = trades.length > 0 ? Math.max(...trades.map((t) => t.pnl_r)) : 0;
+  const worstTrade = trades.length > 0 ? Math.min(...trades.map((t) => t.pnl_r)) : 0;
 
   const metrics: BtMetrics = {
     totalTrades,
@@ -1472,12 +1605,18 @@ export async function runMultiAssetPipelineReplayAsync(
     totalR: parseFloat(totalR.toFixed(2)),
     netUsd: parseFloat(netUsd.toFixed(2)),
     avgR: parseFloat(avgR.toFixed(2)),
+    avgWin: parseFloat(avgWin.toFixed(2)),
+    avgLoss: parseFloat(avgLoss.toFixed(2)),
     avgWinR: parseFloat(avgWin.toFixed(2)),
     avgLossR: parseFloat(avgLoss.toFixed(2)),
-    maxDrawdownR: parseFloat((maxDrawdownPct / 2).toFixed(2)),
-    maxDrawdownPct: parseFloat(maxDrawdownPct.toFixed(2)),
+    bestTrade: parseFloat(bestTrade.toFixed(2)),
+    worstTrade: parseFloat(worstTrade.toFixed(2)),
+    maxConsecWins,
+    maxConsecLosses,
     maxConsecutiveWins: maxConsecWins,
     maxConsecutiveLosses: maxConsecLosses,
+    maxDrawdownR: parseFloat(maxDrawdownR.toFixed(2)),
+    maxDrawdownPct: parseFloat(maxDrawdownPct.toFixed(2)),
     equityCurve,
   };
 

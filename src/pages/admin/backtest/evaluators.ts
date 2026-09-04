@@ -221,26 +221,33 @@ export function evaluateStrategySetup(
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside micro breakout range', rejectionCause: 'inside_box' };
   }
 
-  // 4b. CryptoMicroScalper (24/7 Micro Scalper 5m/15m)
+  // 4b. CryptoMicroScalper (Micro-Momentum & Volume Impulse Scalper 5m/15m)
   if (name === 'CryptoMicroScalper') {
-    const minAtrPct = params.min_atr_pct ?? 0.08;
-    const atrPct = (atr / price) * 100;
-    if (atrPct < minAtrPct) {
-      return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Volatility below minimum threshold', rejectionCause: 'volatility_too_low' };
+    const boxLookback = params.box_lookback ?? 12;
+    const boxSlice = window.slice(-boxLookback - 1, -1);
+    if (boxSlice.length < 8) {
+      return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Insufficient micro bars', rejectionCause: 'insufficient_history' };
     }
 
-    if (rsi < (params.rsi_buy_min ?? 32) && prev.close < prev.open && last.close > last.open && last.close > prev.close) {
+    const boxHigh = Math.max(...boxSlice.map((c) => c.high));
+    const boxLow = Math.min(...boxSlice.map((c) => c.low));
+
+    const isBreakBuy = prev.close <= boxHigh && last.close > boxHigh && last.close > last.open && ema20 >= ema50 * 0.999 && rsi > 52;
+    const isBreakSell = prev.close >= boxLow && last.close < boxLow && last.close < last.open && ema20 <= ema50 * 1.001 && rsi < 48;
+
+    if (isBreakBuy) {
       const sl = price - atr * (params.stop_atr_mult ?? 1.3);
-      const tp1 = price + atr * (params.tp1_r ?? 1.4);
-      const tp2 = price + atr * (params.tp2_r ?? 2.4);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Crypto Mean-reverting Long: RSI=${rsi.toFixed(1)} with Bullish Reversal Bar` };
-    } else if (rsi > (params.rsi_sell_max ?? 68) && prev.close > prev.open && last.close < last.open && last.close < prev.close) {
+      const tp1 = price + atr * (params.tp1_r ?? 1.5);
+      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Crypto Micro-Breakout Long with Trend & Momentum Alignment' };
+    } else if (isBreakSell) {
       const sl = price + atr * (params.stop_atr_mult ?? 1.3);
-      const tp1 = price - atr * (params.tp1_r ?? 1.4);
-      const tp2 = price - atr * (params.tp2_r ?? 2.4);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Crypto Mean-reverting Short: RSI=${rsi.toFixed(1)} with Bearish Reversal Bar` };
+      const tp1 = price - atr * (params.tp1_r ?? 1.5);
+      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Crypto Micro-Breakout Short with Trend & Momentum Alignment' };
     }
-    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'RSI not in scalp extreme with candle confirmation', rejectionCause: 'rsi_neutral' };
+
+    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside micro breakout range', rejectionCause: 'inside_box' };
   }
 
   // 5. CryptoCompressionBreakout (Donchian Box Breakout)
@@ -271,21 +278,52 @@ export function evaluateStrategySetup(
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside compression boundaries', rejectionCause: 'inside_box' };
   }
 
-  // 6. CryptoReversalExhaustion (RSI Extreme Sweep)
+  // 6. CryptoReversalExhaustion (Cyclical Overextension & Momentum Exhaustion Reversal)
   if (name === 'CryptoReversalExhaustion') {
-    const threshold = params.exhaustion_threshold ?? 75;
-    if (rsi >= threshold && prev.close > prev.open && last.close < last.open && last.close < prev.low) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.4);
-      const tp2 = price - atr * (params.tp2_r ?? 2.6);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Exhaustion Fade Short: RSI=${rsi.toFixed(1)} >= ${threshold} with Bearish Engulf` };
-    } else if (rsi <= (100 - threshold) && prev.close < prev.open && last.close > last.open && last.close > prev.high) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.4);
-      const tp2 = price + atr * (params.tp2_r ?? 2.6);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 88, grade: 'A', reason: `Exhaustion Fade Long: RSI=${rsi.toFixed(1)} <= ${100 - threshold} with Bullish Engulf` };
+    const lookback = params.exhaustion_lookback ?? 12;
+    const priorSlice = window.slice(-lookback - 1, -1);
+    if (priorSlice.length < 8) {
+      return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Insufficient bars for exhaustion window', rejectionCause: 'insufficient_history' };
     }
-    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'RSI not exhausted or missing reversal bar', rejectionCause: 'not_exhausted' };
+
+    const prevEma20 = calcEMA(closes.slice(0, -1), 20);
+    const priorHigh = Math.max(...priorSlice.map((c) => c.high));
+    const priorLow = Math.min(...priorSlice.map((c) => c.low));
+
+    // Exhaustion Short: Prior price reached overextension (> EMA50 + 1.0 ATR), now price decisively broke below EMA20 with a bearish impulse, EMA20 turned down, RSI between 38 and 52
+    const hadOverbought = priorHigh >= ema50 + atr * 1.0;
+    const isExhaustionShort =
+      hadOverbought &&
+      last.close < ema20 &&
+      last.close < last.open &&
+      (last.open - last.close >= atr * 0.25) &&
+      ema20 <= prevEma20 &&
+      rsi <= 52 &&
+      rsi >= 38;
+
+    // Exhaustion Long: Prior price reached overextension (< EMA50 - 1.0 ATR), now price decisively broke above EMA20 with a bullish impulse, EMA20 turned up, RSI between 48 and 62
+    const hadOversold = priorLow <= ema50 - atr * 1.0;
+    const isExhaustionLong =
+      hadOversold &&
+      last.close > ema20 &&
+      last.close > last.open &&
+      (last.close - last.open >= atr * 0.25) &&
+      ema20 >= prevEma20 &&
+      rsi >= 48 &&
+      rsi <= 62;
+
+    if (isExhaustionShort) {
+      const sl = price + atr * (params.stop_atr_mult ?? 1.35);
+      const tp1 = price - atr * (params.tp1_r ?? 1.5);
+      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: `Cyclical Exhaustion Reversal Short: Post-Overextension Impulse Breakdown below EMA20` };
+    } else if (isExhaustionLong) {
+      const sl = price - atr * (params.stop_atr_mult ?? 1.35);
+      const tp1 = price + atr * (params.tp1_r ?? 1.5);
+      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: `Cyclical Exhaustion Reversal Long: Post-Oversold Impulse Reclaim above EMA20` };
+    }
+    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'No clean cyclical overextension & EMA hook confirmation', rejectionCause: 'no_exhaustion' };
   }
 
   // 7. CryptoMomentumBreakout (Keltner surge & Volume spike)

@@ -128,6 +128,9 @@ app.get("/api/market-data/history", async (req, res) => {
     } else if (customRange === "180d" || customRange === "6mo") {
       range = "6mo";
       yfInterval = "60m";
+    } else if (customRange === "270d" || customRange === "9mo") {
+      range = "1y";
+      yfInterval = "60m";
     } else if (customRange === "365d" || customRange === "1y") {
       range = "1y";
       yfInterval = "1d";

@@ -181,7 +181,7 @@ export interface PropTradeExecution {
 }
 
 export interface SurvivabilityHorizonOption {
-  key: '30d' | '60d' | '90d' | '180d';
+  key: '7d' | '30d' | '60d' | '90d' | '180d' | '270d';
   label: string;
   days: number;
   description: string;
@@ -190,32 +190,46 @@ export interface SurvivabilityHorizonOption {
 
 export const SURVIVABILITY_HORIZONS: SurvivabilityHorizonOption[] = [
   {
+    key: '7d',
+    label: '7 Days',
+    days: 7,
+    description: 'Weekly Sprint & Intraday Shock Resilience',
+    focus: 'Tests rapid early trajectory, immediate risk fence containment, and daily circuit breakers.',
+  },
+  {
     key: '30d',
-    label: '30 Days',
+    label: '30 Days (1mo)',
     days: 30,
     description: 'Phase 1 Standard Challenge & Rapid Clearance Window',
     focus: 'Tests target clearance speed (+8-10%) and single-day max loss compliance.',
   },
   {
     key: '60d',
-    label: '60 Days',
+    label: '60 Days (2mo)',
     days: 60,
     description: 'Two-Phase Combined Evaluation & Regime Shift Stress',
     focus: 'Tests consecutive Phase 1 + Phase 2 passing consistency across month-end rollovers.',
   },
   {
     key: '90d',
-    label: '90 Days',
+    label: '90 Days (3mo)',
     days: 90,
     description: 'Funded Account Long-Term Survivability & Drawdown Endurance',
     focus: 'Tests sustained capital preservation, quarterly volatility cycles, and zero circuit-breaker breaches.',
   },
   {
     key: '180d',
-    label: '180 Days',
+    label: '180 Days (6mo)',
     days: 180,
     description: 'Semi-Annual Macro Regime & Volatility Shock Resilience',
     focus: 'Exposes strategies to multiple interest rate decisions, CPI spikes, and macro shifts.',
+  },
+  {
+    key: '270d',
+    label: '270 Days (9mo)',
+    days: 270,
+    description: 'Full 3-Quarter Institutional Endurance & Macro Cycle',
+    focus: 'Validates permanent edge survivability and long-term equity growth across multi-season regimes.',
   },
 ];
 
@@ -243,9 +257,9 @@ export function PropClearanceLab({
   const [selectedPresetKey, setSelectedPresetKey] = useState<string>('FTMO_STANDARD');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
 
-  // Time Horizon for Survivability (30d, 60d, 90d, 180d)
-  const [activeHorizon, setActiveHorizon] = useState<'30d' | '60d' | '90d' | '180d'>(
-    selectedRange === '30d' || selectedRange === '60d' || selectedRange === '90d' || selectedRange === '180d'
+  // Time Horizon for Survivability (7d, 30d, 60d, 90d, 180d, 270d)
+  const [activeHorizon, setActiveHorizon] = useState<'7d' | '30d' | '60d' | '90d' | '180d' | '270d'>(
+    selectedRange === '7d' || selectedRange === '30d' || selectedRange === '60d' || selectedRange === '90d' || selectedRange === '180d' || selectedRange === '270d'
       ? selectedRange
       : '90d'
   );
@@ -455,7 +469,7 @@ export function PropClearanceLab({
 
       try {
         const horizonDays =
-          horizon === '30d' ? 30 : horizon === '60d' ? 60 : horizon === '90d' ? 90 : 180;
+          horizon === '7d' ? 7 : horizon === '30d' ? 30 : horizon === '60d' ? 60 : horizon === '90d' ? 90 : horizon === '180d' ? 180 : 270;
 
         // 1. Gather all feeds
         let feedsToUse: Record<string, MultiAssetFeedItem> = { ...internalFeeds };
@@ -469,7 +483,7 @@ export function PropClearanceLab({
           (m, f) => Math.max(m, f.candles?.length || 0),
           0
         );
-        const minBarsExpected = horizon === '180d' ? 6000 : horizon === '90d' ? 4500 : horizon === '60d' ? 3000 : 1500;
+        const minBarsExpected = horizon === '270d' ? 9000 : horizon === '180d' ? 6000 : horizon === '90d' ? 4500 : horizon === '60d' ? 3000 : horizon === '30d' ? 1500 : 672;
 
         if (currentMaxBars < minBarsExpected || !isUsingRealMarketData) {
           const fetched = await syncUniverseRealBars(horizon, selectedTimeframe || '15m');
@@ -592,8 +606,8 @@ export function PropClearanceLab({
     ]
   );
 
-  // Handle Horizon Period Selection (30d, 60d, 90d, 180d)
-  const handleSelectHorizon = (horizonKey: '30d' | '60d' | '90d' | '180d') => {
+  // Handle Horizon Period Selection (7d, 30d, 60d, 90d, 180d, 270d)
+  const handleSelectHorizon = (horizonKey: '7d' | '30d' | '60d' | '90d' | '180d' | '270d') => {
     setActiveHorizon(horizonKey);
     if (onSelectRange) {
       onSelectRange(horizonKey);
@@ -702,13 +716,17 @@ export function PropClearanceLab({
     const maxTotalAllowedLossDollar = fundingCapital * (activeRules.maxTotalLossPct / 100);
 
     const horizonDays =
-      activeHorizon === '30d'
+      activeHorizon === '7d'
+        ? 7
+        : activeHorizon === '30d'
         ? 30
         : activeHorizon === '60d'
         ? 60
         : activeHorizon === '90d'
         ? 90
-        : 180;
+        : activeHorizon === '180d'
+        ? 180
+        : 270;
 
     let currentEquity = fundingCapital;
     let peakEquity = fundingCapital;
