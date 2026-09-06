@@ -47,7 +47,8 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyName>('LondonBreakout');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('EURUSD');
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('15m');
-  const [dataSourceMode, setDataSourceMode] = useState<'feed' | 'synthetic'>('feed');
+  const [dataSourceMode, setDataSourceMode] = useState<'live' | 'feed' | 'synthetic'>('live');
+  const [dataStatus, setDataStatus] = useState<string>('');
   const [barsCount, setBarsCount] = useState<number>(1500);
 
   // Strategy Parameters
@@ -105,21 +106,48 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
     }
   };
 
+  const fetchRealCandles = useCallback(async (symbol: string, interval: string, assetClass: string): Promise<BtCandle[]> => {
+    const rangeMap: Record<number, string> = { 500: '7d', 1500: '30d', 3000: '60d', 5000: '90d' };
+    const range = rangeMap[barsCount] || '30d';
+    const symDef = AVAILABLE_SYMBOLS.find((s) => s.symbol === symbol);
+    const ac = symDef?.category || assetClass;
+    const resp = await fetch(
+      `/api/market-data/history?symbol=${symbol}&interval=${interval}&assetClass=${ac}&range=${range}&limit=1000`
+    );
+    if (!resp.ok) throw new Error(`Market data fetch failed: ${resp.status}`);
+    const data = await resp.json();
+    if (!data.candles || data.candles.length < 20) throw new Error('Insufficient candles returned');
+    return data.candles as BtCandle[];
+  }, [barsCount]);
+
   // Run the Single Strategy Simulation
-  const handleRunBacktest = useCallback(() => {
+  const handleRunBacktest = useCallback(async () => {
     setIsRunning(true);
 
-    setTimeout(() => {
+    try {
       let candles: BtCandle[] = [];
       const mapping = STRATEGY_ASSET_MAP[selectedStrategy] || { category: 'forex' };
       const feed = multiAssetFeeds[mapping.category];
 
-      if (dataSourceMode === 'feed' && feed && feed.candles && feed.candles.length >= 20) {
+      if (dataSourceMode === 'live') {
+        setDataStatus('Fetching live market data...');
+        try {
+          candles = await fetchRealCandles(selectedSymbol, selectedTimeframe, mapping.category);
+          setDataStatus(`Live data: ${candles.length} candles from real market`);
+        } catch (err) {
+          setDataStatus('Live fetch failed, using synthetic fallback');
+          const symDef = AVAILABLE_SYMBOLS.find((s) => s.symbol === selectedSymbol) || AVAILABLE_SYMBOLS[0];
+          const basePrice = symDef.category === 'forex' ? 1.085 : symDef.category === 'metals' ? 2480.0 : 88000.0;
+          candles = generateSyntheticSessionData(symDef.symbol, symDef.assetClass, basePrice, barsCount, 15);
+        }
+      } else if (dataSourceMode === 'feed' && feed && feed.candles && feed.candles.length >= 20) {
         candles = feed.candles;
+        setDataStatus(`Multi-asset feed: ${candles.length} candles`);
       } else {
         const symDef = AVAILABLE_SYMBOLS.find((s) => s.symbol === selectedSymbol) || AVAILABLE_SYMBOLS[0];
         const basePrice = symDef.category === 'forex' ? 1.085 : symDef.category === 'metals' ? 2480.0 : 88000.0;
         candles = generateSyntheticSessionData(symDef.symbol, symDef.assetClass, basePrice, barsCount, 15);
+        setDataStatus(`Synthetic data: ${candles.length} candles`);
       }
 
       const result = runSingleStrategyEngine(
@@ -133,9 +161,12 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
 
       setMetrics(result.metrics);
       setTrades(result.trades);
+    } catch (err) {
+      setDataStatus(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    } finally {
       setIsRunning(false);
-    }, 150);
-  }, [selectedStrategy, strategyParams, env, strategyMinScore, dataSourceMode, multiAssetFeeds, selectedSymbol, barsCount]);
+    }
+  }, [selectedStrategy, strategyParams, env, strategyMinScore, dataSourceMode, multiAssetFeeds, selectedSymbol, barsCount, selectedTimeframe, fetchRealCandles]);
 
   // Run automatically on first mount
   useEffect(() => {
@@ -297,10 +328,11 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
             </div>
             <select
               value={dataSourceMode}
-              onChange={(e) => setDataSourceMode(e.target.value as 'feed' | 'synthetic')}
+              onChange={(e) => setDataSourceMode(e.target.value as 'live' | 'feed' | 'synthetic')}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-indigo-500"
             >
-              <option value="feed">Synchronized Multi-Asset Feeds (Live / API)</option>
+              <option value="live">Live Market Data (Real Binance / Yahoo Finance)</option>
+              <option value="feed">Synchronized Multi-Asset Feeds</option>
               <option value="synthetic">Synthetic Multi-Session Engine</option>
             </select>
           </div>
@@ -325,6 +357,22 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Data Source Status Indicator */}
+        {dataStatus && (
+          <div className={`px-3 py-1.5 rounded-lg text-[11px] font-medium flex items-center gap-2 ${
+            dataStatus.startsWith('Live data')
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+              : dataStatus.startsWith('Live fetch failed') || dataStatus.startsWith('Error')
+              ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+              : 'bg-slate-800/60 border border-slate-700 text-slate-400'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              dataStatus.startsWith('Live data') ? 'bg-emerald-400 animate-pulse' : dataStatus.startsWith('Live fetch failed') || dataStatus.startsWith('Error') ? 'bg-rose-400' : 'bg-slate-500'
+            }`} />
+            {dataStatus}
+          </div>
+        )}
 
         {/* Strategy Description Bar */}
         {def && (
