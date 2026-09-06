@@ -1,8 +1,10 @@
-export type ExecutionProvider = 'binance' | 'bybit';
+export type ExecutionProvider = 'binance' | 'bybit' | 'mt5' | 'ctrader';
 
 export const PROVIDER_CONTRACT = {
   binance: { environment: 'testnet', adapter: 'binance_usdm_testnet', path: '/admin/providers/binance' },
   bybit: { environment: 'demo', adapter: 'bybit_demo', path: '/admin/providers/bybit' },
+  mt5: { environment: 'demo', adapter: 'mt5_terminal_bridge', path: '/admin/mt5' },
+  ctrader: { environment: 'demo', adapter: 'ctrader_openapi_bridge', path: '/admin/providers/ctrader' },
 } as const;
 
 export type ExecutionAccount = {

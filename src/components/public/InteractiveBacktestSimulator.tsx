@@ -19,6 +19,11 @@ export interface PropFirmRuleProfile {
   maxSingleDayProfitPct: number; // Consistency rule, e.g. 40% of total profit
   dailyLossCalculation: 'BALANCE_BASED' | 'EQUITY_BASED';
   payoutSplitPct: number; // 80% to 90%
+  category: 'FOREX_MT5' | 'CRYPTO_PROP';
+  executionType: 'MT5 Desktop Bridge' | 'Direct Cloud API & Secret';
+  marketHours: string;
+  weekendHolding: string;
+  instruments: string;
 }
 
 export const PROP_FIRM_PRESETS: Record<string, PropFirmRuleProfile> = {
@@ -26,6 +31,11 @@ export const PROP_FIRM_PRESETS: Record<string, PropFirmRuleProfile> = {
     id: 'FTMO',
     name: 'FTMO Challenge (Standard)',
     badge: 'Industry Standard',
+    category: 'FOREX_MT5',
+    executionType: 'MT5 Desktop Bridge',
+    marketHours: 'Mon-Fri Market Hours',
+    weekendHolding: 'Restricted / Requires Swing Model',
+    instruments: 'EURUSD, GBPUSD, XAUUSD',
     phase1TargetPct: 10.0,
     phase2TargetPct: 5.0,
     maxDailyLossPct: 5.0,
@@ -39,6 +49,11 @@ export const PROP_FIRM_PRESETS: Record<string, PropFirmRuleProfile> = {
     id: 'FUNDED_NEXT',
     name: 'FundedNext (Stellar 2-Phase)',
     badge: 'Balance-Based DD',
+    category: 'FOREX_MT5',
+    executionType: 'MT5 Desktop Bridge',
+    marketHours: 'Mon-Fri Market Hours',
+    weekendHolding: 'Allowed on Stellar',
+    instruments: 'EURUSD, GBPUSD, XAUUSD',
     phase1TargetPct: 8.0,
     phase2TargetPct: 5.0,
     maxDailyLossPct: 5.0,
@@ -52,6 +67,11 @@ export const PROP_FIRM_PRESETS: Record<string, PropFirmRuleProfile> = {
     id: 'THE_5ERS',
     name: 'The5ers (High Stakes)',
     badge: 'Fast Scaling',
+    category: 'FOREX_MT5',
+    executionType: 'MT5 Desktop Bridge',
+    marketHours: 'Mon-Fri Market Hours',
+    weekendHolding: 'Allowed with SL',
+    instruments: 'EURUSD, GBPUSD, XAUUSD',
     phase1TargetPct: 8.0,
     phase2TargetPct: 5.0,
     maxDailyLossPct: 5.0,
@@ -65,6 +85,11 @@ export const PROP_FIRM_PRESETS: Record<string, PropFirmRuleProfile> = {
     id: 'ALPHA_CAPITAL',
     name: 'Alpha Capital / MFF Pro',
     badge: 'Zero Commissions',
+    category: 'FOREX_MT5',
+    executionType: 'MT5 Desktop Bridge',
+    marketHours: 'Mon-Fri Market Hours',
+    weekendHolding: 'Allowed',
+    instruments: 'EURUSD, GBPUSD, XAUUSD',
     phase1TargetPct: 8.0,
     phase2TargetPct: 4.0,
     maxDailyLossPct: 5.0,
@@ -73,6 +98,42 @@ export const PROP_FIRM_PRESETS: Record<string, PropFirmRuleProfile> = {
     maxSingleDayProfitPct: 35.0,
     dailyLossCalculation: 'BALANCE_BASED',
     payoutSplitPct: 80.0
+  },
+  CRYPTO_FUND_TRADER: {
+    id: 'CRYPTO_FUND_TRADER',
+    name: 'Crypto Fund Trader (24/7 Crypto)',
+    badge: '24/7 Crypto Perpetuals (API)',
+    category: 'CRYPTO_PROP',
+    executionType: 'Direct Cloud API & Secret',
+    marketHours: '24/7 Continuous (No Friday Close)',
+    weekendHolding: '100% Allowed (Continuous Market)',
+    instruments: 'BTCUSDT, ETHUSDT, SOLUSDT, XRPUSDT',
+    phase1TargetPct: 8.0,
+    phase2TargetPct: 4.0,
+    maxDailyLossPct: 5.0,
+    maxTotalLossPct: 10.0,
+    minTradingDays: 3,
+    maxSingleDayProfitPct: 40.0,
+    dailyLossCalculation: 'BALANCE_BASED',
+    payoutSplitPct: 85.0
+  },
+  HYRO_TRADER: {
+    id: 'HYRO_TRADER',
+    name: 'HyroTrader (Bybit / Crypto API)',
+    badge: 'Exchange Prop (90% Split)',
+    category: 'CRYPTO_PROP',
+    executionType: 'Direct Cloud API & Secret',
+    marketHours: '24/7 Continuous (No Friday Close)',
+    weekendHolding: '100% Allowed (Continuous Market)',
+    instruments: 'BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT',
+    phase1TargetPct: 10.0,
+    phase2TargetPct: 5.0,
+    maxDailyLossPct: 5.0,
+    maxTotalLossPct: 12.0,
+    minTradingDays: 4,
+    maxSingleDayProfitPct: 35.0,
+    dailyLossCalculation: 'EQUITY_BASED',
+    payoutSplitPct: 90.0
   }
 };
 
@@ -191,11 +252,86 @@ const HISTORICAL_CHALLENGE_DAYS: DailyTradeBatch[] = [
   }
 ];
 
+// 24/7 Continuous Crypto Prop Trade Sequence (Crypto Fund Trader, HyroTrader)
+// Evaluated with direct API execution, 24/7 weekend holding, and zero desktop bridge
+export const HISTORICAL_CRYPTO_PROP_DAYS: DailyTradeBatch[] = [
+  {
+    dayNumber: 1,
+    dateStr: 'Day 1 (Mon - BTC Squeeze Breakout)',
+    trades: [
+      { symbol: 'BTCUSDT', strategy: 'Compression Breakout', rOutcome: 2.8, direction: 'BUY', session: 'NY_AM', newsExposure: false, weekendHold: false },
+      { symbol: 'ETHUSDT', strategy: 'Perpetual Squeeze Run', rOutcome: 1.9, direction: 'BUY', session: 'LONDON_OPEN', newsExposure: false, weekendHold: false }
+    ]
+  },
+  {
+    dayNumber: 2,
+    dateStr: 'Day 2 (Tue - Altcoin Momentum Surge)',
+    trades: [
+      { symbol: 'SOLUSDT', strategy: 'Donchian Squeeze 15m', rOutcome: 3.2, direction: 'BUY', session: 'NY_PM', newsExposure: false, weekendHold: false },
+      { symbol: 'BTCUSDT', strategy: 'Volume Delta Pullback', rOutcome: -1.0, direction: 'SELL', session: 'LONDON_OPEN', newsExposure: false, weekendHold: false }
+    ]
+  },
+  {
+    dayNumber: 3,
+    dateStr: 'Day 3 (Wed - Mid-Week ETH Continuation)',
+    trades: [
+      { symbol: 'ETHUSDT', strategy: 'Compression Breakout', rOutcome: 2.4, direction: 'BUY', session: 'NY_AM', newsExposure: false, weekendHold: false }
+    ]
+  },
+  {
+    dayNumber: 4,
+    dateStr: 'Day 4 (Thu - Liquidity Sweep Reversal)',
+    trades: [
+      { symbol: 'BNBUSDT', strategy: 'Perpetual Squeeze Run', rOutcome: 2.1, direction: 'BUY', session: 'LONDON_OPEN', newsExposure: false, weekendHold: false },
+      { symbol: 'BTCUSDT', strategy: 'Funding Rate Arbitrage Flip', rOutcome: 1.5, direction: 'SELL', session: 'NY_AM', newsExposure: false, weekendHold: false }
+    ]
+  },
+  {
+    dayNumber: 5,
+    dateStr: 'Day 5 (Fri - Weekend Setup Inflow)',
+    trades: [
+      { symbol: 'SOLUSDT', strategy: 'Compression Breakout', rOutcome: -1.0, direction: 'BUY', session: 'LONDON_OPEN', newsExposure: false, weekendHold: true },
+      { symbol: 'XRPUSDT', strategy: 'Donchian Squeeze 15m', rOutcome: 2.7, direction: 'BUY', session: 'NY_PM', newsExposure: false, weekendHold: true }
+    ]
+  },
+  {
+    dayNumber: 6,
+    dateStr: 'Day 6 (Sat - 24/7 Weekend Liquidity Run)',
+    trades: [
+      { symbol: 'BTCUSDT', strategy: 'Weekend Momentum Expansion', rOutcome: 2.9, direction: 'BUY', session: 'NY_AM', newsExposure: false, weekendHold: true },
+      { symbol: 'ETHUSDT', strategy: 'Perpetual Squeeze Run', rOutcome: 1.8, direction: 'BUY', session: 'LONDON_OPEN', newsExposure: false, weekendHold: true }
+    ]
+  },
+  {
+    dayNumber: 7,
+    dateStr: 'Day 7 (Sun - Sunday Weekly Close Run)',
+    trades: [
+      { symbol: 'SOLUSDT', strategy: 'Weekly Anchor Squeeze', rOutcome: 3.4, direction: 'BUY', session: 'NY_PM', newsExposure: false, weekendHold: true }
+    ]
+  },
+  {
+    dayNumber: 8,
+    dateStr: 'Day 8 (Mon - Institutional Expansion)',
+    trades: [
+      { symbol: 'BTCUSDT', strategy: 'Compression Breakout', rOutcome: 2.5, direction: 'BUY', session: 'LONDON_OPEN', newsExposure: false, weekendHold: false },
+      { symbol: 'ETHUSDT', strategy: 'Donchian Squeeze 15m', rOutcome: -0.9, direction: 'SELL', session: 'NY_AM', newsExposure: false, weekendHold: false }
+    ]
+  },
+  {
+    dayNumber: 9,
+    dateStr: 'Day 9 (Tue - Target Clearance Lock)',
+    trades: [
+      { symbol: 'BTCUSDT', strategy: 'Volume Delta Pullback', rOutcome: 2.6, direction: 'BUY', session: 'LONDON_OPEN', newsExposure: false, weekendHold: false }
+    ]
+  }
+];
+
 export function InteractiveBacktestSimulator() {
   // Navigation between Prop Challenge Simulation vs Standard Strategy Backtest
   const [activeTab, setActiveTab] = useState<'PROP_CHALLENGE' | 'PORTFOLIO_SIM'>('PROP_CHALLENGE');
 
   // Prop Challenge State
+  const [firmCategoryFilter, setFirmCategoryFilter] = useState<'ALL' | 'FOREX_MT5' | 'CRYPTO_PROP'>('ALL');
   const [selectedFirmKey, setSelectedFirmKey] = useState<string>('FTMO');
   const [fundingBase, setFundingBase] = useState<number>(50000); // $50,000 standard default
   const [propRiskPct, setPropRiskPct] = useState<number>(0.5); // Default 0.5% prop risk
@@ -265,7 +401,10 @@ export function InteractiveBacktestSimulator() {
     let highestSingleDayProfitDollar = 0;
     let tradeCounter = 1;
 
-    for (const day of HISTORICAL_CHALLENGE_DAYS) {
+    const isCryptoProp = activeFirm.category === 'CRYPTO_PROP';
+    const challengeDaysToUse = isCryptoProp ? HISTORICAL_CRYPTO_PROP_DAYS : HISTORICAL_CHALLENGE_DAYS;
+
+    for (const day of challengeDaysToUse) {
       const dayStartEquity = currentEquity;
       let dayIntradayTrough = dayStartEquity;
       let dayTradeCount = 0;
@@ -468,13 +607,13 @@ export function InteractiveBacktestSimulator() {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3.5 py-1 text-xs text-amber-400 font-bold uppercase tracking-wider">
             <ShieldCheck size={14} className="text-amber-400" />
-            Prop Firm Challenge & MT5 Clearance Engine
+            Prop Firm Challenge (Crypto & MT5) Clearance Engine
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
             Prop Backtest & Live Connection Clearance
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400">
-            Simulate realistic FTMO, FundedNext & 5ers evaluation rules against $50k fund base with strict drawdown fences.
+            Simulate realistic Crypto Fund Trader, HyroTrader, FTMO & FundedNext evaluation rules against $50k fund base with strict drawdown fences.
           </p>
         </div>
 
@@ -512,6 +651,87 @@ export function InteractiveBacktestSimulator() {
       {/* ========================================================================= */}
       {activeTab === 'PROP_CHALLENGE' && (
         <div className="space-y-8 relative z-10">
+
+          {/* Firm Category Quick Filter Tabs */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-zinc-900/80 border border-zinc-800 rounded-2xl">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-400 font-mono font-bold">CHALLENGE CATEGORY:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFirmCategoryFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                  firmCategoryFilter === 'ALL'
+                    ? 'bg-zinc-700 text-white shadow-sm'
+                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                All Challenge Models (6)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFirmCategoryFilter('FOREX_MT5');
+                  if (activeFirm.category !== 'FOREX_MT5') setSelectedFirmKey('FTMO');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+                  firmCategoryFilter === 'FOREX_MT5'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                <span>Forex & Gold MT5 (FTMO, FundedNext)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFirmCategoryFilter('CRYPTO_PROP');
+                  if (activeFirm.category !== 'CRYPTO_PROP') setSelectedFirmKey('CRYPTO_FUND_TRADER');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+                  firmCategoryFilter === 'CRYPTO_PROP'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                <Zap size={12} className="text-emerald-300" />
+                <span>24/7 Crypto Prop (CFT, HyroTrader - Cloud API)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Special Crypto Prop Cloud API Notice Banner */}
+          {activeFirm.category === 'CRYPTO_PROP' && (
+            <div className="p-4 bg-emerald-950/30 border border-emerald-500/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+                  <Zap size={20} />
+                </div>
+                <div className="space-y-0.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white uppercase font-mono">24/7 Crypto Prop Challenge Mode</span>
+                    <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                      Zero Desktop Bridge Needed
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 leading-relaxed">
+                    Connects directly via <strong className="text-emerald-300">Exchange API Key & Secret</strong>. Unlike Forex MT5 prop firms that require a Windows VPS desktop bridge, Crypto Prop runs 100% cloud-native with <strong>24/7 continuous weekend execution</strong> (no Friday cutoff), 4.0% daily circuit lock, and automated 50% TP1 partial scale-out.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 font-mono text-[11px]">
+                <div className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300">
+                  <span className="text-zinc-500 block text-[9px]">MARKET</span>
+                  <span className="text-emerald-400 font-bold">24/7 Perpetuals</span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300">
+                  <span className="text-zinc-500 block text-[9px]">EXECUTION</span>
+                  <span className="text-blue-400 font-bold">Direct Cloud API</span>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Controls Bar: Firm, Fund Base, Phase, Risk % */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -533,11 +753,13 @@ export function InteractiveBacktestSimulator() {
                 onChange={(e) => setSelectedFirmKey(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-white font-semibold focus:outline-none focus:border-amber-500 transition-colors"
               >
-                {Object.values(PROP_FIRM_PRESETS).map(firm => (
-                  <option key={firm.id} value={firm.id}>
-                    {firm.name}
-                  </option>
-                ))}
+                {Object.values(PROP_FIRM_PRESETS)
+                  .filter(firm => firmCategoryFilter === 'ALL' || firm.category === firmCategoryFilter)
+                  .map(firm => (
+                    <option key={firm.id} value={firm.id}>
+                      {firm.name} ({firm.category === 'CRYPTO_PROP' ? 'Cloud API' : 'MT5 Bridge'})
+                    </option>
+                  ))}
               </select>
               <div className="text-[10px] text-zinc-500">
                 Phase 1 Target: {activeFirm.phase1TargetPct}% | Max Daily DD: {activeFirm.maxDailyLossPct}%
@@ -700,7 +922,7 @@ export function InteractiveBacktestSimulator() {
                 <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
                   {propSimulation.isOfficiallyCleared ? (
                     <span>
-                      Your current configuration ({propRiskPct}% risk on ${fundingBase.toLocaleString()} balance) passed all 6 strict prop firm compliance rules with a peak daily loss of only <strong>{propSimulation.ruleAudit.maxDailyLossEncounteredPct}%</strong> (well under the {activeFirm.maxDailyLossPct}% limit). You are ready to connect to your live FTMO / FundedNext MT5 terminal.
+                      Your current configuration ({propRiskPct}% risk on ${fundingBase.toLocaleString()} balance) passed all 6 strict prop firm compliance rules with a peak daily loss of only <strong>{propSimulation.ruleAudit.maxDailyLossEncounteredPct}%</strong> (well under the {activeFirm.maxDailyLossPct}% limit). {activeFirm.category === 'CRYPTO_PROP' ? '24/7 continuous weekend crypto execution verified safe. Ready to connect via direct Cloud API & Secret with zero desktop bridge required!' : 'You are ready to connect to your live FTMO / FundedNext MT5 terminal.'}
                     </span>
                   ) : (
                     <span>
@@ -726,7 +948,9 @@ export function InteractiveBacktestSimulator() {
               <div className="flex flex-col gap-3 shrink-0 lg:w-80 bg-zinc-950/90 border border-zinc-800 rounded-2xl p-5 shadow-xl">
                 <div className="text-xs font-bold text-zinc-300 font-mono flex items-center justify-between border-b border-zinc-800 pb-2">
                   <span>CLEARANCE ID</span>
-                  <span className="text-emerald-400 font-mono">HASHI-MT5-PROP-{fundingBase / 1000}K</span>
+                  <span className="text-emerald-400 font-mono">
+                    {activeFirm.category === 'CRYPTO_PROP' ? `HASHI-CRYPTO-PROP-${fundingBase / 1000}K` : `HASHI-MT5-PROP-${fundingBase / 1000}K`}
+                  </span>
                 </div>
                 <div className="space-y-1.5 text-xs text-zinc-300">
                   <div className="flex justify-between">
@@ -744,7 +968,7 @@ export function InteractiveBacktestSimulator() {
                 </div>
 
                 <Link
-                  to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                  to={activeFirm.category === 'CRYPTO_PROP' ? '/pricing?package=crypto_prop_bot#mpesa-payment-section' : '/pricing?package=forex_mt5_prop_bot#mpesa-payment-section'}
                   className={`w-full text-center font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 ${
                     propSimulation.isOfficiallyCleared
                       ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-zinc-950 font-black shadow-emerald-600/30'
@@ -752,10 +976,12 @@ export function InteractiveBacktestSimulator() {
                   }`}
                 >
                   <ShieldCheck size={16} />
-                  <span>Connect Real Prop Account MT5 →</span>
+                  <span>{activeFirm.category === 'CRYPTO_PROP' ? 'Connect Real Crypto Prop (Cloud API) →' : 'Connect Real Prop Account MT5 →'}</span>
                 </Link>
                 <div className="text-[10px] text-center text-zinc-500 font-mono">
-                  12,500 KES/mo ($95) · Direct Windows Bridge Daemon
+                  {activeFirm.category === 'CRYPTO_PROP'
+                    ? '12,500 KES/mo ($95) · Direct Cloud API & Secret (Zero MT5 Bridge Needed)'
+                    : '12,500 KES/mo ($95) · Direct Windows Bridge Daemon'}
                 </div>
               </div>
             </div>
@@ -884,14 +1110,18 @@ export function InteractiveBacktestSimulator() {
               {/* 6. Weekend & News Lockout Rule */}
               <div className="p-4 rounded-2xl border border-emerald-500/40 bg-zinc-900 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-400 font-bold uppercase text-[10px]">Rule 6: News & Weekend Lock</span>
+                  <span className="text-zinc-400 font-bold uppercase text-[10px]">
+                    {activeFirm.category === 'CRYPTO_PROP' ? 'Rule 6: 24/7 Weekend Holding' : 'Rule 6: News & Weekend Lock'}
+                  </span>
                   <CheckCircle2 size={16} className="text-emerald-400" />
                 </div>
                 <div className="text-base font-extrabold text-white">
-                  100% Rules Compliant
+                  {activeFirm.category === 'CRYPTO_PROP' ? '24/7 Market Active' : '100% Rules Compliant'}
                 </div>
                 <div className="text-[11px] text-zinc-400">
-                  No weekend holds & zero red-folder exposure
+                  {activeFirm.category === 'CRYPTO_PROP'
+                    ? 'Crypto perpetuals run 24/7 — weekend trades safely executed via Cloud API'
+                    : 'No weekend holds & zero red-folder news exposure'}
                 </div>
               </div>
 
@@ -904,7 +1134,7 @@ export function InteractiveBacktestSimulator() {
               <div className="flex items-center gap-2">
                 <Trophy size={16} className="text-amber-400" />
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                  $50,000 Prop Equity Trajectory vs FTMO Threshold Fences
+                  ${fundingBase.toLocaleString()} Prop Equity Trajectory vs {activeFirm.name} Threshold Fences
                 </h4>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-xs font-mono">

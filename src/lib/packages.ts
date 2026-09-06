@@ -1,6 +1,6 @@
 import { Package } from './types.js';
 
-export type PackageCapability = 'free_preview' | 'crypto_signal_room' | 'crypto_personal_bot' | 'forex_mt5_personal_bot' | 'forex_mt5_prop_bot';
+export type PackageCapability = 'free_preview' | 'crypto_signal_room' | 'crypto_personal_bot' | 'forex_mt5_personal_bot' | 'forex_mt5_prop_bot' | 'crypto_prop_bot';
 
 export const PACKAGE_SLUGS: PackageCapability[] = [
   'free_preview',
@@ -8,12 +8,14 @@ export const PACKAGE_SLUGS: PackageCapability[] = [
   'crypto_personal_bot',
   'forex_mt5_personal_bot',
   'forex_mt5_prop_bot',
+  'crypto_prop_bot',
 ];
 
 export const BOT_PACKAGE_SLUGS = new Set<PackageCapability>([
   'crypto_personal_bot',
   'forex_mt5_personal_bot',
   'forex_mt5_prop_bot',
+  'crypto_prop_bot',
 ]);
 
 export const SIGNAL_INCLUDED_SLUGS = new Set<PackageCapability>([
@@ -21,6 +23,7 @@ export const SIGNAL_INCLUDED_SLUGS = new Set<PackageCapability>([
   'crypto_personal_bot',
   'forex_mt5_personal_bot',
   'forex_mt5_prop_bot',
+  'crypto_prop_bot',
 ]);
 
 export const PUBLIC_PACKAGES: Package[] = [
@@ -50,6 +53,13 @@ export const PUBLIC_PACKAGES: Package[] = [
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 3,
     description: 'Institutional MT5 execution specifically tuned for FTMO, FundedNext, and The5ers challenges with hard drawdown defense.',
     features: ['Includes full VIP Signals & Bot features', '4.5% Hard daily & total drawdown safety locks', 'Conservative position sizing (0.25% – 0.75% per trade)', 'High-impact news spread & slippage protection gateway', '1-on-1 Portfolio Advisor AI support & pass tracking'],
+    created_at: '', updated_at: '',
+  },
+  {
+    id: 'crypto_prop_bot', name: 'Crypto Prop Pass Master (24/7 Challenges)', slug: 'crypto_prop_bot', price: 95, price_kes: 12500, currency: 'KES', billing_period: 'monthly',
+    duration_days: 30, active: true, telegram_access_required: true, sort_order: 4,
+    description: 'Specialized 24/7 algorithmic execution for Crypto Prop challenges (Crypto Fund Trader, HyroTrader, Bybit Prop) with weekend holding.',
+    features: ['Includes full VIP Crypto Signals & Bot features', 'Tuned for Crypto Fund Trader, HyroTrader & Bybit/MT5 Crypto challenges', '24/7 continuous weekend crypto execution (no Friday cutoff)', '4.0% Hard daily & 8.0% max trailing drawdown circuit breakers', 'Conservative position sizing (0.25% – 0.50% per trade)', 'Automated partial scale-out (50% at TP1) & dynamic ATR runner trailing', '1-on-1 Prop Advisor AI support & challenge clearance tracking'],
     created_at: '', updated_at: '',
   },
 ];
@@ -138,7 +148,7 @@ export function priceLabel(pkg: Package, currency: 'KES' | 'USD' = 'KES') {
     };
   }
   
-  if (pkg.slug === 'forex_mt5_prop_bot') {
+  if (pkg.slug === 'forex_mt5_prop_bot' || pkg.slug === 'crypto_prop_bot') {
     return {
       main: currency === 'USD' ? '$95 USD' : '12,500 KES',
       period: '/month',
@@ -156,12 +166,13 @@ export function priceLabel(pkg: Package, currency: 'KES' | 'USD' = 'KES') {
 }
 
 export function defaultRiskPreset(slug?: string | null) {
-  return slug === 'forex_mt5_prop_bot' ? 'Conservative / Prop Safe' : 'Conservative';
+  return (slug === 'forex_mt5_prop_bot' || slug === 'crypto_prop_bot') ? 'Conservative / Prop Safe' : 'Conservative';
 }
 
 export interface PackageEntitlements {
   signalAccess: boolean;
   cryptoExecution: boolean;
+  cryptoProp: boolean;
   mt5Personal: boolean;
   mt5Prop: boolean;
   canConfigureBot: boolean;
@@ -172,6 +183,7 @@ export function getEntitlementsForPackage(slugOrName?: string | null, isActive: 
     return {
       signalAccess: false,
       cryptoExecution: false,
+      cryptoProp: false,
       mt5Personal: false,
       mt5Prop: false,
       canConfigureBot: false,
@@ -183,6 +195,7 @@ export function getEntitlementsForPackage(slugOrName?: string | null, isActive: 
     return {
       signalAccess: false,
       cryptoExecution: false,
+      cryptoProp: false,
       mt5Personal: false,
       mt5Prop: false,
       canConfigureBot: false,
@@ -191,7 +204,8 @@ export function getEntitlementsForPackage(slugOrName?: string | null, isActive: 
 
   return {
     signalAccess: true, // All active paid packages have signal access
-    cryptoExecution: slug === 'crypto_personal_bot',
+    cryptoExecution: slug === 'crypto_personal_bot' || slug === 'crypto_prop_bot',
+    cryptoProp: slug === 'crypto_prop_bot',
     mt5Personal: slug === 'forex_mt5_personal_bot',
     mt5Prop: slug === 'forex_mt5_prop_bot',
     canConfigureBot: isBotPackage(slug),

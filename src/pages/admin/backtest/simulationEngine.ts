@@ -1647,13 +1647,52 @@ export async function runMultiAssetPipelineReplayAsync(
     };
   });
 
-  const categorySummaries: Record<AssetCategory, CategoryPerformanceSummary> = {
-    forex: compileCategorySummary('forex', 'Forex Majors & Crosses', trades, capitalPools.forex.capitalUsd),
-    metals: compileCategorySummary('metals', 'Precious Metals', trades, capitalPools.metals.capitalUsd),
-    crypto: compileCategorySummary('crypto', 'Crypto Perpetuals', trades, capitalPools.crypto.capitalUsd),
+  const totalPositiveR = (trades || []).filter((t) => t.pnl_r > 0).reduce((s, t) => s + t.pnl_r, 0);
+
+  const safePools: Record<AssetCategory, AssetCapitalPool> = {
+    forex: capitalPools?.forex || {
+      category: 'forex',
+      name: 'Forex Majors',
+      symbol: 'EURUSD',
+      capitalUsd: 50000,
+      riskPct: 0.5,
+      pipOrPointSize: 0.0001,
+      spreadPipsOrPts: 1.2,
+      decimals: 5,
+      fridayClose: true,
+      sessionFilter: true,
+    },
+    metals: capitalPools?.metals || {
+      category: 'metals',
+      name: 'Metals & Gold',
+      symbol: 'XAUUSD',
+      capitalUsd: 50000,
+      riskPct: 0.5,
+      pipOrPointSize: 0.01,
+      spreadPipsOrPts: 35.0,
+      decimals: 2,
+      fridayClose: true,
+      sessionFilter: false,
+    },
+    crypto: capitalPools?.crypto || {
+      category: 'crypto',
+      name: 'Crypto Perpetuals',
+      symbol: 'BTCUSDT',
+      capitalUsd: 50000,
+      riskPct: 0.5,
+      pipOrPointSize: 0.1,
+      spreadPipsOrPts: 15.0,
+      decimals: 2,
+      fridayClose: false,
+      sessionFilter: false,
+    },
   };
 
-  const totalPositiveR = trades.filter((t) => t.pnl_r > 0).reduce((s, t) => s + t.pnl_r, 0);
+  const categorySummaries: Record<AssetCategory, CategoryPerformanceSummary> = {
+    forex: compileCategorySummary('forex', 'Forex Majors & Crosses', safePools.forex, categoryBalances.forex, trades, totalPositiveR),
+    metals: compileCategorySummary('metals', 'Precious Metals', safePools.metals, categoryBalances.metals, trades, totalPositiveR),
+    crypto: compileCategorySummary('crypto', 'Crypto Perpetuals', safePools.crypto, categoryBalances.crypto, trades, totalPositiveR),
+  };
   const symbolSummaries: Record<string, SymbolPerformanceSummary> = {};
   Object.values(multiAssetFeeds).forEach((f) => {
     if (f && f.symbol && !symbolSummaries[f.symbol]) {
@@ -1683,9 +1722,12 @@ export function generateAICalibrationReport(
   const drawdownDiagnosis: string[] = [];
   const recommendations: StrategyTweakProposal[] = [];
 
+  const safeStrategyStats = Array.isArray(strategyStats) ? strategyStats : [];
+  const safeTrades = Array.isArray(trades) ? trades : [];
+
   // Identify loss drivers
-  const underperformers = strategyStats.filter((s) => s.executedTrades > 0 && s.totalR < 0);
-  const primePerformers = strategyStats.filter((s) => s.executedTrades > 0 && s.totalR > 0 && s.winRate >= 50);
+  const underperformers = safeStrategyStats.filter((s) => s && s.executedTrades > 0 && s.totalR < 0);
+  const primePerformers = safeStrategyStats.filter((s) => s && s.executedTrades > 0 && s.totalR > 0 && s.winRate >= 50);
 
   if (underperformers.length > 0) {
     underperformers.forEach((s) => {
@@ -1716,7 +1758,7 @@ export function generateAICalibrationReport(
     }
   });
 
-  if (trades.length === 0) {
+  if (safeTrades.length === 0) {
     lossDiagnosis.push('Zero trades triggered under current strict arbitration thresholds. Consider lowering min score to 75-80.');
   }
 
@@ -1824,10 +1866,11 @@ function compileCategorySummary(
   displayName: string,
   pool: AssetCapitalPool,
   balance: { netUsd: number; totalR: number; wins: number; losses: number; trades: number },
-  allTrades: BtTrade[],
-  totalPositiveR: number
+  allTrades: BtTrade[] = [],
+  totalPositiveR: number = 0
 ): CategoryPerformanceSummary {
-  const catTrades = allTrades.filter((t) => t.category === category);
+  const safeTrades = Array.isArray(allTrades) ? allTrades : [];
+  const catTrades = safeTrades.filter((t) => t && t.category === category);
   const totalTrades = catTrades.length;
   const wins = catTrades.filter((t) => t.pnl_r > 0).length;
   const losses = catTrades.filter((t) => t.pnl_r < 0).length;
@@ -1837,15 +1880,16 @@ function compileCategorySummary(
   const pf = grossL > 0 ? parseFloat((grossW / grossL).toFixed(2)) : grossW > 0 ? 99.9 : 0;
   const totalR = parseFloat(catTrades.reduce((s, t) => s + t.pnl_r, 0).toFixed(2));
   const netUsd = parseFloat(catTrades.reduce((s, t) => s + t.pnl_net_usd, 0).toFixed(2));
-  const returnPct = pool.capitalUsd > 0 ? parseFloat(((netUsd / pool.capitalUsd) * 100).toFixed(2)) : 0;
-  const endingCapitalUsd = parseFloat((pool.capitalUsd + netUsd).toFixed(2));
+  const capital = pool?.capitalUsd || 50000;
+  const returnPct = capital > 0 ? parseFloat(((netUsd / capital) * 100).toFixed(2)) : 0;
+  const endingCapitalUsd = parseFloat((capital + netUsd).toFixed(2));
   const alphaShare = totalPositiveR > 0 && totalR > 0 ? parseFloat(((totalR / totalPositiveR) * 100).toFixed(1)) : 0;
 
   return {
     category,
     displayName,
-    symbol: pool.symbol,
-    initialCapitalUsd: pool.capitalUsd,
+    symbol: pool?.symbol || (category === 'forex' ? 'EURUSD' : category === 'metals' ? 'XAUUSD' : 'BTCUSDT'),
+    initialCapitalUsd: capital,
     endingCapitalUsd,
     netUsd,
     returnPct,
@@ -1863,10 +1907,11 @@ function compileSymbolSummary(
   symbol: string,
   displayName: string,
   category: AssetCategory,
-  allTrades: BtTrade[],
-  totalPositiveR: number
+  allTrades: BtTrade[] = [],
+  totalPositiveR: number = 0
 ): SymbolPerformanceSummary {
-  const symTrades = allTrades.filter((t) => t.symbol === symbol);
+  const safeTrades = Array.isArray(allTrades) ? allTrades : [];
+  const symTrades = safeTrades.filter((t) => t && t.symbol === symbol);
   const totalTrades = symTrades.length;
   const wins = symTrades.filter((t) => t.pnl_r > 0).length;
   const losses = symTrades.filter((t) => t.pnl_r < 0).length;

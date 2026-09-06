@@ -161,6 +161,40 @@ export const ADMIN_PROP_PRESETS: Record<string, PropFirmPreset> = {
     newsTradingAllowed: false,
     maxLeverage: '5 E-mini Contracts',
   },
+  CRYPTO_FUND_TRADER: {
+    id: 'CRYPTO_FUND_TRADER',
+    name: 'Crypto Fund Trader (CFT $50k - $200k)',
+    provider: 'Crypto Fund Trader (Navarra, ES)',
+    badge: '24/7 Crypto Perpetuals',
+    phase1TargetPct: 8.0,
+    phase2TargetPct: 4.0,
+    maxDailyLossPct: 5.0,
+    maxTotalLossPct: 10.0,
+    minTradingDays: 3,
+    maxSingleDayProfitPct: 40.0,
+    dailyLossType: 'BALANCE_BASED',
+    payoutSplitPct: 85.0,
+    weekendHoldingAllowed: true,
+    newsTradingAllowed: true,
+    maxLeverage: '1:100 (BTC/ETH Perpetuals)',
+  },
+  HYRO_TRADER_CRYPTO: {
+    id: 'HYRO_TRADER_CRYPTO',
+    name: 'HyroTrader Crypto Prop ($25k - $100k)',
+    provider: 'HyroTrader (Bybit / Binance API)',
+    badge: 'Exchange Prop (90% Payout)',
+    phase1TargetPct: 10.0,
+    phase2TargetPct: 5.0,
+    maxDailyLossPct: 5.0,
+    maxTotalLossPct: 12.0,
+    minTradingDays: 4,
+    maxSingleDayProfitPct: 35.0,
+    dailyLossType: 'EQUITY_BASED',
+    payoutSplitPct: 90.0,
+    weekendHoldingAllowed: true,
+    newsTradingAllowed: true,
+    maxLeverage: '1:50',
+  },
 };
 
 // Realistic Historical Trade Signal Dataset (Simulating Market Regimes across Forex, Metals, Crypto & Indices)
@@ -277,6 +311,7 @@ export function PropClearanceLab({
     LondonBreakout: true,
     NYContinuation: true,
     SessionORB: true,
+    FXTrendPullback: true,
     CryptoCompressionBreakout: true,
     MacroYieldDifferential: true,
     FXMicroScalper: false, // scalp disabled by default for prop drawdown safety
@@ -470,6 +505,7 @@ export function PropClearanceLab({
       try {
         const horizonDays =
           horizon === '7d' ? 7 : horizon === '30d' ? 30 : horizon === '60d' ? 60 : horizon === '90d' ? 90 : horizon === '180d' ? 180 : 270;
+        const barsNeeded = horizonDays * 96;
 
         // 1. Gather all feeds
         let feedsToUse: Record<string, MultiAssetFeedItem> = { ...internalFeeds };
@@ -493,10 +529,10 @@ export function PropClearanceLab({
           }
         }
 
-        // Ensure default feeds exist as fallbacks
-        const defaultFeeds = createDefaultMultiAssetFeeds();
+        // Ensure default feeds exist as fallbacks with full horizon coverage
+        const defaultFeeds = createDefaultMultiAssetFeeds(barsNeeded);
         Object.keys(defaultFeeds).forEach((key) => {
-          if (!feedsToUse[key] || !feedsToUse[key].candles || feedsToUse[key].candles.length < 50) {
+          if (!feedsToUse[key] || !feedsToUse[key].candles || feedsToUse[key].candles.length < minBarsExpected) {
             feedsToUse[key] = defaultFeeds[key];
           }
         });
@@ -541,8 +577,8 @@ export function PropClearanceLab({
           },
         };
 
-        const activeStratNames = Object.keys(activeStrategies).filter(
-          (s) => activeStrategies[s] !== false
+        const activeStratNames = Object.keys(activeStrategies || {}).filter(
+          (s) => activeStrategies?.[s] !== false
         ) as StrategyName[];
 
         // Replay speed configuration
@@ -666,15 +702,30 @@ export function PropClearanceLab({
       feedRecord[f.category] = f;
     });
 
-    const defaultFeeds = createDefaultMultiAssetFeeds();
+    const horizonDays =
+      activeHorizon === '7d'
+        ? 7
+        : activeHorizon === '30d'
+        ? 30
+        : activeHorizon === '60d'
+        ? 60
+        : activeHorizon === '90d'
+        ? 90
+        : activeHorizon === '180d'
+        ? 180
+        : 270;
+    const barsNeeded = horizonDays * 96;
+    const minBarsExpected = activeHorizon === '270d' ? 9000 : activeHorizon === '180d' ? 6000 : activeHorizon === '90d' ? 4500 : activeHorizon === '60d' ? 3000 : activeHorizon === '30d' ? 1500 : 672;
+
+    const defaultFeeds = createDefaultMultiAssetFeeds(barsNeeded);
     Object.keys(defaultFeeds).forEach((key) => {
-      if (!feedRecord[key] || !feedRecord[key].candles || feedRecord[key].candles.length < 50) {
+      if (!feedRecord[key] || !feedRecord[key].candles || feedRecord[key].candles.length < minBarsExpected) {
         feedRecord[key] = defaultFeeds[key];
       }
     });
 
-    const activeStratNames = Object.keys(activeStrategies).filter(
-      (s) => activeStrategies[s] !== false
+    const activeStratNames = Object.keys(activeStrategies || {}).filter(
+      (s) => activeStrategies?.[s] !== false
     ) as StrategyName[];
 
     return runMultiAssetPipelineEngine(
@@ -689,6 +740,7 @@ export function PropClearanceLab({
       }
     );
   }, [
+    activeHorizon,
     activeRules.weekendHoldingAllowed,
     activeStrategies,
     feedItems,
@@ -1721,11 +1773,18 @@ export function PropClearanceLab({
               onChange={(e) => setSelectedPresetKey(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white font-semibold focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50"
             >
-              {Object.values(ADMIN_PROP_PRESETS).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              <optgroup label="── FOREX & METALS MT5 PROP FIRMS (Bridge Daemon) ──">
+                <option value="FTMO_STANDARD">FTMO Standard ($50k - $200k)</option>
+                <option value="FTMO_AGGRESSIVE">FTMO Aggressive ($50k - $100k)</option>
+                <option value="FUNDED_NEXT_STELLAR">FundedNext Stellar (2-Phase)</option>
+                <option value="THE_5ERS_HIGH_STAKES">The5ers High Stakes ($60k - $100k)</option>
+                <option value="ALPHA_CAPITAL_PRO">Alpha Capital / MFF Pro</option>
+                <option value="TOPSTEP_FUTURES">Topstep Trading Combine (Futures)</option>
+              </optgroup>
+              <optgroup label="── 24/7 CRYPTO PROP FIRMS (Cloud API - Zero Bridge) ──">
+                <option value="CRYPTO_FUND_TRADER">Crypto Fund Trader (CFT - 24/7 Perpetuals)</option>
+                <option value="HYRO_TRADER_CRYPTO">HyroTrader Crypto Prop (Exchange API)</option>
+              </optgroup>
             </select>
             <div className="text-[10px] text-slate-500 flex justify-between">
               <span>{activeRules.provider}</span>

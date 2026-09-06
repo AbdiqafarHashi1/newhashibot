@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { CTraderAccount, CTraderExecutionMode } from './exchange/ctrader';
 import { getLocalCustomerAccounts, saveLocalCustomerAccount, removeLocalCustomerAccount } from './customerAccountManager';
+export { getConnectedCTraderAccounts } from './ctraderLiveEngine';
 
 export interface CTraderAccountActionResult {
   httpStatus: number;
@@ -222,7 +223,7 @@ export async function testCTraderConnection(accountId: string): Promise<{
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
-        ok: true,
+        ok: Boolean(accountId),
         latencyMs: Math.floor(Math.random() * 8) + 12, // 12-20ms ultra-low latency cTrader connection
         serverTime: new Date().toISOString(),
         broker: 'cTrader Spotware Cloud Gateway',

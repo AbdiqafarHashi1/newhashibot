@@ -31,7 +31,7 @@ export default function Pricing() {
     if (slug === 'free_preview') return '0';
     if (slug === 'crypto_signal_room') return isWeeklySignal ? '1200' : '3500';
     if (slug === 'forex_mt5_personal_bot' || slug === 'crypto_personal_bot') return '8500';
-    if (slug === 'forex_mt5_prop_bot') return '12500';
+    if (slug === 'forex_mt5_prop_bot' || slug === 'crypto_prop_bot') return '12500';
     return '3500';
   };
 
@@ -251,8 +251,8 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* 3-Tier Grid + Free Trial Banner */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        {/* 4-Tier Grid + Free Trial Banner */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {/* TIER 1: VIP Signal Room */}
           {(() => {
             const pkg = packages.find(p => p.slug === 'crypto_signal_room') || PUBLIC_PACKAGES[1];
@@ -488,6 +488,74 @@ export default function Pricing() {
               </div>
             );
           })()}
+
+          {/* TIER 4: Crypto Prop Pass Master */}
+          {(() => {
+            const pkg = packages.find(p => p.slug === 'crypto_prop_bot') || PUBLIC_PACKAGES[4];
+            const isSelected = formData.packageSlug === 'crypto_prop_bot';
+            const price = priceLabel(pkg, currency);
+
+            return (
+              <div 
+                id="plan-crypto_prop_bot"
+                className={`relative bg-zinc-900/90 border rounded-2xl p-6 flex flex-col justify-between space-y-6 transition-all ${
+                  isSelected
+                    ? 'border-purple-500 ring-2 ring-purple-500/50 bg-purple-950/20 shadow-2xl shadow-purple-950/50 scale-[1.02]'
+                    : 'border-purple-500/40 hover:border-purple-500/80 shadow-lg shadow-purple-950/20'
+                }`}
+              >
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-indigo-500 text-white text-[10px] font-bold px-3.5 py-0.5 rounded-full uppercase tracking-wider shadow-md whitespace-nowrap">
+                  24/7 Crypto Challenges
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-extrabold text-lg text-white">{pkg.name}</h3>
+                    <span className="text-[10px] font-bold rounded-full px-2.5 py-0.5 border bg-purple-500/10 text-purple-300 border-purple-500/20">
+                      4.0% Circuit Lock
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="text-3xl font-extrabold text-white">{price.main}</div>
+                    <div className="text-xs text-zinc-400 font-mono mt-0.5">{price.period}</div>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 leading-relaxed">{pkg.description}</p>
+
+                  <ul className="space-y-2.5 text-xs text-zinc-300 pt-3 border-t border-zinc-800">
+                    {pkg.features.map(feature => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <CheckCircle size={15} className="text-purple-400 shrink-0 mt-0.5" />
+                        <span className="leading-tight">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <button
+                    onClick={() => handleSelectAndJumpToPayment('crypto_prop_bot')}
+                    className={`w-full py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30'
+                        : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20'
+                    }`}
+                  >
+                    <span>{isSelected ? '✓ Plan Selected — Pay Below' : 'Select & Pay via M-Pesa'}</span>
+                    <ArrowRight size={14} />
+                  </button>
+
+                  <Link
+                    to={session ? `/app/package-request?package=crypto_prop_bot` : `/register?package=crypto_prop_bot`}
+                    className="w-full py-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-center transition-colors block"
+                  >
+                    {session ? 'Activate in Customer Dashboard →' : 'Sign up for this plan →'}
+                  </Link>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Free 7-Day Preview Banner */}
@@ -711,7 +779,8 @@ export default function Pricing() {
                     >
                       <option value="crypto_signal_room">VIP Signal Room (3,500 KES/mo or 1,200 KES/week)</option>
                       <option value="forex_mt5_personal_bot">Personal Auto-Bot (8,500 KES/mo or $65)</option>
-                      <option value="forex_mt5_prop_bot">Prop Pass Master (12,500 KES/mo or $95)</option>
+                      <option value="forex_mt5_prop_bot">Forex &amp; Metals Prop Pass Master (12,500 KES/mo or $95)</option>
+                      <option value="crypto_prop_bot">Crypto Prop Pass Master (12,500 KES/mo or $95)</option>
                       <option value="free_preview">Free 7-Day Preview (0 KES)</option>
                     </select>
                   </div>

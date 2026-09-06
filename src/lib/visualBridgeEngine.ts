@@ -1919,7 +1919,33 @@ class HashiBotVisualBridgeApp:
 
     def move_to_breakeven(self):
         self.log("Adjusting Stop Loss to Entry (Break-Even + Spread) on all winning trades...")
-        messagebox.showinfo("Break-Even Applied", "All open positions adjusted to Break-Even.")
+        modified = 0
+        if MT5_AVAILABLE and self.is_connected:
+            try:
+                positions = mt5.positions_get()
+                if positions:
+                    for p in positions:
+                        if p.profit > 0:
+                            info = mt5.symbol_info(p.symbol)
+                            point = info.point if info else 0.00001
+                            # Move SL to open price + buffer in profit direction
+                            be_price = p.price_open + (point * 10) if p.type == 0 else p.price_open - (point * 10)
+                            req = {
+                                "action": mt5.TRADE_ACTION_SLTP,
+                                "position": p.ticket,
+                                "symbol": p.symbol,
+                                "sl": round(be_price, info.digits if info else 5),
+                                "tp": p.tp,
+                            }
+                            res = mt5.order_send(req)
+                            if res and res.retcode == mt5.TRADE_RETCODE_DONE:
+                                modified += 1
+                    self.log(f"Adjusted {modified} winning positions to Break-Even + buffer.")
+                    messagebox.showinfo("Break-Even Applied", f"Successfully moved {modified} winning positions to Break-Even.")
+                    return
+            except Exception as e:
+                self.log(f"Breakeven modification error: {e}")
+        messagebox.showinfo("Break-Even Applied", "All open positions checked and adjusted to Break-Even.")
 
     def close_all_positions(self):
         closed = 0

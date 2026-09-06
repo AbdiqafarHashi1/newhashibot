@@ -88,7 +88,6 @@ export class SupabaseCTraderGateway implements CTraderGateway {
 
     if (error || !data) {
       // Canonical fallback specs for major instruments
-      const isForex = canonicalSymbol.includes('USD') || canonicalSymbol.includes('EUR') || canonicalSymbol.includes('GBP') || canonicalSymbol.includes('JPY');
       const isGold = canonicalSymbol.includes('XAU') || canonicalSymbol.includes('GOLD');
       const isCrypto = canonicalSymbol.includes('BTC') || canonicalSymbol.includes('ETH') || canonicalSymbol.includes('SOL');
 

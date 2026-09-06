@@ -5,6 +5,7 @@ import {
   AccountCategory,
   ExecutionProfileMode
 } from './visualBridgeEngine';
+import { getConnectedCTraderAccounts } from './ctraderLiveEngine';
 
 export interface UnifiedCustomerAccount {
   id: string;
@@ -179,6 +180,45 @@ export async function getAllFleetCustomerAccounts(currentUserId?: string, curren
       processedKeys.add(acc.id);
       processedKeys.add(acc.userId);
       processedKeys.add(acc.userEmail);
+    }
+  }
+
+  // 2b. Add Connected cTrader Accounts (Spotware Open API / Bridge)
+  const ctraderAccounts = getConnectedCTraderAccounts();
+  for (const ct of ctraderAccounts) {
+    const accNum = String(ct.accountNumberFull || ct.accountNumberMasked || ct.id);
+    if (!processedKeys.has(accNum) && !processedKeys.has(ct.id)) {
+      const isProp = ct.accountType === 'prop';
+      const isConnected = ct.connectionStatus === 'connected';
+      accounts.push({
+        id: ct.id,
+        userId: ct.userId || 'usr-ctrader-02',
+        userEmail: `${ct.broker.toLowerCase().replace(/\s+/g, '')}@hashibot.vip`,
+        userName: ct.nickname || `${ct.broker} cTrader`,
+        platform: 'ctrader',
+        accountNumber: accNum,
+        brokerOrExchange: `${ct.broker} cTrader`,
+        accountCategory: isProp ? '50k_prop' : 'forex_growth_personal',
+        executionMode: isProp ? 'prop_firm_guardian' : 'account_growth_accelerator',
+        accountSize: ct.balance,
+        balance: ct.balance,
+        equity: ct.equity,
+        floatingPnl: ct.equity - ct.balance,
+        dailyDrawdownPercent: 0,
+        dailyDrawdownLimitPercent: ct.maxDailyLossPct || 5.0,
+        riskPercentPerTrade: isProp ? 0.5 : 1.5,
+        maxConcurrentTrades: isProp ? 2 : 4,
+        maxLeverage: ct.leverage || 100,
+        autoTradingEnabled: isConnected && ct.executionEnabled,
+        connectionState: isConnected ? 'connected' : 'disconnected',
+        latencyMs: 8,
+        isRealUserAccount: true,
+        assignedTier: `${ct.broker} $${(ct.balance / 1000).toFixed(0)}k ${isProp ? 'Prop Guardian' : 'Live'}`,
+        activePositionsCount: ct.openPositions?.length || 0,
+        lastHeartbeat: ct.lastSyncAt || new Date().toISOString(),
+      });
+      processedKeys.add(accNum);
+      processedKeys.add(ct.id);
     }
   }
 

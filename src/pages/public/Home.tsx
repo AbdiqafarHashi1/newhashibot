@@ -3,7 +3,7 @@ import { PublicLayout } from '../../components/layout/PublicLayout';
 import { 
   ArrowRight, Shield, ShieldCheck, Activity, Cpu, CheckCircle2, 
   Terminal, Zap, Layers, BarChart2, Check,
-  CreditCard, Search, Lock, HelpCircle, TrendingUp
+  CreditCard, Search, Lock, HelpCircle, TrendingUp, FlaskConical, Sparkles
 } from 'lucide-react';
 
 const markets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'EURUSD', 'GBPUSD', 'XAUUSD', 'US30'];
@@ -143,14 +143,14 @@ export default function Home() {
       <section id="product-modes" className="py-20 px-4 sm:px-6 bg-zinc-900/40 border-y border-zinc-800/80 scroll-mt-20">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Four Execution Products</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Five Execution Products</div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white">Choose Your Operational Product</h2>
             <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
-              Select structured manual signals, automated crypto execution, personal MT5 broker bridge, or prop firm challenge automation.
+              Select structured manual signals, automated crypto execution, personal MT5 broker bridge, Forex prop automation, or 24/7 cloud crypto prop challenges.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
             
             {/* 1. AI Signals */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-blue-500/50 transition-colors shadow-xl">
@@ -209,10 +209,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 2. Crypto Automation */}
+            {/* 2. Crypto Automation (Personal) */}
             <div className="bg-zinc-900 border border-blue-500/40 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-blue-500 transition-colors shadow-2xl relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
-                Popular Choice
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                Personal Exchange
               </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -230,14 +230,14 @@ export default function Home() {
                   <div className="text-xl font-bold text-white">
                     8,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($65 USD)</span>
                   </div>
-                  <div className="text-[11px] text-blue-400 font-medium mt-0.5">
-                    Includes full VIP Signal Room access
+                  <div className="text-[11px] text-cyan-400 font-medium mt-0.5">
+                    Pure API & Secret • Zero Bridge Needed
                   </div>
                 </div>
                 <ul className="space-y-2 text-xs text-zinc-300">
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
-                    <span>Includes full VIP Signal Room access</span>
+                    <span>100% Cloud API & Secret (No PC bridge needed)</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
@@ -245,11 +245,11 @@ export default function Home() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
-                    <span>Auto position sizing & risk controls</span>
+                    <span>Dynamic lot compounding & growth mode</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
-                    <span>Write-only secrets & IP whitelisting</span>
+                    <span>Includes full VIP Signal Room access</span>
                   </li>
                 </ul>
               </div>
@@ -288,7 +288,7 @@ export default function Home() {
                     8,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($65 USD)</span>
                   </div>
                   <div className="text-[11px] text-purple-400 font-medium mt-0.5">
-                    Gold, Silver, FX Majors & Minors
+                    Windows MT5 Visual Bridge Agent
                   </div>
                 </div>
                 
@@ -307,7 +307,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
-                    <span>Operations Center telemetry stream</span>
+                    <span>Gold, Silver, FX Majors & Minors</span>
                   </li>
                 </ul>
               </div>
@@ -327,10 +327,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 4. MT5 Prop Pass Master */}
+            {/* 4. MT5 Forex Prop Pass Master */}
             <div className="bg-zinc-900 border border-amber-500/50 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-amber-400 transition-colors shadow-2xl relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-600 to-amber-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-md">
-                Prop Firm Specialist
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-600 to-amber-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-md whitespace-nowrap">
+                Forex Prop Specialist
               </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -341,8 +341,8 @@ export default function Home() {
                   <ShieldCheck size={18} className="text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white">Prop Pass Master</h3>
-                  <p className="text-xs text-zinc-400 mt-1">Built specifically for passing and maintaining funded challenge accounts.</p>
+                  <h3 className="text-lg font-extrabold text-white">Forex Prop Pass Master</h3>
+                  <p className="text-xs text-zinc-400 mt-1">Built specifically for passing and maintaining funded MT5 challenge accounts.</p>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-white">
@@ -377,13 +377,74 @@ export default function Home() {
                   to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
                   className="w-full text-center bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-amber-600/20 block"
                 >
-                  Get Prop Pass Bot (12,500 KES) →
+                  Get Forex Prop (12,500 KES) →
                 </Link>
                 <Link
                   to="/prop-ea"
                   className="w-full text-center text-amber-400/80 hover:text-amber-300 text-xs py-1 block transition-colors font-medium"
                 >
-                  View Prop Firm Safeguards & Rules
+                  View Prop Firm Safeguards
+                </Link>
+              </div>
+            </div>
+
+            {/* 5. Crypto Prop Pass Master */}
+            <div className="bg-zinc-900 border border-purple-500/50 rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-purple-400 transition-colors shadow-2xl relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-indigo-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-md whitespace-nowrap">
+                24/7 Crypto Challenges
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                    <ShieldCheck size={12} className="text-purple-400" />
+                    CFT & HyroTrader
+                  </span>
+                  <Activity size={18} className="text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">Crypto Prop Pass Master</h3>
+                  <p className="text-xs text-zinc-400 mt-1">24/7 perpetual challenge automation via direct exchange API keys.</p>
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-white">
+                    12,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($95 USD)</span>
+                  </div>
+                  <div className="text-[11px] text-purple-300 font-medium mt-0.5">
+                    Pure API & Secret • Zero Bridge Needed
+                  </div>
+                </div>
+                
+                <ul className="space-y-2 text-xs text-zinc-300">
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-purple-400 shrink-0" />
+                    <span>Pure Cloud API & Secret (Zero desktop bridge)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-purple-400 shrink-0" />
+                    <span>Crypto Fund Trader, HyroTrader, Bybit Prop</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-purple-400 shrink-0" />
+                    <span>24/7 Weekend holding active (no Friday cutoff)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={13} className="text-purple-400 shrink-0" />
+                    <span>4.0% daily circuit lock & 50% TP1 partials</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-2 pt-2">
+                <Link
+                  to="/pricing?package=crypto_prop_bot#mpesa-payment-section"
+                  className="w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/20 block"
+                >
+                  Get Crypto Prop (12,500 KES) →
+                </Link>
+                <Link
+                  to="/results#interactive-backtester"
+                  className="w-full text-center text-purple-400 hover:text-purple-300 text-xs py-1 block transition-colors font-medium"
+                >
+                  Backtest Crypto Prop Rules →
                 </Link>
               </div>
             </div>
@@ -393,32 +454,38 @@ export default function Home() {
       </section>
 
       {/* 3. Prop Firm Passing Engine Feature Showcase */}
-      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto">
-        <div className="bg-gradient-to-r from-amber-950/40 via-zinc-900 to-amber-950/20 border border-amber-500/30 rounded-3xl p-8 sm:p-12 space-y-8 relative overflow-hidden shadow-2xl">
+      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-8">
+        <div className="bg-gradient-to-r from-amber-950/40 via-zinc-900 to-purple-950/30 border border-amber-500/30 rounded-3xl p-8 sm:p-12 space-y-8 relative overflow-hidden shadow-2xl">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            <div className="space-y-4 max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3.5 py-1 text-xs text-amber-400 font-bold uppercase tracking-wider">
-                <ShieldCheck size={14} />
-                Prop Firm Challenge Engine
+            <div className="space-y-4 max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3.5 py-1 text-xs text-amber-400 font-bold uppercase tracking-wider">
+                  <ShieldCheck size={14} />
+                  Forex & Crypto Prop Engine
+                </span>
+                <span className="inline-flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full px-3 py-1 text-xs text-purple-300 font-bold uppercase tracking-wider">
+                  <Zap size={13} />
+                  Zero Bridge for Crypto Prop
+                </span>
               </div>
               <h2 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
-                Designed for FTMO, FundedNext & 5ers Challenges
+                Forex (FTMO) & 24/7 Crypto Prop (CFT, HyroTrader) Challenges
               </h2>
               <p className="text-sm text-zinc-300 leading-relaxed">
-                Prop firm challenges fail from emotional revenge trading and daily drawdown breaches. HashiBot&apos;s Prop Pass Master locks your account with mathematical equity fences, automated 1R break-even triggers, and zero overnight news exposure.
+                Prop firm challenges fail from revenge trading, uncontrolled slippage, and daily drawdown breaches. HashiBot enforces mathematical equity fences, automated 1R break-even triggers, and verified risk caps across both traditional MT5 prop firms and modern 24/7 crypto prop challenges.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">
-                  <div className="text-amber-400 font-bold text-base font-mono">4.0% Max Daily</div>
-                  <div className="text-zinc-400 text-xs mt-0.5">Automated circuit breaker halts trading on daily limit reach.</div>
+                  <div className="text-amber-400 font-bold text-base font-mono">4.0% Daily Loss Gate</div>
+                  <div className="text-zinc-400 text-xs mt-0.5">Automated circuit breaker halts trading on daily limit reach before prop breach.</div>
                 </div>
                 <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">
-                  <div className="text-amber-400 font-bold text-base font-mono">0.25% - 0.75%</div>
-                  <div className="text-zinc-400 text-xs mt-0.5">Conservative lot allocation dynamically scaled to balance.</div>
+                  <div className="text-purple-400 font-bold text-base font-mono">Cloud API • Zero Bridge</div>
+                  <div className="text-zinc-400 text-xs mt-0.5">Crypto Prop (CFT & HyroTrader) executes 24/7 in the cloud with just API & Secret.</div>
                 </div>
                 <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">
-                  <div className="text-amber-400 font-bold text-base font-mono">100% Rules Safe</div>
-                  <div className="text-zinc-400 text-xs mt-0.5">No toxic Martingale, no grid hedging, no weekend violations.</div>
+                  <div className="text-emerald-400 font-bold text-base font-mono">100% Rules Safe</div>
+                  <div className="text-zinc-400 text-xs mt-0.5">Automated partial profit taking (50% TP1), break-even lock, zero Martingale.</div>
                 </div>
               </div>
             </div>
@@ -427,16 +494,51 @@ export default function Home() {
                 to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
                 className="w-full text-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-xl shadow-amber-600/30 flex items-center justify-center gap-2"
               >
-                <span>Deploy Prop Bot (12,500 KES)</span>
+                <span>Deploy Forex Prop Bot</span>
                 <ArrowRight size={14} />
               </Link>
               <Link
-                to="/prop-ea"
-                className="w-full text-center bg-zinc-950 border border-zinc-800 hover:border-amber-500/50 text-zinc-300 hover:text-white font-semibold text-xs py-3 rounded-xl transition-colors"
+                to="/pricing?package=crypto_prop_bot#mpesa-payment-section"
+                className="w-full text-center bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2"
               >
-                Explore Prop Rules & Fences →
+                <span>Deploy Crypto Prop Bot</span>
+                <ArrowRight size={14} />
+              </Link>
+              <Link
+                to="/results#interactive-backtester"
+                className="w-full text-center bg-zinc-950 border border-zinc-800 hover:border-amber-500/50 text-zinc-300 hover:text-white font-semibold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+              >
+                <FlaskConical size={14} className="text-amber-400" />
+                <span>Simulate Prop Backtest →</span>
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Interactive Backtest Banner on Home */}
+        <div className="bg-zinc-900 border border-zinc-800 hover:border-blue-500/40 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all shadow-xl">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                <FlaskConical size={20} />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Challenge Clearance Lab</span>
+            </div>
+            <h3 className="text-lg sm:text-2xl font-extrabold text-white">
+              Backtest Real Prop Firm Rules Before Risking Challenge Fees
+            </h3>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
+              Run interactive historical replay simulations for <strong>Crypto Fund Trader, HyroTrader, FTMO, and FundedNext</strong>. Verify how HashiBot&apos;s partial profit-taking and trailing drawdown circuit breaker protect your evaluation phase.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+            <Link
+              to="/results#interactive-backtester"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-lg shadow-blue-600/20"
+            >
+              <Sparkles size={14} />
+              <span>Launch Crypto & MT5 Prop Simulator</span>
+            </Link>
           </div>
         </div>
       </section>

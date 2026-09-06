@@ -1,7 +1,7 @@
 import { PackageCapability, slugFromPackageValue } from './packages';
 import { CustomerBotSetup } from './types';
 
-export type BotType = 'crypto_personal' | 'forex_mt5_personal' | 'forex_mt5_prop';
+export type BotType = 'crypto_personal' | 'forex_mt5_personal' | 'forex_mt5_prop' | 'crypto_prop';
 export type CapitalMode = 'personal' | 'prop';
 export type BotSetupStatus = 'not_configured' | 'setup_requested' | 'pending_admin_setup' | 'configured' | 'paused' | 'running' | 'disabled';
 export type RiskPreset = 'Conservative' | 'Balanced' | 'Aggressive' | 'Prop Safe';
@@ -31,19 +31,23 @@ export function botTypeFromPackage(slugOrName?: string | null): BotType | null {
   if (slug === 'crypto_personal_bot') return 'crypto_personal';
   if (slug === 'forex_mt5_personal_bot') return 'forex_mt5_personal';
   if (slug === 'forex_mt5_prop_bot') return 'forex_mt5_prop';
+  if (slug === 'crypto_prop_bot') return 'crypto_prop';
   return null;
 }
 
 export function capitalModeFromPackage(slugOrName?: string | null): CapitalMode {
-  return slugFromPackageValue(slugOrName) === 'forex_mt5_prop_bot' ? 'prop' : 'personal';
+  const slug = slugFromPackageValue(slugOrName);
+  return (slug === 'forex_mt5_prop_bot' || slug === 'crypto_prop_bot') ? 'prop' : 'personal';
 }
 
 export function defaultBotRiskPreset(slugOrName?: string | null): RiskPreset {
-  return slugFromPackageValue(slugOrName) === 'forex_mt5_prop_bot' ? 'Prop Safe' : 'Conservative';
+  const slug = slugFromPackageValue(slugOrName);
+  return (slug === 'forex_mt5_prop_bot' || slug === 'crypto_prop_bot') ? 'Prop Safe' : 'Conservative';
 }
 
 export function riskOptionsForPackage(slugOrName?: string | null): RiskPreset[] {
-  return slugFromPackageValue(slugOrName) === 'forex_mt5_prop_bot' ? PROP_RISK_PRESETS : PERSONAL_RISK_PRESETS;
+  const slug = slugFromPackageValue(slugOrName);
+  return (slug === 'forex_mt5_prop_bot' || slug === 'crypto_prop_bot') ? PROP_RISK_PRESETS : PERSONAL_RISK_PRESETS;
 }
 
 export function splitSymbols(value: string) {

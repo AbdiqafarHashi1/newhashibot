@@ -1,5 +1,3 @@
-import { supabase } from './supabase';
-
 export interface LiveCTraderAccountState {
   id: string;
   userId?: string;

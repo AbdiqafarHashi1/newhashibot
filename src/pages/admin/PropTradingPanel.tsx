@@ -378,8 +378,12 @@ function AccountForm({
           <label className="text-xs text-zinc-500 block mb-1">Firm</label>
           <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-blue-500"
             value={form.firm_name ?? 'bybit_prop'} onChange={e => set('firm_name', e.target.value)}>
+            <option value="crypto_fund_trader">Crypto Fund Trader (CFT)</option>
+            <option value="hyrotrader">HyroTrader (Crypto Prop)</option>
             <option value="bybit_prop">Bybit Prop</option>
             <option value="ftmo">FTMO</option>
+            <option value="fundednext">FundedNext</option>
+            <option value="the5ers">The5ers</option>
             <option value="myfundedfx">MyFundedFX</option>
             <option value="topstep">TopStep</option>
             <option value="other">Other</option>
