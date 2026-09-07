@@ -10,6 +10,8 @@ assert.equal(noTrade.arbitration.decision, "NO_TRADE");
 assert.equal(noTrade.approved_strategy_plan, null);
 assert.deepEqual(noTrade.accounts, []);
 assert.ok(Object.isFrozen(noTrade));
+const suppliedNoTrade = runCertifiedRuntime({ candidates: [], strategy_plans: {}, arbitration: { now }, arbitration_result: { ...noTrade.arbitration }, accounts: [] });
+assert.equal(suppliedNoTrade.arbitration.decision, "NO_TRADE", "scanner-supplied NO_TRADE decisions must return safely without a winner");
 
 const allocation = upstream("BINANCE");
 const execution = planExecution(context(allocation, cryptoSpec("BINANCE")));
@@ -36,7 +38,7 @@ assert.ok(migration.includes("create table if not exists public.certified_strate
 const scanner = readFileSync("supabase/functions/market-scanner/index.ts", "utf8");
 const binanceExecutor = readFileSync("supabase/functions/binance-testnet-execution/index.ts", "utf8");
 const mt5Bridge = readFileSync("supabase/functions/mt5-bridge/index.ts", "utf8");
-assert.ok(scanner.includes('reason: "certified_execution_plan_required"'));
+assert.ok(!scanner.includes("tryAutoExecuteTestnet"), "scanner only adopts certified execution plans");
 assert.ok(scanner.includes('.from("certified_strategy_plans").insert'), "arbitrator winner StrategyPlan is actively persisted");
 assert.ok(scanner.includes("certified_strategy_plan_persistence_failed"), "winner persistence fails closed");
 assert.ok(!scanner.slice(scanner.indexOf("async function tryAutoExecuteTestnet"), scanner.indexOf("// ─── Heartbeat updater")).includes("fetch("), "scanner cannot invoke a legacy executor");

@@ -232,11 +232,11 @@ export class TelegramChannelRegistry {
       case "VIP_SIGNAL":
         return ["vip"];
       case "VIP_EXECUTION":
-        return ["vip", "admin"];
+        return ["vip_execution"];
       case "ALL_MEMBERS":
         return ["free", "vip", "admin"];
       case "ANALYTICS":
-        return ["admin"];
+        return ["analytics"];
       case "CUSTOMER_DIRECT":
         return ["customer_direct"];
       case "ADMIN_AND_CUSTOMER":

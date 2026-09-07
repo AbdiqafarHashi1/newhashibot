@@ -44,7 +44,9 @@ export type CertifiedRuntimeResult = DeepReadonly<{
  */
 export function runCertifiedRuntime(input: CertifiedRuntimeInput): CertifiedRuntimeResult {
   const arbitration = input.arbitration_result ?? arbitrate(input.candidates, input.arbitration);
-  if (input.arbitration_result && !input.candidates.some((candidate) => candidate.id === input.arbitration_result?.winner?.id)) throw new Error("arbitration_result_not_in_candidate_snapshot");
+  // A supplied NO_TRADE decision has no winner by design. Validate lineage only
+  // when an external decision actually selected a candidate.
+  if (input.arbitration_result?.winner && !input.candidates.some((candidate) => candidate.id === input.arbitration_result.winner?.id)) throw new Error("arbitration_result_not_in_candidate_snapshot");
   if (arbitration.decision === "NO_TRADE" || !arbitration.winner) {
     return deepFreeze({ schema_version: CERTIFIED_RUNTIME_VERSION, arbitration, approved_strategy_plan: null, accounts: [] });
   }

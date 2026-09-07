@@ -153,7 +153,7 @@ async function runPhase7A2ATests() {
   assert(!compViolation.compliant && compViolation.violation !== undefined, "Non-compliant text should be caught");
 
   const cta1 = getContextualCTA("after_tp1");
-  assert(cta1.includes("VIP Signals"), "Contextual CTA for TP1 should contain VIP invitation");
+  assert(cta1.includes("UPGRADE TO HASHIBOT VIP"), "Contextual CTA for TP1 should contain VIP invitation");
 
   const antiSpamAllowed = await checkAntiSpamLimits(mockSupabase, "free");
   assert(antiSpamAllowed.allowed, "Fresh channel should pass anti-spam check");
@@ -193,7 +193,7 @@ async function runPhase7A2ATests() {
     timestamp: new Date().toISOString(),
   });
   assert(previewRender.includes("HASHIBOT FREE SETUP PREVIEW"), "Preview mode header rendered correctly");
-  assert(previewRender.includes("locked in Preview Mode"), "Preview mode lock note rendered correctly");
+  assert(previewRender.includes("locked in Free Preview"), "Preview mode lock note rendered correctly");
 
   const fullFreeRender = renderFreeChannelSignalTemplate({
     eventType: "FREE_SELECTED_SIGNAL",

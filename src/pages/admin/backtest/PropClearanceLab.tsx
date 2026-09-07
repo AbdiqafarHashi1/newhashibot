@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Trophy,
   ShieldCheck,
@@ -37,7 +37,8 @@ import {
   type PipelineEngineResult,
 } from './simulationEngine';
 import { StrategyName } from '../StrategyConfig';
-import { createDefaultMultiAssetFeeds, PIPELINE_UNIVERSE } from './syntheticData';
+import { PIPELINE_UNIVERSE } from './syntheticData';
+import { parseBrokerOhlcv } from '../../../lib/backtest/brokerCsv';
 
 // Comprehensive Prop Firm Rule Definitions
 export interface PropFirmPreset {
@@ -417,6 +418,9 @@ export function PropClearanceLab({
   const [replaySpeed, setReplaySpeed] = useState<'smooth' | 'fast' | 'turbo'>('fast');
   const [replayProgress, setReplayProgress] = useState<ReplayProgressState | null>(null);
   const [pipelineExecutionResult, setPipelineExecutionResult] = useState<PipelineEngineResult | null>(null);
+  const [uploadedFeeds, setUploadedFeeds] = useState<Record<string, MultiAssetFeedItem>>({});
+  const [datasetStatus, setDatasetStatus] = useState('No broker dataset loaded. Import MT4/MT5 or exchange OHLCV CSV files before a clearance verdict.');
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   // Sync activeHorizon when parent selectedRange changes
   useEffect(() => {
@@ -444,54 +448,35 @@ export function PropClearanceLab({
       .catch((e) => console.warn('Could not fetch MT5 accounts in Prop Lab:', e));
   }, []);
 
-  // Sync universe real bars across all symbols in PIPELINE_UNIVERSE
-  const syncUniverseRealBars = useCallback(async (horizon: string, interval: string = '15m') => {
-    const results = await Promise.all(
-      PIPELINE_UNIVERSE.map(async (inst) => {
-        try {
-          const resp = await fetch(
-            `/api/market-data/history?symbol=${inst.symbol}&interval=${interval}&assetClass=${inst.category}&range=${horizon}&limit=1000`
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data.candles && data.candles.length >= 20) {
-              return {
-                category: inst.category,
-                symbol: inst.symbol,
-                displayName: inst.displayName,
-                assetClass: inst.assetClass,
-                pipOrPointSize: inst.pipOrPointSize,
-                spreadPipsOrPts: inst.spreadPipsOrPts,
-                decimals: inst.decimals,
-                fridayWeekendClose: inst.fridayWeekendClose,
-                enforceSessionWindows: inst.enforceSessionWindows,
-                candles: data.candles,
-                count: data.candles.length,
-                status: 'ready' as const,
-                source: data.source || 'live_feed',
-                lastUpdated: new Date().toLocaleTimeString(),
-              };
-            }
-          }
-        } catch (err) {
-          console.warn(`Failed to fetch live feed for ${inst.symbol}:`, err);
-        }
-        return null;
-      })
-    );
-
-    const newRecord: Record<string, MultiAssetFeedItem> = {};
-    results.forEach((item) => {
-      if (item) {
-        newRecord[item.symbol] = item;
-      }
-    });
-
-    if (newRecord['EURUSD']) newRecord['forex'] = newRecord['EURUSD'];
-    if (newRecord['XAUUSD']) newRecord['metals'] = newRecord['XAUUSD'];
-    if (newRecord['BTCUSDT']) newRecord['crypto'] = newRecord['BTCUSDT'];
-
-    return newRecord;
+  const importPropDatasets = useCallback(async (files: FileList | File[]) => {
+    const imported: Record<string, MultiAssetFeedItem> = {};
+    for (const file of Array.from(files)) {
+      const filename = file.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const instrument = PIPELINE_UNIVERSE.find((item) => filename.includes(item.symbol));
+      if (!instrument) throw new Error(`${file.name}: symbol is not recognized. Name the file with a supported symbol such as EURUSD, XAUUSD, BTCUSDT, ETHUSDT, or SOLUSDT.`);
+      const candles = parseBrokerOhlcv(await file.text());
+      if (candles.length < 100) throw new Error(`${file.name}: at least 100 valid OHLC bars are required.`);
+      imported[instrument.symbol] = {
+        category: instrument.category,
+        symbol: instrument.symbol,
+        displayName: instrument.displayName,
+        assetClass: instrument.assetClass,
+        pipOrPointSize: instrument.pipOrPointSize,
+        spreadPipsOrPts: instrument.spreadPipsOrPts,
+        decimals: instrument.decimals,
+        fridayWeekendClose: instrument.fridayWeekendClose,
+        enforceSessionWindows: instrument.enforceSessionWindows,
+        candles,
+        count: candles.length,
+        status: 'ready',
+        source: `uploaded_broker_csv:${file.name}`,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+    const categories: Partial<Record<AssetCategory, string>> = { forex: 'EURUSD', metals: 'XAUUSD', crypto: 'BTCUSDT' };
+    for (const [category, symbol] of Object.entries(categories)) if (imported[symbol]) imported[category] = imported[symbol];
+    setUploadedFeeds((previous) => ({ ...previous, ...imported }));
+    setDatasetStatus(`Imported ${Object.values(imported).filter((feed, index, all) => all.findIndex((other) => other.symbol === feed.symbol) === index).length} broker dataset(s): ${Object.values(imported).filter((feed, index, all) => all.findIndex((other) => other.symbol === feed.symbol) === index).map((feed) => `${feed.symbol} (${feed.count.toLocaleString()} bars)`).join(', ')}.`);
   }, []);
 
   // Run Real Replay Simulation Function (Candle-by-Candle Authentic Scan)
@@ -505,37 +490,16 @@ export function PropClearanceLab({
       try {
         const horizonDays =
           horizon === '7d' ? 7 : horizon === '30d' ? 30 : horizon === '60d' ? 60 : horizon === '90d' ? 90 : horizon === '180d' ? 180 : 270;
-        const barsNeeded = horizonDays * 96;
-
         // 1. Gather all feeds
-        let feedsToUse: Record<string, MultiAssetFeedItem> = { ...internalFeeds };
-        feedItems.forEach((f) => {
-          if (!feedsToUse[f.symbol]) feedsToUse[f.symbol] = f;
-          if (!feedsToUse[f.category]) feedsToUse[f.category] = f;
-        });
+        const feedsToUse: Record<string, MultiAssetFeedItem> = { ...uploadedFeeds };
 
-        // Check if we need to fetch real market data for this horizon
-        const currentMaxBars = Object.values(feedsToUse).reduce(
-          (m, f) => Math.max(m, f.candles?.length || 0),
-          0
-        );
-        const minBarsExpected = horizon === '270d' ? 9000 : horizon === '180d' ? 6000 : horizon === '90d' ? 4500 : horizon === '60d' ? 3000 : horizon === '30d' ? 1500 : 672;
-
-        if (currentMaxBars < minBarsExpected || !isUsingRealMarketData) {
-          const fetched = await syncUniverseRealBars(horizon, selectedTimeframe || '15m');
-          if (Object.keys(fetched).length > 0) {
-            feedsToUse = { ...feedsToUse, ...fetched };
-            setInternalFeeds(feedsToUse);
-          }
+        const minutesPerBar = selectedTimeframe === '5m' ? 5 : selectedTimeframe === '1h' ? 60 : selectedTimeframe === '4h' ? 240 : selectedTimeframe === '1d' ? 1440 : 15;
+        const minBarsExpected = Math.ceil((horizonDays * 24 * 60) / minutesPerBar);
+        const activeCategories = new Set(Object.entries(activeStrategies).filter(([, enabled]) => enabled).map(([strategy]) => strategy.startsWith('Crypto') ? 'crypto' : strategy.includes('Gold') ? 'metals' : 'forex'));
+        const missing = [...activeCategories].filter((category) => (feedsToUse[category]?.candles?.length ?? 0) < minBarsExpected);
+        if (missing.length) {
+          throw new Error(`Insufficient verified history for ${missing.join(', ')}. Upload broker/exchange CSV files covering ${horizonDays} days at ${selectedTimeframe} (${minBarsExpected.toLocaleString()} bars per required asset). No synthetic or provider-substituted bars are used for prop verdicts.`);
         }
-
-        // Ensure default feeds exist as fallbacks with full horizon coverage
-        const defaultFeeds = createDefaultMultiAssetFeeds(barsNeeded);
-        Object.keys(defaultFeeds).forEach((key) => {
-          if (!feedsToUse[key] || !feedsToUse[key].candles || feedsToUse[key].candles.length < minBarsExpected) {
-            feedsToUse[key] = defaultFeeds[key];
-          }
-        });
 
         // 2. Build Capital Pools
         const propCapitalPools: Record<AssetCategory, AssetCapitalPool> = {
@@ -621,6 +585,7 @@ export function PropClearanceLab({
         setTimeout(() => setDeployNotification(null), 6000);
       } catch (err) {
         console.error('Simulation replay error:', err);
+        setDatasetStatus(`Replay blocked: ${err instanceof Error ? err.message : 'Unknown simulation error'}`);
       } finally {
         setIsSimulating(false);
         setIsReplaying(false);
@@ -633,12 +598,11 @@ export function PropClearanceLab({
       feedItems,
       fundingCapital,
       internalFeeds,
-      isUsingRealMarketData,
+      uploadedFeeds,
       replaySpeed,
       riskPctPerTrade,
       selectedTimeframe,
       spreadSlippageMult,
-      syncUniverseRealBars,
     ]
   );
 
@@ -696,7 +660,7 @@ export function PropClearanceLab({
       },
     };
 
-    const feedRecord: Record<string, MultiAssetFeedItem> = { ...internalFeeds };
+    const feedRecord: Record<string, MultiAssetFeedItem> = { ...internalFeeds, ...uploadedFeeds };
     feedItems.forEach((f) => {
       feedRecord[f.symbol] = f;
       feedRecord[f.category] = f;
@@ -714,16 +678,6 @@ export function PropClearanceLab({
         : activeHorizon === '180d'
         ? 180
         : 270;
-    const barsNeeded = horizonDays * 96;
-    const minBarsExpected = activeHorizon === '270d' ? 9000 : activeHorizon === '180d' ? 6000 : activeHorizon === '90d' ? 4500 : activeHorizon === '60d' ? 3000 : activeHorizon === '30d' ? 1500 : 672;
-
-    const defaultFeeds = createDefaultMultiAssetFeeds(barsNeeded);
-    Object.keys(defaultFeeds).forEach((key) => {
-      if (!feedRecord[key] || !feedRecord[key].candles || feedRecord[key].candles.length < minBarsExpected) {
-        feedRecord[key] = defaultFeeds[key];
-      }
-    });
-
     const activeStratNames = Object.keys(activeStrategies || {}).filter(
       (s) => activeStrategies?.[s] !== false
     ) as StrategyName[];
@@ -746,6 +700,7 @@ export function PropClearanceLab({
     feedItems,
     fundingCapital,
     internalFeeds,
+    uploadedFeeds,
     riskPctPerTrade,
     spreadSlippageMult,
   ]);
@@ -1461,13 +1416,34 @@ export function PropClearanceLab({
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Stress-test EA baskets on real, live-downloaded market bars across Forex, Metals, Crypto & Indices against strict FTMO, FundedNext, and 5ers drawdown fences.
+                Runs clearance verdicts only on imported broker/exchange bars. Missing history blocks the verdict; it is never filled with synthetic data.
               </p>
             </div>
           </div>
 
           {/* Quick Real Bars Download & Live Status Indicator */}
           <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,.tsv,text/csv,text/tab-separated-values"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                const files = event.target.files;
+                if (files?.length) importPropDatasets(files).catch((error: unknown) => setDatasetStatus(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`));
+                event.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => csvInputRef.current?.click()}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60 shadow-md"
+              title="Upload one CSV/TSV per symbol. File names must include its symbol, e.g. EURUSD_M15.csv or BTCUSDT_15m.csv."
+            >
+              <FileCheck className="w-3.5 h-3.5" />
+              Import Broker / Exchange CSV
+            </button>
             {onSyncFeeds && (
               <button
                 type="button"
@@ -1526,6 +1502,9 @@ export function PropClearanceLab({
             </button>
           </div>
         </div>
+        <p className={`text-xs rounded-lg border px-3 py-2 ${datasetStatus.startsWith('Import failed') || datasetStatus.startsWith('No broker') ? 'border-amber-500/30 bg-amber-950/20 text-amber-200' : 'border-emerald-500/30 bg-emerald-950/20 text-emerald-200'}`}>
+          {datasetStatus}
+        </p>
 
         {/* ─── SURVIVABILITY PERIOD / TIME HORIZON SELECTOR (30, 60, 90, 180 Days) ─── */}
         <div className="space-y-2">
