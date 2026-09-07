@@ -149,7 +149,6 @@ function App() {
           <Route path="/app/history"     element={<RequireAuth><Navigate to="/app/signals" replace /></RequireAuth>} />
           <Route path="/app/crypto-execution" element={<RequireAuth><CryptoExecutionPortal /></RequireAuth>} />
           <Route path="/app/mt5-personal"    element={<RequireAuth><MT5PersonalPortal /></RequireAuth>} />
-          <Route path="/app/mt5-prop text"    element={<RequireAuth><MT5PropPortal /></RequireAuth>} />
           <Route path="/app/mt5-prop"         element={<RequireAuth><MT5PropPortal /></RequireAuth>} />
           <Route path="/app/bridge"           element={<CustomerVisualBridge />} />
           <Route path="/app/visual-bridge"    element={<CustomerVisualBridge />} />

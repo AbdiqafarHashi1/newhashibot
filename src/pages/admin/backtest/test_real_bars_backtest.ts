@@ -1,6 +1,6 @@
 import { runMultiAssetPipelineEngine, runSingleStrategyEngine } from './simulationEngine';
 import { STRATEGY_DEFINITIONS, StrategyName } from '../StrategyConfig';
-import { MultiAssetFeedItem, BtCandle, AssetCapitalPool, STRATEGY_ASSET_MAP } from './types';
+import { MultiAssetFeedItem, BtCandle, AssetCapitalPool } from './types';
 
 interface ApiHistoryResponse {
   source: string;
@@ -36,8 +36,8 @@ async function fetchRealBars(symbol: string, assetClass: string, range: string):
     if (data.candles && data.candles.length > 20) {
       return data.candles;
     }
-  } catch (err) {
-    console.warn(`Could not fetch live ${symbol} for ${range}:`, err);
+  } catch (error: unknown) {
+    console.warn(`Could not fetch live ${symbol} for ${range}:`, error);
   }
   return [];
 }
@@ -63,7 +63,7 @@ async function runAudit() {
         category: sym.category,
         symbol: sym.symbol,
         displayName: sym.symbol,
-        assetClass: sym.assetClass as any,
+        assetClass: sym.assetClass,
         pipOrPointSize: sym.pipOrPointSize,
         spreadPipsOrPts: sym.spread,
         decimals: sym.decimals,
@@ -206,8 +206,6 @@ async function runAudit() {
     console.log('\n--- 3. PROP CHALLENGE CLEARANCE CHECK (FTMO 50k EVALUATION) ---');
     const fundingCapital = 50000;
     const targetProfitDollar = 5000; // 10%
-    const maxDailyLimitDollar = 2500; // 5%
-    const maxTotalLimitDollar = 5000; // 10%
     const baseRiskDollar = fundingCapital * 0.005; // 0.5% risk
 
     // Replay trades sequentially

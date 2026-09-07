@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Play,
   Sliders,
@@ -47,9 +47,11 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyName>('LondonBreakout');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('EURUSD');
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('15m');
-  const [dataSourceMode, setDataSourceMode] = useState<'live' | 'feed' | 'synthetic'>('live');
+  const [dataSourceMode, setDataSourceMode] = useState<'live' | 'feed' | 'csv' | 'synthetic'>('live');
   const [dataStatus, setDataStatus] = useState<string>('');
   const [barsCount, setBarsCount] = useState<number>(1500);
+  const [csvCandles, setCsvCandles] = useState<BtCandle[]>([]);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   // Strategy Parameters
   const [strategyParams, setStrategyParams] = useState<Record<string, number>>(() => {
@@ -120,6 +122,29 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
     return data.candles as BtCandle[];
   }, [barsCount]);
 
+  const importCsv = useCallback(async (file: File) => {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter((line) => line.trim());
+    if (lines.length < 21) throw new Error('CSV must include a header and at least 20 OHLCV rows');
+    const headers = lines[0].split(',').map((value) => value.trim().toLowerCase());
+    const indexOf = (...names: string[]) => headers.findIndex((header) => names.includes(header));
+    const timeIndex = indexOf('time', 'timestamp', 'date', 'datetime');
+    const openIndex = indexOf('open', 'o');
+    const highIndex = indexOf('high', 'h');
+    const lowIndex = indexOf('low', 'l');
+    const closeIndex = indexOf('close', 'c');
+    const volumeIndex = indexOf('volume', 'vol', 'v');
+    if ([timeIndex, openIndex, highIndex, lowIndex, closeIndex].some((index) => index < 0)) throw new Error('CSV needs time, open, high, low, and close columns');
+    const parsed = lines.slice(1).map((line) => line.split(',').map((value) => value.trim())).map((row) => ({
+      time: row[timeIndex], open: Number(row[openIndex]), high: Number(row[highIndex]), low: Number(row[lowIndex]), close: Number(row[closeIndex]), volume: volumeIndex >= 0 ? Number(row[volumeIndex]) : 0,
+    })).filter((candle) => candle.time && [candle.open, candle.high, candle.low, candle.close].every(Number.isFinite) && candle.high >= candle.low);
+    if (parsed.length < 20) throw new Error('CSV contains fewer than 20 valid OHLC rows');
+    parsed.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+    setCsvCandles(parsed);
+    setDataSourceMode('csv');
+    setDataStatus(`Imported ${parsed.length.toLocaleString()} CSV bars from ${file.name}`);
+  }, []);
+
   // Run the Single Strategy Simulation
   const handleRunBacktest = useCallback(async () => {
     setIsRunning(true);
@@ -134,12 +159,17 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
         try {
           candles = await fetchRealCandles(selectedSymbol, selectedTimeframe, mapping.category);
           setDataStatus(`Live data: ${candles.length} candles from real market`);
-        } catch (err) {
-          setDataStatus('Live fetch failed, using synthetic fallback');
-          const symDef = AVAILABLE_SYMBOLS.find((s) => s.symbol === selectedSymbol) || AVAILABLE_SYMBOLS[0];
-          const basePrice = symDef.category === 'forex' ? 1.085 : symDef.category === 'metals' ? 2480.0 : 88000.0;
-          candles = generateSyntheticSessionData(symDef.symbol, symDef.assetClass, basePrice, barsCount, 15);
+        } catch {
+          // A failed live feed must never be silently replaced with generated bars.
+          // Doing so would make a result selected as "live" materially misleading.
+          setDataStatus('Live fetch failed — no backtest was run. Select Synthetic data explicitly to run a simulation.');
+          setIsRunning(false);
+          return;
         }
+      } else if (dataSourceMode === 'csv') {
+        if (csvCandles.length < 20) throw new Error('Import a valid OHLCV CSV before running CSV replay');
+        candles = csvCandles;
+        setDataStatus(`CSV replay: ${candles.length.toLocaleString()} imported bars`);
       } else if (dataSourceMode === 'feed' && feed && feed.candles && feed.candles.length >= 20) {
         candles = feed.candles;
         setDataStatus(`Multi-asset feed: ${candles.length} candles`);
@@ -166,7 +196,7 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
     } finally {
       setIsRunning(false);
     }
-  }, [selectedStrategy, strategyParams, env, strategyMinScore, dataSourceMode, multiAssetFeeds, selectedSymbol, barsCount, selectedTimeframe, fetchRealCandles]);
+  }, [selectedStrategy, strategyParams, env, strategyMinScore, dataSourceMode, multiAssetFeeds, selectedSymbol, barsCount, selectedTimeframe, fetchRealCandles, csvCandles]);
 
   // Run automatically on first mount
   useEffect(() => {
@@ -328,13 +358,22 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
             </div>
             <select
               value={dataSourceMode}
-              onChange={(e) => setDataSourceMode(e.target.value as 'live' | 'feed' | 'synthetic')}
+              onChange={(e) => setDataSourceMode(e.target.value as 'live' | 'feed' | 'csv' | 'synthetic')}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-indigo-500"
             >
               <option value="live">Live Market Data (Real Binance / Yahoo Finance)</option>
               <option value="feed">Synchronized Multi-Asset Feeds</option>
+              <option value="csv">Uploaded Broker CSV (OHLCV)</option>
               <option value="synthetic">Synthetic Multi-Session Engine</option>
             </select>
+            <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) importCsv(file).catch((error: unknown) => setDataStatus(`CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`));
+              event.target.value = '';
+            }} />
+            <button type="button" onClick={() => csvInputRef.current?.click()} className="mt-2 w-full rounded-lg border border-cyan-500/40 bg-cyan-950/30 px-2 py-1.5 text-[11px] font-semibold text-cyan-200 hover:bg-cyan-900/40">
+              Import broker OHLCV CSV
+            </button>
           </div>
 
           {/* Candle Horizon */}

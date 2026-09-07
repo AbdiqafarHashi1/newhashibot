@@ -9,19 +9,20 @@ assert.strictEqual(PUBLIC_PACKAGES.length, 5, 'Must have 5 public packages');
 
 const cryptoSignalPkg = PUBLIC_PACKAGES.find(p => p.slug === 'crypto_signal_room');
 assert.ok(cryptoSignalPkg, 'Crypto Signal Room package must exist');
-assert.strictEqual(cryptoSignalPkg.price_kes, 5000, 'Crypto Signal Room must be 5000 KES');
-assert.strictEqual(packageStatusLabel(cryptoSignalPkg), 'Available', 'Signal Room must be Available');
+assert.strictEqual(cryptoSignalPkg.price_kes, 3500, 'Crypto Signal Room must be 3,500 KES');
+assert.strictEqual(packageStatusLabel(cryptoSignalPkg), 'Available Now', 'Signal Room must be available now');
 
-const cryptoBotPkg = PUBLIC_PACKAGES.find(p => p.slug === 'crypto_personal_bot');
-assert.ok(cryptoBotPkg, 'Crypto Personal Bot package must exist');
-assert.strictEqual(cryptoBotPkg.price_kes, 10000, 'Crypto Personal Bot must be 10000 KES');
-const priceObj = priceLabel(cryptoBotPkg);
-assert.strictEqual(priceObj.main, '10,000 KES', 'Main price must be 10,000 KES');
-assert.strictEqual(priceObj.period, '/month or $100/month', 'Period label must include $100/month option');
+const personalBotPkg = PUBLIC_PACKAGES.find(p => p.slug === 'forex_mt5_personal_bot');
+assert.ok(personalBotPkg, 'Personal Auto-Bot package must exist');
+assert.strictEqual(personalBotPkg.price_kes, 8500, 'Personal Auto-Bot must be 8,500 KES');
+const priceObj = priceLabel(personalBotPkg);
+assert.strictEqual(priceObj.main, '8,500 KES', 'Main price must be 8,500 KES');
+assert.strictEqual(priceObj.period, '/month', 'Personal Auto-Bot must be billed monthly');
 
 const mt5PropPkg = PUBLIC_PACKAGES.find(p => p.slug === 'forex_mt5_prop_bot');
 assert.ok(mt5PropPkg, 'Forex MT5 Prop Bot package must exist');
-assert.strictEqual(packageStatusLabel(mt5PropPkg), 'Waitlist', 'MT5 Prop Bot must be marked as Waitlist / Certification Pending');
+assert.strictEqual(mt5PropPkg.price_kes, 12500, 'MT5 Prop Bot must be 12,500 KES');
+assert.strictEqual(packageStatusLabel(mt5PropPkg), 'Live & Ready', 'MT5 Prop Bot must retain its active product status');
 
 console.log('  ✓ Public package matrix & pricing tiers verified');
 

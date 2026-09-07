@@ -389,18 +389,9 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      if (!targetAccountId) {
-        const { data: anyAcc } = await supabase.from("mt5_accounts").select("id").limit(1).maybeSingle();
-        if (anyAcc) targetAccountId = anyAcc.id;
-      }
-
       if (targetAccountId) {
         let { data: target } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled,account_type,execution_mode,policy,broker,server")
           .eq("id", targetAccountId).maybeSingle();
-        if (!target) {
-          const { data: fallbackTarget } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled,account_type,execution_mode,policy,broker,server").limit(1).maybeSingle();
-          target = fallbackTarget;
-        }
         if (!target) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
 
         const realOwnerId = target.user_id || payload.owner_id || "00000000-0000-0000-0000-000000000000";
@@ -600,7 +591,7 @@ Deno.serve(async (req: Request) => {
           equity: snap.equity,
           drawdown_pct: snap.balance > 0 ? Number((((snap.balance - snap.equity) / snap.balance) * 100).toFixed(2)) : 0,
         });
-      }
+      } else return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
 
       return jsonResponse({
         success: true,

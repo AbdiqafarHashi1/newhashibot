@@ -6,7 +6,7 @@
  */
 
 import { BtCandle, MultiAssetFeedItem, AssetCategory, AssetCapitalPool } from './types';
-import { PIPELINE_UNIVERSE, generateSyntheticSessionData } from './syntheticData';
+import { PIPELINE_UNIVERSE } from './syntheticData';
 import { runMultiAssetPipelineEngine } from './simulationEngine';
 import { StrategyName } from '../StrategyConfig';
 
@@ -221,50 +221,29 @@ const PROP_PROFILES: Record<string, PropRules> = {
 // 3. EXECUTE END-TO-END PROP CLEARANCE SIMULATION
 // ---------------------------------------------------------------------------
 
-function buildHorizonFeeds(horizonDays: number): Record<string, MultiAssetFeedItem> {
-  const barsNeeded = horizonDays * 96; // 15m bars
-  const feeds: Record<string, MultiAssetFeedItem> = {};
-
-  for (const inst of PIPELINE_UNIVERSE) {
-    // Generate full calibrated session data with realistic volatility and sessions
-    const candles = generateSyntheticSessionData(inst.symbol, inst.assetClass, inst.basePrice, barsNeeded, 15);
-
-    feeds[inst.symbol] = {
-      category: inst.category,
-      symbol: inst.symbol,
-      displayName: inst.displayName,
-      assetClass: inst.assetClass,
-      pipOrPointSize: inst.pipOrPointSize,
-      spreadPipsOrPts: inst.spreadPipsOrPts,
-      decimals: inst.decimals,
-      fridayWeekendClose: inst.fridayWeekendClose,
-      enforceSessionWindows: inst.enforceSessionWindows,
-      candles,
-      count: candles.length,
-      status: 'ready',
-      source: 'session_engine',
-      lastUpdated: new Date().toISOString(),
-    };
-  }
-
-  feeds['forex'] = feeds['EURUSD'];
-  feeds['metals'] = feeds['XAUUSD'];
-  feeds['crypto'] = feeds['BTCUSDT'];
-
-  return feeds;
-}
-
 function evaluatePropClearance(
   rules: PropRules,
-  horizonDays: number
+  horizonDays: number,
+  fetchedFeeds: Record<string, MultiAssetFeedItem>
 ) {
   const capital = rules.accountCapital;
   const targetDollar = capital * (rules.phase1TargetPct / 100);
   const maxDailyAllowedLossDollar = capital * (rules.maxDailyLossPct / 100);
   const maxTotalAllowedLossDollar = capital * (rules.maxTotalLossPct / 100);
 
-  // 1. Build universe feeds scaled to the exact horizon length
-  const feeds = buildHorizonFeeds(horizonDays);
+  // Only evaluate bars fetched in this run. Never manufacture bars to make
+  // an unavailable or short historical window appear to pass.
+  const requiredBars = horizonDays * 96;
+  const requiredSymbols = ['EURUSD', 'XAUUSD', 'BTCUSDT'];
+  const missing = requiredSymbols.filter((symbol) => (fetchedFeeds[symbol]?.candles.length ?? 0) < requiredBars);
+  if (missing.length) throw new Error(`insufficient_real_history:${horizonDays}d:${missing.join(',')}`);
+  const feeds: Record<string, MultiAssetFeedItem> = {};
+  for (const [symbol, feed] of Object.entries(fetchedFeeds)) {
+    feeds[symbol] = { ...feed, candles: feed.candles.slice(-requiredBars), count: requiredBars };
+  }
+  feeds.forex = feeds.EURUSD;
+  feeds.metals = feeds.XAUUSD;
+  feeds.crypto = feeds.BTCUSDT;
   const totalTimelineBars = horizonDays * 96;
 
   // Configure Capital Pools scaled to the Prop Account
@@ -497,6 +476,8 @@ async function runRealBarPropBacktestSuite() {
   console.log(`   Total Real Bars:   ${totalBars.toLocaleString()}`);
   console.log(`   Coverage:          Forex Majors (EURUSD, GBPUSD, USDJPY, AUDUSD), Spot Metals (XAUUSD, XAGUSD), Crypto (BTC, ETH, SOL)`);
 
+  if (!loadedSymbols.length || !totalBars) throw new Error('real_market_data_unavailable: no prop verdict was produced');
+
   // 2. Evaluate across Prop Profiles & Horizons (7 days, 1 month / 30d, 3 months / 90d, 6 months / 180d, 9 months / 270d)
   const horizons = [7, 30, 90, 180, 270];
   const profileKeys = Object.keys(PROP_PROFILES);
@@ -511,7 +492,7 @@ async function runRealBarPropBacktestSuite() {
     console.log(`========================================================================================`);
 
     for (const hDays of horizons) {
-      const audit = evaluatePropClearance(rules, hDays);
+      const audit = evaluatePropClearance(rules, hDays, feeds);
 
       const statusBadge = audit.isCleared
         ? '✅ PASSED & FULLY CLEARED'
