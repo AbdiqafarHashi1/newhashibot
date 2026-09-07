@@ -1479,6 +1479,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
                   <Sliders size={16} className="text-blue-400" />
                   Execution Lifecycle Control Center
+                  <span className="ml-2 text-[10px] font-medium text-amber-300">LIVE EXECUTION BLOCKED</span>
                 </h2>
                 <p className="text-xs text-zinc-400 mt-1">
                   Manage core entry engines, monitoring state, read-only guards, and provider kill switches independently.

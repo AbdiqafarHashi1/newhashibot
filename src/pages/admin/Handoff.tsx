@@ -9,7 +9,7 @@ interface Section {
 
 const sections: Section[] = [
   {
-    title: 'What Works (Production-Ready)',
+    title: 'Verified Product Capabilities',
     items: [
       { label: 'Crypto candle data (Binance)', status: 'done', note: 'Real OHLCV via public Binance API. No key needed.' },
       { label: 'Market scanner engine', status: 'done', note: 'EMA/ATR/RSI regime, MicroScalper + CompressionBreakout strategies.' },
@@ -23,11 +23,11 @@ const sections: Section[] = [
       { label: 'Auto Telegram gating', status: 'done', note: 'auto_send_telegram + min_auto_send_grade + allow_demo_telegram_sending all checked.' },
       { label: 'User auth + RLS', status: 'done', note: 'Supabase email/password. RLS on all tables. Admin role enforced.' },
       { label: 'Provider Health UI', status: 'done', note: 'Reads provider_status from DB. Shows REAL DATA or DEMO per provider.' },
-      { label: 'Backtest / Replay Lab', status: 'done', note: 'CSV upload → in-browser replay using same strategy logic. Results saved to DB.' },
+      { label: 'Backtest / Replay Lab', status: 'manual', note: 'An in-browser/CSV simulation tool is available. It is not a completed historical-validation or prop-firm certification result.' },
       { label: 'Admin sidebar + navigation', status: 'done', note: 'Scroll position preserved across routes. All pages route-guarded.' },
       { label: 'Session persistence', status: 'done', note: 'onAuthStateChange as sole source. Survives page refresh.' },
-      { label: 'Mode control (Signal/Personal/Prop)', status: 'done', note: 'mode_configs table. Paper execution intent tracking.' },
-      { label: 'Risk profile engine', status: 'done', note: 'risk_profiles table with max loss, drawdown, position limits.' },
+      { label: 'Mode control (Signal/Personal/Prop)', status: 'manual', note: 'Configuration and paper-intent tracking are implemented; live-mode readiness must be verified per provider account.' },
+      { label: 'Risk profile engine', status: 'manual', note: 'Risk limits are implemented in configuration and decision logic, but need provider-specific live proof before relying on them for a prop account.' },
       { label: 'Audit logging', status: 'done', note: 'All admin actions written to audit_logs.' },
     ],
   },
@@ -53,9 +53,9 @@ const sections: Section[] = [
   {
     title: 'Live Execution Bridge & Advanced Capabilities',
     items: [
-      { label: 'MT5 visual bridge & EA connection', status: 'done', note: 'HashiBot_Visual_Bridge.mq5 + local WebSocket bridge relay live terminal tickets, margin, equity, and order dispatches.' },
-      { label: 'Live market prices & outcome evaluation', status: 'done', note: 'Real-time multi-asset quotes via realMarketPrices.ts continuously stream spot bid/ask and track SL/TP hits.' },
-      { label: 'Full-stack Google Gemini AI agent hub', status: 'done', note: 'Server-side @google/genai endpoints (/api/ai/*) power growth campaigns, macro market pulse briefings, and VIP portfolio risk audits.' },
+      { label: 'MT5 live execution', status: 'manual', note: 'The bridge, account onboarding, command polling, and state-sync components exist, but a real prop-account proof run has not been captured in this repository. Do not enable execution until the checklist below passes.' },
+      { label: 'Live market prices & outcome evaluation', status: 'manual', note: 'Crypto outcome evaluation is implemented. Forex/MT5 live-price and broker-side execution reconciliation require provider credentials, deployment, and observed proof.' },
+      { label: 'Customer billing and entitlement automation', status: 'placeholder', note: 'Package selection and admin approval are present, but there is no verified payment processor/webhook entitlement flow. Do not accept paid customers on the assumption that billing is automated.' },
     ],
   },
 ];
@@ -139,13 +139,13 @@ export default function Handoff() {
     <AdminLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">System Handoff & Readiness</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Complete overview of what is production-ready, what uses demo data, what needs manual setup, and what is a placeholder for Codex.</p>
+        <p className="text-sm text-zinc-500 mt-0.5">Evidence-based overview of verified capabilities, manual operational prerequisites, and features that must not be represented as live-ready.</p>
       </div>
 
       <div className="max-w-4xl space-y-6">
         {/* Status legend */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-wrap gap-4 text-xs">
-          <div className="flex items-center gap-2"><CheckCircle size={13} className="text-emerald-400" /> <span className="text-zinc-400">Production-ready</span></div>
+          <div className="flex items-center gap-2"><CheckCircle size={13} className="text-emerald-400" /> <span className="text-zinc-400">Implemented and locally verified</span></div>
           <div className="flex items-center gap-2"><AlertTriangle size={13} className="text-yellow-400" /> <span className="text-zinc-400">Demo/fallback — works but not live data</span></div>
           <div className="flex items-center gap-2"><Clock size={13} className="text-blue-400" /> <span className="text-zinc-400">Manual setup required</span></div>
           <div className="flex items-center gap-2"><XCircle size={13} className="text-zinc-500" /> <span className="text-zinc-400">Placeholder — needs Codex work</span></div>
@@ -218,21 +218,20 @@ export default function Handoff() {
 
         {/* Codex next steps */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold">Codex Next Steps</div>
+          <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold">Required Before a Real Prop Account or Customer Launch</div>
           <div className="px-5 py-4">
             <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside">
-              <li><span className="text-zinc-300">MT5 bridge integration</span> — Connect execution_orders to a real WebSocket MT5 bridge. Table schema is ready.</li>
-              <li><span className="text-zinc-300">Real-time outcome evaluation</span> — evaluate-signal-outcomes function needs a price feed integration (Binance WebSocket or REST poll) to auto-mark TP/SL hits.</li>
-              <li><span className="text-zinc-300">Live testnet trading</span> — Connect to MT5 demo account via bridge. Paper execution intent table is ready; just needs bridge response handling.</li>
-              <li><span className="text-zinc-300">Forex real candles (TwelveData)</span> — Set TWELVEDATA_API_KEY or FOREX_DATA_API_KEY and opt in with SIGNAL_ENABLE_FOREX=true plus scanner_config.scan_forex_enabled=true. No demo fallback.</li>
-              <li><span className="text-zinc-300">Public-facing results page</span> — /results page exists as static. Wire it to real signal outcomes once evaluate-signal-outcomes is integrated.</li>
-              <li><span className="text-zinc-300">Subscription billing</span> — Add Stripe integration for paid subscriber access management. user_access table is ready for status tracking.</li>
+              <li><span className="text-zinc-300">Demo-account proof</span> — Deploy the MT5 agent, verify heartbeat, place/cancel a deliberately tiny demo order, and reconcile its broker ticket, fill price, stop loss, take profit, and position state in HashiBot.</li>
+              <li><span className="text-zinc-300">Prop-rule proof</span> — Configure the exact firm rules, then demonstrate that daily-loss, total/trailing-drawdown, session, news, and weekend restrictions block entries and persist an auditable lock.</li>
+              <li><span className="text-zinc-300">Failure and recovery proof</span> — Disconnect the bridge during order handling, restart it, and prove idempotency, reconciliation, alerting, and a safe default of no new entries.</li>
+              <li><span className="text-zinc-300">Independent backtest validation</span> — Run versioned, real-bar, out-of-sample tests with spread, commission, slippage, session rules, and survivorship controls; retain the raw data and reports.</li>
+              <li><span className="text-zinc-300">Customer money flow</span> — Implement and test payment-provider webhooks, server-side entitlement changes, refund/cancellation handling, and a support/audit trail before taking paid orders.</li>
             </ol>
           </div>
         </div>
 
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-xs text-emerald-300 leading-relaxed">
-          The core Signal Mode MVP is production-ready. Crypto scanning, signal generation, Telegram delivery, and admin tooling all work end-to-end. The two main items before full live deployment are: (1) set TELEGRAM_BOT_TOKEN + enable auto Telegram, and (2) register the pg_cron job for always-on scheduled scanning.
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-xs text-amber-200 leading-relaxed">
+          <strong>Launch gate:</strong> this repository does not by itself prove a real prop-account execution lifecycle or paid-customer billing lifecycle. Keep live execution disabled and do not market automated prop trading as proven until every prerequisite above has been executed in the deployed environment and the resulting evidence has been reviewed.
         </div>
       </div>
     </AdminLayout>

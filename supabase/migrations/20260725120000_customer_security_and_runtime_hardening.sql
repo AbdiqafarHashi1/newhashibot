@@ -57,9 +57,7 @@ BEGIN
    * Service-role and administrators may inspect another user.
    * All other callers are hard-bound to auth.uid().
    */
-  IF auth.role() = 'service_role'
-     OR COALESCE(public.is_admin(), false)
-  THEN
+  IF auth.role() = 'service_role' OR public.is_admin() THEN
     v_target_user_id := COALESCE(p_user_id, auth.uid());
   ELSE
     v_target_user_id := auth.uid();

@@ -32,26 +32,9 @@ export class SupabaseCTraderGateway implements CTraderGateway {
       .single();
 
     if (error || !data) {
-      // Return safe in-memory/local cached fallback if db table is pending migration
-      return {
-        id: accountId,
-        userId: 'usr-master-01',
-        broker: 'cTrader Pepperstone',
-        traderLogin: accountId,
-        accountNumberMasked: `CT-${accountId.slice(-4)}`,
-        nickname: 'cTrader Live Client',
-        currency: 'USD',
-        leverageInCents: 10000,
-        leverage: 100,
-        accountType: 'personal',
-        executionMode: 'personal',
-        executionEnabled: true,
-        connectionStatus: 'connected',
-        providerHealth: 'healthy',
-        bridgeId: `ctrader-bridge-${accountId}`,
-        lastHeartbeatAt: new Date().toISOString(),
-        lastSyncAt: new Date().toISOString(),
-      };
+      // Never fabricate a connected live account. A missing canonical account row
+      // is an execution blocker, not a condition that can be safely simulated.
+      throw new Error(`ctrader_account_unavailable:${accountId}`);
     }
 
     return {
@@ -66,9 +49,10 @@ export class SupabaseCTraderGateway implements CTraderGateway {
       leverage: Number(data.leverage || 100),
       accountType: data.account_type || 'personal',
       executionMode: data.execution_mode || 'personal',
-      executionEnabled: data.execution_enabled ?? true,
-      connectionStatus: data.connection_status || 'connected',
-      providerHealth: data.provider_health || 'healthy',
+      // A missing value is never permission to trade or evidence of connectivity.
+      executionEnabled: data.execution_enabled === true,
+      connectionStatus: data.connection_status || 'disconnected',
+      providerHealth: data.provider_health || 'unknown',
       bridgeId: data.bridge_id ?? undefined,
       openApiAppClientId: data.open_api_client_id ?? undefined,
       accessTokenMasked: data.access_token_masked ?? undefined,
@@ -87,21 +71,7 @@ export class SupabaseCTraderGateway implements CTraderGateway {
       .maybeSingle();
 
     if (error || !data) {
-      // Canonical fallback specs for major instruments
-      const isGold = canonicalSymbol.includes('XAU') || canonicalSymbol.includes('GOLD');
-      const isCrypto = canonicalSymbol.includes('BTC') || canonicalSymbol.includes('ETH') || canonicalSymbol.includes('SOL');
-
-      return {
-        canonicalSymbol,
-        brokerSymbol: canonicalSymbol,
-        symbolId: isGold ? 41 : isCrypto ? 223 : 1,
-        digits: isGold ? 2 : isCrypto ? 2 : canonicalSymbol.includes('JPY') ? 3 : 5,
-        pipPosition: isGold ? 2 : isCrypto ? 1 : canonicalSymbol.includes('JPY') ? 2 : 4,
-        minVolume: isGold ? 1 : isCrypto ? 1 : 1000,
-        maxVolume: 10000000,
-        stepVolume: isGold ? 1 : isCrypto ? 1 : 1000,
-        lotSize: isGold ? 100 : isCrypto ? 1 : 100000,
-      };
+      throw new Error(`ctrader_symbol_spec_unavailable:${accountId}:${canonicalSymbol}`);
     }
 
     return {
@@ -127,17 +97,7 @@ export class SupabaseCTraderGateway implements CTraderGateway {
       .maybeSingle();
 
     if (error || !data) {
-      return {
-        balance: 50000,
-        equity: 50000,
-        margin: 0,
-        freeMargin: 50000,
-        floatingPnl: 0,
-        currency: 'USD',
-        positions: [],
-        orders: [],
-        capturedAt: new Date().toISOString(),
-      };
+      return null;
     }
 
     return {
@@ -159,24 +119,17 @@ export class SupabaseCTraderGateway implements CTraderGateway {
     payload: Readonly<Record<string, unknown>>,
     idempotencyKey: string
   ) {
-    try {
-      const { data } = await supabase.rpc('enqueue_ctrader_command', {
-        p_account_id: accountId,
-        p_operation: operation,
-        p_payload: payload,
-        p_idempotency_key: idempotencyKey,
-      });
-      const row = Array.isArray(data) ? data[0] : data;
-      return {
-        commandId: String(row?.command_id ?? row?.id ?? `cmd-${Date.now()}`),
-        status: String(row?.status ?? 'queued'),
-      };
-    } catch {
-      return {
-        commandId: `ct-local-${Date.now()}`,
-        status: 'queued',
-      };
-    }
+    const { data, error } = await supabase.rpc('enqueue_ctrader_command', {
+      p_account_id: accountId,
+      p_operation: operation,
+      p_payload: payload,
+      p_idempotency_key: idempotencyKey,
+    });
+    if (error) throw new Error(`ctrader_command_enqueue_failed:${error.message}`);
+    const row = Array.isArray(data) ? data[0] : data;
+    const commandId = String(row?.command_id ?? row?.id ?? '');
+    if (!commandId) throw new Error('ctrader_command_enqueue_failed:missing_command_id');
+    return { commandId, status: String(row?.status ?? 'queued') };
   }
 }
 
