@@ -22,15 +22,10 @@ import {
   CategoryPerformanceSummary,
   SymbolPerformanceSummary,
   STRATEGY_ASSET_MAP,
-  DATE_RANGE_OPTIONS,
   AICalibrationReport,
   StrategyTweakProposal,
 } from './backtest/types';
-import {
-  createDefaultMultiAssetFeeds,
-  generateSyntheticSessionData,
-  PIPELINE_UNIVERSE,
-} from './backtest/syntheticData';
+import { createDefaultMultiAssetFeeds, PIPELINE_UNIVERSE } from './backtest/syntheticData';
 import {
   runMultiAssetPipelineEngine,
   generateAICalibrationReport,
@@ -394,8 +389,6 @@ export default function BacktestLab() {
     setIsSyncingAll(true);
 
     const rangeToUse = rangeOverride || selectedRange;
-    const rangeOption = DATE_RANGE_OPTIONS.find((o) => o.key === rangeToUse) || DATE_RANGE_OPTIONS[2];
-    const targetBars = historyDepthBars || Math.max(500, rangeOption.days * 24 * (60 / (selectedTimeframe === '5m' ? 5 : selectedTimeframe === '1h' ? 60 : 15)));
 
     const updatedFeeds = { ...multiAssetFeeds };
     PIPELINE_UNIVERSE.forEach((inst) => {
@@ -414,6 +407,10 @@ export default function BacktestLab() {
           );
           if (resp.ok) {
             const data = await resp.json();
+            const actualInterval = data.interval === '60m' ? '1h' : data.interval;
+            if (actualInterval !== selectedTimeframe) {
+              throw new Error(`Provider returned ${data.interval}, not requested ${selectedTimeframe}`);
+            }
             if (data.candles && data.candles.length >= 20) {
               return {
                 category: inst.category,
@@ -433,9 +430,8 @@ export default function BacktestLab() {
               };
             }
           }
-          throw new Error('API fallback');
-        } catch {
-          const synthetic = generateSyntheticSessionData(inst.symbol, inst.assetClass, inst.basePrice, targetBars, 15);
+          throw new Error('Market-data API returned no usable candles');
+        } catch (error) {
           return {
             category: inst.category,
             symbol: inst.symbol,
@@ -446,11 +442,12 @@ export default function BacktestLab() {
             decimals: inst.decimals,
             fridayWeekendClose: inst.fridayWeekendClose,
             enforceSessionWindows: inst.enforceSessionWindows,
-            candles: synthetic,
-            count: synthetic.length,
-            status: 'ready' as const,
-            source: 'session_engine',
+            candles: [],
+            count: 0,
+            status: 'error' as const,
+            source: 'unavailable',
             lastUpdated: new Date().toISOString(),
+            error: error instanceof Error ? error.message : 'Market-data fetch failed',
           };
         }
       })

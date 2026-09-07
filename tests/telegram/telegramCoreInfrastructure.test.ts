@@ -125,7 +125,7 @@ const renderedSignal = renderTelegramTemplate({
   timestamp: "2026-07-23T10:00:00Z",
 }, "vip");
 
-assert.match(renderedSignal, /HASHIBOT A\+ SIGNAL/);
+assert.match(renderedSignal, /HASHIBOT VIP A\+ FOREX SIGNAL/);
 assert.match(renderedSignal, /EURUSD/);
 assert.match(renderedSignal, /1\.08500/);
 assert.match(renderedSignal, /1\.08200/);

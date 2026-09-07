@@ -2704,91 +2704,6 @@ async function tryAutoSendTelegram(
 
 }
 
-async function tryAutoExecuteTestnet(
-  supabase: ReturnType<typeof createClient>,
-  signalId: string,
-  marketType = "crypto",
-): Promise<{ called: boolean; success: boolean; reason: string }> {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!supabaseUrl || !serviceRole) {
-    return { called: false, success: false, reason: "missing_supabase_credentials" };
-  }
-
-  try {
-    const isForex = marketType.toLowerCase() === "forex";
-    if (!isForex) {
-      const res = await fetch(`${supabaseUrl}/functions/v1/binance-testnet-execution`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceRole}`,
-          "x-hashibot-internal-secret": Deno.env.get("HASHIBOT_INTERNAL_SECRET") ?? "",
-        },
-        body: JSON.stringify({ action: "execute_signal", signal_id: signalId, manual: false }),
-      });
-      const result = await res.json().catch(() => ({})) as Record<string, unknown>;
-      return {
-        called: true,
-        success: res.ok && result.success !== false,
-        reason: (result.error ?? result.reason ?? result.blocker) ? String(result.error ?? result.reason ?? result.blocker) : "executed",
-      };
-    } else {
-      const { data: sig } = await supabase.from("signals").select("*").eq("id", signalId).maybeSingle();
-      if (!sig) return { called: false, success: false, reason: "signal_not_found" };
-
-      const { data: accounts } = await supabase
-        .from("mt5_accounts")
-        .select("*")
-        .in("execution_mode", ["demo", "prop_challenge"])
-        .eq("is_active", true);
-
-      if (!accounts || accounts.length === 0) {
-        return { called: true, success: false, reason: "no_active_mt5_demo_accounts" };
-      }
-
-      let dispatchedCount = 0;
-      for (const account of accounts) {
-        const side = String(sig.direction).toLowerCase() === "buy" ? "BUY" : "SELL";
-        const entryPrice = sig.entry_high && sig.entry_low ? (sig.entry_high + sig.entry_low) / 2 : (sig.entry_high ?? sig.entry_low ?? 0);
-        const idempotencyKey = `mt5_demo_auto_${sig.id}_${account.id}`;
-
-        const { error: cmdErr } = await supabase.from("mt5_commands").insert({
-          account_id: account.id,
-          bridge_id: account.bridge_id,
-          operation: "place_order",
-          payload: {
-            symbol: sig.symbol,
-            side,
-            lots: 0.1,
-            entry_price: entryPrice,
-            stop_loss: sig.stop_loss,
-            take_profit: sig.tp1,
-            signal_id: sig.id,
-            comment: `hb_${sig.id.slice(0, 8)}`,
-          },
-          idempotency_key: idempotencyKey,
-          status: "pending",
-        });
-
-        if (!cmdErr) dispatchedCount++;
-      }
-
-      return {
-        called: true,
-        success: dispatchedCount > 0,
-        reason: dispatchedCount > 0 ? "mt5_orders_dispatched" : "mt5_dispatch_failed",
-      };
-    }
-  } catch (err) {
-    return {
-      called: true,
-      success: false,
-      reason: err instanceof Error ? err.message : "auto_execute_failed",
-    };
-  }
-}
-
 // ─── Heartbeat updater ────────────────────────────────────────────────────────
 
 async function updateHeartbeat(
@@ -3598,24 +3513,6 @@ async function runScanPipeline(
 
           if (dataSource !== "REAL DATA") continue;
 
-          // Certified execution branches only after arbitration, duplicate,
-          // grade and real-market-data gates. Compatibility SignalRow fields
-          // are never used as execution input.
-          const selectedPlan = ev.plan;
-          const loaded = await loadCertifiedExecutionAccounts({
-            strategy_plan: selectedPlan, now: strategyContext.evaluated_at,
-            repository: { async list(plan) { const { data, error } = await supabase.rpc("load_certified_execution_account_truth", { p_strategy_id:plan.identity.strategy_id, p_symbol:plan.market_context.symbol, p_evaluated_at:strategyContext.evaluated_at }); if (error) throw new Error(`certified_account_truth_load_failed:${error.message}`); return (data ?? []) as CertifiedAccountTruthRow[]; } },
-          });
-          for (const rejection of loaded.rejected) await supabase.from("certified_runtime_events").insert({ event_id:`account-rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}:${rejection.reason}`, execution_plan_id:`rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}`, account_id:rejection.account_id ?? "unknown", event_type:"ACCOUNT_REJECTED", normalized_status:"rejected", occurred_at:strategyContext.evaluated_at, payload:{...rejection,evaluation_id:selectedPlan.provenance.evaluation_id} });
-          if (loaded.accounts.length) {
-            const certified = runCertifiedRuntime({ candidates:arbitrationInput, strategy_plans:Object.fromEntries([...byCandidateId].map(([id,entry])=>[id,entry.plan])), arbitration:{now:new Date(strategyContext.evaluated_at)}, arbitration_result:arbitrationDecision, accounts:loaded.accounts });
-            for (const account of certified.accounts) {
-              const { error:artifactError } = await supabase.from("certified_runtime_artifacts").insert({ evaluation_id:selectedPlan.provenance.evaluation_id, account_id:account.account_id, strategy_plan_id:selectedPlan.provenance.evaluation_id, risk_decision:account.risk_decision, capital_allocation_plan:account.capital_allocation_plan, execution_plan:account.execution_plan });
-              if (artifactError) throw new Error(`certified_runtime_artifact_persistence_failed:${artifactError.message}`);
-              if (account.execution_plan?.status === "PLANNED") { const adoptionVersion=loaded.accounts.find((item)=>item.account_id===account.account_id)?.adoption_policy_version; const response=await fetch(`${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`,{method:"POST",headers:{Authorization:`Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,"Content-Type":"application/json"},body:JSON.stringify({action:"adopt_execution_plan",execution_plan:account.execution_plan,expected_policy_version:adoptionVersion}),signal:AbortSignal.timeout(15000)}); if(!response.ok)throw new Error(`certified_execution_adoption_failed:${response.status}`); }
-            }
-          }
-
           // ── Mode-aware arbitrator ─────────────────────────────────────────
           const modesToRun = marketType === "forex" ? ["signal_mode"] : (activeModes.length > 0 ? activeModes.map((m) => m.mode_slug) : ["signal_mode"]);
           let signalCreatedForThisCandidate = false;
@@ -3782,14 +3679,31 @@ async function runScanPipeline(
             else telegramSkipped++;
             if (tgResult.blocked_reason) telegramSkipReasons[tgResult.blocked_reason] = (telegramSkipReasons[tgResult.blocked_reason] ?? 0) + 1;
 
-            // ── Optional Binance USD-M testnet execution ───────────────────
-            // This is gated by server-side env and DB settings in the execution
-            // function. It only receives the just-created signal id, so old
-            // historical signals are never auto-submitted from the scanner.
-            incrementStrategyStat(ev.name, "execution_started");
-            const executionResult = await tryAutoExecuteTestnet(supabase, sigData.id as string, String(sigData.market_type ?? "crypto"));
-            if (executionResult.success) {
-              incrementStrategyStat(ev.name, "execution_completed");
+            // Execution is deliberately downstream of every scanner gate and
+            // signal persistence. Only the immutable certified plan may reach
+            // a provider; a SignalRow is a notification/audit projection, not
+            // a provider instruction.
+            const selectedPlan = ev.plan;
+            const loaded = await loadCertifiedExecutionAccounts({
+              strategy_plan: selectedPlan, now: strategyContext.evaluated_at,
+              repository: { async list(plan) { const { data, error } = await supabase.rpc("load_certified_execution_account_truth", { p_strategy_id:plan.identity.strategy_id, p_symbol:plan.market_context.symbol, p_evaluated_at:strategyContext.evaluated_at }); if (error) throw new Error(`certified_account_truth_load_failed:${error.message}`); return (data ?? []) as CertifiedAccountTruthRow[]; } },
+            });
+            for (const rejection of loaded.rejected) await supabase.from("certified_runtime_events").insert({ event_id:`account-rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}:${rejection.reason}`, execution_plan_id:`rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}`, account_id:rejection.account_id ?? "unknown", event_type:"ACCOUNT_REJECTED", normalized_status:"rejected", occurred_at:strategyContext.evaluated_at, payload:{...rejection,evaluation_id:selectedPlan.provenance.evaluation_id} });
+            let executionResult = { called: false, success: false, reason: "no_eligible_certified_account" };
+            if (loaded.accounts.length) {
+              const certified = runCertifiedRuntime({ candidates:arbitrationInput, strategy_plans:Object.fromEntries([...byCandidateId].map(([id,entry])=>[id,entry.plan])), arbitration:{now:new Date(strategyContext.evaluated_at)}, arbitration_result:arbitrationDecision, accounts:loaded.accounts });
+              for (const account of certified.accounts) {
+                const { error:artifactError } = await supabase.from("certified_runtime_artifacts").insert({ evaluation_id:selectedPlan.provenance.evaluation_id, account_id:account.account_id, strategy_plan_id:selectedPlan.provenance.evaluation_id, risk_decision:account.risk_decision, capital_allocation_plan:account.capital_allocation_plan, execution_plan:account.execution_plan });
+                if (artifactError) throw new Error(`certified_runtime_artifact_persistence_failed:${artifactError.message}`);
+                if (account.execution_plan?.status === "PLANNED") {
+                  incrementStrategyStat(ev.name, "execution_started");
+                  const adoptionVersion = loaded.accounts.find((item) => item.account_id === account.account_id)?.adoption_policy_version;
+                  const response = await fetch(`${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`, { method:"POST", headers:{Authorization:`Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,"Content-Type":"application/json"}, body:JSON.stringify({action:"adopt_execution_plan",execution_plan:account.execution_plan,expected_policy_version:adoptionVersion}), signal:AbortSignal.timeout(15000) });
+                  if (!response.ok) throw new Error(`certified_execution_adoption_failed:${response.status}`);
+                  executionResult = { called: true, success: true, reason: "certified_execution_plan_adopted" };
+                  incrementStrategyStat(ev.name, "execution_completed");
+                }
+              }
             }
 
             if (ev.name === "MicroScalper") {
