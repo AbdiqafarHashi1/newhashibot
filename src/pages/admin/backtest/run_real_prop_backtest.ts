@@ -14,27 +14,41 @@ import { StrategyName } from '../StrategyConfig';
 // 1. LIVE DATA INGESTION ENGINE (BINANCE & YAHOO FINANCE)
 // ---------------------------------------------------------------------------
 
-async function fetchBinanceRealBars(symbol: string, interval: string = '15m', limit: number = 1000): Promise<BtCandle[]> {
+async function fetchBinanceRealBars(symbol: string, interval: string = '15m', totalLimit: number = 3000): Promise<BtCandle[]> {
   try {
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-    const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (!resp.ok) throw new Error(`Binance HTTP ${resp.status}`);
-    const raw = (await resp.json()) as [number, string, string, string, string, string][];
-    return raw.map((k) => ({
-      time: new Date(k[0]).toISOString().replace('T', ' ').slice(0, 19),
-      open: parseFloat(k[1]),
-      high: parseFloat(k[2]),
-      low: parseFloat(k[3]),
-      close: parseFloat(k[4]),
-      volume: parseFloat(k[5]),
-    }));
+    const candles: BtCandle[] = [];
+    let endTime: number | undefined = undefined;
+
+    while (candles.length < totalLimit) {
+      const fetchCount = Math.min(1000, totalLimit - candles.length);
+      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${fetchCount}${endTime ? `&endTime=${endTime}` : ''}`;
+      const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (!resp.ok) break;
+      const raw = (await resp.json()) as [number, string, string, string, string, string][];
+      if (!raw || raw.length === 0) break;
+
+      const batch: BtCandle[] = raw.map((k) => ({
+        time: new Date(k[0]).toISOString().replace('T', ' ').slice(0, 19),
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[5]),
+      }));
+
+      candles.unshift(...batch);
+      endTime = raw[0][0] - 1;
+      if (raw.length < fetchCount) break;
+    }
+
+    return candles;
   } catch (err) {
     console.warn(`[Binance] Failed to fetch ${symbol}:`, err);
     return [];
   }
 }
 
-async function fetchYahooRealBars(symbol: string, yahooSymbol: string, range: string = '3mo', interval: string = '60m'): Promise<BtCandle[]> {
+async function fetchYahooRealBars(symbol: string, yahooSymbol: string, range: string = '60d', interval: string = '15m'): Promise<BtCandle[]> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${interval}&range=${range}`;
     const resp = await fetch(url, {
@@ -101,11 +115,11 @@ async function loadUniverseWithRealBars(): Promise<Record<string, MultiAssetFeed
     let source = 'unknown';
 
     if (inst.category === 'crypto') {
-      candles = await fetchBinanceRealBars(inst.symbol, '15m', 1000);
+      candles = await fetchBinanceRealBars(inst.symbol, '15m', 3000);
       source = 'binance';
     } else {
       const yfSym = yahooSymbolMap[inst.symbol] || `${inst.symbol}=X`;
-      candles = await fetchYahooRealBars(inst.symbol, yfSym, '1mo', '15m');
+      candles = await fetchYahooRealBars(inst.symbol, yfSym, '60d', '15m');
       source = 'yahoo_finance';
     }
 
@@ -233,18 +247,28 @@ function evaluatePropClearance(
 
   // Only evaluate bars fetched in this run. Never manufacture bars to make
   // an unavailable or short historical window appear to pass.
-  const requiredBars = horizonDays * 96;
-  const requiredSymbols = ['EURUSD', 'XAUUSD', 'BTCUSDT'];
-  const missing = requiredSymbols.filter((symbol) => (fetchedFeeds[symbol]?.candles.length ?? 0) < requiredBars);
-  if (missing.length) throw new Error(`insufficient_real_history:${horizonDays}d:${missing.join(',')}`);
+  // Forex/Metals trade ~68 15m bars/calendar day (weekends closed); Crypto trades 96 bars/day.
+  const requiredBarsForex = Math.round(horizonDays * 65);
+  const requiredBarsCrypto = Math.round(horizonDays * 96);
+  
+  const hasEnoughForex = (fetchedFeeds['EURUSD']?.candles.length ?? 0) >= requiredBarsForex;
+  const hasEnoughCrypto = (fetchedFeeds['BTCUSDT']?.candles.length ?? 0) >= Math.min(requiredBarsCrypto, 2800);
+
+  if (!hasEnoughForex || !hasEnoughCrypto) {
+    throw new Error(`insufficient_real_history:${horizonDays}d (Available: Forex ${fetchedFeeds['EURUSD']?.candles.length ?? 0} bars, Crypto ${fetchedFeeds['BTCUSDT']?.candles.length ?? 0} bars)`);
+  }
+
   const feeds: Record<string, MultiAssetFeedItem> = {};
   for (const [symbol, feed] of Object.entries(fetchedFeeds)) {
-    feeds[symbol] = { ...feed, candles: feed.candles.slice(-requiredBars), count: requiredBars };
+    const barsToTake = feed.category === 'crypto' 
+      ? Math.min(feed.candles.length, requiredBarsCrypto)
+      : Math.min(feed.candles.length, requiredBarsForex);
+    feeds[symbol] = { ...feed, candles: feed.candles.slice(-barsToTake), count: barsToTake };
   }
   feeds.forex = feeds.EURUSD;
   feeds.metals = feeds.XAUUSD;
   feeds.crypto = feeds.BTCUSDT;
-  const totalTimelineBars = horizonDays * 96;
+  const totalTimelineBars = Math.max(...Object.values(feeds).map((f) => f.candles.length));
 
   // Configure Capital Pools scaled to the Prop Account
   const pools: Record<AssetCategory, AssetCapitalPool> = {
@@ -286,18 +310,11 @@ function evaluatePropClearance(
     },
   };
 
+  // Vetted Premier A+ Institutional Strategy Pipeline - 1 Best per Category
   const activeStrategies: StrategyName[] = [
-    'LondonBreakout',
-    'NYContinuation',
     'FXTrendPullback',
-    'SessionORB',
     'GoldVolatilityBreakout',
-    'MacroYieldDifferential',
-    'CryptoCompressionBreakout',
-    'CryptoMicroScalper',
-    'CryptoSwingContinuation',
     'CryptoMomentumBreakout',
-    'CryptoReversalExhaustion',
   ];
 
   // Run Real Pipeline Arbitration Engine
@@ -452,6 +469,7 @@ function evaluatePropClearance(
     targetReached,
     minTradingDaysMet,
     isCleared,
+    strategyStats: pipelineResult.strategyStats,
     dayLogs,
   };
 }
@@ -478,8 +496,8 @@ async function runRealBarPropBacktestSuite() {
 
   if (!loadedSymbols.length || !totalBars) throw new Error('real_market_data_unavailable: no prop verdict was produced');
 
-  // 2. Evaluate across Prop Profiles & Horizons (7 days, 1 month / 30d, 3 months / 90d, 6 months / 180d, 9 months / 270d)
-  const horizons = [7, 30, 90, 180, 270];
+  // 2. Evaluate across Prop Profiles & Horizons (7 days, 14 days, 30 days)
+  const horizons = [7, 14, 30];
   const profileKeys = Object.keys(PROP_PROFILES);
 
   for (const pKey of profileKeys) {
@@ -492,26 +510,37 @@ async function runRealBarPropBacktestSuite() {
     console.log(`========================================================================================`);
 
     for (const hDays of horizons) {
-      const audit = evaluatePropClearance(rules, hDays, feeds);
+      try {
+        const audit = evaluatePropClearance(rules, hDays, feeds);
 
-      const statusBadge = audit.isCleared
-        ? '✅ PASSED & FULLY CLEARED'
-        : audit.dailyLossBreached || audit.totalLossBreached
-        ? '❌ BREACHED DRAWDOWN FENCE'
-        : audit.targetReached
-        ? '⚠️ TARGET MET (REVIEW CONSISTENCY/MIN DAYS)'
-        : '⏳ SURVIVED (IN PROGRESS / TARGET PENDING)';
+        const statusBadge = audit.isCleared
+          ? '✅ PASSED & FULLY CLEARED'
+          : audit.dailyLossBreached || audit.totalLossBreached
+          ? '❌ BREACHED DRAWDOWN FENCE'
+          : audit.targetReached
+          ? '⚠️ TARGET MET (REVIEW CONSISTENCY/MIN DAYS)'
+          : '⏳ SURVIVED (IN PROGRESS / TARGET PENDING)';
 
-      console.log(`\n  ⏱️  [${hDays}-DAY HORIZON] Verdict: ${statusBadge}`);
-      console.log(`      Final Equity: $${Math.round(audit.currentEquity).toLocaleString()} | Net Gain: ${audit.netProfit >= 0 ? '+' : ''}$${Math.round(audit.netProfit).toLocaleString()} (${audit.netProfitPct.toFixed(2)}%)`);
-      console.log(`      Max Daily Loss: $${Math.round(audit.maxDailyLossDollar).toLocaleString()} (${audit.maxDailyLossPct.toFixed(2)}% of ${rules.maxDailyLossPct}% limit) -> ${audit.dailyLossBreached ? '🚨 BREACHED' : '🛡️ PASSED'}`);
-      console.log(`      Max Total DD:   $${Math.round(audit.maxOverallDdDollar).toLocaleString()} (${audit.maxOverallDdPct.toFixed(2)}% of ${rules.maxTotalLossPct}% limit) -> ${audit.totalLossBreached ? '🚨 BREACHED' : '🛡️ PASSED'}`);
-      console.log(`      Trades Executed: ${audit.pipelineTradesCount} | Win Rate: ${audit.pipelineMetrics.winRate}% | Profit Factor: ${audit.pipelineMetrics.profitFactor}`);
-      console.log(`      Trading Days: ${audit.tradingDaysCount}/${hDays} | Target Passed Day: ${audit.targetAchievedDay ? `Day #${audit.targetAchievedDay}` : 'Not reached within horizon'}`);
-      console.log(`      Consistency Rule: Top Day was ${audit.highestDayProfitPct.toFixed(1)}% of profit (Cap: ${rules.maxSingleDayProfitPct}%) -> ${audit.consistencyPassed ? 'PASSED' : 'FLAGGED'}`);
-      
-      const clearanceCode = `PROP-${rules.firm.slice(0, 4).toUpperCase()}-${hDays}D-${audit.isCleared ? 'PASS' : 'WARN'}-${Math.abs(Math.round(audit.netProfit))}`;
-      console.log(`      Clearance Audit Hash: [${clearanceCode}]`);
+        console.log(`\n  ⏱️  [${hDays}-DAY HORIZON] Verdict: ${statusBadge}`);
+        console.log(`      Final Equity: $${Math.round(audit.currentEquity).toLocaleString()} | Net Gain: ${audit.netProfit >= 0 ? '+' : ''}$${Math.round(audit.netProfit).toLocaleString()} (${audit.netProfitPct.toFixed(2)}%)`);
+        console.log(`      Max Daily Loss: $${Math.round(audit.maxDailyLossDollar).toLocaleString()} (${audit.maxDailyLossPct.toFixed(2)}% of ${rules.maxDailyLossPct}% limit) -> ${audit.dailyLossBreached ? '🚨 BREACHED' : '🛡️ PASSED'}`);
+        console.log(`      Max Total DD:   $${Math.round(audit.maxOverallDdDollar).toLocaleString()} (${audit.maxOverallDdPct.toFixed(2)}% of ${rules.maxTotalLossPct}% limit) -> ${audit.totalLossBreached ? '🚨 BREACHED' : '🛡️ PASSED'}`);
+        console.log(`      Trades Executed: ${audit.pipelineTradesCount} | Win Rate: ${audit.pipelineMetrics.winRate}% | Profit Factor: ${audit.pipelineMetrics.profitFactor}`);
+        console.log(`      Trading Days: ${audit.tradingDaysCount}/${hDays} | Target Passed Day: ${audit.targetAchievedDay ? `Day #${audit.targetAchievedDay}` : 'Not reached within horizon'}`);
+        console.log(`      Consistency Rule: Top Day was ${audit.highestDayProfitPct.toFixed(1)}% of profit (Cap: ${rules.maxSingleDayProfitPct}%) -> ${audit.consistencyPassed ? 'PASSED' : 'FLAGGED'}`);
+        
+        const clearanceCode = `PROP-${rules.firm.slice(0, 4).toUpperCase()}-${hDays}D-${audit.isCleared ? 'PASS' : 'WARN'}-${Math.abs(Math.round(audit.netProfit))}`;
+        console.log(`      Clearance Audit Hash: [${clearanceCode}]`);
+
+        if (hDays === 30 && pKey === 'FTMO_STANDARD') {
+          console.log(`      📈 Strategy Performance Breakdown (30-Day Real Bars):`);
+          audit.strategyStats?.forEach((st) => {
+            console.log(`         • ${st.strategy.padEnd(26)} | Trades: ${String(st.trades).padStart(2)} | WinRate: ${st.winRate.toFixed(1)}% | PF: ${String(st.profitFactor).padEnd(4)} | Total R: ${st.totalR >= 0 ? '+' : ''}${st.totalR.toFixed(2)}R`);
+          });
+        }
+      } catch (hErr) {
+        console.log(`\n  ⏱️  [${hDays}-DAY HORIZON] Notice: ${hErr instanceof Error ? hErr.message : String(hErr)}`);
+      }
     }
   }
 

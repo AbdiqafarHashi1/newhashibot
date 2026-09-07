@@ -105,7 +105,7 @@ export interface BtTrade {
   stop_loss: number;
   tp1: number;
   tp2: number;
-  result: 'tp2_hit' | 'tp1_hit' | 'sl_hit' | 'expired' | 'weekend_cut';
+  result: 'tp2_hit' | 'tp1_hit' | 'sl_hit' | 'expired' | 'weekend_cut' | 'breakeven_exit';
   exitIndex: number | null;
   exitTime: string | null;
   exitPrice: number | null;
@@ -121,6 +121,11 @@ export interface BtTrade {
   rejectionCause?: string;
   feeDeductedUsd?: number;
   riskUsd?: number;
+  initialRiskDistance?: number;
+  isBreakevenMoved?: boolean;
+  tp1HitAndPartialBanked?: boolean;
+  partialBankedUsd?: number;
+  partialBankedR?: number;
 }
 
 export interface BtMetrics {
@@ -281,16 +286,16 @@ export const STRATEGY_ASSET_MAP: Record<
   StrategyName,
   { category: AssetCategory; defaultSymbol: string; supportedSymbols: string[]; decimals: number }
 > = {
-  LondonBreakout: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'GBPUSD', 'USDJPY'], decimals: 5 },
-  NYContinuation: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'GBPUSD', 'AUDUSD'], decimals: 5 },
-  FXTrendPullback: { category: 'forex', defaultSymbol: 'GBPUSD', supportedSymbols: ['GBPUSD', 'EURUSD', 'AUDUSD'], decimals: 5 },
-  SessionORB: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'GBPUSD', 'USDJPY'], decimals: 5 },
-  FXMicroScalper: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'GBPUSD', 'USDJPY'], decimals: 5 },
-  MacroYieldDifferential: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'USDJPY', 'GBPUSD'], decimals: 5 },
-  GoldVolatilityBreakout: { category: 'metals', defaultSymbol: 'XAUUSD', supportedSymbols: ['XAUUSD', 'XAGUSD'], decimals: 2 },
-  CryptoCompressionBreakout: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], decimals: 2 },
-  CryptoMicroScalper: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], decimals: 2 },
-  CryptoSwingContinuation: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], decimals: 2 },
-  CryptoMomentumBreakout: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], decimals: 2 },
-  CryptoReversalExhaustion: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], decimals: 2 },
+  LondonBreakout: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'GBPUSD'], decimals: 5 },
+  NYContinuation: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'GBPUSD'], decimals: 5 },
+  FXTrendPullback: { category: 'forex', defaultSymbol: 'GBPUSD', supportedSymbols: ['GBPUSD', 'EURUSD'], decimals: 5 },
+  SessionORB: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD', 'GBPUSD'], decimals: 5 },
+  FXMicroScalper: { category: 'forex', defaultSymbol: 'GBPUSD', supportedSymbols: ['GBPUSD'], decimals: 5 },
+  MacroYieldDifferential: { category: 'forex', defaultSymbol: 'EURUSD', supportedSymbols: ['EURUSD'], decimals: 5 },
+  GoldVolatilityBreakout: { category: 'metals', defaultSymbol: 'XAUUSD', supportedSymbols: ['XAUUSD'], decimals: 2 },
+  CryptoCompressionBreakout: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT'], decimals: 2 },
+  CryptoMicroScalper: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT'], decimals: 2 },
+  CryptoSwingContinuation: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT'], decimals: 2 },
+  CryptoMomentumBreakout: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT'], decimals: 2 },
+  CryptoReversalExhaustion: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT'], decimals: 2 },
 };

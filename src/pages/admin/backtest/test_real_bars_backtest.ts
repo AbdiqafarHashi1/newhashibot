@@ -128,9 +128,9 @@ async function runAudit() {
 
       const wr = result.metrics.winRate.toFixed(1);
       const pf = result.metrics.profitFactor.toFixed(2);
-      const net = (result.metrics.netProfitUsd >= 0 ? '+$' : '-$') + Math.abs(result.metrics.netProfitUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const net = (result.metrics.netUsd >= 0 ? '+$' : '-$') + Math.abs(result.metrics.netUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const dd = result.metrics.maxDrawdownPct.toFixed(1);
-      const status = result.metrics.netProfitUsd > 0 && result.metrics.maxDrawdownPct <= 5.0 ? '✅ SOUND' : '⚠️ REVIEW';
+      const status = result.metrics.netUsd > 0 && result.metrics.maxDrawdownPct <= 5.0 ? '✅ SOUND' : '⚠️ REVIEW';
 
       console.log(
         `   ▶ ${strat.name.padEnd(24)} on ${strat.symbol.padEnd(7)} | ${status} | Trades: ${result.trades.length.toString().padStart(4)} | WR: ${wr.padStart(5)}% | PF: ${pf.padStart(5)} | Net: ${net.padStart(12)} | MaxDD: ${dd}%`
@@ -199,7 +199,7 @@ async function runAudit() {
     console.log(`   Pipeline Total Trades: ${pipelineResult.trades.length}`);
     console.log(`   Pipeline Win Rate:     ${pipelineResult.metrics.winRate.toFixed(1)}%`);
     console.log(`   Pipeline Profit Factor:${pipelineResult.metrics.profitFactor.toFixed(2)}`);
-    console.log(`   Pipeline Net Return:   +$${pipelineResult.metrics.netProfitUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+    console.log(`   Pipeline Net Return:   ${pipelineResult.metrics.netUsd >= 0 ? '+$' : '-$'}${Math.abs(pipelineResult.metrics.netUsd).toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
     console.log(`   Pipeline Max Drawdown: ${pipelineResult.metrics.maxDrawdownPct.toFixed(2)}%`);
 
     // 4. Prop Clearance Simulation (FTMO Target: 10%, Max Daily DD: 5%, Max Total DD: 10%)

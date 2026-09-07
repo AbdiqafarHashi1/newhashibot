@@ -176,15 +176,22 @@ export function evaluateStrategySetup(
     const isBreakSell = prev.close >= boxLow && last.close < boxLow && last.close < last.open;
     const isRetestSell = prev.close < boxLow && last.high >= boxLow && last.close < boxLow && last.close < last.open;
 
-    if (isBreakBuy || isRetestBuy) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.5);
-      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+    const isTrendBull = ema20 >= ema50 * 0.999 && rsi >= 48;
+    const isTrendBear = ema20 <= ema50 * 1.001 && rsi <= 52;
+
+    const stopDist = atr * (params.stop_atr_mult ?? 1.25);
+    const tp1Dist = stopDist * (params.tp1_r ?? 1.6);
+    const tp2Dist = stopDist * (params.tp2_r ?? 3.0);
+
+    if ((isBreakBuy || isRetestBuy) && isTrendBull) {
+      const sl = price - stopDist;
+      const tp1 = price + tp1Dist;
+      const tp2 = price + tp2Dist;
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 93, grade: 'A+', reason: `Gold 6h Box Breakout Long ($${price.toFixed(2)})` };
-    } else if (isBreakSell || isRetestSell) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.5);
-      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+    } else if ((isBreakSell || isRetestSell) && isTrendBear) {
+      const sl = price + stopDist;
+      const tp1 = price - tp1Dist;
+      const tp2 = price - tp2Dist;
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 93, grade: 'A+', reason: `Gold 6h Box Breakout Short ($${price.toFixed(2)})` };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Within 6h Gold box', rejectionCause: 'inside_box' };
@@ -331,14 +338,14 @@ export function evaluateStrategySetup(
     const keltnerUpper = ema20 + atr * 1.8;
     const keltnerLower = ema20 - atr * 1.8;
     if (prev.close <= keltnerUpper && price > keltnerUpper && last.volume > 200 && rsi > 55) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.5);
-      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+      const sl = price - atr * (params.stop_atr_mult ?? 1.1);
+      const tp1 = price + atr * (params.tp1_r ?? 2.0);
+      const tp2 = price + atr * (params.tp2_r ?? 3.8);
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Keltner Surge Momentum Long with Volume Confirmation' };
     } else if (prev.close >= keltnerLower && price < keltnerLower && last.volume > 200 && rsi < 45) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.5);
-      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+      const sl = price + atr * (params.stop_atr_mult ?? 1.1);
+      const tp1 = price - atr * (params.tp1_r ?? 2.0);
+      const tp2 = price - atr * (params.tp2_r ?? 3.8);
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Keltner Surge Momentum Short with Volume Confirmation' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Within Keltner band', rejectionCause: 'inside_keltner' };
@@ -353,14 +360,14 @@ export function evaluateStrategySetup(
     const isBull = ema20 > ema50;
     const isBear = ema20 < ema50;
     if (isBull && prev.low <= ema20 * 1.0015 && price > ema20 && rsi > 48 && last.close > last.open) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.5);
-      const tp2 = price + atr * (params.tp2_r ?? 2.8);
+      const sl = price - atr * (params.stop_atr_mult ?? 1.1);
+      const tp1 = price + atr * (params.tp1_r ?? 2.0);
+      const tp2 = price + atr * (params.tp2_r ?? 3.8);
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Swing Trend EMA Pullback & Reclaim Long' };
     } else if (isBear && prev.high >= ema20 * 0.9985 && price < ema20 && rsi < 52 && last.close < last.open) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.5);
-      const tp2 = price - atr * (params.tp2_r ?? 2.8);
+      const sl = price + atr * (params.stop_atr_mult ?? 1.1);
+      const tp1 = price - atr * (params.tp1_r ?? 2.0);
+      const tp2 = price - atr * (params.tp2_r ?? 3.8);
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Swing Trend EMA Pullback & Reclaim Short' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Pullback condition not primed', rejectionCause: 'no_pullback' };
@@ -378,14 +385,14 @@ export function evaluateStrategySetup(
     const isBreakSell = prev.close >= orbLow && last.close < orbLow && last.close < last.open;
 
     if (isBreakBuy) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.4);
-      const tp2 = price + atr * (params.tp2_r ?? 2.6);
+      const sl = price - atr * (params.stop_atr_mult ?? 1.1);
+      const tp1 = price + atr * (params.tp1_r ?? 2.0);
+      const tp2 = price + atr * (params.tp2_r ?? 3.8);
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Session Opening Range Breakout Long' };
     } else if (isBreakSell) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.4);
-      const tp2 = price - atr * (params.tp2_r ?? 2.6);
+      const sl = price + atr * (params.stop_atr_mult ?? 1.1);
+      const tp1 = price - atr * (params.tp1_r ?? 2.0);
+      const tp2 = price - atr * (params.tp2_r ?? 3.8);
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Session Opening Range Breakout Short' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside ORB range', rejectionCause: 'inside_orb' };
@@ -398,14 +405,14 @@ export function evaluateStrategySetup(
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Outside 4h macro yield alignment window', rejectionCause: 'macro_candle_wait' };
     }
     if (ema20 > ema50 && price > ema20 && rsi > 52 && last.close > last.open) {
-      const sl = price - atr * 1.8;
-      const tp1 = price + atr * 2.0;
-      const tp2 = price + atr * 4.0;
+      const sl = price - atr * 1.1;
+      const tp1 = price + atr * 2.2;
+      const tp2 = price + atr * 4.2;
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Macro Sovereign Yield Spread Expansion Long (> 25 bps)' };
     } else if (ema20 < ema50 && price < ema20 && rsi < 48 && last.close < last.open) {
-      const sl = price + atr * 1.8;
-      const tp1 = price - atr * 2.0;
-      const tp2 = price - atr * 4.0;
+      const sl = price + atr * 1.1;
+      const tp1 = price - atr * 2.2;
+      const tp2 = price - atr * 4.2;
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Macro Sovereign Yield Spread Expansion Short (> 25 bps)' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Macro yield differential flat (< 25 bps)', rejectionCause: 'macro_flat' };
