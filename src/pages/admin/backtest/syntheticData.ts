@@ -7,21 +7,30 @@ export function parseCandleCSV(csvText: string): { candles: BtCandle[]; error?: 
 
     const firstLine = lines[0].toLowerCase();
     const delimiter = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
-    const headers = firstLine.split(delimiter).map((h) => h.trim().replace(/^["']|["']$/g, ''));
+    // Strip angle brackets (MT4/MT5 style: <OPEN>, <DATE>, etc.) and surrounding quotes
+    const headers = firstLine.split(delimiter).map((h) =>
+      h.trim().replace(/[<>]/g, '').replace(/^["']|["']$/g, '')
+    );
 
-    let timeIdx = headers.findIndex((h) => h.includes('time') || h.includes('date') || h.includes('timestamp'));
-    let openIdx = headers.findIndex((h) => h === 'open' || h === 'o' || h.startsWith('open'));
-    let highIdx = headers.findIndex((h) => h === 'high' || h === 'h' || h.startsWith('high'));
-    let lowIdx = headers.findIndex((h) => h === 'low' || h === 'l' || h.startsWith('low'));
-    let closeIdx = headers.findIndex((h) => h === 'close' || h === 'c' || h.startsWith('close'));
-    let volIdx = headers.findIndex((h) => h === 'volume' || h === 'vol' || h === 'v' || h.startsWith('vol'));
+    // Detect separate date and time columns (MT4/MT5 exports them as distinct fields)
+    const dateIdx = headers.findIndex((h) => h === 'date');
+    const timeColIdx = headers.findIndex((h) => h === 'time');
+    const hasSeparateDateTime = dateIdx !== -1 && timeColIdx !== -1 && dateIdx !== timeColIdx;
 
-    if (timeIdx === -1) timeIdx = 0;
+    let timeIdx = headers.findIndex((h) => h === 'time' || h === 'timestamp' || h === 'datetime' || (h === 'date' && !hasSeparateDateTime));
+    let openIdx = headers.findIndex((h) => h === 'open' || h === 'o');
+    let highIdx = headers.findIndex((h) => h === 'high' || h === 'h');
+    let lowIdx = headers.findIndex((h) => h === 'low' || h === 'l');
+    let closeIdx = headers.findIndex((h) => h === 'close' || h === 'c');
+    // Match volume but skip tickvol/vol columns from MT4/MT5 that are not real volume
+    let volIdx = headers.findIndex((h) => h === 'volume' || h === 'v');
+
+    if (timeIdx === -1) timeIdx = hasSeparateDateTime ? timeColIdx : 0;
     if (openIdx === -1) openIdx = 1;
     if (highIdx === -1) highIdx = 2;
     if (lowIdx === -1) lowIdx = 3;
     if (closeIdx === -1) closeIdx = 4;
-    if (volIdx === -1) volIdx = headers.length > 5 ? 5 : -1;
+    if (volIdx === -1) volIdx = headers.findIndex((h) => h === 'vol') !== -1 ? headers.findIndex((h) => h === 'vol') : -1;
 
     const candles: BtCandle[] = [];
 
@@ -29,7 +38,15 @@ export function parseCandleCSV(csvText: string): { candles: BtCandle[]; error?: 
       const parts = lines[i].split(delimiter).map((p) => p.trim().replace(/^["']|["']$/g, ''));
       if (parts.length < 4) continue;
 
-      const rawTime = parts[timeIdx] ?? `Bar-${i}`;
+      let rawTime: string;
+      if (hasSeparateDateTime) {
+        // Merge "<date>" and "<time>" columns into a single timestamp string
+        // e.g. "2026.08.07" + "00:15:00" -> "2026.08.07 00:15:00"
+        rawTime = `${parts[dateIdx]} ${parts[timeColIdx]}`.trim();
+      } else {
+        rawTime = parts[timeIdx] ?? `Bar-${i}`;
+      }
+
       let timeFormatted = rawTime;
 
       if (/^\d{10,13}$/.test(rawTime)) {

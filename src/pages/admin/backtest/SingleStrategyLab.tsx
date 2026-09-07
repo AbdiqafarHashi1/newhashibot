@@ -126,18 +126,44 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
     const text = await file.text();
     const lines = text.split(/\r?\n/).filter((line) => line.trim());
     if (lines.length < 21) throw new Error('CSV must include a header and at least 20 OHLCV rows');
-    const headers = lines[0].split(',').map((value) => value.trim().toLowerCase());
-    const indexOf = (...names: string[]) => headers.findIndex((header) => names.includes(header));
-    const timeIndex = indexOf('time', 'timestamp', 'date', 'datetime');
+
+    // Normalize headers: strip angle brackets (MT4/MT5 style), lowercase, trim quotes
+    const rawHeaders = lines[0].split(',').map((value) => value.trim().replace(/[<>]/g, '').replace(/^["']|["']$/g, '').toLowerCase());
+    const indexOf = (...names: string[]) => rawHeaders.findIndex((header) => names.includes(header));
+
+    // Detect separate date and time columns (MT4/MT5 export format)
+    const dateIndex = indexOf('date');
+    const timeColIndex = indexOf('time');
+    const hasSeparateDateTime = dateIndex !== -1 && timeColIndex !== -1 && dateIndex !== timeColIndex;
+
+    const timeIndex = hasSeparateDateTime ? timeColIndex : indexOf('time', 'timestamp', 'date', 'datetime');
     const openIndex = indexOf('open', 'o');
     const highIndex = indexOf('high', 'h');
     const lowIndex = indexOf('low', 'l');
     const closeIndex = indexOf('close', 'c');
-    const volumeIndex = indexOf('volume', 'vol', 'v');
-    if ([timeIndex, openIndex, highIndex, lowIndex, closeIndex].some((index) => index < 0)) throw new Error('CSV needs time, open, high, low, and close columns');
-    const parsed = lines.slice(1).map((line) => line.split(',').map((value) => value.trim())).map((row) => ({
-      time: row[timeIndex], open: Number(row[openIndex]), high: Number(row[highIndex]), low: Number(row[lowIndex]), close: Number(row[closeIndex]), volume: volumeIndex >= 0 ? Number(row[volumeIndex]) : 0,
-    })).filter((candle) => candle.time && [candle.open, candle.high, candle.low, candle.close].every(Number.isFinite) && candle.high >= candle.low);
+    const volumeIndex = indexOf('volume', 'v');
+    // tickvol, vol, spread, etc. are silently ignored — they don't map to our OHLCV schema
+
+    if ([openIndex, highIndex, lowIndex, closeIndex].some((index) => index < 0)) throw new Error('CSV needs open, high, low, and close columns');
+    if (timeIndex < 0 && !hasSeparateDateTime) throw new Error('CSV needs a time, timestamp, or date column');
+
+    const parsed = lines.slice(1).map((line) => line.split(',').map((value) => value.trim().replace(/^["']|["']$/g, ''))).map((row) => {
+      let time: string;
+      if (hasSeparateDateTime) {
+        time = `${row[dateIndex]} ${row[timeColIndex]}`.trim();
+      } else {
+        time = row[timeIndex];
+      }
+      return {
+        time,
+        open: Number(row[openIndex]),
+        high: Number(row[highIndex]),
+        low: Number(row[lowIndex]),
+        close: Number(row[closeIndex]),
+        volume: volumeIndex >= 0 ? Number(row[volumeIndex]) : 0,
+      };
+    }).filter((candle) => candle.time && [candle.open, candle.high, candle.low, candle.close].every(Number.isFinite) && candle.high >= candle.low);
+
     if (parsed.length < 20) throw new Error('CSV contains fewer than 20 valid OHLC rows');
     parsed.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
     setCsvCandles(parsed);
