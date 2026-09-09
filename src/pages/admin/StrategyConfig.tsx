@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
@@ -271,7 +271,7 @@ export const STRATEGY_DEFINITIONS: Record<StrategyName, StrategyDefinition> = {
     marketType: 'forex',
     signalStyle: 'forex_signal',
     defaultMeta: { enabled: true, market_type: 'forex', signal_style: 'forex_signal', risk_mode: 'conservative', allowed_timeframes: ['15m'], min_score: 85, min_rr: 1.5, min_stop_distance_pct: 0.08, min_tp1_distance_pct: 0.12, min_tp2_distance_pct: 0.20, max_bars_in_trade: 24 },
-    defaultParams: { max_wick_ratio: 0.50, max_asian_range_atr: 8.0, stop_atr_mult: 1.35, tp1_r: 1.5, tp2_r: 2.5 },
+    defaultParams: { max_wick_ratio: 0.50, max_asian_range_atr: 8.0, stop_atr_mult: 1.8, tp1_r: 1.8, tp2_r: 2.8 },
     defaultAI: {
       status: 'PRIME',
       action: 'Executes clean breakouts outside Asian range (00:00-07:00 UTC) with wick rejection.',
@@ -292,7 +292,7 @@ export const STRATEGY_DEFINITIONS: Record<StrategyName, StrategyDefinition> = {
     marketType: 'forex',
     signalStyle: 'forex_signal',
     defaultMeta: { enabled: true, market_type: 'forex', signal_style: 'forex_signal', risk_mode: 'conservative', allowed_timeframes: ['15m', '1h'], min_score: 84, min_rr: 1.4, min_stop_distance_pct: 0.08, min_tp1_distance_pct: 0.12, min_tp2_distance_pct: 0.20, max_bars_in_trade: 36 },
-    defaultParams: { max_displacement_atr: 3.2, pre_news_lockout_mins: 30, stop_atr_mult: 1.5, tp1_r: 1.2, tp2_r: 2.5 },
+    defaultParams: { max_displacement_atr: 3.2, pre_news_lockout_mins: 30, stop_atr_mult: 1.8, tp1_r: 1.6, tp2_r: 2.8 },
     defaultAI: {
       status: 'PRIME',
       action: 'Picks up high-conviction US morning trends; protects against CPI/NFP headline spikes.',
@@ -355,7 +355,7 @@ export const STRATEGY_DEFINITIONS: Record<StrategyName, StrategyDefinition> = {
     marketType: 'forex',
     signalStyle: 'forex_signal',
     defaultMeta: { enabled: true, market_type: 'forex', signal_style: 'forex_signal', risk_mode: 'conservative', allowed_timeframes: ['15m'], min_score: 88, min_rr: 1.5, min_stop_distance_pct: 0.12, min_tp1_distance_pct: 0.18, min_tp2_distance_pct: 0.35, max_bars_in_trade: 36 },
-    defaultParams: { box_lookback: 24, max_spread_points: 45.0, min_box_atr_range: 0.8, max_box_atr_range: 5.5, stop_atr_mult: 1.35, tp1_r: 1.35, tp2_r: 2.5 },
+    defaultParams: { box_lookback: 16, max_spread_points: 45.0, min_box_atr_range: 0.8, max_box_atr_range: 5.5, stop_atr_mult: 1.8, tp1_r: 1.6, tp2_r: 3.5 },
     defaultAI: {
       status: 'PRIME',
       action: 'Exploits heavy XAUUSD commodity momentum surges with strict Friday 20:00 UTC cut.',
@@ -376,7 +376,7 @@ export const STRATEGY_DEFINITIONS: Record<StrategyName, StrategyDefinition> = {
     marketType: 'forex',
     signalStyle: 'swing',
     defaultMeta: { enabled: true, market_type: 'forex', signal_style: 'swing', risk_mode: 'conservative', allowed_timeframes: ['4h', '1d'], min_score: 90, min_rr: 2.0, min_stop_distance_pct: 0.50, min_tp1_distance_pct: 1.00, min_tp2_distance_pct: 2.00, max_bars_in_trade: 120 },
-    defaultParams: { min_yield_spread_bps: 25.0, stop_pct: 1.5, tp_pct: 4.5 },
+    defaultParams: { min_yield_spread_bps: 25.0, stop_atr_mult: 2.2, tp1_r: 1.4, tp2_r: 4.0, stop_pct: 1.5, tp_pct: 4.5 },
     defaultAI: {
       status: 'PRIME',
       action: 'Anchors high-timeframe currency bias based on central bank rate trajectory spreads.',
@@ -443,9 +443,22 @@ function buildEditState(cfg: StrategyConfig): EditState {
   const defaults = def?.defaultParams ?? {};
   
   // Extract AI rec if stored inside params or use default
-  const savedParams = (cfg.params ?? {}) as Record<string, unknown>;
-  const savedAI = savedParams._ai_rec as AIRecommendationState | undefined;
-  const aiState: AIRecommendationState = savedAI ? { ...def?.defaultAI, ...savedAI } : { ...(def?.defaultAI ?? {
+  let savedParams: Record<string, unknown> = {};
+  if (typeof cfg.params === 'string') {
+    try {
+      savedParams = JSON.parse(cfg.params);
+    } catch {
+      savedParams = {};
+    }
+  } else if (cfg.params && typeof cfg.params === 'object') {
+    savedParams = cfg.params as Record<string, unknown>;
+  }
+
+  const savedAI = (savedParams._ai_rec && typeof savedParams._ai_rec === 'object')
+    ? (savedParams._ai_rec as Record<string, unknown>)
+    : undefined;
+
+  const defaultAI = def?.defaultAI ?? {
     status: 'PRIME',
     action: 'Dynamic quantitative execution model with volatility normalization.',
     regime_affinity: 'Adaptive Multi-Regime',
@@ -453,13 +466,26 @@ function buildEditState(cfg: StrategyConfig): EditState {
     alpha_half_life_days: 120,
     alpha_decay_score: 90,
     last_recalibrated: new Date().toISOString(),
-  }) };
+  };
+
+  const aiState: AIRecommendationState = {
+    status: ((savedAI?.status as string) ?? defaultAI.status ?? 'PRIME') as AIRecommendationState['status'],
+    action: (savedAI?.action as string) ?? defaultAI.action ?? 'Dynamic quantitative execution model.',
+    regime_affinity: (savedAI?.regime_affinity as string) ?? defaultAI.regime_affinity ?? 'Adaptive Multi-Regime',
+    weight_multiplier: Number(savedAI?.weight_multiplier ?? defaultAI.weight_multiplier ?? 1.0),
+    alpha_half_life_days: Number(savedAI?.alpha_half_life_days ?? defaultAI.alpha_half_life_days ?? 120),
+    alpha_decay_score: Number(savedAI?.alpha_decay_score ?? defaultAI.alpha_decay_score ?? 90),
+    last_recalibrated: (savedAI?.last_recalibrated as string) ?? defaultAI.last_recalibrated ?? new Date().toISOString(),
+  };
 
   // Remove internal AI tag from numeric params
   const cleanParams: Record<string, number> = {};
   Object.entries({ ...defaults, ...savedParams }).forEach(([k, v]) => {
-    if (k !== '_ai_rec' && typeof v === 'number') {
-      cleanParams[k] = v;
+    if (k !== '_ai_rec') {
+      const num = typeof v === 'number' ? v : Number(v);
+      if (Number.isFinite(num)) {
+        cleanParams[k] = num;
+      }
     }
   });
 
@@ -897,15 +923,15 @@ export default function StrategyConfigPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => void handleDeployChampionCalibration()}
-              disabled={deployingChampion || loading}
+              onClick={() => void handleDeployPreset(WINNING_30D_CHAMPION_PRESET)}
+              disabled={!!deployingPreset || loading}
               className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
             >
-              <Rocket size={13} className={deployingChampion ? 'animate-spin' : ''} />
-              {deployingChampion ? 'Applying...' : 'Apply & Sync to Live / Demo'}
+              <Rocket size={13} className={deployingPreset === WINNING_30D_CHAMPION_PRESET.id ? 'animate-spin' : ''} />
+              {deployingPreset === WINNING_30D_CHAMPION_PRESET.id ? 'Applying...' : 'Apply & Sync to Live / Demo'}
             </button>
             <Link
-              to="/admin/backtest"
+              to="/admin/backtest-lab"
               className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-medium transition"
             >
               Open Backtest Lab

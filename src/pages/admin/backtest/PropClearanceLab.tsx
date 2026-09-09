@@ -24,9 +24,12 @@ import {
   Clock,
   Activity,
   Target,
+  HelpCircle,
+  X,
+  UploadCloud,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { MultiAssetFeedItem, CapitalPoolConfig, AssetCategory, AssetCapitalPool } from './types';
+import { STRATEGY_ASSET_MAP, type MultiAssetFeedItem, type CapitalPoolConfig, type AssetCategory, type AssetCapitalPool } from './types';
 import { listMT5Accounts } from '../../../lib/mt5Accounts';
 import type { MT5Account } from '../../../lib/exchange/mt5';
 import { getLocalStoredAccounts, saveLocalStoredAccounts } from '../../../lib/mt5LiveEngine';
@@ -37,8 +40,12 @@ import {
   type PipelineEngineResult,
 } from './simulationEngine';
 import { StrategyName } from '../StrategyConfig';
-import { PIPELINE_UNIVERSE } from './syntheticData';
-import { parseBrokerOhlcv } from '../../../lib/backtest/brokerCsv';
+import {
+  parseBrokerOhlcv,
+  parseMultiAssetBrokerOhlcv,
+  detectInstrumentSpec,
+  generateSampleCombinedCsv,
+} from '../../../lib/backtest/brokerCsv';
 
 // Comprehensive Prop Firm Rule Definitions
 export interface PropFirmPreset {
@@ -419,7 +426,10 @@ export function PropClearanceLab({
   const [replayProgress, setReplayProgress] = useState<ReplayProgressState | null>(null);
   const [pipelineExecutionResult, setPipelineExecutionResult] = useState<PipelineEngineResult | null>(null);
   const [uploadedFeeds, setUploadedFeeds] = useState<Record<string, MultiAssetFeedItem>>({});
-  const [datasetStatus, setDatasetStatus] = useState('No broker dataset loaded. Import MT4/MT5 or exchange OHLCV CSV files before a clearance verdict.');
+  const [selectedAssetScope, setSelectedAssetScope] = useState<string>('AUTO');
+  const [datasetStatus, setDatasetStatus] = useState('No broker dataset loaded. Import MT4/MT5, exchange CSVs, or a combined multi-symbol CSV.');
+  const [showCsvFormatModal, setShowCsvFormatModal] = useState<boolean>(false);
+  const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   // Sync activeHorizon when parent selectedRange changes
@@ -448,35 +458,120 @@ export function PropClearanceLab({
       .catch((e) => console.warn('Could not fetch MT5 accounts in Prop Lab:', e));
   }, []);
 
+  const clearUploadedFeeds = useCallback(() => {
+    setUploadedFeeds({});
+    setSelectedAssetScope('AUTO');
+    setDatasetStatus('Cleared uploaded datasets. Using live broker market feeds.');
+  }, []);
+
+  const removeUploadedFeed = useCallback((symToRemove: string) => {
+    setUploadedFeeds((prev) => {
+      const next = { ...prev };
+      delete next[symToRemove];
+      const remainingSyms = Object.keys(next).filter((k) => !['forex', 'metals', 'crypto'].includes(k));
+      if (remainingSyms.length === 0) {
+        setSelectedAssetScope('AUTO');
+        setDatasetStatus('Cleared all uploaded datasets. Using live broker market feeds.');
+      } else if (remainingSyms.length === 1) {
+        setSelectedAssetScope(remainingSyms[0]);
+        setDatasetStatus(`Active uploaded feed: ${remainingSyms[0]}`);
+      } else {
+        setSelectedAssetScope('ALL');
+        setDatasetStatus(`Multi-Asset Portfolio Active: ${remainingSyms.join(', ')}`);
+      }
+      return next;
+    });
+  }, []);
+
+  const downloadSampleCsv = useCallback(() => {
+    const csvContent = generateSampleCombinedCsv();
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'combined_assets_sample.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, []);
+
   const importPropDatasets = useCallback(async (files: FileList | File[]) => {
     const imported: Record<string, MultiAssetFeedItem> = {};
     for (const file of Array.from(files)) {
-      const filename = file.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      const instrument = PIPELINE_UNIVERSE.find((item) => filename.includes(item.symbol));
-      if (!instrument) throw new Error(`${file.name}: symbol is not recognized. Name the file with a supported symbol such as EURUSD, XAUUSD, BTCUSDT, ETHUSDT, or SOLUSDT.`);
-      const candles = parseBrokerOhlcv(await file.text());
-      if (candles.length < 100) throw new Error(`${file.name}: at least 100 valid OHLC bars are required.`);
-      imported[instrument.symbol] = {
-        category: instrument.category,
-        symbol: instrument.symbol,
-        displayName: instrument.displayName,
-        assetClass: instrument.assetClass,
-        pipOrPointSize: instrument.pipOrPointSize,
-        spreadPipsOrPts: instrument.spreadPipsOrPts,
-        decimals: instrument.decimals,
-        fridayWeekendClose: instrument.fridayWeekendClose,
-        enforceSessionWindows: instrument.enforceSessionWindows,
-        candles,
-        count: candles.length,
-        status: 'ready',
-        source: `uploaded_broker_csv:${file.name}`,
-        lastUpdated: new Date().toISOString(),
-      };
+      const fileText = await file.text();
+      const multiParsed = parseMultiAssetBrokerOhlcv(fileText);
+
+      if (multiParsed.isMultiSymbol) {
+        // Multi-symbol combined CSV file detected (contains Symbol column)
+        for (const [rawSym, candles] of Object.entries(multiParsed.feedsBySymbol)) {
+          if (candles.length < 20) continue;
+          const spec = detectInstrumentSpec(rawSym);
+          imported[spec.symbol] = {
+            category: spec.category,
+            symbol: spec.symbol,
+            displayName: spec.displayName,
+            assetClass: spec.category,
+            pipOrPointSize: spec.pipOrPointSize,
+            spreadPipsOrPts: spec.spreadPipsOrPts,
+            decimals: spec.decimals,
+            fridayWeekendClose: spec.fridayWeekendClose,
+            enforceSessionWindows: spec.enforceSessionWindows,
+            candles,
+            count: candles.length,
+            status: 'ready',
+            source: `combined_csv:${file.name}[${spec.symbol}]`,
+            lastUpdated: new Date().toISOString(),
+          };
+          if (!imported[spec.category]) {
+            imported[spec.category] = imported[spec.symbol];
+          }
+        }
+      } else {
+        // Single symbol per file (deduce instrument from filename or default)
+        const cleanUpper = file.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const spec = detectInstrumentSpec(cleanUpper);
+        const candles = multiParsed.feedsBySymbol.DEFAULT || parseBrokerOhlcv(fileText);
+        if (candles.length < 20) {
+          throw new Error(`${file.name}: at least 20 valid OHLC bars are required (found ${candles.length}).`);
+        }
+
+        imported[spec.symbol] = {
+          category: spec.category,
+          symbol: spec.symbol,
+          displayName: spec.displayName,
+          assetClass: spec.category,
+          pipOrPointSize: spec.pipOrPointSize,
+          spreadPipsOrPts: spec.spreadPipsOrPts,
+          decimals: spec.decimals,
+          fridayWeekendClose: spec.fridayWeekendClose,
+          enforceSessionWindows: spec.enforceSessionWindows,
+          candles,
+          count: candles.length,
+          status: 'ready',
+          source: `uploaded_broker_csv:${file.name}`,
+          lastUpdated: new Date().toISOString(),
+        };
+        if (!imported[spec.category]) {
+          imported[spec.category] = imported[spec.symbol];
+        }
+      }
     }
-    const categories: Partial<Record<AssetCategory, string>> = { forex: 'EURUSD', metals: 'XAUUSD', crypto: 'BTCUSDT' };
-    for (const [category, symbol] of Object.entries(categories)) if (imported[symbol]) imported[category] = imported[symbol];
+
+    const uniqueLoaded = Object.values(imported).filter((feed, index, all) => all.findIndex((other) => other.symbol === feed.symbol) === index);
+    if (uniqueLoaded.length === 0) {
+      throw new Error('No valid price bars detected in uploaded CSV file(s). Ensure valid headers: [Symbol], Date/Time, Open, High, Low, Close.');
+    }
+
     setUploadedFeeds((previous) => ({ ...previous, ...imported }));
-    setDatasetStatus(`Imported ${Object.values(imported).filter((feed, index, all) => all.findIndex((other) => other.symbol === feed.symbol) === index).length} broker dataset(s): ${Object.values(imported).filter((feed, index, all) => all.findIndex((other) => other.symbol === feed.symbol) === index).map((feed) => `${feed.symbol} (${feed.count.toLocaleString()} bars)`).join(', ')}.`);
+
+    if (uniqueLoaded.length === 1) {
+      setSelectedAssetScope(uniqueLoaded[0].symbol);
+      setDatasetStatus(`Imported ${uniqueLoaded[0].symbol} (${uniqueLoaded[0].count.toLocaleString()} bars). Single-symbol Prop Challenge ready!`);
+    } else {
+      setSelectedAssetScope('ALL'); // Automatically activate Multi-Asset Portfolio Pipeline!
+      setDatasetStatus(`Multi-Asset Pipeline Armed! Imported ${uniqueLoaded.length} assets: ${uniqueLoaded.map((feed) => `${feed.symbol} (${feed.count.toLocaleString()} bars)`).join(', ')}.`);
+    }
   }, []);
 
   // Run Real Replay Simulation Function (Candle-by-Candle Authentic Scan)
@@ -490,60 +585,174 @@ export function PropClearanceLab({
       try {
         const horizonDays =
           horizon === '7d' ? 7 : horizon === '30d' ? 30 : horizon === '60d' ? 60 : horizon === '90d' ? 90 : horizon === '180d' ? 180 : 270;
-        // 1. Gather all feeds
-        const feedsToUse: Record<string, MultiAssetFeedItem> = { ...uploadedFeeds };
+        
+        // 1. Merge all available feeds (internal live bars + uploaded CSVs)
+        const feedsToUse: Record<string, MultiAssetFeedItem> = { ...internalFeeds, ...uploadedFeeds };
+        feedItems.forEach((f) => {
+          if (!feedsToUse[f.symbol]) feedsToUse[f.symbol] = f;
+          if (!feedsToUse[f.category]) feedsToUse[f.category] = f;
+        });
 
-        const minutesPerBar = selectedTimeframe === '5m' ? 5 : selectedTimeframe === '1h' ? 60 : selectedTimeframe === '4h' ? 240 : selectedTimeframe === '1d' ? 1440 : 15;
-        const minBarsExpected = Math.ceil((horizonDays * 24 * 60) / minutesPerBar);
-        const activeCategories = new Set(Object.entries(activeStrategies).filter(([, enabled]) => enabled).map(([strategy]) => strategy.startsWith('Crypto') ? 'crypto' : strategy.includes('Gold') ? 'metals' : 'forex'));
-        const missing = [...activeCategories].filter((category) => (feedsToUse[category]?.candles?.length ?? 0) < minBarsExpected);
-        if (missing.length) {
-          throw new Error(`Insufficient verified history for ${missing.join(', ')}. Upload broker/exchange CSV files covering ${horizonDays} days at ${selectedTimeframe} (${minBarsExpected.toLocaleString()} bars per required asset). No synthetic or provider-substituted bars are used for prop verdicts.`);
+        const uploadedSymbols = Object.keys(uploadedFeeds).filter((k) => !['forex', 'metals', 'crypto'].includes(k));
+        
+        // Determine if Single-Symbol or Multi-Asset Mode
+        let targetSingleSymbol: string | null = null;
+        if (selectedAssetScope !== 'AUTO' && selectedAssetScope !== 'ALL') {
+          targetSingleSymbol = selectedAssetScope;
+        } else if (selectedAssetScope === 'AUTO' && uploadedSymbols.length === 1) {
+          targetSingleSymbol = uploadedSymbols[0];
         }
 
-        // 2. Build Capital Pools
-        const propCapitalPools: Record<AssetCategory, AssetCapitalPool> = {
-          forex: {
-            category: 'forex',
-            name: 'Forex Majors',
-            symbol: 'EURUSD',
-            capitalUsd: fundingCapital,
-            riskPct: riskPctPerTrade,
-            pipOrPointSize: 0.0001,
-            spreadPipsOrPts: 1.2 * spreadSlippageMult,
-            decimals: 5,
-            fridayClose: !activeRules.weekendHoldingAllowed,
-            sessionFilter: true,
-          },
-          metals: {
-            category: 'metals',
-            name: 'Metals & Gold',
-            symbol: 'XAUUSD',
-            capitalUsd: fundingCapital,
-            riskPct: riskPctPerTrade,
-            pipOrPointSize: 0.01,
-            spreadPipsOrPts: 35.0 * spreadSlippageMult,
-            decimals: 2,
-            fridayClose: !activeRules.weekendHoldingAllowed,
-            sessionFilter: false,
-          },
-          crypto: {
-            category: 'crypto',
-            name: 'Crypto Perpetuals',
-            symbol: 'BTCUSDT',
-            capitalUsd: fundingCapital,
-            riskPct: riskPctPerTrade,
-            pipOrPointSize: 0.1,
-            spreadPipsOrPts: 15.0 * spreadSlippageMult,
-            decimals: 2,
-            fridayClose: false,
-            sessionFilter: false,
-          },
-        };
+        const isSingleSymbol = Boolean(targetSingleSymbol);
+
+        let propCapitalPools: Record<AssetCategory, AssetCapitalPool>;
+        let strategiesToRun: StrategyName[];
 
         const activeStratNames = Object.keys(activeStrategies || {}).filter(
           (s) => activeStrategies?.[s] !== false
         ) as StrategyName[];
+
+        if (isSingleSymbol) {
+          // --- SINGLE SYMBOL PROP CHALLENGE MODE ---
+          const targetFeed =
+            feedsToUse[targetSingleSymbol!] ||
+            (targetSingleSymbol === 'EURUSD'
+              ? feedsToUse['forex']
+              : targetSingleSymbol === 'XAUUSD'
+              ? feedsToUse['metals']
+              : targetSingleSymbol === 'BTCUSDT'
+              ? feedsToUse['crypto']
+              : null);
+
+          if (!targetFeed || !targetFeed.candles || targetFeed.candles.length < 50) {
+            throw new Error(
+              `Insufficient verified history for ${targetSingleSymbol}. Upload a CSV file with at least 50 valid bars or download live market bars.`
+            );
+          }
+
+          const targetCategory = targetFeed.category;
+          feedsToUse[targetCategory] = targetFeed;
+          feedsToUse[targetSingleSymbol!] = targetFeed;
+
+          propCapitalPools = {
+            forex: {
+              category: 'forex',
+              name: 'Forex Pool',
+              symbol: targetCategory === 'forex' ? targetSingleSymbol! : 'EURUSD',
+              capitalUsd: targetCategory === 'forex' ? fundingCapital : 0,
+              riskPct: riskPctPerTrade,
+              pipOrPointSize: targetFeed.pipOrPointSize ?? 0.0001,
+              spreadPipsOrPts: (targetFeed.spreadPipsOrPts ?? 1.2) * spreadSlippageMult,
+              decimals: targetFeed.decimals ?? 5,
+              fridayClose: !activeRules.weekendHoldingAllowed,
+              sessionFilter: targetCategory === 'forex',
+            },
+            metals: {
+              category: 'metals',
+              name: 'Metals Pool',
+              symbol: targetCategory === 'metals' ? targetSingleSymbol! : 'XAUUSD',
+              capitalUsd: targetCategory === 'metals' ? fundingCapital : 0,
+              riskPct: riskPctPerTrade,
+              pipOrPointSize: targetFeed.pipOrPointSize ?? 0.01,
+              spreadPipsOrPts: (targetFeed.spreadPipsOrPts ?? 35.0) * spreadSlippageMult,
+              decimals: targetFeed.decimals ?? 2,
+              fridayClose: !activeRules.weekendHoldingAllowed,
+              sessionFilter: false,
+            },
+            crypto: {
+              category: 'crypto',
+              name: 'Crypto Pool',
+              symbol: targetCategory === 'crypto' ? targetSingleSymbol! : 'BTCUSDT',
+              capitalUsd: targetCategory === 'crypto' ? fundingCapital : 0,
+              riskPct: riskPctPerTrade,
+              pipOrPointSize: targetFeed.pipOrPointSize ?? 0.1,
+              spreadPipsOrPts: (targetFeed.spreadPipsOrPts ?? 15.0) * spreadSlippageMult,
+              decimals: targetFeed.decimals ?? 2,
+              fridayClose: false,
+              sessionFilter: false,
+            },
+          };
+
+          strategiesToRun = activeStratNames.filter((s) => {
+            const meta = STRATEGY_ASSET_MAP[s];
+            if (!meta) return true;
+            return meta.category === targetCategory || meta.supportedSymbols?.includes(targetSingleSymbol!) || meta.defaultSymbol === targetSingleSymbol;
+          });
+
+          if (strategiesToRun.length === 0) {
+            strategiesToRun = targetCategory === 'forex'
+              ? ['LondonBreakout', 'SessionORB', 'FXTrendPullback', 'FXMicroScalper', 'NYContinuation']
+              : targetCategory === 'metals'
+              ? ['GoldVolatilityBreakout']
+              : ['CryptoCompressionBreakout', 'CryptoMomentumBreakout', 'CryptoReversalExhaustion', 'CryptoMicroScalper', 'CryptoSwingContinuation'];
+          }
+        } else {
+          // --- MULTI-ASSET PORTFOLIO PROP CHALLENGE MODE ---
+          const activeCategories = new Set(
+            Object.entries(activeStrategies)
+              .filter(([, enabled]) => enabled)
+              .map(([strategy]) => (strategy.startsWith('Crypto') ? 'crypto' : strategy.includes('Gold') ? 'metals' : 'forex'))
+          );
+
+          // Ensure feedsToUse has representative feeds for each category if uploaded feeds exist
+          for (const cat of ['forex', 'metals', 'crypto'] as AssetCategory[]) {
+            if (!feedsToUse[cat] || (feedsToUse[cat].candles?.length ?? 0) < 20) {
+              const match = Object.values(feedsToUse).find((f) => f && f.category === cat && (f.candles?.length ?? 0) >= 20);
+              if (match) {
+                feedsToUse[cat] = match;
+              }
+            }
+          }
+
+          const availableCategories = [...activeCategories].filter((cat) => (feedsToUse[cat]?.candles?.length ?? 0) >= 20);
+          if (availableCategories.length === 0) {
+            throw new Error(`Insufficient verified history for ${[...activeCategories].join(', ')}. Upload broker/exchange CSV files or download live real bars.`);
+          }
+
+          const activePoolCount = Math.max(1, availableCategories.length);
+          const capitalPerPool = fundingCapital / activePoolCount;
+
+          propCapitalPools = {
+            forex: {
+              category: 'forex',
+              name: 'Forex Majors',
+              symbol: feedsToUse['forex']?.symbol || 'EURUSD',
+              capitalUsd: availableCategories.includes('forex') ? capitalPerPool : 0,
+              riskPct: riskPctPerTrade,
+              pipOrPointSize: feedsToUse['forex']?.pipOrPointSize ?? 0.0001,
+              spreadPipsOrPts: (feedsToUse['forex']?.spreadPipsOrPts ?? 1.2) * spreadSlippageMult,
+              decimals: feedsToUse['forex']?.decimals ?? 5,
+              fridayClose: !activeRules.weekendHoldingAllowed,
+              sessionFilter: true,
+            },
+            metals: {
+              category: 'metals',
+              name: 'Metals & Gold',
+              symbol: feedsToUse['metals']?.symbol || 'XAUUSD',
+              capitalUsd: availableCategories.includes('metals') ? capitalPerPool : 0,
+              riskPct: riskPctPerTrade,
+              pipOrPointSize: feedsToUse['metals']?.pipOrPointSize ?? 0.01,
+              spreadPipsOrPts: (feedsToUse['metals']?.spreadPipsOrPts ?? 35.0) * spreadSlippageMult,
+              decimals: feedsToUse['metals']?.decimals ?? 2,
+              fridayClose: !activeRules.weekendHoldingAllowed,
+              sessionFilter: false,
+            },
+            crypto: {
+              category: 'crypto',
+              name: 'Crypto Perpetuals',
+              symbol: feedsToUse['crypto']?.symbol || 'BTCUSDT',
+              capitalUsd: availableCategories.includes('crypto') ? capitalPerPool : 0,
+              riskPct: riskPctPerTrade,
+              pipOrPointSize: feedsToUse['crypto']?.pipOrPointSize ?? 0.1,
+              spreadPipsOrPts: (feedsToUse['crypto']?.spreadPipsOrPts ?? 15.0) * spreadSlippageMult,
+              decimals: feedsToUse['crypto']?.decimals ?? 2,
+              fridayClose: false,
+              sessionFilter: false,
+            },
+          };
+
+          strategiesToRun = activeStratNames.length > 0 ? activeStratNames : ['LondonBreakout', 'GoldVolatilityBreakout', 'NYContinuation'];
+        }
 
         // Replay speed configuration
         const chunkDelayMs = replaySpeed === 'smooth' ? 35 : replaySpeed === 'fast' ? 10 : 0;
@@ -553,7 +762,7 @@ export function PropClearanceLab({
         const out = await runMultiAssetPipelineReplayAsync(
           feedsToUse,
           propCapitalPools,
-          activeStratNames.length > 0 ? activeStratNames : ['LondonBreakout', 'GoldVolatilityBreakout', 'NYContinuation'],
+          strategiesToRun,
           {
             maxConcurrentPositions: 2,
             minScore: 78,
@@ -579,8 +788,9 @@ export function PropClearanceLab({
           horizonDays,
         });
 
+        const scopeLabel = isSingleSymbol ? `Single-Asset (${targetSingleSymbol})` : 'Multi-Asset Portfolio';
         setDeployNotification(
-          `⚡ Real-Bar Replay Simulation Completed! Evaluated ${computedBars.toLocaleString()} market candles across ${horizonDays} days in ${elapsed}ms (${out.trades.length} real trades executed).`
+          `⚡ Prop Challenge Simulation Completed for ${scopeLabel}! Evaluated ${computedBars.toLocaleString()} candles across ${horizonDays} days in ${elapsed}ms (${out.trades.length} trades executed).`
         );
         setTimeout(() => setDeployNotification(null), 6000);
       } catch (err) {
@@ -601,6 +811,7 @@ export function PropClearanceLab({
       uploadedFeeds,
       replaySpeed,
       riskPctPerTrade,
+      selectedAssetScope,
       selectedTimeframe,
       spreadSlippageMult,
     ]
@@ -621,71 +832,155 @@ export function PropClearanceLab({
   // ---------------------------------------------------------------------------
   // Baseline initial pipeline result (used before first replay execution)
   const fallbackPipelineResult = useMemo(() => {
-    const propCapitalPools: Record<AssetCategory, AssetCapitalPool> = {
-      forex: {
-        category: 'forex',
-        name: 'Forex Majors',
-        symbol: 'EURUSD',
-        capitalUsd: fundingCapital,
-        riskPct: riskPctPerTrade,
-        pipOrPointSize: 0.0001,
-        spreadPipsOrPts: 1.2 * spreadSlippageMult,
-        decimals: 5,
-        fridayClose: !activeRules.weekendHoldingAllowed,
-        sessionFilter: true,
-      },
-      metals: {
-        category: 'metals',
-        name: 'Metals & Gold',
-        symbol: 'XAUUSD',
-        capitalUsd: fundingCapital,
-        riskPct: riskPctPerTrade,
-        pipOrPointSize: 0.01,
-        spreadPipsOrPts: 30.0 * spreadSlippageMult,
-        decimals: 2,
-        fridayClose: !activeRules.weekendHoldingAllowed,
-        sessionFilter: false,
-      },
-      crypto: {
-        category: 'crypto',
-        name: 'Crypto Pool',
-        symbol: 'BTCUSDT',
-        capitalUsd: fundingCapital,
-        riskPct: riskPctPerTrade,
-        pipOrPointSize: 0.01,
-        spreadPipsOrPts: 2.0 * spreadSlippageMult,
-        decimals: 2,
-        fridayClose: false,
-        sessionFilter: false,
-      },
-    };
-
     const feedRecord: Record<string, MultiAssetFeedItem> = { ...internalFeeds, ...uploadedFeeds };
     feedItems.forEach((f) => {
-      feedRecord[f.symbol] = f;
-      feedRecord[f.category] = f;
+      if (!feedRecord[f.symbol]) feedRecord[f.symbol] = f;
+      if (!feedRecord[f.category]) feedRecord[f.category] = f;
     });
 
-    const horizonDays =
-      activeHorizon === '7d'
-        ? 7
-        : activeHorizon === '30d'
-        ? 30
-        : activeHorizon === '60d'
-        ? 60
-        : activeHorizon === '90d'
-        ? 90
-        : activeHorizon === '180d'
-        ? 180
-        : 270;
+    const uploadedSymbols = Object.keys(uploadedFeeds).filter((k) => !['forex', 'metals', 'crypto'].includes(k));
+    let targetSingleSymbol: string | null = null;
+    if (selectedAssetScope !== 'AUTO' && selectedAssetScope !== 'ALL') {
+      targetSingleSymbol = selectedAssetScope;
+    } else if (selectedAssetScope === 'AUTO' && uploadedSymbols.length === 1) {
+      targetSingleSymbol = uploadedSymbols[0];
+    }
+
+    const isSingleSymbol = Boolean(targetSingleSymbol);
+
+    let propCapitalPools: Record<AssetCategory, AssetCapitalPool>;
+    let strategiesToRun: StrategyName[];
+
     const activeStratNames = Object.keys(activeStrategies || {}).filter(
       (s) => activeStrategies?.[s] !== false
     ) as StrategyName[];
 
+    if (isSingleSymbol) {
+      const targetFeed =
+        feedRecord[targetSingleSymbol!] ||
+        (targetSingleSymbol === 'EURUSD'
+          ? feedRecord['forex']
+          : targetSingleSymbol === 'XAUUSD'
+          ? feedRecord['metals']
+          : targetSingleSymbol === 'BTCUSDT'
+          ? feedRecord['crypto']
+          : null);
+
+      const targetCategory = targetFeed?.category || 'forex';
+      if (targetFeed) {
+        feedRecord[targetCategory] = targetFeed;
+        feedRecord[targetSingleSymbol!] = targetFeed;
+      }
+
+      propCapitalPools = {
+        forex: {
+          category: 'forex',
+          name: 'Forex Pool',
+          symbol: targetCategory === 'forex' ? targetSingleSymbol! : 'EURUSD',
+          capitalUsd: targetCategory === 'forex' ? fundingCapital : 0,
+          riskPct: riskPctPerTrade,
+          pipOrPointSize: targetFeed?.pipOrPointSize ?? 0.0001,
+          spreadPipsOrPts: (targetFeed?.spreadPipsOrPts ?? 1.2) * spreadSlippageMult,
+          decimals: targetFeed?.decimals ?? 5,
+          fridayClose: !activeRules.weekendHoldingAllowed,
+          sessionFilter: targetCategory === 'forex',
+        },
+        metals: {
+          category: 'metals',
+          name: 'Metals Pool',
+          symbol: targetCategory === 'metals' ? targetSingleSymbol! : 'XAUUSD',
+          capitalUsd: targetCategory === 'metals' ? fundingCapital : 0,
+          riskPct: riskPctPerTrade,
+          pipOrPointSize: targetFeed?.pipOrPointSize ?? 0.01,
+          spreadPipsOrPts: (targetFeed?.spreadPipsOrPts ?? 35.0) * spreadSlippageMult,
+          decimals: targetFeed?.decimals ?? 2,
+          fridayClose: !activeRules.weekendHoldingAllowed,
+          sessionFilter: false,
+        },
+        crypto: {
+          category: 'crypto',
+          name: 'Crypto Pool',
+          symbol: targetCategory === 'crypto' ? targetSingleSymbol! : 'BTCUSDT',
+          capitalUsd: targetCategory === 'crypto' ? fundingCapital : 0,
+          riskPct: riskPctPerTrade,
+          pipOrPointSize: targetFeed?.pipOrPointSize ?? 0.1,
+          spreadPipsOrPts: (targetFeed?.spreadPipsOrPts ?? 15.0) * spreadSlippageMult,
+          decimals: targetFeed?.decimals ?? 2,
+          fridayClose: false,
+          sessionFilter: false,
+        },
+      };
+
+      strategiesToRun = activeStratNames.filter((s) => {
+        const meta = STRATEGY_ASSET_MAP[s];
+        if (!meta) return true;
+        return meta.category === targetCategory || meta.supportedSymbols?.includes(targetSingleSymbol!) || meta.defaultSymbol === targetSingleSymbol;
+      });
+
+      if (strategiesToRun.length === 0) {
+        strategiesToRun = targetCategory === 'forex'
+          ? ['LondonBreakout', 'SessionORB', 'FXTrendPullback', 'FXMicroScalper', 'NYContinuation']
+          : targetCategory === 'metals'
+          ? ['GoldVolatilityBreakout']
+          : ['CryptoCompressionBreakout', 'CryptoMomentumBreakout', 'CryptoReversalExhaustion', 'CryptoMicroScalper', 'CryptoSwingContinuation'];
+      }
+    } else {
+      const activeCategories = new Set(
+        Object.entries(activeStrategies)
+          .filter(([, enabled]) => enabled)
+          .map(([strategy]) => (strategy.startsWith('Crypto') ? 'crypto' : strategy.includes('Gold') ? 'metals' : 'forex'))
+      );
+
+      const availableCategories = [...activeCategories].filter((cat) => (feedRecord[cat]?.candles?.length ?? 0) >= 10);
+      const activePoolCount = Math.max(1, availableCategories.length);
+      const capitalPerPool = fundingCapital / activePoolCount;
+
+      propCapitalPools = {
+        forex: {
+          category: 'forex',
+          name: 'Forex Majors',
+          symbol: 'EURUSD',
+          capitalUsd: availableCategories.includes('forex') || availableCategories.length === 0 ? capitalPerPool : 0,
+          riskPct: riskPctPerTrade,
+          pipOrPointSize: 0.0001,
+          spreadPipsOrPts: 1.2 * spreadSlippageMult,
+          decimals: 5,
+          fridayClose: !activeRules.weekendHoldingAllowed,
+          sessionFilter: true,
+        },
+        metals: {
+          category: 'metals',
+          name: 'Metals & Gold',
+          symbol: 'XAUUSD',
+          capitalUsd: availableCategories.includes('metals') ? capitalPerPool : 0,
+          riskPct: riskPctPerTrade,
+          pipOrPointSize: 0.01,
+          spreadPipsOrPts: 30.0 * spreadSlippageMult,
+          decimals: 2,
+          fridayClose: !activeRules.weekendHoldingAllowed,
+          sessionFilter: false,
+        },
+        crypto: {
+          category: 'crypto',
+          name: 'Crypto Pool',
+          symbol: 'BTCUSDT',
+          capitalUsd: availableCategories.includes('crypto') ? capitalPerPool : 0,
+          riskPct: riskPctPerTrade,
+          pipOrPointSize: 0.1,
+          spreadPipsOrPts: 2.0 * spreadSlippageMult,
+          decimals: 2,
+          fridayClose: false,
+          sessionFilter: false,
+        },
+      };
+
+      strategiesToRun = activeStratNames.length > 0 ? activeStratNames : ['LondonBreakout', 'GoldVolatilityBreakout', 'NYContinuation'];
+    }
+
     return runMultiAssetPipelineEngine(
       feedRecord,
       propCapitalPools,
-      activeStratNames.length > 0 ? activeStratNames : ['LondonBreakout', 'GoldVolatilityBreakout', 'NYContinuation'],
+      strategiesToRun,
       {
         maxConcurrentPositions: 2,
         minScore: 78,
@@ -702,6 +997,7 @@ export function PropClearanceLab({
     internalFeeds,
     uploadedFeeds,
     riskPctPerTrade,
+    selectedAssetScope,
     spreadSlippageMult,
   ]);
 
@@ -1399,7 +1695,31 @@ export function PropClearanceLab({
       {/* ========================================================================= */}
       {/* 🌟 30 / 60 / 90 / 180 DAYS SURVIVABILITY & LIVE BARS COMMAND HEADER 🌟 */}
       {/* ========================================================================= */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 lg:p-6 space-y-5 shadow-2xl min-w-0 max-w-full">
+      <div 
+        onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+        onDragLeave={() => setIsDraggingOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDraggingOver(false);
+          if (e.dataTransfer.files?.length) {
+            importPropDatasets(e.dataTransfer.files).catch((err: unknown) => 
+              setDatasetStatus(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+            );
+          }
+        }}
+        className={`relative bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border transition-all rounded-2xl p-4 sm:p-5 lg:p-6 space-y-5 shadow-2xl min-w-0 max-w-full ${
+          isDraggingOver ? 'border-emerald-400 ring-2 ring-emerald-400/50 bg-emerald-950/30' : 'border-indigo-500/30'
+        }`}
+      >
+        {isDraggingOver && (
+          <div className="absolute inset-0 z-40 bg-slate-950/90 rounded-2xl flex flex-col items-center justify-center pointer-events-none p-6 text-center animate-fade-in">
+            <UploadCloud className="w-12 h-12 text-emerald-400 animate-bounce mb-3" />
+            <h3 className="text-base font-bold text-white">Drop Broker CSV File(s) Here</h3>
+            <p className="text-xs text-emerald-300/90 max-w-md mt-1 font-mono">
+              Drop individual asset CSVs or a single combined multi-symbol CSV. Automatic parsing & instrument detection will trigger instantly.
+            </p>
+          </div>
+        )}
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
@@ -1439,11 +1759,22 @@ export function PropClearanceLab({
               type="button"
               onClick={() => csvInputRef.current?.click()}
               className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60 shadow-md"
-              title="Upload one CSV/TSV per symbol. File names must include its symbol, e.g. EURUSD_M15.csv or BTCUSDT_15m.csv."
+              title="Upload one or more CSV/TSV files (individual assets or combined file with Symbol column)"
             >
               <FileCheck className="w-3.5 h-3.5" />
-              Import Broker / Exchange CSV
+              Upload Real CSV(s)
             </button>
+
+            <button
+              type="button"
+              onClick={() => setShowCsvFormatModal(true)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 shadow-sm"
+              title="View format requirements for combined multi-asset CSVs and download sample file"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Multi-Asset Guide</span>
+            </button>
+
             {onSyncFeeds && (
               <button
                 type="button"
@@ -1471,6 +1802,27 @@ export function PropClearanceLab({
                 <option value="1d">1d Bars</option>
               </select>
             )}
+
+            {/* Asset Scope: Auto / Single Symbol / Multi-Asset Portfolio */}
+            <select
+              value={selectedAssetScope}
+              onChange={(e) => setSelectedAssetScope(e.target.value)}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-indigo-500/40 text-xs font-mono text-amber-300 focus:outline-none focus:border-amber-400"
+              title="Select Challenge Asset Scope (Single Symbol CSV vs Multi-Asset Portfolio)"
+            >
+              <option value="AUTO">Scope: Auto (Uploaded / Feeds)</option>
+              <option value="ALL">Multi-Asset Portfolio</option>
+              <option value="EURUSD">Single: EURUSD (Forex)</option>
+              <option value="GBPUSD">Single: GBPUSD (Forex)</option>
+              <option value="USDJPY">Single: USDJPY (Forex)</option>
+              <option value="XAUUSD">Single: XAUUSD (Gold)</option>
+              <option value="BTCUSDT">Single: BTCUSDT (Crypto)</option>
+              {Object.keys(uploadedFeeds)
+                .filter((sym) => !['forex', 'metals', 'crypto', 'EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'BTCUSDT'].includes(sym))
+                .map((sym) => (
+                  <option key={sym} value={sym}>Custom: {sym}</option>
+                ))}
+            </select>
 
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono">
               <Database className={`w-3.5 h-3.5 ${isUsingRealMarketData ? 'text-emerald-400' : 'text-cyan-400'}`} />
@@ -1502,6 +1854,84 @@ export function PropClearanceLab({
             </button>
           </div>
         </div>
+
+        {/* Uploaded Custom Feeds Badge Strip */}
+        {Object.keys(uploadedFeeds).filter((k) => !['forex', 'metals', 'crypto'].includes(k)).length > 0 && (
+          <div className="p-3 bg-slate-950/90 border border-emerald-500/40 rounded-xl space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider font-mono">
+                  Custom Multi-Asset Pipeline Datasets Loaded ({Object.keys(uploadedFeeds).filter((k) => !['forex', 'metals', 'crypto'].includes(k)).length} Assets)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAssetScope('ALL')}
+                  className={`px-2.5 py-1 text-[11px] font-mono rounded-lg transition-all font-bold ${
+                    selectedAssetScope === 'ALL'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md'
+                      : 'bg-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  ⚡ Multi-Asset Portfolio Mode
+                </button>
+                <button
+                  type="button"
+                  onClick={clearUploadedFeeds}
+                  className="px-2 py-1 text-[11px] font-mono rounded-lg text-rose-400 hover:bg-rose-950/40 border border-rose-500/30 transition-all flex items-center gap-1"
+                  title="Clear uploaded custom CSV files"
+                >
+                  <X className="w-3 h-3" />
+                  Clear All
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {Object.keys(uploadedFeeds)
+                .filter((k) => !['forex', 'metals', 'crypto'].includes(k))
+                .map((sym) => {
+                  const item = uploadedFeeds[sym];
+                  const isSelected = selectedAssetScope === sym;
+                  return (
+                    <div
+                      key={sym}
+                      className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border text-xs font-mono transition-all ${
+                        isSelected
+                          ? 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-sm'
+                          : 'bg-slate-900 border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAssetScope(sym)}
+                        className="font-bold hover:underline"
+                        title={`Focus simulation strictly on ${sym}`}
+                      >
+                        {sym}
+                      </button>
+                      <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                        {item.count.toLocaleString()} bars
+                      </span>
+                      <span className="text-[10px] text-indigo-300 uppercase">
+                        {item.category}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeUploadedFeed(sym)}
+                        className="text-slate-500 hover:text-rose-400 transition-colors ml-0.5"
+                        title={`Remove ${sym}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         <p className={`text-xs rounded-lg border px-3 py-2 ${datasetStatus.startsWith('Import failed') || datasetStatus.startsWith('No broker') ? 'border-amber-500/30 bg-amber-950/20 text-amber-200' : 'border-emerald-500/30 bg-emerald-950/20 text-emerald-200'}`}>
           {datasetStatus}
         </p>
@@ -2737,6 +3167,107 @@ export function PropClearanceLab({
                 <Send className={`w-3.5 h-3.5 ${isDeployingBridge ? 'animate-spin' : ''}`} />
                 <span>{isDeployingBridge ? 'Synchronizing Bridge...' : 'Confirm & Sync MT5 Bot'}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Asset CSV Format & Ingestion Guide Modal */}
+      {showCsvFormatModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl">
+                  <FileCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Multi-Asset Real Market Data Ingestion Guide</h3>
+                  <p className="text-xs text-slate-400">How to upload combined asset bars or multiple files to test the multi-asset pipeline</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCsvFormatModal(false)}
+                className="text-slate-400 hover:text-white text-sm p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-300">
+              {/* Option 1 */}
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold font-mono">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] text-emerald-300 border border-emerald-500/30">1</span>
+                  Single Combined Multi-Asset CSV File
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  Include a <code className="text-amber-300 font-mono">Symbol</code> (or <code className="text-amber-300 font-mono">Pair / Ticker / Instrument</code>) column in your CSV. The parser automatically splits and organizes rows by symbol into their respective asset categories (Forex, Metals, Crypto).
+                </p>
+                <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg font-mono text-[11px] text-slate-200 overflow-x-auto">
+                  <div className="text-slate-400 font-bold">Symbol,Date,Time,Open,High,Low,Close,Volume</div>
+                  <div>EURUSD,2026-03-01,08:00:00,1.08500,1.08550,1.08480,1.08530,1240</div>
+                  <div>EURUSD,2026-03-01,08:15:00,1.08530,1.08590,1.08510,1.08580,1530</div>
+                  <div>XAUUSD,2026-03-01,08:00:00,2850.50,2854.20,2849.10,2853.80,680</div>
+                  <div>BTCUSDT,2026-03-01,08:00:00,88500.00,88750.00,88420.00,88680.00,45</div>
+                </div>
+              </div>
+
+              {/* Option 2 */}
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center gap-2 text-cyan-400 font-bold font-mono">
+                  <span className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-[10px] text-cyan-300 border border-cyan-500/30">2</span>
+                  Multiple Separate CSV Files (Batch Drag & Drop)
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  You can select or drag multiple CSV files into this window at once (e.g. <code className="text-cyan-300 font-mono">EURUSD_M15.csv</code>, <code className="text-cyan-300 font-mono">GBPUSD_M15.csv</code>, <code className="text-cyan-300 font-mono">XAUUSD_M15.csv</code>, <code className="text-cyan-300 font-mono">BTCUSDT_15m.csv</code>). The system deduces the instrument specifications (forex pip size 0.0001, gold points 0.01, crypto tick 0.1, spreads, and sessions) automatically.
+                </p>
+              </div>
+
+              {/* Multi-Asset Pipeline Arbitration */}
+              <div className="p-3.5 rounded-xl bg-indigo-950/20 border border-indigo-500/20 space-y-1.5">
+                <div className="text-indigo-300 font-bold font-mono">
+                  ⚡ How Multi-Asset Pipeline Replay Works:
+                </div>
+                <ul className="list-disc pl-4 space-y-1 text-slate-400">
+                  <li>When 2 or more assets are uploaded, the portfolio mode (<code className="text-amber-300 font-mono">Multi-Asset Portfolio</code>) activates automatically.</li>
+                  <li>In multi-asset mode, active strategies scan every uploaded asset feed simultaneously candle-by-candle.</li>
+                  <li>Portfolio arbitration scores candidates across all pairs, ranks them by probability and weight, and enforces category capital fences and daily loss caps.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={downloadSampleCsv}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Sample Combined CSV</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCsvFormatModal(false);
+                    csvInputRef.current?.click();
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-black text-slate-950 bg-emerald-500 hover:bg-emerald-400 transition-all shadow-md flex items-center gap-1.5"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  <span>Choose CSV Files Now</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCsvFormatModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

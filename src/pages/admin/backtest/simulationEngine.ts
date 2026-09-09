@@ -698,9 +698,14 @@ export function runMultiAssetPipelineEngine(
         supportedSymbols: ['EURUSD'],
       };
 
-      const targetSymbols = meta.supportedSymbols && meta.supportedSymbols.length > 0
-        ? meta.supportedSymbols
-        : [meta.defaultSymbol];
+      const matchingFeedSymbols = Object.values(multiAssetFeeds)
+        .filter((f) => f && f.category === meta.category && f.symbol && !['forex', 'metals', 'crypto'].includes(f.symbol))
+        .map((f) => f.symbol);
+
+      const targetSymbols = Array.from(new Set([
+        ...(meta.supportedSymbols && meta.supportedSymbols.length > 0 ? meta.supportedSymbols : [meta.defaultSymbol]),
+        ...matchingFeedSymbols,
+      ]));
 
       for (const sym of targetSymbols) {
         const feed = multiAssetFeeds[sym] || (sym === meta.defaultSymbol ? multiAssetFeeds[meta.category] : null);
@@ -1405,9 +1410,14 @@ export async function runMultiAssetPipelineReplayAsync(
         supportedSymbols: ['EURUSD'],
       };
 
-      const targetSymbols = meta.supportedSymbols && meta.supportedSymbols.length > 0
-        ? meta.supportedSymbols
-        : [meta.defaultSymbol];
+      const matchingFeedSymbols = Object.values(multiAssetFeeds)
+        .filter((f) => f && f.category === meta.category && f.symbol && !['forex', 'metals', 'crypto'].includes(f.symbol))
+        .map((f) => f.symbol);
+
+      const targetSymbols = Array.from(new Set([
+        ...(meta.supportedSymbols && meta.supportedSymbols.length > 0 ? meta.supportedSymbols : [meta.defaultSymbol]),
+        ...matchingFeedSymbols,
+      ]));
 
       for (const sym of targetSymbols) {
         const feed = multiAssetFeeds[sym] || (sym === meta.defaultSymbol ? multiAssetFeeds[meta.category] : null);

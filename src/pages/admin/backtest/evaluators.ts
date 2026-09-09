@@ -81,6 +81,7 @@ export function evaluateStrategySetup(
   const timeStr = last.time;
   const dateObj = new Date(timeStr.includes('T') ? timeStr : timeStr.replace(' ', 'T') + 'Z');
   const hour = dateObj.getUTCHours();
+  const minute = dateObj.getUTCMinutes();
   const dayOfWeek = dateObj.getUTCDay();
 
   // 1. LondonBreakout (07:00-10:00 UTC) with Asian Range & Judas Swing Wick Filter
@@ -108,8 +109,8 @@ export function evaluateStrategySetup(
       if (candleSpan > 0 && upperWick / candleSpan > maxWickRatio) {
         return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Judas Swing upper wick exhaustion', rejectionCause: 'judas_wick_filter' };
       }
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.5);
+      const sl = price - atr * (params.stop_atr_mult ?? 1.8);
+      const tp1 = price + atr * (params.tp1_r ?? 1.8);
       const tp2 = price + atr * (params.tp2_r ?? 2.8);
       const score = isInitialBreakBuy ? 92 : 88;
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score, grade: 'A+', reason: `London Breakout Long above Asian High (${asianHigh})` };
@@ -117,8 +118,8 @@ export function evaluateStrategySetup(
       if (candleSpan > 0 && lowerWick / candleSpan > maxWickRatio) {
         return { ok: false, direction: 'sell', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Judas Swing lower wick exhaustion', rejectionCause: 'judas_wick_filter' };
       }
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.5);
+      const sl = price + atr * (params.stop_atr_mult ?? 1.8);
+      const tp1 = price - atr * (params.tp1_r ?? 1.8);
       const tp2 = price - atr * (params.tp2_r ?? 2.8);
       const score = isInitialBreakSell ? 92 : 88;
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score, grade: 'A+', reason: `London Breakout Short below Asian Low (${asianLow})` };
@@ -137,18 +138,18 @@ export function evaluateStrategySetup(
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Displacement overextended (> 3.2 ATR)', rejectionCause: 'overextended_atr' };
     }
 
-    const isPullbackBuy = ema20 > ema50 && prev.low <= ema20 * 1.0015 && last.close > ema20 && last.close > last.open && rsi > 50;
-    const isPullbackSell = ema20 < ema50 && prev.high >= ema20 * 0.9985 && last.close < ema20 && last.close < last.open && rsi < 50;
+    const isPullbackBuy = ema20 > ema50 && prev.low <= ema20 * 1.0015 && last.close > ema20 && last.close > last.open && rsi >= 50;
+    const isPullbackSell = ema20 < ema50 && prev.high >= ema20 * 0.9985 && last.close < ema20 && last.close < last.open && rsi <= 50;
 
     if (isPullbackBuy) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price + atr * (params.tp1_r ?? 1.4);
-      const tp2 = price + atr * (params.tp2_r ?? 2.6);
+      const sl = price - atr * (params.stop_atr_mult ?? 1.8);
+      const tp1 = price + atr * (params.tp1_r ?? 1.6);
+      const tp2 = price + atr * (params.tp2_r ?? 2.8);
       return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A+', reason: 'NY Session EMA Pullback & Momentum Reclaim Long' };
     } else if (isPullbackSell) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.4);
-      const tp1 = price - atr * (params.tp1_r ?? 1.4);
-      const tp2 = price - atr * (params.tp2_r ?? 2.6);
+      const sl = price + atr * (params.stop_atr_mult ?? 1.8);
+      const tp1 = price - atr * (params.tp1_r ?? 1.6);
+      const tp2 = price - atr * (params.tp2_r ?? 2.8);
       return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A+', reason: 'NY Session EMA Pullback & Momentum Reclaim Short' };
     }
     return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Pullback bounce condition not met', rejectionCause: 'trend_mismatch' };
@@ -159,7 +160,7 @@ export function evaluateStrategySetup(
     if (enforceSessionWindows && dayOfWeek === 5 && hour >= 20) {
       return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Friday evening weekend risk lockout', rejectionCause: 'weekend_freeze' };
     }
-    const boxBars = params.box_lookback ?? 20;
+    const boxBars = params.box_lookback ?? 16;
     const boxSlice = window.slice(-boxBars - 1, -1);
     if (boxSlice.length < 10) return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Insufficient 6h box bars', rejectionCause: 'box_too_short' };
     const boxHigh = Math.max(...boxSlice.map((c) => c.high));
@@ -179,9 +180,9 @@ export function evaluateStrategySetup(
     const isTrendBull = ema20 >= ema50 * 0.999 && rsi >= 48;
     const isTrendBear = ema20 <= ema50 * 1.001 && rsi <= 52;
 
-    const stopDist = atr * (params.stop_atr_mult ?? 1.25);
+    const stopDist = atr * (params.stop_atr_mult ?? 1.8);
     const tp1Dist = stopDist * (params.tp1_r ?? 1.6);
-    const tp2Dist = stopDist * (params.tp2_r ?? 3.0);
+    const tp2Dist = stopDist * (params.tp2_r ?? 3.5);
 
     if ((isBreakBuy || isRetestBuy) && isTrendBull) {
       const sl = price - stopDist;
@@ -381,41 +382,63 @@ export function evaluateStrategySetup(
     const orbRange = window.slice(-6, -1);
     const orbHigh = Math.max(...orbRange.map((c) => c.high));
     const orbLow = Math.min(...orbRange.map((c) => c.low));
-    const isBreakBuy = prev.close <= orbHigh && last.close > orbHigh && last.close > last.open;
-    const isBreakSell = prev.close >= orbLow && last.close < orbLow && last.close < last.open;
+    
+    // Require decisive breakout candle body (avoid fakeout wick spikes)
+    const candleSpan = last.high - last.low;
+    const bodySize = Math.abs(last.close - last.open);
+    const isCleanBreakoutCandle = candleSpan > 0 && bodySize / candleSpan >= 0.40;
+
+    const isBreakBuy = prev.close <= orbHigh && last.close > orbHigh && last.close > last.open && last.close > ema20 && isCleanBreakoutCandle;
+    const isBreakSell = prev.close >= orbLow && last.close < orbLow && last.close < last.open && last.close < ema20 && isCleanBreakoutCandle;
+
+    const stopDist = atr * (params.stop_atr_mult ?? 1.35);
+    const tp1Dist = stopDist * (params.tp1_r ?? 1.7);
+    const tp2Dist = stopDist * (params.tp2_r ?? 3.0);
 
     if (isBreakBuy) {
-      const sl = price - atr * (params.stop_atr_mult ?? 1.1);
-      const tp1 = price + atr * (params.tp1_r ?? 2.0);
-      const tp2 = price + atr * (params.tp2_r ?? 3.8);
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Session Opening Range Breakout Long' };
+      const sl = price - stopDist;
+      const tp1 = price + tp1Dist;
+      const tp2 = price + tp2Dist;
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Session Opening Range Breakout Long (Decisive Candle Close)' };
     } else if (isBreakSell) {
-      const sl = price + atr * (params.stop_atr_mult ?? 1.1);
-      const tp1 = price - atr * (params.tp1_r ?? 2.0);
-      const tp2 = price - atr * (params.tp2_r ?? 3.8);
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 89, grade: 'A', reason: 'Session Opening Range Breakout Short' };
+      const sl = price + stopDist;
+      const tp1 = price - tp1Dist;
+      const tp2 = price - tp2Dist;
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 90, grade: 'A', reason: 'Session Opening Range Breakout Short (Decisive Candle Close)' };
     }
-    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside ORB range', rejectionCause: 'inside_orb' };
+    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Inside ORB range or weak breakout body', rejectionCause: 'inside_orb' };
   }
 
   // 10. MacroYieldDifferential (Global Trend Anchor 4h/1d)
   if (name === 'MacroYieldDifferential') {
-    // Macro updates anchor on 4h boundary sessions (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
-    if (hour % 4 !== 0) {
-      return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Outside 4h macro yield alignment window', rejectionCause: 'macro_candle_wait' };
+    // Macro updates anchor on 4h boundary sessions (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC) on the initial candle
+    if (hour % 4 !== 0 || minute !== 0) {
+      return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Outside 4h macro yield alignment candle (00:00/04:00/08:00/12:00/16:00/20:00 UTC)', rejectionCause: 'macro_candle_wait' };
     }
-    if (ema20 > ema50 && price > ema20 && rsi > 52 && last.close > last.open) {
-      const sl = price - atr * 1.1;
-      const tp1 = price + atr * 2.2;
-      const tp2 = price + atr * 4.2;
-      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Macro Sovereign Yield Spread Expansion Long (> 25 bps)' };
-    } else if (ema20 < ema50 && price < ema20 && rsi < 48 && last.close < last.open) {
-      const sl = price + atr * 1.1;
-      const tp1 = price - atr * 2.2;
-      const tp2 = price - atr * 4.2;
-      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 91, grade: 'A+', reason: 'Macro Sovereign Yield Spread Expansion Short (> 25 bps)' };
+
+    const isBull = ema20 > ema50;
+    const isBear = ema20 < ema50;
+
+    // Pullback and reclaim of EMA20 value zone during macro trend
+    const isPullbackBuy = isBull && prev.low <= ema20 * 1.002 && last.close > ema20 && last.close > last.open && rsi >= 48;
+    const isPullbackSell = isBear && prev.high >= ema20 * 0.998 && last.close < ema20 && last.close < last.open && rsi <= 52;
+
+    const stopDist = atr * (params.stop_atr_mult ?? 2.2);
+    const tp1Dist = stopDist * (params.tp1_r ?? 1.4);
+    const tp2Dist = stopDist * (params.tp2_r ?? 4.0);
+
+    if (isPullbackBuy) {
+      const sl = price - stopDist;
+      const tp1 = price + tp1Dist;
+      const tp2 = price + tp2Dist;
+      return { ok: true, direction: 'buy', entry: price, stop_loss: sl, tp1, tp2, score: 92, grade: 'A+', reason: 'Macro Sovereign Yield Spread Expansion Pullback Long' };
+    } else if (isPullbackSell) {
+      const sl = price + stopDist;
+      const tp1 = price - tp1Dist;
+      const tp2 = price - tp2Dist;
+      return { ok: true, direction: 'sell', entry: price, stop_loss: sl, tp1, tp2, score: 92, grade: 'A+', reason: 'Macro Sovereign Yield Spread Expansion Pullback Short' };
     }
-    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Macro yield differential flat (< 25 bps)', rejectionCause: 'macro_flat' };
+    return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Macro yield differential flat or no pullback', rejectionCause: 'macro_flat' };
   }
 
   return { ok: false, direction: 'buy', entry: 0, stop_loss: 0, tp1: 0, tp2: 0, score: 0, grade: 'reject', reason: 'Strategy evaluation unhandled', rejectionCause: 'unhandled' };
