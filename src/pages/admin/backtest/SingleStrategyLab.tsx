@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   Play,
   Sliders,
@@ -26,9 +26,10 @@ import { generateSyntheticSessionData } from './syntheticData';
 import { runSingleStrategyEngine } from './simulationEngine';
 import { saveSingleStrategyConfig } from './presetStorage';
 import { parseBrokerOhlcv } from '../../../lib/backtest/brokerCsv';
+import { supabase } from '../../../lib/supabase';
 
 interface SingleStrategyLabProps {
-  multiAssetFeeds: Record<AssetCategory, MultiAssetFeedItem>;
+  multiAssetFeeds: Record<string, MultiAssetFeedItem>;
   onSaveStrategyOverrides?: (strategy: StrategyName, weight: number, minScore: number, params: Record<string, number>) => void;
 }
 
@@ -109,22 +110,6 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
     }
   };
 
-  const fetchRealCandles = useCallback(async (symbol: string, interval: string, assetClass: string): Promise<BtCandle[]> => {
-    const rangeMap: Record<number, string> = { 500: '7d', 1500: '30d', 3000: '60d', 5000: '90d' };
-    const range = rangeMap[barsCount] || '30d';
-    const symDef = AVAILABLE_SYMBOLS.find((s) => s.symbol === symbol);
-    const ac = symDef?.category || assetClass;
-    const resp = await fetch(
-      `/api/market-data/history?symbol=${symbol}&interval=${interval}&assetClass=${ac}&range=${range}&limit=1000`
-    );
-    if (!resp.ok) throw new Error(`Market data fetch failed: ${resp.status}`);
-    const data = await resp.json();
-    const actualInterval = data.interval === '60m' ? '1h' : data.interval;
-    if (actualInterval !== interval) throw new Error(`Provider returned ${data.interval}, not requested ${interval}; refusing mismatched-bar backtest`);
-    if (!data.candles || data.candles.length < 20) throw new Error('Insufficient candles returned');
-    return data.candles as BtCandle[];
-  }, [barsCount]);
-
   const importCsv = useCallback(async (file: File) => {
     const parsed = parseBrokerOhlcv(await file.text());
     if (parsed.length < 20) throw new Error('CSV contains fewer than 20 valid OHLC rows');
@@ -140,13 +125,14 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
     try {
       let candles: BtCandle[] = [];
       const mapping = STRATEGY_ASSET_MAP[selectedStrategy] || { category: 'forex' };
-      const feed = multiAssetFeeds[mapping.category];
+      const feed = multiAssetFeeds[selectedSymbol] || multiAssetFeeds[mapping.category];
 
       if (dataSourceMode === 'live') {
-        setDataStatus('Fetching live market data...');
+        setDataStatus('Reading canonical browser cache...');
         try {
-          candles = await fetchRealCandles(selectedSymbol, selectedTimeframe, mapping.category);
-          setDataStatus(`Live data: ${candles.length} candles from real market`);
+          if(!feed||feed.status!=='ready'||feed.candles.length<20)throw new Error('Canonical dataset is not ready');
+          candles=feed.candles;
+          setDataStatus(`Canonical cached data: ${candles.length} candles (${feed.source})`);
         } catch {
           // A failed live feed must never be silently replaced with generated bars.
           // Doing so would make a result selected as "live" materially misleading.
@@ -179,17 +165,18 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
 
       setMetrics(result.metrics);
       setTrades(result.trades);
+      if (result.canonicalCompletedTrades.length) {
+        const first = result.canonicalCompletedTrades[0];
+        const runHash = `${first.strategyId}:${first.strategyVersion}:${first.configurationVersion}:${first.datasetIds.join(',')}:${result.canonicalCompletedTrades.map((trade) => trade.runReference).join('|')}`;
+        const { error } = await supabase.from('backtest_runs').insert({ mode_slug: 'canonical_single_strategy', strategy_name: first.strategyId, symbol: first.symbol, timeframe: first.primaryTimeframe, dataset_name: feed?.datasetId ?? first.datasetIds.join(','), status: 'completed', result_summary: { strategyId: first.strategyId, strategyVersion: first.strategyVersion, datasetIds: feed?.datasetId ? [feed.datasetId] : first.datasetIds, executionModelVersion: first.costs.version, runHash, dataQuality: feed?.qualityEvidence ? { status: feed.qualityEvidence.invalidBars || feed.qualityEvidence.score < 50 ? 'FAIL' : feed.qualityEvidence.duplicates || feed.qualityEvidence.outOfOrder || feed.qualityEvidence.missingRanges.length || feed.qualityEvidence.staleFinalBar || feed.qualityEvidence.unrealisticJumps ? 'WARNING' : 'PASS', report: feed.qualityEvidence } : { status: 'QUALITY_EVIDENCE_UNAVAILABLE' }, canonicalCompletedTrades: result.canonicalCompletedTrades } });
+        if (error) setDataStatus(`Backtest completed, but canonical run persistence failed: ${error.message}`);
+      }
     } catch (err) {
       setDataStatus(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
     } finally {
       setIsRunning(false);
     }
-  }, [selectedStrategy, strategyParams, env, strategyMinScore, dataSourceMode, multiAssetFeeds, selectedSymbol, barsCount, selectedTimeframe, fetchRealCandles, csvCandles]);
-
-  // Run automatically on first mount
-  useEffect(() => {
-    handleRunBacktest();
-  }, [handleRunBacktest]);
+  }, [selectedStrategy, strategyParams, env, strategyMinScore, dataSourceMode, multiAssetFeeds, selectedSymbol, barsCount, csvCandles]);
 
   // Save current single strategy params
   const handleSaveToConfig = () => {

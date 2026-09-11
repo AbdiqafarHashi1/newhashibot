@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { Target, Shield, AlertTriangle, XCircle, RefreshCw, Plus, CreditCard as Edit3, ChevronDown, ChevronUp, Zap, Lock, PauseCircle, PlayCircle, Info, TrendingUp, TrendingDown, Activity, Clock } from 'lucide-react';
+import ProfessionalPropWorkspace from './prop/ProfessionalPropWorkspace';
 
 // ── Live Bybit Trade types ─────────────────────────────────────
 interface BybitTrade {
@@ -779,6 +780,7 @@ export default function PropTradingPanel() {
   return (
     <AdminLayout>
       <div className="max-w-5xl mx-auto space-y-6">
+        <ProfessionalPropWorkspace />
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

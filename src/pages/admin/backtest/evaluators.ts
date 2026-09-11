@@ -1,5 +1,6 @@
 import { BtCandle } from './types';
 import { StrategyName } from '../StrategyConfig';
+import { buildCanonicalMarketView, CANONICAL_STRATEGIES } from '../../../../supabase/functions/_shared/trading-domain/index.ts';
 
 export function calcEMA(values: number[], period: number): number {
   if (values.length < period) return values[values.length - 1] ?? 0;
@@ -51,8 +52,13 @@ export function evaluateStrategySetup(
   rawWindow: BtCandle[],
   _tf: string,
   params: Record<string, number>,
-  enforceSessionWindows: boolean = true
+  enforceSessionWindows: boolean = true,
+  symbol: string
 ): EvalOutput {
+  const canonicalIds:Partial<Record<StrategyName,string>>={LondonBreakout:'forex.london-breakout',NYContinuation:'forex.new-york-continuation',FXTrendPullback:'forex.trend-pullback',GoldVolatilityBreakout:'gold.volatility-breakout'};
+  const canonicalId=canonicalIds[name];
+  if (!symbol.trim()) throw new Error('EXPLICIT_SYMBOL_REQUIRED');
+  if(canonicalId&&rawWindow.length>=50){const definition=CANONICAL_STRATEGIES[canonicalId],timeframe=definition.requirements.primaryTimeframe,datasetId=`backtest:${symbol}:${name}:${timeframe}`,asOf=new Date(Date.parse(rawWindow[rawWindow.length-1].time)+({"1m":60000,"5m":300000,"15m":900000,"30m":1800000,"1h":3600000,"4h":14400000,"1d":86400000}[timeframe])).toISOString(),market=buildCanonicalMarketView({symbol,asOf,primaryTimeframe:timeframe,requiredTimeframes:[timeframe],warmupBars:definition.requirements.warmupBars,session:{open:true,code:'BACKTEST_SESSION'},datasets:{[timeframe]:rawWindow.map(c=>({datasetId,symbol,timeframe,openTime:new Date(c.time).toISOString(),open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume}))}}),result=definition.evaluate({market,configurationVersion:'backtest-config/current',parameters:params});if(result.decision==='NO_TRADE')return {ok:false,direction:'buy',entry:0,stop_loss:0,tp1:0,tp2:0,score:0,grade:'reject',reason:result.reasonCodes[0]||'Canonical no trade',rejectionCause:result.reasonCodes[0]||'no_trade'};const c=result.candidate;return {ok:true,direction:c.side==='BUY'?'buy':'sell',entry:c.entry,stop_loss:c.stop,tp1:c.targets[0],tp2:c.targets[1],score:c.score,grade:c.score>=85?'A+':'A',reason:c.evidence.reasonCodes[0]||'Canonical candidate'};}
   if (rawWindow.length < 50) {
     return {
       ok: false,

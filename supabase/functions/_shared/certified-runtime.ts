@@ -8,6 +8,8 @@ export const CERTIFIED_RUNTIME_VERSION = "certified-runtime/phase-1g-a" as const
 
 export interface ExecutionAccountInput {
   readonly account_id: string;
+  readonly customer_id: string;
+  readonly execution_product: "FOREX_PERSONAL" | "FOREX_PROP" | "CRYPTO_PERSONAL" | "CRYPTO_PROP";
   readonly adoption_policy_version: string;
   readonly risk_context: RiskEvaluationContext;
   readonly risk_policy: DeepReadonly<ResolvedRiskPolicy>;

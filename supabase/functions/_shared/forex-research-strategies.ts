@@ -43,13 +43,14 @@ export const ForexLondonBreakout: ForexResearchStrategy = {
       const closeAt = new Date(Date.parse(row.open_time) + interval); const hour = closeAt.getUTCHours(); return hour >= 0 && hour < 8;
     }).slice(-32);
     if (prior.length < 8) return reject("range_incomplete", { asian_candles: prior.length });
-    const high = Math.max(...prior.map((c) => c.high)), low = Math.min(...prior.map((c) => c.low)), last = market.currentClosedCandle, atr = market.indicators.atr14;
+    const high = Math.max(...prior.map((c) => c.high)), low = Math.min(...prior.map((c) => c.low)), last = market.currentClosedCandle!, atr = market.indicators.atr14;
     const direction = last.close > high ? "buy" : last.close < low ? "sell" : null;
     if (!direction) return reject("breakout_unconfirmed", { range_high: high, range_low: low });
     const extension = direction === "buy" ? last.close - high : low - last.close;
     const body = Math.abs(last.close - last.open);
-    if (body < atr * .45) return reject("breakout_unconfirmed", { breakout_body_atr: body / atr });
-    if (extension > atr * .9) return reject("breakout_overextended", { extension_atr: extension / atr });
+    const bodyAtr = input.strategy_parameters?.bodyAtr ?? .45, extensionAtr = input.strategy_parameters?.extensionAtr ?? .9;
+    if (body < atr * bodyAtr) return reject("breakout_unconfirmed", { breakout_body_atr: body / atr });
+    if (extension > atr * extensionAtr) return reject("breakout_overextended", { extension_atr: extension / atr });
     const rangeSize = high - low; if (rangeSize <= 0 || rangeSize > atr * 8) return reject("range_invalid", { range_atr: rangeSize / atr });
     return candidate(this, market, direction, Math.max(atr * 1.35, rangeSize * .25), 1.2, 1.9, 82, { asian_range_high: high, asian_range_low: low, asian_range_candles: prior.length, breakout_extension_atr: extension / atr, closed_candle_confirmation: true });
   },
@@ -59,12 +60,13 @@ export const ForexNewYorkContinuation: ForexResearchStrategy = {
   id: "forex.new-york-continuation", version: "0.1.0-research", symbols: forexSymbols, timeframes: ["15m", "1h"], sessions: ["NEW_YORK", "LONDON_NEW_YORK_OVERLAP"],
   evaluate(input) {
     const market = contextFor(input), blocked = preflight(this, input, market); if (blocked || !market) return blocked!;
-    const last = market.currentClosedCandle, atr = market.indicators.atr14, recent = market.previousClosedCandles.slice(-12);
+    const last = market.currentClosedCandle!, atr = market.indicators.atr14, recent = market.previousClosedCandles.slice(-12);
     if (market.trendState === "FLAT") return reject("no_directional_structure");
     const direction = market.trendState === "UP" ? "buy" : "sell";
     const sessionMove = recent.length ? (last.close - recent[0].open) / atr : 0;
-    if ((direction === "buy" && sessionMove <= .25) || (direction === "sell" && sessionMove >= -.25)) return reject("session_direction_conflict", { session_move_atr: sessionMove });
-    if (Math.abs(sessionMove) > 3.2) return reject("move_exhausted", { session_move_atr: sessionMove });
+    const minimumMoveAtr = input.strategy_parameters?.minimumMoveAtr ?? .25, maximumMoveAtr = input.strategy_parameters?.maximumMoveAtr ?? 3.2;
+    if ((direction === "buy" && sessionMove <= minimumMoveAtr) || (direction === "sell" && sessionMove >= -minimumMoveAtr)) return reject("session_direction_conflict", { session_move_atr: sessionMove });
+    if (Math.abs(sessionMove) > maximumMoveAtr) return reject("move_exhausted", { session_move_atr: sessionMove });
     const confirms = direction === "buy" ? last.close > last.open && last.close > market.indicators.ema20 : last.close < last.open && last.close < market.indicators.ema20;
     if (!confirms) return reject("continuation_unconfirmed");
     return candidate(this, market, direction, atr * 1.3, 1.15, 1.85, 80, { prior_direction: market.trendState, session_move_atr: sessionMove, continuation_confirmed: true });
@@ -77,13 +79,14 @@ export const ForexTrendPullback: ForexResearchStrategy = {
     const market = contextFor(input), blocked = preflight(this, input, market); if (blocked || !market) return blocked!;
     if (market.trendState === "FLAT") return reject("trend_not_established");
     if (market.pullbackState === "EXTENDED") return reject("chase_extension");
-    const direction = market.trendState === "UP" ? "buy" : "sell", last = market.currentClosedCandle, atr = market.indicators.atr14;
+    const direction = market.trendState === "UP" ? "buy" : "sell", last = market.currentClosedCandle!, atr = market.indicators.atr14;
     const depth = Math.abs(last.close - market.indicators.ema20) / atr;
-    if (depth > .8) return reject("pullback_invalid", { pullback_depth_atr: depth });
+    const maximumPullbackAtr = input.strategy_parameters?.maximumPullbackAtr ?? .8, stopAtr = input.strategy_parameters?.stopAtr ?? 1.4;
+    if (depth > maximumPullbackAtr) return reject("pullback_invalid", { pullback_depth_atr: depth });
     const momentum = direction === "buy" ? last.close > last.open && market.indicators.rsi14 >= 45 : last.close < last.open && market.indicators.rsi14 <= 55;
     if (!momentum) return reject("momentum_unconfirmed", { rsi: market.indicators.rsi14 });
     const swing = direction === "buy" ? Math.min(...market.normalizedCandles.slice(-12).map((c) => c.low)) : Math.max(...market.normalizedCandles.slice(-12).map((c) => c.high));
-    const stop = Math.max(atr * 1.4, Math.abs(last.close - swing) + atr * .15);
+    const stop = Math.max(atr * stopAtr, Math.abs(last.close - swing) + atr * .15);
     if (stop > atr * 4) return reject("stop_too_wide", { stop_atr: stop / atr });
     return candidate(this, market, direction, stop, 1.2, 2.1, 84, { trend_state: market.trendState, pullback_depth_atr: depth, momentum_confirmed: true, swing_stop: swing });
   },
@@ -95,7 +98,7 @@ export const GoldVolatilityBreakout: ForexResearchStrategy = {
     const market = contextFor(input), blocked = preflight(this, input, market); if (blocked || !market) return blocked!;
     if (market.instrument.assetClass !== "gold") return reject("gold_symbol_required");
     if (["LOW", "ABNORMAL"].includes(market.volatilityState)) return reject(market.volatilityState === "LOW" ? "compression_not_ready" : "volatility_unstable", { volatility_state: market.volatilityState });
-    const prior = market.normalizedCandles.slice(-31, -1), last = market.currentClosedCandle, atr = market.indicators.atr14;
+    const prior = market.normalizedCandles.slice(-31, -1), last = market.currentClosedCandle!, atr = market.indicators.atr14;
     const high = Math.max(...prior.map((c) => c.high)), low = Math.min(...prior.map((c) => c.low)), direction = last.close > high ? "buy" : last.close < low ? "sell" : null;
     if (!direction) return reject("breakout_unconfirmed", { range_high: high, range_low: low });
     const body = Math.abs(last.close - last.open), expansion = direction === "buy" ? last.close - high : low - last.close;

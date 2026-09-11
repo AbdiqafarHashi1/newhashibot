@@ -168,7 +168,7 @@ function timeframeMilliseconds(timeframe: string): number | null {
 }
 
 function isClosedBoundary(context: StrategyEvaluationContext): boolean {
-  const last = context.candles.at(-1), interval = timeframeMilliseconds(context.timeframe);
+  const last = context.candles[context.candles.length - 1], interval = timeframeMilliseconds(context.timeframe);
   return Boolean(last && interval && Date.parse(last.open_time) + interval <= Date.parse(context.evaluated_at));
 }
 
@@ -232,7 +232,7 @@ export function createStrategyPlan(definition: StrategyDefinition, context: Stra
   const action: StrategyPlanDecision = legacy.status === "candidate" && direction === "buy" ? "BUY" : legacy.status === "candidate" && direction === "sell" ? "SELL" : "NO_TRADE";
   const rejection = legacy.rejection_reason || (legacy.status === "rejected" ? legacy.reason : "");
   const sources = [...new Set(context.candles.map((row) => row.source).filter(Boolean))];
-  const last = context.candles.at(-1) ?? null, first = context.candles[0] ?? null;
+  const last = context.candles[context.candles.length - 1] ?? null, first = context.candles[0] ?? null;
   const configHash = stableFingerprint(definition.config);
   const expiresAt = action === "NO_TRADE" ? null : expiryFromBars(context.evaluated_at, context.timeframe, definition.config.max_bars_in_trade);
   const evidence = clone(legacy.score_breakdown);

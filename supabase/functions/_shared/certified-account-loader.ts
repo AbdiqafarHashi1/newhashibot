@@ -14,6 +14,7 @@ export interface CertifiedAccountTruthRow {
   provider: RiskDomain;
   environment: "TESTNET" | "DEMO" | "LIVE";
   account_mode: RiskDomain;
+  execution_product?: "FOREX_PERSONAL" | "FOREX_PROP" | "CRYPTO_PERSONAL" | "CRYPTO_PROP";
   enabled: boolean;
   adoption_enabled: boolean;
   customer_authorized: boolean;
@@ -93,7 +94,8 @@ export async function loadCertifiedExecutionAccounts(input: { strategy_plan: Dee
       market: { session:known(row.market.session,row.observed_at), spread:known(row.market.spread,row.observed_at), liquidity:known(row.market.liquidity,row.observed_at), news:known(row.market.news,row.observed_at), weekend:known(row.market.weekend,row.observed_at), overnight:known(row.market.overnight,row.observed_at), provider_operational:known(row.provider_operational,row.observed_at), account_lock:known(row.manually_locked,row.observed_at), customer_execution:known(row.customer_authorized,row.observed_at) },
     };
     const allocationAccount: AllocationAccountCandidate = { account_id:row.account_id, customer_id:row.customer_id, provider:row.provider, environment:row.environment, enabled:true, execution_enabled:true, provider_health:row.provider_health, policy_priority:0, balance:row.balance, equity:row.equity, available_capital:Math.min(row.balance,row.equity), available_margin:row.available_margin, used_margin:row.used_margin, utilization_pct:row.used_margin/row.equity*100, account_currency:row.contract_specification.kind === "MT5" ? row.contract_specification.account_currency : row.contract_specification.quote_currency, provider_timestamp:row.observed_at, freshness:"KNOWN" };
-    accounts.push({ account_id:row.account_id, adoption_policy_version:row.adoption_policy_version, risk_context:riskContext, risk_policy:row.risk_policy,
+    const executionProduct = row.execution_product ?? (row.provider === "MT5_PROP" ? "FOREX_PROP" : row.provider === "MT5_PERSONAL" ? "FOREX_PERSONAL" : "CRYPTO_PERSONAL");
+    accounts.push({ account_id:row.account_id, customer_id:row.customer_id, execution_product:executionProduct, adoption_policy_version:row.adoption_policy_version, risk_context:riskContext, risk_policy:row.risk_policy,
       capital_context(decision) { return { schema_version:CAPITAL_ALLOCATION_CONTEXT_VERSION, risk_decision:decision, evaluation_id:decision.evaluation_id, correlation_id:decision.correlation_id, evaluated_at:input.now, provider:row.provider, permitted_account_ids:[row.account_id], accounts:[allocationAccount], contract_specification:row.contract_specification, provider_timestamp:row.observed_at, freshness:"KNOWN", maximum_truth_age_ms:row.maximum_truth_age_ms }; },
       execution_context(allocation) { return { schema_version:EXECUTION_PLANNING_CONTEXT_VERSION, capital_allocation_plan:allocation, evaluation_id:allocation.evaluation_id, correlation_id:allocation.correlation_id, provider:row.provider, environment:row.environment, account_id:row.account_id, contract_specification:row.contract_specification, contract_specification_fingerprint:stableFingerprint(row.contract_specification), provider_truth_timestamp:row.observed_at, routing_timestamp:input.now, freshness:"KNOWN", routing_policy:row.routing_policy, capabilities:row.capabilities }; } });
   }

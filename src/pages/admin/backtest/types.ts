@@ -91,6 +91,8 @@ export interface MultiAssetFeedItem {
   count: number;
   lastUpdated?: string;
   error?: string;
+  datasetId?: string;
+  qualityEvidence?: import('../../../lib/historicalData/types').HistoricalDataQualityReport;
 }
 
 export interface BtTrade {

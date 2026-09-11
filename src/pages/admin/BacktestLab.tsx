@@ -36,6 +36,7 @@ import { CategoryScorecards } from './backtest/CategoryScorecards';
 import { AICalibrationPanel } from './backtest/AICalibrationPanel';
 import { SingleStrategyLab } from './backtest/SingleStrategyLab';
 import { PropClearanceLab } from './backtest/PropClearanceLab';
+import ResearchValidationWorkspace from './backtest/ResearchValidationWorkspace';
 import { KnowledgeGuide } from './backtest/KnowledgeGuide';
 import {
   CalibrationPreset,
@@ -48,6 +49,7 @@ import {
   BASE_DEFAULT_PRESET,
   deployPresetToLiveStrategyConfigs,
 } from './backtest/presetStorage';
+import { BinanceHistoricalAdapter, BybitHistoricalAdapter, HistoricalDataService, IndexedDbHistoricalCache, MT5BridgeHistoricalAdapter, canonicalToBacktestBars, createMT5BrowserTransport, ensureResearchData, loadResearchContext, saveResearchContext, switchResearchMode, type HistoricalProvider, type HistoricalTimeframe } from '../../lib/historicalData';
 
 const ASSET_CATEGORY_STRATEGIES: Record<string, StrategyName[]> = {
   all: [
@@ -72,6 +74,10 @@ const ASSET_CATEGORY_STRATEGIES: Record<string, StrategyName[]> = {
 export default function BacktestLab() {
   // Mode Selection: Single Strategy vs Multi-Asset Pipeline vs Institutional Prop Clearance
   const [backtestMode, setBacktestMode] = useState<'single_strategy' | 'pipeline_arbitration' | 'prop_firm_clearance'>('pipeline_arbitration');
+  const [researchProvider,setResearchProvider]=useState<HistoricalProvider|'SIMULATION'>(()=>loadResearchContext().data.provider);
+  const [mt5AccountId,setMt5AccountId]=useState(()=>loadResearchContext().accountId||'');
+  const [researchProgress,setResearchProgress]=useState('READY');
+  const historicalService=useMemo(()=>new HistoricalDataService(new IndexedDbHistoricalCache(),[new BinanceHistoricalAdapter(),new BybitHistoricalAdapter(),new MT5BridgeHistoricalAdapter(createMT5BrowserTransport({onState:setResearchProgress}))]),[]);
 
   // ─── Multi-Asset Pipeline State ─────────────────────────────────────────────
   const [multiAssetFeeds, setMultiAssetFeeds] = useState<Record<string, MultiAssetFeedItem>>(createDefaultMultiAssetFeeds);
@@ -369,12 +375,7 @@ export default function BacktestLab() {
     handleSelectPreset(BASE_DEFAULT_PRESET);
   };
 
-  // Auto-run on first load and trigger real market bars download
-  useEffect(() => {
-    handleRunPipelineBacktest();
-    handleSyncAllFeeds();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(()=>{const mode=backtestMode==='single_strategy'?'single':backtestMode==='prop_firm_clearance'?'prop_replay':'multi_asset';const current=loadResearchContext();saveResearchContext(switchResearchMode(current,mode));},[backtestMode]);
 
   // Update segregated capital pool
   const handleUpdatePool = (category: AssetCategory, updates: Partial<AssetCapitalPool>) => {
@@ -398,20 +399,21 @@ export default function BacktestLab() {
     });
     setMultiAssetFeeds({ ...updatedFeeds });
 
-    // Parallel fetch across all instruments in PIPELINE_UNIVERSE
-    const results = await Promise.all(
-      PIPELINE_UNIVERSE.map(async (inst) => {
+    if(researchProvider==='SIMULATION'){
+      setMultiAssetFeeds(createDefaultMultiAssetFeeds(historyDepthBars,Number.parseInt(selectedTimeframe)*1||15));setResearchProgress('READY');setIsSyncingAll(false);return;
+    }
+    const eligible=PIPELINE_UNIVERSE.filter(inst=>researchProvider==='MT5_BRIDGE'?inst.category!=='crypto':inst.category==='crypto');
+    const now=Date.now(),days=Number.parseInt(rangeToUse)||90,from=selectedRange==='custom'?Date.parse(`${customStartDate}T00:00:00Z`):now-days*86_400_000,to=selectedRange==='custom'?Date.parse(`${customEndDate}T23:59:59Z`):now;
+    const strategyIds=(ASSET_CATEGORY_STRATEGIES[pipelineCategory]||ASSET_CATEGORY_STRATEGIES.all).filter(s=>enabledPipelineStrategies[s]!==false);
+    try{
+      const previous=loadResearchContext(),context=saveResearchContext({...previous,data:{provider:researchProvider,symbols:eligible.map(x=>x.symbol),timeframe:selectedTimeframe as HistoricalTimeframe,from,to,broker:previous.data.broker,server:previous.data.server,environment:previous.data.environment},accountId:researchProvider==='MT5_BRIDGE'?mt5AccountId:undefined,primaryTimeframe:selectedTimeframe as HistoricalTimeframe,requiredTimeframes:[selectedTimeframe as HistoricalTimeframe],requestedEvaluationRange:{from,to},requiredDataRange:{from,to},strategyId:strategyIds.join(','),strategyVersion:'current',executionModel:'research-candle-close'});
+      const bundle=await ensureResearchData(historicalService,context,strategyIds,(state)=>setResearchProgress(state));
+      const results = await Promise.all(
+      eligible.map(async (inst) => {
         try {
-          const resp = await fetch(
-            `/api/market-data/history?symbol=${inst.symbol}&interval=${selectedTimeframe}&assetClass=${inst.assetClass}&range=${rangeToUse}&limit=1000`
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            const actualInterval = data.interval === '60m' ? '1h' : data.interval;
-            if (actualInterval !== selectedTimeframe) {
-              throw new Error(`Provider returned ${data.interval}, not requested ${selectedTimeframe}`);
-            }
-            if (data.candles && data.candles.length >= 20) {
+            const data=bundle.datasets[`${inst.symbol}:${selectedTimeframe}`];
+            const candles=canonicalToBacktestBars(data,bundle.context.requestedEvaluationRange);
+            if (candles.length >= 20) {
               return {
                 category: inst.category,
                 symbol: inst.symbol,
@@ -422,15 +424,16 @@ export default function BacktestLab() {
                 decimals: inst.decimals,
                 fridayWeekendClose: inst.fridayWeekendClose,
                 enforceSessionWindows: inst.enforceSessionWindows,
-                candles: data.candles,
-                count: data.candles.length,
+                candles,
+                count: candles.length,
                 status: 'ready' as const,
-                source: data.source || 'live_feed',
+                source: `${researchProvider}:CANONICAL_CACHE`,
+                datasetId: data.metadata.datasetKey,
+                qualityEvidence: data.metadata.quality,
                 lastUpdated: new Date().toISOString(),
               };
             }
-          }
-          throw new Error('Market-data API returned no usable candles');
+          throw new Error('Canonical service returned no usable candles');
         } catch (error) {
           return {
             category: inst.category,
@@ -450,8 +453,7 @@ export default function BacktestLab() {
             error: error instanceof Error ? error.message : 'Market-data fetch failed',
           };
         }
-      })
-    );
+      }));
 
     results.forEach((item) => {
       updatedFeeds[item.symbol] = item;
@@ -462,7 +464,7 @@ export default function BacktestLab() {
     if (updatedFeeds['XAUUSD']) updatedFeeds['metals'] = updatedFeeds['XAUUSD'];
     if (updatedFeeds['BTCUSDT']) updatedFeeds['crypto'] = updatedFeeds['BTCUSDT'];
 
-    setMultiAssetFeeds(updatedFeeds);
+    setMultiAssetFeeds(updatedFeeds);setResearchProgress('READY');
     setIsSyncingAll(false);
 
     // Automatically trigger backtest with fresh data
@@ -492,6 +494,7 @@ export default function BacktestLab() {
       capitalPools
     );
     setAiCalibrationReport(report);
+    }catch(error){setResearchProgress(`FAILED: ${error instanceof Error?error.message:'Historical data resolution failed'}`);}finally{setIsSyncingAll(false);}
   };
 
   // Export Combined Dataset Package
@@ -530,6 +533,7 @@ export default function BacktestLab() {
   return (
     <AdminLayout>
       <div className="p-0 sm:p-1 md:p-2 max-w-7xl mx-auto space-y-5 sm:space-y-6 w-full min-w-0">
+        <ResearchValidationWorkspace multiAssetFeeds={multiAssetFeeds} />
         {/* Top Header & Mode Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
@@ -589,6 +593,15 @@ export default function BacktestLab() {
 
         {/* Knowledge & Architecture Guide Accordion */}
         <KnowledgeGuide />
+
+        <section className="rounded-xl border border-slate-700 bg-slate-900 p-4" aria-label="Research Data Manager">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-xs text-slate-300">SOURCE<select className="mt-1 block rounded border border-slate-700 bg-slate-950 p-2" value={researchProvider} onChange={e=>setResearchProvider(e.target.value as HistoricalProvider|'SIMULATION')}><option value="SIMULATION">SIMULATION — SYNTHETIC DEMO DATA</option><option value="MT5_BRIDGE">MT5 — BROKER NATIVE</option><option value="BINANCE">Binance public history</option><option value="BYBIT">Bybit public history</option></select></label>
+            {researchProvider==='MT5_BRIDGE'&&<label className="text-xs text-slate-300">MT5 ACCOUNT ID<input className="mt-1 block min-w-72 rounded border border-slate-700 bg-slate-950 p-2" value={mt5AccountId} onChange={e=>setMt5AccountId(e.target.value)} placeholder="Authenticated account UUID"/></label>}
+            <div className="text-xs text-slate-300"><div>PIPELINE STATE</div><strong className={researchProgress.startsWith('FAILED')?'text-red-400':'text-emerald-400'}>{researchProgress}</strong></div>
+            <div className="text-xs text-slate-400">Primary {selectedTimeframe.toUpperCase()} · strategy dependencies resolve automatically · candles persist in IndexedDB</div>
+          </div>
+        </section>
 
         {/* ─── PIPELINE & ARBITRATION VIEW ────────────────────────────────────── */}
         {backtestMode === 'pipeline_arbitration' && (

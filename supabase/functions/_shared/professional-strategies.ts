@@ -64,6 +64,8 @@ export interface StrategyEvaluationContext {
   candles: readonly StrategyCandle[];
   indicators: StrategyIndicatorSnapshot;
   evaluated_at: string;
+  /** Frozen, versioned research overrides. Production callers omit this field. */
+  strategy_parameters?: Readonly<Record<string, number>>;
 }
 
 export interface StrategyDefinition {
@@ -213,10 +215,12 @@ export function evaluateCryptoTrendPullback(context: StrategyEvaluationContext):
   if (context.candles.some((c) => !Number.isFinite(c.close) || c.close <= 0 || c.high < c.low)) return reject("invalid_candles");
   const last = context.candles[context.candles.length - 1], i = context.indicators;
   if (!Number.isFinite(i.atr14) || i.atr14 <= 0) return reject("invalid_atr_or_price");
-  const buy = i.ema20 > i.ema50 && last.close >= i.ema20 - i.atr14 * .35 && last.close <= i.ema20 + i.atr14 * .55 && i.rsi14 >= 45 && i.rsi14 <= 65;
-  const sell = i.ema20 < i.ema50 && last.close <= i.ema20 + i.atr14 * .35 && last.close >= i.ema20 - i.atr14 * .55 && i.rsi14 <= 55 && i.rsi14 >= 35;
+  const pullbackAtr = context.strategy_parameters?.pullbackAtr ?? .55;
+  const stopAtr = context.strategy_parameters?.stopAtr ?? 1.65;
+  const buy = i.ema20 > i.ema50 && last.close >= i.ema20 - i.atr14 * .35 && last.close <= i.ema20 + i.atr14 * pullbackAtr && i.rsi14 >= 45 && i.rsi14 <= 65;
+  const sell = i.ema20 < i.ema50 && last.close <= i.ema20 + i.atr14 * .35 && last.close >= i.ema20 - i.atr14 * pullbackAtr && i.rsi14 <= 55 && i.rsi14 >= 35;
   if (!buy && !sell) return reject("pullback_invalid", { strategy: "CryptoTrendPullback", ema20: i.ema20, ema50: i.ema50, rsi: i.rsi14 });
-  return researchCandidate(context, buy ? "buy" : "sell", 80, 1.65, 1.0, 1.75, { strategy: "CryptoTrendPullback", trend_aligned: true, pullback_confirmed: true, rsi: i.rsi14 });
+  return researchCandidate(context, buy ? "buy" : "sell", 80, stopAtr, 1.0, 1.75, { strategy: "CryptoTrendPullback", trend_aligned: true, pullback_confirmed: true, rsi: i.rsi14 });
 }
 
 export function evaluateReversalExhaustion(context: StrategyEvaluationContext): LegacyStrategyResult {
@@ -226,10 +230,12 @@ export function evaluateReversalExhaustion(context: StrategyEvaluationContext): 
   if (context.candles.some((c) => !Number.isFinite(c.close) || c.close <= 0 || c.high < c.low)) return reject("invalid_candles");
   const last = context.candles[context.candles.length - 1], i = context.indicators;
   if (!Number.isFinite(i.atr14) || i.atr14 <= 0) return reject("invalid_atr_or_price");
-  const buy = i.rsi14 <= 32 && last.close <= i.recent_low + i.atr14 * .4;
-  const sell = i.rsi14 >= 68 && last.close >= i.recent_high - i.atr14 * .4;
+  const rsiExtreme = context.strategy_parameters?.rsiExtreme ?? 32;
+  const stopAtr = context.strategy_parameters?.stopAtr ?? 1.4;
+  const buy = i.rsi14 <= rsiExtreme && last.close <= i.recent_low + i.atr14 * .4;
+  const sell = i.rsi14 >= 100 - rsiExtreme && last.close >= i.recent_high - i.atr14 * .4;
   if (!buy && !sell) return reject("exhaustion_unconfirmed", { strategy: "ReversalExhaustion", rsi: i.rsi14 });
-  return researchCandidate(context, buy ? "buy" : "sell", 79, 1.4, 1.0, 1.8, { strategy: "ReversalExhaustion", exhaustion_confirmed: true, rsi: i.rsi14 });
+  return researchCandidate(context, buy ? "buy" : "sell", 79, stopAtr, 1.0, 1.8, { strategy: "ReversalExhaustion", exhaustion_confirmed: true, rsi: i.rsi14 });
 }
 
 export const RESEARCH_STRATEGY_CONFIG: StrategyRuntimeConfig = { strategy_name: "research", enabled: false, min_score: 0, min_rr: 0, max_bars_in_trade: 8, allowed_symbols: [], allowed_timeframes: ["15m", "1h"], params: {} };

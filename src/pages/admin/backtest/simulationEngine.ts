@@ -15,6 +15,32 @@ import {
 } from './types';
 import { STRATEGY_DEFINITIONS, StrategyName } from '../StrategyConfig';
 import { evaluateStrategySetup } from './evaluators';
+import { runCanonicalReplay, type CanonicalCompletedTradeResult, type TradePlan } from '../../../../supabase/functions/_shared/trading-domain/index.ts';
+import { runCandidatePipelineReplay } from '../../../lib/research/canonicalPipelineReplay';
+
+const CANONICAL_PRODUCTION_NAMES = new Set<StrategyName>(['LondonBreakout', 'NYContinuation', 'FXTrendPullback', 'GoldVolatilityBreakout']);
+const CANONICAL_SINGLE_IDS: Partial<Record<StrategyName, string>> = {
+  LondonBreakout: 'forex.london-breakout',
+  NYContinuation: 'forex.new-york-continuation',
+  FXTrendPullback: 'forex.trend-pullback',
+  GoldVolatilityBreakout: 'gold.volatility-breakout',
+  CryptoReversalExhaustion: 'crypto.reversal-exhaustion',
+};
+
+function canonicalSingleReplay(candles: BtCandle[], strategyName: StrategyName, env: MarketEnvironment, minScore: number) {
+  const strategyId = CANONICAL_SINGLE_IDS[strategyName];
+  if (!strategyId) return null;
+  const datasetId = `backtest:${env.symbol}:15m`;
+  return runCandidatePipelineReplay({
+    datasets: [{ datasetId, symbol: env.symbol, timeframe: '15m', provider: env.assetClass === 'crypto' ? 'BINANCE' : 'CSV', bars: candles.map((bar) => ({ timestamp: Date.parse(bar.time), open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume })) }],
+    strategyIds: [strategyId], configurationVersion: 'backtest-config/current',
+    initialAccount: { balance: env.accountSizeUsd, equity: env.accountSizeUsd, availableCapital: env.accountSizeUsd, currentOpenRisk: 0, dailyLoss: 0, drawdownPercent: 0, exposedSymbols: [] },
+    riskPolicy: { version: 'backtest-risk/v1', riskPercent: env.riskPctPerTrade, maxOpenRisk: env.accountSizeUsd * 0.03, maxDailyLoss: env.accountSizeUsd * 0.05, maxDrawdownPercent: 10 },
+    portfolioPolicy: { minimumScore: minScore, oneActivePerSymbol: true, maximumConcurrentPositions: 1, maximumTotalOpenRisk: env.accountSizeUsd * 0.03, maximumPortfolioExposure: env.accountSizeUsd, perSymbolExposure: {}, perStrategyExposure: {}, maxAllocationPerTrade: env.accountSizeUsd },
+    executionModel: { version: 'backtest-cost/v2', currency: 'USD', provenance: 'HISTORICAL_ESTIMATE', forex: { spreadCost: env.spreadPipsOrPts * env.pipOrPointSize, slippageCost: 0, commissionPerTrade: 0 }, crypto: { liquidity: 'TAKER', makerFeeRate: 0.0002, takerFeeRate: (env.feePctPerSide ?? 0.05) / 100, slippageRate: 0.0001, quantityStep: 0.000001, minimumQuantity: 0.000001 } },
+    runReference: `single:${strategyId}:${datasetId}`,
+  });
+}
 
 export function runSingleStrategyEngine(
   candles: BtCandle[],
@@ -23,8 +49,9 @@ export function runSingleStrategyEngine(
   env: MarketEnvironment,
   maxBarsInTrade: number,
   minScore: number
-): { trades: BtTrade[]; metrics: BtMetrics } {
+): { trades: BtTrade[]; metrics: BtMetrics; canonicalCompletedTrades: CanonicalCompletedTradeResult[] } {
   const trades: BtTrade[] = [];
+  const canonicalCompletedTrades: CanonicalCompletedTradeResult[] = [];
   let inTrade: BtTrade | null = null;
   let evaluations = 0;
   let candidates = 0;
@@ -35,6 +62,13 @@ export function runSingleStrategyEngine(
   const equityCurve: { bar: number; time: string; equityR: number; equityUsd: number }[] = [];
   let cumulativeR = 0;
   let cumulativeUsd = env.accountSizeUsd;
+
+  const canonicalPipeline = canonicalSingleReplay(candles, strategyName, env, minScore);
+  if (canonicalPipeline) {
+    const canonicalTrades: BtTrade[] = canonicalPipeline.trades.map((result, index) => ({ id: result.tradeId, entryIndex: Math.max(0, candles.findIndex((b) => b.time >= result.openedAt)), entryTime: result.openedAt, strategy: strategyName, category: assetMeta.category, symbol: result.symbol, direction: result.fill.price >= result.stop ? 'buy' : 'sell', entry: result.fill.price, stop_loss: result.stop, tp1: result.targets[0], tp2: result.targets[1] ?? result.targets[0], result: result.closeReason === 'STOP' ? 'sl_hit' : result.closeReason === 'BREAKEVEN' ? 'breakeven_exit' : result.closeReason === 'TARGET' ? (result.exits.length > 1 ? 'tp2_hit' : 'tp1_hit') : 'expired', exitIndex: Math.max(0, candles.findIndex((b) => b.time >= result.closedAt)), exitTime: result.closedAt, exitPrice: result.closePrice, pnl_r: result.netR, pnl_net_usd: result.netPnl ?? result.netR * env.accountSizeUsd * env.riskPctPerTrade / 100, categoryCapitalUsd: env.accountSizeUsd, capitalPoolReturnPct: ((result.netPnl ?? 0) / env.accountSizeUsd) * 100, durationBars: 0, spreadDeductionPipsOrPts: env.spreadPipsOrPts, grade: 'canonical', score: canonicalPipeline.accepted[index]?.candidate.score ?? 0, reason: canonicalPipeline.accepted[index]?.candidate.evidence.reasonCodes.join(',') ?? 'canonical', riskUsd: canonicalPipeline.accepted[index]?.plan.risk.riskAmount ?? 0, feeDeductedUsd: result.costs.commission, initialRiskDistance: Math.abs(result.fill.price - result.stop), tp1HitAndPartialBanked: result.exits.length > 1, partialBankedR: result.exits.length > 1 ? result.exits[0].fraction * Math.abs((result.exits[0].price - result.fill.price) / Math.abs(result.fill.price - result.stop)) : undefined, isBreakevenMoved: result.exits.some((exit) => exit.reason === 'BREAKEVEN') }));
+    const wins = canonicalTrades.filter((t) => t.pnl_r > 0), losses = canonicalTrades.filter((t) => t.pnl_r < 0), grossProfit = wins.reduce((n, t) => n + t.pnl_r, 0), grossLoss = Math.abs(losses.reduce((n, t) => n + t.pnl_r, 0));
+    return { trades: canonicalTrades, canonicalCompletedTrades: [...canonicalPipeline.trades], metrics: { totalTrades: canonicalTrades.length, wins: wins.length, tp1Hits: canonicalTrades.filter((t) => t.result === 'tp1_hit').length, tp2Hits: canonicalTrades.filter((t) => t.result === 'tp2_hit').length, losses: losses.length, expired: canonicalTrades.filter((t) => t.result === 'expired').length, winRate: canonicalTrades.length ? wins.length / canonicalTrades.length * 100 : 0, profitFactor: grossLoss ? grossProfit / grossLoss : grossProfit ? 99.9 : 0, totalR: canonicalPipeline.metrics.netR, netUsd: canonicalPipeline.metrics.netPnl, avgR: canonicalPipeline.metrics.expectancyR, avgWin: wins.length ? grossProfit / wins.length : 0, avgLoss: losses.length ? grossLoss / losses.length : 0, bestTrade: canonicalTrades.length ? Math.max(...canonicalTrades.map((t) => t.pnl_r)) : 0, worstTrade: canonicalTrades.length ? Math.min(...canonicalTrades.map((t) => t.pnl_r)) : 0, maxConsecWins: 0, maxConsecLosses: 0, maxDrawdownPct: canonicalPipeline.metrics.maxDrawdown / Math.max(env.accountSizeUsd, 1) * 100, maxDrawdownR: canonicalPipeline.metrics.maxDrawdown, evaluations: candles.length, candidates: canonicalPipeline.accepted.length + canonicalPipeline.rejected.length, rejected: canonicalPipeline.rejected.length, rejectionReasons: canonicalPipeline.rejected.reduce<Record<string, number>>((out, item) => { for (const reason of item.reasonCodes) out[reason] = (out[reason] ?? 0) + 1; return out; }, {}), equityCurve: canonicalPipeline.trades.reduce<{ bar: number; time: string; equityR: number; equityUsd: number }[]>((out, result, i) => { const previous = out.at(-1) ?? { equityR: 0, equityUsd: env.accountSizeUsd }; out.push({ bar: i, time: result.closedAt, equityR: previous.equityR + result.netR, equityUsd: previous.equityUsd + (result.netPnl ?? 0) }); return out; }, []) } };
+  }
 
   for (let i = 50; i < candles.length; i++) {
     const window = candles.slice(Math.max(0, i - 120), i + 1);
@@ -181,7 +215,7 @@ export function runSingleStrategyEngine(
     }
 
     if (!inTrade) {
-      const evalOut = evaluateStrategySetup(strategyName, window, '15m', params, env.enforceSessionWindows);
+      const evalOut = evaluateStrategySetup(strategyName, window, '15m', params, env.enforceSessionWindows, env.symbol);
       if (evalOut.ok && evalOut.score >= minScore) {
         candidates++;
         const spreadAmount = env.spreadPipsOrPts * env.pipOrPointSize;
@@ -196,6 +230,15 @@ export function runSingleStrategyEngine(
         const notionalUsd = units * entryPrice;
         const feePct = env.feePctPerSide ?? 0;
         const roundTurnFeeUsd = feePct > 0 ? (notionalUsd * (feePct / 100) * 2) : 0;
+
+        if (CANONICAL_PRODUCTION_NAMES.has(strategyName)) {
+          const strategyId = strategyName === 'LondonBreakout' ? 'forex.london-breakout' : strategyName === 'NYContinuation' ? 'forex.new-york-continuation' : strategyName === 'FXTrendPullback' ? 'forex.trend-pullback' : 'gold.volatility-breakout';
+          const plan: TradePlan = { version: 'trade-plan/v1', candidateId: `backtest:${strategyId}:${env.symbol}:${current.time}`, symbol: env.symbol, side: evalOut.direction === 'buy' ? 'BUY' : 'SELL', entryModel: 'CANDLE_CLOSE_INTENT', intendedEntry: evalOut.entry, stop: evalOut.stop_loss, targets: [evalOut.tp1, evalOut.tp2], initialRiskDistance: stopDist, partialExit: { targetIndex: 0, fraction: 0.5 }, breakevenAfterTarget: 0, trailing: 'AFTER_TP1', expiry: candles[Math.min(candles.length - 1, i + maxBarsInTrade)]?.time ?? current.time, strategyId, strategyVersion: '1.0.0', risk: { version: 'risk-intent/v1', allowed: true, riskPercent: env.riskPctPerTrade, riskAmount: tradeRiskUsd, desiredSize: units, reasonCodes: [], limits: { version: 'backtest-risk/v1', riskPercent: env.riskPctPerTrade, maxOpenRisk: env.riskPctPerTrade, maxDailyLoss: 100, maxDrawdownPercent: 100 } }, capital: { version: 'capital-intent/v1', allowed: true, allocatedAmount: tradeRiskUsd, reasonCodes: [] } };
+          const future = candles.slice(i + 1, Math.min(candles.length, i + 1 + maxBarsInTrade));
+          const replay = runCanonicalReplay({ plan, configurationVersion: 'backtest-config/current', market: assetMeta.category === 'metals' ? 'METALS' : assetMeta.category === 'crypto' ? 'CRYPTO' : 'FOREX', primaryTimeframe: '15m', datasetIds: [`backtest:${env.symbol}:15m`], observations: future.map((bar, offset) => ({ id: `${plan.candidateId}:bar:${i + 1 + offset}`, timestamp: bar.time, open: bar.open, high: bar.high, low: bar.low, close: bar.close, provenance: 'HISTORICAL_SIMULATION' as const })), fillPrice: entryPrice, quantity: units, costs: { version: 'backtest-cost/v1', spread: 0, slippage: 0, commission: roundTurnFeeUsd, financing: 0, latencyMs: 0, currency: 'USD' }, riskAmount: tradeRiskUsd, runReference: plan.candidateId });
+          if (replay.result) { const result = replay.result; canonicalCompletedTrades.push(result); const lastExit = result.exits[result.exits.length - 1]; const trade: BtTrade = { id: `trade-${strategyName}-${i}`, entryIndex: i, entryTime: result.openedAt, strategy: strategyName, category: assetMeta.category, symbol: env.symbol, direction: evalOut.direction, entry: result.fill.price, stop_loss: result.stop, tp1: result.targets[0], tp2: result.targets[1], result: result.closeReason === 'STOP' ? 'sl_hit' : result.closeReason === 'BREAKEVEN' ? 'breakeven_exit' : result.closeReason === 'TARGET' ? (result.exits.length > 1 ? 'tp2_hit' : 'tp1_hit') : 'expired', exitIndex: i + future.length, exitTime: result.closedAt, exitPrice: result.closePrice, pnl_r: result.netR, pnl_net_usd: result.netPnl ?? 0, categoryCapitalUsd: env.accountSizeUsd, capitalPoolReturnPct: parseFloat((((result.netPnl ?? 0) / env.accountSizeUsd) * 100).toFixed(2)), durationBars: future.length, spreadDeductionPipsOrPts: env.spreadPipsOrPts, grade: evalOut.grade, score: evalOut.score, reason: evalOut.reason, riskUsd: tradeRiskUsd, feeDeductedUsd: roundTurnFeeUsd, initialRiskDistance: Math.abs(result.fill.price - result.stop), tp1HitAndPartialBanked: result.exits.length > 1, partialBankedR: result.exits.length > 1 ? result.exits[0].fraction * Math.abs((result.exits[0].price - result.fill.price) / Math.abs(result.fill.price - result.stop)) : undefined, partialBankedUsd: undefined, isBreakevenMoved: result.exits.some(exit => exit.reason === 'BREAKEVEN') }; void lastExit; trades.push(trade); cumulativeR += result.netR; cumulativeUsd += result.netPnl ?? 0; equityCurve.push({ bar: i + future.length, time: result.closedAt, equityR: parseFloat(cumulativeR.toFixed(2)), equityUsd: parseFloat(cumulativeUsd.toFixed(2)) }); i += future.length; }
+          continue;
+        }
 
         inTrade = {
           id: `trade-${strategyName}-${i}`,
@@ -309,7 +352,7 @@ export function runSingleStrategyEngine(
     equityCurve,
   };
 
-  return { trades, metrics };
+  return { trades, metrics, canonicalCompletedTrades };
 }
 
 // ─── Multi-Asset Synchronized Pipeline & Arbitration Engine ───────────────────
@@ -713,7 +756,7 @@ export function runMultiAssetPipelineEngine(
 
         const startIdx = Math.max(0, i - 120);
         const assetWindow = feed.candles.slice(startIdx, i + 1);
-        const evalOut = evaluateStrategySetup(stratName, assetWindow, '15m', def.defaultParams, feed.enforceSessionWindows);
+        const evalOut = evaluateStrategySetup(stratName, assetWindow, '15m', def.defaultParams, feed.enforceSessionWindows, sym);
 
         if (evalOut.ok && evalOut.score >= arbitrationConfig.minScore) {
           candidatesTotal++;
@@ -1425,7 +1468,7 @@ export async function runMultiAssetPipelineReplayAsync(
 
         const startIdx = Math.max(0, i - 120);
         const assetWindow = feed.candles.slice(startIdx, i + 1);
-        const evalOut = evaluateStrategySetup(stratName, assetWindow, '15m', def.defaultParams, feed.enforceSessionWindows);
+        const evalOut = evaluateStrategySetup(stratName, assetWindow, '15m', def.defaultParams, feed.enforceSessionWindows, sym);
 
         if (evalOut.ok && evalOut.score >= arbitrationConfig.minScore) {
           candidatesTotal++;

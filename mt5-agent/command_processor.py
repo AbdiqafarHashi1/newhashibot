@@ -42,7 +42,7 @@ class CommandProcessor:
 
             # Every mutating operation is fail-closed. Phase 5D deliberately has no path
             # that silently defaults execution on, including for master credentials.
-            read_only = operation in ("test_connection", "sync_account")
+            read_only = operation in ("test_connection", "sync_account", "fetch_history")
             if str(cmd.get("account_id", "")) != Config.ACCOUNT_ID:
                 self.cloud_client.ack_command(cmd_id, False, "MT5_ACCOUNT_MISMATCH", "Command is scoped to another account", {})
                 processed_count += 1
@@ -124,6 +124,14 @@ class CommandProcessor:
                     success = conn
                     result_data = {"triggered": True}
 
+                elif operation == "fetch_history":
+                    if str(payload.get("version", "")) != "1.0":
+                        raise ValueError("MT5_HISTORY_CONTRACT_VERSION_UNSUPPORTED")
+                    result_data = self.mt5_client.get_historical_bars(
+                        str(payload.get("symbol", "")), str(payload.get("timeframe", "")),
+                        str(payload.get("from", "")), str(payload.get("to", "")), payload.get("source_symbol"))
+                    success = True
+
                 else:
                     error_code = "UNSUPPORTED_OPERATION"
                     error_message = f"Unsupported command operation: '{operation}'"
@@ -131,7 +139,10 @@ class CommandProcessor:
 
             except Exception as e:
                 success = False
-                error_code = "UNHANDLED_EXCEPTION"
+                known_read_error = str(e) if operation == "fetch_history" and str(e) in (
+                    "MT5_HISTORY_UNAVAILABLE", "MT5_SYMBOL_UNAVAILABLE", "MT5_TIMEFRAME_UNSUPPORTED",
+                    "MT5_HISTORY_RANGE_INVALID", "MT5_HISTORY_CONTRACT_VERSION_UNSUPPORTED") else None
+                error_code = known_read_error or "UNHANDLED_EXCEPTION"
                 error_message = f"Unhandled exception during command execution: {str(e)}"
                 logger.error(f"[CommandProcessor] Exception processing command #{cmd_id}: {e}")
 

@@ -139,7 +139,7 @@ export function buildForexMarketContext(input: { symbol: string; timeframe: stri
   const now = Date.parse(input.evaluatedAt);
   const normalized = input.candles.map((c) => ({ ...c, symbol: instrument.id, market_type: "forex", timeframe: input.timeframe })).filter((c) => Date.parse(c.open_time) + interval <= now).sort((a, b) => Date.parse(a.open_time) - Date.parse(b.open_time));
   const malformed = normalized.length === 0 || normalized.some((c, index) => ![c.open, c.high, c.low, c.close].every(Number.isFinite) || c.close <= 0 || c.low > Math.min(c.open, c.close) || c.high < Math.max(c.open, c.close) || c.high < c.low || (index > 0 && Date.parse(c.open_time) <= Date.parse(normalized[index - 1].open_time)));
-  const current = normalized.at(-1) ?? null;
+  const current = normalized[normalized.length - 1] ?? null;
   const stale = !current || now - (Date.parse(current.open_time) + interval) > interval * 2;
   const closes = normalized.map((c) => c.close), ema200 = emaRootV1(closes, 200), price = current?.close ?? 0, atr = input.indicators.atr14;
   const trendState = input.indicators.ema20 > input.indicators.ema50 && price > input.indicators.ema20 ? "UP" : input.indicators.ema20 < input.indicators.ema50 && price < input.indicators.ema20 ? "DOWN" : "FLAT";
