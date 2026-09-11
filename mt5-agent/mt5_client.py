@@ -193,6 +193,32 @@ class MT5Client:
                 "stops_level": int(info.trade_stops_level), "freeze_level": int(info.trade_freeze_level),
                 "market_open": bool(info.visible and tick.time), "last_update_at": datetime.utcfromtimestamp(int(tick.time)).isoformat()+"Z", "candles": candles}
 
+    def get_historical_bars(self, canonical_symbol: str, timeframe: str, from_iso: str, to_iso: str, source_symbol: Optional[str] = None) -> Dict[str, Any]:
+        """Read an explicit UTC range from the authenticated terminal; no generated fallback."""
+        if not HAS_MT5 or not self.check_connection():
+            raise RuntimeError("MT5_HISTORY_UNAVAILABLE")
+        frame_map = {"1m": mt5.TIMEFRAME_M1, "5m": mt5.TIMEFRAME_M5, "15m": mt5.TIMEFRAME_M15,
+                     "30m": mt5.TIMEFRAME_M30, "1h": mt5.TIMEFRAME_H1, "4h": mt5.TIMEFRAME_H4, "1d": mt5.TIMEFRAME_D1}
+        if timeframe not in frame_map:
+            raise ValueError("MT5_TIMEFRAME_UNSUPPORTED")
+        spec = self.get_symbol_info(source_symbol or canonical_symbol)
+        if not spec:
+            raise RuntimeError("MT5_SYMBOL_UNAVAILABLE")
+        broker_symbol = spec["broker_symbol"]
+        start = datetime.fromisoformat(from_iso.replace("Z", "+00:00"))
+        end = datetime.fromisoformat(to_iso.replace("Z", "+00:00"))
+        if end < start:
+            raise ValueError("MT5_HISTORY_RANGE_INVALID")
+        rows = mt5.copy_rates_range(broker_symbol, frame_map[timeframe], start, end)
+        if rows is None:
+            raise RuntimeError("MT5_HISTORY_UNAVAILABLE")
+        bars = [{"time": int(row["time"]), "open": float(row["open"]), "high": float(row["high"]),
+                 "low": float(row["low"]), "close": float(row["close"]), "tick_volume": int(row["tick_volume"]),
+                 "spread": int(row["spread"]), "real_volume": int(row["real_volume"])} for row in rows]
+        return {"version": "1.0", "provider": "MT5", "broker": self.broker, "server": self.server,
+                "canonical_symbol": canonical_symbol, "source_symbol": broker_symbol, "timeframe": timeframe,
+                "from": from_iso, "to": to_iso, "bars": bars}
+
     def verify_connection(self, requested_login: int, requested_broker: str, requested_server: str) -> Dict[str, Any]:
         """Run the complete read-only certification probe; never submits a trade request."""
         if not self.check_connection():

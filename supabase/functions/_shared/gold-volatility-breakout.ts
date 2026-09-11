@@ -46,7 +46,7 @@ export function evaluateGoldVolatilityBreakout(input: StrategyEvaluationContext)
   if (eventRisk?.protection_required && !eventRisk.available) return reject(input, "gold_event_risk_unavailable");
   if (eventRisk?.available && eventRisk.high_impact_usd) return reject(input, "gold_event_risk_blocked");
 
-  const rows = market.normalizedCandles, last = rows.at(-1)!, follow = rows.at(-2)!;
+  const rows = market.normalizedCandles, last = rows[rows.length - 1]!, follow = rows[rows.length - 2]!;
   const atr = input.indicators.atr14;
   if (!Number.isFinite(atr) || atr <= market.instrument.pointSize * 10) return reject(input, "gold_volatility_invalid");
   const box = rows.slice(-26, -2); // six UTC hours, excluding acceptance candles
@@ -66,7 +66,9 @@ export function evaluateGoldVolatilityBreakout(input: StrategyEvaluationContext)
   const acceptance = Math.abs(last.close - boundary) / atr;
   const adverseWick = buy ? follow.high - follow.close : follow.close - follow.low;
   if (breakoutRange <= 0 || adverseWick / breakoutRange > 0.48) return reject(input, "gold_false_breakout", { wick_ratio: breakoutRange > 0 ? adverseWick / breakoutRange : 1 });
-  if (breakoutBody / atr < 0.55 || displacement < 0.12 || acceptance < 0.08) return reject(input, "gold_failed_follow_through", { breakout_body_atr: breakoutBody / atr, displacement_atr: displacement, acceptance_atr: acceptance });
+  const minimumBodyAtr = input.strategy_parameters?.minimumBodyAtr ?? .55;
+  const minimumAcceptanceAtr = input.strategy_parameters?.minimumAcceptanceAtr ?? .08;
+  if (breakoutBody / atr < minimumBodyAtr || displacement < 0.12 || acceptance < minimumAcceptanceAtr) return reject(input, "gold_failed_follow_through", { breakout_body_atr: breakoutBody / atr, displacement_atr: displacement, acceptance_atr: acceptance });
   const extension = Math.abs(last.close - input.indicators.ema20) / atr;
   const climactic = Math.max(breakoutRange, last.high - last.low) / atr;
   if (extension > 2.4 || displacement > 1.35 || climactic > 2.8) return reject(input, "gold_exhaustion_detected", { extension_atr: extension, displacement_atr: displacement, climactic_range_atr: climactic });

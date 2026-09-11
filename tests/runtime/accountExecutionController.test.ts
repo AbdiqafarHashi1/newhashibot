@@ -1,0 +1,40 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { decideAccountExecution, executeAccountEntry, type AccountExecutionGateInput } from "../../supabase/functions/_shared/account-execution-controller.ts";
+import type { EligibilityDecision } from "../../supabase/functions/_shared/trading-domain/production-eligibility-router.ts";
+
+const eligible = (product: AccountExecutionGateInput["product"]): EligibilityDecision => ({ version:"production-eligibility-router/v1",decision:"ELIGIBLE",reasonCodes:[],product,market:product.startsWith("FOREX")?"FOREX":"CRYPTO",qualifiedSetId:`${product}_QUALIFIED_SET`,qualifiedSetVersion:"set/v1",configId:"config-a",configVersion:"config/v1",pinnedStrategyParameters:{threshold:.5},signalPolicyVersion:null });
+const base = (patch: Partial<AccountExecutionGateInput> = {}): AccountExecutionGateInput => ({ attempt:"NEW_ENTRY",signalId:"signal-global-1",accountId:"account-a",customerId:"customer-a",product:"FOREX_PERSONAL",assignedProvider:"MT5_PERSONAL",requestedProvider:"MT5_PERSONAL",eligibility:eligible("FOREX_PERSONAL"),runtimeControl:"START",openPositions:0,pendingOrders:0,duplicateSignalForAccount:false,activeSymbolConflict:false,canonicalRiskApproved:true,canonicalCapitalApproved:true,accountRuleApproved:true,propDecision:null,...patch });
+
+assert.deepEqual(decideAccountExecution(base()), decideAccountExecution(base()), "gate is deterministic");
+assert.equal(decideAccountExecution(base()).decision,"ALLOW");
+assert.deepEqual(decideAccountExecution(base({product:"SIGNAL_ONLY",eligibility:eligible("SIGNAL_ONLY")})).reasonCodes,["SIGNAL_ONLY_EXECUTION_FORBIDDEN"]);
+assert.ok(decideAccountExecution(base({eligibility:{...eligible("FOREX_PERSONAL"),decision:"INELIGIBLE",reasonCodes:["CONFIG_VERSION_MISMATCH"]}})).reasonCodes.includes("QUALIFICATION_INELIGIBLE"));
+for (const runtimeControl of ["PAUSE_NEW_ENTRIES","MANAGE_ONLY"] as const) assert.ok(decideAccountExecution(base({runtimeControl})).reasonCodes.includes("ACCOUNT_NEW_ENTRIES_PAUSED"));
+const manage = decideAccountExecution(base({attempt:"MANAGE_EXISTING",runtimeControl:"PAUSE_NEW_ENTRIES",openPositions:1}));
+assert.equal(manage.decision,"ALLOW"); assert.equal(manage.managementEnabled,true); assert.equal(manage.protectionEnabled,true); assert.equal(manage.reconciliationEnabled,true);
+const stoppingOpen = decideAccountExecution(base({runtimeControl:"STOP_AFTER_FLAT",openPositions:1}));
+assert.equal(stoppingOpen.transitionControlTo,null); assert.equal(stoppingOpen.managementEnabled,true);
+const stoppingFlat = decideAccountExecution(base({runtimeControl:"STOP_AFTER_FLAT",openPositions:0,pendingOrders:0}));
+assert.equal(stoppingFlat.transitionControlTo,"PAUSE_NEW_ENTRIES");
+assert.equal(stoppingFlat.scannerRemainsActive,true,"account stop never stops the scanner");
+assert.ok(decideAccountExecution(base({runtimeControl:"EMERGENCY_STOP"})).reasonCodes.includes("ACCOUNT_EMERGENCY_STOP"));
+assert.ok(decideAccountExecution(base({duplicateSignalForAccount:true})).reasonCodes.includes("DUPLICATE_SIGNAL_ACCOUNT"));
+assert.ok(decideAccountExecution(base({activeSymbolConflict:true})).reasonCodes.includes("ACCOUNT_SYMBOL_ALREADY_ACTIVE"));
+assert.ok(decideAccountExecution(base({canonicalRiskApproved:false})).reasonCodes.includes("CANONICAL_RISK_REJECTED"));
+assert.ok(decideAccountExecution(base({canonicalCapitalApproved:false})).reasonCodes.includes("CANONICAL_CAPITAL_REJECTED"));
+assert.ok(decideAccountExecution(base({product:"FOREX_PROP",assignedProvider:"MT5_PROP",requestedProvider:"MT5_PROP",eligibility:eligible("FOREX_PROP"),propDecision:{decision:"BLOCK",reasonCodes:["FIRM_DAILY_LOSS_BREACH"],riskMultiplier:0,managementEnabled:true}})).reasonCodes.includes("PROP_RULE_BLOCK"));
+assert.equal(decideAccountExecution(base({product:"FOREX_PROP",assignedProvider:"MT5_PROP",requestedProvider:"MT5_PROP",eligibility:eligible("FOREX_PROP"),propDecision:null})).decision,"BLOCK","Personal approval cannot substitute for Prop rules");
+assert.equal(decideAccountExecution(base({product:"CRYPTO_PERSONAL",assignedProvider:"MT5_PERSONAL",requestedProvider:"MT5_PERSONAL",eligibility:eligible("CRYPTO_PERSONAL")})).decision,"BLOCK","Forex provider cannot execute Crypto");
+assert.equal(decideAccountExecution(base({product:"FOREX_PERSONAL",assignedProvider:"BINANCE",requestedProvider:"BINANCE",eligibility:eligible("FOREX_PERSONAL")})).decision,"BLOCK","Crypto provider cannot execute Forex");
+const customerA=decideAccountExecution(base()),customerB=decideAccountExecution(base({accountId:"account-b",customerId:"customer-b"}));
+assert.equal(customerA.decision,"ALLOW"); assert.equal(customerB.decision,"ALLOW","same global signal is independently scoped per customer account");
+
+let submitted=0,emergency=0,audited=0;
+const failed=await executeAccountEntry(base(),{submit:async()=>{submitted++;throw new Error("provider offline")},emergency:async()=>{emergency++},audit:async()=>{audited++}});
+assert.equal(failed.submitted,false);assert.equal(failed.providerResult,null);assert.equal(failed.providerError,"provider offline");assert.equal(submitted,1);assert.equal(audited,1);
+const frozen=await executeAccountEntry(base({runtimeControl:"EMERGENCY_STOP"}),{submit:async()=>{submitted++;return "unsafe"},emergency:async()=>{emergency++},audit:async()=>{audited++}});
+assert.equal(frozen.submitted,false);assert.equal(emergency,1,"existing emergency port is invoked without inventing liquidation");
+const source=readFileSync("supabase/functions/binance-testnet-execution/index.ts","utf8");
+assert.match(source,/decideAccountExecution/);assert.match(source,/eligibility_decision/);assert.match(source,/ACCOUNT_GATE_DECIDED/);assert.match(source,/if \(gate\.decision === "BLOCK"\) return/);
+console.log("account execution controller tests passed");

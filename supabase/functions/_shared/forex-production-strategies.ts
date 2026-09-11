@@ -1,34 +1,8 @@
-import { ForexLondonBreakout, ForexNewYorkContinuation, ForexTrendPullback } from "./forex-research-strategies.ts";
-import { evaluateGoldVolatilityBreakout } from "./gold-volatility-breakout.ts";
-import type { LegacyStrategyResult, StrategyEvaluationContext } from "./professional-strategies.ts";
+import {CANONICAL_STRATEGIES} from "./trading-domain/index.ts";
+import type {LegacyStrategyResult,StrategyEvaluationContext} from "./professional-strategies.ts";
+import {buildCanonicalMarketView} from "./trading-domain/index.ts";
 
-/** Certified adapters preserve the audited indicator, session, scoring, entry,
- * stop and target pipelines while replacing research-only provenance. */
-function certify(result: LegacyStrategyResult, id: string): LegacyStrategyResult {
-  const score = { ...result.score_breakdown };
-  delete score.research_only;
-  score.strategy_id = id;
-  score.strategy_version = "1.0.0";
-  score.certification = "PRODUCTION";
-  return { ...result, reason: result.reason.replace(" research setup", " certified setup"), score_breakdown: score };
-}
-
-export const FOREX_PRODUCTION_EVALUATORS = {
-  "forex.london-breakout": (context: StrategyEvaluationContext) => certify(ForexLondonBreakout.evaluate(context), "forex.london-breakout"),
-  "forex.new-york-continuation": (context: StrategyEvaluationContext) => certify(ForexNewYorkContinuation.evaluate(context), "forex.new-york-continuation"),
-  "forex.trend-pullback": (context: StrategyEvaluationContext) => certify(ForexTrendPullback.evaluate(context), "forex.trend-pullback"),
-  "gold.volatility-breakout": evaluateGoldVolatilityBreakout,
-} as const;
-
-export type ProductionEvaluatorId = keyof typeof FOREX_PRODUCTION_EVALUATORS;
-export function validateProductionEvaluatorRegistry(contractIds: readonly string[], entries: readonly (readonly [string, unknown])[]): void {
-  const contracts = new Set(contractIds), mapped = new Set<string>();
-  if (contracts.size !== contractIds.length) throw new Error("DUPLICATE_STRATEGY_CONTRACT_ID");
-  for (const [id, evaluator] of entries) {
-    if (mapped.has(id)) throw new Error(`DUPLICATE_STRATEGY_EVALUATOR:${id}`);
-    if (!contracts.has(id)) throw new Error(`STRATEGY_EVALUATOR_UNCONTRACTED:${id}`);
-    if (typeof evaluator !== "function") throw new Error(`STRATEGY_EVALUATOR_INVALID:${id}`);
-    mapped.add(id);
-  }
-  for (const id of contracts) if (!mapped.has(id)) throw new Error(`STRATEGY_EVALUATOR_NOT_REGISTERED:${id}`);
-}
+function compatibility(id:string,context:StrategyEvaluationContext):LegacyStrategyResult {const definition=CANONICAL_STRATEGIES[id],tf=definition.requirements.primaryTimeframe,datasetId=context.candles[0]?.source??"scanner-input",market=buildCanonicalMarketView({symbol:context.symbol,asOf:context.evaluated_at,primaryTimeframe:tf,requiredTimeframes:[tf],warmupBars:definition.requirements.warmupBars,datasets:{[tf]:context.candles.map(c=>({datasetId,symbol:context.symbol,timeframe:tf,openTime:c.open_time,open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume}))}}),result=definition.evaluate({market,configurationVersion:"scanner-config/current",parameters:{}}),provenance={canonical_domain:true,strategy_version:definition.version,certification:"PRODUCTION"};if(result.decision==="NO_TRADE")return {status:"rejected",direction:"none",entry_low:0,entry_high:0,stop_loss:0,tp1:0,tp2:0,risk_reward:0,confidence_score:0,grade:"reject",reason:result.reasonCodes[0]??"no_trade",rejection_reason:result.reasonCodes[0]??"no_trade",score_breakdown:provenance};const c=result.candidate,risk=Math.abs(c.entry-c.stop);return {status:"candidate",direction:c.side.toLowerCase(),entry_low:c.entry,entry_high:c.entry,stop_loss:c.stop,tp1:c.targets[0],tp2:c.targets[1],risk_reward:risk?Math.abs(c.targets[1]-c.entry)/risk:0,confidence_score:c.score,grade:c.score>=85?"A+":"A",reason:c.evidence.reasonCodes[0]??"canonical_candidate",rejection_reason:"",score_breakdown:{...c.evidence.observations,...provenance}};}
+export const FOREX_PRODUCTION_EVALUATORS={"forex.london-breakout":(c:StrategyEvaluationContext)=>compatibility("forex.london-breakout",c),"forex.new-york-continuation":(c:StrategyEvaluationContext)=>compatibility("forex.new-york-continuation",c),"forex.trend-pullback":(c:StrategyEvaluationContext)=>compatibility("forex.trend-pullback",c),"gold.volatility-breakout":(c:StrategyEvaluationContext)=>compatibility("gold.volatility-breakout",c)} as const;
+export type ProductionEvaluatorId=keyof typeof FOREX_PRODUCTION_EVALUATORS;
+export function validateProductionEvaluatorRegistry(contractIds:readonly string[],entries:readonly (readonly [string,unknown])[]){const contracts=new Set(contractIds),mapped=new Set<string>();if(contracts.size!==contractIds.length)throw new Error("DUPLICATE_STRATEGY_CONTRACT_ID");for(const [id,evaluator] of entries){if(mapped.has(id))throw new Error(`DUPLICATE_STRATEGY_EVALUATOR:${id}`);if(!contracts.has(id))throw new Error(`STRATEGY_EVALUATOR_UNCONTRACTED:${id}`);if(typeof evaluator!=="function")throw new Error(`STRATEGY_EVALUATOR_INVALID:${id}`);mapped.add(id);}for(const id of contracts)if(!mapped.has(id))throw new Error(`STRATEGY_EVALUATOR_NOT_REGISTERED:${id}`);}

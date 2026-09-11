@@ -100,8 +100,8 @@ export default function PackageRequest() {
 
   const selectedPackage = useMemo(() => packages.find(pkg => pkg.slug === selectedSlug) ?? PUBLIC_PACKAGES[1], [packages, selectedSlug]);
   const selectedIsBot = isBotPackage(selectedPackage.slug);
-  const propBot = selectedPackage.slug === 'forex_mt5_prop_bot';
-  const cryptoBot = selectedPackage.slug === 'crypto_personal_bot';
+  const propBot = selectedPackage.slug.includes('prop_bot');
+  const cryptoBot = selectedPackage.slug.startsWith('crypto_') && selectedIsBot;
   const forexBot = selectedPackage.slug === 'forex_mt5_personal_bot' || selectedPackage.slug === 'forex_mt5_prop_bot';
   const selectedPrice = priceLabel(selectedPackage);
   const riskOptions = riskOptionsForPackage(selectedPackage.slug);
@@ -124,30 +124,10 @@ export default function PackageRequest() {
     }
 
     setLoading(true); setMsg(''); setErr('');
-    const status = paymentReference.trim() ? 'pending_admin_approval' : 'pending_payment';
-    const requestPayload = {
-      user_id: user.id,
-      product_slug: selectedPackage.slug,
-      full_name: profile?.full_name || '',
-      email: profile?.email || user.email || '',
-      phone: phone.trim(),
-      telegram_username: telegram.replace(/^@/, '').trim(),
-      telegram_chat_id: chatId.trim(),
-      payment_method: paymentMethod,
-      payment_reference: paymentReference.trim(),
-      risk_preset: selectedIsBot ? riskPreset : '',
-      contact_preference: contactPreference,
-      notes: notes.trim(),
-      status,
-      updated_at: new Date().toISOString(),
-    };
-
-    const requestWrite = latestRequest && ['pending', 'pending_payment', 'pending_admin_approval', 'rejected'].includes(latestRequest.status)
-      ? await supabase.from('access_requests').update(requestPayload).eq('id', latestRequest.id).select('*').single()
-      : await supabase.from('access_requests').insert(requestPayload).select('*').single();
-
-    if (requestWrite.error) { setLoading(false); setErr(requestWrite.error.message); return; }
-    const request = requestWrite.data as AccessRequest;
+    const intent = selectedIsBot ? (cryptoBot ? "CRYPTO" : "FOREX") : "SIGNALS";
+    const { data: onboarding, error: onboardingError } = await supabase.functions.invoke("customer-provisioning", { body: { action:"submit", intent, account_type:selectedIsBot ? (propBot ? "PROP" : "PERSONAL") : undefined, package_slug:selectedPackage.slug, payment_reference:paymentReference.trim(), payment_phone:phone.trim(), provider:cryptoBot ? (exchangeName || platform) : forexBot ? "MT5" : null, risk_style:selectedIsBot ? riskPreset : "Conservative", symbols:splitSymbols(symbols), notes:notes.trim() } });
+    if (onboardingError || !onboarding?.request?.id) { setLoading(false); setErr(onboardingError?.message ?? "Onboarding submission failed"); return; }
+    const request = { id:onboarding.request.id, user_id:user.id, product_slug:selectedPackage.slug, full_name:profile?.full_name||"",email:profile?.email||user.email||"",phone:phone.trim(),telegram_username:telegram.replace(/^@/, '').trim(),telegram_chat_id:chatId.trim(),payment_method:"mpesa",payment_reference:paymentReference.trim(),risk_preset:selectedIsBot?riskPreset:"",contact_preference:contactPreference,notes:notes.trim(),status:"pending_admin_approval",admin_note:"",created_at:onboarding.request.created_at,updated_at:onboarding.request.created_at } as AccessRequest;
 
     if (selectedIsBot) {
       const botType = botTypeFromPackage(selectedPackage.slug);

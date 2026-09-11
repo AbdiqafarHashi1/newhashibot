@@ -410,10 +410,10 @@ export function PropClearanceLab({
     return feedItems.reduce((acc, f) => acc + (f.candles?.length || 0), 0);
   }, [feedItems]);
 
-  // Live Real Market Bars (Yahoo Finance & Binance) vs Preset Synthetic Bars
+  // Only canonical-service or explicit CSV inputs qualify as non-simulated research data.
   const liveRealBarsCount = useMemo(() => {
     return feedItems
-      .filter((f) => f.source === 'yahoo_finance' || f.source === 'binance' || f.source === 'live_feed')
+      .filter((f) => f.source.includes(':CANONICAL_CACHE') || f.source === 'broker_csv')
       .reduce((acc, f) => acc + (f.candles?.length || 0), 0);
   }, [feedItems]);
 

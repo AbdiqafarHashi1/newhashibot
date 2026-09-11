@@ -9,6 +9,8 @@ import { assertCertifiedExecutionInput } from "../_shared/certified-runtime.ts";
 import type { ExecutionPlan } from "../_shared/professional-execution-planning.ts";
 import { adoptExecutionPlan, type AdoptionTruth, type AtomicExecutionClaimStore, type AppendOnlyExecutionEventStore, type ClaimRequest, type AtomicClaimResult, type ExecutionAdoptionPolicy, type ExecutionEvent } from "../_shared/professional-execution-adoption.ts";
 import { BinanceTestnetAdoptionAdapter, BybitDemoAdoptionAdapter, Mt5PersonalDemoAdoptionAdapter, Mt5PropDemoAdoptionAdapter, type ExactProviderTransport } from "../_shared/professional-execution-adapters.ts";
+import { decideAccountExecution, type AccountRuntimeControl } from "../_shared/account-execution-controller.ts";
+import type { EligibilityDecision } from "../_shared/trading-domain/production-eligibility-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -3079,7 +3081,7 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
   };
 }
 
-async function adoptCertifiedExecutionPlan(db: SupabaseClient, raw: unknown, expectedPolicyVersion: string): Promise<Json> {
+async function adoptCertifiedExecutionPlan(db: SupabaseClient, raw: unknown, expectedPolicyVersion: string, eligibility: EligibilityDecision | null): Promise<Json> {
   if (!raw || typeof raw !== "object") return { success:false, blocker:"execution_plan_required" };
   const plan = deepFreeze(structuredClone(raw as ExecutionPlan));
   if (plan.schema_version !== "execution-plan/v1" || !plan.routing) return { success:false, blocker:"execution_plan_v1_required" };
@@ -3095,6 +3097,26 @@ async function adoptCertifiedExecutionPlan(db: SupabaseClient, raw: unknown, exp
   if (truthError || !truthRow) return { success:false, blocker:"adoption_truth_unavailable" };
   const truth = truthRow as AdoptionTruth;
   if ((plan.provider === "BINANCE" || plan.provider === "BYBIT") && !String((truth as unknown as Json).execution_scope_key ?? "")) return { success:false, blocker:"monitor_execution_scope_missing" };
+  const product = plan.provider === "MT5_PROP" ? "FOREX_PROP" : plan.provider === "MT5_PERSONAL" ? "FOREX_PERSONAL" : String((truth as unknown as Json).execution_product ?? "CRYPTO_PERSONAL") as "CRYPTO_PERSONAL"|"CRYPTO_PROP";
+  const customerId = String((truth as unknown as Json).customer_id ?? plan.risk_decision.account.customer_id);
+  const { data: provisioning, error: provisioningError } = await db.from("customer_onboarding_provisioning").select("customer_id,product,qualified_set_id,qualified_set_version,runtime_control,state").eq("customer_id",customerId).eq("execution_account_id",plan.routing.account_id).eq("product",product).maybeSingle();
+  if (provisioningError || !provisioning || provisioning.state !== "ACTIVE") return { success:false, blocker:"customer_provisioning_not_active" };
+  if (!eligibility || eligibility.qualifiedSetId !== provisioning.qualified_set_id || eligibility.qualifiedSetVersion !== provisioning.qualified_set_version) return { success:false, blocker:"customer_qualified_set_binding_mismatch" };
+  const propLookup = product.endsWith("PROP") ? await db.from("prop_account_configs").select("current_state,manual_control,configuration").or(`mt5_account_id.eq.${plan.routing.account_id},configuration->>providerAccountId.eq.${plan.routing.account_id}`).maybeSingle() : { data:null, error:null };
+  const propAccount = propLookup.data, propError = propLookup.error;
+  if (product.endsWith("PROP") && (propError || !propAccount)) return { success:false, blocker:"prop_account_gate_unavailable" };
+  const control = String(propAccount?.manual_control ?? provisioning.runtime_control) as AccountRuntimeControl;
+  const openPositions = Array.isArray((truth as unknown as Json).open_positions) ? ((truth as unknown as Json).open_positions as unknown[]).length : Number((truth as unknown as Json).open_positions ?? 0);
+  const pendingOrders = Number((truth as unknown as Json).pending_orders ?? 0);
+  const { count: duplicates } = await db.from("certified_runtime_events").select("event_id",{count:"exact",head:true}).eq("execution_plan_id",plan.execution_plan_id).eq("account_id",plan.routing.account_id).in("normalized_status",["acknowledged","filled","protected"]);
+  const { count: activeSymbol } = await db.from("execution_orders").select("id",{count:"exact",head:true}).eq("account_id",plan.routing.account_id).eq("symbol",plan.routing.provider_symbol).in("status",ACTIVE_STATUSES);
+  const propState = String(propAccount?.current_state ?? "NORMAL_TRADING"), propBlocked = new Set(["PAYOUT_READY","NO_NEW_ENTRIES","MANAGE_EXISTING_POSITIONS_ONLY","MANUAL_PAUSE","MANAGE_ONLY","STOP_AFTER_FLAT","ACCOUNT_BREACHED","FIRM_RULE_LOCK","DAILY_SAFETY_LOCK"]), softGuard = propState === "SOFT_PROFIT_GUARD";
+  const softMultiplier = softGuard ? Number((propAccount?.configuration as Json|null)?.softGuardRiskMultiplier ?? .5) : 1;
+  const plannedRisk = Number(plan.risk_decision.authorized_envelope?.maximum_authorized_risk_amount ?? Number.NaN), baselineRisk = Number((propAccount?.configuration as Json|null)?.baselineRiskAmount ?? plan.risk_decision.authorized_envelope?.requested_risk_amount ?? Number.NaN);
+  const accountRuleApproved = !softGuard || (Number.isFinite(plannedRisk) && Number.isFinite(baselineRisk) && plannedRisk <= baselineRisk * softMultiplier + 1e-9);
+  const gate = decideAccountExecution({ attempt:"NEW_ENTRY", signalId:plan.evaluation_id, accountId:plan.routing.account_id, customerId, product, assignedProvider:plan.provider, requestedProvider:plan.provider, eligibility:eligibility ?? { version:"production-eligibility-router/v1",decision:"INELIGIBLE",reasonCodes:["ELIGIBILITY_DECISION_MISSING"],product,market:product.startsWith("FOREX")?"FOREX":"CRYPTO",qualifiedSetId:null,qualifiedSetVersion:null,configId:null,configVersion:null,pinnedStrategyParameters:null,signalPolicyVersion:null }, runtimeControl:control, openPositions, pendingOrders, duplicateSignalForAccount:(duplicates??0)>0, activeSymbolConflict:(activeSymbol??0)>0, canonicalRiskApproved:plan.risk_decision.decision!=="REJECT"&&Boolean(plan.risk_decision.authorized_envelope), canonicalCapitalApproved:plan.capital_allocation_plan.status==="ALLOCATED", accountRuleApproved, propDecision:product.endsWith("PROP")?{decision:propBlocked.has(propState)?"BLOCK":softGuard?"REDUCE":"ALLOW",reasonCodes:propBlocked.has(propState)?[propState]:softGuard?["SOFT_PROFIT_GUARD"]:[],riskMultiplier:softMultiplier,managementEnabled:true}:null });
+  await db.from("certified_runtime_events").insert({ event_id:`account-gate:${plan.execution_plan_id}:${plan.routing.account_id}`,execution_plan_id:plan.execution_plan_id,account_id:plan.routing.account_id,event_type:"ACCOUNT_GATE_DECIDED",normalized_status:gate.decision.toLowerCase(),occurred_at:new Date().toISOString(),payload:gate });
+  if (gate.decision === "BLOCK") return { success:false, blocker:gate.reasonCodes[0] ?? "account_execution_blocked", gate };
   const transport = exactTransport(db, plan);
   const port = plan.provider === "BINANCE" ? new BinanceTestnetAdoptionAdapter(plan,transport) : plan.provider === "BYBIT" ? new BybitDemoAdoptionAdapter(plan,transport) : plan.provider === "MT5_PERSONAL" ? new Mt5PersonalDemoAdoptionAdapter(plan,transport) : new Mt5PropDemoAdoptionAdapter(plan,transport);
   const runAdoption = () => adoptExecutionPlan({ plan, policy, truth, now:new Date().toISOString(), executor_identity:"active-root-executor", attempt_number:1, lease_ms:30_000, claim_store:new SupabaseCertifiedClaims(db,plan), event_store:new SupabaseCertifiedEvents(db), port });
@@ -3116,10 +3138,10 @@ Deno.serve(async (req: Request) => {
   try {
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     await requireAdminOrInternal(req, supabase);
-    const body = await req.json().catch(() => ({})) as { action?: Action; signal_id?: string; symbol?: string; execution_id?: string; manual?: boolean; settings?: Json; provider?: string; source?: string; execution_plan?: unknown; expected_policy_version?: string };
+    const body = await req.json().catch(() => ({})) as { action?: Action; signal_id?: string; symbol?: string; execution_id?: string; manual?: boolean; settings?: Json; provider?: string; source?: string; execution_plan?: unknown; expected_policy_version?: string; eligibility_decision?: EligibilityDecision };
     const action = body.action ?? "status";
     let payload: Json;
-    if (action === "adopt_execution_plan") payload = await adoptCertifiedExecutionPlan(supabase, body.execution_plan, String(body.expected_policy_version ?? ""));
+    if (action === "adopt_execution_plan") payload = await adoptCertifiedExecutionPlan(supabase, body.execution_plan, String(body.expected_policy_version ?? ""), body.eligibility_decision ?? null);
     else if (action === "status") payload = await statusPayload(supabase);
     else if (action === "sync_binance_tradable_symbols") payload = await syncBinanceTradableSymbols(supabase);
     else if (action === "sync_bybit_tradable_symbols") payload = await syncBybitTradableSymbols(supabase);

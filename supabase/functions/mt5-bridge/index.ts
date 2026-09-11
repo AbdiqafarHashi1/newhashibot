@@ -297,7 +297,7 @@ Deno.serve(async (req: Request) => {
       if (commands && commands.length > 0) {
         const certified: typeof commands = [];
         for (const command of commands) {
-          if (["TEST_CONNECTION","SYNC_ACCOUNT","RECOVER_PROTECTION","MODIFY_PROTECTION","PARTIAL_CLOSE","MOVE_TO_BREAKEVEN","CLOSE_POSITION","CANCEL_ORDER"].includes(command.operation)) { certified.push(command); continue; }
+          if (["TEST_CONNECTION","SYNC_ACCOUNT","FETCH_HISTORY","RECOVER_PROTECTION","MODIFY_PROTECTION","PARTIAL_CLOSE","MOVE_TO_BREAKEVEN","CLOSE_POSITION","CANCEL_ORDER"].includes(command.operation)) { certified.push(command); continue; }
           const planId = String(command.payload?.execution_plan_id ?? ""), identity = String(command.payload?.deterministic_identity ?? "");
           if (command.operation !== "OPEN_POSITION" || command.payload?.certified !== true || !planId || identity !== command.idempotency_key) continue;
           const { data: claim } = await supabase.from("certified_runtime_claims").select("id").eq("execution_plan_id",planId).eq("account_id",String(command.account_id)).eq("state","completed").maybeSingle();

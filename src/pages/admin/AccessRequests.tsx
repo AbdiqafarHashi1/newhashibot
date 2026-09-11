@@ -11,6 +11,7 @@ import { botSetupStatusLabel } from '../../lib/botSetup';
 interface RequestRow extends AccessRequest {
   profile?: { email: string; full_name: string };
   bot_setup?: CustomerBotSetup | null;
+  provisioning?: { id: string; product: string; provider: string | null; state: string; execution_account_id: string | null; qualified_set_id: string | null; qualified_set_version: string | null; preferences: Record<string, unknown> } | null;
 }
 
 export default function AccessRequests() {
@@ -23,17 +24,22 @@ export default function AccessRequests() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [expiryInputs, setExpiryInputs] = useState<Record<string, string>>({});
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
+  const [accountInputs, setAccountInputs] = useState<Record<string, string>>({});
+  const [setIdInputs, setSetIdInputs] = useState<Record<string, string>>({});
+  const [setVersionInputs, setSetVersionInputs] = useState<Record<string, string>>({});
 
   async function load() {
-    const [{ data }, pkgRes, setupRes] = await Promise.all([supabase
+    const [{ data }, pkgRes, setupRes, provisioningRes] = await Promise.all([supabase
       .from('access_requests')
       .select('*, profile:profiles(email, full_name)')
       .order('created_at', { ascending: false }),
       supabase.from('packages').select('*').order('sort_order'),
       supabase.from('customer_bot_setups').select('*'),
+      supabase.from('customer_onboarding_provisioning').select('id,access_request_id,product,provider,state,execution_account_id,qualified_set_id,qualified_set_version,preferences'),
     ]);
     const setupsByRequest = new Map((setupRes.data ?? []).map(setup => [(setup as CustomerBotSetup).access_request_id, setup as CustomerBotSetup]));
-    setRequests(((data ?? []) as RequestRow[]).map(req => ({ ...req, bot_setup: setupsByRequest.get(req.id) ?? null })));
+    const provisioningByRequest = new Map((provisioningRes.data ?? []).map(row => [row.access_request_id, row]));
+    setRequests(((data ?? []) as RequestRow[]).map(req => ({ ...req, bot_setup: setupsByRequest.get(req.id) ?? null, provisioning: provisioningByRequest.get(req.id) ?? null })));
     setPackages((pkgRes.data ?? []) as Package[]);
     setLoading(false);
   }
@@ -47,6 +53,11 @@ export default function AccessRequests() {
 
   async function updateStatus(req: RequestRow, status: AccessRequest['status'], grantAccess = false) {
     const note = noteInputs[req.id] ?? '';
+    if (req.provisioning) {
+      const decision = grantAccess ? 'APPROVE' : status === 'rejected' ? 'REJECT' : 'REQUEST_CHANGES';
+      const { error: reviewError } = await supabase.functions.invoke('customer-provisioning', { body: { action: 'admin_review', provisioning_id: req.provisioning.id, decision, notes: note, execution_account_id: accountInputs[req.id] || undefined, qualified_set_id: setIdInputs[req.id] || undefined, qualified_set_version: setVersionInputs[req.id] || undefined } });
+      if (reviewError) { flash(`Admin review failed: ${reviewError.message}`, 'err'); return; }
+    }
 
     if (grantAccess) {
       const expiry = expiryInputs[req.id];
@@ -80,6 +91,7 @@ export default function AccessRequests() {
         : await supabase.from('customer_subscriptions').insert(subscriptionPayload).select('id').single();
 
       if (subscriptionWrite.error) { flash(`Package approval blocked because subscription grant failed: ${subscriptionWrite.error.message}`, 'err'); return; }
+      if (req.provisioning) await supabase.functions.invoke('customer-provisioning', { body: { action:'admin_review', provisioning_id:req.provisioning.id, decision:'APPROVE', notes:note, subscription_id:subscriptionWrite.data?.id ?? existing.data?.id, execution_account_id:accountInputs[req.id] || undefined, qualified_set_id:setIdInputs[req.id] || undefined, qualified_set_version:setVersionInputs[req.id] || undefined } });
 
       if (isBotPackage(req.product_slug)) {
         await supabase.from('customer_bot_setups').update({
@@ -146,6 +158,13 @@ export default function AccessRequests() {
     }
 
     await load();
+  }
+
+  async function activateProvisioning(req: RequestRow) {
+    if (!req.provisioning) return;
+    const { data, error } = await supabase.functions.invoke('customer-provisioning', { body: { action:'activate', provisioning_id:req.provisioning.id } });
+    if (error || !data?.activated) { flash(`Activation blocked: ${(data?.blockers ?? [error?.message]).filter(Boolean).join(', ')}`, 'err'); return; }
+    flash('Customer account activated after all provisioning gates passed.'); await load();
   }
 
   const pending = requests.filter(r => ['pending', 'pending_payment', 'pending_admin_approval'].includes(r.status));
@@ -261,6 +280,11 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
               { label: 'Payment reference', value: req.payment_reference || '—' },
               { label: 'Risk preset', value: req.risk_preset || '—' },
               { label: 'Preferred contact', value: req.contact_preference || '—' },
+              { label: 'Execution product', value: req.provisioning?.product || 'SIGNAL_ONLY / legacy request' },
+              { label: 'Requested provider', value: req.provisioning?.provider || 'None' },
+              { label: 'Provisioning state', value: req.provisioning?.state || 'Legacy review' },
+              { label: 'Execution account', value: req.provisioning?.execution_account_id || 'Setup required' },
+              { label: 'Qualified set', value: req.provisioning?.qualified_set_id ? `${req.provisioning.qualified_set_id} @ ${req.provisioning.qualified_set_version}` : 'Assignment required' },
             ].map(({ label, value }) => value ? (
               <div key={label} className="bg-zinc-800/50 rounded-lg px-2.5 py-1.5">
                 <div className="text-zinc-500 mb-0.5 text-[11px]">{label}</div>
@@ -274,6 +298,11 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
               <div className="text-zinc-200 leading-relaxed">{req.notes}</div>
             </div>
           )}
+          {req.provisioning && req.provisioning.product !== 'SIGNAL_ONLY' && <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input className="input-select" placeholder="Execution account ID" value={accountInputs[req.id] ?? ''} onChange={e=>setAccountInputs(v=>({...v,[req.id]:e.target.value}))}/>
+            <input className="input-select" placeholder={`${req.provisioning.product}_QUALIFIED_SET`} value={setIdInputs[req.id] ?? ''} onChange={e=>setSetIdInputs(v=>({...v,[req.id]:e.target.value}))}/>
+            <input className="input-select" placeholder="Qualified set version" value={setVersionInputs[req.id] ?? ''} onChange={e=>setSetVersionInputs(v=>({...v,[req.id]:e.target.value}))}/>
+          </div>}
 
           {req.bot_setup && (
             <div className="bg-sky-500/10 border border-sky-500/20 rounded-xl px-3.5 py-3 text-xs">
@@ -340,6 +369,7 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
               </div>
             </div>
           )}
+          {req.provisioning?.state === 'APPROVED' && <button onClick={()=>activateProvisioning(req)} className="w-full text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/30 px-3 py-2.5 rounded-xl">Validate gates & Activate</button>}
 
           {req.admin_note && (
             <div className="text-xs text-zinc-500 italic">Admin note: {req.admin_note}</div>

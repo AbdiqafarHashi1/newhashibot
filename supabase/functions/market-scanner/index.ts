@@ -20,6 +20,7 @@ import type { DeepReadonly, StrategyPlan } from "../_shared/strategy-plan.ts";
 import { runCertifiedRuntime } from "../_shared/certified-runtime.ts";
 import { loadCertifiedExecutionAccounts, type CertifiedAccountTruthRow } from "../_shared/certified-account-loader.ts";
 import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
+import { pinnedClaimFromQualifiedSet, routeProductionEligibility, type EligibilityClaim, type EligibilityProduct, type RuntimeQualifiedSet } from "../_shared/trading-domain/production-eligibility-router.ts";
 import { FOREX_RUNTIME_INSTRUMENTS, FOREX_RUNTIME_SYMBOLS, FOREX_STRATEGY_CONTRACTS, MT5_PROVIDER_MARKET_DATA_TIMEFRAMES, forexScannerFetchPlan, forexStrategyEligibility, forexStrategyTimeframes, isForexRuntimeSymbol, roundRuntimePrice, runtimeInstrument, runtimePipDistance } from "../_shared/forex-runtime-contracts.ts";
 import { FOREX_PRODUCTION_EVALUATORS } from "../_shared/forex-production-strategies.ts";
 import {
@@ -2779,6 +2780,13 @@ async function runScanPipeline(
   const modes = (modeRows ?? []) as ModeConfig[];
   const riskProfiles = (riskRows ?? []) as RiskProfile[];
   const activeModes = modes.filter((m) => m.enabled || m.mode_slug === "signal_mode");
+  const { data: qualificationRows } = await supabase.from("backtest_runs").select("result_summary,created_at").eq("mode_slug", "qualification_campaign").eq("status", "completed").order("created_at", { ascending: false }).limit(100);
+  const qualifiedSets = new Map<string, RuntimeQualifiedSet>();
+  for (const row of qualificationRows ?? []) {
+    const set = (row.result_summary as { qualifiedSet?: RuntimeQualifiedSet } | null)?.qualifiedSet;
+    if (set?.id && !qualifiedSets.has(set.id)) qualifiedSets.set(set.id, set);
+  }
+  const scannerSignalPolicy = Object.freeze({ version: "global-scanner-signal-policy/v1", enabled: true, markets: Object.freeze(["FOREX", "CRYPTO"] as const), strategyIds: Object.freeze(Object.values(PROFESSIONAL_STRATEGY_IDS)) });
 
   const getRiskProfile = (slug: string): RiskProfile => {
     return riskProfiles.find((r) => r.mode_slug === slug) ?? {
@@ -3524,6 +3532,18 @@ async function runScanPipeline(
             const modeConfig = modes.find((m) => m.mode_slug === modeSlug);
             const overrides = (modeConfig?.strategy_overrides as Record<string, unknown>) ?? {};
             const execPolicy = (modeConfig?.execution_policy as Record<string, unknown>) ?? {};
+            const eligibilityProduct: EligibilityProduct = modeSlug === "signal_mode" ? "SIGNAL_ONLY" : marketType === "forex" ? (modeSlug === "prop_mode" ? "FOREX_PROP" : "FOREX_PERSONAL") : (modeSlug === "prop_mode" ? "CRYPTO_PROP" : "CRYPTO_PERSONAL");
+            const eligibilityMarket = marketType === "forex" ? "FOREX" as const : "CRYPTO" as const;
+            const strategyId = ev.plan.identity.strategy_id, strategyVersion = ev.plan.identity.strategy_version;
+            const set = eligibilityProduct === "SIGNAL_ONLY" ? null : qualifiedSets.get(`${eligibilityProduct}_QUALIFIED_SET`) ?? null;
+            const claim: EligibilityClaim = eligibilityProduct === "SIGNAL_ONLY"
+              ? { product: eligibilityProduct, market: eligibilityMarket, strategyId, strategyVersion, configId: "", configVersion: "", qualifiedSetVersion: "", strategyParameters: {}, symbol: normalizedSymbol, timeframe: tf, requiredQualification: "FORWARD_VALIDATION_CANDIDATE" }
+              : pinnedClaimFromQualifiedSet({ product: eligibilityProduct, market: eligibilityMarket, set: set ?? { version: "qualified-strategy-set/v1", id: `${eligibilityProduct}_QUALIFIED_SET`, setVersion: "missing", product: eligibilityProduct.endsWith("PROP") ? "PROP" : "PERSONAL", researchPolicyVersion: "missing", entries: [] }, strategyId, strategyVersion, symbol: normalizedSymbol, timeframe: tf, requiredQualification: "FORWARD_VALIDATION_CANDIDATE" });
+            const eligibility = routeProductionEligibility({ claim, qualifiedSet: set, signalPolicy: scannerSignalPolicy });
+            if (eligibility.decision === "INELIGIBLE") {
+              await supabase.from("certified_runtime_events").insert({ event_id: `eligibility:${runId}:${cId}:${eligibilityProduct}`, execution_plan_id: `eligibility:${cId}`, account_id: eligibilityProduct, event_type: "ACCOUNT_REJECTED", normalized_status: "rejected", occurred_at: strategyContext.evaluated_at, payload: eligibility });
+              continue;
+            }
 
             const modeMinScore = (overrides.min_score as number) ?? rp.score_threshold_override ?? 75;
             const modeMinRR = rp.min_rr_override ?? 1.2;
@@ -3597,7 +3617,7 @@ async function runScanPipeline(
                 invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
                 status: "cancelled", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
                 created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
-                arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata, execution_tradability: tradability },
+                arbitrator_decision: { ...arbitratorDecision, eligibility, expiry_metadata: expiryMetadata, execution_tradability: tradability },
                 risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
                 ...riskLeverageRecommendation,
               });
@@ -3621,7 +3641,7 @@ async function runScanPipeline(
               invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
               status: "waiting", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
               created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
-              arbitrator_decision: { ...arbitratorDecision, expiry_metadata: expiryMetadata, execution_tradability: tradability },
+              arbitrator_decision: { ...arbitratorDecision, eligibility, expiry_metadata: expiryMetadata, execution_tradability: tradability },
               risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
               ...riskLeverageRecommendation,
             }).select("*").single();
@@ -3691,14 +3711,21 @@ async function runScanPipeline(
             for (const rejection of loaded.rejected) await supabase.from("certified_runtime_events").insert({ event_id:`account-rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}:${rejection.reason}`, execution_plan_id:`rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}`, account_id:rejection.account_id ?? "unknown", event_type:"ACCOUNT_REJECTED", normalized_status:"rejected", occurred_at:strategyContext.evaluated_at, payload:{...rejection,evaluation_id:selectedPlan.provenance.evaluation_id} });
             let executionResult = { called: false, success: false, reason: "no_eligible_certified_account" };
             if (loaded.accounts.length) {
-              const certified = runCertifiedRuntime({ candidates:arbitrationInput, strategy_plans:Object.fromEntries([...byCandidateId].map(([id,entry])=>[id,entry.plan])), arbitration:{now:new Date(strategyContext.evaluated_at)}, arbitration_result:arbitrationDecision, accounts:loaded.accounts });
+              const accountEligibility = new Map<string, ReturnType<typeof routeProductionEligibility>>();
+              const routedAccounts = loaded.accounts.filter((account) => {
+                const product = account.execution_product, accountSet = qualifiedSets.get(`${product}_QUALIFIED_SET`) ?? null;
+                const accountClaim = pinnedClaimFromQualifiedSet({ product, market: product.startsWith("FOREX") ? "FOREX" : "CRYPTO", set: accountSet ?? { version:"qualified-strategy-set/v1",id:`${product}_QUALIFIED_SET`,setVersion:"missing",product:product.endsWith("PROP")?"PROP":"PERSONAL",researchPolicyVersion:"missing",entries:[] }, strategyId:selectedPlan.identity.strategy_id, strategyVersion:selectedPlan.identity.strategy_version, symbol:selectedPlan.market_context.symbol, timeframe:selectedPlan.market_context.timeframe, requiredQualification:"FORWARD_VALIDATION_CANDIDATE" });
+                const decision = routeProductionEligibility({ claim:accountClaim, qualifiedSet:accountSet }); accountEligibility.set(account.account_id,decision);
+                return decision.decision === "ELIGIBLE";
+              });
+              const certified = runCertifiedRuntime({ candidates:arbitrationInput, strategy_plans:Object.fromEntries([...byCandidateId].map(([id,entry])=>[id,entry.plan])), arbitration:{now:new Date(strategyContext.evaluated_at)}, arbitration_result:arbitrationDecision, accounts:routedAccounts });
               for (const account of certified.accounts) {
                 const { error:artifactError } = await supabase.from("certified_runtime_artifacts").insert({ evaluation_id:selectedPlan.provenance.evaluation_id, account_id:account.account_id, strategy_plan_id:selectedPlan.provenance.evaluation_id, risk_decision:account.risk_decision, capital_allocation_plan:account.capital_allocation_plan, execution_plan:account.execution_plan });
                 if (artifactError) throw new Error(`certified_runtime_artifact_persistence_failed:${artifactError.message}`);
                 if (account.execution_plan?.status === "PLANNED") {
                   incrementStrategyStat(ev.name, "execution_started");
                   const adoptionVersion = loaded.accounts.find((item) => item.account_id === account.account_id)?.adoption_policy_version;
-                  const response = await fetch(`${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`, { method:"POST", headers:{Authorization:`Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,"Content-Type":"application/json"}, body:JSON.stringify({action:"adopt_execution_plan",execution_plan:account.execution_plan,expected_policy_version:adoptionVersion}), signal:AbortSignal.timeout(15000) });
+                  const response = await fetch(`${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`, { method:"POST", headers:{Authorization:`Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,"Content-Type":"application/json"}, body:JSON.stringify({action:"adopt_execution_plan",execution_plan:account.execution_plan,expected_policy_version:adoptionVersion,eligibility_decision:accountEligibility.get(account.account_id)}), signal:AbortSignal.timeout(15000) });
                   if (!response.ok) throw new Error(`certified_execution_adoption_failed:${response.status}`);
                   executionResult = { called: true, success: true, reason: "certified_execution_plan_adopted" };
                   incrementStrategyStat(ev.name, "execution_completed");

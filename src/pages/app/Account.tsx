@@ -26,6 +26,7 @@ export default function Account() {
 
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
   const [botSetup, setBotSetup] = useState<CustomerBotSetup | null>(null);
+  const [provisioning, setProvisioning] = useState<{id:string;product:string;provider:string|null;state:string;runtime_control:string;preferences:Record<string,unknown>} | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,13 +35,21 @@ export default function Account() {
       supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('customer_bot_setups').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
-    ]).then(([subRes, reqRes, setupRes]) => {
+      supabase.functions.invoke('customer-provisioning', { body: { action: 'my_status' } }),
+    ]).then(([subRes, reqRes, setupRes, onboardingRes]) => {
       setSub(subRes.data ?? null);
       setLatestRequest(reqRes.data as AccessRequest | null);
       setBotSetup(setupRes.data as CustomerBotSetup | null);
+      setProvisioning(onboardingRes.data?.onboarding?.[0] ?? null);
       setLoading(false);
     });
   }, [user]);
+
+  async function setAccountControl(control: 'START'|'PAUSE_NEW_ENTRIES'|'RESUME'|'STOP_AFTER_FLAT') {
+    if (!provisioning) return;
+    const { error } = await supabase.functions.invoke('customer-provisioning', { body: { action:'set_control', provisioning_id:provisioning.id, control } });
+    if (!error) setProvisioning({...provisioning,runtime_control:control});
+  }
 
   const hasAccess = sub?.access_status === 'active';
   const isPaid = sub?.payment_status === 'paid';
@@ -61,6 +70,18 @@ export default function Account() {
       </div>
 
       <div className="max-w-2xl space-y-5">
+
+        {provisioning && <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <div className="font-semibold mb-3">Trading status</div>
+          <div className="grid grid-cols-2 gap-2 text-xs mb-4">
+            <div>Product: <span className="text-zinc-200">{provisioning.product.replaceAll('_',' ')}</span></div>
+            <div>Status: <span className="text-zinc-200">{provisioning.state.replaceAll('_',' ')}</span></div>
+            <div>Provider: <span className="text-zinc-200">{provisioning.provider ?? 'Signals only'}</span></div>
+            <div>Risk style: <span className="text-zinc-200">{String(provisioning.preferences?.riskStyle ?? 'Conservative')}</span></div>
+          </div>
+          {provisioning.product !== 'SIGNAL_ONLY' && <div className="flex flex-wrap gap-2">{(['START','PAUSE_NEW_ENTRIES','RESUME','STOP_AFTER_FLAT'] as const).map(control=><button key={control} onClick={()=>setAccountControl(control)} disabled={provisioning.state!=='ACTIVE'} className="px-3 py-2 rounded bg-zinc-800 disabled:opacity-40 text-xs">{control.replaceAll('_',' ')}</button>)}</div>}
+          <p className="text-xs text-zinc-500 mt-3">Pausing new entries does not stop protection or management of existing positions.</p>
+        </div>}
 
         {/* Profile card */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">

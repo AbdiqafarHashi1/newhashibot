@@ -161,6 +161,32 @@ Deno.serve(async req => {
     if (body.action === 'set_execution') { const enable = Boolean(body.enabled); const { error } = await db.from('mt5_accounts').update({ execution_enabled: enable, connection_status: enable ? 'connected' : 'disabled', provider_health: enable ? 'healthy' : 'unknown', operational: enable, disabled_at: enable ? null : new Date().toISOString() }).eq('id', accountId); if (error) databaseFailure('set_execution', error); return reply({ enabled: enable, connection_status: enable ? 'connected' : 'disabled' }); }
     if (body.action === 'set_mode') { if (!['personal', 'prop_challenge', 'demo'].includes(String(body.mode))) throw new ApiError('INVALID_MODE', 'Execution mode is invalid.', 400); const { error } = await db.from('mt5_accounts').update({ execution_mode: body.mode }).eq('id', accountId); if (error) databaseFailure('set_mode', error); return reply({ mode: body.mode }); }
     if (body.action === 'update_policy') { const policy = typeof body.policy === 'object' && body.policy !== null ? body.policy : {}; const { error } = await db.from('mt5_accounts').update({ policy }).eq('id', accountId); if (error) databaseFailure('update_policy', error); return reply({ updated: true, policy }); }
+    if (body.action === 'request_history') {
+      if (!owned.bridge_id) throw new ApiError('BRIDGE_OFFLINE', 'No Desktop Bridge is assigned to this account.', 409);
+      const version=String(body.version??''),symbol=String(body.symbol??'').trim().toUpperCase(),timeframe=String(body.timeframe??''),from=Date.parse(String(body.from??'')),to=Date.parse(String(body.to??''));
+      if(version!=='1.0')throw new ApiError('INVALID_CONTRACT_VERSION','History contract version must be 1.0.',400);
+      if(!/^[A-Z0-9._-]{3,32}$/.test(symbol))throw new ApiError('INVALID_SYMBOL','Symbol is invalid.',400);
+      if(!['1m','5m','15m','30m','1h','4h','1d'].includes(timeframe))throw new ApiError('INVALID_TIMEFRAME','Unsupported MT5 timeframe.',400);
+      if(!Number.isFinite(from)||!Number.isFinite(to)||from>to||to-from>5*366*86_400_000)throw new ApiError('INVALID_HISTORY_RANGE','History range is invalid or exceeds five years.',400);
+      const {data:registry}=await db.from('mt5_bridge_registry').select('status,last_heartbeat_at,lease_expires_at,connection_info').eq('bridge_id',owned.bridge_id).maybeSingle();
+      if(!registry||registry.status!=='online'||Date.parse(registry.lease_expires_at??'')<=Date.now())throw new ApiError('BRIDGE_OFFLINE','Desktop Bridge heartbeat is offline or stale.',409);
+      const requestId=await digest(`${accountId}|${symbol}|${timeframe}|${new Date(from).toISOString()}|${new Date(to).toISOString()}`);
+      const payload={version:'1.0',symbol,source_symbol:body.source_symbol||undefined,timeframe,from:new Date(from).toISOString(),to:new Date(to).toISOString(),request_id:requestId,requested_by:user.id,safe_read_only:true,expires_at:new Date(Date.now()+120_000).toISOString()};
+      const {data,error}=await userDb.rpc('enqueue_mt5_command',{p_account_id:accountId,p_operation:'FETCH_HISTORY',p_payload:payload,p_idempotency_key:`fetch_history:${requestId}`}).single();
+      if(error)databaseFailure('request_history',error);
+      return reply({commandId:data?.command_id,requestId,state:'QUEUED'});
+    }
+    if (body.action === 'history_status') {
+      const {data:account}=await db.from('mt5_accounts').select('id,broker,server,account_type,bridge_id').eq('id',accountId).single();
+      const {data:registry}=account?.bridge_id?await db.from('mt5_bridge_registry').select('status,last_heartbeat_at,lease_expires_at,connection_info').eq('bridge_id',account.bridge_id).maybeSingle():{data:null};
+      const bridgeOnline=Boolean(registry&&registry.status==='online'&&Date.parse(registry.lease_expires_at??'')>Date.now()),info=(registry?.connection_info??{}) as Record<string,unknown>;
+      if(body.statusOnly)return reply({cloudApiReachable:true,bridgeStatus:bridgeOnline?'ONLINE':'OFFLINE',terminalStatus:info.terminal_connected===true?'ONLINE':info.terminal_connected===false?'OFFLINE':'UNKNOWN',authenticated:info.terminal_authenticated===true?'YES':info.terminal_authenticated===false?'NO':'UNKNOWN',accountId,broker:account?.broker,server:account?.server,lastBridgeHeartbeat:registry?.last_heartbeat_at});
+      const commandId=String(body.commandId??'');if(!uuidPattern.test(commandId))throw new ApiError('INVALID_COMMAND_ID','Command ID is invalid.',400);
+      const {data:command}=await db.from('mt5_commands').select('id,account_id,operation,status,result,error_code,error_message,claimed_at,acknowledged_at').eq('id',commandId).eq('account_id',accountId).eq('operation','FETCH_HISTORY').maybeSingle();
+      if(!command)throw new ApiError('COMMAND_NOT_FOUND','History command was not found.',404);
+      const state=command.status==='confirmed'?'COMPLETED':command.status==='rejected'?(command.error_code==='TERMINAL_DISCONNECTED'||command.error_code==='MT5_HISTORY_UNAVAILABLE'?'MT5_OFFLINE':'FAILED'):command.claimed_at?'CLAIMED':bridgeOnline?'QUEUED':'BRIDGE_OFFLINE';
+      return reply({state,result:state==='COMPLETED'?{...command.result,account_id:accountId,environment:account?.account_type}:undefined,errorCode:command.error_code,message:command.error_message,commandId});
+    }
     if (body.action === 'test_connection' || body.action === 'sync_account') {
       if (!owned.bridge_id) throw new ApiError('MT5_BRIDGE_OFFLINE', 'No MT5 bridge is connected.', 409);
       const op = body.action === 'test_connection' ? 'TEST_CONNECTION' : 'SYNC_ACCOUNT';
