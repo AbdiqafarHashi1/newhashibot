@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { 
   LayoutDashboard, Shield, Server, Activity, Terminal, 
@@ -15,6 +15,7 @@ import { MT5DiagnosticsTab } from '../../components/operations/mt5/MT5Diagnostic
 import { MT5EventsTab } from '../../components/operations/mt5/MT5EventsTab';
 import { MT5ReconciliationTab } from '../../components/operations/mt5/MT5ReconciliationTab';
 import { MT5SettingsTab } from '../../components/operations/mt5/MT5SettingsTab';
+import { supabase } from '../../lib/supabase';
 
 export type MT5SubTab = 
   | 'dashboard' 
@@ -37,6 +38,7 @@ export default function MT5OperationsCenter({ defaultTab = 'dashboard' }: Props)
   const tabFromUrl = (searchParams.get('tab') as MT5SubTab) || defaultTab;
   const [activeTab, setActiveTab] = useState<MT5SubTab>(tabFromUrl);
   const [selectedAccountIdForRuntime, setSelectedAccountIdForRuntime] = useState<string | undefined>();
+  const [researchAccountId, setResearchAccountId] = useState<string>('');
 
   useEffect(() => {
     const currentUrlTab = searchParams.get('tab') as MT5SubTab;
@@ -44,6 +46,7 @@ export default function MT5OperationsCenter({ defaultTab = 'dashboard' }: Props)
       setActiveTab(currentUrlTab);
     }
   }, [searchParams, activeTab]);
+  useEffect(()=>{void supabase.from('mt5_accounts_safe').select('id').eq('terminal_authenticated',true).order('last_heartbeat_at',{ascending:false}).limit(1).then((result:{data:Array<{id:string}>|null})=>setResearchAccountId(result.data?.[0]?.id??''));},[]);
 
   const handleTabChange = (tab: MT5SubTab) => {
     setActiveTab(tab);
@@ -86,15 +89,12 @@ export default function MT5OperationsCenter({ defaultTab = 'dashboard' }: Props)
                 MT5 Operations Center
               </h1>
               <p className="text-xs text-zinc-400 mt-1">
-                Unified control, bridge management, and execution telemetry for MetaTrader 5 Personal, Prop, and Demo terminals.
+                Canonical bridge, terminal, account, research, execution, certification, and diagnostic truth. Unknown is never promoted to ready.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Bridge Protocol v1.0.0 Ready
-              </span>
+              <Link to={`/admin/research?provider=MT5_BRIDGE${researchAccountId?`&accountId=${encodeURIComponent(researchAccountId)}`:''}`} className="text-xs text-blue-300 bg-blue-500/10 border border-blue-500/20 px-3 py-2 rounded-lg font-bold uppercase tracking-wider">Use in Research →</Link>
             </div>
           </div>
 
