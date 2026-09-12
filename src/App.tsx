@@ -48,6 +48,7 @@ const CustomerBotSetup = lazy(() => import('./pages/app/CustomerBotSetup'));
 const ScannerStatus = lazy(() => import('./pages/admin/ScannerStatus'));
 const ScannerConfig = lazy(() => import('./pages/admin/ScannerConfig'));
 const ProviderHealth = lazy(() => import('./pages/admin/ProviderHealth'));
+const ProviderOverview = lazy(() => import('./pages/admin/ProviderOverview'));
 const Candidates = lazy(() => import('./pages/admin/Candidates'));
 const RejectedSetups = lazy(() => import('./pages/admin/RejectedSetups'));
 const SignalsManager = lazy(() => import('./pages/admin/SignalsManager'));
@@ -178,7 +179,8 @@ function App() {
             <Route path="/admin/control-room"    element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
             <Route path="/admin/scanner"          element={<RequireAdmin><ScannerStatus /></RequireAdmin>} />
             <Route path="/admin/scanner-config"   element={<RequireAdmin><ScannerConfig /></RequireAdmin>} />
-            <Route path="/admin/providers"        element={<RequireAdmin><ProviderHealth /></RequireAdmin>} />
+            <Route path="/admin/providers"        element={<RequireAdmin><ProviderOverview /></RequireAdmin>} />
+            <Route path="/admin/providers/diagnostics" element={<RequireAdmin><ProviderHealth /></RequireAdmin>} />
             <Route path="/admin/candidates"       element={<RequireAdmin><Candidates /></RequireAdmin>} />
             <Route path="/admin/rejected"         element={<RequireAdmin><RejectedSetups /></RequireAdmin>} />
             <Route path="/admin/signals"          element={<RequireAdmin><SignalsManager /></RequireAdmin>} />
@@ -226,6 +228,7 @@ function App() {
             <Route path="/admin/modes"             element={<RequireAdmin><Modes /></RequireAdmin>} />
             <Route path="/admin/backtest"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
             <Route path="/admin/backtest-lab"      element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
+            <Route path="/admin/research"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
             <Route path="/admin/handoff"           element={<RequireAdmin><Handoff /></RequireAdmin>} />
             <Route path="/admin/prop"              element={<RequireAdmin><PropTradingPanel /></RequireAdmin>} />
 

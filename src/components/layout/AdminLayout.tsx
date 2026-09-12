@@ -1,11 +1,11 @@
-import React, { ReactNode, useState, useRef, useEffect } from 'react';
+import { type ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Users, LogOut, Menu, Activity,
-  Database, Send, X,
+  Send, X,
   User, Settings, ListChecks,
   Shield, ShieldCheck, Cpu, ClipboardList,
-  Layers, Radio, ArrowLeftRight, Bot, Server,
+  Layers, Radio, ArrowLeftRight, Server,
   SlidersHorizontal, FlaskConical
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -16,42 +16,35 @@ type NavItem =
   | { to: string; label: string; icon: LucideIcon };
 
 const adminNav: NavItem[] = [
-  { section: 'HashiCore' },
-  { to: '/admin/mission-control', label: 'Mission Control', icon: Activity },
-  { to: '/admin/operator', label: 'Command Center', icon: LayoutDashboard },
-  { to: '/admin/runtime-truth', label: 'Runtime Truth & Receipts', icon: ListChecks },
-  { to: '/admin/recovery', label: 'Recovery Center', icon: Activity },
-
-  { section: 'Strategy & Quant Lab' },
-  { to: '/admin/strategy-config', label: 'Strategy Config & Tweaks', icon: SlidersHorizontal },
-  { to: '/admin/backtest-lab', label: 'Backtest Lab', icon: FlaskConical },
-  { to: '/admin/trading-brain', label: 'Trading Brain & HMM', icon: Bot },
-
-  { section: 'Operations & Execution' },
-  { to: '/admin/execution', label: 'Execution Management', icon: Cpu },
-  { to: '/admin/positions', label: 'Positions Center', icon: Layers },
-  { to: '/admin/protection', label: 'Protection Center', icon: ShieldCheck },
-  { to: '/admin/modes', label: 'Operating Modes', icon: Zap },
-
-  { section: 'Risk & Capital' },
-  { to: '/admin/risk', label: 'Risk Engine', icon: Shield },
-  { to: '/admin/capital', label: 'Capital Allocation', icon: Database },
-
-  { section: 'Customers & Intelligence' },
-  { to: '/admin/customers', label: 'Customer Management & Rules', icon: Users },
-  { to: '/admin/customer-fleet', label: 'Customer Bot Fleet & Engines', icon: Cpu },
-  { to: '/admin/access-requests', label: 'Access Requests', icon: ClipboardList },
-  { to: '/admin/telegram-links', label: 'Telegram Links', icon: Send },
-  { to: '/admin/ai-agents', label: 'AI Agents Command (Gemini)', icon: Bot },
-  { to: '/admin/performance', label: 'Performance Analytics', icon: Activity },
-
-  { section: 'Platform & Providers' },
-  { to: '/admin/providers', label: 'Provider Health & Feeds', icon: Zap },
-  { to: '/admin/providers/mt5', label: 'MT5 Operations Center', icon: Server },
-  { to: '/admin/providers/binance', label: 'Binance Operations', icon: Cpu },
-  { to: '/admin/providers/bybit', label: 'Bybit Operations', icon: Cpu },
-  { to: '/admin/audit', label: 'Audit Trail & Logs', icon: ClipboardList },
-  { to: '/admin/operator/settings', label: 'Settings & Secrets', icon: Settings },
+  { section: 'Overview' },
+  { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/admin/mission-control', label: 'Operations Center', icon: Activity },
+  { section: 'Research' },
+  { to: '/admin/research', label: 'Research & Qualification', icon: FlaskConical },
+  { to: '/admin/strategies', label: 'Strategies', icon: SlidersHorizontal },
+  { to: '/admin/performance', label: 'Certification & Evidence', icon: ShieldCheck },
+  { section: 'Providers' },
+  { to: '/admin/providers', label: 'Provider Overview', icon: Zap },
+  { to: '/admin/providers/mt5', label: 'MT5', icon: Server },
+  { to: '/admin/providers/binance', label: 'Binance', icon: Cpu },
+  { to: '/admin/providers/bybit', label: 'Bybit', icon: Cpu },
+  { section: 'Trading' },
+  { to: '/admin/operator/signals', label: 'Signals / Signal Truth', icon: Radio },
+  { to: '/admin/execution', label: 'Execution', icon: Cpu },
+  { to: '/admin/risk', label: 'Risk & Capital', icon: Shield },
+  { to: '/admin/positions', label: 'Positions / Trade Truth', icon: Layers },
+  { section: 'Customers' },
+  { to: '/admin/customers', label: 'Customers', icon: Users },
+  { to: '/admin/customer-fleet', label: 'Accounts & Provisioning', icon: Cpu },
+  { to: '/admin/access-requests', label: 'Approvals', icon: ClipboardList },
+  { section: 'Communications' },
+  { to: '/admin/telegram-links', label: 'Telegram', icon: Send },
+  { to: '/admin/reporting', label: 'Reporting', icon: Activity },
+  { section: 'System' },
+  { to: '/admin/runtime-truth', label: 'Runtime Truth', icon: ListChecks },
+  { to: '/admin/recovery', label: 'Recovery', icon: Activity },
+  { to: '/admin/providers/diagnostics', label: 'Advanced Diagnostics', icon: Settings },
+  { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },
 ];
 
 export function AdminLayout({ children }: { children: ReactNode }) {

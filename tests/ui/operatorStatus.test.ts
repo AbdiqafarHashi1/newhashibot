@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { forwardBlockers, mapDatasetProvenance, mapMT5Readiness, researchWorkflowStages } from '../../src/lib/operatorStatus';
+
+const now=Date.parse('2026-09-12T12:00:00Z');
+assert.equal(mapMT5Readiness({backendAvailable:false},now).history,'UNKNOWN');
+assert.equal(mapMT5Readiness({backendAvailable:true,accountId:'a',bridgeId:'b',lastHeartbeatAt:'2026-09-12T11:59:50Z',terminalAuthenticated:true,fetchHistorySupported:true,executionEnabled:false},now).history,'READY');
+assert.equal(mapMT5Readiness({backendAvailable:true,accountId:'a',bridgeId:'b',lastHeartbeatAt:'2026-09-12T11:59:50Z',terminalAuthenticated:true,fetchHistorySupported:true,executionEnabled:false},now).execution,'BLOCKED');
+assert.equal(mapMT5Readiness({backendAvailable:true,accountId:'a',bridgeId:'b',lastHeartbeatAt:'2026-09-12T11:59:00Z',terminalAuthenticated:true,fetchHistorySupported:true},now).bridge,'STALE');
+assert.equal(mapMT5Readiness({backendAvailable:true,accountId:'a',bridgeId:'b',lastHeartbeatAt:'2026-09-12T11:55:00Z',terminalAuthenticated:true,fetchHistorySupported:true},now).bridge,'OFFLINE');
+assert.equal(mapDatasetProvenance('BINANCE',true),'CACHED REAL');
+assert.equal(mapDatasetProvenance('SIMULATION',false),'SIMULATION');
+assert.deepEqual(forwardBlockers({qualified:true,frozen:false,providerReady:true,accountAssigned:false,productEligible:true,providerCertified:false,riskEligible:true}),['CONFIGURATION NOT FROZEN','NO ACCOUNT ASSIGNED','PROVIDER NOT CERTIFIED']);
+const locked=researchWorkflowStages({dataReady:false,backtestComplete:false,validationComplete:false,fullPropComplete:false,multiChallengeComplete:false,qualified:false,frozen:false,forwardStarted:false});
+assert.equal(locked.DATA,'READY'); assert.equal(locked.BACKTEST,'LOCKED');
+const progressed=researchWorkflowStages({dataReady:true,backtestComplete:true,validationComplete:true,fullPropComplete:true,multiChallengeComplete:true,qualified:true,frozen:false,forwardStarted:false});
+assert.equal(progressed.FREEZE,'READY'); assert.equal(progressed.FORWARD,'LOCKED');
+const researchUi=readFileSync('src/pages/admin/backtest/ResearchValidationWorkspace.tsx','utf8');
+for(const action of ['RUN CANONICAL BACKTEST','RUN VALIDATION SUITE','RUN FULL PROP EVALUATION','RUN MULTI-CHALLENGE','CALIBRATE &amp; QUALIFY','FREEZE QUALIFIED CONFIGURATION','START FORWARD VALIDATION']) assert.match(researchUi,new RegExp(action));
+assert.match(readFileSync('src/pages/admin/BacktestLab.tsx','utf8'),/FETCH &amp; SYNC DATA|FETCH & SYNC DATA/);
+assert.match(readFileSync('src/pages/admin/MT5OperationsCenter.tsx','utf8'),/accountId=/);
+console.log('operator status truth tests passed');

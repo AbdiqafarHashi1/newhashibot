@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import {
   Play,
@@ -50,6 +51,10 @@ import {
   deployPresetToLiveStrategyConfigs,
 } from './backtest/presetStorage';
 import { BinanceHistoricalAdapter, BybitHistoricalAdapter, HistoricalDataService, IndexedDbHistoricalCache, MT5BridgeHistoricalAdapter, canonicalToBacktestBars, createMT5BrowserTransport, ensureResearchData, loadResearchContext, saveResearchContext, switchResearchMode, type HistoricalProvider, type HistoricalTimeframe } from '../../lib/historicalData';
+import { supabase } from '../../lib/supabase';
+import { mapMT5Readiness } from '../../lib/operatorStatus';
+
+type ResearchMT5Account = { id:string; nickname?:string; broker?:string; server?:string; account_number_masked?:string; terminal_authenticated?:boolean; bridge_id?:string; last_heartbeat_at?:string };
 
 const ASSET_CATEGORY_STRATEGIES: Record<string, StrategyName[]> = {
   all: [
@@ -72,12 +77,19 @@ const ASSET_CATEGORY_STRATEGIES: Record<string, StrategyName[]> = {
 };
 
 export default function BacktestLab() {
+  const [searchParams] = useSearchParams();
   // Mode Selection: Single Strategy vs Multi-Asset Pipeline vs Institutional Prop Clearance
   const [backtestMode, setBacktestMode] = useState<'single_strategy' | 'pipeline_arbitration' | 'prop_firm_clearance'>('pipeline_arbitration');
-  const [researchProvider,setResearchProvider]=useState<HistoricalProvider|'SIMULATION'>(()=>loadResearchContext().data.provider);
-  const [mt5AccountId,setMt5AccountId]=useState(()=>loadResearchContext().accountId||'');
-  const [researchProgress,setResearchProgress]=useState('READY');
+  const [researchProvider,setResearchProvider]=useState<HistoricalProvider|'SIMULATION'>(()=>(searchParams.get('provider') as HistoricalProvider)||loadResearchContext().data.provider);
+  const [mt5AccountId,setMt5AccountId]=useState(()=>searchParams.get('accountId')||loadResearchContext().accountId||'');
+  const [researchAccounts,setResearchAccounts]=useState<ResearchMT5Account[]>([]);
+  const [accountLoadError,setAccountLoadError]=useState('');
+  const [researchProgress,setResearchProgress]=useState('NO DATA');
+  const [selectedResearchSymbols,setSelectedResearchSymbols]=useState<string[]>(()=>searchParams.get('provider')==='MT5_BRIDGE'?['EURUSD','XAUUSD']:['BTCUSDT','ETHUSDT']);
   const historicalService=useMemo(()=>new HistoricalDataService(new IndexedDbHistoricalCache(),[new BinanceHistoricalAdapter(),new BybitHistoricalAdapter(),new MT5BridgeHistoricalAdapter(createMT5BrowserTransport({onState:setResearchProgress}))]),[]);
+  const selectedMT5=researchAccounts.find(account=>account.id===mt5AccountId);
+  const mt5ResearchReadiness=mapMT5Readiness({backendAvailable:!accountLoadError,accountId:selectedMT5?.id,bridgeId:selectedMT5?.bridge_id,lastHeartbeatAt:selectedMT5?.last_heartbeat_at,terminalAuthenticated:selectedMT5?.terminal_authenticated,fetchHistorySupported:selectedMT5?true:null});
+  useEffect(()=>{void supabase.from('mt5_accounts_safe').select('id,nickname,broker,server,account_number_masked,terminal_authenticated,bridge_id,last_heartbeat_at').order('last_heartbeat_at',{ascending:false}).then((result: {data: ResearchMT5Account[] | null; error: {message:string} | null})=>{const {data,error}=result;if(error){setAccountLoadError(`BACKEND UNAVAILABLE: ${error.message}`);setResearchAccounts([]);return;}setResearchAccounts(data??[]);if(!mt5AccountId&&data?.[0]?.id)setMt5AccountId(data[0].id);});},[]);
 
   // ─── Multi-Asset Pipeline State ─────────────────────────────────────────────
   const [multiAssetFeeds, setMultiAssetFeeds] = useState<Record<string, MultiAssetFeedItem>>(createDefaultMultiAssetFeeds);
@@ -402,7 +414,8 @@ export default function BacktestLab() {
     if(researchProvider==='SIMULATION'){
       setMultiAssetFeeds(createDefaultMultiAssetFeeds(historyDepthBars,Number.parseInt(selectedTimeframe)*1||15));setResearchProgress('READY');setIsSyncingAll(false);return;
     }
-    const eligible=PIPELINE_UNIVERSE.filter(inst=>researchProvider==='MT5_BRIDGE'?inst.category!=='crypto':inst.category==='crypto');
+    if(researchProvider==='MT5_BRIDGE'&&!mt5AccountId){setResearchProgress('FAILED: NO ACCOUNT SELECTED');setIsSyncingAll(false);return;}
+    const eligible=PIPELINE_UNIVERSE.filter(inst=>(researchProvider==='MT5_BRIDGE'?inst.category!=='crypto':inst.category==='crypto')&&selectedResearchSymbols.includes(inst.symbol));
     const now=Date.now(),days=Number.parseInt(rangeToUse)||90,from=selectedRange==='custom'?Date.parse(`${customStartDate}T00:00:00Z`):now-days*86_400_000,to=selectedRange==='custom'?Date.parse(`${customEndDate}T23:59:59Z`):now;
     const strategyIds=(ASSET_CATEGORY_STRATEGIES[pipelineCategory]||ASSET_CATEGORY_STRATEGIES.all).filter(s=>enabledPipelineStrategies[s]!==false);
     try{
@@ -430,6 +443,7 @@ export default function BacktestLab() {
                 source: `${researchProvider}:CANONICAL_CACHE`,
                 datasetId: data.metadata.datasetKey,
                 qualityEvidence: data.metadata.quality,
+                dataMetadata: {sourceSymbol:data.metadata.sourceSymbol,requestedRange:data.metadata.requestedRange,actualCoverage:data.metadata.actualCoverage,lastSync:data.metadata.lastSync,provenance:data.metadata.provenance},
                 lastUpdated: new Date().toISOString(),
               };
             }
@@ -533,7 +547,16 @@ export default function BacktestLab() {
   return (
     <AdminLayout>
       <div className="p-0 sm:p-1 md:p-2 max-w-7xl mx-auto space-y-5 sm:space-y-6 w-full min-w-0">
+        <header className="rounded-xl border border-slate-700 bg-slate-900 p-5"><div className="text-xs font-bold uppercase tracking-widest text-indigo-400">Research</div><h1 className="mt-1 text-2xl font-black text-white">Research &amp; Qualification</h1><p className="mt-1 text-xs text-slate-400">One guided path using canonical data, replay, validation, Prop, qualification, freeze, and forward handoff machinery.</p><ol className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">{['1 · DATA','2 · BACKTEST','3 · VALIDATE','4 · PROP','5 · QUALIFY','6 · FREEZE','7 · FORWARD'].map((step,index)=><li key={step} className={`rounded-lg border px-3 py-2 text-[10px] font-bold ${index===0?'border-indigo-500 bg-indigo-500/15 text-indigo-200':'border-slate-700 text-slate-400'}`}>{step}</li>)}</ol></header>
+        <section id="stage-data" className="scroll-mt-20 space-y-4 rounded-xl border border-slate-800 bg-slate-900 p-4" data-testid="guided-data-stage"><header className="flex flex-wrap justify-between gap-2"><div><h2 className="font-black text-white"><span className="mr-2 text-indigo-400">1</span>DATA</h2><p className="mt-1 text-xs text-slate-400">Fetch validated provider history into the existing browser-local canonical research cache.</p></div><span className={`rounded border px-2 py-1 text-[10px] font-bold ${researchProgress==='READY'?'border-emerald-500/30 text-emerald-300':'border-amber-500/30 text-amber-300'}`}>{isSyncingAll?'RUNNING':researchProgress.startsWith('FAILED')?'FAILED':researchProgress==='READY'?'READY':'NOT RUN'}</span></header>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4"><label className="text-xs text-slate-300">Provider<select aria-label="Historical provider" className="mt-1 block w-full rounded bg-slate-950 p-2" value={researchProvider} onChange={e=>{const p=e.target.value as HistoricalProvider|'SIMULATION';setResearchProvider(p);setSelectedResearchSymbols(p==='MT5_BRIDGE'?['EURUSD','XAUUSD']:['BTCUSDT','ETHUSDT']);setResearchProgress('NO DATA')}}><option value="MT5_BRIDGE">MT5 — BROKER NATIVE</option><option value="BINANCE">BINANCE — PUBLIC HISTORICAL</option><option value="BYBIT">BYBIT — PUBLIC HISTORICAL</option></select></label>{researchProvider==='MT5_BRIDGE'&&<label className="text-xs text-slate-300">Account<select aria-label="MT5 research account" className="mt-1 block w-full rounded bg-slate-950 p-2" value={mt5AccountId} onChange={e=>setMt5AccountId(e.target.value)}><option value="">Select canonical account</option>{researchAccounts.map(a=><option key={a.id} value={a.id}>{a.nickname||a.account_number_masked||a.id} · {a.broker||'unknown'} / {a.server||'unknown'}</option>)}</select></label>}<label className="text-xs text-slate-300">Timeframe<select aria-label="Research timeframe" className="mt-1 block w-full rounded bg-slate-950 p-2" value={selectedTimeframe} onChange={e=>setSelectedTimeframe(e.target.value)}>{['5m','15m','1h','4h','1d'].map(tf=><option key={tf}>{tf}</option>)}</select></label><label className="text-xs text-slate-300">Period<select aria-label="Research period" className="mt-1 block w-full rounded bg-slate-950 p-2" value={selectedRange} onChange={e=>setSelectedRange(e.target.value)}><option value="7d">7 days</option><option value="30d">30 days</option><option value="90d">90 days</option><option value="custom">Custom</option></select></label></div>
+          {selectedRange==='custom'&&<div className="flex gap-2"><input aria-label="Start date" type="date" value={customStartDate} onChange={e=>setCustomStartDate(e.target.value)} className="rounded bg-slate-950 p-2 text-xs"/><input aria-label="End date" type="date" value={customEndDate} onChange={e=>setCustomEndDate(e.target.value)} className="rounded bg-slate-950 p-2 text-xs"/></div>}
+          <fieldset><legend className="mb-2 text-xs text-slate-400">Symbols</legend><div className="flex flex-wrap gap-2">{PIPELINE_UNIVERSE.filter(i=>researchProvider==='MT5_BRIDGE'?i.category!=='crypto':i.category==='crypto').map(i=><label key={i.symbol} className="rounded border border-slate-700 px-2 py-1 text-xs"><input type="checkbox" checked={selectedResearchSymbols.includes(i.symbol)} onChange={e=>setSelectedResearchSymbols(s=>e.target.checked?[...new Set([...s,i.symbol])]:s.filter(x=>x!==i.symbol))} className="mr-2"/>{i.symbol}</label>)}</div></fieldset>
+          {researchProvider==='MT5_BRIDGE'&&researchProgress==='NO DATA'&&<p className={`rounded p-2 text-xs ${mt5ResearchReadiness.history==='READY'?'bg-emerald-500/10 text-emerald-300':'bg-amber-500/10 text-amber-200'}`}>{mt5ResearchReadiness.history==='READY'?'READY TO FETCH DATA':`NOT READY: ${mt5ResearchReadiness.blockers.join(' · ')}`}</p>}{accountLoadError&&researchProvider==='MT5_BRIDGE'&&<p className="rounded bg-red-500/10 p-2 text-xs text-red-300">{accountLoadError}</p>}<button onClick={()=>void handleSyncAllFeeds()} disabled={isSyncingAll||!selectedResearchSymbols.length||(researchProvider==='MT5_BRIDGE'&&mt5ResearchReadiness.history!=='READY')} className="rounded bg-blue-700 px-4 py-2 text-xs font-bold disabled:opacity-40">{isSyncingAll?'FETCHING & VALIDATING…':'FETCH & SYNC DATA'}</button><p className={`text-xs ${researchProgress.startsWith('FAILED')?'text-red-300':'text-slate-400'}`}>{researchProgress}</p>
+          {researchProgress==='READY'&&<div className="overflow-auto"><table className="min-w-full text-left text-xs"><thead className="text-slate-500"><tr>{['Provider','Account / broker','Symbol','Resolved symbol','Timeframe','Requested period','Actual coverage','Bars','Provenance','Last sync'].map(h=><th key={h} className="p-2">{h}</th>)}</tr></thead><tbody>{Object.values(multiAssetFeeds).filter((f,i,a)=>selectedResearchSymbols.includes(f.symbol)&&a.findIndex(x=>x.symbol===f.symbol)===i&&f.status==='ready'&&f.datasetId).map(f=><tr key={f.symbol} className="border-t border-slate-800"><td className="p-2">{researchProvider}</td><td className="p-2">{researchProvider==='MT5_BRIDGE'?(researchAccounts.find(a=>a.id===mt5AccountId)?.broker||mt5AccountId):'PUBLIC'}</td><td className="p-2">{f.symbol}</td><td className="p-2">{f.dataMetadata?.sourceSymbol??'UNKNOWN'}</td><td className="p-2">{selectedTimeframe}</td><td className="p-2">{f.dataMetadata?`${new Date(f.dataMetadata.requestedRange.from).toISOString().slice(0,10)} → ${new Date(f.dataMetadata.requestedRange.to).toISOString().slice(0,10)}`:selectedRange}</td><td className="p-2">{f.dataMetadata?.actualCoverage.from!=null&&f.dataMetadata.actualCoverage.to!=null?`${new Date(f.dataMetadata.actualCoverage.from).toISOString().slice(0,10)} → ${new Date(f.dataMetadata.actualCoverage.to).toISOString().slice(0,10)}`:'UNKNOWN'}</td><td className="p-2">{f.count}</td><td className="p-2 font-bold text-emerald-300">REAL</td><td className="p-2">{f.dataMetadata?.lastSync??f.lastUpdated}</td></tr>)}</tbody></table></div>}
+        </section>
         <ResearchValidationWorkspace multiAssetFeeds={multiAssetFeeds} />
+        <details className="rounded-xl border border-slate-800 bg-slate-950"><summary className="cursor-pointer p-4 text-sm font-bold text-slate-300">ADVANCED RESEARCH · simulation, legacy single-strategy tools, researcher tuning, and diagnostics</summary><div className="p-3">
         {/* Top Header & Mode Switcher */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
@@ -542,7 +565,7 @@ export default function BacktestLab() {
                 <Layers3 className="w-5 h-5" />
               </span>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight break-words">Institutional Backtest Lab & Arbitration Engine</h1>
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight break-words">Canonical Backtest &amp; Advanced Research</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Cross-asset pipeline simulation with segregated capital pools, native pricing feeds, and AI arbitration showdowns.
                 </p>
@@ -596,8 +619,8 @@ export default function BacktestLab() {
 
         <section className="rounded-xl border border-slate-700 bg-slate-900 p-4" aria-label="Research Data Manager">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="text-xs text-slate-300">SOURCE<select className="mt-1 block rounded border border-slate-700 bg-slate-950 p-2" value={researchProvider} onChange={e=>setResearchProvider(e.target.value as HistoricalProvider|'SIMULATION')}><option value="SIMULATION">SIMULATION — SYNTHETIC DEMO DATA</option><option value="MT5_BRIDGE">MT5 — BROKER NATIVE</option><option value="BINANCE">Binance public history</option><option value="BYBIT">Bybit public history</option></select></label>
-            {researchProvider==='MT5_BRIDGE'&&<label className="text-xs text-slate-300">MT5 ACCOUNT ID<input className="mt-1 block min-w-72 rounded border border-slate-700 bg-slate-950 p-2" value={mt5AccountId} onChange={e=>setMt5AccountId(e.target.value)} placeholder="Authenticated account UUID"/></label>}
+            <label className="text-xs text-slate-300">SOURCE<select className="mt-1 block rounded border border-slate-700 bg-slate-950 p-2" value={researchProvider} onChange={e=>setResearchProvider(e.target.value as HistoricalProvider|'SIMULATION')}><option value="MT5_BRIDGE">MT5 — BROKER NATIVE</option><option value="BINANCE">BINANCE — PUBLIC HISTORICAL</option><option value="BYBIT">BYBIT — PUBLIC HISTORICAL</option><option disabled>──────── TEST ONLY ────────</option><option value="SIMULATION">SIMULATION — TEST ONLY</option></select></label>
+            {researchProvider==='MT5_BRIDGE'&&<label className="text-xs text-slate-300">RESEARCH ACCOUNT<select className="mt-1 block min-w-72 rounded border border-slate-700 bg-slate-950 p-2" value={mt5AccountId} onChange={e=>setMt5AccountId(e.target.value)}><option value="">Select canonical MT5 account</option>{researchAccounts.map(account=><option key={account.id} value={account.id}>{account.nickname||account.account_number_masked||account.id} · {account.broker||'broker unknown'} / {account.server||'server unknown'}</option>)}</select>{accountLoadError&&<span className="mt-1 block text-red-400">{accountLoadError}</span>}</label>}
             <div className="text-xs text-slate-300"><div>PIPELINE STATE</div><strong className={researchProgress.startsWith('FAILED')?'text-red-400':'text-emerald-400'}>{researchProgress}</strong></div>
             <div className="text-xs text-slate-400">Primary {selectedTimeframe.toUpperCase()} · strategy dependencies resolve automatically · candles persist in IndexedDB</div>
           </div>
@@ -1290,6 +1313,7 @@ export default function BacktestLab() {
             isSyncingFeeds={isSyncingAll}
           />
         )}
+        </div></details>
       </div>
     </AdminLayout>
   );

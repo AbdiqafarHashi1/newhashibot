@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   listCanonicalPropRuns,
   getForwardAccountReadiness,
@@ -37,6 +37,7 @@ import {
   type QualificationCampaignResult,
 } from "../../../lib/research/strategyQualification";
 import { startForwardValidation, type FrozenForwardConfiguration } from "../../../lib/research/forwardValidation";
+import { supabase } from "../../../lib/supabase";
 
 type Tab =
   | "SINGLE"
@@ -163,6 +164,9 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
     [campaign, setCampaign] = useState<QualificationCampaignResult | null>(null),
     [frozenCandidate, setFrozenCandidate] = useState<FrozenForwardConfiguration | null>(null),
     [forwardAccountId, setForwardAccountId] = useState(""),
+    [forwardAccounts,setForwardAccounts]=useState<Array<{id:string;nickname?:string;account_number_masked?:string;broker?:string;server?:string}>>([]),
+    [validationRan, setValidationRan] = useState(false),
+    [forwardStarted, setForwardStarted] = useState(false),
     [status, setStatus] = useState("Loading completed canonical runs…");
   useEffect(() => {
     void listCanonicalPropRuns()
@@ -179,8 +183,15 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
         setStatus(`Research persistence unavailable: ${e.message}`),
       );
   }, []);
+  useEffect(()=>{void supabase.from('mt5_accounts_safe').select('id,nickname,account_number_masked,broker,server').order('created_at',{ascending:false}).then((result:{data:Array<{id:string;nickname?:string;account_number_masked?:string;broker?:string;server?:string}>|null})=>setForwardAccounts(result.data??[]));},[]);
+  useEffect(()=>{const feeds=Object.values(multiAssetFeeds).filter(feed=>feed.status==='ready'&&feed.datasetId&&feed.qualityEvidence);if(!feeds.length)return;const current=CANONICAL_STRATEGIES[pipelineStrategy];if(feeds.some(feed=>current.instruments.includes('*')||current.instruments.includes(feed.symbol)))return;const compatible=Object.values(CANONICAL_STRATEGIES).find(strategy=>feeds.some(feed=>strategy.instruments.includes('*')||strategy.instruments.includes(feed.symbol)));if(compatible)setPipelineStrategy(compatible.id);},[multiAssetFeeds,pipelineStrategy]);
   const runs = useMemo(() => source.map(adapt), [source]),
-    run = runs.find((r) => r.runId === runId),
+    pipelineRun = useMemo<ResearchRunContract | undefined>(() => {
+      if (!pipelineResult) return undefined;
+      const trades=[...pipelineResult.trades].sort((a,b)=>a.closedAt.localeCompare(b.closedAt)), first=trades[0], last=trades.at(-1);
+      return {runId:pipelineResult.runHash,runHash:pipelineResult.runHash,strategyId:pipelineStrategy,strategyVersion:CANONICAL_STRATEGIES[pipelineStrategy].version,configurationVersion:first?.configurationVersion??'research-ui/reference',symbols:[...new Set(trades.map(t=>t.symbol))],timeframes:[first?.primaryTimeframe??'unknown'],datasetIds:[...new Set(Object.values(multiAssetFeeds).filter(f=>f.datasetId).map(f=>f.datasetId!))],dateRange:{from:first?.openedAt??'',to:last?.closedAt??''},trainingRange:null,validationRange:null,executionModel:{version:'research-ui/cost-v1',provenance:'HISTORICAL_ESTIMATE',spread:trades.reduce((n,t)=>n+t.costs.spread,0),slippage:trades.reduce((n,t)=>n+t.costs.slippage,0),commission:trades.reduce((n,t)=>n+t.costs.commission,0),swap:trades.reduce((n,t)=>n+t.costs.financing,0)},riskPolicyVersion:'research-ui/risk-v1',capitalPolicyVersion:'research-ui/portfolio-v1',tradeManagementPolicyVersion:'canonical-replay/v1',initialBalance:100000,currency:first?.costs.currency??'USD',createdAt:first?.openedAt??new Date().toISOString(),status:'COMPLETED',verificationLevel:'HISTORICAL',trades,seed:20260910};
+    },[pipelineResult,pipelineStrategy,multiAssetFeeds]),
+    run = runs.find((r) => r.runId === runId) ?? (!runId ? pipelineRun : undefined),
     analysis = useMemo(() => {
       if (!run) return null;
       const quality = validateResearchRun(run),
@@ -249,7 +260,7 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
     if (!pipelineInput) { setStatus("No compatible canonical feed is ready. Sync MT5, Binance, or Bybit history first."); return; }
     try {
       const result = runCandidatePipelineReplay(pipelineInput);
-      setPipelineResult(result); setStatus(`Raw-bar canonical pipeline completed: ${result.trades.length} accepted trades`);
+      setPipelineResult(result); setRunId(""); setValidationRan(false); setFullPropResult(null); setRollingPropResult(null); setCampaign(null); setFrozenCandidate(null); setForwardStarted(false); setStatus(`Canonical backtest completed: ${result.trades.length} accepted trades`);
     } catch (error) { setStatus(`Pipeline refused run: ${error instanceof Error ? error.message : "unknown error"}`); }
   };
   const runFullProp = () => {
@@ -291,6 +302,7 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
     if (!winner) { setStatus("No qualified campaign winner is available to freeze."); return; }
     const pipelineInput = createPipelineInput(winner.binding.strategyId);
     if (!pipelineInput) { setStatus("The winner's source dataset is no longer loaded; freeze refused."); return; }
+    if (!confirm(`Freeze ${winner.binding.strategyId}@${winner.binding.strategyVersion} configuration ${winner.binding.configVersion}? This creates an immutable forward candidate and does not mutate live strategy configuration.`)) return;
     const frozen = freezeQualifiedForwardCandidate(winner, campaign.qualifiedSet, pipelineInput, { approvedAt: new Date().toISOString(), propProfileId: qualificationProduct === "PROP" ? (winner.binding.assetClass === "CRYPTO" ? "CUSTOM" : "FTMO_TWO_STEP") : undefined, accountSize: 100000, hashibotSafetyPolicyVersion: qualificationProduct === "PROP" ? "operator-policy/current" : undefined });
     setFrozenCandidate(frozen as FrozenForwardConfiguration);
     navigator.clipboard?.writeText(JSON.stringify(frozen, null, 2));
@@ -300,7 +312,7 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
     if (!frozenCandidate || !campaign || !forwardAccountId.trim()) { setStatus("Freeze a candidate and select a certified execution account first."); return; }
     try{const readiness=await getForwardAccountReadiness(forwardAccountId.trim());const handoff=startForwardValidation({frozen:frozenCandidate,qualifiedSet:campaign.qualifiedSet,account:{...readiness,product:campaign.qualifiedSet.product},startedAt:new Date().toISOString()});
     if(handoff.status!=="READY"){setStatus(`Forward validation blocked: ${handoff.reasonCodes.join(", ")}`);return;}
-    await persistForwardValidationRun(handoff as unknown as Record<string,unknown>);setStatus("Forward validation started; awaiting authoritative provider observations.");}catch(error){setStatus(`Forward validation persistence failed: ${error instanceof Error?error.message:"unknown error"}`);}
+    await persistForwardValidationRun(handoff as unknown as Record<string,unknown>);setForwardStarted(true);setStatus("Forward validation started; awaiting authoritative provider observations.");}catch(error){setStatus(`Forward validation persistence failed: ${error instanceof Error?error.message:"unknown error"}`);}
   };
   const freeze = () => {
     if (!run || analysis?.cert?.status !== "FORWARD_VALIDATION_CANDIDATE")
@@ -326,7 +338,36 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
         (tradeFilter === "LOSS" && t.netR < 0) ||
         tradeFilter === t.closeReason,
     ) ?? [];
-  return (
+  const dataReady=Object.values(multiAssetFeeds).some(feed=>feed.status==='ready'&&Boolean(feed.datasetId&&feed.qualityEvidence));
+  const backtestReady=Boolean(pipelineResult);
+  const validationReady=validationRan&&Boolean(analysis);
+  const propReady=Boolean(fullPropResult&&rollingPropResult);
+  const qualified=Boolean(campaign?.survivors.length);
+  const stage=(complete:boolean,available:boolean)=>complete?'COMPLETE':available?'READY':'LOCKED';
+  return (<>
+    <section className="space-y-4" data-testid="guided-research-workflow">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">{[['DATA',dataReady],['BACKTEST',backtestReady],['VALIDATE',validationReady],['PROP',propReady],['QUALIFY',qualified],['FREEZE',Boolean(frozenCandidate)],['FORWARD',forwardStarted]].map(([label,done],index)=><a key={String(label)} href={`#stage-${String(label).toLowerCase()}`} className={`rounded border p-2 text-center text-[10px] font-bold ${done?'border-emerald-500/40 bg-emerald-500/10 text-emerald-300':index===0||[dataReady,backtestReady,validationReady,propReady,qualified,Boolean(frozenCandidate)][index-1]?'border-blue-500/40 bg-blue-500/10 text-blue-300':'border-slate-800 text-slate-500'}`}>{label} {done?'✓':''}</a>)}</div>
+      <Stage id="backtest" number="2" title="BACKTEST" purpose="Replay canonical raw-bar candidates through arbitration, risk, capital, and execution-cost truth." state={stage(backtestReady,dataReady)} blocker={!dataReady?'Fetch a compatible real dataset first.':undefined}>
+        <label className="text-xs text-slate-300">Strategy<select aria-label="Canonical strategy" value={pipelineStrategy} onChange={e=>setPipelineStrategy(e.target.value)} className="ml-2 rounded bg-slate-950 p-2">{Object.values(CANONICAL_STRATEGIES).map(s=><option key={s.id} value={s.id}>{s.id} · {s.version}</option>)}</select></label><button onClick={runRawPipeline} disabled={!dataReady} className="rounded bg-cyan-700 px-4 py-2 text-xs font-bold disabled:opacity-40">RUN CANONICAL BACKTEST</button>{pipelineResult&&<Grid values={{Trades:pipelineResult.trades.length,Rejections:pipelineResult.rejected.length,'Net R':pipelineResult.metrics.netR,'Profit factor':pipelineResult.metrics.profitFactor??'N/A','Max drawdown':pipelineResult.metrics.maxDrawdown,'Run identity':pipelineResult.runHash}}/>}<Next href="#stage-validate" enabled={backtestReady}>NEXT: VALIDATE</Next>
+      </Stage>
+      <Stage id="validate" number="3" title="VALIDATE" purpose="Run the existing OOS, walk-forward, stress, Monte Carlo, regime, and portfolio evidence suite." state={stage(validationReady,backtestReady)} blocker={!backtestReady?'Run the canonical backtest first.':!analysis?'Completed trade evidence is unavailable.':undefined}>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{['OOS','WALK-FORWARD','STRESS','MONTE CARLO','REGIME','PORTFOLIO'].map(x=><Status key={x} label={x} value={!validationRan?'NOT RUN':analysis?'PASS':'UNAVAILABLE'}/>)}</div><button onClick={()=>{if(analysis){setValidationRan(true);setStatus('Validation suite completed using canonical research functions. Review individual evidence; no synthetic overall score was created.')}}} disabled={!backtestReady||!analysis} className="rounded bg-indigo-700 px-4 py-2 text-xs font-bold disabled:opacity-40">RUN VALIDATION SUITE</button>{validationRan&&analysis&&<Grid values={{OOS:analysis.oos?'COMPLETED':'UNAVAILABLE','Walk-forward':analysis.wf.windows.length?'COMPLETED':'WARNING',Stress:`${analysis.stresses.length} scenarios`,'Monte Carlo':`${monteCount} simulations`,Regime:Object.keys(analysis.groups.byRegime).length,Portfolio:analysis.port.status}}/>}<Next href="#stage-prop" enabled={validationReady}>NEXT: PROP TESTING</Next>
+      </Stage>
+      <Stage id="prop" number="4" title="PROP" purpose="Evaluate historical Prop lifecycles; these are replays, never live Prop performance." state={stage(propReady,validationReady)} blocker={!validationReady?'Complete validation first.':undefined}>
+        <div className="rounded border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-bold text-amber-200">HISTORICAL PROP SIMULATION / REPLAY</div><div className="grid gap-3 lg:grid-cols-2"><div className="rounded border border-slate-800 p-3"><b>FULL PROP PIPELINE</b><p className="my-2 text-xs text-slate-400">One complete portfolio/account Prop lifecycle.</p><button onClick={runFullProp} disabled={!validationReady} className="rounded bg-emerald-700 px-3 py-2 text-xs disabled:opacity-40">RUN FULL PROP EVALUATION</button>{fullPropResult&&<Grid values={{Accepted:fullPropResult.pipeline.trades.length,Blocked:fullPropResult.propDecisions.filter(d=>d.decision==='BLOCK').length,'Ending balance':fullPropResult.endingSnapshot.balance}}/>}</div><div className="rounded border border-slate-800 p-3"><b>ROLLING MULTI-CHALLENGE</b><p className="my-2 text-xs text-slate-400">Independent historical start dates with isolated account state.</p><div className="grid grid-cols-3 gap-2"><input aria-label="Challenge starts" type="number" value={rollingAttempts} onChange={e=>setRollingAttempts(Number(e.target.value))} className="bg-slate-950 p-2 text-xs"/><input aria-label="Window days" type="number" value={rollingWindowDays} onChange={e=>setRollingWindowDays(Number(e.target.value))} className="bg-slate-950 p-2 text-xs"/><input aria-label="Cadence days" type="number" value={rollingCadenceDays} onChange={e=>setRollingCadenceDays(Number(e.target.value))} className="bg-slate-950 p-2 text-xs"/></div><button onClick={runRollingProp} disabled={!validationReady} className="mt-2 rounded bg-blue-700 px-3 py-2 text-xs disabled:opacity-40">RUN MULTI-CHALLENGE</button>{rollingPropResult&&<Grid values={{'Pass rate':`${rollingPropResult.historicalPassRate.toFixed(1)}%`,'Failure causes':Object.keys(rollingPropResult.failureReasons).join(', ')||'NONE','Funded survival':`${rollingPropResult.fundedSurvivalRate.toFixed(1)}%`}}/>}</div></div><Next href="#stage-qualify" enabled={propReady}>NEXT: QUALIFY</Next>
+      </Stage>
+      <Stage id="qualify" number="5" title="QUALIFY" purpose="Search canonical configurations and retain only robust survivors for the selected product." state={campaignStatus==='RUNNING'?'RUNNING':stage(qualified,propReady)} blocker={!propReady?'Complete both Prop replays first.':campaign&&!qualified?campaign.recommendation:undefined}>
+        <div className="flex flex-wrap gap-2"><select aria-label="Qualification product" value={qualificationProduct} onChange={e=>setQualificationProduct(e.target.value as typeof qualificationProduct)} className="bg-slate-950 p-2 text-xs"><option>PERSONAL</option><option>PROP</option></select><select aria-label="Strategy scope" value={campaignScope} onChange={e=>setCampaignScope(e.target.value as typeof campaignScope)} className="bg-slate-950 p-2 text-xs"><option>SELECTED_STRATEGY</option><option>COMPATIBLE_ASSET_CLASS</option></select><select aria-label="Search method" value={searchMethod} onChange={e=>setSearchMethod(e.target.value as CalibrationSearchMethod)} className="bg-slate-950 p-2 text-xs"><option>GRID</option><option>RANDOM_SEEDED</option><option>LATIN_HYPERCUBE</option></select><input aria-label="Variant limit" type="number" value={variantLimit} onChange={e=>setVariantLimit(Number(e.target.value))} className="w-24 bg-slate-950 p-2 text-xs"/></div><button onClick={runQualification} disabled={!propReady||campaignStatus==='RUNNING'} className="rounded bg-violet-700 px-4 py-2 text-xs font-bold disabled:opacity-40">CALIBRATE &amp; QUALIFY</button>{campaign&&<><Grid values={{Status:campaign.recommendation,'Variants tested':campaign.variantsTested,Eliminated:campaign.eliminated,Survivors:campaign.survivors.length,'Qualified set':campaign.qualifiedSet.id}}/><Table headers={['Config','Status','Elimination / failure reason']} rows={campaign.results.map(r=>[r.variant.configVersion,r.status,[...r.eliminationReasons,...r.thesisDiagnostics].join(', ')||'SURVIVED'])}/></>}<Next href="#stage-freeze" enabled={qualified}>NEXT: FREEZE WINNER</Next>
+      </Stage>
+      <Stage id="freeze" number="6" title="FREEZE" purpose="Pin the exact qualified configuration for controlled forward validation without mutating live strategy." state={stage(Boolean(frozenCandidate),qualified)} blocker={!qualified?'A robust qualified survivor is required.':undefined}>
+        {campaign?.survivors[0]&&<Grid values={{Strategy:campaign.survivors[0].binding.strategyId,Version:campaign.survivors[0].binding.strategyVersion,Config:campaign.survivors[0].binding.configVersion,Mode:qualificationProduct,'Qualification evidence':campaign.qualifiedSet.id,Parameters:JSON.stringify(campaign.survivors[0].variant.parameters)}}/>}<button onClick={freezeCampaignWinner} disabled={!qualified} className="rounded bg-emerald-700 px-4 py-2 text-xs font-bold disabled:opacity-40">FREEZE QUALIFIED CONFIGURATION</button>{frozenCandidate&&<Grid values={{Status:'FROZEN','Immutable identity':`${frozenCandidate.strategyId}@${frozenCandidate.strategyVersion}/${frozenCandidate.configVersion}`,'Qualified set':frozenCandidate.qualifiedSetVersion}}/>}<Next href="#stage-forward" enabled={Boolean(frozenCandidate)}>NEXT: FORWARD VALIDATION</Next>
+      </Stage>
+      <Stage id="forward" number="7" title="FORWARD" purpose="Hand the immutable winner to a certified account for controlled forward observation." state={forwardStarted?'FORWARD':stage(false,Boolean(frozenCandidate))} blocker={!frozenCandidate?'Freeze a qualified configuration first.':!forwardAccountId?'Select a certified execution account.':undefined}>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><Status label="QUALIFIED" value={qualified?'PASS':'BLOCKED'}/><Status label="FROZEN" value={frozenCandidate?'PASS':'BLOCKED'}/><Status label="ACCOUNT" value={forwardAccountId?'SELECTED':'BLOCKED'}/><Status label="PROVIDER" value="CHECKED ON START"/><Status label="CERTIFICATION" value="CHECKED ON START"/><Status label="PRODUCT / MODE" value={qualificationProduct}/><Status label="RISK ELIGIBILITY" value="CHECKED ON START"/></div><select aria-label="Certified forward account" value={forwardAccountId} onChange={e=>setForwardAccountId(e.target.value)} className="rounded bg-slate-950 px-3 py-2 text-xs"><option value="">Select canonical account</option>{forwardAccounts.map(account=><option key={account.id} value={account.id}>{account.nickname||account.account_number_masked||account.id} · {account.broker||'unknown'} / {account.server||'unknown'}</option>)}</select><div className="flex gap-2 text-[10px]"><span className="rounded bg-cyan-500/10 px-2 py-1 text-cyan-300">FORWARD</span><span className="rounded bg-slate-800 px-2 py-1 text-slate-400">DEMO: NOT STARTED</span><span className="rounded bg-slate-800 px-2 py-1 text-slate-400">LIVE: DISABLED</span></div><button onClick={startFrozenForwardValidation} disabled={!frozenCandidate||!forwardAccountId} className="rounded bg-cyan-700 px-4 py-2 text-xs font-bold disabled:opacity-40">START FORWARD VALIDATION</button>
+      </Stage>
+      <p className="rounded border border-slate-800 bg-slate-950 p-3 text-xs text-amber-300" aria-live="polite">{status}</p>
+    </section>
+    <details className="rounded-xl border border-slate-800 bg-slate-950"><summary className="cursor-pointer p-4 text-sm font-bold text-slate-300">ADVANCED RESEARCH · specialist validation tabs, diagnostics, and persisted-run inspection</summary><div className="p-3">
     <section
       className="space-y-4 rounded-xl border border-indigo-500/30 bg-slate-950 p-4"
       data-testid="research-validation-workspace"
@@ -764,9 +805,14 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
           )}
         </div>
       )}
-    </section>
-  );
+    </section></div></details></>);
 }
+function Stage({id,number,title,purpose,state,blocker,children}:{id:string;number:string;title:string;purpose:string;state:string;blocker?:string;children:ReactNode}){
+  const good=['READY','COMPLETE','FORWARD'].includes(state);
+  return <article id={`stage-${id}`} className="scroll-mt-20 space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-4"><header className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-black text-white"><span className="mr-2 text-indigo-400">{number}</span>{title}</h2><p className="mt-1 text-xs text-slate-400">{purpose}</p></div><span className={`rounded border px-2 py-1 text-[10px] font-bold ${good?'border-emerald-500/30 bg-emerald-500/10 text-emerald-300':'border-amber-500/30 bg-amber-500/10 text-amber-300'}`}>{state}</span></header>{blocker&&<p className="rounded bg-amber-500/10 p-2 text-xs text-amber-200">BLOCKER: {blocker}</p>}<div className="space-y-3">{children}</div></article>;
+}
+function Status({label,value}:{label:string;value:string}){const good=['PASS','COMPLETE','SELECTED'].includes(value);return <div className="rounded border border-slate-800 p-2"><div className="text-[10px] text-slate-500">{label}</div><b className={`text-xs ${good?'text-emerald-300':value==='NOT RUN'?'text-slate-400':'text-amber-300'}`}>{value}</b></div>}
+function Next({href,enabled,children}:{href:string;enabled:boolean;children:ReactNode}){return enabled?<a href={href} className="inline-block rounded border border-blue-500/40 px-3 py-2 text-xs font-bold text-blue-300">{children} →</a>:<span className="inline-block rounded border border-slate-800 px-3 py-2 text-xs text-slate-600">{children} · LOCKED</span>}
 function Grid({ values }: { values: Record<string, unknown> }) {
   return (
     <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">

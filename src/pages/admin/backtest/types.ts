@@ -93,6 +93,7 @@ export interface MultiAssetFeedItem {
   error?: string;
   datasetId?: string;
   qualityEvidence?: import('../../../lib/historicalData/types').HistoricalDataQualityReport;
+  dataMetadata?: Pick<import('../../../lib/historicalData/types').HistoricalDatasetMetadata,'sourceSymbol'|'requestedRange'|'actualCoverage'|'lastSync'|'provenance'>;
 }
 
 export interface BtTrade {
