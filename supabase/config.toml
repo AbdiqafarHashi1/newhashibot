@@ -35,3 +35,11 @@ verify_jwt = false
 
 [functions.mt5-accounts]
 verify_jwt = true
+
+# Provider-authenticated endpoint. Function code must verify the raw Whop signature.
+[functions.whop-webhook]
+verify_jwt = false
+
+# Existing orchestrator also receives Telegram updates authenticated by Telegram's secret header.
+[functions.telegram-orchestrator]
+verify_jwt = false

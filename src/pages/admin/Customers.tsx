@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { CustomerSubscription, Package, PaymentStatus, AccessStatus, TelegramStatus, CustomerBotSetup as CustomerBotSetupType } from '../../lib/types';
 import type { MT5Account } from '../../lib/exchange/mt5';
 import { ExecutionAccount } from '../../lib/executionAccounts';
+import { adminMutateVipEntitlement } from '../../lib/entitlements';
 import { 
   Users, Plus, Search, RefreshCw, ChevronDown, ChevronUp, 
   X, MessageCircle, CalendarPlus, Cpu, SlidersHorizontal, Shield, 
@@ -202,6 +203,10 @@ export default function Customers() {
   };
 
   const extendBy30Days = async (s: CustomerSubscription) => {
+    if (s.user_id && (s as CustomerSubscription & { product_slug?: string }).product_slug === 'crypto_signal_room') {
+      await adminMutateVipEntitlement(s.user_id, 'EXTEND', 30, 'Admin Customers extension');
+      setNotice(`Audited VIP extension applied for ${s.email}`); await load(); return;
+    }
     const base = s.expires_at && new Date(s.expires_at).getTime() > Date.now() ? new Date(s.expires_at) : new Date();
     base.setDate(base.getDate() + 30);
     const { error } = await supabase.from('customer_subscriptions').update({
@@ -218,9 +223,10 @@ export default function Customers() {
     }
   };
 
-  const handleSaveSub = async (id: string, patch: Partial<CustomerSubscription>) => {
-    const { error } = await supabase.from('customer_subscriptions').update(patch).eq('id', id);
-    if (!error) await load();
+  const mutateVip = async (s: CustomerSubscription, action: 'GRANT' | 'EXTEND' | 'REVOKE', days = 30) => {
+    if (!s.user_id) { setNotice('A linked authenticated customer is required for entitlement mutation.'); return; }
+    try { await adminMutateVipEntitlement(s.user_id, action, days, 'Admin Customers control'); setNotice(`Audited VIP ${action.toLowerCase()} completed for ${s.email}`); await load(); }
+    catch (error) { setNotice(error instanceof Error ? error.message : 'VIP mutation failed'); }
   };
 
   const stats = useMemo(() => {
@@ -537,18 +543,21 @@ export default function Customers() {
                                   Customer ID: <code className="text-zinc-300">{sub.id}</code>
                                 </span>
                                 <div className="flex gap-2">
+                                  {(sub as CustomerSubscription & { product_slug?: string }).product_slug === 'crypto_signal_room' && <>
+                                  <button onClick={() => mutateVip(sub, 'EXTEND', 90)} className="px-2.5 py-1 rounded bg-blue-600/20 text-blue-300 border border-blue-500/30 text-[11px]">Extend VIP 90d</button>
                                   <button
-                                    onClick={() => handleSaveSub(sub.id, { access_status: 'active', payment_status: 'paid', updated_at: new Date().toISOString() })}
+                                    onClick={() => mutateVip(sub, 'GRANT', 30)}
                                     className="px-2.5 py-1 rounded bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30 text-[11px]"
                                   >
-                                    Activate & Confirm Payment
+                                    Grant VIP 30d
                                   </button>
                                   <button
-                                    onClick={() => handleSaveSub(sub.id, { access_status: 'expired', payment_status: 'expired', updated_at: new Date().toISOString() })}
+                                    onClick={() => mutateVip(sub, 'REVOKE', 30)}
                                     className="px-2.5 py-1 rounded bg-red-600/20 text-red-300 border border-red-500/30 hover:bg-red-600/30 text-[11px]"
                                   >
-                                    Revoke Access
+                                    Revoke VIP
                                   </button>
+                                  </>}
                                 </div>
                               </div>
                             </td>

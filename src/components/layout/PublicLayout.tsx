@@ -72,7 +72,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     setTimeout(() => setCopiedMpesa(false), 2000);
   }
 
-  const isProductsActive = ['/ai-signals', '/crypto-automation', '/mt5-automation', '/signal-mode', '/personal-ea', '/prop-ea'].includes(loc.pathname);
+  const isProductsActive = ['/vip', '/free', '/ai-signals', '/crypto-automation', '/mt5-automation', '/signal-mode', '/personal-ea', '/prop-ea'].includes(loc.pathname);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
@@ -135,6 +135,10 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               {productsDropdownOpen && (
                 <div className="absolute top-full left-0 w-64 pt-2 shadow-2xl z-50">
                   <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2 space-y-1 shadow-2xl backdrop-blur-xl">
+                    <Link to="/vip" className="block p-2.5 rounded-lg hover:bg-zinc-800/80 transition-colors group">
+                      <div className="text-xs font-bold text-white group-hover:text-blue-400">VIP Signals</div>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">Forex, Gold &amp; Crypto qualified signal room</p>
+                    </Link>
                     <Link
                       to="/ai-signals"
                       className="block p-2.5 rounded-lg hover:bg-zinc-800/80 transition-colors group"
@@ -309,6 +313,8 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 Products
               </div>
               <div className="pl-3 space-y-1 border-l-2 border-zinc-800 ml-3">
+                <Link to="/vip" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-zinc-300 hover:text-blue-400">VIP Signals</Link>
+                <Link to="/free" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-zinc-300 hover:text-emerald-400">Free Telegram</Link>
                 <Link
                   to="/ai-signals"
                   onClick={() => setMobileMenuOpen(false)}

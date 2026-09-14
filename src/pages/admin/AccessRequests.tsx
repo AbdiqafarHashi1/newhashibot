@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ClipboardList, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { defaultRiskPreset, isBotPackage, packageDisplayName } from '../../lib/packages';
 import { botSetupStatusLabel } from '../../lib/botSetup';
+import { adminReviewMpesaRequest } from '../../lib/entitlements';
 
 interface RequestRow extends AccessRequest {
   profile?: { email: string; full_name: string };
@@ -53,6 +54,16 @@ export default function AccessRequests() {
 
   async function updateStatus(req: RequestRow, status: AccessRequest['status'], grantAccess = false) {
     const note = noteInputs[req.id] ?? '';
+    if (req.payment_method?.toLowerCase() === 'mpesa' && req.product_slug === 'crypto_signal_room') {
+      try {
+        await adminReviewMpesaRequest(req.id, grantAccess ? 'APPROVE' : 'REJECT', note);
+        flash(grantAccess ? 'M-Pesa approved and VIP activated for 30 days.' : 'M-Pesa request rejected; no entitlement was granted.');
+        await load();
+      } catch (error) {
+        flash(error instanceof Error ? error.message : 'Atomic payment review failed.', 'err');
+      }
+      return;
+    }
     if (req.provisioning) {
       const decision = grantAccess ? 'APPROVE' : status === 'rejected' ? 'REJECT' : 'REQUEST_CHANGES';
       const { error: reviewError } = await supabase.functions.invoke('customer-provisioning', { body: { action: 'admin_review', provisioning_id: req.provisioning.id, decision, notes: note, execution_account_id: accountInputs[req.id] || undefined, qualified_set_id: setIdInputs[req.id] || undefined, qualified_set_version: setVersionInputs[req.id] || undefined } });
@@ -359,7 +370,7 @@ function RequestCard({ req, expanded, setExpanded, expiryInputs, setExpiryInputs
                 <button
                   onClick={() => updateStatus(req, 'converted_to_access', true)}
                   className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-3 py-2.5 rounded-xl transition-colors shadow-sm">
-                  <CheckCircle size={14} /> Approve & Grant Package
+                  <CheckCircle size={14} /> {req.payment_method?.toLowerCase() === 'mpesa' && req.product_slug === 'crypto_signal_room' ? 'Approve Payment & Activate' : 'Approve & Grant Package'}
                 </button>
                 <button
                   onClick={() => updateStatus(req, 'rejected')}

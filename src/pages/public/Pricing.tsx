@@ -10,8 +10,12 @@ import {
   Sparkles, UserCheck, ArrowUpRight
 } from 'lucide-react';
 import { normalizePackage, priceLabel, PUBLIC_PACKAGES } from '../../lib/packages';
+import { PRODUCT_BY_PACKAGE, readAttribution } from '../../lib/commerce';
+import { submitManualMpesaRequest } from '../../lib/mpesa';
+import { WhopCheckout } from '../../components/commerce/WhopCheckout';
 
 export default function Pricing() {
+  const mpesaMerchant = import.meta.env.VITE_MPESA_MERCHANT_NUMBER as string | undefined;
   const [searchParams, setSearchParams] = useSearchParams();
   const packageParam = searchParams.get('package');
 
@@ -111,7 +115,8 @@ export default function Pricing() {
   }
 
   function handleCopyMpesa() {
-    navigator.clipboard.writeText('0748895225');
+    if (!mpesaMerchant) return;
+    navigator.clipboard.writeText(mpesaMerchant);
     setCopiedMpesa(true);
     setTimeout(() => setCopiedMpesa(false), 2000);
   }
@@ -127,6 +132,16 @@ export default function Pricing() {
     setSubmitError(null);
     setSubmitSuccess(null);
 
+    if (!mpesaMerchant) {
+      setSubmitError('M-Pesa merchant instructions are not configured. Do not send payment.');
+      return;
+    }
+
+    // Durable status is tied to the authenticated customer; never use a browser-only payment claim.
+    if (!session?.user.id) {
+      setSubmitError('Please create or sign in to your HashiBot account before submitting M-Pesa payment evidence.');
+      return;
+    }
     // Validation
     if (!formData.fullName.trim()) {
       setSubmitError('Please enter your full name.');
@@ -146,28 +161,19 @@ export default function Pricing() {
     try {
       const selectedPkg = packages.find(p => p.slug === formData.packageSlug);
       
-      const { error } = await supabase.from('access_requests').insert({
-        full_name: formData.fullName.trim(),
-        email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim() || null,
-        product_slug: formData.packageSlug,
-        package_name: selectedPkg?.name || formData.packageSlug,
-        amount_kes: Number(formData.amountKes) || 0,
-        payment_method: 'mpesa',
-        payment_reference: formData.mpesaRef.trim().toUpperCase() || 'PREVIEW_REQ',
-        payment_date: formData.paymentDate,
-        telegram_username: formData.telegramUsername.trim() || null,
-        notes: formData.notes.trim() || null,
-        status: 'pending',
-        created_at: new Date().toISOString(),
+      const product = PRODUCT_BY_PACKAGE[formData.packageSlug as keyof typeof PRODUCT_BY_PACKAGE];
+      if (!product) throw new Error('This package is not eligible for an M-Pesa payment request.');
+      const receipt = await submitManualMpesaRequest({
+        userId: session.user.id,
+        fullName: formData.fullName, email: formData.email, phone: formData.phone,
+        packageSlug: formData.packageSlug, packageName: selectedPkg?.name || formData.packageSlug,
+        product, amountKes: Number(formData.amountKes), transactionReference: formData.mpesaRef,
+        paymentDate: formData.paymentDate, telegramUsername: formData.telegramUsername,
+        notes: formData.notes, attribution: readAttribution(searchParams),
       });
 
-      if (error) {
-        console.warn('Supabase insert warning, submitting cleanly:', error.message);
-      }
-
       setSubmitSuccess(
-        `Success! Your payment confirmation for ${selectedPkg?.name || formData.packageSlug} (Ref: ${formData.mpesaRef.toUpperCase() || 'Preview'}) has been registered. Our admin team will verify and activate your access shortly.`
+        `Payment submitted — awaiting verification. HashiBot status reference: ${receipt.publicReference}. You may safely leave and return from this account. This is not payment confirmation or access.`
       );
       
       // Reset transaction ref
@@ -189,13 +195,13 @@ export default function Pricing() {
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3.5 py-1 text-xs text-emerald-400 font-bold uppercase tracking-wider">
             <CreditCard size={14} />
-            Maximum Value • Instant M-Pesa Activation
+            Flexible checkout • Whop or M-Pesa
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
             Choose Your HashiBot Plan
           </h1>
           <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-2xl mx-auto">
-            Select your preferred package below to jump straight to instant M-Pesa checkout or create your account.
+            Keep every HashiBot product and choose international Whop checkout or Kenyan M-Pesa verification.
           </p>
 
           {/* Quick jump anchor pill buttons */}
@@ -250,6 +256,14 @@ export default function Pricing() {
             </button>
           </div>
         </div>
+
+        {PRODUCT_BY_PACKAGE[formData.packageSlug as keyof typeof PRODUCT_BY_PACKAGE] && (
+          <div className="mx-auto mb-10 max-w-xl rounded-2xl border border-blue-500/30 bg-blue-950/20 p-5 text-center">
+            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-blue-300">International checkout for selected product</div>
+            <WhopCheckout product={PRODUCT_BY_PACKAGE[formData.packageSlug as keyof typeof PRODUCT_BY_PACKAGE]!} compact />
+            <p className="mt-3 text-[11px] text-zinc-500">Whop remains responsible for billing and subscription lifecycle. Payment does not itself grant a HashiBot entitlement.</p>
+          </div>
+        )}
 
         {/* 4-Tier Grid + Free Trial Banner */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
@@ -572,12 +586,12 @@ export default function Pricing() {
               <p className="text-xs text-zinc-400 mt-0.5">Explore dashboard architecture, setup audit rules, and sample historical performance.</p>
             </div>
           </div>
-          <button
-            onClick={() => handleSelectAndJumpToPayment('free_preview')}
+          <Link
+            to="/free"
             className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold border border-zinc-700 transition-colors shrink-0"
           >
-            Start Free 7-Day Preview
-          </button>
+            Join Permanent Free Telegram
+          </Link>
         </div>
       </section>
 
@@ -595,10 +609,10 @@ export default function Pricing() {
               M-Pesa Payment Instructions & Confirmation
             </div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-              Instant M-Pesa Payment & Activation Form
+              M-Pesa Evidence & Verification Form
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
-              Follow the quick payment instructions below, then submit your transaction reference to activate your access.
+              Follow the payment instructions, then submit your transaction reference for manual verification. A reference alone is never verified payment.
             </p>
           </div>
 
@@ -646,7 +660,7 @@ export default function Pricing() {
                 <div className="space-y-1">
                   <span className="text-xs text-zinc-400">Recipient Mobile Number:</span>
                   <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-3">
-                    <span className="font-mono text-2xl font-extrabold text-white tracking-wider">0748 895 225</span>
+                    <span className="font-mono text-2xl font-extrabold text-white tracking-wider">{mpesaMerchant || 'Not configured'}</span>
                     <button
                       onClick={handleCopyMpesa}
                       className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-md active:scale-95"
@@ -685,7 +699,7 @@ export default function Pricing() {
                 <ol className="space-y-3 text-zinc-300 list-decimal list-inside leading-relaxed">
                   <li>Open M-Pesa on your mobile phone.</li>
                   <li>Select <strong className="text-white">Send Money</strong>.</li>
-                  <li>Enter recipient phone number: <strong className="text-emerald-400 font-mono">0748895225</strong></li>
+                  <li>Enter recipient number: <strong className="text-emerald-400 font-mono">{mpesaMerchant || 'Contact HashiBot — merchant not configured'}</strong></li>
                   <li>Enter exact plan amount: <strong className="text-white font-mono">{Number(formData.amountKes).toLocaleString()} KES</strong></li>
                   <li>Enter your M-Pesa PIN and confirm transaction.</li>
                   <li>Copy the M-Pesa Transaction Ref Code from your SMS (e.g. <strong className="text-cyan-400 font-mono">SJK789XYZ</strong>).</li>
@@ -895,4 +909,3 @@ export default function Pricing() {
     </PublicLayout>
   );
 }
-
