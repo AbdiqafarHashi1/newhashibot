@@ -41,21 +41,22 @@ export function vipChatId(): string {
 
 export function getAdminChatId(): string {
   if (typeof Deno !== "undefined" && Deno.env) {
-    return Deno.env.get("TELEGRAM_ADMIN_CHAT_ID") ?? getVipChatId();
+    // Production audiences are security boundaries, not convenience aliases.
+    return Deno.env.get("TELEGRAM_ADMIN_CHAT_ID") ?? "";
   }
   return "";
 }
 
 export function getFreeChatId(): string {
   if (typeof Deno !== "undefined" && Deno.env) {
-    return Deno.env.get("TELEGRAM_FREE_CHAT_ID") ?? getVipChatId();
+    return Deno.env.get("TELEGRAM_FREE_CHAT_ID") ?? "";
   }
   return "";
 }
 
 export function getAnalyticsChatId(): string {
   if (typeof Deno !== "undefined" && Deno.env) {
-    return Deno.env.get("TELEGRAM_ANALYTICS_CHAT_ID") ?? getAdminChatId();
+    return Deno.env.get("TELEGRAM_ANALYTICS_CHAT_ID") ?? "";
   }
   return "";
 }
@@ -87,6 +88,9 @@ export class TelegramChannelRegistry {
     const freeChatId = getFreeChatId();
     const vipChatId = getVipChatId();
     const analyticsChatId = getAnalyticsChatId();
+    const vipExecutionChatId = typeof Deno !== "undefined" && Deno.env
+      ? Deno.env.get("TELEGRAM_VIP_EXECUTION_CHAT_ID") ?? ""
+      : "";
 
     this.destinations.set("admin", {
       id: "dest_admin_ops",
@@ -146,15 +150,15 @@ export class TelegramChannelRegistry {
       id: "dest_vip_execution",
       channelKey: "vip_execution",
       purpose: "VIP Automated Execution Channel - Real-time Execution & Fill Notifications",
-      chatId: vipChatId, // Fallback to VIP chat ID if dedicated execution chat ID is missing
+      chatId: vipExecutionChatId,
       environment: "testnet",
-      enabled: !!vipChatId,
+      enabled: !!vipExecutionChatId,
       supportedCategories: ["EXECUTION", "PROTECTION"],
       providerScope: ["binance", "bybit", "mt5_personal", "mt5_prop"],
       marketScope: ["crypto", "forex", "metals"],
       packageScope: ["crypto_personal_bot", "forex_mt5_personal_bot", "forex_mt5_prop_bot"],
       ratePolicy: { maxMessagesPerMinute: 60, cooldownSeconds: 0 },
-      health: vipChatId ? "healthy" : "degraded",
+      health: vipExecutionChatId ? "healthy" : "degraded",
       lastSuccess: null,
       lastFailure: null,
       configSource: "env",
@@ -200,15 +204,17 @@ export class TelegramChannelRegistry {
       id: "dest_test_sandbox",
       channelKey: "test",
       purpose: "Operator Sandbox & Diagnostic Verification Channel",
-      chatId: adminChatId || vipChatId,
+      chatId: (typeof Deno !== "undefined" && Deno.env
+        ? Deno.env.get("TELEGRAM_TEST_CHAT_ID") ?? ""
+        : ""),
       environment: "sandbox",
-      enabled: true,
+      enabled: typeof Deno !== "undefined" && !!Deno.env?.get("TELEGRAM_TEST_CHAT_ID"),
       supportedCategories: ["SIGNALS", "EXECUTION", "PROTECTION", "RECOVERY", "RISK", "RUNTIME", "TELEGRAM"],
       providerScope: ["all"],
       marketScope: ["all"],
       packageScope: ["all"],
       ratePolicy: { maxMessagesPerMinute: 120, cooldownSeconds: 0 },
-      health: "healthy",
+      health: typeof Deno !== "undefined" && Deno.env?.get("TELEGRAM_TEST_CHAT_ID") ? "healthy" : "degraded",
       lastSuccess: null,
       lastFailure: null,
       configSource: "env",
