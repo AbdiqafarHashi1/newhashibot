@@ -15,7 +15,8 @@ export type CampaignType =
   | "TRIAL"
   | "PRODUCT_UPDATE"
   | "FEATURE_ANNOUNCEMENT"
-  | "EDUCATION";
+  | "EDUCATION"
+  | "VERIFIED_RECAP";
 
 export type CtaTrigger =
   | "after_tp1"

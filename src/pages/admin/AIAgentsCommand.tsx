@@ -117,80 +117,11 @@ export default function AIAgentsCommand() {
     setChannels(prev => prev.filter(c => c.id !== id));
   };
 
-  // Broadcast Directly to Telegram API
+  // Deliberately fail closed: editorial agents may draft content, but only the
+  // backend router may approve, route, deduplicate, and record a publication.
   const handleBroadcastToTelegram = async (messageText: string) => {
     if (!messageText) return;
-    if (!botToken.trim()) {
-      setBroadcastStatus({
-        loading: false,
-        success: false,
-        message: 'Please configure your Telegram Bot Token in the "Channels & Bot Setup" tab first.',
-      });
-      setActiveTab('channels');
-      return;
-    }
-
-    setBroadcastStatus({ loading: true, message: 'Broadcasting to Telegram...' });
-
-    const targetList = selectedBroadcastChannelId === 'all'
-      ? channels
-      : channels.filter(c => c.id === selectedBroadcastChannelId);
-
-    if (targetList.length === 0) {
-      setBroadcastStatus({
-        loading: false,
-        success: false,
-        message: 'No active target channel selected.',
-      });
-      return;
-    }
-
-    let successCount = 0;
-    const errors: string[] = [];
-
-    for (const target of targetList) {
-      try {
-        const response = await fetch(`https://api.telegram.org/bot${botToken.trim()}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: target.chatId,
-            text: messageText,
-            parse_mode: 'Markdown',
-            disable_web_page_preview: false,
-          }),
-        });
-
-        const resData = await response.json();
-        if (resData.ok) {
-          successCount++;
-        } else {
-          errors.push(`${target.name}: ${resData.description || 'Failed'}`);
-        }
-      } catch (err) {
-        errors.push(`${target.name}: ${(err as Error).message}`);
-      }
-    }
-
-    if (successCount > 0 && errors.length === 0) {
-      setBroadcastStatus({
-        loading: false,
-        success: true,
-        message: `Successfully broadcasted to ${successCount} Telegram channel(s)!`,
-      });
-    } else if (successCount > 0 && errors.length > 0) {
-      setBroadcastStatus({
-        loading: false,
-        success: true,
-        message: `Broadcasted to ${successCount} channel(s). Warnings: ${errors.join(', ')}`,
-      });
-    } else {
-      setBroadcastStatus({
-        loading: false,
-        success: false,
-        message: `Broadcast failed: ${errors.join(' | ')}. (Ensure your bot is added as an Admin in the channel)`,
-      });
-    }
+    setBroadcastStatus({ loading: false, success: false, message: 'Direct broadcasts are disabled. Submit approved content through the backend Telegram publication router.' });
 
     setTimeout(() => {
       setBroadcastStatus(prev => ({ ...prev, message: undefined }));

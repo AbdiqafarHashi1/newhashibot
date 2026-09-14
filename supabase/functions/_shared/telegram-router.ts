@@ -39,6 +39,12 @@ import {
   recordCampaignDelivery,
   validateCampaignCompliance,
 } from "./telegram-incentive-engine.ts";
+import {
+  EditorialPublication,
+  renderCanonicalVipSignal,
+  renderEditorialPublication,
+  validateEditorialPublication,
+} from "./telegram-product.ts";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -87,8 +93,9 @@ export interface TelegramRouteEvent {
   freePublisherConfig?: FreePublisherConfig;
   isCampaign?: boolean;
   campaignId?: string;
-  campaignType?: "VIP_INVITATION" | "TRIAL" | "PRODUCT_UPDATE" | "FEATURE_ANNOUNCEMENT" | "EDUCATION";
+  campaignType?: "VIP_INVITATION" | "TRIAL" | "PRODUCT_UPDATE" | "FEATURE_ANNOUNCEMENT" | "EDUCATION" | "VERIFIED_RECAP";
   publicationMode?: "preview" | "delayed" | "full";
+  editorial?: EditorialPublication;
 }
 
 export interface TelegramRouteResult {
@@ -207,6 +214,13 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
   const botToken = getBotToken();
   const results: TelegramRouteResult[] = [];
 
+  if (/agent/i.test(event.source ?? "") && !event.editorial) {
+    const channel = event.channels?.[0] ?? "admin";
+    const key = buildIdempotencyKey(event, channel);
+    const deliveryId = await recordDeliveryTruth(supabase, event, channel, "", "skipped", key, "AGENT_EDITORIAL_CONTRACT_REQUIRED");
+    return [{ channel, chat_id: "blocked", status: "skipped", error_message: "AGENT_EDITORIAL_CONTRACT_REQUIRED", delivery_id: deliveryId, idempotency_key: key }];
+  }
+
   const { defaultVisibility } = categorizeEvent(event.event_type);
   const visibility = event.visibility || defaultVisibility;
 
@@ -221,6 +235,19 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
   let rawChannels: TelegramChannelKey[] = event.channels && event.channels.length > 0
     ? event.channels
     : channelRegistry.getChannelsForVisibility(visibility);
+
+  // Non-signal authors enter through a typed, evidence-backed boundary. Their
+  // declared audience is authoritative and may never be widened by callers.
+  if (event.editorial) {
+    const validation = validateEditorialPublication(event.editorial);
+    if (!validation.valid) {
+      const channel = event.editorial.audience;
+      const key = buildIdempotencyKey(event, channel);
+      const deliveryId = await recordDeliveryTruth(supabase, event, channel, "", "skipped", key, validation.reason);
+      return [{ channel, chat_id: "blocked", status: "skipped", error_message: validation.reason, delivery_id: deliveryId, idempotency_key: key }];
+    }
+    rawChannels = [event.editorial.audience];
+  }
 
   const payload: TemplateMessagePayload = {
     eventType: event.event_type,
@@ -268,18 +295,18 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
         symbol: event.symbol ?? "",
         market_type: event.market ?? "crypto",
         direction: (event.payload?.direction as string) ?? "buy",
-        grade: (event.payload?.grade as string) ?? "A",
-        confidence_score: (event.payload?.confidence as number) ?? event.confidence ?? 80,
-        risk_reward: (event.payload?.risk_reward as number) ?? 2.0,
-        timeframe: (event.payload?.timeframe as string) ?? "15m",
-        strategy_name: (event.payload?.strategy_name as string) ?? "Standard",
+        grade: (event.payload?.grade as string) ?? "",
+        confidence_score: (event.payload?.confidence as number) ?? event.confidence ?? 0,
+        risk_reward: (event.payload?.risk_reward as number) ?? 0,
+        timeframe: (event.payload?.timeframe as string) ?? "",
+        strategy_name: (event.payload?.strategy_name as string) ?? "",
         entry_low: (event.payload?.entry_low as number) ?? undefined,
         entry_high: (event.payload?.entry_high as number) ?? undefined,
         stop_loss: (event.payload?.stop_loss as number) ?? undefined,
         tp1: (event.payload?.tp1 as number) ?? undefined,
         tp2: (event.payload?.tp2 as number) ?? undefined,
-        status: "active",
-        data_source: "REAL DATA",
+        status: String(event.payload?.status ?? ""),
+        data_source: String(event.payload?.data_source ?? ""),
         created_at: event.runtime_timestamp ?? new Date().toISOString(),
       };
 
@@ -348,16 +375,6 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
             .maybeSingle();
           existing = data;
         }
-        if (!existing && event.signal_id) {
-          const { data } = await supabase.from("telegram_deliveries")
-            .select("id")
-            .eq("signal_id", event.signal_id)
-            .eq("destination_channel", channelKey)
-            .eq("status", "sent")
-            .limit(1)
-            .maybeSingle();
-          existing = data;
-        }
         if (!existing) {
           const { data } = await supabase.from("telegram_deliveries")
             .select("id")
@@ -379,7 +396,16 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     }
 
     // 6. Render Message Text
-    const fullText = event.text && event.text.length > 0 ? event.text : renderTelegramTemplate(payload, channelKey);
+    let fullText: string;
+    if (event.editorial) fullText = renderEditorialPublication(event.editorial);
+    else if (event.text && event.text.length > 0) fullText = event.text;
+    else if (channelKey === "vip" && (event.event_type.startsWith("SIGNAL_") || event.event_type === "NEW_SIGNAL") && event.signal_id) {
+      fullText = renderCanonicalVipSignal({
+        signal_id: event.signal_id, market: event.market ?? "", symbol: event.symbol ?? "", direction: String(event.payload?.direction ?? ""), occurred_at: payload.timestamp ?? new Date().toISOString(),
+        entry_low: payload.entryLow, entry_high: payload.entryHigh, stop_loss: payload.stopLoss, targets: [payload.tp1, payload.tp2, payload.tp3].filter((v): v is number => v !== undefined),
+        risk_reward: payload.riskReward, strategy: payload.strategyName, grade: payload.grade, confidence: payload.confidence, session: String(event.payload?.session ?? "") || undefined, exchange: String(event.payload?.exchange ?? "") || undefined,
+      });
+    } else fullText = renderTelegramTemplate(payload, channelKey);
     const textChunks = splitMessageSafely(fullText, 4000);
 
     let lastMessageId = "";
