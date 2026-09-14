@@ -21,6 +21,9 @@ const AISignals = lazy(() => import('./pages/public/AISignals'));
 const CryptoAutomation = lazy(() => import('./pages/public/CryptoAutomation'));
 const MT5Automation = lazy(() => import('./pages/public/MT5Automation'));
 const Pricing = lazy(() => import('./pages/public/Pricing'));
+const Vip = lazy(() => import('./pages/public/Vip'));
+const VipComplete = lazy(() => import('./pages/public/VipComplete'));
+const Free = lazy(() => import('./pages/public/Free'));
 const Results = lazy(() => import('./pages/public/Results'));
 const FAQ = lazy(() => import('./pages/public/FAQ'));
 const About = lazy(() => import('./pages/public/About'));
@@ -126,6 +129,9 @@ function App() {
             <Route path="/crypto-automation" element={<CryptoAutomation />} />
             <Route path="/mt5-automation" element={<MT5Automation />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/vip" element={<Vip />} />
+            <Route path="/vip/complete" element={<VipComplete />} />
+            <Route path="/free" element={<Free />} />
             <Route path="/results" element={<Results />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/about" element={<About />} />

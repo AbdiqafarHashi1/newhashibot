@@ -46,6 +46,14 @@ export interface CustomerSubscription {
   admin_note: string;
   created_at: string;
   updated_at: string;
+  product_slug?: string | null;
+  commerce_provider?: 'WHOP' | 'MPESA' | 'MANUAL';
+  provider_customer_id?: string | null;
+  provider_membership_id?: string | null;
+  provider_payment_id?: string | null;
+  provider_state?: string | null;
+  cancel_at_period_end?: boolean;
+  revoked_at?: string | null;
 }
 
 export interface AccessRequest {
@@ -856,5 +864,4 @@ export interface ExecutionSettings {
   profit_lock_skipped_reasons?: Record<string, unknown> | null;
   updated_at: string;
 }
-
 
