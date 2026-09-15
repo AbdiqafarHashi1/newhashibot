@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { CustomerSubscription, Package, PaymentStatus, AccessStatus, TelegramStatus, CustomerBotSetup as CustomerBotSetupType } from '../../lib/types';
 import type { MT5Account } from '../../lib/exchange/mt5';
 import { ExecutionAccount } from '../../lib/executionAccounts';
+import { adminMutateVipEntitlement } from '../../lib/entitlements';
 import { 
   Users, Plus, Search, RefreshCw, ChevronDown, ChevronUp, 
   X, MessageCircle, CalendarPlus, Cpu, SlidersHorizontal, Shield, 
@@ -60,6 +61,7 @@ export default function Customers() {
   const [mt5Accounts, setMt5Accounts] = useState<MT5Account[]>([]);
   const [cryptoAccounts, setCryptoAccounts] = useState<ExecutionAccount[]>([]);
   const [profiles, setProfiles] = useState<Array<{ id: string; email: string; full_name?: string }>>([]);
+  const [commerceIssues, setCommerceIssues] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -76,13 +78,14 @@ export default function Customers() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [subRes, pkgRes, botRes, mt5Res, cryptoRes, profRes] = await Promise.all([
+      const [subRes, pkgRes, botRes, mt5Res, cryptoRes, profRes, issueRes] = await Promise.all([
         supabase.from('customer_subscriptions').select('*').order('created_at', { ascending: false }),
         supabase.from('packages').select('*').order('sort_order'),
         supabase.from('customer_bot_setups').select('*'),
         supabase.from('mt5_accounts').select('*'),
         supabase.from('connected_execution_accounts').select('*'),
         supabase.from('profiles').select('id, email, full_name'),
+        supabase.from('commerce_provider_events').select('id', { count: 'exact', head: true }).or('event_type.like.refund.%,event_type.like.dispute.%,processing_status.eq.failed'),
       ]);
 
       setSubs((subRes.data ?? []) as CustomerSubscription[]);
@@ -91,6 +94,7 @@ export default function Customers() {
       setMt5Accounts((mt5Res.data ?? []) as MT5Account[]);
       setCryptoAccounts((cryptoRes.data ?? []) as ExecutionAccount[]);
       setProfiles((profRes.data ?? []) as Array<{ id: string; email: string; full_name?: string }>);
+      setCommerceIssues(issueRes.count ?? 0);
     } catch (err) {
       console.error('Failed to load customer data:', err);
     } finally {
@@ -202,6 +206,10 @@ export default function Customers() {
   };
 
   const extendBy30Days = async (s: CustomerSubscription) => {
+    if (s.user_id && (s as CustomerSubscription & { product_slug?: string }).product_slug === 'crypto_signal_room') {
+      await adminMutateVipEntitlement(s.user_id, 'EXTEND', 30, 'Admin Customers extension');
+      setNotice(`Audited VIP extension applied for ${s.email}`); await load(); return;
+    }
     const base = s.expires_at && new Date(s.expires_at).getTime() > Date.now() ? new Date(s.expires_at) : new Date();
     base.setDate(base.getDate() + 30);
     const { error } = await supabase.from('customer_subscriptions').update({
@@ -218,9 +226,10 @@ export default function Customers() {
     }
   };
 
-  const handleSaveSub = async (id: string, patch: Partial<CustomerSubscription>) => {
-    const { error } = await supabase.from('customer_subscriptions').update(patch).eq('id', id);
-    if (!error) await load();
+  const mutateVip = async (s: CustomerSubscription, action: 'GRANT' | 'EXTEND' | 'REVOKE', days = 30) => {
+    if (!s.user_id) { setNotice('A linked authenticated customer is required for entitlement mutation.'); return; }
+    try { await adminMutateVipEntitlement(s.user_id, action, days, 'Admin Customers control'); setNotice(`Audited VIP ${action.toLowerCase()} completed for ${s.email}`); await load(); }
+    catch (error) { setNotice(error instanceof Error ? error.message : 'VIP mutation failed'); }
   };
 
   const stats = useMemo(() => {
@@ -275,6 +284,7 @@ export default function Customers() {
             <span>{notice}</span>
           </div>
         )}
+        {commerceIssues > 0 && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">Provider reconciliation attention: {commerceIssues} failed/refund/dispute event(s). Review the commerce provider event ledger before changing entitlement.</div>}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -531,24 +541,37 @@ export default function Customers() {
                                   </div>
                                 </div>
                               </div>
+                              {sub.commerce_provider === 'WHOP' && <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 text-[11px] font-mono text-zinc-400">
+                                <div>Provider: <span className="text-blue-300">WHOP</span></div>
+                                <div>Customer: <span className="text-zinc-200">{sub.provider_customer_id || 'unlinked'}</span></div>
+                                <div>Member: <span className="text-zinc-200">{sub.provider_member_id || '—'}</span></div>
+                                <div>Membership: <span className="text-zinc-200">{sub.provider_membership_id || '—'}</span></div>
+                                <div>Plan: <span className="text-zinc-200">{sub.provider_plan_id || '—'}</span></div>
+                                <div>Product: <span className="text-zinc-200">{sub.provider_product_id || '—'}</span></div>
+                                <div>State: <span className="text-zinc-200">{sub.provider_state || '—'}</span></div>
+                                <div>Cancel at end: <span className="text-zinc-200">{sub.cancel_at_period_end ? 'Yes' : 'No'}</span></div>
+                              </div>}
 
                               <div className="mt-4 pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs">
                                 <span className="text-zinc-500">
                                   Customer ID: <code className="text-zinc-300">{sub.id}</code>
                                 </span>
                                 <div className="flex gap-2">
+                                  {(sub as CustomerSubscription & { product_slug?: string }).product_slug === 'crypto_signal_room' && <>
+                                  <button onClick={() => mutateVip(sub, 'EXTEND', 90)} className="px-2.5 py-1 rounded bg-blue-600/20 text-blue-300 border border-blue-500/30 text-[11px]">Extend VIP 90d</button>
                                   <button
-                                    onClick={() => handleSaveSub(sub.id, { access_status: 'active', payment_status: 'paid', updated_at: new Date().toISOString() })}
+                                    onClick={() => mutateVip(sub, 'GRANT', 30)}
                                     className="px-2.5 py-1 rounded bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30 text-[11px]"
                                   >
-                                    Activate & Confirm Payment
+                                    Grant VIP 30d
                                   </button>
                                   <button
-                                    onClick={() => handleSaveSub(sub.id, { access_status: 'expired', payment_status: 'expired', updated_at: new Date().toISOString() })}
+                                    onClick={() => mutateVip(sub, 'REVOKE', 30)}
                                     className="px-2.5 py-1 rounded bg-red-600/20 text-red-300 border border-red-500/30 hover:bg-red-600/30 text-[11px]"
                                   >
-                                    Revoke Access
+                                    Revoke VIP
                                   </button>
+                                  </>}
                                 </div>
                               </div>
                             </td>

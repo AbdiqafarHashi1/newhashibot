@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { statusBadge } from '../../components/ui/Badge';
-import { useAuth } from '../../contexts/AuthContext';
-import { MessageCircle, CheckCircle, XCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
+import { adminCreateVipTelegramOnboardingLink } from '../../lib/entitlements';
 
 interface CustomerAccessSummary {
+  product_slug?: string;
+  commerce_provider?: string;
   package_name: string;
   access_status: string;
   payment_status: string;
@@ -21,12 +23,16 @@ interface TelegramLinkRow {
   notes: string;
   created_at: string;
   updated_at: string;
+  telegram_user_id?: number | null;
+  access_state?: string;
+  last_fulfillment_attempt_at?: string | null;
+  last_fulfillment_success_at?: string | null;
+  fulfillment_error?: string | null;
   profile?: { email: string; full_name: string };
   subscription?: CustomerAccessSummary | null;
 }
 
 export default function TelegramLinks() {
-  const { session } = useAuth();
   const [links, setLinks] = useState<TelegramLinkRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
@@ -35,7 +41,7 @@ export default function TelegramLinks() {
   async function load() {
     const [{ data: linkData }, { data: subData }] = await Promise.all([
       supabase.from('telegram_links').select('*, profile:profiles(email, full_name)').order('created_at', { ascending: false }),
-      supabase.from('customer_subscriptions').select('user_id, package_name, access_status, payment_status, expires_at'),
+      supabase.from('customer_subscriptions').select('user_id, product_slug, package_name, access_status, payment_status, expires_at, commerce_provider').eq('product_slug', 'crypto_signal_room'),
     ]);
     const subsByUser = new Map((subData ?? []).map(s => [s.user_id, s]));
     setLinks(((linkData ?? []) as TelegramLinkRow[]).map(link => ({ ...link, subscription: subsByUser.get(link.user_id) ?? null })));
@@ -44,23 +50,15 @@ export default function TelegramLinks() {
 
   useEffect(() => { load(); }, []);
 
-  async function setStatus(id: string, userId: string, status: 'connected' | 'revoked') {
-    const note = noteInputs[id] ?? '';
-    const { error } = await supabase.from('telegram_links').update({
-      status,
-      notes: note,
-      updated_at: new Date().toISOString(),
-    }).eq('id', id);
-    if (error) { setMsg(`Error: ${error.message}`); return; }
-    await supabase.from('audit_logs').insert({
-      actor_user_id: session?.user.id ?? null,
-      action: `telegram_link_${status}`,
-      entity_type: 'telegram_links',
-      entity_id: userId,
-      metadata: { notes: note },
-    });
-    setMsg(`Link ${status}.`);
-    setTimeout(() => setMsg(''), 3000);
+  async function resend(userId: string, reason: string) {
+    try { const url = await adminCreateVipTelegramOnboardingLink(userId, reason || 'Admin resend'); await navigator.clipboard.writeText(url); setMsg('Fresh 15-minute Telegram onboarding link copied. Prior unused link was invalidated.'); }
+    catch (error) { setMsg(error instanceof Error ? error.message : 'Could not create onboarding link.'); }
+  }
+
+  async function reconcile() {
+    setMsg('Reconciling up to 50 linked VIP customers…');
+    const { data, error } = await supabase.functions.invoke('telegram-orchestrator', { body: { action: 'reconcile_vip_access' } });
+    setMsg(error ? `Reconciliation failed: ${error.message}` : `Reconciliation completed for ${data?.processed ?? 0} links.`);
     await load();
   }
 
@@ -76,6 +74,7 @@ export default function TelegramLinks() {
             <p className="text-sm text-zinc-500 mt-0.5">Manage customer subscriptions, VIP channel access approvals, and upgrade inquiries.</p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={reconcile} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-medium">Reconcile VIP access</button>
             <a
               href="https://t.me/Abdihashi1"
               target="_blank"
@@ -147,7 +146,7 @@ export default function TelegramLinks() {
             ) : (
               <div className="space-y-2">
                 {pending.map(link => (
-                  <LinkCard key={link.id} link={link} noteInputs={noteInputs} setNoteInputs={setNoteInputs} setStatus={setStatus} />
+                  <LinkCard key={link.id} link={link} noteInputs={noteInputs} setNoteInputs={setNoteInputs} resend={resend} />
                 ))}
               </div>
             )}
@@ -159,7 +158,7 @@ export default function TelegramLinks() {
               <div className="text-sm font-semibold mb-3 text-zinc-400">All Other Links</div>
               <div className="space-y-2">
                 {others.map(link => (
-                  <LinkCard key={link.id} link={link} noteInputs={noteInputs} setNoteInputs={setNoteInputs} setStatus={setStatus} />
+                  <LinkCard key={link.id} link={link} noteInputs={noteInputs} setNoteInputs={setNoteInputs} resend={resend} />
                 ))}
               </div>
             </div>
@@ -170,11 +169,11 @@ export default function TelegramLinks() {
   );
 }
 
-function LinkCard({ link, noteInputs, setNoteInputs, setStatus }: {
+function LinkCard({ link, noteInputs, setNoteInputs, resend }: {
   link: TelegramLinkRow;
   noteInputs: Record<string, string>;
   setNoteInputs: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setStatus: (id: string, userId: string, status: 'connected' | 'revoked') => Promise<void>;
+  resend: (userId: string, reason: string) => Promise<void>;
 }) {
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -194,6 +193,13 @@ function LinkCard({ link, noteInputs, setNoteInputs, setStatus }: {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mt-2 text-xs">
+            <div className="text-zinc-500">Numeric Telegram ID: <span className="text-zinc-300 font-mono">{link.telegram_user_id || 'Not linked'}</span></div>
+            <div className="text-zinc-500">Fulfillment: <span className="text-zinc-300">{link.access_state || 'not linked'}</span></div>
+            <div className="text-zinc-500">Last attempt: <span className="text-zinc-300">{link.last_fulfillment_attempt_at ? new Date(link.last_fulfillment_attempt_at).toLocaleString() : '—'}</span></div>
+            <div className="text-zinc-500">Last success: <span className="text-zinc-300">{link.last_fulfillment_success_at ? new Date(link.last_fulfillment_success_at).toLocaleString() : '—'}</span></div>
+          </div>
+          {link.fulfillment_error && <div className="mt-2 text-xs text-red-300">Safe failure: {link.fulfillment_error}</div>}
+          <div className="grid grid-cols-2 gap-3 mt-2 text-xs">
             <div className="text-zinc-500">
               Package: <span className="text-zinc-300">{link.subscription?.package_name || '—'}</span>
             </div>
@@ -201,6 +207,7 @@ function LinkCard({ link, noteInputs, setNoteInputs, setStatus }: {
               Access: <span className="text-zinc-300">{link.subscription ? `${link.subscription.access_status} / ${link.subscription.payment_status}` : '—'}</span>
             </div>
           </div>
+          <div className="mt-2 text-xs text-zinc-500">Entitlement source: <span className="text-zinc-300">{link.subscription?.commerce_provider || '—'}</span> · Expires: <span className="text-zinc-300">{link.subscription?.expires_at ? new Date(link.subscription.expires_at).toLocaleString() : '—'}</span></div>
           <div className="text-xs text-zinc-600 mt-1">
             Submitted {new Date(link.created_at).toLocaleDateString()}
             {link.notes && <span className="ml-2 text-zinc-500 italic">Note: {link.notes}</span>}
@@ -216,20 +223,7 @@ function LinkCard({ link, noteInputs, setNoteInputs, setStatus }: {
               onChange={e => setNoteInputs(n => ({ ...n, [link.id]: e.target.value }))}
               className="bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500 w-48"
             />
-            <div className="flex gap-2">
-              {link.status !== 'connected' && (
-                <button
-                  onClick={() => setStatus(link.id, link.user_id, 'connected')}
-                  className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition-colors">
-                  <CheckCircle size={12} /> Mark handled
-                </button>
-              )}
-              <button
-                onClick={() => setStatus(link.id, link.user_id, 'revoked')}
-                className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg transition-colors">
-                <XCircle size={12} /> Revoke
-              </button>
-            </div>
+            <button onClick={() => resend(link.user_id, noteInputs[link.id] ?? '')} className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-3 py-1.5 rounded-lg">Resend secure onboarding</button>
           </div>
         )}
       </div>

@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const read = (path: string) => readFileSync(path, 'utf8');
+const sql = read('supabase/migrations/20260914180000_vip_telegram_fulfillment.sql');
+const orchestrator = read('supabase/functions/telegram-orchestrator/index.ts');
+const fulfillment = read('supabase/functions/_shared/telegram-vip-fulfillment.ts');
+const complete = read('src/pages/public/VipComplete.tsx');
+const whop = read('supabase/functions/_shared/whop-verification.ts');
+
+assert.match(sql, /gen_random_bytes\(24\)/); assert.match(sql, /digest\(raw_token,'sha256'\)/);
+assert.match(sql, /interval '15 minutes'/); assert.match(sql, /used_at IS NOT NULL/); assert.match(sql, /token_expired/);
+assert.match(sql, /active_vip_entitlement_required/g); assert.match(sql, /telegram_identity_already_bound/);
+assert.match(sql, /auth\.role\(\)<>'service_role'/); assert.match(sql, /p_telegram_user_id bigint/);
+assert.doesNotMatch(sql, /email.*token|phone.*token|payment_reference.*token/i);
+assert.match(orchestrator, /X-Telegram-Bot-Api-Secret-Token/); assert.match(orchestrator, /^\s*const digest/m);
+assert.match(orchestrator, /consume_vip_telegram_onboarding/); assert.match(orchestrator, /limit\(50\)/);
+assert.match(fulfillment, /has_product_entitlement/g); assert.match(fulfillment, /crypto_signal_room/g);
+assert.match(fulfillment, /getChatMember/); assert.match(fulfillment, /createChatInviteLink/); assert.match(fulfillment, /member_limit: 1/);
+assert.match(fulfillment, /banChatMember/); assert.match(fulfillment, /unbanChatMember/);
+assert.match(fulfillment, /\.eq\("user_id", userId\)/g); assert.doesNotMatch(fulfillment, /TELEGRAM_FREE_CHAT_ID|TELEGRAM_ADMIN_CHAT_ID/);
+assert.match(complete, /createVipTelegramOnboardingLink/); assert.match(complete, /CONNECT TELEGRAM/); assert.match(complete, /OPEN TELEGRAM/);
+assert.match(whop, /WebhookVerificationError/);
+console.log('Telegram commerce Step 2 checks passed');
