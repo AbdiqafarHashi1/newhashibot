@@ -18,6 +18,6 @@ assert.match(fulfillment, /has_product_entitlement/g); assert.match(fulfillment,
 assert.match(fulfillment, /getChatMember/); assert.match(fulfillment, /createChatInviteLink/); assert.match(fulfillment, /member_limit: 1/);
 assert.match(fulfillment, /banChatMember/); assert.match(fulfillment, /unbanChatMember/);
 assert.match(fulfillment, /\.eq\("user_id", userId\)/g); assert.doesNotMatch(fulfillment, /TELEGRAM_FREE_CHAT_ID|TELEGRAM_ADMIN_CHAT_ID/);
-assert.match(complete, /createVipTelegramOnboardingLink/); assert.match(complete, /CONNECT TELEGRAM/); assert.match(complete, /OPEN TELEGRAM/);
+assert.match(complete, /createVipTelegramOnboardingLink/); assert.match(complete, /Connect Telegram/); assert.match(complete, /Open Telegram/);
 assert.match(whop, /WebhookVerificationError/);
 console.log('Telegram commerce Step 2 checks passed');
