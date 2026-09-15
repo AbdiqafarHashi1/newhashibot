@@ -10,11 +10,10 @@ provider payment is deliberately not treated as a HashiBot entitlement.
 
 ## Whop research status (14 September 2026)
 
-Current official Whop developer documentation was the only intended source. Both the
-documentation search endpoint (HTTP 401) and direct access to `https://docs.whop.com`
-(proxy HTTP 403) were unavailable in this build environment. Consequently this build
-does **not** guess an SDK name, API route, event name, signature algorithm, affiliate
-query parameter, or sandbox behavior.
+The documentation site remained inaccessible, but the official npm package
+`@whop/sdk` 1.1.4 and its published source were available. The final readiness pass uses
+that package's `verifyWebhook` implementation contract and its `standardwebhooks` 1.0.0
+dependency rather than guessing cryptography.
 
 The safe integration boundary accepts a separately configured public plan identifier
 and Whop-issued HTTPS checkout URL for each HashiBot product. It uses hosted checkout
@@ -70,11 +69,10 @@ Supabase migration ledger is compared.
 
 The undeployed `whop-webhook` Edge Function will eventually be reachable at
 `https://<project-ref>.supabase.co/functions/v1/whop-webhook`. Its verification boundary
-currently rejects every request because the official current signature mechanism could
-not be confirmed. Deploying it in that state cannot grant access. Server authoritative
+verifies the raw body using the official SDK source contract. Server authoritative
 plan variables are `WHOP_PLAN_VIP_SIGNALS`, `WHOP_PLAN_PERSONAL_AUTO`,
-`WHOP_PLAN_FOREX_PROP`, and `WHOP_PLAN_CRYPTO_PROP`; processing remains disabled until
-the verifier and confirmed payload-to-plan extraction are implemented.
+`WHOP_PLAN_FOREX_PROP`, and `WHOP_PLAN_CRYPTO_PROP`; unknown plans are recorded without
+entitlement. See `docs/commerce/HASHIBOT_COMMERCE_GO_LIVE.md` for launch configuration.
 
 Manual M-Pesa submission is tied to an authenticated customer and receives a database-
 generated opaque UUID status reference. The existing Admin Access Requests screen calls

@@ -17,6 +17,7 @@
     "test:commerce": "rm -rf .tmp/commerce-tests && mkdir -p .tmp/commerce-tests && esbuild tests/commerceFoundation.test.ts --bundle --platform=node --format=esm --outfile=.tmp/commerce-tests/test.mjs && node .tmp/commerce-tests/test.mjs && rm -rf .tmp/commerce-tests",
     "test:commerce-step1": "rm -rf .tmp/commerce-step1-tests && mkdir -p .tmp/commerce-step1-tests && esbuild tests/commerceStep1.test.ts --bundle --platform=node --format=esm --outfile=.tmp/commerce-step1-tests/test.mjs && node .tmp/commerce-step1-tests/test.mjs && rm -rf .tmp/commerce-step1-tests",
     "test:commerce-step2": "rm -rf .tmp/commerce-step2-tests && mkdir -p .tmp/commerce-step2-tests && esbuild tests/telegramCommerceStep2.test.ts --bundle --platform=node --format=esm --outfile=.tmp/commerce-step2-tests/test.mjs && node .tmp/commerce-step2-tests/test.mjs && rm -rf .tmp/commerce-step2-tests",
+    "test:whop-backend": "rm -rf .tmp/whop-tests && mkdir -p .tmp/whop-tests && esbuild tests/whopBackendReadiness.test.ts --bundle --platform=node --format=esm --alias:npm:standardwebhooks@1.0.0=standardwebhooks --outfile=.tmp/whop-tests/test.mjs && node .tmp/whop-tests/test.mjs && rm -rf .tmp/whop-tests",
     "test:phase2-research": "rm -rf .tmp/phase2-research-tests && mkdir -p .tmp/phase2-research-tests && esbuild tests/historicalData/phase2ConnectedResearch.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase2-research-tests/test.mjs && node .tmp/phase2-research-tests/test.mjs && rm -rf .tmp/phase2-research-tests",
     "test:trading-domain": "rm -rf .tmp/trading-domain-tests && mkdir -p .tmp/trading-domain-tests && esbuild tests/tradingDomain/canonicalParity.test.ts --bundle --platform=node --format=esm --outfile=.tmp/trading-domain-tests/test.mjs && node .tmp/trading-domain-tests/test.mjs && rm -rf .tmp/trading-domain-tests",
     "test:phase4-convergence": "rm -rf .tmp/phase4-tests && mkdir -p .tmp/phase4-tests && esbuild tests/tradingDomain/phase4Convergence.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase4-tests/test.mjs && node .tmp/phase4-tests/test.mjs && rm -rf .tmp/phase4-tests",
@@ -79,8 +80,8 @@
     "test:prompt2-qualification": "rm -rf .tmp/prompt2-qualification-tests && mkdir -p .tmp/prompt2-qualification-tests && esbuild tests/research/prompt2QualificationCampaign.test.ts --bundle --platform=node --format=esm --outfile=.tmp/prompt2-qualification-tests/test.mjs && node .tmp/prompt2-qualification-tests/test.mjs && rm -rf .tmp/prompt2-qualification-tests",
     "test:production-eligibility-router": "rm -rf .tmp/eligibility-router-tests && mkdir -p .tmp/eligibility-router-tests && esbuild tests/tradingDomain/productionEligibilityRouter.test.ts --bundle --platform=node --format=esm --outfile=.tmp/eligibility-router-tests/test.mjs && node .tmp/eligibility-router-tests/test.mjs && rm -rf .tmp/eligibility-router-tests",
     "test:account-execution-controller": "rm -rf .tmp/account-controller-tests && mkdir -p .tmp/account-controller-tests && esbuild tests/runtime/accountExecutionController.test.ts --bundle --platform=node --format=esm --outfile=.tmp/account-controller-tests/test.mjs && node .tmp/account-controller-tests/test.mjs && rm -rf .tmp/account-controller-tests",
-    "test:customer-provisioning": "rm -rf .tmp/customer-provisioning-tests && mkdir -p .tmp/customer-provisioning-tests && esbuild tests/runtime/customerProvisioning.test.ts --bundle --platform=node --format=esm --outfile=.tmp/customer-provisioning-tests/test.mjs && node .tmp/customer-provisioning-tests/test.mjs && rm -rf .tmp/customer-provisioning-tests"
-    ,"test:final-3c": "rm -rf .tmp/final-3c-tests && mkdir -p .tmp/final-3c-tests && esbuild tests/runtime/final3CCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/final-3c-tests/test.mjs && node .tmp/final-3c-tests/test.mjs && rm -rf .tmp/final-3c-tests"
+    "test:customer-provisioning": "rm -rf .tmp/customer-provisioning-tests && mkdir -p .tmp/customer-provisioning-tests && esbuild tests/runtime/customerProvisioning.test.ts --bundle --platform=node --format=esm --outfile=.tmp/customer-provisioning-tests/test.mjs && node .tmp/customer-provisioning-tests/test.mjs && rm -rf .tmp/customer-provisioning-tests",
+    "test:final-3c": "rm -rf .tmp/final-3c-tests && mkdir -p .tmp/final-3c-tests && esbuild tests/runtime/final3CCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/final-3c-tests/test.mjs && node .tmp/final-3c-tests/test.mjs && rm -rf .tmp/final-3c-tests"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
@@ -110,6 +111,7 @@
     "fake-indexeddb": "^6.2.5",
     "globals": "^15.9.0",
     "postcss": "^8.4.35",
+    "standardwebhooks": "^1.0.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",

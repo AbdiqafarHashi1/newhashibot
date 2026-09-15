@@ -19,5 +19,5 @@ assert.match(fulfillment, /getChatMember/); assert.match(fulfillment, /createCha
 assert.match(fulfillment, /banChatMember/); assert.match(fulfillment, /unbanChatMember/);
 assert.match(fulfillment, /\.eq\("user_id", userId\)/g); assert.doesNotMatch(fulfillment, /TELEGRAM_FREE_CHAT_ID|TELEGRAM_ADMIN_CHAT_ID/);
 assert.match(complete, /createVipTelegramOnboardingLink/); assert.match(complete, /CONNECT TELEGRAM/); assert.match(complete, /OPEN TELEGRAM/);
-assert.match(whop, /official_verifier_not_confirmed/);
+assert.match(whop, /WebhookVerificationError/);
 console.log('Telegram commerce Step 2 checks passed');
