@@ -6,8 +6,8 @@ export function WhopCheckout({ product, compact = false }: { product: CommercePr
   if (!checkout.configured) {
     return (
       <div className="rounded-xl border border-zinc-700 bg-zinc-900/70 p-4 text-sm text-zinc-300" role="status">
-        <strong className="text-white">Whop checkout is not configured yet.</strong>
-        <p className="mt-1 text-xs text-zinc-400">Choose M-Pesa, or contact HashiBot. No payment or access has been recorded.</p>
+        <strong className="text-white">Card checkout is temporarily unavailable.</strong>
+        <p className="mt-1 text-xs text-zinc-400">Please try again shortly or choose another available payment option.</p>
       </div>
     );
   }
