@@ -20,7 +20,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/mission-control', label: 'Operations Center', icon: Activity },
   { section: 'Research' },
-  { to: '/admin/research', label: 'Research & Qualification', icon: FlaskConical },
+  { to: '/admin/backtest', label: 'Backtest & Qualification', icon: FlaskConical },
   { to: '/admin/strategies', label: 'Strategies', icon: SlidersHorizontal },
   { to: '/admin/performance', label: 'Certification & Evidence', icon: ShieldCheck },
   { section: 'Providers' },
