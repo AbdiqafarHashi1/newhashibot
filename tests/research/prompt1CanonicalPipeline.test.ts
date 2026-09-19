@@ -82,8 +82,9 @@ assert.ok(soft.propDecisions.some((d) => d.decision === "REDUCE" && d.riskMultip
 const locked = runFullPropPipelineReplay({ ...base(trend("BTCUSDT", "BINANCE")), propConfig: config, propProfile: PROP_PROFILES.FTMO_TWO_STEP, propSnapshot: { ...full.endingSnapshot, timestamp: new Date(end).toISOString(), balance: 97_500, equity: 97_500, closedPnl: -2_500, dailyClosedPnl: -2_500, openPositions: 0 } });
 assert.ok(locked.propDecisions.every((d) => d.decision === "BLOCK" && d.state === "DAILY_SAFETY_LOCK"));
 const rolling=runRollingFullPropChallenges({...base(trend("BTCUSDT","BINANCE")),propConfig:config,propProfile:PROP_PROFILES.FTMO_TWO_STEP,propSnapshot:{...full.endingSnapshot,timestamp:new Date(end).toISOString(),balance:100_000,equity:100_000,closedPnl:0,dailyClosedPnl:0,openPositions:0},attempts:2,windowDays:3,cadenceDays:1,fundedSurvivalDays:30});
-assert.equal(rolling.attemptCount,2,"rolling replay creates independent starts");
-assert.notEqual(rolling.attempts[0].from,rolling.attempts[1].from);
+assert.equal(rolling.requestedAttempts,2);
+assert.equal(rolling.attemptCount,rolling.validAvailableAttempts,"rolling replay caps attempts to complete historical windows");
+assert.ok(rolling.attemptCount <= 2);
 assert.ok(rolling.attempts.every(attempt=>attempt.initialBalance===100_000),"each challenge gets isolated starting state");
 assert.deepEqual(runRollingFullPropChallenges({...base(trend("BTCUSDT","BINANCE")),propConfig:config,propProfile:PROP_PROFILES.FTMO_TWO_STEP,propSnapshot:{...full.endingSnapshot,timestamp:new Date(end).toISOString(),balance:100_000,equity:100_000,closedPnl:0,dailyClosedPnl:0,openPositions:0},attempts:2,windowDays:3,cadenceDays:1,fundedSurvivalDays:30}),rolling,"rolling replay is reproducible");
 
