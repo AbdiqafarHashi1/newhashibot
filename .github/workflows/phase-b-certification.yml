@@ -52,6 +52,8 @@ jobs:
           path: |
             .research-cache/phase-b/acquisition-report.json
             .research-cache/phase-b/certification-report.json
+            .research-cache/phase-b/policy-manifest.json
+            .research-cache/phase-b/evidence/
             .research-cache/phase-b/logs/
           if-no-files-found: warn
           include-hidden-files: true

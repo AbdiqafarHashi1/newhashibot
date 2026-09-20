@@ -6,6 +6,7 @@ import { CERTIFICATION_STAGES, certifyPortfolio, createCertificationProtocol, ty
 import { BinanceHistoricalAdapter, BybitHistoricalAdapter, DukascopyHistoricalAdapter } from "../../src/lib/historicalData/adapters.ts";
 import { normalizeAndValidate } from "../../src/lib/historicalData/validation.ts";
 import { hashHistoricalBars } from "../../src/lib/historicalData/HistoricalDataService.ts";
+import { PHASE_B_POLICIES, PHASE_B_POLICY_HASHES, arbitrationEvidence, includePortfolio, pipelineEvidence, qualifyPersonal, qualifyProp, qualifySignals } from "../../src/lib/research/phaseBCertification.ts";
 
 const policy:QualificationPolicy={id:"phase-b-test",version:"phase-b-test/v1",product:"PERSONAL",minimumTrades:20,minimumOosTrades:5,minimumIsExpectancyR:0,minimumOosExpectancyR:.05,minimumOosProfitFactor:1.1,minimumWalkForwardConsistencyPct:60,minimumStressProfitFactor:1,maximumMonteCarloDrawdownR95:10,maximumIsOosExpectancyDivergence:.7,maximumSingleRegimeContributionPct:70,maximumSingleSymbolContributionPct:70,minimumResearchScore:70,requireFullPropPipeline:false,requireFundedSurvival:false,weights:DEFAULT_QUALIFICATION_WEIGHTS};
 const inventory=[{datasetId:"mt5-eurusd-15m",datasetHash:"data_1",provider:"MT5_BRIDGE" as const,symbol:"EURUSD",sourceSymbol:"EURUSD",timeframe:"15m" as const,bars:10000,certifiable:true},{datasetId:"mt5-eurusd-1h",datasetHash:"data_2",provider:"MT5_BRIDGE" as const,symbol:"EURUSD",sourceSymbol:"EURUSD",timeframe:"1h" as const,bars:2500,certifiable:true}];
@@ -52,4 +53,28 @@ const unavailable=certifyPortfolio(protocol,[]);assert.equal(unavailable.status,
 assert.throws(()=>certifyPortfolio(protocol,[evidence({prop:{...evidence().prop,attempts:[{requested:10,available:4,actuallyRun:5}]}})]),/INVALID_ROLLING_ATTEMPT_COUNTS/,"attempts cannot duplicate unavailable windows");
 const source=readFileSync("src/pages/admin/backtest/PortfolioCertificationPanel.tsx","utf8");for(const label of ["STRATEGY PORTFOLIO CERTIFICATION CAMPAIGN","LOCK PROTOCOL & START","MONTE_CARLO","FINAL_STATE","REAL_DATA_REQUIRED"])assert.match(source,new RegExp(label));
 const scanner=readFileSync("supabase/functions/_shared/trading-domain/strategies.ts","utf8");assert.match(scanner,/CANONICAL_STRATEGIES/); // safety snapshot: this suite imports but never mutates runtime/defaults/customer state.
+
+// Hardened layer policies are precommitted, immutable, versioned and independently hashed.
+assert.equal(Object.isFrozen(PHASE_B_POLICIES),true);assert.equal(Object.isFrozen(PHASE_B_POLICIES.prop.tiers),true);
+assert.match(PHASE_B_POLICY_HASHES.strategyEdge,/^policy_/);assert.notEqual(PHASE_B_POLICY_HASHES.strategyEdge,PHASE_B_POLICY_HASHES.signals);
+assert.equal(qualifySignals({total:1,oosExpectancyR:1,profitFactor:3,maxDrawdownR:0,longestLosingStreak:0,stressPass:true,upstreamFatal:false}),"INSUFFICIENT","minimum signal sample is mandatory");
+assert.equal(qualifySignals({total:30,oosExpectancyR:-.01,profitFactor:2,maxDrawdownR:2,longestLosingStreak:2,stressPass:true,upstreamFatal:false}),"REJECTED","weak signal quality rejects despite sample size");
+assert.equal(qualifyPersonal({executed:1,returnPct:10,dailyDrawdownPct:0,totalDrawdownPct:0,locks:0,returnDrawdownRatio:10,upstreamFatal:false}),"INSUFFICIENT","one executed trade cannot qualify");
+assert.equal(qualifyPersonal({executed:25,returnPct:5,dailyDrawdownPct:6,totalDrawdownPct:6,locks:1,returnDrawdownRatio:.8,upstreamFatal:false}),"REJECTED","account drawdown and locks reject Personal");
+const propGood={actuallyRun:25,passCount:20,failCount:5,incompleteCount:0,ambiguousCount:0,determinatePassRate:80,dailyLossViolations:2,maxLossViolations:1,fundedReached:20,fundedSurvived:12,distinctWindows:25};
+assert.equal(qualifyProp({...propGood,passCount:1,failCount:24}),"REJECTED","one Prop pass cannot qualify");
+assert.equal(qualifyProp({...propGood,actuallyRun:24,passCount:20,failCount:4,distinctWindows:24}),"INSUFFICIENT","Prop requires 25 distinct windows");
+assert.equal(qualifyProp({...propGood,ambiguousCount:1,failCount:4}),"AMBIGUOUS","ambiguity never counts as pass");
+assert.equal(qualifyProp({...propGood,fundedReached:0,fundedSurvived:0}),"FUNDED_SURVIVAL_INSUFFICIENT","missing funded evidence remains explicit");
+assert.equal(qualifyProp(propGood),"QUALIFIED");
+assert.equal(includePortfolio({standaloneQualified:true,marginalNetR:-.1,withDrawdownR:3,withoutDrawdownR:4,concentrationPct:40}),false,"a positive standalone strategy may be excluded by marginal contribution");
+assert.equal(includePortfolio({standaloneQualified:true,marginalNetR:1,withDrawdownR:3,withoutDrawdownR:4,concentrationPct:40}),true);
+const fakePipeline={accepted:[{candidate:{id:"winner",strategyId:"s1",symbol:"EURUSD",side:"BUY",score:90},result:{}}],rejected:[{timestamp:"t",candidateId:"loser",strategyId:"s2",symbol:"EURUSD",reasonCodes:["ARBITRATION_LOST"]}],trades:[{}],metrics:{expectancyR:.2,profitFactor:1.3,maxDrawdown:2,strategyContribution:{s1:1}}} as any;
+assert.equal(pipelineEvidence(fakePipeline).rejectedCandidates,1,"candidate accept/reject metrics preserve filtering effect");
+assert.equal(fakePipeline.accepted.some((x:any)=>x.candidate.id==="loser"),false,"a rejected candidate cannot become a signal");
+assert.equal(arbitrationEvidence(fakePipeline).state,"CONTRACT_LIMITED","missing competition groups are never fabricated");
+assert.equal(arbitrationEvidence(fakePipeline).winnerCountsByStrategy.s1,1,"observable winner evidence is retained");
+assert.ok(arbitrationEvidence(fakePipeline).knownPhaseCContractGap.includes("conflict type and state snapshots"),"same/opposite-direction conflict limitations are explicit");
+const lineageSource={candidateId:"winner",signalId:"winner",personalSignalId:"winner",propCandidateId:"winner"};assert.equal(new Set(Object.values(lineageSource)).size,1,"the same canonical identifier reaches SignalOnly, Personal and Prop");
+const workflow=readFileSync(".github/workflows/phase-b-certification.yml","utf8");assert.match(workflow,/workflow_dispatch:/);for(const command of ["npm ci","npm run research:acquire-real-data","npm run research:phase-b-certify"])assert.match(workflow,new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
 console.log("phase B portfolio certification tests passed",JSON.stringify({protocol:protocol.hash,campaign:result.campaignHash,state:result.strategyResults[0].finalState,eligible:result.strategyResults[0].eligibleSymbols,statusWithoutReplay:unavailable.status}));
