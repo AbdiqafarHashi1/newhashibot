@@ -40,10 +40,16 @@ jobs:
       - name: Acquire real market data
         id: acquisition
         continue-on-error: true
+        timeout-minutes: 30
         env:
-          HISTORICAL_REQUEST_DELAY_MS: "1000"
+          PHASE_B_ACQUISITION_CONCURRENCY: "4"
+          PHASE_B_DUKASCOPY_CONCURRENCY: "2"
+          PHASE_B_ACQUISITION_HARD_TIMEOUT_MS: "1500000"
+          HISTORICAL_REQUEST_TIMEOUT_MS: "15000"
+          HISTORICAL_RETRY_BUDGET_MS: "60000"
+          HISTORICAL_REQUEST_DELAY_MS: "0"
           HISTORICAL_RETRY_BASE_MS: "2000"
-          HISTORICAL_MAX_ATTEMPTS: "5"
+          HISTORICAL_MAX_ATTEMPTS: "4"
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
         run: |
           mkdir -p .research-cache/phase-b/logs
