@@ -135,7 +135,13 @@ function adapt(run: CanonicalPropRun): ResearchRunContract {
     seed: 20260910,
   };
 }
-export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { multiAssetFeeds?: Record<string, MultiAssetFeedItem> }) {
+export interface ResearchValidationWorkspaceProps {
+  multiAssetFeeds?: Record<string, MultiAssetFeedItem>;
+  onPipelineResult?: (result: CandidatePipelineResult) => void;
+  onFullPropResult?: (result: ReturnType<typeof runFullPropPipelineReplay>) => void;
+  onRollingPropResult?: (result: ReturnType<typeof runRollingFullPropChallenges>) => void;
+}
+export default function ResearchValidationWorkspace({ multiAssetFeeds = {}, onPipelineResult, onFullPropResult, onRollingPropResult }: ResearchValidationWorkspaceProps) {
   const [source, setSource] = useState<CanonicalPropRun[]>([]),
     [runId, setRunId] = useState(""),
     [tab, setTab] = useState<Tab>("OVERVIEW"),
@@ -260,7 +266,7 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
     if (!pipelineInput) { setStatus("No compatible canonical feed is ready. Sync MT5, Binance, or Bybit history first."); return; }
     try {
       const result = runCandidatePipelineReplay(pipelineInput);
-      setPipelineResult(result); setRunId(""); setValidationRan(false); setFullPropResult(null); setRollingPropResult(null); setCampaign(null); setFrozenCandidate(null); setForwardStarted(false); setStatus(`Canonical backtest completed: ${result.trades.length} accepted trades`);
+      setPipelineResult(result); onPipelineResult?.(result); setRunId(""); setValidationRan(false); setFullPropResult(null); setRollingPropResult(null); setCampaign(null); setFrozenCandidate(null); setForwardStarted(false); setStatus(`Canonical backtest completed: ${result.trades.length} accepted trades`);
     } catch (error) { setStatus(`Pipeline refused run: ${error instanceof Error ? error.message : "unknown error"}`); }
   };
   const runFullProp = () => {
@@ -270,14 +276,14 @@ export default function ResearchValidationWorkspace({ multiAssetFeeds = {} }: { 
     const propConfig: PropAccountConfiguration = { id: "research-full-prop", label: "Research Full Prop Pipeline", profileId: profile.programId, profileVersion: profile.profileVersion, accountSize: 100000, currency: "USD", mode: "HISTORICAL_PROP_SIMULATION", provider: "HISTORICAL", realPropActivationConfirmed: false, monthlyIncomeObjectivePct: 2, softProfitGuardPct: 1.7, noNewEntriesPct: 2, internalDailyLossLockPct: 2, retainedBufferPct: 0.5, control: "START" };
     const start = pipelineInput.datasets.flatMap((d) => d.bars).sort((a, b) => a.timestamp - b.timestamp)[0]?.timestamp ?? Date.now();
     const result = runFullPropPipelineReplay({ ...pipelineInput, propConfig, propProfile: profile, propSnapshot: { timestamp: new Date(start).toISOString(), startingBalance: 100000, balance: 100000, equity: 100000, startOfDayBalance: 100000, closedPnl: 0, floatingPnl: 0, dailyClosedPnl: 0, openRisk: 0, openPositions: 0, pendingExecutableOrders: 0, tradingDays: 0, brokerTruth: false } });
-    setFullPropResult(result); setStatus(`Full Prop Pipeline completed: ${result.pipeline.trades.length} accepted trades, ${result.propDecisions.filter((d) => d.decision === "BLOCK").length} Prop blocks`);
+    setFullPropResult(result); onFullPropResult?.(result); setStatus(`Full Prop Pipeline completed: ${result.pipeline.trades.length} accepted trades, ${result.propDecisions.filter((d) => d.decision === "BLOCK").length} Prop blocks`);
   };
   const runRollingProp = () => {
     const pipelineInput=createPipelineInput();if(!pipelineInput){setStatus("No compatible canonical feed is ready for rolling Multi-Challenge.");return;}
     const profile=pipelineStrategy.startsWith("crypto.")?PROP_PROFILES.CUSTOM:PROP_PROFILES.FTMO_TWO_STEP;
     const propConfig:PropAccountConfiguration={id:"research-rolling-prop",label:"Rolling Prop Pipeline",profileId:profile.programId,profileVersion:profile.profileVersion,accountSize:100000,currency:"USD",mode:"HISTORICAL_PROP_SIMULATION",provider:"HISTORICAL",realPropActivationConfirmed:false,monthlyIncomeObjectivePct:2,softProfitGuardPct:1.7,noNewEntriesPct:2,internalDailyLossLockPct:2,retainedBufferPct:.5,control:"START"};
     const start=pipelineInput.datasets.flatMap(dataset=>dataset.bars).sort((a,b)=>a.timestamp-b.timestamp)[0]?.timestamp??Date.now();
-    try{const result=runRollingFullPropChallenges({...pipelineInput,propConfig,propProfile:profile,propSnapshot:{timestamp:new Date(start).toISOString(),startingBalance:100000,balance:100000,equity:100000,startOfDayBalance:100000,closedPnl:0,floatingPnl:0,dailyClosedPnl:0,openRisk:0,openPositions:0,pendingExecutableOrders:0,tradingDays:0,brokerTruth:false},attempts:rollingAttempts,windowDays:rollingWindowDays,cadenceDays:rollingCadenceDays,fundedSurvivalDays:90});setRollingPropResult(result);setStatus(`Rolling Multi-Challenge completed: ${result.passCount}/${result.attemptCount} passed`);}catch(error){setStatus(`Rolling Multi-Challenge refused: ${error instanceof Error?error.message:"unknown error"}`);}
+    try{const result=runRollingFullPropChallenges({...pipelineInput,propConfig,propProfile:profile,propSnapshot:{timestamp:new Date(start).toISOString(),startingBalance:100000,balance:100000,equity:100000,startOfDayBalance:100000,closedPnl:0,floatingPnl:0,dailyClosedPnl:0,openRisk:0,openPositions:0,pendingExecutableOrders:0,tradingDays:0,brokerTruth:false},attempts:rollingAttempts,windowDays:rollingWindowDays,cadenceDays:rollingCadenceDays,fundedSurvivalDays:90});setRollingPropResult(result);onRollingPropResult?.(result);setStatus(`Rolling Multi-Challenge completed: ${result.passCount}/${result.attemptCount} passed`);}catch(error){setStatus(`Rolling Multi-Challenge refused: ${error instanceof Error?error.message:"unknown error"}`);}
   };
   const runQualification = () => {
     const selectedMarket = CANONICAL_STRATEGIES[pipelineStrategy].market;
