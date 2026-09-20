@@ -1,0 +1,83 @@
+name: Phase B Real-Data Certification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    name: Acquire real data and certify Phase B
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Acquire real market data
+        id: acquisition
+        continue-on-error: true
+        run: |
+          mkdir -p .research-cache/phase-b/logs
+          set -o pipefail
+          npm run research:acquire-real-data 2>&1 | tee .research-cache/phase-b/logs/acquisition.log
+
+      - name: Run Phase B certification
+        id: certification
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p .research-cache/phase-b/logs
+          set -o pipefail
+          npm run research:phase-b-certify 2>&1 | tee .research-cache/phase-b/logs/certification.log
+
+      - name: Upload Phase B reports and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-b-certification-reports-${{ github.run_id }}
+          path: |
+            .research-cache/phase-b/acquisition-report.json
+            .research-cache/phase-b/certification-report.json
+            .research-cache/phase-b/logs/
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 14
+
+      - name: Upload Phase B research cache
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-b-research-cache-${{ github.run_id }}
+          path: |
+            .research-cache/phase-b/campaign-*.json
+            .research-cache/phase-b/datasets/
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 14
+
+      - name: Enforce acquisition and certification results
+        if: always()
+        env:
+          ACQUISITION_OUTCOME: ${{ steps.acquisition.outcome }}
+          CERTIFICATION_OUTCOME: ${{ steps.certification.outcome }}
+        run: |
+          echo "Acquisition outcome: ${ACQUISITION_OUTCOME}"
+          echo "Certification outcome: ${CERTIFICATION_OUTCOME}"
+          if [ "${ACQUISITION_OUTCOME}" != "success" ] || [ "${CERTIFICATION_OUTCOME}" != "success" ]; then
+            echo "::error::Phase B acquisition or certification failed. Review the uploaded reports and logs."
+            exit 1
+          fi
