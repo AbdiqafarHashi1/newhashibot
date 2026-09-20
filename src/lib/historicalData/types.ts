@@ -71,6 +71,10 @@ export interface HistoricalDatasetMetadata extends HistoricalDataRequest {
     accountId?: string;
     sourceSymbol: string;
     native: boolean;
+    /** Named upstream venue/feed for independently acquired research evidence. */
+    sourceName?: 'DUKASCOPY' | 'TWELVE_DATA' | 'BINANCE' | 'BYBIT' | 'MT5' | 'CSV';
+    sourceVersion?: string;
+    sourceUrl?: string;
     aggregation?: CandleDerivation;
   };
 }
