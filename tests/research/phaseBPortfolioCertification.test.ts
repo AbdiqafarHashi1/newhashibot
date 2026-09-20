@@ -89,3 +89,31 @@ const lineageSource={candidateId:"winner",signalId:"winner",personalSignalId:"wi
 const workflow=readFileSync(".github/workflows/phase-b-certification.yml","utf8");assert.match(workflow,/workflow_dispatch:/);for(const command of ["npm ci","npm run research:acquire-real-data","npm run research:phase-b-certify"])assert.match(workflow,new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
 assert.match(workflow,/actions\/cache@v4/);const acquisitionSource=readFileSync("scripts/phase-b/acquire-real-data.ts","utf8"),certificationSource=readFileSync("scripts/phase-b/certify.ts","utf8");assert.match(acquisitionSource,/outcome:"CACHE_HIT"/);assert.match(acquisitionSource,/validateDatasetCache\(old/ ,"cache is validated before a hit prevents download");assert.match(acquisitionSource,/INVALID_FINAL_DATASET/,"invalid cache cannot become evidence");assert.match(certificationSource,/campaign\.quality!=="CERTIFIABLE"/ ,"an unavailable market is skipped independently");assert.match(certificationSource,/PARTIAL_REAL_DATA/,"successful markets are preserved when another market fails");
 console.log("phase B portfolio certification tests passed",JSON.stringify({protocol:protocol.hash,campaign:result.campaignHash,state:result.strategyResults[0].finalState,eligible:result.strategyResults[0].eligibleSymbols,statusWithoutReplay:unavailable.status}));
+
+// Final gap closure: Stage 2 is survivor-driven and portfolio evidence is actually executed.
+const {supportingPlanForSurvivors,certificationStatus}=await import("../../scripts/phase-b/acquisition-control.ts");
+const {executeProductPortfolios}=await import("../../src/lib/research/phaseBPortfolioExecution.ts");
+assert.deepEqual(supportingPlanForSurvivors([]),[],"rejected strategies never trigger supporting acquisition");
+assert.deepEqual(supportingPlanForSurvivors([{market:"FOREX",strategyId:"survivor",symbols:["EURUSD"]}]),[{market:"FOREX",symbol:"EURUSD",timeframe:"5m",stage:"SUPPORTING"}],"only an eligible survivor symbol triggers deferred 5m");
+assert.equal(certificationStatus([{market:"FOREX",status:"READY"},{market:"METALS",status:"READY"},{market:"CRYPTO",status:"READY"}]),"PASS");
+assert.equal(certificationStatus([{market:"FOREX",status:"READY"},{market:"METALS",status:"DATA_SOURCE_BLOCKED",reason:"HTTP_429"}]),"PARTIAL_REAL_DATA");
+assert.equal(certificationStatus([{market:"FOREX",status:"DATA_SOURCE_BLOCKED"}]),"DATA_SOURCE_BLOCKED");
+const t=(strategyId:string,rs:number[])=>rs.map((netR,i)=>({strategyId,symbol:i%2?"EURUSD":"GBPUSD",openedAt:`2026-01-0${i+1}T00:00:00Z`,closedAt:`2026-01-0${i+1}T01:00:00Z`,netR}));
+const portfolios=executeProductPortfolios([
+ {strategyId:"good",qualified:{SIGNALS:true,PERSONAL:true,PROP:false},trades:t("good",[2,1])},
+ {strategyId:"harmful",qualified:{SIGNALS:true,PERSONAL:false,PROP:false},trades:t("harmful",[.2,-1])},
+ {strategyId:"prop",qualified:{SIGNALS:false,PERSONAL:false,PROP:true},trades:t("prop",[1,1])},
+]);
+assert.deepEqual(portfolios.map(x=>x.product),["SIGNALS","PERSONAL","PROP"],"product portfolios are separate");
+assert.equal(portfolios[0].combinations.length,3,"two survivors generate both standalone records and their full combination");
+assert.ok(portfolios[0].combinations.every(x=>Object.keys(x.marginalContribution).length===x.strategyIds.length),"marginal contribution is measured with versus without every member");
+assert.equal(portfolios[0].selectedStrategyIds.includes("harmful"),false,"a standalone candidate with harmful portfolio contribution can be excluded");
+assert.equal(portfolios[1].combinations.length,1,"a single-strategy product portfolio is explicit");
+assert.deepEqual(portfolios[1].selectedStrategyIds,["good"]);
+const certifyRunner=readFileSync("scripts/phase-b/certify.ts","utf8");
+assert.ok(certifyRunner.lastIndexOf("supportingPlanForSurvivors")>certifyRunner.indexOf("certifyPortfolio(protocol,rows"),"5m requests happen only after qualification");
+assert.match(certifyRunner,/PHASE_B_STAGE2_FINAL/,"final Personal and Prop replay runs after Stage 2 acquisition");
+assert.match(certifyRunner,/executeProductPortfolios/);assert.match(certifyRunner,/certifyPortfolio\(protocol,rows,combinations,protocol\.createdAt\)/,"final certification receives executed combinations");
+assert.match(certifyRunner,/unavailableMarkets/);assert.match(certifyRunner,/certificationStatus\(REPORT\.marketStates/);
+assert.match(certifyRunner,/missingSupporting5m\?"AMBIGUOUS"/,"missing 5m keeps Prop ordering ambiguous instead of choosing a favorable path");
+assert.match(certifyRunner,/missingSupporting5m\?"INSUFFICIENT"/,"missing 5m keeps Personal path evidence insufficient");
