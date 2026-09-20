@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import type { DatasetCampaign } from "../../src/lib/research/datasetCampaign.ts";
+import { DEFAULT_QUALIFICATION_WEIGHTS, type QualificationPolicy } from "../../src/lib/research/strategyQualification.ts";
+import { CERTIFICATION_STAGES, certifyPortfolio, createCertificationProtocol, type PerformanceMetrics, type StrategyCertificationEvidence } from "../../src/lib/research/portfolioCertification.ts";
+import { BinanceHistoricalAdapter, BybitHistoricalAdapter, DukascopyHistoricalAdapter } from "../../src/lib/historicalData/adapters.ts";
+import { normalizeAndValidate } from "../../src/lib/historicalData/validation.ts";
+import { hashHistoricalBars } from "../../src/lib/historicalData/HistoricalDataService.ts";
+
+const policy:QualificationPolicy={id:"phase-b-test",version:"phase-b-test/v1",product:"PERSONAL",minimumTrades:20,minimumOosTrades:5,minimumIsExpectancyR:0,minimumOosExpectancyR:.05,minimumOosProfitFactor:1.1,minimumWalkForwardConsistencyPct:60,minimumStressProfitFactor:1,maximumMonteCarloDrawdownR95:10,maximumIsOosExpectancyDivergence:.7,maximumSingleRegimeContributionPct:70,maximumSingleSymbolContributionPct:70,minimumResearchScore:70,requireFullPropPipeline:false,requireFundedSurvival:false,weights:DEFAULT_QUALIFICATION_WEIGHTS};
+const inventory=[{datasetId:"mt5-eurusd-15m",datasetHash:"data_1",provider:"MT5_BRIDGE" as const,symbol:"EURUSD",sourceSymbol:"EURUSD",timeframe:"15m" as const,bars:10000,certifiable:true},{datasetId:"mt5-eurusd-1h",datasetHash:"data_2",provider:"MT5_BRIDGE" as const,symbol:"EURUSD",sourceSymbol:"EURUSD",timeframe:"1h" as const,bars:2500,certifiable:true}];
+const campaign={version:"dataset-campaign/v1",id:"dataset_1",hash:"dataset_1",name:"real MT5",market:"FOREX",createdAt:"2026-09-01T00:00:00.000Z",requestedRange:{from:Date.parse("2024-01-01"),to:Date.parse("2026-01-01")},providers:["MT5_BRIDGE"],datasets:[],inventory,quality:"CERTIFIABLE"} as unknown as DatasetCampaign;
+const protocolInput={qualificationPolicy:policy,calibrationRangesVersion:"canonical-registry/v1",searchMethod:"RANDOM_SEEDED" as const,seed:42,maximumVariants:10,productTarget:"ALL" as const,market:"FOREX" as const,strategyIds:["forex.london-breakout"],startingSymbolUniverse:{FOREX:["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD"]},datasetCampaign:campaign,partitions:{inSample:["2024-01-01","2025-01-01"] as const,validation:["2025-01-02","2025-06-01"] as const,outOfSample:["2025-06-02","2026-01-01"] as const},costModelVersion:"mt5-cost/v1"};
+const protocol=createCertificationProtocol(protocolInput), repeated=createCertificationProtocol(protocolInput);
+assert.equal(protocol.hash,repeated.hash,"precommitment IDs are deterministic");
+assert.equal(Object.isFrozen(protocol),true,"protocol is immutable");
+assert.equal(protocol.locked,true);
+assert.throws(()=>createCertificationProtocol({...protocolInput,partitions:{...protocolInput.partitions,outOfSample:["2025-05-01","2026-01-01"]}}),/PARTITIONS_MUST_BE_ISOLATED/,"OOS isolation is enforced");
+assert.throws(()=>createCertificationProtocol({...protocolInput,datasetCampaign:{...campaign,quality:"INVALID"}}),/REAL_DATA_REQUIRED/,"synthetic or uncertifiable data cannot certify");
+assert.throws(()=>createCertificationProtocol({...protocolInput,datasetCampaign:{...campaign,inventory:[{...inventory[0],provider:"BINANCE"}]}} as any),/WRONG_PROVIDER/,"provider substitution is rejected");
+
+const binancePages:string[]=[];const binance=new BinanceHistoricalAdapter(async (url)=>{binancePages.push(String(url));const start=Number(new URL(String(url)).searchParams.get("startTime"));const width=300_000,rows=binancePages.length===1?Array.from({length:1000},(_,i)=>[start+i*width,"1","2","0.5","1.5","10"]):[[start,"1.5","2","1","1.75","11"]];return new Response(JSON.stringify(rows),{status:200})});
+const paged=await binance.fetch({provider:"BINANCE",symbol:"BTCUSDT",timeframe:"5m",from:1_700_000_000_000,to:1_700_400_000_000},{from:1_700_000_000_000,to:1_700_400_000_000});assert.equal(binancePages.length,2,"Binance acquisition paginates");assert.equal(paged.bars.length,1001);assert.deepEqual([...paged.bars].sort((a,b)=>a.timestamp-b.timestamp),paged.bars,"normalization is chronological");
+const bybit=new BybitHistoricalAdapter(async()=>new Response(JSON.stringify({retCode:0,result:{list:[["1700000300000","1.5","2","1","1.75","11"],["1700000000000","1","2","0.5","1.5","10"]]}}),{status:200}));const bybitBars=await bybit.fetch({provider:"BYBIT",symbol:"BTCUSDT",timeframe:"5m",from:1_700_000_000_000,to:1_700_000_600_000},{from:1_700_000_000_000,to:1_700_000_600_000});assert.equal(bybitBars.bars[0].timestamp,1_700_000_000_000,"reverse provider pages normalize deterministically");
+const dukascopy=new DukascopyHistoricalAdapter(async()=>new Response(`jsonp(${JSON.stringify([{timestamp:1_700_000_000_000,open:1,high:2,low:.5,close:1.5,volume:3}])})`,{status:200}),"https://dukascopy.invalid/feed");const duka=await dukascopy.fetch({provider:"PUBLIC_RESEARCH",symbol:"EURUSD",timeframe:"1h",from:1_700_000_000_000,to:1_700_000_000_000},{from:1_700_000_000_000,to:1_700_000_000_000});assert.equal(duka.sourceName,"DUKASCOPY");assert.equal(duka.bars.length,1,"Dukascopy JSONP is normalized");
+const quality=normalizeAndValidate([{timestamp:2,open:1,high:.5,low:2,close:1},{timestamp:1,open:1,high:2,low:.5,close:1.5},{timestamp:1,open:1,high:2,low:.5,close:1.5}],"5m",{from:1,to:300001});assert.equal(quality.quality.invalidBars,1);assert.equal(quality.quality.duplicates,1);assert.equal(quality.quality.outOfOrder,1);
+assert.equal(hashHistoricalBars(paged.bars),hashHistoricalBars([...paged.bars]),"normalized dataset hashes are stable");assert.notEqual(hashHistoricalBars(paged.bars),hashHistoricalBars(paged.bars.slice(1)),"different evidence cannot reuse a dataset hash");
+
+const metric=(over:Partial<PerformanceMetrics>={}):PerformanceMetrics=>({trades:30,wins:18,losses:12,winRate:60,expectancyR:.2,averageWinR:1,averageLossR:-.8,profitFactor:1.5,netR:6,maxDrawdownR:4,longestLossStreak:3,averageHoldingMinutes:120,longTrades:15,shortTrades:15,signalFrequencyPerMonth:5,costsR:1,...over});
+const evidence=(over:Partial<StrategyCertificationEvidence>={}):StrategyCertificationEvidence=>({strategyId:"forex.london-breakout",baselineConfigId:"reference",baselineConfigHash:"reference_hash",baseline:metric(),variants:[{configId:"config_1",configVersion:"research/v1",configHash:"config_hash",seed:42,parameters:{bodyAtr:.45,extensionAtr:.9},selected:true,rejectionReasons:[]}],selectedConfigId:"config_1",oos:metric({trades:12}),walkForward:{windows:8,positiveWindows:6,negativeWindows:2,consistencyPct:75},stress:[{scenario:"BASELINE",profitFactor:1.5,expectancyR:.2,maxDrawdownR:4},{scenario:"SPREAD_2X",profitFactor:1.15,expectancyR:.08,maxDrawdownR:7}],monteCarlo:{seed:42,simulations:500,medianNetR:5,drawdownMedianR:4,drawdownP90R:7,drawdownP95R:8,worstDrawdownR:9,lossStreakP95:6},parameterRobustness:"ROBUST_PLATEAU",symbols:[{symbol:"EURUSD",...metric({trades:12}),contributionPct:60,costSensitivityPct:20,oosTrades:12,oosExpectancyR:.2,oosProfitFactor:1.5},{symbol:"USDJPY",...metric({trades:10}),contributionPct:40,costSensitivityPct:80,oosTrades:2,oosExpectancyR:-.1,oosProfitFactor:.8}],regimes:[{label:"TRENDING",source:"CANONICAL_DECISION_EVIDENCE",trades:12,expectancyR:.2,profitFactor:1.5,contributionPct:65}],signals:{eligible:true,reasons:[],metrics:{signals:30}},personal:{eligible:true,reasons:[],metrics:{executed:25,blocked:5}},prop:{eligible:false,reasons:["DAILY_LOSS_BREACH"],metrics:{breaches:1},attempts:[{requested:10,available:7,actuallyRun:7}]},...over});
+
+const result=certifyPortfolio(protocol,[evidence()],[],"2026-09-20T00:00:00.000Z"),again=certifyPortfolio(protocol,[evidence()],[],"2026-09-20T00:00:00.000Z");
+assert.deepEqual(result,again,"campaign and stage progression are deterministic");
+assert.equal(result.strategyResults[0].finalState,"QUALIFIED_MULTI_PRODUCT","product qualification is independent and Signals + Personal survive");
+assert.deepEqual(result.strategyResults[0].eligibleSymbols,["EURUSD"],"eligibility requires held-out symbol evidence, not calibration performance");
+assert.equal(result.frozenSurvivors[0].protocolHash,protocol.hash,"freeze retains exact precommitment lineage");
+assert.equal(result.frozenSurvivors[0].datasetCampaignHash,campaign.hash);
+assert.deepEqual(result.frozenSurvivors[0].parameters,{bodyAtr:.45,extensionAtr:.9});
+assert.equal(result.marketStates.METALS,"NEW_STRATEGY_RESEARCH_REQUIRED");
+assert.equal(result.marketStates.CRYPTO,"NEW_STRATEGY_RESEARCH_REQUIRED");
+assert.deepEqual(CERTIFICATION_STAGES.slice(0,4),["QUEUED","DATA_VALIDATION","BASELINE","SCREENING"],"baseline always precedes calibration");
+
+for(const [label,bad,reason] of [
+ ["weak OOS",evidence({oos:metric({trades:12,expectancyR:-.1})}),"WEAK_OOS_EXPECTANCY"],
+ ["walk-forward",evidence({walkForward:{windows:8,positiveWindows:2,negativeWindows:6,consistencyPct:25}}),"WALK_FORWARD_INCONSISTENT"],
+ ["stress",evidence({stress:[{scenario:"COMBINED",profitFactor:.8,expectancyR:-.1,maxDrawdownR:9}]}),"STRESS_FAILURE"],
+ ["Monte Carlo",evidence({monteCarlo:{...evidence().monteCarlo,drawdownP95R:15}}),"MONTE_CARLO_DD_FAILURE"],
+ ["instability",evidence({parameterRobustness:"NARROW_PEAK"}),"NARROW_PEAK"],
+] as const){const row=certifyPortfolio(protocol,[bad]).strategyResults[0];assert.equal(row.finalState,"REJECTED",`${label} rejects`);assert.ok(row.reasons.includes(reason))}
+const rebuild=certifyPortfolio(protocol,[evidence({parameterRobustness:"UNSTABLE",rebuild:{structuralFlaw:"canonical adapter omits intended close confirmation",supportingEvidence:"nearby configurations form a stable positive OOS region"}})]).strategyResults[0];assert.equal(rebuild.finalState,"RESEARCH_REBUILD_CANDIDATE","rebuild requires specific flaw plus edge evidence");
+const unavailable=certifyPortfolio(protocol,[]);assert.equal(unavailable.status,"REAL_DATA_REQUIRED");assert.deepEqual(unavailable.frozenSurvivors,[]);
+assert.throws(()=>certifyPortfolio(protocol,[evidence({prop:{...evidence().prop,attempts:[{requested:10,available:4,actuallyRun:5}]}})]),/INVALID_ROLLING_ATTEMPT_COUNTS/,"attempts cannot duplicate unavailable windows");
+const source=readFileSync("src/pages/admin/backtest/PortfolioCertificationPanel.tsx","utf8");for(const label of ["STRATEGY PORTFOLIO CERTIFICATION CAMPAIGN","LOCK PROTOCOL & START","MONTE_CARLO","FINAL_STATE","REAL_DATA_REQUIRED"])assert.match(source,new RegExp(label));
+const scanner=readFileSync("supabase/functions/_shared/trading-domain/strategies.ts","utf8");assert.match(scanner,/CANONICAL_STRATEGIES/); // safety snapshot: this suite imports but never mutates runtime/defaults/customer state.
+console.log("phase B portfolio certification tests passed",JSON.stringify({protocol:protocol.hash,campaign:result.campaignHash,state:result.strategyResults[0].finalState,eligible:result.strategyResults[0].eligibleSymbols,statusWithoutReplay:unavailable.status}));
