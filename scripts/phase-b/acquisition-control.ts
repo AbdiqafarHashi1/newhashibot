@@ -29,3 +29,17 @@ export async function mapBounded<T,R>(values:readonly T[],limit:number,worker:(v
 export class Semaphore {private active=0;private readonly waiting:Array<()=>void>=[];constructor(private readonly limit:number){}async run<T>(work:()=>Promise<T>){if(this.active>=this.limit)await new Promise<void>(resolve=>this.waiting.push(resolve));this.active++;try{return await work()}finally{this.active--;this.waiting.shift()?.()}}}
 
 export function statusFromReadyMarkets(ready:number){return ready===3?"PASS":ready>0?"PARTIAL_REAL_DATA":"DATA_SOURCE_BLOCKED"}
+
+export interface SurvivorSymbol {market:AcquisitionMarket;strategyId:string;symbols:readonly string[]}
+/** Stage 2 is deliberately driven by qualified, OOS-backed symbols, never the original universe. */
+export function supportingPlanForSurvivors(survivors:readonly SurvivorSymbol[]){
+  const plan=acquisitionPlan().supporting;
+  const keys=new Set(survivors.flatMap(row=>row.symbols.map(symbol=>`${row.market}:${symbol}`)));
+  return plan.filter(spec=>keys.has(`${spec.market}:${spec.symbol}`));
+}
+
+export function certificationStatus(marketStates:readonly {market:string;status:string;reason?:string}[]){
+  const completed=marketStates.filter(x=>x.status==="READY"||x.status==="COMPLETED").length;
+  const unavailable=marketStates.filter(x=>x.status==="DATA_SOURCE_BLOCKED"||x.status==="UNAVAILABLE").length;
+  return completed===0?"DATA_SOURCE_BLOCKED":unavailable>0?"PARTIAL_REAL_DATA":"PASS";
+}
