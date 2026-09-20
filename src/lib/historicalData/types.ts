@@ -1,4 +1,4 @@
-export type HistoricalProvider = 'MT5_BRIDGE' | 'BINANCE' | 'BYBIT' | 'CSV' | 'PUBLIC_RESEARCH';
+export type HistoricalProvider = 'MT5_BRIDGE' | 'BINANCE' | 'BYBIT' | 'COINBASE' | 'TWELVE_DATA' | 'CSV' | 'PUBLIC_RESEARCH';
 export type HistoricalTimeframe = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d';
 export type DataQualityClassification = 'RESEARCH' | 'BROKER_VALIDATED' | 'CERTIFICATION';
 
@@ -72,7 +72,7 @@ export interface HistoricalDatasetMetadata extends HistoricalDataRequest {
     sourceSymbol: string;
     native: boolean;
     /** Named upstream venue/feed for independently acquired research evidence. */
-    sourceName?: 'DUKASCOPY' | 'TWELVE_DATA' | 'BINANCE' | 'BYBIT' | 'MT5' | 'CSV';
+    sourceName?: 'DUKASCOPY' | 'TWELVE_DATA' | 'BINANCE' | 'BYBIT' | 'COINBASE' | 'MT5' | 'CSV';
     sourceVersion?: string;
     sourceUrl?: string;
     aggregation?: CandleDerivation;
