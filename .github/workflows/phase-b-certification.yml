@@ -33,9 +33,10 @@ jobs:
           path: |
             .research-cache/phase-b/datasets/
             .research-cache/phase-b/chunks/
-          key: phase-b-real-data-v2-${{ hashFiles('scripts/phase-b/acquire-real-data.ts', 'src/lib/historicalData/adapters.ts') }}
+            .research-cache/phase-b/raw/
+          key: phase-b-real-data-v3-${{ hashFiles('scripts/phase-b/acquire-real-data.ts', 'src/lib/historicalData/adapters.ts', 'src/lib/historicalData/histData.ts') }}
           restore-keys: |
-            phase-b-real-data-v2-
+            phase-b-real-data-v3-
 
       - name: Acquire real market data
         id: acquisition
@@ -60,6 +61,7 @@ jobs:
         id: certification
         if: always()
         continue-on-error: true
+        timeout-minutes: 180
         run: |
           mkdir -p .research-cache/phase-b/logs
           set -o pipefail
@@ -75,6 +77,7 @@ jobs:
             .research-cache/phase-b/certification-report.json
             .research-cache/phase-b/policy-manifest.json
             .research-cache/phase-b/evidence/
+            .research-cache/phase-b/raw/**/*.json
             .research-cache/phase-b/logs/
           if-no-files-found: warn
           include-hidden-files: true
@@ -100,7 +103,13 @@ jobs:
         run: |
           echo "Acquisition outcome: ${ACQUISITION_OUTCOME}"
           echo "Certification outcome: ${CERTIFICATION_OUTCOME}"
-          if [ "${ACQUISITION_OUTCOME}" != "success" ] || [ "${CERTIFICATION_OUTCOME}" != "success" ]; then
-            echo "::error::Phase B acquisition or certification failed. Review the uploaded reports and logs."
+          required=(acquisition-report.json certification-report.json policy-manifest.json evidence/strategy-edge.json evidence/pipeline.json evidence/arbitration.json evidence/signals.json evidence/personal.json evidence/prop.json evidence/portfolio.json evidence/lineage.json evidence/payout-model.json evidence/combined-pipeline.json evidence/combined-arbitration.json evidence/combined-signals.json evidence/combined-personal.json evidence/combined-prop.json evidence/combined-funded.json evidence/combined-payout.json evidence/combined-lineage.json)
+          missing=()
+          for file in "${required[@]}"; do
+            [ -s ".research-cache/phase-b/${file}" ] || missing+=("${file}")
+          done
+          if [ "${ACQUISITION_OUTCOME}" != "success" ] || [ "${CERTIFICATION_OUTCOME}" != "success" ] || [ "${#missing[@]}" -ne 0 ]; then
+            echo "::error::PHASE_B_EXECUTION_BLOCKED acquisition=${ACQUISITION_OUTCOME} certification=${CERTIFICATION_OUTCOME} missing=${missing[*]:-none}"
             exit 1
           fi
+          echo "Phase B execution complete; research verdict is recorded in certification-report.json."

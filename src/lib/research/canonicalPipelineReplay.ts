@@ -20,6 +20,7 @@ import {
   type PriceObservation,
   type RiskPolicySnapshot,
   type TradePlan,
+  type StrategyDefinition,
 } from "../../../supabase/functions/_shared/trading-domain/index.ts";
 
 const WIDTH: Record<DomainTimeframe, number> = {
@@ -36,7 +37,7 @@ export interface PipelineDataset {
   datasetId: string;
   symbol: string;
   timeframe: HistoricalTimeframe;
-  provider: "MT5_BRIDGE" | "BINANCE" | "BYBIT" | "CSV" | "PUBLIC_RESEARCH";
+  provider: "MT5_BRIDGE" | "BINANCE" | "BYBIT" | "COINBASE" | "CSV" | "PUBLIC_RESEARCH" | "HISTDATA" | "TWELVE_DATA";
   bars: readonly CanonicalCandle[];
   quality?: HistoricalDataQualityReport;
 }
@@ -85,6 +86,8 @@ export interface CandidatePipelineInput {
   portfolioPolicy: CandidatePipelinePolicy;
   executionModel: ResearchExecutionModel;
   runReference: string;
+  /** Test/research dependency injection; production certification omits this. */
+  strategyDefinitions?: readonly StrategyDefinition[];
   entryOverlay?: (context: {
     timestamp: string;
     candidate: Candidate;
@@ -202,7 +205,7 @@ function qualityStatus(q?: HistoricalDataQualityReport) {
 export function runCandidatePipelineReplay(input: CandidatePipelineInput): CandidatePipelineResult {
   const invalid = input.datasets.filter((d) => qualityStatus(d.quality) === "FAIL");
   if (invalid.length) throw new Error(`DATA_QUALITY_FAILED:${invalid.map((d) => d.datasetId).join(",")}`);
-  const strategies = input.strategyIds.map(strategyById), contexts = strategies.flatMap((strategy) => {
+  const strategies = input.strategyIds.map(id=>input.strategyDefinitions?.find(x=>x.id===id)??strategyById(id)), strategyFor=(id:string)=>strategies.find(x=>x.id===id)??strategyById(id), contexts = strategies.flatMap((strategy) => {
     const symbols = [...new Set(input.datasets.map((d) => d.symbol))].filter((s) => strategy.instruments.includes("*") || strategy.instruments.includes(s));
     return symbols.map((symbol) => ({ strategy, symbol, data: datasetsFor(input, symbol, strategy.requirements.requiredTimeframes) }));
   });
@@ -259,8 +262,8 @@ export function runCandidatePipelineReplay(input: CandidatePipelineInput): Candi
     const plan: TradePlan = { version: "trade-plan/v1", candidateId: candidate.id, symbol: candidate.symbol, side: candidate.side, entryModel: "CANDLE_CLOSE_INTENT", intendedEntry: candidate.entry, stop: candidate.stop, targets: candidate.targets, initialRiskDistance: Math.abs(candidate.entry - candidate.stop), partialExit: { targetIndex: 0, fraction: 0.5 }, breakevenAfterTarget: 0, trailing: "AFTER_TP1", expiry: new Date(Date.parse(timestamp) + WIDTH[candidate.primaryTimeframe]).toISOString(), strategyId: candidate.strategyId, strategyVersion: candidate.strategyVersion, risk: adjustedRisk, capital };
     const source = input.datasets.find((d) => d.symbol === candidate.symbol && d.timeframe === candidate.primaryTimeframe)!;
     const observations = source.bars.filter((b) => b.timestamp >= Date.parse(timestamp)).map((b) => ({ id: `${source.datasetId}:${b.timestamp}`, timestamp: new Date(b.timestamp + WIDTH[source.timeframe]).toISOString(), open: b.open, high: b.high, low: b.low, close: b.close, provenance: "HISTORICAL_SIMULATION" as const }));
-    const replayDatasets = datasetsFor(input, candidate.symbol, strategyById(candidate.strategyId).requirements.requiredTimeframes);
-    const replay = runCanonicalReplay({ plan, configurationVersion: input.configurationVersion, market: strategyById(candidate.strategyId).market, primaryTimeframe: candidate.primaryTimeframe, datasetIds: Object.values(replayDatasets).map((rows) => rows?.[0]?.datasetId).filter((x): x is string => Boolean(x)), observations, quantity, costs: costs(input.executionModel, candidate, quantity), riskAmount: adjustedRisk.riskAmount, runReference: input.runReference });
+    const replayDatasets = datasetsFor(input, candidate.symbol, strategyFor(candidate.strategyId).requirements.requiredTimeframes);
+    const replay = runCanonicalReplay({ plan, configurationVersion: input.configurationVersion, market: strategyFor(candidate.strategyId).market, primaryTimeframe: candidate.primaryTimeframe, datasetIds: Object.values(replayDatasets).map((rows) => rows?.[0]?.datasetId).filter((x): x is string => Boolean(x)), observations, quantity, costs: costs(input.executionModel, candidate, quantity), riskAmount: adjustedRisk.riskAmount, runReference: input.runReference });
     if (!replay.result) { rejected.push({ timestamp, candidateId: candidate.id, strategyId: candidate.strategyId, symbol: candidate.symbol, reasonCodes: ["NO_COMPLETED_PATH"] }); continue; }
     const primary = datasetsFor(input, candidate.symbol, [candidate.primaryTimeframe])[candidate.primaryTimeframe] ?? [];
     const item: AcceptedPipelineTrade = { candidate, plan, result: replay.result, observations, acceptedAt: timestamp, closedAt: replay.result.closedAt, accountBefore: { ...account, exposedSymbols: [...account.exposedSymbols] }, overlay, regime: regime(candidate.symbol, candidate.primaryTimeframe, primary, timestamp) };
