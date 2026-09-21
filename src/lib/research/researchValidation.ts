@@ -312,7 +312,7 @@ export function walkForward(
     };
   const first = Date.parse(run.dateRange.from),
     last = Date.parse(run.dateRange.to),
-    windows = [];
+    windows = [],aggregateTrades:CanonicalCompletedTradeResult[]=[];
   for (
     let start = first;
     start + trainDays * 86400000 < last;
@@ -330,23 +330,22 @@ export function walkForward(
           Date.parse(t.closedAt) >= trainEnd &&
           Date.parse(t.closedAt) < testEnd,
       );
+    const trainingMetrics=metrics(training,run.initialBalance),testMetrics=metrics(test,run.initialBalance);aggregateTrades.push(...test);
     windows.push({
       trainingStart: new Date(start).toISOString(),
       trainingEnd: new Date(trainEnd).toISOString(),
       testStart: new Date(trainEnd).toISOString(),
       testEnd: new Date(testEnd).toISOString(),
       configurationVersion: run.configurationVersion,
-      training: metrics(training, run.initialBalance),
-      test: metrics(test, run.initialBalance),
-      testTrades: test,
-      pass: metrics(test).netR > 0,
+      training: {...trainingMetrics,rDistribution:[]},
+      test: {...testMetrics,rDistribution:[]},
+      pass: testMetrics.netR > 0,
     });
   }
-  const oos = windows.flatMap((w) => w.testTrades),
-    positive = windows.filter((w) => w.pass).length;
+  const positive = windows.filter((w) => w.pass).length;
   return {
     windows,
-    aggregateOos: metrics(oos, run.initialBalance),
+    aggregateOos: metrics(aggregateTrades, run.initialBalance),
     profitableWindows: positive,
     losingWindows: windows.length - positive,
     consistency: windows.length ? (positive / windows.length) * 100 : 0,
@@ -447,7 +446,7 @@ export function monteCarlo(
       maxDrawdownR: number;
       maxLosingStreak: number;
       breached: boolean;
-    }[] = [];
+    }[] = [],endingRValues:number[]=[],endingPnlValues:number[]=[],drawdownValues:number[]=[],streakValues:number[]=[];let breaches=0,worst:typeof results[number]|null=null,best:typeof results[number]|null=null;
   for (let n = 0; n < count; n++) {
     const sample =
       method === "BOOTSTRAP_WITH_REPLACEMENT"
@@ -463,14 +462,13 @@ export function monteCarlo(
             }
             return x;
           })();
-    const m = metrics(sample, run.initialBalance);
-    results.push({
+    const m = metrics(sample, run.initialBalance),summary={
       endingR: m.netR,
       endingPnl: m.netPnl,
       maxDrawdownR: m.maxDrawdownR,
       maxLosingStreak: m.losingStreak,
       breached: m.maxDrawdownR >= breachR,
-    });
+    };results.push(summary);endingRValues.push(summary.endingR);endingPnlValues.push(summary.endingPnl??0);drawdownValues.push(summary.maxDrawdownR);streakValues.push(summary.maxLosingStreak);if(summary.breached)breaches++;if(!worst||summary.endingR<worst.endingR)worst=summary;if(!best||summary.endingR>best.endingR)best=summary;
   }
   const fields = (
     key: "endingR" | "endingPnl" | "maxDrawdownR" | "maxLosingStreak",
@@ -485,7 +483,7 @@ export function monteCarlo(
       ].map(([label, p]) => [
         `p${label}`,
         percentile(
-          results.map((r) => r[key] ?? 0),
+          key==="endingR"?endingRValues:key==="endingPnl"?endingPnlValues:key==="maxDrawdownR"?drawdownValues:streakValues,
           p,
         ),
       ]),
@@ -500,10 +498,10 @@ export function monteCarlo(
     maxDrawdownR: fields("maxDrawdownR"),
     maxLosingStreak: fields("maxLosingStreak"),
     breachFrequency: count
-      ? results.filter((r) => r.breached).length / count
+      ? breaches / count
       : 0,
-    worst: [...results].sort((a, b) => a.endingR - b.endingR)[0] ?? null,
-    best: [...results].sort((a, b) => b.endingR - a.endingR)[0] ?? null,
+    worst,
+    best,
     results,
   };
 }

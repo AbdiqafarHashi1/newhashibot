@@ -224,6 +224,8 @@ function ratioLargest(values: readonly number[]) {
   return total ? Math.max(0, ...absolute) / total * 100 : 0;
 }
 function clampScore(value: number) { return Math.max(0, Math.min(100, value)); }
+function qualificationMemory(input:QualificationCampaignInput,strategyId:string,stage:string){const memory=process.memoryUsage();console.log(`[PHASE_B_MEMORY] qualification=${input.campaignId} strategy=${strategyId} stage=${stage} rss_mb=${Math.round(memory.rss/1024/1024)} heap_used_mb=${Math.round(memory.heapUsed/1024/1024)} heap_total_mb=${Math.round(memory.heapTotal/1024/1024)}`)}
+function compactPipeline(pipeline:CandidatePipelineResult):CandidatePipelineResult{return{...pipeline,accepted:[],rejected:[],trades:[]}}
 export function calibrationDistance(left: CalibrationVariant, right: CalibrationVariant): number {
   const strategyKeys = new Set([...Object.keys(left.strategyParameters), ...Object.keys(right.strategyParameters)]);
   const formulaDistance = [...strategyKeys].reduce((sum, key) => sum + Math.abs((left.strategyParameters[key] ?? 0) - (right.strategyParameters[key] ?? 0)), 0);
@@ -272,7 +274,9 @@ function evaluateVariant(input: QualificationCampaignInput, strategyId: string, 
   const template = input.strategyInputs[strategyId];
   if (!template) throw new Error(`MISSING_STRATEGY_PIPELINE_INPUT:${strategyId}`);
   const pipelineInput: CandidatePipelineInput = { ...template, strategyIds: [strategyId], configurationVersion: variant.configVersion, riskPolicy: { ...template.riskPolicy, riskPercent: variant.researchPolicyParameters.riskPercent }, portfolioPolicy: { ...template.portfolioPolicy, minimumScore: variant.researchPolicyParameters.minimumCandidateScore }, parameters: { ...template.parameters, [strategyId]: Object.freeze({ ...(template.parameters?.[strategyId] ?? {}), ...variant.strategyParameters }) }, runReference: `${input.campaignId}:${variant.configId}` };
+  qualificationMemory(input,strategyId,`config:${variant.configId}:replay:before`);
   const pipeline = runCandidatePipelineReplay(pipelineInput), run = researchRun(strategyId, variant, pipeline, pipelineInput, input.seed);
+  qualificationMemory(input,strategyId,`config:${variant.configId}:replay:after`);
   const stages: QualificationStageRecord[] = [], eliminate = (stage: QualificationStage, reasonCodes: string[]) => stages.push({ stage, status: "ELIMINATED", reasonCodes });
   const noMetrics = metrics([], run.initialBalance);
   if (pipeline.trades.length < 2) {
@@ -294,18 +298,21 @@ function evaluateVariant(input: QualificationCampaignInput, strategyId: string, 
   stages.push({ stage: "OOS", status: "COMPLETED", reasonCodes: [] });
   const spanDays = Math.max(1, Math.ceil((Date.parse(run.dateRange.to) - Date.parse(run.dateRange.from)) / 86_400_000));
   const walk = walkForward(run, Math.max(1, Math.floor(spanDays * 0.4)), Math.max(1, Math.floor(spanDays * 0.15)), Math.max(1, Math.floor(spanDays * 0.1)));
+  qualificationMemory(input,strategyId,`config:${variant.configId}:walk_forward:after`);
   if (!walk.windows.length || walk.consistency < input.policy.minimumWalkForwardConsistencyPct) {
     eliminate("WALK_FORWARD", ["UNSTABLE_WALK_FORWARD"]);
     return { variant, status: "REJECTED", stageReached: "ELIMINATED", eliminationReasons: ["UNSTABLE_WALK_FORWARD"], thesisDiagnostics: ["UNSTABLE_WALK_FORWARD"], researchScore: 0, pipeline, stages, evidence: { inSample: is, outOfSample: validation, walkForwardConsistency: walk.consistency, stressMinimumProfitFactor: 0, monteCarloDrawdownR95: null, maximumRegimeContributionPct: 100, maximumSymbolContributionPct: 100, propStatus: "NOT_REQUIRED", fundedSurvived: null, overfitPenalty: 100 } };
   }
   stages.push({ stage: "WALK_FORWARD", status: "COMPLETED", reasonCodes: [] });
-  const stressScenarios: StressScenario[] = ["BASELINE", "SPREAD_1_5X", "SLIPPAGE_HIGH", "COMMISSION_HIGHER", "COMBINED_STRESS"], stresses = stressScenarios.map((scenario) => stress(run, scenario)), stressPf = Math.min(...stresses.map((item) => item.metrics.profitFactor ?? 0));
+  const stressScenarios: StressScenario[] = ["BASELINE", "SPREAD_1_5X", "SLIPPAGE_HIGH", "COMMISSION_HIGHER", "COMBINED_STRESS"];let stressPf=Infinity;for(const scenario of stressScenarios){const result=stress(run,scenario);stressPf=Math.min(stressPf,result.metrics.profitFactor??0)}
+  qualificationMemory(input,strategyId,`config:${variant.configId}:stress:after`);
   if (stressPf < input.policy.minimumStressProfitFactor) {
     eliminate("STRESS", ["COST_SENSITIVE"]);
     return { variant, status: "REJECTED", stageReached: "ELIMINATED", eliminationReasons: ["COST_SENSITIVE"], thesisDiagnostics: ["COST_SENSITIVE"], researchScore: 0, pipeline, stages, evidence: { inSample: is, outOfSample: validation, walkForwardConsistency: walk.consistency, stressMinimumProfitFactor: stressPf, monteCarloDrawdownR95: null, maximumRegimeContributionPct: 100, maximumSymbolContributionPct: 100, propStatus: "NOT_REQUIRED", fundedSurvived: null, overfitPenalty: 100 } };
   }
   stages.push({ stage: "STRESS", status: "COMPLETED", reasonCodes: [] });
   const monte = monteCarlo(run, 500, input.seed, "TRADE_ORDER_PERMUTATION", input.policy.maximumMonteCarloDrawdownR95), monteP95 = Number(monte.maxDrawdownR.p95 ?? Infinity);
+  qualificationMemory(input,strategyId,`config:${variant.configId}:monte_carlo:after`);
   if (monteP95 > input.policy.maximumMonteCarloDrawdownR95) {
     eliminate("MONTE_CARLO", ["BAD_MONTE_CARLO_TAIL"]);
     return { variant, status: "REJECTED", stageReached: "ELIMINATED", eliminationReasons: ["BAD_MONTE_CARLO_TAIL"], thesisDiagnostics: ["BAD_MONTE_CARLO_TAIL"], researchScore: 0, pipeline, stages, evidence: { inSample: is, outOfSample: validation, walkForwardConsistency: walk.consistency, stressMinimumProfitFactor: stressPf, monteCarloDrawdownR95: monteP95, maximumRegimeContributionPct: 100, maximumSymbolContributionPct: 100, propStatus: "NOT_REQUIRED", fundedSurvived: null, overfitPenalty: 100 } };
@@ -380,25 +387,27 @@ export function runQualificationCampaign(input: QualificationCampaignInput): Qua
   const evaluated: QualifiedVariantResult[] = input.strategyIds.flatMap((strategyId) => {
     const strategy = CANONICAL_STRATEGIES[strategyId], template = input.strategyInputs[strategyId];
     if (!strategy || !template) throw new Error(`MISSING_STRATEGY_PIPELINE_INPUT:${strategyId}`);
-    return generateCalibrationVariants({ strategyId, method: input.searchMethod, seed: input.seed, maximumVariants: input.maximumVariantsPerStrategy }).map((variant) => ({ ...evaluateVariant(input, strategyId, variant), binding: { strategyId, strategyVersion: strategy.version, configVersion: variant.configVersion, assetClass: strategy.market, supportedSymbols: Object.freeze([...new Set(template.datasets.map((dataset) => dataset.symbol))]), supportedTimeframes: Object.freeze([...new Set(template.datasets.map((dataset) => dataset.timeframe))]), researchPolicyVersion: input.policy.version } }));
+    return generateCalibrationVariants({ strategyId, method: input.searchMethod, seed: input.seed, maximumVariants: input.maximumVariantsPerStrategy }).map((variant) => {const evaluated=evaluateVariant(input,strategyId,variant);return { ...evaluated,pipeline:compactPipeline(evaluated.pipeline), binding: { strategyId, strategyVersion: strategy.version, configVersion: variant.configVersion, assetClass: strategy.market, supportedSymbols: Object.freeze([...new Set(template.datasets.map((dataset) => dataset.symbol))]), supportedTimeframes: Object.freeze([...new Set(template.datasets.map((dataset) => dataset.timeframe))]), researchPolicyVersion: input.policy.version } }});
   });
   const results = evaluated.map((result) => {
     if (result.stageReached === "ELIMINATED") return result;
-    const resultStrategy = result.pipeline.accepted[0]?.candidate.strategyId;
-    const peers = evaluated.filter((peer) => peer !== result && peer.pipeline.accepted[0]?.candidate.strategyId === resultStrategy).sort((a, b) => {
+    const resultStrategy = result.binding.strategyId;
+    const peers = evaluated.filter((peer) => peer !== result && peer.binding.strategyId === resultStrategy).sort((a, b) => {
       return calibrationDistance(a.variant, result.variant) - calibrationDistance(b.variant, result.variant) || a.variant.configId.localeCompare(b.variant.configId);
     }).slice(0, 2);
     const neighborhood = assessParameterNeighborhood(result.variant, peers.map(peer => ({ variant: peer.variant, survived: peer.stageReached !== "ELIMINATED" })));
     const stability = neighborhood.stabilityPct, fragile = neighborhood.fragile, researchScore = clampScore(result.researchScore - (fragile ? 20 : stability < 100 ? 5 : 0));
     return { ...result, researchScore, status: researchScore >= input.policy.minimumResearchScore && !fragile ? "FORWARD_VALIDATION_CANDIDATE" as const : "RESEARCH_ONLY" as const, thesisDiagnostics: [...result.thesisDiagnostics, ...(fragile ? ["FRAGILE_PARAMETER_REGION"] : [])], evidence: { ...result.evidence, parameterStabilityPct: stability } };
   });
-  const survivors = results.filter((result) => result.status === "FORWARD_VALIDATION_CANDIDATE").sort((a, b) => b.researchScore - a.researchScore || a.variant.configId.localeCompare(b.variant.configId));
+  const finalistByStrategy=new Map<string,QualifiedVariantResult>();for(const result of results){if(result.status!=="FORWARD_VALIDATION_CANDIDATE")continue;const current=finalistByStrategy.get(result.binding.strategyId);if(!current||result.researchScore>current.researchScore||(result.researchScore===current.researchScore&&result.variant.configId<current.variant.configId))finalistByStrategy.set(result.binding.strategyId,result)}const finalistIds=new Set([...finalistByStrategy.values()].map(result=>result.variant.configId));
+  const hydrated=results.map(result=>{if(!finalistIds.has(result.variant.configId))return result;qualificationMemory(input,result.binding.strategyId,`finalist:${result.variant.configId}:replay:before`);const full=evaluateVariant(input,result.binding.strategyId,result.variant);qualificationMemory(input,result.binding.strategyId,`finalist:${result.variant.configId}:replay:after`);return{...result,pipeline:full.pipeline}});
+  const survivors = hydrated.filter((result) => result.status === "FORWARD_VALIDATION_CANDIDATE").sort((a, b) => b.researchScore - a.researchScore || a.variant.configId.localeCompare(b.variant.configId));
   const market = input.assetClass === "CRYPTO" ? "CRYPTO" : "FOREX", setId = `${market}_${input.policy.product}_QUALIFIED_SET` as QualifiedStrategySet["id"];
   const entries = survivors.map((result) => Object.freeze({ strategyId: result.binding.strategyId, strategyVersion: result.binding.strategyVersion, configId: result.variant.configId, configVersion: result.variant.configVersion, qualificationStatus: result.status, supportedSymbols: result.binding.supportedSymbols, supportedTimeframes: result.binding.supportedTimeframes, researchRunIds: Object.freeze([result.pipeline.runHash]), strategyParameters: Object.freeze({ ...result.variant.strategyParameters }) }));
   if (!Number.isFinite(Date.parse(input.certificationDate))) throw new Error("INVALID_CERTIFICATION_DATE");
   const setCore = { version: "qualified-strategy-set/v1" as const, id: setId, setVersion: digest({ campaignId: input.campaignId, policy: input.policy.version, entries }, "set"), frozen: true, product: input.policy.product, researchPolicyVersion: input.policy.version, certifiedAt: new Date(input.certificationDate).toISOString(), entries: Object.freeze(entries) };
   const qualifiedSet = deepFreeze(setCore) as QualifiedStrategySet;
-  const core = { version: "qualification-campaign/v1" as const, campaignId: input.campaignId, status: "COMPLETED" as const, policyVersion: input.policy.version, variantsTested: results.length, eliminated: results.filter((result) => result.stageReached === "ELIMINATED").length, survivors, results, recommendation: survivors.length ? "QUALIFIED_WINNERS" as const : "NO_ROBUST_CONFIGURATION_FOUND" as const, qualifiedSet };
+  const core = { version: "qualification-campaign/v1" as const, campaignId: input.campaignId, status: "COMPLETED" as const, policyVersion: input.policy.version, variantsTested: hydrated.length, eliminated: hydrated.filter((result) => result.stageReached === "ELIMINATED").length, survivors, results:hydrated, recommendation: survivors.length ? "QUALIFIED_WINNERS" as const : "NO_ROBUST_CONFIGURATION_FOUND" as const, qualifiedSet };
   return { ...core, campaignHash: digest({ ...core, results: results.map((result) => ({ config: result.variant, status: result.status, score: result.researchScore, runHash: result.pipeline.runHash })) }, "campaign") };
 }
 

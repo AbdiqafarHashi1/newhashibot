@@ -34,7 +34,7 @@ export async function fetchHistoricalWithRetry(fetcher:Fetcher,url:string,signal
     try{response=await fetcher(url,{signal:controller.signal})}catch(error){clearTimeout(timer);signal?.removeEventListener('abort',abort);if(attempt===max||signal?.aborted||now()-started>=budget){options.onAttempt?.({url,attempt,status:null,retryDelayMs:0,outcome:'FAILED'});throw signal?.aborted?signal.reason:error}const delay=delays[attempt-1]??Math.round(base*2**(attempt-1)*(1+.25*jitter()));if(now()-started+delay>budget)throw new Error('HISTORY_RETRY_BUDGET_EXCEEDED');options.onAttempt?.({url,attempt,status:null,retryDelayMs:delay,outcome:'RETRY'});await wait(delay,signal);continue}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort)}
     if(response.ok){options.onAttempt?.({url,attempt,status:response.status,retryDelayMs:0,outcome:'SUCCESS'});return response}
     const retryable=[408,418,425,429,500,502,503,504].includes(response.status);if(!retryable||attempt===max){options.onAttempt?.({url,attempt,status:response.status,retryDelayMs:0,outcome:'FAILED'});throw new Error(`HISTORY_HTTP_${response.status}`)}
-    const header=response.headers.get('retry-after'),parsed=header?(Number.isFinite(Number(header))?Number(header)*1000:Date.parse(header)-now()):0,backoff=delays[attempt-1]??Math.round(base*2**(attempt-1)*(1+.25*jitter())),delay=Math.min(retryAfterCap,Math.max(0,Number.isFinite(parsed)?parsed:0,backoff));if(now()-started+delay>budget)throw new Error('HISTORY_RETRY_BUDGET_EXCEEDED');options.onAttempt?.({url,attempt,status:response.status,retryDelayMs:delay,outcome:'RETRY'});await wait(delay,signal)
+    const header=response.headers.get('retry-after'),parsed=header?(Number.isFinite(Number(header))?Number(header)*1000:Date.parse(header)-now()):0,backoff=delays[attempt-1]??Math.round(base*2**(attempt-1)*(1+.25*jitter())),retryAfter=Math.max(0,Number.isFinite(parsed)?parsed:0),delay=retryAfter?Math.max(retryAfter,backoff):Math.min(retryAfterCap,backoff);if(now()-started+delay>budget)throw new Error('HISTORY_RETRY_BUDGET_EXCEEDED');options.onAttempt?.({url,attempt,status:response.status,retryDelayMs:delay,outcome:'RETRY'});await wait(delay,signal)
   }throw new Error('HISTORY_RETRY_EXHAUSTED')
 }
 function finalize(bars:CanonicalCandle[],r:HistoricalDataRequest){const unique=new Map(bars.map(b=>[b.timestamp,b]));const now=Date.now(),width=TIMEFRAME_MS[r.timeframe];return [...unique.values()].sort((a,b)=>a.timestamp-b.timestamp).filter(b=>r.includeOpenCandle||b.timestamp+width<=now);}
@@ -73,7 +73,26 @@ export class CoinbaseHistoricalAdapter implements HistoricalAdapter {
 export class TwelveDataHistoricalAdapter implements HistoricalAdapter {
   readonly provider='TWELVE_DATA' as const;
   constructor(private apiKey:string,private fetcher:Fetcher=fetch,private http:HistoricalHttpOptions={}){}
-  async fetch(r:HistoricalDataRequest,range:HistoricalRange){const source=r.symbol==='XAUUSD'?'XAU/USD':r.symbol.replace(/(.{3})(.{3})/,'$1/$2'),interval=({'5m':'5min','15m':'15min','1h':'1h','4h':'4h'} as Record<string,string>)[r.timeframe],url=`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(source)}&interval=${interval}&start_date=${encodeURIComponent(new Date(range.from).toISOString())}&end_date=${encodeURIComponent(new Date(range.to).toISOString())}&outputsize=5000&timezone=UTC&apikey=${encodeURIComponent(this.apiKey)}`,response=await fetchHistoricalWithRetry(this.fetcher,url,r.signal,this.http),json=await response.json() as {status?:string;message?:string;values?:Array<Record<string,string>>};if(json.status==='error'||!json.values)throw new Error(`TWELVE_DATA_${json.message??'INVALID_RESPONSE'}`);return{sourceSymbol:source,bars:finalize(json.values.map(x=>({timestamp:Date.parse(`${x.datetime}Z`),open:Number(x.open),high:Number(x.high),low:Number(x.low),close:Number(x.close),volume:x.volume===undefined?undefined:Number(x.volume)})),r),sourceName:'TWELVE_DATA' as const,sourceVersion:'time-series/v1',sourceUrl:'https://api.twelvedata.com/time_series'}}
+  async fetch(r:HistoricalDataRequest,range:HistoricalRange){
+    const source=r.symbol==='XAUUSD'?'XAU/USD':r.symbol.replace(/(.{3})(.{3})/,'$1/$2'),interval=({'5m':'5min','15m':'15min','1h':'1h','4h':'4h'} as Record<string,string>)[r.timeframe];
+    if(!interval)throw new Error('TWELVE_DATA_TIMEFRAME_MISMATCH');
+    const url=`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(source)}&interval=${interval}&start_date=${encodeURIComponent(new Date(range.from).toISOString())}&end_date=${encodeURIComponent(new Date(range.to).toISOString())}&outputsize=5000&timezone=UTC&apikey=${encodeURIComponent(this.apiKey)}`,response=await fetchHistoricalWithRetry(this.fetcher,url,r.signal,{...this.http,requestDelayMs:Math.max(900,this.http.requestDelayMs??0)}),json=await response.json() as {status?:string;message?:string;meta?:{symbol?:string;interval?:string};values?:unknown};
+    if(json.status==='error')throw new Error(`TWELVE_DATA_${json.message??'INVALID_RESPONSE'}`);
+    if(!Array.isArray(json.values))throw new Error('TWELVE_DATA_CORRUPT_PAYLOAD');
+    if(json.meta?.symbol&&json.meta.symbol.replace('/','').toUpperCase()!==source.replace('/','').toUpperCase())throw new Error('TWELVE_DATA_SYMBOL_MISMATCH');
+    if(json.meta?.interval&&json.meta.interval!==interval)throw new Error('TWELVE_DATA_TIMEFRAME_MISMATCH');
+    const bars:CanonicalCandle[]=[];
+    for(const value of json.values){
+      if(!value||typeof value!=='object')throw new Error('TWELVE_DATA_CORRUPT_PAYLOAD');
+      const x=value as Record<string,unknown>,raw=String(x.datetime??''),timestamp=Date.parse(/[zZ]|[+-]\d\d(?::?\d\d)?$/.test(raw)?raw:`${raw}Z`),bar={timestamp,open:Number(x.open),high:Number(x.high),low:Number(x.low),close:Number(x.close),volume:x.volume===undefined?undefined:Number(x.volume)};
+      if(!Number.isFinite(timestamp)||timestamp<=0)throw new Error('TWELVE_DATA_INVALID_TIMESTAMP');
+      if(![bar.open,bar.high,bar.low,bar.close].every(Number.isFinite)||bar.high<Math.max(bar.open,bar.close,bar.low)||bar.low>Math.min(bar.open,bar.close,bar.high))throw new Error('TWELVE_DATA_INVALID_OHLC');
+      if(timestamp>=range.from&&timestamp<=range.to)bars.push(bar);
+    }
+    const normalized=finalize(bars,r);
+    if(!normalized.length)throw new Error('TWELVE_DATA_NO_USABLE_BARS');
+    return{sourceSymbol:source,bars:normalized,sourceName:'TWELVE_DATA' as const,sourceVersion:'time-series/v1',sourceUrl:'https://api.twelvedata.com/time_series'};
+  }
 }
 
 export class CsvHistoricalAdapter implements HistoricalAdapter {readonly provider='CSV' as const;constructor(private text:string){}async fetch(r:HistoricalDataRequest,range:HistoricalRange){return {sourceSymbol:r.sourceSymbol||r.symbol,bars:parseBrokerOhlcv(this.text).map(b=>({timestamp:Date.parse(b.time),open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume})).filter(b=>b.timestamp>=range.from&&b.timestamp<=range.to)};}}
