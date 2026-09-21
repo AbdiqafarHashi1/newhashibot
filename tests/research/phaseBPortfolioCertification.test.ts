@@ -176,7 +176,7 @@ const acquisitionRunner=readFileSync("scripts/phase-b/acquire-real-data.ts","utf
 assert.match(acquisitionRunner,/2024-09-20T00:00:00\.000Z/);
 assert.match(acquisitionRunner,/2026-09-19T23:59:59\.999Z/);
 assert.ok(acquisitionRunner.indexOf('name:"TWELVE_DATA"')<acquisitionRunner.indexOf('name:"HISTDATA"')&&acquisitionRunner.indexOf('name:"HISTDATA"')<acquisitionRunner.indexOf('name:"DUKASCOPY"'),"Forex/metals provider priority is Twelve Data, HistData, Dukascopy");
-assert.match(acquisitionRunner,/TWELVE_DATA_NOT_CONFIGURED/);
+assert.match(acquisitionRunner,/TWELVE_DATA_CONFIGURED/);
 assert.match(acquisitionRunner,/requestCount:/);
 const initialPlan=acquisitionPlan().required;
 assert.equal(initialPlan.some(row=>row.timeframe==="1m"||row.timeframe==="5m"),false,"initial Phase B never fetches 1m or survivor-only 5m");
