@@ -62,6 +62,8 @@ jobs:
         if: always()
         continue-on-error: true
         timeout-minutes: 180
+        env:
+          NODE_OPTIONS: "--max-old-space-size=6144"
         run: |
           mkdir -p .research-cache/phase-b/logs
           set -o pipefail
