@@ -30,6 +30,23 @@ export class Semaphore {private active=0;private readonly waiting:Array<()=>void
 
 export function statusFromReadyMarkets(ready:number){return ready===3?"PASS":ready>0?"PARTIAL_REAL_DATA":"DATA_SOURCE_BLOCKED"}
 
+export interface CertifiableDatasetRef {symbol:string;timeframe:HistoricalTimeframe;certifiable:boolean}
+export interface MarketReadiness {
+  status:"READY"|"DATA_SOURCE_BLOCKED";
+  eligibleSymbols:string[];
+  excludedSymbols:string[];
+  exclusionReasons:Record<string,"INSUFFICIENT_OR_INVALID_DATA">;
+}
+
+/** Phase B readiness is based on complete symbols, rather than requiring every research-universe symbol. */
+export function assessMarketReadiness(market:AcquisitionMarket,universe:readonly string[],datasets:readonly CertifiableDatasetRef[]):MarketReadiness{
+  const required:readonly HistoricalTimeframe[]=market==="METALS"?["15m","1h","4h"]:["15m","1h"];
+  const eligibleSymbols=universe.filter(symbol=>required.every(timeframe=>datasets.some(row=>row.symbol===symbol&&row.timeframe===timeframe&&row.certifiable)));
+  const excludedSymbols=universe.filter(symbol=>!eligibleSymbols.includes(symbol));
+  const minimum=market==="METALS"?1:3;
+  return {status:eligibleSymbols.length>=minimum?"READY":"DATA_SOURCE_BLOCKED",eligibleSymbols,excludedSymbols,exclusionReasons:Object.fromEntries(excludedSymbols.map(symbol=>[symbol,"INSUFFICIENT_OR_INVALID_DATA" as const]))};
+}
+
 export interface SurvivorSymbol {market:AcquisitionMarket;strategyId:string;symbols:readonly string[]}
 /** Stage 2 is deliberately driven by qualified, OOS-backed symbols, never the original universe. */
 export function supportingPlanForSurvivors(survivors:readonly SurvivorSymbol[]){

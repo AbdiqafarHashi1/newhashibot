@@ -105,7 +105,7 @@ assert.equal(arbitrationEvidence(fakePipeline).winnerCountsByStrategy.s1,1,"obse
 assert.ok(arbitrationEvidence(fakePipeline).knownPhaseCContractGap.includes("conflict type and state snapshots"),"same/opposite-direction conflict limitations are explicit");
 const lineageSource={candidateId:"winner",signalId:"winner",personalSignalId:"winner",propCandidateId:"winner"};assert.equal(new Set(Object.values(lineageSource)).size,1,"the same canonical identifier reaches SignalOnly, Personal and Prop");
 const workflow=readFileSync(".github/workflows/phase-b-certification.yml","utf8");assert.match(workflow,/workflow_dispatch:/);for(const command of ["npm ci","npm run research:acquire-real-data","npm run research:phase-b-certify"])assert.match(workflow,new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
-assert.match(workflow,/actions\/cache@v4/);const acquisitionSource=readFileSync("scripts/phase-b/acquire-real-data.ts","utf8"),certificationSource=readFileSync("scripts/phase-b/certify.ts","utf8");assert.match(acquisitionSource,/outcome:"CACHE_HIT"/);assert.match(acquisitionSource,/validateDatasetCache\(old/ ,"cache is validated before a hit prevents download");assert.match(acquisitionSource,/INVALID_FINAL_DATASET/,"invalid cache cannot become evidence");assert.match(certificationSource,/campaign\.quality!=="CERTIFIABLE"/ ,"an unavailable market is skipped independently");assert.match(certificationSource,/PARTIAL_REAL_DATA/,"successful markets are preserved when another market fails");
+assert.match(workflow,/actions\/cache@v4/);const acquisitionSource=readFileSync("scripts/phase-b/acquire-real-data.ts","utf8"),certificationSource=readFileSync("scripts/phase-b/certify.ts","utf8");assert.match(acquisitionSource,/outcome:"CACHE_HIT"/);assert.match(acquisitionSource,/validateDatasetCache\(old/ ,"cache is validated before a hit prevents download");assert.match(acquisitionSource,/INVALID_FINAL_DATASET/,"invalid cache cannot become evidence");assert.match(certificationSource,/marketState\?\.status!=="READY"/ ,"an unavailable market is skipped independently");assert.match(certificationSource,/PARTIAL_REAL_DATA/,"successful markets are preserved when another market fails");
 console.log("phase B portfolio certification tests passed",JSON.stringify({protocol:protocol.hash,campaign:result.campaignHash,state:result.strategyResults[0].finalState,eligible:result.strategyResults[0].eligibleSymbols,statusWithoutReplay:unavailable.status}));
 
 // Final gap closure: Stage 2 is survivor-driven and portfolio evidence is actually executed.
@@ -157,3 +157,26 @@ const fc:any={id:"fixture",label:"fixture",profileId:"FTMO_TWO_STEP",profileVers
 const personalContext:any={account_id:"fixture",user_id:"fixture",provider:"MT5_PERSONAL",account_type:"PERSONAL",environment:"DEMO",balance:100000,equity:100000,free_margin:100000,used_margin:0,leverage:30,open_positions:[],exposure:{total_notional_usd:0,total_open_risk_usd:0,total_open_risk_pct:0,active_position_count:0,positions_by_symbol:{}},daily_drawdown:{starting_balance:100000,peak_equity:100000,current_drawdown_amount:0,current_drawdown_pct:0,max_allowed_pct:5,is_violated:false},total_drawdown:{initial_balance:100000,high_water_mark:100000,current_drawdown_amount:0,current_drawdown_pct:0,max_allowed_pct:15,is_violated:false},risk_profile:{max_risk_per_trade_pct:1,max_open_risk_pct:3,max_leverage:30,min_notional_usd:10},prop_rules:null,session_state:{is_session_open:true,active_session_name:"FIXTURE",current_time_utc:new Date(fs).toISOString()},news_state:{in_high_impact_news_window:false,news_event_title:null,minutes_to_news:null,minutes_after_news:null},runtime_health:{is_healthy:true,last_heartbeat_at:new Date(fs).toISOString(),bridge_status:"CONNECTED",error_count_last_hour:0},updated_at:new Date(fs).toISOString()};const fpersonal=replayPersonal({pipeline:fp,provider:"MT5_PERSONAL",policy:DEFAULT_MT5_PERSONAL_POLICY,initialContext:personalContext});
 const fpr=runPropReplayFromCanonicalSignals(strict);assert.deepEqual(fpr.propDecisions.map(x=>x.signal.signal.signal_id),fso.signals.map(x=>x.signal.signal_id));assert.deepEqual(fpersonal.decisions.map((x:any)=>x.signal.signal_id),fso.signals.map(x=>x.signal.signal_id));const mutated=[...fso.signals] as any[];mutated[0]={...mutated[0],signal:{...mutated[0].signal,entry_price:999}};assert.throws(()=>runPropReplayFromCanonicalSignals({...strict,signals:mutated}),/PROP_CANONICAL_SIGNAL_MISMATCH/);
 const fr=runRollingPropChallengesFromCanonicalSignals({...strict,attempts:3,windowDays:20,cadenceDays:10,fundedSurvivalDays:20});assert.equal(new Set(fr.attempts.map(x=>x.from)).size,fr.actuallyRun);assert.ok(fr.attempts.every(x=>x.initialBalance===100000));assert.ok(fr.attempts.every(x=>x.signalIds.every(id=>fso.signals.some(s=>s.signal.signal_id===id))),"rolling challenges only slice prebuilt canonical signals");
+
+// Run #4 regression: readiness is symbol-aware and retains exclusions as evidence.
+const {assessMarketReadiness}=await import("../../scripts/phase-b/acquisition-control.ts");
+const complete=(symbols:string[],timeframes:("15m"|"1h"|"4h")[])=>symbols.flatMap(symbol=>timeframes.map(timeframe=>({symbol,timeframe,certifiable:true})));
+const cryptoUniverse=["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","ADAUSDT","BNBUSDT"];
+const run4=assessMarketReadiness("CRYPTO",cryptoUniverse,complete(cryptoUniverse.slice(0,5),["15m","1h"]));
+assert.equal(run4.status,"READY");
+assert.deepEqual(run4.eligibleSymbols,cryptoUniverse.slice(0,5));
+assert.deepEqual(run4.excludedSymbols,["BNBUSDT"]);
+assert.equal(run4.exclusionReasons.BNBUSDT,"INSUFFICIENT_OR_INVALID_DATA");
+assert.equal(assessMarketReadiness("CRYPTO",cryptoUniverse,complete(cryptoUniverse.slice(0,2),["15m","1h"])).status,"DATA_SOURCE_BLOCKED");
+const forexUniverse=["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD"];
+assert.equal(assessMarketReadiness("FOREX",forexUniverse,complete(forexUniverse.slice(0,3),["15m","1h"])).status,"READY");
+assert.equal(assessMarketReadiness("FOREX",forexUniverse,complete(forexUniverse.slice(0,2),["15m","1h"])).status,"DATA_SOURCE_BLOCKED");
+assert.equal(assessMarketReadiness("METALS",["XAUUSD"],complete(["XAUUSD"],["15m","1h"])).status,"DATA_SOURCE_BLOCKED");
+const acquisitionRunner=readFileSync("scripts/phase-b/acquire-real-data.ts","utf8");
+assert.match(acquisitionRunner,/2024-09-20T00:00:00\.000Z/);
+assert.match(acquisitionRunner,/2026-09-19T23:59:59\.999Z/);
+assert.ok(acquisitionRunner.indexOf('name:"TWELVE_DATA"')<acquisitionRunner.indexOf('name:"HISTDATA"')&&acquisitionRunner.indexOf('name:"HISTDATA"')<acquisitionRunner.indexOf('name:"DUKASCOPY"'),"Forex/metals provider priority is Twelve Data, HistData, Dukascopy");
+assert.match(acquisitionRunner,/TWELVE_DATA_NOT_CONFIGURED/);
+assert.match(acquisitionRunner,/requestCount:/);
+const initialPlan=acquisitionPlan().required;
+assert.equal(initialPlan.some(row=>row.timeframe==="1m"||row.timeframe==="5m"),false,"initial Phase B never fetches 1m or survivor-only 5m");
