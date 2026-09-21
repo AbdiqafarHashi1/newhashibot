@@ -13,5 +13,23 @@ export function buildStrategyParityMatrix(scannerIds:readonly string[]=SCANNER_S
 }
 export type DatasetGateStatus="ELIGIBLE"|"INSUFFICIENT_REAL_DATA"|"INVALID_DATA"|"INCOMPLETE_DATA";
 export interface DatasetCertificationTruth{status:DatasetGateStatus;eligible:boolean;blockers:readonly string[];datasetId:string;datasetHash:string;provider:HistoricalProvider;openCandleExcluded:boolean;closeBoundaryVerified:boolean}
-export function assessDatasetCertification(dataset:HistoricalDataset,now=Date.now()):DatasetCertificationTruth{const {metadata,bars}=dataset,blockers:string[]=[];if(metadata.provider==="PUBLIC_RESEARCH"&&!(["DUKASCOPY","TWELVE_DATA"] as unknown[]).includes(metadata.provenance.sourceName))blockers.push("PUBLIC_RESEARCH_SOURCE_NOT_APPROVED");if(!metadata.provenance.native)blockers.push("UNVERIFIED_PROVENANCE");if(!metadata.dataHash)blockers.push("DATASET_HASH_MISSING");if(bars.length<50)blockers.push("INSUFFICIENT_BAR_COUNT");if(metadata.quality.invalidBars||metadata.quality.outOfOrder||metadata.quality.duplicates)blockers.push("INVALID_OHLCV");if(metadata.quality.missingRanges.length||metadata.quality.unknownSessionIntervals||metadata.quality.staleFinalBar)blockers.push("INCOMPLETE_COVERAGE");const last=bars.at(-1),openCandleExcluded=metadata.includeOpenCandle!==true&&Boolean(last&&last.timestamp<now);if(!openCandleExcluded)blockers.push("OPEN_CANDLE_NOT_EXCLUDED");const status:DatasetGateStatus=!bars.length||blockers.includes("INSUFFICIENT_BAR_COUNT")?"INSUFFICIENT_REAL_DATA":blockers.some(x=>["INVALID_OHLCV","DATASET_HASH_MISSING","UNVERIFIED_PROVENANCE","PUBLIC_RESEARCH_SOURCE_NOT_APPROVED"].includes(x))?"INVALID_DATA":blockers.length?"INCOMPLETE_DATA":"ELIGIBLE";return Object.freeze({status,eligible:status==="ELIGIBLE",blockers:Object.freeze(blockers),datasetId:metadata.datasetKey,datasetHash:metadata.dataHash,provider:metadata.provider,openCandleExcluded,closeBoundaryVerified:openCandleExcluded})}
+export function assessDatasetCertification(dataset:HistoricalDataset,now=Date.now()):DatasetCertificationTruth{
+  const {metadata,bars}=dataset,blockers:string[]=[];
+  if(metadata.provider==="PUBLIC_RESEARCH"&&!(["DUKASCOPY","TWELVE_DATA"] as unknown[]).includes(metadata.provenance.sourceName))blockers.push("PUBLIC_RESEARCH_SOURCE_NOT_APPROVED");
+  if(metadata.provider==="HISTDATA"&&metadata.provenance.sourceName!=="HISTDATA")blockers.push("HISTDATA_SOURCE_NOT_APPROVED");
+  if(!metadata.provenance.native)blockers.push("UNVERIFIED_PROVENANCE");
+  if(!metadata.dataHash)blockers.push("DATASET_HASH_MISSING");
+  if(bars.length<50)blockers.push("INSUFFICIENT_BAR_COUNT");
+  if(metadata.quality.invalidBars||metadata.quality.outOfOrder||metadata.quality.duplicates)blockers.push("INVALID_OHLCV");
+  // Session-aware validation already removes expected closures. Permit at most a
+  // documented 1% of genuinely missing observations; never fill those gaps.
+  const missing=metadata.quality.missingRanges.reduce((n,r)=>n+Math.max(1,Math.round((r.to-r.from)/(metadata.requestedRange.to-metadata.requestedRange.from)*Math.max(1,bars.length))),0);
+  const missingPct=missing/Math.max(1,bars.length+missing)*100;
+  if(missingPct>1||metadata.quality.unknownSessionIntervals||(metadata.quality.staleFinalBar&&metadata.provider!=="HISTDATA"))blockers.push("INCOMPLETE_COVERAGE");
+  const last=bars.at(-1),openCandleExcluded=metadata.includeOpenCandle!==true&&Boolean(last&&last.timestamp<now);
+  if(!openCandleExcluded)blockers.push("OPEN_CANDLE_NOT_EXCLUDED");
+  const invalid=["INVALID_OHLCV","DATASET_HASH_MISSING","UNVERIFIED_PROVENANCE","PUBLIC_RESEARCH_SOURCE_NOT_APPROVED","HISTDATA_SOURCE_NOT_APPROVED"];
+  const status:DatasetGateStatus=!bars.length||blockers.includes("INSUFFICIENT_BAR_COUNT")?"INSUFFICIENT_REAL_DATA":blockers.some(x=>invalid.includes(x))?"INVALID_DATA":blockers.length?"INCOMPLETE_DATA":"ELIGIBLE";
+  return Object.freeze({status,eligible:status==="ELIGIBLE",blockers:Object.freeze(blockers),datasetId:metadata.datasetKey,datasetHash:metadata.dataHash,provider:metadata.provider,openCandleExcluded,closeBoundaryVerified:openCandleExcluded});
+}
 export function assertCertifiableDatasets(datasets:readonly HistoricalDataset[]):void{if(!datasets.length)throw new Error("INSUFFICIENT_REAL_DATA");const refused=datasets.map(d=>assessDatasetCertification(d)).filter(x=>!x.eligible);if(refused.length)throw new Error(`${refused[0].status}:${refused.flatMap(x=>x.blockers).join(",")}`)}

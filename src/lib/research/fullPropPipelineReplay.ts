@@ -13,6 +13,7 @@ import {
   runCandidatePipelineReplay,
   type CandidatePipelineInput,
 } from "./canonicalPipelineReplay";
+import type { HistoricalSignal, ReplayLineage } from "./historicalReplay";
 
 export interface FullPropPipelineReplayInput
   extends Omit<CandidatePipelineInput, "entryOverlay" | "onTradeAccepted" | "onTradeClosed"> {
@@ -111,11 +112,51 @@ export function identifyFastPropReplay() {
   return "FAST_PROP_REPLAY" as const;
 }
 
+export interface PropReplayFromCanonicalSignalsInput {
+  pipeline: ReturnType<typeof runCandidatePipelineReplay>;
+  signals: readonly HistoricalSignal[];
+  lineage: ReplayLineage;
+  datasets: FullPropPipelineReplayInput["datasets"];
+  propConfig: PropAccountConfiguration;
+  propProfile: PropProgramProfile;
+  propSnapshot: PropAccountSnapshot;
+}
+
+function assertCanonicalSignal(trade:ReturnType<typeof runCandidatePipelineReplay>["accepted"][number],signal:HistoricalSignal,lineage:ReplayLineage){
+  const actual={signalId:signal.signal.signal_id,candidateId:trade.candidate.id,strategyId:signal.signal.strategy_id,strategyVersion:signal.strategyVersion,configurationVersion:signal.configurationVersion,symbol:signal.signal.symbol,side:signal.signal.direction,entry:signal.signal.entry_price,stopLoss:signal.signal.stop_loss,tp1:signal.signal.tp1,tp2:signal.signal.tp2,timestamp:signal.signal.created_at};
+  const expected={signalId:trade.candidate.id,candidateId:trade.candidate.id,strategyId:trade.candidate.strategyId,strategyVersion:trade.candidate.strategyVersion,configurationVersion:trade.result.configurationVersion,symbol:trade.candidate.symbol,side:trade.candidate.side,entry:trade.candidate.entry,stopLoss:trade.candidate.stop,tp1:trade.candidate.targets[0],tp2:trade.candidate.targets[1]??null,timestamp:trade.acceptedAt};
+  if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error("PROP_CANONICAL_SIGNAL_MISMATCH");
+  if(signal.lineage.campaignId!==lineage.campaignId||signal.lineage.campaignHash!==lineage.campaignHash||JSON.stringify(signal.lineage.datasetHashes)!==JSON.stringify(lineage.datasetHashes))throw new Error("PROP_CANONICAL_SIGNAL_MISMATCH");
+}
+
+/** Strict Phase B path: applies Prop policy to an immutable, prebuilt signal stream. */
+export function runPropReplayFromCanonicalSignals(input:PropReplayFromCanonicalSignalsInput){
+  if(input.pipeline.accepted.length!==input.signals.length)throw new Error("PROP_CANONICAL_SIGNAL_MISMATCH");
+  const snapshot:PropAccountSnapshot={...input.propSnapshot},decisions:any[]=[],executedTrades:Array<(typeof input.pipeline.trades)[number]>=[],allowed=new Set<string>();
+  for(const [index,trade] of [...input.pipeline.accepted].sort((a,b)=>a.acceptedAt.localeCompare(b.acceptedAt)||a.candidate.symbol.localeCompare(b.candidate.symbol)).entries()){
+    const signal=input.signals[index];assertCanonicalSignal(trade,signal,input.lineage);snapshot.timestamp=signal.signal.created_at;
+    const gate=evaluatePropExecutionGate({config:input.propConfig,profile:input.propProfile,snapshot,requestedRisk:trade.plan.risk.riskPercent,requestedSize:trade.result.fill.quantity});
+    decisions.push(Object.freeze({signal,candidateId:trade.candidate.id,decision:gate.decision,riskMultiplier:gate.riskMultiplier,state:evaluateFunded(input.propConfig,snapshot,input.propProfile).state,reasonCodes:gate.reasonCodes}));
+    if(gate.decision==="BLOCK")continue;allowed.add(trade.candidate.id);executedTrades.push(trade.result);const pnl=(trade.result.netPnl??0)*gate.riskMultiplier;snapshot.balance+=pnl;snapshot.equity=snapshot.balance;snapshot.closedPnl+=pnl;snapshot.dailyClosedPnl+=pnl;snapshot.tradingDays+=1;
+  }
+  const evidence=intratradeEvidence({datasets:input.datasets,propConfig:input.propConfig,propProfile:input.propProfile} as FullPropPipelineReplayInput,input.pipeline).filter(x=>allowed.has(x.signalId));
+  const ambiguity=evidence.some(x=>x.status==="AMBIGUOUS INTRABAR ORDER"),breach=evidence.some(x=>x.dailyLossBreach||x.maxLossBreach);
+  return Object.freeze({version:"prop-from-canonical-signals/v1" as const,sourcePipelineHash:input.pipeline.runHash,signals:input.signals,propDecisions:Object.freeze(decisions),executedTrades:Object.freeze(executedTrades),endingSnapshot:Object.freeze(snapshot),intratradeEvidence:Object.freeze(evidence),resultState:ambiguity?"AMBIGUOUS" as const:breach?"FAILED" as const:"INCOMPLETE" as const});
+}
+
+export interface RollingCanonicalPropInput extends PropReplayFromCanonicalSignalsInput {attempts:number;windowDays:number;cadenceDays:number;fundedSurvivalDays:number;progressLabel?:string}
+export function runRollingPropChallengesFromCanonicalSignals(input:RollingCanonicalPropInput){
+  const ordered=[...input.signals].sort((a,b)=>a.signal.created_at.localeCompare(b.signal.created_at)),first=Date.parse(ordered[0]?.signal.created_at??""),last=Date.parse(ordered.at(-1)?.signal.created_at??"");if(!Number.isFinite(first)||!Number.isFinite(last))return Object.freeze({requestedAttempts:input.attempts,validAvailableAttempts:0,actuallyRun:0,attempts:Object.freeze([]),passCount:0,failCount:0,incompleteCount:0,ambiguousCount:0,fundedSurvivalRate:0,payoutEvidenceCount:0});
+  const windowMs=input.windowDays*86400000,cadenceMs=input.cadenceDays*86400000,available=Math.max(0,Math.floor((last-first-windowMs)/cadenceMs)+1),count=Math.min(input.attempts,available),attempts=Array.from({length:count},(_,index)=>{const from=first+index*cadenceMs,to=from+windowMs,signals=ordered.filter(x=>Date.parse(x.signal.created_at)>=from&&Date.parse(x.signal.created_at)<=to),ids=new Set(signals.map(x=>x.signal.signal_id)),accepted=input.pipeline.accepted.filter(x=>ids.has(x.candidate.id)),pipeline={...input.pipeline,accepted,trades:accepted.map(x=>x.result),rejected:input.pipeline.rejected.filter(x=>Date.parse(x.timestamp)>=from&&Date.parse(x.timestamp)<=to)};const snapshot={...input.propSnapshot,timestamp:new Date(from).toISOString(),startingBalance:input.propConfig.accountSize,balance:input.propConfig.accountSize,equity:input.propConfig.accountSize,startOfDayBalance:input.propConfig.accountSize,closedPnl:0,floatingPnl:0,dailyClosedPnl:0,openRisk:0,openPositions:0,pendingExecutableOrders:0,tradingDays:0,brokerTruth:false};const replay=runPropReplayFromCanonicalSignals({...input,pipeline,signals,propSnapshot:snapshot}),challenge=simulateFullChallenge(input.propProfile,input.propConfig,replay.executedTrades.map(trade=>({id:trade.tradeId,closedAt:trade.closedAt,netPnl:trade.netPnl??0,provenance:"HISTORICAL_SIMULATION" as const}))),later=input.pipeline.accepted.filter(x=>Date.parse(x.acceptedAt)>to&&Date.parse(x.acceptedAt)<=to+input.fundedSurvivalDays*86400000).map(x=>({id:x.result.tradeId,closedAt:x.result.closedAt,netPnl:x.result.netPnl??0,provenance:"HISTORICAL_SIMULATION" as const})),fundedSnapshots=fundedSnapshotsFromTrades(input.propConfig,later,input.fundedSurvivalDays),funded=challenge.status==="FUNDED"?simulateFundedSurvival(input.propConfig,input.propProfile,fundedSnapshots):null,payout=challenge.status==="FUNDED"?simulatePayoutCycle(input.propConfig,input.propProfile,fundedSnapshots):null,resultState=replay.resultState==="AMBIGUOUS"?"AMBIGUOUS" as const:challenge.status==="FAILED"?"FAILED" as const:challenge.status==="FUNDED"?"PASSED" as const:"INCOMPLETE" as const;return Object.freeze({id:`canonical:${index}:${from}`,from:new Date(from).toISOString(),to:new Date(to).toISOString(),signalIds:Object.freeze(signals.map(x=>x.signal.signal_id)),initialBalance:snapshot.startingBalance,endingBalance:replay.endingSnapshot.balance,resultState,replay,challenge,funded,payout})});
+  const passes=attempts.filter(x=>x.resultState==="PASSED"),failed=attempts.filter(x=>x.resultState==="FAILED"),incomplete=attempts.filter(x=>x.resultState==="INCOMPLETE"),ambiguous=attempts.filter(x=>x.resultState==="AMBIGUOUS"),determinate=passes.length+failed.length,passDays=passes.map(x=>x.challenge.phase1.tradingDays+(x.challenge.verification?.tradingDays??0));return Object.freeze({requestedAttempts:input.attempts,validAvailableAttempts:available,actuallyRun:attempts.length,attemptCount:attempts.length,attempts:Object.freeze(attempts),passCount:passes.length,failCount:failed.length,incompleteCount:incomplete.length,ambiguousCount:ambiguous.length,historicalPassRate:attempts.length?passes.length/attempts.length*100:0,determinatePassRate:determinate?passes.length/determinate*100:0,dailyLossViolations:failed.filter(x=>JSON.stringify(x.challenge).includes("DAILY_LOSS")).length,maxLossViolations:failed.filter(x=>JSON.stringify(x.challenge).includes("MAX_LOSS")).length,fundedSurvivalRate:passes.length?passes.filter(x=>x.funded?.survived).length/passes.length*100:0,payoutEvidenceCount:passes.filter(x=>x.payout?.events.length).length,passTimeDistribution:Object.freeze(passDays),maxDrawdownDistribution:Object.freeze([] as number[]),bestHistoricalStart:attempts[0]?.from??null,worstHistoricalStart:attempts.at(-1)?.from??null});
+}
+
 export interface RollingFullPropReplayInput extends FullPropPipelineReplayInput {
   attempts: number;
   windowDays: number;
   cadenceDays: number;
   fundedSurvivalDays: number;
+  progressLabel?: string;
 }
 
 /**
@@ -131,6 +172,7 @@ export function runRollingFullPropChallenges(input:RollingFullPropReplayInput){
   const first=timestamps[0],last=timestamps.at(-1)!,windowMs=input.windowDays*86_400_000,cadenceMs=input.cadenceDays*86_400_000;
   const validAvailableAttempts=Math.max(0,Math.floor((last-first-windowMs)/cadenceMs)+1),attemptsToRun=Math.min(input.attempts,validAvailableAttempts);
   const attempts=Array.from({length:attemptsToRun},(_,index)=>{
+    if(index===0||(index+1)%25===0||index+1===attemptsToRun)console.log(`[PROP] ${input.progressLabel??input.strategyIds.join(",")} ${index+1}/${attemptsToRun} attempts`);
     const from=first+index*cadenceMs,to=from+windowMs;
     const datasets=input.datasets.map(dataset=>({...dataset,bars:dataset.bars.filter(bar=>bar.timestamp>=from&&bar.timestamp<=to)}));
     const snapshot:PropAccountSnapshot={...input.propSnapshot,timestamp:new Date(from).toISOString(),startingBalance:input.propConfig.accountSize,balance:input.propConfig.accountSize,equity:input.propConfig.accountSize,startOfDayBalance:input.propConfig.accountSize,closedPnl:0,floatingPnl:0,dailyClosedPnl:0,openRisk:0,openPositions:0,pendingExecutableOrders:0,tradingDays:0,brokerTruth:false};
