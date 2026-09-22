@@ -86,6 +86,7 @@
     "test:phase-a2-replay": "rm -rf .tmp/phase-a2-tests && mkdir -p .tmp/phase-a2-tests && esbuild tests/research/historicalReplay.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-a2-tests/test.mjs && node .tmp/phase-a2-tests/test.mjs && rm -rf .tmp/phase-a2-tests",
     "test:phase-a3-cockpit": "rm -rf .tmp/phase-a3-tests && mkdir -p .tmp/phase-a3-tests && esbuild tests/research/phaseA3Cockpit.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-a3-tests/test.mjs && node .tmp/phase-a3-tests/test.mjs && rm -rf .tmp/phase-a3-tests",
     "test:phase-b-certification": "rm -rf .tmp/phase-b-tests && mkdir -p .tmp/phase-b-tests && esbuild tests/research/phaseBPortfolioCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-b-tests/test.mjs && node .tmp/phase-b-tests/test.mjs && rm -rf .tmp/phase-b-tests",
+    "test:permanent-backtest-lab": "rm -rf .tmp/permanent-lab-tests && mkdir -p .tmp/permanent-lab-tests && esbuild tests/research/permanentBacktestLab.test.ts --bundle --platform=node --format=esm --outfile=.tmp/permanent-lab-tests/test.mjs && node .tmp/permanent-lab-tests/test.mjs && rm -rf .tmp/permanent-lab-tests",
     "research:acquire-real-data": "tsx scripts/phase-b/acquire-real-data.ts",
     "research:phase-b-certify": "tsx scripts/phase-b/certify.ts"
   },
