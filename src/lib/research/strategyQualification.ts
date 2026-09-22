@@ -175,6 +175,16 @@ export interface QualificationPolicy {
 }
 
 export const DEFAULT_QUALIFICATION_WEIGHTS: QualificationWeights = Object.freeze({ oosExpectancy: 12, oosProfitFactor: 10, walkForwardConsistency: 10, returnDrawdown: 10, parameterStability: 8, stressResilience: 10, monteCarloResilience: 10, portfolioRobustness: 8, historicalPropPerformance: 8, fundedSurvival: 6, costSensitivity: 4, sampleSize: 4 });
+/** Canonical independent-strategy policy used by the browser research lab. */
+export const CANONICAL_PERSONAL_QUALIFICATION_POLICY: QualificationPolicy = Object.freeze({
+  id:"canonical-independent-personal",version:"canonical-independent-personal/v1",product:"PERSONAL",
+  minimumTrades:10,minimumOosTrades:4,minimumIsExpectancyR:0,minimumOosExpectancyR:0,
+  minimumOosProfitFactor:1,minimumWalkForwardConsistencyPct:50,minimumStressProfitFactor:.9,
+  maximumMonteCarloDrawdownR95:15,maximumIsOosExpectancyDivergence:.75,
+  maximumSingleRegimeContributionPct:85,maximumSingleSymbolContributionPct:100,
+  minimumResearchScore:60,requireFullPropPipeline:false,requireFundedSurvival:false,
+  weights:DEFAULT_QUALIFICATION_WEIGHTS,
+});
 
 export interface QualificationStageRecord {
   stage: QualificationStage;
@@ -346,6 +356,15 @@ function evaluateVariant(input: QualificationCampaignInput, strategyId: string, 
   const reasons = status === "RESEARCH_ONLY" ? ["RESEARCH_SCORE_BELOW_POLICY"] : [];
   stages.push({ stage: "COMPLETED", status: "COMPLETED", reasonCodes: reasons });
   return { variant, status, stageReached: "COMPLETED", eliminationReasons: reasons, thesisDiagnostics: [...(maximumRegime > input.policy.maximumSingleRegimeContributionPct ? ["REGIME_DEPENDENT"] : []), ...(maximumSymbol > input.policy.maximumSingleSymbolContributionPct ? ["ONE_SYMBOL_DEPENDENCY"] : []), ...(divergence > input.policy.maximumIsOosExpectancyDivergence ? ["IS_OOS_DIVERGENCE"] : [])], researchScore, pipeline, stages, evidence: { inSample: is, outOfSample: validation, walkForwardConsistency: walk.consistency, stressMinimumProfitFactor: stressPf, monteCarloDrawdownR95: monteP95, maximumRegimeContributionPct: maximumRegime, maximumSymbolContributionPct: maximumSymbol, propStatus, fundedSurvived, overfitPenalty } };
+}
+
+/** Evaluates one exact operator-selected configuration through the canonical qualification stages. */
+export function qualifyExactStrategyConfiguration(input:{campaignId:string;certificationDate:string;assetClass:"FOREX"|"METALS"|"CRYPTO";strategyId:string;pipelineInput:CandidatePipelineInput;strategyParameters:Readonly<Record<string,number>>;policy?:QualificationPolicy;seed?:number}):QualifiedVariantResult {
+  const strategy=CANONICAL_STRATEGIES[input.strategyId];if(!strategy)throw new Error(`UNKNOWN_STRATEGY:${input.strategyId}`);
+  const variant:CalibrationVariant=Object.freeze({configId:digest({strategyId:input.strategyId,strategyParameters:input.strategyParameters,configurationVersion:input.pipelineInput.configurationVersion},"config"),configVersion:input.pipelineInput.configurationVersion,strategyParameters:Object.freeze({...input.strategyParameters}),researchPolicyParameters:Object.freeze({minimumCandidateScore:input.pipelineInput.portfolioPolicy.minimumScore,riskPercent:input.pipelineInput.riskPolicy.riskPercent})});
+  const campaign:QualificationCampaignInput={campaignId:input.campaignId,certificationDate:input.certificationDate,assetClass:input.assetClass,strategyInputs:{[input.strategyId]:input.pipelineInput},strategyIds:[input.strategyId],searchMethod:"GRID",seed:input.seed??20260922,maximumVariantsPerStrategy:1,policy:input.policy??CANONICAL_PERSONAL_QUALIFICATION_POLICY};
+  const result=evaluateVariant(campaign,input.strategyId,variant);
+  return {...result,binding:{strategyId:input.strategyId,strategyVersion:strategy.version,configVersion:variant.configVersion,assetClass:strategy.market,supportedSymbols:Object.freeze([...new Set(input.pipelineInput.datasets.map(x=>x.symbol))]),supportedTimeframes:Object.freeze([...new Set(input.pipelineInput.datasets.map(x=>x.timeframe))]),researchPolicyVersion:campaign.policy.version}};
 }
 
 export interface QualifiedStrategySet {
