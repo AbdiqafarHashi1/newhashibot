@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import FrozenProductCertification from "./FrozenProductCertification";
 import {
   ACCOUNT_SIZES,
   PROP_PROFILES,
@@ -284,7 +285,7 @@ export default function ProfessionalPropWorkspace() {
   };
 
   return (
-    <section
+    <><FrozenProductCertification/><section
       data-testid="professional-prop-operations"
       className="space-y-5 rounded-2xl border border-blue-500/30 bg-zinc-950 p-5"
     >
@@ -630,7 +631,7 @@ export default function ProfessionalPropWorkspace() {
           </Panel>
         </>
       )}
-    </section>
+    </section></>
   );
 }
 function Field({ label, children }: { label: string; children: ReactNode }) {
