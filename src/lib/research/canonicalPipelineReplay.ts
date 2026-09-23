@@ -124,6 +124,9 @@ export interface CandidatePipelineResult {
   version: "candidate-pipeline-replay/v1";
   trades: readonly CanonicalCompletedTradeResult[];
   accepted: readonly AcceptedPipelineTrade[];
+  /** Complete decision-time ledger; arbitration truth remains owned by arbitrateCanonical. */
+  candidates: readonly { timestamp:string; candidate:Candidate; status:"SELECTED"|"ARBITRATION_REJECTED"|"POLICY_REJECTED"; authority:string; reasonCodes:readonly string[] }[];
+  observations: number;
   rejected: readonly { timestamp: string; candidateId: string; strategyId: string; symbol: string; reasonCodes: readonly string[] }[];
   regimes: readonly DecisionTimeRegimeEvidence[];
   metrics: {
@@ -211,7 +214,8 @@ export function runCandidatePipelineReplay(input: CandidatePipelineInput): Candi
   });
   const times = [...new Set(contexts.flatMap(({ strategy, data }) => (data[strategy.requirements.primaryTimeframe] ?? []).map((b) => new Date(Date.parse(b.openTime) + WIDTH[b.timeframe]).toISOString())))].sort();
   const account: AccountRiskSnapshot = { ...input.initialAccount, exposedSymbols: [...input.initialAccount.exposedSymbols] };
-  const active: AcceptedPipelineTrade[] = [], accepted: AcceptedPipelineTrade[] = [], rejected: CandidatePipelineResult["rejected"] extends readonly (infer T)[] ? T[] : never = [];
+  const active: AcceptedPipelineTrade[] = [], accepted: AcceptedPipelineTrade[] = [], rejected: CandidatePipelineResult["rejected"] extends readonly (infer T)[] ? T[] : never = [], candidateLedger:CandidatePipelineResult["candidates"] extends readonly (infer T)[] ? T[] : never=[];
+  let observationCount=0;
   const regimes: DecisionTimeRegimeEvidence[] = [], exposureTimeline: { timestamp: string; openRisk: number; concurrency: number; exposedSymbols: readonly string[] }[] = [], capitalTimeline: { timestamp: string; balance: number; equity: number; availableCapital: number }[] = [];
   let peakOpenRisk = account.currentOpenRisk, maximumConcurrency = 0;
   for (const timestamp of times) {
@@ -224,6 +228,7 @@ export function runCandidatePipelineReplay(input: CandidatePipelineInput): Candi
     }
     const candidates: Candidate[] = [];
     for (const { strategy, symbol, data } of contexts) {
+      observationCount++;
       const market = buildCanonicalMarketView({ symbol, asOf: timestamp, primaryTimeframe: strategy.requirements.primaryTimeframe, requiredTimeframes: strategy.requirements.requiredTimeframes, warmupBars: strategy.requirements.warmupBars, datasets: data, session: { open: true, code: strategy.market === "CRYPTO" ? "CRYPTO_24_7" : "HISTORICAL_SESSION_ALLOWED" } });
       const evaluation = strategy.evaluate({ market, configurationVersion: input.configurationVersion, parameters: input.parameters?.[strategy.id] ?? strategy.parameterDefaults });
       if (evaluation.decision === "CANDIDATE") candidates.push(evaluation.candidate);
@@ -233,6 +238,7 @@ export function runCandidatePipelineReplay(input: CandidatePipelineInput): Candi
     for (const item of arbitration.rejected) {
       const c = candidates.find((x) => x.id === item.candidateId)!;
       rejected.push({ timestamp, candidateId: c.id, strategyId: c.strategyId, symbol: c.symbol, reasonCodes: item.reasonCodes });
+      candidateLedger.push({timestamp,candidate:c,status:"ARBITRATION_REJECTED",authority:"trading-domain.arbitrateCanonical",reasonCodes:item.reasonCodes});
     }
     const candidate = arbitration.chosen;
     if (!candidate) continue;
@@ -249,7 +255,7 @@ export function runCandidatePipelineReplay(input: CandidatePipelineInput): Candi
     if (active.reduce((n, a) => n + a.plan.capital.allocatedAmount, 0) + risk.riskAmount > input.portfolioPolicy.maximumPortfolioExposure) reasons.push("PORTFOLIO_EXPOSURE_LIMIT");
     const overlay = input.entryOverlay?.({ timestamp, candidate, account: { ...account } }) ?? { decision: "ALLOW", riskMultiplier: 1, reasonCodes: [], state: "NOT_PROP_GATED" };
     if (overlay.decision === "BLOCK") reasons.push(...overlay.reasonCodes, "PROP_ENTRY_BLOCKED");
-    if (reasons.length) { rejected.push({ timestamp, candidateId: candidate.id, strategyId: candidate.strategyId, symbol: candidate.symbol, reasonCodes: [...new Set(reasons)] }); continue; }
+    if (reasons.length) { const reasonCodes=[...new Set(reasons)];rejected.push({ timestamp, candidateId: candidate.id, strategyId: candidate.strategyId, symbol: candidate.symbol, reasonCodes });candidateLedger.push({timestamp,candidate,status:"POLICY_REJECTED",authority:"canonicalPipelineReplay.risk-capital-portfolio",reasonCodes});continue; }
     const adjustedRisk = { ...risk, riskPercent: risk.riskPercent * overlay.riskMultiplier, riskAmount: risk.riskAmount * overlay.riskMultiplier, desiredSize: risk.desiredSize * overlay.riskMultiplier, reasonCodes: [...risk.reasonCodes, ...overlay.reasonCodes] };
     const capital = allocateCapitalIntent(adjustedRisk, account, input.portfolioPolicy.maxAllocationPerTrade * overlay.riskMultiplier);
     if (!capital.allowed) { rejected.push({ timestamp, candidateId: candidate.id, strategyId: candidate.strategyId, symbol: candidate.symbol, reasonCodes: capital.reasonCodes }); continue; }
@@ -268,6 +274,7 @@ export function runCandidatePipelineReplay(input: CandidatePipelineInput): Candi
     const primary = datasetsFor(input, candidate.symbol, [candidate.primaryTimeframe])[candidate.primaryTimeframe] ?? [];
     const item: AcceptedPipelineTrade = { candidate, plan, result: replay.result, observations, acceptedAt: timestamp, closedAt: replay.result.closedAt, accountBefore: { ...account, exposedSymbols: [...account.exposedSymbols] }, overlay, regime: regime(candidate.symbol, candidate.primaryTimeframe, primary, timestamp) };
     accepted.push(item); active.push(item); regimes.push(item.regime);
+    candidateLedger.push({timestamp,candidate,status:"SELECTED",authority:"trading-domain.arbitrateCanonical",reasonCodes:[]});
     account.currentOpenRisk += adjustedRisk.riskAmount; account.availableCapital -= capital.allocatedAmount; account.exposedSymbols = [...account.exposedSymbols, candidate.symbol];
     input.onTradeAccepted?.(candidate, { ...account });
     peakOpenRisk = Math.max(peakOpenRisk, account.currentOpenRisk); maximumConcurrency = Math.max(maximumConcurrency, active.length);
@@ -283,7 +290,7 @@ export function runCandidatePipelineReplay(input: CandidatePipelineInput): Candi
   let equity = 0, peak = 0, maxDrawdown = 0; for (const n of net) { equity += n; peak = Math.max(peak, equity); maxDrawdown = Math.max(maxDrawdown, peak - equity); }
   const sumBy = (key: "symbol" | "strategyId") => Object.fromEntries([...new Set(trades.map((t) => t[key]))].map((v) => [v, trades.filter((t) => t[key] === v).reduce((n, t) => n + t.netR, 0)]));
   const monthly: Record<string, number> = {}; for (const t of trades) monthly[t.closedAt.slice(0, 7)] = (monthly[t.closedAt.slice(0, 7)] ?? 0) + t.netR;
-  const core = { version: "candidate-pipeline-replay/v1" as const, trades, accepted, rejected, regimes, metrics: { grossR: trades.reduce((n, t) => n + t.grossR, 0), netR: net.reduce((a, b) => a + b, 0), grossPnl: trades.reduce((n, t) => n + (t.grossPnl ?? 0), 0), netPnl: trades.reduce((n, t) => n + (t.netPnl ?? 0), 0), profitFactor: losses ? gains / losses : gains ? Infinity : null, expectancyR: net.length ? net.reduce((a, b) => a + b, 0) / net.length : 0, maxDrawdown, peakOpenRisk, maximumConcurrency, symbolContribution: sumBy("symbol"), strategyContribution: sumBy("strategyId"), monthly }, exposureTimeline, capitalTimeline, dataQuality: input.datasets.map((d) => ({ datasetId: d.datasetId, status: qualityStatus(d.quality), quality: d.quality })) };
+  const core = { version: "candidate-pipeline-replay/v1" as const, trades, accepted, candidates:candidateLedger, observations:observationCount, rejected, regimes, metrics: { grossR: trades.reduce((n, t) => n + t.grossR, 0), netR: net.reduce((a, b) => a + b, 0), grossPnl: trades.reduce((n, t) => n + (t.grossPnl ?? 0), 0), netPnl: trades.reduce((n, t) => n + (t.netPnl ?? 0), 0), profitFactor: losses ? gains / losses : gains ? Infinity : null, expectancyR: net.length ? net.reduce((a, b) => a + b, 0) / net.length : 0, maxDrawdown, peakOpenRisk, maximumConcurrency, symbolContribution: sumBy("symbol"), strategyContribution: sumBy("strategyId"), monthly }, exposureTimeline, capitalTimeline, dataQuality: input.datasets.map((d) => ({ datasetId: d.datasetId, status: qualityStatus(d.quality), quality: d.quality })) };
   return { ...core, runHash: hash({ input: { ...input, entryOverlay: undefined, onTradeAccepted: undefined, onTradeClosed: undefined }, core }) };
 }
 

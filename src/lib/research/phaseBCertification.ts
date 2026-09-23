@@ -43,3 +43,44 @@ export function qualifyProp(x:PropQualificationInput):LayerState["prop"] {const 
 export function qualifySignals(x:{total:number;oosExpectancyR:number;profitFactor:number|null;maxDrawdownR:number;longestLosingStreak:number;stressPass:boolean;upstreamFatal:boolean}):LayerState["signals"] {const p=PHASE_B_POLICIES.signals;if(x.total<p.minimumSignals)return"INSUFFICIENT";return !x.upstreamFatal&&x.oosExpectancyR>=p.minimumOosExpectancyR&&(x.profitFactor??0)>=p.minimumProfitFactor&&x.maxDrawdownR<=p.maximumDrawdownR&&x.longestLosingStreak<=p.maximumLosingStreak&&x.stressPass?"QUALIFIED":"REJECTED"}
 export function qualifyPersonal(x:{executed:number;returnPct:number;dailyDrawdownPct:number;totalDrawdownPct:number;locks:number;returnDrawdownRatio:number;upstreamFatal:boolean}):LayerState["personal"] {const p=PHASE_B_POLICIES.personal;if(x.executed<p.minimumExecuted)return"INSUFFICIENT";return !x.upstreamFatal&&x.returnPct>p.minimumReturnPct&&x.dailyDrawdownPct<=p.maximumDailyDrawdownPct&&x.totalDrawdownPct<=p.maximumTotalDrawdownPct&&x.locks<=p.maximumLocks&&x.returnDrawdownRatio>=p.minimumReturnDrawdownRatio?"QUALIFIED":"REJECTED"}
 export function includePortfolio(x:{standaloneQualified:boolean;marginalNetR:number;withDrawdownR:number;withoutDrawdownR:number;concentrationPct:number}){const p=PHASE_B_POLICIES.portfolio;return x.standaloneQualified&&x.marginalNetR>0&&x.withDrawdownR<=x.withoutDrawdownR&&x.concentrationPct<=p.maximumConcentrationPct}
+
+export interface CombinedProductQualificationEvidence {
+  identity:string;
+  frozenIdentityPass:boolean;
+  datasetIntegrityPass:boolean;
+  tradeCount:number;
+  oos:{trades:number;expectancyR:number;profitFactor:number|null};
+  walkForward:{windows:number;consistency:number};
+  stress:{scenario:string;profitFactor:number|null}[];
+  monteCarlo:{maxDrawdownR:{p95:number};losingStreak:{p95:number}};
+  regime:{sampleCount:number};
+  concentrationPct:number;
+  portfolioIncluded:boolean;
+}
+export interface CombinedProductQualification {
+  authority:"phaseBCertification.qualifyCombinedProduct";
+  policyVersion:string;
+  identity:string;
+  status:"PASS"|"FAIL"|"INSUFFICIENT_EVIDENCE";
+  stages:readonly {stage:string;status:"PASS"|"FAIL"|"INSUFFICIENT";reasonCodes:readonly string[]}[];
+  reasons:readonly string[];
+  evidenceHash:string;
+}
+/** Canonical selected-set adapter. It applies only existing Phase B policy values. */
+export function qualifyCombinedProduct(e:CombinedProductQualificationEvidence):CombinedProductQualification {
+  const p=PHASE_B_POLICIES.strategyEdge;
+  const stage=(name:string,pass:boolean,insufficient:boolean,reason:string)=>({stage:name,status:insufficient?"INSUFFICIENT" as const:pass?"PASS" as const:"FAIL" as const,reasonCodes:pass&&!insufficient?[]:[reason]});
+  const stages=[
+    stage("FROZEN_SURVIVOR_IDENTITY",e.frozenIdentityPass,false,"FROZEN_IDENTITY_MISMATCH"),
+    stage("DATASET_INTEGRITY",e.datasetIntegrityPass,false,"DATASET_INTEGRITY_FAILED"),
+    stage("PORTFOLIO_SAMPLE",e.tradeCount>=p.minimumTrades,false,"MINIMUM_PORTFOLIO_TRADES"),
+    stage("OOS",e.oos.trades>=p.minimumOosTrades&&e.oos.expectancyR>=p.minimumOosExpectancyR&&(e.oos.profitFactor??0)>=p.minimumOosProfitFactor,e.oos.trades===0,"OOS_POLICY_FAILED"),
+    stage("WALK_FORWARD",e.walkForward.consistency>=p.minimumWalkForwardConsistencyPct,e.walkForward.windows===0,"WALK_FORWARD_POLICY_FAILED"),
+    stage("STRESS",e.stress.length>0&&e.stress.every(x=>(x.profitFactor??0)>=p.minimumStressProfitFactor),e.stress.length===0,"STRESS_POLICY_FAILED"),
+    stage("MONTE_CARLO",e.monteCarlo.maxDrawdownR.p95<=p.maximumMonteCarloDrawdownR95&&e.monteCarlo.losingStreak.p95<=p.maximumLosingStreak,!Number.isFinite(e.monteCarlo.maxDrawdownR.p95),"MONTE_CARLO_POLICY_FAILED"),
+    stage("REGIME",e.regime.sampleCount>0,e.regime.sampleCount===0,"REGIME_EVIDENCE_REQUIRED"),
+    stage("CONCENTRATION",e.concentrationPct<=p.maximumSingleSymbolContributionPct&&e.portfolioIncluded,false,"PORTFOLIO_CONCENTRATION_OR_MARGINAL_FAILURE"),
+  ];
+  const reasons=stages.flatMap(x=>x.reasonCodes),status=stages.some(x=>x.status==="INSUFFICIENT")?"INSUFFICIENT_EVIDENCE":stages.some(x=>x.status==="FAIL")?"FAIL":"PASS";
+  return deepFreeze({authority:"phaseBCertification.qualifyCombinedProduct",policyVersion:`${p.version}+${PHASE_B_POLICIES.portfolio.version}`,identity:e.identity,status,stages,reasons,evidenceHash:certificationHash(e,"combined-product-evidence")});
+}
