@@ -132,16 +132,18 @@ function assertCanonicalSignal(trade:ReturnType<typeof runCandidatePipelineRepla
 /** Strict Phase B path: applies Prop policy to an immutable, prebuilt signal stream. */
 export function runPropReplayFromCanonicalSignals(input:PropReplayFromCanonicalSignalsInput){
   if(input.pipeline.accepted.length!==input.signals.length)throw new Error("PROP_CANONICAL_SIGNAL_MISMATCH");
-  const snapshot:PropAccountSnapshot={...input.propSnapshot},decisions:any[]=[],executedTrades:Array<(typeof input.pipeline.trades)[number]>=[],allowed=new Set<string>();
+  const snapshot:PropAccountSnapshot={...input.propSnapshot},decisions:any[]=[],executedTrades:Array<(typeof input.pipeline.trades)[number]>=[],allowed=new Set<string>(),pending:Array<{trade:(typeof input.pipeline.accepted)[number];pnl:number}>=[];
+  const closeThrough=(timestamp:string)=>{for(const item of pending.filter(x=>x.trade.closedAt<=timestamp).sort((a,b)=>a.trade.closedAt.localeCompare(b.trade.closedAt))){snapshot.balance+=item.pnl;snapshot.equity=snapshot.balance;snapshot.closedPnl+=item.pnl;snapshot.dailyClosedPnl+=item.pnl;snapshot.openPositions=Math.max(0,snapshot.openPositions-1);snapshot.tradingDays+=1;pending.splice(pending.indexOf(item),1)}};
   for(const [index,trade] of [...input.pipeline.accepted].sort((a,b)=>a.acceptedAt.localeCompare(b.acceptedAt)||a.candidate.symbol.localeCompare(b.candidate.symbol)).entries()){
-    const signal=input.signals[index];assertCanonicalSignal(trade,signal,input.lineage);snapshot.timestamp=signal.signal.created_at;
+    const signal=input.signals[index];assertCanonicalSignal(trade,signal,input.lineage);closeThrough(signal.signal.created_at);snapshot.timestamp=signal.signal.created_at;
     const gate=evaluatePropExecutionGate({config:input.propConfig,profile:input.propProfile,snapshot,requestedRisk:trade.plan.risk.riskPercent,requestedSize:trade.result.fill.quantity});
     decisions.push(Object.freeze({signal,candidateId:trade.candidate.id,decision:gate.decision,riskMultiplier:gate.riskMultiplier,state:evaluateFunded(input.propConfig,snapshot,input.propProfile).state,reasonCodes:gate.reasonCodes}));
-    if(gate.decision==="BLOCK")continue;allowed.add(trade.candidate.id);executedTrades.push(trade.result);const pnl=(trade.result.netPnl??0)*gate.riskMultiplier;snapshot.balance+=pnl;snapshot.equity=snapshot.balance;snapshot.closedPnl+=pnl;snapshot.dailyClosedPnl+=pnl;snapshot.tradingDays+=1;
+    if(gate.decision==="BLOCK")continue;allowed.add(trade.candidate.id);executedTrades.push(trade.result);snapshot.openPositions+=1;pending.push({trade,pnl:(trade.result.netPnl??0)*gate.riskMultiplier});
   }
+  closeThrough("9999-12-31T23:59:59Z");
   const evidence=intratradeEvidence({datasets:input.datasets,propConfig:input.propConfig,propProfile:input.propProfile} as FullPropPipelineReplayInput,input.pipeline).filter(x=>allowed.has(x.signalId));
   const ambiguity=evidence.some(x=>x.status==="AMBIGUOUS INTRABAR ORDER"),breach=evidence.some(x=>x.dailyLossBreach||x.maxLossBreach);
-  return Object.freeze({version:"prop-from-canonical-signals/v1" as const,sourcePipelineHash:input.pipeline.runHash,signals:input.signals,propDecisions:Object.freeze(decisions),executedTrades:Object.freeze(executedTrades),endingSnapshot:Object.freeze(snapshot),intratradeEvidence:Object.freeze(evidence),resultState:ambiguity?"AMBIGUOUS" as const:breach?"FAILED" as const:"INCOMPLETE" as const});
+  return Object.freeze({version:"prop-from-canonical-signals/v1" as const,authority:"professionalPropEngine.evaluatePropExecutionGate" as const,sourcePipelineHash:input.pipeline.runHash,propConfig:Object.freeze({...input.propConfig}),propProfile:Object.freeze({...input.propProfile}),signals:input.signals,propDecisions:Object.freeze(decisions),executedTrades:Object.freeze(executedTrades),endingSnapshot:Object.freeze(snapshot),intratradeEvidence:Object.freeze(evidence),resultState:ambiguity?"AMBIGUOUS" as const:breach?"FAILED" as const:"INCOMPLETE" as const});
 }
 
 export interface RollingCanonicalPropInput extends PropReplayFromCanonicalSignalsInput {attempts:number;windowDays:number;cadenceDays:number;fundedSurvivalDays:number;progressLabel?:string}

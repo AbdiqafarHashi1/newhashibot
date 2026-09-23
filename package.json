@@ -88,7 +88,9 @@
     "test:phase-b-certification": "rm -rf .tmp/phase-b-tests && mkdir -p .tmp/phase-b-tests && esbuild tests/research/phaseBPortfolioCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-b-tests/test.mjs && node .tmp/phase-b-tests/test.mjs && rm -rf .tmp/phase-b-tests",
     "test:permanent-backtest-lab": "rm -rf .tmp/permanent-lab-tests && mkdir -p .tmp/permanent-lab-tests && esbuild tests/research/permanentBacktestLab.test.ts --bundle --platform=node --format=esm --outfile=.tmp/permanent-lab-tests/test.mjs && node .tmp/permanent-lab-tests/test.mjs && rm -rf .tmp/permanent-lab-tests",
     "research:acquire-real-data": "tsx scripts/phase-b/acquire-real-data.ts",
-    "research:phase-b-certify": "tsx scripts/phase-b/certify.ts"
+    "research:phase-b-certify": "tsx scripts/phase-b/certify.ts",
+    "test:product-research": "rm -rf .tmp/product-research-tests && mkdir -p .tmp/product-research-tests && esbuild tests/research/productResearchLab.test.ts --bundle --platform=node --format=esm --outfile=.tmp/product-research-tests/test.mjs && node .tmp/product-research-tests/test.mjs && rm -rf .tmp/product-research-tests",
+    "test:prop-certification": "rm -rf .tmp/prop-certification-tests && mkdir -p .tmp/prop-certification-tests && esbuild tests/research/propCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/prop-certification-tests/test.mjs && node .tmp/prop-certification-tests/test.mjs && rm -rf .tmp/prop-certification-tests"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
