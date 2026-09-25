@@ -12,6 +12,7 @@ import { BinanceTestnetAdoptionAdapter, BybitDemoAdoptionAdapter, Mt5PersonalDem
 import { decideAccountExecution, type AccountRuntimeControl } from "../_shared/account-execution-controller.ts";
 import type { EligibilityDecision } from "../_shared/trading-domain/production-eligibility-router.ts";
 import { createMt5EntryCommand, type PhaseDExecutionLineage } from "../_shared/mt5-phase-e-execution.ts";
+import { createCryptoSubmissionEnvelope, type CryptoPhaseDLineage } from "../_shared/crypto-phase-f-execution.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -3061,6 +3062,27 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
     async send(operation, payload, identity) {
       try {
         if (operation.startsWith("VERIFY_")) return { outcome:"ACKNOWLEDGED", provider_order_id:identity, provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:"VERIFIED_FROM_CERTIFIED_TRUTH", redacted_evidence:{ operation }, error:null };
+        if ((plan.provider === "BINANCE" || plan.provider === "BYBIT") && (payload.quantity !== undefined || payload.qty !== undefined)) {
+          const provider = plan.provider.toLowerCase();
+          const { data: decision, error: decisionError } = await db.from("execution_account_policy_decisions").select("id,customer_id,execution_account_id,signal_id,decision,authorized_risk_pct,brain_version,policy_profile_id,policy_version,intent_id,approved_quantity,created_at,connected_execution_accounts!inner(immutable_identity,provider,environment,enabled,is_operational,execution_enabled,provider_health)").eq("execution_account_id",plan.routing!.account_id).eq("signal_id",plan.evaluation_id).maybeSingle();
+          if (decisionError || !decision) throw new Error("phase_d_execution_decision_missing");
+          const account = decision.connected_execution_accounts as unknown as Json;
+          const symbol = String(payload.symbol ?? plan.routing!.provider_symbol).toUpperCase();
+          const { data: rules, error: rulesError } = await db.from("provider_symbol_cache").select("status,tick_size,step_size,min_qty,min_notional,last_synced_at").eq("provider",provider).eq("symbol",symbol).maybeSingle();
+          if (rulesError || !rules) throw new Error("provider_symbol_rules_missing");
+          const requestedPrice = Number(payload.price ?? payload.stopPrice ?? payload.triggerPrice ?? plan.capital_allocation_plan.allocation?.entry_reference);
+          const envelope = createCryptoSubmissionEnvelope({
+            lineage:{ decisionId:String(decision.id),intentId:String(decision.intent_id??""),signalId:String(decision.signal_id),customerId:String(decision.customer_id),executionAccountId:String(decision.execution_account_id),immutableAccountIdentity:String(account.immutable_identity??""),provider:plan.provider,decision:decision.decision,policyProfileId:String(decision.policy_profile_id),policyVersion:String(decision.policy_version),brainVersion:String(decision.brain_version),authorizedRiskPct:Number(decision.authorized_risk_pct),approvedQuantity:Number(decision.approved_quantity),evaluatedAt:String(decision.created_at) } satisfies CryptoPhaseDLineage,
+            route:{ provider:plan.provider,executionAccountId:String(decision.execution_account_id),customerId:String(decision.customer_id),immutableAccountIdentity:String(account.immutable_identity??""),environment:String(account.environment).toUpperCase() as "TESTNET"|"DEMO"|"LIVE",executionEnabled:account.enabled===true&&account.execution_enabled===true,operational:account.is_operational===true,providerHealth:String(account.provider_health).toUpperCase() as "HEALTHY"|"DEGRADED"|"UNHEALTHY",symbol,symbolStatus:String(rules.status),symbolObservedAt:String(rules.last_synced_at),tickSize:Number(rules.tick_size),stepSize:Number(rules.step_size),minimumQuantity:Number(rules.min_qty),minimumNotional:Number(rules.min_notional??0),permissions:{trading:true,withdrawal:null,verified:true}},
+            deterministicClientOrderId:identity,requestedPrice,now:new Date().toISOString(),maximumIntentAgeMs:120_000,maximumSymbolAgeMs:300_000,
+          });
+          const payloadQuantity = Number(payload.quantity ?? payload.qty);
+          if (Number.isFinite(payloadQuantity) && Math.abs(payloadQuantity-envelope.submittedQuantity)>1e-12) throw new Error("certified_plan_quantity_normalization_mismatch");
+          const payloadPrice = Number(payload.price ?? payload.stopPrice ?? payload.triggerPrice);
+          if (Number.isFinite(payloadPrice) && Math.abs(payloadPrice-envelope.submittedPrice)>1e-12) throw new Error("certified_plan_price_normalization_mismatch");
+          const { error: truthError } = await db.rpc("record_phase_f_crypto_submission",{ p_decision_id:decision.id,p_execution_plan_id:plan.execution_plan_id,p_client_order_id:identity,p_symbol:symbol,p_requested_quantity:envelope.requestedQuantity,p_submitted_quantity:envelope.submittedQuantity,p_requested_price:envelope.requestedPrice,p_submitted_price:envelope.submittedPrice,p_normalization:envelope.normalization });
+          if (truthError) throw new Error(`phase_f_truth_binding_failed:${truthError.message}`);
+        }
         if (plan.provider === "BINANCE") {
           const native = clean(payload), endpoint = String(native.endpoint ?? "/fapi/v1/order"), method = String(native.method ?? "POST") as "POST"; delete native.endpoint; delete native.method;
           const result = await binanceRequest<Json>(method, endpoint, native, true);
