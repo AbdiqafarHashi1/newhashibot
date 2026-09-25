@@ -1,4 +1,5 @@
 /** Pure root arbitrator. It has no database, network, Telegram, or execution access. */
+import { arbitrateCanonical } from "./trading-domain/arbitrator.ts";
 export type ArbitrationSide = "buy" | "sell";
 export interface ArbitrationCandidate {
   id: string; strategyId: string; strategyVersion: string; market: "crypto" | "forex"; symbol: string; timeframe: string;
@@ -38,14 +39,15 @@ export function arbitrate(candidates: readonly ArbitrationCandidate[], options: 
   const snapshot = candidates.map((candidate) => ({ ...candidate, targets: [...candidate.targets], evidence: { ...candidate.evidence }, rejectionReasons: [...candidate.rejectionReasons] }));
   const rejected: ArbitrationRejection[] = [];
   const eligible = snapshot.filter((candidate) => { const reasons = rejectionReasons(candidate, options); if (reasons.length) rejected.push({ candidateId: candidate.id, reasons, evidence: { lifecycle: candidate.lifecycle, publication_mode: candidate.publicationMode } }); return reasons.length === 0; });
-  eligible.sort((a, b) => { const delta = b.score - a.score; return Math.abs(delta) > 0.0001 ? delta : (b.priority ?? 0) - (a.priority ?? 0) || b.riskReward - a.riskReward; });
+  const canonicalDecision=arbitrateCanonical(eligible.map(c=>({id:c.id,strategyId:c.strategyId,strategyVersion:c.strategyVersion,configurationVersion:String(c.evidence.configuration_version??"runtime"),timestamp:options.now.toISOString(),symbol:c.symbol,primaryTimeframe:c.timeframe as "1m"|"5m"|"15m"|"30m"|"1h"|"4h"|"1d",side:c.side.toUpperCase() as "BUY"|"SELL",entry:c.entry,stop:c.stop,targets:c.targets,score:c.score,evidence:{reasonCodes:[],indicators:{},observations:c.evidence}})),{minimumScore:options.minimumScore??0,blockedSymbols:[]});
+  eligible.sort((a,b)=>canonicalDecision.scoreBreakdown[b.id]-canonicalDecision.scoreBreakdown[a.id]||a.id.localeCompare(b.id));
   const ties = eligible.length > 1 && Math.abs(eligible[0].score - eligible[1].score) <= 0.0001;
   const forced = options.forceNoTradeReason || options.noTradePolicy?.(eligible) || undefined;
-  const winner = !forced ? eligible[0] : undefined;
-  for (const loser of eligible.slice(winner ? 1 : 0)) rejected.push({ candidateId: loser.id, reasons: [forced ? forced : "arbitration_blocked"], evidence: { selected_candidate: winner?.id ?? null, force_no_trade_reason: forced ?? null } });
+  const winner = !forced ? eligible.find(c=>c.id===canonicalDecision.chosen?.id) : undefined;
+  for (const loser of eligible.filter(c=>c.id!==winner?.id)) rejected.push({ candidateId: loser.id, reasons: [forced ? forced : canonicalDecision.rejected.find(r=>r.candidateId===loser.id)?.reasonCodes[0]??"LOWER_RANK"], evidence: { selected_candidate: winner?.id ?? null, force_no_trade_reason: forced ?? null, canonical_authority:"trading-domain.arbitrateCanonical" } });
   const decision = winner ? "WINNER" : "NO_TRADE";
   const keyPayload = { version: ARBITRATOR_VERSION, decision, winner: winner?.id ?? null, candidates: snapshot.map((c) => ({ id: c.id, score: c.score, priority: c.priority ?? 0, rr: c.riskReward })), rejected: rejected.map((r) => ({ id: r.candidateId, reasons: r.reasons })), forced: forced ?? null };
-  return { decision, winner, considered: [...eligible, ...snapshot.filter((candidate) => !eligible.some((item) => item.id === candidate.id))], rejected, tieBreakEvidence: ties ? ["score_tie", "identity_fit_priority", "risk_reward"] : [], version: ARBITRATOR_VERSION, decisionKey: hash(canonical(keyPayload)), evidence: { policy: "legacy_arbitration_score_then_identity_fit_then_rr", forced_no_trade_reason: forced ?? null, immutable_snapshot: true } };
+  return { decision, winner, considered: [...eligible, ...snapshot.filter((candidate) => !eligible.some((item) => item.id === candidate.id))], rejected, tieBreakEvidence: ties ? ["score_tie", "stable_candidate_id", "identity_fit_priority"] : [], version: ARBITRATOR_VERSION, decisionKey: hash(canonical(keyPayload)), evidence: { policy: "canonical_score_then_stable_candidate_id", authority:"trading-domain.arbitrateCanonical", forced_no_trade_reason: forced ?? null, immutable_snapshot: true } };
 }
 
 export class ArbitrationDiagnostics {
