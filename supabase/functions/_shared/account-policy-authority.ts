@@ -69,7 +69,7 @@ export interface AccountDecisionRecord {
   readonly policyVersion: string;
   readonly configuration: Readonly<PolicyConfiguration>;
   readonly evaluatedAt: string;
-  readonly executionIntent: null | Readonly<{ intentId: string; accountId: string; customerId: string; signalId: string; positionPlan: unknown }>;
+  readonly executionIntent: null | Readonly<{ intentId: string; accountId: string; customerId: string; signalId: string; approvedQuantity: number; positionPlan: unknown }>;
 }
 
 const presetBounds: Readonly<Record<PolicyPreset, Readonly<{ risk: number; open: number; leverage: number; positions: number; daily: number; total: number }>>> = Object.freeze({
@@ -127,7 +127,7 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const reasons = Object.freeze([...new Set([...preReasons, ...gate.reasonCodes, brainDecision.decision_code])]);
   const lineage = [input.signal.signal_id, input.account.customerId, input.account.id, input.account.immutableIdentity, input.account.policyProfileId, input.account.policyVersion, brain.brain_version];
   const positionPlan = decision === "ALLOW" || decision === "REDUCE" ? brain.createPositionPlan(brainDecision, input.signal, input.context, policy) : null;
-  return Object.freeze({ authorityVersion: ACCOUNT_POLICY_AUTHORITY_VERSION, decisionId: `decision_${stableId(lineage)}`, customerId: input.account.customerId, accountId: input.account.id, immutableAccountIdentity: input.account.immutableIdentity, signalId: input.signal.signal_id, decision, reasonCodes: reasons, authorizedRiskPct: decision === "ALLOW" || decision === "REDUCE" ? brainDecision.authorized_risk_pct : 0, brainFamily: input.account.accountType === "PERSONAL" ? "PERSONAL" : "PROP", brainProvider: brain.provider, brainVersion: brain.brain_version, policyProfileId: policy.policy_id, policyVersion: policy.policy_version, configuration: freezeConfig(input.configuration), evaluatedAt: input.evaluatedAt, executionIntent: positionPlan ? Object.freeze({ intentId: `intent_${stableId([...lineage, "intent"])}`, accountId: input.account.id, customerId: input.account.customerId, signalId: input.signal.signal_id, positionPlan }) : null });
+  return Object.freeze({ authorityVersion: ACCOUNT_POLICY_AUTHORITY_VERSION, decisionId: `decision_${stableId(lineage)}`, customerId: input.account.customerId, accountId: input.account.id, immutableAccountIdentity: input.account.immutableIdentity, signalId: input.signal.signal_id, decision, reasonCodes: reasons, authorizedRiskPct: decision === "ALLOW" || decision === "REDUCE" ? brainDecision.authorized_risk_pct : 0, brainFamily: input.account.accountType === "PERSONAL" ? "PERSONAL" : "PROP", brainProvider: brain.provider, brainVersion: brain.brain_version, policyProfileId: policy.policy_id, policyVersion: policy.policy_version, configuration: freezeConfig(input.configuration), evaluatedAt: input.evaluatedAt, executionIntent: positionPlan ? Object.freeze({ intentId: `intent_${stableId([...lineage, "intent"])}`, accountId: input.account.id, customerId: input.account.customerId, signalId: input.signal.signal_id, approvedQuantity: positionPlan.quantity, positionPlan }) : null });
 }
 
 /** Safe customer/admin projection; credentials can never enter a read model. */

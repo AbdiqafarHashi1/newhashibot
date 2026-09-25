@@ -346,6 +346,23 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       if (!cmdErr && updatedCommand) {
+        if (updatedCommand.operation === "OPEN_POSITION") {
+          const accountId = String((body as Record<string, unknown>).account_id ?? "");
+          const rawState = String(resultObj.lifecycle_event ?? resultObj.status ?? "").toUpperCase();
+          const lifecycleEvent = !payload.success ? "ORDER_REJECTED"
+            : ["FILLED","FILL_CONFIRMED"].includes(rawState) ? "FILL_CONFIRMED"
+            : ["PARTIAL","PARTIALLY_FILLED","PARTIAL_FILL"].includes(rawState) ? "PARTIAL_FILL"
+            : rawState === "PROTECTION_CONFIRMED" ? "PROTECTION_CONFIRMED"
+            : rawState === "PROTECTION_MISSING" ? "PROTECTION_MISSING"
+            : rawState === "PROTECTION_FAILED" ? "PROTECTION_FAILED" : null;
+          if (lifecycleEvent) {
+            const { error: lifecycleError } = await supabase.rpc("record_phase_e_mt5_lifecycle", {
+              p_command_id: updatedCommand.id, p_account_id: accountId,
+              p_bridge_id: payload.bridge_id, p_event: lifecycleEvent, p_evidence: resultObj,
+            });
+            if (lifecycleError) return jsonResponse({ success: false, error_code: "MT5_LIFECYCLE_PERSIST_FAILED" }, 409);
+          }
+        }
         if (updatedCommand.operation === "TEST_CONNECTION") {
           await supabase.from("mt5_certification_results").upsert({
             account_id: updatedCommand.account_id,
