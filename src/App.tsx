@@ -47,6 +47,9 @@ const MT5PropPortal = lazy(() => import('./pages/app/MT5PropPortal'));
 const CustomerBotSetup = lazy(() => import('./pages/app/CustomerBotSetup'));
 const Onboarding = lazy(() => import('./pages/app/Onboarding'));
 const Readiness = lazy(() => import('./pages/app/Readiness'));
+const Billing = lazy(() => import('./pages/app/Billing'));
+const PaymentResult = lazy(() => import('./pages/public/PaymentResult'));
+const CommerceOperations = lazy(() => import('./pages/admin/CommerceOperations'));
 
 // Admin pages
 const ScannerStatus = lazy(() => import('./pages/admin/ScannerStatus'));
@@ -133,6 +136,7 @@ function App() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/vip" element={<Vip />} />
             <Route path="/vip/complete" element={<VipComplete />} />
+            <Route path="/payment/result" element={<RequireAuth><PaymentResult /></RequireAuth>} />
             <Route path="/free" element={<Free />} />
             <Route path="/results" element={<Results />} />
             <Route path="/faq" element={<FAQ />} />
@@ -178,6 +182,7 @@ function App() {
             <Route path="/app/account"     element={<RequireAuth><Account /></RequireAuth>} />
             <Route path="/app/onboarding"  element={<RequireAuth><Onboarding /></RequireAuth>} />
             <Route path="/app/readiness"   element={<RequireAuth><Readiness /></RequireAuth>} />
+            <Route path="/app/billing" element={<RequireAuth><Billing /></RequireAuth>} />
 
             {/* Admin */}
             <Route path="/admin/operator" element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
@@ -207,6 +212,7 @@ function App() {
             <Route path="/admin/customers"        element={<RequireAdmin><Customers /></RequireAdmin>} />
             <Route path="/admin/customer-fleet"   element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/onboarding"       element={<RequireAdmin><OnboardingOperations /></RequireAdmin>} />
+            <Route path="/admin/commerce" element={<RequireAdmin><CommerceOperations /></RequireAdmin>} />
             <Route path="/admin/customer-engines" element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/fleet"            element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/ai-agents"        element={<RequireAdmin><AIAgentsCommand /></RequireAdmin>} />

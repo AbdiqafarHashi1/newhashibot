@@ -27,6 +27,6 @@ assert.match(sql,/ON CONFLICT\(provider,provider_event_id\) DO NOTHING/);
 assert.match(sql,/IGNORED_UNKNOWN_PLAN/); assert.match(sql,/membership\.cancel_at_period_end_changed/);
 assert.match(sql,/membership\.deactivated/); assert.match(sql,/payment\.pending','payment\.failed/);
 assert.match(sql,/refund\.created/); assert.match(sql,/dispute\.created/);
-assert.match(endpoint,/WHOP_API_KEY/); assert.match(endpoint,/reconcileWhopObject/);
+assert.match(endpoint,/commerce_payment_events/); assert.match(endpoint,/process_canonical_commerce_event/); assert.match(endpoint,/MANUAL_REVIEW_REQUIRED/);
 assert.doesNotMatch(readFileSync('src/pages/public/VipComplete.tsx','utf8'),/success=true|paid=true|searchParams/);
 console.log('Whop backend readiness checks passed');
