@@ -38,11 +38,8 @@ export const PRODUCT_BY_PACKAGE: Partial<Record<PackageCapability, CommerceProdu
   crypto_prop_bot: 'CRYPTO_PROP',
 };
 
-export const MPESA_KES_PRICES: Record<CommerceProduct, number> = {
+export const MPESA_KES_PRICES: Partial<Record<CommerceProduct, number>> = {
   HASHIBOT_VIP_SIGNALS: 3500,
-  PERSONAL_AUTO: 8500,
-  FOREX_PROP: 12500,
-  CRYPTO_PROP: 12500,
 };
 
 const WHOP_PUBLIC_CONFIG: Record<CommerceProduct, { planId?: string; checkoutUrl?: string }> = {

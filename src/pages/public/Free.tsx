@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, Check, GraduationCap, Radio, Send, Sparkles } from 'lucide-react';
 import { CommerceLayout } from '../../components/layout/CommerceLayout';
 import { ExecutionProductPreview } from '../../components/public/ExecutionProductPreview';
+import { supabase } from '../../lib/supabase';
 
 const freeBenefits = [
   { icon: Radio, title: 'Signal previews', copy: 'Selected genuine setups in the HashiBot format.' },
@@ -12,19 +13,19 @@ const freeBenefits = [
 ];
 
 export default function Free() {
-  const invite = import.meta.env.VITE_TELEGRAM_FREE_INVITE_URL as string | undefined;
-  const validInvite = Boolean(invite?.startsWith('https://t.me/'));
   const [availability, setAvailability] = useState(false);
-  const joinFree = () => {
-    setAvailability(false);
-    if (validInvite && invite) window.location.assign(invite);
-    else setAvailability(true);
+  const [enrollmentState, setEnrollmentState] = useState('');
+  const joinFree = async () => {
+    setAvailability(false); setEnrollmentState('ENROLLING');
+    const { data, error } = await supabase.functions.invoke('free-enrollment', { headers: { 'idempotency-key': crypto.randomUUID() } });
+    if (error) { setAvailability(true); setEnrollmentState('AUTHENTICATION_REQUIRED'); return; }
+    setEnrollmentState(data?.state === 'ACTIVE' ? 'ENROLLED — TELEGRAM FULFILLMENT PENDING' : String(data?.state ?? 'READY_FOR_CONFIGURATION'));
   };
   const FreeButton = ({ short = false }: { short?: boolean }) => <button onClick={joinFree} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/20 hover:bg-emerald-500">{short ? 'Join Free' : 'Join Free Telegram'} <Send size={15}/></button>;
 
   return <CommerceLayout>
     <div className="pb-16 md:pb-0">
-      <section className="relative overflow-hidden border-b border-zinc-800 px-4 py-9 text-center sm:px-6 sm:py-14"><div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,.14),transparent_52%)]"/><div className="relative mx-auto max-w-4xl"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.16em] text-emerald-300"><Send size={13}/> Permanent free community</div><h1 className="mt-4 text-4xl font-black leading-tight tracking-tight text-white sm:text-6xl">Start free. <span className="text-emerald-400">See the difference.</span></h1><p className="mx-auto mt-4 max-w-2xl text-[15px] leading-6 text-zinc-300 sm:text-base">Free gets selected previews. VIP gets every qualified setup, every level, every update.</p><div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row"><FreeButton/><Link to="/vip" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-blue-500/40 bg-blue-500/10 px-7 py-3 text-sm font-bold text-blue-300 hover:bg-blue-500/20">Unlock Full VIP — $29/month</Link></div>{availability && <p role="status" className="mx-auto mt-3 max-w-md rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">The free community is temporarily unavailable. Please try again shortly.</p>}</div></section>
+      <section className="relative overflow-hidden border-b border-zinc-800 px-4 py-9 text-center sm:px-6 sm:py-14"><div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,.14),transparent_52%)]"/><div className="relative mx-auto max-w-4xl"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.16em] text-emerald-300"><Send size={13}/> Permanent free community</div><h1 className="mt-4 text-4xl font-black leading-tight tracking-tight text-white sm:text-6xl">Start free. <span className="text-emerald-400">See the difference.</span></h1><p className="mx-auto mt-4 max-w-2xl text-[15px] leading-6 text-zinc-300 sm:text-base">Free gets selected previews. VIP gets every qualified setup, every level, every update.</p><div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row"><FreeButton/><Link to="/vip" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-blue-500/40 bg-blue-500/10 px-7 py-3 text-sm font-bold text-blue-300 hover:bg-blue-500/20">Unlock Full VIP — $29/month</Link></div>{enrollmentState && <p role="status" className="mx-auto mt-3 text-xs text-emerald-300">{enrollmentState}</p>}{availability && <p role="status" className="mx-auto mt-3 max-w-md rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">The free community is temporarily unavailable. Please try again shortly.</p>}</div></section>
 
       <Comparison />
 

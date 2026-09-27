@@ -43,3 +43,16 @@ verify_jwt = false
 # Existing orchestrator also receives Telegram updates authenticated by Telegram's secret header.
 [functions.telegram-orchestrator]
 verify_jwt = false
+
+[functions.commerce-checkout]
+verify_jwt = true
+
+# Provider callback authentication is verified from the raw request before inbox persistence.
+[functions.mpesa-webhook]
+verify_jwt = false
+
+[functions.free-enrollment]
+verify_jwt = true
+
+[functions.commerce-reconcile]
+verify_jwt = false

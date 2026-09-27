@@ -1,0 +1,6 @@
+export type MpesaConfiguration={consumerKey?:string;consumerSecret?:string;shortCode?:string;passkey?:string;callbackUrl?:string};
+export function mpesaConfigurationState(c:MpesaConfiguration){return c.consumerKey&&c.consumerSecret&&c.shortCode&&c.passkey&&c.callbackUrl?"READY" as const:"READY_FOR_CONFIGURATION" as const;}
+export function normalizeKenyanPhone(raw:string){const d=raw.replace(/\D/g,"");const n=d.startsWith("254")?d:d.startsWith("0")?`254${d.slice(1)}`:d.length===9?`254${d}`:"";if(!/^254[17]\d{8}$/.test(n))throw new Error("INVALID_KENYAN_PHONE");return n;}
+export function maskKenyanPhone(raw:string){const n=normalizeKenyanPhone(raw);return `+${n.slice(0,3)}•••••${n.slice(-3)}`;}
+export interface MpesaAdapter {createStkRequest(input:{checkoutId:string;phone:string;amountKes:number}):Promise<{state:"PROVIDER_PENDING";merchantRequestId:string;checkoutRequestId:string}|{state:"CHECKOUT_NOT_CONFIGURED"}>;query(checkoutRequestId:string):Promise<{state:"PENDING"|"SUCCEEDED"|"FAILED"|"REVIEW_REQUIRED"}>;}
+export class UnconfiguredMpesaAdapter implements MpesaAdapter{async createStkRequest(){return {state:"CHECKOUT_NOT_CONFIGURED" as const}}async query(){return {state:"REVIEW_REQUIRED" as const}}}
