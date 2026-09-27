@@ -142,17 +142,17 @@ export function priceLabel(pkg: Package, currency: 'KES' | 'USD' = 'KES') {
   
   if (pkg.slug === 'forex_mt5_personal_bot' || pkg.slug === 'crypto_personal_bot') {
     return {
-      main: currency === 'USD' ? '$65 USD' : '8,500 KES',
+      main: '$100 USD',
       period: '/month',
-      usdEquivalent: currency === 'KES' ? '~$65/mo' : '8,500 KES/mo',
+      usdEquivalent: 'per connected execution account',
     };
   }
   
   if (pkg.slug === 'forex_mt5_prop_bot' || pkg.slug === 'crypto_prop_bot') {
     return {
-      main: currency === 'USD' ? '$95 USD' : '12,500 KES',
+      main: '$100 USD',
       period: '/month',
-      usdEquivalent: currency === 'KES' ? '~$95/mo' : '12,500 KES/mo',
+      usdEquivalent: 'per connected execution account',
     };
   }
 
@@ -211,4 +211,3 @@ export function getEntitlementsForPackage(slugOrName?: string | null, isActive: 
     canConfigureBot: isBotPackage(slug),
   };
 }
-

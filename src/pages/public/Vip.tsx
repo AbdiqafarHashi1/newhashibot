@@ -5,6 +5,7 @@ import { CommerceLayout } from '../../components/layout/CommerceLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { getWhopCheckout, readAttribution } from '../../lib/commerce';
 import { submitManualMpesaRequest } from '../../lib/mpesa';
+import { ExecutionProductPreview } from '../../components/public/ExecutionProductPreview';
 
 const benefits = ['Qualified setups', 'Precise entries', 'Stop / invalidation', 'Multi-level targets', 'Lifecycle management', 'Private VIP Telegram', 'Forex + Gold + Crypto'];
 const amountKes = 3500;
@@ -75,6 +76,8 @@ export default function Vip() {
     </section>
 
     <SignalDemo />
+
+    <section className="mx-auto max-w-5xl px-4 py-9 sm:px-6"><div className="mb-5 rounded-2xl border border-cyan-500/25 bg-cyan-500/[.06] p-5"><p className="text-[11px] font-black uppercase tracking-widest text-cyan-400">VIP Signals vs Auto Execution</p><h2 className="mt-2 text-2xl font-black text-white">Separate products, separate entitlements</h2><p className="mt-2 text-sm leading-6 text-zinc-300">VIP delivers the complete signal stream for $29/month or 3,500 KES / 30 days. Auto Execution is Founding 20 at $100/month per connected execution account and requires an independent verified entitlement unless a future configured bundle explicitly says otherwise.</p><div className="mt-4 flex flex-wrap gap-3"><Link to="/execution" className="rounded-xl bg-cyan-500 px-5 py-3 font-bold text-zinc-950">Explore Auto Execution</Link><span className="rounded-xl border border-amber-500/30 px-4 py-3 text-sm text-amber-200">Availability: READY_FOR_CONFIGURATION</span></div></div><ExecutionProductPreview compact/></section>
 
     <section className="mx-auto max-w-5xl px-4 py-9 sm:px-6">
       <div className="grid overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 md:grid-cols-[1.15fr_.85fr]">
