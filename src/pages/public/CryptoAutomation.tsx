@@ -29,7 +29,7 @@ export default function CryptoAutomation() {
               to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-xs"
             >
-              <span>Get Crypto Personal Bot (8,500 KES/mo or $65 USD)</span>
+              <span>Get Crypto Personal Bot ($100/month per connected execution account)</span>
               <ArrowRight size={14} />
             </Link>
             <Link
@@ -158,14 +158,14 @@ export default function CryptoAutomation() {
             Automate Your Crypto Trading
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400">
-            Subscribe to Crypto Personal Bot for 8,500 KES/month or $65 USD/month. Includes full VIP Signal Room access.
+            Subscribe to Crypto Personal Bot for $100/month per connected execution account. Includes full VIP Signal Room access.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
               to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
-              Get Crypto Bot (8,500 KES/mo)
+              Get Crypto Bot ($100/month per connected account)
             </Link>
             <Link
               to="/contact?category=Crypto%20Automation#contact-form"

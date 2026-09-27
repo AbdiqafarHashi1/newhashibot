@@ -18,8 +18,6 @@ const AdminVisualBridgeManagement = lazy(() => import('./pages/admin/AdminVisual
 const Home = lazy(() => import('./pages/public/Home'));
 const Features = lazy(() => import('./pages/public/Features'));
 const AISignals = lazy(() => import('./pages/public/AISignals'));
-const CryptoAutomation = lazy(() => import('./pages/public/CryptoAutomation'));
-const MT5Automation = lazy(() => import('./pages/public/MT5Automation'));
 const Pricing = lazy(() => import('./pages/public/Pricing'));
 const Vip = lazy(() => import('./pages/public/Vip'));
 const VipComplete = lazy(() => import('./pages/public/VipComplete'));
@@ -28,6 +26,7 @@ const Results = lazy(() => import('./pages/public/Results'));
 const FAQ = lazy(() => import('./pages/public/FAQ'));
 const About = lazy(() => import('./pages/public/About'));
 const Contact = lazy(() => import('./pages/public/Contact'));
+const ExecutionProduct = lazy(() => import('./pages/public/Execution'));
 
 // Auth pages
 const Login = lazy(() => import('./pages/auth/Login'));
@@ -46,6 +45,8 @@ const CryptoExecutionPortal = lazy(() => import('./pages/app/CryptoExecutionPort
 const MT5PersonalPortal = lazy(() => import('./pages/app/MT5PersonalPortal'));
 const MT5PropPortal = lazy(() => import('./pages/app/MT5PropPortal'));
 const CustomerBotSetup = lazy(() => import('./pages/app/CustomerBotSetup'));
+const Onboarding = lazy(() => import('./pages/app/Onboarding'));
+const Readiness = lazy(() => import('./pages/app/Readiness'));
 
 // Admin pages
 const ScannerStatus = lazy(() => import('./pages/admin/ScannerStatus'));
@@ -91,6 +92,7 @@ const Risk = lazy(() => import('./pages/admin/Risk'));
 const Capital = lazy(() => import('./pages/admin/Capital'));
 const RuntimeTruth = lazy(() => import('./pages/admin/RuntimeTruth'));
 const MissionControl = lazy(() => import('./pages/admin/MissionControl'));
+const OnboardingOperations = lazy(() => import('./pages/admin/OnboardingOperations'));
 
 // Minimal page-level loading fallback
 function PageLoader() {
@@ -126,8 +128,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/features" element={<Features />} />
             <Route path="/ai-signals" element={<AISignals />} />
-            <Route path="/crypto-automation" element={<CryptoAutomation />} />
-            <Route path="/mt5-automation" element={<MT5Automation />} />
+            <Route path="/crypto-automation" element={<Navigate to="/execution/crypto" replace />} />
+            <Route path="/mt5-automation" element={<Navigate to="/execution/mt5" replace />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/vip" element={<Vip />} />
             <Route path="/vip/complete" element={<VipComplete />} />
@@ -136,13 +138,17 @@ function App() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/execution" element={<ExecutionProduct />} />
+            <Route path="/execution/mt5" element={<ExecutionProduct focus="mt5" />} />
+            <Route path="/execution/crypto" element={<ExecutionProduct focus="crypto" />} />
+            <Route path="/execution/prop" element={<ExecutionProduct focus="prop" />} />
 
             {/* Legacy Compatibility Redirects */}
             <Route path="/signal-mode" element={<Navigate to="/ai-signals" replace />} />
-            <Route path="/crypto-personal-bot" element={<Navigate to="/crypto-automation" replace />} />
-            <Route path="/personal-ea" element={<Navigate to="/crypto-automation" replace />} />
-            <Route path="/prop-ea" element={<Navigate to="/mt5-automation" replace />} />
-            <Route path="/forex-mt5-prop-bot" element={<Navigate to="/mt5-automation" replace />} />
+            <Route path="/crypto-personal-bot" element={<Navigate to="/execution/crypto" replace />} />
+            <Route path="/personal-ea" element={<Navigate to="/execution/mt5" replace />} />
+            <Route path="/prop-ea" element={<Navigate to="/execution/prop" replace />} />
+            <Route path="/forex-mt5-prop-bot" element={<Navigate to="/execution/prop" replace />} />
 
             {/* Auth pages */}
             <Route path="/login" element={<Login />} />
@@ -170,6 +176,8 @@ function App() {
             <Route path="/app/package-request" element={<RequireAuth><PackageRequest /></RequireAuth>} />
             <Route path="/app/watchlist"   element={<RequireAuth><Watchlist /></RequireAuth>} />
             <Route path="/app/account"     element={<RequireAuth><Account /></RequireAuth>} />
+            <Route path="/app/onboarding"  element={<RequireAuth><Onboarding /></RequireAuth>} />
+            <Route path="/app/readiness"   element={<RequireAuth><Readiness /></RequireAuth>} />
 
             {/* Admin */}
             <Route path="/admin/operator" element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
@@ -198,6 +206,7 @@ function App() {
             <Route path="/admin/users"            element={<RequireAdmin><UsersAccess /></RequireAdmin>} />
             <Route path="/admin/customers"        element={<RequireAdmin><Customers /></RequireAdmin>} />
             <Route path="/admin/customer-fleet"   element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
+            <Route path="/admin/onboarding"       element={<RequireAdmin><OnboardingOperations /></RequireAdmin>} />
             <Route path="/admin/customer-engines" element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/fleet"            element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/ai-agents"        element={<RequireAdmin><AIAgentsCommand /></RequireAdmin>} />

@@ -31,14 +31,14 @@ export default function MT5Automation() {
               to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-xs"
             >
-              <span>Deploy MT5 Personal Bot (8,500 KES/mo or $65 USD)</span>
+              <span>Deploy MT5 Personal Bot ($100/month per connected execution account)</span>
               <ArrowRight size={14} />
             </Link>
             <Link
               to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-amber-600/20 text-xs"
             >
-              <span>Deploy MT5 Prop Bot (12,500 KES/mo or $95 USD)</span>
+              <span>Deploy MT5 Prop Bot ($100/month per connected execution account)</span>
               <ShieldCheck size={14} />
             </Link>
             <Link
@@ -116,7 +116,7 @@ export default function MT5Automation() {
                   to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
                   className="inline-flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
                 >
-                  <span>Activate Personal MT5 Bot (8,500 KES/mo or $65 USD)</span>
+                  <span>Activate Personal MT5 Bot ($100/month per connected execution account)</span>
                   <ArrowRight size={13} />
                 </Link>
               </div>
@@ -143,7 +143,7 @@ export default function MT5Automation() {
                   to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
                   className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
                 >
-                  <span>Activate Prop MT5 Bot (12,500 KES/mo or $95 USD)</span>
+                  <span>Activate Prop MT5 Bot ($100/month per connected execution account)</span>
                   <ArrowRight size={13} />
                 </Link>
               </div>
@@ -199,14 +199,14 @@ export default function MT5Automation() {
             Deploy MetaTrader 5 Automation Today
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400">
-            Activate your MT5 Personal (8,500 KES/mo) or Prop trading bot (12,500 KES/mo) subscription and connect your Windows terminal.
+            Activate your MT5 Personal ($100/month per connected account) or Prop trading bot ($100/month per connected account) subscription and connect your Windows terminal.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
               to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
-              Get Started with MT5 Bot (From 8,500 KES/mo)
+              Get Started with MT5 Bot (From $100/month per connected account)
             </Link>
             <Link
               to="/contact?category=MT5%20Automation#contact-form"

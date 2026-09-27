@@ -20,7 +20,7 @@ export default function PropEA() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3.5 py-1.5 text-xs text-amber-400 mb-6 font-medium">
               <ShieldCheck size={13} className="text-amber-400" />
-              Forex MT5 Prop Bot — Live & Available Now
+              Forex MT5 Prop Bot — Product Preview — Demo Certification Required
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Prop-firm compliant EA<br />
@@ -30,7 +30,7 @@ export default function PropEA() {
               Forex MT5 Prop Bot is built specifically for strict prop firm challenges (FTMO, FundedNext, MFF) with conservative risk management, automated daily drawdown limits, and multi-symbol execution.
             </p>
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-amber-200 mb-6">
-              Subscription: <span className="font-semibold text-white">12,500 KES/month ($95 USD)</span>
+              Subscription: <span className="font-semibold text-white">$100/month per connected execution account</span>
             </div>
             <p className="text-sm text-zinc-400 max-w-xl leading-relaxed mb-10">
               Direct MetaTrader 5 execution via our dedicated Windows Daemon Bridge. Protects funded accounts with strict risk fences.
@@ -104,7 +104,7 @@ export default function PropEA() {
           </p>
           <div className="flex flex-col gap-3">
             <Link to="/pricing?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-sm shadow-lg shadow-amber-600/20">
-              Subscribe to Forex MT5 Prop Bot (12,500 KES/mo) <ArrowRight size={14} />
+              Subscribe to Forex MT5 Prop Bot ($100/month per connected account) <ArrowRight size={14} />
             </Link>
             <Link to="/mt5-automation" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 px-8 py-3 rounded-lg text-sm transition-colors">
               Explore MT5 Architecture <ArrowRight size={14} />

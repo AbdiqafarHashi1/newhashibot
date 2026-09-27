@@ -792,9 +792,9 @@ export default function Pricing() {
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500 font-medium"
                     >
                       <option value="crypto_signal_room">VIP Signal Room (3,500 KES/mo or 1,200 KES/week)</option>
-                      <option value="forex_mt5_personal_bot">Personal Auto-Bot (8,500 KES/mo or $65)</option>
-                      <option value="forex_mt5_prop_bot">Forex &amp; Metals Prop Pass Master (12,500 KES/mo or $95)</option>
-                      <option value="crypto_prop_bot">Crypto Prop Pass Master (12,500 KES/mo or $95)</option>
+                      <option value="forex_mt5_personal_bot">Auto Execution — MT5 Personal ($100/month per account)</option>
+                      <option value="forex_mt5_prop_bot">Auto Execution — MT5 Prop ($100/month per account)</option>
+                      <option value="crypto_prop_bot">Auto Execution — approved Crypto account ($100/month per account)</option>
                       <option value="free_preview">Free 7-Day Preview (0 KES)</option>
                     </select>
                   </div>

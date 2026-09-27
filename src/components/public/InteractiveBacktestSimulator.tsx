@@ -980,8 +980,8 @@ export function InteractiveBacktestSimulator() {
                 </Link>
                 <div className="text-[10px] text-center text-zinc-500 font-mono">
                   {activeFirm.category === 'CRYPTO_PROP'
-                    ? '12,500 KES/mo ($95) · Direct Cloud API & Secret (Zero MT5 Bridge Needed)'
-                    : '12,500 KES/mo ($95) · Direct Windows Bridge Daemon'}
+                    ? '$100/month/account · Direct Cloud API & Secret (Zero MT5 Bridge Needed)'
+                    : '$100/month/account · Direct Windows Bridge Daemon'}
                 </div>
               </div>
             </div>
@@ -1116,7 +1116,7 @@ export function InteractiveBacktestSimulator() {
                   <CheckCircle2 size={16} className="text-emerald-400" />
                 </div>
                 <div className="text-base font-extrabold text-white">
-                  {activeFirm.category === 'CRYPTO_PROP' ? '24/7 Market Active' : '100% Rules Compliant'}
+                  {activeFirm.category === 'CRYPTO_PROP' ? '24/7 Market Active' : 'Rules Profile Preview'}
                 </div>
                 <div className="text-[11px] text-zinc-400">
                   {activeFirm.category === 'CRYPTO_PROP'
@@ -1319,7 +1319,7 @@ export function InteractiveBacktestSimulator() {
                 to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
                 className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black text-xs px-7 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-600/30 flex items-center gap-2"
               >
-                <span>Deploy Prop Bot (12,500 KES / $95)</span>
+                <span>Deploy Prop Bot ($100/month/account)</span>
                 <ArrowRight size={14} />
               </Link>
               <Link

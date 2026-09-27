@@ -158,7 +158,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Available Now
+                    Founding Access Opening
                   </span>
                   <Zap size={18} className="text-blue-400" />
                 </div>
@@ -218,7 +218,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Available Now
+                    Founding Access Opening
                   </span>
                   <Activity size={18} className="text-cyan-400" />
                 </div>
@@ -228,7 +228,7 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="text-xl font-bold text-white">
-                    8,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($65 USD)</span>
+                    $100 <span className="text-xs text-zinc-500 font-normal">/ mo ($100/month)</span>
                   </div>
                   <div className="text-[11px] text-cyan-400 font-medium mt-0.5">
                     Pure API & Secret • Zero Bridge Needed
@@ -258,7 +258,7 @@ export default function Home() {
                   to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
                   className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
                 >
-                  Get Crypto Bot (8,500 KES) →
+                  Get Crypto Bot ($100) →
                 </Link>
                 <Link
                   to="/crypto-automation"
@@ -275,7 +275,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Available Now
+                    Founding Access Opening
                   </span>
                   <Cpu size={18} className="text-purple-400" />
                 </div>
@@ -285,7 +285,7 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="text-xl font-bold text-white">
-                    8,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($65 USD)</span>
+                    $100 <span className="text-xs text-zinc-500 font-normal">/ mo ($100/month)</span>
                   </div>
                   <div className="text-[11px] text-purple-400 font-medium mt-0.5">
                     Windows MT5 Visual Bridge Agent
@@ -316,7 +316,7 @@ export default function Home() {
                   to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
                   className="w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/20 block"
                 >
-                  Get MT5 Personal (8,500 KES) →
+                  Get MT5 Personal ($100) →
                 </Link>
                 <Link
                   to="/mt5-automation"
@@ -346,7 +346,7 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="text-xl font-bold text-white">
-                    12,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($95 USD)</span>
+                    $100 <span className="text-xs text-zinc-500 font-normal">/ mo ($100/month)</span>
                   </div>
                   <div className="text-[11px] text-amber-400 font-medium mt-0.5">
                     Hard Daily & Max Drawdown Fences
@@ -377,7 +377,7 @@ export default function Home() {
                   to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
                   className="w-full text-center bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-amber-600/20 block"
                 >
-                  Get Forex Prop (12,500 KES) →
+                  Get Forex Prop ($100) →
                 </Link>
                 <Link
                   to="/prop-ea"
@@ -407,7 +407,7 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="text-xl font-bold text-white">
-                    12,500 KES <span className="text-xs text-zinc-500 font-normal">/ mo ($95 USD)</span>
+                    $100 <span className="text-xs text-zinc-500 font-normal">/ mo ($100/month)</span>
                   </div>
                   <div className="text-[11px] text-purple-300 font-medium mt-0.5">
                     Pure API & Secret • Zero Bridge Needed
@@ -438,7 +438,7 @@ export default function Home() {
                   to="/pricing?package=crypto_prop_bot#mpesa-payment-section"
                   className="w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/20 block"
                 >
-                  Get Crypto Prop (12,500 KES) →
+                  Get Crypto Prop ($100) →
                 </Link>
                 <Link
                   to="/results#interactive-backtester"
@@ -484,7 +484,7 @@ export default function Home() {
                   <div className="text-zinc-400 text-xs mt-0.5">Crypto Prop (CFT & HyroTrader) executes 24/7 in the cloud with just API & Secret.</div>
                 </div>
                 <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">
-                  <div className="text-emerald-400 font-bold text-base font-mono">100% Rules Safe</div>
+                  <div className="text-emerald-400 font-bold text-base font-mono">Safety Rules Locked</div>
                   <div className="text-zinc-400 text-xs mt-0.5">Automated partial profit taking (50% TP1), break-even lock, zero Martingale.</div>
                 </div>
               </div>
@@ -713,9 +713,9 @@ export default function Home() {
               <tr>
                 <td className="p-4 font-semibold text-white">Monthly Price</td>
                 <td className="p-4 font-bold text-white">3,500 KES ($29)</td>
-                <td className="p-4 font-bold text-white">8,500 KES ($65)</td>
-                <td className="p-4 font-bold text-white">8,500 KES ($65)</td>
-                <td className="p-4 font-bold text-amber-400">12,500 KES ($95)</td>
+                <td className="p-4 font-bold text-white">$100 ($100/account)</td>
+                <td className="p-4 font-bold text-white">$100 ($100/account)</td>
+                <td className="p-4 font-bold text-amber-400">$100 ($100/account)</td>
               </tr>
               <tr className="bg-zinc-950/40">
                 <td className="p-4 font-semibold text-white">Action / Checkout</td>

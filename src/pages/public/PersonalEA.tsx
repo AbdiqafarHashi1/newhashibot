@@ -20,7 +20,7 @@ export default function PersonalEA() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3.5 py-1.5 text-xs text-emerald-400 mb-6 font-medium">
               <Zap size={13} className="text-emerald-400" />
-              Crypto Personal Bot — Live & Available Now
+              Crypto Personal Bot — Product Preview — Demo Certification Required
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Automated crypto execution<br />
@@ -30,7 +30,7 @@ export default function PersonalEA() {
               Crypto Personal Bot connects directly to your Binance or Bybit exchange account to automatically execute high-probability setups identified by HashiBot&apos;s arbitrator.
             </p>
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-blue-200 mb-6">
-              Subscription: <span className="font-semibold text-white">8,500 KES/month ($65 USD)</span>
+              Subscription: <span className="font-semibold text-white">$100/month per connected accountnth ($100/month)</span>
             </div>
             <p className="text-sm text-zinc-400 max-w-xl leading-relaxed mb-10">
               Non-custodial execution model. Funds remain safely in your exchange account while trades are sized and placed with sub-second latency.
@@ -97,7 +97,7 @@ export default function PersonalEA() {
           </p>
           <div className="flex flex-col gap-3">
             <Link to="/pricing?package=crypto_personal_bot" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors text-sm shadow-lg shadow-blue-600/20">
-              Subscribe to Crypto Personal Bot (8,500 KES/mo) <ArrowRight size={14} />
+              Subscribe to Crypto Personal Bot ($100/month per connected account) <ArrowRight size={14} />
             </Link>
             <Link to="/ai-signals" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 px-8 py-3 rounded-lg text-sm transition-colors">
               View VIP Signal Room <ArrowRight size={14} />

@@ -41,7 +41,7 @@ export default function FAQ() {
       id: 'crypto-1',
       category: 'Crypto Automation',
       q: 'Which exchanges are supported for crypto auto-trading?',
-      a: 'Crypto Personal Bot (8,500 KES/mo or $65 USD) currently supports Binance (Spot & USDT-M Futures) and Bybit (Unified Margin V5 & Futures).',
+      a: 'Crypto Personal Bot ($100/month per connected execution account) currently supports Binance (Spot & USDT-M Futures) and Bybit (Unified Margin V5 & Futures).',
     },
     {
       id: 'crypto-2',
@@ -60,7 +60,7 @@ export default function FAQ() {
       id: 'mt5-2',
       category: 'MT5 Automation',
       q: 'Can HashiBot be used on prop firm accounts?',
-      a: 'Yes. The Forex MT5 Prop Bot tier (12,500 KES/mo or $95 USD) includes conservative risk profiles (0.25% - 0.75% per trade) and hard daily loss gates specifically designed for FTMO, FundedNext, and similar prop firm accounts.',
+      a: 'Yes. The Forex MT5 Prop Bot tier ($100/month per connected execution account) includes conservative risk profiles (0.25% - 0.75% per trade) and hard daily loss gates specifically designed for FTMO, FundedNext, and similar prop firm accounts.',
     },
     // Payments & M-Pesa
     {
