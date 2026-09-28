@@ -44,6 +44,10 @@ verify_jwt = false
 [functions.telegram-orchestrator]
 verify_jwt = false
 
+# Telegram secret-header webhook plus independently authenticated worker/admin requests.
+[functions.telegram-membership]
+verify_jwt = false
+
 [functions.commerce-checkout]
 verify_jwt = true
 
