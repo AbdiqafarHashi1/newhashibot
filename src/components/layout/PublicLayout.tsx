@@ -577,7 +577,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <div className="flex items-center gap-4 text-zinc-400">
                 <Link to="/faq" className="hover:text-zinc-200 transition-colors">FAQ</Link>
                 <Link to="/contact#contact-form" className="hover:text-zinc-200 transition-colors">Contact</Link>
-                <Link to="/pricing#mpesa-payment-section" className="hover:text-zinc-200 transition-colors">M-Pesa Payment</Link>
+                <Link to="/pricing" className="hover:text-zinc-200 transition-colors">Pricing & checkout</Link>
               </div>
             </div>
           </div>

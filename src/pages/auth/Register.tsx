@@ -27,6 +27,12 @@ export default function Register() {
     if (error) {
       setError(error.message);
     } else {
+      const requested = search.get('returnTo') || sessionStorage.getItem('hashibot.checkout.resume');
+      if (requested?.startsWith('/') && !requested.startsWith('//')) {
+        sessionStorage.removeItem('hashibot.checkout.resume');
+        nav(requested);
+        return;
+      }
       const pkg = search.get('package');
       nav(pkg ? `/app/package-request?package=${pkg}` : '/dashboard');
     }

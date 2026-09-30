@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 /**
  * Ensures smooth anchor scrolling and form targeting across all route transitions.
- * When a hash exists (e.g. #mpesa-payment-section or #contact-form), it finds the element,
+ * When a hash exists (for example #pricing-plans or #contact-form), it finds the element,
  * calculates the sticky header offset, smoothly scrolls to it, and applies a brief visual pulse.
  */
 export function ScrollToAnchor() {

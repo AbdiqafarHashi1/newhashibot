@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, SafeAuthError } from '../../contexts/AuthContext';
 import { Zap, KeyRound, Download } from 'lucide-react';
 
@@ -18,7 +18,10 @@ export default function Login() {
   const { signIn, emergencyAdminBypass } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
-  const from = (loc.state as { from?: Location })?.from?.pathname || '/dashboard';
+  const [params] = useSearchParams();
+  const requested = params.get('returnTo') || sessionStorage.getItem('hashibot.checkout.resume');
+  const safeRequested = requested?.startsWith('/') && !requested.startsWith('//') ? requested : null;
+  const from = safeRequested || (loc.state as { from?: Location })?.from?.pathname || '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +47,7 @@ export default function Login() {
       console.warn('Profile warning on login:', profileError);
     }
 
+    sessionStorage.removeItem('hashibot.checkout.resume');
     nav(from, { replace: true });
   }
 
@@ -134,7 +138,7 @@ export default function Login() {
 
         <p className="text-center text-xs text-zinc-600 mt-4">
           Don't have an account?{' '}
-          <Link to="/register" className="text-zinc-400 hover:text-white transition-colors">Create one</Link>
+          <Link to={`/register${safeRequested ? `?returnTo=${encodeURIComponent(safeRequested)}` : ''}`} className="text-zinc-400 hover:text-white transition-colors">Create one</Link>
         </p>
       </div>
     </div>

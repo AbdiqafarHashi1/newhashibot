@@ -65,11 +65,11 @@ No Whop write permission is required. Set hosted checkout return to
 
 ## G. Frontend values
 
-Required core: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
-`VITE_TELEGRAM_BOT_USERNAME`, `VITE_MPESA_MERCHANT_NUMBER`,
-`VITE_MPESA_MERCHANT_LABEL`. Configure each offered product's paired
-`VITE_WHOP_PLAN_*` and `VITE_WHOP_CHECKOUT_*` values. Free requires
-`VITE_TELEGRAM_FREE_INVITE_URL` only when the public Free invite is enabled.
+Required frontend core: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and
+`VITE_TELEGRAM_BOT_USERNAME`. Configure `PUBLIC_APP_ORIGIN` and every payment
+credential only on the server. Public provider checkout URLs, merchant numbers,
+manual receipt forms, and direct Telegram invite URLs are intentionally not part
+of the canonical funnel.
 
 ## H. Controlled tests
 
