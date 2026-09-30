@@ -15,10 +15,11 @@ import {
 import { FOREX_RESEARCH_STRATEGIES } from "../_shared/forex-research-strategies.ts";
 import { publicSignalReference } from "../_shared/professional-telegram.ts";
 import { atrRootV1, emaRootV1, rsiRootV1, INDICATOR_VERSIONS } from "../_shared/indicator-engine.ts";
-import { arbitrate, ArbitrationDiagnostics, type ArbitrationCandidate } from "../_shared/arbitrator.ts";
+import { ArbitrationDiagnostics, type ArbitrationCandidate } from "../_shared/arbitrator.ts";
+import { arbitrateActiveScanner, evaluateActiveStrategies, ACTIVE_SCANNER_ARBITRATOR, ACTIVE_SCANNER_FRAMEWORK } from "../_shared/active-scanner-core.ts";
+import { commitScannerDecision, scannerConfigurationVersion, scannerCycleKey, scannerSignalIdentity } from "../_shared/scanner-signal-repository.ts";
+import { admitClosedRuntimeCandles, boundedScannerLimit, boundedScannerTimeframes, boundedScannerUniverse, SCANNER_HARD_LIMITS } from "../_shared/scanner-limits.ts";
 import type { DeepReadonly, StrategyPlan } from "../_shared/strategy-plan.ts";
-import { runCertifiedRuntime } from "../_shared/certified-runtime.ts";
-import { loadCertifiedExecutionAccounts, type CertifiedAccountTruthRow } from "../_shared/certified-account-loader.ts";
 import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
 import { pinnedClaimFromQualifiedSet, routeProductionEligibility, type EligibilityClaim, type EligibilityProduct, type RuntimeQualifiedSet } from "../_shared/trading-domain/production-eligibility-router.ts";
 import { FOREX_RUNTIME_INSTRUMENTS, FOREX_RUNTIME_SYMBOLS, FOREX_STRATEGY_CONTRACTS, MT5_PROVIDER_MARKET_DATA_TIMEFRAMES, forexScannerFetchPlan, forexStrategyEligibility, forexStrategyTimeframes, isForexRuntimeSymbol, roundRuntimePrice, runtimeInstrument, runtimePipDistance } from "../_shared/forex-runtime-contracts.ts";
@@ -45,6 +46,9 @@ const COMPACT_PROVIDER_LOGS = (Deno.env.get("HASHIBOT_COMPACT_PROVIDER_LOGS") ??
 const COMPACT_TELEGRAM_LOGS = (Deno.env.get("HASHIBOT_COMPACT_TELEGRAM_LOGS") ?? "true").toLowerCase() !== "false";
 const COMPACT_EXECUTION_LOGS = (Deno.env.get("HASHIBOT_COMPACT_EXECUTION_LOGS") ?? "true").toLowerCase() !== "false";
 const COMPACT_RUNTIME_FLAGS = { COMPACT_PROVIDER_LOGS, COMPACT_TELEGRAM_LOGS, COMPACT_EXECUTION_LOGS };
+const SCANNER_HARD_MAX_CRYPTO_SYMBOLS = SCANNER_HARD_LIMITS.cryptoSymbols;
+const SCANNER_HARD_MAX_FOREX_SYMBOLS = SCANNER_HARD_LIMITS.forexSymbols;
+const SCANNER_HARD_MAX_SYMBOLS_PER_SCAN = SCANNER_HARD_LIMITS.totalSymbols;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2092,21 +2096,20 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
     return { symbols: fixedRows, warning: null };
   }
 
-  const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS");
-  const envMaxCrypto = envMaxCryptoRaw ? Number(envMaxCryptoRaw) : null;
-  const envMaxTotalRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN");
-  const envMaxTotal = envMaxTotalRaw ? Number(envMaxTotalRaw) : null;
+  const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined;
+  const envMaxTotalRaw = Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? undefined;
   const configMax = (config.max_symbols_per_scan !== undefined && config.max_symbols_per_scan !== null) ? Number(config.max_symbols_per_scan) : null;
 
   let cryptoLimit = 10;
-  if (envMaxCrypto !== null && !isNaN(envMaxCrypto)) {
-    cryptoLimit = envMaxCrypto;
-  } else if (envMaxTotal !== null && !isNaN(envMaxTotal)) {
-    cryptoLimit = Math.min(envMaxTotal, 10);
+  if (envMaxCryptoRaw !== undefined) {
+    cryptoLimit = boundedScannerLimit("SCANNER_MAX_CRYPTO_SYMBOLS", envMaxCryptoRaw, 10, SCANNER_HARD_MAX_CRYPTO_SYMBOLS);
+  } else if (envMaxTotalRaw !== undefined) {
+    cryptoLimit = Math.min(boundedScannerLimit("SCANNER_MAX_SYMBOLS_PER_SCAN", envMaxTotalRaw, 13, SCANNER_HARD_MAX_SYMBOLS_PER_SCAN), 10);
   } else if (configMax !== null && !isNaN(configMax)) {
     cryptoLimit = Math.min(configMax, 10);
   }
 
+  cryptoLimit = boundedScannerLimit("SCANNER_MAX_CRYPTO_SYMBOLS", String(cryptoLimit), 10, SCANNER_HARD_MAX_CRYPTO_SYMBOLS);
   const maxSymbols = cryptoLimit;
   const minVolume = Math.max(0, Number(config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000));
   const include = scannerCsvSet(config.include_symbols);
@@ -2907,6 +2910,8 @@ async function runScanPipeline(
     errors.push(`[ERROR] ${name} ${symbol} ${timeframe}: ${error instanceof Error ? error.message : String(error ?? "unknown")}`);
   };
   const forexFetchCache = new Map<string, { candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }>();
+  const cryptoFetchCache = new Map<string, Candle[] | null>();
+  let cryptoProviderRequests = 0;
   const forexProviderRejectionKeys = new Set<string>();
   const marketMode = signalMarketMode(config.signal_enable_crypto, config.signal_enable_forex);
 
@@ -2947,6 +2952,15 @@ async function runScanPipeline(
     forexFetchCache.set(cacheKey, result);
     return result;
   }
+  async function fetchCryptoCandlesForRun(symbol: string, tf: string) {
+    const key = `${normalizeSymbol(symbol)}|${tf}`;
+    if (cryptoFetchCache.has(key)) return cryptoFetchCache.get(key) ?? null;
+    if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
+    cryptoProviderRequests++;
+    const value = await fetchBinanceCandles(symbol, tf, 110);
+    cryptoFetchCache.set(key, value);
+    return value;
+  }
 
   // Attempt to load from hashibot_symbol_universes if it exists and has rows
   let hashibotUniverseSymbols: any[] = [];
@@ -2985,6 +2999,13 @@ async function runScanPipeline(
   let forexToScan = config.signal_enable_forex
     ? canonicalForexList.map((sym) => ({ symbol: sym, market_type: "forex" as const, is_active: true }))
     : [];
+
+  // Phase K: limits are validated before the provider loop. Invalid or excessive
+  // configuration aborts the whole cycle rather than silently scanning a larger
+  // universe. Forex cannot exceed the six symbols whose contracts are locked.
+  const boundedUniverse = boundedScannerUniverse(cryptoToScan, forexToScan, Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? undefined);
+  forexToScan = boundedUniverse.forex;
+  cryptoToScan = boundedUniverse.crypto;
 
   let symbols = [
     ...cryptoToScan,
@@ -3077,7 +3098,7 @@ async function runScanPipeline(
 
       try {
         if (marketType === "crypto") {
-          const fetched = await fetchBinanceCandles(sym.symbol, tf, 110);
+          const fetched = await fetchCryptoCandlesForRun(sym.symbol, tf);
           if (fetched && fetched.length >= 55) { candles = fetched; dataSource = "REAL DATA"; binanceOk = true; }
           else {
             binanceFailed = true;
@@ -3118,6 +3139,14 @@ async function runScanPipeline(
           if (marketType === "forex") await recordForexRejection(normalizedSymbol, tf, "insufficient_candles", dataSource, `Only ${candles?.length ?? 0} candles returned`);
           continue;
         }
+        const admitted = admitClosedRuntimeCandles(candles, timeframeMinutes(tf) ?? 5, Date.now());
+        if (admitted.rejection || admitted.candles.length < 55) {
+          const reason = admitted.rejection ?? "insufficient_closed_candles";
+          if (marketType === "forex") await recordForexRejection(normalizedSymbol, tf, reason, dataSource, `Closed-candle admission failed; mutable_dropped=${admitted.mutableDropped}`);
+          errors.push(`[SKIP] ${sym.symbol} ${tf} ${reason}`);
+          continue;
+        }
+        candles = admitted.candles;
         candlesFetched += candles.length;
 
         if (!SCANNER_DISABLE_CANDLE_PERSISTENCE) {
@@ -3132,6 +3161,7 @@ async function runScanPipeline(
         const marketContext = classifyMarketContext(ind, candles);
         indicatorsCalc++;
         const lastCandle = candles[candles.length - 1];
+        const candleCloseTime = new Date(Date.parse(lastCandle.open_time) + (timeframeMinutes(tf) ?? 5) * 60_000).toISOString();
         if (!SCANNER_DISABLE_INDICATOR_SNAPSHOTS) {
         await supabase.from("indicator_snapshots").upsert({
           symbol: sym.symbol, market_type: sym.market_type, timeframe: tf, candle_time: lastCandle.open_time,
@@ -3146,7 +3176,7 @@ async function runScanPipeline(
         let fifteenMinuteCandles: Candle[] | undefined;
         if (marketType === "crypto" && tf === "5m") {
           try {
-            const fetched15m = await fetchBinanceCandles(sym.symbol, "15m", 110);
+            const fetched15m = await fetchCryptoCandlesForRun(sym.symbol, "15m");
             if (fetched15m && fetched15m.length >= 55) fifteenMinuteCandles = fetched15m;
           } catch (htfErr) {
             errors.push(`[WARN] MicroScalper ${sym.symbol} 5m HTF confirmation unavailable: ${htfErr instanceof Error ? htfErr.message : String(htfErr ?? "unknown")}`);
@@ -3185,7 +3215,7 @@ async function runScanPipeline(
         }
         const strategyContext: StrategyEvaluationContext = { symbol: normalizedSymbol, market: marketType as "crypto" | "forex", timeframe: tf, candles, indicators: ind, evaluated_at: new Date().toISOString() };
         const registry = new ProfessionalStrategyRegistry(activeDefinitions, professionalStrategyDiagnostics);
-        for (const evaluation of registry.evaluate(strategyContext)) {
+        for (const evaluation of evaluateActiveStrategies(registry, strategyContext)) {
           if (!evaluation.publishable) arbitrationDiagnostics.researchExcluded();
           if (!evaluation.publishable) continue;
           const name = evaluation.definition.legacyName as StrategyName;
@@ -3294,7 +3324,7 @@ async function runScanPipeline(
         const byCandidateId = new Map(passingEntries.map((entry) => [String((entry as EvalEntry & { _candidateId: string })._candidateId), entry]));
         const decisionStarted = Date.now();
         let noTradeReason = "";
-        const arbitrationDecision = arbitrate(arbitrationInput, { now: new Date(), noTradePolicy: (ranked) => {
+        const arbitrationDecision = arbitrateActiveScanner(arbitrationInput, { now: new Date(), noTradePolicy: (ranked) => {
           const rankedEntries = ranked.map((candidate) => byCandidateId.get(candidate.id)!).filter(Boolean);
           noTradeReason = arbitrationNoTradeReason(marketContext, rankedEntries);
           return noTradeReason || undefined;
@@ -3304,6 +3334,12 @@ async function runScanPipeline(
         const arbitrationCandidates = arbitrationSnapshot(passingEntries, marketContext);
         const selectedArbitrationScore = arbitrationDecision.winner?.score ?? (passingEntries.length > 0 ? arbitrationScore(passingEntries[0], marketContext) : 0);
         const selectedStrategyName = arbitrationDecision.winner ? (byCandidateId.get(arbitrationDecision.winner.id)?.name ?? "none") : "none";
+        const arbitrationScope = `${marketType}:${normalizedSymbol}:${tf}`;
+        const cycleConfigurationVersion = scannerConfigurationVersion(allEvals.map(entry => ({ strategyId: entry.plan.identity.strategy_id, strategyVersion: entry.plan.identity.strategy_version, configSource: entry.cfg.config_source, parameters: entry.cfg.params, minScore: entry.cfg.min_score, minRiskReward: entry.cfg.min_rr })));
+        const decisionCycleKey = scannerCycleKey({ market: marketType, symbol: normalizedSymbol, timeframe: tf, candleCloseTime, strategyId: ACTIVE_SCANNER_FRAMEWORK, strategyVersion: "1", configurationVersion: cycleConfigurationVersion });
+        if (!arbitrationDecision.winner) {
+          await commitScannerDecision(supabase, { cycleKey: decisionCycleKey, runId, scope: arbitrationScope, decision: "NO_TRADE", reasonCodes: arbitrationDecision.rejected.flatMap(row => row.reasons).length ? arbitrationDecision.rejected.flatMap(row => row.reasons) : [noTradeReason || "NO_QUALIFIED_CANDIDATE"], arbitration: { ...arbitrationDecision, framework: ACTIVE_SCANNER_FRAMEWORK, arbitrator: ACTIVE_SCANNER_ARBITRATOR } });
+        }
         if (arbitrationDecision.winner) {
           const selected = byCandidateId.get(arbitrationDecision.winner.id);
           if (!selected || !Object.isFrozen(selected.plan)) throw new Error("certified_winner_strategy_plan_missing_or_mutable");
@@ -3377,6 +3413,7 @@ async function runScanPipeline(
           }
           continue;
         }
+        if (!arbitrationDecision.winner) continue;
 
         for (let idx = 0; idx < passingEntries.length; idx++) {
           const ev = passingEntries[idx] as EvalEntry & { _candidateId: string };
@@ -3522,7 +3559,9 @@ async function runScanPipeline(
           if (dataSource !== "REAL DATA") continue;
 
           // ── Mode-aware arbitrator ─────────────────────────────────────────
-          const modesToRun = marketType === "forex" ? ["signal_mode"] : (activeModes.length > 0 ? activeModes.map((m) => m.mode_slug) : ["signal_mode"]);
+          // Scanner owns market-level signal truth only. Phase D remains the sole
+          // account risk/quantity authority downstream of the committed signal.
+          const modesToRun = ["signal_mode"];
           let signalCreatedForThisCandidate = false;
 
           for (const modeSlug of modesToRun) {
@@ -3531,7 +3570,6 @@ async function runScanPipeline(
             const rp = getRiskProfile(modeSlug);
             const modeConfig = modes.find((m) => m.mode_slug === modeSlug);
             const overrides = (modeConfig?.strategy_overrides as Record<string, unknown>) ?? {};
-            const execPolicy = (modeConfig?.execution_policy as Record<string, unknown>) ?? {};
             const eligibilityProduct: EligibilityProduct = modeSlug === "signal_mode" ? "SIGNAL_ONLY" : marketType === "forex" ? (modeSlug === "prop_mode" ? "FOREX_PROP" : "FOREX_PERSONAL") : (modeSlug === "prop_mode" ? "CRYPTO_PROP" : "CRYPTO_PERSONAL");
             const eligibilityMarket = marketType === "forex" ? "FOREX" as const : "CRYPTO" as const;
             const strategyId = ev.plan.identity.strategy_id, strategyVersion = ev.plan.identity.strategy_version;
@@ -3561,7 +3599,7 @@ async function runScanPipeline(
             if (r.confidence_score < modeMinScore) continue;
             if ((r.risk_reward ?? 0) < modeMinRR) continue;
 
-            const riskCheck = runRiskCheck(rp, riskState, modeSlug);
+            const riskCheck = { passed: true, reason: "signal_truth_precedes_phase_d_account_policy", daily_lock: false, cooldown: false };
             const managementInput = {
               symbol: sym.symbol, market_type: sym.market_type, timeframe: tf, direction: r.direction,
               entry_low: r.entry_low, entry_high: r.entry_high, stop_loss: r.stop_loss, tp1: r.tp1, tp2: r.tp2,
@@ -3607,20 +3645,7 @@ async function runScanPipeline(
 
             if (!riskCheck.passed) {
               riskBlockedCount++;
-              await supabase.from("signals").insert({
-                candidate_id: cId, symbol: sym.symbol, market_type: sym.market_type, timeframe: tf,
-                direction: r.direction, entry_type: "zone",
-                entry_low: r.entry_low, entry_high: r.entry_high, stop_loss: r.stop_loss,
-                tp1: r.tp1, tp2: r.tp2, risk_reward: r.risk_reward,
-                strategy_name: ev.name, regime: ind.regime, grade: r.grade,
-                confidence_score: r.confidence_score, reason: r.reason,
-                invalidation: `Price closes beyond stop loss (${r.stop_loss?.toFixed(5)})`,
-                status: "cancelled", source: "scanner", mode_slug: modeSlug, data_source: dataSource,
-                created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
-                arbitrator_decision: { ...arbitratorDecision, eligibility, expiry_metadata: expiryMetadata, execution_tradability: tradability },
-                risk_profile_snapshot: { mode_slug: modeSlug, risk_per_trade_pct: rp.risk_per_trade_pct, block_reason: riskCheck.reason, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
-                ...riskLeverageRecommendation,
-              });
+              await commitScannerDecision(supabase, { cycleKey: decisionCycleKey, runId, scope: arbitrationScope, decision: "REJECTED", reasonCodes: [riskCheck.reason], arbitration: { ...arbitrationDecision, framework: ACTIVE_SCANNER_FRAMEWORK, arbitrator: ACTIVE_SCANNER_ARBITRATOR } });
               continue;
             }
 
@@ -3630,8 +3655,12 @@ async function runScanPipeline(
               continue;
             }
 
-            // Create signal
-            const { data: sigData } = await supabase.from("signals").insert({
+            // Create immutable signal and publication work in one transaction.
+            const strategyIdForSignal = ev.plan.identity.strategy_id;
+            const strategyVersionForSignal = ev.plan.identity.strategy_version;
+            const configurationVersion = scannerConfigurationVersion({ strategyId: strategyIdForSignal, strategyVersion: strategyVersionForSignal, configSource: ev.cfg.config_source, parameters: ev.cfg.params, minScore: ev.cfg.min_score, minRiskReward: ev.cfg.min_rr, distanceGuards: [ev.cfg.min_stop_distance_pct, ev.cfg.min_tp1_distance_pct, ev.cfg.min_tp2_distance_pct] });
+            const signalIdentity = scannerSignalIdentity({ market: marketType, symbol: normalizedSymbol, timeframe: tf, candleCloseTime, strategyId: strategyIdForSignal, strategyVersion: strategyVersionForSignal, configurationVersion, side: r.direction });
+            const signalPayload = {
               candidate_id: cId, symbol: sym.symbol, market_type: sym.market_type, timeframe: tf,
               direction: r.direction, entry_type: "zone",
               entry_low: r.entry_low, entry_high: r.entry_high, stop_loss: r.stop_loss,
@@ -3643,8 +3672,12 @@ async function runScanPipeline(
               created_at: signalCreatedAt.toISOString(), expires_at: expiryMetadata.expires_at,
               arbitrator_decision: { ...arbitratorDecision, eligibility, expiry_metadata: expiryMetadata, execution_tradability: tradability },
               risk_profile_snapshot: { mode_slug: modeSlug, equity_start: rp.equity_start, risk_per_trade_pct: rp.risk_per_trade_pct, score_breakdown: expiryScoreBreakdown, trade_management: tradeManagement, expiry_metadata: expiryMetadata },
+              signal_identity: signalIdentity, strategy_id: strategyIdForSignal, strategy_version: strategyVersionForSignal,
+              configuration_version: configurationVersion, candle_close_time: candleCloseTime,
               ...riskLeverageRecommendation,
-            }).select("*").single();
+            };
+            const committed = await commitScannerDecision(supabase, { cycleKey: decisionCycleKey, runId, scope: arbitrationScope, decision: "SIGNAL", reasonCodes: ["GRADE_A_OR_A_PLUS", "ARBITRATION_WINNER"], arbitration: { ...arbitrationDecision, framework: ACTIVE_SCANNER_FRAMEWORK, arbitrator: ACTIVE_SCANNER_ARBITRATOR }, signal: signalPayload, enqueuePublication: true });
+            const sigData = committed.signal_id ? { ...signalPayload, id: committed.signal_id, status: "waiting" } : null;
 
             if (!sigData) continue;
             signalsCreated++;
@@ -3674,64 +3707,12 @@ async function runScanPipeline(
               },
             }).eq("id", cId);
 
-            // Paper execution intent (Personal/Prop modes)
-            const paperEnabled = execPolicy.paper_execution_enabled === true;
-            if (paperEnabled && modeSlug !== "signal_mode") {
-              const entryMid = ((r.entry_low ?? 0) + (r.entry_high ?? 0)) / 2;
-              const intentId = await createPaperIntent(supabase, sigData.id, modeSlug, sym.symbol, r.direction, entryMid, r.stop_loss ?? 0, r.tp1 ?? 0, r.tp2 ?? 0, rp, "");
-              if (intentId) {
-                paperIntentsCreated++;
-                await supabase.from("signals").update({ paper_execution_intent_id: intentId }).eq("id", sigData.id);
-              }
-            }
-
-            // ── Auto Telegram send ──────────────────────────────────────────
-            const tgResult = await tryAutoSendTelegram(
-              supabase,
-              sigData.id,
-              sigData as Record<string, unknown>,
-              dataSource,
-              config,
-            );
-            if (tgResult.delivery_id) telegramDeliveryIds.push(tgResult.delivery_id);
-            if (tgResult.sent) telegramSent++;
-            else if (tgResult.status === "failed") telegramFailed++;
-            else telegramSkipped++;
-            if (tgResult.blocked_reason) telegramSkipReasons[tgResult.blocked_reason] = (telegramSkipReasons[tgResult.blocked_reason] ?? 0) + 1;
-
-            // Execution is deliberately downstream of every scanner gate and
-            // signal persistence. Only the immutable certified plan may reach
-            // a provider; a SignalRow is a notification/audit projection, not
-            // a provider instruction.
-            const selectedPlan = ev.plan;
-            const loaded = await loadCertifiedExecutionAccounts({
-              strategy_plan: selectedPlan, now: strategyContext.evaluated_at,
-              repository: { async list(plan) { const { data, error } = await supabase.rpc("load_certified_execution_account_truth", { p_strategy_id:plan.identity.strategy_id, p_symbol:plan.market_context.symbol, p_evaluated_at:strategyContext.evaluated_at }); if (error) throw new Error(`certified_account_truth_load_failed:${error.message}`); return (data ?? []) as CertifiedAccountTruthRow[]; } },
-            });
-            for (const rejection of loaded.rejected) await supabase.from("certified_runtime_events").insert({ event_id:`account-rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}:${rejection.reason}`, execution_plan_id:`rejected:${selectedPlan.provenance.evaluation_id}:${rejection.account_id ?? "unknown"}`, account_id:rejection.account_id ?? "unknown", event_type:"ACCOUNT_REJECTED", normalized_status:"rejected", occurred_at:strategyContext.evaluated_at, payload:{...rejection,evaluation_id:selectedPlan.provenance.evaluation_id} });
-            let executionResult = { called: false, success: false, reason: "no_eligible_certified_account" };
-            if (loaded.accounts.length) {
-              const accountEligibility = new Map<string, ReturnType<typeof routeProductionEligibility>>();
-              const routedAccounts = loaded.accounts.filter((account) => {
-                const product = account.execution_product, accountSet = qualifiedSets.get(`${product}_QUALIFIED_SET`) ?? null;
-                const accountClaim = pinnedClaimFromQualifiedSet({ product, market: product.startsWith("FOREX") ? "FOREX" : "CRYPTO", set: accountSet ?? { version:"qualified-strategy-set/v1",id:`${product}_QUALIFIED_SET`,setVersion:"missing",product:product.endsWith("PROP")?"PROP":"PERSONAL",researchPolicyVersion:"missing",entries:[] }, strategyId:selectedPlan.identity.strategy_id, strategyVersion:selectedPlan.identity.strategy_version, symbol:selectedPlan.market_context.symbol, timeframe:selectedPlan.market_context.timeframe, requiredQualification:"FORWARD_VALIDATION_CANDIDATE" });
-                const decision = routeProductionEligibility({ claim:accountClaim, qualifiedSet:accountSet }); accountEligibility.set(account.account_id,decision);
-                return decision.decision === "ELIGIBLE";
-              });
-              const certified = runCertifiedRuntime({ candidates:arbitrationInput, strategy_plans:Object.fromEntries([...byCandidateId].map(([id,entry])=>[id,entry.plan])), arbitration:{now:new Date(strategyContext.evaluated_at)}, arbitration_result:arbitrationDecision, accounts:routedAccounts });
-              for (const account of certified.accounts) {
-                const { error:artifactError } = await supabase.from("certified_runtime_artifacts").insert({ evaluation_id:selectedPlan.provenance.evaluation_id, account_id:account.account_id, strategy_plan_id:selectedPlan.provenance.evaluation_id, risk_decision:account.risk_decision, capital_allocation_plan:account.capital_allocation_plan, execution_plan:account.execution_plan });
-                if (artifactError) throw new Error(`certified_runtime_artifact_persistence_failed:${artifactError.message}`);
-                if (account.execution_plan?.status === "PLANNED") {
-                  incrementStrategyStat(ev.name, "execution_started");
-                  const adoptionVersion = loaded.accounts.find((item) => item.account_id === account.account_id)?.adoption_policy_version;
-                  const response = await fetch(`${Deno.env.get("SUPABASE_URL") ?? ""}/functions/v1/binance-testnet-execution`, { method:"POST", headers:{Authorization:`Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,"Content-Type":"application/json"}, body:JSON.stringify({action:"adopt_execution_plan",execution_plan:account.execution_plan,expected_policy_version:adoptionVersion,eligibility_decision:accountEligibility.get(account.account_id)}), signal:AbortSignal.timeout(15000) });
-                  if (!response.ok) throw new Error(`certified_execution_adoption_failed:${response.status}`);
-                  executionResult = { called: true, success: true, reason: "certified_execution_plan_adopted" };
-                  incrementStrategyStat(ev.name, "execution_completed");
-                }
-              }
-            }
+            // Telegram is a consumer of durable publication work; the scanner
+            // never delivers or adopts an account execution plan.
+            const tgResult = { sent: false, status: "queued", blocked_reason: "publication_work_pending" };
+            telegramSkipped++;
+            telegramSkipReasons.publication_work_pending = (telegramSkipReasons.publication_work_pending ?? 0) + 1;
+            const executionResult = { called: false, success: false, reason: "phase_d_downstream_only" };
 
             if (ev.name === "MicroScalper") {
               await supabase.from("strategy_candidates").update({
@@ -4056,12 +4037,19 @@ Deno.serve(async (req: Request) => {
       signalEnableForex = true;
     }
 
+    // Phase K consolidation preserves the Phase 4 Twelve Data authority. The
+    // current MT5 candle implementation is not authorized to replace it.
+    if (signalEnableForex && !signalEnableCrypto) {
+      return new Response(JSON.stringify({ success: false, blocked: true, reason: "FOREX_PROVIDER_AUTHORITY_UNRESOLVED_TWELVE_DATA_LOCK_MT5_IMPLEMENTATION", forex_provider_calls_attempted: 0 }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    signalEnableForex = false;
+
     const config: ScannerConfig = {
       is_enabled: configRow.is_enabled ?? true,
       demo_mode_enabled: configRow.demo_mode_enabled ?? true,
       min_signal_grade: configRow.min_signal_grade ?? "A",
       prevent_duplicate_symbol_signals: configRow.prevent_duplicate_symbol_signals ?? true,
-      active_timeframes: configRow.active_timeframes ?? ["5m", "15m", "1h", "4h"],
+      active_timeframes: boundedScannerTimeframes(configRow.active_timeframes ?? ["5m", "15m", "1h", "4h"]),
       allow_demo_telegram_sending: configRow.allow_demo_telegram_sending ?? false,
       auto_send_telegram: configRow.auto_send_telegram ?? false,
       min_auto_send_grade: configRow.min_auto_send_grade ?? "A",

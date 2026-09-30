@@ -66,7 +66,7 @@ export default function ScannerStatus() {
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold">Scanner Status</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Crypto-only scanner run history, Telegram proof, and historical warning context</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Backend scanner truth, adapter freshness, arbitration evidence, publication, and outcome backlog</p>
         </div>
         <button onClick={async () => { await Promise.all([refresh(), loadRuns()]); }} disabled={loadingAny}
           className="inline-flex items-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50">
@@ -76,6 +76,33 @@ export default function ScannerStatus() {
       </div>
 
       <SchedulerProofDebug state={state} />
+
+      {!loadingAny && (
+        <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-amber-400">Phase K signal-mode certification</div>
+              <div className="mt-1 text-sm font-semibold text-zinc-200">ACTIVE PATH CONSOLIDATED IN CODE — deployment and real-market certification held</div>
+            </div>
+            <span className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-400">Execution disabled by phase policy</span>
+          </div>
+          <div className="mt-3 grid gap-3 text-xs text-zinc-400 sm:grid-cols-2 lg:grid-cols-4">
+            <div>Adapters: crypto {latestRun?.crypto_symbols_scanned ?? '—'} / forex {latestRun?.forex_symbols_scanned ?? '—'}</div>
+            <div>Candidates / rejected: {latestRun?.candidates_found ?? '—'} / {latestRun?.rejected_candidates_count ?? '—'}</div>
+            <div>Provider requests: {latestRun?.forex_provider_calls_attempted ?? '—'} / limit {latestRun?.forex_provider_call_limit ?? '—'}</div>
+            <div>Outcome backlog: {latestRun && typeof latestRun.outcome_checked === 'boolean' ? (latestRun.outcome_checked ? 'checked' : 'pending') : 'not reported'}</div>
+          </div>
+          <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Deterministic parity:</span> <span className="text-emerald-400">PASS (repository tests)</span></div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Real provider data:</span> <span className="text-amber-400">NOT RUN</span></div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Calibration:</span> <span className="text-amber-400">no certified strategy</span></div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Telegram:</span> projection only; delivery not tested</div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Durable writer:</span> migration pending deployment</div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Execution:</span> disabled; Phase D downstream</div>
+          </div>
+          <p className="mt-3 text-xs text-zinc-500">Values above come from the latest persisted scanner run. Missing values remain “—”; this page does not infer health or strategy profitability.</p>
+        </div>
+      )}
 
       {!loadingAny && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
