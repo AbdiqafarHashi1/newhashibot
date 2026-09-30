@@ -26,7 +26,7 @@ export default function AISignals() {
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              to="/pricing?package=crypto_signal_room#mpesa-payment-section"
+              to="/pricing?package=crypto_signal_room"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-xs"
             >
               <span>Subscribe to VIP Signals (3,500 KES/mo or $29 USD)</span>
@@ -209,7 +209,7 @@ export default function AISignals() {
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link
-              to="/pricing?package=crypto_signal_room#mpesa-payment-section"
+              to="/pricing?package=crypto_signal_room"
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"
             >
               Subscribe Now (3,500 KES/mo)

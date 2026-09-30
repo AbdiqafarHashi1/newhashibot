@@ -298,7 +298,7 @@ export default function Contact() {
             Email Support Directly
           </a>
           <span>•</span>
-          <Link to="/pricing#mpesa-payment-section" className="text-blue-400 hover:underline">
+          <Link to="/pricing" className="text-blue-400 hover:underline">
             View Plans & Submit M-Pesa Payment
           </Link>
           <span>•</span>
