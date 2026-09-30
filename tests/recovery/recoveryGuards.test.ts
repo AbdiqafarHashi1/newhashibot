@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const scanner = readFileSync('supabase/functions/market-scanner/index.ts', 'utf8');
+const scannerLimits = readFileSync('supabase/functions/_shared/scanner-limits.ts', 'utf8');
 const recoverySql = readFileSync('supabase/migrations/20260707100000_090_v1_final_recovery_backend.sql', 'utf8');
 const retentionSql = readFileSync('supabase/migrations/20260707090000_089_v1_platform_retention_backend.sql', 'utf8');
 const backend = readFileSync('src/lib/hashibotBackend.ts', 'utf8');
@@ -73,9 +74,12 @@ assert.match(batchRetentionSql, /v_batch_limited boolean := false/, '092 migrati
 assert.match(batchRetentionSql, /LIMIT \$2/, '092 migration limits database deletion and archive by batch size');
 assert.match(batchRetentionSql, /idx_profiles_email/, '092 migration contains index on profiles email');
 
-// Scanner cap defaults verification
-assert.match(scanner, /cryptoLimit = envMaxCrypto !== null && !isNaN\(envMaxCrypto\) \? envMaxCrypto : 10/, 'market-scanner has correct crypto fallback of 10');
-assert.match(scanner, /forexLimit = envMaxForex !== null && !isNaN\(envMaxForex\) \? envMaxForex : 3/, 'market-scanner has correct forex fallback of 3');
-assert.match(scanner, /totalLimit = envMaxTotal !== null && !isNaN\(envMaxTotal\) \? envMaxTotal : 13/, 'market-scanner has correct total fallback of 13');
+// Scanner cap defaults and fail-closed validation. These assertions deliberately
+// verify behavior-bearing calls rather than obsolete variable spellings.
+assert.match(scanner, /boundedScannerUniverse/, 'market-scanner invokes the behavior-tested universe bound before scanning');
+assert.match(scannerLimits, /SCANNER_MAX_CRYPTO_SYMBOLS[\s\S]*?, 10, SCANNER_HARD_LIMITS\.cryptoSymbols/, 'crypto fallback is 10');
+assert.match(scannerLimits, /SCANNER_MAX_FOREX_SYMBOLS[\s\S]*?, 3, SCANNER_HARD_LIMITS\.forexSymbols/, 'forex fallback is 3');
+assert.match(scannerLimits, /SCANNER_MAX_SYMBOLS_PER_SCAN[\s\S]*?, 13, SCANNER_HARD_LIMITS\.totalSymbols/, 'total fallback is 13');
+assert.match(scannerLimits, /UNSAFE_SCANNER_LIMIT/, 'invalid or excessive limits abort before provider scanning');
 
 console.log('Recovery guard tests passed');
