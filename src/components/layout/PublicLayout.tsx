@@ -400,12 +400,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                       User Dashboard
                     </Link>
                   )}
-                  {adminPreviewEnabled && <button
+                  <button
                     onClick={handleSignOut}
                     className="w-full text-center py-2.5 bg-zinc-900 text-red-400 font-semibold text-xs rounded-xl border border-zinc-800"
                   >
                     Sign Out
-                  </button>}
+                  </button>
                 </>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
@@ -460,14 +460,14 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 <div className="flex items-center gap-2 text-zinc-300">
                   <Phone size={14} className="text-emerald-400" />
                   <span>M-Pesa: 0748 895 225</span>
-              {adminPreviewEnabled && <button
+              <button
                     onClick={handleCopyMpesa}
                     className="ml-2 text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-2 py-0.5 rounded flex items-center gap-1"
                     title="Copy M-Pesa number"
                   >
                     {copiedMpesa ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
                     <span>{copiedMpesa ? 'Copied' : 'Copy'}</span>
-              </button>}
+              </button>
                 </div>
               </div>
             </div>
@@ -507,7 +507,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     <span>Download MT5 Bridge</span>
                   </Link>
                 </li>
-                <li>
+                {adminPreviewEnabled && <li>
                   <button
                     onClick={() => {
                       emergencyAdminBypass();
@@ -518,7 +518,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     <KeyRound size={12} />
                     <span>Admin Bypass (Temp Pass)</span>
                   </button>
-                </li>
+                </li>}
                 {isLoggedIn && (
                   <li>
                     <Link to="/app/dashboard" className="text-blue-400 hover:text-blue-300 font-semibold">
@@ -561,7 +561,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   <Monitor size={12} />
                   <span>Visual Bridge HUD</span>
                 </Link>
-                <button
+                {adminPreviewEnabled && <button
                   type="button"
                   onClick={() => {
                     emergencyAdminBypass();
@@ -572,7 +572,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 >
                   <KeyRound size={12} />
                   <span>Admin Pass (Bypass)</span>
-                </button>
+                </button>}
               </div>
 
               <div className="flex items-center gap-4 text-zinc-400">

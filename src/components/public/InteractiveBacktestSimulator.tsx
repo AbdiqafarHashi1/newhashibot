@@ -968,7 +968,7 @@ export function InteractiveBacktestSimulator() {
                 </div>
 
                 <Link
-                  to={activeFirm.category === 'CRYPTO_PROP' ? '/pricing?package=crypto_prop_bot#mpesa-payment-section' : '/pricing?package=forex_mt5_prop_bot#mpesa-payment-section'}
+                  to={activeFirm.category === 'CRYPTO_PROP' ? '/execution/prop' : '/execution/prop'}
                   className={`w-full text-center font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 ${
                     propSimulation.isOfficiallyCleared
                       ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-zinc-950 font-black shadow-emerald-600/30'
@@ -1316,7 +1316,7 @@ export function InteractiveBacktestSimulator() {
 
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <Link
-                to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                to="/execution/prop"
                 className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black text-xs px-7 py-3.5 rounded-xl transition-all shadow-xl shadow-amber-600/30 flex items-center gap-2"
               >
                 <span>Deploy Prop Bot ($100/month/account)</span>

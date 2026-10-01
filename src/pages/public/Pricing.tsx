@@ -91,6 +91,11 @@ export default function Pricing() {
   }, [packageParam, handlePackageChange]);
 
   function handleSelectAndJumpToPayment(slug: string, isWeekly = false) {
+    if (slug !== 'crypto_signal_room') {
+      const route = slug.includes('prop') ? '/execution/prop' : slug.includes('forex') ? '/execution/mt5' : '/execution/crypto';
+      window.location.assign(route);
+      return;
+    }
     if (slug === 'crypto_signal_room') {
       setSignalDuration(isWeekly ? 'week' : 'month');
     }
@@ -361,7 +366,7 @@ export default function Pricing() {
                     to={session ? `/app/package-request?package=crypto_signal_room` : `/register?package=crypto_signal_room`}
                     className="w-full py-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-center transition-colors block"
                   >
-                    {session ? 'Activate in Customer Dashboard →' : 'Sign up for this plan →'}
+                    {session ? 'Continue to account setup →' : 'Sign up and create an account →'}
                   </Link>
                 </div>
               </div>
@@ -421,7 +426,7 @@ export default function Pricing() {
                         : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
                     }`}
                   >
-                    <span>{isSelected ? '✓ Plan Selected — Pay Below' : 'Select & Pay via M-Pesa'}</span>
+                    <span>{isSelected ? '✓ Account path selected' : 'Choose account & continue'}</span>
                     <ArrowRight size={14} />
                   </button>
 
@@ -429,7 +434,7 @@ export default function Pricing() {
                     to={session ? `/app/package-request?package=forex_mt5_personal_bot` : `/register?package=forex_mt5_personal_bot`}
                     className="w-full py-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-center transition-colors block"
                   >
-                    {session ? 'Activate in Customer Dashboard →' : 'Sign up for this plan →'}
+                    {session ? 'Continue to account setup →' : 'Sign up and create an account →'}
                   </Link>
                 </div>
               </div>
@@ -489,7 +494,7 @@ export default function Pricing() {
                         : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/20'
                     }`}
                   >
-                    <span>{isSelected ? '✓ Plan Selected — Pay Below' : 'Select & Pay via M-Pesa'}</span>
+                    <span>{isSelected ? '✓ Account path selected' : 'Choose account & continue'}</span>
                     <ArrowRight size={14} />
                   </button>
 
@@ -497,7 +502,7 @@ export default function Pricing() {
                     to={session ? `/app/package-request?package=forex_mt5_prop_bot` : `/register?package=forex_mt5_prop_bot`}
                     className="w-full py-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-center transition-colors block"
                   >
-                    {session ? 'Activate in Customer Dashboard →' : 'Sign up for this plan →'}
+                    {session ? 'Continue to account setup →' : 'Sign up and create an account →'}
                   </Link>
                 </div>
               </div>
@@ -557,7 +562,7 @@ export default function Pricing() {
                         : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20'
                     }`}
                   >
-                    <span>{isSelected ? '✓ Plan Selected — Pay Below' : 'Select & Pay via M-Pesa'}</span>
+                    <span>{isSelected ? '✓ Account path selected' : 'Choose account & continue'}</span>
                     <ArrowRight size={14} />
                   </button>
 
@@ -565,7 +570,7 @@ export default function Pricing() {
                     to={session ? `/app/package-request?package=crypto_prop_bot` : `/register?package=crypto_prop_bot`}
                     className="w-full py-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-center transition-colors block"
                   >
-                    {session ? 'Activate in Customer Dashboard →' : 'Sign up for this plan →'}
+                    {session ? 'Continue to account setup →' : 'Sign up and create an account →'}
                   </Link>
                 </div>
               </div>
@@ -694,22 +699,22 @@ export default function Pricing() {
                 )}
 
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Always verify that the recipient name corresponds to the designated HashiBot payment contact before entering your M-Pesa PIN.
+                  This information is retained only to help support investigate a historical transfer. Do not use it to start a new purchase.
                 </p>
               </div>
 
               {/* Step-by-Step Instructions */}
               <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-4 text-xs">
-                <h3 className="font-extrabold text-sm text-white">How To Complete Activation:</h3>
+                <h3 className="font-extrabold text-sm text-white">Historical receipt details</h3>
                 <ol className="space-y-3 text-zinc-300 list-decimal list-inside leading-relaxed">
-                  <li>Open M-Pesa on your mobile phone.</li>
-                  <li>Select <strong className="text-white">Send Money</strong>.</li>
-                  <li>Enter recipient number: <strong className="text-emerald-400 font-mono">{mpesaMerchant || 'Contact HashiBot — merchant not configured'}</strong></li>
-                  <li>Enter exact plan amount: <strong className="text-white font-mono">{Number(formData.amountKes).toLocaleString()} KES</strong></li>
-                  <li>Enter your M-Pesa PIN and confirm transaction.</li>
-                  <li>Copy the M-Pesa Transaction Ref Code from your SMS (e.g. <strong className="text-cyan-400 font-mono">SJK789XYZ</strong>).</li>
-                  <li>Fill out the form on the right and click <strong className="text-white">Submit Payment Confirmation</strong>.</li>
-                  <li>Account activation follows manual payment verification within 15–30 minutes.</li>
+                  <li>Use this form only when support asks you to document a transfer already made.</li>
+
+                  <li>Confirm the historical recipient and amount from your own receipt.</li>
+                  <li>Use the amount shown on the historical receipt; do not initiate a new transfer here.</li>
+                  <li>Never enter or share an M-Pesa PIN with HashiBot or support.</li>
+                  <li>Provide the historical transaction reference so support can investigate it.</li>
+                  <li>Fill out the form on the right and click <strong className="text-white">Submit Receipt for Review</strong>.</li>
+                  <li>A receipt or support review cannot prove payment or activate access.</li>
                 </ol>
               </div>
 
@@ -895,7 +900,7 @@ export default function Pricing() {
                   ) : (
                     <>
                       <Send size={16} />
-                      <span>Submit Payment Confirmation</span>
+                      <span>Submit Receipt for Review</span>
                     </>
                   )}
                 </button>
