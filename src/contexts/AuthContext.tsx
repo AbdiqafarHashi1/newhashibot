@@ -216,12 +216,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function emergencyAdminBypass() {
-    activateEmergencyAdmin();
+    if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_ADMIN_PREVIEW === 'true') activateEmergencyAdmin();
   }
 
   useEffect(() => {
     // Check if emergency bypass is active
-    if (localStorage.getItem('hashibot_admin_bypass') === 'true') {
+    if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_ADMIN_PREVIEW === 'true' && localStorage.getItem('hashibot_admin_bypass') === 'true') {
       activateEmergencyAdmin();
       return;
     }

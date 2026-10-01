@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, SafeAuthError } from '../../contexts/AuthContext';
 import { Zap, KeyRound, Download } from 'lucide-react';
 
@@ -16,9 +16,12 @@ function friendlyError(error: SafeAuthError): string {
 
 export default function Login() {
   const { signIn, emergencyAdminBypass } = useAuth();
+  const adminPreviewEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_ADMIN_PREVIEW === 'true';
   const nav = useNavigate();
   const loc = useLocation();
-  const from = (loc.state as { from?: Location })?.from?.pathname || '/dashboard';
+  const [search] = useSearchParams();
+  const requestedReturn = search.get('returnTo');
+  const from = requestedReturn?.startsWith('/') && !requestedReturn.startsWith('//') ? requestedReturn : (loc.state as { from?: Location })?.from?.pathname || '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -103,13 +106,13 @@ export default function Login() {
                 placeholder="••••••••"
               />
             </div>
-            <button
+          {adminPreviewEnabled && <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
             >
               {loading ? 'Signing in...' : 'Sign In'}
-            </button>
+          </button>}
           </form>
 
           {/* Emergency Admin Bypass Button */}
@@ -134,7 +137,7 @@ export default function Login() {
 
         <p className="text-center text-xs text-zinc-600 mt-4">
           Don't have an account?{' '}
-          <Link to="/register" className="text-zinc-400 hover:text-white transition-colors">Create one</Link>
+          <Link to={requestedReturn ? `/register?returnTo=${encodeURIComponent(requestedReturn)}` : '/register'} className="text-zinc-400 hover:text-white transition-colors">Create one</Link>
         </p>
       </div>
     </div>
