@@ -229,6 +229,7 @@ class CloudClient:
         """Publish only to the authenticated durable control plane."""
         code, data = self._post(self._bridge_url("publish_market_data"), {
             "bridge_id": self.bridge_id, "worker_id": Config.WORKER_ID,
-            "account_id": account_id, "owner_id": Config.OWNER_ID, "feeds": feeds,
+            "account_id": account_id, "owner_id": Config.OWNER_ID,
+            "feed_identity": Config.MARKET_DATA_FEED_ID, "feeds": feeds,
         }, timeout=20)
         return code == 200 and bool(data.get("success"))

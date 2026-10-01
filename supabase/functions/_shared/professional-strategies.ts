@@ -13,7 +13,7 @@ export interface StrategyIndicatorSnapshot {
   ema20: number; ema50: number; atr14: number; rsi14: number;
   recent_high: number; recent_low: number; avg_volume: number;
   body_size: number; atr_pct: number; range_compression_ratio: number;
-  momentum_score: number; volatility_state: string; regime: string;
+  momentum_score: number; volatility_state: string; regime: string; gk_volatility?: number;
 }
 
 export interface LegacyStrategyResult {
@@ -51,6 +51,7 @@ export interface StrategyRuntimeConfig {
   enabled: boolean;
   min_score: number;
   min_rr: number;
+  min_stop_distance_pct?: number; min_tp1_distance_pct?: number; min_tp2_distance_pct?: number;
   max_bars_in_trade: number;
   allowed_symbols: string[];
   allowed_timeframes: string[];

@@ -1,0 +1,1 @@
+export function validationAccessDecision(input:{authenticated:boolean;role:string|null}){if(!input.authenticated)return{allowed:false,status:401,error:"AUTHENTICATION_REQUIRED"} as const;if(input.role!=="admin")return{allowed:false,status:403,error:"ADMIN_REQUIRED"} as const;return{allowed:true,status:200,error:null} as const;}
