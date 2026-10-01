@@ -23,7 +23,7 @@ The existing data-acquisition UI now uses bounded Binance/Bybit pagination and 3
 
 `phase-l-validation.ts` admits UTC, ordered, closed OHLCV data; excludes duplicates, malformed candles and future/open candles; and labels expected Forex weekend gaps separately from unexpected gaps. It never silently fills a gap. A bounded run records run/configuration, dataset/provenance/hash, strategy/version/parameter version, symbol/timeframe/close, candidates/rejections, and canonical arbitration/no-trade. The caller must build contexts with the active scanner indicator boundary. The runner rejects lookahead and cannot publish or execute.
 
-Actual bounded replay (JSON candle array plus an approved scanner-configuration snapshot):
+Actual bounded replay (JSON candle array plus an approved scanner-configuration snapshot containing `minSignalGrade` and declared `outcomeAssumptions`):
 
 ```bash
 npm run replay:phase-l -- ./candles.json ./approved-config.json EURUSD 15m 2026-01-01T00:00:00Z 2026-03-01T00:00:00Z 500
@@ -81,3 +81,45 @@ The private owner prop research/testing track remains separate from customer exe
 - Forex feed: **code-ready; dedicated MT5/HashiBridge configuration and real-provider validation required**.
 - Database deployment: **NOT_RUN**.
 - Visual review: **NOT_RUN** (no browser visual tooling used).
+
+## Phase-L completion addendum — Crypto/Forex integrity
+
+### Shared call paths
+
+- Crypto download: existing `BinanceHistoricalAdapter` or `BybitHistoricalAdapter` → `HistoricalDataService` missing-range cache → authenticated dataset registration → paginated integrity read → shared scanner indicators → `ProfessionalStrategyRegistry` → shared qualification → `arbitrateActiveScanner` → isolated validation cycle/outcome evidence.
+- Forex/Gold download: dedicated owner `MT5BridgeHistoricalAdapter` → the same cache/registration/integrity/replay path. Customer execution accounts are not offered as scanner-history authorities. Twelve Data remains optional research input and is never an automatic fallback.
+- Shadow observation: approved adapter → newly closed snapshot → `observeShadowCycles` durable checkpoint/deduplication → the same indicator, registry and arbitrator boundaries. The observer has no publication, Telegram, signal writer, execution-adoption or order capability and is invoked by the existing portable-job/scanner coordination layer rather than a second schedule.
+
+### Production strategy coverage
+
+| Identity | Version | Market | Active evaluator authority | Replay status |
+|---|---:|---|---|---|
+| `crypto.micro-scalper` / MicroScalper | 1.0.0 | Crypto | shared extracted active scanner evaluator | Eligible approved configurations |
+| `crypto.quick-scalp` / QuickScalp | 1.0.0 | Crypto | shared extracted active scanner evaluator | Eligible approved configurations |
+| `crypto.compression-breakout` / CompressionBreakout | 1.0.0 | Crypto | shared extracted active scanner evaluator | Eligible approved configurations |
+| `crypto.swing-continuation` / SwingContinuation | 1.0.0 | Crypto | shared extracted active scanner evaluator | Eligible approved configurations |
+| Forex production contracts | 1.0.0 | Forex | `FOREX_PRODUCTION_EVALUATORS` | Eligible approved configurations |
+| `gold.volatility-breakout` | 1.0.0 | Gold | `FOREX_PRODUCTION_EVALUATORS` | Eligible approved configurations |
+| Research lifecycle strategies | research versions | Any | research registry only | Explicitly excluded from production replay |
+
+Unknown IDs, version mismatches, disabled configurations, ineligible symbols/timeframes and absent approved configuration fail closed. The active scanner imports the same Crypto evaluator functions used by replay; no copied replay engine remains.
+
+### Parity and evidence controls
+
+The scanner and replay now share EMA, RSI, ATR and Garman–Klass construction, including the original Garman–Klass contribution to volatility state and expansion regime. Deterministic parity tests hold ATR constant while changing Garman–Klass and confirm the classification changes. Configuration identity includes strategy version, parameters, score/RR/distance thresholds and the scanner minimum signal grade. Research overrides, if later enabled, must receive a different configuration hash and evidence classification.
+
+Replay outcomes use explicitly declared next-open entry, fees, spread, slippage, funding, TP1 partial percentage, breakeven/trailing behavior and stop-first or ambiguous same-candle policy. Evidence records targets, stops, partial exits, unresolved trades, costs and conservative ambiguity plus trade count, expectancy R, profit factor with an undefined reason, and peak-to-trough drawdown overall and by strategy/symbol/timeframe. These are simulated research fills, never provider fills.
+
+Dataset registration rejects invalid ordering, conflicting duplicates and malformed OHLC. `PARTIAL` datasets cannot start replay. Server reads are explicitly paginated, then count, first/last coverage and canonical SHA-256 are revalidated before evaluation. Cycle and outcome evidence is also paginated for Operations inspection. Interrupted uploads retain bounded failure/cursor evidence rather than becoming ready.
+
+### Forward migration order
+
+1. `20261001120000_phase_l_replay_shadow_evidence.sql`
+2. `20261001180000_phase_l_validation_server_and_datasets.sql`
+3. `20261001210000_phase_l_dataset_outcome_integrity.sql`
+
+No migration was remotely applied. Required external work remains: isolated migration verification, Edge Function deployment, dedicated Windows owner-feed configuration, genuine provider observations and supplied real datasets.
+
+### Verification status for this addendum
+
+Deterministic repository tests exercise combined-source continuation, missing MT5 connection, production Crypto/Forex registry coverage, Garman–Klass parity, costs/partial exits/ambiguity/open outcomes, hashes/count/coverage/duplicates, shadow checkpoint restart/cancellation, immutable evidence and zero production side effects. `test:strategies` initially failed because its formula-integrity assertion still looked for the moved Crypto functions in the scanner file; the assertion was corrected to hash the new shared active authority and then passed. Full repository typecheck remains subject to the pre-existing baseline errors documented by the PR; build and focused compilation pass.

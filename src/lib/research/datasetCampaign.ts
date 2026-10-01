@@ -24,6 +24,14 @@ export async function acquireDatasetCampaign(service:HistoricalDataService,input
 export const campaignDatasetLineage=(campaign:DatasetCampaign)=>Object.freeze(campaign.inventory.map(x=>Object.freeze({datasetId:x.datasetId,datasetHash:x.datasetHash})).sort((a,b)=>a.datasetId.localeCompare(b.datasetId)));
 export function assertModeUsesCampaign(modeDatasetIds:readonly string[],campaign:DatasetCampaign){const expected=campaign.inventory.map(x=>x.datasetId).sort(),actual=[...modeDatasetIds].sort();if(JSON.stringify(expected)!==JSON.stringify(actual))throw new Error("DATASET_CAMPAIGN_LINEAGE_MISMATCH")}
 
+/** Coordinates the existing adapters without turning one unavailable source into a false all-source success. */
+export async function acquireProductionHistory(service:HistoricalDataService,input:{from:number;to:number;cryptoProvider:"BINANCE"|"BYBIT";cryptoSymbols:readonly string[];forexSymbols:readonly string[];timeframes:readonly HistoricalTimeframe[];ownerFeedAccountId?:string},onProgress:(item:DatasetAcquisitionItem&{source:"CRYPTO"|"FOREX_GOLD"})=>void=()=>{}){
+ const crypto=await acquireDatasetCampaign(service,{name:"PRODUCTION_CRYPTO",market:"CRYPTO",provider:input.cryptoProvider,symbols:input.cryptoSymbols,timeframes:input.timeframes,from:input.from,to:input.to},item=>onProgress({...item,source:"CRYPTO"}));
+ if(!input.ownerFeedAccountId)return{status:crypto.quality==="INVALID"?"FAILED":"PARTIAL",crypto,forex:null,forexState:"AWAITING_CONNECTION" as const};
+ const forex=await acquireDatasetCampaign(service,{name:"PRODUCTION_FOREX_GOLD",market:"FOREX",provider:"MT5_BRIDGE",symbols:input.forexSymbols,timeframes:input.timeframes,from:input.from,to:input.to,accountId:input.ownerFeedAccountId},item=>onProgress({...item,source:"FOREX_GOLD"}));
+ const complete=crypto.quality==="CERTIFIABLE"&&forex.quality==="CERTIFIABLE";return{status:complete?"COMPLETE":"PARTIAL",crypto,forex,forexState:forex.quality==="INVALID"?"FAILED":"AVAILABLE" as const};
+}
+
 /** Builds the canonical campaign contract from independently cached datasets. */
 export function buildDatasetCampaignFromDatasets(input:{name:string;market:ResearchMarket;createdAt:string;requestedRange:{from:number;to:number};datasets:readonly HistoricalDataset[]}):DatasetCampaign{
  const datasets=[...input.datasets].sort((a,b)=>a.metadata.datasetKey.localeCompare(b.metadata.datasetKey));

@@ -31,11 +31,13 @@ const ACTIVE = [
 ] as const;
 const at = '2026-07-19T12:00:00.000Z';
 const scannerSource = readFileSync('supabase/functions/market-scanner/index.ts', 'utf8');
+const cryptoEvaluatorSource = readFileSync('supabase/functions/_shared/crypto-production-evaluators.ts', 'utf8');
 function functionHash(name: string): string {
-  const start = scannerSource.indexOf(`function ${name}`); assert.ok(start >= 0, `${name} exists`);
-  const body = scannerSource.indexOf('{', start); let depth = 0; let end = body;
-  for (; end < scannerSource.length; end++) { if (scannerSource[end] === '{') depth++; else if (scannerSource[end] === '}' && --depth === 0) { end++; break; } }
-  return createHash('sha256').update(scannerSource.slice(start, end)).digest('hex');
+  const source = name.startsWith('evalForex') ? scannerSource : cryptoEvaluatorSource;
+  const start = source.indexOf(`function ${name}`); assert.ok(start >= 0, `${name} exists in active shared evaluator authority`);
+  const body = source.indexOf('{', start); let depth = 0; let end = body;
+  for (; end < source.length; end++) { if (source[end] === '{') depth++; else if (source[end] === '}' && --depth === 0) { end++; break; } }
+  return createHash('sha256').update(source.slice(start, end)).digest('hex');
 }
 const ROOT_EVALUATOR_BASELINE = {
   evalMicroScalper: '47493ac46780570d9a3cb268b6910f8a66cb67dbdc73b4181add04d663999774',
