@@ -27,6 +27,8 @@ export default function Register() {
     if (error) {
       setError(error.message);
     } else {
+      const returnTo = search.get('returnTo');
+      if (returnTo?.startsWith('/') && !returnTo.startsWith('//')) { nav(returnTo); return; }
       const pkg = search.get('package');
       nav(pkg ? `/app/package-request?package=${pkg}` : '/dashboard');
     }

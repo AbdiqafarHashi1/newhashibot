@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Check, GraduationCap, Radio, Send, Sparkles } from 'lucide-react';
 import { CommerceLayout } from '../../components/layout/CommerceLayout';
 import { ExecutionProductPreview } from '../../components/public/ExecutionProductPreview';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { authResumePath, savePurchaseIntent } from '../../lib/purchaseIntent';
 
 const freeBenefits = [
   { icon: Radio, title: 'Signal previews', copy: 'Selected genuine setups in the HashiBot format.' },
@@ -13,13 +15,16 @@ const freeBenefits = [
 ];
 
 export default function Free() {
+  const { session } = useAuth(); const navigate = useNavigate();
   const [availability, setAvailability] = useState(false);
   const [enrollmentState, setEnrollmentState] = useState('');
   const joinFree = async () => {
-    setAvailability(false); setEnrollmentState('ENROLLING');
+    savePurchaseIntent({ product: 'FREE_SIGNALS' });
+    if (!session) { navigate(authResumePath()); return; }
+    setAvailability(false); setEnrollmentState('Setting up your free access…');
     const { data, error } = await supabase.functions.invoke('free-enrollment', { headers: { 'idempotency-key': crypto.randomUUID() } });
-    if (error) { setAvailability(true); setEnrollmentState('AUTHENTICATION_REQUIRED'); return; }
-    setEnrollmentState(data?.state === 'ACTIVE' ? 'ENROLLED — TELEGRAM FULFILLMENT PENDING' : String(data?.state ?? 'READY_FOR_CONFIGURATION'));
+    if (error) { setAvailability(true); setEnrollmentState('We could not enroll you right now. Please try again.'); return; }
+    setEnrollmentState(data?.state === 'ACTIVE' ? 'Free access is ready. Connect Telegram in your account to continue; channel membership is confirmed separately.' : 'Your request is being prepared. We will show the next Telegram step when it is ready.');
   };
   const FreeButton = ({ short = false }: { short?: boolean }) => <button onClick={joinFree} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/20 hover:bg-emerald-500">{short ? 'Join Free' : 'Join Free Telegram'} <Send size={15}/></button>;
 

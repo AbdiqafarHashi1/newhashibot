@@ -255,7 +255,7 @@ export default function Home() {
               </div>
               <div className="space-y-2 pt-2">
                 <Link
-                  to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
+                  to="/execution/crypto"
                   className="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 block"
                 >
                   Get Crypto Bot ($100) →
@@ -313,7 +313,7 @@ export default function Home() {
               </div>
               <div className="space-y-2 pt-2">
                 <Link
-                  to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
+                  to="/execution/mt5"
                   className="w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/20 block"
                 >
                   Get MT5 Personal ($100) →
@@ -374,7 +374,7 @@ export default function Home() {
               </div>
               <div className="space-y-2 pt-2">
                 <Link
-                  to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                  to="/execution/prop"
                   className="w-full text-center bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-amber-600/20 block"
                 >
                   Get Forex Prop ($100) →
@@ -435,7 +435,7 @@ export default function Home() {
               </div>
               <div className="space-y-2 pt-2">
                 <Link
-                  to="/pricing?package=crypto_prop_bot#mpesa-payment-section"
+                  to="/execution/prop"
                   className="w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/20 block"
                 >
                   Get Crypto Prop ($100) →
@@ -491,14 +491,14 @@ export default function Home() {
             </div>
             <div className="flex flex-col gap-3 shrink-0 lg:w-72">
               <Link
-                to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                to="/execution/prop"
                 className="w-full text-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-xl shadow-amber-600/30 flex items-center justify-center gap-2"
               >
                 <span>Deploy Forex Prop Bot</span>
                 <ArrowRight size={14} />
               </Link>
               <Link
-                to="/pricing?package=crypto_prop_bot#mpesa-payment-section"
+                to="/execution/prop"
                 className="w-full text-center bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs py-3.5 rounded-xl transition-all shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2"
               >
                 <span>Deploy Crypto Prop Bot</span>
@@ -730,7 +730,7 @@ export default function Home() {
                 </td>
                 <td className="p-4">
                   <Link
-                    to="/pricing?package=crypto_personal_bot#mpesa-payment-section"
+                    to="/execution/crypto"
                     className="inline-flex items-center gap-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
                   >
                     <span>Get Crypto</span>
@@ -739,7 +739,7 @@ export default function Home() {
                 </td>
                 <td className="p-4">
                   <Link
-                    to="/pricing?package=forex_mt5_personal_bot#mpesa-payment-section"
+                    to="/execution/mt5"
                     className="inline-flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
                   >
                     <span>Get MT5</span>
@@ -748,7 +748,7 @@ export default function Home() {
                 </td>
                 <td className="p-4">
                   <Link
-                    to="/pricing?package=forex_mt5_prop_bot#mpesa-payment-section"
+                    to="/execution/prop"
                     className="inline-flex items-center gap-1 bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm"
                   >
                     <span>Get Prop</span>
@@ -776,8 +776,8 @@ export default function Home() {
               { num: '1', title: 'Choose Product', desc: 'Select AI Signals or Automation', link: '#product-modes' },
               { num: '2', title: 'Create Account', desc: 'Sign up for customer dashboard', link: '/register' },
               { num: '3', title: 'Select Plan', desc: 'Pick package & review terms', link: '/pricing#pricing-plans' },
-              { num: '4', title: 'Pay via M-Pesa', desc: 'Send exact plan amount to 0748 895 225', link: '/pricing#mpesa-payment-section' },
-              { num: '5', title: 'Submit Details', desc: 'Submit transaction ref & Telegram handle', link: '/pricing#mpesa-payment-section' },
+              { num: '4', title: 'Start M-Pesa checkout', desc: 'Enter the phone that should receive the secure STK prompt', link: '/pricing#mpesa-payment-section' },
+              { num: '5', title: 'Confirm on your phone', desc: 'Enter your PIN only in M-Pesa, then await verified access', link: '/pricing#mpesa-payment-section' },
               { num: '6', title: 'Activation', desc: 'Verification & access activation', link: '/contact#contact-form' },
             ].map((step) => {
               const isExternalOrPage = step.link.startsWith('/');

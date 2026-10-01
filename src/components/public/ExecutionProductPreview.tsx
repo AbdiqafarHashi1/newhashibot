@@ -7,7 +7,7 @@ const items = [
   ['Safe risk customization','0.10%–1.00% · server-enforced range'],
   ['Strategy permissions','Forex Trend · Gold Breakout · approved only'],
   ['Phase-D decision example','REDUCE · account risk limit'],
-  ['HashiBridge download','READY_FOR_CONFIGURATION · no artifact claimed'],
+  ['HashiBridge download','Available after secure setup is completed'],
   ['Pairing code','Example only · short-lived · single-use'],
   ['Terminal detected','Pending authenticated handshake'],
   ['Heartbeat','Example state: HEALTHY → DEGRADED → OFFLINE'],
