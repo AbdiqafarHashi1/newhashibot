@@ -4,6 +4,7 @@ import { CheckCircle, Clock3, RefreshCw, ShieldAlert } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { CommerceLayout } from '../../components/layout/CommerceLayout';
 import { paymentResultView, type PaymentResultView } from '../../lib/paymentResultState';
+import { updatePurchaseAttemptByCheckout } from '../../lib/purchaseIntent';
 
 const initial:PaymentResultView={title:'Checking payment progress…',body:'We are reading your account’s verified payment and access records.',tone:'waiting',entitlementActive:false};
 
@@ -19,6 +20,8 @@ export default function PaymentResult() {
     const {data:entitlements}=payment?.id ? await supabase.from('phase_h_entitlements').select('state,source_payment_id').eq('customer_id',checkout.customer_id).eq('product_code',checkout.product_code).eq('source_payment_id',payment.id).in('state',['ACTIVE','GRACE']).limit(1) : {data:null};
     const paymentState=payment?.state;
     const next=paymentResultView({checkoutState:checkout.status,paymentState,hasLineageEntitlement:Boolean(entitlements?.length)});
+    const terminalState = checkout.status === 'COMPLETED' ? 'COMPLETED' : checkout.status === 'CANCELLED' ? 'CANCELLED' : checkout.status === 'EXPIRED' ? 'EXPIRED' : checkout.status === 'FAILED' ? 'FAILED' : null;
+    if (terminalState) updatePurchaseAttemptByCheckout(id, terminalState);
     setView(next);setBusy(false);
   },[params]);
   useEffect(()=>{void load();const timer=window.setInterval(()=>void load(),8000);return()=>window.clearInterval(timer)},[load]);

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Phone, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { readAttribution } from '../../lib/commerce';
-import { authResumePath, getOrCreatePurchaseAttemptKey, savePurchaseIntent } from '../../lib/purchaseIntent';
+import { authResumePath, getOrCreatePurchaseAttemptKey, purchaseAttemptScope, savePurchaseIntent, updatePurchaseAttempt } from '../../lib/purchaseIntent';
 import { supabase } from '../../lib/supabase';
 
 export function MpesaCheckout({ termDays }: { termDays: 7 | 30 }) {
@@ -23,12 +23,15 @@ export function MpesaCheckout({ termDays }: { termDays: 7 | 30 }) {
     savePurchaseIntent({ product: 'VIP_SIGNALS', provider: 'MPESA', termDays, attribution: { ...attribution } });
     if (!session) { navigate(authResumePath()); return; }
     submitting.current = true; setBusy(true); setMessage('Starting a secure M-Pesa request…');
-    const attemptScope = `mpesa.vip.${termDays}`;
-    const { data, error } = await supabase.functions.invoke('commerce-checkout', {
-      body: { product_code: 'VIP_SIGNALS', provider: 'MPESA', currency: 'KES', term_days: termDays, phone, return_url: `${location.origin}/payment/result`, ...attribution },
-      headers: { 'x-idempotency-key': getOrCreatePurchaseAttemptKey(attemptScope) },
-    });
-    submitting.current = false; setBusy(false);
+    const attemptScope = purchaseAttemptScope(session.user.id, `mpesa.vip.${termDays}.${phone.replace(/\D/g, '')}`);
+    let data: any, error: any;
+    try {
+      ({ data, error } = await supabase.functions.invoke('commerce-checkout', {
+        body: { product_code: 'VIP_SIGNALS', provider: 'MPESA', currency: 'KES', term_days: termDays, phone, return_url: `${location.origin}/payment/result`, ...attribution },
+        headers: { 'x-idempotency-key': getOrCreatePurchaseAttemptKey(attemptScope) },
+      }));
+      updatePurchaseAttempt(attemptScope, error ? 'UNCERTAIN' : data?.state === 'ACTION_REQUIRED' || data?.state === 'PROVIDER_PENDING' ? 'PENDING' : data?.state === 'FAILED' ? 'FAILED' : 'READY', data?.checkout_id);
+    } finally { submitting.current = false; setBusy(false); }
     if (error || data?.state === 'CHECKOUT_NOT_CONFIGURED') { setMessage('M-Pesa checkout cannot currently be started. Please try again later; do not send money manually.'); return; }
     if (data?.state === 'PROVIDER_PENDING' || data?.state === 'ACTION_REQUIRED') {
       setMessage(data.masked_phone ? `Prompt sent to ${data.masked_phone}. Enter your M-Pesa PIN only on your phone. We are awaiting confirmation.` : 'This purchase attempt is already in progress. We are awaiting provider confirmation.');

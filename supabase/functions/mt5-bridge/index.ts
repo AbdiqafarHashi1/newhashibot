@@ -655,7 +655,9 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "publish_market_data") {
-      const accountId=String(body.account_id??""), ownerId=String(body.owner_id??""), bridgeId=String(body.bridge_id??"");
+      const accountId=String(body.account_id??""), ownerId=String(body.owner_id??""), bridgeId=String(body.bridge_id??""), feedIdentity=String(body.feed_identity??"");
+      const {data:scannerFeed}=await supabase.from("mt5_scanner_feeds").select("id,bridge_id,feed_identity,enabled,owner_controlled,execution_account_id").eq("bridge_id",bridgeId).eq("feed_identity",feedIdentity).maybeSingle();
+      if(!scannerFeed||!scannerFeed.enabled||!scannerFeed.owner_controlled||scannerFeed.execution_account_id!==null)return jsonResponse({success:false,error_code:"MT5_DEDICATED_FEED_NOT_AUTHORIZED"},403);
       let effAccountId = accountId;
       let effOwnerId = ownerId;
       const { data: accData } = await supabase.from("mt5_accounts").select("id,user_id").or(`id.eq.${accountId},bridge_id.eq.${bridgeId}`).limit(1).maybeSingle();
@@ -675,6 +677,8 @@ Deno.serve(async (req: Request) => {
         if(candles.length){const {error:candleError}=await supabase.from("mt5_market_candles").upsert(candles,{onConflict:"account_id,bridge_id,canonical_symbol,timeframe,open_time"});if(candleError)return jsonResponse({success:false,error_code:"MT5_CANDLE_WRITE_FAILED"},500);candleCount+=candles.length;}
       }
       await supabase.rpc("prune_mt5_market_data",{p_account_id:effAccountId});
+      const newest=feeds.map((f:Record<string,unknown>)=>Date.parse(String(f.last_update_at))).filter(Number.isFinite).sort((a:number,b:number)=>b-a)[0];
+      await supabase.from("mt5_scanner_feeds").update({status:"HEALTHY",last_heartbeat_at:new Date().toISOString(),last_valid_candle_at:new Date(newest).toISOString(),validation_evidence:{feed_identity:feedIdentity,bridge_id:bridgeId,symbols:required,candle_rows:candleCount,closed_candles_only:true}}).eq("id",scannerFeed.id);
       await supabase.from("mt5_certification_results").upsert({account_id:effAccountId,owner_id:effOwnerId,bridge_id:bridgeId,check_key:"market_data",status:"PASS",error_code:null,evidence:{symbols:required,latest_rows:feeds.length,candle_rows:candleCount},checked_at:new Date().toISOString()},{onConflict:"account_id,check_key"});
       return jsonResponse({success:true,feeds:feeds.length,candles:candleCount});
     }

@@ -17,6 +17,7 @@ import { publicSignalReference } from "../_shared/professional-telegram.ts";
 import { atrRootV1, emaRootV1, rsiRootV1, INDICATOR_VERSIONS } from "../_shared/indicator-engine.ts";
 import { ArbitrationDiagnostics, type ArbitrationCandidate } from "../_shared/arbitrator.ts";
 import { arbitrateActiveScanner, evaluateActiveStrategies, ACTIVE_SCANNER_ARBITRATOR, ACTIVE_SCANNER_FRAMEWORK } from "../_shared/active-scanner-core.ts";
+import { calculateActiveIndicators } from "../_shared/active-validation-runtime.ts";
 import { commitScannerDecision, scannerConfigurationVersion, scannerCycleKey, scannerSignalIdentity } from "../_shared/scanner-signal-repository.ts";
 import { admitClosedRuntimeCandles, boundedScannerLimit, boundedScannerTimeframes, boundedScannerUniverse, SCANNER_HARD_LIMITS } from "../_shared/scanner-limits.ts";
 import type { DeepReadonly, StrategyPlan } from "../_shared/strategy-plan.ts";
@@ -219,35 +220,9 @@ function hasInvalidCandles(candles: Candle[]): boolean {
 // ─── Indicators ──────────────────────────────────────────────────────────────
 
 function calculateIndicators(candles: Candle[]): Indicators {
-  const closes = candles.map((c) => c.close);
-  const highs = candles.map((c) => c.high);
-  const lows = candles.map((c) => c.low);
-  const vols = candles.map((c) => c.volume);
-  const ema20 = calcEMA(closes, 20), ema50 = calcEMA(closes, 50);
-  const atr14 = calcATR(candles, 14), rsi14 = calcRSI(closes, 14);
-  const recent_high = Math.max(...highs.slice(-20));
-  const recent_low = Math.min(...lows.slice(-20));
-  const avg_volume = vols.slice(-20).reduce((a, b) => a + b, 0) / 20;
-  const last = candles[candles.length - 1];
-  const body_size = Math.abs(last.close - last.open);
-  const price = last.close;
-  const atr_pct = price > 0 ? (atr14 / price) * 100 : 0;
-  const recentRange = recent_high - recent_low;
-  const olderCandles = candles.slice(-50, -20);
-  const olderHigh = olderCandles.length > 0 ? Math.max(...olderCandles.map((c) => c.high)) : recent_high;
-  const olderLow = olderCandles.length > 0 ? Math.min(...olderCandles.map((c) => c.low)) : recent_low;
-  const olderRange = olderHigh - olderLow;
-  const range_compression_ratio = olderRange > 0 ? recentRange / olderRange : 1;
-  const momentum_score = calcMomentumScore(closes, 3);
+  const shared = calculateActiveIndicators(candles);
   const gk_volatility = calculateGarmanKlassVolatility(candles);
-  const volatility_state = atr_pct > 3.0 || gk_volatility > 0.0018 ? "high" : atr_pct < 0.5 && gk_volatility < 0.0002 ? "low" : "normal";
-  let regime = "unclear";
-  if (ema20 > ema50 * 1.002 && rsi14 > 52) regime = "trend_up";
-  else if (ema20 < ema50 * 0.998 && rsi14 < 48) regime = "trend_down";
-  else if (range_compression_ratio < 0.55) regime = "compression";
-  else if (atr_pct > 2.0 || gk_volatility > 0.0025) regime = "expansion";
-  else if (rsi14 > 45 && rsi14 < 55) regime = "ranging";
-  return { ema20, ema50, atr14, rsi14, recent_high, recent_low, avg_volume, body_size, atr_pct, range_compression_ratio, momentum_score, volatility_state, regime, gk_volatility };
+  return { ...shared, gk_volatility };
 }
 
 // ─── Strategy evaluator helpers ────────────────────────────────────────────────
@@ -2338,7 +2313,7 @@ async function fetchForexCandles(
     return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_symbol: ${symbol}`, statusClass: "unsupported_symbol" };
   }
 
-  const result = await loadMT5Candles(supabase, normalized, tf);
+  const result = await loadMT5Candles(supabase, normalized, tf, 110, { feedIdentity: Deno.env.get("MT5_MARKET_DATA_FEED_ID") ?? undefined });
   if (!result.error && result.candles && result.candles.length >= 55) {
     await supabase.from("provider_status").upsert({
       provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "active",
@@ -3976,7 +3951,7 @@ Deno.serve(async (req: Request) => {
       const testTf = typeof body.timeframe === "string" ? body.timeframe : "15m";
       const symbolsToTest = body.debug_forex_provider_test === true ? [...C2_FOREX_SYMBOLS] : [normalizeSymbol(typeof body.symbol === "string" ? body.symbol : "EURUSD")];
       const results = await Promise.all(symbolsToTest.map(async (testSymbol) => {
-        const result = await loadMT5Candles(supabase, testSymbol, testTf, 110);
+        const result = await loadMT5Candles(supabase, testSymbol, testTf, 110, { feedIdentity: Deno.env.get("MT5_MARKET_DATA_FEED_ID") ?? undefined });
         const firstCandle = result.candles[0] ?? null;
         const latestCandle = result.candles.at(-1) ?? null;
         return {
@@ -4037,12 +4012,12 @@ Deno.serve(async (req: Request) => {
       signalEnableForex = true;
     }
 
-    // Phase K consolidation preserves the Phase 4 Twelve Data authority. The
-    // current MT5 candle implementation is not authorized to replace it.
-    if (signalEnableForex && !signalEnableCrypto) {
-      return new Response(JSON.stringify({ success: false, blocked: true, reason: "FOREX_PROVIDER_AUTHORITY_UNRESOLVED_TWELVE_DATA_LOCK_MT5_IMPLEMENTATION", forex_provider_calls_attempted: 0 }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // The dedicated owner-controlled HashiBridge feed is the primary Forex/Gold authority.
+    // loadMT5Candles validates dedicated identity, health, freshness and closed-candle evidence;
+    // failed evidence remains a per-symbol no-trade exclusion and never falls back silently.
+    if (signalEnableForex && !Deno.env.get("MT5_MARKET_DATA_FEED_ID")) {
+      return new Response(JSON.stringify({ success: false, blocked: true, reason: "MT5_DEDICATED_FEED_CONFIGURATION_REQUIRED", forex_provider_calls_attempted: 0 }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    signalEnableForex = false;
 
     const config: ScannerConfig = {
       is_enabled: configRow.is_enabled ?? true,

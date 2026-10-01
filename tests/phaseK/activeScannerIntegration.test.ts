@@ -39,7 +39,7 @@ const migration = readFileSync("supabase/migrations/20260930120000_phase_k_activ
 assert.equal((root.match(/new ProfessionalStrategyRegistry/g) ?? []).length, 1, "root constructs one operational registry");
 assert.equal((root.match(/arbitrateActiveScanner\(/g) ?? []).length, 1, "root calls one operational arbitrator boundary");
 assert.equal((root.match(/\.from\("signals"\)\.insert/g) ?? []).length, 0, "root cannot bypass durable signal RPC");
-assert.match(root, /evaluateActiveStrategies\(registry, strategyContext\)/); assert.match(root, /commitScannerDecision/); assert.match(root, /FOREX_PROVIDER_AUTHORITY_UNRESOLVED_TWELVE_DATA_LOCK_MT5_IMPLEMENTATION/);
+assert.match(root, /evaluateActiveStrategies\(registry, strategyContext\)/); assert.match(root, /commitScannerDecision/); assert.match(root, /MT5_DEDICATED_FEED_CONFIGURATION_REQUIRED/);
 assert.match(root, /const modesToRun = \["signal_mode"\]/, "scanner emits global signal truth only; Phase D owns account decisions");
 assert.doesNotMatch(root, /adopt_execution_plan/, "scanner cannot call an account execution provider");
 assert.match(migration, /pg_advisory_xact_lock/); assert.match(migration, /UNIQUE \(cycle_key, arbitration_scope\)/); assert.match(migration, /IMMUTABLE_SCANNER_SIGNAL_TRUTH/); assert.match(migration, /SERVICE_ROLE_REQUIRED/); assert.match(migration, /signal_publication_work/);

@@ -7,6 +7,7 @@ import { SchedulerProofDebug } from '../../components/admin/SchedulerProofDebug'
 import { ScannerRun } from '../../lib/types';
 import { statusBadge } from '../../components/ui/Badge';
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
+import { PhaseLValidationPanel } from '../../components/operations/PhaseLValidationPanel';
 
 type ScannerRunWithOutcome = ScannerRun & {
   outcome_checked?: boolean | null;
@@ -76,6 +77,8 @@ export default function ScannerStatus() {
       </div>
 
       <SchedulerProofDebug state={state} />
+
+      <PhaseLValidationPanel />
 
       {!loadingAny && (
         <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">

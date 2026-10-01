@@ -1,0 +1,37 @@
+import { ACTIVE_SCANNER_ARBITRATOR, ACTIVE_SCANNER_FRAMEWORK, arbitrateActiveScanner, evaluateActiveStrategies } from "./active-scanner-core.ts";
+import type { ArbitrationCandidate, ArbitrationResult } from "./arbitrator.ts";
+import type { ProfessionalStrategyRegistry, StrategyCandle, StrategyEvaluationContext } from "./professional-strategies.ts";
+
+export type ValidationMode="REPLAY"|"SHADOW";
+export interface DatasetIdentity { id:string; source:string; provenance:string; sha256:string; timezone:"UTC"; marketCalendar?:"24x7"|"FOREX_24x5"; }
+export interface Admission { candles:StrategyCandle[]; exclusions:{code:string;openTime?:string;detail:string}[]; status:"ADMITTED"|"EXCLUDED"; }
+const duration=(tf:string)=>{const m=/^(\d+)(m|h|d)$/.exec(tf);if(!m)throw new Error("UNSUPPORTED_TIMEFRAME");return +m[1]*(m[2]==="m"?6e4:m[2]==="h"?36e5:864e5)};
+export function admitHistoricalCandles(input:readonly StrategyCandle[],timeframe:string,asOf:string,calendar:"24x7"|"FOREX_24x5"="24x7"):Admission{
+ const exclusions:Admission["exclusions"]=[],ms=duration(timeframe),limit=Date.parse(asOf),seen=new Set<string>(),out:StrategyCandle[]=[];
+ for(const c of [...input].sort((a,b)=>Date.parse(a.open_time)-Date.parse(b.open_time))){const t=Date.parse(c.open_time);let code="";
+  if(!Number.isFinite(t)||!c.open_time.endsWith("Z"))code="INVALID_TIMESTAMP_OR_TIMEZONE";
+  else if(seen.has(c.open_time))code="DUPLICATE_CANDLE";
+  else if(t+ms>limit)code="OPEN_OR_FUTURE_CANDLE";
+  else if(![c.open,c.high,c.low,c.close,c.volume].every(Number.isFinite)||c.low<0||c.high<Math.max(c.open,c.close)||c.low>Math.min(c.open,c.close)||c.volume<0)code="INVALID_OHLC";
+  if(code){exclusions.push({code,openTime:c.open_time,detail:"candle excluded; never repaired"});continue} seen.add(c.open_time);out.push({...c});
+ }
+ for(let i=1;i<out.length;i++){const gap=Date.parse(out[i].open_time)-Date.parse(out[i-1].open_time);if(gap>ms){const weekend=calendar==="FOREX_24x5"&&[0,6].includes(new Date(Date.parse(out[i-1].open_time)+ms).getUTCDay());exclusions.push({code:weekend?"MARKET_SESSION_GAP":"UNEXPECTED_GAP",openTime:out[i].open_time,detail:`${gap/ms-1} missing interval(s)`});}}
+ return {candles:out,exclusions,status:out.length?"ADMITTED":"EXCLUDED"};
+}
+export interface ReplayConfiguration { runId:string; mode:ValidationMode; dataset:DatasetIdentity; configurationVersion:string; parameterVersion:string; symbol:string; market:"crypto"|"forex"; timeframe:string; start:string; end:string; maxCycles:number; minimumScore:number; allowedGrades:readonly string[]; }
+export interface ValidationDecision { cycleId:string;candleCloseTime:string;candidates:{strategyId:string;strategyVersion:string;decision:string;rejectionReasons:string[]}[];arbitration:ArbitrationResult;exclusions:Admission["exclusions"]; }
+export function runBoundedValidation(config:ReplayConfiguration,registry:ProfessionalStrategyRegistry,contexts:readonly StrategyEvaluationContext[]):ValidationDecision[]{
+ if(config.maxCycles<1||config.maxCycles>10_000)throw new Error("UNSAFE_CYCLE_LIMIT"); const decisions:ValidationDecision[]=[];const used=new Set<string>();
+ for(const context of contexts){if(decisions.length>=config.maxCycles)break;const at=Date.parse(context.evaluated_at);if(at<Date.parse(config.start)||at>Date.parse(config.end))continue;
+  const last=context.candles.at(-1);if(!last||Date.parse(last.open_time)+duration(config.timeframe)>at)throw new Error("LOOKAHEAD_OR_OPEN_CANDLE");
+  const cycleId=`${config.runId}:${config.symbol}:${config.timeframe}:${context.evaluated_at}`;if(used.has(cycleId))continue;used.add(cycleId);
+  const evaluations=evaluateActiveStrategies(registry,context);const candidates:ArbitrationCandidate[]=evaluations.filter(e=>e.professional.decision!=="NO_TRADE"&&e.professional.entry&&e.professional.stop&&e.professional.tp1).map(e=>({id:`${cycleId}:${e.definition.id}`,strategyId:e.definition.id,strategyVersion:e.definition.version,market:config.market,symbol:config.symbol,timeframe:config.timeframe,side:e.professional.decision.toLowerCase() as "buy"|"sell",confidence:e.professional.confidence,grade:e.professional.grade,score:e.professional.confidence,entry:e.professional.entry!.high,stop:e.professional.stop!,targets:[e.professional.tp1!,...(e.professional.tp2?[e.professional.tp2]:[])],riskReward:e.professional.risk_reward,expiry:e.professional.expires_at!,fresh:true,lifecycle:e.definition.lifecycle==="ENABLED"?"ENABLED":"RESEARCH",publicationMode:e.definition.publicationMode??"LIVE",evidence:{configuration_version:config.configurationVersion,parameter_version:config.parameterVersion,dataset_id:config.dataset.id},rejectionReasons:e.professional.rejection_reasons}));
+  const arbitration=arbitrateActiveScanner(candidates,{now:new Date(context.evaluated_at),minimumScore:config.minimumScore,allowedGrades:config.allowedGrades});decisions.push({cycleId,candleCloseTime:context.evaluated_at,candidates:evaluations.map(e=>({strategyId:e.definition.id,strategyVersion:e.definition.version,decision:e.professional.decision,rejectionReasons:e.professional.rejection_reasons})),arbitration,exclusions:[]});
+ } return decisions;
+}
+export interface OutcomeAssumptions {feeBps:number;spreadBps:number;slippageBps:number;fundingBps:number;entry:"NEXT_OPEN";bothHit:"STOP_FIRST"|"AMBIGUOUS";partialExitPct:number;}
+export function resolveCandleOutcome(side:"buy"|"sell",entry:number,stop:number,target:number,candle:Pick<StrategyCandle,"high"|"low">,a:OutcomeAssumptions){const stopHit=side==="buy"?candle.low<=stop:candle.high>=stop,targetHit=side==="buy"?candle.high>=target:candle.low<=target;if(stopHit&&targetHit)return {status:a.bothHit==="AMBIGUOUS"?"AMBIGUOUS":"STOP",conservative:true};return {status:stopHit?"STOP":targetHit?"TARGET":"OPEN",conservative:false};}
+export interface EvidencePeriod {id:string;kind:"DEVELOPMENT"|"VALIDATION"|"HOLDOUT";start:string;end:string;datasetHash:string;configurationHash:string;createdAt:string;}
+export class ImmutableEvidenceLedger {readonly #rows:EvidencePeriod[]=[];append(row:EvidencePeriod){if(Date.parse(row.start)>=Date.parse(row.end))throw new Error("INVALID_PERIOD");if(this.#rows.some(x=>Date.parse(row.start)<Date.parse(x.end)&&Date.parse(row.end)>Date.parse(x.start)))throw new Error("OVERLAPPING_EVIDENCE_PERIOD");const frozen=Object.freeze({...row});this.#rows.push(frozen);return frozen}list(){return this.#rows.map(Object.freeze)} }
+export class ShadowCoordinator {#cycles=new Set<string>();#cancelled=false;constructor(readonly maxCycles:number,readonly maxRequests:number){if(maxCycles<1||maxRequests<1)throw new Error("UNSAFE_SHADOW_BOUNDS")}cancel(){this.#cancelled=true}run(cycleId:string,requests:number,fn:()=>ValidationDecision){if(this.#cancelled)throw new Error("RUN_CANCELLED");if(this.#cycles.has(cycleId))return null;if(this.#cycles.size>=this.maxCycles||requests>this.maxRequests)throw new Error("WORKLOAD_BOUND_EXCEEDED");this.#cycles.add(cycleId);return fn()}checkpoint(){return {cycles:[...this.#cycles],cancelled:this.#cancelled}}recover(v:{cycles:string[];cancelled:boolean}){this.#cycles=new Set(v.cycles);this.#cancelled=v.cancelled}}
+export const PHASE_L_AUTHORITY=Object.freeze({framework:ACTIVE_SCANNER_FRAMEWORK,arbitrator:ACTIVE_SCANNER_ARBITRATOR,publication:false,execution:false,certification:false});
