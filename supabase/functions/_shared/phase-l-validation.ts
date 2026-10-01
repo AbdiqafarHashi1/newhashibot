@@ -9,12 +9,12 @@ export interface Admission { candles:StrategyCandle[]; exclusions:{code:string;o
 const duration=(tf:string)=>{const m=/^(\d+)(m|h|d)$/.exec(tf);if(!m)throw new Error("UNSUPPORTED_TIMEFRAME");return +m[1]*(m[2]==="m"?6e4:m[2]==="h"?36e5:864e5)};
 export function admitHistoricalCandles(input:readonly StrategyCandle[],timeframe:string,asOf:string,calendar:"24x7"|"FOREX_24x5"="24x7"):Admission{
  const exclusions:Admission["exclusions"]=[],ms=duration(timeframe),limit=Date.parse(asOf),seen=new Set<string>(),out:StrategyCandle[]=[];
- for(const c of [...input].sort((a,b)=>Date.parse(a.open_time)-Date.parse(b.open_time))){const t=Date.parse(c.open_time);let code="";
-  if(!Number.isFinite(t)||!c.open_time.endsWith("Z"))code="INVALID_TIMESTAMP_OR_TIMEZONE";
-  else if(seen.has(c.open_time))code="DUPLICATE_CANDLE";
+ for(const c of [...input].sort((a,b)=>Date.parse(a.open_time)-Date.parse(b.open_time))){const t=Date.parse(c.open_time),normalized=Number.isFinite(t)?new Date(t).toISOString():c.open_time;let code="";
+  if(!Number.isFinite(t)||!/(Z|[+-]\d\d:\d\d)$/.test(c.open_time))code="INVALID_TIMESTAMP_OR_TIMEZONE";
+  else if(seen.has(normalized))code="DUPLICATE_CANDLE";
   else if(t+ms>limit)code="OPEN_OR_FUTURE_CANDLE";
   else if(![c.open,c.high,c.low,c.close,c.volume].every(Number.isFinite)||c.low<0||c.high<Math.max(c.open,c.close)||c.low>Math.min(c.open,c.close)||c.volume<0)code="INVALID_OHLC";
-  if(code){exclusions.push({code,openTime:c.open_time,detail:"candle excluded; never repaired"});continue} seen.add(c.open_time);out.push({...c});
+  if(code){exclusions.push({code,openTime:c.open_time,detail:"candle excluded; never repaired"});continue} seen.add(normalized);out.push({...c,open_time:normalized});
  }
  for(let i=1;i<out.length;i++){const gap=Date.parse(out[i].open_time)-Date.parse(out[i-1].open_time);if(gap>ms){const weekend=calendar==="FOREX_24x5"&&[0,6].includes(new Date(Date.parse(out[i-1].open_time)+ms).getUTCDay());exclusions.push({code:weekend?"MARKET_SESSION_GAP":"UNEXPECTED_GAP",openTime:out[i].open_time,detail:`${gap/ms-1} missing interval(s)`});}}
  return {candles:out,exclusions,status:out.length?"ADMITTED":"EXCLUDED"};

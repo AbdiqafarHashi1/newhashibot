@@ -117,9 +117,23 @@ Dataset registration rejects invalid ordering, conflicting duplicates and malfor
 1. `20261001120000_phase_l_replay_shadow_evidence.sql`
 2. `20261001180000_phase_l_validation_server_and_datasets.sql`
 3. `20261001210000_phase_l_dataset_outcome_integrity.sql`
+4. `20261001220000_phase_l_outcome_cashflow_integrity.sql`
 
 No migration was remotely applied. Required external work remains: isolated migration verification, Edge Function deployment, dedicated Windows owner-feed configuration, genuine provider observations and supplied real datasets.
 
 ### Verification status for this addendum
 
-Deterministic repository tests exercise combined-source continuation, missing MT5 connection, production Crypto/Forex registry coverage, Garman–Klass parity, costs/partial exits/ambiguity/open outcomes, hashes/count/coverage/duplicates, shadow checkpoint restart/cancellation, immutable evidence and zero production side effects. `test:strategies` initially failed because its formula-integrity assertion still looked for the moved Crypto functions in the scanner file; the assertion was corrected to hash the new shared active authority and then passed. Full repository typecheck remains subject to the pre-existing baseline errors documented by the PR; build and focused compilation pass.
+Deterministic repository tests exercise combined-source continuation, missing MT5 connection, production Crypto/Forex registry coverage, Garman–Klass parity, costs/partial exits/ambiguity/open outcomes, hashes/count/coverage/duplicates, shadow checkpoint restart/cancellation, immutable evidence and zero production side effects. `test:strategies` initially failed because its formula-integrity assertion still looked for the moved Crypto functions in the scanner file; the assertion was corrected to hash the new shared active authority and then passed. The repository typecheck, build, and focused compilation pass on this branch.
+
+## Final Backtest Lab integrity correction (2026-10-01)
+
+- **Outcome accounting:** each simulated trade now uses signed R geometry from the actual next-open fill, validates all cost/partial/trailing assumptions, rejects gap-invalid entry geometry, retains TP1 cash flow through later stops/collisions, and applies the configured maximum holding bars. Open/ambiguous/excluded outcomes remain unresolved rather than being assigned favorable fills.
+- **Metrics:** validation evidence stores immutable cash-flow events. `realizedMaxDrawdownR` is computed by event timestamp (with deterministic ties), not candidate generation order. It is explicitly a **realized-event drawdown for independent signal outcomes**, not mark-to-market account drawdown or an executable portfolio result. Overlapping signals are not portfolio-netted.
+- **Replay cancellation:** the service checks durable cancellation before context construction, after shared evaluation, and before outcome persistence. Cancelled runs retain progress but clear complete metrics and never become `COMPLETED`.
+- **Dataset round trip:** timestamps are canonicalized to UTC ISO for hashing, duplicates, coverage comparisons, admission, and replay. Equivalent `Z` and `+00:00` database representations produce the same hash; count, coverage, ordering, OHLC and hash checks remain mandatory.
+- **Connected shadow:** the authenticated Phase-L handler resolves current approved strategy configuration, requires the owner MT5 feed identity, invokes the portable `executeShadowWorker` and `observeShadowCycles` boundary, and persists checkpoints/cycles. The observer now uses `runBoundedValidation`, so production qualification and arbitration are shared. It never imports publication, Telegram, execution-adoption, or provider-order writers. Scheduling remains disabled.
+- **Independent accounting fixtures:** deterministic assertions cover -1R full stop; +0.5R TP1/breakeven; 0R TP1/remaining original-stop; +0.5R TP1/post-update collision; +1.5R TP2 completion; buy/sell symmetry; 10 bps cost yielding -1.1 net R at the fixture geometry; invalid gaps/assumptions; holding limits; reverse close chronology; partial cash-flow drawdown; timestamp round trips; and an injected-feed server-worker observation.
+
+External owner-feed credentials, Windows HashiBridge hosting, genuine datasets, deployed migrations, real shadow observations, performance measurement, and certification remain **NOT_RUN**. The callable worker is code-complete but no schedule or provider was activated.
+
+Verification for this correction: `npm run test:phase-l`, `npm run test:phase-k`, `npm run test:strategies`, `npm run test:historical-data`, `npm run test:recovery`, `npm run test:execution`, `npm run test:mt5`, `npm run check:edge-functions`, `npm run build`, `npm run typecheck`, and `git diff --check` passed locally. MT5 tests emitted existing Node 20 deprecation and CJS `import.meta` warnings; they did not fail. VISUAL REVIEW **NOT_RUN** (no browser automation was available in this environment).
