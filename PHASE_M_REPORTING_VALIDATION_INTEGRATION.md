@@ -16,6 +16,13 @@ This change was built from merge commit `8979f7d` (PR #247), and the merge diff�
 
 Fixtures are synthetic and are never market evidence. Schedules remain disabled. No message, provider order, payment mutation, deployment, or remote SQL was performed.
 
+## PR #248 reviewed blockers
+
+1. **Evidence persistence — FIXED.** Validation and simulation evidence now use service-only atomic RPCs that are idempotent on identical retries, reject conflicting duplicates, update progress only with accepted evidence, verify the expected evidence count, and conditionally finalize only a still-running, non-cancelled run. Every endpoint/store error is checked; failed evidence or finalization returns failure and cannot report `COMPLETED`.
+2. **Run routing and cancellation — FIXED.** Scanner/shadow history and details route to `validation_runs`/`validation_cycles`; account/Prop route to `validation_simulation_runs`/`validation_simulation_evidence`. Cancellation uses table-specific atomic RPCs. Scanner evaluation, Phase-D evaluation, and every evidence loop poll cancellation, while conditional completion prevents a cancellation/completion race from overwriting `CANCELLED`.
+3. **Server lineage — FIXED.** Account runs load an owned completed validation run, persisted cycles/outcomes, canonical hashes, the owned execution account, current Brain assignment, and server-stored policy/contracts/conversions. Prop runs derive trades from completed account evidence and resolve the stored Prop configuration against the code-owned frozen profile registry. Client-supplied points, hashes, trades, profile bodies, and verification status are no longer accepted. Research override is explicitly `INCOMPLETE`.
+4. **Backtest Lab controls — FIXED.** Structured mode, dataset, dates, provider, symbol/timeframe, source-run, account, Brain/profile, capital, currency, and cost controls replace editable JSON. History/details/cancel route by mode, shadow observation advances only from its explicit resume button, and export serializes fetched persisted evidence. The advanced evidence view is read-only.
+
 ## Authority and call-path audit
 
 1. `market-scanner/index.ts` evaluates the single active registry and arbitrator, then calls `commit_scanner_signal_decision`. That Phase-K RPC atomically writes `scanner_cycle_decisions`, immutable `signals`, and `signal_publication_work`.
@@ -60,13 +67,17 @@ Provision MT5 Personal, MT5 Prop, Binance and Bybit as four independently owned 
 
 ## Migration and deployment readiness
 
-Dependency order is: all migrations through Phase K → the four Phase-L migrations in timestamp order → `20261002120000_phase_m_canonical_reporting_validation.sql` → `20261003120000_phase_m_lifecycle_publication_and_edits.sql`. Before deployment, compare read-only catalog output for tables, columns, constraints, indexes, policies, functions and triggers (`pg_catalog`, `information_schema`) to the migration; apply the exact SQL to an isolated disposable database; run all Phase D–M and SQL constraint tests; verify rollback is restore-from-backup/forward-fix (never fake migration history or reset production). No remote schema was inspected or changed in this work.
+Dependency order is: all migrations through Phase K → the four Phase-L migrations in timestamp order → `20261002120000_phase_m_canonical_reporting_validation.sql` → `20261003120000_phase_m_lifecycle_publication_and_edits.sql` → `20261004120000_phase_m_atomic_evidence_completion.sql`. Before deployment, compare read-only catalog output for tables, columns, constraints, indexes, policies, functions and triggers (`pg_catalog`, `information_schema`) to the migration; apply the exact SQL to an isolated disposable database; run all Phase D–M and SQL constraint tests; verify rollback is restore-from-backup/forward-fix (never fake migration history or reset production). No remote schema was inspected or changed in this work.
 
 ## Remaining work versus configuration
 
 **Missing external configuration/evidence:** deployed migration, Telegram bot/destinations, dedicated MT5 bridge, public-feed network access, complete historical datasets, frozen firm profiles, contract/conversion data, demo provider accounts, genuine shadow duration, and genuine forward-demo observations.
 
 **Remaining repository code:** none for the scoped Phase-M modes. Rules requiring evidence the professional Prop authority cannot evaluate—news blackout without timestamped news, an unspecified consistency formula, exposure without intratrade position snapshots, and payout eligibility—are inventoried and force `INCOMPLETE`. Editorial/membership/test Telegram traffic remains outside lifecycle publication by design.
+
+## Reviewed-head and verification note
+
+This checkout began on branch `work` at `8c964bf`; the review's stated head `a2c68e09990e49ce4a9b1211e37f8bd2d3329c78` was not present in the local object database and no Git remote was configured, so remote PR mergeability could not be asserted from this environment. The actual Phase-M base is `8979f7d`. A detached-base comparison ran the same `npm run typecheck` command: the base produced 262 TypeScript diagnostics, while this reviewed working tree produced zero. This is recorded as an observed local comparison, not as evidence of deployment or GitHub mergeability.
 
 ## Roadmap retained
 
