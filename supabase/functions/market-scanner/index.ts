@@ -17,6 +17,7 @@ import { publicSignalReference } from "../_shared/professional-telegram.ts";
 import { atrRootV1, emaRootV1, rsiRootV1, INDICATOR_VERSIONS } from "../_shared/indicator-engine.ts";
 import { ArbitrationDiagnostics, type ArbitrationCandidate } from "../_shared/arbitrator.ts";
 import { arbitrateActiveScanner, evaluateActiveStrategies, ACTIVE_SCANNER_ARBITRATOR, ACTIVE_SCANNER_FRAMEWORK } from "../_shared/active-scanner-core.ts";
+import { applyScannerSelectionPolicy } from "../_shared/scanner-selection-policy.ts";
 import { calculateActiveIndicators } from "../_shared/active-validation-runtime.ts";
 import { evalMicroScalper, evalQuickScalp, evalCompressionBreakout, evalSwingContinuation } from "../_shared/crypto-production-evaluators.ts";
 import { commitScannerDecision, scannerConfigurationVersion, scannerCycleKey, scannerSignalIdentity } from "../_shared/scanner-signal-repository.ts";
@@ -2915,7 +2916,7 @@ async function runScanPipeline(
           candidatesFound++;
 
           // Duplicate gate
-          if (config.prevent_duplicate_symbol_signals && activeSymbolSet.has(sym.symbol)) {
+          if (!applyScannerSelectionPolicy(new Date().toISOString(), { activeSignalId: activeSignalBySymbol.get(sym.symbol)?.id }, { preventDuplicateSymbolSignals: config.prevent_duplicate_symbol_signals, cooldownMs: 0 }).allowed) {
             const blockingSignal = activeSignalBySymbol.get(sym.symbol);
             const blockingAgeMinutes = blockingSignal?.created_at ? Math.max(0, Math.round((Date.now() - new Date(blockingSignal.created_at).getTime()) / 60000)) : null;
             await supabase.from("strategy_candidates").update({

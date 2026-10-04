@@ -13,6 +13,7 @@ import { decideAccountExecution, type AccountRuntimeControl } from "../_shared/a
 import type { EligibilityDecision } from "../_shared/trading-domain/production-eligibility-router.ts";
 import { createMt5EntryCommand, type PhaseDExecutionLineage } from "../_shared/mt5-phase-e-execution.ts";
 import { createCryptoSubmissionEnvelope, type CryptoPhaseDLineage } from "../_shared/crypto-phase-f-execution.ts";
+import {canonicalLifecycleType,enqueueCanonicalLifecycle,lifecycleAudience} from "../_shared/canonical-lifecycle-publication.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1156,7 +1157,7 @@ async function logEvent(supabase: SupabaseClient, executionId: string, eventType
     .eq("id", executionId)
     .maybeSingle();
   const row = (execution ?? {}) as { signal_id?: string | null; symbol?: string | null };
-  await supabase.from("execution_event_logs").insert({
+  const {data:event,error}=await supabase.from("execution_event_logs").insert({
     execution_id: executionId,
     execution_order_id: executionId,
     signal_id: row.signal_id ?? null,
@@ -1164,13 +1165,12 @@ async function logEvent(supabase: SupabaseClient, executionId: string, eventType
     event_type: eventType,
     message,
     metadata,
-  });
+  }).select("id,created_at").single();if(error)throw error;const {data:owned}=await supabase.from("execution_orders").select("customer_id,account_id").eq("id",executionId).maybeSingle();const customerId=String(owned?.customer_id??"")||null,accountId=String(owned?.account_id??"")||null;await enqueueCanonicalLifecycle(supabase,{eventKey:`execution:${executionId}:${eventType}`,eventType:canonicalLifecycleType(eventType),signalId:row.signal_id??null,executionId,customerId,accountId,occurredAt:event.created_at,payload:{...metadata,details:message,symbol:row.symbol,provider:"binance"},destinations:lifecycleAudience({customerId,accountId})});
 }
 
 async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string, eventType: string, lines: string[]): Promise<void> {
-  if (!envBool("TELEGRAM_ENABLED", false)) return;
   const { data: settingsRow } = await supabase.from("execution_settings").select("execution_mode,testnet_governor_mode,governor_state,stress_override_enabled,stress_risk_pct,stress_leverage,stress_ignore_open_risk_limit").eq("id", 1).maybeSingle();
-  const { data: latestExecution } = await supabase.from("execution_orders").select("risk_pct,risk_source,leverage,leverage_source,lifecycle_state,entry_filled_at,protection_status,runner_active,runner_expired,cleanup_status,open_risk_guard,status").eq("signal_id", signalId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const { data: latestExecution } = await supabase.from("execution_orders").select("id,customer_id,account_id,risk_pct,risk_source,leverage,leverage_source,lifecycle_state,entry_filled_at,protection_status,runner_active,runner_expired,cleanup_status,open_risk_guard,status").eq("signal_id", signalId).order("created_at", { ascending: false }).limit(1).maybeSingle();
   const settings = (settingsRow ?? {}) as Json;
   const execution = (latestExecution ?? {}) as Json;
   const stressActive = String(settings.execution_mode ?? "") === "testnet" && settings.stress_override_enabled === true;
@@ -1196,15 +1196,7 @@ async function sendExecutionTelegram(supabase: SupabaseClient, signalId: string,
     `Open Risk Guard: ${execution.open_risk_guard ?? (stressActive && settings.stress_ignore_open_risk_limit === true ? "IGNORED_FOR_STRESS_TEST" : "ACTIVE")}`,
   ];
   const text = ["BINANCE TESTNET — NOT LIVE", "", ...lines, ...truthLines].join("\n");
-  await routeTelegramEvent(supabase, {
-    event_id: `${signalId}:${eventType}:${Date.now()}`,
-    event_type: `execution_${eventType}`,
-    signal_id: signalId,
-    text,
-    source: "binance-testnet-execution",
-    channels: ["vip"],
-    dedupe: false,
-  });
+  const customerId=String(execution.customer_id??"")||null,accountId=String(execution.account_id??"")||null,executionId=String(execution.id??"")||null;await enqueueCanonicalLifecycle(supabase,{eventKey:`execution-report:${executionId??signalId}`,eventType:canonicalLifecycleType(eventType),eventVersion:Math.max(1,["auto_executed","partially_closed","closed_profit_lock","closed_sl","closed_breakeven","closed_tp2"].indexOf(eventType)+1),signalId,executionId,customerId,accountId,payload:{details:text,...execution},destinations:lifecycleAudience({customerId,accountId})});
 }
 
 async function getRules(symbol: string): Promise<SymbolRules> {
