@@ -103,7 +103,8 @@
     "test:purchase-journey": "rm -rf .tmp/purchase-journey && mkdir -p .tmp/purchase-journey && esbuild tests/purchaseJourney/publicPurchaseJourney.test.ts --bundle --platform=node --format=esm --outfile=.tmp/purchase-journey/test.mjs && node .tmp/purchase-journey/test.mjs && rm -rf .tmp/purchase-journey",
     "test:phase-l": "rm -rf .tmp/phase-l-tests && mkdir -p .tmp/phase-l-tests && for f in tests/phaseL/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-l-tests/$n.mjs\" && node \".tmp/phase-l-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-l-tests",
     "replay:phase-l": "tsx scripts/phase-l-replay.ts",
-    "test:phase-m": "rm -rf .tmp/phase-m-tests && mkdir -p .tmp/phase-m-tests && for f in tests/phaseM/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-m-tests/$n.mjs\" && node \".tmp/phase-m-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-m-tests"
+    "test:phase-m": "rm -rf .tmp/phase-m-tests && mkdir -p .tmp/phase-m-tests && for f in tests/phaseM/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-m-tests/$n.mjs\" && node \".tmp/phase-m-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-m-tests",
+    "test:phase-n": "rm -rf .tmp/phase-n-tests && mkdir -p .tmp/phase-n-tests && for f in tests/phaseN/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-n-tests/$n.mjs\" && node \".tmp/phase-n-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-n-tests"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
