@@ -152,6 +152,7 @@ export interface PropAccountSnapshot {
   tradingDays: number;
   brokerTruth: boolean;
 }
+function propResetDay(timestamp:string,timezone:string,resetTime:string){const date=new Date(timestamp),parts=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(date).filter(x=>x.type!=="literal").map(x=>[x.type,x.value])),reset=/^(\d\d?):(\d\d)/.exec(resetTime),before=reset&&(Number(parts.hour)*60+Number(parts.minute)<Number(reset[1])*60+Number(reset[2])),day=new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00Z`);if(before)day.setUTCDate(day.getUTCDate()-1);return day.toISOString().slice(0,10)}
 export interface PropAuditEvent {
   id: string;
   timestamp: string;
@@ -434,30 +435,26 @@ export function simulateChallenge(
     maxDd = 0,
     maxDaily = 0;
   const days = new Set<string>(),
-    daily = new Map<string, number>(),
+    daily = new Map<string, number>(),dailyStart=new Map<string,{balance:number;equity:number}>(),
     audit: PropAuditEvent[] = [];
   for (const trade of [...trades].sort((a, b) =>
     a.closedAt.localeCompare(b.closedAt),
   )) {
-    balance += trade.netPnl;
+    const beforeBalance=balance;balance += trade.netPnl;
     peak = Math.max(peak, balance);
-    const day = trade.closedAt.slice(0, 10);
+    const day = propResetDay(trade.closedAt,profile.rules.resetTimezone,profile.rules.resetTime),equity=trade.intradayEquityLow??balance;
     days.add(day);
+    if(!dailyStart.has(day))dailyStart.set(day,{balance:beforeBalance,equity:beforeBalance});
     daily.set(day, (daily.get(day) ?? 0) + trade.netPnl);
-    const dailyLoss =
-      (Math.max(0, -(daily.get(day) ?? 0)) / config.accountSize) * 100;
+    const start=dailyStart.get(day)!,dailyReference=profile.rules.dailyLossBasis==="START_OF_DAY_EQUITY"?start.equity:profile.rules.dailyLossBasis==="START_OF_DAY_BALANCE"?start.balance:config.accountSize,dailyValue=profile.rules.dailyLossBasis.includes("EQUITY")?equity:balance,dailyLoss=(Math.max(0,dailyReference-dailyValue)/dailyReference)*100;
     maxDaily = Math.max(maxDaily, dailyLoss);
-    maxDd = Math.max(
-      maxDd,
-      ((config.accountSize - balance) / config.accountSize) * 100,
-      ((peak - balance) / config.accountSize) * 100,
-    );
+    const maxValue=profile.rules.maxLossBasis.includes("EQUITY")?equity:balance,maxReference=profile.rules.maxLossBasis.startsWith("CURRENT_")?peak:config.accountSize;maxDd=Math.max(maxDd,((maxReference-maxValue)/maxReference)*100);
     const snapshot: PropAccountSnapshot = {
       timestamp: trade.closedAt,
       startingBalance: config.accountSize,
       balance,
-      equity: trade.intradayEquityLow ?? balance,
-      startOfDayBalance: config.accountSize,
+      equity,
+      startOfDayBalance: start.balance,
       closedPnl: balance - config.accountSize,
       floatingPnl: 0,
       dailyClosedPnl: daily.get(day) ?? 0,

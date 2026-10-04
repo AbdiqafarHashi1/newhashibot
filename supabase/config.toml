@@ -60,3 +60,12 @@ verify_jwt = true
 
 [functions.commerce-reconcile]
 verify_jwt = false
+
+[functions.canonical-reporting-worker]
+verify_jwt = false
+
+[functions.phase-m-shadow]
+verify_jwt = true
+
+[functions.phase-m-validation]
+verify_jwt = true

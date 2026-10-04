@@ -1,11 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
-import { routeTelegramEvent } from "../_shared/telegram-router.ts";
-import { vipChatId } from "../_shared/telegram-registry.ts";
 import { publicSignalReference, renderProfessionalTelegramMessage, telegramTypeForSignalStatus } from "../_shared/professional-telegram.ts";
 import { paperIntentStatusForSignalStatus } from "../_shared/paper-trade-lifecycle.ts";
 import { loadMT5Candles } from "../_shared/mt5-market-data-provider.ts";
+import {enqueueCanonicalLifecycle} from "../_shared/canonical-lifecycle-publication.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -411,78 +410,14 @@ function formatOutcomeMessage(sig: SignalRow, newStatus: string, price: number |
   });
 }
 
-async function insertTelegramDelivery(
-  supabase: SupabaseClient,
-  signalId: string,
-  type: string,
-  chatId: string,
-  status: "sent" | "failed" | "skipped",
-  errorMessage = "",
-  messageId = "",
-): Promise<string | undefined> {
-  const { data } = await supabase.from("telegram_deliveries").insert({
-    signal_id: signalId,
-    delivery_type: type,
-    chat_id: chatId,
-    status,
-    telegram_message_id: messageId,
-    error_message: errorMessage,
-    event_id: signalId,
-    event_type: type,
-    destination_channel: "vip",
-    destination_chat_id: chatId,
-    sent_at: status === "sent" ? new Date().toISOString() : null,
-    delivery_status: status,
-    retry_count: 0,
-  }).select("id").maybeSingle();
-  return data?.id as string | undefined;
-}
-
 async function sendOutcomeNotification(
   supabase: SupabaseClient,
   sig: SignalRow,
   newStatus: string,
   price: number | null,
 ): Promise<TelegramResult> {
-  const type = deliveryType(newStatus);
-  const chatId = vipChatId();
-
-  const skip = async (reason: string): Promise<TelegramResult> => {
-    const deliveryId = await insertTelegramDelivery(supabase, sig.id, type, chatId || "not_configured", "skipped", reason);
-    return { sent: false, skipped: true, failed: false, reason, delivery_id: deliveryId };
-  };
-
-  if (!parseBooleanEnv("TELEGRAM_ENABLED", false)) return skip("telegram_disabled_env");
-  if (!parseBooleanEnv("ENABLE_SIGNAL_MODE_OUTPUT", false)) return skip("signal_mode_output_disabled");
-  const marketType = String(sig.market_type ?? "").toLowerCase();
-  if (marketType === "forex" && !parseBooleanEnv("SIGNAL_ENABLE_FOREX", false)) return skip("forex_disabled");
-  if (!["crypto", "forex"].includes(marketType)) return skip("unsupported_market_type");
-  if (String(sig.data_source ?? "").toUpperCase() !== "REAL DATA") return skip("not_real_data");
-  if (!chatId) return skip("TELEGRAM_CHAT_ID missing");
-
-  const { data: existing } = await supabase
-    .from("telegram_deliveries")
-    .select("id")
-    .eq("signal_id", sig.id)
-    .eq("chat_id", chatId)
-    .eq("delivery_type", type)
-    .eq("status", "sent")
-    .maybeSingle();
-  if (existing?.id) return { sent: false, skipped: true, failed: false, reason: "already_sent_outcome", delivery_id: existing.id as string };
-
-  const [delivery] = await routeTelegramEvent(supabase, {
-    event_id: `${sig.id}:${newStatus}`,
-    event_type: type,
-    signal_id: sig.id,
-    text: formatOutcomeMessage(sig, newStatus, price),
-    source: "evaluate-signal-outcomes",
-    channels: ["vip"],
-    dedupe: true,
-  });
-
-  if (delivery?.status === "sent") return { sent: true, skipped: false, failed: false, delivery_id: delivery.delivery_id };
-  const reason = delivery?.error_message ?? "telegram_delivery_failed";
-  return { sent: false, skipped: delivery?.status === "skipped", failed: delivery?.status !== "skipped", reason, delivery_id: delivery?.delivery_id };
+  const eventId=await enqueueCanonicalLifecycle(supabase,{eventKey:`signal-outcome:${sig.id}`,eventType:"SIGNAL_OUTCOME",eventVersion:["active","tp1_hit","tp2_hit","sl_hit","expired","cancelled"].indexOf(newStatus)+1,signalId:sig.id,payload:{...sig,status:newStatus,event_price:price,details:formatOutcomeMessage(sig,newStatus,price)},destinations:["vip"]});
+  return { sent: false, skipped: true, failed: false, reason: "canonical_publication_queued", delivery_id:eventId };
 }
 
 
