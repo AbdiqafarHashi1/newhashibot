@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {verifyAndPersistCustomerCredential} from '../../supabase/functions/_shared/phase-n-customer-credentials.ts';
+import {dispatchPhaseNCertification} from '../../supabase/functions/_shared/phase-n-certification-dispatch.ts';
+const response=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status});
+const binanceFetch:typeof fetch=async(url)=>String(url).includes('account?')?response({accountAlias:'customer001',assets:[],positions:[],canTrade:true,canWithdraw:false}):response([]);
+let stored='';const connected=await verifyAndPersistCustomerCredential({customerId:'c1',accountId:'a1',provider:'binance',environment:'testnet',credential:{apiKey:'key',apiSecret:'secret'},fetcher:binanceFetch,store:{async persist(x){stored=x.secretJson;return'11111111-1111-4111-8111-111111111111'}}});assert.equal(connected.state,'CONNECTED');assert.equal(connected.capabilities.withdrawal,false);assert.match(stored,/api_secret/);assert.equal(JSON.stringify(connected).includes('secret'),false);
+await assert.rejects(()=>verifyAndPersistCustomerCredential({customerId:'c1',accountId:'a1',provider:'binance',environment:'testnet',credential:{apiKey:'key',apiSecret:'secret'},fetcher:async(url)=>String(url).includes('account?')?response({accountAlias:'customer001',assets:[],positions:[],canTrade:true,canWithdraw:true}):response([]),store:{async persist(){throw Error('must not store')}}}),/WITHDRAWAL_PERMISSION_REJECTED/);
+let calls=0;const transport={async dispatch(){calls++;return{accepted:true,state:'QUEUED',canonicalId:'canonical-1'}}};const plan={execution_account_id:'a1',phase_d_decision:'REDUCE'};
+await assert.rejects(()=>dispatchPhaseNCertification({enabled:false,provider:'BINANCE',accountId:'a1',plan,idempotencyKey:'x',transport}),/DISABLED/);assert.equal(calls,0);
+const result=await dispatchPhaseNCertification({enabled:true,provider:'BINANCE',accountId:'a1',plan,idempotencyKey:'x',transport});assert.equal(result.canonicalId,'canonical-1');assert.equal(calls,1);
+await assert.rejects(()=>dispatchPhaseNCertification({enabled:true,provider:'BINANCE',accountId:'wrong',plan,idempotencyKey:'x',transport}),/ACCOUNT_MISMATCH/);
+console.log('Phase N credential and certification dispatch adapters passed');
