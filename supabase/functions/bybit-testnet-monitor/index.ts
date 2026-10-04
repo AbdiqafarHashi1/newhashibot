@@ -4,6 +4,7 @@ import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authJsonResponse, authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
 import { acquireExecutionLease, enumerateExecutionAccounts, ownershipFields, releaseExecutionLease, resolveEdgeProviderCredential, runtimeOwnershipFields, settleExecutionAccounts, type EdgeExecutionOwnership, type EdgeProviderCredential } from "../_shared/execution-ownership.ts";
+import {canonicalLifecycleType,enqueueCanonicalLifecycle,lifecycleAudience} from "../_shared/canonical-lifecycle-publication.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -297,10 +298,9 @@ function telegramText(row: Json, event: string, state: Json) {
   ].join("\n");
 }
 async function sendLifecycleTelegram(supabase: SupabaseClient, row: Json, event: string, state: Json) {
-  if (String(row.last_telegram_event_sent ?? "") === event) return false;
   const ownership = ownershipFromMonitoredRow(row);
-  await routeTelegramEvent(supabase, { event_id: `${ownership.execution_scope_key}:${lifecycleEventKey(row, event)}`, event_type: `bybit_${event}`, text: telegramText(row, event, state), source: "bybit-testnet-monitor", channels: ["admin"], dedupe: true, ...ownershipFields(ownership) });
-  await supabase.from("execution_orders").update({ last_telegram_event_sent: event, latest_telegram_event_at: new Date().toISOString() }).eq("id", row.id);
+  await enqueueCanonicalLifecycle(supabase,{eventKey:`${ownership.execution_scope_key}:${lifecycleEventKey(row,event)}`,eventType:canonicalLifecycleType(event),signalId:String(row.signal_id??"")||null,executionId:String(row.id),customerId:ownership.customer_id,accountId:ownership.account_id,payload:{...state,details:telegramText(row,event,state),symbol:row.symbol,provider:"bybit"},destinations:lifecycleAudience({customerId:ownership.customer_id,accountId:ownership.account_id})});
+  await supabase.from("execution_orders").update({ latest_telegram_event_at: new Date().toISOString() }).eq("id", row.id);
   return true;
 }
 

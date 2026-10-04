@@ -4,6 +4,7 @@ import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
 import { acquireExecutionLease, currentEdgeProviderCredential, enumerateExecutionAccounts, ownershipFromRow, releaseExecutionLease, resolveEdgeProviderCredential, runtimeOwnershipFields, settleExecutionAccounts, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
+import {canonicalLifecycleType,enqueueCanonicalLifecycle,lifecycleAudience} from "../_shared/canonical-lifecycle-publication.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -462,25 +463,11 @@ async function verifyCronOrService(req: Request, supabase: SupabaseClient, servi
   return auth.ok;
 }
 
-async function sendTelegram(supabase: SupabaseClient, executionId: string, signalId: string | null, eventType: string, message: string): Promise<boolean> {
-  const results = await routeTelegramEvent(supabase, {
-    event_id: executionId,
-    event_type: `binance_testnet_${eventType}`,
-    signal_id: signalId,
-    text: message,
-    source: "binance-testnet-monitor",
-    channels: ["vip"],
-    dedupe: false,
-  });
-  return results.some((result) => result.status === "sent");
-}
-
 async function logEvent(supabase: SupabaseClient, row: Row, type: string, message: string, metadata: Record<string, unknown>, stats: MonitorStats) {
   const fullMessage = `BINANCE TESTNET — NOT LIVE\n${message}`;
-  const telegramSent = await sendTelegram(supabase, row.id, row.signal_id ?? null, type, fullMessage);
-  await supabase.from("execution_event_logs").insert({ execution_order_id: row.id, signal_id: row.signal_id ?? null, symbol: row.symbol, event_type: type, message: fullMessage, metadata, telegram_sent: telegramSent });
+  const {data:event,error}=await supabase.from("execution_event_logs").insert({ execution_order_id: row.id, signal_id: row.signal_id ?? null, symbol: row.symbol, event_type: type, message: fullMessage, metadata, telegram_sent: false }).select("id,created_at").single();if(error)throw error;
+  const customerId=String(row.customer_id??"")||null,accountId=String(row.account_id??"")||null;await enqueueCanonicalLifecycle(supabase,{eventKey:`binance:${row.id}:${type}`,eventType:canonicalLifecycleType(type),signalId:row.signal_id??null,executionId:row.id,customerId,accountId,occurredAt:event.created_at,payload:{...metadata,details:fullMessage,symbol:row.symbol,provider:"binance"},destinations:lifecycleAudience({customerId,accountId})});
   stats.events += 1;
-  if (telegramSent) stats.telegram_sent += 1;
 }
 
 async function cancelAlgoOrder(symbol: string, algoId: string) {

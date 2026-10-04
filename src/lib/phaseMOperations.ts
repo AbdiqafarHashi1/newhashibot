@@ -1,0 +1,11 @@
+import {supabase,supabaseClientConfig} from './supabase';
+export type PhaseMKind='SCANNER'|'SHADOW'|'ACCOUNT'|'PROP';
+async function call(functionName:string,body:Record<string,unknown>){const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('AUTHENTICATION_REQUIRED');const response=await fetch(`${supabaseClientConfig.supabaseUrl}/functions/v1/${functionName}`,{method:'POST',headers:{Authorization:`Bearer ${session.access_token}`,apikey:supabaseClientConfig.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify(body)}),json=await response.json();if(!response.ok)throw new Error(json.error??'PHASE_M_REQUEST_FAILED');return json}
+export const shadowOperation=(body:Record<string,unknown>)=>call('phase-m-shadow',body);
+export const simulationOperation=(body:Record<string,unknown>)=>call('phase-m-validation',body);
+export const reportingOperation=(body:Record<string,unknown>)=>call('canonical-reporting-worker',body);
+export const phaseMHistory=(kind:PhaseMKind)=>simulationOperation({action:'history',kind});
+export const phaseMDetails=(kind:PhaseMKind,runId:string)=>simulationOperation({action:'details',kind,runId});
+export const cancelPhaseMRun=(kind:PhaseMKind,runId:string)=>kind==='SHADOW'?shadowOperation({action:'cancel',runId}):simulationOperation({action:'cancel',kind,runId});
+export async function listPhaseMAuthorities(){const [accounts,brains,props]=await Promise.all([supabase.from('execution_accounts_safe').select('id,display_label,customer_id,policy_profile_id,policy_version,provider'),supabase.from('account_brain_assignments').select('id,execution_account_id,brain_family,policy_version').is('superseded_at',null),supabase.from('prop_account_configs').select('id,profile_id,profile_version,account_size,currency')]);for(const result of [accounts,brains,props])if(result.error)throw result.error;return{accounts:accounts.data??[],brains:brains.data??[],props:props.data??[]}}
+export function exportPersistedEvidence(value:unknown,name:string){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
