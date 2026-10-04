@@ -26,6 +26,7 @@ export type SafeVerification = {
   discovered_account_identity: string | null;
   read_permissions: { account: boolean; balances: boolean; positions: boolean; orders: boolean };
   trading_permission: boolean;
+  withdrawal_permission: boolean | null;
   warnings: string[];
   first_blocker: string | null;
 };
@@ -80,7 +81,7 @@ export async function verifyBinanceTestnet(credential: RawCredential, fetcher: t
     connection_verified: ok,
     provider: "binance", environment: "testnet", discovered_account_identity: identity,
     read_permissions: { account: accountResponse.ok, balances: accountResponse.ok && Array.isArray(account.assets), positions: accountResponse.ok && Array.isArray(account.positions), orders: ordersResponse.ok },
-    trading_permission: account.canTrade === true,
+    trading_permission: account.canTrade === true, withdrawal_permission: account.canWithdraw === true,
     warnings: accountResponse.ok && !nativeIdentity ? ["Native stable provider identity unavailable; safe canonical fallback used."] : [],
     first_blocker: !accountResponse.ok ? `BINANCE_AUTH_OR_ACCOUNT_READ_FAILED_${accountResponse.status}` : !ordersResponse.ok ? `BINANCE_ORDER_READ_FAILED_${ordersResponse.status}` : null,
   };
@@ -116,7 +117,7 @@ export async function verifyBybitDemo(credential: RawCredential, fetcher: typeof
     connection_verified: verified,
     provider: "bybit", environment: "demo", discovered_account_identity: identity,
     read_permissions: { account: auth, balances: bybitOk(wallet), positions: bybitOk(positions), orders: bybitOk(orders) },
-    trading_permission: permissionText.includes("order") || permissionText.includes("trade"),
+    trading_permission: permissionText.includes("order") || permissionText.includes("trade"), withdrawal_permission: permissionText.includes("withdraw"),
     warnings: [],
     first_blocker: !auth ? `BYBIT_AUTH_FAILED_${String(keyInfo.body.retCode ?? keyInfo.response.status)}` : !bybitOk(wallet) ? "BYBIT_WALLET_READ_FAILED" : !bybitOk(positions) ? "BYBIT_POSITION_READ_FAILED" : !bybitOk(orders) ? "BYBIT_ORDER_READ_FAILED" : !identity ? "BYBIT_STABLE_ACCOUNT_IDENTITY_UNAVAILABLE" : null,
   };
