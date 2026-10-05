@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {PhaseNOperationsService,type AccountOperationsSnapshot,type OperationsStore} from '../../supabase/functions/_shared/phase-n-operations.ts';
+const customer='11111111-1111-4111-8111-111111111111',accountId='22222222-2222-4222-8222-222222222222';
+const base:AccountOperationsSnapshot={customerId:customer,accountId,provider:'BINANCE',environment:'TESTNET',ownershipVerified:true,connectionVerified:true,heartbeatState:'HEALTHY',entitlement:'ACTIVE',ownerTestAuthorization:false,stopNewEntries:false,protectionEnabled:true,submissionUncertain:false,openProtectionIncident:false,certificationStatus:'CREATED'};
+class Store implements OperationsStore{account={...base}; commands:any[]=[]; certifications:any[]=[]; async loadAccount(id:string){return id===accountId?this.account:null} async appendCommand(c:any){const old=this.commands.find(x=>x.idempotencyKey===c.idempotencyKey);if(old)return{id:old.id,duplicate:true};const row={...c,id:String(this.commands.length+1),status:'QUEUED',safeError:null};this.commands.push(row);return{id:row.id,duplicate:false}} async loadCommand(id:string){return this.commands.find(x=>x.id===id)??null}async requestCertification(i:any){const old=this.certifications.find(x=>x.idempotencyKey===i.idempotencyKey);if(old){if(old.executionPlanId!==i.executionPlanId)throw Error('IDEMPOTENCY_CONTENT_CONFLICT');return{...old,duplicate:true}}const row={...i,id:'cmd-cert',certificationRunId:'cert-1',duplicate:false};this.certifications.push(row);return row}}
+const rejects=async(p:Promise<unknown>,code:string)=>assert.rejects(p,new RegExp(code));
+const store=new Store(),service=new PhaseNOperationsService(store),admin={id:'admin',admin:true};
+await rejects(service.inspect({id:'intruder',admin:false},customer,accountId),'CUSTOMER_ACCESS_DENIED');
+await rejects(service.command(admin,{customerId:customer,accountId:'wrong',action:'STOP_NEW_ENTRIES',idempotencyKey:'x'}),'ACCOUNT_OWNERSHIP_REQUIRED');
+const started=await service.command(admin,{customerId:customer,accountId,action:'START_CERTIFICATION',idempotencyKey:'start',executionPlanId:'plan-1',decisionId:'decision-1'});assert.equal(started.duplicate,false);
+assert.equal((await service.command(admin,{customerId:customer,accountId,action:'START_CERTIFICATION',idempotencyKey:'start',executionPlanId:'plan-1',decisionId:'decision-1'})).duplicate,true);
+await rejects(service.command(admin,{customerId:customer,accountId,action:'START_CERTIFICATION',idempotencyKey:'start',executionPlanId:'plan-conflict',decisionId:'decision-1'}),'IDEMPOTENCY_CONTENT_CONFLICT');
+store.account.submissionUncertain=true;await rejects(service.command(admin,{customerId:customer,accountId,action:'RETRY_SAFE_WORK',idempotencyKey:'retry',retryCommandId:'1'}),'RETRY_NOT_PROVEN_SAFE');
+assert.equal((await service.command(admin,{customerId:customer,accountId,action:'REQUEST_RECONCILIATION',idempotencyKey:'reconcile'})).duplicate,false);
+store.account.submissionUncertain=false;store.account.protectionEnabled=false;await rejects(service.command(admin,{customerId:customer,accountId,action:'STOP_NEW_ENTRIES',idempotencyKey:'stop'}),'PROTECTION_MUST_REMAIN_ENABLED');
+store.account.protectionEnabled=true;assert.equal((await service.command(admin,{customerId:customer,accountId,action:'STOP_NEW_ENTRIES',idempotencyKey:'stop'})).duplicate,false);
+assert.equal(store.account.protectionEnabled,true);await rejects(service.command(admin,{customerId:customer,accountId,action:'REQUEST_SAFETY_CLOSE',idempotencyKey:'close'}),'PROTECTION_INCIDENT_EVIDENCE_REQUIRED');
+// Projection-level simulation of the SQL regression cases. PostgreSQL RPC coverage requires a local database.
+store.account.connectionVerified=false;await rejects(service.command(admin,{customerId:customer,accountId,action:'START_CERTIFICATION',idempotencyKey:'missing-connection',executionPlanId:'plan-1',decisionId:'decision-1'}),'CURRENT_PROVIDER_IDENTITY_REQUIRED');
+store.account.connectionVerified=null as unknown as boolean;store.account.heartbeatState='HEALTHY';await rejects(service.command(admin,{customerId:customer,accountId,action:'START_CERTIFICATION',idempotencyKey:'null-state',executionPlanId:'plan-1',decisionId:'decision-1'}),'CURRENT_PROVIDER_IDENTITY_REQUIRED');
+store.account.connectionVerified=true;store.account.heartbeatState=null as unknown as AccountOperationsSnapshot['heartbeatState'];await rejects(service.command(admin,{customerId:customer,accountId,action:'START_CERTIFICATION',idempotencyKey:'null-heartbeat',executionPlanId:'plan-1',decisionId:'decision-1'}),'CURRENT_PROVIDER_IDENTITY_REQUIRED');
+store.account.heartbeatState='HEALTHY';
+store.account.environment='LIVE';await rejects(service.command(admin,{customerId:customer,accountId,action:'START_CERTIFICATION',idempotencyKey:'live',executionPlanId:'plan-1',decisionId:'decision-1'}),'SANDBOX_ENVIRONMENT_REQUIRED');
+console.log('Phase N operations behavioral integration tests passed');
