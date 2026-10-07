@@ -1,5 +1,5 @@
 /** Phase M server-only consumer of canonical truth. It never creates lifecycle facts. */
-export type PublicationAudience = "free" | "vip" | "customer" | "admin" | "owner";
+export type PublicationAudience = "free" | "vip" | "vip_forex_gold" | "vip_crypto" | "customer" | "admin" | "owner";
 export type SendResult = { kind: "accepted"; messageId: string } | { kind: "retry"; retryAfterMs: number; reason: string } | { kind: "permanent"; reason: string } | { kind: "uncertain"; reason: string } | {kind:"missing_original";reason:string};
 export interface PublicationClaim { id:string; entityType:string; entityId:string; eventType:string; eventVersion:number; destination:PublicationAudience; customerId:string|null; attemptCount:number; leaseToken:string }
 export interface CanonicalPublicationTruth { entityType:string; entityId:string; eventType:string; eventVersion:number; occurredAt:string; customerId?:string|null; payload:Readonly<Record<string,unknown>> }
@@ -19,7 +19,7 @@ const CUSTOMER_EVENTS=new Set(["SUBMISSION","SUBMISSION_UNCERTAIN","RECONCILIATI
 const ADMIN_EVENTS=new Set(["CERTIFICATION","OPERATIONAL_INCIDENT","PROTECTION_INCIDENT"]);
 export function audienceAllows(claim:PublicationClaim,truth:CanonicalPublicationTruth):boolean {
   if(claim.entityId!==truth.entityId||claim.entityType!==truth.entityType||claim.eventType!==truth.eventType||claim.eventVersion!==truth.eventVersion)return false;
-  if(claim.destination==="free"||claim.destination==="vip")return PUBLIC_EVENTS.has(claim.eventType)&&!truth.customerId&&!claim.customerId;
+  if(claim.destination==="free"||claim.destination==="vip"||claim.destination==="vip_forex_gold"||claim.destination==="vip_crypto")return PUBLIC_EVENTS.has(claim.eventType)&&!truth.customerId&&!claim.customerId;
   if(claim.destination==="customer")return CUSTOMER_EVENTS.has(claim.eventType)&&!!claim.customerId&&claim.customerId===truth.customerId;
   if(claim.destination==="admin")return ADMIN_EVENTS.has(claim.eventType)||CUSTOMER_EVENTS.has(claim.eventType);
   return claim.destination==="owner";
