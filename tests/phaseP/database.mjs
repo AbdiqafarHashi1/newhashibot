@@ -1,5 +1,5 @@
 import {execFileSync,spawn} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdirSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {initializeDatabaseFixture} from './database-fixture.mjs';
 const name=`hashibot-phase-p-test-${process.pid}`,docker=(args,options={})=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{encoding:'utf8',...options});
@@ -61,6 +61,16 @@ try{
  for(let i=Number(query('select jobs from phase_p_worker_usage'));i<20;i++)enqueue(`quota000${i}`);fails(()=>enqueue('quotaover1'),/QUOTA_EXCEEDED/);
  raw(`update phase_p_worker_usage set slices=100;`);assert.equal(claim(),null,'atomic consumption quota enforced');
  query(`select control_phase_p_worker('${actor}','stop',NULL);`);assert.equal(claim(),null,'stop-new-work');
+ // Separate metadata fixture proves optional catalogs are read when present,
+ // and secret values are never exported. This is not full-chain verification.
+ raw(`CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); CREATE TABLE storage.objects(bucket_id text); INSERT INTO storage.buckets VALUES('fixture','fixture',false,1024,ARRAY['text/plain']); INSERT INTO storage.objects VALUES('fixture'),('fixture'); CREATE SCHEMA vault; CREATE TABLE vault.secrets(id uuid,name text,created_at timestamptz,updated_at timestamptz,secret text); INSERT INTO vault.secrets VALUES(gen_random_uuid(),'fixture-secret',now(),now(),'LOCAL_SENTINEL_MUST_NOT_BE_EXPORTED'); CREATE VIEW public.inspection_fixture_view WITH(security_invoker=true) AS SELECT id FROM storage.buckets;`);
+ mkdirSync('work/phase-p/offline',{recursive:true});
+ execFileSync('node',['scripts/phase-p/inspect-deployment.mjs','--local-container',name,'--output','work/phase-p/offline/fixture-inspection.json'],{encoding:'utf8'});
+ const captured=readFileSync('work/phase-p/offline/fixture-inspection.json','utf8'),inspection=JSON.parse(captured);
+ assert.equal(inspection.sections.storageBuckets.status,'PRESENT');assert.equal(inspection.sections.storageObjectCounts.data[0].object_count,2);assert.equal(inspection.sections.vault.data[0].name,'fixture-secret');assert.ok(!captured.includes('LOCAL_SENTINEL_MUST_NOT_BE_EXPORTED'));assert.equal(inspection.consistency,'SINGLE_REPEATABLE_READ_TRANSACTION');
+ assert.ok(inspection.sections.routines.data.some(r=>r.name==='claim_phase_p_job'));assert.ok(inspection.sections.roles.data.some(r=>r.name==='service_role'&&r.bypassRls));
+ assert.ok(inspection.sections.relations.data.some(r=>r.name==='inspection_fixture_view'&&r.viewDefinitionFingerprint&&r.options.includes('security_invoker=true')));
  console.log('PASS: PostgreSQL 16 real concurrent claims, global ownership, expired fencing, checkpoint restart, conflict detection, cancellation, native completion, retry/dead letters, quotas, and ACL/RLS');
  console.log('Scope: isolated prerequisite fixture plus actual Phase L/M/P SQL. Full migration-chain rehearsal and remote reconciliation NOT_RUN.');
-}finally{try{docker(['rm','-f',name],{stdio:'ignore'});}catch{}}
+ console.log('PASS: consistent read-only catalog inspection including present Storage/Vault metadata, RPC fingerprints/grants and secret-value exclusion.');
+}finally{try{docker(['rm','-f','-v',name],{stdio:'ignore'});}catch{}}

@@ -1,6 +1,17 @@
 {
-  "sourceRef": "d84d44abc22d4ca62411452031f8b3113fdff90a",
-  "generatedAt": "2026-10-08T03:31:08.642Z",
+  "dependencyReview": {
+    "newPhasePVersion": "20261013120000",
+    "latestMainVersion": "20261013120000",
+    "phasePPrerequisites": [
+      "Phase H portable_jobs/account identity",
+      "Phase L dataset/run/outcome/cash-flow tables",
+      "Phase M simulation tables and atomic evidence/completion RPCs"
+    ],
+    "preparedFiles": "Not automatic migrations; individual review required",
+    "remotePendingSet": "UNKNOWN_NOT_RECONCILED"
+  },
+  "sourceRef": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
+  "generatedAt": "2026-10-08T13:11:51.063Z",
   "remoteReconciliation": "NOT_RUN",
   "migrationStatus": "Repository inventory only. Pending set is UNKNOWN until compared with online history.",
   "migrations": [
@@ -1223,6 +1234,13 @@
       "remoteApplied": "UNKNOWN_NOT_RECONCILED"
     },
     {
+      "path": "supabase/migrations/20261013120000_phase_p_portable_workers.sql",
+      "version": "20261013120000",
+      "sha256": "f4749fc4e7c942e6aa2ff40708e8ad082cc7c60d2cc8c125a8b333e525e6f8d3",
+      "automaticCandidate": true,
+      "remoteApplied": "UNKNOWN_NOT_RECONCILED"
+    },
+    {
       "path": "supabase/migrations/prepared/20260714000000_phase3_execution_orders_contract.sql",
       "version": "20260714000000",
       "sha256": "3b0c28c53282fb71223b3cf5a583ed2c9145a7660f6a8c73ba688d8414e72958",
@@ -1535,6 +1553,14 @@
       "name": "phase-o-worker",
       "path": "supabase/functions/phase-o-worker/index.ts",
       "sha256": "01bfa49472a3d1a8e5902d78d717ee06e25cb7b0c47740ebf9cd1ba2f1b46515",
+      "configured": true,
+      "verifyJwt": false,
+      "remoteDeployed": "UNKNOWN_NOT_RECONCILED"
+    },
+    {
+      "name": "phase-p-workers",
+      "path": "supabase/functions/phase-p-workers/index.ts",
+      "sha256": "d9a01dc0f8e23d8f5e6c9018da74bd78a0c8496b0193bf0feec31b4788ea0909",
       "configured": true,
       "verifyJwt": false,
       "remoteDeployed": "UNKNOWN_NOT_RECONCILED"
@@ -2873,16 +2899,5 @@
       "operation": "cron.job",
       "lineSha256": "acf395bcc32dbabcdc0b8231bd8b1457c899ac1b20876c39c6efd0473b2c649f"
     }
-  ],
-  "dependencyReview": {
-    "newPhasePVersion": "20261013120000",
-    "latestMainVersion": "20261012120000",
-    "phasePPrerequisites": [
-      "Phase H portable_jobs/account identity",
-      "Phase L dataset/run/outcome/cash-flow tables",
-      "Phase M simulation tables and atomic evidence/completion RPCs"
-    ],
-    "preparedFiles": "Not automatic migrations; individual review required",
-    "remotePendingSet": "UNKNOWN_NOT_RECONCILED"
-  }
+  ]
 }

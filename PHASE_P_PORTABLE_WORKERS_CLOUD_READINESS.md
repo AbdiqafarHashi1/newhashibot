@@ -121,3 +121,7 @@ FULL MIGRATION REHEARSAL: BLOCKED;
 CLOUD DEPLOYMENT: NOT_RUN;
 GENUINE PROVIDER END-TO-END VALIDATION: NOT_RUN;
 LIVE EXECUTION REMAINS DISABLED.
+
+## Current offline deployment audit
+
+The post-PR-254 [offline deployment runbook](docs/phase-p/OFFLINE_DEPLOYMENT_RUNBOOK.md) extends this inventory/rehearsal tooling with current-main dependency evidence and read-only reconciliation planning. Its real-extension full-chain results supersede the earlier environment-only rehearsal limitation recorded above; selected-workload Phase-P verification remains a separate scope.

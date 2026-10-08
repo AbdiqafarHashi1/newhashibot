@@ -1,0 +1,123 @@
+{
+  "baseCommit": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
+  "fullChain": {
+    "scope": "UNCHANGED_FULL_AUTOMATIC_CHAIN",
+    "fixture": false,
+    "image": "hashibot-migration-rehearsal:local",
+    "status": "BLOCKED",
+    "activation": false,
+    "imageId": "sha256:b1e83e2c61d95342fee2e2d41eedd6dcc59baefb82c7a41bd6c6471f4e48a940",
+    "postgres": "PostgreSQL 15.19 (Debian 15.19-0+deb12u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "extensions": [
+      {
+        "name": "pg_net",
+        "version": "0.14.0"
+      },
+      {
+        "name": "pg_cron",
+        "version": "1.6"
+      }
+    ],
+    "migration": "20260530170000_020_c2_forex_signal_mode_parity.sql",
+    "precedingFilesExecuted": 19,
+    "error": "ERROR:  column \"active_timeframes\" is of type text[] but expression is of type jsonb\nLINE 4:     active_timeframes = '[\"5m\",\"15m\",\"1h\",\"4h\"]'::jsonb,\n                                ^\nHINT:  You will need to rewrite or cast the expression.",
+    "transformations": [],
+    "prerequisite": "Inspect the exact error and this migration source; do not skip or mark history.",
+    "catalogInspection": "PASSED"
+  },
+  "compatibility": {
+    "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)",
+    "fixture": false,
+    "image": "hashibot-migration-rehearsal:local",
+    "status": "BLOCKED",
+    "activation": false,
+    "imageId": "sha256:b1e83e2c61d95342fee2e2d41eedd6dcc59baefb82c7a41bd6c6471f4e48a940",
+    "postgres": "PostgreSQL 15.19 (Debian 15.19-0+deb12u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "extensions": [
+      {
+        "name": "pg_net",
+        "version": "0.14.0"
+      },
+      {
+        "name": "pg_cron",
+        "version": "1.6"
+      }
+    ],
+    "migration": "20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+    "precedingFilesExecuted": 81,
+    "error": "NOTICE:  column \"execution_group_id\" of relation \"execution_orders\" already exists, skipping\nERROR:  new row for relation \"execution_provider_controls\" violates check constraint \"execution_provider_controls_status_check\"\nDETAIL:  Failing row contains (binance, t, f, f, t, f, t, t, f, configured, null, null, {\"role\": \"execution_provider\", \"environment\": \"testnet\"}, 2026-10-08 13:11:22.954865+00, , t, null, t).",
+    "transformations": [
+      {
+        "changed": true,
+        "sourceSha256": "eecd345c6e9e21e872ff7c31b4ae8abef38ef18830052e6b356c2bd9eba14f19",
+        "executedSha256": "9c212e008158d1d98456cbcaeb5d005250fdb4a0f1a9d6f8ff40199051122c9e",
+        "identity": "supabase/migrations/20260530170000_020_c2_forex_signal_mode_parity.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "text[]",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "e24bbc78e80164fc7d3568be2696bb9050973492942f40036599949fc1eaad74",
+        "executedSha256": "3586837e1af4a685659b68cac3cb76e9d0877fee221f6b655402b9de2bc651cb",
+        "identity": "supabase/migrations/20260605093000_038_end_to_end_strategy_scanner_parity_repair.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "jsonb",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "c2f94fe052673d19e8355974ac2ffe01581e40dc84b4f6b7d1378dc2d1a79b58",
+        "executedSha256": "d8b699a429a18556ced4fa9820d8b29756fc5855b6812c73fe7a5cb91c22b64c",
+        "identity": "supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "TABLE(table_name text, deleted_count bigint)",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "0dd3aec7c87e3af5bacee5602b1892bed1031ef3d0e23a90a5784d79078c360a",
+        "executedSha256": "3b3179bc3f4ddfae12dd1d4ef8f3b892323a5c3094c1011e3a28712ed20aed78",
+        "identity": "supabase/migrations/20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "",
+        "failedMigrationRolledBack": true,
+        "verification": "TRANSACTION_ROLLBACK_CONFIRMED_NOT_FULLY_VERIFIED"
+      }
+    ],
+    "prerequisite": "Inspect the exact error and this migration source; do not skip or mark history.",
+    "catalogInspection": "PASSED"
+  },
+  "environmentAttempts": [
+    {
+      "environment": "postgres:16-alpine extension build",
+      "status": "BLOCKED",
+      "limitation": "HTTP 403 from dl-cdn.alpinelinux.org package indexes"
+    },
+    {
+      "environment": "Debian PostgreSQL 15 extension build, initial attempt",
+      "status": "BLOCKED",
+      "limitation": "initdb: could not create pg_wal: No space left on device"
+    },
+    {
+      "environment": "Debian PostgreSQL 15 compact extension image",
+      "status": "PASSED",
+      "image": "hashibot-migration-rehearsal:local",
+      "imageId": "sha256:767351c4ca2f0e1b083b952bd60c42731acff66f40950b525d8855fdfa3328c0",
+      "resolution": "Removed only the identified audit build cache; purged compiler dependencies within the same image layer. No general Docker or volume prune."
+    },
+    {
+      "environment": "Final compact Debian PostgreSQL 15 extension image",
+      "status": "PASSED",
+      "imageId": "sha256:b1e83e2c61d95342fee2e2d41eedd6dcc59baefb82c7a41bd6c6471f4e48a940",
+      "resolution": "Disable redundant package-created default cluster before server installation; purge build dependencies in the same layer; restore native CA bundle after temporary build trust. Cleanup removes only owned containers, anonymous volumes and networks."
+    }
+  ],
+  "limitations": [
+    "Untouched full chain remains blocked; compatibility run is distinct and also blocked.",
+    "Real Auth schema, pg_cron and pg_net; no application prerequisite fixture in either chain run.",
+    "Storage and Vault optional-catalog inspection verified separately with explicit metadata fixtures; not a full Vault/Storage service rehearsal.",
+    "No live data preservation rehearsal or online migration-history inspection.",
+    "No schedule execution, external provider calls, cloud deployment or remote SQL."
+  ]
+}

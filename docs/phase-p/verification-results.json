@@ -1,0 +1,119 @@
+{
+  "baseCommit": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
+  "checks": [
+    {
+      "command": "npm run test:deployment-audit",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-p",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-d",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-e",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-f",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-g",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-l",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-m",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-n",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-o",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run check:edge-functions",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run typecheck:cloud",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run lint:cloud",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run typecheck",
+      "exitCode": 2
+    },
+    {
+      "command": "npm run test:phase-p-db",
+      "exitCode": 0,
+      "scope": "Explicit prerequisite L/M/P fixture, concurrency/RLS/grants/native completion and read-only Storage/Vault/view metadata tests; separate from full chain"
+    },
+    {
+      "command": "bash scripts/phase-p/build-rehearsal.sh",
+      "exitCode": 0,
+      "scope": "Real pg_cron/pg_net image, compact Debian PostgreSQL 15 build"
+    },
+    {
+      "command": "npm run rehearse:deployment",
+      "exitCode": 1,
+      "scope": "UNCHANGED chain blocked at migration 020 after 19 files"
+    },
+    {
+      "command": "npm run rehearse:deployment -- deployment-compatibility-v1",
+      "exitCode": 1,
+      "scope": "Opt-in compatibility run blocked at migration 050 after 81 files"
+    },
+    {
+      "command": "npm run typecheck --prefix work/phase-p/offline/main-reference",
+      "exitCode": 2,
+      "scope": "Fresh archive of current main, existing 251 diagnostics"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "command": "node --import tsx --test --test-isolation=none tests/phaseP/*.test.ts",
+      "exitCode": 0,
+      "scope": "18 individual Phase-P tests passed"
+    },
+    {
+      "command": "npm run plan:deployment",
+      "exitCode": 2,
+      "scope": "Expected REFUSED without online observations or a fully verified reference; no execution"
+    }
+  ],
+  "typecheckComparison": {
+    "baseCommit": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
+    "mainDiagnostics": 251,
+    "headDiagnostics": 251,
+    "added": [],
+    "removed": []
+  },
+  "onlineReconciliation": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "activation": "DISABLED",
+  "remaining": [
+    "Full migration chain and compatibility chain remain blocked by documented SQL contradictions.",
+    "Function downloader: CLI help and offline closure tests verified; genuine Management API download NOT_RUN.",
+    "No hosted Supabase schema/history/function comparison or restoration of actual customer data."
+  ]
+}
