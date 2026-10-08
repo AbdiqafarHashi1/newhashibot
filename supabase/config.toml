@@ -75,3 +75,9 @@ verify_jwt = true
 
 [functions.phase-n-command-worker]
 verify_jwt = false
+
+[functions.phase-o-agents]
+verify_jwt = true
+
+[functions.phase-o-worker]
+verify_jwt = false
