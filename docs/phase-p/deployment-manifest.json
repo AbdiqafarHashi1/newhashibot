@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceRef": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
-  "sourceFingerprint": "f28591cdf80304a2e751db56de383c66d646e14abf21b5e30a776ceb7f22d0c8",
+  "sourceFingerprint": "914e1ee28b7999a00237e7e38cf981c8e072f6650f0571b896fd20d02afb797a",
   "sourceRefMeaning": "Base commit; current source bytes are bound by sourceFingerprint and per-path hashes.",
   "remoteReconciliation": "NOT_RUN",
   "remotePendingSet": "UNKNOWN_NOT_RECONCILED",
@@ -20,6 +20,20 @@
       "path": "docs/phase-p/read-only-reconciliation.sql",
       "version": null,
       "sha256": "d38d29828e0f058031d67b620e4b2b688c89858f8bcb91ef0c77145bd9f96b7a",
+      "automaticCandidate": false,
+      "scope": "READ_ONLY_INSPECTION",
+      "owner": "phase-P",
+      "remoteApplied": "UNKNOWN_NOT_RECONCILED",
+      "objects": [],
+      "columns": [],
+      "constraints": [],
+      "effects": [],
+      "cronReferences": []
+    },
+    {
+      "path": "docs/phase-p/upgrade-data-preflight.sql",
+      "version": null,
+      "sha256": "f6f23b3b9241ce2687e4f7eece4315535dae05e695afb748acc1542780eae3a7",
       "automaticCandidate": false,
       "scope": "READ_ONLY_INSPECTION",
       "owner": "phase-P",
@@ -119670,6 +119684,33 @@
       "resolution": "EXCLUDED_PROJECT_OR_ARCHIVE_REFERENCE"
     },
     {
+      "path": "docs/phase-p/upgrade-data-preflight.sql",
+      "line": 5,
+      "kind": "relation_candidate",
+      "name": "public.problem_symbol_quarantine",
+      "scope": "READ_ONLY_INSPECTION",
+      "providers": [],
+      "resolution": "EXCLUDED_PROJECT_OR_ARCHIVE_REFERENCE"
+    },
+    {
+      "path": "docs/phase-p/upgrade-data-preflight.sql",
+      "line": 7,
+      "kind": "relation_candidate",
+      "name": "public.trade_management_truth",
+      "scope": "READ_ONLY_INSPECTION",
+      "providers": [],
+      "resolution": "EXCLUDED_PROJECT_OR_ARCHIVE_REFERENCE"
+    },
+    {
+      "path": "docs/phase-p/upgrade-data-preflight.sql",
+      "line": 9,
+      "kind": "relation_candidate",
+      "name": "public.trade_management_truth",
+      "scope": "READ_ONLY_INSPECTION",
+      "providers": [],
+      "resolution": "EXCLUDED_PROJECT_OR_ARCHIVE_REFERENCE"
+    },
+    {
       "path": "supabase/migration_archive/20260526_hashibot_base_schema_combined.sql",
       "line": 8,
       "kind": "routine_candidate",
@@ -140251,23 +140292,23 @@
     },
     {
       "path": "scripts/phase-p/audit-dependencies.mjs",
-      "sha256": "3c4d3f9634631974c961ddb2b37674fb5a74a89a2a6b6f523da5a05c751d0b8f"
+      "sha256": "dbd9b4a630b1c33f7dcc1ff9d266f3712a525baa58dfe24b8d197ded3c054c37"
     },
     {
       "path": "scripts/phase-p/build-rehearsal.sh",
-      "sha256": "4b8b8f0a67871a7348cd4efa2cb808377d8c920994d285b278695e75e6cfec57"
+      "sha256": "a509b51691e1528f4246e6863302ad0802aed5a6deee9776055a6996ca8da003"
     },
     {
       "path": "scripts/phase-p/compatibility.mjs",
-      "sha256": "b76c1bbf017a8e75aef7811c1e6d3d713d8a0cc9e112fc54b892ef3c2794d98d"
+      "sha256": "0a5877c85a2b59816eb2225f9c1724b47c1752b4be87975cd4a5ad2abeaa358e"
     },
     {
       "path": "scripts/phase-p/deployment-manifest.mjs",
-      "sha256": "528f936c44805647d5f6e3d7159c1c7116f007dcdbbb713975b76ac64263a826"
+      "sha256": "3cda168d839ae685f91a6db3b17777fa9f1cba712c00700069d23df5f091655c"
     },
     {
       "path": "scripts/phase-p/inspect-deployment.mjs",
-      "sha256": "141ed80ce3dc69488612537bfa81c597ca12c5b566d4918d3217d26a7229ce05"
+      "sha256": "3fc67eacc67efaea90be96901a30a22176e3daf2727d995de427c02f86a6bb85"
     },
     {
       "path": "scripts/phase-p/inspect-functions.mjs",
@@ -140282,20 +140323,36 @@
       "sha256": "13c6e8ecf91edda15c04deab6e74663973e8b4db076ec074b805c1b56ed6bc3b"
     },
     {
+      "path": "scripts/phase-p/prepare-compatible-chain.mjs",
+      "sha256": "8f12148338fd14cdf5901215a8031ab25589c3b3f95bd2a6f65ecea46c88707f"
+    },
+    {
       "path": "scripts/phase-p/sql-inventory.mjs",
       "sha256": "731a4a578de99c0bbf7c2ae5323f06b74179551ce2811ff446f55444e7ed10cb"
     },
     {
       "path": "tests/phaseP/rehearsal.Dockerfile",
-      "sha256": "43c32b1480cf606eb6beca0914a3248d9240945b75c88b136213ce564fe4c91e"
+      "sha256": "3a5e20de7f0f9fe8b4402752369920df97f5ac335611903e36bd9090a4c0e3a4"
+    },
+    {
+      "path": "tests/phaseP/database.mjs",
+      "sha256": "f510a8c23824c9ea061d7983a2ae20d6738488ceb539cfc9ea1009533f37f535"
+    },
+    {
+      "path": "tests/phaseP/database-fixture.mjs",
+      "sha256": "213ac5849875e278b75721c9c13bcb22b5e737acb3f28204d0045f12fbd43162"
+    },
+    {
+      "path": "tests/phaseP/deploymentAudit.test.mjs",
+      "sha256": "30dddb31576e795b007fdc48846507c8dcba5497a2553b3a36ad6975ccada5f9"
     },
     {
       "path": "tests/phaseP/migration-rehearsal.mjs",
-      "sha256": "765eca49351b2a04c18c5920058e2002cd2c6b30cb314b72f8282ab1426c7378"
+      "sha256": "dfb5a75606e90bb98fc9bf6a9f93a46057ec1b0084047e1d5a6913d29cd3d011"
     },
     {
       "path": "tests/phaseP/run-migration-rehearsal.mjs",
-      "sha256": "e0ce451198fddcccf79eaafddddbd096d6f21456c52e1b85b9cb4c5d76d533cf"
+      "sha256": "81bbb7ab3be10aa9c8ecedc7f31ce764a7efd6282bf9cc93090ef53626900b19"
     },
     {
       "path": "supabase/config.toml",

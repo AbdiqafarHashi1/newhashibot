@@ -2,7 +2,8 @@ import {execFileSync,spawn} from 'node:child_process';
 import {readFileSync,mkdirSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {initializeDatabaseFixture} from './database-fixture.mjs';
-const name=`hashibot-phase-p-test-${process.pid}`,docker=(args,options={})=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{encoding:'utf8',...options});
+const existing=process.argv[2];if(existing&&!/^hashibot-phase-p-chain-\d+$/.test(existing))throw Error('OWNED_CHAIN_CONTAINER_REQUIRED');
+const name=existing??`hashibot-phase-p-test-${process.pid}`,docker=(args,options={})=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{encoding:'utf8',...options});
 const raw=sql=>docker(['exec','-i',name,'psql','-h','127.0.0.1','-U','postgres','-v','ON_ERROR_STOP=1','-Atq'],{input:sql});
 const query=sql=>raw(`SET ROLE service_role; SET request.jwt.claim.role='service_role'; ${sql}`).trim();
 const migration=file=>readFileSync(`supabase/migrations/${file}`,'utf8');
@@ -13,9 +14,11 @@ function enqueue(key,owner=actor){return query(`select to_jsonb(enqueue_phase_p_
 function claim(host='db-test'){const value=query(`select row_to_json(j) from claim_phase_p_job('${host}','test') j;`);return value?JSON.parse(value):null;}
 function fails(fn,pattern){assert.throws(fn,pattern);}
 try{
- docker(['run','-d','--name',name,'--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:16-alpine']);
+ if(existing){if(docker(['inspect',name,'--format','{{index .Config.Labels \"hashibot.offline-rehearsal\"}}']).trim()!=='true')throw Error('OWNED_CHAIN_LABEL_REQUIRED');}else docker(['run','-d','--name',name,'--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:16-alpine']);
  let ready=false;for(let i=0;i<40;i++){try{docker(['exec',name,'pg_isready','-h','127.0.0.1','-U','postgres'],{stdio:'ignore'});ready=true;break;}catch{await new Promise(r=>setTimeout(r,250));}}assert.ok(ready,'disposable PostgreSQL startup');
- initializeDatabaseFixture(raw,{actor,other});
+ if(existing){const mode=docker(['inspect',name,'--format','{{.HostConfig.NetworkMode}}']).trim();if(mode!=='none'&&docker(['network','inspect',mode,'--format','{{.Internal}}']).trim()!=='true')throw Error('ISOLATED_CHAIN_NETWORK_REQUIRED');}
+ if(!existing)initializeDatabaseFixture(raw,{actor,other});else raw(`INSERT INTO auth.users(id,email) VALUES('${actor}','audit-admin@example.invalid'),('${other}','audit-user@example.invalid');UPDATE profiles SET role='admin' WHERE id='${actor}';`);
+ if(existing){const counter=raw("BEGIN;SET ROLE authenticated;SELECT record_symbol_failure('__AUDIT_COUNTER__'::text,'binance'::text,'EXCHANGE_REJECT'::text);SELECT record_symbol_failure('__AUDIT_COUNTER__'::text,'binance'::text,'EXCHANGE_REJECT'::text);RESET ROLE;SELECT occurrence_count=2 FROM problem_symbol_quarantine WHERE symbol='__AUDIT_COUNTER__';ROLLBACK;").trim().split('\n');assert.ok(counter.includes('t'),'retained three-argument RPC increments one canonical row twice');const legacy=raw("BEGIN;SELECT record_symbol_failure('binance','__AUDIT_LEGACY_COUNTER__','EXCHANGE_REJECT','{}'::jsonb);SELECT failure_count=1 FROM problem_symbol_quarantine WHERE symbol='__AUDIT_LEGACY_COUNTER__';ROLLBACK;").trim().split('\n');assert.ok(legacy.includes('t'),'existing metadata-bearing Edge RPC contract works');assert.equal(raw("select has_function_privilege('anon','public.record_symbol_failure(text,text,text)','EXECUTE');").trim(),'f');fails(()=>raw(`SET ROLE authenticated;SELECT request_phase_n_certification('${actor}','${other}','plan','decision','audit-cert-idem','${actor}');`),/permission denied/);fails(()=>query(`SELECT request_phase_n_certification('${actor}','${other}','plan','decision','audit-cert-idem','${actor}');`),/CUSTOMER_001_NOT_EXPLICITLY_CONFIGURED/);assert.equal(raw("select bool_and('security_invoker=true'=any(reloptions)) from pg_class where oid in ('execution_accounts_safe'::regclass,'canonical_reporting_operations'::regclass,'phase_o_funnel_safe'::regclass);").trim(),'t');}
  fails(()=>enqueue('stopped1'),/NEW_WORK_STOPPED/);query(`select control_phase_p_worker('${actor}','resume',NULL);`);
  fails(()=>enqueue('unauthorized1',other),/ADMIN_REQUIRED/);
  const first=JSON.parse(enqueue('durable1'));assert.equal(JSON.parse(enqueue('durable1')).id,first.id,'duplicate submission collapse');assert.equal(JSON.parse(enqueue('durable1')).run_id,first.run_id);assert.equal(raw('select count(*) from validation_datasets;').trim(),'1','duplicate response-loss retry creates no extra native run');assert.equal(query('select jobs from phase_p_worker_usage'), '1');
@@ -63,14 +66,15 @@ try{
  query(`select control_phase_p_worker('${actor}','stop',NULL);`);assert.equal(claim(),null,'stop-new-work');
  // Separate metadata fixture proves optional catalogs are read when present,
  // and secret values are never exported. This is not full-chain verification.
- raw(`CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); CREATE TABLE storage.objects(bucket_id text); INSERT INTO storage.buckets VALUES('fixture','fixture',false,1024,ARRAY['text/plain']); INSERT INTO storage.objects VALUES('fixture'),('fixture'); CREATE SCHEMA vault; CREATE TABLE vault.secrets(id uuid,name text,created_at timestamptz,updated_at timestamptz,secret text); INSERT INTO vault.secrets VALUES(gen_random_uuid(),'fixture-secret',now(),now(),'LOCAL_SENTINEL_MUST_NOT_BE_EXPORTED'); CREATE VIEW public.inspection_fixture_view WITH(security_invoker=true) AS SELECT id FROM storage.buckets;`);
+ if(!existing){raw(`CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); CREATE TABLE storage.objects(bucket_id text); INSERT INTO storage.buckets VALUES('fixture','fixture',false,1024,ARRAY['text/plain']); INSERT INTO storage.objects VALUES('fixture'),('fixture'); CREATE SCHEMA vault; CREATE TABLE vault.secrets(id uuid,name text,created_at timestamptz,updated_at timestamptz,secret text); INSERT INTO vault.secrets VALUES(gen_random_uuid(),'fixture-secret',now(),now(),'LOCAL_SENTINEL_MUST_NOT_BE_EXPORTED'); CREATE VIEW public.inspection_fixture_view WITH(security_invoker=true) AS SELECT id FROM storage.buckets;`);
  mkdirSync('work/phase-p/offline',{recursive:true});
  execFileSync('node',['scripts/phase-p/inspect-deployment.mjs','--local-container',name,'--output','work/phase-p/offline/fixture-inspection.json'],{encoding:'utf8'});
  const captured=readFileSync('work/phase-p/offline/fixture-inspection.json','utf8'),inspection=JSON.parse(captured);
  assert.equal(inspection.sections.storageBuckets.status,'PRESENT');assert.equal(inspection.sections.storageObjectCounts.data[0].object_count,2);assert.equal(inspection.sections.vault.data[0].name,'fixture-secret');assert.ok(!captured.includes('LOCAL_SENTINEL_MUST_NOT_BE_EXPORTED'));assert.equal(inspection.consistency,'SINGLE_REPEATABLE_READ_TRANSACTION');
  assert.ok(inspection.sections.routines.data.some(r=>r.name==='claim_phase_p_job'));assert.ok(inspection.sections.roles.data.some(r=>r.name==='service_role'&&r.bypassRls));
  assert.ok(inspection.sections.relations.data.some(r=>r.name==='inspection_fixture_view'&&r.viewDefinitionFingerprint&&r.options.includes('security_invoker=true')));
- console.log('PASS: PostgreSQL 16 real concurrent claims, global ownership, expired fencing, checkpoint restart, conflict detection, cancellation, native completion, retry/dead letters, quotas, and ACL/RLS');
- console.log('Scope: isolated prerequisite fixture plus actual Phase L/M/P SQL. Full migration-chain rehearsal and remote reconciliation NOT_RUN.');
- console.log('PASS: consistent read-only catalog inspection including present Storage/Vault metadata, RPC fingerprints/grants and secret-value exclusion.');
-}finally{try{docker(['rm','-f','-v',name],{stdio:'ignore'});}catch{}}
+ }
+ console.log('PASS: PostgreSQL real concurrent claims, global ownership, expired fencing, checkpoint restart, conflict detection, cancellation, native completion, retry/dead letters, quotas, and ACL/RLS');
+ console.log(existing?'Scope: actual completed migration-chain schema with explicit disposable test rows, no prerequisite fixture DDL.':'Scope: isolated prerequisite fixture plus actual Phase L/M/P SQL; separate from full chain.');
+ if(!existing)console.log('PASS: consistent read-only catalog inspection including present Storage/Vault metadata, RPC fingerprints/grants and secret-value exclusion.');
+}finally{if(!existing)try{docker(['rm','-f','-v',name],{stdio:'ignore'});}catch{}}

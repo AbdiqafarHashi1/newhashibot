@@ -1,3 +1,4 @@
+import {execFileSync} from 'node:child_process';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync,mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
@@ -37,7 +38,7 @@ test('Edge dependency closures and prepared cron targets retain deployed boundar
 });
 test('compatibility changes are exact, hash-bound and opt-in; unknown source/paths refuse',()=>{
  for(const repair of compatibilityRepairs){const source=readFileSync(repair.path,'utf8'),changed=compatibleSql(repair.path,source,compatibility.id);
-  assert.equal(changed.sourceSha256,repair.sourceSha256);assert.equal(changed.sql,source.replaceAll(repair.original,repair.replacement));assert.equal(changed.identity,repair.path);
+  assert.equal(changed.sourceSha256,repair.sourceSha256);let expected=source.replaceAll(repair.original,()=>repair.replacement);for(const literal of repair.additionalLiterals??[])expected=expected.replace(literal.original,()=>literal.replacement);assert.equal(changed.sql,expected);assert.equal(changed.identity,repair.path);
   assert.throws(()=>compatibleSql(repair.path,source+'\n',compatibility.id),/HASH_MISMATCH/);
  }
  assert.throws(()=>compatibleSql(compatibility.path,'', 'unknown'),/UNKNOWN/);
@@ -92,4 +93,16 @@ test('deployed-function fingerprint includes shared imports and refuses missing/
   rmSync(join(shared,'value.ts'));assert.equal(fingerprintFunction(root,'test-function').status,'AMBIGUOUS_SOURCE_CLOSURE');
   writeFileSync(join(dir,'index.ts'),'export async function load(name){return import(name)}');assert.equal(fingerprintFunction(root,'test-function').status,'AMBIGUOUS_SOURCE_CLOSURE');
  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+test('compatible chain preparation retains identities, excludes manual SQL and never executes or writes history',()=>{
+ const output=`work/phase-p/offline/prepared-test-${process.pid}`;
+ try{execFileSync('node',['scripts/phase-p/prepare-compatible-chain.mjs',output],{encoding:'utf8'});
+ const ledger=JSON.parse(readFileSync(`${output}/execution-ledger.json`,'utf8'));
+ assert.equal(ledger.status,'PREPARED_ONLY_NOT_EXECUTED');assert.equal(ledger.historyWrites,false);assert.equal(ledger.activationAllowed,false);assert.equal(ledger.preparedManualIncluded,false);
+ assert.deepEqual(ledger.orderedFiles.map(f=>f.identity),manifest.batches.flatMap(b=>b.migrations));
+ const flag=ledger.orderedFiles.find(f=>f.identity.includes('_102_prop_'));assert.ok(readFileSync(`${output}/${flag.identity.split('/').at(-1)}`,'utf8').includes('DO $$'));
+ for(const file of ledger.orderedFiles)assert.equal(file.executedSha256,hash(readFileSync(`${output}/${file.identity.split('/').at(-1)}`)));
+ assert.throws(()=>execFileSync('node',['scripts/phase-p/prepare-compatible-chain.mjs',output],{stdio:'pipe'}),/Command failed/);
+ }finally{rmSync(output,{recursive:true,force:true});}
 });

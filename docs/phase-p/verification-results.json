@@ -6,6 +6,131 @@
       "exitCode": 0
     },
     {
+      "command": "node --import tsx --test --test-isolation=none tests/phaseP/*.test.ts",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-d",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-e",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-f",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-g",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-l",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-m",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-n",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:phase-o",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run check:edge-functions",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run typecheck:cloud",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run lint:cloud",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run typecheck",
+      "exitCode": 2
+    },
+    {
+      "command": "bash scripts/phase-p/build-rehearsal.sh",
+      "exitCode": 0,
+      "scope": "Real pinned pg_cron/pg_net/Vault build"
+    },
+    {
+      "command": "node tests/phaseP/run-migration-rehearsal.mjs",
+      "exitCode": 1,
+      "scope": "Expected unchanged-history failure at 020 after 19 completed files"
+    },
+    {
+      "command": "node tests/phaseP/run-migration-rehearsal.mjs deployment-compatibility-v1",
+      "exitCode": 0,
+      "scope": "175 files; complete original order; 175 source/executed hashes; real full-schema database invariants and catalog fingerprint"
+    },
+    {
+      "command": "npm run test:phase-p-db",
+      "exitCode": 0,
+      "scope": "Separate explicit prerequisite fixture and metadata/sentinel tests, actual PostgreSQL 16"
+    },
+    {
+      "command": "npm run test:deployment-audit",
+      "exitCode": 0,
+      "scope": "Final 11 individual audit-tool tests"
+    },
+    {
+      "command": "npm run typecheck",
+      "exitCode": 2,
+      "scope": "Final 251 diagnostics, zero added/removed against recorded main baseline"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "command": "node tests/phaseP/run-migration-rehearsal.mjs deployment-compatibility-v1",
+      "exitCode": 0,
+      "scope": "Final after counter/default-overload repair: 175 files/ledger; both quarantine RPC contracts, Phase-N denied/default-off, safe views, full-schema concurrency/idempotency/ACL/RLS checks, catalog fingerprint"
+    },
+    {
+      "command": "node tests/phaseP/run-migration-rehearsal.mjs deployment-compatibility-v1",
+      "exitCode": 0,
+      "scope": "Final 175-file compatible chain with actual full-schema invariants and aggregate upgrade-data-preflight SQL; all three preflight counts zero in disposable data only"
+    }
+  ],
+  "typecheckComparison": {
+    "baseCommit": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
+    "mainDiagnostics": 251,
+    "headDiagnostics": 251,
+    "added": [],
+    "removed": []
+  },
+  "onlineReconciliation": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "activation": "DISABLED",
+  "remaining": [
+    "Untouched historical chain remains blocked at 020; success is the explicit compatible/bootstrap execution, not raw replay.",
+    "175 ordered files, both retained quarantine RPC contracts, actual completed-chain invariants and read-only upgrade count preflight verified; not every stored routine branch has been invoked.",
+    "No production customer-data restore or populated-upgrade rehearsal. Aggregate duplicate/ownership gates must pass before any existing-project upgrade.",
+    "Connected Supabase project INACTIVE; online history/schema/functions/cron comparison NOT_RUN. Hosted PostgreSQL 17 parity not established by PostgreSQL 15 rehearsal.",
+    "Real Vault installed, no decrypted secret retrieved; no credential-operation or complete Storage-service rehearsal.",
+    "No schedule execution, provider calls, activation, deployment, merge or remote SQL.",
+    "Historical quarantine SECURITY DEFINER grants are preserved and require online ACL/caller review before release; passing database invariants are not a production authorization certification."
+  ],
+  "previousPr255Checks": [
+    {
+      "command": "npm run test:deployment-audit",
+      "exitCode": 0
+    },
+    {
       "command": "npm run test:phase-p",
       "exitCode": 0
     },
@@ -101,19 +226,9 @@
       "scope": "Expected REFUSED without online observations or a fully verified reference; no execution"
     }
   ],
-  "typecheckComparison": {
-    "baseCommit": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
-    "mainDiagnostics": 251,
-    "headDiagnostics": 251,
-    "added": [],
-    "removed": []
-  },
-  "onlineReconciliation": "NOT_RUN",
-  "deployment": "NOT_RUN",
-  "activation": "DISABLED",
-  "remaining": [
-    "Full migration chain and compatibility chain remain blocked by documented SQL contradictions.",
-    "Function downloader: CLI help and offline closure tests verified; genuine Management API download NOT_RUN.",
-    "No hosted Supabase schema/history/function comparison or restoration of actual customer data."
-  ]
+  "testScope": {
+    "completedChain": "REAL_POSTGRESQL_15_WITH_REAL_EXTENSIONS_AND_AUTH",
+    "prerequisiteFixture": "REAL_POSTGRESQL_16_EXPLICIT_DDL_FIXTURE_SEPARATE",
+    "typescriptRegressionSuites": "OFFLINE_UNIT_AND_MODEL_SIMULATIONS_NOT_DEPLOYMENT_EVIDENCE"
+  }
 }

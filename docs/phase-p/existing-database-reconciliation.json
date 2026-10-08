@@ -1,0 +1,17 @@
+{
+  "status": "NOT_RUN",
+  "projectRef": "uqiwbzfcntlcyyewawfc",
+  "projectStatus": "INACTIVE",
+  "observedDatabaseVersion": "17.6.1.127",
+  "source": "Connected Supabase list_projects and get_project read-only metadata, 2026-10-08; both report INACTIVE",
+  "blockedScopes": [
+    "migration history and statement fingerprints",
+    "schema/RPC/RLS/grants",
+    "deployed function source/version comparison",
+    "actual cron jobs"
+  ],
+  "activation": false,
+  "remoteSqlRun": false,
+  "secretsRetrieved": false,
+  "inspectionCommands": "OFFLINE_DEPLOYMENT_RUNBOOK.md#future-read-only-online-reconciliation"
+}

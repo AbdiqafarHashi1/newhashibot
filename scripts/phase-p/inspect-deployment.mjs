@@ -48,7 +48,7 @@ async function main(){
  if(online&&(!args.includes('--project-ref')||!process.env.PGSERVICE))throw Error('READ_ONLY_PGSERVICE_AND_PROJECT_REF_REQUIRED');
  const execute=input=>{
   const common=['-X','-v','ON_ERROR_STOP=1','-Atq'];
-  const output=local?execFileSync('docker',['--host=unix:///var/run/docker.sock','exec','-i',container,'psql','-U','postgres',...common],{input,encoding:'utf8',stdio:['pipe','pipe','pipe']}):execFileSync('psql',common,{input,encoding:'utf8',stdio:['pipe','pipe','pipe']});
+  const output=local?execFileSync('docker',['--host=unix:///var/run/docker.sock','exec','-i',container,'psql','-U','postgres',...common],{input,encoding:'utf8',maxBuffer:16*1024*1024,stdio:['pipe','pipe','pipe']}):execFileSync('psql',common,{input,encoding:'utf8',maxBuffer:16*1024*1024,stdio:['pipe','pipe','pipe']});
   return output;
  };
  const result=parseCapture(execute(inspectionSql()));result.projectRef=online?get('--project-ref'):'ISOLATED_LOCAL';result.projectIdentityStatus=online?'PGSERVICE_BINDING_REQUIRES_OPERATOR_VERIFICATION':'ISOLATED_LOCAL';
