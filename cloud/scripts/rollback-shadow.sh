@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail; source "$(dirname "$0")/common-demo.sh"; revision="${1:?known-good revision required}"; for s in "${SERVICES[@]}"; do gcloud run services update-traffic "hashibot-$s" --project "$PROJECT_ID" --region "$REGION" --to-revisions "$revision=100"; done
+set -euo pipefail
+echo 'Phase P is code readiness only. Remote cloud actions are disabled. Follow PHASE_P_PORTABLE_WORKERS_CLOUD_READINESS.md after separate activation authorization.' >&2
+exit 10

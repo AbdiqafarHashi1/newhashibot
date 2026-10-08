@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-echo "Phase 10 deployment is disabled. No approval flag enables apply or Cloud Run deployment." >&2
+echo 'Phase P is code readiness only. Remote cloud actions are disabled. Follow PHASE_P_PORTABLE_WORKERS_CLOUD_READINESS.md after separate activation authorization.' >&2
 exit 10
