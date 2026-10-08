@@ -107,7 +107,14 @@
     "test:phase-n": "rm -rf .tmp/phase-n-tests && mkdir -p .tmp/phase-n-tests && for f in tests/phaseN/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-n-tests/$n.mjs\" && node \".tmp/phase-n-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-n-tests",
     "test:phase-o": "rm -rf .tmp/phase-o-tests && mkdir -p .tmp/phase-o-tests && for f in tests/phaseO/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-o-tests/$n.mjs\" && node \".tmp/phase-o-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-o-tests",
     "test:phase-o-db": "bash tests/phaseO/database/run.sh",
-    "test:phase-o-db-concurrency": "node tests/phaseO/database/phaseOConnectedHarness.mjs"
+    "test:phase-o-db-concurrency": "node tests/phaseO/database/phaseOConnectedHarness.mjs",
+    "test:phase-p": "node --import tsx --test tests/phaseP/*.test.ts",
+    "test:cloud": "npm run test:phase-p",
+    "typecheck:cloud": "tsc --noEmit -p cloud/tsconfig.json",
+    "lint:cloud": "node cloud/scripts/check-manifests.mjs",
+    "cloud:check": "bash cloud/scripts/validate.sh",
+    "cloud:worker": "node --import tsx cloud/worker/index.ts",
+    "test:phase-p-db": "node tests/phaseP/database.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

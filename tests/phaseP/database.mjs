@@ -1,0 +1,63 @@
+import {execFileSync,spawn} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const name=`hashibot-phase-p-test-${process.pid}`,docker=(args,options={})=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{encoding:'utf8',...options});
+const raw=sql=>docker(['exec','-i',name,'psql','-h','127.0.0.1','-U','postgres','-v','ON_ERROR_STOP=1','-Atq'],{input:sql});
+const query=sql=>raw(`SET ROLE service_role; SET request.jwt.claim.role='service_role'; ${sql}`).trim();
+const migration=file=>readFileSync(`supabase/migrations/${file}`,'utf8');
+const actor='00000000-0000-0000-0000-000000000001',other='00000000-0000-0000-0000-000000000002';
+const history={provider:'BINANCE',symbol:'BTCUSDT',timeframe:'15m',start:'2025-01-01T00:00:00Z',end:'2025-01-01T01:00:00Z'};
+const literal=x=>`'${JSON.stringify(x).replaceAll("'","''")}'::jsonb`;
+function enqueue(key,owner=actor){return query(`select to_jsonb(enqueue_phase_p_job('${owner}','HISTORY',${literal(history)},'${key}',NULL,NULL));`);}
+function claim(host='db-test'){const value=query(`select row_to_json(j) from claim_phase_p_job('${host}','test') j;`);return value?JSON.parse(value):null;}
+function fails(fn,pattern){assert.throws(fn,pattern);}
+try{
+ docker(['run','-d','--name',name,'--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:16-alpine']);
+ let ready=false;for(let i=0;i<40;i++){try{docker(['exec',name,'pg_isready','-h','127.0.0.1','-U','postgres'],{stdio:'ignore'});ready=true;break;}catch{await new Promise(r=>setTimeout(r,250));}}assert.ok(ready,'disposable PostgreSQL startup');
+ raw(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS; CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql AS $$select current_setting('request.jwt.claim.role',true)$$; GRANT USAGE ON SCHEMA auth TO service_role,authenticated,anon; GRANT SELECT ON auth.users TO service_role; CREATE TABLE profiles(id uuid PRIMARY KEY,role text); CREATE FUNCTION is_admin() RETURNS boolean LANGUAGE sql AS $$select false$$; CREATE TABLE connected_execution_accounts(id uuid PRIMARY KEY,customer_id uuid); CREATE TABLE mt5_accounts(id uuid PRIMARY KEY); CREATE EXTENSION btree_gist; INSERT INTO auth.users VALUES('${actor}'),('${other}'); INSERT INTO profiles VALUES('${actor}','admin'),('${other}','user');`);
+ const h=migration('20260926180000_phase_h_customer_onboarding.sql');raw(h.slice(h.indexOf('create table if not exists public.portable_jobs'),h.indexOf(';',h.indexOf('create table if not exists public.portable_jobs'))+1));raw('ALTER TABLE portable_jobs ENABLE ROW LEVEL SECURITY; REVOKE ALL ON portable_jobs FROM anon,authenticated;');
+ for(const file of ['20261001120000_phase_l_replay_shadow_evidence.sql','20261001180000_phase_l_validation_server_and_datasets.sql','20261001210000_phase_l_dataset_outcome_integrity.sql','20261001220000_phase_l_outcome_cashflow_integrity.sql'])raw(migration(file));
+ const m=migration('20261002120000_phase_m_canonical_reporting_validation.sql');raw(m.slice(m.indexOf('ALTER TABLE public.validation_runs ADD COLUMN IF NOT EXISTS lease_token'),m.indexOf('-- Read-only operator health')));
+ raw(migration('20261004120000_phase_m_atomic_evidence_completion.sql'));raw(migration('20261005120000_phase_m_scanner_outcome_atomicity.sql'));raw(migration('20261013120000_phase_p_portable_workers.sql'));
+ fails(()=>enqueue('stopped1'),/NEW_WORK_STOPPED/);query(`select control_phase_p_worker('${actor}','resume',NULL);`);
+ fails(()=>enqueue('unauthorized1',other),/ADMIN_REQUIRED/);
+ const first=JSON.parse(enqueue('durable1'));assert.equal(JSON.parse(enqueue('durable1')).id,first.id,'duplicate submission collapse');assert.equal(query('select jobs from phase_p_worker_usage'), '1');
+ const [a,b]=await Promise.all(['concurrent-a','concurrent-b'].map(host=>new Promise((resolve,reject)=>{const child=spawn('docker',['--host=unix:///var/run/docker.sock','exec','-i',name,'psql','-h','127.0.0.1','-U','postgres','-v','ON_ERROR_STOP=1','-Atq']);let out='',err='';child.stdout.on('data',d=>out+=d);child.stderr.on('data',d=>err+=d);child.on('exit',code=>code?reject(Error(err)):resolve(out.trim()));child.stdin.end(`SET ROLE service_role; SET request.jwt.claim.role='service_role'; select id from claim_phase_p_job('${host}','test');`);})));assert.equal([a,b].filter(Boolean).length,1,'atomic global concurrency and claim');
+ const old=JSON.parse(raw(`select row_to_json(j) from portable_jobs j where id='${first.id}';`));assert.equal(claim(),null,'no competing live worker');
+ const bars=[0,1].map(i=>({symbol:'BTCUSDT',market_type:'crypto',timeframe:'15m',open_time:`2025-01-01T00:${i?'15':'00'}:00Z`,open:100,high:101,low:99,close:100,volume:1,source:'BINANCE'}));
+ const cp=(j,rows=bars,cursor=2)=>query(`select checkpoint_phase_p_job('${j.id}','${j.lease_token}',${literal({cursor,next:1735691400000,pages:1})},${literal(rows)});`);
+ cp(old);cp(old);assert.equal(raw(`select count(*) from validation_dataset_candles where dataset_id='${old.run_id}';`).trim(),'2','durable evidence duplicate collapse');
+ raw(`update portable_jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id='${old.id}';`);
+ fails(()=>cp(old),/LEASE_LOST/);fails(()=>query(`select finish_phase_p_job('${old.id}','${old.lease_token}','COMPLETED','{}',NULL);`),/LEASE_LOST/);
+ const reclaimed=claim();assert.ok(reclaimed&&reclaimed.lease_token!==old.lease_token,'timeout recovery token');assert.equal(reclaimed.checkpoint.cursor,2,'checkpoint restart');
+ fails(()=>cp(old),/LEASE_LOST/);fails(()=>cp(reclaimed,[{...bars[0],close:100.5}],2),/EVIDENCE_CONFLICT/);
+ query(`select control_phase_p_worker('${actor}','cancel','${reclaimed.id}');`);fails(()=>cp(reclaimed),/LEASE_LOST/);assert.equal(raw(`select status from validation_datasets where id='${reclaimed.run_id}';`).trim(),'CANCELLED');
+ // Completion commits native evidence status and job status in one transaction.
+ enqueue('complete1');const completed=claim();cp(completed);query(`select finish_phase_p_job('${completed.id}','${completed.lease_token}','COMPLETED',${literal({rowCount:2,datasetHash:'test-hash',first:bars[0].open_time,last:bars[1].open_time})},NULL);`);
+ assert.equal(raw(`select status from portable_jobs where id='${completed.id}';`).trim(),'COMPLETED');assert.equal(raw(`select status from validation_datasets where id='${completed.run_id}';`).trim(),'READY');
+ enqueue('retrydead1');let retry=claim();for(let i=0;i<3;i++){query(`select finish_phase_p_job('${retry.id}','${retry.lease_token}','${i===2?'DEAD_LETTER':'RETRY'}','{}','SAFE_FAILURE');`);if(i<2){raw(`update portable_jobs set available_at=clock_timestamp() where id='${retry.id}';`);retry=claim();}}assert.equal(raw(`select status from portable_jobs where id='${retry.id}';`).trim(),'DEAD_LETTER');
+
+ // Native replay and account/Prop evidence stay behind the same job fence.
+ const replayPayload={configuration:{version:'test',strategies:[]},datasetHash:'h',datasetHashes:['h'],datasetIds:[],maxCycles:5,assumptions:{}};
+ query(`select enqueue_phase_p_job('${actor}','REPLAY',${literal(replayPayload)},'replaynative1','config',NULL);`);
+ const replayJob=claim(),cycle={cycle_key:'cycle-1',candle_close_time:'2025-01-01T00:15:00Z',strategy_results:[],arbitration:{winner:null},data_exclusions:[],outcome:null};
+ query(`select checkpoint_phase_p_job('${replayJob.id}','${replayJob.lease_token}',${literal({cursor:1,total:1})},${literal([cycle])});`);
+ query(`select checkpoint_phase_p_job('${replayJob.id}','${replayJob.lease_token}',${literal({cursor:1,total:1})},${literal([cycle])});`);
+ query(`select finish_phase_p_job('${replayJob.id}','${replayJob.lease_token}','COMPLETED',${literal({cycles:1,outcomes:0})},NULL);`);
+ assert.equal(raw(`select status from validation_runs where id='${replayJob.run_id}';`).trim(),'COMPLETED');
+ for(const kind of ['ACCOUNT','PROP']){
+  query(`select enqueue_phase_p_job('${actor}','${kind}',${literal({canonicalSourceRunId:replayJob.run_id,datasetHash:'h',sourceConfigurationHash:'config',initialCapital:10000})},'native${kind}','config',NULL);`);
+  const simulation=claim();
+  query(`select checkpoint_phase_p_job('${simulation.id}','${simulation.lease_token}',${literal({cursor:1,total:1})},${literal([{sequence:0,evidence:{classification:'HISTORICAL_SIMULATION',balance:10000}}])});`);
+  query(`select finish_phase_p_job('${simulation.id}','${simulation.lease_token}','COMPLETED',${literal({status:kind==='PROP'?'INCOMPLETE':'COMPLETED'})},NULL);`);
+  assert.equal(raw(`select status from validation_simulation_runs where id='${simulation.run_id}';`).trim(),kind==='PROP'?'INCOMPLETE':'COMPLETED');
+ }
+ fails(()=>raw(`update portable_jobs set customer_id='${other}' where id='${replayJob.id}';`),/IMMUTABLE_PORTABLE_LINEAGE/);
+ // Real ACL/RLS denial; no browser service-role or generic table mutation path.
+ fails(()=>raw('SET ROLE authenticated; SELECT * FROM portable_jobs;'),/permission denied/);fails(()=>raw("SET ROLE anon; SELECT * FROM claim_phase_p_job('x','x');"),/permission denied/);
+ for(let i=0;i<14;i++)enqueue(`quota000${i}`);fails(()=>enqueue('quotaover1'),/QUOTA_EXCEEDED/);
+ raw(`update phase_p_worker_usage set slices=100;`);assert.equal(claim(),null,'atomic consumption quota enforced');
+ query(`select control_phase_p_worker('${actor}','stop',NULL);`);assert.equal(claim(),null,'stop-new-work');
+ console.log('PASS: PostgreSQL 16 real concurrent claims, global ownership, expired fencing, checkpoint restart, conflict detection, cancellation, native completion, retry/dead letters, quotas, and ACL/RLS');
+ console.log('Scope: isolated prerequisite fixture plus actual Phase L/M/P SQL. Full migration-chain rehearsal and remote reconciliation NOT_RUN.');
+}finally{try{docker(['rm','-f',name],{stdio:'ignore'});}catch{}}
