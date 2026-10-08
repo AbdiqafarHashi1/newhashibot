@@ -14,7 +14,7 @@ export function boundedInteger(value:unknown, fallback:number, max:number){
   if(!Number.isSafeInteger(n)||n<1||n>max)throw new WorkerFault('TASK_LIMIT_INVALID',true);
   return n;
 }
-const uuid=(x:unknown)=>{if(typeof x!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x))throw new WorkerFault('IDENTIFIER_INVALID',true);return x;};
+const uuid=(x:unknown)=>{if(typeof x!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x))throw new WorkerFault('IDENTIFIER_INVALID',true);return x.toLowerCase();};
 /** Accept a closed request vocabulary; secrets, customer identity, config and generic payloads are server-owned. */
 export function parsePortableRequest(body:Record<string,any>){
   const kind=body.kind as PortableKind;
@@ -34,7 +34,7 @@ export function parsePortableRequest(body:Record<string,any>){
     }else{
       if(!Array.isArray(body.datasetIds)||!body.datasetIds.length||body.datasetIds.length>LIMITS.symbols)throw new WorkerFault('DATASET_LIMIT_INVALID',true);
       const costs=Object.fromEntries(['fees','funding','spread','slippage'].map(k=>{const n=Number(body[k]??0);if(!Number.isFinite(n)||n<0||n>100)throw new WorkerFault('REPLAY_COST_INVALID',true);return[k,n];}));
-      input={datasetIds:[...new Set(body.datasetIds.map(uuid))],start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,LIMITS.cycles),...costs};
+      input={datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,LIMITS.cycles),...costs};
     }
   }else if(kind==='ACCOUNT'){
     if(!Number.isFinite(body.initialCapital)||body.initialCapital<=0||body.initialCapital>1e8||!/^[A-Z]{3}$/.test(body.currency))throw new WorkerFault('ACCOUNT_INPUT_INVALID',true);

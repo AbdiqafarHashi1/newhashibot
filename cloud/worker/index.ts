@@ -4,6 +4,7 @@ import {createHandlers} from './handlers.ts';
 import {SupabaseWorkerStore} from './store.ts';
 import {runSlice} from './runtime.ts';
 import {LIMITS} from '../../supabase/functions/_shared/phase-p-contract.ts';
+import {databaseHealth} from './health.ts';
 const mode=process.env.HASHIBOT_WORKER_MODE??'check',revision=process.env.HASHIBOT_REVISION??'local';
 function configuration(){
   if(!['check','once','health'].includes(mode))throw Error('WORKER_MODE_INVALID');
@@ -12,11 +13,12 @@ function configuration(){
   if(process.env.SUPABASE_URL){const url=new URL(process.env.SUPABASE_URL);if(url.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(url.hostname))throw Error('SUPABASE_TLS_REQUIRED');}
 }
 configuration();
-const health={status:'READY',mode,revision,limits:LIMITS,liveExecution:false,delivery:false,scanner:'RETAINED_ON_SUPABASE'};
+const health={status:'CONFIGURATION_ONLY',mode,revision,limits:LIMITS,liveExecution:false,delivery:false,scanner:'RETAINED_ON_SUPABASE'};
 if(mode==='check'){console.log(JSON.stringify(health));}
 else if(mode==='health'){
   // Diagnostic mode never consumes work. Cloud Run Jobs use mode=once.
-  const server=createServer((req,res)=>{res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify(health));});
+  const diagnosticDb=process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY?createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false},global:{fetch:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(5000)})}}):undefined;
+  const server=createServer(async(req,res)=>{const probe=await databaseHealth(diagnosticDb);res.writeHead(req.url!=='/health'?404:probe.status==='DATABASE_UNAVAILABLE'?503:200,{'content-type':'application/json'});res.end(JSON.stringify({...health,...probe}));});
   server.listen(Number(process.env.PORT??8080),'0.0.0.0');
   process.on('SIGTERM',()=>server.close());process.on('SIGINT',()=>server.close());
 }else{

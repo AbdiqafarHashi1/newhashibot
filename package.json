@@ -114,7 +114,8 @@
     "lint:cloud": "node cloud/scripts/check-manifests.mjs",
     "cloud:check": "bash cloud/scripts/validate.sh",
     "cloud:worker": "node --import tsx cloud/worker/index.ts",
-    "test:phase-p-db": "node tests/phaseP/database.mjs"
+    "test:phase-p-db": "node tests/phaseP/database.mjs",
+    "test:phase-p-local": "node tests/phaseP/run-local-supabase.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

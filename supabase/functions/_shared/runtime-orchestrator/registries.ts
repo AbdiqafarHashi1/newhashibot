@@ -15,13 +15,13 @@ import { mt5PropBrain } from "../account-execution-brain/mt5-prop-brain.ts";
 
 import { evaluateRisk, resolveRiskPolicy } from "../professional-risk-engine.ts";
 import type { RiskEvaluationContext, ResolvedRiskPolicy, RiskDecision, RiskPolicy } from "../professional-risk-engine.ts";
-import type { ApprovedStrategyPlan } from "../strategy-plan.ts";
+import type { ApprovedStrategyPlan, DeepReadonly } from "../strategy-plan.ts";
 
 import { allocateCapital, calculateCapitalManagerPositionPlan } from "../professional-capital-allocation.ts";
 import type { CapitalAllocationContext, CapitalAllocationPlan } from "../professional-capital-allocation.ts";
 
 import {
-  evaluateTradeLifecycleEngine,
+  evaluateLifecycle,
   createDefaultTradeManagementPolicy,
   composeTradeManagementPolicy,
 } from "../trade-management/index.ts";
@@ -29,7 +29,7 @@ import type {
   TradeManagementPolicy,
   TradeLifecycleSnapshot,
   MarketContext,
-  TradeLifecycleEvaluationResult,
+  TradeManagementEvaluation,
 } from "../trade-management/types.ts";
 
 import type { RecoveryRequestIntent } from "./types.ts";
@@ -104,11 +104,11 @@ export const UnifiedTradeManagementRegistry = Object.freeze({
     snapshot: TradeLifecycleSnapshot,
     policy: TradeManagementPolicy,
     marketContext: MarketContext
-  ): TradeLifecycleEvaluationResult {
+  ): TradeManagementEvaluation {
     const providerHealth = {
       is_healthy: true,
       bridge_status: "CONNECTED" as const,
-      last_heartbeat_time: new Date().toISOString(),
+      last_heartbeat_at: new Date().toISOString(),
       error_count_last_hour: 0,
     };
     return evaluateLifecycle(snapshot, marketContext, providerHealth, policy);

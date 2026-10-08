@@ -405,12 +405,12 @@ export interface ChallengeResult {
   reasonCodes: string[];
   audit: PropAuditEvent[];
 }
-export function simulateChallenge(
+export function* simulateChallengeSteps(
   profile: PropProgramProfile,
   config: PropAccountConfiguration,
   phase: "PHASE_1" | "VERIFICATION",
   trades: readonly HistoricalTradeEvidence[],
-): ChallengeResult {
+): Generator<ChallengeResult,ChallengeResult> {
   const p = profile.phases.find((x) => x.id === phase);
   if (
     !p ||
@@ -430,6 +430,7 @@ export function simulateChallenge(
       reasonCodes: ["PROFILE_RULES_PENDING_VERIFICATION"],
       audit: [],
     };
+  const phaseRules=p,profitTargetPct=p.profitTargetPct;
   let balance = config.accountSize,
     peak = balance,
     maxDd = 0,
@@ -504,10 +505,13 @@ export function simulateChallenge(
         reasonCodes: ["MAX_LOSS_LIMIT_BREACHED"],
         audit,
       };
+    yield result();
   }
+  return result();
+  function result():ChallengeResult {
   const profitPct = (balance / config.accountSize - 1) * 100,
-    daysMet = days.size >= p.minimumTradingDays;
-  if (profitPct >= p.profitTargetPct && daysMet)
+    daysMet = days.size >= phaseRules.minimumTradingDays;
+  if (profitPct >= profitTargetPct && daysMet)
     return {
       status: "PASSED",
       state: phase === "PHASE_1" ? "PHASE_1_PASSED" : "PHASE_2_PASSED",
@@ -530,13 +534,17 @@ export function simulateChallenge(
     maxDailyLossPct: maxDaily,
     tradingDays: days.size,
     reasonCodes: [
-      profitPct < p.profitTargetPct
+      profitPct < profitTargetPct
         ? "PROFIT_TARGET_NOT_MET"
         : "MINIMUM_TRADING_DAYS_NOT_MET",
     ],
     audit,
   };
+  }
 }
+
+export function simulateChallenge(...input:Parameters<typeof simulateChallengeSteps>):ChallengeResult{const steps=simulateChallengeSteps(...input);for(;;){const step=steps.next();if(step.done===true)return step.value;}}
+
 export interface FundedEvaluation {
   state: FundedState;
   entryDecision: "ALLOW" | "REDUCE" | "BLOCK";
@@ -899,11 +907,11 @@ export interface FullChallengeResult {
   }[];
 }
 
-export function simulateFullChallenge(
+export function* simulateFullChallengeSteps(
   profile: PropProgramProfile,
   config: PropAccountConfiguration,
   trades: readonly HistoricalTradeEvidence[],
-): FullChallengeResult {
+): Generator<void,FullChallengeResult> {
   const ordered = [...trades].sort((a, b) =>
     a.closedAt.localeCompare(b.closedAt),
   );
@@ -913,8 +921,8 @@ export function simulateFullChallenge(
   const phase1End =
     phase1Target === null || phase1Target === undefined
       ? ordered.length
-      : firstPassingIndex(profile, config, "PHASE_1", ordered);
-  const phase1 = simulateChallenge(
+      : (yield* firstPassingIndexSteps(profile, config, "PHASE_1", ordered));
+  const phase1 = yield* challengeInterruptible(
     profile,
     config,
     "PHASE_1",
@@ -938,18 +946,18 @@ export function simulateFullChallenge(
   }
   const verificationTrades = ordered.slice(phase1End + 1);
   const verificationConfig = { ...config, accountSize: config.accountSize };
-  const verification = simulateChallenge(
+  const verification = yield* challengeInterruptible(
     profile,
     verificationConfig,
     "VERIFICATION",
     verificationTrades,
   );
-  const verificationEnd = firstPassingIndex(
+  const verificationEnd = (yield* firstPassingIndexSteps(
     profile,
     verificationConfig,
     "VERIFICATION",
     verificationTrades,
-  );
+  ));
   const phase1At = ordered[phase1End]?.closedAt ?? profile.effectiveDate;
   if (verification.status !== "PASSED" || verificationEnd < 0) {
     return {
@@ -1000,20 +1008,13 @@ export function simulateFullChallenge(
   };
 }
 
-function firstPassingIndex(
-  profile: PropProgramProfile,
-  config: PropAccountConfiguration,
-  phase: "PHASE_1" | "VERIFICATION",
-  trades: readonly HistoricalTradeEvidence[],
-): number {
-  for (let index = 0; index < trades.length; index += 1) {
-    if (
-      simulateChallenge(profile, config, phase, trades.slice(0, index + 1))
-        .status === "PASSED"
-    )
-      return index;
-  }
-  return -1;
+function* challengeInterruptible(...input:Parameters<typeof simulateChallengeSteps>):Generator<void,ChallengeResult>{const steps=simulateChallengeSteps(...input);let step=steps.next();while(step.done===false){yield;step=steps.next();}return step.value;}
+export function simulateFullChallenge(...input:Parameters<typeof simulateFullChallengeSteps>):FullChallengeResult{const steps=simulateFullChallengeSteps(...input);for(;;){const step=steps.next();if(step.done===true)return step.value;}}
+
+function* firstPassingIndexSteps(profile:PropProgramProfile,config:PropAccountConfiguration,phase:"PHASE_1"|"VERIFICATION",trades:readonly HistoricalTradeEvidence[]):Generator<void,number>{
+ const steps=simulateChallengeSteps(profile,config,phase,trades);let index=0,step=steps.next();
+ while(step.done===false){yield;if(step.value.status==='PASSED')return index;index++;step=steps.next();}
+ return -1;
 }
 
 export type ChallengeWindowMode =
@@ -1085,10 +1086,11 @@ export function simulateFullChallengeWindows(
   windows: readonly ChallengeWindow[],
   runHash: string,
 ) {
-  const results = windows.map((window) => ({
-    window,
-    result: simulateFullChallenge(profile, config, window.trades),
-  }));
+  const results = windows.map((window) => ({window,result:simulateFullChallenge(profile,config,window.trades)}));
+  return summarizeFullChallengeWindows(results,runHash);
+}
+
+export function summarizeFullChallengeWindows(results:readonly {window:ChallengeWindow;result:FullChallengeResult}[],runHash:string){
   const passes = results.filter((item) => item.result.status === "FUNDED");
   const failures = results.filter((item) => item.result.status === "FAILED");
   const dayCounts = passes

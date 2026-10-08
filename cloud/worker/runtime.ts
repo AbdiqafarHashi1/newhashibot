@@ -28,8 +28,12 @@ export async function runSlice(input:{store:WorkerStore;handlers:Record<Portable
     const code=error instanceof WorkerFault?error.code:'WORKER_TASK_FAILED';
     if(['LEASE_LOST','JOB_CANCELLED','AUTHORIZATION_REVOKED'].includes(code))return {id:job.id,state:code};
     const permanent=error instanceof WorkerFault&&error.permanent;
-    const state=permanent||job.attempt>=job.max_attempts?'DEAD_LETTER':'RETRY';
-    await input.store.finish(job,state,{},code);
+    const state=code==='SLICE_INTERRUPTED'?'YIELD':permanent||job.attempt>=job.max_attempts?'DEAD_LETTER':'RETRY';
+    try{await input.store.finish(job,state,{},code);}catch(finalizationError){
+      const finalCode=finalizationError instanceof WorkerFault?finalizationError.code:'STORE_UNAVAILABLE';
+      if(['LEASE_LOST','JOB_CANCELLED','AUTHORIZATION_REVOKED'].includes(finalCode))return {id:job.id,state:finalCode};
+      throw finalizationError;
+    }
     return {id:job.id,state,reason:code};
   }finally{clearTimeout(timer);input.signal?.removeEventListener('abort',abort);}
 }

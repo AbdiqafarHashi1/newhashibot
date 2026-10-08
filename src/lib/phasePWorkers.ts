@@ -1,8 +1,18 @@
 import {supabase} from './supabase';
+import {PortableSubmissionAttempts} from './portableSubmissionAttempt';
+import type {PortableKind} from '../../supabase/functions/_shared/phase-p-contract';
+let attempts:PortableSubmissionAttempts|undefined;
 export async function phasePWorkerOperation(body:Record<string,unknown>){
   const {data,error}=await supabase.functions.invoke('phase-p-workers',{body});
   if(error)throw error;if(data?.error)throw Error(data.error);return data;
 }
-export function submitPortableValidation(kind:'REPLAY'|'ACCOUNT'|'PROP',input:Record<string,unknown>){
-  return phasePWorkerOperation({action:'submit',kind,idempotencyKey:crypto.randomUUID(),...input});
+export async function submitPortableValidation(kind:PortableKind,input:Record<string,unknown>,newRun=false){
+  const {data:{user},error}=await supabase.auth.getUser();
+  if(error||!user)throw Error('AUTHENTICATION_REQUIRED');
+  attempts??=new PortableSubmissionAttempts(localStorage);
+  return attempts.submit(user.id,kind,input,async idempotencyKey=>{
+    const {data:{user:current},error}=await supabase.auth.getUser();
+    if(error||current?.id!==user.id)throw Error('ACCOUNT_CHANGED_DURING_SUBMISSION');
+    return phasePWorkerOperation({action:'submit',kind,idempotencyKey,...input});
+  },newRun);
 }

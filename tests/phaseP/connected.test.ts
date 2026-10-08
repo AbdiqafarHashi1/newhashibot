@@ -10,38 +10,7 @@ import {deriveAccountSimulationAuthority,derivePropCampaignAuthority} from '../.
 import {DEFAULT_BINANCE_PERSONAL_POLICY} from '../../supabase/functions/_shared/account-execution-brain/contracts.ts';
 import {PROP_PROFILES} from '../../src/lib/prop/professionalPropEngine.ts';
 import {preparePortableSubmission} from '../../supabase/functions/_shared/phase-p-submission.ts';
-class Query {
- filters:Array<(x:any)=>boolean>=[];start=0;end=Infinity;ordering='';
- constructor(private rows:any[]){} select(){return this;}eq(k:string,v:any){this.filters.push(x=>x[k]===v);return this;}is(k:string,v:any){return this.eq(k,v);}in(k:string,values:any[]){this.filters.push(x=>values.includes(x[k]));return this;}order(k:string){this.ordering=k;return this;}range(start:number,end:number){this.start=start;this.end=end;return this;}limit(n:number){this.end=n-1;return this;}
- result(){const rows=this.rows.filter(x=>this.filters.every(f=>f(x)));if(this.ordering)rows.sort((a,b)=>String(a[this.ordering]).localeCompare(String(b[this.ordering])));return rows.slice(this.start,this.end+1);}
- then(resolve:any,reject:any){return Promise.resolve({data:this.result(),error:null}).then(resolve,reject);}async maybeSingle(){return {data:this.result()[0]??null,error:null};}single(){return this.maybeSingle();}
-}
-/** Injected PostgREST/RPC transport exercises the production store and handlers.
- * This is a simulation; database.mjs independently tests the actual SQL. */
-class Db {
- job:PortableJob|null=null;state='QUEUED';calls:string[]=[];rows:any[]=[];tables:Record<string,any[]>={};finish:any=null;
- from(name:string){this.calls.push(`read:${name}`);return new Query(this.tables[name]??[]);}
- async rpc(name:string,args:any){
-  this.calls.push(name);
-  if(name==='claim_phase_p_job'){if(!this.job||!['QUEUED','RETRY'].includes(this.state))return {data:[],error:null};this.state='RUNNING';this.job.attempt++;return {data:[this.job],error:null};}
-  if(!this.job||args.p_id!==this.job.id||args.p_token!==this.job.lease_token||this.state!=='RUNNING')return {data:null,error:{message:'LEASE_LOST'}};
-  if(name==='heartbeat_phase_p_job')return {data:null,error:null};
-  if(name==='checkpoint_phase_p_job'){
-   for(const row of args.p_rows){const key=this.job.kind==='HISTORY'?row.open_time:this.job.kind==='REPLAY'?row.cycle_key:row.sequence,existing=this.rows.find(x=>x.key===key);if(existing)assert.deepEqual(existing.row,row);else this.rows.push({key,row});}
-   this.job.checkpoint=args.p_checkpoint;return {data:null,error:null};
-  }
-  if(name==='finish_phase_p_job'){
-   this.state=args.p_state==='YIELD'?'QUEUED':args.p_state;this.finish=args;
-   if(args.p_state==='YIELD')this.job.attempt--;
-   return {data:null,error:null};
-  }
-  throw Error(name);
- }
-}
-const start=Date.parse('2025-01-01T00:00:00Z'),candles=Array.from({length:100},(_,i)=>{const p=100+i*.3;return {symbol:'BTCUSDT',market_type:'crypto',timeframe:'15m',open_time:new Date(start+i*900000).toISOString(),open:p,high:p+1,low:p-1,close:p+.2,volume:100,source:'BINANCE'};});
-const configuration={version:'approved/v1',minSignalGrade:'B',strategies:[{id:'crypto.swing-continuation',version:'1.0.0',enabled:true,minScore:0,minRiskReward:0,maxBarsInTrade:40,symbols:['BTCUSDT'],timeframes:['15m'],parameters:{}}]};
-function job(kind:PortableJob['kind'],payload:any):PortableJob{return {id:'job',kind,payload,run_id:'run',customer_id:'owner',execution_account_id:null,checkpoint:{},lease_token:'token',attempt:0,max_attempts:3,configuration_hash:'config-hash'};}
-const run=(db:Db)=>runSlice({store:new SupabaseWorkerStore(db),handlers:createHandlers(db,async()=>{throw Error('NO_EXTERNAL_NETWORK');}),host:'local-test',revision:'test'});
+import {Db,job,start,candles,configuration,run} from './fixtures.ts';
 test('closed typed requests reject generic payloads, over-bounds and unapproved feed substitution',()=>{
  assert.throws(()=>parsePortableRequest({kind:'HISTORY',idempotencyKey:'test-key1',provider:'TWELVE_DATA',symbol:'XAUUSD',timeframe:'15m',start:'2025-01-01',end:'2025-01-02'}),/HISTORY_SOURCE_INVALID/);
  assert.throws(()=>parsePortableRequest({kind:'REPLAY',payload:{customer_id:'other'},datasetIds:[],idempotencyKey:'test-key1'}),/TASK_FIELD_NOT_ALLOWED/);

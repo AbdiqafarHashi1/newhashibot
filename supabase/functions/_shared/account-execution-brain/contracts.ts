@@ -141,7 +141,7 @@ export function createExecutionDecision(params: {
   account_id: string;
   signal_id: string;
   authorized_risk_pct: number;
-  rule_violations?: RuleViolation[];
+  rule_violations?: readonly RuleViolation[];
   lock_details?: AccountLock | null;
   timestamp?: string;
 }): ExecutionDecision {
@@ -167,7 +167,7 @@ export function createAccountLock(params: {
   reason: AccountLockReason;
   locked_by?: string;
   release_conditions: string;
-  violations?: RuleViolation[];
+  violations?: readonly RuleViolation[];
 }): AccountLock {
   return Object.freeze({
     lock_id: params.lock_id,
