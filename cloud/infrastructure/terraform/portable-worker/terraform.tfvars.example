@@ -1,0 +1,8 @@
+deployment_enabled     = false
+worker_enabled         = false
+project_id             = "PROJECT_ID"
+region                 = "us-central1"
+revision               = "COMMIT_SHA"
+image_digest           = "REGION-docker.pkg.dev/PROJECT_ID/hashibot-portable-workers/worker@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+supabase_url_secret    = "SUPABASE_URL_SECRET_RESOURCE"
+supabase_server_secret = "APPROVED_SERVER_CREDENTIAL_SECRET_RESOURCE"

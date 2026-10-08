@@ -580,7 +580,7 @@ export function createTradeManagementEvaluation(params: {
   proposed_next_state: TradeLifecycleState;
   intents?: TradeManagementIntent[];
   events?: TradeLifecycleEvent[];
-  invariant_violations?: InvariantViolation[];
+  invariant_violations?: readonly InvariantViolation[];
   explanation: string;
   evaluation_timestamp?: string;
   snapshot: TradeLifecycleSnapshot;

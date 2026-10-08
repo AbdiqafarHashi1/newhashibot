@@ -9,7 +9,20 @@ const pctDistance=(a:number,b:number)=>a>0&&Number.isFinite(a)&&Number.isFinite(
 function strategyZeroReject(reason:string):EvalResult{return{status:"rejected",direction:"none",entry_low:0,entry_high:0,stop_loss:0,tp1:0,tp2:0,risk_reward:0,confidence_score:0,grade:"reject",reason,rejection_reason:reason,score_breakdown:{primary_failed_gate:reason}}}
 function higherTimeframeTrendConfirmed(candles:Candle[]|undefined,direction:"buy"|"sell"){if(!candles||candles.length<55||hasInvalidCandles(candles))return false;const closes=candles.map(c=>c.close),ema20=calcEMA(closes,20),ema50=calcEMA(closes,50),last=candles.at(-1)!;return direction==="buy"?ema20>ema50&&last.close>ema20:ema20<ema50&&last.close<ema20}
 
-export function directionalPressure(candles: Candle[], direction: "buy" | "sell", lookback = 3): { confirmed: boolean; aligned_count: number; pressure_score: number }
+export function directionalPressure(candles: Candle[], direction: "buy" | "sell", lookback = 3): { confirmed: boolean; aligned_count: number; pressure_score: number } {
+  const slice = candles.slice(-Math.max(2, lookback));
+  let aligned = 0;
+  let pressure = 0;
+  for (const candle of slice) {
+    const range = Math.max(candle.high - candle.low, 0);
+    const body = Math.abs(candle.close - candle.open);
+    const directional = direction === "buy" ? candle.close > candle.open : candle.close < candle.open;
+    if (directional) aligned++;
+    pressure += range > 0 ? (body / range) * (directional ? 1 : -0.45) : 0;
+  }
+  return { confirmed: aligned >= Math.min(2, slice.length), aligned_count: aligned, pressure_score: parseFloat((pressure / Math.max(slice.length, 1)).toFixed(3)) };
+}
+
 
 export function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>, higherTimeframeCandles?: Candle[]): EvalResult {
   const rsi_buy_min = params.rsi_buy_min ?? 52, rsi_sell_max = params.rsi_sell_max ?? 48;

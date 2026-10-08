@@ -1,3 +1,4 @@
+import {PhasePWorkersOperations} from '../../components/operations/PhasePWorkersOperations';
 import { useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import {
@@ -233,7 +234,7 @@ export default function AIAgentsCommand() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 pb-20 max-w-6xl mx-auto"><PhaseOAgentsOperations /><div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">The legacy preview tools below are retained for visual continuity but their browser-authored AI endpoints are retired. Create evidence-grounded jobs in the connected controls above.</div>
+      <div className="space-y-6 pb-20 max-w-6xl mx-auto"><PhaseOAgentsOperations /><PhasePWorkersOperations/><div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">The legacy preview tools below are retained for visual continuity but their browser-authored AI endpoints are retired. Create evidence-grounded jobs in the connected controls above.</div>
         
         {/* Header */}
         <div className="border-b border-zinc-800 pb-5">

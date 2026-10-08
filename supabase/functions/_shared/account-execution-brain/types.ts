@@ -291,3 +291,5 @@ export interface SignalContract {
   readonly timeframe: string;
   readonly created_at: string;
 }
+
+export type {AccountExecutionBrain} from './brain-interface.ts';

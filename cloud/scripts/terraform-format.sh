@@ -1,2 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail; command -v terraform >/dev/null || { echo terraform-required >&2; exit 127; }; if [[ "${1:-}" == -check ]]; then terraform fmt -check cloud/infrastructure/terraform/environments/demo; else terraform fmt cloud/infrastructure/terraform/environments/demo; fi
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+command -v terraform >/dev/null || { echo 'TERRAFORM_FORMAT: NOT_RUN (terraform unavailable)'; exit 0; }
+terraform fmt -check cloud/infrastructure/terraform/portable-worker

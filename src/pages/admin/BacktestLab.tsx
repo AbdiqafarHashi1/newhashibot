@@ -1,3 +1,4 @@
+import {PhasePWorkersOperations} from '../../components/operations/PhasePWorkersOperations';
 import { useState } from "react";
 import { AdminLayout } from "../../components/layout/AdminLayout";
 import type { DatasetCampaign } from "../../lib/research/datasetCampaign";
@@ -16,7 +17,7 @@ export default function BacktestLab(){
  <nav className="flex gap-2 rounded-xl border border-slate-800 bg-slate-950 p-2"><button onClick={()=>setWorkspace("SINGLE")} className={`rounded px-4 py-2 text-xs font-bold ${workspace==="SINGLE"?"bg-cyan-700":"bg-slate-900"}`}>SINGLE STRATEGY RESEARCH</button><button onClick={()=>setWorkspace("PRODUCT")} className={`rounded px-4 py-2 text-xs font-bold ${workspace==="PRODUCT"?"bg-violet-700":"bg-slate-900"}`}>PRODUCT / PORTFOLIO RESEARCH</button></nav>
  <DataAcquisitionPanel onCampaign={setCampaign}/>
  <PhaseLValidationPanel/>
- <PhaseMOperationsPanel/>
+ <PhaseMOperationsPanel/><PhasePWorkersOperations/>
  {workspace==="SINGLE"?<PermanentResearchLab campaign={campaign}/>:<ProductPortfolioResearch campaign={campaign}/>}
  <section className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h2 className="font-bold text-white">LATER ROADMAP · NOT A PHASE B FAILURE</h2><div className="mt-2 grid gap-2 sm:grid-cols-2"><p className="rounded bg-slate-900 p-3 text-xs text-slate-400"><b className="block text-slate-200">Scanner parity / promotion · Phase C</b>Historical qualification does not promote a strategy into the live scanner.</p><p className="rounded bg-slate-900 p-3 text-xs text-slate-400"><b className="block text-slate-200">Forward validation · future locked stage</b>Forward execution is deliberately outside this historical research workflow.</p></div></section>
  </main></AdminLayout>

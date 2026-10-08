@@ -1,0 +1,1822 @@
+{
+  "sourceMain": "d84d44abc22d4ca62411452031f8b3113fdff90a",
+  "cases": [
+    {
+      "profileId": "FTMO_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FTMO_TWO_STEP",
+        "profileVersion": "2026-09-repository-reference",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "FUNDED",
+        "phase1": {
+          "status": "PASSED",
+          "state": "PHASE_1_PASSED",
+          "phase": "PHASE_1",
+          "endingBalance": 11050,
+          "profitPct": 10.499999999999998,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0.9523809523809524,
+          "tradingDays": 5,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "verification": {
+          "status": "PASSED",
+          "state": "PHASE_2_PASSED",
+          "phase": "VERIFICATION",
+          "endingBalance": 11500,
+          "profitPct": 14.999999999999991,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0.9708737864077669,
+          "tradingDays": 7,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "fundedEntryAt": "2025-10-30T12:00:00.000Z",
+        "remainingTrades": [
+          {
+            "id": "trade-9",
+            "closedAt": "2025-10-31T12:00:00.000Z",
+            "netPnl": 300,
+            "intradayEquityLow": 10300,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-10",
+            "closedAt": "2025-11-01T12:00:00.000Z",
+            "netPnl": -100,
+            "intradayEquityLow": 9900,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-11",
+            "closedAt": "2025-11-02T12:00:00.000Z",
+            "netPnl": 450,
+            "intradayEquityLow": 10450,
+            "provenance": "HISTORICAL_SIMULATION"
+          }
+        ],
+        "timeline": [
+          {
+            "state": "PHASE_1_PASSED",
+            "timestamp": "2025-10-26T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "PHASE_2_PASSED",
+            "timestamp": "2025-10-30T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "FUNDED_ACTIVE",
+            "timestamp": "2025-10-30T12:00:00.000Z",
+            "reasonCodes": [
+              "TWO_STEP_COMPLETED"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "FTMO_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FTMO_TWO_STEP",
+        "profileVersion": "2026-09-repository-reference",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "FAILED",
+        "phase1": {
+          "status": "FAILED",
+          "state": "FAILED_DAILY_LOSS",
+          "phase": "PHASE_1",
+          "endingBalance": 9300,
+          "profitPct": -6.999999999999995,
+          "maxDrawdownPct": 7.000000000000001,
+          "maxDailyLossPct": 5.1020408163265305,
+          "tradingDays": 2,
+          "reasonCodes": [
+            "DAILY_LOSS_LIMIT_BREACHED"
+          ],
+          "audit": [
+            {
+              "id": "audit:trade-1",
+              "timestamp": "2025-10-23T12:00:00.000Z",
+              "accountId": "golden",
+              "oldState": "PHASE_1_ACTIVE",
+              "newState": "FAILED_DAILY_LOSS",
+              "trigger": "trade-1",
+              "actor": "ENGINE",
+              "snapshot": {
+                "timestamp": "2025-10-23T12:00:00.000Z",
+                "startingBalance": 10000,
+                "balance": 9300,
+                "equity": 9500,
+                "startOfDayBalance": 9800,
+                "closedPnl": -700,
+                "floatingPnl": 0,
+                "dailyClosedPnl": -500,
+                "openRisk": 0,
+                "openPositions": 0,
+                "pendingExecutableOrders": 0,
+                "tradingDays": 2,
+                "brokerTruth": false
+              },
+              "profileVersion": "2026-09-repository-reference",
+              "reasonCodes": [
+                "DAILY_LOSS_LIMIT_BREACHED"
+              ]
+            }
+          ]
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "FAILED_DAILY_LOSS",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "DAILY_LOSS_LIMIT_BREACHED"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "FTMO_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FTMO_TWO_STEP",
+        "profileVersion": "2026-09-repository-reference",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "FUNDED",
+        "phase1": {
+          "status": "PASSED",
+          "state": "PHASE_1_PASSED",
+          "phase": "PHASE_1",
+          "endingBalance": 14800,
+          "profitPct": 48,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 4,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "verification": {
+          "status": "PASSED",
+          "state": "PHASE_2_PASSED",
+          "phase": "VERIFICATION",
+          "endingBalance": 19600,
+          "profitPct": 96,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 8,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "fundedEntryAt": "2025-10-29T12:00:00.000Z",
+        "remainingTrades": [
+          {
+            "id": "trade-8",
+            "closedAt": "2025-10-30T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-9",
+            "closedAt": "2025-10-31T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-10",
+            "closedAt": "2025-11-01T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-11",
+            "closedAt": "2025-11-02T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          }
+        ],
+        "timeline": [
+          {
+            "state": "PHASE_1_PASSED",
+            "timestamp": "2025-10-25T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "PHASE_2_PASSED",
+            "timestamp": "2025-10-29T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "FUNDED_ACTIVE",
+            "timestamp": "2025-10-29T12:00:00.000Z",
+            "reasonCodes": [
+              "TWO_STEP_COMPLETED"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "FTMO_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FTMO_TWO_STEP",
+        "profileVersion": "2026-09-repository-reference",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "INCOMPLETE",
+        "phase1": {
+          "status": "INCOMPLETE",
+          "state": "PHASE_1_ACTIVE",
+          "phase": "PHASE_1",
+          "endingBalance": 10000,
+          "profitPct": 0,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 12,
+          "reasonCodes": [
+            "PROFIT_TARGET_NOT_MET"
+          ],
+          "audit": []
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "PHASE_1_ACTIVE",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_NOT_MET"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+        "profileVersion": "pending-verification",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "INCOMPLETE",
+        "phase1": {
+          "status": "INCOMPLETE",
+          "state": "PHASE_1_ACTIVE",
+          "phase": "PHASE_1",
+          "endingBalance": 10000,
+          "profitPct": 0,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 0,
+          "reasonCodes": [
+            "PROFILE_RULES_PENDING_VERIFICATION"
+          ],
+          "audit": []
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "PHASE_1_ACTIVE",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFILE_RULES_PENDING_VERIFICATION"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+        "profileVersion": "pending-verification",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "INCOMPLETE",
+        "phase1": {
+          "status": "INCOMPLETE",
+          "state": "PHASE_1_ACTIVE",
+          "phase": "PHASE_1",
+          "endingBalance": 10000,
+          "profitPct": 0,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 0,
+          "reasonCodes": [
+            "PROFILE_RULES_PENDING_VERIFICATION"
+          ],
+          "audit": []
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "PHASE_1_ACTIVE",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFILE_RULES_PENDING_VERIFICATION"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+        "profileVersion": "pending-verification",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "INCOMPLETE",
+        "phase1": {
+          "status": "INCOMPLETE",
+          "state": "PHASE_1_ACTIVE",
+          "phase": "PHASE_1",
+          "endingBalance": 10000,
+          "profitPct": 0,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 0,
+          "reasonCodes": [
+            "PROFILE_RULES_PENDING_VERIFICATION"
+          ],
+          "audit": []
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "PHASE_1_ACTIVE",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFILE_RULES_PENDING_VERIFICATION"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+      "config": {
+        "id": "golden",
+        "profileId": "FUNDEDNEXT_STELLAR_TWO_STEP",
+        "profileVersion": "pending-verification",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "INCOMPLETE",
+        "phase1": {
+          "status": "INCOMPLETE",
+          "state": "PHASE_1_ACTIVE",
+          "phase": "PHASE_1",
+          "endingBalance": 10000,
+          "profitPct": 0,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 0,
+          "reasonCodes": [
+            "PROFILE_RULES_PENDING_VERIFICATION"
+          ],
+          "audit": []
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "PHASE_1_ACTIVE",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFILE_RULES_PENDING_VERIFICATION"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "CUSTOM",
+      "config": {
+        "id": "golden",
+        "profileId": "CUSTOM",
+        "profileVersion": "custom/v1",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 200,
+          "intradayEquityLow": 10200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 300,
+          "intradayEquityLow": 10300,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": -100,
+          "intradayEquityLow": 9900,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 450,
+          "intradayEquityLow": 10450,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "FUNDED",
+        "phase1": {
+          "status": "PASSED",
+          "state": "PHASE_1_PASSED",
+          "phase": "PHASE_1",
+          "endingBalance": 11050,
+          "profitPct": 10.499999999999998,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0.9523809523809524,
+          "tradingDays": 5,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "verification": {
+          "status": "PASSED",
+          "state": "PHASE_2_PASSED",
+          "phase": "VERIFICATION",
+          "endingBalance": 11500,
+          "profitPct": 14.999999999999991,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0.9708737864077669,
+          "tradingDays": 7,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "fundedEntryAt": "2025-10-29T12:00:00.000Z",
+        "remainingTrades": [
+          {
+            "id": "trade-8",
+            "closedAt": "2025-10-30T12:00:00.000Z",
+            "netPnl": 200,
+            "intradayEquityLow": 10200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-9",
+            "closedAt": "2025-10-31T12:00:00.000Z",
+            "netPnl": 300,
+            "intradayEquityLow": 10300,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-10",
+            "closedAt": "2025-11-01T12:00:00.000Z",
+            "netPnl": -100,
+            "intradayEquityLow": 9900,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-11",
+            "closedAt": "2025-11-02T12:00:00.000Z",
+            "netPnl": 450,
+            "intradayEquityLow": 10450,
+            "provenance": "HISTORICAL_SIMULATION"
+          }
+        ],
+        "timeline": [
+          {
+            "state": "PHASE_1_PASSED",
+            "timestamp": "2025-10-26T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "PHASE_2_PASSED",
+            "timestamp": "2025-10-29T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "FUNDED_ACTIVE",
+            "timestamp": "2025-10-29T12:00:00.000Z",
+            "reasonCodes": [
+              "TWO_STEP_COMPLETED"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "CUSTOM",
+      "config": {
+        "id": "golden",
+        "profileId": "CUSTOM",
+        "profileVersion": "custom/v1",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": -200,
+          "intradayEquityLow": 9800,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": -500,
+          "intradayEquityLow": 9500,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 150,
+          "intradayEquityLow": 10150,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": -50,
+          "intradayEquityLow": 9950,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "FAILED",
+        "phase1": {
+          "status": "FAILED",
+          "state": "FAILED_DAILY_LOSS",
+          "phase": "PHASE_1",
+          "endingBalance": 9300,
+          "profitPct": -6.999999999999995,
+          "maxDrawdownPct": 7.000000000000001,
+          "maxDailyLossPct": 5.1020408163265305,
+          "tradingDays": 2,
+          "reasonCodes": [
+            "DAILY_LOSS_LIMIT_BREACHED"
+          ],
+          "audit": [
+            {
+              "id": "audit:trade-1",
+              "timestamp": "2025-10-23T12:00:00.000Z",
+              "accountId": "golden",
+              "oldState": "PHASE_1_ACTIVE",
+              "newState": "FAILED_DAILY_LOSS",
+              "trigger": "trade-1",
+              "actor": "ENGINE",
+              "snapshot": {
+                "timestamp": "2025-10-23T12:00:00.000Z",
+                "startingBalance": 10000,
+                "balance": 9300,
+                "equity": 9500,
+                "startOfDayBalance": 9800,
+                "closedPnl": -700,
+                "floatingPnl": 0,
+                "dailyClosedPnl": -500,
+                "openRisk": 0,
+                "openPositions": 0,
+                "pendingExecutableOrders": 0,
+                "tradingDays": 2,
+                "brokerTruth": false
+              },
+              "profileVersion": "custom/v1",
+              "reasonCodes": [
+                "DAILY_LOSS_LIMIT_BREACHED"
+              ]
+            }
+          ]
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "FAILED_DAILY_LOSS",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "DAILY_LOSS_LIMIT_BREACHED"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "CUSTOM",
+      "config": {
+        "id": "golden",
+        "profileId": "CUSTOM",
+        "profileVersion": "custom/v1",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 1200,
+          "intradayEquityLow": 11200,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "FUNDED",
+        "phase1": {
+          "status": "PASSED",
+          "state": "PHASE_1_PASSED",
+          "phase": "PHASE_1",
+          "endingBalance": 11200,
+          "profitPct": 12.00000000000001,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 1,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "verification": {
+          "status": "PASSED",
+          "state": "PHASE_2_PASSED",
+          "phase": "VERIFICATION",
+          "endingBalance": 23200,
+          "profitPct": 131.99999999999997,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 11,
+          "reasonCodes": [
+            "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+          ],
+          "audit": []
+        },
+        "fundedEntryAt": "2025-10-23T12:00:00.000Z",
+        "remainingTrades": [
+          {
+            "id": "trade-2",
+            "closedAt": "2025-10-24T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-3",
+            "closedAt": "2025-10-25T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-4",
+            "closedAt": "2025-10-26T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-5",
+            "closedAt": "2025-10-27T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-6",
+            "closedAt": "2025-10-28T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-7",
+            "closedAt": "2025-10-29T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-8",
+            "closedAt": "2025-10-30T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-9",
+            "closedAt": "2025-10-31T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-10",
+            "closedAt": "2025-11-01T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          },
+          {
+            "id": "trade-11",
+            "closedAt": "2025-11-02T12:00:00.000Z",
+            "netPnl": 1200,
+            "intradayEquityLow": 11200,
+            "provenance": "HISTORICAL_SIMULATION"
+          }
+        ],
+        "timeline": [
+          {
+            "state": "PHASE_1_PASSED",
+            "timestamp": "2025-10-22T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "PHASE_2_PASSED",
+            "timestamp": "2025-10-23T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_AND_MINIMUM_DAYS_MET"
+            ]
+          },
+          {
+            "state": "FUNDED_ACTIVE",
+            "timestamp": "2025-10-23T12:00:00.000Z",
+            "reasonCodes": [
+              "TWO_STEP_COMPLETED"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profileId": "CUSTOM",
+      "config": {
+        "id": "golden",
+        "profileId": "CUSTOM",
+        "profileVersion": "custom/v1",
+        "accountSize": 10000,
+        "currency": "USD"
+      },
+      "trades": [
+        {
+          "id": "trade-0",
+          "closedAt": "2025-10-22T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-1",
+          "closedAt": "2025-10-23T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-2",
+          "closedAt": "2025-10-24T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-3",
+          "closedAt": "2025-10-25T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-4",
+          "closedAt": "2025-10-26T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-5",
+          "closedAt": "2025-10-27T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-6",
+          "closedAt": "2025-10-28T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-7",
+          "closedAt": "2025-10-29T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-8",
+          "closedAt": "2025-10-30T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-9",
+          "closedAt": "2025-10-31T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-10",
+          "closedAt": "2025-11-01T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        },
+        {
+          "id": "trade-11",
+          "closedAt": "2025-11-02T12:00:00.000Z",
+          "netPnl": 0,
+          "intradayEquityLow": 10000,
+          "provenance": "HISTORICAL_SIMULATION"
+        }
+      ],
+      "result": {
+        "status": "INCOMPLETE",
+        "phase1": {
+          "status": "INCOMPLETE",
+          "state": "PHASE_1_ACTIVE",
+          "phase": "PHASE_1",
+          "endingBalance": 10000,
+          "profitPct": 0,
+          "maxDrawdownPct": 0,
+          "maxDailyLossPct": 0,
+          "tradingDays": 12,
+          "reasonCodes": [
+            "PROFIT_TARGET_NOT_MET"
+          ],
+          "audit": []
+        },
+        "verification": null,
+        "fundedEntryAt": null,
+        "remainingTrades": [],
+        "timeline": [
+          {
+            "state": "PHASE_1_ACTIVE",
+            "timestamp": "2025-11-02T12:00:00.000Z",
+            "reasonCodes": [
+              "PROFIT_TARGET_NOT_MET"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

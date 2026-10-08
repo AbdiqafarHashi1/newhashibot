@@ -1,0 +1,72 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHandlers,fingerprint} from '../../cloud/worker/handlers.ts';
+import {runSlice} from '../../cloud/worker/runtime.ts';
+import {SupabaseWorkerStore} from '../../cloud/worker/store.ts';
+import {LIMITS,parsePortableRequest,WorkerFault,type PortableJob} from '../../supabase/functions/_shared/phase-p-contract.ts';
+import {hashValidationDataset} from '../../supabase/functions/_shared/validation-dataset-integrity.ts';
+import {deriveAccountSimulationAuthority,derivePropCampaignAuthority} from '../../supabase/functions/_shared/phase-m-authority-loader.ts';
+import {DEFAULT_BINANCE_PERSONAL_POLICY} from '../../supabase/functions/_shared/account-execution-brain/contracts.ts';
+import {PROP_PROFILES} from '../../src/lib/prop/professionalPropEngine.ts';
+import {preparePortableSubmission} from '../../supabase/functions/_shared/phase-p-submission.ts';
+import {Db,job,start,candles,configuration,run} from './fixtures.ts';
+test('closed typed requests reject generic payloads, over-bounds and unapproved feed substitution',()=>{
+ assert.throws(()=>parsePortableRequest({kind:'HISTORY',idempotencyKey:'test-key1',provider:'TWELVE_DATA',symbol:'XAUUSD',timeframe:'15m',start:'2025-01-01',end:'2025-01-02'}),/HISTORY_SOURCE_INVALID/);
+ assert.throws(()=>parsePortableRequest({kind:'REPLAY',payload:{customer_id:'other'},datasetIds:[],idempotencyKey:'test-key1'}),/TASK_FIELD_NOT_ALLOWED/);
+ assert.throws(()=>parsePortableRequest({kind:'HISTORY',idempotencyKey:'test-key1',provider:'BINANCE',symbol:'BTCUSDT',timeframe:'5m',start:'2024-01-01',end:'2025-01-01'}),/CANDLE_LIMIT_EXCEEDED/);
+ assert.equal(LIMITS.aiTokens,0);assert.equal(LIMITS.concurrency,1);
+});
+test('authenticated source and customer/account isolation is revalidated',async()=>{
+ const db=new Db();db.tables.profiles=[{id:'owner',role:'user'}];
+ await assert.rejects(()=>preparePortableSubmission(db,'owner',{}),/ADMIN_REQUIRED/);
+ db.tables.profiles=[{id:'owner',role:'admin'}];
+ db.tables.validation_datasets=[{id:'00000000-0000-0000-0000-000000000003',created_by:'other',status:'READY',row_count:100}];
+ await assert.rejects(()=>preparePortableSubmission(db,'owner',{kind:'REPLAY',idempotencyKey:'test-key1',datasetIds:[db.tables.validation_datasets[0].id],start:'2025-01-01',end:'2025-01-02'}),/UNAUTHORIZED/);
+});
+test('concrete historical adapter -> worker RPC store -> durable checkpoint',async()=>{
+ const db=new Db();db.job=job('HISTORY',{provider:'BINANCE',symbol:'BTCUSDT',timeframe:'15m',start:new Date(start).toISOString(),end:new Date(start+99*900000).toISOString()});
+ db.tables.validation_dataset_candles=candles.map(c=>({...c,dataset_id:'run'}));let requests=0;
+ const fetcher:typeof fetch=async url=>{requests++;assert.match(String(url),/^https:\/\/api.binance.com\/api\/v3\/klines/);return new Response(JSON.stringify(candles.map(c=>[Date.parse(c.open_time),c.open,c.high,c.low,c.close,c.volume])),{status:200});};
+ const result=await runSlice({store:new SupabaseWorkerStore(db),handlers:createHandlers(db,fetcher),host:'test',revision:'test'});
+ assert.equal(result.state,'COMPLETED');assert.equal(requests,1);assert.equal(db.rows.length,100);assert.equal(db.job.checkpoint.cursor,100);assert.equal(db.finish.p_summary.rowCount,100);
+ assert.match(db.finish.p_summary.datasetHash,/^[0-9a-f]{64}$/);
+});
+test('actual scanner replay -> durable evidence -> Phase-D account -> Prop runtime, with no publication or orders',async()=>{
+ const db=new Db(),hash=await hashValidationDataset(candles);
+ db.tables.validation_datasets=[{id:'dataset',created_by:'owner',status:'READY',row_count:100,dataset_hash:hash,symbol:'BTCUSDT',timeframe:'15m',source:'BINANCE'}];
+ db.tables.validation_dataset_candles=candles.map(c=>({...c,dataset_id:'dataset'}));
+ db.job=job('REPLAY',{datasets:[{id:'dataset',hash}],configuration,start:new Date(start).toISOString(),end:new Date(start+100*900000).toISOString(),maxCycles:100});
+ const replayResult=await run(db);assert.equal(replayResult.state,'COMPLETED',JSON.stringify(replayResult));const evidence=db.rows.map(x=>x.row),selected=evidence.find(x=>x.outcome&&['TARGET','STOP'].includes(x.outcome.status));assert.ok(selected,'actual strategy produces a resolved outcome');
+ const source={id:'scanner',created_by:'owner',status:'COMPLETED',cancellation_requested_at:null,dataset_hash:hash,configuration_hash:'config-hash',provenance:{datasetHashes:[hash]}};
+ db.tables.validation_runs=[source];db.tables.validation_cycles=evidence.map(x=>({...x,run_id:'scanner'}));db.tables.validation_outcomes=evidence.filter(x=>x.outcome).map(x=>({...x.outcome,run_id:'scanner',cycle_key:x.cycle_key}));
+ const at=selected.outcome.entry_time,winner=selected.arbitration.winner;
+ const context={environment:'DEMO',free_margin:1e9,used_margin:0,leverage:10,open_positions:[],exposure:{total_notional_usd:0,total_open_risk_usd:0,total_open_risk_pct:0,active_position_count:0,positions_by_symbol:{}},daily_drawdown:{starting_balance:10000,peak_equity:10000,current_drawdown_amount:0,current_drawdown_pct:0,max_allowed_pct:5,is_violated:false},total_drawdown:{initial_balance:10000,high_water_mark:10000,current_drawdown_amount:0,current_drawdown_pct:0,max_allowed_pct:12,is_violated:false},risk_profile:{max_risk_per_trade_pct:2,max_open_risk_pct:6,max_leverage:20,min_notional_usd:10},prop_rules:null,session_state:{is_session_open:true,active_session_name:'Always',current_time_utc:at},news_state:{in_high_impact_news_window:false,news_event_title:null,minutes_to_news:null,minutes_after_news:null},runtime_health:{is_healthy:true,last_heartbeat_at:at,bridge_status:'CONNECTED',error_count_last_hour:0}};
+ const account={id:'account',customer_id:'owner',provider:'binance',account_mode:'PERSONAL',enabled:true,execution_enabled:true,immutable_identity:'binance:demo:account',runtime_control:'START',policy_profile_id:DEFAULT_BINANCE_PERSONAL_POLICY.policy_id,policy_version:DEFAULT_BINANCE_PERSONAL_POLICY.policy_version,policy_preset:'BALANCED',policy_overrides:{base_policy:DEFAULT_BINANCE_PERSONAL_POLICY,simulation_context:context,policy_configuration:{allowedSymbols:null,allowedStrategies:[winner.strategyId]},contracts:[{symbol:'BTCUSDT',contractSize:1,quantityStep:.001,quoteCurrency:'USD'}],conversion_rates:{}}};
+ db.tables.connected_execution_accounts=[account];db.tables.account_brain_assignments=[{id:'brain',customer_id:'owner',execution_account_id:'account',policy_version:account.policy_version,superseded_at:null}];
+ const payload={sourceRunId:'scanner',accountId:'account',brainAssignmentId:'brain',initialCapital:10000,currency:'USD'},authority=await deriveAccountSimulationAuthority(db,{...payload,actorId:'owner'});
+ db.job=job('ACCOUNT',payload);db.job.configuration_hash=await fingerprint(authority);db.job.execution_account_id='account';db.state='QUEUED';db.rows=[];
+ assert.equal((await run(db)).state,'COMPLETED');assert.ok(db.rows.length);assert.ok(Number.isFinite(db.finish.p_summary.endingBalance));
+ await assert.rejects(()=>deriveAccountSimulationAuthority(db,{...payload,actorId:'other'}),/UNAUTHORIZED/);
+ const accountRun={id:'account-run',kind:'ACCOUNT',created_by:'owner',status:'COMPLETED',cancellation_requested_at:null,source_run_id:'scanner',dataset_hash:hash,configuration_hash:'config-hash',immutable_input:payload};
+ db.tables.validation_simulation_runs=[accountRun];db.tables.validation_simulation_evidence=db.rows.map(x=>({...x.row,run_id:'account-run'}));
+ const profile=PROP_PROFILES.FTMO_TWO_STEP;db.tables.prop_account_configs=[{id:'prop',user_id:'owner',profile_id:'FTMO_TWO_STEP',profile_version:profile.profileVersion,configuration:{id:'prop',profileId:'FTMO_TWO_STEP',profileVersion:profile.profileVersion,accountSize:10000,currency:'USD'}}];
+ const propInput={accountRunId:'account-run',propConfigId:'prop'},propAuthority=await derivePropCampaignAuthority(db,{...propInput,actorId:'owner'});
+ db.job=job('PROP',propInput);db.job.configuration_hash=await fingerprint(propAuthority);db.state='QUEUED';db.rows=[];
+ assert.equal((await run(db)).state,'COMPLETED');assert.equal(db.finish.p_summary.status,'INCOMPLETE','insufficient campaign coverage must remain uncertain');
+ assert.ok(db.calls.every(c=>!['read:signals','read:payments','read:phase_h_entitlements','read:provider_connections'].includes(c)));
+ for(const call of db.calls.filter(c=>!c.startsWith('read:')))assert.ok(['claim_phase_p_job','heartbeat_phase_p_job','checkpoint_phase_p_job','finish_phase_p_job'].includes(call));
+});
+test('checkpoint yield and bounded retry/dead-letter behavior uses the same store adapter',async()=>{
+ const db=new Db();db.job=job('REPLAY',{});const handlers=createHandlers(db);
+ handlers.REPLAY=async c=>{await c.store.checkpoint(c.job,{cursor:25,total:50},[]);return {done:false,summary:{}};};
+ assert.equal((await runSlice({store:new SupabaseWorkerStore(db),handlers,host:'test',revision:'test'})).state,'YIELD');assert.equal(db.job.checkpoint.cursor,25);
+ handlers.REPLAY=async c=>{assert.equal(c.job.checkpoint.cursor,25);throw new WorkerFault('BOUNDED_RETRY');};
+ for(let i=0;i<3;i++)assert.equal((await runSlice({store:new SupabaseWorkerStore(db),handlers,host:'test',revision:'test'})).state,i===2?'DEAD_LETTER':'RETRY');
+});
+test('lease loss or cancellation cannot finalize, and scanner cloud hosting stays absent',async()=>{
+ const db=new Db();db.job=job('REPLAY',{});const handlers=createHandlers(db);
+ handlers.REPLAY=async()=>{throw new WorkerFault('JOB_CANCELLED');};assert.equal((await runSlice({store:new SupabaseWorkerStore(db),handlers,host:'test',revision:'test'})).state,'JOB_CANCELLED');assert.ok(!db.finish);
+ const source=readFileSync('cloud/worker/handlers.ts','utf8');assert.doesNotMatch(source,/commitScannerDecision|sendMessage|executeOrder|createOrder|persist_phase_o_draft/);
+ const tf=readFileSync('cloud/infrastructure/terraform/portable-worker/main.tf','utf8');assert.doesNotMatch(tf,/scanner|allUsers|scheduler_job/);
+});

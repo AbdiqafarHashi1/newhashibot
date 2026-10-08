@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail; source "$(dirname "$0")/common-demo.sh"; : "${REGISTRY:?REGISTRY required}"; SHA="${1:?commit SHA required}"
-for service in "${SERVICES[@]}"; do image="$REGISTRY/hashibot-$service"; for tag in "$SHA" "${BUILD_ID:?BUILD_ID required}" shadow; do docker push "$image:$tag"; done; docker inspect --format='{{index .RepoDigests 0}}' "$image:$SHA"; done
+set -euo pipefail
+echo 'Phase P is code readiness only. Remote cloud actions are disabled. Follow PHASE_P_PORTABLE_WORKERS_CLOUD_READINESS.md after separate activation authorization.' >&2
+exit 10

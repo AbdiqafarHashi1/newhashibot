@@ -28,7 +28,7 @@ export function validateReplayAssumptions(a: ReplayFillAssumptions) {
   if (a.maxBarsInTrade!==undefined&&(!Number.isInteger(a.maxBarsInTrade)||a.maxBarsInTrade<1)) throw new Error("INVALID_MAX_BARS_IN_TRADE");
 }
 
-export function evaluateReplayOutcome(candidate:ArbitrationCandidate,candles:readonly StrategyCandle[],after:string,a:ReplayFillAssumptions):ReplayOutcome|null {
+export function* evaluateReplayOutcomeSteps(candidate:ArbitrationCandidate,candles:readonly StrategyCandle[],after:string,a:ReplayFillAssumptions):Generator<void,ReplayOutcome|null> {
   validateReplayAssumptions(a);
   const path=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(after)); if(!path.length)return null;
   const entryCandle=path[0], entry=entryCandle.open, sign=candidate.side==="buy"?1:-1;
@@ -46,6 +46,7 @@ export function evaluateReplayOutcome(candidate:ArbitrationCandidate,candles:rea
   const row=(status:ReplayOutcome["status"],exitTime:string|null,exitPrice:number|null,ambiguous=false):ReplayOutcome=>({candidateId:candidate.id,strategyId:candidate.strategyId,symbol:candidate.symbol,timeframe:candidate.timeframe,status,entryTime:entryCandle.open_time,exitTime,entryPrice:entry,exitPrice,grossR:status==="OPEN"||ambiguous?null:gross,netR:status==="OPEN"||ambiguous?null:gross-costR,costR,partialExit:tp1Hit,conservative:ambiguous||status==="STOP",cashFlowEvents:events});
   const limited=path.slice(0,a.maxBarsInTrade??path.length);
   for(const candle of limited){
+    yield;
     const hitStop=sign===1?candle.low<=stop:candle.high>=stop;
     const hitTp1=!tp1Hit&&(sign===1?candle.high>=tp1:candle.low<=tp1);
     const hitTp2=sign===1?candle.high>=tp2:candle.low<=tp2;
@@ -66,3 +67,5 @@ export function summarizeReplayOutcomes(rows:readonly ReplayOutcome[]){
   let equity=0,peak=0,drawdown=0;const realizedEquityCurve=events.map(e=>{equity+=e.realizedR;peak=Math.max(peak,equity);drawdown=Math.max(drawdown,peak-equity);return{...e,equityR:equity}});
   return{analysisMode:"INDEPENDENT_SIGNAL_OUTCOMES" as const,overlapPolicy:"NOT_PORTFOLIO_NETTED" as const,tradeCount:rows.length,resolvedCount:resolved.length,openCount:rows.filter(r=>r.status==="OPEN").length,ambiguousCount:rows.filter(r=>r.status==="AMBIGUOUS").length,excludedCount:rows.filter(r=>r.status==="EXCLUDED").length,expectancyR:returns.length?returns.reduce((a,b)=>a+b,0)/returns.length:null,profitFactor:grossLoss?grossProfit/grossLoss:null,profitFactorUndefinedReason:grossLoss?null:grossProfit>0?"NO_LOSING_TRADES":"NO_RESOLVED_PROFIT",realizedMaxDrawdownR:events.length?drawdown:null,realizedEquityCurve};
 }
+
+export function evaluateReplayOutcome(...input:Parameters<typeof evaluateReplayOutcomeSteps>){const steps=evaluateReplayOutcomeSteps(...input);let step=steps.next();while(step.done===false)step=steps.next();return step.value;}

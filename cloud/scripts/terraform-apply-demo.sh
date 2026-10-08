@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail; source "$(dirname "$0")/common-demo.sh"; [[ "${TF_VAR_deploy_approved:-false}" == true ]] || { echo explicit-approval-required >&2; exit 2; }; plan="${1:?reviewed plan required}"; terraform -chdir=cloud/infrastructure/terraform/environments/demo apply -input=false "$(realpath "$plan")"
+set -euo pipefail
+echo 'Phase P is code readiness only. Remote cloud actions are disabled. Follow PHASE_P_PORTABLE_WORKERS_CLOUD_READINESS.md after separate activation authorization.' >&2
+exit 10
