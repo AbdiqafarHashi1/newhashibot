@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { supabase } from '../../lib/supabase';
 import {
   Bot, Sparkles, Send, MessageSquare, TrendingUp, Copy, Check,
   RefreshCw, MapPin, CheckCircle2, Settings2, Plus, Trash2,
   Eye, EyeOff, Radio, ShieldCheck, ImageIcon, X
 } from 'lucide-react';
 import hubPreviewImg from '../../assets/images/ai_agents_hub_preview_1787772786427.jpg';
+import { PhaseOAgentsOperations } from '../../components/operations/PhaseOAgentsOperations';
 
 interface TelegramChannelConfig {
   id: string;
@@ -21,20 +21,9 @@ export default function AIAgentsCommand() {
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
 
   // Telegram Dispatcher Configuration
-  const [botToken, setBotToken] = useState<string>(() => localStorage.getItem('hashibot_telegram_bot_token') || '');
+  const [botToken] = useState<string>('');
   const [showBotToken, setShowBotToken] = useState(false);
-  const [channels, setChannels] = useState<TelegramChannelConfig[]>(() => {
-    const saved = localStorage.getItem('hashibot_telegram_channels');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { /* ignore */ }
-    }
-    return [
-      { id: '1', name: '🇰🇪 Kenya Forex & MT5 Open Group', chatId: '@HashiBotKenya', type: 'public_marketing' },
-      { id: '2', name: '📢 Free VIP Signals Channel', chatId: '@HashiBotSignals', type: 'free_signals' },
-      { id: '3', name: '💎 VIP MT5 Prop Pass Desk', chatId: '-1002345678901', type: 'vip_forex' },
-      { id: '4', name: '⚡ VIP Crypto Futures VIP', chatId: '-1003456789012', type: 'vip_crypto' },
-    ];
-  });
+  const [channels, setChannels] = useState<TelegramChannelConfig[]>([]);
 
   const [selectedBroadcastChannelId, setSelectedBroadcastChannelId] = useState<string>('all');
   const [broadcastStatus, setBroadcastStatus] = useState<{ loading: boolean; message?: string; success?: boolean }>({ loading: false });
@@ -42,7 +31,7 @@ export default function AIAgentsCommand() {
   // New Channel Input Form State
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelId, setNewChannelId] = useState('');
-  const [newChannelType, setNewChannelType] = useState<'public_marketing' | 'free_signals' | 'vip_forex' | 'vip_crypto'>('public_marketing');
+  const [newChannelType] = useState<'public_marketing' | 'free_signals' | 'vip_forex' | 'vip_crypto'>('public_marketing');
 
   // Agent 1: Marketing / Outreach State
   const [marketingNiche, setMarketingNiche] = useState<string>('kenya_forex');
@@ -59,7 +48,7 @@ export default function AIAgentsCommand() {
   const [pulseLoading, setPulseLoading] = useState(false);
 
   // Agent 3: VIP Advisor State
-  const [customers, setCustomers] = useState<Array<{ id: string; email: string; full_name?: string; package_name?: string }>>([]);
+  const [customers] = useState<Array<{ id: string; email: string; full_name?: string; package_name?: string }>>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [advisorQuestion, setAdvisorQuestion] = useState<string>('What is my current drawdown risk, and should I adjust my lot size for the NY session?');
   const [advisorResult, setAdvisorResult] = useState<string>('');
@@ -70,27 +59,7 @@ export default function AIAgentsCommand() {
   const [alphaResult, setAlphaResult] = useState<string>('');
   const [alphaLoading, setAlphaLoading] = useState(false);
 
-  // Save Telegram Settings
-  useEffect(() => {
-    localStorage.setItem('hashibot_telegram_bot_token', botToken);
-  }, [botToken]);
-
-  useEffect(() => {
-    localStorage.setItem('hashibot_telegram_channels', JSON.stringify(channels));
-  }, [channels]);
-
-  // Load Customers for Advisor Demo
-  useEffect(() => {
-    supabase
-      .from('customer_subscriptions')
-      .select('id, email, full_name, package_name')
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setCustomers(data);
-          setSelectedCustomerId(data[0].id);
-        }
-      });
-  }, []);
+  // Customer profiles are loaded only by the authenticated Phase O Customer Guide authority.
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -264,7 +233,7 @@ export default function AIAgentsCommand() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 pb-20 max-w-6xl mx-auto">
+      <div className="space-y-6 pb-20 max-w-6xl mx-auto"><PhaseOAgentsOperations /><div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">The legacy preview tools below are retained for visual continuity but their browser-authored AI endpoints are retired. Create evidence-grounded jobs in the connected controls above.</div>
         
         {/* Header */}
         <div className="border-b border-zinc-800 pb-5">
@@ -400,7 +369,7 @@ export default function AIAgentsCommand() {
                   Telegram Channels & Bot Dispatcher Settings
                 </h2>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Connect your Telegram Bot Token and add your target public/private channel IDs. The AI agents will automatically broadcast messages directly into these channels.
+                  Telegram credentials and destination identities are server-controlled. Use the connected Phase O operations controls below; no browser token or chat ID is accepted.
                 </p>
               </div>
 
@@ -408,13 +377,14 @@ export default function AIAgentsCommand() {
               <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 space-y-3">
                 <label className="text-xs font-bold text-white flex items-center justify-between">
                   <span>Telegram Bot Token (from @BotFather)</span>
-                  <span className="text-[11px] text-zinc-500 font-normal">Stored locally in your browser</span>
+                  <span className="text-[11px] text-zinc-500 font-normal">Configured only in server secrets</span>
                 </label>
                 <div className="relative flex items-center">
                   <input
                     type={showBotToken ? 'text' : 'password'}
                     value={botToken}
-                    onChange={e => setBotToken(e.target.value)}
+                    readOnly
+                    disabled
                     placeholder="e.g. 7123456789:AAFlmQk... (Get from @BotFather on Telegram)"
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono pr-10 focus:outline-none focus:border-indigo-500"
                   />
@@ -463,7 +433,7 @@ export default function AIAgentsCommand() {
                 {/* Add New Channel */}
                 <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-3">
                   <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                    <Plus className="w-4 h-4 text-indigo-400" /> Add New Telegram Channel / Group
+                    <Plus className="w-4 h-4 text-indigo-400" /> Server-controlled destination registry
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <div>
@@ -471,7 +441,7 @@ export default function AIAgentsCommand() {
                       <input
                         type="text"
                         value={newChannelName}
-                        onChange={e => setNewChannelName(e.target.value)}
+                        disabled
                         placeholder="e.g. Kenya FX Telegram"
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                       />
@@ -481,7 +451,7 @@ export default function AIAgentsCommand() {
                       <input
                         type="text"
                         value={newChannelId}
-                        onChange={e => setNewChannelId(e.target.value)}
+                        disabled
                         placeholder="e.g. @YourChannel or -100..."
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
                       />
@@ -490,7 +460,7 @@ export default function AIAgentsCommand() {
                       <label className="text-zinc-400 block mb-1">Channel Type</label>
                       <select
                         value={newChannelType}
-                        onChange={e => setNewChannelType(e.target.value as 'public_marketing' | 'free_signals' | 'vip_forex' | 'vip_crypto')}
+                        disabled
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                       >
                         <option value="public_marketing">Public Marketing / Outreach</option>
@@ -503,9 +473,10 @@ export default function AIAgentsCommand() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleAddChannel}
+                      disabled
                       className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all"
                     >
-                      <Plus className="w-4 h-4" /> Save Channel
+                      <Plus className="w-4 h-4" /> Configure through Phase O controls
                     </button>
                   </div>
                 </div>

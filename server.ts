@@ -247,6 +247,20 @@ app.get("/api/market-data/history", async (req, res) => {
   }
 });
 
+// Legacy AI routes are server-to-server only. Phase O browser controls use the authenticated Supabase authority.
+app.use("/api/ai", (req, res, next) => {
+  const expected = process.env.HASHIBOT_AI_INTERNAL_SECRET;
+  if (!expected || req.header("x-hashibot-ai-internal-secret") !== expected) {
+    return res.status(401).json({ error: "SERVER_AI_AUTHORIZATION_REQUIRED" });
+  }
+  next();
+});
+
+// Browser-authored marketing, market, account and alpha facts are retired in favor of Phase O canonical evidence jobs.
+app.use(["/api/ai/marketing", "/api/ai/pulse", "/api/ai/advisor", "/api/ai/alpha"], (_req, res) =>
+  res.status(410).json({ error: "USE_AUTHENTICATED_PHASE_O_CANONICAL_JOBS" }),
+);
+
 // 1. Real AI Marketing Outreach Generator
 app.post("/api/ai/marketing", async (req, res) => {
   try {
