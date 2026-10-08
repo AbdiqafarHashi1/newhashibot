@@ -1,6 +1,7 @@
 import {readdirSync,readFileSync,mkdirSync,writeFileSync} from 'node:fs';
 import {join,relative} from 'node:path';
 import {createHash} from 'node:crypto';
+import {buildManifest} from './deployment-manifest.mjs';
 const source=process.argv[2]??'.',sourceRef=process.argv[3]??'WORKING_TREE',output=process.argv[4]??'docs/phase-p/main-inventory.json';
 const walk=path=>readdirSync(path,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(join(path,x.name)):[join(path,x.name)]);
 const hash=s=>createHash('sha256').update(s).digest('hex');
@@ -15,3 +16,6 @@ const dependencyReview={newPhasePVersion:'20261013120000',latestMainVersion:migr
 const result={dependencyReview,sourceRef,generatedAt:new Date().toISOString(),remoteReconciliation:'NOT_RUN',migrationStatus:'Repository inventory only. Pending set is UNKNOWN until compared with online history.',migrations,timestampCollisions,functions,cronDefinitions};
 mkdirSync(join(output,'..'),{recursive:true});writeFileSync(output,JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify({migrations:migrations.length,automatic:migrations.filter(m=>m.automaticCandidate).length,collisions:timestampCollisions.length,functions:functions.length,cronReferences:cronDefinitions.length}));
+const manifest=buildManifest(source,sourceRef),manifestOutput=process.argv[5]??'docs/phase-p/deployment-manifest.json';
+mkdirSync(join(manifestOutput,'..'),{recursive:true});writeFileSync(manifestOutput,JSON.stringify(manifest,null,2)+'\n');
+console.log(JSON.stringify({manifest:manifestOutput,sqlFiles:manifest.migrations.length,objects:manifest.migrations.reduce((n,m)=>n+m.objects.length,0),dependencies:manifest.dependencies.length,overlaps:manifest.overlaps.length,batches:manifest.batches.length}));

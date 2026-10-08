@@ -16,7 +16,7 @@ try{
  let authReady=false;for(let i=0;i<80;i++){try{docker(['exec',auth,'wget','-Y','off','-qO-','http://127.0.0.1:9999/health']);authReady=true;break;}catch{}await new Promise(r=>setTimeout(r,250));}if(!authReady){writeFileSync('work/phase-p/repair/local-auth-start-failure.log',docker(['logs',auth]));throw Error('LOCAL_AUTH_START_FAILED');}
  // Separate fresh DB gets real GoTrue auth DDL, followed by the exact unchanged migration chain.
  const authSchema=docker(['exec',prefix,'pg_dump','-U','postgres','-s','-n','auth']);
- docker(['run','-d','--name',chain,'--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:16-alpine']);await ready(chain);
+ docker(['run','-d','--name',chain,'--label','hashibot.offline-rehearsal=true','--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:16-alpine']);await ready(chain);
  sql(chain,'CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;CREATE EXTENSION IF NOT EXISTS pgcrypto;CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');sql(chain,authSchema);
  const rehearsal=spawn('node',['tests/phaseP/migration-rehearsal.mjs',chain],{stdio:['ignore','pipe','pipe']});let rehearsalLog='';rehearsal.stdout.on('data',d=>rehearsalLog+=d);rehearsal.stderr.on('data',d=>rehearsalLog+=d);const rehearsalCode=await new Promise(r=>rehearsal.on('exit',r));writeFileSync('work/phase-p/repair/full-migration-rehearsal.log',rehearsalLog);console.log(`Full migration rehearsal exit: ${rehearsalCode}`);console.log(rehearsalLog.trim());
  docker(['run','-d','--name',rest,'--network',network,'--network-alias','rest','-e',`PGRST_DB_URI=postgres://authenticator:${password}@database:5432/postgres`,'-e','PGRST_DB_SCHEMAS=public','-e','PGRST_DB_ANON_ROLE=anon','-e',`PGRST_JWT_SECRET=${secret}`,'-e','PGRST_LOG_LEVEL=error','ghcr.io/supabase/postgrest:v16.4']);
@@ -29,6 +29,6 @@ try{
  docker(['cp',configPath,client+':/app/'+configPath]);
  const child=spawn('docker',['--host=unix:///var/run/docker.sock','exec',client,'node','--import','tsx','tests/phaseP/local-supabase.ts',configPath],{stdio:'inherit'});const code=await new Promise(r=>child.on('exit',r));if(code)process.exitCode=code;
 }finally{
- for(const name of [client,rest,auth,prefix,chain])try{docker(['rm','-f',name]);}catch{}
+ for(const name of [client,rest,auth,prefix,chain])try{docker(['rm','-f','-v',name]);}catch{}
  try{docker(['network','rm',network]);}catch{}
 }

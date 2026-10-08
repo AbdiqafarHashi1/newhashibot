@@ -1,0 +1,1445 @@
+{
+  "baseCommit": "93eee3e8c3f40a1b67a04a10a6827056b553e8e3",
+  "fullChain": {
+    "scope": "UNCHANGED_FULL_AUTOMATIC_CHAIN",
+    "fixture": false,
+    "image": "hashibot-migration-rehearsal:local",
+    "status": "BLOCKED",
+    "activation": false,
+    "imageId": "sha256:8f57e270dfdd663fdbc9f3614295443f6cb9c0f8d70735b34753724a950f4008",
+    "postgres": "PostgreSQL 15.19 (Debian 15.19-0+deb12u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "extensions": [
+      {
+        "name": "supabase_vault",
+        "version": "0.3.1"
+      },
+      {
+        "name": "pg_net",
+        "version": "0.14.0"
+      },
+      {
+        "name": "pg_cron",
+        "version": "1.6"
+      }
+    ],
+    "authBootstrap": "REAL_GOTRUE_MIGRATIONS_COMPLETED",
+    "migration": "20260530170000_020_c2_forex_signal_mode_parity.sql",
+    "precedingFilesExecuted": 19,
+    "error": "ERROR:  column \"active_timeframes\" is of type text[] but expression is of type jsonb\nLINE 4:     active_timeframes = '[\"5m\",\"15m\",\"1h\",\"4h\"]'::jsonb,\n                                ^\nHINT:  You will need to rewrite or cast the expression.",
+    "executedFiles": [
+      {
+        "identity": "supabase/migrations/20260526042530_001_create_core_tables.sql",
+        "sourceSha256": "30bbf7df21904225045857dc06129dcdbd62a416dcb5710d09dc14c4cad153b1",
+        "executedSha256": "30bbf7df21904225045857dc06129dcdbd62a416dcb5710d09dc14c4cad153b1"
+      },
+      {
+        "identity": "supabase/migrations/20260526045924_002_scanner_config.sql",
+        "sourceSha256": "d6cbb46bfc463728ffae49429a0a6257614e761157adee9dfe337acb77fbf8fd",
+        "executedSha256": "d6cbb46bfc463728ffae49429a0a6257614e761157adee9dfe337acb77fbf8fd"
+      },
+      {
+        "identity": "supabase/migrations/20260526053206_003_telegram_links.sql",
+        "sourceSha256": "f99787c7530f1d1d16f9bb86522b31dfd6b78239e64a0087939b29faa4ab5147",
+        "executedSha256": "f99787c7530f1d1d16f9bb86522b31dfd6b78239e64a0087939b29faa4ab5147"
+      },
+      {
+        "identity": "supabase/migrations/20260526055533_004_fix_profiles_rls_and_trigger.sql",
+        "sourceSha256": "bd0fb8edd426621eeb3d46ea895d0dc37949b014fdb09de6f52216f57e3f8569",
+        "executedSha256": "bd0fb8edd426621eeb3d46ea895d0dc37949b014fdb09de6f52216f57e3f8569"
+      },
+      {
+        "identity": "supabase/migrations/20260526055553_005_access_requests_and_telegram_updates.sql",
+        "sourceSha256": "025570817a49becfda8e45f91e629953cfa612fca826ef1694c3eff2b80918e9",
+        "executedSha256": "025570817a49becfda8e45f91e629953cfa612fca826ef1694c3eff2b80918e9"
+      },
+      {
+        "identity": "supabase/migrations/20260526062858_006_fix_profiles_rls_recursion.sql",
+        "sourceSha256": "95854f58bc51baa69e516a500fbf8ae3f78a49c64973420222a3527219588471",
+        "executedSha256": "95854f58bc51baa69e516a500fbf8ae3f78a49c64973420222a3527219588471"
+      },
+      {
+        "identity": "supabase/migrations/20260526072547_007_strategy_configs_execution_orders_candidates_schema.sql",
+        "sourceSha256": "75187cf29ba3cabe015ed2638520b6e6458d52d4ff1130a32e95523b019b3fd5",
+        "executedSha256": "75187cf29ba3cabe015ed2638520b6e6458d52d4ff1130a32e95523b019b3fd5"
+      },
+      {
+        "identity": "supabase/migrations/20260526080120_008_modes_risk_profiles_paper_execution_backtest.sql",
+        "sourceSha256": "00861086da28fb7f78c9e53de433fff9bb481465ca00aca9d885f4335af27221",
+        "executedSha256": "00861086da28fb7f78c9e53de433fff9bb481465ca00aca9d885f4335af27221"
+      },
+      {
+        "identity": "supabase/migrations/20260526082022_009_scanner_config_phase5a_fields.sql",
+        "sourceSha256": "0cb0d55860267d143461f9fb5f69631c6a3cc3b4c4957e58635cf662eeeae46e",
+        "executedSha256": "0cb0d55860267d143461f9fb5f69631c6a3cc3b4c4957e58635cf662eeeae46e"
+      },
+      {
+        "identity": "supabase/migrations/20260526084706_010_replay_testnet_lab.sql",
+        "sourceSha256": "6431bd809e457942c81ee0fc6b25af7ebb3fc193f6585f4207fc160f9589d4c1",
+        "executedSha256": "6431bd809e457942c81ee0fc6b25af7ebb3fc193f6585f4207fc160f9589d4c1"
+      },
+      {
+        "identity": "supabase/migrations/20260526090658_011_enable_pg_cron_and_net.sql",
+        "sourceSha256": "a1880a37b696ef9040230d9aee92a48d8fc4e0164b6626a880f9680186c959f5",
+        "executedSha256": "a1880a37b696ef9040230d9aee92a48d8fc4e0164b6626a880f9680186c959f5"
+      },
+      {
+        "identity": "supabase/migrations/20260526100000_012_schedule_market_scanner_cron.sql",
+        "sourceSha256": "486ee1fd372ef844a0ca6be16b9eaecd55533dfb3c950e9f3a5baf6cd394b118",
+        "executedSha256": "486ee1fd372ef844a0ca6be16b9eaecd55533dfb3c950e9f3a5baf6cd394b118"
+      },
+      {
+        "identity": "supabase/migrations/20260527073425_013_signal_updates_column_fix.sql",
+        "sourceSha256": "5a444e22cf7cb0af248fe154399e03ee4f469e9523cd079c6ba36b5027ba7f50",
+        "executedSha256": "5a444e22cf7cb0af248fe154399e03ee4f469e9523cd079c6ba36b5027ba7f50"
+      },
+      {
+        "identity": "supabase/migrations/20260529120000_014_repair_scheduled_scanner_cron.sql",
+        "sourceSha256": "9dbabfcef997a5bb1e0780f6696eaaf299ebb6e61808f442ad36db85241a79f5",
+        "executedSha256": "9dbabfcef997a5bb1e0780f6696eaaf299ebb6e61808f442ad36db85241a79f5"
+      },
+      {
+        "identity": "supabase/migrations/20260530025404_015_scanner_runs_provenance_columns.sql",
+        "sourceSha256": "fc74e926555446a1c9d70a56f17ddb6af460c443384c64efe881ce92a7970b34",
+        "executedSha256": "fc74e926555446a1c9d70a56f17ddb6af460c443384c64efe881ce92a7970b34"
+      },
+      {
+        "identity": "supabase/migrations/20260530053148_016_scanner_runs_telegram_skipped_count.sql",
+        "sourceSha256": "429f91686f6ebe16a09b776d130b257b937c40c6d26b522622e5bee2b86df148",
+        "executedSha256": "429f91686f6ebe16a09b776d130b257b937c40c6d26b522622e5bee2b86df148"
+      },
+      {
+        "identity": "supabase/migrations/20260530054730_017_signal_analytics_views.sql",
+        "sourceSha256": "29ce43049d65e7ef4c9b063209f80760f7123f57bc453c2b67c23d41dd36fe4c",
+        "executedSha256": "29ce43049d65e7ef4c9b063209f80760f7123f57bc453c2b67c23d41dd36fe4c"
+      },
+      {
+        "identity": "supabase/migrations/20260530064042_018_strategy_modes_and_distance_guards.sql",
+        "sourceSha256": "5a59cae31f10382fbaf1fd0270d812660c8910bbe8b8dd9eda89f068ba573e35",
+        "executedSha256": "5a59cae31f10382fbaf1fd0270d812660c8910bbe8b8dd9eda89f068ba573e35"
+      },
+      {
+        "identity": "supabase/migrations/20260530142932_019_packages_and_customer_subscriptions.sql",
+        "sourceSha256": "d49935ca5b3d10b0c455acb8bb7aec6ebb2dc649ed8f4ae75587f24a9319ced7",
+        "executedSha256": "d49935ca5b3d10b0c455acb8bb7aec6ebb2dc649ed8f4ae75587f24a9319ced7"
+      }
+    ],
+    "transformations": [],
+    "prerequisite": "Inspect the exact error and this migration source; do not skip or mark history.",
+    "catalogInspection": "PASSED",
+    "schemaFingerprint": "1f27052198ad0618bb8a0ad57df0a4938a588c9bb33b97a6214d851af534df99"
+  },
+  "compatibility": {
+    "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL",
+    "fixture": false,
+    "image": "hashibot-migration-rehearsal:local",
+    "status": "PASSED",
+    "activation": false,
+    "imageId": "sha256:8f57e270dfdd663fdbc9f3614295443f6cb9c0f8d70735b34753724a950f4008",
+    "postgres": "PostgreSQL 15.19 (Debian 15.19-0+deb12u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "extensions": [
+      {
+        "name": "supabase_vault",
+        "version": "0.3.1"
+      },
+      {
+        "name": "pg_net",
+        "version": "0.14.0"
+      },
+      {
+        "name": "pg_cron",
+        "version": "1.6"
+      }
+    ],
+    "authBootstrap": "REAL_GOTRUE_MIGRATIONS_COMPLETED",
+    "files": 175,
+    "executedFiles": [
+      {
+        "identity": "supabase/migrations/20260526042530_001_create_core_tables.sql",
+        "sourceSha256": "30bbf7df21904225045857dc06129dcdbd62a416dcb5710d09dc14c4cad153b1",
+        "executedSha256": "30bbf7df21904225045857dc06129dcdbd62a416dcb5710d09dc14c4cad153b1"
+      },
+      {
+        "identity": "supabase/migrations/20260526045924_002_scanner_config.sql",
+        "sourceSha256": "d6cbb46bfc463728ffae49429a0a6257614e761157adee9dfe337acb77fbf8fd",
+        "executedSha256": "d6cbb46bfc463728ffae49429a0a6257614e761157adee9dfe337acb77fbf8fd"
+      },
+      {
+        "identity": "supabase/migrations/20260526053206_003_telegram_links.sql",
+        "sourceSha256": "f99787c7530f1d1d16f9bb86522b31dfd6b78239e64a0087939b29faa4ab5147",
+        "executedSha256": "f99787c7530f1d1d16f9bb86522b31dfd6b78239e64a0087939b29faa4ab5147"
+      },
+      {
+        "identity": "supabase/migrations/20260526055533_004_fix_profiles_rls_and_trigger.sql",
+        "sourceSha256": "bd0fb8edd426621eeb3d46ea895d0dc37949b014fdb09de6f52216f57e3f8569",
+        "executedSha256": "bd0fb8edd426621eeb3d46ea895d0dc37949b014fdb09de6f52216f57e3f8569"
+      },
+      {
+        "identity": "supabase/migrations/20260526055553_005_access_requests_and_telegram_updates.sql",
+        "sourceSha256": "025570817a49becfda8e45f91e629953cfa612fca826ef1694c3eff2b80918e9",
+        "executedSha256": "025570817a49becfda8e45f91e629953cfa612fca826ef1694c3eff2b80918e9"
+      },
+      {
+        "identity": "supabase/migrations/20260526062858_006_fix_profiles_rls_recursion.sql",
+        "sourceSha256": "95854f58bc51baa69e516a500fbf8ae3f78a49c64973420222a3527219588471",
+        "executedSha256": "95854f58bc51baa69e516a500fbf8ae3f78a49c64973420222a3527219588471"
+      },
+      {
+        "identity": "supabase/migrations/20260526072547_007_strategy_configs_execution_orders_candidates_schema.sql",
+        "sourceSha256": "75187cf29ba3cabe015ed2638520b6e6458d52d4ff1130a32e95523b019b3fd5",
+        "executedSha256": "75187cf29ba3cabe015ed2638520b6e6458d52d4ff1130a32e95523b019b3fd5"
+      },
+      {
+        "identity": "supabase/migrations/20260526080120_008_modes_risk_profiles_paper_execution_backtest.sql",
+        "sourceSha256": "00861086da28fb7f78c9e53de433fff9bb481465ca00aca9d885f4335af27221",
+        "executedSha256": "00861086da28fb7f78c9e53de433fff9bb481465ca00aca9d885f4335af27221"
+      },
+      {
+        "identity": "supabase/migrations/20260526082022_009_scanner_config_phase5a_fields.sql",
+        "sourceSha256": "0cb0d55860267d143461f9fb5f69631c6a3cc3b4c4957e58635cf662eeeae46e",
+        "executedSha256": "0cb0d55860267d143461f9fb5f69631c6a3cc3b4c4957e58635cf662eeeae46e"
+      },
+      {
+        "identity": "supabase/migrations/20260526084706_010_replay_testnet_lab.sql",
+        "sourceSha256": "6431bd809e457942c81ee0fc6b25af7ebb3fc193f6585f4207fc160f9589d4c1",
+        "executedSha256": "6431bd809e457942c81ee0fc6b25af7ebb3fc193f6585f4207fc160f9589d4c1"
+      },
+      {
+        "identity": "supabase/migrations/20260526090658_011_enable_pg_cron_and_net.sql",
+        "sourceSha256": "a1880a37b696ef9040230d9aee92a48d8fc4e0164b6626a880f9680186c959f5",
+        "executedSha256": "a1880a37b696ef9040230d9aee92a48d8fc4e0164b6626a880f9680186c959f5"
+      },
+      {
+        "identity": "supabase/migrations/20260526100000_012_schedule_market_scanner_cron.sql",
+        "sourceSha256": "486ee1fd372ef844a0ca6be16b9eaecd55533dfb3c950e9f3a5baf6cd394b118",
+        "executedSha256": "486ee1fd372ef844a0ca6be16b9eaecd55533dfb3c950e9f3a5baf6cd394b118"
+      },
+      {
+        "identity": "supabase/migrations/20260527073425_013_signal_updates_column_fix.sql",
+        "sourceSha256": "5a444e22cf7cb0af248fe154399e03ee4f469e9523cd079c6ba36b5027ba7f50",
+        "executedSha256": "5a444e22cf7cb0af248fe154399e03ee4f469e9523cd079c6ba36b5027ba7f50"
+      },
+      {
+        "identity": "supabase/migrations/20260529120000_014_repair_scheduled_scanner_cron.sql",
+        "sourceSha256": "9dbabfcef997a5bb1e0780f6696eaaf299ebb6e61808f442ad36db85241a79f5",
+        "executedSha256": "9dbabfcef997a5bb1e0780f6696eaaf299ebb6e61808f442ad36db85241a79f5"
+      },
+      {
+        "identity": "supabase/migrations/20260530025404_015_scanner_runs_provenance_columns.sql",
+        "sourceSha256": "fc74e926555446a1c9d70a56f17ddb6af460c443384c64efe881ce92a7970b34",
+        "executedSha256": "fc74e926555446a1c9d70a56f17ddb6af460c443384c64efe881ce92a7970b34"
+      },
+      {
+        "identity": "supabase/migrations/20260530053148_016_scanner_runs_telegram_skipped_count.sql",
+        "sourceSha256": "429f91686f6ebe16a09b776d130b257b937c40c6d26b522622e5bee2b86df148",
+        "executedSha256": "429f91686f6ebe16a09b776d130b257b937c40c6d26b522622e5bee2b86df148"
+      },
+      {
+        "identity": "supabase/migrations/20260530054730_017_signal_analytics_views.sql",
+        "sourceSha256": "29ce43049d65e7ef4c9b063209f80760f7123f57bc453c2b67c23d41dd36fe4c",
+        "executedSha256": "29ce43049d65e7ef4c9b063209f80760f7123f57bc453c2b67c23d41dd36fe4c"
+      },
+      {
+        "identity": "supabase/migrations/20260530064042_018_strategy_modes_and_distance_guards.sql",
+        "sourceSha256": "5a59cae31f10382fbaf1fd0270d812660c8910bbe8b8dd9eda89f068ba573e35",
+        "executedSha256": "5a59cae31f10382fbaf1fd0270d812660c8910bbe8b8dd9eda89f068ba573e35"
+      },
+      {
+        "identity": "supabase/migrations/20260530142932_019_packages_and_customer_subscriptions.sql",
+        "sourceSha256": "d49935ca5b3d10b0c455acb8bb7aec6ebb2dc649ed8f4ae75587f24a9319ced7",
+        "executedSha256": "d49935ca5b3d10b0c455acb8bb7aec6ebb2dc649ed8f4ae75587f24a9319ced7"
+      },
+      {
+        "identity": "supabase/migrations/20260530170000_020_c2_forex_signal_mode_parity.sql",
+        "sourceSha256": "eecd345c6e9e21e872ff7c31b4ae8abef38ef18830052e6b356c2bd9eba14f19",
+        "executedSha256": "9c212e008158d1d98456cbcaeb5d005250fdb4a0f1a9d6f8ff40199051122c9e"
+      },
+      {
+        "identity": "supabase/migrations/20260530193000_021_c2_forex_twelvedata_provider.sql",
+        "sourceSha256": "fc881d10b1d9af961f4de6e0172d292846318b56897cbe9ba21d2c9fa45ab5ab",
+        "executedSha256": "fc881d10b1d9af961f4de6e0172d292846318b56897cbe9ba21d2c9fa45ab5ab"
+      },
+      {
+        "identity": "supabase/migrations/20260530200000_022_c2c_forex_rate_limit_safety.sql",
+        "sourceSha256": "227363e09323e1ae8a506678adf98dfe874de58b3e81d448e2eaf137a385995e",
+        "executedSha256": "227363e09323e1ae8a506678adf98dfe874de58b3e81d448e2eaf137a385995e"
+      },
+      {
+        "identity": "supabase/migrations/20260530213000_023_strategy_risk_leverage_guidance.sql",
+        "sourceSha256": "1a752f3bbd02aed5eb6bcc6507a284777aee77f696c63b3daa117a401705527e",
+        "executedSha256": "1a752f3bbd02aed5eb6bcc6507a284777aee77f696c63b3daa117a401705527e"
+      },
+      {
+        "identity": "supabase/migrations/20260530223000_024_strategy_config_real_parameter_surface.sql",
+        "sourceSha256": "e9cfb2a9673f4cdd5a6bd9ba3c8e3d234ba74e975b2ceb372f1c944d8d893b47",
+        "executedSha256": "e9cfb2a9673f4cdd5a6bd9ba3c8e3d234ba74e975b2ceb372f1c944d8d893b47"
+      },
+      {
+        "identity": "supabase/migrations/20260531090000_025_c4_signal_room_packages_kes.sql",
+        "sourceSha256": "87d65faa37ce893033d23a67a4625a90194910dd564edf551f00e8d2c11dc238",
+        "executedSha256": "87d65faa37ce893033d23a67a4625a90194910dd564edf551f00e8d2c11dc238"
+      },
+      {
+        "identity": "supabase/migrations/20260531120000_026_customer_navigation_pricing_clarity.sql",
+        "sourceSha256": "c885d605c758c8de2b16f4fab6fe5df9ea8a5c27ae1c59591c2036d3c3906417",
+        "executedSha256": "c885d605c758c8de2b16f4fab6fe5df9ea8a5c27ae1c59591c2036d3c3906417"
+      },
+      {
+        "identity": "supabase/migrations/20260531143000_027_admin_reset_trading_history.sql",
+        "sourceSha256": "45c6a51aa9f05f39dd98859c97f43f8bcbc803556d68c77308191d4a8e75e988",
+        "executedSha256": "45c6a51aa9f05f39dd98859c97f43f8bcbc803556d68c77308191d4a8e75e988"
+      },
+      {
+        "identity": "supabase/migrations/20260601090000_028_package_purchase_admin_approval_flow.sql",
+        "sourceSha256": "f5fe42c1023b3f5938119174d90c935cd954c6c9840d34e6cfe9794258c792db",
+        "executedSha256": "f5fe42c1023b3f5938119174d90c935cd954c6c9840d34e6cfe9794258c792db"
+      },
+      {
+        "identity": "supabase/migrations/20260601093000_029_user_access_unique_user_product.sql",
+        "sourceSha256": "79af00617e57243c06a0ba03f00296a54de0c01c5418c383598b3f374eccf51a",
+        "executedSha256": "79af00617e57243c06a0ba03f00296a54de0c01c5418c383598b3f374eccf51a"
+      },
+      {
+        "identity": "supabase/migrations/20260601103000_030_customer_bot_setups.sql",
+        "sourceSha256": "b2b0c7ba49be831694158e89f295f2e7493e0552a4f0b44c315a6df19703af1b",
+        "executedSha256": "b2b0c7ba49be831694158e89f295f2e7493e0552a4f0b44c315a6df19703af1b"
+      },
+      {
+        "identity": "supabase/migrations/20260601110000_031_full_trading_state_reset_preserve_candles.sql",
+        "sourceSha256": "6a46350d54ae4b5f5870f62f4eb225d05f9c0f13269efa9b09b4de8ae7ea53e5",
+        "executedSha256": "6a46350d54ae4b5f5870f62f4eb225d05f9c0f13269efa9b09b4de8ae7ea53e5"
+      },
+      {
+        "identity": "supabase/migrations/20260601120000_032_scanner_strategy_evaluation_summary.sql",
+        "sourceSha256": "e01cd73a55ae5e1abc32a556d319e519a0d3394a525b9d18c10f41bd15838da4",
+        "executedSha256": "e01cd73a55ae5e1abc32a556d319e519a0d3394a525b9d18c10f41bd15838da4"
+      },
+      {
+        "identity": "supabase/migrations/20260601214012_033_security_audit_fixes.sql",
+        "sourceSha256": "89346a812db59bee7ea660246c7773c54d928937bc0c2b451914397aedae969f",
+        "executedSha256": "89346a812db59bee7ea660246c7773c54d928937bc0c2b451914397aedae969f"
+      },
+      {
+        "identity": "supabase/migrations/20260603080000_034_signal_expiry_metadata.sql",
+        "sourceSha256": "03a743d5c1200b848f75f456aa0db4cf3d098795b3d18b03138af7bab53fd3c1",
+        "executedSha256": "03a743d5c1200b848f75f456aa0db4cf3d098795b3d18b03138af7bab53fd3c1"
+      },
+      {
+        "identity": "supabase/migrations/20260603162816_035_repair_cron_jobs_and_restart_scheduler.sql",
+        "sourceSha256": "63c755b762b419da40594e62a631f31235ac37d3a34661850d1cba6c85a42daf",
+        "executedSha256": "63c755b762b419da40594e62a631f31235ac37d3a34661850d1cba6c85a42daf"
+      },
+      {
+        "identity": "supabase/migrations/20260603172107_036_cron_pg_token_auth_fix.sql",
+        "sourceSha256": "86452529cc83ddd0e7e8cd5c7ac1f37600051eb143420e35910b7e55526ba8c0",
+        "executedSha256": "86452529cc83ddd0e7e8cd5c7ac1f37600051eb143420e35910b7e55526ba8c0"
+      },
+      {
+        "identity": "supabase/migrations/20260603184414_037_cb_sc_param_improvement.sql",
+        "sourceSha256": "9ccd400b458961a3f3390cad5b72507a6cc461cbb679cdc60247b80c9342b4c8",
+        "executedSha256": "9ccd400b458961a3f3390cad5b72507a6cc461cbb679cdc60247b80c9342b4c8"
+      },
+      {
+        "identity": "supabase/migrations/20260605093000_038_end_to_end_strategy_scanner_parity_repair.sql",
+        "sourceSha256": "e24bbc78e80164fc7d3568be2696bb9050973492942f40036599949fc1eaad74",
+        "executedSha256": "3586837e1af4a685659b68cac3cb76e9d0877fee221f6b655402b9de2bc651cb"
+      },
+      {
+        "identity": "supabase/migrations/20260605103000_039_microscalper_scanner_parity.sql",
+        "sourceSha256": "199b3f9919f7205f478f54d438f8e130673e0737128b305a8b81bdd9e5d0f686",
+        "executedSha256": "199b3f9919f7205f478f54d438f8e130673e0737128b305a8b81bdd9e5d0f686"
+      },
+      {
+        "identity": "supabase/migrations/20260605123000_040_binance_usdm_testnet_execution.sql",
+        "sourceSha256": "c04a09341d1ee98553a98b12fd30114fb9d5f92382404d3ff0c983270bdbb134",
+        "executedSha256": "c04a09341d1ee98553a98b12fd30114fb9d5f92382404d3ff0c983270bdbb134"
+      },
+      {
+        "identity": "supabase/migrations/20260605150000_041_binance_testnet_auto_capital_risk_brackets.sql",
+        "sourceSha256": "8e96b3e55e1edc2b367bbeceb373b598a11ad4466271e898a4f8e8e1e0ba3c57",
+        "executedSha256": "8e96b3e55e1edc2b367bbeceb373b598a11ad4466271e898a4f8e8e1e0ba3c57"
+      },
+      {
+        "identity": "supabase/migrations/20260605170000_042_binance_testnet_risk_governor_pnl_brain.sql",
+        "sourceSha256": "7419b4bee7a20d9863a8d4daf70bfe1ae8fca3ed23a7713554ccc400daa00934",
+        "executedSha256": "7419b4bee7a20d9863a8d4daf70bfe1ae8fca3ed23a7713554ccc400daa00934"
+      },
+      {
+        "identity": "supabase/migrations/20260606004500_040_microscalper_live_config_routing_guard.sql",
+        "sourceSha256": "9c7c40c589780c260e68b0a0bc559e3ab3fada9480fa5e326af1dd01d8cf3fa4",
+        "executedSha256": "9c7c40c589780c260e68b0a0bc559e3ab3fada9480fa5e326af1dd01d8cf3fa4"
+      },
+      {
+        "identity": "supabase/migrations/20260606100000_043_binance_testnet_bracket_be_risk_cap.sql",
+        "sourceSha256": "afa566e41467891cabfadd712d70c502bea664281ade81b408a0526b9ba3e094",
+        "executedSha256": "afa566e41467891cabfadd712d70c502bea664281ade81b408a0526b9ba3e094"
+      },
+      {
+        "identity": "supabase/migrations/20260607120000_038_binance_truth_first_execution_cleanup.sql",
+        "sourceSha256": "07d1dd96d8bbd178761c00a03502e831e1376bc645ee6de0bc7d7e852677a20d",
+        "executedSha256": "07d1dd96d8bbd178761c00a03502e831e1376bc645ee6de0bc7d7e852677a20d"
+      },
+      {
+        "identity": "supabase/migrations/20260607123000_039_binance_monitor_cron_and_constraints.sql",
+        "sourceSha256": "6ba3404d35d781f5ec0a92f876459b663c945a368652f78b05f927305ec3fe7c",
+        "executedSha256": "6ba3404d35d781f5ec0a92f876459b663c945a368652f78b05f927305ec3fe7c"
+      },
+      {
+        "identity": "supabase/migrations/20260607124500_040_recover_b2_b3_execution_schema_keep_b4_monitor.sql",
+        "sourceSha256": "97bfa3a80e0999fa2b4f05074d0db29afb278fd9a9286816a0e88c8ac34798ab",
+        "executedSha256": "97bfa3a80e0999fa2b4f05074d0db29afb278fd9a9286816a0e88c8ac34798ab"
+      },
+      {
+        "identity": "supabase/migrations/20260607133000_044_binance_truth_first_end_to_end.sql",
+        "sourceSha256": "4138c3183b911f970f35ba13a886eb7ebf53f2471311c7976da1a41ffb3c7e34",
+        "executedSha256": "4138c3183b911f970f35ba13a886eb7ebf53f2471311c7976da1a41ffb3c7e34"
+      },
+      {
+        "identity": "supabase/migrations/20260607143000_045_b5_1_signal_id_cron_auth_e2e_proof.sql",
+        "sourceSha256": "94cab6309bf95394b1ba99d860901b488645cd40ec38565423484fad131c9443",
+        "executedSha256": "94cab6309bf95394b1ba99d860901b488645cd40ec38565423484fad131c9443"
+      },
+      {
+        "identity": "supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql",
+        "sourceSha256": "c2f94fe052673d19e8355974ac2ffe01581e40dc84b4f6b7d1378dc2d1a79b58",
+        "executedSha256": "d8b699a429a18556ced4fa9820d8b29756fc5855b6812c73fe7a5cb91c22b64c"
+      },
+      {
+        "identity": "supabase/migrations/20260608143000_047_b6_1_reset_signal_fk_chain.sql",
+        "sourceSha256": "eb03e8bdf4668b5c47bcfbec1c01001e43f7bda458d294681018cb9eaee55552",
+        "executedSha256": "eb03e8bdf4668b5c47bcfbec1c01001e43f7bda458d294681018cb9eaee55552"
+      },
+      {
+        "identity": "supabase/migrations/20260608170000_048_b6_2_separate_history_reset_governor_controls.sql",
+        "sourceSha256": "d968be143f1df04d3c82ade5d8b2234e7fef9fedebfd783518d1d24fe031c835",
+        "executedSha256": "d968be143f1df04d3c82ade5d8b2234e7fef9fedebfd783518d1d24fe031c835"
+      },
+      {
+        "identity": "supabase/migrations/20260608193000_049_b6_3_restore_batched_performance_reset.sql",
+        "sourceSha256": "9752a347f5aa25aec8bfd3e8f93283dd1130430d623c0ce1b0fed88c56bd5184",
+        "executedSha256": "9752a347f5aa25aec8bfd3e8f93283dd1130430d623c0ce1b0fed88c56bd5184"
+      },
+      {
+        "identity": "supabase/migrations/20260608200345_20260608220000_051_b6_5_full_schema_catchup_and_reset_fix.sql",
+        "sourceSha256": "173d5cb0069e8c623802681b945b283a9daadda1d9479abffd7aab03de1bd8cf",
+        "executedSha256": "173d5cb0069e8c623802681b945b283a9daadda1d9479abffd7aab03de1bd8cf"
+      },
+      {
+        "identity": "supabase/migrations/20260608200735_20260608230000_052_b6_5_bot_pause_state.sql",
+        "sourceSha256": "7af34f6913e3301b04ea8ed238b602d4434eabc582535135c1e0258f2b6f68c8",
+        "executedSha256": "7af34f6913e3301b04ea8ed238b602d4434eabc582535135c1e0258f2b6f68c8"
+      },
+      {
+        "identity": "supabase/migrations/20260608203000_050_b6_4_binance_algo_tpsl_ids.sql",
+        "sourceSha256": "36310a4c93af658563460137a659d4f881d976288f2eeb039be6412117280a81",
+        "executedSha256": "36310a4c93af658563460137a659d4f881d976288f2eeb039be6412117280a81"
+      },
+      {
+        "identity": "supabase/migrations/20260608222330_053_b6_5_hotfix_reset_rpc_single_pass.sql",
+        "sourceSha256": "db3527dd53eeb5a29692bb8a88101a0552f9eb095c7efa60f1d3a636dfdca2ea",
+        "executedSha256": "db3527dd53eeb5a29692bb8a88101a0552f9eb095c7efa60f1d3a636dfdca2ea"
+      },
+      {
+        "identity": "supabase/migrations/20260608225628_054_b6_5_hotfix2_reset_atomic_telegram_signals.sql",
+        "sourceSha256": "3a306c3924f5857dbe53aa2021fbb428cfe067dec1726b05ecdcca3889b6b2ff",
+        "executedSha256": "3a306c3924f5857dbe53aa2021fbb428cfe067dec1726b05ecdcca3889b6b2ff"
+      },
+      {
+        "identity": "supabase/migrations/20260609000000_055_b6_5_final_performance_reset_batch_fix.sql",
+        "sourceSha256": "54855a4c8bd5b9d9e7e18fb2c3f2aa2b719eecf733c90af0408bfec6803ca55c",
+        "executedSha256": "54855a4c8bd5b9d9e7e18fb2c3f2aa2b719eecf733c90af0408bfec6803ca55c"
+      },
+      {
+        "identity": "supabase/migrations/20260609003000_056_b6_5_true_small_batch_reset_hotfix.sql",
+        "sourceSha256": "aee8290b5cc1507ab5b2f2ba51e9fa33429181cb9f8148ce413f3ab12a98f468",
+        "executedSha256": "aee8290b5cc1507ab5b2f2ba51e9fa33429181cb9f8148ce413f3ab12a98f468"
+      },
+      {
+        "identity": "supabase/migrations/20260609010000_057_testnet_governor_mode_and_execution_expiry.sql",
+        "sourceSha256": "b8d1aaa48c0acbdb68b919aaa5622992a44b4f9fe56f05c40f62d5afdc0085cb",
+        "executedSha256": "b8d1aaa48c0acbdb68b919aaa5622992a44b4f9fe56f05c40f62d5afdc0085cb"
+      },
+      {
+        "identity": "supabase/migrations/20260609120000_052_b6_6_entry_submitted_protection_pending_fix.sql",
+        "sourceSha256": "741fc5d18b1d9a299793d1b833f498ff57d401afa5e08267e89fd2d42ce8a5d4",
+        "executedSha256": "741fc5d18b1d9a299793d1b833f498ff57d401afa5e08267e89fd2d42ce8a5d4"
+      },
+      {
+        "identity": "supabase/migrations/20260609130000_053_b6_7_monitor_row_isolation_and_visibility.sql",
+        "sourceSha256": "4dbf70f762ee19d29883ddc782fe14b2e2d869ac78e35556ab3874ad6cc820ac",
+        "executedSha256": "4dbf70f762ee19d29883ddc782fe14b2e2d869ac78e35556ab3874ad6cc820ac"
+      },
+      {
+        "identity": "supabase/migrations/20260609143000_058_b6_7r_monitor_schema_preview_safety.sql",
+        "sourceSha256": "9a2398f0ed93c203aa1a08dd5f43b5d03a3dcc79b477617c50c6d3d0eb133fce",
+        "executedSha256": "9a2398f0ed93c203aa1a08dd5f43b5d03a3dcc79b477617c50c6d3d0eb133fce"
+      },
+      {
+        "identity": "supabase/migrations/20260611120000_059_crypto_fix_1_testnet_risk_leverage_truth.sql",
+        "sourceSha256": "67a8143ea8336def43f0d8113fe3f9ca48335542db85155c86c39341f3703264",
+        "executedSha256": "67a8143ea8336def43f0d8113fe3f9ca48335542db85155c86c39341f3703264"
+      },
+      {
+        "identity": "supabase/migrations/20260611150000_060_crypto_fix_2_execution_lifecycle.sql",
+        "sourceSha256": "2144f3590f73133fd780ba3e89ce3a86d3d29279cb2d390942969e2ba52f258c",
+        "executedSha256": "2144f3590f73133fd780ba3e89ce3a86d3d29279cb2d390942969e2ba52f258c"
+      },
+      {
+        "identity": "supabase/migrations/20260612120000_061_crypto_fix_3_stress_monitor_truth.sql",
+        "sourceSha256": "ec15eeaca373e92736190e287faf49ff5457fd4c686002ec1c7d39d2939822e7",
+        "executedSha256": "ec15eeaca373e92736190e287faf49ff5457fd4c686002ec1c7d39d2939822e7"
+      },
+      {
+        "identity": "supabase/migrations/20260612143000_062_execution_hardening_binance_truth.sql",
+        "sourceSha256": "509366c082792c08710b421e2e1aa70bfbb3cdd8a08c5cf19a48bf5f5e8bf689",
+        "executedSha256": "509366c082792c08710b421e2e1aa70bfbb3cdd8a08c5cf19a48bf5f5e8bf689"
+      },
+      {
+        "identity": "supabase/migrations/20260612170000_063_telegram_product_layer_router_intelligence.sql",
+        "sourceSha256": "0726961d635e1f0a5d3070b3e542c11a27db3831fd1c2d0f806d6179acfc62f2",
+        "executedSha256": "0726961d635e1f0a5d3070b3e542c11a27db3831fd1c2d0f806d6179acfc62f2"
+      },
+      {
+        "identity": "supabase/migrations/20260612183000_064_intelligence_engine_mvp_fields.sql",
+        "sourceSha256": "83b874778c3f089a8ec4f970f00df4eff925095b3dabf9cae2ca37a7351ec2dd",
+        "executedSha256": "83b874778c3f089a8ec4f970f00df4eff925095b3dabf9cae2ca37a7351ec2dd"
+      },
+      {
+        "identity": "supabase/migrations/20260613120000_064_intelligence_cron_url_auth_test_mode.sql",
+        "sourceSha256": "8267d59ecad6d1a9ce726084d0b1b887490e975f87292f9191762944f9a50f8e",
+        "executedSha256": "8267d59ecad6d1a9ce726084d0b1b887490e975f87292f9191762944f9a50f8e"
+      },
+      {
+        "identity": "supabase/migrations/20260613120001_065_intelligence_real_feed_results.sql",
+        "sourceSha256": "3ebcbd27a5fbe2d4fb5c14f2e2e951cd8c9f488444872e2520f5ce76e20fbad3",
+        "executedSha256": "3ebcbd27a5fbe2d4fb5c14f2e2e951cd8c9f488444872e2520f5ce76e20fbad3"
+      },
+      {
+        "identity": "supabase/migrations/20260613143000_066_intelligence_cron_custom_header_auth.sql",
+        "sourceSha256": "a524042b9655256f7776db0c97d49e18a7446498ff347533fda3b1176544d90b",
+        "executedSha256": "a524042b9655256f7776db0c97d49e18a7446498ff347533fda3b1176544d90b"
+      },
+      {
+        "identity": "supabase/migrations/20260613170000_067_live_cron_header_rebuild.sql",
+        "sourceSha256": "e3c472c02362762b31f5184452626db933475f83c2186a7cd4a945e6bfea30f6",
+        "executedSha256": "e3c472c02362762b31f5184452626db933475f83c2186a7cd4a945e6bfea30f6"
+      },
+      {
+        "identity": "supabase/migrations/20260614110000_062_binance_monitor_alert_cooldown.sql",
+        "sourceSha256": "2980848e151091bc56f429fdc9af694dce5d274a296a12716d0a83d28bf3732b",
+        "executedSha256": "2980848e151091bc56f429fdc9af694dce5d274a296a12716d0a83d28bf3732b"
+      },
+      {
+        "identity": "supabase/migrations/20260614120000_068_disable_intelligence_test_cron_truth_cleanup.sql",
+        "sourceSha256": "e0479bd4704e8078eb81d28a12e2ea15ebac77a47d440a8d77025a1d41760ad0",
+        "executedSha256": "e0479bd4704e8078eb81d28a12e2ea15ebac77a47d440a8d77025a1d41760ad0"
+      },
+      {
+        "identity": "supabase/migrations/20260614150000_069_intelligence_feed_quality.sql",
+        "sourceSha256": "fc45e87ac264d6c1c4b36fc97b63b2406fca93ffb9d2826ab2c3f9ccd020aedf",
+        "executedSha256": "fc45e87ac264d6c1c4b36fc97b63b2406fca93ffb9d2826ab2c3f9ccd020aedf"
+      },
+      {
+        "identity": "supabase/migrations/20260614190000_070_xb1_capital_profit_lock_real_integration.sql",
+        "sourceSha256": "06938ee4887ea711c6a061514b166febc6dce5cef6ff8a9f6a3ba725a80dee84",
+        "executedSha256": "06938ee4887ea711c6a061514b166febc6dce5cef6ff8a9f6a3ba725a80dee84"
+      },
+      {
+        "identity": "supabase/migrations/20260615120000_071_exchange_provider_foundation.sql",
+        "sourceSha256": "995cbe2f98a172493021f2095251c85f0fbdb504d40259deb689b3ca6a8c0041",
+        "executedSha256": "995cbe2f98a172493021f2095251c85f0fbdb504d40259deb689b3ca6a8c0041"
+      },
+      {
+        "identity": "supabase/migrations/20260615130000_072_parallel_provider_execution_lab.sql",
+        "sourceSha256": "6ccb5664c94a47f881a965767e9ec4b00cfa4ce45849da751e7a4be5f7fb5104",
+        "executedSha256": "6ccb5664c94a47f881a965767e9ec4b00cfa4ce45849da751e7a4be5f7fb5104"
+      },
+      {
+        "identity": "supabase/migrations/20260615170000_073_provider_controls_e2e_repair.sql",
+        "sourceSha256": "47368d2a2850fdaec6ad1c1af50cf39d93dc0088e02acb5983a0f1f3e2b33585",
+        "executedSha256": "47368d2a2850fdaec6ad1c1af50cf39d93dc0088e02acb5983a0f1f3e2b33585"
+      },
+      {
+        "identity": "supabase/migrations/20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+        "sourceSha256": "0dd3aec7c87e3af5bacee5602b1892bed1031ef3d0e23a90a5784d79078c360a",
+        "executedSha256": "19778f727f9d528fecda1320f92f7b78002b9555f738963aad92288572efc595"
+      },
+      {
+        "identity": "supabase/migrations/20260616120000_060_execution_symbol_universe_truth.sql",
+        "sourceSha256": "f50b32ac0c3994aca17f7e016a1d4741ef92e05f738645d28d5b445c1b3b0d3c",
+        "executedSha256": "f50b32ac0c3994aca17f7e016a1d4741ef92e05f738645d28d5b445c1b3b0d3c"
+      },
+      {
+        "identity": "supabase/migrations/20260616120001_071_xf_quick_scalp_strategy_config.sql",
+        "sourceSha256": "aebf09390b94b47724c53aacd8429cf42bbdb49b992d43141dfe1525f575f5e0",
+        "executedSha256": "aebf09390b94b47724c53aacd8429cf42bbdb49b992d43141dfe1525f575f5e0"
+      },
+      {
+        "identity": "supabase/migrations/20260616120002_074_provider_runtime_flags.sql",
+        "sourceSha256": "f980dc7d1156529e73774ef8f5f62b6c3fc816b293b9b42ecd26f777c80d096d",
+        "executedSha256": "f980dc7d1156529e73774ef8f5f62b6c3fc816b293b9b42ecd26f777c80d096d"
+      },
+      {
+        "identity": "supabase/migrations/20260617120000_075_executor_truth_parity_core.sql",
+        "sourceSha256": "f261722b01d1d3e4451423e93036729c99171d8bfd8c8da2bbc882e9c08a78e1",
+        "executedSha256": "f261722b01d1d3e4451423e93036729c99171d8bfd8c8da2bbc882e9c08a78e1"
+      },
+      {
+        "identity": "supabase/migrations/20260617120001_075_null_id_execution_singletons.sql",
+        "sourceSha256": "181a9a903044e34b5115a2689d0008e4eee65ebed489dd638459e6a9016fe3dd",
+        "executedSha256": "181a9a903044e34b5115a2689d0008e4eee65ebed489dd638459e6a9016fe3dd"
+      },
+      {
+        "identity": "supabase/migrations/20260617120002_075_trade_management_truth.sql",
+        "sourceSha256": "6fb4741c7d802604c120cada21b79b74767eae1e1dcd6bcf79a2d0e38ed3e3e6",
+        "executedSha256": "6fb4741c7d802604c120cada21b79b74767eae1e1dcd6bcf79a2d0e38ed3e3e6"
+      },
+      {
+        "identity": "supabase/migrations/20260617130000_076_execution_orders_demo_idempotent_sizing.sql",
+        "sourceSha256": "ebc8278482ed58e263a33d075c589aac9a05a6a3601ab97dda31e66d87fc3034",
+        "executedSha256": "ebc8278482ed58e263a33d075c589aac9a05a6a3601ab97dda31e66d87fc3034"
+      },
+      {
+        "identity": "supabase/migrations/20260617133000_076_execution_orders_proof_contract.sql",
+        "sourceSha256": "cc634262eae290d4bc8a3554edb5e84a071f10ad1e0e2429537436e6bf97793c",
+        "executedSha256": "cc634262eae290d4bc8a3554edb5e84a071f10ad1e0e2429537436e6bf97793c"
+      },
+      {
+        "identity": "supabase/migrations/20260617143000_077_bybit_lifecycle_proof_fields.sql",
+        "sourceSha256": "4693e4532e5d2bf955d1a05be93b617289ca6f7d8be24b5771d7179b0bb8ab66",
+        "executedSha256": "4693e4532e5d2bf955d1a05be93b617289ca6f7d8be24b5771d7179b0bb8ab66"
+      },
+      {
+        "identity": "supabase/migrations/20260617150000_078_execution_monitor_heartbeats.sql",
+        "sourceSha256": "9fdccd856cbdbc59b0f6ee45cda19aa6bb5fa9c36ee3d9ba3dc1a0f3dff558aa",
+        "executedSha256": "9fdccd856cbdbc59b0f6ee45cda19aa6bb5fa9c36ee3d9ba3dc1a0f3dff558aa"
+      },
+      {
+        "identity": "supabase/migrations/20260617153000_079_provider_monitor_scheduler_proof.sql",
+        "sourceSha256": "ec25bd2406b256e159a1770627b004040fe39de0a8a6e59c82f109bba085b64b",
+        "executedSha256": "ec25bd2406b256e159a1770627b004040fe39de0a8a6e59c82f109bba085b64b"
+      },
+      {
+        "identity": "supabase/migrations/20260618100000_080_trade_supervisor_always_on.sql",
+        "sourceSha256": "714ee616c92bcef64f0e538368127b64344d2dce116fb6bf4a021d867511a624",
+        "executedSha256": "714ee616c92bcef64f0e538368127b64344d2dce116fb6bf4a021d867511a624"
+      },
+      {
+        "identity": "supabase/migrations/20260618120000_081_operator_command_center_controls.sql",
+        "sourceSha256": "881192280de39621a3480357f394704897efc63dfafc66ebfba672f4d234d2e4",
+        "executedSha256": "881192280de39621a3480357f394704897efc63dfafc66ebfba672f4d234d2e4"
+      },
+      {
+        "identity": "supabase/migrations/20260618143000_082_operator_runtime_events.sql",
+        "sourceSha256": "462dc9b8ff2585c4b5695eba04f8ab7bcb1416aafe9327f8319f2fca8512cf84",
+        "executedSha256": "462dc9b8ff2585c4b5695eba04f8ab7bcb1416aafe9327f8319f2fca8512cf84"
+      },
+      {
+        "identity": "supabase/migrations/20260619120000_083_operator_runtime_events_action_router_fields.sql",
+        "sourceSha256": "3e507866a4dfb98f40138d43bfc3c198bff4fc64b5c240a61aaa40b260adc425",
+        "executedSha256": "3e507866a4dfb98f40138d43bfc3c198bff4fc64b5c240a61aaa40b260adc425"
+      },
+      {
+        "identity": "supabase/migrations/20260619143000_084_xh7_position_driven_supervisor_controls.sql",
+        "sourceSha256": "91b09727153195898b3cd38f3ea502676cee9525774ec3c909c218199df1b2cf",
+        "executedSha256": "91b09727153195898b3cd38f3ea502676cee9525774ec3c909c218199df1b2cf"
+      },
+      {
+        "identity": "supabase/migrations/20260620120000_085_xp_execution_safety_runtime_truth.sql",
+        "sourceSha256": "0915e17fdaace5a145631afc683594438c75a5cef537e19019bd0a9dd3ed5c97",
+        "executedSha256": "0915e17fdaace5a145631afc683594438c75a5cef537e19019bd0a9dd3ed5c97"
+      },
+      {
+        "identity": "supabase/migrations/20260622115326_086_bybit_prop_accounts.sql",
+        "sourceSha256": "c094eb6f3c3fdc0b5c255a160c4e7b0b081c371d0902469a083da8321ca48147",
+        "executedSha256": "c094eb6f3c3fdc0b5c255a160c4e7b0b081c371d0902469a083da8321ca48147"
+      },
+      {
+        "identity": "supabase/migrations/20260622153353_087_execution_settings_bybit_monitor_columns.sql",
+        "sourceSha256": "87ef4432216c3e240655d340a4d4157bf5398f1bf0fddec18eaf29ff67b893f8",
+        "executedSha256": "87ef4432216c3e240655d340a4d4157bf5398f1bf0fddec18eaf29ff67b893f8"
+      },
+      {
+        "identity": "supabase/migrations/20260622153740_088_trade_management_truth_table.sql",
+        "sourceSha256": "00b066bfb16c89d6da555d5b122d73e1a85fbb797263f7d7f0d67408aeafc68b",
+        "executedSha256": "b265b85d51c6d1a1fb5e8f9bd6a3a6bcea8f3097435a6980738072f2693d8220"
+      },
+      {
+        "identity": "supabase/migrations/20260707090000_089_v1_platform_retention_backend.sql",
+        "sourceSha256": "a60dfad45993d1f8337247038c5bfc13c0f71419bb9d0d1e53758447a0fb5f38",
+        "executedSha256": "a60dfad45993d1f8337247038c5bfc13c0f71419bb9d0d1e53758447a0fb5f38"
+      },
+      {
+        "identity": "supabase/migrations/20260707100000_090_v1_final_recovery_backend.sql",
+        "sourceSha256": "5346d76d0e0f1477f00c69b972fcacb041e0b9ae835bbe47bd81a1f6368f7b02",
+        "executedSha256": "5346d76d0e0f1477f00c69b972fcacb041e0b9ae835bbe47bd81a1f6368f7b02"
+      },
+      {
+        "identity": "supabase/migrations/20260707110000_091_v1_mt5_bridge_and_forex.sql",
+        "sourceSha256": "32d49b4d75c833b26aade1700840aa599c7f149950f168a4ef51a11e3eeca6c4",
+        "executedSha256": "32d49b4d75c833b26aade1700840aa599c7f149950f168a4ef51a11e3eeca6c4"
+      },
+      {
+        "identity": "supabase/migrations/20260708000000_092_retention_batch_cleanup_and_runtime_stability.sql",
+        "sourceSha256": "cb18a9c14b8c35f2827a89b6e01218f36cba7063da28ce6c4e7b6152f66d4853",
+        "executedSha256": "81d8db8572eded103377cec616a23a8a8b8b51825798166c5840b3ca8187c1e2"
+      },
+      {
+        "identity": "supabase/migrations/20260708120000_093_customer_access_admin_approval.sql",
+        "sourceSha256": "33ebaf691d7a62a7e4d16e61c88ea3cba685fe278bd442ba0c00b41fdcaf4ff5",
+        "executedSha256": "33ebaf691d7a62a7e4d16e61c88ea3cba685fe278bd442ba0c00b41fdcaf4ff5"
+      },
+      {
+        "identity": "supabase/migrations/20260708130000_094_execution_brain_supervisor.sql",
+        "sourceSha256": "153358d1fbd62a2fc44d4c61edd6a880a06021b68f6d1ab7562514cc084a3aa6",
+        "executedSha256": "153358d1fbd62a2fc44d4c61edd6a880a06021b68f6d1ab7562514cc084a3aa6"
+      },
+      {
+        "identity": "supabase/migrations/20260708150000_096_crypto_certification_framework.sql",
+        "sourceSha256": "cd82bf9bf895aace2d5d44e0fd86d7c83a1d59c737e1d2c7feeefbb58fd7c23c",
+        "executedSha256": "cd82bf9bf895aace2d5d44e0fd86d7c83a1d59c737e1d2c7feeefbb58fd7c23c"
+      },
+      {
+        "identity": "supabase/migrations/20260708160000_097_crypto_execution_protection_closeout.sql",
+        "sourceSha256": "3c842ccdafcc6eabb9b41d9226b3859298f120f00095a12eca23b404d7e8948f",
+        "executedSha256": "e730150914b876a0897a72d13fab888e5aa72996a9d83a8380529e054103bbcd"
+      },
+      {
+        "identity": "supabase/migrations/20260710230322_20260710120000_097_runtime_monitor_schema_catchup.sql.sql",
+        "sourceSha256": "8ff25f4a8d3a179a94b0bb74980a65fff467bcd8a891a3088cddc94b2a91b897",
+        "executedSha256": "475d3d6c305542a2e6db0ee4e417ee60110789bbaf8eca375a209ade20b19e38"
+      },
+      {
+        "identity": "supabase/migrations/20260711044119_20260710130000_097b_runtime_monitor_schema_corrections.sql.sql",
+        "sourceSha256": "10cfb2de04ff100e8a8671c2559aa5c7b3efd24764640ebe2bf95b72e616db79",
+        "executedSha256": "10cfb2de04ff100e8a8671c2559aa5c7b3efd24764640ebe2bf95b72e616db79"
+      },
+      {
+        "identity": "supabase/migrations/20260711072539_20260710140000_097c_fix_heartbeats_unique_index.sql.sql",
+        "sourceSha256": "e5725e2f26d687ed3b50d6568f4e24eea32cddaee6d9c8549a25605a6ba7d267",
+        "executedSha256": "e5725e2f26d687ed3b50d6568f4e24eea32cddaee6d9c8549a25605a6ba7d267"
+      },
+      {
+        "identity": "supabase/migrations/20260722000000_023_phase7_forex_engine.sql",
+        "sourceSha256": "8baf5fddce33081ae896531bed3845e72f38366bc614f3aac7d741b7848f308b",
+        "executedSha256": "8baf5fddce33081ae896531bed3845e72f38366bc614f3aac7d741b7848f308b"
+      },
+      {
+        "identity": "supabase/migrations/20260722001000_phase5c_execution_account_ownership.sql",
+        "sourceSha256": "9843f94d959c8566643002b919e9a17557a1f690f4981b36316e1d6c43772a5e",
+        "executedSha256": "9843f94d959c8566643002b919e9a17557a1f690f4981b36316e1d6c43772a5e"
+      },
+      {
+        "identity": "supabase/migrations/20260722010000_phase6_professional_content.sql",
+        "sourceSha256": "0e797e3aa9c13ed1f26ce66e231b027fa5d7e7a22fb1d8fb70be3c28d4c242f0",
+        "executedSha256": "0e797e3aa9c13ed1f26ce66e231b027fa5d7e7a22fb1d8fb70be3c28d4c242f0"
+      },
+      {
+        "identity": "supabase/migrations/20260722020000_phase8a_mt5_execution_platform.sql",
+        "sourceSha256": "705e04f0449736a382368f2048168e0f8f341422cbcb9d40b8c76b5ab3a953b3",
+        "executedSha256": "705e04f0449736a382368f2048168e0f8f341422cbcb9d40b8c76b5ab3a953b3"
+      },
+      {
+        "identity": "supabase/migrations/20260722030000_phase8b_trade_management.sql",
+        "sourceSha256": "edf48b6e1f583f597e24ddec26f702de9ce34d472b473e287272961e06e48e52",
+        "executedSha256": "edf48b6e1f583f597e24ddec26f702de9ce34d472b473e287272961e06e48e52"
+      },
+      {
+        "identity": "supabase/migrations/20260723150000_phase7a1_telegram_core_infrastructure.sql",
+        "sourceSha256": "bb66bc40f247e1c6326a2f3c0cebe1263701ad0fcd4747f5661963e0d0f04d22",
+        "executedSha256": "bb66bc40f247e1c6326a2f3c0cebe1263701ad0fcd4747f5661963e0d0f04d22"
+      },
+      {
+        "identity": "supabase/migrations/20260723180000_phase7a2a_telegram_free_publisher_and_campaigns.sql",
+        "sourceSha256": "87dda6414a4f1e6ce09b2d5748840396e227525a4fdd0478e7d88b6ad309ce6e",
+        "executedSha256": "87dda6414a4f1e6ce09b2d5748840396e227525a4fdd0478e7d88b6ad309ce6e"
+      },
+      {
+        "identity": "supabase/migrations/20260725110000_customer_portal_entitlements_and_views.sql",
+        "sourceSha256": "0e96c024e01c8edf3826d103716e1fca971aecfba9db3e8f345683469116843f",
+        "executedSha256": "0e96c024e01c8edf3826d103716e1fca971aecfba9db3e8f345683469116843f"
+      },
+      {
+        "identity": "supabase/migrations/20260725120000_customer_security_and_runtime_hardening.sql",
+        "sourceSha256": "95cdd6d929434f31442047d13c67321a57b6ac36fa6ca38d6cb07651378839e7",
+        "executedSha256": "95cdd6d929434f31442047d13c67321a57b6ac36fa6ca38d6cb07651378839e7"
+      },
+      {
+        "identity": "supabase/migrations/20260725180000_operator_operational_accounts.sql",
+        "sourceSha256": "8664e6d90bae53fd7f26164e94341bfae534bb7f7b915961ec8f75999904ca5d",
+        "executedSha256": "8664e6d90bae53fd7f26164e94341bfae534bb7f7b915961ec8f75999904ca5d"
+      },
+      {
+        "identity": "supabase/migrations/20260727000000_phase1ga_certified_runtime_preparation.sql",
+        "sourceSha256": "046755f07a79f4e5dadf46393e406a8cf54fd64a843380ff1c4f045a1b0be905",
+        "executedSha256": "046755f07a79f4e5dadf46393e406a8cf54fd64a843380ff1c4f045a1b0be905"
+      },
+      {
+        "identity": "supabase/migrations/20260728000000_provider_account_contract_normalization.sql",
+        "sourceSha256": "6ca6c49e65521c737a16235bb2eb1e98ec3231f7e09d58f9b74b4e6c7a8f59a1",
+        "executedSha256": "6ca6c49e65521c737a16235bb2eb1e98ec3231f7e09d58f9b74b4e6c7a8f59a1"
+      },
+      {
+        "identity": "supabase/migrations/20260728010000_phase5b_execution_account_manager.sql",
+        "sourceSha256": "0e77da1b2ccfd32a2ee8e04a18a3828949dc3b0a9e6f4af3cd943756fa2d7b97",
+        "executedSha256": "0e77da1b2ccfd32a2ee8e04a18a3828949dc3b0a9e6f4af3cd943756fa2d7b97"
+      },
+      {
+        "identity": "supabase/migrations/20260728020000_phase5c_secure_account_onboarding.sql",
+        "sourceSha256": "507c63ec8cbf9fa6973f9472d9fa7661e5edade6061f021147d13f6ad3a2cb39",
+        "executedSha256": "507c63ec8cbf9fa6973f9472d9fa7661e5edade6061f021147d13f6ad3a2cb39"
+      },
+      {
+        "identity": "supabase/migrations/20260728030000_phase5c_runtime_account_adoption_hotfix.sql",
+        "sourceSha256": "8b12d47bcc86f5c639f42ffabcb14b477d1038a49715a8f721331c6fdc0a9356",
+        "executedSha256": "8b12d47bcc86f5c639f42ffabcb14b477d1038a49715a8f721331c6fdc0a9356"
+      },
+      {
+        "identity": "supabase/migrations/20260728040000_phase5c_binance_create_hotfix.sql",
+        "sourceSha256": "9e696a4bbb42c95cf7473892d4a8e4396f79eba574fc7f68699c3d12e24a3b93",
+        "executedSha256": "9e696a4bbb42c95cf7473892d4a8e4396f79eba574fc7f68699c3d12e24a3b93"
+      },
+      {
+        "identity": "supabase/migrations/20260728050000_phase5c_binance_atomic_identity_hotfix.sql",
+        "sourceSha256": "2a87a918714812c45f114b781ee348a7d5956d06aa61e3e358e7ef1f747bbbc2",
+        "executedSha256": "2a87a918714812c45f114b781ee348a7d5956d06aa61e3e358e7ef1f747bbbc2"
+      },
+      {
+        "identity": "supabase/migrations/20260728060000_phase5d_multi_account_mt5_bridge.sql",
+        "sourceSha256": "44b447db79e4a06d48d9d72878450790ba411cc1f31983a75879adca5671dfd2",
+        "executedSha256": "44b447db79e4a06d48d9d72878450790ba411cc1f31983a75879adca5671dfd2"
+      },
+      {
+        "identity": "supabase/migrations/20260729000000_phase5d_mt5_onboarding_runtime_repair.sql",
+        "sourceSha256": "ed99d022dbce944968a79d446b07b30fbbf8613d6e2a26bd693f88d7b6ccc4bc",
+        "executedSha256": "ed99d022dbce944968a79d446b07b30fbbf8613d6e2a26bd693f88d7b6ccc4bc"
+      },
+      {
+        "identity": "supabase/migrations/20260729010000_phase5d_bridge_finalization.sql",
+        "sourceSha256": "c06a21378798ecd5bcd4a08df9285869d0c943e9da7438bfa68bcfe355247886",
+        "executedSha256": "c06a21378798ecd5bcd4a08df9285869d0c943e9da7438bfa68bcfe355247886"
+      },
+      {
+        "identity": "supabase/migrations/20260729020000_phase5d_bridge_registration_hotfix.sql",
+        "sourceSha256": "70af3b3c4bd41b37fa181adf3b98c494f4fe47065f785908f13880f80ec2e5f2",
+        "executedSha256": "70af3b3c4bd41b37fa181adf3b98c494f4fe47065f785908f13880f80ec2e5f2"
+      },
+      {
+        "identity": "supabase/migrations/20260729030000_phase5d_mt5_command_claim_type_hotfix.sql",
+        "sourceSha256": "b38a00283136e7e71bc55bc3649763a023cbbd9669f4e8c2636893ff9fe4f337",
+        "executedSha256": "b38a00283136e7e71bc55bc3649763a023cbbd9669f4e8c2636893ff9fe4f337"
+      },
+      {
+        "identity": "supabase/migrations/20260729040000_phase5def_mt5_certification_market_data.sql",
+        "sourceSha256": "f6ea28fc8ae959b126f0c7f017c7e508dd12def3ffd14eb2f0b6d3c25556a7fb",
+        "executedSha256": "f6ea28fc8ae959b126f0c7f017c7e508dd12def3ffd14eb2f0b6d3c25556a7fb"
+      },
+      {
+        "identity": "supabase/migrations/20260730000000_mt5_sync_market_publication_repair.sql",
+        "sourceSha256": "e3d701f88ad26d18439b78c98d0c611bd201855b198c998d9095349a08fb761a",
+        "executedSha256": "e3d701f88ad26d18439b78c98d0c611bd201855b198c998d9095349a08fb761a"
+      },
+      {
+        "identity": "supabase/migrations/20260730010000_forex_strategy_suite_certification.sql",
+        "sourceSha256": "cb76d65c3ec806ed2a20aa472f574b3eda55f1eb603e4406db45ec1ce35c05f1",
+        "executedSha256": "cb76d65c3ec806ed2a20aa472f574b3eda55f1eb603e4406db45ec1ce35c05f1"
+      },
+      {
+        "identity": "supabase/migrations/20260730020000_gold_volatility_breakout_certification.sql",
+        "sourceSha256": "d09df350975b3df7466f4fd5d49732c1dc5e309f9eb72916f4c482ac353b1f09",
+        "executedSha256": "d09df350975b3df7466f4fd5d49732c1dc5e309f9eb72916f4c482ac353b1f09"
+      },
+      {
+        "identity": "supabase/migrations/20260730140000_100_fix_unified_market_scanner_config.sql",
+        "sourceSha256": "2905b632d9dc9840fed12fc25f88e2ae8e370cb5f5f0f466a9cf339a265dc79d",
+        "executedSha256": "2905b632d9dc9840fed12fc25f88e2ae8e370cb5f5f0f466a9cf339a265dc79d"
+      },
+      {
+        "identity": "supabase/migrations/20260824090000_101_non_blocking_risk_mutex_and_atomic_pretrade.sql",
+        "sourceSha256": "003dffb025b02885996f3eebb69f9c5c7612ffdd818e551081217e59914ee4df",
+        "executedSha256": "003dffb025b02885996f3eebb69f9c5c7612ffdd818e551081217e59914ee4df"
+      },
+      {
+        "identity": "supabase/migrations/20260902120000_102_prop_personal_execution_mode_and_scanner_combined.sql",
+        "sourceSha256": "a59814e9f41fbf68e9ccb9236c61bf9ee51ec26ce023d121e33b04fb0ff0c1ff",
+        "executedSha256": "ba32f7942a6d658f3686fa542247166d59e763583d5d0c0f4cacf119827822e0"
+      },
+      {
+        "identity": "supabase/migrations/20260909010000_phase2_mt5_history_command.sql",
+        "sourceSha256": "4a799dd1daec07e9cd24eff07323b5ab8143d845d877c173f6d4f6669d4f499a",
+        "executedSha256": "4a799dd1daec07e9cd24eff07323b5ab8143d845d877c173f6d4f6669d4f499a"
+      },
+      {
+        "identity": "supabase/migrations/20260910090000_professional_prop_product.sql",
+        "sourceSha256": "e45486bd53b4b657260bcf30b0385a14c9dd59ff8e9b15ff888fddd5b3ceaede",
+        "executedSha256": "e45486bd53b4b657260bcf30b0385a14c9dd59ff8e9b15ff888fddd5b3ceaede"
+      },
+      {
+        "identity": "supabase/migrations/20260911120000_customer_onboarding_provisioning.sql",
+        "sourceSha256": "8f6d604b57fa59ae73a4b492c3f5244045911fea9d1bb22fea4ad985022c8f99",
+        "executedSha256": "8f6d604b57fa59ae73a4b492c3f5244045911fea9d1bb22fea4ad985022c8f99"
+      },
+      {
+        "identity": "supabase/migrations/20260911180000_provider_capability_certification.sql",
+        "sourceSha256": "65ae2f4d9cbe5348327bec3843a5ac811b9ff64a414704f9e2541d9b5eb79156",
+        "executedSha256": "65ae2f4d9cbe5348327bec3843a5ac811b9ff64a414704f9e2541d9b5eb79156"
+      },
+      {
+        "identity": "supabase/migrations/20260914120000_commerce_entitlement_foundation.sql",
+        "sourceSha256": "8a0a8fd75f10dbe747fe093acae022541c1eb2ef6883a4ece84298f93fa5e9fc",
+        "executedSha256": "8a0a8fd75f10dbe747fe093acae022541c1eb2ef6883a4ece84298f93fa5e9fc"
+      },
+      {
+        "identity": "supabase/migrations/20260914180000_vip_telegram_fulfillment.sql",
+        "sourceSha256": "d2d49b2b27ba71be56e551925951d652bc0cc044a96f0b838616eb908e3c7f2b",
+        "executedSha256": "d2d49b2b27ba71be56e551925951d652bc0cc044a96f0b838616eb908e3c7f2b"
+      },
+      {
+        "identity": "supabase/migrations/20260914210000_whop_lifecycle_processing.sql",
+        "sourceSha256": "2cb21c7d8497f1396e67166ce944dfaaf1e434bf2eefdfaa9c9d470d4eed0a4e",
+        "executedSha256": "2cb21c7d8497f1396e67166ce944dfaaf1e434bf2eefdfaa9c9d470d4eed0a4e"
+      },
+      {
+        "identity": "supabase/migrations/20260925120000_phase_d_multi_tenant_account_policy.sql",
+        "sourceSha256": "d8622d85a57d7fce2bc9d14e65a109b93cf24e90d79d1b64c7dd95bd0369be7c",
+        "executedSha256": "d8622d85a57d7fce2bc9d14e65a109b93cf24e90d79d1b64c7dd95bd0369be7c"
+      },
+      {
+        "identity": "supabase/migrations/20260925180000_phase_e_mt5_demo_execution.sql",
+        "sourceSha256": "04e7fbb7eef17f83328e5fe72eab28a0baa7898557f81926db0d3090773c7536",
+        "executedSha256": "04e7fbb7eef17f83328e5fe72eab28a0baa7898557f81926db0d3090773c7536"
+      },
+      {
+        "identity": "supabase/migrations/20260925210000_phase_f_crypto_execution.sql",
+        "sourceSha256": "b6b3735ff653d9b856ae23fc0735892ea1e415010d4fa1a6f0eab53816fd1841",
+        "executedSha256": "b6b3735ff653d9b856ae23fc0735892ea1e415010d4fa1a6f0eab53816fd1841"
+      },
+      {
+        "identity": "supabase/migrations/20260926120000_phase_g_customer_001_certification.sql",
+        "sourceSha256": "1963129a2810fa37e9b3cec7dc3bc43aabbfe08b7201bf5f6b6cd1dcecb3da62",
+        "executedSha256": "1963129a2810fa37e9b3cec7dc3bc43aabbfe08b7201bf5f6b6cd1dcecb3da62"
+      },
+      {
+        "identity": "supabase/migrations/20260926180000_phase_h_customer_onboarding.sql",
+        "sourceSha256": "676948b468d1219b30a9b79624b89a3aea64346ccfeaa41d7bbaba7e7b071c2e",
+        "executedSha256": "676948b468d1219b30a9b79624b89a3aea64346ccfeaa41d7bbaba7e7b071c2e"
+      },
+      {
+        "identity": "supabase/migrations/20260926210000_phase_h_completion.sql",
+        "sourceSha256": "35fe4bab6c4a1b51d0317427ab79cf03702381dacb04c0f3d5f9e451510d4167",
+        "executedSha256": "0cbddd58d2b60e4584374a1717572383c79a76bdb03810cd61a89052647d162d"
+      },
+      {
+        "identity": "supabase/migrations/20260927120000_phase_i_commerce_payment_truth.sql",
+        "sourceSha256": "1f539d564e7dd7329db87f48a25d7617ce249ceed2db2b9e1d48866274c1fc32",
+        "executedSha256": "1f539d564e7dd7329db87f48a25d7617ce249ceed2db2b9e1d48866274c1fc32"
+      },
+      {
+        "identity": "supabase/migrations/20260928120000_phase_i_atomic_commerce_processor.sql",
+        "sourceSha256": "e7f678826d9ce173051398fd5030848b42f29965eccef10207d6b1a1047065ba",
+        "executedSha256": "e7f678826d9ce173051398fd5030848b42f29965eccef10207d6b1a1047065ba"
+      },
+      {
+        "identity": "supabase/migrations/20260928180000_phase_j_telegram_membership.sql",
+        "sourceSha256": "05a6cf4f11d274ad6d7f22abf4ff843676f5297857ae6ced570c64ac957d0367",
+        "executedSha256": "05a6cf4f11d274ad6d7f22abf4ff843676f5297857ae6ced570c64ac957d0367"
+      },
+      {
+        "identity": "supabase/migrations/20260930120000_phase_k_active_scanner_signal_truth.sql",
+        "sourceSha256": "6a76980bd3c5ecffeb4a9729ccc26a6fe657da16e8d5ba9d7d99c3a581b9c5ef",
+        "executedSha256": "6a76980bd3c5ecffeb4a9729ccc26a6fe657da16e8d5ba9d7d99c3a581b9c5ef"
+      },
+      {
+        "identity": "supabase/migrations/20260930180000_public_purchase_journey.sql",
+        "sourceSha256": "9b46a390b97e55f7664d8002c8716636d99084ec98798f4afcd20cb29453c78b",
+        "executedSha256": "9b46a390b97e55f7664d8002c8716636d99084ec98798f4afcd20cb29453c78b"
+      },
+      {
+        "identity": "supabase/migrations/20261001120000_phase_l_replay_shadow_evidence.sql",
+        "sourceSha256": "4c9472dfa4e6fb13ce23d58de80aa0537c21b7af0c1f66fd9759b2967c334071",
+        "executedSha256": "4c9472dfa4e6fb13ce23d58de80aa0537c21b7af0c1f66fd9759b2967c334071"
+      },
+      {
+        "identity": "supabase/migrations/20261001180000_phase_l_validation_server_and_datasets.sql",
+        "sourceSha256": "aba9a08c9fffe206b672b1ee8c4622e9b8ce0f69d1cf353e4f9c7e3f91cdd3a5",
+        "executedSha256": "aba9a08c9fffe206b672b1ee8c4622e9b8ce0f69d1cf353e4f9c7e3f91cdd3a5"
+      },
+      {
+        "identity": "supabase/migrations/20261001210000_phase_l_dataset_outcome_integrity.sql",
+        "sourceSha256": "06565f465087ba7e96cb73615bf79b888e139af32a36b8a6f8d1d7a5b2c17fb8",
+        "executedSha256": "06565f465087ba7e96cb73615bf79b888e139af32a36b8a6f8d1d7a5b2c17fb8"
+      },
+      {
+        "identity": "supabase/migrations/20261001220000_phase_l_outcome_cashflow_integrity.sql",
+        "sourceSha256": "4047bc6322aaeffe0dae54d222ef60e8d5692f10ae72caedaec51ecadda705ac",
+        "executedSha256": "4047bc6322aaeffe0dae54d222ef60e8d5692f10ae72caedaec51ecadda705ac"
+      },
+      {
+        "identity": "supabase/migrations/20261002120000_phase_m_canonical_reporting_validation.sql",
+        "sourceSha256": "c3c6feedd7548d43577eae70071b0bfef03db4b2852a5ba05f8a4e42349c2e84",
+        "executedSha256": "c3c6feedd7548d43577eae70071b0bfef03db4b2852a5ba05f8a4e42349c2e84"
+      },
+      {
+        "identity": "supabase/migrations/20261003120000_phase_m_lifecycle_publication_and_edits.sql",
+        "sourceSha256": "c2e81cc86960bca5fe04decfb805b1650de04b54afee930a036b9d5fbc97d25d",
+        "executedSha256": "a08c85957e6444880f7affbddb4381792596725be60d6fb127c2bb4ee68e4cd6"
+      },
+      {
+        "identity": "supabase/migrations/20261004120000_phase_m_atomic_evidence_completion.sql",
+        "sourceSha256": "d7aef5ab50f6196269a6f5da309cdbff835d2788a250ae7fe32681f157fdffe9",
+        "executedSha256": "d7aef5ab50f6196269a6f5da309cdbff835d2788a250ae7fe32681f157fdffe9"
+      },
+      {
+        "identity": "supabase/migrations/20261005120000_phase_m_scanner_outcome_atomicity.sql",
+        "sourceSha256": "8bcfab3736a4fabdcfe2f39593aa9d927b7612a093cc9089cfcc078f82895b97",
+        "executedSha256": "8bcfab3736a4fabdcfe2f39593aa9d927b7612a093cc9089cfcc078f82895b97"
+      },
+      {
+        "identity": "supabase/migrations/20261006120000_phase_n_customer_operations.sql",
+        "sourceSha256": "1939590c7825a770cd4de5795eae6c80cd9a2b745cf309b57e63b2f8592c0c8e",
+        "executedSha256": "1939590c7825a770cd4de5795eae6c80cd9a2b745cf309b57e63b2f8592c0c8e"
+      },
+      {
+        "identity": "supabase/migrations/20261007120000_phase_n_command_consumption.sql",
+        "sourceSha256": "df9bf24455e5700b19bff3fa3614be5b8bbd6802b444569a9c73620e732e7c4f",
+        "executedSha256": "df9bf24455e5700b19bff3fa3614be5b8bbd6802b444569a9c73620e732e7c4f"
+      },
+      {
+        "identity": "supabase/migrations/20261008120000_phase_n_provider_credentials.sql",
+        "sourceSha256": "70b53d105e3e0202e07442492216f81e00ef84f354e8a4d3d03d18944b0f0f1c",
+        "executedSha256": "70b53d105e3e0202e07442492216f81e00ef84f354e8a4d3d03d18944b0f0f1c"
+      },
+      {
+        "identity": "supabase/migrations/20261009120000_phase_n_certification_atomicity.sql",
+        "sourceSha256": "761bcfbe821f78cb3f3d54e7e2c6de7e4bb7275ab0b6109cb7c9f0a8f11b0a33",
+        "executedSha256": "754162afdc88ab4dec7b4e5b7c8726f8383a66759cca0ca996efacc8e309b35a"
+      },
+      {
+        "identity": "supabase/migrations/20261011120000_phase_o_connected_agents_and_vip_channels.sql",
+        "sourceSha256": "288c6d5db3d36d194aedada144ffbed964113c36b76c863bcc4c967bf9fb38aa",
+        "executedSha256": "288c6d5db3d36d194aedada144ffbed964113c36b76c863bcc4c967bf9fb38aa"
+      },
+      {
+        "identity": "supabase/migrations/20261012120000_phase_o_completion_controls.sql",
+        "sourceSha256": "a595bb10d9d59b48b736cb1d53b7de31769cc4188aaf1911c4dc3e5f845d5638",
+        "executedSha256": "90358c2fe849ca36e5629066060f5eed091a11b828b53be79855609785fefc80"
+      },
+      {
+        "identity": "supabase/migrations/20261013120000_phase_p_portable_workers.sql",
+        "sourceSha256": "f4749fc4e7c942e6aa2ff40708e8ad082cc7c60d2cc8c125a8b333e525e6f8d3",
+        "executedSha256": "f4749fc4e7c942e6aa2ff40708e8ad082cc7c60d2cc8c125a8b333e525e6f8d3"
+      }
+    ],
+    "transformations": [
+      {
+        "changed": true,
+        "sourceSha256": "eecd345c6e9e21e872ff7c31b4ae8abef38ef18830052e6b356c2bd9eba14f19",
+        "executedSha256": "9c212e008158d1d98456cbcaeb5d005250fdb4a0f1a9d6f8ff40199051122c9e",
+        "identity": "supabase/migrations/20260530170000_020_c2_forex_signal_mode_parity.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "text[]",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "e24bbc78e80164fc7d3568be2696bb9050973492942f40036599949fc1eaad74",
+        "executedSha256": "3586837e1af4a685659b68cac3cb76e9d0877fee221f6b655402b9de2bc651cb",
+        "identity": "supabase/migrations/20260605093000_038_end_to_end_strategy_scanner_parity_repair.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "jsonb",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "c2f94fe052673d19e8355974ac2ffe01581e40dc84b4f6b7d1378dc2d1a79b58",
+        "executedSha256": "d8b699a429a18556ced4fa9820d8b29756fc5855b6812c73fe7a5cb91c22b64c",
+        "identity": "supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "TABLE(table_name text, deleted_count bigint)",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "0dd3aec7c87e3af5bacee5602b1892bed1031ef3d0e23a90a5784d79078c360a",
+        "executedSha256": "19778f727f9d528fecda1320f92f7b78002b9555f738963aad92288572efc595",
+        "identity": "supabase/migrations/20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "",
+        "providerStatusAndSeedReplay": "PASSED_REAL_POSTGRESQL",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "00b066bfb16c89d6da555d5b122d73e1a85fbb797263f7d7f0d67408aeafc68b",
+        "executedSha256": "b265b85d51c6d1a1fb5e8f9bd6a3a6bcea8f3097435a6980738072f2693d8220",
+        "identity": "supabase/migrations/20260622153740_088_trade_management_truth_table.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "text",
+        "upgradeDataTest": "PASSED_ROLLED_BACK_EXPLICIT_ROW_FIXTURE_AND_REPEATED_PRELUDE",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "cb18a9c14b8c35f2827a89b6e01218f36cba7063da28ce6c4e7b6152f66d4853",
+        "executedSha256": "81d8db8572eded103377cec616a23a8a8b8b51825798166c5840b3ca8187c1e2",
+        "identity": "supabase/migrations/20260708000000_092_retention_batch_cleanup_and_runtime_stability.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "timestamp with time zone",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "3c842ccdafcc6eabb9b41d9226b3859298f120f00095a12eca23b404d7e8948f",
+        "executedSha256": "e730150914b876a0897a72d13fab888e5aa72996a9d83a8380529e054103bbcd",
+        "identity": "supabase/migrations/20260708160000_097_crypto_execution_protection_closeout.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "text",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "8ff25f4a8d3a179a94b0bb74980a65fff467bcd8a891a3088cddc94b2a91b897",
+        "executedSha256": "475d3d6c305542a2e6db0ee4e417ee60110789bbaf8eca375a209ade20b19e38",
+        "identity": "supabase/migrations/20260710230322_20260710120000_097_runtime_monitor_schema_catchup.sql.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "text",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "a59814e9f41fbf68e9ccb9236c61bf9ee51ec26ce023d121e33b04fb0ff0c1ff",
+        "executedSha256": "ba32f7942a6d658f3686fa542247166d59e763583d5d0c0f4cacf119827822e0",
+        "identity": "supabase/migrations/20260902120000_102_prop_personal_execution_mode_and_scanner_combined.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "boolean",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "35fe4bab6c4a1b51d0317427ab79cf03702381dacb04c0f3d5f9e451510d4167",
+        "executedSha256": "0cbddd58d2b60e4584374a1717572383c79a76bdb03810cd61a89052647d162d",
+        "identity": "supabase/migrations/20260926210000_phase_h_completion.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "text",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "c2e81cc86960bca5fe04decfb805b1650de04b54afee930a036b9d5fbc97d25d",
+        "executedSha256": "a08c85957e6444880f7affbddb4381792596725be60d6fb127c2bb4ee68e4cd6",
+        "identity": "supabase/migrations/20261003120000_phase_m_lifecycle_publication_and_edits.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "uuid",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "761bcfbe821f78cb3f3d54e7e2c6de7e4bb7275ab0b6109cb7c9f0a8f11b0a33",
+        "executedSha256": "754162afdc88ab4dec7b4e5b7c8726f8383a66759cca0ca996efacc8e309b35a",
+        "identity": "supabase/migrations/20261009120000_phase_n_certification_atomicity.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "uuid",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      },
+      {
+        "changed": true,
+        "sourceSha256": "a595bb10d9d59b48b736cb1d53b7de31769cc4188aaf1911c4dc3e5f845d5638",
+        "executedSha256": "90358c2fe849ca36e5629066060f5eed091a11b828b53be79855609785fefc80",
+        "identity": "supabase/migrations/20261012120000_phase_o_completion_controls.sql",
+        "compatibilityId": "deployment-compatibility-v1",
+        "preconditionValue": "uuid",
+        "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+      }
+    ],
+    "cronExecution": "off",
+    "fullChainInvariants": "PASSED_REAL_POSTGRESQL",
+    "upgradeDataPreflight": [
+      "quarantine_provider_symbol_duplicates|0",
+      "trade_truth_execution_order_duplicates|0",
+      "unowned_legacy_trade_truth|0"
+    ],
+    "catalogInspection": "PASSED",
+    "schemaFingerprint": "d5fbdbc1036b51c96f93234742d297b31535616a7a065c94d9c405cb6f243b47"
+  },
+  "environmentAttempts": [
+    {
+      "environment": "postgres:16-alpine extension build",
+      "status": "BLOCKED",
+      "limitation": "HTTP 403 from dl-cdn.alpinelinux.org package indexes"
+    },
+    {
+      "environment": "Debian PostgreSQL 15 extension build, initial attempt",
+      "status": "BLOCKED",
+      "limitation": "initdb: could not create pg_wal: No space left on device"
+    },
+    {
+      "environment": "Debian PostgreSQL 15 compact extension image",
+      "status": "PASSED",
+      "image": "hashibot-migration-rehearsal:local",
+      "imageId": "sha256:767351c4ca2f0e1b083b952bd60c42731acff66f40950b525d8855fdfa3328c0",
+      "resolution": "Removed only the identified audit build cache; purged compiler dependencies within the same image layer. No general Docker or volume prune."
+    },
+    {
+      "environment": "Final compact Debian PostgreSQL 15 extension image",
+      "status": "PASSED",
+      "imageId": "sha256:b1e83e2c61d95342fee2e2d41eedd6dcc59baefb82c7a41bd6c6471f4e48a940",
+      "resolution": "Disable redundant package-created default cluster before server installation; purge build dependencies in the same layer; restore native CA bundle after temporary build trust. Cleanup removes only owned containers, anonymous volumes and networks."
+    },
+    {
+      "environment": "Real Vault-enabled PostgreSQL 15.19 image",
+      "status": "PASSED",
+      "imageId": "sha256:8f57e270dfdd663fdbc9f3614295443f6cb9c0f8d70735b34753724a950f4008",
+      "extensions": [
+        {
+          "name": "supabase_vault",
+          "version": "0.3.1"
+        },
+        {
+          "name": "pg_net",
+          "version": "0.14.0"
+        },
+        {
+          "name": "pg_cron",
+          "version": "1.6"
+        }
+      ],
+      "auth": "Real GoTrue migrations; helper/role/bootstrap SQL explicit",
+      "peakDiskRecovery": "Owned Auth container removed immediately after its schema migrations; no general prune",
+      "cryptoNamespace": "Real pgcrypto in extensions, public/extensions search path"
+    }
+  ],
+  "limitations": [
+    "Untouched historical chain remains blocked at 020; success is the explicit compatible/bootstrap execution, not raw replay.",
+    "175 ordered files, both retained quarantine RPC contracts, actual completed-chain invariants and read-only upgrade count preflight verified; not every stored routine branch has been invoked.",
+    "No production customer-data restore or populated-upgrade rehearsal. Aggregate duplicate/ownership gates must pass before any existing-project upgrade.",
+    "Connected Supabase project INACTIVE; online history/schema/functions/cron comparison NOT_RUN. Hosted PostgreSQL 17 parity not established by PostgreSQL 15 rehearsal.",
+    "Real Vault installed, no decrypted secret retrieved; no credential-operation or complete Storage-service rehearsal.",
+    "No schedule execution, provider calls, activation, deployment, merge or remote SQL.",
+    "Historical quarantine SECURITY DEFINER grants are preserved and require online ACL/caller review before release; passing database invariants are not a production authorization certification."
+  ],
+  "previousPr255Evidence": {
+    "commit": "be11af179dd9652ad5c901107d03660dd1e1bc91",
+    "fullChain": {
+      "scope": "UNCHANGED_FULL_AUTOMATIC_CHAIN",
+      "fixture": false,
+      "image": "hashibot-migration-rehearsal:local",
+      "status": "BLOCKED",
+      "activation": false,
+      "imageId": "sha256:b1e83e2c61d95342fee2e2d41eedd6dcc59baefb82c7a41bd6c6471f4e48a940",
+      "postgres": "PostgreSQL 15.19 (Debian 15.19-0+deb12u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+      "extensions": [
+        {
+          "name": "pg_net",
+          "version": "0.14.0"
+        },
+        {
+          "name": "pg_cron",
+          "version": "1.6"
+        }
+      ],
+      "migration": "20260530170000_020_c2_forex_signal_mode_parity.sql",
+      "precedingFilesExecuted": 19,
+      "error": "ERROR:  column \"active_timeframes\" is of type text[] but expression is of type jsonb\nLINE 4:     active_timeframes = '[\"5m\",\"15m\",\"1h\",\"4h\"]'::jsonb,\n                                ^\nHINT:  You will need to rewrite or cast the expression.",
+      "transformations": [],
+      "prerequisite": "Inspect the exact error and this migration source; do not skip or mark history.",
+      "catalogInspection": "PASSED"
+    },
+    "compatibility": {
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)",
+      "fixture": false,
+      "image": "hashibot-migration-rehearsal:local",
+      "status": "BLOCKED",
+      "activation": false,
+      "imageId": "sha256:b1e83e2c61d95342fee2e2d41eedd6dcc59baefb82c7a41bd6c6471f4e48a940",
+      "postgres": "PostgreSQL 15.19 (Debian 15.19-0+deb12u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+      "extensions": [
+        {
+          "name": "pg_net",
+          "version": "0.14.0"
+        },
+        {
+          "name": "pg_cron",
+          "version": "1.6"
+        }
+      ],
+      "migration": "20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+      "precedingFilesExecuted": 81,
+      "error": "NOTICE:  column \"execution_group_id\" of relation \"execution_orders\" already exists, skipping\nERROR:  new row for relation \"execution_provider_controls\" violates check constraint \"execution_provider_controls_status_check\"\nDETAIL:  Failing row contains (binance, t, f, f, t, f, t, t, f, configured, null, null, {\"role\": \"execution_provider\", \"environment\": \"testnet\"}, 2026-10-08 13:11:22.954865+00, , t, null, t).",
+      "transformations": [
+        {
+          "changed": true,
+          "sourceSha256": "eecd345c6e9e21e872ff7c31b4ae8abef38ef18830052e6b356c2bd9eba14f19",
+          "executedSha256": "9c212e008158d1d98456cbcaeb5d005250fdb4a0f1a9d6f8ff40199051122c9e",
+          "identity": "supabase/migrations/20260530170000_020_c2_forex_signal_mode_parity.sql",
+          "compatibilityId": "deployment-compatibility-v1",
+          "preconditionValue": "text[]",
+          "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+        },
+        {
+          "changed": true,
+          "sourceSha256": "e24bbc78e80164fc7d3568be2696bb9050973492942f40036599949fc1eaad74",
+          "executedSha256": "3586837e1af4a685659b68cac3cb76e9d0877fee221f6b655402b9de2bc651cb",
+          "identity": "supabase/migrations/20260605093000_038_end_to_end_strategy_scanner_parity_repair.sql",
+          "compatibilityId": "deployment-compatibility-v1",
+          "preconditionValue": "jsonb",
+          "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+        },
+        {
+          "changed": true,
+          "sourceSha256": "c2f94fe052673d19e8355974ac2ffe01581e40dc84b4f6b7d1378dc2d1a79b58",
+          "executedSha256": "d8b699a429a18556ced4fa9820d8b29756fc5855b6812c73fe7a5cb91c22b64c",
+          "identity": "supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql",
+          "compatibilityId": "deployment-compatibility-v1",
+          "preconditionValue": "TABLE(table_name text, deleted_count bigint)",
+          "verification": "PASSED_DATA_COUNTS_RLS_AND_TARGET_SIGNATURE_GRANTS"
+        },
+        {
+          "changed": true,
+          "sourceSha256": "0dd3aec7c87e3af5bacee5602b1892bed1031ef3d0e23a90a5784d79078c360a",
+          "executedSha256": "3b3179bc3f4ddfae12dd1d4ef8f3b892323a5c3094c1011e3a28712ed20aed78",
+          "identity": "supabase/migrations/20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+          "compatibilityId": "deployment-compatibility-v1",
+          "preconditionValue": "",
+          "failedMigrationRolledBack": true,
+          "verification": "TRANSACTION_ROLLBACK_CONFIRMED_NOT_FULLY_VERIFIED"
+        }
+      ],
+      "prerequisite": "Inspect the exact error and this migration source; do not skip or mark history.",
+      "catalogInspection": "PASSED"
+    }
+  },
+  "repairAttempts": [
+    {
+      "attempt": "repair-050-before-vault",
+      "status": "BLOCKED",
+      "migration": "20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+      "precedingFilesExecuted": 81,
+      "error": "NOTICE:  column \"execution_group_id\" of relation \"execution_orders\" already exists, skipping\nERROR:  relation \"vault.decrypted_secrets\" does not exist\nLINE 1: SELECT decrypted_secret                  FROM vault.decrypte...\n                                                      ^\nQUERY:  SELECT decrypted_secret                  FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL' LIMIT 1\nCONTEXT:  PL/pgSQL function inline_code_block line 8 at SQL statement",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-vault-disk-failure",
+      "status": "BLOCKED",
+      "migration": "20260526042530_001_create_core_tables.sql",
+      "precedingFilesExecuted": 0,
+      "error": "NOTICE:  trigger \"on_auth_user_created\" for relation \"auth.users\" does not exist, skipping\nERROR:  could not create file \"base/5/17207\": No space left on device",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-088-before",
+      "status": "BLOCKED",
+      "migration": "20260622153740_088_trade_management_truth_table.sql",
+      "precedingFilesExecuted": 101,
+      "error": "NOTICE:  relation \"trade_management_truth\" already exists, skipping\nERROR:  column \"status\" does not exist",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-092-before",
+      "status": "BLOCKED",
+      "migration": "20260708000000_092_retention_batch_cleanup_and_runtime_stability.sql",
+      "precedingFilesExecuted": 105,
+      "error": "ERROR:  column \"timestamp\" does not exist",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-097-before",
+      "status": "BLOCKED",
+      "migration": "20260708160000_097_crypto_execution_protection_closeout.sql",
+      "precedingFilesExecuted": 109,
+      "error": "NOTICE:  column \"repair_attempts\" of relation \"trade_management_truth\" already exists, skipping\nNOTICE:  column \"recovery_status\" of relation \"trade_management_truth\" already exists, skipping\nNOTICE:  column \"latest_error\" of relation \"trade_management_truth\" already exists, skipping\nNOTICE:  column \"last_action_taken\" of relation \"trade_management_truth\" already exists, skipping\nERROR:  function name \"public.upsert_trade_management_truth\" is not unique\nHINT:  Specify the argument list to select the function unambiguously.",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-097-catchup-before",
+      "status": "BLOCKED",
+      "migration": "20260710230322_20260710120000_097_runtime_monitor_schema_catchup.sql.sql",
+      "precedingFilesExecuted": 110,
+      "error": "NOTICE:  relation \"problem_symbol_quarantine\" already exists, skipping\nNOTICE:  policy \"select_quarantine\" for relation \"public.problem_symbol_quarantine\" does not exist, skipping\nNOTICE:  policy \"insert_quarantine\" for relation \"public.problem_symbol_quarantine\" does not exist, skipping\nNOTICE:  policy \"update_quarantine\" for relation \"public.problem_symbol_quarantine\" does not exist, skipping\nNOTICE:  policy \"delete_quarantine\" for relation \"public.problem_symbol_quarantine\" does not exist, skipping\nNOTICE:  relation \"execution_monitor_heartbeats\" already exists, skipping\nNOTICE:  policy \"select_heartbeats\" for relation \"public.execution_monitor_heartbeats\" does not exist, skipping\nNOTICE:  policy \"insert_heartbeats\" for relation \"public.execution_monitor_heartbeats\" does not exist, skipping\nNOTICE:  policy \"update_heartbeats\" for relation \"public.execution_monitor_heartbeats\" does not exist, skipping\nNOTICE:  policy \"delete_heartbeats\" for relation \"public.execution_monitor_heartbeats\" does not exist, skipping\nNOTICE:  relation \"execution_monitor_schedules\" already exists, skipping\nNOTICE:  policy \"select_schedules\" for relation \"public.execution_monitor_schedules\" does not exist, skipping\nNOTICE:  policy \"insert_schedules\" for relation \"public.execution_monitor_schedules\" does not exist, skipping\nNOTICE:  policy \"update_schedules\" for relation \"public.execution_monitor_schedules\" does not exist, skipping\nNOTICE:  policy \"delete_schedules\" for relation \"public.execution_monitor_schedules\" does not exist, skipping\nNOTICE:  relation \"execution_provider_controls\" already exists, skipping\nNOTICE:  policy \"select_controls\" for relation \"public.execution_provider_controls\" does not exist, skipping\nNOTICE:  policy \"insert_controls\" for relation \"public.execution_provider_controls\" does not exist, skipping\nNOTICE:  policy \"update_controls\" for relation \"public.execution_provider_controls\" does not exist, skipping\nNOTICE:  policy \"delete_controls\" for relation \"public.execution_provider_controls\" does not exist, skipping\nNOTICE:  function public.record_symbol_failure(text,text,text) does not exist, skipping\nERROR:  column \"resolved\" does not exist\nLINE 3:   WHERE resolved = false;\n                ^",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-102-before",
+      "status": "BLOCKED",
+      "migration": "20260902120000_102_prop_personal_execution_mode_and_scanner_combined.sql",
+      "precedingFilesExecuted": 141,
+      "error": "ERROR:  column \"signal_enable_forex\" of relation \"scanner_config\" does not exist\nLINE 3:         signal_enable_forex = true\n                ^\nQUERY:  UPDATE public.scanner_config\n    SET scan_forex_enabled = true,\n        signal_enable_forex = true\n    WHERE id = 1\nCONTEXT:  PL/pgSQL function inline_code_block line 13 at SQL statement",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-102-transform-error",
+      "status": "BLOCKED",
+      "migration": "20260902120000_102_prop_personal_execution_mode_and_scanner_combined.sql",
+      "precedingFilesExecuted": 141,
+      "error": "ERROR:  syntax error at or near \"$\"\nLINE 1: DO $\n           ^",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-phase-h-before",
+      "status": "BLOCKED",
+      "migration": "20260926210000_phase_h_completion.sql",
+      "precedingFilesExecuted": 154,
+      "error": "ERROR:  cannot change name of view column \"created_at\" to \"phase_h_asset_class\"\nHINT:  Use ALTER VIEW ... RENAME COLUMN ... to change name of view column instead.",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-phase-m-before",
+      "status": "BLOCKED",
+      "migration": "20261003120000_phase_m_lifecycle_publication_and_edits.sql",
+      "precedingFilesExecuted": 165,
+      "error": "NOTICE:  trigger \"trg_canonical_lifecycle_immutable\" for relation \"public.canonical_lifecycle_events\" does not exist, skipping\nERROR:  cannot change name of view column \"status\" to \"customer_id\"\nHINT:  Use ALTER VIEW ... RENAME COLUMN ... to change name of view column instead.",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-phase-n-before",
+      "status": "BLOCKED",
+      "migration": "20261009120000_phase_n_certification_atomicity.sql",
+      "precedingFilesExecuted": 171,
+      "error": "ERROR:  syntax error at end of input\nLINE 16: ...ider)='mt5' and upper(a.account_mode) like 'PROP%' then 'MT5...\n                                                              ^",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-extensions-before",
+      "status": "BLOCKED",
+      "migration": "20261012120000_phase_o_completion_controls.sql",
+      "precedingFilesExecuted": 173,
+      "error": "ERROR:  schema \"extensions\" does not exist\nLINE 1: ... search_path=public,extensions as $$select encode(extensions...\n                                                             ^",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-phase-o-before",
+      "status": "BLOCKED",
+      "migration": "20261012120000_phase_o_completion_controls.sql",
+      "precedingFilesExecuted": 173,
+      "error": "NOTICE:  trigger \"trg_phase_o_destination_invalidate\" for relation \"public.phase_o_destinations\" does not exist, skipping\nNOTICE:  trigger \"trg_phase_o_campaign_invalidate\" for relation \"public.phase_o_campaigns\" does not exist, skipping\nNOTICE:  trigger \"trg_phase_o_attr_campaign\" for relation \"public.campaign_attributions\" does not exist, skipping\nNOTICE:  trigger \"trg_phase_o_attr_checkout\" for relation \"public.commerce_checkout_sessions\" does not exist, skipping\nNOTICE:  trigger \"trg_phase_o_attr_entitlement\" for relation \"public.phase_h_entitlements\" does not exist, skipping\nNOTICE:  trigger \"trg_phase_o_attr_link\" for relation \"public.telegram_links\" does not exist, skipping\nNOTICE:  trigger \"trg_phase_o_attr_membership\" for relation \"public.telegram_memberships\" does not exist, skipping\nNOTICE:  trigger \"trg_phase_o_attr_signup\" for relation \"public.profiles\" does not exist, skipping\nERROR:  cannot change name of view column \"checkout_attempts\" to \"enrollments\"\nHINT:  Use ALTER VIEW ... RENAME COLUMN ... to change name of view column instead.",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    },
+    {
+      "attempt": "repair-counter-overload-before",
+      "status": "BLOCKED",
+      "migration": null,
+      "precedingFilesExecuted": null,
+      "migrationChainStatus": "PASSED",
+      "error": "FULL_CHAIN_DATABASE_INVARIANTS_FAILED: see full-chain-invariants.log",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL"
+    },
+    {
+      "attempt": "repair-counter-typed-before",
+      "status": "BLOCKED",
+      "migration": null,
+      "precedingFilesExecuted": null,
+      "migrationChainStatus": "PASSED",
+      "error": "FULL_CHAIN_DATABASE_INVARIANTS_FAILED: see full-chain-invariants.log",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL"
+    },
+    {
+      "attempt": "repair-default-removal-before",
+      "status": "BLOCKED",
+      "migration": "20260710230322_20260710120000_097_runtime_monitor_schema_catchup.sql.sql",
+      "precedingFilesExecuted": 110,
+      "migrationChainStatus": null,
+      "error": "NOTICE:  relation \"problem_symbol_quarantine\" already exists, skipping\nERROR:  cannot remove parameter defaults from existing function\nHINT:  Use DROP FUNCTION record_symbol_failure(text,text,text,jsonb,integer,integer) first.\nCONTEXT:  SQL statement \"CREATE OR REPLACE FUNCTION public.record_symbol_failure(p_provider text, p_symbol text, p_reason text, p_metadata jsonb, p_threshold integer DEFAULT 3, p_cooldown_minutes integer DEFAULT 240)\n RETURNS problem_symbol_quarantine\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  v_reason text := CASE WHEN p_reason IN (\n    'EXCHANGE_MAX_QTY_EXCEEDED','MIN_NOTIONAL_NOT_MET','INVALID_TRIGGER_DIRECTION','UNSUPPORTED_CONDITIONAL_ORDER',\n    'PROTECTION_VERIFICATION_FAILED','PRECISION_RULE_VIOLATION','STALE_ORDER_LOOP','REPEATED_REPAIR_FAILURE',\n    'EXCHANGE_REJECT','UNKNOWN_PROVIDER_FAILURE'\n  ) THEN p_reason ELSE 'UNKNOWN_PROVIDER_FAILURE' END;\n  v_row public.problem_symbol_quarantine;\nBEGIN\n  INSERT INTO public.problem_symbol_quarantine(provider, symbol, reason, metadata, recommended_action)\n  VALUES (lower(p_provider), upper(p_symbol), v_reason, coalesce(p_metadata, '{}'::jsonb), 'watch symbol; auto quarantine after repeated failures')\n  ON CONFLICT (provider, symbol, reason) DO UPDATE SET\n    last_seen = now(),\n    failure_count = public.problem_symbol_quarantine.failure_count + 1,\n    metadata = public.problem_symbol_quarantine.metadata || coalesce(p_metadata, '{}'::jsonb),\n    updated_at = now()\n  RETURNING * INTO v_row;\n\n  IF v_row.failure_count >= greatest(1, p_threshold) THEN\n    UPDATE public.problem_symbol_quarantine\n    SET disabled_for_execution = true,\n        disabled_for_repair = true,\n        cooldown_until = now() + make_interval(mins => greatest(5, p_cooldown_minutes)),\n        recommended_action = CASE v_reason\n          WHEN 'INVALID_TRIGGER_DIRECTION' THEN 'skip execution/repair until signal prices and mark-price trigger direction are verified'\n          WHEN 'PROTECTION_VERIFICATION_FAILED' THEN 'inspect exchange conditional-order support and precision before retry'\n          WHEN 'REPEATED_REPAIR_FAILURE' THEN 'manual review required before repair retry'\n          WHEN 'MIN_NOTIONAL_NOT_MET' THEN 'sync provider symbol filters and skip too-small sizing'\n          WHEN 'EXCHANGE_MAX_QTY_EXCEEDED' THEN 'sync max quantity limits and reduce sizing before retry'\n          ELSE 'manual review required before retry'\n        END,\n        updated_at = now()\n    WHERE id = v_row.id\n    RETURNING * INTO v_row;\n  END IF;\n  RETURN v_row;\nEND $function$\n\"\nPL/pgSQL function inline_code_block line 4 at EXECUTE",
+      "scope": "EXPLICIT_COMPATIBILITY_REHEARSAL (not unchanged-chain verification)"
+    }
+  ],
+  "offlineMigrationRehearsal": "COMPLETE_EXPLICIT_COMPATIBILITY_CHAIN",
+  "runtimeOverloadErrorExcerpt": "ERROR:  function record_symbol_failure(text, text, text) is not unique\nLINE 1: SELECT record_symbol_failure('__AUDIT_COUNTER__'::text,'bina...\n               ^\nHINT:  Could not choose a best candidate function. You might need to add explicit type casts."
+}
