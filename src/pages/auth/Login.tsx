@@ -1,3 +1,4 @@
+import { enterOwnerPreview } from '../../lib/ownerPreview/state';
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, SafeAuthError } from '../../contexts/AuthContext';
@@ -15,8 +16,7 @@ function friendlyError(error: SafeAuthError): string {
 }
 
 export default function Login() {
-  const { signIn, emergencyAdminBypass } = useAuth();
-  const adminPreviewEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_ADMIN_PREVIEW === 'true';
+  const { signIn } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const [search] = useSearchParams();
@@ -50,9 +50,8 @@ export default function Login() {
     nav(from, { replace: true });
   }
 
-  function handleEmergencyBypass() {
-    emergencyAdminBypass();
-    nav('/admin/operator', { replace: true });
+  function handleOwnerPreview() {
+    enterOwnerPreview();
   }
 
   return (
@@ -106,24 +105,24 @@ export default function Login() {
                 placeholder="••••••••"
               />
             </div>
-          {adminPreviewEnabled && <button
+          <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
             >
               {loading ? 'Signing in...' : 'Sign In'}
-          </button>}
+          </button>
           </form>
 
-          {/* Emergency Admin Bypass Button */}
+          {/* Owner Preview Button */}
           <div className="mt-6 pt-5 border-t border-zinc-800/80 space-y-2">
             <button
               type="button"
-              onClick={handleEmergencyBypass}
+              onClick={handleOwnerPreview}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-xs transition-colors"
             >
               <KeyRound size={13} />
-              <span>Emergency Admin Bypass (Temp Access)</span>
+              <span>Owner Preview — simulated UI</span>
             </button>
             <Link
               to="/app/visual-bridge"

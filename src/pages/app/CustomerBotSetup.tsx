@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from '../../components/layout/AppLayout';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { supabase } from '../../lib/supabase';
 import { CustomerBotSetup as CustomerBotSetupType } from '../../lib/types';
 import { saveLocalCustomerAccount } from '../../lib/customerAccountManager';
@@ -23,7 +23,7 @@ interface VerificationStatus {
 }
 
 export default function CustomerBotSetup() {
-  const { user } = useAuth();
+  const { subject: user } = usePreviewViewer();
   const [searchParams] = useSearchParams();
   const initialPkg = searchParams.get('package') || 'crypto_personal_bot';
 

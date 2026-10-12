@@ -1,3 +1,4 @@
+import { isOwnerPreview } from '../../lib/ownerPreview/state';
 import { type ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -9,7 +10,7 @@ import {
   SlidersHorizontal, FlaskConical
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 
 type NavItem =
   | { section: string }
@@ -19,6 +20,8 @@ const adminNav: NavItem[] = [
   { section: 'Overview' },
   { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/mission-control', label: 'Operations Center', icon: Activity },
+  { to: '/admin/scanner', label: 'Scanner', icon: Radio },
+  { to: '/admin/scanner-config', label: 'Scanner Configuration', icon: Settings },
   { section: 'Research' },
   { to: '/admin/backtest', label: 'Backtest & Qualification', icon: FlaskConical },
   { to: '/admin/strategies', label: 'Strategies', icon: SlidersHorizontal },
@@ -37,7 +40,11 @@ const adminNav: NavItem[] = [
   { to: '/admin/customers', label: 'Customers', icon: Users },
   { to: '/admin/customer-fleet', label: 'Accounts & Provisioning', icon: Cpu },
   { to: '/admin/access-requests', label: 'Approvals', icon: ClipboardList },
+  { to: '/admin/onboarding', label: 'Onboarding & Readiness', icon: ListChecks },
+  { to: '/admin/trading-brain', label: 'Brain Configuration', icon: Cpu },
   { section: 'Communications' },
+  { to: '/admin/commerce', label: 'Commerce & Membership', icon: ClipboardList },
+  { to: '/admin/ai-agents', label: 'Agents', icon: Cpu },
   { to: '/admin/telegram-links', label: 'Telegram', icon: Send },
   { to: '/admin/reporting', label: 'Reporting', icon: Activity },
   { section: 'System' },
@@ -48,7 +55,7 @@ const adminNav: NavItem[] = [
 ];
 
 export function AdminLayout({ children }: { children: ReactNode }) {
-  const { profile, signOut } = useAuth();
+  const { displayProfile: profile, signOut } = usePreviewViewer();
   const loc = useLocation();
   const nav = useNavigate();
   const [sideOpen, setSideOpen] = useState(false);
@@ -162,10 +169,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 <User size={13} className="text-blue-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-zinc-200 truncate">{profile?.full_name || profile?.email || 'Administrator'}</p>
+                <p className="text-xs font-semibold text-zinc-200 truncate">{isOwnerPreview() ? 'Owner Preview visitor' : profile?.full_name || profile?.email || 'Administrator'}</p>
                 <p className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Operator Active
+                  {isOwnerPreview() ? "Preview · no authority" : "Operator Active"}
                 </p>
               </div>
             </div>
@@ -211,14 +218,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] font-mono text-zinc-500 hidden lg:inline">
-              LIVE TELEMETRY
+              {isOwnerPreview() ? "SIMULATED TELEMETRY" : "LIVE TELEMETRY"}
             </span>
             <Link
               to="/admin/operator"
               className="text-[11px] font-mono text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1.5 shadow-sm"
             >
               <Shield size={11} className="text-orange-400" />
-              <span>ADMIN</span>
+              <span>{isOwnerPreview() ? "PREVIEW" : "ADMIN"}</span>
             </Link>
             <Link
               to="/app/dashboard"

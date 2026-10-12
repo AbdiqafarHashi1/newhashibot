@@ -1,3 +1,4 @@
+import { isOwnerPreview } from '../../lib/ownerPreview/state';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
@@ -167,7 +168,7 @@ export default function CustomerFleetOps() {
       });
 
       // Always merge all fleet accounts from unified manager so live customer accounts (MT5 #5055164653, Bybit, Binance) appear!
-      const unifiedFleet = await getAllFleetCustomerAccounts();
+      const unifiedFleet = isOwnerPreview() ? [] : await getAllFleetCustomerAccounts();
       const existingUserIds = new Set(records.map(r => r.subscription.user_id || r.subscription.email));
 
       for (const u of unifiedFleet) {

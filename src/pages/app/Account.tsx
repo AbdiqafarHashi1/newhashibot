@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { supabase } from '../../lib/supabase';
 import { AccessRequest, CustomerBotSetup, CustomerSubscription } from '../../lib/types';
 import { Badge } from '../../components/ui/Badge';
@@ -20,7 +20,7 @@ function StatusDot({ active }: { active: boolean }) {
 }
 
 export default function Account() {
-  const { profile, user } = useAuth();
+  const { displayProfile: profile, subject: user } = usePreviewViewer();
   const { isInstalled, promptInstall } = usePWA();
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
 

@@ -26,3 +26,7 @@ dist-ssr
 # Phase P local verification and provider caches
 work/
 cloud/infrastructure/terraform/**/.terraform/
+
+# Browser test artifacts
+/test-results/
+/playwright-report/

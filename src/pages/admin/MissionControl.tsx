@@ -1,3 +1,4 @@
+import { isOwnerPreview } from '../../lib/ownerPreview/state';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
@@ -161,10 +162,10 @@ export default function MissionControl() {
 
   // Execute real backend command with JWT auto-refresh
   async function runCommand(action: string, provider?: string, extraParams: Record<string, unknown> = {}) {
-    if (!session?.access_token || runningAction === action) return;
+    if ((!isOwnerPreview() && !session?.access_token) || runningAction === action) return;
 
     const highRisk = ['emergency_stop_runtime', 'start_hashibot', 'resume_bot', 'run_recovery_now'].includes(action);
-    if (highRisk && !window.confirm(`Confirm the critical operator action: '${action.toUpperCase()}'. This creates one immutable operator audit record.`)) return;
+    if (!isOwnerPreview() && highRisk && !window.confirm(`Confirm the critical operator action: '${action.toUpperCase()}'. This creates one immutable operator audit record.`)) return;
 
     const startedAt = new Date().toISOString();
     const route = '/functions/v1/admin-operator-action';
@@ -183,7 +184,7 @@ export default function MissionControl() {
     });
 
     try {
-      let token = session.access_token;
+      let token = session?.access_token ?? null;
       const timeoutMs = action === 'run_scanner_now' ? 55000 : 30000;
       let result = await callEdgeFunction(functionName, { action, provider, ...extraParams, ...(highRisk ? { confirm: action } : {}) }, token, timeoutMs);
 
@@ -719,7 +720,7 @@ export default function MissionControl() {
                 <h2 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2 font-mono">
                   <BarChart3 size={15} className="text-emerald-400" /> Runtime Readiness Dashboard — Truth Metrics
                 </h2>
-                <span className="text-[10px] text-zinc-500 font-mono">Zero Decorative Widgets • 100% Verified Truth</span>
+                <span className="text-[10px] text-zinc-500 font-mono">{isOwnerPreview() ? "Illustrative fixture projections • no verified runtime truth" : "Zero Decorative Widgets • 100% Verified Truth"}</span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

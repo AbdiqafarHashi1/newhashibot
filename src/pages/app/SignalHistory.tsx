@@ -5,11 +5,11 @@ import { supabase } from '../../lib/supabase';
 import { AccessRequest, CustomerSubscription, Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { Lock, MessageCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { accessStateDescription, accessStateLabel, getCustomerAccessState, hasFullSignalAccess } from '../../lib/customerAccess';
 
 export default function SignalHistory() {
-  const { user } = useAuth();
+  const { subject: user } = usePreviewViewer();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);

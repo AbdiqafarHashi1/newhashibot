@@ -14,7 +14,6 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthActionResult>;
   signUp: (email: string, password: string, fullName: string) => Promise<AuthActionResult>;
   signOut: () => Promise<void>;
-  emergencyAdminBypass: () => void;
   isAdmin: boolean;
   refreshProfile: () => Promise<void>;
 }
@@ -93,7 +92,7 @@ async function fetchOrCreateProfile(user: User, previousProfile?: Profile | null
     if (previousProfile?.id === user.id) {
       return { profile: previousProfile, error: null };
     }
-    const defaultRole = (user.email?.includes('admin') || user.email === 'admin@hashibot.io' || user.user_metadata?.role === 'admin') ? 'admin' : 'user';
+    const defaultRole = 'user'; // A failed profile read cannot establish administrator authority.
     return {
       profile: {
         id: user.id,
@@ -188,44 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function activateEmergencyAdmin() {
-    const mockUser = {
-      id: 'admin-emergency-bypass',
-      email: 'binuhashi1@gmail.com',
-      user_metadata: { full_name: 'Admin Owner (Bypass)' },
-      app_metadata: { provider: 'email' },
-      aud: 'authenticated',
-      created_at: new Date().toISOString()
-    } as unknown as User;
-
-    const mockProfile: Profile = {
-      id: 'admin-emergency-bypass',
-      email: 'binuhashi1@gmail.com',
-      full_name: 'Admin Owner (Bypass)',
-      role: 'admin',
-      created_at: new Date().toISOString()
-    };
-
-    localStorage.setItem('hashibot_admin_bypass', 'true');
-    setUser(mockUser);
-    setProfile(mockProfile);
-    setLastKnownProfile(mockProfile);
-    lastKnownProfileRef.current = mockProfile;
-    setProfileError(null);
-    setLoading(false);
-  }
-
-  function emergencyAdminBypass() {
-    if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_ADMIN_PREVIEW === 'true') activateEmergencyAdmin();
-  }
-
   useEffect(() => {
-    // Check if emergency bypass is active
-    if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_ADMIN_PREVIEW === 'true' && localStorage.getItem('hashibot_admin_bypass') === 'true') {
-      activateEmergencyAdmin();
-      return;
-    }
-
+    localStorage.removeItem('hashibot_admin_bypass');
     if (!isSupabaseClientEnabled) {
       initializedRef.current = true;
       setSession(null);
@@ -359,7 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, lastKnownProfile, profileError, loading,
-      signIn, signUp, signOut, emergencyAdminBypass, refreshProfile,
+      signIn, signUp, signOut, refreshProfile,
       isAdmin: profile?.role === 'admin',
     }}>
       {children}

@@ -1,3 +1,4 @@
+import { isOwnerPreview } from '../../../lib/ownerPreview/state';
 import { useEffect, useState } from 'react';
 import {
   Activity,
@@ -134,7 +135,7 @@ export default function OperatorPanel({ section: initialSection = 'dashboard' }:
   }, [refresh]);
 
   async function runAction(action: string, provider?: string): Promise<OperatorActionResult | null> {
-    if (!session?.access_token || runningAction === action) return null;
+    if ((!isOwnerPreview() && !session?.access_token) || runningAction === action) return null;
     const started = Date.now();
     const startedAt = new Date().toISOString();
     const route = '/functions/v1/admin-operator-action';
@@ -155,7 +156,7 @@ export default function OperatorPanel({ section: initialSection = 'dashboard' }:
 
     try {
       const timeout = action === 'run_scanner_now' ? 55000 : 30000;
-      const result = await callEdgeFunction(functionName, { action, provider }, session.access_token, timeout);
+      const result = await callEdgeFunction(functionName, { action, provider }, session?.access_token, timeout);
       const data = result.data as Record<string, unknown> | null;
       const ok = result.ok && data && data.success === true && !data.exact_error;
 

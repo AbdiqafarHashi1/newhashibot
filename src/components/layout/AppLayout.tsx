@@ -1,14 +1,15 @@
+import { isOwnerPreview } from '../../lib/ownerPreview/state';
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Radio, MessageCircle, LogOut, Menu,
   Eye, User, ShieldCheck, Package, Server, Award, Sliders, Cpu
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { LiveSignalNotifier } from '../signals/LiveSignalNotifier';
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { profile, signOut, isAdmin } = useAuth();
+  const { displayProfile: profile, signOut, isAdmin } = usePreviewViewer();
   const loc = useLocation();
   const nav = useNavigate();
   const [sideOpen, setSideOpen] = useState(false);
@@ -257,7 +258,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       )}
 
       {/* Main Header & Body */}
-      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 md:ml-64 flex flex-col min-h-screen min-w-0">
         <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 bg-zinc-950/95 backdrop-blur shrink-0">
           <div className="flex items-center gap-3">
             <button
@@ -272,7 +273,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
               <span className="text-xs font-bold font-mono text-zinc-300">
-                LIVE SCANNER CONNECTED
+                {isOwnerPreview() ? "SIMULATED SCANNER" : "LIVE SCANNER CONNECTED"}
               </span>
               <span className="hidden sm:inline-flex text-[10px] text-zinc-500 font-mono bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
                 EAT (UTC+3)
@@ -282,7 +283,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-3">
             {/* Live Audio Chime & Push Alert Controls in Top Nav */}
-            <LiveSignalNotifier />
+            {isOwnerPreview() ? <span className="text-xs text-amber-300">Demo alerts</span> : <LiveSignalNotifier />}
 
             {isAdmin && (
               <Link
@@ -304,7 +305,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto min-w-0 overflow-x-auto">
           {children}
         </main>
       </div>

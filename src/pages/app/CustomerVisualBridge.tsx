@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from '../../components/layout/AppLayout';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import {
   CustomerBridgeTelemetry,
   fetchCustomerBridgeTelemetry,
@@ -31,7 +31,7 @@ import { Badge } from '../../components/ui/Badge';
 type BridgeTab = 'fleet' | 'visual_hud' | 'positions' | 'prop_guard' | 'signals_concurrency' | 'installer';
 
 export function CustomerVisualBridge() {
-  const { user } = useAuth();
+  const { subject: user } = usePreviewViewer();
   const [telemetry, setTelemetry] = useState<CustomerBridgeTelemetry | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedScript, setCopiedScript] = useState(false);

@@ -9,7 +9,7 @@ import {
   Volume2, RefreshCw
 } from 'lucide-react';
 import { RiskGuidanceCompact } from '../../components/ui/RiskGuidance';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { accessStateDescription, accessStateLabel, getCustomerAccessState, hasFullSignalAccess } from '../../lib/customerAccess';
 import { formatEATTime, formatRelativeTime, getSignalFreshness } from '../../lib/timeUtils';
 import { signalSound } from '../../lib/signalSound';
@@ -28,7 +28,7 @@ function fmtSignalPrice(signal: Signal, value: number | null | undefined) {
 }
 
 export default function ActiveSignals() {
-  const { user } = useAuth();
+  const { subject: user } = usePreviewViewer();
   const [signals, setSignals] = useState<Signal[]>([]);
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);

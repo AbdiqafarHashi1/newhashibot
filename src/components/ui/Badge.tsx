@@ -1,3 +1,4 @@
+import { isOwnerPreview } from '../../lib/ownerPreview/state';
 import { ReactNode } from 'react';
 
 type Variant = 'green' | 'red' | 'yellow' | 'blue' | 'gray' | 'orange' | 'cyan' | 'purple';
@@ -20,7 +21,7 @@ export function Badge({ children, variant = 'gray', className = '' }: {
 }) {
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${variantClasses[variant]} ${className}`}>
-      {children}
+      {children}{isOwnerPreview() && <span className="ml-1 text-[9px]">(demo)</span>}
     </span>
   );
 }
