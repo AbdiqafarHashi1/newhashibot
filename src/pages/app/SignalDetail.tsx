@@ -6,7 +6,7 @@ import { AccessRequest, CustomerSubscription, Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { ArrowLeft, AlertTriangle, Lock, MessageCircle, Clock } from 'lucide-react';
 import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { accessStateDescription, accessStateLabel, getCustomerAccessState, hasFullSignalAccess } from '../../lib/customerAccess';
 import { formatEATTime, formatRelativeTime, formatUtcTime, getSignalFreshness } from '../../lib/timeUtils';
 
@@ -25,7 +25,7 @@ function fmtSignalPrice(signal: Signal, value: number | null | undefined) {
 
 export default function SignalDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { subject: user } = usePreviewViewer();
   const [signal, setSignal] = useState<Signal | null>(null);
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);

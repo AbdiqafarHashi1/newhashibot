@@ -1,3 +1,4 @@
+import { isOwnerPreview } from '../../lib/ownerPreview/state';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -11,6 +12,7 @@ export function RequireAuth({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
   const loc = useLocation();
 
+  if (isOwnerPreview() && (loc.pathname.startsWith('/app/') || loc.pathname.startsWith('/admin/'))) return children;
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: loc }} replace />;
   return children;
@@ -20,6 +22,7 @@ export function RequireAdmin({ children }: { children: JSX.Element }) {
   const { user, profile, lastKnownProfile, profileError, loading } = useAuth();
   const loc = useLocation();
 
+  if (isOwnerPreview() && (loc.pathname.startsWith('/app/') || loc.pathname.startsWith('/admin/'))) return children;
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: loc }} replace />;
 

@@ -1,10 +1,12 @@
+import { isOwnerPreview } from './ownerPreview/state';
+import { previewClient } from './ownerPreview/adapter';
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { createClient } from '@supabase/supabase-js';
 import { EXPECTED_SUPABASE_ORIGIN, getSupabaseClientConfig, logSupabaseEnvProof } from './supabaseEnv.js';
 
 export const supabaseClientConfig = getSupabaseClientConfig();
 export const isSupabaseClientReal = supabaseClientConfig.hasValidConfig;
-export const isSupabaseClientEnabled = true; // Always enabled (either real or mock) to allow app booting
+export const isSupabaseClientEnabled = !isOwnerPreview() && supabaseClientConfig.hasValidConfig; // Always enabled (either real or mock) to allow app booting
 export const isSupabaseMocked = !isSupabaseClientReal;
 export const supabaseConfigErrorMessage = isSupabaseMocked ? null : supabaseClientConfig.frontendEnvError;
 
@@ -34,8 +36,6 @@ if (isSupabaseMocked) {
 
 // Create mock supabase client for offline / demo preview mode
 class MockSupabaseClient {
-  public currentUser: any = null;
-  private authCallbacks: Array<(event: string, session: any) => void> = [];
 
   // High-fidelity Mock Tables
   public tables: Record<string, any[]> = {
@@ -205,85 +205,8 @@ class MockSupabaseClient {
     ]
   };
 
-  public auth = {
-    onAuthStateChange: (callback: any) => {
-      this.authCallbacks.push(callback);
-      setTimeout(() => {
-        const session = this.currentUser ? { access_token: 'mock-token', user: this.currentUser } : null;
-        callback('INITIAL_SESSION', session);
-      }, 50);
-
-      return {
-        data: {
-          subscription: {
-            unsubscribe: () => {
-              this.authCallbacks = this.authCallbacks.filter(cb => cb !== callback);
-            }
-          }
-        }
-      };
-    },
-
-    getSession: async () => {
-      const session = this.currentUser ? { access_token: 'mock-token', user: this.currentUser } : null;
-      return { data: { session }, error: null };
-    },
-
-    signInWithPassword: async ({ email, password }: any) => {
-      const user = {
-        id: email === 'admin@hashibot.io' ? 'mock-admin-id' : 'mock-user-id-' + Math.random().toString(36).substring(7),
-        email,
-        user_metadata: { full_name: email.split('@')[0] || 'Mock User' },
-        created_at: new Date().toISOString()
-      };
-      
-      const role = email.includes('admin') || email === 'admin@hashibot.io' ? 'admin' : 'user';
-      if (!this.tables.profiles.some(p => p.email === email)) {
-        this.tables.profiles.push({
-          id: user.id,
-          email,
-          full_name: user.user_metadata.full_name,
-          role,
-          created_at: new Date().toISOString()
-        });
-      }
-
-      this.currentUser = user;
-      const session = { access_token: 'mock-token', user };
-      
-      this.authCallbacks.forEach(cb => cb('SIGNED_IN', session));
-      return { data: { user, session }, error: null };
-    },
-
-    signUp: async ({ email, password, options }: any) => {
-      const fullName = options?.data?.full_name || email.split('@')[0] || 'Mock User';
-      const user = {
-        id: 'mock-user-id-' + Math.random().toString(36).substring(7),
-        email,
-        user_metadata: { full_name: fullName },
-        created_at: new Date().toISOString()
-      };
-      const role = email.includes('admin') ? 'admin' : 'user';
-      this.tables.profiles.push({
-        id: user.id,
-        email,
-        full_name: fullName,
-        role,
-        created_at: new Date().toISOString()
-      });
-
-      this.currentUser = user;
-      const session = { access_token: 'mock-token', user };
-      this.authCallbacks.forEach(cb => cb('SIGNED_IN', session));
-      return { data: { user, session }, error: null };
-    },
-
-    signOut: async () => {
-      this.currentUser = null;
-      this.authCallbacks.forEach(cb => cb('SIGNED_OUT', null));
-      return { error: null };
-    }
-  };
+  // Offline data never authenticates anyone or fabricates a Supabase session.
+  public auth = previewClient.auth;
 
   public rpc = async (name: string, args: any) => {
     if (name === 'no_admin_exists') {
@@ -444,9 +367,12 @@ const safeClientKey = supabaseClientConfig.hasValidConfig
   ? supabaseClientConfig.supabaseKey
   : 'disabled-browser-supabase-client-config-invalid';
 
-export const supabase: any = isSupabaseMocked 
+const applicationClient: any = isOwnerPreview() ? null : isSupabaseMocked
   ? new MockSupabaseClient() 
   : createClient(safeClientUrl, safeClientKey);
+
+// Explicit preview selects only the local projection adapter, never offline fake auth.
+export const supabase: any = isOwnerPreview() ? previewClient : applicationClient;
 
 function isFetchFailure(error: unknown): boolean {
   if (!error) return false;

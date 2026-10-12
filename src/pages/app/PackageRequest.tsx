@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { supabase } from '../../lib/supabase';
 import { AccessRequest, CustomerBotSetup, Package } from '../../lib/types';
 import { isBotPackage, normalizePackage, packageStatusLabel, priceLabel, PUBLIC_PACKAGES, signalModeIncluded } from '../../lib/packages';
@@ -19,7 +19,7 @@ import {
 } from '../../lib/botSetup';
 
 export default function PackageRequest() {
-  const { user, profile } = useAuth();
+  const { subject: user, displayProfile: profile } = usePreviewViewer();
   const [search] = useSearchParams();
   const requestedSlug = search.get('package') || 'crypto_signal_room';
   const [packages, setPackages] = useState<Package[]>(PUBLIC_PACKAGES);

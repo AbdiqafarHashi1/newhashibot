@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { supabase } from '../../lib/supabase';
 import { AccessRequest, CustomerBotSetup, Signal, TelegramLink, CustomerSubscription, Package } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
@@ -34,7 +34,7 @@ function panelClass(tone: 'green' | 'yellow' | 'red' | 'gray' | 'blue') {
 }
 
 export default function Dashboard() {
-  const { profile, user } = useAuth();
+  const { displayProfile: profile, subject: user } = usePreviewViewer();
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
   const [signals, setSignals] = useState<Signal[]>([]);

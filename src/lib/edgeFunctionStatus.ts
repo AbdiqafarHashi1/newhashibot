@@ -1,3 +1,5 @@
+import { isOwnerPreview } from './ownerPreview/state';
+import { previewFunction } from './ownerPreview/adapter';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getFrontendSupabaseUrl, getFrontendSupabaseConfig } from './supabaseEnv';
 import { supabase, isSupabaseMocked } from './supabase';
@@ -192,6 +194,14 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
   token?: string | null,
   timeoutMs = 45000,
 ): Promise<EdgeFunctionCallResult<T>> {
+  if (isOwnerPreview()) {
+    try {
+      const data = await previewFunction(functionName, body);
+      return { ok: true, status: 200, data: data as T, text: JSON.stringify(data), reachability: 'unknown', message: 'SIMULATED DEMONSTRATION — no backend request' };
+    } catch (error) {
+      return { ok: false, status: 0, data: null, text: '', reachability: 'unknown', message: (error as Error).message };
+    }
+  }
   if (isSupabaseMocked) {
     return getMockEdgeFunctionResponse<T>(functionName, body);
   }

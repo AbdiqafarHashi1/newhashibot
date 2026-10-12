@@ -27,8 +27,10 @@ assert.equal(paymentResultView({checkoutState:'COMPLETED',paymentState:'SUCCEEDE
 assert.equal(paymentResultView({checkoutState:'COMPLETED',paymentState:'SUCCEEDED',hasLineageEntitlement:true}).entitlementActive,true);
 
 const layout=readFileSync('src/components/layout/PublicLayout.tsx','utf8');
-assert.match(layout,/adminPreviewEnabled && <li>[\s\S]*Admin Bypass \(Temp Pass\)/);
-assert.match(layout,/adminPreviewEnabled && <button[\s\S]*Admin Pass \(Bypass\)/);
+assert.match(layout, /OwnerPreviewEntry/);
+assert.match(layout, /<span>Owner Preview<\/span>/);
+assert.doesNotMatch(layout, /emergencyAdminBypass|VITE_ENABLE_ADMIN_PREVIEW|Admin Bypass/);
+assert.match(layout, /<button[\s\S]*enterOwnerPreview\(\)/);
 assert.doesNotMatch(layout,/adminPreviewEnabled && <button\s+onClick=\{handleSignOut\}/);
 assert.doesNotMatch(layout,/adminPreviewEnabled && <button\s+onClick=\{handleCopyMpesa\}/);
 const pricing=readFileSync('src/pages/public/Pricing.tsx','utf8');

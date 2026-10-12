@@ -1,3 +1,4 @@
+import './lib/ownerPreview/isolation';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';

@@ -1,3 +1,7 @@
+import { isOwnerPreview } from './lib/ownerPreview/state';
+import { useSyncExternalStore } from 'react';
+import { previewStore } from './lib/ownerPreview/adapter';
+import { OwnerPreviewShell } from './components/preview/OwnerPreviewShell';
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -120,13 +124,15 @@ function AuthRedirect() {
 }
 
 function App() {
+  const previewRevision = useSyncExternalStore(previewStore.subscribe, previewStore.snapshot);
   return (
     <BrowserRouter>
       <ScrollToAnchor />
       <AuthProvider>
         <PWAProvider>
+          <OwnerPreviewShell />
           <Suspense fallback={<PageLoader />}>
-            <Routes>
+            <Routes key={previewRevision}>
               {/* Public Pages */}
             <Route path="/" element={<Home />} />
             <Route path="/features" element={<Features />} />
@@ -188,11 +194,11 @@ function App() {
             <Route path="/admin/operator" element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
             <Route path="/admin/mission-control" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
             <Route path="/admin/mission" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
-            <Route path="/admin/operator/signals" element={<RequireAdmin><OperatorPanel section="signals" /></RequireAdmin>} />
+            <Route path="/admin/operator/signals" element={<RequireAdmin><SignalsManager /></RequireAdmin>} />
             <Route path="/admin/operator/executions" element={<RequireAdmin><OperatorPanel section="executions" /></RequireAdmin>} />
             <Route path="/admin/operator/trade-manager" element={<RequireAdmin><OperatorPanel section="trade-manager" /></RequireAdmin>} />
             <Route path="/admin/operator/telegram" element={<RequireAdmin><OperatorPanel section="telegram" /></RequireAdmin>} />
-            <Route path="/admin/operator/settings" element={<RequireAdmin><OperatorPanel section="settings" /></RequireAdmin>} />
+            <Route path="/admin/operator/settings" element={<RequireAdmin><ScannerConfig /></RequireAdmin>} />
             <Route path="/admin/operator/intelligence" element={<RequireAdmin><OperatorPanel section="intelligence" /></RequireAdmin>} />
             <Route path="/admin/operator/runtime-proof" element={<RequireAdmin><OperatorPanel section="runtime-proof" /></RequireAdmin>} />
             <Route path="/admin/control-room"    element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
@@ -257,9 +263,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
-          <PWAUpdateToast />
-          <PWAInstallBanner />
-          <IOSInstallGuideModal />
+          {!isOwnerPreview() && <><PWAUpdateToast /><PWAInstallBanner /><IOSInstallGuideModal /></>}
         </PWAProvider>
       </AuthProvider>
     </BrowserRouter>

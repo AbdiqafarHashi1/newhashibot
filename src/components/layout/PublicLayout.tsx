@@ -1,3 +1,5 @@
+import { enterOwnerPreview } from '../../lib/ownerPreview/state';
+import { OwnerPreviewEntry } from '../preview/OwnerPreviewEntry';
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -19,8 +21,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   
   const loc = useLocation();
   const nav = useNavigate();
-  const { session, loading, isAdmin, signOut, emergencyAdminBypass } = useAuth();
-  const adminPreviewEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_ADMIN_PREVIEW === 'true';
+  const { session, loading, isAdmin, signOut } = useAuth();
   const isLoggedIn = Boolean(session);
 
   const handleDirectZipDownload = async () => {
@@ -110,6 +111,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+            <OwnerPreviewEntry />
             <Link
               to="/"
               className={`px-3 py-1.5 rounded-lg transition-colors ${
@@ -286,6 +288,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 App
               </Link>
             )}
+            <OwnerPreviewEntry />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white focus:outline-none"
@@ -409,6 +412,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 </>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
+                  <OwnerPreviewEntry />
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
@@ -507,18 +511,17 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     <span>Download MT5 Bridge</span>
                   </Link>
                 </li>
-                {adminPreviewEnabled && <li>
+                <li>
                   <button
                     onClick={() => {
-                      emergencyAdminBypass();
-                      nav('/admin/operator');
+                      enterOwnerPreview();
                     }}
                     className="text-amber-400 hover:text-amber-300 font-mono text-[11px] flex items-center gap-1.5 transition-colors"
                   >
                     <KeyRound size={12} />
-                    <span>Admin Bypass (Temp Pass)</span>
+                    <span>Owner Preview</span>
                   </button>
-                </li>}
+                </li>
                 {isLoggedIn && (
                   <li>
                     <Link to="/app/dashboard" className="text-blue-400 hover:text-blue-300 font-semibold">
@@ -561,18 +564,17 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   <Monitor size={12} />
                   <span>Visual Bridge HUD</span>
                 </Link>
-                {adminPreviewEnabled && <button
+                <button
                   type="button"
                   onClick={() => {
-                    emergencyAdminBypass();
-                    nav('/admin/operator');
+                    enterOwnerPreview();
                   }}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-xs font-mono transition-colors"
-                  title="Direct 1-Click Admin Access"
+                  title="Inspect simulated admin and customer journeys"
                 >
                   <KeyRound size={12} />
-                  <span>Admin Pass (Bypass)</span>
-                </button>}
+                  <span>Owner Preview</span>
+                </button>
               </div>
 
               <div className="flex items-center gap-4 text-zinc-400">

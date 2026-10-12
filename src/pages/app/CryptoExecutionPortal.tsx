@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from '../../components/layout/AppLayout';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { supabase } from '../../lib/supabase';
 import { 
   ConnectedExecutionAccount, ExecutionOrder, CustomerSubscription, AccessRequest, CustomerBotSetup 
@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { getCustomerAccessState, accessStateLabel } from '../../lib/customerAccess';
 
 export default function CryptoExecutionPortal() {
-  const { user } = useAuth();
+  const { subject: user } = usePreviewViewer();
   const [sub, setSub] = useState<CustomerSubscription | null>(null);
   const [request, setRequest] = useState<AccessRequest | null>(null);
   const [botSetup, setBotSetup] = useState<CustomerBotSetup | null>(null);

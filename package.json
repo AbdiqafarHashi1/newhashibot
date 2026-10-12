@@ -120,7 +120,9 @@
     "test:deployment-audit": "node --test --test-isolation=none tests/phaseP/deploymentAudit.test.mjs",
     "rehearse:deployment": "node tests/phaseP/run-migration-rehearsal.mjs",
     "plan:deployment": "node scripts/phase-p/plan-deployment.mjs",
-    "inspect:deployment": "node scripts/phase-p/inspect-deployment.mjs"
+    "inspect:deployment": "node scripts/phase-p/inspect-deployment.mjs",
+    "test:owner-preview": "node --import tsx --test tests/ownerPreview/adapter.test.ts",
+    "test:owner-preview:browser": "npm run build && playwright test -c playwright.owner-preview.config.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
@@ -139,6 +141,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@playwright/test": "^1.64.0",
     "@types/node": "^26.1.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",

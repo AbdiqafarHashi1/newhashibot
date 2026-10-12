@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../../components/layout/AppLayout';
-import { useAuth } from '../../contexts/AuthContext';
+import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import { supabase } from '../../lib/supabase';
 import { phaseHApi, type AuthorityResult } from '../../lib/phaseHApi';
 import { SUPPORT_SECRET_WARNING } from '../../lib/phaseH';
@@ -9,7 +9,7 @@ import {inspectAccountOperations,type OperationsReadiness} from '../../lib/phase
 
 type Account={id:string;provider:string;environment:string;account_mode:string;display_label:string;provider_health:string;last_synchronized_at:string|null;phase_h_readiness:string;phase_h_readiness_reasons:string[];phase_h_certification_status:string;policy_profile_id:string|null;policy_version:string|null;runtime_control:string;last_error:string|null};
 export default function Readiness(){
- const {user}=useAuth(); const [accounts,setAccounts]=useState<Account[]>([]),[operations,setOperations]=useState<Record<string,OperationsReadiness>>({}),[loading,setLoading]=useState(true),[notice,setNotice]=useState('');
+ const {subject:user}=usePreviewViewer(); const [accounts,setAccounts]=useState<Account[]>([]),[operations,setOperations]=useState<Record<string,OperationsReadiness>>({}),[loading,setLoading]=useState(true),[notice,setNotice]=useState('');
  useEffect(()=>{if(!user)return;void supabase.from('execution_accounts_safe').select('id,provider,environment,account_mode,display_label,provider_health,last_synchronized_at,phase_h_readiness,phase_h_readiness_reasons,phase_h_certification_status,policy_profile_id,policy_version,runtime_control,last_error').eq('customer_id',user.id).then(async(result:{data:unknown;error:unknown})=>{const rows=(result.data||[]) as Account[];setAccounts(rows);if(result.error)setNotice('READY_FOR_CONFIGURATION — durable account projection is not deployed.');const settled=await Promise.all(rows.map(async a=>{try{return[a.id,await inspectAccountOperations(user.id,a.id)] as const}catch{return[a.id,null] as const}}));setOperations(Object.fromEntries(settled.filter((x):x is readonly[string,OperationsReadiness]=>x[1]!==null)));setLoading(false)})},[user]);
  const additional=async(provider:'MT5'|'BINANCE'|'BYBIT')=>{try{const r=await phaseHApi.additionalAccount(provider);setNotice(`${r.state} — every additional account needs another verified entitlement and available slot.`)}catch{setNotice('READY_FOR_CONFIGURATION — request authority is not deployed.')}};
  return <AppLayout><main className="mx-auto max-w-6xl p-4 text-zinc-100 sm:p-8"><div className="flex flex-wrap justify-between gap-4"><div><p className="text-xs font-bold tracking-widest text-emerald-400">CUSTOMER CONTROL CENTER</p><h1 className="mt-2 text-3xl font-bold">Account readiness</h1><p className="mt-2 text-zinc-400">Canonical safe projections only. Readiness never grants execution authority.</p></div><Link to="/app/onboarding" className="h-fit rounded-lg bg-emerald-500 px-4 py-2 font-semibold text-black">Continue onboarding</Link></div>

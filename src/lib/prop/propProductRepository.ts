@@ -1,3 +1,5 @@
+import { isOwnerPreview } from '../ownerPreview/state';
+import { previewStore } from '../ownerPreview/adapter';
 import { supabase } from "../supabase";
 import type { CanonicalCompletedTradeResult } from "../../../supabase/functions/_shared/trading-domain/contracts.ts";
 import type {
@@ -32,12 +34,13 @@ export async function savePropAccount(
   account: PersistedPropAccount,
 ): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("AUTHENTICATED_OPERATOR_REQUIRED");
+  const actorId = isOwnerPreview() ? previewStore.customer().id : auth.user?.id;
+  if (!actorId) throw new Error("AUTHENTICATED_OPERATOR_REQUIRED");
   const config = account.config;
   const { error } = await supabase.from("prop_account_configs").upsert(
     {
       id: config.id,
-      user_id: auth.user.id,
+      user_id: actorId,
       profile_id: config.profileId,
       profile_version: config.profileVersion,
       mode: config.mode,
@@ -57,10 +60,11 @@ export async function savePropAccount(
 
 export async function persistPropAudit(event: PropAuditEvent): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("AUTHENTICATED_OPERATOR_REQUIRED");
+  const actorId = isOwnerPreview() ? previewStore.customer().id : auth.user?.id;
+  if (!actorId) throw new Error("AUTHENTICATED_OPERATOR_REQUIRED");
   const { error } = await supabase.from("prop_audit_events").insert({
     id: event.id,
-    user_id: auth.user.id,
+    user_id: actorId,
     prop_account_id: event.accountId,
     occurred_at: event.timestamp,
     actor: event.actor,
@@ -110,9 +114,10 @@ export async function persistSimulationRun(input: {
   result: unknown;
 }): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("AUTHENTICATED_OPERATOR_REQUIRED");
+  const actorId = isOwnerPreview() ? previewStore.customer().id : auth.user?.id;
+  if (!actorId) throw new Error("AUTHENTICATED_OPERATOR_REQUIRED");
   const { error } = await supabase.from("prop_simulation_runs").insert({
-    user_id: auth.user.id,
+    user_id: actorId,
     prop_account_id: input.accountId,
     run_type: input.runType,
     canonical_run_id: input.canonicalRunId,
@@ -317,7 +322,7 @@ export async function listConnectedMt5Truth(
             openPositions: Number(row.open_positions ?? 0),
             pendingExecutableOrders: Number(row.pending_orders ?? 0),
             tradingDays: Number(row.trading_days ?? 0),
-            brokerTruth: true,
+            brokerTruth: !isOwnerPreview(),
           }
         : null,
     };
