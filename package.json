@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "test:backtest-lab": "node --import tsx --test tests/ownerPreview/labWorkflow.test.ts",
     "test:analytics": "rm -rf .tmp/analytics-tests && tsc --outDir .tmp/analytics-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/analytics/capitalHardness.test.ts src/lib/capitalHardness.ts && node .tmp/analytics-tests/tests/analytics/capitalHardness.test.js && rm -rf .tmp/analytics-tests",
     "test:backtest-csv": "rm -rf .tmp/backtest-csv-tests && mkdir -p .tmp/backtest-csv-tests && esbuild tests/backtest/brokerCsv.test.ts --bundle --platform=node --format=esm --outfile=.tmp/backtest-csv-tests/test.mjs && node .tmp/backtest-csv-tests/test.mjs && rm -rf .tmp/backtest-csv-tests",
     "test:historical-data": "rm -rf .tmp/historical-data-tests && mkdir -p .tmp/historical-data-tests && esbuild tests/historicalData/historicalDataService.test.ts --bundle --platform=node --format=esm --outfile=.tmp/historical-data-tests/test.mjs && node .tmp/historical-data-tests/test.mjs && rm -rf .tmp/historical-data-tests",

@@ -1,24 +1,29 @@
-import {PhasePWorkersOperations} from '../../components/operations/PhasePWorkersOperations';
-import { useState } from "react";
-import { AdminLayout } from "../../components/layout/AdminLayout";
-import type { DatasetCampaign } from "../../lib/research/datasetCampaign";
-import DataAcquisitionPanel from "./backtest/DataAcquisitionPanel";
-import PermanentResearchLab from "./backtest/PermanentResearchLab";
-import ProductPortfolioResearch from "./backtest/ProductPortfolioResearch";
-import {PhaseMOperationsPanel} from "../../components/operations/PhaseMOperationsPanel";
-import {PhaseLValidationPanel} from "../../components/operations/PhaseLValidationPanel";
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AdminLayout } from '../../components/layout/AdminLayout';
+import { PhaseMOperationsPanel } from '../../components/operations/PhaseMOperationsPanel';
+import { PhasePWorkersOperations } from '../../components/operations/PhasePWorkersOperations';
+import type { DatasetCampaign } from '../../lib/research/datasetCampaign';
+import { LAB_STEPS, type LabStep } from '../../lib/research/labWorkflow';
+import DataAcquisitionPanel from './backtest/DataAcquisitionPanel';
+import PermanentResearchLab from './backtest/PermanentResearchLab';
+import ProductPortfolioResearch from './backtest/ProductPortfolioResearch';
+import CalibrationLab from './backtest/CalibrationLab';
 
-export default function BacktestLab(){
- // Legacy Phase A cockpit handoff was `onPipelineResult={setPipeline}`; Prompt 1
- // replaces that multi-mode wall with the isolated single-strategy ledger below.
- const [campaign,setCampaign]=useState<DatasetCampaign|null>(null);
- const [workspace,setWorkspace]=useState<"SINGLE"|"PRODUCT">("SINGLE");
- return <AdminLayout><main className="mx-auto max-w-[1500px] space-y-6 p-4 lg:p-6"><header className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-cyan-400">Phase B · canonical research authority</p><h1 className="text-3xl font-black text-white">Backtest Lab</h1><p className="max-w-3xl text-sm text-slate-400">Real history → one canonical strategy → measured evidence → validation → qualification → immutable freeze. Browser research is the normal operator path; CI remains reproducibility support.</p></div><div className="rounded border border-slate-800 bg-slate-950 p-3 text-right text-[10px] text-slate-400"><b className="block text-slate-200">SINGLE-STRATEGY RESEARCH</b>Pipeline, product and portfolio campaigns begin in Prompt 2.</div></header>
- <nav className="flex gap-2 rounded-xl border border-slate-800 bg-slate-950 p-2"><button onClick={()=>setWorkspace("SINGLE")} className={`rounded px-4 py-2 text-xs font-bold ${workspace==="SINGLE"?"bg-cyan-700":"bg-slate-900"}`}>SINGLE STRATEGY RESEARCH</button><button onClick={()=>setWorkspace("PRODUCT")} className={`rounded px-4 py-2 text-xs font-bold ${workspace==="PRODUCT"?"bg-violet-700":"bg-slate-900"}`}>PRODUCT / PORTFOLIO RESEARCH</button></nav>
- <DataAcquisitionPanel onCampaign={setCampaign}/>
- <PhaseLValidationPanel/>
- <PhaseMOperationsPanel/><PhasePWorkersOperations/>
- {workspace==="SINGLE"?<PermanentResearchLab campaign={campaign}/>:<ProductPortfolioResearch campaign={campaign}/>}
- <section className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h2 className="font-bold text-white">LATER ROADMAP · NOT A PHASE B FAILURE</h2><div className="mt-2 grid gap-2 sm:grid-cols-2"><p className="rounded bg-slate-900 p-3 text-xs text-slate-400"><b className="block text-slate-200">Scanner parity / promotion · Phase C</b>Historical qualification does not promote a strategy into the live scanner.</p><p className="rounded bg-slate-900 p-3 text-xs text-slate-400"><b className="block text-slate-200">Forward validation · future locked stage</b>Forward execution is deliberately outside this historical research workflow.</p></div></section>
- </main></AdminLayout>
+export default function BacktestLab() {
+ const [step,setStep]=useState<LabStep>('DATA'),[campaign,setCampaign]=useState<DatasetCampaign|null>(null),[portfolio,setPortfolio]=useState(false);
+ const current=LAB_STEPS.find(s=>s[0]===step)!;
+ return <AdminLayout><div className="mx-auto max-w-[1500px] space-y-5 text-zinc-100"><header><p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Research & validation</p><h1 className="mt-1 text-3xl font-bold">Backtest Lab</h1><p className="mt-2 max-w-3xl text-sm text-zinc-400">Connect data. Measure strategies. Replay the scanner. Check account and Prop rules. Then observe new markets before any execution decision.</p></header>
+ <nav aria-label="Backtest workflow" className="grid grid-cols-2 gap-2 lg:grid-cols-4">{LAB_STEPS.map(([id,title],index)=><button key={id} aria-current={step===id?'step':undefined} onClick={()=>setStep(id)} className={`min-h-14 rounded-xl border px-3 py-3 text-left text-sm ${step===id?'border-cyan-500 bg-cyan-500/10 text-cyan-200':'border-zinc-800 bg-zinc-950 text-zinc-300'}`}><span className="mr-2 text-zinc-500">{index+1}.</span>{title}</button>)}</nav>
+ <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950 p-4"><div><h2 className="text-xl font-semibold">{current[1]}</h2><p className="mt-1 text-sm text-zinc-400">{current[2]}</p></div><p className="max-w-lg break-words text-xs text-zinc-400">{campaign?`Selected campaign: ${campaign.name} · ${campaign.datasets.length} datasets · ${campaign.quality}`:'No cached campaign selected. Server-registered datasets are selected separately in scanner replay.'}</p></section>
+ <div hidden={step!=='DATA'}><DataAcquisitionPanel onCampaign={setCampaign}/></div>
+ {step==='SINGLE'&&<><p className="rounded border border-amber-800/40 p-3 text-sm text-amber-100">Single-strategy research uses the existing research registry. Production scanner parity is tested separately under Scanner pipeline. A research result does not approve live use.</p><PermanentResearchLab campaign={campaign}/></>}
+ {step==='SCANNER'&&<><p className="text-sm text-zinc-400">Select complete server datasets and dates. The worker loads approved production strategies and uses shared admission, indicators, qualification, arbitration, cooldown and active-signal policy. Start the configured portable worker to consume queued work.</p><PhaseMOperationsPanel key="scanner" initialMode="SCANNER"/><details className="rounded border border-zinc-800 p-4"><summary>Product / portfolio research (separate research authority)</summary><button className="mt-3 rounded border px-3 py-2" onClick={()=>setPortfolio(v=>!v)}>{portfolio?'Close research':'Open research workspace'}</button>{portfolio&&<ProductPortfolioResearch campaign={campaign}/>}</details></>}
+ {step==='ACCOUNT'&&<><p className="text-sm text-zinc-400">Requires a completed scanner replay with eligible outcomes, an owned account, current Brain assignment, contract specifications and documented currency conversions. The account Brain remains the sizing authority. No provider orders are sent.</p><PhaseMOperationsPanel key="account" initialMode="ACCOUNT"/></>}
+ {step==='PROP'&&<><div className="rounded-xl border border-violet-800 bg-violet-950/20 p-4"><h3 className="font-bold">100 chronological challenge windows</h3><p className="mt-2 text-sm text-zinc-300">First complete scanner replay, then Account simulation. Choose its completed account run and a frozen firm profile below. Inspect each trial, phase failures and incomplete rules in Results. Overlapping windows are not 100 independent experiments.</p><div className="mt-3 flex gap-4"><button className="text-cyan-300" onClick={()=>setStep('SCANNER')}>1. Scanner replay →</button><button className="text-cyan-300" onClick={()=>setStep('ACCOUNT')}>2. Account simulation →</button><Link className="text-cyan-300" to="/admin/prop">Firm profiles & Prop research →</Link></div></div><PhaseMOperationsPanel key="prop" initialMode="PROP"/></>}
+ {step==='FORWARD'&&<><div className="grid gap-3 md:grid-cols-2"><article className="rounded-xl border border-zinc-800 p-4"><h3 className="font-bold">Shadow signal observation</h3><p className="mt-2 text-sm text-zinc-400">Fresh closed candles through the scanner boundary. No orders, Telegram publication or certification. Start, observe, inspect and cancel below; inspecting evidence never advances the observer.</p></article><article className="rounded-xl border border-zinc-800 p-4"><h3 className="font-bold">Customer #001 demo execution</h3><p className="mt-2 text-sm text-zinc-400">Separate account-scoped provider certification checks real demo fills, protection, reconnect and closure. Requires authenticated backend, eligible accounts and explicitly enabled demo dispatch.</p><div className="mt-3 flex flex-wrap gap-3 text-cyan-300"><Link to="/admin/onboarding">Accounts & readiness →</Link><Link to="/admin/performance">Certification & evidence →</Link><Link to="/admin/providers">Provider setup →</Link></div></article></div><PhaseMOperationsPanel key="shadow" initialMode="SHADOW"/></>}
+ {step==='CALIBRATION'&&<CalibrationLab campaign={campaign}/>}
+ {step==='RESULTS'&&<><p className="text-sm text-zinc-400">Persisted server evidence. Choose a mode, inspect a run, and export the recorded dataset/configuration lineage, assumptions, decisions and outcomes. Browser research exports remain in Single strategy and Calibration.</p><PhaseMOperationsPanel key="results" initialMode="SCANNER" historyOnly/><details className="rounded border border-zinc-800 p-4"><summary>Worker queue & recovery</summary><PhasePWorkersOperations/></details></>}
+ <footer className="flex flex-wrap justify-between gap-3 border-t border-zinc-800 pt-4 text-xs text-zinc-400"><span>Backtests are historical simulations. No automatic promotion or live execution.</span><button className="text-cyan-300" onClick={()=>setStep(LAB_STEPS[Math.min(LAB_STEPS.findIndex(s=>s[0]===step)+1,LAB_STEPS.length-1)][0])}>Next workspace →</button></footer>
+ </div></AdminLayout>;
 }
