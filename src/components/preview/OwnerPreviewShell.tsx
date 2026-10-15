@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { previewStore } from '../../lib/ownerPreview/adapter';
 import { previewCustomers } from '../../lib/ownerPreview/fixtures';
 import { ownerPreviewRoutes } from '../../lib/ownerPreview/routes';
-import { demonstrationLabel, exitOwnerPreview, isOwnerPreview, resetOwnerPreview } from '../../lib/ownerPreview/state';
+import { demonstrationLabel, exitOwnerPreview, isOwnerPreview, resetOwnerPreview, isAdminPass } from '../../lib/ownerPreview/state';
 
 export function OwnerPreviewShell() {
   const location = useLocation();
@@ -12,7 +12,7 @@ export function OwnerPreviewShell() {
   useEffect(() => { if (routeMenu.current) routeMenu.current.open = false; }, [location.pathname]);
   const revision = useSyncExternalStore(previewStore.subscribe, previewStore.snapshot);
   const active = isOwnerPreview();
-  previewStore.setView(location.pathname.startsWith('/app/') ? 'customer' : 'admin', /^\/app\/(crypto-execution|mt5-personal|mt5-prop|bot-setup|bridge|visual-bridge)$/.test(location.pathname));
+  if (active) previewStore.setView(location.pathname.startsWith('/app/') ? 'customer' : 'admin', /^\/app\/(crypto-execution|mt5-personal|mt5-prop|bot-setup|bridge|visual-bridge)$/.test(location.pathname));
   useEffect(() => {
     if (!active) return;
     document.documentElement.classList.add('owner-preview');
@@ -45,6 +45,7 @@ export function OwnerPreviewShell() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => { observer.disconnect(); size.disconnect(); document.documentElement.classList.remove('owner-preview'); };
   }, [active, location.pathname, revision]);
+  if (isAdminPass()) return null;
   if (!active) return null;
   return <>
     <style>{`.owner-preview #root{padding-top:var(--owner-preview-height,160px);max-width:100vw;overflow-x:clip}.owner-preview aside.fixed:not([aria-label="Owner Preview controls"]){top:var(--owner-preview-height,160px)}.owner-preview header.sticky{top:var(--owner-preview-height,160px)}`}</style>

@@ -114,7 +114,7 @@ export default function Login() {
           </button>
           </form>
 
-          {/* Owner Preview Button */}
+          {/* Admin Pass Button */}
           <div className="mt-6 pt-5 border-t border-zinc-800/80 space-y-2">
             <button
               type="button"
@@ -122,7 +122,7 @@ export default function Login() {
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-xs transition-colors"
             >
               <KeyRound size={13} />
-              <span>Owner Preview — simulated UI</span>
+              <span>Admin Pass — simulated UI</span>
             </button>
             <Link
               to="/app/visual-bridge"

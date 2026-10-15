@@ -1,4 +1,4 @@
-import { isOwnerPreview } from '../../lib/ownerPreview/state';
+import { isOwnerPreview, isAdminPass } from '../../lib/ownerPreview/state';
 import { type ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -172,7 +172,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 <p className="text-xs font-semibold text-zinc-200 truncate">{isOwnerPreview() ? 'Owner Preview visitor' : profile?.full_name || profile?.email || 'Administrator'}</p>
                 <p className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {isOwnerPreview() ? "Preview · no authority" : "Operator Active"}
+                  {isOwnerPreview() ? "Preview · no authority" : isAdminPass() ? "UI access" : "Operator Active"}
                 </p>
               </div>
             </div>
@@ -218,14 +218,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] font-mono text-zinc-500 hidden lg:inline">
-              {isOwnerPreview() ? "SIMULATED TELEMETRY" : "LIVE TELEMETRY"}
+              {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "BACKEND AUTH REQUIRED" : "LIVE TELEMETRY"}
             </span>
             <Link
               to="/admin/operator"
               className="text-[11px] font-mono text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1.5 shadow-sm"
             >
               <Shield size={11} className="text-orange-400" />
-              <span>{isOwnerPreview() ? "PREVIEW" : "ADMIN"}</span>
+              <span>{isOwnerPreview() ? "PREVIEW" : isAdminPass() ? "ADMIN PASS" : "ADMIN"}</span>
             </Link>
             <Link
               to="/app/dashboard"
