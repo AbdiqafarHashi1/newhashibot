@@ -526,7 +526,7 @@ export class BinancePersonalBrain implements AccountExecutionBrain {
   validatePositionPlan(
     plan: PositionPlan,
     context: AccountExecutionContext,
-    policy: AccountPolicy,
+    _policy: AccountPolicy,
     filterSpec: BinanceSymbolFilterSpec
   ): { valid: boolean; violations: RuleViolation[] } {
     const violations: RuleViolation[] = [];
@@ -650,7 +650,7 @@ export class BinancePersonalBrain implements AccountExecutionBrain {
     const breakevenPrice = isBuy ? signal.entry_price + lockOffset : signal.entry_price - lockOffset;
 
     return Object.freeze({
-      management_plan_id: `tm_binance_${signal.signal_id}`,
+      management_plan_id: `tm_${context.user_id}_${context.account_id}_binance_${signal.signal_id}`,
       signal_id: signal.signal_id,
       account_id: context.account_id,
       tp1_policy: Object.freeze({

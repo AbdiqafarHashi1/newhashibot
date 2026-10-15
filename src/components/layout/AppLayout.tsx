@@ -43,8 +43,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 flex items-center justify-between">
               <span>VIP Signals Stream</span>
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-zinc-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500"></span>
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -269,11 +269,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </button>
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-zinc-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500"></span>
               </span>
               <span className="text-xs font-bold font-mono text-zinc-300">
-                {isOwnerPreview() ? "SIMULATED SCANNER" : "LIVE SCANNER CONNECTED"}
+                {isOwnerPreview() ? "SIMULATED SCANNER" : "ACCOUNT WORKSPACE"}
               </span>
               <span className="hidden sm:inline-flex text-[10px] text-zinc-500 font-mono bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
                 EAT (UTC+3)

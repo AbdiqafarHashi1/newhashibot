@@ -21,6 +21,8 @@ class Config:
     BRIDGE_ID = os.getenv("BRIDGE_ID", "")
     ACCOUNT_ID = os.getenv("MT5_ACCOUNT_ID", "")
     OWNER_ID = os.getenv("MT5_OWNER_ID", "")
+    CUSTOMER_EXECUTION_ACCOUNT_ID = os.getenv("HASHIBOT_EXECUTION_ACCOUNT_ID", "")
+    CUSTOMER_PAIRING_CODE = os.getenv("HASHIBOT_PAIRING_CODE", "")
     CREDENTIAL_REF = os.getenv("MT5_CREDENTIAL_REF", "")
     MT5_TERMINAL_PATH: Optional[str] = os.getenv("MT5_TERMINAL_PATH")
     MT5_TERMINAL_DATA_PATH: Optional[str] = os.getenv("MT5_TERMINAL_DATA_PATH")
@@ -65,6 +67,9 @@ class Config:
             missing.append("MT5_CREDENTIAL_REF")
         if missing:
             raise ValueError("BRIDGE_CONFIGURATION_ERROR: missing " + ", ".join(missing))
+        cls._uuid("HASHIBOT_EXECUTION_ACCOUNT_ID", cls.CUSTOMER_EXECUTION_ACCOUNT_ID, False)
+        if cls.CUSTOMER_PAIRING_CODE and not cls.CUSTOMER_EXECUTION_ACCOUNT_ID:
+            raise ValueError("BRIDGE_CONFIGURATION_ERROR: pairing needs execution account ID")
         cls._uuid("MT5_ACCOUNT_ID", cls.ACCOUNT_ID, False)
         cls._uuid("MT5_OWNER_ID", cls.OWNER_ID, False)
         cls._uuid("MT5_CREDENTIAL_REF", cls.CREDENTIAL_REF, False)

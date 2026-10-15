@@ -121,6 +121,16 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error_code: "BRIDGE_TOKEN_INVALID", message: "Bridge authentication failed" }, 401);
     }
 
+    if(action==="pair_customer_account"){
+      const proof=body.account_proof as Record<string,unknown>|undefined;
+      if(!proof||proof.connected!==true||proof.environment!=="demo"||proof.trade_allowed!==true||proof.trade_expert!==true)return jsonResponse({success:false,error_code:"VERIFIED_DEMO_TERMINAL_REQUIRED"},409);
+      const code=String(body.pairing_code??"");if(!/^\d{10}$/.test(code))return jsonResponse({success:false,error_code:"PAIRING_INVALID"},400);
+      const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,"0")).join("");
+      const {data,error}=await supabase.rpc("consume_customer_bridge_pairing",{p_customer_id:String(body.owner_id??""),p_execution_account_id:String(body.execution_account_id??""),p_mt5_account_id:String(body.account_id??""),p_bridge_id:String(body.bridge_id??""),p_worker_id:String(body.worker_id??""),p_code_hash:hash});
+      if(error||data?.state!=="CONNECTED")return jsonResponse({success:false,error_code:String(data?.reason??"PAIRING_NOT_CONFIRMED")},409);
+      return jsonResponse({success:true,pairing:data});
+    }
+
     if (action === "register_bridge") {
       const bridgeId = String(body.bridge_id ?? ""), workerId = String(body.worker_id ?? "");
       if (!bridgeId || !workerId) return jsonResponse({ success: false, error_code: "BRIDGE_REGISTRATION_FAILED", message: "Bridge and worker identity are required" }, 400);
@@ -219,6 +229,10 @@ Deno.serve(async (req: Request) => {
       const bridgeId = String(payload.bridge_id ?? "");
       const workerId = String((body as Record<string, unknown>).worker_id ?? "worker-local-01");
 
+      const ownerId=String((body as Record<string,unknown>).owner_id??"");
+      const {data:assigned,error:scopeError}=await supabase.from("mt5_accounts").select("id").eq("id",accountId).eq("user_id",ownerId).eq("bridge_id",bridgeId).maybeSingle();
+      const {data:worker}=await supabase.from("mt5_bridge_registry").select("bridge_id").eq("bridge_id",bridgeId).eq("worker_id",workerId).maybeSingle();
+      if(scopeError||!assigned||!worker)return jsonResponse({success:false,error_code:"BRIDGE_ACCOUNT_SCOPE_MISMATCH"},403);
       const bridgeStatus = payload.status ?? "online";
       let { data, error } = await supabase
         .from("mt5_bridge_registry")
@@ -270,6 +284,9 @@ Deno.serve(async (req: Request) => {
       else accQuery = accQuery.eq("bridge_id", bridgeId);
       await accQuery;
 
+      const {data:connections}=await supabase.from("provider_connections").select("execution_account_id").eq("customer_id",ownerId).eq("bridge_identity",bridgeId).eq("state","CONNECTED").contains("capabilities",{mt5_account_id:accountId});
+      const ids=(connections??[]).map((c:{execution_account_id:string})=>c.execution_account_id);
+      if(ids.length){const now=new Date().toISOString();await supabase.from("provider_connections").update({last_heartbeat_at:now}).eq("customer_id",ownerId).eq("bridge_identity",bridgeId).in("execution_account_id",ids);await supabase.from("connected_execution_accounts").update({last_synchronized_at:now,provider_health:bridgeStatus==="online"?"healthy":"unknown"}).eq("customer_id",ownerId).in("id",ids)}
       return jsonResponse({ success: true, registry: data || { bridge_id: bridgeId, status: bridgeStatus } });
     }
 

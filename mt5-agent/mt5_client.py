@@ -131,6 +131,7 @@ class MT5Client:
         acc = mt5.account_info()
         return {
             "login": acc.login,
+            "environment": "demo" if acc.trade_mode == mt5.ACCOUNT_TRADE_MODE_DEMO else "live",
             "broker": acc.company,
             "server": acc.server,
             "balance": float(acc.balance),

@@ -218,7 +218,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] font-mono text-zinc-500 hidden lg:inline">
-              {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "BACKEND AUTH REQUIRED" : "LIVE TELEMETRY"}
+              {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "BACKEND AUTH REQUIRED" : "RECORDED TELEMETRY"}
             </span>
             <Link
               to="/admin/operator"

@@ -99,6 +99,20 @@ class CloudClient:
             raise self._error(data, "ACCOUNT_ASSIGNMENT_FAILED")
         return data["assignment"]
 
+    def pair_customer_account(self, account_proof: Dict[str, Any]) -> Dict[str, Any]:
+        if account_proof.get("environment") != "demo" or account_proof.get("connected") is not True:
+            raise RuntimeError("VERIFIED_DEMO_TERMINAL_REQUIRED")
+        code, data = self._post(self._bridge_url("pair_customer_account"), {
+            "bridge_id": self.bridge_id, "worker_id": Config.WORKER_ID,
+            "account_id": Config.ACCOUNT_ID, "owner_id": Config.OWNER_ID,
+            "execution_account_id": Config.CUSTOMER_EXECUTION_ACCOUNT_ID,
+            "pairing_code": Config.CUSTOMER_PAIRING_CODE, "account_proof": account_proof,
+        })
+        if code != 200 or not data.get("success"):
+            raise self._error(data, "PAIRING_NOT_CONFIRMED")
+        Config.CUSTOMER_PAIRING_CODE = ""
+        return data["pairing"]
+
     def discover_accounts(self) -> List[Dict[str, Any]]:
         """Discover only accounts assigned by the backend to this manager."""
         code, data = self._post(self._bridge_url("discover_accounts"), {
