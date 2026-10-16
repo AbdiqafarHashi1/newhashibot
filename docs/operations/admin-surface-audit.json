@@ -1,8 +1,8 @@
 {
   "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
   "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
-  "routeCount": 69,
-  "surfaceCount": 94,
+  "routeCount": 70,
+  "surfaceCount": 95,
   "routes": [
     {
       "route": "/admin/setup",
@@ -131,6 +131,10 @@
     {
       "route": "/admin/fleet",
       "element": "<RequireAdmin><CustomerFleetOps "
+    },
+    {
+      "route": "/admin/growth-goal",
+      "element": "<RequireAdmin><GrowthGoal "
     },
     {
       "route": "/admin/ai-agents",
@@ -284,7 +288,7 @@
   "surfaces": [
     {
       "file": "src/pages/admin/AIAgentsCommand.tsx",
-      "sourceHash": "7425b6dffd769557a317e8901696a481fec3f5451bf4160642c886f80ef991e0",
+      "sourceHash": "d1f8ca15661f03b828caa75e43ea6a6abb7176e3592fb2ed3ba5490b57d8ebcd",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -305,7 +309,7 @@
     },
     {
       "file": "src/pages/admin/AdminVisualBridgeManagement.tsx",
-      "sourceHash": "e3cd92ce562d90dc1d1db1366fc4af5ec6dcf1843279bcbdc796ce115a8c7ed6",
+      "sourceHash": "d49b46277f50502b2c80e1c60f8fe811d00e72ab44495771d8f3a67aa0d3f3d7",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -338,7 +342,7 @@
     },
     {
       "file": "src/pages/admin/BinanceOperations.tsx",
-      "sourceHash": "84bf5f963ec01b9d1fa41de2bf7ff682af5c44a8616f49ccfaea90f59e47fe9a",
+      "sourceHash": "10224b217a56ba7b9698f486b94693c9ab1994245c32e8776196dd46e6698f54",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -346,7 +350,7 @@
     },
     {
       "file": "src/pages/admin/BybitOperations.tsx",
-      "sourceHash": "c1d6f43c538035dec7a160df49a1a540683c4b91f21fb2d4945eeadbe583b74d",
+      "sourceHash": "2ad0d86875ddb0000fef459e5d43d291d645d536711fd895ec824c8ed5c37834",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -354,7 +358,7 @@
     },
     {
       "file": "src/pages/admin/Candidates.tsx",
-      "sourceHash": "b4478a3070863aa2a359328492da38db9e0fb624f0b074c05f826f60662f608b",
+      "sourceHash": "1f1ec6b6e41c715b0e30cb289e90a3171560c4e1c2245319944a9fbb3c801d3f",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -392,7 +396,7 @@
     },
     {
       "file": "src/pages/admin/CustomerFleetOps.tsx",
-      "sourceHash": "99de980d293c928ba312af0ce61246042e9fc0e0691bf25e3828eec79b0dad6c",
+      "sourceHash": "6293615580769e6f9ad3727bc119f76641bf2d5fe7a9fedcdfe9b0ba9f8d274d",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -400,7 +404,7 @@
     },
     {
       "file": "src/pages/admin/Customers.tsx",
-      "sourceHash": "45bf6ba686db3f681098c4f77c0e868a6823ddc6732417e05832521841e5dd7d",
+      "sourceHash": "dc807f5dbc7b6cf2562d336eebb75856515ae979ef25df03c011150eaeb526da",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -408,7 +412,15 @@
     },
     {
       "file": "src/pages/admin/Execution.tsx",
-      "sourceHash": "4b5ca7887144020326d13d72c1b96ffee120f0809e2ccf6a829179f2a29fbbd5",
+      "sourceHash": "77963012e7ef87e272800105af199ec53d4acdf4ef055db40cc4ce617ed927a4",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/GrowthGoal.tsx",
+      "sourceHash": "bcf69e4beeec249e6b180b4583934a1a7d60b3e6ecaa6d147066d008a10c41c8",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -482,7 +494,7 @@
     },
     {
       "file": "src/pages/admin/OnboardingOperations.tsx",
-      "sourceHash": "7c3010114ad87bf4508742f236baf99b12978eee91146997195842ebe97585ea",
+      "sourceHash": "0341fac25f11858aae17620059864a1680b2d2e230947b45c83f4fe2a33699c0",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -666,7 +678,7 @@
     },
     {
       "file": "src/pages/admin/ProviderOperationsWorkspace.tsx",
-      "sourceHash": "b5448180e2fc9950d365f522a4637bb36e1267d7cbb0a6c3d880e9465c675506",
+      "sourceHash": "4c672709c26943b428046d96aaf9d8c29d966ae0912dec490875203a7343ccde",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -774,7 +786,7 @@
     },
     {
       "file": "src/pages/admin/RejectedSetups.tsx",
-      "sourceHash": "d52ceb817bf6fe05ae5d9d997ec02abaa2fbc126ca36cabb3a00fcca4f7778f3",
+      "sourceHash": "7c450e4fc45702aaf07728a75bffa65fe64806810caa93d32847c7e20bdbd9ec",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -944,7 +956,7 @@
     },
     {
       "file": "src/pages/admin/StrategyConfig.tsx",
-      "sourceHash": "a34caf4b98fac667959c2fb79d8e67af02d3bd4af92ba26dae2e10a316ee5c31",
+      "sourceHash": "712ea629bd36f4301faab01940e632dbb7daa0987912015e48e2296ee22a8b0c",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1040,7 +1052,7 @@
     },
     {
       "file": "src/pages/admin/UsersAccess.tsx",
-      "sourceHash": "36a7d7da17fdbec786d13295b638abbe969b1cb4fbca3ebe1e9c89d296538e65",
+      "sourceHash": "18646c98ae06c1cb64765a053b4d3c4a95e2cb526d6338772c6297f7dde1eebf",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1093,7 +1105,7 @@
     },
     {
       "file": "src/pages/admin/backtest/ProductPortfolioResearch.tsx",
-      "sourceHash": "e623e9157ce153ec872d3ce2f1d412aaaab13d988c655e31046b7ca0e4aedccc",
+      "sourceHash": "33a9bc80246cd1001346fb2f57f5d3c930023218aa277744249330ac9b3601af",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1101,7 +1113,7 @@
     },
     {
       "file": "src/pages/admin/operator/OperatorPanel.tsx",
-      "sourceHash": "74f9d214c57f91e7ca511990385d9814e43e7796efd12a1f8d00d467a1c29b03",
+      "sourceHash": "5797586c4cd172fbc225a509734c87e07d7eb28ee0002468eb1bfe66a9e6cb31",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1109,7 +1121,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/ArbitratorTab.tsx",
-      "sourceHash": "f86820afd60ef399f1a0955c9c3604490a00550e4c9649c8bffa4d53080bc09a",
+      "sourceHash": "85c8919a751211c7993b257f5e5e43af10ee03b5cf67e13e30ee138c025bba25",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1117,7 +1129,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/AuditOverviewTab.tsx",
-      "sourceHash": "e8d8d3c2618a7f28ba266486047e428c84ec7f408b25a54c4cd9577c17fac3ac",
+      "sourceHash": "dffc27e6d70287ee33ce2fb2d5ba3e3ca362a59002a30698995946e55c1de478",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1125,7 +1137,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/ControlCenterTab.tsx",
-      "sourceHash": "3428096bf2d97b5d35181e7cb9de9d69a248b57c8de118e2a7cf5731c2f2cdec",
+      "sourceHash": "3823028db3d28292f29efe91218ab463be20cc63f2327fb5d2463593cb64d7bc",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1133,7 +1145,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/CustomersTab.tsx",
-      "sourceHash": "30b7ccd7316794dc04791cbed617fbdc46ac6d2503963d012301b8b08ea4fc75",
+      "sourceHash": "bcb9a30c3b35650da5257ace1714cc0eb81a52255826074585ad2e80223a5b2b",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1141,7 +1153,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/ExecutionOverviewTab.tsx",
-      "sourceHash": "e4b351e43a3a9434525a207d4d52d9d6f7ea6cde48b5827ba09bdcac3107dcab",
+      "sourceHash": "5ccf5b940d38c794462da1af2d8a705068beb47979d614a1f770d7b9c5ac4148",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1149,7 +1161,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/IncidentsTab.tsx",
-      "sourceHash": "f2002540e4f38c227bf6831d9bfd63ce01dd0945782639545e0769e30119f20b",
+      "sourceHash": "ba75ab19070d812d8e439c3be3e2f118726f8ac29f9f6660a6a85d0eb81a2b78",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1157,7 +1169,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/IntelligenceTab.tsx",
-      "sourceHash": "744243831705cef35e35defb08157b0e794b2b2de9bb3c44035a08a8412899c8",
+      "sourceHash": "95117965903974c58787e452f4a984fd108aa5c3e387d7ac7cfc0d2f9eed43a5",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1165,7 +1177,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/OperatingModesTab.tsx",
-      "sourceHash": "960da87b728b1c4b194599c7cec6554445a1a5a10940f23792cd6778d377cd9b",
+      "sourceHash": "92a39fe01f5a83c7029d01fd0997116f83975a645120c59c8351fc8cf2915c1a",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1173,7 +1185,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/PositionsProtectionTab.tsx",
-      "sourceHash": "e9245738108a8d0584ede402bfa7fdef906098c225613fe8c88d1bb6f71b5e3e",
+      "sourceHash": "73db9c90e4e1e245dcaaa4b1108f04ab31c8d8e7f2468ef6a88f3614cb80658c",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1181,7 +1193,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/ProviderHealthTab.tsx",
-      "sourceHash": "6eb86ed55ee386daeb90ef6ce26906eb9bf5dfde157d439173dc8a6cd451beba",
+      "sourceHash": "ef23b0a0a21a9863d90d6d38c1e029eaab6a912da8e231d26bac8f911fea8cd9",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1189,7 +1201,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/RiskCapitalTab.tsx",
-      "sourceHash": "8ed4b2abab4f8a5362a7b6f0e5c86f41ddfc423df47d009eea8b15a14abcbf27",
+      "sourceHash": "113f1ff20eaeb283e477f33f182a87566ccebf3af5236bf79474aeca24b49ba3",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1197,7 +1209,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/RuntimeProofTab.tsx",
-      "sourceHash": "485e8e30adcc6b581c795bfd62928ab2e09552261f47cc1487904522886a2bf8",
+      "sourceHash": "c2b8807eae1992101c90bf3e2ac2b42b2dd707844028a622da486d936f0d848b",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1205,7 +1217,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/ScannerOverviewTab.tsx",
-      "sourceHash": "3b764f276293e1c541737ea6a9ff79842945aa4ba6210ab31b2988299073edef",
+      "sourceHash": "fa8f6ce4079c7707294b5b0cd627e58e6869f2ac5867877b4a512bbb374b274d",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1213,7 +1225,7 @@
     },
     {
       "file": "src/pages/admin/operator/tabs/StrategyOverviewTab.tsx",
-      "sourceHash": "a5aad461e4dff15e77e3017be6b25b27603933f0407a26b23aac63b0a812a292",
+      "sourceHash": "ea233fab7781ee64c10e6fa9e253eca56a105bd7f837199dd2ec98dd832252f9",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1245,7 +1257,7 @@
     },
     {
       "file": "src/components/operations/AccountPolicyOperations.tsx",
-      "sourceHash": "6be91faa6b8761049add4eabffa38fa27a07ff26ba968a205c89b2f80bd0e95c",
+      "sourceHash": "cf8a823362ae2d9a6eb2321cedea186b965bf49578df21aaffe75119c95d7963",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1278,7 +1290,7 @@
     },
     {
       "file": "src/components/operations/EventTimeline.tsx",
-      "sourceHash": "b62d4a5f7e61ea7997be9aae9da8561858179c24aa59920aca3d3394868e737c",
+      "sourceHash": "47fb2467000b07d1ad602e7c67a53e14d39ccb7365bbe56254549df7b7cafc7b",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1286,7 +1298,7 @@
     },
     {
       "file": "src/components/operations/Heatmaps.tsx",
-      "sourceHash": "6e7a265d37009a06d6929fa1283fdc0268d0fb08c39f3456f65ace4da62e9510",
+      "sourceHash": "99e95b5e9936976107f3f3816069359e47eb8df3ccd1e6ac9bbadb00b710d889",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1302,7 +1314,7 @@
     },
     {
       "file": "src/components/operations/OperationsCards.tsx",
-      "sourceHash": "45218c8c73e3ff6b06c19f70e4ca4cc758b318240b4e32a27963155d39f8f3c5",
+      "sourceHash": "65bb33a3d8c992e4cf1eae907aa671ef0e28ed13833a29f1c1361f46e5b0649e",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1318,7 +1330,7 @@
     },
     {
       "file": "src/components/operations/OperationsStates.tsx",
-      "sourceHash": "57b3e3e2553ad8cba318ed2ff010c7837eb21d81379cc87a0db9cf17a326dfe5",
+      "sourceHash": "13dcc6a3b3dfc7f88a5f719689d0a0906bafd8d1a433dd751646e2a1cecb37fb",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1350,9 +1362,14 @@
     },
     {
       "file": "src/components/operations/PhaseOAgentsOperations.tsx",
-      "sourceHash": "7cd46d0db7dafb6239d9ae8f5cf33f70da66dfe346f6d2c487d3c0a95a6c9daf",
+      "sourceHash": "a986bba62db76a5c34f07815a1675d4a38ca4afdd5b5c4090bdc1e72be325ffe",
       "internalUiLabels": [],
-      "backendReferences": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "e.target.selectedOptions"
+        }
+      ],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
@@ -1366,7 +1383,7 @@
     },
     {
       "file": "src/components/operations/StatusBadges.tsx",
-      "sourceHash": "674fcb0644d4c342694aff41a66f357f779663f7ca12a38bdcc364b4f5e37fd7",
+      "sourceHash": "5fe877cb90eb034bd235503f5c6c1cd5c5cad2551519562b51b2c1ea295eba9f",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1439,7 +1456,7 @@
     },
     {
       "file": "src/components/operations/mt5/MT5ReconciliationTab.tsx",
-      "sourceHash": "b186613de90266aa2eb28b7f95342b1bd9f67ce71f79804336d41cecdd214c67",
+      "sourceHash": "4befa558fbc75ffa76545d9a4149d875fe467fe2235eb4157aeeb394cd00e778",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1452,7 +1469,7 @@
     },
     {
       "file": "src/components/operations/mt5/MT5RuntimeTab.tsx",
-      "sourceHash": "e25dcda4699651a593cc879ef43b2b2333c067019fcbabca8931b297fa096303",
+      "sourceHash": "7dfef43d88d81550c51367e8c11c8fd2262fdaefff5340aebe251c842948da7b",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],

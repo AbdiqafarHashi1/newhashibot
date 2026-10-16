@@ -88,6 +88,7 @@ const MT5PropOperations = lazy(() => import('./pages/admin/MT5PropOperations'));
 const MT5OperationsCenter = lazy(() => import('./pages/admin/MT5OperationsCenter'));
 const Customers = lazy(() => import('./pages/admin/Customers'));
 const CustomerFleetOps = lazy(() => import('./pages/admin/CustomerFleetOps'));
+const GrowthGoal = lazy(() => import('./pages/admin/GrowthGoal'));
 const AIAgentsCommand = lazy(() => import('./pages/admin/AIAgentsCommand'));
 const PropTradingPanel = lazy(() => import('./pages/admin/PropTradingPanel'));
 const Retention = lazy(() => import('./pages/admin/Retention'));
@@ -221,6 +222,7 @@ function App() {
             <Route path="/admin/commerce" element={<RequireAdmin><CommerceOperations /></RequireAdmin>} />
             <Route path="/admin/customer-engines" element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/fleet"            element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
+            <Route path="/admin/growth-goal" element={<RequireAdmin><GrowthGoal /></RequireAdmin>} />
             <Route path="/admin/ai-agents"        element={<RequireAdmin><AIAgentsCommand /></RequireAdmin>} />
             <Route path="/admin/access-requests"  element={<RequireAdmin><AccessRequests /></RequireAdmin>} />
             <Route path="/admin/audit"            element={<RequireAdmin><AuditLogs /></RequireAdmin>} />

@@ -44,6 +44,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/trading-brain', label: 'Brain Configuration', icon: Cpu },
   { section: 'Communications' },
   { to: '/admin/commerce', label: 'Commerce & Membership', icon: ClipboardList },
+  { to: '/admin/growth-goal', label: '1,000 customer goal', icon: Cpu },
   { to: '/admin/ai-agents', label: 'Agents', icon: Cpu },
   { to: '/admin/telegram-links', label: 'Telegram', icon: Send },
   { to: '/admin/reporting', label: 'Reporting', icon: Activity },

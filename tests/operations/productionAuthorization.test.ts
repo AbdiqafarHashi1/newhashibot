@@ -46,3 +46,14 @@ test('evidence ingestion checks observed finances and pending orders against the
  await assert.rejects(recordObservedAccountPolicyEvidence(db,{...input,account_context:{...x.context,balance:20000}},Date.parse(at)),/FINANCIAL_EVIDENCE_MISMATCH/);
  await assert.rejects(recordObservedAccountPolicyEvidence(db,{...input,pending_orders:1},Date.parse(at)),/ORDER_EVIDENCE_MISMATCH/);
 });
+
+test('MT5 observed positions use the bridge quantity field and reject a changed quantity',async()=>{
+ const {recordObservedAccountPolicyEvidence}=await import('../../supabase/functions/_shared/observed-account-policy-evidence');
+ const {x,at}=fixture();const position={ticket_or_id:'42',symbol:'EURUSD',side:'BUY',quantity:.1,entry_price:1.1,current_price:1.1,unrealized_pnl:0,stop_loss:1.09,take_profit:1.12,open_risk_amount:100,open_risk_pct:1,notional_value:11000,opened_at:at};
+ const c={...x.context,open_positions:[position],exposure:{total_notional_usd:11000,total_open_risk_usd:100,total_open_risk_pct:1,active_position_count:1,positions_by_symbol:{EURUSD:1}}};
+ const snapshot={captured_at:at,balance:10000,equity:10000,free_margin:10000,positions:[{symbol:'EURUSD',quantity:.1}],orders:[]};
+ const account={provider:'MT5_PERSONAL',environment:'demo',account_mode:'PERSONAL',provider_account_identity:'physical'};
+ const db={from(table:string){const q:any={select:()=>q,eq:()=>q,order:()=>q,limit:()=>q,insert:()=>q,single:async()=>({data:table==='connected_execution_accounts'?account:{id:'saved'}}),maybeSingle:async()=>({data:snapshot})};return q}};
+ const input={customer_id:'customer-a',execution_account_id:'a1',provider:'MT5_PERSONAL',symbol:'EURUSD',observed_at:at,account_context:c,contract_specification:x.contract,routing_policy:x.routing_policy,capabilities:x.capabilities,pending_orders:0};
+ assert.equal((await recordObservedAccountPolicyEvidence(db,input,Date.parse(at))).id,'saved');snapshot.positions[0].quantity=.2;await assert.rejects(recordObservedAccountPolicyEvidence(db,input,Date.parse(at)),/POSITION_EVIDENCE_MISMATCH/);
+});

@@ -26,7 +26,7 @@ export async function recordObservedAccountPolicyEvidence(db:any,input:any,now=D
  const positions=mt5?raw.positions:scope.provider==='BINANCE'?raw.open_binance_positions:raw.positions;
  const orders=mt5?raw.orders:scope.provider==='BINANCE'?raw.open_binance_orders:raw.open_orders;
  if(!Array.isArray(orders)||orders.length!==input.pending_orders)throw Error('PROVIDER_ORDER_EVIDENCE_MISMATCH');
- if(!Array.isArray(positions)||positions.length!==c.open_positions.length||positions.some((p:any)=>!c.open_positions.some((x:any)=>x.symbol===p.symbol&&Math.abs(x.quantity-Math.abs(Number(p.volume??p.positionAmt??p.size)))<1e-8)))throw Error('PROVIDER_POSITION_EVIDENCE_MISMATCH');
+ if(!Array.isArray(positions)||positions.length!==c.open_positions.length||positions.some((p:any)=>!c.open_positions.some((x:any)=>x.symbol===p.symbol&&Math.abs(x.quantity-Math.abs(Number(p.quantity??p.volume??p.positionAmt??p.size)))<1e-8)))throw Error('PROVIDER_POSITION_EVIDENCE_MISMATCH');
  if(!input.contract_specification||input.contract_specification.provider!==scope.provider||input.contract_specification.symbol!==input.symbol||input.routing_policy?.provider!==scope.provider||input.capabilities?.provider!==scope.provider||!Number.isInteger(input.pending_orders)||input.pending_orders<0)throw Error('PROVIDER_ROUTING_EVIDENCE_REQUIRED');
  const row={...input,execution_instance_id:a.data.execution_instance_id,credential_ref:a.data.credential_ref,source_reference:`${mt5?'mt5':'crypto'}:${proof.data.id??at}`};
  const saved=await db.from('account_policy_evidence').insert(row).select('id').single();if(saved.error||!saved.data)throw Error('ACCOUNT_POLICY_EVIDENCE_NOT_PERSISTED');return saved.data;
