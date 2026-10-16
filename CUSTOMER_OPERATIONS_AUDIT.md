@@ -32,6 +32,10 @@ The static inventory covers 69 administrator routes and the available administra
 
 The large deletions replace duplicate/retired UI implementations and fabricated displays. No historical database records, registered strategy evaluator, approved public price or existing cron definition was deleted. Public conversion pages were not redesigned.
 
+## Deletion review and restored usability
+
+The published patch was reviewed file by file against main. The exact largest replacements and retired mutations are documented in `docs/operations/PR_259_DELETION_REVIEW.md`. Earlier generic replacements lost useful financial inspection and structured parameter help; this follow-up restores account-specific provider financial evidence, recent decisions, recorded plans and crypto incidents, plus strategy market/enabled filters and structured controls for existing saved numeric parameters. Unknown financial fields stay unknown. No historical AI metadata is erased when a configuration is saved; it remains excluded from the editable/calibration presentation. The old score-boost timer, fabricated system-wallet attribution and direct browser execution/subscription grants are intentionally not restored.
+
 ## Verification and limits
 
 Focused tests include real Phase-D evaluation, injected provider transports, actual embedded PostgreSQL setup/queue/RLS/transaction tests and the actual onboarding HTTP handler through concrete RPC calls into embedded PostgreSQL. The database fixture includes a Vault shim; this does not validate real Supabase Vault encryption, Auth/PostgREST or a complete migration-chain deployment. PGlite tests do not prove multi-session PostgreSQL concurrency.
@@ -54,6 +58,8 @@ Authenticated phone/desktop review and real MT5/Binance/Bybit/Telegram tests rem
 Certified execution rows now include the exact exchange discriminator used by their monitors. Bybit does not cancel or close an unconfirmed canonical entry as a stale order. Canonical observation loading checks customer/account/scope/plan, snapshot completeness, freshness, side, quantity and exact provider entry identity; persistence failures propagate. No certification is marked PASSED. This does not fill the separate account-decision producer or complete realized-history gaps above.
 
 Verification for this repair: 17 behavioral tests, 4 actual embedded PostgreSQL tests and 3 Python tests passed. Phase F/G passed. Build passed. Typecheck retains the same 161 diagnostics as the preceding published head. No remote/provider evidence is claimed.
+
+Verification of the deletion-review follow-up: 18 behavioral tests, 4 embedded PostgreSQL tests and 3 Python tests passed. Phase H/N, Edge discovery/bundles, source inventory, production build and diff checks passed. Typecheck remains at 161 diagnostics with no new normalized signatures against the preceding head. Authenticated visual review remains NOT_RUN.
 
 ## Migration order
 

@@ -944,7 +944,7 @@
     },
     {
       "file": "src/pages/admin/StrategyConfig.tsx",
-      "sourceHash": "70434b17d255585d522bf954f4f2f97ee6d9250ec2f0ed9c6b1d58ded5e716d7",
+      "sourceHash": "a34caf4b98fac667959c2fb79d8e67af02d3bd4af92ba26dae2e10a316ee5c31",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -958,7 +958,7 @@
       ],
       "directMutationEdges": [
         {
-          "line": 18,
+          "line": 20,
           "code": "supabase.from('strategy_configs').update(payload)"
         }
       ],
@@ -1245,12 +1245,16 @@
     },
     {
       "file": "src/components/operations/AccountPolicyOperations.tsx",
-      "sourceHash": "137e8d347a5e38da08984a3ed45d9aefc0268a51f43db63da7d9382300071fd8",
+      "sourceHash": "6be91faa6b8761049add4eabffa38fa27a07ff26ba968a205c89b2f80bd0e95c",
       "internalUiLabels": [],
       "backendReferences": [
         {
           "method": "from",
           "target": "'execution_accounts_safe'"
+        },
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
         },
         {
           "method": "invoke",
