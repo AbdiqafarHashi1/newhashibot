@@ -1,44 +1,12 @@
-name: Temporary HashiBot signal-only clock
+name: Retired temporary HashiBot service
 
+# The original repository and hashibot.app are the product.
+# Retained as history; no schedule, HTTP calls, or temporary-service maintenance.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '7,37 * * * *'
-  push:
-    branches: [main]
-    paths: ['.github/workflows/temporary-signal-clock.yml']
-
 permissions: {}
-
-concurrency:
-  group: temporary-hashibot-signal-clock
-  cancel-in-progress: false
-
 jobs:
-  tick:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
     steps:
-      - name: Run the bounded paper-signal maintenance job
-        shell: bash
-        env:
-          SERVICE_ORIGIN: https://hashibot-signals-lab.abdihashi.chatgpt.site
-        run: |
-          set -euo pipefail
-          curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 90 \
-            --request POST --header 'Content-Type: application/json' --data '{}' \
-            "${SERVICE_ORIGIN}/api/tick" > "${RUNNER_TEMP}/hashibot-tick.json"
-          cat "${RUNNER_TEMP}/hashibot-tick.json"
-          curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 30 \
-            "${SERVICE_ORIGIN}/api/status" > "${RUNNER_TEMP}/hashibot-status.json"
-          python3 - "${RUNNER_TEMP}/hashibot-status.json" <<'PY'
-          import json, sys, time
-          status = json.load(open(sys.argv[1]))
-          assert status.get('brokerExecution') is False, 'Unexpected execution-capable service'
-          heartbeat = status.get('lastTick')
-          assert heartbeat and time.time() * 1000 - heartbeat['at'] < 90 * 60 * 1000, 'Maintenance heartbeat missing or stale'
-          print('Persisted paper-service heartbeat:', heartbeat['at'])
-          for task in heartbeat.get('tasks', []):
-              if task['state'] == 'BLOCKED':
-                  print('::warning::Provider task blocked: ' + task['name'])
-          PY
+      - run: echo 'Temporary service retired. Continue in the original HashiBot application.'
