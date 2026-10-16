@@ -1,3 +1,4 @@
+import {synchronizeCanonicalMonitor} from '../_shared/canonical-monitor-observations.ts';
 import {admitBinanceConditionalOrders,admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
 import {confirmedProviderClose,stableCloseIdentity} from "../_shared/confirmed-provider-close.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -1639,6 +1640,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     updated_at: monitorRunAt,
   };
   await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: {...settingsUpdate,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  if(conditionalOrdersComplete&&Array.isArray(allOrdersBody))await synchronizeCanonicalMonitor({store:supabase,ownership,provider:'BINANCE',positions:positions as unknown as Record<string,any>[],orders:orders as Record<string,any>[],complete:true,observedAt:monitorRunAt,lookupEntry:async(symbol,orderId)=>{const order=await binanceRequest('/fapi/v1/order',{symbol,orderId}) as Record<string,unknown>;return{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??''),status:String(order.status??''),filledQuantity:Number(order.executedQty)}}});
   const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
   if (!error) return;
 

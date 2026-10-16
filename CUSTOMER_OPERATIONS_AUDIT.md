@@ -44,15 +44,22 @@ Authenticated phone/desktop review and real MT5/Binance/Bybit/Telegram tests rem
 
 1. A production service must load complete fresh canonical account evidence and persist the actual Phase-D decision before plan adoption. The audited default branch contains decision consumers and a pure evaluator, but the durable production producer has not yet been connected. Do not manufacture a decision from a browser payload or a downstream sized plan.
 2. Configured loss-response controls need a complete account-scoped provider outcome/history loader. The deterministic defensive gate is implemented; production loss evidence is not yet established.
-3. Verify monitor-to-Phase-F certification lifecycle synchronization, not merely execution-order updates or Telegram events.
+3. Monitor-to-Phase-F and Phase-G synchronization is now connected through a service-only atomic observation RPC. Binance/Bybit load the exact provider entry order, persist immutable observation evidence, update account lifecycle and update the matching certification projection in one transaction. An unobserved entry stays in reconciliation; closure does not fabricate realized P&L or certification. Embedded PostgreSQL and injected adapter tests pass; real provider validation remains NOT_RUN.
 4. Preserve the documented portfolio overlap/intratrade equity limitations; historical simulation is not provider execution evidence.
 5. Rehearse all forward migrations, grants, RLS, Vault and concurrent RPCs against disposable Supabase before remote deployment.
 6. The current Python bridge is for an owner-managed Windows host. Global bridge/service credentials must not be distributed in a public customer installer. Public self-service installation requires its own scoped bootstrap and credential-exchange review.
+
+## Additional connected monitor repair
+
+Certified execution rows now include the exact exchange discriminator used by their monitors. Bybit does not cancel or close an unconfirmed canonical entry as a stale order. Canonical observation loading checks customer/account/scope/plan, snapshot completeness, freshness, side, quantity and exact provider entry identity; persistence failures propagate. No certification is marked PASSED. This does not fill the separate account-decision producer or complete realized-history gaps above.
+
+Verification for this repair: 17 behavioral tests, 4 actual embedded PostgreSQL tests and 3 Python tests passed. Phase F/G passed. Build passed. Typecheck retains the same 161 diagnostics as the preceding published head. No remote/provider evidence is claimed.
 
 ## Migration order
 
 Apply only in a disposable rehearsal after all predecessor migrations:
 1. `20261015221031_customer_account_setup_integrity.sql`
 2. `20261015225107_account_execution_routing_guards.sql`
+3. `20261016033058_canonical_monitor_observations.sql`
 
 No remote SQL, deployment, schedule change, external message or provider order was performed. Live execution remains disabled. The requested complete system remains PARTIAL; do not merge this as a claim that only API keys remain.
