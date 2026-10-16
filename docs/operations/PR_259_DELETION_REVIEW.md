@@ -29,4 +29,4 @@ Strategy descriptions are editor guidance from the preserved metadata library. S
 
 ## Still required
 
-This deletion review does not close the two separately documented integration gaps: the durable production account-decision producer and complete account-scoped provider outcome history. Remote Supabase, genuine providers and authenticated phone/desktop review remain unverified. Do not treat conflict-free as deployment approval.
+The continuation adds bounded account-scoped provider outcome collectors and a canonical history loader with behavioral/database tests. The durable production account-decision producer and its consumption of that history remain incomplete. Remote Supabase, genuine providers and authenticated phone/desktop review remain unverified. Do not treat conflict-free as deployment approval.

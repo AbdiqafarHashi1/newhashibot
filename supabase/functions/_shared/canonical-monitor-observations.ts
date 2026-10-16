@@ -1,3 +1,4 @@
+import {canonicalExecutionAccountId} from './canonical-account-identity.ts';
 /** Provider snapshots feed account lifecycle truth; they never certify performance. */
 export type MonitorObservationStore = {from(table:string):any;rpc(name:string,args:Record<string,unknown>):PromiseLike<{data?:unknown;error?:{message?:string}|null}>};
 type Row=Record<string,any>;
@@ -6,7 +7,8 @@ export async function synchronizeCanonicalMonitor(input:{store:MonitorObservatio
  const {ownership:o,store}=input;
  if(!o.customer_id||!o.account_id||!o.execution_scope_key)throw new Error('CANONICAL_MONITOR_SCOPE_REQUIRED');
  const at=Date.parse(input.observedAt);if(!Number.isFinite(at)||at>Date.now()+5000||Date.now()-at>120000)throw new Error('CANONICAL_MONITOR_STALE');
- const truth=await store.from('crypto_account_execution_truth').select('id,symbol,execution_plan_id,deterministic_client_order_id,lifecycle_state').eq('customer_id',o.customer_id).eq('execution_account_id',o.account_id).eq('provider',input.provider).not('lifecycle_state','in','(CLOSED,REJECTED)').limit(101);
+ const canonicalAccountId=await canonicalExecutionAccountId(store,o,input.provider);
+ const truth=await store.from('crypto_account_execution_truth').select('id,symbol,execution_plan_id,deterministic_client_order_id,lifecycle_state').eq('customer_id',o.customer_id).eq('execution_account_id',canonicalAccountId).eq('provider',input.provider).not('lifecycle_state','in','(CLOSED,REJECTED)').limit(101);
  if(truth.error)throw new Error('CANONICAL_MONITOR_READ_FAILED');if(!Array.isArray(truth.data)||truth.data.length>100)throw new Error('CANONICAL_MONITOR_BOUND_EXCEEDED');
  for(const t of truth.data as Row[]){
   const rows=await store.from('execution_orders').select('*').eq('customer_id',o.customer_id).eq('account_id',o.account_id).eq('execution_scope_key',o.execution_scope_key).eq('raw_exchange_response->>certified_execution_plan_id',t.execution_plan_id).limit(2);
@@ -24,7 +26,7 @@ export async function synchronizeCanonicalMonitor(input:{store:MonitorObservatio
   const fresh=Number.isFinite(rowTime)&&Math.abs(at-rowTime)<=120000;
   const protectedPosition=Boolean(p&&fresh&&r.sl_confirmed===true&&(r.tp1_confirmed===true||r.tp1_status==='filled')&&r.tp2_confirmed===true);
   const evidence={schema_version:'canonical-monitor-observation/v1',observed_at:input.observedAt,execution_scope_key:o.execution_scope_key,execution_order_id:r.id,entry_verified:entryVerified,entry_evidence:entryVerified?entry:null,position_quantity:quantity,position_side:side,open_order_count:pending,protection_verified:protectedPosition,safety_close_pending:r.lifecycle_state==='SAFETY_CLOSING',entry_provider_order_id:r.entry_order_id??null};
-  const result=await store.rpc('record_canonical_monitor_observation',{p_customer_id:o.customer_id,p_account_id:o.account_id,p_plan_id:t.execution_plan_id,p_observation:evidence});
+  const result=await store.rpc('record_canonical_monitor_observation',{p_customer_id:o.customer_id,p_account_id:canonicalAccountId,p_plan_id:t.execution_plan_id,p_observation:evidence});
   if(result.error)throw new Error(`CANONICAL_MONITOR_NOT_PERSISTED:${result.error.message}`);
  }
  return {observed:truth.data.length};

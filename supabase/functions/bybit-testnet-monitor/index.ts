@@ -1,3 +1,4 @@
+import {collectCryptoProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import {synchronizeCanonicalMonitor} from '../_shared/canonical-monitor-observations.ts';
 import {admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -349,7 +350,6 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
   const leaseAcquired = await withStage(stageTimings, "lease_acquire", startedMs, () => acquireExecutionLease(supabase, ownership, runId));
   if (!leaseAcquired) {
     const completedAt = new Date().toISOString();
-    await synchronizeCanonicalMonitor({store:supabase,ownership:runtimeOwnershipFields(ownership),provider:'BYBIT',positions:activePositions,orders:orderList.filter(isActiveOrder),complete:true,observedAt:completedAt,lookupEntry:async(symbol,id)=>{const result=await bybitRequest<{list:Json[]}>(credential,'/v5/order/history',{category:'linear',symbol,orderId:id,limit:1});const order=result.list?.[0];return order?{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??'').toUpperCase(),status:order.orderStatus==='Filled'?'FILLED':order.orderStatus==='PartiallyFilled'?'PARTIALLY_FILLED':String(order.orderStatus),filledQuantity:Number(order.cumExecQty)}:null}});
     const result = releaseBybitMonitorLease({ success: false, provider: "bybit", run_id: runId, last_monitor_run_at: startedAt, monitor_health: "rejected", latest_error: "MONITOR_ALREADY_RUNNING", blocker: "MONITOR_ALREADY_RUNNING", stage_timings: stageTimings }, "rejected", runId, startedAt);
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: false, monitor_status: "rejected", latest_recovery_action: null, errors: ["MONITOR_ALREADY_RUNNING"], metadata: result });
     return result;
@@ -360,7 +360,6 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
 
   if (!hasKeys) {
     const completedAt = new Date().toISOString();
-    await synchronizeCanonicalMonitor({store:supabase,ownership:runtimeOwnershipFields(ownership),provider:'BYBIT',positions:activePositions,orders:orderList.filter(isActiveOrder),complete:true,observedAt:completedAt,lookupEntry:async(symbol,id)=>{const result=await bybitRequest<{list:Json[]}>(credential,'/v5/order/history',{category:'linear',symbol,orderId:id,limit:1});const order=result.list?.[0];return order?{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??'').toUpperCase(),status:order.orderStatus==='Filled'?'FILLED':order.orderStatus==='PartiallyFilled'?'PARTIALLY_FILLED':String(order.orderStatus),filledQuantity:Number(order.cumExecQty)}:null}});
     const result = releaseBybitMonitorLease({ success: false, provider: "bybit", last_monitor_run_at: startedAt, monitor_health: "healthy", latest_error: "NO_API_KEYS", blocker: "NO_API_KEYS", stage_timings: stageTimings }, "completed", runId, startedAt);
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: false, monitor_status: "healthy", latest_recovery_action: null, errors: ["NO_API_KEYS"], metadata: result });
     await updateProvider(supabase, { status: "disconnected", last_status_at: new Date().toISOString(), last_error: "NO_API_KEYS", metadata: { bybit_monitor: result } });
@@ -644,6 +643,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
     await writeMonitorHeartbeat(supabase, { run_id: runId, trigger_source: triggerSource, is_automatic: isAutomatic, started_at: startedAt, completed_at: completedAt, success: true, monitor_status: "healthy", positions_seen: activePositions.length, orders_seen: orderList.length, executions_checked: Number(stats.rows_checked), protections_created: Number(stats.protections_created), protections_missing: Number(stats.protections_missing), stale_orders_cleaned: Number(stats.stale_orders_cleaned), positions_closed: Number(stats.positions_closed), latest_recovery_action: Number(stats.protections_created) > 0 ? "protection_created" : Number(stats.stale_orders_cleaned) > 0 ? "stale_orders_cleaned" : null, errors: [], metadata: result });
     await updateProvider(supabase, { status: "connected", last_status_at: new Date().toISOString(), last_error: null, metadata: { bybit_monitor: { ...result, environment: bybitEnvironment(), base_url: bybitBaseUrl() } } });
     await supabase.from("execution_account_runtime_proof").upsert({ ...runtimeOwnershipFields(ownership), environment: bybitEnvironment(), monitor_status: "healthy", account_state: {...result,flat_verified:activePositions.length===0&&orderList.filter(isActiveOrder).length===0}, observed_at: completedAt, updated_at: completedAt }, { onConflict: "execution_scope_key" });
+    await collectCryptoProviderOutcomes(supabase,ownership,'BYBIT',(path,params)=>bybitRequest(credential,path,params));
     await supabase.from("execution_settings").update({ bybit_latest_monitor_run_at: startedAt, bybit_latest_successful_sync_at: result.last_successful_sync_at, bybit_latest_monitor_error: null, bybit_latest_monitor_result: result, updated_at: new Date().toISOString() }).eq("id", 1);
     await releaseExecutionLease(supabase, ownership, runId, "completed");
     return { success: true, provider: "bybit", ownership: ownershipFields(ownership), last_monitor_run_at: startedAt, last_successful_sync_at: result.last_successful_sync_at, monitor_health: "healthy", latest_error: null, ...stats };

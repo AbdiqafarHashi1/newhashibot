@@ -22,7 +22,7 @@ declare a public.connected_execution_accounts;t public.crypto_account_execution_
  if p_observation->>'schema_version' is distinct from 'canonical-monitor-observation/v1' then raise exception 'MONITOR_SCHEMA_REQUIRED';end if;
  at:=(p_observation->>'observed_at')::timestamptz;q:=(p_observation->>'position_quantity')::numeric;n:=(p_observation->>'open_order_count')::integer;
  if at is null or at>clock_timestamp()+interval '5 seconds' or at<clock_timestamp()-interval '2 minutes' or q is null or q<0 or q='NaN'::numeric or n is null or n<0 then raise exception 'MONITOR_OBSERVATION_INVALID';end if;
- select * into r from public.execution_orders where id::text=p_observation->>'execution_order_id' and customer_id=a.customer_id and account_id::text=a.id::text and raw_exchange_response->>'certified_execution_plan_id'=p_plan_id and execution_scope_key=p_observation->>'execution_scope_key';
+ select * into r from public.execution_orders where id::text=p_observation->>'execution_order_id' and customer_id=a.customer_id and account_id::text=a.account_id::text and raw_exchange_response->>'certified_execution_plan_id'=p_plan_id and execution_scope_key=p_observation->>'execution_scope_key';
  if not found or r.symbol is distinct from t.symbol or nullif(p_observation->>'execution_scope_key','') is null then raise exception 'MONITOR_ORDER_SCOPE';end if;
  key:=md5(a.id::text||':'||p_plan_id||':'||at::text);
  select evidence into old from public.canonical_monitor_observations where id=key;

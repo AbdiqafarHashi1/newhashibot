@@ -1,3 +1,4 @@
+import {collectCryptoProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import {synchronizeCanonicalMonitor} from '../_shared/canonical-monitor-observations.ts';
 import {admitBinanceConditionalOrders,admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
 import {confirmedProviderClose,stableCloseIdentity} from "../_shared/confirmed-provider-close.ts";
@@ -1820,6 +1821,7 @@ Deno.serve(async (req: Request) => {
       return withEdgeProviderCredential(credential, async () => {
         await reconcileBinanceTruthGaps(supabase, stats, ownership.execution_scope_key);
         await refreshAccountState(supabase, stats, stats.monitor_status, runtimeOwnershipFields(ownership));
+        await collectCryptoProviderOutcomes(supabase,ownership,'BINANCE',(path,params)=>binanceRequest(path,params));
       });
     });
     for (const failed of accountSync.filter((result) => result.status === "rejected")) addCriticalMonitorError(stats, `account_sync_failed:${errorMessage((failed as PromiseRejectedResult).reason)}`);

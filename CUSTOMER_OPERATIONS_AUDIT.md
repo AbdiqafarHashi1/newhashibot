@@ -47,7 +47,7 @@ Authenticated phone/desktop review and real MT5/Binance/Bybit/Telegram tests rem
 ## Remaining essential integration work — keep draft
 
 1. A production service must load complete fresh canonical account evidence and persist the actual Phase-D decision before plan adoption. The audited default branch contains decision consumers and a pure evaluator, but the durable production producer has not yet been connected. Do not manufacture a decision from a browser payload or a downstream sized plan.
-2. Configured loss-response controls need a complete account-scoped provider outcome/history loader. The deterministic defensive gate is implemented; production loss evidence is not yet established.
+2. Account-scoped provider outcome collectors and the complete canonical history loader are now implemented and connected to Binance/Bybit monitoring and MT5 state sync. Production Phase-D consumption remains part of item 1; do not treat the new loader as proof that the full decision producer is connected. Unsupported/missing history blocks admission. Real provider evidence remains NOT_RUN.
 3. Monitor-to-Phase-F and Phase-G synchronization is now connected through a service-only atomic observation RPC. Binance/Bybit load the exact provider entry order, persist immutable observation evidence, update account lifecycle and update the matching certification projection in one transaction. An unobserved entry stays in reconciliation; closure does not fabricate realized P&L or certification. Embedded PostgreSQL and injected adapter tests pass; real provider validation remains NOT_RUN.
 4. Preserve the documented portfolio overlap/intratrade equity limitations; historical simulation is not provider execution evidence.
 5. Rehearse all forward migrations, grants, RLS, Vault and concurrent RPCs against disposable Supabase before remote deployment.
@@ -67,5 +67,17 @@ Apply only in a disposable rehearsal after all predecessor migrations:
 1. `20261015221031_customer_account_setup_integrity.sql`
 2. `20261015225107_account_execution_routing_guards.sql`
 3. `20261016033058_canonical_monitor_observations.sql`
+4. `20261016040740_account_authorization_and_outcome_evidence.sql` (provider outcome evidence only; no production authorization producer)
 
 No remote SQL, deployment, schedule change, external message or provider order was performed. Live execution remains disabled. The requested complete system remains PARTIAL; do not merge this as a claim that only API keys remain.
+
+
+## Continuation: provider outcomes and review findings
+
+Both review findings from commit `b661bab` are addressed. Canonical lifecycle reads/RPCs resolve the connected account UUID using customer, routing alias, provider, execution instance and credential reference. Execution-order reads retain the routing alias. The observation SQL applies the same distinction. Bybit lease-contention and missing-key exits return before any provider snapshot is used. Tests execute these actual early-exit branches and exercise a real SQL observation with a non-UUID routing alias.
+
+Binance history exhausts bounded time windows/pagination and reconciles the whole entry/partial-exit/terminal-exit quantity, commissions and funding. Bybit reconciles exact closing orders and uses closed P&L with its already allocated costs. MT5 sends UTC history coverage, position IDs, entry/exit identities, commission, swap and fees; failed reads clear previous coverage. Unsupported reversals, ambiguous/manual fills, unavailable history, source conflicts, incomplete quantities or failed durable writes cannot become fabricated zero-loss outcomes. Acquisition handles at most five unrecorded closed executions per account per monitor cycle; the history loader rejects an incomplete backlog. MT5 acquisition currently requires the canonical TP2_CLOSED lifecycle and the bridge's 30-day coverage; older or otherwise unrecorded exits remain blockers.
+
+Outcome rows are immutable and service-written, with owner/admin read policies. Embedded PostgreSQL verifies authorization, tenant isolation, exact retries and content conflicts. Injected provider tests do not establish genuine API connectivity, full Supabase deployment, concurrent database safety or profitability. The unfinished production authorization producer remains unpublished; its local scaffolding is not readiness evidence.
+
+Continuation checks: 26 behavioral tests, 5 embedded PostgreSQL tests and 5 Python tests pass. Phase F/G and execution suites, Edge discovery, modified monitor/bridge bundles and production build pass. Full typecheck still reports 161 diagnostics, with no new normalized signatures against the preceding local source. The deletion preservation map remains applicable. PR stays unmerged and the complete system remains PARTIAL.

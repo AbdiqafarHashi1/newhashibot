@@ -1,3 +1,4 @@
+import {collectMt5ProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {verifyBridgeAccountEvidence,validateMt5ProviderSnapshot} from "../_shared/bridge-account-evidence.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -462,6 +463,13 @@ Deno.serve(async (req: Request) => {
         if (snapshotError) {
           console.error("mt5 snapshot write error:", snapshotError);
         }
+        const historyCoverage=(snap as Record<string,any>).history_coverage;
+        if(historyCoverage){
+          const logical=await supabase.from('connected_execution_accounts').select('id,customer_id,provider').eq('customer_id',realOwnerId).eq('provider_account_identity',target.id).in('provider',['MT5_PERSONAL','MT5_PROP']).limit(2);
+          if(logical.error||logical.data?.length!==1)throw new Error('MT5_OUTCOME_ACCOUNT_MAPPING_REQUIRED');
+          await collectMt5ProviderOutcomes(supabase,{customer_id:realOwnerId,account_id:logical.data[0].id},logical.data[0].provider,{from:historyCoverage.from,to:historyCoverage.to,currency:String(snap.currency??''),deals:payload.history??[]});
+        }
+
 
         // Update mt5_accounts connection status & heartbeat
         const verifiedTradePermission = (snap as Record<string, unknown>).trade_permission === true;
