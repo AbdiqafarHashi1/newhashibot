@@ -44,6 +44,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/trading-brain', label: 'Brain Configuration', icon: Cpu },
   { section: 'Communications' },
   { to: '/admin/commerce', label: 'Commerce & Membership', icon: ClipboardList },
+  { to: '/admin/growth-goal', label: '1,000 customer goal', icon: Cpu },
   { to: '/admin/ai-agents', label: 'Agents', icon: Cpu },
   { to: '/admin/telegram-links', label: 'Telegram', icon: Send },
   { to: '/admin/reporting', label: 'Reporting', icon: Activity },
@@ -54,7 +55,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },
 ];
 
-export function AdminLayout({ children }: { children: ReactNode }) {
+export function AdminLayout({ children, title, description }: { children: ReactNode; title?: string; description?: string }) {
   const { displayProfile: profile, signOut } = usePreviewViewer();
   const loc = useLocation();
   const nav = useNavigate();
@@ -218,7 +219,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] font-mono text-zinc-500 hidden lg:inline">
-              {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "BACKEND AUTH REQUIRED" : "LIVE TELEMETRY"}
+              {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "BACKEND AUTH REQUIRED" : "RECORDED TELEMETRY"}
             </span>
             <Link
               to="/admin/operator"
@@ -248,7 +249,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Page Content Body */}
         <main className="flex-1 p-3.5 sm:p-5 md:p-6 pb-28 md:pb-8 min-w-0" key={loc.pathname}>
-          {children}
+          {title && <header className="mb-5"><h1 className="text-xl font-bold">{title}</h1>{description && <p className="mt-1 text-sm text-zinc-400">{description}</p>}</header>}{children}
         </main>
 
         {/* Modern Mobile Bottom Navigation */}

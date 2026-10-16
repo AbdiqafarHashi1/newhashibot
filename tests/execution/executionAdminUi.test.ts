@@ -39,7 +39,10 @@ assert.match(executionFunction, /console\.log\("Bybit V5 safe debug", \{ endpoin
 assert.match(executionFunction, /providerEntryBlocked/, 'provider entry gates are isolated from global execution gates');
 assert.match(executionFunction, /executionReadiness/, 'dry-run readiness proof action exists');
 
-assert.match(executionHub, /Cross-Provider Execution Engines|Provider Operations Center|Execution Management/, 'execution page is now Provider Operations Center navigation');
+assert.match(executionHub, /<OnboardingOperations\s*\/>/, 'execution management reuses the customer/account operations and certification authority');
+const accountOperations=readFileSync('src/pages/admin/OnboardingOperations.tsx','utf8');
+assert.match(accountOperations,/requestOperationsCommand/,'execution actions use the audited server coordinator');
+assert.match(accountOperations,/execution_account_id/,'execution management retains explicit account scope');
 console.log('execution admin UI tests passed');
 assert.match(executionFunction, /bybitExecutionAllowedEnvironment/, 'X-P Bybit environment contract is explicit');
 assert.match(executionFunction, /Bybit execution allows testnet\/demo only; live URLs are rejected/, 'X-P allows Bybit testnet/demo while blocking live execution');

@@ -252,7 +252,7 @@ export default function CustomerBotSetup() {
         userId: user.id,
         userEmail: user.email || 'customer@hashibot.com',
         userName: user.email?.split('@')[0] || 'Customer Trader',
-        platform: isCrypto ? 'crypto_binance' : 'mt5_forex',
+        platform: isCrypto ? 'binance_futures' : 'mt5_forex',
         accountNumber: mt5Login || (isCrypto ? (apiKey ? apiKey.slice(0, 8) : 'BINANCE-API') : '10011927607'),
         brokerOrExchange: isCrypto ? exchangeName : (brokerName || (isProp ? propFirmName : 'MetaQuotes-Demo')),
         accountCategory: isProp ? (accountSize >= 100000 ? '100k_prop' : '50k_prop') : (isCrypto ? 'crypto_growth_personal' : 'forex_growth_personal'),
@@ -906,4 +906,5 @@ export default function CustomerBotSetup() {
     </AppLayout>
   );
 }
+
 

@@ -135,6 +135,12 @@ class MT5AgentDaemon:
                 logger.error("operation=terminal_verify error_code=%s", proof.get("blocker"))
                 self.mt5_client.is_connected = False
                 return False
+            if proof.get("account", {}).get("environment") != "demo":
+                logger.error("operation=terminal_verify error_code=LIVE_EXECUTION_PROHIBITED")
+                self.mt5_client.is_connected = False
+                return False
+            if Config.CUSTOMER_PAIRING_CODE:
+                self.cloud_client.pair_customer_account(proof["account"])
             if self.credential_capability == "investor":
                 logger.info("operation=terminal_verify error_code=INVESTOR_AUTHENTICATED")
             logger.info("[Daemon] MetaTrader 5 connection established.")

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Calculator,
   ShieldCheck,
@@ -337,3 +337,4 @@ export function KellyOptimizerVisualizer() {
     </div>
   );
 }
+

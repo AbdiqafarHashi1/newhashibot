@@ -84,10 +84,10 @@ export default function ScannerStatus() {
         <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <div className="text-xs uppercase tracking-wider text-amber-400">Phase K signal-mode certification</div>
-              <div className="mt-1 text-sm font-semibold text-zinc-200">ACTIVE PATH CONSOLIDATED IN CODE — deployment and real-market certification held</div>
+              <div className="text-xs uppercase tracking-wider text-amber-400">Scanner validation evidence</div>
+              <div className="mt-1 text-sm font-semibold text-zinc-200">Scanner run evidence and validation</div>
             </div>
-            <span className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-400">Execution disabled by phase policy</span>
+            <span className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-400">Signal-only scanner · separate account execution</span>
           </div>
           <div className="mt-3 grid gap-3 text-xs text-zinc-400 sm:grid-cols-2 lg:grid-cols-4">
             <div>Adapters: crypto {latestRun?.crypto_symbols_scanned ?? '—'} / forex {latestRun?.forex_symbols_scanned ?? '—'}</div>
@@ -96,12 +96,12 @@ export default function ScannerStatus() {
             <div>Outcome backlog: {latestRun && typeof latestRun.outcome_checked === 'boolean' ? (latestRun.outcome_checked ? 'checked' : 'pending') : 'not reported'}</div>
           </div>
           <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Deterministic parity:</span> <span className="text-emerald-400">PASS (repository tests)</span></div>
-            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Real provider data:</span> <span className="text-amber-400">NOT RUN</span></div>
-            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Calibration:</span> <span className="text-amber-400">no certified strategy</span></div>
-            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Telegram:</span> projection only; delivery not tested</div>
-            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Durable writer:</span> migration pending deployment</div>
-            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Execution:</span> disabled; Phase D downstream</div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Deterministic parity:</span> <span className="text-zinc-400">See recorded test report; not inferred from a scanner run</span></div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Real provider data:</span> <span className="text-zinc-400">Inspect validation runs</span></div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Calibration:</span> <span className="text-zinc-400">Inspect strategy evidence</span></div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Telegram:</span> Inspect reporting queue and delivery evidence</div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Durable writer:</span> Persisted scanner decision authority</div>
+            <div className="rounded bg-zinc-900 p-2"><span className="text-zinc-500">Execution:</span> managed separately by the account Brain</div>
           </div>
           <p className="mt-3 text-xs text-zinc-500">Values above come from the latest persisted scanner run. Missing values remain “—”; this page does not infer health or strategy profitability.</p>
         </div>
@@ -135,7 +135,7 @@ export default function ScannerStatus() {
           <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4">
             <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Latest outcome</div>
             <div className="text-sm font-semibold text-blue-400">{latestRun ? `${typeof latestRun.outcome_checked === 'boolean' ? (latestRun.outcome_checked ? 'checked' : 'not checked') : 'unknown'} / ${latestRun.outcomes_updated ?? 0} updated` : '—'}</div>
-            <div className="text-xs text-zinc-600 mt-1">Forex warnings are historical in crypto-only MVP.</div>
+            <div className="text-xs text-zinc-600 mt-1">Forex admission depends on the dedicated owner feed.</div>
           </div>
         </div>
       )}

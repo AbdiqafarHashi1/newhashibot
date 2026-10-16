@@ -10,6 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "test:operations-readiness": "node --import tsx --test tests/operations/*.test.ts && node --test tests/operations/*.database.test.mjs && python3 -m unittest discover -s tests/operations -p 'test_*.py'",
+    "audit:admin-surfaces": "node scripts/audit-admin-surfaces.mjs --check",
     "test:backtest-lab": "node --import tsx --test tests/ownerPreview/labWorkflow.test.ts",
     "test:analytics": "rm -rf .tmp/analytics-tests && tsc --outDir .tmp/analytics-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/analytics/capitalHardness.test.ts src/lib/capitalHardness.ts && node .tmp/analytics-tests/tests/analytics/capitalHardness.test.js && rm -rf .tmp/analytics-tests",
     "test:backtest-csv": "rm -rf .tmp/backtest-csv-tests && mkdir -p .tmp/backtest-csv-tests && esbuild tests/backtest/brokerCsv.test.ts --bundle --platform=node --format=esm --outfile=.tmp/backtest-csv-tests/test.mjs && node .tmp/backtest-csv-tests/test.mjs && rm -rf .tmp/backtest-csv-tests",
@@ -123,7 +125,8 @@
     "plan:deployment": "node scripts/phase-p/plan-deployment.mjs",
     "inspect:deployment": "node scripts/phase-p/inspect-deployment.mjs",
     "test:owner-preview": "node --import tsx --test tests/ownerPreview/adapter.test.ts",
-    "test:owner-preview:browser": "npm run build && playwright test -c playwright.owner-preview.config.ts"
+    "test:owner-preview:browser": "npm run build && playwright test -c playwright.owner-preview.config.ts",
+    "typecheck:account-authorization": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/production-account-authorization.ts supabase/functions/_shared/observed-account-policy-evidence.ts supabase/functions/_shared/phase-d-execution-plan.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
@@ -141,6 +144,7 @@
     "tsx": "^4.23.12"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "@eslint/js": "^9.9.1",
     "@playwright/test": "^1.64.0",
     "@types/node": "^26.1.0",

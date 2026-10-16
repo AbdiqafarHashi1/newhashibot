@@ -1,4 +1,3 @@
-import React from 'react';
 import { Clock, XCircle, CheckCircle, Radio } from 'lucide-react';
 
 export type EventItem = {
@@ -80,3 +79,4 @@ export function Timeline({ events, title = 'Runtime Event Stream' }: { events: E
     </div>
   );
 }
+

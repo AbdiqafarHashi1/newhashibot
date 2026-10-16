@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldCheck, RefreshCw } from 'lucide-react';
 import { DataTable, HeatmapContainer, IncidentBanner } from '../../../../components/operations';
 import { OperatorActionResult } from '../../../../components/admin/ActionResult';

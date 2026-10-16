@@ -454,7 +454,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
         // A system-secret status response may prove API reachability, but it is
         // not account runtime truth. Preserve only the reachability envelope
         // until a canonical account identity has resolved.
-        setStatus(scopedAccount ? payload : { ...payload, account_state: undefined, capital: undefined, executions: [], settings: { ...payload.settings, latest_monitor_run_at: null, latest_monitor_status: 'NOT_CONFIGURED', latest_monitor_result: null, open_binance_positions: null, open_binance_orders: null, pnl_snapshot: null, stale_rows_cleaned: null, open_positions_count: null, unrealized_pnl: null, account_total_margin_balance: null, account_total_wallet_balance: null, latest_account_state_at: null } });
+        setStatus(scopedAccount ? payload : { ...payload, account_state: undefined, capital: undefined, settings: { ...payload.settings, latest_monitor_run_at: null, latest_monitor_status: 'NOT_CONFIGURED', latest_monitor_result: null, open_binance_positions: null, open_binance_orders: null, pnl_snapshot: null, stale_rows_cleaned: null, open_positions_count: null, unrealized_pnl: null, account_total_margin_balance: null, account_total_wallet_balance: null, latest_account_state_at: null } });
       }
     } catch (err) {
       console.warn('Failed to fetch status from edge function:', err);
@@ -820,6 +820,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
   };
 
   const updateProviderGlobalControls = async (patch: Partial<ProviderGlobalControls>) => {
+    if ((patch as Record<string,unknown>).live_trading_enabled === true) { setResult({ success:false, action:'update_global_controls', error:'Live execution requires a separate reviewed release.' }); return; }
     setActing(true);
     try {
       const { error } = await supabase.from('execution_provider_global_controls').update(patch).eq('id', 1);
@@ -972,7 +973,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
               {canonicalAccount && <Badge variant={canonicalAccount.monitor_enabled ? 'green' : 'gray'}>MONITOR {canonicalAccount.monitor_enabled ? 'ENABLED' : 'DISABLED'}</Badge>}
               {canonicalAccount && <Badge variant={canonicalAccount.is_operational ? 'blue' : 'gray'}>OPERATIONAL ACCOUNT {canonicalAccount.is_operational ? 'DESIGNATED' : 'NOT DESIGNATED'}</Badge>}
 
-              <Badge variant={monitorTruth.level === 'ok' ? 'green' : monitorTruth.level === 'warning' ? 'yellow' : 'red'}>
+              <Badge variant={monitorTruth.level === 'healthy' ? 'green' : monitorTruth.level === 'warning' ? 'yellow' : 'red'}>
                 FRESHNESS: {monitorTruth.label.toUpperCase()}
               </Badge>
 
@@ -1451,8 +1452,8 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
               <StatusCard
                 icon={<Shield size={14} />}
                 label="Monitor Engine"
-                value={monitorTruth.level === 'ok' ? 'HEALTHY' : monitorTruth.level === 'warning' ? 'DEGRADED' : 'STALE'}
-                valueClass={monitorTruth.level === 'ok' ? 'text-emerald-400' : 'text-amber-400'}
+                value={monitorTruth.level === 'healthy' ? 'HEALTHY' : monitorTruth.level === 'warning' ? 'DEGRADED' : 'STALE'}
+                valueClass={monitorTruth.level === 'healthy' ? 'text-emerald-400' : 'text-amber-400'}
                 note={monitorTruth.label}
               />
               <StatusCard
@@ -1566,7 +1567,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                   <div className="font-semibold text-xs text-zinc-200 flex items-center gap-1.5">
                     <Activity size={14} className="text-blue-400" /> Monitor Engine
                   </div>
-                  <Badge variant={monitorTruth.level === 'ok' ? 'green' : 'yellow'}>{monitorTruth.label}</Badge>
+                  <Badge variant={monitorTruth.level === 'healthy' ? 'green' : 'yellow'}>{monitorTruth.label}</Badge>
                 </div>
                 <div className="space-y-2 text-xs mb-4">
                   <ProofRow label="Last run" value={monitorState?.latest_monitor_run_at ? new Date(monitorState.latest_monitor_run_at).toLocaleTimeString() : '—'} />
@@ -2241,7 +2242,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
             <div className="grid grid-cols-2 gap-3 text-xs font-mono">
               <ProofRow label="Side" value={selectedPositionForDetail.side.toUpperCase()} />
               <ProofRow label="Quantity" value={String(selectedPositionForDetail.quantity ?? '—')} />
-              <ProofRow label="Unrealized PnL" value={`$${selectedPositionForDetail.unrealized_pnl ?? '0.00'}`} />
+              <ProofRow label="Unrealized PnL" value={`$${('unrealized_pnl' in selectedPositionForDetail ? selectedPositionForDetail.unrealized_pnl : selectedPositionForDetail.latest_unrealized_pnl) ?? 'Unknown'}`} />
               <ProofRow label="Leverage" value={`${selectedPositionForDetail.leverage ?? '—'}x`} />
               <ProofRow label="Protection Status" value={selectedPositionForDetail.protection_status || 'pending'} />
             </div>

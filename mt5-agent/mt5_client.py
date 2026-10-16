@@ -6,7 +6,7 @@ Handles connection, account queries, order execution, position modifications, sy
 import sys
 import math
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from logging_config import logger
 
@@ -131,6 +131,7 @@ class MT5Client:
         acc = mt5.account_info()
         return {
             "login": acc.login,
+            "environment": "demo" if acc.trade_mode == mt5.ACCOUNT_TRADE_MODE_DEMO else "live",
             "broker": acc.company,
             "server": acc.server,
             "balance": float(acc.balance),
@@ -244,14 +245,18 @@ class MT5Client:
         }
 
     def get_history(self, days: int = 30) -> Optional[List[Dict[str, Any]]]:
+        self.last_history_range = None
         if not HAS_MT5 or not self.check_connection():
             return None
-        rows = mt5.history_deals_get(datetime.now() - timedelta(days=days), datetime.now())
+        history_to = datetime.now(timezone.utc)
+        history_from = history_to - timedelta(days=days)
+        rows = mt5.history_deals_get(history_from, history_to)
         if rows is None:
             return None
+        self.last_history_range = {"from": history_from.isoformat(), "to": history_to.isoformat()}
         return [{"ticket": str(d.ticket), "order": str(d.order), "symbol": d.symbol,
                  "type": int(d.type), "volume": float(d.volume), "price": float(d.price),
-                 "profit": float(d.profit), "time": int(d.time)} for d in rows]
+                 "profit": float(d.profit), "commission": float(d.commission), "swap": float(d.swap), "fee": float(d.fee), "entry": int(d.entry), "position_id": str(d.position_id), "time": int(d.time)} for d in rows]
 
     def get_positions(self) -> List[Dict[str, Any]]:
         if not HAS_MT5 or not self.check_connection():

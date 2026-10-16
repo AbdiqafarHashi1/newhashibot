@@ -23,7 +23,7 @@ export function LiveSignalNotifier() {
 
   const handleNewSignal = useCallback((newSignal: Signal) => {
     // 1. Play synthesized audio chime
-    if (newSignal.direction === 'buy' || newSignal.direction === 'long') {
+    if (newSignal.direction === 'buy') {
       signalSound.playBuySignalChime();
     } else {
       signalSound.playSellSignalChime();
@@ -63,7 +63,7 @@ export function LiveSignalNotifier() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'signals' },
-        (payload) => {
+        (payload: {new: Partial<Signal>}) => {
           if (payload.new) {
             handleNewSignal(payload.new as Signal);
           }
@@ -197,3 +197,4 @@ export function LiveSignalNotifier() {
     </>
   );
 }
+

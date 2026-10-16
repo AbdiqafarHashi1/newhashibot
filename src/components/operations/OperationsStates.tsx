@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, Clock, ShieldAlert, XCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 
 export function LoadingState({ message = 'Loading operational telemetry...' }: { message?: string }) {
@@ -132,3 +131,4 @@ export function AccessDeniedState({ message = 'Admin role required to view opera
     </div>
   );
 }
+

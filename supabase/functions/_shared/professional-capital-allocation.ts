@@ -346,7 +346,7 @@ export function calculateCapitalManagerPositionPlan(params: {
     quantity = Math.floor(rawLots * 100) / 100;
     const minLot = contract_spec?.min_quantity ?? 0.01;
     const maxLot = contract_spec?.max_quantity ?? 100.0;
-    if (quantity < minLot) quantity = minLot;
+    if (quantity < minLot) return null;
     if (quantity > maxLot) quantity = maxLot;
 
     expectedNotional = quantity * signal.entry_price * contractSize;
@@ -359,7 +359,7 @@ export function calculateCapitalManagerPositionPlan(params: {
     quantity = floorToIncrement(rawQty, step, precision);
     const minQty = contract_spec?.min_quantity ?? 0.001;
     const maxQty = contract_spec?.max_quantity ?? 100000.0;
-    if (quantity < minQty) quantity = minQty;
+    if (quantity < minQty) return null;
     if (quantity > maxQty) quantity = maxQty;
 
     expectedNotional = quantity * signal.entry_price;
@@ -369,9 +369,10 @@ export function calculateCapitalManagerPositionPlan(params: {
   const actualRiskAmount = quantity * slDistance * contractSize;
   const actualRiskPct = context.balance > 0 ? (actualRiskAmount / context.balance) * 100 : 0;
 
+  if (![authorizedRiskPct,targetRiskAmount,effectiveLeverage,quantity,requiredMargin,actualRiskAmount].every(x=>Number.isFinite(x)&&x>0)||actualRiskAmount>targetRiskAmount+1e-9||requiredMargin>context.free_margin+1e-9) return null;
   const planIdPrefix = provider.toLowerCase().replace("_", "");
   return Object.freeze({
-    plan_id: `plan_${planIdPrefix}_${signal.signal_id}`,
+    plan_id: `plan_${planIdPrefix}_${context.user_id}_${context.account_id}_${signal.signal_id}`,
     signal_id: signal.signal_id,
     account_id: context.account_id,
     symbol: signal.symbol,

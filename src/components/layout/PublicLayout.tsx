@@ -31,8 +31,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         accountSize: 100000,
         dailyDrawdownLimit: 4.5,
         riskPercent: 0.5,
-        executionMode: 'prop_firm_guardian',
-        platformType: 'mt5'
+        executionMode: 'prop_firm_guardian'
       });
 
       const url = URL.createObjectURL(zipBlob);

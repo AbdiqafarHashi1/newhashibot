@@ -1,0 +1,1487 @@
+{
+  "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
+  "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
+  "routeCount": 70,
+  "surfaceCount": 95,
+  "routes": [
+    {
+      "route": "/admin/setup",
+      "element": "<AdminSetup "
+    },
+    {
+      "route": "/admin-setup",
+      "element": "<AdminSetup "
+    },
+    {
+      "route": "/admin/operator",
+      "element": "<RequireAdmin><OperatorPanel section=\"dashboard\" "
+    },
+    {
+      "route": "/admin/mission-control",
+      "element": "<RequireAdmin><MissionControl "
+    },
+    {
+      "route": "/admin/mission",
+      "element": "<RequireAdmin><MissionControl "
+    },
+    {
+      "route": "/admin/operator/signals",
+      "element": "<RequireAdmin><SignalsManager "
+    },
+    {
+      "route": "/admin/operator/executions",
+      "element": "<RequireAdmin><OperatorPanel section=\"executions\" "
+    },
+    {
+      "route": "/admin/operator/trade-manager",
+      "element": "<RequireAdmin><OperatorPanel section=\"trade-manager\" "
+    },
+    {
+      "route": "/admin/operator/telegram",
+      "element": "<RequireAdmin><OperatorPanel section=\"telegram\" "
+    },
+    {
+      "route": "/admin/operator/settings",
+      "element": "<RequireAdmin><ScannerConfig "
+    },
+    {
+      "route": "/admin/operator/intelligence",
+      "element": "<RequireAdmin><OperatorPanel section=\"intelligence\" "
+    },
+    {
+      "route": "/admin/operator/runtime-proof",
+      "element": "<RequireAdmin><OperatorPanel section=\"runtime-proof\" "
+    },
+    {
+      "route": "/admin/control-room",
+      "element": "<RequireAdmin><OperatorPanel section=\"dashboard\" "
+    },
+    {
+      "route": "/admin/scanner",
+      "element": "<RequireAdmin><ScannerStatus "
+    },
+    {
+      "route": "/admin/scanner-config",
+      "element": "<RequireAdmin><ScannerConfig "
+    },
+    {
+      "route": "/admin/providers",
+      "element": "<RequireAdmin><ProviderOverview "
+    },
+    {
+      "route": "/admin/providers/diagnostics",
+      "element": "<RequireAdmin><ProviderHealth "
+    },
+    {
+      "route": "/admin/candidates",
+      "element": "<RequireAdmin><Candidates "
+    },
+    {
+      "route": "/admin/rejected",
+      "element": "<RequireAdmin><RejectedSetups "
+    },
+    {
+      "route": "/admin/signals",
+      "element": "<RequireAdmin><SignalsManager "
+    },
+    {
+      "route": "/admin/signals/new",
+      "element": "<RequireAdmin><ManualSignal "
+    },
+    {
+      "route": "/admin/telegram-test",
+      "element": "<RequireAdmin><TelegramTest "
+    },
+    {
+      "route": "/admin/telegram",
+      "element": "<RequireAdmin><TelegramLogs "
+    },
+    {
+      "route": "/admin/telegram-links",
+      "element": "<RequireAdmin><TelegramLinks "
+    },
+    {
+      "route": "/admin/telegram-requests",
+      "element": "<RequireAdmin><TelegramLinks "
+    },
+    {
+      "route": "/admin/users",
+      "element": "<RequireAdmin><UsersAccess "
+    },
+    {
+      "route": "/admin/customers",
+      "element": "<RequireAdmin><Customers "
+    },
+    {
+      "route": "/admin/customer-fleet",
+      "element": "<RequireAdmin><CustomerFleetOps "
+    },
+    {
+      "route": "/admin/onboarding",
+      "element": "<RequireAdmin><OnboardingOperations "
+    },
+    {
+      "route": "/admin/commerce",
+      "element": "<RequireAdmin><CommerceOperations "
+    },
+    {
+      "route": "/admin/customer-engines",
+      "element": "<RequireAdmin><CustomerFleetOps "
+    },
+    {
+      "route": "/admin/fleet",
+      "element": "<RequireAdmin><CustomerFleetOps "
+    },
+    {
+      "route": "/admin/growth-goal",
+      "element": "<RequireAdmin><GrowthGoal "
+    },
+    {
+      "route": "/admin/ai-agents",
+      "element": "<RequireAdmin><AIAgentsCommand "
+    },
+    {
+      "route": "/admin/access-requests",
+      "element": "<RequireAdmin><AccessRequests "
+    },
+    {
+      "route": "/admin/audit",
+      "element": "<RequireAdmin><AuditLogs "
+    },
+    {
+      "route": "/admin/scheduler",
+      "element": "<RequireAdmin><SchedulerGuide "
+    },
+    {
+      "route": "/admin/outcomes",
+      "element": "<RequireAdmin><OutcomeTracking "
+    },
+    {
+      "route": "/admin/performance",
+      "element": "<RequireAdmin><Performance "
+    },
+    {
+      "route": "/admin/retention",
+      "element": "<RequireAdmin><Retention "
+    },
+    {
+      "route": "/admin/provider-comparison",
+      "element": "<RequireAdmin><ProviderComparison "
+    },
+    {
+      "route": "/admin/providers/binance",
+      "element": "<RequireAdmin><BinanceOperations "
+    },
+    {
+      "route": "/admin/providers/bybit",
+      "element": "<RequireAdmin><BybitOperations "
+    },
+    {
+      "route": "/admin/providers/mt5",
+      "element": "<RequireAdmin><MT5OperationsCenter "
+    },
+    {
+      "route": "/admin/bridge",
+      "element": "<RequireAdmin><AdminVisualBridgeManagement "
+    },
+    {
+      "route": "/admin/visual-bridge",
+      "element": "<RequireAdmin><AdminVisualBridgeManagement "
+    },
+    {
+      "route": "/admin/providers/mt5-personal",
+      "element": "<RequireAdmin><MT5PersonalOperations "
+    },
+    {
+      "route": "/admin/providers/mt5-prop",
+      "element": "<RequireAdmin><MT5PropOperations "
+    },
+    {
+      "route": "/admin/providers/comparison",
+      "element": "<RequireAdmin><ProviderComparison "
+    },
+    {
+      "route": "/admin/checklist",
+      "element": "<RequireAdmin><SetupChecklist "
+    },
+    {
+      "route": "/admin/strategy-config",
+      "element": "<RequireAdmin><StrategyConfig "
+    },
+    {
+      "route": "/admin/strategies",
+      "element": "<RequireAdmin><StrategyConfig "
+    },
+    {
+      "route": "/admin/arbitrator",
+      "element": "<RequireAdmin><Candidates "
+    },
+    {
+      "route": "/admin/execution",
+      "element": "<RequireAdmin><Execution "
+    },
+    {
+      "route": "/admin/positions",
+      "element": "<RequireAdmin><Positions "
+    },
+    {
+      "route": "/admin/protection",
+      "element": "<RequireAdmin><Protection "
+    },
+    {
+      "route": "/admin/recovery",
+      "element": "<RequireAdmin><Recovery "
+    },
+    {
+      "route": "/admin/risk",
+      "element": "<RequireAdmin><Risk "
+    },
+    {
+      "route": "/admin/capital",
+      "element": "<RequireAdmin><Capital "
+    },
+    {
+      "route": "/admin/runtime-truth",
+      "element": "<RequireAdmin><RuntimeTruth "
+    },
+    {
+      "route": "/admin/runtime",
+      "element": "<RequireAdmin><RuntimeTruth "
+    },
+    {
+      "route": "/admin/prop-provider",
+      "element": "<RequireAdmin><Navigate to=\"/admin/providers/mt5\" replace "
+    },
+    {
+      "route": "/admin/reporting",
+      "element": "<RequireAdmin><Performance "
+    },
+    {
+      "route": "/admin/trading-brain",
+      "element": "<RequireAdmin><TradingBrain "
+    },
+    {
+      "route": "/admin/modes",
+      "element": "<RequireAdmin><Modes "
+    },
+    {
+      "route": "/admin/backtest",
+      "element": "<RequireAdmin><BacktestLab "
+    },
+    {
+      "route": "/admin/backtest-lab",
+      "element": "<Navigate to=\"/admin/backtest\" replace "
+    },
+    {
+      "route": "/admin/research",
+      "element": "<Navigate to=\"/admin/backtest\" replace "
+    },
+    {
+      "route": "/admin/handoff",
+      "element": "<RequireAdmin><Handoff "
+    },
+    {
+      "route": "/admin/prop",
+      "element": "<RequireAdmin><PropTradingPanel "
+    }
+  ],
+  "surfaces": [
+    {
+      "file": "src/pages/admin/AIAgentsCommand.tsx",
+      "sourceHash": "d1f8ca15661f03b828caa75e43ea6a6abb7176e3592fb2ed3ba5490b57d8ebcd",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/AccessRequests.tsx",
+      "sourceHash": "5205618e71f970fa15b588d8e0eb29f07221761c5d2e6dd9cbc1d0808a786d8a",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'access_requests'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/AdminVisualBridgeManagement.tsx",
+      "sourceHash": "d49b46277f50502b2c80e1c60f8fe811d00e72ab44495771d8f3a67aa0d3f3d7",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/AuditLogs.tsx",
+      "sourceHash": "c5e44162c50ff8e73b32db9830a9e327be3f3ed0ff5470e3ad740d5b557912dd",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'trade_management_truth'"
+        },
+        {
+          "method": "from",
+          "target": "'operator_runtime_events'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/BacktestLab.tsx",
+      "sourceHash": "ab58f14cae389892ea2e965bcca99bc0a8106768d022a60c821c4cab07a33668",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/BinanceOperations.tsx",
+      "sourceHash": "10224b217a56ba7b9698f486b94693c9ab1994245c32e8776196dd46e6698f54",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/BybitOperations.tsx",
+      "sourceHash": "2ad0d86875ddb0000fef459e5d43d291d645d536711fd895ec824c8ed5c37834",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Candidates.tsx",
+      "sourceHash": "1f1ec6b6e41c715b0e30cb289e90a3171560c4e1c2245319944a9fbb3c801d3f",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'strategy_candidates'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Capital.tsx",
+      "sourceHash": "98ef4e09b9bfaf1b5f732f9af5bac0315b7f7dd63fbee8b530162a3db038b499",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/CommerceOperations.tsx",
+      "sourceHash": "9fb163c795ce16b1451bff2bcb52621105b2471cfc6ff986c4e3367ec5118e83",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "rpc",
+          "target": "'telegram_operations_status'"
+        },
+        {
+          "method": "invoke",
+          "target": "'telegram-membership'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/CustomerFleetOps.tsx",
+      "sourceHash": "6293615580769e6f9ad3727bc119f76641bf2d5fe7a9fedcdfe9b0ba9f8d274d",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Customers.tsx",
+      "sourceHash": "dc807f5dbc7b6cf2562d336eebb75856515ae979ef25df03c011150eaeb526da",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Execution.tsx",
+      "sourceHash": "77963012e7ef87e272800105af199ec53d4acdf4ef055db40cc4ce617ed927a4",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/GrowthGoal.tsx",
+      "sourceHash": "bcf69e4beeec249e6b180b4583934a1a7d60b3e6ecaa6d147066d008a10c41c8",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Handoff.tsx",
+      "sourceHash": "96abd43bba6dff411aefdf28b96031fd70a4b1d3842ae6f6b6f4b6d264fe1371",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/MT5OperationsCenter.tsx",
+      "sourceHash": "ee2e5ae5acf06956c3c8061ce4c3e45dbc2402d1db41c57d6677bc8713929157",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'mt5_accounts_safe'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/MT5PersonalOperations.tsx",
+      "sourceHash": "17db5e6f97a64e26194bb8067cdf8af8ad96c31edc0aae0ff917aa19e7e9af10",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/MT5PropOperations.tsx",
+      "sourceHash": "2b4aa7fd4ce3c976aca836d7a1023f3f52612d50c8d4a5de8f0c570954522f62",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ManualSignal.tsx",
+      "sourceHash": "e47c1816e93f6cb32e43b8255ace38d00cf2fadf8ca7689943361b8dda33f48c",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/MissionControl.tsx",
+      "sourceHash": "766b03805cd64eda01a73b836731a5e92d469a279d60349dd9977287b4be1681",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "envs"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Modes.tsx",
+      "sourceHash": "b6fb47633607523135d73242994a02f0e4a041459ec6e7b449a5a66d095b498a",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/OnboardingOperations.tsx",
+      "sourceHash": "0341fac25f11858aae17620059864a1680b2d2e230947b45c83f4fe2a33699c0",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'profiles'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_readiness_projections'"
+        },
+        {
+          "method": "from",
+          "target": "'phase_n_commands_safe'"
+        },
+        {
+          "method": "from",
+          "target": "t"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/OutcomeTracking.tsx",
+      "sourceHash": "ecec2dd2e4694068d8f9b60b3cf665eb0bfdfc3676415bcc40e7fd3214065942",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'signals'"
+        },
+        {
+          "method": "from",
+          "target": "'signal_updates'"
+        },
+        {
+          "method": "from",
+          "target": "'telegram_deliveries'"
+        },
+        {
+          "method": "from",
+          "target": "'signal_updates'"
+        },
+        {
+          "method": "from",
+          "target": "'signal_updates'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Performance.tsx",
+      "sourceHash": "3bf0f0b688e854dabe57a62c4f066f21936a377239f9f505f438918de5912fca",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "merged.values()"
+        },
+        {
+          "method": "from",
+          "target": "'signal_analytics_view'"
+        },
+        {
+          "method": "from",
+          "target": "'strategy_configs'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_orders'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_settings'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_event_logs'"
+        },
+        {
+          "method": "rpc",
+          "target": "'admin_reset_trading_history_batch'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Positions.tsx",
+      "sourceHash": "11a37b71ec5785b03de71fa36d4f9190c3f5c8f3a62e3c4d6b0984264491dde0",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'trade_management_truth'"
+        },
+        {
+          "method": "invoke",
+          "target": "'admin-operator-action'"
+        },
+        {
+          "method": "invoke",
+          "target": "'admin-operator-action'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/PropTradingPanel.tsx",
+      "sourceHash": "5c67269ebacab6412910ae3da66e1a982ac1ab9cf85ac5def6a657a7844b97bd",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'bybit_prop_accounts'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Protection.tsx",
+      "sourceHash": "7d95ff9158db8ad6081d6a7c143f4d53f2ce3e67911718151e591da1330bd478",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'trade_management_truth'"
+        },
+        {
+          "method": "invoke",
+          "target": "'admin-operator-action'"
+        },
+        {
+          "method": "invoke",
+          "target": "'admin-operator-action'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ProviderComparison.tsx",
+      "sourceHash": "1b406587601d6b02d9b158f06ff23f13f3719ca66886f096a656392ff249c0a1",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'provider_parity_audit'"
+        },
+        {
+          "method": "from",
+          "target": "'provider_execution_performance'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ProviderHealth.tsx",
+      "sourceHash": "53da11c45513fc8ce51a7a63c224ef382af8525d9c3ecd0b00f8edf3f1972524",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'provider_status'"
+        },
+        {
+          "method": "from",
+          "target": "'symbols'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_config'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ProviderOperationsWorkspace.tsx",
+      "sourceHash": "4c672709c26943b428046d96aaf9d8c29d966ae0912dec490875203a7343ccde",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'execution_provider_controls'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_provider_global_controls'"
+        },
+        {
+          "method": "from",
+          "target": "'active_trade_management_truth'"
+        },
+        {
+          "method": "from",
+          "target": "'provider_symbol_cache'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_monitor_heartbeats'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_monitor_schedules'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_orders'"
+        },
+        {
+          "method": "from",
+          "target": "'signals'"
+        },
+        {
+          "method": "from",
+          "target": "'audit_logs'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_provider_controls'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_provider_global_controls'"
+        }
+      ],
+      "directMutationEdges": [
+        {
+          "line": 810,
+          "code": "supabase.from('execution_provider_controls').update(patch)"
+        },
+        {
+          "line": 826,
+          "code": "supabase.from('execution_provider_global_controls').update(patch)"
+        }
+      ],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ProviderOverview.tsx",
+      "sourceHash": "be7f5cfeb3055428cca7eeebecfb4bdb1c272f73e0b28ce89a69af40c1febf18",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'mt5_accounts_safe'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Recovery.tsx",
+      "sourceHash": "f7ab410834206d73bacf06545d04129c4cd5593daef2b305ca3b5d858bce2825",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'operator_runtime_events'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_monitor_heartbeats'"
+        },
+        {
+          "method": "from",
+          "target": "'trade_management_truth'"
+        },
+        {
+          "method": "from",
+          "target": "'telegram_deliveries'"
+        },
+        {
+          "method": "invoke",
+          "target": "'admin-operator-action'"
+        },
+        {
+          "method": "invoke",
+          "target": "'admin-operator-action'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/RejectedSetups.tsx",
+      "sourceHash": "7c450e4fc45702aaf07728a75bffa65fe64806810caa93d32847c7e20bdbd9ec",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'strategy_candidates'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Retention.tsx",
+      "sourceHash": "f3ec328e1da004062c128a07d2d3e8011e4230b561cb064da6beacbc324089bc",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/Risk.tsx",
+      "sourceHash": "1182d3ad2c910369f243ba6874fed73ea3d2782ed5cd4d0f1a8e0cea4a379989",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/RuntimeTruth.tsx",
+      "sourceHash": "e733f1fbf176e5b376debd0b1734e90ff07f3bc3a334956c79408aef6a5e0b6a",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'audit_logs'"
+        },
+        {
+          "method": "from",
+          "target": "'telegram_deliveries'"
+        },
+        {
+          "method": "from",
+          "target": "'execution_monitor_heartbeats'"
+        },
+        {
+          "method": "from",
+          "target": "'active_trade_management_truth'"
+        },
+        {
+          "method": "from",
+          "target": "'signals'"
+        },
+        {
+          "method": "from",
+          "target": "'operator_runtime_events'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ScannerConfig.tsx",
+      "sourceHash": "bbd6de2e4dd07aaec5b1ae70678251c6379650278e5547feda1be46df45aae3e",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'scanner_config'"
+        },
+        {
+          "method": "from",
+          "target": "'symbols'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_config'"
+        },
+        {
+          "method": "from",
+          "target": "'symbols'"
+        }
+      ],
+      "directMutationEdges": [
+        {
+          "line": 70,
+          "code": "supabase.from('scanner_config').update({\n      is_enabled: config.is_enabled,\n      demo_mode_enabled: config.demo_mode_enabled,\n      min_signal_grade: config.min_signal_grade,\n      prevent_duplicate_symbol_signals: config.prevent_duplica"
+        },
+        {
+          "line": 94,
+          "code": "supabase.from('symbols').update({ is_active: !current })"
+        }
+      ],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ScannerStatus.tsx",
+      "sourceHash": "05a42086a0f2cd6fb5979581813dc2df86fe59cfddfa0c15364a53d36273d0f4",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/SchedulerGuide.tsx",
+      "sourceHash": "0d6f51d9a28fba670d56ba2264e39f88bb389ea9b0cf688a01d22d247ab78c04",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/SetupChecklist.tsx",
+      "sourceHash": "3df4f76f975220762a765e94116d422e70513ab3d9bb8b0b2fbf3bc2a3b77570",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'profiles'"
+        },
+        {
+          "method": "from",
+          "target": "'signals'"
+        },
+        {
+          "method": "from",
+          "target": "'signals'"
+        },
+        {
+          "method": "from",
+          "target": "'telegram_deliveries'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_config'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_runs'"
+        },
+        {
+          "method": "from",
+          "target": "'cron_jobs_view' as never"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/SignalsManager.tsx",
+      "sourceHash": "df836c4adf86715edf0fa4e89e92e750ddb31e73600f0c55e29274a7f1406f93",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'scanner_config'"
+        },
+        {
+          "method": "from",
+          "target": "'telegram_deliveries'"
+        },
+        {
+          "method": "from",
+          "target": "'signals'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/StrategyConfig.tsx",
+      "sourceHash": "712ea629bd36f4301faab01940e632dbb7daa0987912015e48e2296ee22a8b0c",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'strategy_configs'"
+        },
+        {
+          "method": "from",
+          "target": "'strategy_configs'"
+        }
+      ],
+      "directMutationEdges": [
+        {
+          "line": 20,
+          "code": "supabase.from('strategy_configs').update(payload)"
+        }
+      ],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/TelegramLinks.tsx",
+      "sourceHash": "35faaadd439297adcf9e02ad3f4ac99d24ba58343fd76c360a41b879d87b84eb",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'telegram_links'"
+        },
+        {
+          "method": "from",
+          "target": "'customer_subscriptions'"
+        },
+        {
+          "method": "invoke",
+          "target": "'telegram-orchestrator'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/TelegramLogs.tsx",
+      "sourceHash": "29ad3eaceb0aa83c078e82b88b527988b9b4a7c8e8f96558ae0fc95a2e6b61a6",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/TelegramTest.tsx",
+      "sourceHash": "e2ca6fc75312c8f11ad74db9374590e71b133d7d9889ca952f32f73bb232c4b2",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/TradingBrain.tsx",
+      "sourceHash": "46f0afdef5da7f7314e0037e41c406fb2c01ef0547f9c2553c442ef2a8e073f6",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'scanner_runs'"
+        },
+        {
+          "method": "from",
+          "target": "'strategy_configs'"
+        },
+        {
+          "method": "from",
+          "target": "'strategy_candidates'"
+        },
+        {
+          "method": "from",
+          "target": "'strategy_candidates'"
+        },
+        {
+          "method": "from",
+          "target": "'mode_configs'"
+        },
+        {
+          "method": "from",
+          "target": "'paper_execution_intents'"
+        },
+        {
+          "method": "from",
+          "target": "'paper_execution_intents'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/UsersAccess.tsx",
+      "sourceHash": "18646c98ae06c1cb64765a053b4d3c4a95e2cb526d6338772c6297f7dde1eebf",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/CalibrationLab.tsx",
+      "sourceHash": "4492026da75ef5e6c57f5775135169adbdcaa365a7bfc6c80093bacb069156dc",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/DataAcquisitionPanel.tsx",
+      "sourceHash": "60947f6ca48aef0e630c83c7bb687de8ec5181fd4d8507a50c211e1f922e4fe7",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "\"mt5_scanner_feeds\""
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/HistoricalCandleChart.tsx",
+      "sourceHash": "5941a4b212d167b806620de8a6fe63b562fcbb22e9b20a404e34c4b74bb78bed",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/HistoricalDecisionChart.tsx",
+      "sourceHash": "9485c4533062587cfbd5b59d33d399746ab9d3af1b80738fb2a98808ce31ab49",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/PermanentResearchLab.tsx",
+      "sourceHash": "e805141071d2a7b7b50f30b6c1fdb501bb648a373b3e1dac30697e0c502e040a",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/ProductPortfolioResearch.tsx",
+      "sourceHash": "33a9bc80246cd1001346fb2f57f5d3c930023218aa277744249330ac9b3601af",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/OperatorPanel.tsx",
+      "sourceHash": "5797586c4cd172fbc225a509734c87e07d7eb28ee0002468eb1bfe66a9e6cb31",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/ArbitratorTab.tsx",
+      "sourceHash": "85c8919a751211c7993b257f5e5e43af10ee03b5cf67e13e30ee138c025bba25",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/AuditOverviewTab.tsx",
+      "sourceHash": "dffc27e6d70287ee33ce2fb2d5ba3e3ca362a59002a30698995946e55c1de478",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/ControlCenterTab.tsx",
+      "sourceHash": "3823028db3d28292f29efe91218ab463be20cc63f2327fb5d2463593cb64d7bc",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/CustomersTab.tsx",
+      "sourceHash": "bcb9a30c3b35650da5257ace1714cc0eb81a52255826074585ad2e80223a5b2b",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/ExecutionOverviewTab.tsx",
+      "sourceHash": "5ccf5b940d38c794462da1af2d8a705068beb47979d614a1f770d7b9c5ac4148",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/IncidentsTab.tsx",
+      "sourceHash": "ba75ab19070d812d8e439c3be3e2f118726f8ac29f9f6660a6a85d0eb81a2b78",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/IntelligenceTab.tsx",
+      "sourceHash": "95117965903974c58787e452f4a984fd108aa5c3e387d7ac7cfc0d2f9eed43a5",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/OperatingModesTab.tsx",
+      "sourceHash": "92a39fe01f5a83c7029d01fd0997116f83975a645120c59c8351fc8cf2915c1a",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/PositionsProtectionTab.tsx",
+      "sourceHash": "73db9c90e4e1e245dcaaa4b1108f04ab31c8d8e7f2468ef6a88f3614cb80658c",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/ProviderHealthTab.tsx",
+      "sourceHash": "ef23b0a0a21a9863d90d6d38c1e029eaab6a912da8e231d26bac8f911fea8cd9",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/RiskCapitalTab.tsx",
+      "sourceHash": "113f1ff20eaeb283e477f33f182a87566ccebf3af5236bf79474aeca24b49ba3",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/RuntimeProofTab.tsx",
+      "sourceHash": "c2b8807eae1992101c90bf3e2ac2b42b2dd707844028a622da486d936f0d848b",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/ScannerOverviewTab.tsx",
+      "sourceHash": "fa8f6ce4079c7707294b5b0cd627e58e6869f2ac5867877b4a512bbb374b274d",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/StrategyOverviewTab.tsx",
+      "sourceHash": "ea233fab7781ee64c10e6fa9e253eca56a105bd7f837199dd2ec98dd832252f9",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/operator/tabs/TelegramOverviewTab.tsx",
+      "sourceHash": "07a6e436f704f94e93670c589f421d201125666a8f353b450f444d71435fb50d",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/prop/FrozenProductCertification.tsx",
+      "sourceHash": "c520cbb158e4d6cda74703aeb33db3b1cf928cd509235727651569a8bcf88d61",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/prop/ProfessionalPropWorkspace.tsx",
+      "sourceHash": "4e369b9b294c79ac2e148e60554479a3dc469caadc9b0ffb40ab93f334dbc6ee",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/AccountPolicyOperations.tsx",
+      "sourceHash": "cf8a823362ae2d9a6eb2321cedea186b965bf49578df21aaffe75119c95d7963",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'execution_accounts_safe'"
+        },
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
+        },
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
+        },
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/CanonicalReportingQueue.tsx",
+      "sourceHash": "dbc01be35f60901a4602c79b81eaf1af5e6745533b40152732e9dd025e030eec",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/EventTimeline.tsx",
+      "sourceHash": "47fb2467000b07d1ad602e7c67a53e14d39ccb7365bbe56254549df7b7cafc7b",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/Heatmaps.tsx",
+      "sourceHash": "99e95b5e9936976107f3f3816069359e47eb8df3ccd1e6ac9bbadb00b710d889",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/LabEvidenceResults.tsx",
+      "sourceHash": "05a0ace82a75f7a29ca4ee0841ae033f34137c5d96860c769fe12797e5182f7e",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/OperationsCards.tsx",
+      "sourceHash": "65bb33a3d8c992e4cf1eae907aa671ef0e28ed13833a29f1c1361f46e5b0649e",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/OperationsDialogs.tsx",
+      "sourceHash": "7648659e2d1def256abe36cdc6b748369ca35ad305180b4c60faf95e44dada7a",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/OperationsStates.tsx",
+      "sourceHash": "13dcc6a3b3dfc7f88a5f719689d0a0906bafd8d1a433dd751646e2a1cecb37fb",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/OperationsTable.tsx",
+      "sourceHash": "6cde2b2608c4ea09cc4bdf1c5a6fabe4995c7bed9b96a9abb7699116b6b53c5c",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PhaseLValidationPanel.tsx",
+      "sourceHash": "5084f1d6057dd1e79f955f3214324487edb60e83e32443aecb6ea6f1e0d1bc11",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PhaseMOperationsPanel.tsx",
+      "sourceHash": "881af63f2eb6b57729a26507c6cbcbc7e557603fd3c56fbad545421e2824ebd4",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PhaseOAgentsOperations.tsx",
+      "sourceHash": "a986bba62db76a5c34f07815a1675d4a38ca4afdd5b5c4090bdc1e72be325ffe",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "e.target.selectedOptions"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PhasePWorkersOperations.tsx",
+      "sourceHash": "42426fdd1236e9a189e26572456c2c6c1283ee5a0b9ebb64a5d60b9adf005eb5",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/StatusBadges.tsx",
+      "sourceHash": "5fe877cb90eb034bd235503f5c6c1cd5c5cad2551519562b51b2c1ea295eba9f",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5AccountsTab.tsx",
+      "sourceHash": "79836f10c69f0c906262c80df84f0fe918835add06c74d7193d30b876ead2c03",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5BridgesTab.tsx",
+      "sourceHash": "f730551cc2d9d184aedb58085a1d6014e027fdada88cecea4beaac7e79cb82d2",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5CertificationPanel.tsx",
+      "sourceHash": "5739aeb92e15e53096d998c80ebfdd951721e5bcaf1d3e77a363b7c5d4ef38e0",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'mt5_certification_results'"
+        },
+        {
+          "method": "from",
+          "target": "'customer_system_certification_runs'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5CommandsTab.tsx",
+      "sourceHash": "8d1726af67938dfbbe24557972455675465c94348dba41a2a394fea8d48d26bb",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5DashboardTab.tsx",
+      "sourceHash": "887199771dd07685f9e624f093319af8bf027e84916d010e69d15e3a1c616c9e",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5DiagnosticsTab.tsx",
+      "sourceHash": "eb2dd64d7fd53a2375aa010da5e6dcd3eafcd4e862172d08fe5edb974f410270",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5EventsTab.tsx",
+      "sourceHash": "6c7c7e3c4a70008224c95366344234db414256e28352a61b619416f0bb2aa65e",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5ReconciliationTab.tsx",
+      "sourceHash": "4befa558fbc75ffa76545d9a4149d875fe467fe2235eb4157aeeb394cd00e778",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'positions'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5RuntimeTab.tsx",
+      "sourceHash": "7dfef43d88d81550c51367e8c11c8fd2262fdaefff5340aebe251c842948da7b",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/mt5/MT5SettingsTab.tsx",
+      "sourceHash": "8cd000a2458d2d817b35a50a57adad18d35b06f7ff6d70f8567df4acbc32ddef",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Activity,
   Layers,
@@ -395,3 +395,4 @@ export function HMMRegimeVisualizer({
     </div>
   );
 }
+

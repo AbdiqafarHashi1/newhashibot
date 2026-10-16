@@ -1,8 +1,12 @@
+import {collectCryptoProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
+import {synchronizeCanonicalMonitor} from '../_shared/canonical-monitor-observations.ts';
+import {admitBinanceConditionalOrders,admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
+import {confirmedProviderClose,stableCloseIdentity} from "../_shared/confirmed-provider-close.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
-import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
+import { persistTradeManagementTruth as upsertTradeManagementTruth, persistTradeManagementTruthRow as upsertTradeManagementTruthRow, persistTradeManagementTruthByIdentity as updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
 import { acquireExecutionLease, currentEdgeProviderCredential, enumerateExecutionAccounts, ownershipFromRow, releaseExecutionLease, resolveEdgeProviderCredential, runtimeOwnershipFields, settleExecutionAccounts, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
 import {canonicalLifecycleType,enqueueCanonicalLifecycle,lifecycleAudience} from "../_shared/canonical-lifecycle-publication.ts";
 
@@ -138,9 +142,7 @@ function n(value: unknown): number {
 }
 
 function parseOpenAlgoOrders(body: unknown): BinanceOrder[] {
-  if (Array.isArray(body)) return body as BinanceOrder[];
-  const orders = (body as { orders?: unknown } | null)?.orders;
-  return Array.isArray(orders) ? orders as BinanceOrder[] : [];
+  return admitBinanceConditionalOrders(body) as BinanceOrder[];
 }
 
 function errorMessage(err: unknown): string {
@@ -447,6 +449,7 @@ async function binanceRequest(path: string, params: Record<string, string | numb
   }
   if (!apiKey || !apiSecret) throw new Error("Binance testnet API keys are not configured");
   const baseUrl = Deno.env.get("BINANCE_TESTNET_BASE_URL") ?? "https://demo-fapi.binance.com";
+  const target=new URL(baseUrl);if(target.protocol!=="https:"||!["demo-fapi.binance.com","testnet.binancefuture.com"].includes(target.hostname)||target.pathname!=="/"||target.search||target.username||target.password)throw new Error("SANDBOX_PROVIDER_HOST_REQUIRED");
   const search = new URLSearchParams({ ...params, timestamp: String(Date.now()), recvWindow: "5000" });
   search.set("signature", await hmacSha256(apiSecret, search.toString()));
   const res = await fetch(`${baseUrl}${path}?${search.toString()}`, { method, headers: { "X-MBX-APIKEY": apiKey } });
@@ -1096,15 +1099,11 @@ async function placeAndVerifyProfitLockStop(row: Row, remaining: number, stopPri
 }
 
 async function closeReduceOnly(row: Row, quantity: number, reason: string) {
-  if (quantity <= 0) return null;
-  return await binanceRequest("/fapi/v1/order", {
-    symbol: row.symbol,
-    side: sideToClose(row.direction),
-    type: "MARKET",
-    quantity: String(quantity),
-    reduceOnly: "true",
-    newClientOrderId: `hb_${reason}_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
-  }, "POST");
+ const clientId=await stableCloseIdentity(String(row.execution_scope_key??""),String(row.id),reason);
+ return confirmedProviderClose({clientId,symbol:row.symbol,side:sideToClose(row.direction),quantity,
+  async lookup(){try{return await binanceRequest("/fapi/v1/order",{symbol:row.symbol,origClientOrderId:clientId}) as Record<string,unknown>}catch(e){if(isBinanceOrderNotFound(e))return null;throw e}},
+  async submit(){return await binanceRequest("/fapi/v1/order",{symbol:row.symbol,side:sideToClose(row.direction),type:"MARKET",quantity:String(quantity),reduceOnly:"true",newClientOrderId:clientId,newOrderRespType:"RESULT"},"POST") as Record<string,unknown>}
+ });
 }
 
 async function cancelEntryOrder(symbol: string, orderId: string) {
@@ -1336,7 +1335,7 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
         }
       }
       Object.assign(update, { status: "partially_closed", lifecycle_state: replacementUpdate.sl_replaced_after_tp1 ? "tp1_filled_profit_lock_active" : mode === "testnet_action" ? "tp1_filled_profit_lock_degraded" : "tp1_filled_profit_lock_study_only", tp1_filled: true, tp1_closed_at: fillTime, tp1_fill_time: fillTime, tp1_fill_price: fillPrice, partial_close_qty: filledQty, remaining_quantity: remaining, remaining_qty: remaining, runner_active: remaining > 0, tp2_pending: true, profit_lock_enabled: true, profit_lock_r: 0.3, profit_lock_price: replacementSl, original_sl_price: originalSl, replacement_sl_price: replacementSl, sl_moved_to_be: false, last_monitor_action: replacementUpdate.last_monitor_action ?? "tp1_profit_lock_replaced" }, replacementUpdate);
-      await logEvent(supabase, row, "tp1_profit_lock_active", `${row.symbol} TP1 hit — profit lock +0.3R active for remaining runner.`, { tp1, fillPrice, filledQty, remaining, replacementSl, replacementUpdate }, stats);
+      await logEvent(supabase, row, replacementUpdate.sl_replaced_after_tp1?"tp1_profit_lock_active":"tp1_filled", `${row.symbol} TP1 fill observed; replacement stop ${replacementUpdate.sl_replaced_after_tp1?"verified":"not yet verified"}.`, { tp1, fillPrice, filledQty, remaining, replacementSl, replacementUpdate }, stats);
     }
     if (!row.tp2_closed_at && algoFilled(tp2)) {
       if (hasPosition) {
@@ -1592,11 +1591,13 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
 
 async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats, monitorStatus: MonitorLevel, ownership: Record<string, unknown>) {
   const monitorRunAt = new Date().toISOString();
+  let conditionalOrdersComplete = true;
   const [accountBody, positionsBody, allOrdersBody, allAlgoOrdersBody] = await Promise.all([
     binanceRequest("/fapi/v2/account", {}),
     binanceRequest("/fapi/v2/positionRisk", {}),
     binanceRequest("/fapi/v1/openOrders", {}),
     binanceRequest("/fapi/v1/openAlgoOrders", { algoType: "CONDITIONAL" }).catch((err) => {
+      conditionalOrdersComplete = false;
       addMonitorWarning(stats, { warning: `open_algo_orders_partial_sync_warning: ${errorMessage(err)}`, action: "open_algo_orders_sync_warning_continue", source: "account_sync" });
       return [];
     }),
@@ -1605,7 +1606,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   const assets = (accountBody as Record<string, unknown>).assets as Array<Record<string, unknown>> | undefined;
   const usdt = assets?.find((a) => a.asset === "USDT");
   const usdc = assets?.find((a) => a.asset === "USDC");
-  const positions = (Array.isArray(positionsBody) ? positionsBody : []).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0);
+  const positions = (admitProviderPositions(positionsBody,"binance") as unknown as BinancePosition[]).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0);
   const orders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...parseOpenAlgoOrders(allAlgoOrdersBody)];
   const totalMargin = n((accountBody as Record<string, unknown>).totalMarginBalance);
   const totalWallet = n((accountBody as Record<string, unknown>).totalWalletBalance);
@@ -1639,7 +1640,8 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     latest_account_state_at: monitorRunAt,
     updated_at: monitorRunAt,
   };
-  await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: settingsUpdate, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: {...settingsUpdate,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  if(conditionalOrdersComplete&&Array.isArray(allOrdersBody))await synchronizeCanonicalMonitor({store:supabase,ownership,provider:'BINANCE',positions:positions as unknown as Record<string,any>[],orders:orders as Record<string,any>[],complete:true,observedAt:monitorRunAt,lookupEntry:async(symbol,orderId)=>{const order=await binanceRequest('/fapi/v1/order',{symbol,orderId}) as Record<string,unknown>;return{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??''),status:String(order.status??''),filledQuantity:Number(order.executedQty)}}});
   const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
   if (!error) return;
 
@@ -1819,6 +1821,7 @@ Deno.serve(async (req: Request) => {
       return withEdgeProviderCredential(credential, async () => {
         await reconcileBinanceTruthGaps(supabase, stats, ownership.execution_scope_key);
         await refreshAccountState(supabase, stats, stats.monitor_status, runtimeOwnershipFields(ownership));
+        await collectCryptoProviderOutcomes(supabase,ownership,'BINANCE',(path,params)=>binanceRequest(path,params));
       });
     });
     for (const failed of accountSync.filter((result) => result.status === "rejected")) addCriticalMonitorError(stats, `account_sync_failed:${errorMessage((failed as PromiseRejectedResult).reason)}`);

@@ -91,7 +91,8 @@ export default function ScannerConfig() {
   }
 
   async function toggleSymbol(symId: string, current: boolean) {
-    await supabase.from('symbols').update({ is_active: !current }).eq('id', symId);
+    const {error}=await supabase.from('symbols').update({ is_active: !current }).eq('id', symId).select('id').single();
+    if(error){setError('Symbol change was not confirmed.');return;}
     setSymbols(s => s.map(sym => sym.id === symId ? { ...sym, is_active: !current } : sym));
   }
 

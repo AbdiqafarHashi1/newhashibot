@@ -485,7 +485,7 @@ export default function MissionControl() {
               <h1 className="text-base sm:text-lg font-bold text-zinc-100 flex flex-wrap items-center gap-2">
                 <span>HashiBot Mission Control</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                  CERTIFIED LIFECYCLE
+                  ACCOUNT LIFECYCLE CONTROLS
                 </span>
               </h1>
               <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
@@ -1495,3 +1495,4 @@ export default function MissionControl() {
     </AdminLayout>
   );
 }
+

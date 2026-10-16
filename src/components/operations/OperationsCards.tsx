@@ -61,7 +61,7 @@ export function HealthCard({
 
       <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
         <span>Freshness:</span>
-        <FreshnessBadge ageMs={lastSyncMs} />
+        <FreshnessBadge ageMs={lastSyncMs ?? null} />
       </div>
 
       {details.length > 0 && (
@@ -232,3 +232,4 @@ export function RuntimeBanner({
     </div>
   );
 }
+

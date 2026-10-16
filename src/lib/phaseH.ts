@@ -18,10 +18,10 @@ export const SUPPORT_SECRET_WARNING = 'HashiBot support will never ask you to se
 
 export type BrainProfile = { family: string; version: string; provider: Provider; mode: AccountMode; minRisk: number; maxRisk: number; strategies: readonly string[]; certificationRequired: boolean };
 export const APPROVED_BRAINS: readonly BrainProfile[] = [
-  { family:'PERSONAL_MT5_GROWTH', version:'2026.09', provider:'MT5', mode:'PERSONAL', minRisk:.1, maxRisk:1, strategies:['FOREX_TREND','GOLD_BREAKOUT'], certificationRequired:true },
-  { family:'PERSONAL_BINANCE_CRYPTO', version:'2026.09', provider:'BINANCE', mode:'PERSONAL', minRisk:.1, maxRisk:.75, strategies:['CRYPTO_TREND'], certificationRequired:true },
-  { family:'PERSONAL_BYBIT_CRYPTO', version:'2026.09', provider:'BYBIT', mode:'PERSONAL', minRisk:.1, maxRisk:.75, strategies:['CRYPTO_TREND'], certificationRequired:true },
-  { family:'PROP_MT5_STRICT', version:'2026.09', provider:'MT5', mode:'PROP', minRisk:.1, maxRisk:.5, strategies:['FOREX_TREND'], certificationRequired:true },
+  { family:'PERSONAL_MT5_GROWTH', version:'1.0.0', provider:'MT5', mode:'PERSONAL', minRisk:.1, maxRisk:1, strategies:['FOREX_TREND','GOLD_BREAKOUT'], certificationRequired:true },
+  { family:'PERSONAL_BINANCE_CRYPTO', version:'1.0.0', provider:'BINANCE', mode:'PERSONAL', minRisk:.1, maxRisk:.75, strategies:['CRYPTO_TREND'], certificationRequired:true },
+  { family:'PERSONAL_BYBIT_CRYPTO', version:'1.0.0', provider:'BYBIT', mode:'PERSONAL', minRisk:.1, maxRisk:.75, strategies:['CRYPTO_TREND'], certificationRequired:true },
+  { family:'PROP_MT5_STRICT', version:'1.0.0', provider:'MT5', mode:'PROP', minRisk:.1, maxRisk:.5, strategies:['FOREX_TREND'], certificationRequired:true },
 ] as const;
 
 export function recommendBrain(provider: Provider, mode: AccountMode) {
@@ -30,8 +30,8 @@ export function recommendBrain(provider: Provider, mode: AccountMode) {
   return profile;
 }
 export function validatePreferences(profile: BrainProfile, risk: number, strategies: string[]) {
-  if (risk < profile.minRisk || risk > profile.maxRisk) throw new Error('RISK_OUTSIDE_APPROVED_RANGE');
-  if (strategies.some(s => !profile.strategies.includes(s))) throw new Error('STRATEGY_NOT_APPROVED');
+  if (!Number.isFinite(risk) || risk < profile.minRisk || risk > profile.maxRisk) throw new Error('RISK_OUTSIDE_APPROVED_RANGE');
+  if (!Array.isArray(strategies) || !strategies.length || strategies.some(s => !profile.strategies.includes(s))) throw new Error('STRATEGY_NOT_APPROVED');
   return { risk, strategies };
 }
 export function validProviderCombination(provider: Provider, asset: AssetClass, mode: AccountMode) {
@@ -68,7 +68,7 @@ export class PairingAuthority {
   revoke(account:string){ const r=this.records.get(account); if(r) r.revoked=true; }
 }
 async function digest(value:string) { const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)); return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
-export function bridgeHealth(lastHeartbeat:number, now:number, version:string, minimum='2.0.0') { if(version.localeCompare(minimum,undefined,{numeric:true})<0)return 'VERSION_OUTDATED'; const age=now-lastHeartbeat; return age<=60_000?'HEALTHY':age<=180_000?'DEGRADED':'OFFLINE'; }
+export function bridgeHealth(lastHeartbeat:number, now:number, version:string, minimum='2.0.0') { if(version.localeCompare(minimum,undefined,{numeric:true})<0)return 'VERSION_OUTDATED'; const age=now-lastHeartbeat; if(!Number.isFinite(lastHeartbeat)||!Number.isFinite(now)||age<0)return 'OFFLINE';return age<=60_000?'HEALTHY':age<=180_000?'DEGRADED':'OFFLINE'; }
 
 export interface SecretStore { put(scope:string, secret:Record<string,string>):Promise<string>; revoke(ref:string):Promise<void>; }
 export class MemorySecretStore implements SecretStore { private values=new Map<string,Record<string,string>>(); async put(scope:string,secret:Record<string,string>){const ref=`local://${scope}/${crypto.randomUUID()}`;this.values.set(ref,{...secret});return ref;} async revoke(ref:string){this.values.delete(ref);} }

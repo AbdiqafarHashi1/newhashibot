@@ -13,7 +13,7 @@ export default function Candidates() {
   useEffect(() => {
     const query = supabase
       .from('strategy_candidates')
-      .select('id,symbol,market_type,timeframe,strategy_name,direction,grade,confidence_score,risk_reward,status,regime,reason,rejection_reason,created_at')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(50);
     if (filter !== 'all') query.eq('status', filter);

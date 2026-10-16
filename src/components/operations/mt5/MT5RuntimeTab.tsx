@@ -3,9 +3,10 @@ import {
   Activity, RefreshCw, AlertTriangle, Layers, ArrowUpRight, ArrowDownRight, 
   Wallet, PieChart
 } from 'lucide-react';
-import { listMT5Accounts, type MT5Account } from '../../../lib/mt5Accounts';
+import { listMT5Accounts } from '../../../lib/mt5Accounts';
 import { getMT5LatestSnapshot } from '../../../lib/mt5Operations';
-import type { MT5AccountSnapshot, MT5Position, MT5Order } from '../../../lib/exchange/mt5';
+import type { ExchangePosition, ExchangeOrder } from '../../../lib/exchange/exchangeProvider';
+import type { MT5AccountSnapshot, MT5Account } from '../../../lib/exchange/mt5';
 
 interface Props {
   selectedAccountId?: string;
@@ -198,9 +199,9 @@ export function MT5RuntimeTab({ selectedAccountId }: Props) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60 font-mono">
-                    {snapshot.positions.map((pos: MT5Position) => (
-                      <tr key={pos.id} className="hover:bg-zinc-800/30 transition-colors">
-                        <td className="p-3 text-zinc-400">{pos.ticket || pos.id}</td>
+                    {snapshot.positions.map((pos: ExchangePosition) => (
+                      <tr key={pos.providerPositionId || pos.symbol} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="p-3 text-zinc-400">{pos.providerPositionId}</td>
                         <td className="p-3 font-bold text-white font-sans">{pos.symbol}</td>
                         <td className="p-3 font-bold font-sans">
                           {pos.side === 'buy' ? (
@@ -213,13 +214,13 @@ export function MT5RuntimeTab({ selectedAccountId }: Props) {
                             </span>
                           )}
                         </td>
-                        <td className="p-3 text-zinc-200">{pos.size || pos.volume} lots</td>
+                        <td className="p-3 text-zinc-200">{pos.quantity} lots</td>
                         <td className="p-3 text-zinc-300">{pos.entryPrice}</td>
-                        <td className="p-3 text-zinc-300">{pos.currentPrice}</td>
-                        <td className="p-3 text-amber-400">{pos.stopLoss || '—'}</td>
-                        <td className="p-3 text-cyan-400">{pos.takeProfit || '—'}</td>
-                        <td className={`p-3 text-right font-bold ${pos.unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {pos.unrealizedPnl >= 0 ? '+' : ''}{pos.unrealizedPnl.toFixed(2)}
+                        <td className="p-3 text-zinc-300">{pos.markPrice}</td>
+                        <td className="p-3 text-amber-400">{pos.metadata?.stopLoss as number | undefined || '—'}</td>
+                        <td className="p-3 text-cyan-400">{pos.metadata?.takeProfit as number | undefined || '—'}</td>
+                        <td className={`p-3 text-right font-bold ${(pos.unrealizedPnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {(pos.unrealizedPnl ?? 0) >= 0 ? '+' : ''}{pos.unrealizedPnl?.toFixed(2) ?? '—'}
                         </td>
                       </tr>
                     ))}
@@ -259,15 +260,15 @@ export function MT5RuntimeTab({ selectedAccountId }: Props) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60 font-mono">
-                    {snapshot.orders.map((ord: MT5Order) => (
-                      <tr key={ord.id} className="hover:bg-zinc-800/30 transition-colors">
-                        <td className="p-3 text-zinc-400">{ord.ticket || ord.id}</td>
+                    {snapshot.orders.map((ord: ExchangeOrder) => (
+                      <tr key={ord.providerOrderId} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="p-3 text-zinc-400">{ord.providerOrderId}</td>
                         <td className="p-3 font-bold text-white font-sans">{ord.symbol}</td>
                         <td className="p-3 font-bold font-sans uppercase text-yellow-400">{ord.type}</td>
-                        <td className="p-3 text-zinc-200">{ord.size || ord.volume} lots</td>
+                        <td className="p-3 text-zinc-200">{ord.quantity} lots</td>
                         <td className="p-3 text-zinc-300">{ord.price}</td>
-                        <td className="p-3 text-amber-400">{ord.stopLoss || '—'}</td>
-                        <td className="p-3 text-cyan-400">{ord.takeProfit || '—'}</td>
+                        <td className="p-3 text-amber-400">{String(ord.metadata?.stopLoss ?? '—') || '—'}</td>
+                        <td className="p-3 text-cyan-400">{String(ord.metadata?.takeProfit ?? '—') || '—'}</td>
                         <td className="p-3 text-zinc-400 uppercase font-sans text-[10px]">{ord.status}</td>
                       </tr>
                     ))}
@@ -281,3 +282,4 @@ export function MT5RuntimeTab({ selectedAccountId }: Props) {
     </div>
   );
 }
+

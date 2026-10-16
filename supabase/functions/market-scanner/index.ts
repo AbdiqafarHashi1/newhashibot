@@ -1,3 +1,4 @@
+import {drainProductionAccountAuthorizations} from '../_shared/production-account-authorization.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
@@ -296,7 +297,7 @@ function forexEntryBand(symbol: string, price: number, atr: number, maxPips: num
 
 // ─── MicroScalper ─────────────────────────────────────────────────────────────
 
- {
+function candleDirectionConfirmation(candles: Candle[], direction: "buy" | "sell", lookback = 3) {
   const slice = candles.slice(-Math.max(2, lookback));
   let aligned = 0;
   let pressure = 0;
@@ -2232,6 +2233,7 @@ async function runScanPipeline(
   };
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  try{await drainProductionAccountAuthorizations(supabase)}catch(error){console.error('Account authorization inbox unavailable',error instanceof Error?error.message:'FAILED')}
   const { count: todaySignalCount } = await supabase.from("signals").select("id", { count: "exact", head: true }).gte("created_at", todayStart.toISOString());
   const { count: openPositions } = await supabase.from("signals").select("id", { count: "exact", head: true }).in("status", ["waiting", "active"]);
   const riskState: RiskState = {
@@ -3109,6 +3111,7 @@ async function runScanPipeline(
             const sigData = committed.signal_id ? { ...signalPayload, id: committed.signal_id, status: "waiting" } : null;
 
             if (!sigData) continue;
+            try{await drainProductionAccountAuthorizations(supabase)}catch(error){errors.push(`ACCOUNT_AUTHORIZATION:${error instanceof Error?error.message:'FAILED'}`)}
             signalsCreated++;
             incrementStrategyStat(ev.name, "signal_published");
             incrementStrategyStat(ev.name, "signals_created");

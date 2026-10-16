@@ -118,7 +118,7 @@ export default function Dashboard() {
         </div>
 
         {/* Real-time audio notifier controls */}
-        <LiveSignalNotifier hasAccess={hasAccess} />
+        <LiveSignalNotifier />
       </div>
 
       {/* Mode Clarity Banner (Signals Mode vs Bot Execution Mode) */}
@@ -404,3 +404,4 @@ function SnapshotList({ title, signals, empty }: { title: string; signals: Signa
     </div>
   );
 }
+

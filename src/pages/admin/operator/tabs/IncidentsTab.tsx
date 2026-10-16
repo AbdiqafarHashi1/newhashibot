@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldAlert, CheckCircle } from 'lucide-react';
 import { IncidentBanner } from '../../../../components/operations';
 import { OperatorActionResult } from '../../../../components/admin/ActionResult';

@@ -48,6 +48,7 @@ export const ownerPreviewRoutes = [
   "/admin/customer-engines",
   "/admin/fleet",
   "/admin/ai-agents",
+  "/admin/growth-goal",
   "/admin/access-requests",
   "/admin/audit",
   "/admin/scheduler",
@@ -85,3 +86,4 @@ export const ownerPreviewRoutes = [
   "/admin/handoff",
   "/admin/prop"
 ] as const;
+

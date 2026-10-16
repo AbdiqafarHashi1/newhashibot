@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import {CanonicalReportingQueue} from '../../components/operations/CanonicalReportingQueue';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { Signal } from '../../lib/types';
 import { gradeBadge, directionBadge, statusBadge, Badge } from '../../components/ui/Badge';
 import { RiskGuidanceDetail } from '../../components/ui/RiskGuidance';
 import { useAuth } from '../../contexts/AuthContext';
-import { Send, RefreshCw, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { getFrontendSupabaseUrl } from '../../lib/supabaseEnv';
 
 interface TelegramDelivery {
@@ -41,7 +42,6 @@ export default function SignalsManager() {
   const [deliveries, setDeliveries] = useState<TelegramDelivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('real_crypto');
-  const [sending, setSending] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState<'ok' | 'err'>('ok');
   const [allowDemoTg, setAllowDemoTg] = useState(false);
@@ -85,10 +85,11 @@ export default function SignalsManager() {
     else if (filter !== 'all') q = q.eq('status', filter);
 
     const sigRes = await q;
-    let sigs = sigRes.data ?? [];
+    let sigs:Signal[] = (sigRes.data ?? []) as Signal[];
+    if(sigRes.error||delivRes.error){setMsg("Signal or delivery evidence unavailable. Missing data does not mean no failures.");setMsgType("err")}else setMsg("");
 
     if (filter === 'sent_tg') {
-      const sentIds = new Set((delivRes.data ?? []).filter(d => d.status === 'sent').map(d => d.signal_id));
+      const sentIds = new Set((delivRes.data ?? []).filter((d:TelegramDelivery) => d.status === 'sent').map((d:TelegramDelivery) => d.signal_id));
       sigs = sigs.filter(s => sentIds.has(s.id));
     }
 
@@ -97,11 +98,6 @@ export default function SignalsManager() {
   }, [filter, session]);
 
   useEffect(() => { load(); }, [load]);
-
-  function flash(text: string, type: 'ok' | 'err' = 'ok') {
-    setMsg(text); setMsgType(type);
-    setTimeout(() => setMsg(''), 6000);
-  }
 
   function getDeliveryStatusForSignal(sigId: string, kind: 'initial' | 'outcome' = 'initial'): { sent: boolean; failed: boolean; skipped: boolean; error?: string; created_at?: string; reason?: string; delivery_type?: string } {
     const matches = deliveries.filter(d => d.signal_id === sigId && (kind === 'outcome' ? d.delivery_type.startsWith('outcome_') : !d.delivery_type.startsWith('outcome_')));
@@ -153,53 +149,12 @@ export default function SignalsManager() {
     return labels[reason] ?? reason.replace(/_/g, ' ');
   }
 
-  async function sendToTelegram(sig: Signal) {
-    if (!session) return;
-    const check = canSendToTelegram(sig);
-    if (!check.allowed) { flash(check.reason, 'err'); return; }
-    setSending(sig.id);
-    try {
-      const res = await fetch(`${getFrontendSupabaseUrl()}/functions/v1/telegram-send`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signal_id: sig.id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        flash('Signal sent to Telegram.');
-        await load();
-      } else if (data.skipped) {
-        flash(`Telegram skipped: ${data.reason ?? 'not sendable'}`, 'err');
-        await load();
-      } else {
-        flash(`Send failed: ${data.error ?? 'unknown'}`, 'err');
-      }
-    } catch (e) {
-      flash(`Error: ${e instanceof Error ? e.message : 'unknown'}`, 'err');
-    }
-    setSending(null);
-  }
-
-  async function updateStatus(sig: Signal, newStatus: string) {
-    const { error } = await supabase.from('signals').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', sig.id);
-    if (!error) {
-      await supabase.from('audit_logs').insert({
-        actor_user_id: session?.user.id ?? null,
-        action: 'signal_status_updated',
-        entity_type: 'signals',
-        entity_id: sig.id,
-        metadata: { from: sig.status, to: newStatus },
-      });
-      await load();
-    }
-  }
-
   function toggleExpand(id: string) {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout><CanonicalReportingQueue/>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold">Signals Manager</h1>
@@ -360,34 +315,17 @@ export default function SignalsManager() {
                       {!sendCheck.allowed && !tgStatus.sent && (
                         <div className="mt-1.5 text-xs text-zinc-600 flex items-center gap-1">
                           <XCircle size={10} className="text-zinc-700" />
-                          Initial TG blocked: {sendBlockReasonLabel(sendCheck.reason)}
+                          Legacy delivery diagnostic: {sendBlockReasonLabel(sendCheck.reason)}
                         </div>
                       )}
                     </div>
 
                     {/* Actions */}
                     <div className="flex sm:flex-col gap-1.5 shrink-0 flex-wrap">
-                      <button
-                        onClick={() => sendToTelegram(sig)}
-                        disabled={sending === sig.id || !sendCheck.allowed || tgStatus.sent}
-                        title={!sendCheck.allowed ? sendBlockReasonLabel(sendCheck.reason) : 'Send to Telegram'}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                          tgStatus.sent
-                            ? 'bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-default'
-                            : sendCheck.allowed
-                              ? 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-600/30'
-                              : 'bg-zinc-800 text-zinc-600 border border-zinc-700 cursor-not-allowed'
-                        } disabled:opacity-50`}>
-                        {sending === sig.id
-                          ? <RefreshCw size={11} className="animate-spin" />
-                          : tgStatus.sent
-                            ? <CheckCircle size={11} />
-                            : <Send size={11} />}
-                        {tgStatus.sent ? 'TG sent' : 'Send TG'}
-                      </button>
+                      <a href="#canonical-reporting" className="rounded border border-zinc-700 px-3 py-2 text-xs text-cyan-300">Reporting evidence</a>
                       <select
                         value={sig.status}
-                        onChange={e => updateStatus(sig, e.target.value)}
+                        disabled aria-label="Canonical signal status (read-only)"
                         className="bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500">
                         {['waiting', 'active', 'tp1_hit', 'tp2_hit', 'sl_hit', 'expired', 'cancelled'].map(s => (
                           <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>

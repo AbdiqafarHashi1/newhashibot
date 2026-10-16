@@ -47,6 +47,7 @@ class StateSyncManager:
             history=history,
             account_id=__import__('config').Config.ACCOUNT_ID or None,
             snapshot_extra={
+                "environment": acc_info.get("environment"), "history_coverage": getattr(self.mt5_client, "last_history_range", None),
                 "margin_level": acc_info.get("margin_level"), "currency": acc_info.get("currency"),
                 "leverage": acc_info.get("leverage"), "account_name": acc_info.get("name"),
                 "server": acc_info.get("server"), "terminal_authenticated": True,

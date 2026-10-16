@@ -66,7 +66,7 @@ export function ConnectMT5AccountModal({ isOpen, onClose, defaultType, onAccount
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const numBal = Number(balance) || 10000;
       const numLev = Number(leverage) || 100;
       const cleanAcc = accountNumber || (platform === 'ctrader' ? '3049182' : '84920194');
@@ -74,20 +74,14 @@ export function ConnectMT5AccountModal({ isOpen, onClose, defaultType, onAccount
 
       if (platform === 'ctrader') {
         // Register in cTrader accounts manager
-        const ctAccount = connectCTraderAccount({
-          accountId: Number(cleanAcc) || 3049182,
+        const ctAccount = await connectCTraderAccount({
+          traderLogin: cleanAcc,
           broker,
-          serverName: server || `${broker}-cTrader-Live`,
           nickname: cleanNick,
           balance: numBal,
-          equity: numBal,
           currency: 'USD',
           leverage: numLev,
           accountType: accountType === 'prop' ? 'prop' : 'personal',
-          maxDailyLossPct: Number(maxDailyLoss) || 5.0,
-          maxTotalLossPct: Number(maxTotalLoss) || 10.0,
-          newsTradingAllowed: newsAllowed,
-          weekendHoldingAllowed: weekendAllowed,
         });
 
         // Also register in unified fleet
@@ -643,3 +637,4 @@ export function ConnectMT5AccountModal({ isOpen, onClose, defaultType, onAccount
     </div>
   );
 }
+

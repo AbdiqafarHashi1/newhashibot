@@ -3,6 +3,7 @@ import { AppLayout } from '../../components/layout/AppLayout';
 import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 import {
   CustomerBridgeTelemetry,
+  getDefaultCustomerBridge,
   fetchCustomerBridgeTelemetry,
   saveCustomerBridgeTelemetry,
   generateVisualBridgeStandaloneScript,
@@ -248,7 +249,7 @@ export function CustomerVisualBridge() {
     try {
       const res = await scanLocalBridgeTerminals();
       setScanResult(res);
-      setActionSuccess(`Scan Complete: ${res.detectedPlatform.toUpperCase()} terminal(s) detected! (${res.installedTerminals.length} found)`);
+      setActionSuccess(`Scan Complete: ${res.detectedPlatform.toUpperCase()} terminal(s) detected! (${res.activeTerminalsCount} found)`);
       setTimeout(() => setActionSuccess(null), 4000);
     } catch {
       // fallback handled gracefully
@@ -570,7 +571,7 @@ export function CustomerVisualBridge() {
       dailyDrawdownPercent: updated.dailyDrawdownPercent,
       dailyDrawdownLimitPercent: updated.dailyDrawdownLimitPercent,
       riskPercentPerTrade: updated.riskPercentPerTrade,
-      maxConcurrentTrades: updated.maxConcurrentTrades,
+      maxConcurrentTrades: updated.maxConcurrentTrades ?? 0,
       maxLeverage: isProp ? 100 : 200,
       autoTradingEnabled: updated.autoTradingEnabled,
       connectionState: 'connected',
@@ -646,6 +647,7 @@ export function CustomerVisualBridge() {
     try {
       const parsed = JSON.parse(syncPayloadInput);
       const updated: CustomerBridgeTelemetry = {
+        ...getDefaultCustomerBridge(userId, userEmail),
         ...telemetry,
         bridgeId: `BRG-MT5-${parsed.accountNumber || '5055164653'}`,
         userId,
@@ -957,7 +959,7 @@ export function CustomerVisualBridge() {
                 <span className="w-2 h-2 rounded-full bg-cyan-400" /> MT5 Terminal:
               </span>
               <span className="font-mono text-cyan-300 font-bold">
-                {scanResult?.installedTerminals?.find(t => t.platform === 'mt5')?.status || 'Detected (Port 8089)'}
+                {scanResult ? (scanResult.mt5.running ? 'Running' : scanResult.mt5.detected ? 'Detected' : 'Not detected') : 'Not checked'}
               </span>
             </div>
             <div className="bg-black/40 rounded-xl p-2.5 border border-zinc-800 flex items-center justify-between">
@@ -965,7 +967,7 @@ export function CustomerVisualBridge() {
                 <span className="w-2 h-2 rounded-full bg-amber-400" /> cTrader Engine:
               </span>
               <span className="font-mono text-amber-300 font-bold">
-                {scanResult?.installedTerminals?.find(t => t.platform === 'ctrader')?.status || 'Detected (Open API 2.0)'}
+                {scanResult ? (scanResult.ctrader.running ? 'Running' : scanResult.ctrader.detected ? 'Detected' : 'Not detected') : 'Not checked'}
               </span>
             </div>
             <div className="bg-black/40 rounded-xl p-2.5 border border-zinc-800 flex items-center justify-between">
@@ -1587,7 +1589,7 @@ export function CustomerVisualBridge() {
                   <HardDrive className="w-5 h-5 text-cyan-400" />
                   <h3 className="text-base font-semibold text-white">Auto-Discovered MetaTrader 5 Terminal</h3>
                 </div>
-                <Badge variant={isConnected ? 'green' : 'amber'} className="text-xs">
+                <Badge variant={isConnected ? 'green' : 'yellow'} className="text-xs">
                   {isConnected ? 'Live Telemetry Active' : 'Waiting for Bridge Hook'}
                 </Badge>
               </div>
@@ -1983,3 +1985,4 @@ export function CustomerVisualBridge() {
     </AppLayout>
   );
 }
+

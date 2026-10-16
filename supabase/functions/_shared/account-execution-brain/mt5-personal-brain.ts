@@ -508,7 +508,7 @@ export class Mt5PersonalBrain implements AccountExecutionBrain {
     const breakevenPrice = isBuy ? signal.entry_price + lockOffset : signal.entry_price - lockOffset;
 
     return Object.freeze({
-      management_plan_id: `tm_mt5_${signal.signal_id}`,
+      management_plan_id: `tm_${context.user_id}_${context.account_id}_mt5_${signal.signal_id}`,
       signal_id: signal.signal_id,
       account_id: context.account_id,
       tp1_policy: Object.freeze({

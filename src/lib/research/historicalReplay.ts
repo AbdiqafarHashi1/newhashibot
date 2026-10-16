@@ -1,6 +1,6 @@
 import { BinancePersonalBrain, BybitPersonalBrain, Mt5PersonalBrain, type AccountExecutionBrain, type AccountExecutionContext, type AccountPolicy, type SignalContract } from "../../../supabase/functions/_shared/account-execution-brain/index.ts";
 import { decideAccountExecution, type AccountRuntimeControl } from "../../../supabase/functions/_shared/account-execution-controller.ts";
-import type { AcceptedPipelineTrade, CandidatePipelineResult, PipelineDataset } from "./canonicalPipelineReplay";
+import type { AcceptedPipelineTrade, CandidatePipelineResult } from "./canonicalPipelineReplay";
 
 export interface ReplayLineage { campaignId:string; campaignHash:string; datasetHashes:Readonly<Record<string,string>>; provider:string }
 export interface HistoricalSignal {
@@ -37,3 +37,4 @@ export function replayPersonal(input:PersonalReplayInput){
 
 export interface IntratradeEvidence {timestamp:string;timeframe:string;open:number;high:number;low:number;close:number}
 export function inspectIntratrade(side:"BUY"|"SELL",entry:number,stop:number,targets:readonly number[],bars:readonly IntratradeEvidence[]){let mae=0,mfe=0;const ambiguity=[] as any[];for(const b of bars){const adverse=side==="BUY"?entry-b.low:b.high-entry,favorable=side==="BUY"?b.high-entry:entry-b.low;mae=Math.max(mae,adverse);mfe=Math.max(mfe,favorable);const stopHit=side==="BUY"?b.low<=stop:b.high>=stop,target=targets.find(t=>side==="BUY"?b.high>=t:b.low<=t);if(stopHit&&target!==undefined)ambiguity.push(freeze({classification:"AMBIGUOUS INTRABAR ORDER",...b,possibleEventA:"STOP",possibleEventB:`TARGET ${target}`,why:"OHLC does not reveal whether high or low occurred first"}))}return freeze({reconstructionTimeframe:bars[0]?.timeframe??null,status:bars.length?ambiguity.length?"AMBIGUOUS":"RECONSTRUCTED":"INSUFFICIENT INTRADAY DATA",mae,mfe,ambiguity:freeze(ambiguity)});}
+
