@@ -296,7 +296,7 @@ export const AdaptiveStrategyEngineVisualizer: React.FC<AdaptiveStrategyEngineVi
 
   // Manual Toggle of Strategy Status (Override)
   const handleToggleStrategyStatus = (symbol: string, strategyId: string) => {
-    const updated = synergyMatrix.map(s => {
+    const updated: AssetStrategySynergy[] = synergyMatrix.map(s => {
       if (s.symbol === symbol && s.strategyId === strategyId) {
         const nextStatus = s.status === 'QUALIFIED_PRIMARY' 
           ? 'RETIRED_CHOP' 
@@ -1058,3 +1058,4 @@ export const AdaptiveStrategyEngineVisualizer: React.FC<AdaptiveStrategyEngineVi
     </div>
   );
 };
+

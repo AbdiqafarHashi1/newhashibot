@@ -103,7 +103,7 @@ export function AdminVisualBridgeManagement() {
           latencyMs: u.latencyMs,
           connectionState: u.connectionState,
           autoTradingEnabled: u.autoTradingEnabled,
-          activePositions: u.telemetry?.activePositions || [],
+          activePositions: [],
           adminManagedConfig: {
             assignedTier: u.assignedTier,
             lockedByAdmin: true,
@@ -304,7 +304,7 @@ export function AdminVisualBridgeManagement() {
 
   const handleToggleFeederStatus = () => {
     if (!feeder) return;
-    const nextStatus = feeder.status === 'STREAMING' ? 'OFFLINE' : 'STREAMING';
+    const nextStatus = feeder.status === 'STREAMING' ? 'IDLE' : 'STREAMING';
     const updated: AdminFeederTelemetry = {
       ...feeder,
       status: nextStatus,

@@ -54,7 +54,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },
 ];
 
-export function AdminLayout({ children }: { children: ReactNode }) {
+export function AdminLayout({ children, title, description }: { children: ReactNode; title?: string; description?: string }) {
   const { displayProfile: profile, signOut } = usePreviewViewer();
   const loc = useLocation();
   const nav = useNavigate();
@@ -248,7 +248,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Page Content Body */}
         <main className="flex-1 p-3.5 sm:p-5 md:p-6 pb-28 md:pb-8 min-w-0" key={loc.pathname}>
-          {children}
+          {title && <header className="mb-5"><h1 className="text-xl font-bold">{title}</h1>{description && <p className="mt-1 text-sm text-zinc-400">{description}</p>}</header>}{children}
         </main>
 
         {/* Modern Mobile Bottom Navigation */}

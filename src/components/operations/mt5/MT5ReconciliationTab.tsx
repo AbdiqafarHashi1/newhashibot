@@ -41,13 +41,13 @@ export function MT5ReconciliationTab() {
             const matched = expectedList.find((exp) => exp.symbol === actual.symbol);
             if (!matched) {
               recItems.push({
-                id: `rec-${actual.id || actual.ticket || Math.random()}`,
+                id: `rec-${actual.providerPositionId || actual.symbol}`,
                 account_id: acc.id,
-                ticket: String(actual.ticket || actual.id || ''),
+                ticket: String(actual.providerPositionId || ''),
                 symbol: actual.symbol,
                 discrepancy_type: 'unexpected_position',
                 expected_value: 'No position logged in HashiBot DB',
-                actual_value: `${actual.side} ${actual.size || actual.volume} lots @ ${actual.entryPrice}`,
+                actual_value: `${actual.side} ${actual.quantity} lots @ ${actual.entryPrice}`,
                 status: 'pending_investigation',
                 detected_at: new Date().toISOString()
               });
@@ -194,3 +194,4 @@ export function MT5ReconciliationTab() {
     </div>
   );
 }
+

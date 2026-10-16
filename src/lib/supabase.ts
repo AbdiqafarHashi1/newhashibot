@@ -1,7 +1,7 @@
 import { isOwnerPreview } from './ownerPreview/state.js';
 import { previewClient } from './ownerPreview/adapter.js';
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { EXPECTED_SUPABASE_ORIGIN, getSupabaseClientConfig, logSupabaseEnvProof } from './supabaseEnv.js';
 
 export const supabaseClientConfig = getSupabaseClientConfig();
@@ -208,7 +208,7 @@ class MockSupabaseClient {
   // Offline data never authenticates anyone or fabricates a Supabase session.
   public auth = previewClient.auth;
 
-  public rpc = async (name: string, args: any) => {
+  public rpc = async (name: string, _args: any) => {
     if (name === 'no_admin_exists') {
       const hasAdmin = this.tables.profiles.some(p => p.role === 'admin');
       return { data: !hasAdmin, error: null };
@@ -229,7 +229,7 @@ class MockSupabaseClient {
       orderCol: null as string | null,
       orderAscending: true,
 
-      select: (columns?: string, options?: any) => {
+      select: (_columns?: string, options?: any) => {
         if (options?.count) {
           const qResult = {
             data: null,
@@ -241,15 +241,15 @@ class MockSupabaseClient {
         return builder;
       },
 
-      ilike: (col: string, val: string) => {
+      ilike: (_col: string, _val: string) => {
         return builder;
       },
 
-      like: (col: string, val: string) => {
+      like: (_col: string, _val: string) => {
         return builder;
       },
 
-      or: (val: string) => {
+      or: (_val: string) => {
         return builder;
       },
 
@@ -372,7 +372,9 @@ const applicationClient: any = isOwnerPreview() ? null : isSupabaseMocked
   : createClient(safeClientUrl, safeClientKey);
 
 // Explicit preview selects only the local projection adapter, never offline fake auth.
-export const supabase: any = isOwnerPreview() ? previewClient : applicationClient;
+// The preview/offline adapters implement the application-facing SDK surface. Keep callers typed.
+export function getOfflineTables(): Record<string, any[]> { return applicationClient instanceof MockSupabaseClient ? applicationClient.tables : {}; }
+export const supabase = (isOwnerPreview() ? previewClient : applicationClient) as SupabaseClient;
 
 function isFetchFailure(error: unknown): boolean {
   if (!error) return false;

@@ -94,6 +94,7 @@ export class CryptoCertification {
     const rows = new Map<string, TradeManagementTruthRow>();
     const store = {
       async upsertTradeTruth(row: TradeManagementTruthRow) {
+        if (!row.execution_order_id) throw new Error('CERTIFICATION_EXECUTION_ID_REQUIRED');
         rows.set(row.execution_order_id, row);
       },
       async listOpenTradeTruth() {
@@ -221,7 +222,7 @@ export class CryptoCertification {
       async replaceSL() { return { provider: 'binance', ok: true }; },
       async reconcilePosition() { return { provider: 'binance', ok: true }; },
       async reconcileProtection() { return { provider: 'binance', ok: true }; },
-      async syncPositionProtection() { return this.reconcileProtection(); },
+      async syncPositionProtection(req) { return this.reconcileProtection(req); },
       async classifySafetyState() { return { provider: 'binance', ok: true, data: { state: 'safe', reason: 'test' } }; },
       async evaluateProfitLock() { return { provider: 'binance', ok: true, data: { shouldLock: false, reason: 'none' } }; },
       async executeProfitLock() { return { provider: 'binance', ok: true }; },
@@ -525,3 +526,4 @@ export class CryptoCertification {
     };
   }
 }
+

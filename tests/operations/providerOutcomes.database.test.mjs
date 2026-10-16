@@ -12,7 +12,7 @@ test('actual PostgreSQL outcomes are service-only, immutable, idempotent and acc
  create table connected_execution_accounts(id uuid primary key,customer_id uuid,provider text,environment text);
  create table crypto_account_execution_truth(id uuid primary key,customer_id uuid,execution_account_id uuid,lifecycle_state text,created_at timestamptz);
  create table mt5_account_execution_truth(id uuid primary key,customer_id uuid,execution_account_id uuid,lifecycle_state text,created_at timestamptz);`);
- await db.exec(await readFile('supabase/migrations/20261016040740_account_authorization_and_outcome_evidence.sql','utf8'));
+ await db.exec((await readFile('supabase/migrations/20261016040740_account_authorization_and_outcome_evidence.sql','utf8')).split('-- Complete observed context')[0]);
  const owner='11111111-1111-4111-8111-111111111111',account='22222222-2222-4222-8222-222222222222',execution='33333333-3333-4333-8333-333333333333',other='44444444-4444-4444-8444-444444444444';
  await db.query("insert into connected_execution_accounts values($1,$2,'binance','testnet')",[account,owner]);
  await db.query("insert into crypto_account_execution_truth values($1,$2,$3,'CLOSED',now()-interval '2 minutes')",[execution,owner,account]);

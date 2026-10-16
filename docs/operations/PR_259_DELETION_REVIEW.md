@@ -29,4 +29,4 @@ Strategy descriptions are editor guidance from the preserved metadata library. S
 
 ## Still required
 
-The continuation adds bounded account-scoped provider outcome collectors and a canonical history loader with behavioral/database tests. The durable production account-decision producer and its consumption of that history remain incomplete. Remote Supabase, genuine providers and authenticated phone/desktop review remain unverified. Do not treat conflict-free as deployment approval.
+The continuation adds bounded account-scoped provider outcome collectors and a canonical history loader with behavioral/database tests. The durable producer core and history consumption are now implemented and tested. Automatic assembly/publishing of complete observed provider policy context remains an integration blocker. Strict frontend typecheck now passes; no compiler checks were disabled. Remote Supabase, genuine providers and authenticated phone/desktop review remain unverified. Do not treat conflict-free as deployment approval.

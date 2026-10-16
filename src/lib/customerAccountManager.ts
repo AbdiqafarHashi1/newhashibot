@@ -27,7 +27,7 @@ export interface UnifiedCustomerAccount {
   maxConcurrentTrades: number;
   maxLeverage: number;
   autoTradingEnabled: boolean;
-  connectionState: 'connected' | 'searching' | 'disconnected';
+  connectionState: 'connected' | 'searching' | 'disconnected' | 'error';
   latencyMs: number;
   isRealUserAccount: boolean;
   assignedTier: string;
@@ -284,3 +284,4 @@ export async function getAllFleetCustomerAccounts(currentUserId?: string, curren
   // Return verified real accounts without injecting mock/fake demo accounts
   return accounts;
 }
+

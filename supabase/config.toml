@@ -82,5 +82,5 @@ verify_jwt = true
 [functions.phase-o-worker]
 verify_jwt = false
 
-[functions.phase-p-workers]
+[functions.account-signal-authorization]
 verify_jwt = false

@@ -85,7 +85,7 @@ export async function listCTraderAccounts(): Promise<CTraderAccount[]> {
         accountType: l.accountCategory.includes('prop') ? 'prop' : 'personal',
         executionMode: l.executionMode === 'prop_firm_guardian' ? 'prop_challenge' : 'personal',
         executionEnabled: l.autoTradingEnabled,
-        connectionStatus: l.connectionState,
+        connectionStatus: l.connectionState === 'searching' ? 'pending' : l.connectionState === 'error' ? 'degraded' : l.connectionState,
         providerHealth: 'healthy',
         bridgeId: 'bridge-ctrader-desktop-8089',
         lastHeartbeatAt: l.lastHeartbeat,
@@ -238,3 +238,4 @@ export async function removeCTraderAccount(accountId: string): Promise<boolean> 
   removeLocalCustomerAccount(accountId);
   return true;
 }
+

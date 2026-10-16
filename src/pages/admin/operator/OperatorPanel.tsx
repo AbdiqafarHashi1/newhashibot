@@ -59,7 +59,7 @@ export type Section =
   | 'incidents'
   | 'customers';
 
-const navItems: Array<{ id: Section; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
+const navItems: Array<{ id: Section; label: string; icon: import('lucide-react').LucideIcon }> = [
   { id: 'dashboard', label: 'Command Center', icon: Activity },
   { id: 'modes', label: 'Operating Modes', icon: Layers },
   { id: 'scanner', label: 'Scanner Engine', icon: Radio },
@@ -368,3 +368,4 @@ export default function OperatorPanel({ section: initialSection = 'dashboard' }:
     </AdminLayout>
   );
 }
+

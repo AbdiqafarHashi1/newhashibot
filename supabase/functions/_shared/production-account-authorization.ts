@@ -1,0 +1,51 @@
+import {planFromAccountDecision} from './phase-d-execution-plan.ts';
+import {pinnedClaimFromQualifiedSet,routeProductionEligibility} from './trading-domain/production-eligibility-router.ts';
+import {evaluateAccountSignal,type AccountEvaluationInput,type AccountDecisionRecord} from './account-policy-authority.ts';
+import {getExecutionBrain} from './runtime-orchestrator/registries.ts';
+import {loadAccountPerformanceHistory} from './provider-outcome-history.ts';
+import {assertCompleteProductionContext} from './observed-account-policy-evidence.ts';
+/** IDs enter from the operator; every financial/policy fact is reloaded using service authority. */
+export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:string;accountId:string;signalId:string;idempotencyKey:string},now=new Date().toISOString()){
+ if(!input.customerId||!input.accountId||!input.signalId||!input.idempotencyKey||input.idempotencyKey.length>200)throw Error('AUTHORIZATION_IDENTIFIERS_REQUIRED');
+ const loaded=await db.rpc('load_production_account_authorization_input',{p_customer_id:input.customerId,p_account_id:input.accountId,p_signal_id:input.signalId});if(loaded.error||!loaded.data)throw Error('ACCOUNT_AUTHORIZATION_INPUT_UNAVAILABLE');
+ const x=loaded.data,account=x.account,signal=x.signal,provider=String(account.provider).toUpperCase() as AccountEvaluationInput['account']['provider'];
+ const at=Date.parse(now),observed=Date.parse(x.observed_at),context=x.context;
+ const reasons:string[]=[];
+ if(x.qualified_set&&x.provisioning?.state==='ACTIVE'&&x.provisioning.qualified_set_id===x.qualified_set.id&&x.provisioning.qualified_set_version===x.qualified_set.setVersion){x.eligibility=routeProductionEligibility({claim:pinnedClaimFromQualifiedSet({product:x.product,market:String(x.product).startsWith('FOREX')?'FOREX':'CRYPTO',set:x.qualified_set,strategyId:signal.strategy_id,strategyVersion:signal.strategy_version,symbol:signal.symbol,timeframe:signal.timeframe,requiredQualification:'FORWARD_VALIDATION_CANDIDATE'}),qualifiedSet:x.qualified_set});}
+ if(!x.contract)reasons.push('OBSERVED_PROVIDER_CONTRACT_REQUIRED');
+ if(context&&x.contract)context.provider_contract=x.contract;
+ if(x.pending_orders===null||x.pending_orders===undefined||Number(x.pending_orders)>0)reasons.push('PENDING_ORDER_RECONCILIATION_REQUIRED');
+ if(!Number.isFinite(at)||!Number.isFinite(observed)||observed>at||at-observed>60000)reasons.push('ACCOUNT_EVIDENCE_STALE');
+ try{assertCompleteProductionContext(context,{customerId:input.customerId,accountId:input.accountId,provider,observedAt:x.observed_at},at)}catch{reasons.push('COMPLETE_ACCOUNT_CONTEXT_REQUIRED')}
+ if(context&&(context.environment!==String(account.environment).toUpperCase()||context.account_type!==account.account_mode))reasons.push('ACCOUNT_CONTEXT_MODE_MISMATCH');
+ if(x.policy?.policy_id!==account.policy_profile_id||x.policy?.policy_version!==account.policy_version||x.assignment?.policy_version!==account.policy_version)reasons.push('CURRENT_BRAIN_POLICY_REQUIRED');
+ if(!x.eligibility||x.eligibility.decision!=='ELIGIBLE')reasons.push('CURRENT_QUALIFIED_SET_REQUIRED');
+ if(!Number.isFinite(Date.parse(signal.expires_at))||Date.parse(signal.expires_at)<=at)reasons.push('CANONICAL_SIGNAL_EXPIRED');
+ if(!['waiting','active'].includes(signal.status))reasons.push('CANONICAL_SIGNAL_NOT_ADMITTED');
+ if(provider.startsWith('MT5')?(x.connection?.state!=='CONNECTED'||x.connection?.capabilities?.trading!==true):(x.connection?.state!=='VERIFIED'||x.connection?.capabilities?.verified!==true||x.connection?.capabilities?.trading!==true||x.connection?.capabilities?.withdrawal!==false))reasons.push('CURRENT_PROVIDER_CAPABILITIES_REQUIRED');
+ const sp=x.strategy_plan;if(!sp||sp.identity?.strategy_id!==signal.strategy_id||sp.identity?.strategy_version!==signal.strategy_version||sp.market_context?.symbol!==signal.symbol||sp.decision?.action!==String(signal.direction).toUpperCase()||sp.risk_proposal?.initial_stop!==Number(signal.stop_loss)||sp.risk_proposal?.tp1!==Number(signal.tp1)||sp.risk_proposal?.tp2!==Number(signal.tp2)||Date.parse(sp.entry_plan?.expires_at)<=at||!Number.isFinite(Date.parse(sp.entry_plan?.expires_at)))reasons.push('CANONICAL_STRATEGY_PLAN_REQUIRED');
+ const ownership={id:account.id,immutableIdentity:account.immutable_identity,customerId:account.customer_id,provider,accountType:account.account_mode,active:account.enabled===true,executionEnabled:account.execution_enabled===true,runtimeControl:account.runtime_control,policyProfileId:account.policy_profile_id,policyVersion:account.policy_version};
+ let performance;const config={preset:account.policy_preset,...account.policy_overrides?.policy_configuration};
+ if(config.lossResponse){try{performance=await loadAccountPerformanceHistory(db,{customerId:input.customerId,accountId:input.accountId,provider,asOf:now})}catch{reasons.push('COMPLETE_PROVIDER_HISTORY_REQUIRED')}}
+ let decision:AccountDecisionRecord;
+ if(!reasons.length){decision=evaluateAccountSignal({signal:{signal_id:signal.id,symbol:signal.symbol,market_type:signal.market_type,direction:String(signal.direction).toUpperCase() as 'BUY'|'SELL',entry_price:Number(signal.entry_low),stop_loss:Number(signal.stop_loss),tp1:Number(signal.tp1),tp2:signal.tp2===null?null:Number(signal.tp2),confidence_score:Number(signal.confidence_score),grade:signal.grade,strategy_id:signal.strategy_id,timeframe:signal.timeframe,created_at:signal.created_at},account:ownership,context,basePolicy:x.policy,configuration:config,entitlement:x.entitlement,product:x.product,eligibility:x.eligibility,evaluatedAt:now,performanceEvidence:performance,duplicateSignalForAccount:x.duplicate===true,activeSymbolConflict:x.active_symbol_conflict===true});}
+ else{decision={authorityVersion:'account-policy-authority/v1',decisionId:'pending',customerId:input.customerId,accountId:input.accountId,immutableAccountIdentity:ownership.immutableIdentity,signalId:signal.id,decision:'BLOCK',reasonCodes:reasons,authorizedRiskPct:0,brainFamily:account.account_mode==='PERSONAL'?'PERSONAL':'PROP',brainProvider:provider,brainVersion:getExecutionBrain(provider).brain_version,policyProfileId:account.policy_profile_id,policyVersion:account.policy_version,configuration:config,evaluatedAt:now,executionIntent:null};}
+ // Production uses a full content fingerprint rather than the pure evaluator's short fixture ID.
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify({input,evidence:x.evidence_hash,decision})));const fingerprint=Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,'0')).join('');decision={...decision,decisionId:`decision_${fingerprint}`,executionIntent:decision.executionIntent?{...decision.executionIntent,intentId:`intent_${fingerprint}`}:null};
+ let plan=null;if(decision.executionIntent){try{plan=planFromAccountDecision(decision,x,x.strategy_plan,signal.arbitrator_decision??{});if(plan?.status!=='PLANNED')throw Error('ROUTING_REJECTED')}catch{decision={...decision,decision:'BLOCK',authorizedRiskPct:0,executionIntent:null,reasonCodes:[...decision.reasonCodes,'EXECUTION_PLAN_UNAVAILABLE']};plan=null}}
+ const persisted=await db.rpc('commit_production_account_authorization',{p_customer_id:input.customerId,p_account_id:input.accountId,p_signal_id:input.signalId,p_idempotency_key:input.idempotencyKey,p_evidence_hash:x.evidence_hash,p_decision:decision,p_execution_plan:plan});if(persisted.error||!persisted.data)throw Error(`ACCOUNT_AUTHORIZATION_NOT_PERSISTED:${persisted.error?.message??'missing result'}`);return persisted.data;
+}
+
+/** Scanner-side durable producer only. It never calls an exchange or dispatches an order. */
+export async function drainProductionAccountAuthorizations(db:any,limit=25){
+ if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('AUTHORIZATION_BATCH_BOUND');
+ const queued=await db.rpc('enqueue_production_account_authorizations');if(queued.error)throw Error('ACCOUNT_AUTHORIZATION_ENQUEUE_FAILED');
+ const pending=await db.from('account_signal_authorization_jobs').select('*').eq('state','PENDING').order('created_at').limit(limit);if(pending.error||!Array.isArray(pending.data))throw Error('ACCOUNT_AUTHORIZATION_JOBS_UNAVAILABLE');
+ const results=[];
+ for(const job of pending.data){try{
+  const decision=await authorizeCanonicalAccountSignal(db,{customerId:job.customer_id,accountId:job.execution_account_id,signalId:job.signal_id,idempotencyKey:`job:${job.id}`});
+  const saved=await db.from('account_signal_authorization_jobs').update({state:'RECORDED',decision_id:decision.id,last_error:null,updated_at:new Date().toISOString()}).eq('id',job.id).eq('state','PENDING');if(saved.error)throw Error('ACCOUNT_AUTHORIZATION_JOB_NOT_PERSISTED');
+  results.push({id:job.id,decision:decision.decision});
+ }catch(error){const code=error instanceof Error?error.message:'AUTHORIZATION_FAILED';const saved=await db.from('account_signal_authorization_jobs').update({last_error:code,updated_at:new Date().toISOString()}).eq('id',job.id).eq('state','PENDING');if(saved.error)throw Error('ACCOUNT_AUTHORIZATION_JOB_ERROR_NOT_PERSISTED');results.push({id:job.id,error:code})}}
+ return results;
+}

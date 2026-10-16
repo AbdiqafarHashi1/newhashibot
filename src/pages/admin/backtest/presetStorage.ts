@@ -1,5 +1,5 @@
 import { StrategyName, STRATEGY_DEFINITIONS } from '../../../lib/research/legacyStrategyTemplates';
-import { AssetCategory } from './types';
+type AssetCategory = 'forex' | 'crypto' | 'metals';
 
 export interface CalibrationPreset {
   id: string;

@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldCheck, AlertTriangle, XCircle, CheckCircle, Clock, Zap, Lock, Shield } from 'lucide-react';
 import { RuntimeTruthStatus, statusClasses } from '../../lib/operatorRuntime';
 
@@ -113,3 +112,4 @@ export function CertificationBadge({ level }: { level: CertificationLevel | stri
     </span>
   );
 }
+

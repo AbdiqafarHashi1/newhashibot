@@ -1,4 +1,3 @@
-import React from 'react';
 import { Shield, TrendingUp } from 'lucide-react';
 
 export type HeatmapCell = {
@@ -80,3 +79,4 @@ export function HeatmapContainer({
     </div>
   );
 }
+

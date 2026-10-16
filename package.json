@@ -125,7 +125,8 @@
     "plan:deployment": "node scripts/phase-p/plan-deployment.mjs",
     "inspect:deployment": "node scripts/phase-p/inspect-deployment.mjs",
     "test:owner-preview": "node --import tsx --test tests/ownerPreview/adapter.test.ts",
-    "test:owner-preview:browser": "npm run build && playwright test -c playwright.owner-preview.config.ts"
+    "test:owner-preview:browser": "npm run build && playwright test -c playwright.owner-preview.config.ts",
+    "typecheck:account-authorization": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/production-account-authorization.ts supabase/functions/_shared/observed-account-policy-evidence.ts supabase/functions/_shared/phase-d-execution-plan.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

@@ -2,7 +2,7 @@ import { isOwnerPreview } from './ownerPreview/state';
 import { previewFunction } from './ownerPreview/adapter';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getFrontendSupabaseUrl, getFrontendSupabaseConfig } from './supabaseEnv';
-import { supabase, isSupabaseMocked } from './supabase';
+import { getOfflineTables, isSupabaseMocked } from './supabase';
 export type EdgeFunctionReachability = 'deployed' | 'missing' | 'forbidden' | 'unreachable' | 'unknown';
 
 export interface EdgeFunctionCallResult<T = Record<string, unknown>> {
@@ -45,7 +45,7 @@ function getMockEdgeFunctionResponse<T>(functionName: string, body: Record<strin
   } else if (functionName === 'admin-scheduler-action') {
     const action = String(body.action ?? 'status');
     if (action === 'status') {
-      const cfg = supabase?.tables?.scanner_config?.[0] || {
+      const cfg = getOfflineTables()?.scanner_config?.[0] || {
         cron_job_active: true,
         schedule_enabled: true,
         scan_interval_minutes: 5,
@@ -97,7 +97,7 @@ function getMockEdgeFunctionResponse<T>(functionName: string, body: Record<strin
       localStorage.setItem(lockKey, now.toString());
       
       if (action === 'repair_protection_now') {
-        const truthList = supabase?.tables?.['trade_management_truth'] || [];
+        const truthList = getOfflineTables()?.['trade_management_truth'] || [];
         const affected: string[] = [];
         
         truthList.forEach((row: any) => {
@@ -126,7 +126,7 @@ function getMockEdgeFunctionResponse<T>(functionName: string, body: Record<strin
         };
       } else if (action === 'run_binance_monitor_now' || action === 'run_bybit_monitor_now' || action === 'run_supervisor_now') {
         const targetProvider = action.includes('binance') ? 'binance' : action.includes('bybit') ? 'bybit' : null;
-        const truthList = supabase?.tables?.['trade_management_truth'] || [];
+        const truthList = getOfflineTables()?.['trade_management_truth'] || [];
         const affected: string[] = [];
         
         truthList.forEach((row: any) => {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Newspaper, RefreshCw } from 'lucide-react';
 import { DataTable } from '../../../../components/operations';
 import { OperatorActionResult } from '../../../../components/admin/ActionResult';

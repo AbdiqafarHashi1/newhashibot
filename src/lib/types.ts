@@ -20,7 +20,7 @@ export interface Package {
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'cancelled';
 export type AccessRequestStatus = 'pending_payment' | 'pending_admin_approval' | 'pending' | 'approved' | 'rejected' | 'converted_to_access' | 'cancelled' | 'expired';
-export type AccessStatus = 'active' | 'inactive' | 'expired';
+export type AccessStatus = 'suspended' | 'active' | 'inactive' | 'expired';
 export type TelegramStatus = 'not_invited' | 'invited' | 'joined' | 'removed';
 
 export interface CustomerSubscription {

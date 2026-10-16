@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Network,
   Zap,
@@ -338,3 +338,4 @@ export function SmartOrderRouterVisualizer() {
     </div>
   );
 }
+
