@@ -1,8 +1,8 @@
 {
   "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
   "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
-  "routeCount": 70,
-  "surfaceCount": 95,
+  "routeCount": 71,
+  "surfaceCount": 97,
   "routes": [
     {
       "route": "/admin/setup",
@@ -119,6 +119,10 @@
     {
       "route": "/admin/onboarding",
       "element": "<RequireAdmin><OnboardingOperations "
+    },
+    {
+      "route": "/admin/launch",
+      "element": "<RequireAdmin><LaunchSetup "
     },
     {
       "route": "/admin/commerce",
@@ -334,7 +338,7 @@
     },
     {
       "file": "src/pages/admin/BacktestLab.tsx",
-      "sourceHash": "ab58f14cae389892ea2e965bcca99bc0a8106768d022a60c821c4cab07a33668",
+      "sourceHash": "64f62445db42befe200d2a8d0fe4ab5fda23e979eadd60fb54c4f4b41a08a58b",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -435,6 +439,19 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/pages/admin/LaunchSetup.tsx",
+      "sourceHash": "71bebda99e1c3d4c10cedcd466983ceb3324878777db2ef67cc2f2cb19b13715",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'saas-launch-status'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/pages/admin/MT5OperationsCenter.tsx",
       "sourceHash": "ee2e5ae5acf06956c3c8061ce4c3e45dbc2402d1db41c57d6677bc8713929157",
       "internalUiLabels": [],
@@ -494,7 +511,7 @@
     },
     {
       "file": "src/pages/admin/OnboardingOperations.tsx",
-      "sourceHash": "0341fac25f11858aae17620059864a1680b2d2e230947b45c83f4fe2a33699c0",
+      "sourceHash": "ad8b544059148a6403259ae045d49cacfbe3dff2c29d45888f6e331cee357b33",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -956,7 +973,7 @@
     },
     {
       "file": "src/pages/admin/StrategyConfig.tsx",
-      "sourceHash": "712ea629bd36f4301faab01940e632dbb7daa0987912015e48e2296ee22a8b0c",
+      "sourceHash": "9c527e9417749b4fa570d43366cc61f7755ed327d025f3e400ce7123adf59864",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1354,7 +1371,7 @@
     },
     {
       "file": "src/components/operations/PhaseMOperationsPanel.tsx",
-      "sourceHash": "881af63f2eb6b57729a26507c6cbcbc7e557603fd3c56fbad545421e2824ebd4",
+      "sourceHash": "9b98bc3aa4d7af5c1ae3b1a85f1a83ac41384554d8f8a33ffdd61331f3f44d45",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1384,6 +1401,14 @@
     {
       "file": "src/components/operations/StatusBadges.tsx",
       "sourceHash": "5fe877cb90eb034bd235503f5c6c1cd5c5cad2551519562b51b2c1ea295eba9f",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/StrategyReleasePanel.tsx",
+      "sourceHash": "7132a7067974d630a619a93e6f9175fcb2e72da9473bd69bcf07ce98a796bc3b",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],

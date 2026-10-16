@@ -19,7 +19,7 @@ const uuid=(x:unknown)=>{if(typeof x!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9
 export function parsePortableRequest(body:Record<string,any>){
   const kind=body.kind as PortableKind;
   if(!PORTABLE_KINDS.includes(kind))throw new WorkerFault('TASK_KIND_INVALID',true);
-  const allowed=['kind','idempotencyKey',...(kind==='HISTORY'?['provider','symbol','timeframe','start','end']:kind==='REPLAY'?['datasetIds','start','end','maxCycles','fees','funding','spread','slippage']:kind==='ACCOUNT'?['sourceRunId','accountId','brainAssignmentId','initialCapital','currency']:['accountRunId','propConfigId'])];
+  const allowed=['kind','idempotencyKey',...(kind==='HISTORY'?['provider','symbol','timeframe','start','end']:kind==='REPLAY'?['datasetIds','start','end','maxCycles','releaseCandidateId','fees','funding','spread','slippage']:kind==='ACCOUNT'?['sourceRunId','accountId','brainAssignmentId','initialCapital','currency']:['accountRunId','propConfigId'])];
   if(Object.keys(body).some(k=>!allowed.includes(k)))throw new WorkerFault('TASK_FIELD_NOT_ALLOWED',true);
   if(typeof body.idempotencyKey!=='string'||!/^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey))throw new WorkerFault('IDEMPOTENCY_REQUIRED',true);
   let input:Record<string,any>;
@@ -34,7 +34,7 @@ export function parsePortableRequest(body:Record<string,any>){
     }else{
       if(!Array.isArray(body.datasetIds)||!body.datasetIds.length||body.datasetIds.length>LIMITS.symbols)throw new WorkerFault('DATASET_LIMIT_INVALID',true);
       const costs=Object.fromEntries(['fees','funding','spread','slippage'].map(k=>{const n=Number(body[k]??0);if(!Number.isFinite(n)||n<0||n>100)throw new WorkerFault('REPLAY_COST_INVALID',true);return[k,n];}));
-      input={datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,LIMITS.cycles),...costs};
+      input={...(body.releaseCandidateId?{releaseCandidateId:uuid(body.releaseCandidateId)}:{}),datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,LIMITS.cycles),...costs};
     }
   }else if(kind==='ACCOUNT'){
     if(!Number.isFinite(body.initialCapital)||body.initialCapital<=0||body.initialCapital>1e8||!/^[A-Z]{3}$/.test(body.currency))throw new WorkerFault('ACCOUNT_INPUT_INVALID',true);

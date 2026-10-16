@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2";
-import {CUSTOMER_SAFE_COLUMNS,deriveCustomerProduct,provisioningBlockers,type CustomerProduct,type OnboardingState} from "../_shared/customer-provisioning.ts";
+import {CUSTOMER_SAFE_COLUMNS,deriveCustomerProduct} from "../_shared/customer-provisioning.ts";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST,OPTIONS","Access-Control-Allow-Headers":"Content-Type,Authorization,Apikey"};
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json"}});
 Deno.serve(async req=>{if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});if(req.method!=="POST")return reply({error:"method_not_allowed"},405);
@@ -16,21 +16,24 @@ Deno.serve(async req=>{if(req.method==="OPTIONS")return new Response(null,{statu
   return reply({request:{id:request.id,created_at:request.created_at},provisioning:provision,payment_verified:false,admin_approved:false},201);
  }
  if(action==="my_status"){const {data}=await service.from("customer_onboarding_provisioning").select(CUSTOMER_SAFE_COLUMNS).eq("customer_id",user.id).order("created_at",{ascending:false});return reply({onboarding:data??[]});}
- if(action==="set_control"){const id=String(body.provisioning_id??""),control=String(body.control??"");if(!["START","PAUSE_NEW_ENTRIES","RESUME","STOP_AFTER_FLAT","MANAGE_ONLY"].includes(control))return reply({error:"unsafe_control"},422);let query=service.from("customer_onboarding_provisioning").select("id,customer_id,state").eq("id",id);if(!admin)query=query.eq("customer_id",user.id);const {data:owned}=await query.maybeSingle();if(!owned)return reply({error:"onboarding_not_found"},404);if(owned.state!=="ACTIVE")return reply({error:"account_not_active"},409);await service.from("customer_onboarding_provisioning").update({runtime_control:control,updated_at:new Date().toISOString()}).eq("id",id).eq("customer_id",owned.customer_id);await service.from("customer_onboarding_audit").insert({customer_id:owned.customer_id,actor_id:user.id,actor_role:admin?"ADMIN":"CUSTOMER",previous_state:owned.state,new_state:owned.state,reason:`CONTROL_${control}`,metadata:{control}});return reply({control});}
+ if(action==="set_control"){
+  const id=String(body.provisioning_id??""),{data:owned,error}=await service.from("customer_onboarding_provisioning").select("customer_id,execution_account_id").eq("id",id).maybeSingle();
+  if(error||!owned||!admin&&owned.customer_id!==user.id)return reply({error:"onboarding_not_found"},404);
+  if(!owned.execution_account_id)return reply({error:"execution_account_required"},409);
+  const {data,error:controlError}=await service.rpc("set_customer_account_runtime",{p_actor_id:user.id,p_customer_id:owned.customer_id,p_account_id:owned.execution_account_id,p_control:String(body.control??"")});
+  return controlError?reply({error:"ACCOUNT_CONTROL_NOT_CONFIRMED",reason:controlError.message},409):reply(data);
+ }
  if(!admin)return reply({error:"admin_required"},403);
  if(action==="admin_queue"){const {data}=await service.from("customer_onboarding_provisioning").select(`${CUSTOMER_SAFE_COLUMNS},access_requests(payment_reference,payment_method,phone,created_at,product_slug,full_name,email,notes),connected_execution_accounts(id,provider,environment,provider_health,last_synchronized_at)`).order("created_at",{ascending:false});return reply({queue:data??[]});}
  const id=String(body.provisioning_id??""),{data:current}=await service.from("customer_onboarding_provisioning").select("*").eq("id",id).maybeSingle();if(!current)return reply({error:"onboarding_not_found"},404);
  if(action==="admin_review"){
-  const decision=String(body.decision??"") as "APPROVE"|"REJECT"|"REQUEST_CHANGES";const next:OnboardingState=decision==="APPROVE"?"APPROVED":decision==="REJECT"?"REJECTED":"ACCOUNT_SETUP_REQUIRED";
-  const patch={state:next,payment_verified:decision==="APPROVE",admin_approved:decision==="APPROVE",admin_notes:String(body.notes??""),subscription_id:body.subscription_id??current.subscription_id,execution_account_id:body.execution_account_id??current.execution_account_id,qualified_set_id:body.qualified_set_id??current.qualified_set_id,qualified_set_version:body.qualified_set_version??current.qualified_set_version,updated_at:new Date().toISOString()};
-  await service.from("customer_onboarding_provisioning").update(patch).eq("id",id);await service.from("access_requests").update({status:decision==="APPROVE"?"approved":decision==="REJECT"?"rejected":"pending_admin_approval",admin_note:String(body.notes??"")}).eq("id",current.access_request_id);
-  await service.from("customer_onboarding_audit").insert({customer_id:current.customer_id,access_request_id:current.access_request_id,actor_id:user.id,actor_role:"ADMIN",previous_state:current.state,new_state:next,reason:`ADMIN_${decision}`,metadata:{product:current.product,executionAccountId:patch.execution_account_id,qualifiedSetId:patch.qualified_set_id,qualifiedSetVersion:patch.qualified_set_version,notes:patch.admin_notes}});return reply({state:next});
+  const decision=String(body.decision??"");if(!["APPROVE","REJECT","REQUEST_CHANGES"].includes(decision))return reply({error:"invalid_review_decision"},422);
+  // Review approves a support request only. It cannot verify payment, bind an account or turn execution on.
+  const next=decision==="APPROVE"?"APPROVED":decision==="REJECT"?"REJECTED":"ACCOUNT_SETUP_REQUIRED";
+  const {error}=await service.from("customer_onboarding_provisioning").update({state:next,admin_approved:decision==="APPROVE",admin_notes:String(body.notes??""),updated_at:new Date().toISOString()}).eq("id",id);
+  if(error)return reply({error:"review_not_persisted"},500);return reply({state:next,payment_verified:current.payment_verified,execution_enabled:false});
  }
- if(action==="activate"){
-  const account=current.execution_account_id?(await service.from("connected_execution_accounts").select("id,customer_id,provider,enabled,execution_enabled").eq("id",current.execution_account_id).maybeSingle()).data:null;
-  const subscription=current.subscription_id?(await service.from("customer_subscriptions").select("payment_status,access_status,expires_at").eq("id",current.subscription_id).eq("user_id",current.customer_id).maybeSingle()).data:null;
-  const blockers=provisioningBlockers({state:current.state,product:current.product as CustomerProduct,paymentVerified:current.payment_verified&&subscription?.payment_status==="paid",adminApproved:current.admin_approved,executionAccountId:current.execution_account_id,accountCustomerId:account?.customer_id??null,customerId:current.customer_id,qualifiedSetId:current.qualified_set_id,qualifiedSetVersion:current.qualified_set_version,provider:current.provider,disabled:current.state==="DISABLED",expired:Boolean(subscription?.expires_at&&Date.parse(subscription.expires_at)<=Date.now())});
-  if(blockers.length)return reply({state:current.state,activated:false,blockers},409);await service.from("customer_onboarding_provisioning").update({state:"ACTIVE",runtime_control:"START",updated_at:new Date().toISOString()}).eq("id",id);if(account)await service.from("connected_execution_accounts").update({execution_enabled:true}).eq("id",account.id).eq("customer_id",current.customer_id);await service.from("customer_onboarding_audit").insert({customer_id:current.customer_id,access_request_id:current.access_request_id,actor_id:user.id,actor_role:"ADMIN",previous_state:current.state,new_state:"ACTIVE",reason:"ALL_PROVISIONING_GATES_PASSED",metadata:{product:current.product,accountId:current.execution_account_id,setVersion:current.qualified_set_version}});return reply({state:"ACTIVE",activated:true});
- }
+ if(action==="activate")return reply({error:"CANONICAL_ACCOUNT_ACTIVATION_REQUIRED",next_action:"Open account readiness and request demo start after verified payment and certification."},409);
  return reply({error:"unsupported_action"},400);
 });
+

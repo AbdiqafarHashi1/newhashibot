@@ -21,7 +21,9 @@ export async function preparePortableSubmission(db:any,actor:string,body:Record<
     if(error||data?.length!==payload.datasetIds.length||data.some((x:any)=>x.status!=='READY'||x.row_count>LIMITS.candles||x.row_count<55))throw new WorkerFault('DATASET_NOT_READY_OR_UNAUTHORIZED',true);
     if(new Set(data.map((x:any)=>x.configuration_version??'strategy-config/current')).size>1)throw new WorkerFault('REPLAY_CONFIGURATION_LINEAGE_CONFLICT',true);
     if(new Set(data.map((x:any)=>`${x.symbol}:${x.timeframe}`)).size!==data.length)throw new WorkerFault('REPLAY_DUPLICATE_SYMBOL_TIMEFRAME',true);
-    const approved=await loadApprovedValidationConfiguration(db);hash=approved.hash;
+    let approved=await loadApprovedValidationConfiguration(db);
+    if(payload.releaseCandidateId){const {data:c,error}=await db.from('strategy_release_candidates').select('*').eq('id',payload.releaseCandidateId).eq('created_by',actor).eq('state','FROZEN').maybeSingle();if(error||!c||c.holdout_run_id)throw new WorkerFault('FROZEN_RELEASE_CANDIDATE_REQUIRED',true);approved={configuration:c.immutable_configuration,hash:c.configuration_hash};}
+    hash=approved.hash;
     for(const dataset of data){
       const market=dataset.market_type??(/USDT$/.test(dataset.symbol)?'crypto':'forex');
       if(!['crypto','forex','gold','metal'].includes(market)||(market==='crypto')!==/USDT$/.test(dataset.symbol))throw new WorkerFault('REPLAY_MARKET_UNSUPPORTED',true);

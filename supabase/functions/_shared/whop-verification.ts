@@ -19,7 +19,7 @@ export function verifyWhopWebhook(rawBody: string, headers: Headers, secret: str
       "webhook-timestamp": headers.get("webhook-timestamp") ?? "",
       "webhook-signature": headers.get("webhook-signature") ?? "",
     }) as WhopVerifiedEvent;
-    return { verified: true as const, event };
+    return { verified: true as const, event: {...event,id:headers.get("webhook-id")!,timestamp:event.timestamp??new Date(Number(headers.get("webhook-timestamp"))*1000).toISOString()} };
   } catch (error) {
     return { verified: false as const, error: error instanceof WebhookVerificationError ? "invalid_webhook_signature" : "webhook_verification_failed" };
   }

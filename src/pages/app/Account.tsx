@@ -27,6 +27,7 @@ export default function Account() {
   const [latestRequest, setLatestRequest] = useState<AccessRequest | null>(null);
   const [botSetup, setBotSetup] = useState<CustomerBotSetup | null>(null);
   const [provisioning, setProvisioning] = useState<{id:string;product:string;provider:string|null;state:string;runtime_control:string;preferences:Record<string,unknown>} | null>(null);
+  const [controlNotice,setControlNotice]=useState(''),[controlBusy,setControlBusy]=useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,9 +47,10 @@ export default function Account() {
   }, [user]);
 
   async function setAccountControl(control: 'START'|'PAUSE_NEW_ENTRIES'|'RESUME'|'STOP_AFTER_FLAT') {
-    if (!provisioning) return;
-    const { error } = await supabase.functions.invoke('customer-provisioning', { body: { action:'set_control', provisioning_id:provisioning.id, control } });
-    if (!error) setProvisioning({...provisioning,runtime_control:control});
+    if (!provisioning||controlBusy) return;setControlBusy(true);setControlNotice('');
+    try {const {data, error } = await supabase.functions.invoke('customer-provisioning', { body: { action:'set_control', provisioning_id:provisioning.id, control } });
+    if(error||data?.error)throw new Error(data?.reason??data?.error??error?.message);
+    setProvisioning({...provisioning,runtime_control:data.runtime_control});setControlNotice('Account control recorded. Existing position protection remains active.');}catch(e){setControlNotice(e instanceof Error?e.message:'Account control was not confirmed.')}finally{setControlBusy(false)}
   }
 
   const hasAccess = sub?.access_status === 'active';
@@ -79,8 +81,8 @@ export default function Account() {
             <div>Provider: <span className="text-zinc-200">{provisioning.provider ?? 'Signals only'}</span></div>
             <div>Risk style: <span className="text-zinc-200">{String(provisioning.preferences?.riskStyle ?? 'Conservative')}</span></div>
           </div>
-          {provisioning.product !== 'SIGNAL_ONLY' && <div className="flex flex-wrap gap-2">{(['START','PAUSE_NEW_ENTRIES','RESUME','STOP_AFTER_FLAT'] as const).map(control=><button key={control} onClick={()=>setAccountControl(control)} disabled={provisioning.state!=='ACTIVE'} className="px-3 py-2 rounded bg-zinc-800 disabled:opacity-40 text-xs">{control.replaceAll('_',' ')}</button>)}</div>}
-          <p className="text-xs text-zinc-500 mt-3">Pausing new entries does not stop protection or management of existing positions.</p>
+          {provisioning.product !== 'SIGNAL_ONLY' && <div className="flex flex-wrap gap-2">{(['START','PAUSE_NEW_ENTRIES','RESUME','STOP_AFTER_FLAT'] as const).map(control=><button key={control} onClick={()=>setAccountControl(control)} disabled={controlBusy||provisioning.state!=='ACTIVE'} className="px-3 py-2 rounded bg-zinc-800 disabled:opacity-40 text-xs">{control.replaceAll('_',' ')}</button>)}</div>}
+          <p role="status" className="mt-3 text-xs text-amber-200">{controlNotice}</p><p className="text-xs text-zinc-500 mt-3">Pausing new entries does not stop protection or management of existing positions.</p>
         </div>}
 
         {/* Profile card */}
@@ -373,3 +375,4 @@ export default function Account() {
     </AppLayout>
   );
 }
+

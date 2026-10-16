@@ -52,9 +52,9 @@ export function* evaluateReplayOutcomeSteps(candidate:ArbitrationCandidate,candl
     const hitTp2=sign===1?candle.high>=tp2:candle.low<=tp2;
     if(hitStop&&(hitTp1||hitTp2)){
       if(a.sameCandlePolicy==="AMBIGUOUS") return row("AMBIGUOUS",candle.open_time,null,true);
-      const amount=realized(stop,tp1Hit?1-a.partialExitPct:1); gross+=amount; events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount}); return row("STOP",candle.open_time,stop);
+      const fill=sign===1?Math.min(stop,candle.open):Math.max(stop,candle.open);const amount=realized(fill,tp1Hit?1-a.partialExitPct:1); gross+=amount; events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount}); return row("STOP",candle.open_time,fill);
     }
-    if(hitStop){const amount=realized(stop,tp1Hit?1-a.partialExitPct:1);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("STOP",candle.open_time,stop);}
+    if(hitStop){const fill=sign===1?Math.min(stop,candle.open):Math.max(stop,candle.open);const amount=realized(fill,tp1Hit?1-a.partialExitPct:1);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("STOP",candle.open_time,fill);}
     if(hitTp1){tp1Hit=true;const amount=realized(tp1,a.partialExitPct);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"TP1",sequence:seq++,realizedR:amount});if(a.moveStopToBreakevenAfterTp1)stop=entry;if(a.trailingStopR!==null)stop=sign===1?Math.max(stop,entry+risk*a.trailingStopR):Math.min(stop,entry-risk*a.trailingStopR);}
     if(hitTp2){const amount=realized(tp2,tp1Hit?1-a.partialExitPct:1);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("TARGET",candle.open_time,tp2);}
   }

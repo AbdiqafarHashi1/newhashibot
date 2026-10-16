@@ -84,3 +84,6 @@ verify_jwt = false
 
 [functions.account-signal-authorization]
 verify_jwt = false
+
+[functions.saas-launch-status]
+verify_jwt = true

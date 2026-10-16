@@ -1,10 +1,20 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { normalizeMpesaCallback,sha256Hex } from "../_shared/commerce-events.ts";
-Deno.serve(async req=>{const json=(s:number,b:unknown)=>new Response(JSON.stringify(b),{status:s,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});if(req.method!=="POST")return json(405,{state:"BLOCKED"});
- const raw=await req.text();if(new TextEncoder().encode(raw).byteLength>262144)return json(413,{state:"BLOCKED",reason:"PAYLOAD_TOO_LARGE"});const secret=Deno.env.get("MPESA_CALLBACK_SECRET");if(!secret)return json(503,{state:"WEBHOOK_NOT_CONFIGURED"});
- const supplied=req.headers.get("x-hashibot-callback-secret");if(!supplied||supplied!==secret)return json(401,{state:"BLOCKED",reason:"SIGNATURE_INVALID"});const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(!url||!key)return json(503,{state:"READY_FOR_CONFIGURATION"});
- let payload:Record<string,unknown>;try{payload=JSON.parse(raw)}catch{return json(400,{state:"BLOCKED",reason:"MALFORMED_JSON"})}const hash=await sha256Hex(raw);let normalized;try{normalized=normalizeMpesaCallback(payload,hash)}catch{return json(422,{state:"MANUAL_REVIEW_REQUIRED",reason:"AMBIGUOUS_CALLBACK"})}const db=createClient(url,key);
- const review=normalized.reconciliationRequired||!normalized.checkoutId;const {error}=await db.from("commerce_payment_events").insert({provider:"MPESA",external_event_id:normalized.providerEventId,event_type:normalized.providerEventType,signature_verified:false,processing_state:review?"REVIEW_REQUIRED":"RECEIVED",payload_hash:hash,normalized_event:normalized,retention_until:new Date(Date.now()+30*86400000).toISOString()});
- if(error?.code==="23505")return json(200,{state:"DUPLICATE_ACCEPTED"});if(error)return json(500,{state:"PAYMENT_PENDING",reason:"INBOX_WRITE_FAILED"});if(review)return json(202,{state:"MANUAL_REVIEW_REQUIRED",event_id:normalized.providerEventId});
- // process_canonical_commerce_event is intentionally called only by reconciliation after a Daraja status query.
- return json(202,{state:"AWAITING_PROVIDER_RECONCILIATION",event_id:normalized.providerEventId});});
+import {createClient} from 'npm:@supabase/supabase-js@2';
+import {mpesaAdapterFromEnv} from '../_shared/mpesa-adapter.ts';
+import {reconcileMpesaEvent} from '../_shared/mpesa-commerce-reconciliation.ts';
+import {sha256Hex} from '../_shared/commerce-events.ts';
+Deno.serve(async req=>{
+ const reply=(state:string,status=200)=>new Response(JSON.stringify({state}),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
+ if(req.method!=='POST')return reply('METHOD_NOT_ALLOWED',405);
+ const raw=await req.text();if(new TextEncoder().encode(raw).byteLength>262144)return reply('PAYLOAD_TOO_LARGE',413);
+ let payload;try{payload=JSON.parse(raw)}catch{return reply('MALFORMED_JSON',400)}
+ const url=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');if(!url||!key)return reply('READY_FOR_CONFIGURATION',503);
+ const db=createClient(url,key,{auth:{persistSession:false}});
+ try{
+  const result=await reconcileMpesaEvent(db,mpesaAdapterFromEnv(),payload,await sha256Hex(raw));if(!result.event)return reply('AWAITING_PROVIDER_RECONCILIATION',202);
+  const n=result.event,{error}=await db.from('commerce_payment_events').insert({provider:'MPESA',external_event_id:n.providerEventId,event_type:n.providerEventType,signature_verified:true,processing_state:n.safeEvidence.sandbox?'REVIEW_REQUIRED':'RECEIVED',payload_hash:n.payloadHash,normalized_event:n,review_reason:n.safeEvidence.sandbox?'SANDBOX_NO_PAID_ACCESS':null,retention_until:new Date(Date.now()+30*86400000).toISOString()});
+  if(error&&error.code!=='23505')return reply('INBOX_WRITE_FAILED',500);
+  if(n.safeEvidence.sandbox)return reply('SANDBOX_VERIFIED_NO_PAID_ACCESS',202);
+  const {data,error:processError}=await db.rpc('process_canonical_commerce_event',{p_provider:'MPESA',p_event_id:n.providerEventId});
+  if(processError)return reply('PAYMENT_PENDING',500);return reply(error?.code==='23505'?'DUPLICATE_ACCEPTED':data?.state??'PROCESSED');
+ }catch{return reply('MANUAL_REVIEW_REQUIRED',202)}
+});

@@ -1,0 +1,30 @@
+name: Original HashiBot SaaS checks
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: original-saas-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run typecheck:account-authorization
+      - run: npm run build
+      - run: npm run test:operations-readiness
+      - run: npm run test:phase-i
+      - run: npm run test:phase-m
+      - run: npm run test:phase-p
+      - run: npm run typecheck:cloud
+      - run: npm run audit:admin-surfaces
