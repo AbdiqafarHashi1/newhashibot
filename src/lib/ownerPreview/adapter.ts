@@ -1,4 +1,4 @@
-import { createPreviewTables, previewAccounts, previewCustomers, type PreviewRow } from './fixtures';
+import { createPreviewTables, previewAccounts, previewCustomers, type PreviewRow } from './fixtures.js';
 
 let tables = createPreviewTables();
 let customerId = previewCustomers[0].id;
@@ -158,3 +158,4 @@ export async function previewFunction(name: string, body: PreviewRow): Promise<a
   }
   throw new Error(`DEMONSTRATION_UNAVAILABLE: ${name}/${action} has no implemented fixture action`);
 }
+

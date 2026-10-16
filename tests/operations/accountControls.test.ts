@@ -30,3 +30,10 @@ test('performance scope, missing/stale evidence, unsafe policy and live context 
  assert.equal(evaluateAccountSignal({...input(),context:context('a1','customer-a',false,{environment:'LIVE'}),performanceEvidence:evidence(0)}).decision,'BLOCK');
  assert.throws(()=>evaluateAccountSignal({...input(),context:context('a1','customer-a',false,{equity:NaN}),performanceEvidence:evidence(0)}),/FINANCIAL_CONTEXT/);
 });
+
+test('minimum provider lot cannot inflate approved risk; insufficient margin cannot produce an intent',()=>{
+ const tiny=evaluateAccountSignal({...input(),configuration:{...input().configuration,lossResponse:undefined},context:context('a1','customer-a',false,{balance:1,equity:1,free_margin:1})});
+ assert.equal(tiny.decision,'BLOCK');assert.equal(tiny.executionIntent,null);assert.equal(tiny.authorizedRiskPct,0);
+ const noMargin=evaluateAccountSignal({...input(),configuration:{...input().configuration,lossResponse:undefined},context:context('a1','customer-a',false,{free_margin:.01})});
+ assert.equal(noMargin.decision,'BLOCK');assert.equal(noMargin.executionIntent,null);
+});

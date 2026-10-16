@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import {verifyBridgeAccountEvidence,validateMt5ProviderSnapshot} from "../_shared/bridge-account-evidence.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -121,6 +122,15 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: false, error_code: "BRIDGE_TOKEN_INVALID", message: "Bridge authentication failed" }, 401);
     }
 
+    const scopedBridgeAccount=async(fields:string,credentialRef?:string)=>{
+      const accountId=String(body.account_id??''),ownerId=String(body.owner_id??''),bridgeId=String(body.bridge_id??''),workerId=String(body.worker_id??'');
+      const [{data:account,error:ae},{data:registry,error:re}]=await Promise.all([
+       supabase.from('mt5_accounts').select(fields).eq('id',accountId).eq('user_id',ownerId).eq('bridge_id',bridgeId).maybeSingle(),
+       supabase.from('mt5_bridge_registry').select('bridge_id,worker_id,status,lease_expires_at,revoked_at').eq('bridge_id',bridgeId).eq('worker_id',workerId).maybeSingle()]);
+      if(ae||re)throw new Error('BRIDGE_ACCOUNT_SCOPE_MISMATCH');
+      return verifyBridgeAccountEvidence({account,registry,accountId,ownerId,bridgeId,workerId,credentialRef,allowStarting:action==='retrieve_credential',now:Date.now()});
+    };
+
     if(action==="pair_customer_account"){
       const proof=body.account_proof as Record<string,unknown>|undefined;
       if(!proof||proof.connected!==true||proof.environment!=="demo"||proof.trade_allowed!==true||proof.trade_expert!==true)return jsonResponse({success:false,error_code:"VERIFIED_DEMO_TERMINAL_REQUIRED"},409);
@@ -195,11 +205,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "retrieve_credential") {
-      const accId = String(body.account_id ?? "");
-      let query = supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_ref,credential_capability,execution_enabled,operational,account_number_ciphertext,password_ciphertext,server,account_type,execution_mode,policy");
-      if (accId) query = query.eq("id", accId);
-      const { data: account, error } = await query.maybeSingle();
-      if (error || !account) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
+      const account=await scopedBridgeAccount("id,user_id,bridge_id,credential_ref,credential_capability,execution_enabled,operational,account_number_ciphertext,password_ciphertext,server,account_type,execution_mode,policy",String(body.credential_ref??''));
       try {
         const isProp = account.account_type === "prop" || account.execution_mode === "prop_challenge";
         return jsonResponse({
@@ -405,30 +411,18 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: false, error: "Missing bridge_id" }, 400);
       }
 
-      const snap = payload.snapshot || { balance: 0, equity: 0, margin: 0, free_margin: 0, floating_pnl: 0 };
+      validateMt5ProviderSnapshot(body);
+      const snap = payload.snapshot;
       const positions = payload.positions || [];
       const orders = payload.orders || [];
       const nowIso = new Date().toISOString();
 
-      // 4A. Target mt5_accounts if account_id is supplied or lookup via bridge_id
-      let targetAccountId = payload.account_id;
-      if (!targetAccountId) {
-        const { data: matchedAcc } = await supabase
-          .from("mt5_accounts")
-          .select("id")
-          .eq("bridge_id", payload.bridge_id)
-          .maybeSingle();
-        if (matchedAcc) {
-          targetAccountId = matchedAcc.id;
-        }
-      }
-
+      // An explicit authenticated worker/account binding is required; never infer a tenant.
+      const targetAccountId=String(body.account_id??'');
+      if(!targetAccountId)throw new Error('BRIDGE_ACCOUNT_SCOPE_MISMATCH');
       if (targetAccountId) {
-        let { data: target } = await supabase.from("mt5_accounts").select("id,user_id,bridge_id,credential_capability,execution_enabled,account_type,execution_mode,policy,broker,server")
-          .eq("id", targetAccountId).maybeSingle();
-        if (!target) return jsonResponse({ success: false, error_code: "BRIDGE_ACCOUNT_SCOPE_MISMATCH" }, 403);
-
-        const realOwnerId = target.user_id || payload.owner_id || "00000000-0000-0000-0000-000000000000";
+        const target=await scopedBridgeAccount("id,user_id,bridge_id,credential_capability,execution_enabled,account_type,execution_mode,policy,broker,server");
+        const realOwnerId=String(target.user_id);
 
         // Insert snapshot into mt5_account_snapshots
         const { error: snapshotError } = await supabase
@@ -642,6 +636,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: false, error: "Missing bridge_id, account_id, or specs array" }, 400);
       }
 
+      await scopedBridgeAccount("id,user_id,bridge_id");
       const nowIso = new Date().toISOString();
       const rows = payload.specs.map(spec => ({
         account_id: payload.account_id,

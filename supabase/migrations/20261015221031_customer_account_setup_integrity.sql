@@ -88,6 +88,7 @@ begin
  select * into prior from public.customer_brain_change_requests where customer_id=p_customer_id and execution_account_id=p_account_id and idempotency_key=p_idempotency_key;
  if found then
   if prior.request_content is distinct from content then raise exception 'IDEMPOTENCY_CONTENT_CONFLICT';end if;
+  if not exists(select 1 from public.account_brain_assignments where id=prior.assignment_id and execution_account_id=p_account_id and customer_id=p_customer_id and superseded_at is null) then raise exception 'STALE_POLICY_REQUEST';end if;
   return jsonb_build_object('assignment_id',prior.assignment_id,'family',family,'version','1.0.0');
  end if;
  update public.account_brain_assignments set superseded_at=now() where execution_account_id=p_account_id and customer_id=p_customer_id and superseded_at is null;
@@ -165,8 +166,12 @@ begin
  if not found then raise exception 'ACCOUNT_OWNERSHIP_REQUIRED';end if;
  if a.provider is null or a.provider not in('binance','bybit') then raise exception 'CRYPTO_ACCOUNT_REQUIRED';end if;
  if a.credential_ref is null then return true;end if;
- select to_jsonb(p) into proof from public.execution_account_runtime_proof p where p.customer_id=a.customer_id and p.provider=a.provider and p.account_id=a.account_id and p.execution_instance_id=a.execution_instance_id and p.credential_ref=a.credential_ref and p.observed_at>=now()-interval '3 minutes';
+ select to_jsonb(p) into proof from public.execution_account_runtime_proof p where p.customer_id=a.customer_id and p.provider=a.provider and p.account_id=a.account_id and p.execution_instance_id=a.execution_instance_id and p.credential_ref=a.credential_ref and p.observed_at>=now()-interval '3 minutes' and p.observed_at<=clock_timestamp();
  if proof is null or (proof->'account_state'->>'flat_verified') is distinct from 'true' then raise exception 'ACCOUNT_MUST_BE_CONFIRMED_FLAT';end if;
+ -- Submission and revocation serialize on the same account row. Never remove
+ -- protection credentials while an admitted entry or uncertain lifecycle exists.
+ if exists(select 1 from public.crypto_account_execution_truth t where t.execution_account_id=a.id and t.customer_id=a.customer_id and (t.lifecycle_state is null or t.lifecycle_state not in('CLOSED','REJECTED')))
+ or exists(select 1 from public.execution_orders o where o.customer_id=a.customer_id and o.account_id in(a.account_id,a.id::text) and (o.status is null or o.status not in('closed_tp','closed_tp2','closed_profit_lock','closed_sl','closed_breakeven','closed_timeout','closed_expired','closed_expired_after_tp1','closed_manual','cancelled','failed','skipped','stale_closed'))) then raise exception 'ACCOUNT_HAS_UNRESOLVED_EXECUTION';end if;
  delete from vault.secrets where id=a.credential_ref::uuid;
  update public.connected_execution_accounts set credential_ref=null,credentials_verified_at=null,provider_health='not_configured',enabled=false,monitor_enabled=false,execution_enabled=false,phase_h_certification_status='REQUIRED',updated_at=now() where id=a.id and customer_id=a.customer_id;
  update public.provider_connections set secret_reference=null,state='DISCONNECTED',capabilities='{}',last_verified_at=null,last_heartbeat_at=null,updated_at=now() where execution_account_id=a.id and customer_id=a.customer_id;

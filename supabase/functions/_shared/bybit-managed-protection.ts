@@ -13,7 +13,7 @@ export async function reconcileBybitStop(input:{symbol:string;side:'LONG'|'SHORT
  const pending=(reason:string)=>({state:'PENDING' as const,reason});
  if(![input.target,input.quantity,input.mark].every(x=>Number.isFinite(x)&&x>0))throw new Error('INVALID_STOP_AMENDMENT');
  const observed=await input.transport.read().catch(()=>undefined);
- const valid=(o:Record<string,unknown>|undefined)=>!!o&&o.symbol===input.symbol&&String(o.orderId??'')!==''&&(o.reduceOnly===true||o.reduceOnly==='true')&&o.side===(input.side==='LONG'?'Sell':'Buy')&&!['Filled','Cancelled','Rejected','Deactivated'].includes(String(o.orderStatus))&&Number.isFinite(Number(o.triggerPrice))&&Number(o.triggerPrice)>0&&Number(o.qty)>=input.quantity;
+ const valid=(o:Record<string,unknown>|undefined)=>!!o&&o.symbol===input.symbol&&String(o.orderId??'')!==''&&(o.reduceOnly===true||o.reduceOnly==='true')&&o.side===(input.side==='LONG'?'Sell':'Buy')&&['New','Untriggered','PartiallyFilled'].includes(String(o.orderStatus))&&Number.isFinite(Number(o.triggerPrice))&&Number(o.triggerPrice)>0&&Number(o.qty)>=input.quantity;
  if(!valid(observed))return pending('EXISTING_STOP_NOT_VERIFIED');
  const current=Number(observed!.triggerPrice),target=input.side==='LONG'?Math.max(current,input.target):Math.min(current,input.target);
  if(input.side==='LONG'?target>=input.mark:target<=input.mark)return pending('STOP_CROSSED_MARKET_RECONCILE');

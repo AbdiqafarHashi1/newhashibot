@@ -1,8 +1,9 @@
+import {admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authJsonResponse, authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
-import { upsertTradeManagementTruth, upsertTradeManagementTruthRow, updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
+import { persistTradeManagementTruth as upsertTradeManagementTruth, persistTradeManagementTruthRow as upsertTradeManagementTruthRow, persistTradeManagementTruthByIdentity as updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
 import { acquireExecutionLease, enumerateExecutionAccounts, ownershipFields, releaseExecutionLease, resolveEdgeProviderCredential, runtimeOwnershipFields, settleExecutionAccounts, type EdgeExecutionOwnership, type EdgeProviderCredential } from "../_shared/execution-ownership.ts";
 import {collectBybitPages,confirmedBybitTp1,reconcileBybitStop} from "../_shared/bybit-managed-protection.ts";
 import {canonicalLifecycleType,enqueueCanonicalLifecycle,lifecycleAudience} from "../_shared/canonical-lifecycle-publication.ts";
@@ -370,7 +371,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
       collectBybitPages(cursor=>bybitRequest(credential,"/v5/position/list",{category:"linear",settleCoin:"USDT",limit:200,...(cursor?{cursor}:{})})),
       collectBybitPages(cursor=>bybitRequest(credential,"/v5/order/realtime",{category:"linear",settleCoin:"USDT",openOnly:0,limit:50,...(cursor?{cursor}:{})})),
     ]));
-    const positionList = positions as Json[];
+    const positionList = admitProviderPositions(positions,"bybit") as Json[];
     const orderList = orders as Json[];
     const positionSymbols = new Set(positionList.filter((p) => Math.abs(Number(p.size ?? 0)) > 0).map((p) => String(p.symbol ?? "")));
     const orderSymbols = new Set(orderList.map((o) => String(o.symbol ?? "")));
@@ -533,10 +534,7 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
         await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, recovery_status: repairError });
       }
 
-      const verificationOrderList = repairAttempted || transitionAttempted ? await withStage(stageTimings, `verify_${row.symbol}`, startedMs, async () => {
-        const refreshed = await bybitRequest<Json>(credential, "/v5/order/realtime", { category: "linear", symbol: row.symbol, openOnly: 0 });
-        return Array.isArray((refreshed as { list?: unknown[] }).list) ? (refreshed as { list: Json[] }).list : orderList;
-      }).catch(() => orderList) : orderList;
+      const verificationOrderList = repairAttempted || transitionAttempted ? await withStage(stageTimings, `verify_${row.symbol}`, startedMs, () => collectBybitPages(cursor=>bybitRequest(credential,"/v5/order/realtime",{category:"linear",symbol:row.symbol,openOnly:0,limit:50,...(cursor?{cursor}:{})}))) : orderList;
       const refreshedOrders = verificationOrderList.filter((o) => String(o.symbol) === row.symbol && isActiveOrder(o));
       const refreshedReduce = refreshedOrders.filter((o) => String(o.reduceOnly) === "true" || o.reduceOnly === true);
       const expectedSl = refreshedReduce.find((o) => orderKind(o) === "sl" && near(n(o.triggerPrice), managedStopPrice));
@@ -584,8 +582,9 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
         }
       }
 
-      Object.assign(update, { status: statusValue, lifecycle_state: unifiedLifecycle, position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: r_recovery_status, repair_attempts: r_repair_attempts, sl_status: verifiedSl ? "submitted" : "missing", tp1_status: verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
-      await supabase.from("execution_orders").update(update).eq("id", row.id);
+      Object.assign(update, { status: statusValue, lifecycle_state: unifiedLifecycle, position_confirmed: hasPosition, sl_confirmed: verifiedSl, tp1_confirmed: verifiedTp1, tp2_confirmed: verifiedTp2, protection_status: protectionStatus, native_protection_verified: protectionStatus === "protected_native", provider_status: "position_open", recovery_status: r_recovery_status, repair_attempts: r_repair_attempts, sl_status: verifiedSl ? "submitted" : "missing", tp1_status: tp1Transition ? "filled" : verifiedTp1 ? "submitted" : "missing", tp2_status: verifiedTp2 ? "submitted" : "missing" });
+      const {error:truthWriteError}=await supabase.from("execution_orders").update(update).eq("id", row.id).eq("execution_scope_key",ownership.execution_scope_key).select("id").single();
+      if(truthWriteError)throw new Error("EXECUTION_STATE_NOT_PERSISTED");
       // Write unified trade truth so the operator panel can read live protection state
       try {
         await upsertTradeManagementTruth(supabase, {
@@ -614,8 +613,10 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
           p_last_action_taken: r_last_action_taken,
         });
       } catch (_e) {
-        // non-blocking — never let this kill the monitor
+        throw new Error("TRADE_TRUTH_NOT_PERSISTED");
       }
+      if(tp1Transition&&update.profit_lock_sl_active===true&&row.profit_lock_sl_active!==true)await sendLifecycleTelegram(supabase,row,"tp1_profit_lock_activated",{symbol:row.symbol,side,qty,stop_price:managedStopPrice,tp1_order_id:row.tp1_order_id,source:"provider_confirmed"});
+      if(update.trailing_active===true&&update.profit_lock_sl_active===true&&row.trailing_active!==true)await sendLifecycleTelegram(supabase,row,"trailing_activated",{symbol:row.symbol,side,qty,stop_price:managedStopPrice,source:"provider_confirmed"});
       if (protectionStatus === "protected_native") await sendLifecycleTelegram(supabase, row, row.protection_status === "protected_native" ? "native_protection_verified" : "native_sl_tp_placed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, sl_price: slPrice, tp1_price: tp1Price, tp2_price: tp2Price });
       else await sendLifecycleTelegram(supabase, row, "protection_failed", { ...update, side, qty, leverage: position?.leverage, current_price: currentPrice, sl_price: slPrice, tp1_price: tp1Price, tp2_price: tp2Price });
       stats.rows_updated = Number(stats.rows_updated) + 1;

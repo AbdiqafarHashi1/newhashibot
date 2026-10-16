@@ -227,7 +227,7 @@ class CloudClient:
         url = self._bridge_url("sync_symbols")
         payload = {
             "bridge_id": self.bridge_id,
-            "account_id": account_id,
+            "account_id": account_id, "owner_id": Config.OWNER_ID, "worker_id": Config.WORKER_ID,
             "specs": specs
         }
 

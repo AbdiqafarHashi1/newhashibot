@@ -820,6 +820,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
   };
 
   const updateProviderGlobalControls = async (patch: Partial<ProviderGlobalControls>) => {
+    if ((patch as Record<string,unknown>).live_trading_enabled === true) { setResult({ success:false, action:'update_global_controls', error:'Live execution requires a separate reviewed release.' }); return; }
     setActing(true);
     try {
       const { error } = await supabase.from('execution_provider_global_controls').update(patch).eq('id', 1);

@@ -1,5 +1,5 @@
-import { isOwnerPreview } from './ownerPreview/state';
-import { previewClient } from './ownerPreview/adapter';
+import { isOwnerPreview } from './ownerPreview/state.js';
+import { previewClient } from './ownerPreview/adapter.js';
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { createClient } from '@supabase/supabase-js';
 import { EXPECTED_SUPABASE_ORIGIN, getSupabaseClientConfig, logSupabaseEnvProof } from './supabaseEnv.js';

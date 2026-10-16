@@ -2,7 +2,7 @@
   "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
   "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
   "routeCount": 69,
-  "surfaceCount": 93,
+  "surfaceCount": 94,
   "routes": [
     {
       "route": "/admin/setup",
@@ -367,64 +367,10 @@
     },
     {
       "file": "src/pages/admin/Capital.tsx",
-      "sourceHash": "2b8b01e890cf969d40afc6ab2cc884fa9fffca0cab9fb4afb94dc05126a52687",
+      "sourceHash": "98ef4e09b9bfaf1b5f732f9af5bac0315b7f7dd63fbee8b530162a3db038b499",
       "internalUiLabels": [],
-      "backendReferences": [
-        {
-          "method": "from",
-          "target": "'connected_execution_accounts'"
-        },
-        {
-          "method": "from",
-          "target": "'mt5_accounts_safe'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_settings'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_provider_controls'"
-        },
-        {
-          "method": "from",
-          "target": "'active_trade_management_truth'"
-        },
-        {
-          "method": "from",
-          "target": "'certified_execution_account_policies'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_policies'"
-        },
-        {
-          "method": "from",
-          "target": "'certified_runtime_artifacts'"
-        },
-        {
-          "method": "from",
-          "target": "'profiles'"
-        },
-        {
-          "method": "from",
-          "target": "'certified_execution_account_policies'"
-        },
-        {
-          "method": "from",
-          "target": "'operator_runtime_events'"
-        }
-      ],
-      "directMutationEdges": [
-        {
-          "line": 509,
-          "code": "supabase\n        .from('certified_execution_account_policies')\n        .insert(policyPayload)"
-        },
-        {
-          "line": 516,
-          "code": "supabase.from('operator_runtime_events').insert({\n        event_type: 'CAPITAL_POLICY_UPDATED',\n        account_id: editingAccount.accountId,\n        payload: {\n          account: editingAccount.accountMasked,\n          provider: editingAcc"
-        }
-      ],
+      "backendReferences": [],
+      "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -528,44 +474,10 @@
     },
     {
       "file": "src/pages/admin/Modes.tsx",
-      "sourceHash": "1026eb9834f7867fdb6c0c49ef717243f67ede36eb535df48da3aea13d5f37bd",
+      "sourceHash": "b6fb47633607523135d73242994a02f0e4a041459ec6e7b449a5a66d095b498a",
       "internalUiLabels": [],
-      "backendReferences": [
-        {
-          "method": "from",
-          "target": "'risk_profiles'"
-        },
-        {
-          "method": "from",
-          "target": "'mode_configs'"
-        },
-        {
-          "method": "from",
-          "target": "'risk_profiles'"
-        },
-        {
-          "method": "from",
-          "target": "'mode_configs'"
-        },
-        {
-          "method": "from",
-          "target": "'audit_logs'"
-        }
-      ],
-      "directMutationEdges": [
-        {
-          "line": 55,
-          "code": "supabase.from('risk_profiles').update({\n      max_daily_loss_pct: form.max_daily_loss_pct,\n      max_drawdown_pct: form.max_drawdown_pct,\n      max_open_positions: form.max_open_positions,\n      max_trades_per_day: form.max_trades_per_day,\n"
-        },
-        {
-          "line": 223,
-          "code": "supabase.from('mode_configs').update({ is_enabled: enabled })"
-        },
-        {
-          "line": 227,
-          "code": "supabase.from('audit_logs').insert({\n          actor_user_id: session.user.id,\n          action: enabled ? 'mode_enabled' : 'mode_disabled',\n          entity_type: 'mode_configs',\n          entity_id: id,\n          metadata: { enabled },\n  "
-        }
-      ],
+      "backendReferences": [],
+      "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -682,52 +594,15 @@
     },
     {
       "file": "src/pages/admin/PropTradingPanel.tsx",
-      "sourceHash": "c96b2555c4eb2161b4b0d1d4564d11bf37796588b945077409add093c1de5354",
+      "sourceHash": "5c67269ebacab6412910ae3da66e1a982ac1ab9cf85ac5def6a657a7844b97bd",
       "internalUiLabels": [],
       "backendReferences": [
         {
           "method": "from",
           "target": "'bybit_prop_accounts'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_orders'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_settings'"
-        },
-        {
-          "method": "from",
-          "target": "'prop_daily_sessions'"
-        },
-        {
-          "method": "from",
-          "target": "'bybit_prop_accounts'"
-        },
-        {
-          "method": "from",
-          "target": "'bybit_prop_accounts'"
-        },
-        {
-          "method": "from",
-          "target": "'bybit_prop_accounts'"
         }
       ],
-      "directMutationEdges": [
-        {
-          "line": 761,
-          "code": "supabase.from('bybit_prop_accounts').update(payload)"
-        },
-        {
-          "line": 764,
-          "code": "supabase.from('bybit_prop_accounts').insert(payload)"
-        },
-        {
-          "line": 776,
-          "code": "supabase.from('bybit_prop_accounts').update({ governor_state: state })"
-        }
-      ],
+      "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -791,7 +666,7 @@
     },
     {
       "file": "src/pages/admin/ProviderOperationsWorkspace.tsx",
-      "sourceHash": "05ea2313c6d79b9475b87b6dcea78f3f24ee48b371dea2338842b996ff716200",
+      "sourceHash": "b5448180e2fc9950d365f522a4637bb36e1267d7cbb0a6c3d880e9465c675506",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -845,7 +720,7 @@
           "code": "supabase.from('execution_provider_controls').update(patch)"
         },
         {
-          "line": 825,
+          "line": 826,
           "code": "supabase.from('execution_provider_global_controls').update(patch)"
         }
       ],
@@ -920,84 +795,10 @@
     },
     {
       "file": "src/pages/admin/Risk.tsx",
-      "sourceHash": "2493946e69fd73a3d1d2953badc0325cf20b5d9b75ce57ebe7f9bcebf5b2244a",
+      "sourceHash": "1182d3ad2c910369f243ba6874fed73ea3d2782ed5cd4d0f1a8e0cea4a379989",
       "internalUiLabels": [],
-      "backendReferences": [
-        {
-          "method": "from",
-          "target": "'connected_execution_accounts'"
-        },
-        {
-          "method": "from",
-          "target": "'mt5_accounts_safe'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_settings'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_provider_controls'"
-        },
-        {
-          "method": "from",
-          "target": "'active_trade_management_truth'"
-        },
-        {
-          "method": "from",
-          "target": "'certified_execution_account_policies'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_policies'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_monitor_heartbeats'"
-        },
-        {
-          "method": "from",
-          "target": "'profiles'"
-        },
-        {
-          "method": "from",
-          "target": "'scanner_config'"
-        },
-        {
-          "method": "from",
-          "target": "'certified_execution_account_policies'"
-        },
-        {
-          "method": "from",
-          "target": "'execution_provider_controls'"
-        },
-        {
-          "method": "from",
-          "target": "'mt5_accounts'"
-        },
-        {
-          "method": "from",
-          "target": "'operator_runtime_events'"
-        }
-      ],
-      "directMutationEdges": [
-        {
-          "line": 557,
-          "code": "supabase\n        .from('certified_execution_account_policies')\n        .insert(policyPayload)"
-        },
-        {
-          "line": 567,
-          "code": "supabase\n          .from('execution_provider_controls')\n          .update({\n            enabled: pendingPolicy.enabled ?? true,\n            new_entries_enabled: pendingPolicy.tradingEnabled ?? true,\n            updated_at: new Date().toISOS"
-        },
-        {
-          "line": 576,
-          "code": "supabase\n          .from('mt5_accounts')\n          .update({\n            execution_enabled: pendingPolicy.tradingEnabled ?? true,\n            last_sync_at: new Date().toISOString()\n          })"
-        },
-        {
-          "line": 586,
-          "code": "supabase.from('operator_runtime_events').insert({\n        event_type: 'RISK_POLICY_UPDATED',\n        account_id: accId,\n        payload: {\n          account: editingAccount.accountMasked,\n          provider: editingAccount.provider,\n       "
-        }
-      ],
+      "backendReferences": [],
+      "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -1035,7 +836,7 @@
     },
     {
       "file": "src/pages/admin/ScannerConfig.tsx",
-      "sourceHash": "d6e781a77352ed2f07d857409c007ed82f72713869ca9960fa60d471527c19c8",
+      "sourceHash": "bbd6de2e4dd07aaec5b1ae70678251c6379650278e5547feda1be46df45aae3e",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1143,13 +944,9 @@
     },
     {
       "file": "src/pages/admin/StrategyConfig.tsx",
-      "sourceHash": "d63aaba1aa0aa7ad1d4196d5e94aae4375f751acb94a8f256481c5253b728c76",
+      "sourceHash": "70434b17d255585d522bf954f4f2f97ee6d9250ec2f0ed9c6b1d58ded5e716d7",
       "internalUiLabels": [],
       "backendReferences": [
-        {
-          "method": "from",
-          "target": "'strategy_configs'"
-        },
         {
           "method": "from",
           "target": "'strategy_configs'"
@@ -1161,12 +958,8 @@
       ],
       "directMutationEdges": [
         {
-          "line": 606,
-          "code": "supabase.from('strategy_configs').upsert(payload, { onConflict: 'strategy_name' })"
-        },
-        {
-          "line": 638,
-          "code": "supabase.from('strategy_configs').upsert(payloads, { onConflict: 'strategy_name' })"
+          "line": 18,
+          "code": "supabase.from('strategy_configs').update(payload)"
         }
       ],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
@@ -1447,6 +1240,27 @@
       "sourceHash": "4e369b9b294c79ac2e148e60554479a3dc469caadc9b0ffb40ab93f334dbc6ee",
       "internalUiLabels": [],
       "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/AccountPolicyOperations.tsx",
+      "sourceHash": "137e8d347a5e38da08984a3ed45d9aefc0268a51f43db63da7d9382300071fd8",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'execution_accounts_safe'"
+        },
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
+        },
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
+        }
+      ],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },

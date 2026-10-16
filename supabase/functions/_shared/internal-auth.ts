@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {verifyAdminIdentity} from './verified-admin.ts';
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -54,9 +55,16 @@ export async function authorizeInternalOrAdmin(req: Request, supabase: SupabaseC
 
   if (!token) return finish({ ok: false, status: 401, error: "Unauthorized" });
   if (!token.includes(".") && token !== serviceRole) return finish({ ok: false, status: 401, error: "UNAUTHORIZED_INVALID_JWT_FORMAT" });
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return finish({ ok: false, status: 401, error: "Unauthorized" });
-  return finish({ ok: true, method: "authenticated_jwt" });
+  return finish(await verifyAdminIdentity(token, {
+    async userForToken(value) {
+      const {data: {user}, error} = await supabase.auth.getUser(value);
+      return error ? null : user;
+    },
+    async roleForUser(id) {
+      const {data, error} = await supabase.from('profiles').select('role').eq('id', id).maybeSingle();
+      return error ? null : data?.role ?? null;
+    },
+  }));
 }
 
 export function authJsonResponse(result: Extract<InternalAuthResult, { ok: false }>, corsHeaders: Record<string, string>): Response {

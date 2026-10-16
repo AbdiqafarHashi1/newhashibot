@@ -1,6 +1,5 @@
-import { StrategyName, STRATEGY_DEFINITIONS } from '../StrategyConfig';
+import { StrategyName, STRATEGY_DEFINITIONS } from '../../../lib/research/legacyStrategyTemplates';
 import { AssetCategory } from './types';
-import { supabase } from '../../../lib/supabase';
 
 export interface CalibrationPreset {
   id: string;
@@ -718,128 +717,11 @@ export function loadStrategyOverrides(): Record<string, { weight: number; minSco
   }
 }
 
-/**
- * Commits a calibrated preset directly to the production and demo live pipeline
- * by persisting into Supabase `strategy_configs` and updating in-memory models.
- */
-export async function deployPresetToLiveStrategyConfigs(preset: CalibrationPreset): Promise<{
-  success: boolean;
-  count: number;
-  presetName: string;
-  error?: string;
-}> {
-  try {
-    const allStrategies = Object.keys(STRATEGY_DEFINITIONS) as StrategyName[];
-    const payloads = allStrategies.map((strat) => {
-      const def = STRATEGY_DEFINITIONS[strat];
-      const targetWeight = preset.strategyWeights[strat] ?? def.defaultAI.weight_multiplier ?? 1.0;
-      const targetMinScore = preset.strategyMinScores[strat] ?? def.defaultMeta.min_score ?? 80;
-      const targetParams = { ...def.defaultParams, ...(preset.strategyParams[strat] ?? {}) };
-
-      // Update in-memory models
-      if (def.defaultAI) def.defaultAI.weight_multiplier = targetWeight;
-      if (def.defaultMeta) def.defaultMeta.min_score = targetMinScore;
-      if (def.defaultParams) Object.assign(def.defaultParams, targetParams);
-
-      return {
-        strategy_name: strat,
-        enabled: def.defaultMeta.enabled ?? true,
-        market_type: def.defaultMeta.market_type,
-        signal_style: def.defaultMeta.signal_style,
-        risk_mode: def.defaultMeta.risk_mode,
-        allowed_timeframes: def.defaultMeta.allowed_timeframes,
-        min_score: targetMinScore,
-        min_rr: def.defaultMeta.min_rr,
-        min_stop_distance_pct: def.defaultMeta.min_stop_distance_pct,
-        min_tp1_distance_pct: def.defaultMeta.min_tp1_distance_pct,
-        min_tp2_distance_pct: def.defaultMeta.min_tp2_distance_pct,
-        max_bars_in_trade: def.defaultMeta.max_bars_in_trade,
-        params: {
-          ...targetParams,
-          _ai_rec: {
-            ...def.defaultAI,
-            weight_multiplier: targetWeight,
-            status: 'PRIME',
-            last_recalibrated: new Date().toISOString(),
-          },
-        },
-        updated_at: new Date().toISOString(),
-      };
-    });
-
-    const { error } = await supabase.from('strategy_configs').upsert(payloads, { onConflict: 'strategy_name' });
-    if (error) {
-      console.warn('Supabase strategy deployment notice:', error.message);
-    }
-
-    // Persist live pipeline state for runtime engines (MT5 Engine, Binance Truth Engine, Live Scanner)
-    try {
-      localStorage.setItem('hashibot_live_pipeline_preset', JSON.stringify({
-        presetId: preset.id,
-        presetName: preset.name,
-        conflictPolicy: preset.conflictPolicy,
-        minArbitrationScore: preset.minArbitrationScore,
-        maxConcurrentTrades: preset.maxConcurrentTrades,
-        strategyWeights: preset.strategyWeights,
-        strategyMinScores: preset.strategyMinScores,
-        strategyParams: preset.strategyParams,
-        capitalPoolRisk: preset.capitalPoolRisk,
-        deployedAt: new Date().toISOString(),
-      }));
-    } catch {
-      // ignore
-    }
-
-    // Set active preset
-    setActivePresetId(preset.id);
-
-    return {
-      success: true,
-      count: payloads.length,
-      presetName: preset.name,
-    };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('Failed to deploy preset to live strategy configs:', err);
-    return {
-      success: false,
-      count: 0,
-      presetName: preset.name,
-      error: msg,
-    };
-  }
+/** Historical templates remain available for research, never automatic production promotion. */
+export async function deployPresetToLiveStrategyConfigs(preset: CalibrationPreset): Promise<{success:boolean;count:number;presetName:string;error?:string}> {
+ return {success:false,count:0,presetName:preset.name,error:'MEASURED_CONFIGURATION_REVIEW_REQUIRED'};
 }
-
-/**
- * Deploys isolated category pipeline (Forex & Metals MT5 vs. Crypto 24/7 vs. Universal)
- */
-export async function deployCategoryPresetToLivePipeline(
-  category: 'forex_metals' | 'crypto' | 'all'
-): Promise<{ success: boolean; count: number; presetName: string; error?: string }> {
-  let preset: CalibrationPreset;
-  if (category === 'forex_metals') {
-    preset = OFFICIAL_MT5_FOREX_METALS_PRESET;
-  } else if (category === 'crypto') {
-    preset = OFFICIAL_CRYPTO_EXCHANGE_PRESET;
-  } else {
-    preset = OFFICIAL_LIVE_SCANNER_PRESET;
-  }
-
-  // Also update scanner_config so that the live scanner prioritizes the right market type
-  try {
-    const isCrypto = category === 'crypto' || category === 'all';
-    const isForex = category === 'forex_metals' || category === 'all';
-    await supabase.from('scanner_config').update({
-      scan_crypto_enabled: isCrypto,
-      scan_forex_enabled: isForex,
-      min_signal_grade: preset.minArbitrationScore >= 85 ? 'A+' : 'A',
-      updated_at: new Date().toISOString(),
-    }).eq('id', 1);
-  } catch (e) {
-    console.warn('Scanner config category update notice:', e);
-  }
-
-  return deployPresetToLiveStrategyConfigs(preset);
+export async function deployCategoryPresetToLivePipeline(category:'forex_metals'|'crypto'|'all') {
+ const preset=category==='forex_metals'?OFFICIAL_MT5_FOREX_METALS_PRESET:category==='crypto'?OFFICIAL_CRYPTO_EXCHANGE_PRESET:OFFICIAL_LIVE_SCANNER_PRESET;
+ return deployPresetToLiveStrategyConfigs(preset);
 }
-
-

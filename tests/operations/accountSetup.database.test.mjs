@@ -1,3 +1,4 @@
+import {accountSchema} from './support/accountSchema.mjs';
 import {PGlite} from '@electric-sql/pglite';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -5,29 +6,7 @@ import {test} from 'node:test';
 
 test('actual embedded PostgreSQL: service-only setup, idempotency, tenant reads and Brain rollback',async()=>{
  const db=new PGlite();try{
- await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
- create function auth.role() returns text language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claim.role',true),''),'service_role')$$;
- create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
- create function public.is_admin() returns boolean language sql stable as $$select false$$;
- create schema vault;create schema extensions;
- create table vault.secrets(id uuid primary key default gen_random_uuid(),secret text);
- create function vault.create_secret(s text,n text,d text) returns uuid language plpgsql as $$declare ref uuid;begin insert into vault.secrets(secret) values(s) returning id into ref;return ref;end$$;
- create function vault.update_secret(ref uuid,s text) returns void language sql as $$update vault.secrets set secret=s where id=ref$$;
- create function extensions.digest(s text,algorithm text) returns bytea language sql immutable as $$select sha256(convert_to(s,'UTF8'))$$;
- create table execution_account_runtime_proof(customer_id uuid,provider text,account_id text,execution_instance_id uuid,credential_ref text,observed_at timestamptz,account_state jsonb);
- create table auth.users(id uuid primary key);
- insert into auth.users values('11111111-1111-4111-8111-111111111111'),('22222222-2222-4222-8222-222222222222');
- create table connected_execution_accounts(id uuid primary key,customer_id uuid references auth.users(id),display_label text,account_id text,provider_account_identity text,adapter_identity text,provider text check(provider in('binance','bybit','MT5_PERSONAL','MT5_PROP')),environment text,ownership_classification text,credential_ref text not null,credentials_verified_at timestamptz,execution_instance_id uuid not null default gen_random_uuid(),enabled boolean,is_operational boolean,monitor_enabled boolean,execution_enabled boolean,provider_health text,account_mode text,immutable_identity text,phase_h_asset_class text,phase_h_connection_id uuid,policy_profile_id text,policy_version text,policy_preset text,phase_h_certification_status text,last_synchronized_at timestamptz,updated_at timestamptz,policy_overrides jsonb not null default '{}');
- create table provider_connections(id uuid primary key default gen_random_uuid(),customer_id uuid,execution_account_id uuid references connected_execution_accounts(id),provider text,environment text,state text,secret_reference text,external_fingerprint text,bridge_identity text,last_verified_at timestamptz,last_heartbeat_at timestamptz,capabilities jsonb not null default '{}',safe_error_code text,updated_at timestamptz,unique(customer_id,execution_account_id));
- create table hashibridge_pairing_codes(id uuid primary key default gen_random_uuid(),customer_id uuid,execution_account_id uuid,connection_id uuid,code_hash text,expires_at timestamptz,used_at timestamptz,revoked_at timestamptz,attempt_count int default 0,created_at timestamptz default now());
- create table mt5_accounts(id uuid primary key,user_id uuid,bridge_id text,credential_ref text);
- create table mt5_bridge_registry(bridge_id text primary key,worker_id text,lease_expires_at timestamptz);
- create table account_brain_assignments(id uuid primary key default gen_random_uuid(),customer_id uuid,execution_account_id uuid references connected_execution_accounts(id),brain_family text,policy_version text,risk_preference numeric,strategy_permissions text[],assignment_reason text,assigned_by uuid,superseded_at timestamptz);
- create unique index account_one_current_brain on account_brain_assignments(execution_account_id) where superseded_at is null;
- create table phase_h_audit_events(customer_id uuid,execution_account_id uuid,actor_id uuid,event_type text,safe_metadata jsonb);
- create table customer_onboarding_sessions(package_code text constraint customer_onboarding_sessions_package_code_check check(package_code in('FREE_SIGNALS')));
- grant usage on schema auth to authenticated;grant execute on function auth.uid(),public.is_admin() to authenticated;
- `);
+ await db.exec(accountSchema);
  await db.exec(await readFile('supabase/migrations/20261015221031_customer_account_setup_integrity.sql','utf8'));
  await db.exec('create trigger connected_execution_account_identity_guard before update on connected_execution_accounts for each row execute function assert_execution_account_identity_immutable()');
  const customer='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222';
@@ -57,7 +36,18 @@ test('actual embedded PostgreSQL: service-only setup, idempotency, tenant reads 
  await assert.rejects(store('different-physical-account'),/PROVIDER_IDENTITY_CHANGED/);assert.equal((await db.query('select count(*)::int n from vault.secrets')).rows[0].n,1);
  const revoke=()=>db.query('select revoke_phase_n_customer_credentials($1,$2)',[customer,crypto.execution_account_id]);await assert.rejects(revoke(),/CONFIRMED_FLAT/);
  await db.query("insert into execution_account_runtime_proof select customer_id,provider,account_id,execution_instance_id,credential_ref,now(),'{\"flat_verified\":true}'::jsonb from connected_execution_accounts where id=$1",[crypto.execution_account_id]);
+ await db.query("insert into crypto_account_execution_truth values($1,$2,'SUBMISSION_UNCERTAIN')",[crypto.execution_account_id,customer]);
+ await assert.rejects(revoke(),/UNRESOLVED_EXECUTION/);assert.equal((await db.query('select count(*)::int n from vault.secrets')).rows[0].n,1);
+ await db.exec("update crypto_account_execution_truth set lifecycle_state='CLOSED'");
  await revoke();assert.equal((await db.query('select count(*)::int n from vault.secrets')).rows[0].n,0);
+ const controls=await readFile('supabase/migrations/20261015225107_account_execution_routing_guards.sql','utf8');
+ await db.exec(controls.slice(controls.indexOf('-- An administrator')));
+ const adminAssign=()=>db.query("select admin_assign_customer_account_brain($1,$2,$3,.3,array['FOREX_TREND'],'admin-change',$4::jsonb) value",[other,customer,account,JSON.stringify({policy_id:'pol_mt5_personal_v1',policy_version:'1.0.0',provider:'MT5_PERSONAL',account_type:'PERSONAL'})]);
+ await assert.rejects(adminAssign(),/ADMIN_REQUIRED/);
+ await db.query("insert into profiles values($1,'admin')",[other]);
+ const adminResult=(await adminAssign()).rows[0].value;
+ assert.equal((await db.query('select assigned_by from account_brain_assignments where id=$1',[adminResult.assignment_id])).rows[0].assigned_by,other);
+ await assert.rejects(assign(customer,.25,'brain-1'),/STALE_POLICY_REQUEST/);
  const state=(await db.query('select execution_enabled,phase_h_certification_status from connected_execution_accounts where id=$1',[account])).rows[0];assert.equal(state.execution_enabled,false);assert.equal(state.phase_h_certification_status,'REQUIRED');
  await assert.rejects(db.query('update connected_execution_accounts set customer_id=$1 where id=$2',[other,account]),/immutable/);
  const terminal='33333333-3333-4333-8333-333333333333';
