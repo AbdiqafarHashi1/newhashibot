@@ -1,4 +1,6 @@
 import {
+  AICalibrationReport,
+  StrategyTweakProposal,
   BtCandle,
   BtTrade,
   BtMetrics,
@@ -1812,6 +1814,9 @@ export async function runMultiAssetPipelineReplayAsync(
       strategy: stratName as StrategyName,
       displayName: STRATEGY_DEFINITIONS[stratName as StrategyName]?.name || stratName,
       category: s.category,
+      marketType: s.category,
+      weight: STRATEGY_DEFINITIONS[stratName as StrategyName]?.defaultAI?.weight_multiplier ?? 1,
+      alphaSharePct: totalR > 0 && s.totalR > 0 ? Number((s.totalR / totalR * 100).toFixed(1)) : 0,
       candidatesCount: s.candidatesCount,
       wonArbitrationCount: s.wonArbitrationCount,
       executedTrades: s.executedTrades,
@@ -1910,11 +1915,11 @@ export function generateAICalibrationReport(
   if (underperformers.length > 0) {
     underperformers.forEach((s) => {
       lossDiagnosis.push(
-        `${s.displayName} (${s.category.toUpperCase()}) experienced capital bleed of ${s.totalR}R over ${s.executedTrades} trades (Win Rate: ${s.winRate}%, PF: ${s.profitFactor}). Low risk-reward ratio or choppy mean-reversion entries triggered early stop-outs.`
+        `${s.displayName} (${s.category.toUpperCase()}) experienced capital bleed of ${s.totalR}R over ${s.executedTrades} trades (Win Rate: ${s.winRate}%, PF: ${s.profitFactor}). The cause requires inspection of the recorded trades.`
       );
     });
   } else {
-    lossDiagnosis.push('No individual strategies recorded net negative R. Portfolio is demonstrating baseline alpha capture.');
+    lossDiagnosis.push('No individual strategy recorded net negative R in the supplied evidence. This does not establish a positive edge.');
   }
 
   if (primePerformers.length > 0) {
@@ -1937,20 +1942,20 @@ export function generateAICalibrationReport(
   });
 
   if (safeTrades.length === 0) {
-    lossDiagnosis.push('Zero trades triggered under current strict arbitration thresholds. Consider lowering min score to 75-80.');
+    lossDiagnosis.push('No completed trades were supplied. Performance and parameter improvements are unmeasured.');
   }
 
   if (metrics.maxDrawdownPct > 8.0) {
     drawdownDiagnosis.push(
-      `Peak Drawdown reached ${metrics.maxDrawdownPct}%. Primary contributor: Multiple concurrent open positions taking correlated losses during session transitions.`
+      `Peak Drawdown reached ${metrics.maxDrawdownPct}%. No causal attribution is established by this aggregate metric.`
     );
-    drawdownDiagnosis.push('Stop-loss ATR multiplier is overly compressed, resulting in premature exit wicks before full target expansion.');
+    drawdownDiagnosis.push('Inspect chronological trade and exposure evidence before proposing a change.');
   } else if (metrics.maxDrawdownPct > 4.0) {
     drawdownDiagnosis.push(
-      `Drawdown is controlled at ${metrics.maxDrawdownPct}%, but can be compressed under 3.5% with strict concordance arbitration conflict filtering.`
+      `Drawdown is controlled at ${metrics.maxDrawdownPct}%. A lower drawdown after changes has not been measured.`
     );
   } else {
-    drawdownDiagnosis.push(`Exceptional risk preservation with low peak drawdown of ${metrics.maxDrawdownPct}%.`);
+    drawdownDiagnosis.push(`Recorded peak drawdown: ${metrics.maxDrawdownPct}%.`);
   }
 
   // Generate Proposals per strategy
@@ -1978,7 +1983,7 @@ export function generateAICalibrationReport(
         recommendedStopAtrMult: parseFloat((curAtr * 1.15).toFixed(1)),
         status: s.winRate < 40 ? 'CHOP_BLEED' : 'OVER_TRADING',
         rationale: `Dampen arbitration weight & raise quality gate to 88+ to filter low-probability chop while expanding take-profit asymmetric targets.`,
-        expectedImprovement: `Expected Win Rate boost +14%, eliminating negative R drag on ${s.category.toUpperCase()} pool.`,
+        expectedImprovement: `Unmeasured hypothesis; compare chronological replay and untouched holdout before adoption.`,
       });
     } else if (s.winRate >= 60 && s.totalR > 0) {
       recommendations.push({
@@ -1995,7 +2000,7 @@ export function generateAICalibrationReport(
         recommendedStopAtrMult: curAtr,
         status: 'PRIME_ALPHA',
         rationale: `Boost priority in arbitration to allow high-conviction breakout setups to capture primary position slots.`,
-        expectedImprovement: `Projected +2.5R to +4.0R additional alpha contribution.`,
+        expectedImprovement: `Unmeasured hypothesis; additional returns are unknown.`,
       });
     } else {
       recommendations.push({
@@ -2012,7 +2017,7 @@ export function generateAICalibrationReport(
         recommendedStopAtrMult: 1.5,
         status: 'OPTIMAL',
         rationale: `Calibrate R:R skew to 1:2.0+ with normalized ATR stop protection.`,
-        expectedImprovement: `Balanced expectancy with neutral capital preservation.`,
+        expectedImprovement: `Unmeasured hypothesis; expectancy and drawdown must be replayed.`,
       });
     }
   });
@@ -2029,13 +2034,13 @@ export function generateAICalibrationReport(
       recommendedMinScore: 85,
       recommendedMaxPositions: 3,
       recommendedConflictPolicy: 'strict_no_conflict',
-      recommendedForexRiskPct: 1.0,
-      recommendedMetalsRiskPct: 1.0,
-      recommendedCryptoRiskPct: 1.0,
+      recommendedForexRiskPct: capitalPools.forex?.riskPct ?? 0,
+      recommendedMetalsRiskPct: capitalPools.metals?.riskPct ?? 0,
+      recommendedCryptoRiskPct: capitalPools.crypto?.riskPct ?? 0,
     },
-    projectedPortfolioReturnR: parseFloat((Math.max(3.5, metrics.totalR + 7.5)).toFixed(2)),
-    projectedWinRatePct: Math.min(76, Math.max(58, metrics.winRate + 16)),
-    projectedDrawdownPct: parseFloat((Math.min(4.8, Math.max(2.2, metrics.maxDrawdownPct * 0.45))).toFixed(1)),
+    projectedPortfolioReturnR: metrics.totalR,
+    projectedWinRatePct: metrics.winRate,
+    projectedDrawdownPct: metrics.maxDrawdownPct,
   };
 }
 
@@ -2043,7 +2048,7 @@ function compileCategorySummary(
   category: AssetCategory,
   displayName: string,
   pool: AssetCapitalPool,
-  balance: { netUsd: number; totalR: number; wins: number; losses: number; trades: number },
+  _balance: { netUsd: number; totalR: number; wins: number; losses: number; trades: number },
   allTrades: BtTrade[] = [],
   totalPositiveR: number = 0
 ): CategoryPerformanceSummary {
@@ -2115,3 +2120,5 @@ function compileSymbolSummary(
     alphaSharePct: alphaShare,
   };
 }
+
+export type PipelineEngineResult = ReturnType<typeof runMultiAssetPipelineEngine>;

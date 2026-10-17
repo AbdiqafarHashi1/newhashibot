@@ -29,7 +29,7 @@ import {
   UploadCloud,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { STRATEGY_ASSET_MAP, type MultiAssetFeedItem, type CapitalPoolConfig, type AssetCategory, type AssetCapitalPool } from './types';
+import { STRATEGY_ASSET_MAP, type MultiAssetFeedItem, type AssetCategory, type AssetCapitalPool } from './types';
 import { listMT5Accounts } from '../../../lib/mt5Accounts';
 import type { MT5Account } from '../../../lib/exchange/mt5';
 import { getLocalStoredAccounts, saveLocalStoredAccounts } from '../../../lib/mt5LiveEngine';
@@ -277,7 +277,7 @@ export const SURVIVABILITY_HORIZONS: SurvivabilityHorizonOption[] = [
 
 interface PropClearanceLabProps {
   multiAssetFeeds?: Record<string, MultiAssetFeedItem> | MultiAssetFeedItem[];
-  capitalPools?: Record<string, unknown> | CapitalPoolConfig[];
+  capitalPools?: Record<AssetCategory, AssetCapitalPool>;
   selectedRange?: string;
   onSelectRange?: (range: string) => void;
   selectedTimeframe?: string;
@@ -442,7 +442,8 @@ export function PropClearanceLab({
   // Sync internal feeds when multiAssetFeeds changes
   useEffect(() => {
     if (multiAssetFeeds && typeof multiAssetFeeds === 'object' && Object.keys(multiAssetFeeds).length > 0) {
-      setInternalFeeds((prev) => ({ ...prev, ...multiAssetFeeds }));
+      const feeds = Array.isArray(multiAssetFeeds) ? Object.fromEntries(multiAssetFeeds.map(feed => [feed.symbol, feed])) : multiAssetFeeds;
+      setInternalFeeds((prev) => ({ ...prev, ...feeds }));
     }
   }, [multiAssetFeeds]);
 
@@ -511,7 +512,7 @@ export function PropClearanceLab({
             category: spec.category,
             symbol: spec.symbol,
             displayName: spec.displayName,
-            assetClass: spec.category,
+            assetClass: spec.category === 'forex' ? 'forex_majors' : spec.category === 'metals' ? 'metals_gold' : 'crypto',
             pipOrPointSize: spec.pipOrPointSize,
             spreadPipsOrPts: spec.spreadPipsOrPts,
             decimals: spec.decimals,
@@ -540,7 +541,7 @@ export function PropClearanceLab({
           category: spec.category,
           symbol: spec.symbol,
           displayName: spec.displayName,
-          assetClass: spec.category,
+          assetClass: spec.category === 'forex' ? 'forex_majors' : spec.category === 'metals' ? 'metals_gold' : 'crypto',
           pipOrPointSize: spec.pipOrPointSize,
           spreadPipsOrPts: spec.spreadPipsOrPts,
           decimals: spec.decimals,
@@ -576,7 +577,7 @@ export function PropClearanceLab({
 
   // Run Real Replay Simulation Function (Candle-by-Candle Authentic Scan)
   const handleRunSimulation = useCallback(
-    async (horizonOverride?: '30d' | '60d' | '90d' | '180d') => {
+    async (horizonOverride?: '7d' | '30d' | '60d' | '90d' | '180d' | '270d') => {
       const horizon = horizonOverride || activeHorizon;
       setIsSimulating(true);
       setIsReplaying(true);
@@ -2122,14 +2123,14 @@ export function PropClearanceLab({
                 {/* 2. Dynamic Equity & Floating Drawdown */}
                 <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
                   <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold flex items-center justify-between">
-                    <span>Replay Simulated Equity</span>
+                    <span>Replay realised balance</span>
                     <DollarSign className="w-3 h-3 text-emerald-400" />
                   </div>
                   <div className="text-emerald-400 font-bold truncate">
-                    ${Math.round(replayProgress?.equity || fundingCapital).toLocaleString()}
+                    ${Math.round(replayProgress?.cumulativeUsd ?? fundingCapital).toLocaleString()}
                     <span className="text-[10px] text-slate-400 ml-1.5">
-                      ({(((replayProgress?.equity || fundingCapital) - fundingCapital) / fundingCapital * 100) >= 0 ? '+' : ''}
-                      {(((replayProgress?.equity || fundingCapital) - fundingCapital) / fundingCapital * 100).toFixed(2)}%)
+                      ({(((replayProgress?.cumulativeUsd ?? fundingCapital) - fundingCapital) / fundingCapital * 100) >= 0 ? '+' : ''}
+                      {(((replayProgress?.cumulativeUsd ?? fundingCapital) - fundingCapital) / fundingCapital * 100).toFixed(2)}%)
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-400">

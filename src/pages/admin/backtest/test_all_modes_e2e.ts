@@ -73,8 +73,6 @@ const standardPools: Record<AssetCategory, AssetCapitalPool> = {
     decimals: 5,
     fridayClose: true,
     sessionFilter: true,
-    maxDailyDrawdownPct: 5,
-    maxOverallDrawdownPct: 10,
   },
   metals: {
     category: 'metals',
@@ -87,8 +85,6 @@ const standardPools: Record<AssetCategory, AssetCapitalPool> = {
     decimals: 2,
     fridayClose: true,
     sessionFilter: false,
-    maxDailyDrawdownPct: 5,
-    maxOverallDrawdownPct: 10,
   },
   crypto: {
     category: 'crypto',
@@ -101,8 +97,6 @@ const standardPools: Record<AssetCategory, AssetCapitalPool> = {
     decimals: 2,
     fridayClose: false,
     sessionFilter: false,
-    maxDailyDrawdownPct: 5,
-    maxOverallDrawdownPct: 10,
   },
 };
 
@@ -138,10 +132,10 @@ async function runAllTests() {
     console.log(`\n▶ Strategy: ${strat} on ${info.symbol}`);
 
     for (const h of HORIZONS) {
-      const candles = generateSyntheticSessionData(info.symbol, info.assetClass, info.basePrice, h.bars, 15);
+      const candles = generateSyntheticSessionData(info.symbol, (info.category === 'forex' ? 'forex_majors' : info.category === 'metals' ? 'metals_gold' : 'crypto'), info.basePrice, h.bars, 15);
       const env: MarketEnvironment = {
         symbol: info.symbol,
-        assetClass: info.assetClass,
+        assetClass: info.category === 'forex' ? 'forex_majors' : info.category === 'metals' ? 'metals_gold' : 'crypto',
         pipOrPointSize: info.pipOrPoint,
         spreadPipsOrPts: info.defaultSpread,
         feePctPerSide: info.category === 'crypto' ? 0.04 : info.category === 'forex' ? 0.003 : 0.01,
