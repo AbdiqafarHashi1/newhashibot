@@ -2,7 +2,7 @@
   "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
   "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
   "routeCount": 71,
-  "surfaceCount": 97,
+  "surfaceCount": 109,
   "routes": [
     {
       "route": "/admin/setup",
@@ -383,7 +383,7 @@
     },
     {
       "file": "src/pages/admin/CommerceOperations.tsx",
-      "sourceHash": "9fb163c795ce16b1451bff2bcb52621105b2471cfc6ff986c4e3367ec5118e83",
+      "sourceHash": "82c77bc4d0acf519aa401d861c04161e6f88102521c1752af3a235e4b4a734d8",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -396,6 +396,56 @@
         }
       ],
       "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ControlRoom.tsx",
+      "sourceHash": "ae8b556aa1bc85be89bea8eaea55cca8e03a0b1db47db647ca68b1db4ec9869b",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'symbols'"
+        },
+        {
+          "method": "from",
+          "target": "'candles'"
+        },
+        {
+          "method": "from",
+          "target": "'signals'"
+        },
+        {
+          "method": "from",
+          "target": "'strategy_candidates'"
+        },
+        {
+          "method": "from",
+          "target": "'profiles'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_runs'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_config'"
+        },
+        {
+          "method": "from",
+          "target": "'audit_logs'"
+        }
+      ],
+      "directMutationEdges": [
+        {
+          "line": 98,
+          "code": "supabase.from('scanner_config').update({ is_enabled: enable })"
+        },
+        {
+          "line": 100,
+          "code": "supabase.from('audit_logs').insert({\n        actor_user_id: session?.user.id ?? null,\n        action: enable ? 'scanner_enabled' : 'scanner_disabled',\n        entity_type: 'scanner_config',\n        entity_id: '1',\n        metadata: {},\n    "
+        }
+      ],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -1076,8 +1126,32 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/pages/admin/backtest/AICalibrationPanel.tsx",
+      "sourceHash": "8ccea160acfbfdcf655cbc8ccff43217afea7cba26caa08ce4b900d2724d7ac2",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/pages/admin/backtest/CalibrationLab.tsx",
       "sourceHash": "4492026da75ef5e6c57f5775135169adbdcaa365a7bfc6c80093bacb069156dc",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/CapitalPoolManager.tsx",
+      "sourceHash": "e80831d09250909426538cf6f0f43b1ba817ad380966ae0294c56e746e520ca4",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/CategoryScorecards.tsx",
+      "sourceHash": "46181a60dd2fd6fc2ff3821c3819a35769f37e99f19117991966d7e3ca38c530",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1113,10 +1187,44 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/pages/admin/backtest/KnowledgeGuide.tsx",
+      "sourceHash": "f82ee9a836bf703a41eae2d7762a5ecc8dfe752a329d234e9cee41a4e9c57f2f",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/MultiAssetDataManager.tsx",
+      "sourceHash": "14a43a8631fff0fd670e0e6241e6860c98e85a14cbad53617be9436d42b1166b",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "uniqueFeedMap.values()"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/pages/admin/backtest/PermanentResearchLab.tsx",
       "sourceHash": "e805141071d2a7b7b50f30b6c1fdb501bb648a373b3e1dac30697e0c502e040a",
       "internalUiLabels": [],
       "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/PortfolioCertificationPanel.tsx",
+      "sourceHash": "cdbec88151c127a1ece0fb360393939058518deb8cdf7e7275744dca12752bb0",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "{length:11}"
+        }
+      ],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
@@ -1126,6 +1234,58 @@
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/PropClearanceLab.tsx",
+      "sourceHash": "1a3d157dcbbbac38ec8b3821584c23734230259af6edf2a3198e4d2ec638455e",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "files"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/ReplayCockpit.tsx",
+      "sourceHash": "d0079b6ba799e2597b080a5f3d59fa84050e7853d1cb4deddc266fec22f7bc7b",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/ResearchValidationWorkspace.tsx",
+      "sourceHash": "cfd319db49a17b57b6a62f3398b32017ae00e39fab0bec94fb4598a9f913d3ae",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'mt5_accounts_safe'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/SingleStrategyLab.tsx",
+      "sourceHash": "bc2ce5fa65a61b6d46ddb50aad62408ed4ef8cd4cf09ca79fccbe95566d94a75",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'backtest_runs'"
+        }
+      ],
+      "directMutationEdges": [
+        {
+          "line": 171,
+          "code": "supabase.from('backtest_runs').insert({ mode_slug: 'canonical_single_strategy', strategy_name: first.strategyId, symbol: first.symbol, timeframe: first.primaryTimeframe, dataset_name: feed?.datasetId ?? first.datasetIds.join(','), status: '"
+        }
+      ],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -1306,6 +1466,19 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/components/operations/CommerceConnections.tsx",
+      "sourceHash": "6f28d20110bf8c2dad6dc6f6079ae6360da695d3212fd338ba0cd38b36becb0b",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'commerce-configuration'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/components/operations/EventTimeline.tsx",
       "sourceHash": "47fb2467000b07d1ad602e7c67a53e14d39ccb7365bbe56254549df7b7cafc7b",
       "internalUiLabels": [],
@@ -1408,7 +1581,7 @@
     },
     {
       "file": "src/components/operations/StrategyReleasePanel.tsx",
-      "sourceHash": "7132a7067974d630a619a93e6f9175fcb2e72da9473bd69bcf07ce98a796bc3b",
+      "sourceHash": "8982e705ae544d0d945fbb5e21c637e128bf5670f88f09d1e99c8fb1f7c0ccdd",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],

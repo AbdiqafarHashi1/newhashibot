@@ -14,12 +14,16 @@ export function exactWhopMoney(m:any,currency:string):number{
  if(!m||typeof m.amount!=='string'||String(m.currency).toUpperCase()!==currency||m.decimals!==2||!/^\d+(?:\.\d{1,2})?$/.test(m.amount))throw Error('WHOP_EXACT_MONEY_REQUIRED');
  const [whole,fraction='']=m.amount.split('.'),minor=Number(whole)*100+Number(fraction.padEnd(2,'0'));if(!Number.isSafeInteger(minor))throw Error('WHOP_INVALID_AMOUNT');return minor;
 }
-export async function createWhopRuntimeCheckout(c:WhopRuntimeConfig,checkout:any,transport:typeof fetch=fetch){
- const planId=c.planIds[checkout.product_code];if(!planId)throw Error('WHOP_PLAN_NOT_CONFIGURED');
+export async function verifyWhopRuntimePlan(c:WhopRuntimeConfig,product:string,amountMinor:number,currency:string,transport:typeof fetch=fetch){
+ const planId=c.planIds[product];if(!planId)throw Error('WHOP_PLAN_NOT_CONFIGURED');
  const plan=await whopRequest(c,`plans/${encodeURIComponent(planId)}`,undefined,undefined,transport);
- if(plan.id!==planId||plan.account?.id!==c.companyId||String(plan.currency).toUpperCase()!==checkout.currency||Math.round(Number(plan.initial_price)*100)!==Number(checkout.amount_minor)||Number(plan.trial_period_days??0)!==0||plan.plan_type!=='renewal'||Math.round(Number(plan.renewal_price)*100)!==Number(checkout.amount_minor)||Number(plan.billing_period)!==30)throw Error('WHOP_PLAN_PRICE_OR_ACCOUNT_MISMATCH');
+ if(plan.id!==planId||plan.account?.id!==c.companyId||String(plan.currency).toUpperCase()!==currency||Math.round(Number(plan.initial_price)*100)!==Number(amountMinor)||Number(plan.trial_period_days??0)!==0||plan.plan_type!=='renewal'||Math.round(Number(plan.renewal_price)*100)!==Number(amountMinor)||Number(plan.billing_period)!==30)throw Error('WHOP_PLAN_PRICE_OR_ACCOUNT_MISMATCH');
+ return plan;
+}
+export async function createWhopRuntimeCheckout(c:WhopRuntimeConfig,checkout:any,transport:typeof fetch=fetch){
+ await verifyWhopRuntimePlan(c,checkout.product_code,Number(checkout.amount_minor),checkout.currency,transport);
  const redirect=new URL(checkout.safe_return_url);redirect.searchParams.set('checkout',checkout.id);
- const result=await whopRequest(c,'checkout_configurations',{account_id:c.companyId,plan_id:planId,mode:'payment',metadata:{hashibot_checkout_id:checkout.id,hashibot_customer_id:checkout.customer_id,hashibot_product_code:checkout.product_code},redirect_url:redirect.toString()},`hashibot:${checkout.id}`,transport);
+ const result=await whopRequest(c,'checkout_configurations',{account_id:c.companyId,plan_id:c.planIds[checkout.product_code],mode:'payment',metadata:{hashibot_checkout_id:checkout.id,hashibot_customer_id:checkout.customer_id,hashibot_product_code:checkout.product_code},redirect_url:redirect.toString()},`hashibot:${checkout.id}`,transport);
  const parsed=new URL(result.purchase_url);if(!result.id||parsed.protocol!=='https:'||!['whop.com','sandbox.whop.com'].includes(parsed.hostname)||parsed.username||parsed.password)throw Error('WHOP_CHECKOUT_RESPONSE_INVALID');
  return {externalReference:String(result.id),actionUrl:parsed.toString()};
 }
@@ -29,7 +33,7 @@ export async function verifyWhopRuntimeEvent(db:any,c:WhopRuntimeConfig,event:No
  const p=await whopRequest(c,`payments/${encodeURIComponent(event.providerPaymentId)}`,undefined,undefined,transport),metadata=p.metadata??{};
  let checkout:any,error:any,renewal=false;
  const checkoutId=metadata.hashibot_checkout_id??event.checkoutId;
- if(checkoutId){({data:checkout,error}=await db.from('commerce_checkout_sessions').select('*').eq('id',checkoutId).eq('provider','WHOP').maybeSingle())}
+ if(checkoutId&&p.billing_reason!=='subscription_cycle'){({data:checkout,error}=await db.from('commerce_checkout_sessions').select('*').eq('id',checkoutId).eq('provider','WHOP').maybeSingle())}
  else if(p.membership_id&&p.billing_reason==='subscription_cycle'){
   const {data:subscription,error:subscriptionError}=await db.from('commerce_subscriptions').select('customer_id,product_code,last_verified_payment_id').eq('provider','WHOP').eq('external_reference',p.membership_id).maybeSingle();
   if(subscriptionError||!subscription?.last_verified_payment_id)throw Error('WHOP_BOUND_SUBSCRIPTION_REQUIRED');

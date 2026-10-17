@@ -20,6 +20,9 @@ Keep the original frontend, repository, Supabase architecture and domain. Do not
 - Production scanning requires a promoted measured version and reads its frozen parameters. Saving a research configuration does not replace a tested release. Disabled strategies remain disabled. Changed global grade policy blocks an incompatible release. No promoted releases means no approved production strategies; old database configurations are not automatically grandfathered.
 - The replay UI now respects the existing worker cycle limit. A larger requested period fails explicitly instead of silently evaluating a prefix. Historical adverse stop gaps use the opening price rather than assuming an impossible fill at the original stop.
 
+- Payment subscriptions and entitlements are scoped to the paid execution account. A source-confirmed refund of an older payment records historical evidence without revoking a newer paid renewal. Existing 7/30-day M-Pesa terms are preserved.
+- Full-checkout CI exposed legacy research type errors absent from the earlier partial checkout; those are repaired without excluding files. Legacy calibration no longer fabricates improved projected performance.
+
 ## Administration responsibilities
 
 | Workspace | Responsibility |
@@ -51,7 +54,7 @@ Retain existing owner provider credentials, channel IDs and bot credentials. Ins
 | Customer crypto onboarding | PHASE_H_SECRET_ADAPTER=SUPABASE_VAULT; PHASE_H_PROVIDER_VERIFICATION=ENABLED |
 | Internal workers | Existing internal authentication and deployment configuration; portable worker for replay jobs |
 
-These are server secrets/configuration, never VITE/public environment variables. Merely filling credentials does not automatically enable a product's commerce_product_prices.configured flag or establish provider verification. The remaining guided credential/price activation UI is still a code task. The launch page currently reports configuration, it does not store secret values.
+These are server secrets/configuration, never VITE/public environment variables. Merely filling credentials does not automatically enable a product's commerce_product_prices.configured flag or establish provider verification. Commerce & Membership now provides a guided connection console. Secrets are stored in Supabase Vault and never returned to the browser. Saving changes disables provider prices; verification and explicit enabling are separate steps. A credential handshake does not prove successful payments. Existing server environment configuration remains a fallback until a provider is saved in the console.
 
 ## Remaining implementation and release blockers
 
@@ -59,7 +62,7 @@ This is **not** a declaration that Supabase activation is the only remaining tas
 
 1. **Complete provider context assembly:** connect each current provider snapshot to verified drawdown baselines, position/open-risk valuation, contract/currency specifications, session/news evidence and routing capabilities, then automatically publish complete account_policy_evidence. The current producer correctly blocks without that complete context. Do not fill missing financial facts with zeros or fabricate a news-clear state.
 2. **Qualification integration:** validate the measured scanner release together with the existing product-specific qualified sets and downstream E/F dispatch. Promotion approves scanning, not customer execution or live account eligibility.
-3. **Guided commerce configuration and recovery:** complete the original admin UI for server-held provider settings, price activation, webhook health and actionable reconciliation. Whop lost-webhook polling/recovery and uncertain checkout recovery still need completion; event source verification alone does not provide that scheduler.
+3. **Commerce recovery integration:** the original admin now supports Vault-backed settings, verification, explicit price enabling, safe event status and an operator-triggered recovery pass. Whop polling uses durable cursors and revisits current subscription payments for lost refund/dispute events; pending M-Pesa requests are queried from the provider. Verify scheduled operation after deployment and complete uncertain external checkout submission recovery without duplicate charging.
 4. **Acquisition:** complete the integrated outreach CRM/acquisition pipeline. Existing campaign/content/approval/delivery components are not a complete automated 1,000-VIP customer acquisition operation.
 5. **Database release rehearsal:** run the complete native migration chain against a representative restored copy; check RLS, Vault, grants, existing data and concurrent claims. Focused embedded-Postgres tests do not certify the entire Supabase deployment.
 6. **Payments and membership:** after credentials/configuration, verify real sandbox checkout, source confirmation, duplicate/delayed events, renewal/refund/expiry, Telegram identity linking, paid admission and removal. No real payment or Telegram delivery was performed during this continuation.
@@ -73,7 +76,7 @@ Supabase restoration remains blocked by the previously observed unpaid-invoice r
 
 - Strict frontend TypeScript and existing account-authorization strict check.
 - Production frontend/server build.
-- Operations readiness suite, including six new behavioral tests and two new embedded-Postgres tests for actual provider claim/account controls and native holdout enqueue/promotion.
+- Operations readiness suite, including provider configuration, source recovery, account subscription isolation, historical refund handling and embedded-Postgres tests for actual provider claim/account controls and native holdout enqueue/promotion.
 - Existing Phase I commerce, Phase M validation and Phase P portable-worker integration suites; cloud worker strict typecheck.
 - Static admin route/surface audit and changed Edge Function bundle compilation.
 

@@ -87,3 +87,6 @@ verify_jwt = false
 
 [functions.saas-launch-status]
 verify_jwt = true
+
+[functions.commerce-configuration]
+verify_jwt = true
