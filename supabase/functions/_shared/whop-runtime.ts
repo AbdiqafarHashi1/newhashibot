@@ -1,3 +1,4 @@
+import {bindRecoveredWhopCheckout} from './whop-checkout-recovery.ts';
 import type {NormalizedCommerceEvent} from './commerce-events.ts';
 export type WhopRuntimeConfig={apiKey:string;companyId:string;webhookSecret:string;environment:'sandbox'|'production';planIds:Record<string,string>};
 export function whopRuntimeConfig(get:(key:string)=>string|undefined):WhopRuntimeConfig|null{
@@ -24,7 +25,7 @@ export async function createWhopRuntimeCheckout(c:WhopRuntimeConfig,checkout:any
  await verifyWhopRuntimePlan(c,checkout.product_code,Number(checkout.amount_minor),checkout.currency,transport);
  const redirect=new URL(checkout.safe_return_url);redirect.searchParams.set('checkout',checkout.id);
  const result=await whopRequest(c,'checkout_configurations',{account_id:c.companyId,plan_id:c.planIds[checkout.product_code],mode:'payment',metadata:{hashibot_checkout_id:checkout.id,hashibot_customer_id:checkout.customer_id,hashibot_product_code:checkout.product_code},redirect_url:redirect.toString()},`hashibot:${checkout.id}`,transport);
- const parsed=new URL(result.purchase_url);if(!result.id||parsed.protocol!=='https:'||!['whop.com','sandbox.whop.com'].includes(parsed.hostname)||parsed.username||parsed.password)throw Error('WHOP_CHECKOUT_RESPONSE_INVALID');
+ const parsed=new URL(result.purchase_url);if(typeof result.id!=='string'||!/^[-A-Za-z0-9_]{3,200}$/.test(result.id)||parsed.protocol!=='https:'||!['whop.com','sandbox.whop.com'].includes(parsed.hostname)||parsed.username||parsed.password)throw Error('WHOP_CHECKOUT_RESPONSE_INVALID');
  return {externalReference:String(result.id),actionUrl:parsed.toString()};
 }
 /** A signed event triggers a source lookup. Checkout/account/plan/amount are never inferred from a redirect. */
@@ -40,6 +41,9 @@ export async function verifyWhopRuntimeEvent(db:any,c:WhopRuntimeConfig,event:No
   const {data:prior,error:priorError}=await db.from('commerce_payment_attempts').select('checkout_session_id,safe_evidence').eq('id',subscription.last_verified_payment_id).eq('customer_id',subscription.customer_id).eq('provider','WHOP').maybeSingle();
   if(priorError||!prior||prior.safe_evidence?.member_id!==p.member_id)throw Error('WHOP_RENEWAL_MEMBER_MISMATCH');
   ({data:checkout,error}=await db.from('commerce_checkout_sessions').select('*').eq('id',prior.checkout_session_id).eq('customer_id',subscription.customer_id).eq('provider','WHOP').maybeSingle());renewal=true;
+ }
+ if(!error&&checkout&&!checkout.external_reference&&!renewal&&typeof p.checkout_configuration_id==='string'&&/^[-A-Za-z0-9_]{3,200}$/.test(p.checkout_configuration_id)){
+  const source=await whopRequest(c,`checkout_configurations/${encodeURIComponent(p.checkout_configuration_id)}`,undefined,undefined,transport);if(source.id!==p.checkout_configuration_id)throw Error('WHOP_CHECKOUT_SOURCE_ID_MISMATCH');checkout=await bindRecoveredWhopCheckout(db,c,checkout,source);
  }
  if(error||!checkout||p.id!==event.providerPaymentId||p.account_id!==c.companyId||p.plan_id!==c.planIds[checkout.product_code]||!renewal&&(p.checkout_configuration_id!==checkout.external_reference||metadata.hashibot_customer_id!==checkout.customer_id||metadata.hashibot_product_code!==checkout.product_code))throw Error('WHOP_SOURCE_LINEAGE_MISMATCH');
  const total=exactWhopMoney(p.total,checkout.currency),tax=p.tax_amount?exactWhopMoney(p.tax_amount,checkout.currency):0;if(total-tax!==Number(checkout.amount_minor))throw Error('WHOP_SOURCE_AMOUNT_MISMATCH');

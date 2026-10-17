@@ -682,8 +682,9 @@ Deno.serve(async (req: Request) => {
       const {data:scannerFeed}=await supabase.from("mt5_scanner_feeds").select("id,bridge_id,feed_identity,enabled,owner_controlled,execution_account_id,history_account_id").eq("bridge_id",bridgeId).eq("feed_identity",feedIdentity).maybeSingle();
       if(!scannerFeed||!scannerFeed.enabled||!scannerFeed.owner_controlled||scannerFeed.execution_account_id!==null)return jsonResponse({success:false,error_code:"MT5_DEDICATED_FEED_NOT_AUTHORIZED"},403);
       if(scannerFeed.history_account_id!==accountId)return jsonResponse({success:false,error_code:"MT5_FEED_HISTORY_ACCOUNT_MISMATCH"},403);
-      const {data:accData,error:feedAccountError}=await supabase.from("mt5_accounts").select("id,user_id").eq("id",accountId).eq("user_id",ownerId).eq("bridge_id",bridgeId).maybeSingle();
-      if(feedAccountError||!accData)return jsonResponse({success:false,error_code:"MT5_FEED_ACCOUNT_OWNERSHIP_REQUIRED"},403);
+      let accData:Record<string,unknown>;
+      try{accData=await scopedBridgeAccount("id,user_id,bridge_id,owner_kind,credential_capability,execution_enabled")}catch{return jsonResponse({success:false,error_code:"MT5_FEED_ACCOUNT_OWNERSHIP_REQUIRED"},403)}
+      if(accData.owner_kind!=="system"||accData.credential_capability!=="investor"||accData.execution_enabled!==false)return jsonResponse({success:false,error_code:"MT5_OWNER_INVESTOR_FEED_REQUIRED"},403);
       const effAccountId=accData.id,effOwnerId=accData.user_id;
       const feeds=Array.isArray(body.feeds)?body.feeds:[]; let candleCount=0;
       const required=["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","XAUUSD"];

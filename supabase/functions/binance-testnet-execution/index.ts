@@ -1,3 +1,4 @@
+import {applyBybitCertifiedConfiguration} from '../_shared/bybit-certified-configuration.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
@@ -3054,10 +3055,14 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
   return {
     async send(operation, payload, identity) {
       try {
+        if(plan.provider==="BYBIT"&&["SET_LEVERAGE","VERIFY_PRECONFIGURED_LEVERAGE","SET_MARGIN_MODE","VERIFY_PRECONFIGURED_MARGIN_MODE"].includes(operation)){
+          await applyBybitCertifiedConfiguration(operation,payload,(method,path,params)=>bybitRequest(method,path,params));
+          return {outcome:"ACKNOWLEDGED",provider_order_id:identity,provider_position_id:null,provider_timestamp:new Date().toISOString(),raw_status:"CONFIGURATION_VERIFIED",redacted_evidence:{operation},error:null};
+        }
         if (operation.startsWith("VERIFY_")) return { outcome:"ACKNOWLEDGED", provider_order_id:identity, provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:"VERIFIED_FROM_CERTIFIED_TRUTH", redacted_evidence:{ operation }, error:null };
         if ((plan.provider === "BINANCE" || plan.provider === "BYBIT") && (payload.quantity !== undefined || payload.qty !== undefined)) {
           const provider = plan.provider.toLowerCase();
-          const { data: decision, error: decisionError } = await db.from("execution_account_policy_decisions").select("id,customer_id,execution_account_id,signal_id,decision,authorized_risk_pct,brain_version,policy_profile_id,policy_version,intent_id,approved_quantity,created_at,connected_execution_accounts!inner(immutable_identity,provider,environment,enabled,is_operational,execution_enabled,provider_health)").eq("execution_account_id",plan.routing!.account_id).eq("signal_id",plan.evaluation_id).maybeSingle();
+          const { data: decision, error: decisionError } = await db.from("execution_account_policy_decisions").select("id,customer_id,execution_account_id,signal_id,decision,authorized_risk_pct,brain_version,policy_profile_id,policy_version,intent_id,approved_quantity,created_at,connected_execution_accounts!inner(immutable_identity,provider,environment,enabled,is_operational,execution_enabled,provider_health)").eq("execution_account_id",plan.routing!.account_id).eq("id",plan.risk_decision.decision_id).maybeSingle();
           if (decisionError || !decision) throw new Error("phase_d_execution_decision_missing");
           const account = decision.connected_execution_accounts as unknown as Json;
           const symbol = String(payload.symbol ?? plan.routing!.provider_symbol).toUpperCase();
@@ -3085,7 +3090,7 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
           const result = await bybitRequest<Json>("POST", "/v5/order/create", clean(payload));
           return { outcome:"ACKNOWLEDGED", provider_order_id:String(result.orderId ?? identity), provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:"ACKNOWLEDGED", redacted_evidence:{ orderId:result.orderId ?? null }, error:null };
         }
-        const { data: decision, error: decisionError } = await db.from("execution_account_policy_decisions").select("id,customer_id,execution_account_id,signal_id,decision,authorized_risk_pct,brain_version,policy_profile_id,policy_version,intent_id,approved_quantity,created_at,connected_execution_accounts!inner(immutable_identity,provider,environment,account_mode,enabled,is_operational,execution_enabled,provider_health,account_id,customer_id,provider_account_identity,policy_overrides)").eq("execution_account_id",plan.routing!.account_id).eq("signal_id",plan.evaluation_id).maybeSingle();
+        const { data: decision, error: decisionError } = await db.from("execution_account_policy_decisions").select("id,customer_id,execution_account_id,signal_id,decision,authorized_risk_pct,brain_version,policy_profile_id,policy_version,intent_id,approved_quantity,created_at,connected_execution_accounts!inner(immutable_identity,provider,environment,account_mode,enabled,is_operational,execution_enabled,provider_health,account_id,customer_id,provider_account_identity,policy_overrides)").eq("execution_account_id",plan.routing!.account_id).eq("id",plan.risk_decision.decision_id).maybeSingle();
         if (decisionError || !decision) throw new Error("phase_d_execution_decision_missing");
         const connected = (decision.connected_execution_accounts as unknown as Record<string, unknown>);
         const mappedRoute = resolveMt5TerminalRoute(connected, String(decision.customer_id));

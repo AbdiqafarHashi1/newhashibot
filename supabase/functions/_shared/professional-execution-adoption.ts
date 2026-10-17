@@ -160,8 +160,12 @@ export function revalidateAdoption(plan: DeepReadonly<ExecutionPlan>, policy: De
   check("fingerprint.routing", truth.routing_fingerprint === plan.routing_fingerprint, "routing_fingerprint_drift", "Routing fingerprint remains exact.");
   check("fingerprint.execution", truth.execution_fingerprint === plan.execution_fingerprint, "execution_fingerprint_drift", "Execution fingerprint remains exact.");
   const plannedEntryQuantity = plan.orders.reduce((sum, order) => order.role === "ENTRY" || order.role.startsWith("ENTRY_TP") ? sum + order.quantity : sum, 0);
-  const configuredLeverages = plan.provider_configuration.filter((item) => item.action === "SET_LEVERAGE" || item.action === "VERIFY_PRECONFIGURED_LEVERAGE").map((item) => Number(item.provider_payload.leverage ?? item.provider_payload.authorized_leverage));
-  check("allocation.preserved", Boolean(allocation && Math.abs(plannedEntryQuantity - allocation.quantity) <= 1e-9 && configuredLeverages.every((value) => value === allocation.leverage)), "allocation_not_preserved", "Entry instructions preserve total quantity/lots and any planned leverage action preserves the allocation leverage.");
+  const leverageInstructions = plan.provider_configuration.filter((item) => item.action === "SET_LEVERAGE" || item.action === "VERIFY_PRECONFIGURED_LEVERAGE");
+  const leveragePreserved = leverageInstructions.length===1 && leverageInstructions.every(item=>{
+    const values=['leverage','authorized_leverage','requiredLeverage','maximumLeverage'].filter(key=>item.provider_payload[key]!==undefined).map(key=>Number(item.provider_payload[key]));
+    return values.length>0&&values.every(value=>Number.isFinite(value)&&value>0&&value===allocation?.leverage);
+  });
+  check("allocation.preserved", Boolean(allocation && Math.abs(plannedEntryQuantity - allocation.quantity) <= 1e-9 && leveragePreserved), "allocation_not_preserved", "Entry instructions preserve total quantity/lots and any planned leverage action preserves the allocation leverage.");
   check("provider.conflicts", !truth.conflicting_position && !truth.conflicting_open_entry, "conflicting_provider_position_or_entry", "No prohibited position or entry conflict exists.");
   check("provider.client_ids", !plan.orders.some((order) => truth.active_client_ids.includes(order.client_order_id)), "deterministic_client_id_already_active", "No planned deterministic client ID is already active.");
   check("provider.configuration", truth.configuration_change_safe, "provider_configuration_change_unsafe", "Margin/leverage configuration can be applied or verified safely.");

@@ -1,3 +1,4 @@
+import {recoverWhopCheckoutConfigurations} from '../_shared/whop-checkout-recovery.ts';
 import {authorizeInternalOrAdmin} from '../_shared/internal-auth.ts';
 import {recoverWhopPayments,recheckWhopMembershipPayments} from '../_shared/whop-payment-recovery.ts';
 import {commerceEnvironment} from '../_shared/commerce-provider-settings.ts';
@@ -11,7 +12,7 @@ Deno.serve(async req=>{
  const db=createClient(Deno.env.get('SUPABASE_URL')??'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'',{auth:{persistSession:false}});
  const auth=await authorizeInternalOrAdmin(req,db);if(!auth.ok)return reply(auth.status,{state:'BLOCKED',reason:'SERVICE_AUTH_REQUIRED'});
  const get=await commerceEnvironment(db,key=>Deno.env.get(key)),results:any[]=[],adapter=mpesaAdapterFromGetter(get);
- const whop=whopRuntimeConfig(get);if(whop){try{results.push(...await recoverWhopPayments(db,whop));results.push(...await recheckWhopMembershipPayments(db,whop))}catch{results.push({state:'WHOP_SOURCE_RECOVERY_RETRYABLE'})}}
+ const whop=whopRuntimeConfig(get);if(whop){for(const recover of [recoverWhopCheckoutConfigurations,recoverWhopPayments,recheckWhopMembershipPayments]){try{results.push(...await recover(db,whop))}catch(error){results.push({state:'WHOP_SOURCE_RECOVERY_RETRYABLE',reason:error instanceof Error&&error.message==='WHOP_CHECKOUT_METADATA_PERMISSION_REQUIRED'?'WHOP_CHECKOUT_METADATA_PERMISSION_REQUIRED':'WHOP_SOURCE_CHECK_RETRYABLE'})}}}
  // Recover lost callbacks with provider queries against known requests; never submit a second STK request.
  const pending=await db.from('commerce_payment_attempts').select('id,external_reference').eq('provider','MPESA').eq('state','PENDING').not('external_reference','is',null).lte('next_status_query_at',new Date().toISOString()).order('next_status_query_at').limit(10);
  if(pending.error)return reply(500,{state:'BLOCKED',reason:'PAYMENT_ATTEMPTS_UNAVAILABLE'});
@@ -24,5 +25,5 @@ Deno.serve(async req=>{
   const {error:saveError}=await db.from('commerce_payment_events').update({signature_verified:true,normalized_event:verified}).eq('provider',event.provider).eq('external_event_id',event.external_event_id);if(saveError)throw saveError;
   const {data,error}=await db.rpc('process_canonical_commerce_event',{p_provider:event.provider,p_event_id:event.external_event_id});if(error)throw Error('PAYMENT_PROCESSOR_RETRYABLE');results.push({event_id:event.external_event_id,state:data?.state??'PROCESSED'});
  }catch{await db.from('commerce_payment_events').update({safe_error:'PAYMENT_SOURCE_OR_PROCESSOR_RETRYABLE',next_reconcile_at:new Date(Date.now()+120000).toISOString()}).eq('provider',event.provider).eq('external_event_id',event.external_event_id);results.push({event_id:event.external_event_id,state:'RETRYABLE'})}}
- return reply(200,{state:'COMPLETE',results});
+ return reply(200,{state:results.some(item=>String(item.state).includes('RETRYABLE'))?'PARTIAL':'COMPLETE',results});
 });

@@ -24,6 +24,7 @@ jobs:
       - run: python3 -m pip install python-dotenv==1.2.4
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run check:edge-bundles
       - run: npm run typecheck:account-authorization
       - run: npm run build
       - run: npm run test:operations-readiness
