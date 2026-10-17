@@ -1,3 +1,4 @@
+import {prepareAutomaticCryptoEvidence} from './automatic-crypto-policy-evidence.ts';
 import {prepareAutomaticMt5Evidence} from './automatic-mt5-policy-evidence.ts';
 import {assertMeasuredExecutionLineage} from './measured-execution-lineage.ts';
 import {planFromAccountDecision} from './phase-d-execution-plan.ts';
@@ -50,7 +51,8 @@ export async function drainProductionAccountAuthorizations(db:any,limit=25){
   // Transient missing observations stay retryable; they must not freeze a permanent BLOCK for this signal.
   if(Date.parse(source.data.signal.expires_at)>Date.now()&&['waiting','active'].includes(source.data.signal.status)){
    await prepareAutomaticMt5Evidence(db,source.data);
-   if(source.data.account.provider!=='MT5_PERSONAL')assertCompleteProductionContext(source.data.context,{customerId:job.customer_id,accountId:job.execution_account_id,provider:String(source.data.account.provider).toUpperCase(),observedAt:source.data.observed_at});
+   await prepareAutomaticCryptoEvidence(db,source.data);
+   if(!['MT5_PERSONAL','BINANCE'].includes(String(source.data.account.provider).toUpperCase()))assertCompleteProductionContext(source.data.context,{customerId:job.customer_id,accountId:job.execution_account_id,provider:String(source.data.account.provider).toUpperCase(),observedAt:source.data.observed_at});
   }
   const decision=await authorizeCanonicalAccountSignal(db,{customerId:job.customer_id,accountId:job.execution_account_id,signalId:job.signal_id,idempotencyKey:`job:${job.id}`});
   const saved=await db.from('account_signal_authorization_jobs').update({state:'RECORDED',decision_id:decision.id,last_error:null,updated_at:new Date().toISOString()}).eq('id',job.id).eq('state','PENDING');if(saved.error)throw Error('ACCOUNT_AUTHORIZATION_JOB_NOT_PERSISTED');

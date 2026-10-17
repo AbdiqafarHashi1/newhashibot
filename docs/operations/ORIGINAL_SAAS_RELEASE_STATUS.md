@@ -91,3 +91,9 @@ Fixtures and simulated provider responses verify code behavior. They are not rea
 The local operations run passed 59 behavioral tests, 13 embedded PostgreSQL tests and seven Python tests. The frontend build, strict frontend/account authorization typechecks and static admin audit pass. These are local checks; the next commit CI is a separate check. Binance monitor coverage runs the actual HTTP handler against two isolated fake provider accounts, including a failed customer and an enabled entry kill switch. Multi-asset USD financial totals retain their actual currency; coin USDT balances remain separate. No external message, charge, trade or deployment was performed.
 
 The remote CI run for acdab48 exposed two previously omitted shared runtime dependencies. Commit 9b7ac4 includes the account context contract type and observed-contract sizing implementation, with an explicit non-unit tick-value sizing regression. Local validation passes; the corresponding GitHub CI result must be checked separately.
+
+## Provider-context follow-up
+
+Automatic Binance Personal testnet evidence now supports a conservative flat-account entry path. It reloads canonical customer/account ownership, exact credential/instance proof, continuous USDT drawdown baselines, observed per-symbol one-way margin/leverage configuration, current sandbox perpetual contract filters and recorded runtime failures. Missing limits are not defaulted. Open positions/orders, hedge mode, multi-asset USD conversion, stale cache and baseline gaps remain explicit retryable blockers; they are not represented as zero exposure. This does not claim Bybit/Prop automatic assembly or real Binance demo certification.
+
+The follow-up was branched from the tested PR #260 head because GitHub still reported that PR open and ready for review, with main unchanged, after the owner reported merging. No merge was performed on the owner's behalf.
