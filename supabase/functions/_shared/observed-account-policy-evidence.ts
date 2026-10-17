@@ -21,7 +21,7 @@ export async function recordObservedAccountPolicyEvidence(db:any,input:any,now=D
  const mt5=scope.provider.startsWith('MT5');let q=db.from(mt5?'mt5_account_snapshots':'execution_account_runtime_proof').select('*').eq(mt5?'owner_id':'customer_id',scope.customerId).eq('account_id',mt5?a.data.provider_account_identity:a.data.account_id);if(!mt5)q=q.eq('execution_instance_id',a.data.execution_instance_id).eq('credential_ref',a.data.credential_ref);
  const proof=await q.order(mt5?'captured_at':'observed_at',{ascending:false}).limit(1).maybeSingle();if(proof.error||!proof.data)throw Error('CURRENT_PROVIDER_SNAPSHOT_REQUIRED');
  const raw=mt5?proof.data:proof.data.account_state,at=mt5?proof.data.captured_at:proof.data.observed_at;
- const numbers=mt5?[raw.balance,raw.equity,raw.free_margin]:scope.provider==='BINANCE'?[raw.account_total_wallet_balance,raw.account_total_margin_balance,raw.available_usdt]:[raw.account_wallet_balance,raw.account_equity,raw.trading_available_balance];
+ const numbers=mt5?[raw.balance,raw.equity,raw.free_margin]:scope.provider==='BINANCE'?[raw.account_total_wallet_balance,raw.account_total_margin_balance,raw.account_available_balance]:[raw.account_wallet_balance,raw.account_equity,raw.trading_available_balance];
  if(Date.parse(at)!==Date.parse(scope.observedAt)||numbers.some((v:any,i:number)=>v===null||v===undefined||!Number.isFinite(Number(v))||Math.abs(Number(v)-[c.balance,c.equity,c.free_margin][i])>1e-6))throw Error('PROVIDER_FINANCIAL_EVIDENCE_MISMATCH');
  const positions=mt5?raw.positions:scope.provider==='BINANCE'?raw.open_binance_positions:raw.positions;
  const orders=mt5?raw.orders:scope.provider==='BINANCE'?raw.open_binance_orders:raw.open_orders;

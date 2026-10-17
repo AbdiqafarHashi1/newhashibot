@@ -1,6 +1,6 @@
 # PR #259 deletion review
 
-Compared GitHub PR #259 at a21c8eb against main de55838. GitHub reports 10,867 deleted lines across 157 changed files, with zero file removals; this is not 10,760 deleted backend features. The biggest reductions replace separate admin implementations with shared components. However, the earlier replacements were too thin in places. Financial detail and structured parameter guidance have been restored in this follow-up.
+Reviewed the final merged GitHub PR #259. GitHub reports 10,886 deleted lines across 164 changed files, with zero file removals; this is not 10,760 deleted backend features. The biggest reductions replace separate admin implementations with shared components. However, the earlier replacements were too thin in places. Financial detail and structured parameter guidance have been restored in this follow-up.
 
 | Old page | Lines removed in reviewed patch | Retained/replacement | Removed behavior |
 | --- | ---: | --- | --- |
@@ -39,4 +39,4 @@ The original Agents replacement did not preserve an effective evidence selector 
 
 Customer directory, fleet, execution readiness and access routes now state their specific operational purpose while sharing canonical support reads. This source review does not certify every control on all 70 admin routes.
 
-The connected Supabase project `uqiwbzfcntlcyyewawfc` reported INACTIVE during read-only inspection on 2026-10-16. No migration, deployment, live message or trade was submitted by this follow-up. Automatic complete provider policy-context assembly remains unfinished, as does an integrated outreach CRM/provider workflow. Legacy `customer-provisioning` still contains manual-review activation and a separate runtime-control path; it requires replacement with canonical verified-payment/readiness authority before claiming end-to-end onboarding. The new admin surfaces do not call its activation action.
+The connected Supabase project `uqiwbzfcntlcyyewawfc` reported INACTIVE during read-only inspection on 2026-10-16. No migration, deployment, live message or trade was submitted by this follow-up. Automatic context assembly now includes the MT5 Personal path from an owned terminal, current symbol specifications and continuously observed baselines. Crypto and approved Prop-firm context assembly still need completion. The original goal page now includes a private outreach CRM; actual publishing-provider integration remains unverified. Legacy manual receipt activation has been replaced with canonical payment/readiness authority. End-to-end activation and provider behavior still require real deployment tests.

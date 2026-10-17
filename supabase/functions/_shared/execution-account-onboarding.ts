@@ -62,7 +62,7 @@ export async function verifyBinanceTestnet(credential: RawCredential, fetcher: t
   const query = `timestamp=${timestamp}&recvWindow=10000`;
   const signature = await hmacSha256(credential.apiSecret, query);
   const headers = { "X-MBX-APIKEY": credential.apiKey };
-  const base = "https://testnet.binancefuture.com";
+  const base = "https://demo-fapi.binance.com";
   const [accountResponse, ordersResponse] = await Promise.all([
     fetcher(`${base}/fapi/v2/account?${query}&signature=${signature}`, { headers }),
     (async () => {
@@ -71,10 +71,17 @@ export async function verifyBinanceTestnet(credential: RawCredential, fetcher: t
     })(),
   ]);
   const account = await safeJson(accountResponse);
-  const candidateIdentity = typeof account.accountAlias === "string" && account.accountAlias.trim() ? account.accountAlias.trim() : null;
+  let candidateIdentity = typeof account.accountAlias === "string" && account.accountAlias.trim() ? account.accountAlias.trim() : null;
+  if(accountResponse.ok&&!candidateIdentity){
+    // Binance documents the unique accountAlias on balance, not on account information.
+    const balanceResponse=await fetcher(`${base}/fapi/v3/balance?${query}&signature=${signature}`,{headers,signal:AbortSignal.timeout(10000)});
+    const balances=await balanceResponse.json().catch(()=>null);
+    const aliases=balanceResponse.ok&&Array.isArray(balances)?[...new Set(balances.map(row=>typeof row?.accountAlias==='string'?row.accountAlias.trim():'').filter(Boolean))]:[];
+    if(aliases.length===1)candidateIdentity=aliases[0];
+  }
   const nativeIdentity = candidateIdentity && isAtomicExecutionIdentity(candidateIdentity) ? candidateIdentity : null;
-  // Futures Testnet does not consistently expose accountAlias. This constant is
-  // scoped by owner/provider/environment and contains no credential material.
+  // This compatibility marker is never accepted by customer credential persistence.
+  // Missing or contradictory native identity remains a blocker, not a shared customer bot.
   const identity = nativeIdentity ?? canonicalBinanceTestnetSystemIdentity();
   const ok = accountResponse.ok && ordersResponse.ok;
   return {

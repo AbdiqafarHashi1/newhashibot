@@ -13,3 +13,11 @@ test('financial observations reject missing, blank, boolean and non-finite value
  assert.equal(observedFinancialNumber('0','margin'),0);assert.equal(observedFinancialNumber('123.50','balance'),123.5);
  for(const value of [undefined,null,'',' ',false,true,'NaN',Infinity,-1])assert.throws(()=>observedFinancialNumber(value,'balance'),/FINANCIAL_FIELD_REQUIRED/);
 });
+
+
+test('Binance multi-asset USD totals are not mislabeled as coin USDT balances',async()=>{
+ const {admitBinanceFinancials}=await import('../../supabase/functions/_shared/provider-snapshot-admission');
+ assert.deepEqual(admitBinanceFinancials({multiAssetsMargin:true,availableBalance:'1000',assets:[{asset:'USDT',availableBalance:'700'}]}),{account_available_balance:1000,provider_account_currency:'USD',multi_assets_margin:true,available_usdt:700});
+ assert.equal(admitBinanceFinancials({multiAssetsMargin:false,availableBalance:'0',assets:[]}).available_usdt,null);
+ assert.throws(()=>admitBinanceFinancials({availableBalance:'1000',assets:[]}),/FINANCIAL_MODE_REQUIRED/);
+});

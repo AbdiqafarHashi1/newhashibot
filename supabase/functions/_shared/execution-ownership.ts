@@ -235,5 +235,8 @@ export function ownedQuery(query: any, ownership: EdgeExecutionOwnership): any {
 }
 
 export async function settleExecutionAccounts<T>(accounts: EdgeExecutionOwnership[], work: (ownership: EdgeExecutionOwnership) => Promise<T>): Promise<PromiseSettledResult<T>[]> {
-  return Promise.allSettled(accounts.map(work));
+  const results:PromiseSettledResult<T>[]=new Array(accounts.length);let next=0;
+  await Promise.all(Array.from({length:Math.min(4,accounts.length)},async()=>{
+    while(next<accounts.length){const index=next++;try{results[index]={status:'fulfilled',value:await work(accounts[index])}}catch(reason){results[index]={status:'rejected',reason}}}
+  }));return results;
 }

@@ -1,3 +1,4 @@
+import {prepareAutomaticMt5Evidence} from './automatic-mt5-policy-evidence.ts';
 import {assertMeasuredExecutionLineage} from './measured-execution-lineage.ts';
 import {planFromAccountDecision} from './phase-d-execution-plan.ts';
 import {pinnedClaimFromQualifiedSet,routeProductionEligibility} from './trading-domain/production-eligibility-router.ts';
@@ -42,9 +43,15 @@ export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:s
 export async function drainProductionAccountAuthorizations(db:any,limit=25){
  if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('AUTHORIZATION_BATCH_BOUND');
  const queued=await db.rpc('enqueue_production_account_authorizations');if(queued.error)throw Error('ACCOUNT_AUTHORIZATION_ENQUEUE_FAILED');
- const pending=await db.from('account_signal_authorization_jobs').select('*').eq('state','PENDING').order('created_at').limit(limit);if(pending.error||!Array.isArray(pending.data))throw Error('ACCOUNT_AUTHORIZATION_JOBS_UNAVAILABLE');
+ const pending=await db.from('account_signal_authorization_jobs').select('*').eq('state','PENDING').order('updated_at').order('id').limit(limit);if(pending.error||!Array.isArray(pending.data))throw Error('ACCOUNT_AUTHORIZATION_JOBS_UNAVAILABLE');
  const results=[];
  for(const job of pending.data){try{
+  const source=await db.rpc('load_production_account_authorization_input',{p_customer_id:job.customer_id,p_account_id:job.execution_account_id,p_signal_id:job.signal_id});if(source.error||!source.data)throw Error('ACCOUNT_AUTHORIZATION_INPUT_UNAVAILABLE');
+  // Transient missing observations stay retryable; they must not freeze a permanent BLOCK for this signal.
+  if(Date.parse(source.data.signal.expires_at)>Date.now()&&['waiting','active'].includes(source.data.signal.status)){
+   await prepareAutomaticMt5Evidence(db,source.data);
+   if(source.data.account.provider!=='MT5_PERSONAL')assertCompleteProductionContext(source.data.context,{customerId:job.customer_id,accountId:job.execution_account_id,provider:String(source.data.account.provider).toUpperCase(),observedAt:source.data.observed_at});
+  }
   const decision=await authorizeCanonicalAccountSignal(db,{customerId:job.customer_id,accountId:job.execution_account_id,signalId:job.signal_id,idempotencyKey:`job:${job.id}`});
   const saved=await db.from('account_signal_authorization_jobs').update({state:'RECORDED',decision_id:decision.id,last_error:null,updated_at:new Date().toISOString()}).eq('id',job.id).eq('state','PENDING');if(saved.error)throw Error('ACCOUNT_AUTHORIZATION_JOB_NOT_PERSISTED');
   results.push({id:job.id,decision:decision.decision});

@@ -13,3 +13,13 @@ export async function reconcileMpesaRequest(db:any,adapter:MpesaAdapter,requestI
 }
 /** Callback text is a notification only. It cannot choose an account, amount, product or customer. */
 export async function reconcileMpesaEvent(db:any,adapter:MpesaAdapter,raw:any,hash?:string){const callback=normalizeMpesaCallback(raw,hash??await sha256Hex(JSON.stringify(raw)));return reconcileMpesaRequest(db,adapter,String(callback.providerCheckoutId),callback)}
+
+/** The URL token proves association with the server's submitted request; it never proves payment success. */
+export async function recoverMpesaCallbackBinding(db:any,url:string,raw:any){
+ const params=new URL(url).searchParams,checkout=params.get('h_checkout'),token=params.get('h_token');
+ if(!checkout&&!token)return; // Earlier known-request callbacks still use their persisted native request ID.
+ if(!checkout||!token||token.length<32||token.length>200)throw Error('PRIVATE_CALLBACK_TOKEN_REQUIRED');
+ const callback=normalizeMpesaCallback(raw,await sha256Hex(JSON.stringify(raw)));
+ const {error}=await db.rpc('bind_mpesa_submission_callback',{p_checkout:checkout,p_token_hash:await sha256Hex(token),p_request:callback.providerCheckoutId,p_merchant:callback.safeEvidence.merchant_request_id});
+ if(error)throw Error('PRIVATE_CALLBACK_BINDING_NOT_CONFIRMED');
+}

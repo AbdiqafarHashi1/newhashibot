@@ -57,3 +57,11 @@ test('MT5 observed positions use the bridge quantity field and reject a changed 
  const input={customer_id:'customer-a',execution_account_id:'a1',provider:'MT5_PERSONAL',symbol:'EURUSD',observed_at:at,account_context:c,contract_specification:x.contract,routing_policy:x.routing_policy,capabilities:x.capabilities,pending_orders:0};
  assert.equal((await recordObservedAccountPolicyEvidence(db,input,Date.parse(at))).id,'saved');snapshot.positions[0].quantity=.2;await assert.rejects(recordObservedAccountPolicyEvidence(db,input,Date.parse(at)),/POSITION_EVIDENCE_MISMATCH/);
 });
+
+
+test('higher MT5 broker buying power does not override the lower authorized leverage ceiling',async()=>{
+ const {x,at}=fixture();x.context.leverage=100;let saved:any;
+ const db={rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
+ const result=await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'broker-leverage'},at);
+ assert.equal(result.decision,'ALLOW',JSON.stringify(saved.p_decision));assert.ok(saved.p_decision.executionIntent.positionPlan.leverage<=x.policy.max_leverage_allowed);
+});

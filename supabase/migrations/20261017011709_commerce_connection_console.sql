@@ -65,3 +65,39 @@ create index commerce_payment_event_recovery_due on public.commerce_payment_even
 
 alter table public.commerce_payment_attempts add column if not exists next_status_query_at timestamptz not null default now();
 create index commerce_mpesa_status_query_due on public.commerce_payment_attempts(provider,state,next_status_query_at) where state='PENDING';
+
+-- A private callback token is saved before STK submission. It recovers lost acknowledgements without repeating a charge.
+create unique index commerce_mpesa_private_callback on public.commerce_payment_attempts((safe_evidence->>'callback_token_hash')) where provider='MPESA' and safe_evidence->>'callback_token_hash' is not null;
+create function public.bind_mpesa_submission_callback(p_checkout uuid,p_token_hash text,p_request text,p_merchant text) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare c record;a record;begin
+ if nullif(btrim(p_request),'') is null or nullif(btrim(p_merchant),'') is null then raise exception 'NATIVE_REQUEST_IDENTIFIERS_REQUIRED';end if;
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ if p_token_hash is null or p_request is null or p_merchant is null or p_token_hash !~ '^[a-f0-9]{64}$' or p_request !~ '^[A-Za-z0-9_.-]{1,150}$' or p_merchant !~ '^[A-Za-z0-9_.-]{1,150}$' then raise exception 'CALLBACK_BINDING_INVALID';end if;
+ select * into c from commerce_checkout_sessions where id=p_checkout and provider='MPESA' for update;if not found then raise exception 'SERVER_CHECKOUT_REQUIRED';end if;
+ select * into a from commerce_payment_attempts where checkout_session_id=c.id and customer_id=c.customer_id and provider='MPESA' and safe_evidence->>'callback_token_hash'=p_token_hash for update;
+ if not found or (a.provider_state not in('SUBMISSION_IN_PROGRESS','SUBMISSION_UNCERTAIN','STK_SENT','CALLBACK_RECOVERED') and a.external_reference is distinct from p_request) then raise exception 'PRIVATE_CALLBACK_BINDING_REQUIRED';end if;
+ if (a.external_reference is not null and a.external_reference<>p_request) or(c.external_reference is not null and c.external_reference<>p_request) or(a.safe_evidence->>'merchant_request_id' is not null and a.safe_evidence->>'merchant_request_id'<>p_merchant) then raise exception 'CALLBACK_REQUEST_CONFLICT';end if;
+ update commerce_payment_attempts set external_reference=p_request,state=case when state in('CREATED','PENDING','REVIEW_REQUIRED') then 'PENDING' else state end,provider_state=case when access_applied_at is null then 'CALLBACK_RECOVERED' else provider_state end,safe_evidence=safe_evidence||jsonb_build_object('merchant_request_id',p_merchant,'checkout_request_id',p_request),next_status_query_at=now() where id=a.id;
+ update commerce_checkout_sessions set external_reference=p_request where id=c.id;
+ return jsonb_build_object('state','BOUND_SOURCE_QUERY_REQUIRED','checkout_id',c.id);
+end$$;
+revoke all on function public.bind_mpesa_submission_callback(uuid,text,text,text) from public,anon,authenticated;
+grant execute on function public.bind_mpesa_submission_callback(uuid,text,text,text) to service_role;
+
+-- An acknowledgement arriving after a callback must never downgrade a completed payment.
+create function public.acknowledge_mpesa_submission(p_checkout uuid,p_attempt uuid,p_request text,p_merchant text) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare c record;a record;begin
+ if nullif(btrim(p_request),'') is null or nullif(btrim(p_merchant),'') is null then raise exception 'NATIVE_REQUEST_IDENTIFIERS_REQUIRED';end if;
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ select * into c from commerce_checkout_sessions where id=p_checkout and provider='MPESA' for update;if not found then raise exception 'SERVER_CHECKOUT_REQUIRED';end if;
+ select * into a from commerce_payment_attempts where id=p_attempt and checkout_session_id=c.id and customer_id=c.customer_id and provider='MPESA' for update;if not found then raise exception 'SERVER_ATTEMPT_REQUIRED';end if;
+ if (a.external_reference is not null and a.external_reference<>p_request) or(c.external_reference is not null and c.external_reference<>p_request) or(a.safe_evidence->>'merchant_request_id' is not null and a.safe_evidence->>'merchant_request_id'<>p_merchant) then raise exception 'ACKNOWLEDGEMENT_REQUEST_CONFLICT';end if;
+ if c.status='COMPLETED' or a.access_applied_at is not null or a.state in('SUCCEEDED','REFUNDED','PARTIALLY_REFUNDED','DISPUTED','CHARGEBACK','REVERSED','FAILED','CANCELLED','EXPIRED') then return jsonb_build_object('state','PAYMENT_ALREADY_RECORDED');end if;
+ update commerce_payment_attempts set state='PENDING',provider_state='STK_SENT',external_reference=p_request,safe_evidence=safe_evidence||jsonb_build_object('merchant_request_id',p_merchant,'checkout_request_id',p_request),next_status_query_at=now() where id=a.id;
+ update commerce_checkout_sessions set external_reference=p_request,status=case when status in('PROVIDER_PENDING','REVIEW_REQUIRED') then 'ACTION_REQUIRED' else status end where id=c.id;
+ return jsonb_build_object('state','ACTION_REQUIRED');
+end$$;
+revoke all on function public.acknowledge_mpesa_submission(uuid,uuid,text,text) from public,anon,authenticated;
+grant execute on function public.acknowledge_mpesa_submission(uuid,uuid,text,text) to service_role;

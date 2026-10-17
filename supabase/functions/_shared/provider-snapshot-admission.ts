@@ -19,3 +19,10 @@ export function observedFinancialNumber(value:unknown,field:string,minimum=0){
  if(value===null||value===undefined||typeof value==='boolean'||String(value).trim()===''||!Number.isFinite(Number(value))||Number(value)<minimum)throw Error(`PROVIDER_FINANCIAL_FIELD_REQUIRED:${field}`);
  return Number(value);
 }
+
+/** Combined multi-asset totals are USD; individual coin balances retain their own unit. */
+export function admitBinanceFinancials(account:Record<string,unknown>){
+ if(typeof account.multiAssetsMargin!=='boolean'||!Array.isArray(account.assets))throw Error('PROVIDER_FINANCIAL_MODE_REQUIRED');
+ const usdt=account.assets.find((asset:any)=>asset?.asset==='USDT');
+ return {account_available_balance:observedFinancialNumber(account.availableBalance,'availableBalance'),provider_account_currency:account.multiAssetsMargin?'USD':'USDT',multi_assets_margin:account.multiAssetsMargin,available_usdt:usdt?observedFinancialNumber(usdt.availableBalance,'USDT.availableBalance'):null};
+}

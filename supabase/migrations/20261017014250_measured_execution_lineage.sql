@@ -68,21 +68,75 @@ alter table public.mt5_symbol_specs add column if not exists tick_size numeric,a
 -- Provider snapshots refresh the matching account's health; onboarding verification is not a permanent heartbeat.
 create function public.refresh_owned_provider_health() returns trigger
 language plpgsql security definer set search_path=public as $$
-declare observed timestamptz;healthy boolean;begin
+declare observed timestamptz;healthy boolean;linked record;begin
  if tg_table_name='execution_account_runtime_proof' then
   observed:=new.observed_at;healthy:=new.monitor_status='healthy';
   if observed is null or observed>clock_timestamp()+interval '5 seconds' or observed<clock_timestamp()-interval '60 seconds' then return new;end if;
-  update connected_execution_accounts set provider_health=case when healthy then 'healthy' else 'degraded' end,last_synchronized_at=observed,updated_at=clock_timestamp()
-  where customer_id=new.customer_id and account_id=new.account_id and upper(provider)=upper(new.provider) and execution_instance_id=new.execution_instance_id and credential_ref=new.credential_ref and upper(environment)=upper(new.environment) and (last_synchronized_at is null or last_synchronized_at<=observed);
+  for linked in update connected_execution_accounts set provider_health=case when healthy then 'healthy' else 'degraded' end,last_synchronized_at=observed,updated_at=clock_timestamp()
+  where customer_id=new.customer_id and account_id=new.account_id and upper(provider)=upper(new.provider) and execution_instance_id=new.execution_instance_id and credential_ref=new.credential_ref and upper(environment)=upper(new.environment) and (last_synchronized_at is null or last_synchronized_at<=observed) returning id,customer_id loop
+   perform track_current_provider_risk(linked.customer_id,linked.id);
+  end loop;
  else
   observed:=new.captured_at;healthy:=new.terminal_authenticated=true and new.trade_permission=true and new.terminal_autotrading=true;
   if observed is null or observed>clock_timestamp()+interval '5 seconds' or observed<clock_timestamp()-interval '60 seconds' then return new;end if;
-  update connected_execution_accounts a set provider_health=case when healthy then 'healthy' else 'degraded' end,last_synchronized_at=observed,updated_at=clock_timestamp()
+  for linked in update connected_execution_accounts a set provider_health=case when healthy then 'healthy' else 'degraded' end,last_synchronized_at=observed,updated_at=clock_timestamp()
   where a.customer_id=new.owner_id and a.provider_account_identity=new.account_id::text and a.provider in('MT5_PERSONAL','MT5_PROP') and upper(a.environment)='DEMO'
   and exists(select 1 from mt5_accounts m where m.id=new.account_id and m.user_id=a.customer_id and m.bridge_id=new.bridge_id and m.credential_ref=a.credential_ref)
-  and (a.last_synchronized_at is null or a.last_synchronized_at<=observed);
+  and (a.last_synchronized_at is null or a.last_synchronized_at<=observed) returning a.id,a.customer_id loop
+   perform track_current_provider_risk(linked.customer_id,linked.id);
+  end loop;
  end if;return new;
 end$$;
 revoke all on function public.refresh_owned_provider_health() from public,anon,authenticated;
 create trigger refresh_crypto_account_health after insert or update on public.execution_account_runtime_proof for each row execute function public.refresh_owned_provider_health();
 create trigger refresh_mt5_account_health after insert on public.mt5_account_snapshots for each row execute function public.refresh_owned_provider_health();
+
+-- Risk tracking starts from a real, flat provider observation. It never invents an account's earlier history.
+create table public.account_observed_risk_tracking(
+ execution_account_id uuid primary key references public.connected_execution_accounts(id),customer_id uuid not null references auth.users(id),
+ currency text not null,initial_balance numeric not null check(initial_balance>0),inception_at timestamptz not null,
+ total_peak_equity numeric not null,tracking_day date not null,daily_starting_balance numeric not null,daily_peak_equity numeric not null,
+ last_balance numeric not null,last_equity numeric not null,last_observed_at timestamptz not null,source_reference text not null,
+ continuity_state text not null check(continuity_state in('OBSERVED','GAP_RECONCILIATION_REQUIRED'))
+);
+alter table public.account_observed_risk_tracking enable row level security;
+revoke all on public.account_observed_risk_tracking from public,anon,authenticated;
+grant select on public.account_observed_risk_tracking to authenticated;
+grant select,insert,update on public.account_observed_risk_tracking to service_role;
+create policy account_observed_risk_read on public.account_observed_risk_tracking for select to authenticated using(customer_id=(select auth.uid()) or public.is_admin());
+create function public.track_current_provider_risk(p_customer uuid,p_account uuid) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare a connected_execution_accounts;proof jsonb;raw jsonb;observed timestamptz;balance_value numeric;equity_value numeric;currency_value text;flat boolean;prior account_observed_risk_tracking;result account_observed_risk_tracking;day_value date;begin
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ select * into a from connected_execution_accounts where id=p_account and customer_id=p_customer for update;if not found then raise exception 'ACCOUNT_OWNERSHIP_REQUIRED';end if;
+ if not((upper(a.provider)='BINANCE' and upper(a.environment)='TESTNET')or(upper(a.provider) in('BYBIT','MT5_PERSONAL','MT5_PROP')and upper(a.environment)='DEMO'))then return jsonb_build_object('state','SANDBOX_REQUIRED');end if;
+ if upper(a.provider) like 'MT5_%' then
+  select to_jsonb(s) into proof from mt5_account_snapshots s where s.account_id::text=a.provider_account_identity and s.owner_id=a.customer_id order by s.captured_at desc limit 1;
+  if upper(proof->'terminal_identity'->>'provider_environment') is distinct from 'DEMO' then return jsonb_build_object('state','OBSERVED_DEMO_TERMINAL_REQUIRED');end if;
+  raw:=proof;observed:=(proof->>'captured_at')::timestamptz;balance_value:=nullif(raw->>'balance','')::numeric;equity_value:=nullif(raw->>'equity','')::numeric;currency_value:=raw->>'currency';
+  flat:=raw->'read_status'->>'positions'='true' and raw->'read_status'->>'orders'='true' and raw->>'terminal_authenticated'='true' and jsonb_array_length(raw->'positions')=0 and jsonb_array_length(raw->'orders')=0;
+ else
+  select to_jsonb(s) into proof from execution_account_runtime_proof s where s.customer_id=a.customer_id and s.account_id=a.account_id and s.provider=a.provider and s.execution_instance_id=a.execution_instance_id and s.credential_ref=a.credential_ref and upper(s.environment)=upper(a.environment) and s.monitor_status='healthy' order by s.observed_at desc limit 1;
+  raw:=proof->'account_state';observed:=(proof->>'observed_at')::timestamptz;flat:=raw->>'flat_verified'='true';
+  if upper(a.provider)='BINANCE' then balance_value:=nullif(raw->>'account_total_wallet_balance','')::numeric;equity_value:=nullif(raw->>'account_total_margin_balance','')::numeric;currency_value:=raw->>'provider_account_currency';
+  else balance_value:=nullif(raw->>'account_wallet_balance','')::numeric;equity_value:=nullif(raw->>'account_equity','')::numeric;currency_value:=raw->>'account_currency';end if;
+ end if;
+ if observed is null or observed>clock_timestamp()+interval '5 seconds' or observed<clock_timestamp()-interval '60 seconds' or balance_value is null or equity_value is null or balance_value<=0 or equity_value<=0 or balance_value in('NaN'::numeric,'Infinity'::numeric) or equity_value in('NaN'::numeric,'Infinity'::numeric) or nullif(currency_value,'') is null then return jsonb_build_object('state','CURRENT_FINANCIAL_OBSERVATION_REQUIRED');end if;
+ day_value:=timezone('UTC',observed)::date;select * into prior from account_observed_risk_tracking where execution_account_id=a.id for update;
+ if not found then
+  if flat is distinct from true then return jsonb_build_object('state','FLAT_INITIAL_OBSERVATION_REQUIRED');end if;
+  insert into account_observed_risk_tracking values(a.id,a.customer_id,currency_value,balance_value,observed,greatest(balance_value,equity_value),day_value,balance_value,greatest(balance_value,equity_value),balance_value,equity_value,observed,coalesce(proof->>'id',a.id::text||':'||observed::text),'OBSERVED') returning * into result;
+ else
+  if prior.currency<>currency_value then return jsonb_build_object('state','ACCOUNT_CURRENCY_RECONCILIATION_REQUIRED');end if;
+  if observed<prior.last_observed_at then return jsonb_build_object('state','OBSERVATION_ORDER_RECONCILIATION_REQUIRED');end if;
+  update account_observed_risk_tracking set total_peak_equity=greatest(total_peak_equity,balance_value,equity_value),tracking_day=day_value,
+   daily_starting_balance=case when tracking_day=day_value then daily_starting_balance else last_balance end,
+   daily_peak_equity=case when tracking_day=day_value then greatest(daily_peak_equity,balance_value,equity_value) else greatest(last_balance,balance_value,equity_value) end,
+   last_balance=balance_value,last_equity=equity_value,last_observed_at=observed,source_reference=coalesce(proof->>'id',a.id::text||':'||observed::text),
+   continuity_state=case when observed>last_observed_at+interval '180 seconds' then 'GAP_RECONCILIATION_REQUIRED' else continuity_state end
+  where execution_account_id=a.id returning * into result;
+ end if;
+ return jsonb_build_object('state',case when result.continuity_state='OBSERVED' then 'READY' else result.continuity_state end,'tracking',to_jsonb(result),'proof',proof);
+end$$;
+revoke all on function public.track_current_provider_risk(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.track_current_provider_risk(uuid,uuid) to service_role;

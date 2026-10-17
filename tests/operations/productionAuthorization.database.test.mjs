@@ -63,6 +63,12 @@ test('production Phase-D schema loads scoped canonical evidence and atomically r
  const check=(f=frame)=>db.query('select assert_measured_execution_lineage($1)',[JSON.stringify(f)]);await check();
  await assert.rejects(check({...frame,strategy_plan:{provenance:{measured_release_id:release,evaluated_parameters:{stop:3}}}}),/PARAMETERS_MISMATCH/);
  await assert.rejects(check({...frame,measured_release:{...frame.measured_release,state:'RETIRED'}}),/CURRENT_MEASURED/);
+
+ await db.query("update execution_account_runtime_proof set observed_at=clock_timestamp(),monitor_status='healthy',account_state=$1",[JSON.stringify({account_total_wallet_balance:10000,account_total_margin_balance:10000,provider_account_currency:'USDT',flat_verified:true})]);
+ let tracking=(await db.query('select track_current_provider_risk($1,$2) value',[owner,account])).rows[0].value;assert.equal(tracking.state,'READY');assert.equal(tracking.tracking.initial_balance,10000);
+ await db.query("update execution_account_runtime_proof set observed_at=clock_timestamp(),account_state=$1",[JSON.stringify({account_total_wallet_balance:9800,account_total_margin_balance:9700,provider_account_currency:'USDT',flat_verified:false})]);
+ tracking=(await db.query('select track_current_provider_risk($1,$2) value',[owner,account])).rows[0].value;assert.equal(tracking.tracking.initial_balance,10000);assert.equal(tracking.tracking.total_peak_equity,10000);assert.equal(tracking.tracking.last_equity,9700);
+ await db.exec("update account_observed_risk_tracking set last_observed_at=clock_timestamp()-interval '10 minutes';update execution_account_runtime_proof set observed_at=clock_timestamp()");assert.equal((await db.query('select track_current_provider_risk($1,$2) value',[owner,account])).rows[0].value.state,'GAP_RECONCILIATION_REQUIRED');
  await db.exec("set role authenticated;set request.jwt.claim.role='authenticated'");await assert.rejects(load(),/permission denied/);await assert.rejects(commit(),/permission denied/);
  }finally{await db.close()}
 });
