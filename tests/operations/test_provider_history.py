@@ -34,3 +34,29 @@ class ProviderHistoryTests(unittest.TestCase):
         self.assertIsNone(self.client.get_history()); self.assertIsNone(self.client.last_history_range)
         self.client.last_history_range = {'from': 'old'}; self.client.check_connection = lambda: False
         self.assertIsNone(self.client.get_history()); self.assertIsNone(self.client.last_history_range)
+    def test_unknown_positions_and_orders_are_not_flat_accounts(self):
+        self.terminal.positions_get = lambda: None
+        self.terminal.orders_get = lambda: None
+        with self.assertRaisesRegex(RuntimeError, 'POSITIONS_UNAVAILABLE'): self.client.get_positions()
+        with self.assertRaisesRegex(RuntimeError, 'ORDERS_UNAVAILABLE'): self.client.get_orders()
+        self.terminal.positions_get = lambda: ()
+        self.terminal.orders_get = lambda: ()
+        self.assertEqual(self.client.get_positions(), [])
+        self.assertEqual(self.client.get_orders(), [])
+        self.client.check_connection = lambda: False
+        with self.assertRaisesRegex(RuntimeError, 'POSITIONS_UNAVAILABLE'): self.client.get_positions()
+        with self.assertRaisesRegex(RuntimeError, 'ORDERS_UNAVAILABLE'): self.client.get_orders()
+    def test_symbol_fills_and_currency_values_come_from_terminal(self):
+        from datetime import datetime
+        self.terminal.SYMBOL_TRADE_EXECUTION_MARKET = 2
+        spec = types.SimpleNamespace(name='EURUSD',currency_base='EUR',currency_profit='USD',trade_tick_size=.00001,trade_tick_value=1,trade_mode=4,digits=5,point=.00001,trade_contract_size=100000,volume_min=.01,volume_max=100,volume_step=.01,trade_stops_level=0,bid=1.1,ask=1.1002,spread=20,filling_mode=3,trade_exemode=2)
+        self.terminal.symbol_info = lambda symbol: spec
+        self.terminal.symbol_select = lambda *_: True
+        self.terminal.symbol_info_tick = lambda *_: types.SimpleNamespace(time=int(datetime.now(timezone.utc).timestamp()),bid=1.1,ask=1.1002)
+        self.terminal.account_info = lambda: types.SimpleNamespace(currency='USD')
+        result = self.client.get_symbol_info('EURUSD')
+        self.assertEqual(result['fill_policies'], ['fok','ioc'])
+        self.assertEqual(result['quote_to_account_conversion'],1)
+        self.assertEqual(result['tick_value'],1)
+        spec.filling_mode=0
+        self.assertEqual(self.client.get_symbol_info('EURUSD')['fill_policies'],[])

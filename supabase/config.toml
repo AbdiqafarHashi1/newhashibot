@@ -84,3 +84,12 @@ verify_jwt = false
 
 [functions.account-signal-authorization]
 verify_jwt = false
+
+[functions.saas-launch-status]
+verify_jwt = true
+
+[functions.commerce-configuration]
+verify_jwt = true
+
+[functions.growth-pipeline]
+verify_jwt = true

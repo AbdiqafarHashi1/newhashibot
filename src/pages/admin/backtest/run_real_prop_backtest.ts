@@ -535,7 +535,7 @@ async function runRealBarPropBacktestSuite() {
         if (hDays === 30 && pKey === 'FTMO_STANDARD') {
           console.log(`      📈 Strategy Performance Breakdown (30-Day Real Bars):`);
           audit.strategyStats?.forEach((st) => {
-            console.log(`         • ${st.strategy.padEnd(26)} | Trades: ${String(st.trades).padStart(2)} | WinRate: ${st.winRate.toFixed(1)}% | PF: ${String(st.profitFactor).padEnd(4)} | Total R: ${st.totalR >= 0 ? '+' : ''}${st.totalR.toFixed(2)}R`);
+            console.log(`         • ${st.strategy.padEnd(26)} | Trades: ${String(st.executedTrades).padStart(2)} | WinRate: ${st.winRate.toFixed(1)}% | PF: ${String(st.profitFactor).padEnd(4)} | Total R: ${st.totalR >= 0 ? '+' : ''}${st.totalR.toFixed(2)}R`);
           });
         }
       } catch (hErr) {

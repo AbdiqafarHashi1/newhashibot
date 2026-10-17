@@ -4,7 +4,6 @@ import {
   Sliders,
   AlertTriangle,
   Zap,
-  ArrowRight,
   ChevronDown,
   ChevronUp,
   RotateCcw,
@@ -277,46 +276,15 @@ export const AICalibrationPanel: React.FC<AICalibrationPanelProps> = ({
             </div>
           )}
 
-          {/* Forecasted Improvement Matrix */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-xl text-center">
-            <div className="p-2 bg-slate-900/60 rounded-lg">
-              <span className="text-[10px] text-slate-400 block mb-0.5">Projected Realized Return</span>
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="text-xs font-mono text-slate-400 line-through">
-                  {metrics.totalR >= 0 ? `+${metrics.totalR}R` : `${metrics.totalR}R`}
-                </span>
-                <ArrowRight className="w-3 h-3 text-emerald-400" />
-                <span className="text-sm font-bold font-mono text-emerald-400">
-                  +{report.projectedPortfolioReturnR}R
-                </span>
-              </div>
-              <span className="text-[10px] text-emerald-400/80 block mt-0.5">Alpha expansion</span>
+          <section className="rounded-xl border border-slate-700 p-3">
+            <h3 className="text-sm font-semibold text-white">Measured baseline</h3>
+            <p className="mt-2 text-xs text-amber-200">Proposals have not been replayed. These are the recorded results before changes; no improved return, win rate or drawdown is predicted.</p>
+            <div className="mt-3 grid grid-cols-3 gap-3 text-center text-sm">
+              <div><span className="block text-xs text-slate-400">Realised return</span>{metrics.totalR}R</div>
+              <div><span className="block text-xs text-slate-400">Win rate</span>{metrics.winRate}%</div>
+              <div><span className="block text-xs text-slate-400">Maximum drawdown</span>{metrics.maxDrawdownPct}%</div>
             </div>
-
-            <div className="p-2 bg-slate-900/60 rounded-lg">
-              <span className="text-[10px] text-slate-400 block mb-0.5">Target Win Rate</span>
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="text-xs font-mono text-slate-400 line-through">{metrics.winRate}%</span>
-                <ArrowRight className="w-3 h-3 text-emerald-400" />
-                <span className="text-sm font-bold font-mono text-emerald-400">
-                  {report.projectedWinRatePct}%
-                </span>
-              </div>
-              <span className="text-[10px] text-emerald-400/80 block mt-0.5">+Quality gate filtering</span>
-            </div>
-
-            <div className="p-2 bg-slate-900/60 rounded-lg">
-              <span className="text-[10px] text-slate-400 block mb-0.5">Max Portfolio Drawdown</span>
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="text-xs font-mono text-rose-400 line-through">{metrics.maxDrawdownPct}%</span>
-                <ArrowRight className="w-3 h-3 text-emerald-400" />
-                <span className="text-sm font-bold font-mono text-emerald-400">
-                  {report.projectedDrawdownPct}%
-                </span>
-              </div>
-              <span className="text-[10px] text-emerald-400/80 block mt-0.5">Capital preservation</span>
-            </div>
-          </div>
+          </section>
 
           {/* Filter Bar for Strategy Proposals */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">

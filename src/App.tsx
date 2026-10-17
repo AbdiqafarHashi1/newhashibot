@@ -53,6 +53,7 @@ const Onboarding = lazy(() => import('./pages/app/Onboarding'));
 const Readiness = lazy(() => import('./pages/app/Readiness'));
 const Billing = lazy(() => import('./pages/app/Billing'));
 const PaymentResult = lazy(() => import('./pages/public/PaymentResult'));
+const LaunchSetup = lazy(() => import('./pages/admin/LaunchSetup'));
 const CommerceOperations = lazy(() => import('./pages/admin/CommerceOperations'));
 
 // Admin pages
@@ -219,6 +220,7 @@ function App() {
             <Route path="/admin/customers"        element={<RequireAdmin><Customers /></RequireAdmin>} />
             <Route path="/admin/customer-fleet"   element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/onboarding"       element={<RequireAdmin><OnboardingOperations /></RequireAdmin>} />
+            <Route path="/admin/launch" element={<RequireAdmin><LaunchSetup /></RequireAdmin>} />
             <Route path="/admin/commerce" element={<RequireAdmin><CommerceOperations /></RequireAdmin>} />
             <Route path="/admin/customer-engines" element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
             <Route path="/admin/fleet"            element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />

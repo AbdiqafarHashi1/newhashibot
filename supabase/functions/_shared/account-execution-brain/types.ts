@@ -91,6 +91,8 @@ export interface RuntimeHealthState {
  * an Account Execution Brain needs to evaluate a signal.
  */
 export interface AccountExecutionContext {
+  /** Required by the production authorization loader; isolated historical fixtures may omit it. */
+  readonly provider_contract?: import("../professional-capital-allocation.ts").ProviderContractSpecification;
   readonly account_id: string;
   readonly user_id: string | null;
   readonly provider: BrainProvider;

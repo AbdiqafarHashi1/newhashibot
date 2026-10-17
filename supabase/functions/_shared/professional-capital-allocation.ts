@@ -338,8 +338,30 @@ export function calculateCapitalManagerPositionPlan(params: {
   let quantity = 0;
   let contractSize = 1;
   let expectedNotional = 0;
+  let riskPerPriceUnit = 1;
+  const observed=context.provider_contract;
+  if(observed){
+    if(observed.provider!==provider||observed.symbol.replace(/[^A-Za-z0-9]/g,'').toUpperCase()!==signal.symbol.replace(/[^A-Za-z0-9]/g,'').toUpperCase())return null;
+    const step=observed.kind==='MT5'?observed.lot_step:observed.quantity_step;
+    const min=observed.kind==='MT5'?observed.minimum_lot:observed.minimum_quantity;
+    const max=observed.kind==='MT5'?observed.maximum_lot:observed.maximum_quantity;
+    if(![step,min,max,observed.maximum_leverage].every(v=>Number.isFinite(v)&&v>0)||max<min||effectiveLeverage>observed.maximum_leverage)return null;
+    if(observed.kind==='MT5'){
+      if(![observed.tick_size,observed.tick_value_account_currency,observed.contract_size,observed.quote_to_account_conversion].every(v=>Number.isFinite(v)&&v>0))return null;
+      contractSize=observed.contract_size;riskPerPriceUnit=observed.tick_value_account_currency/observed.tick_size;
+      quantity=floorToIncrement(Math.min(max,targetRiskAmount/(slDistance*riskPerPriceUnit)),step);
+      expectedNotional=quantity*signal.entry_price*contractSize*observed.quote_to_account_conversion;
+    }else{
+      if(!Number.isFinite(observed.contract_multiplier)||observed.contract_multiplier<=0)return null;
+      contractSize=observed.contract_multiplier;riskPerPriceUnit=contractSize;
+      quantity=floorToIncrement(Math.min(max,targetRiskAmount/(slDistance*riskPerPriceUnit)),step,observed.quantity_precision);
+      expectedNotional=quantity*signal.entry_price*contractSize;
+      if(!Number.isFinite(observed.minimum_notional)||observed.minimum_notional<0||!Number.isFinite(observed.maximum_notional)||observed.maximum_notional<=0||expectedNotional<observed.minimum_notional||expectedNotional>observed.maximum_notional)return null;
+    }
+    if(quantity<min||quantity>max)return null;
+  }
 
-  if (provider === "MT5_PERSONAL" || provider === "MT5_PROP") {
+  if (!observed && (provider === "MT5_PERSONAL" || provider === "MT5_PROP")) {
     contractSize = contract_spec?.contract_size ??
       (signal.symbol.includes("XAU") || signal.symbol.includes("XAG") ? 100 : 100000);
     const rawLots = targetRiskAmount / (slDistance * contractSize);
@@ -350,7 +372,8 @@ export function calculateCapitalManagerPositionPlan(params: {
     if (quantity > maxLot) quantity = maxLot;
 
     expectedNotional = quantity * signal.entry_price * contractSize;
-  } else {
+    riskPerPriceUnit=contractSize;
+  } else if(!observed) {
     // BINANCE or BYBIT (Crypto futures)
     contractSize = 1;
     const rawQty = targetRiskAmount / slDistance;
@@ -365,8 +388,8 @@ export function calculateCapitalManagerPositionPlan(params: {
     expectedNotional = quantity * signal.entry_price;
   }
 
-  const requiredMargin = expectedNotional / effectiveLeverage;
-  const actualRiskAmount = quantity * slDistance * contractSize;
+  const requiredMargin = observed?.kind==='MT5'&&observed.margin_rate!==null?expectedNotional*observed.margin_rate:expectedNotional/effectiveLeverage;
+  const actualRiskAmount = quantity * slDistance * riskPerPriceUnit;
   const actualRiskPct = context.balance > 0 ? (actualRiskAmount / context.balance) * 100 : 0;
 
   if (![authorizedRiskPct,targetRiskAmount,effectiveLeverage,quantity,requiredMargin,actualRiskAmount].every(x=>Number.isFinite(x)&&x>0)||actualRiskAmount>targetRiskAmount+1e-9||requiredMargin>context.free_margin+1e-9) return null;

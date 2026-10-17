@@ -6,30 +6,27 @@ import { AssetCategory, AssetCapitalPool } from './types';
 const capitalPools: Record<AssetCategory, AssetCapitalPool> = {
   forex: {
     category: 'forex',
+    name: 'forex', symbol: 'EURUSD', decimals: 5, sessionFilter: false,
     capitalUsd: 100000,
     riskPct: 1.0,
-    maxDailyDrawdownPct: 5,
-    maxOverallDrawdownPct: 10,
     spreadPipsOrPts: 1.2,
     pipOrPointSize: 0.0001,
     fridayClose: true,
   },
   metals: {
     category: 'metals',
+    name: 'metals', symbol: 'XAUUSD', decimals: 2, sessionFilter: false,
     capitalUsd: 100000,
     riskPct: 1.0,
-    maxDailyDrawdownPct: 5,
-    maxOverallDrawdownPct: 10,
     spreadPipsOrPts: 2.5,
     pipOrPointSize: 0.1,
     fridayClose: true,
   },
   crypto: {
     category: 'crypto',
+    name: 'crypto', symbol: 'BTCUSDT', decimals: 2, sessionFilter: false,
     capitalUsd: 100000,
     riskPct: 1.0,
-    maxDailyDrawdownPct: 5,
-    maxOverallDrawdownPct: 10,
     spreadPipsOrPts: 5.0,
     pipOrPointSize: 1.0,
     fridayClose: false,
@@ -42,11 +39,11 @@ import { MultiAssetDatasetMap, BtMetrics, CategorySummary, SymbolSummary, Strate
 
 interface HorizonBest {
   horizon: { name: string; days: number; bars: number };
-  config: { name: string; conflictPolicy: 'strict_no_conflict' | 'trend_priority'; minScore: number; maxConcurrentTrades: number; enableWeights: boolean };
+  config: { name: string; conflictPolicy: 'strict_no_conflict' | 'trend_priority'; minScore: number; maxConcurrentPositions: number; enableWeights: boolean };
   metrics: BtMetrics;
   categories: Record<string, CategorySummary>;
   symbols: Record<string, SymbolSummary>;
-  strategyStats: Record<string, StrategyStat>;
+  strategyStats: StrategyStat[];
 }
 
 function buildFeeds(barCount: number): MultiAssetDatasetMap {
@@ -81,28 +78,28 @@ const configsToTest = [
     name: 'Strict No Conflict (Score 80, 4 Concurrent, Weighted AI Multipliers)',
     conflictPolicy: 'strict_no_conflict' as const,
     minScore: 80,
-    maxConcurrentTrades: 4,
+    maxConcurrentPositions: 4,
     enableWeights: true,
   },
   {
     name: 'Strict No Conflict (Score 80, 3 Concurrent, Weighted AI Multipliers)',
     conflictPolicy: 'strict_no_conflict' as const,
     minScore: 80,
-    maxConcurrentTrades: 3,
+    maxConcurrentPositions: 3,
     enableWeights: true,
   },
   {
     name: 'Trend Priority (Score 82, 3 Concurrent, Weighted AI Multipliers)',
     conflictPolicy: 'trend_priority' as const,
     minScore: 82,
-    maxConcurrentTrades: 3,
+    maxConcurrentPositions: 3,
     enableWeights: true,
   },
   {
     name: 'High Quality Gate (Score 85, 3 Concurrent, Weighted AI Multipliers)',
     conflictPolicy: 'strict_no_conflict' as const,
     minScore: 85,
-    maxConcurrentTrades: 3,
+    maxConcurrentPositions: 3,
     enableWeights: true,
   },
 ];

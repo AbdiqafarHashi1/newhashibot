@@ -91,6 +91,7 @@ interface SyncSymbolsPayload {
     volume_step: number;
     stops_level_points?: number;
     fill_policies?: string[];
+    tick_size?:number;tick_value?:number;currency_profit?:string;account_currency?:string;quote_to_account_conversion?:number;tick_at?:string;trade_mode?:number;bid?:number;ask?:number;
   }>;
 }
 
@@ -454,14 +455,14 @@ Deno.serve(async (req: Request) => {
             trade_permission: (snap as Record<string, unknown>).trade_permission === true,
             terminal_autotrading: (snap as Record<string, unknown>).autotrading === true,
             terminal_authenticated: (snap as Record<string, unknown>).terminal_authenticated === true,
-            terminal_identity: (snap as Record<string, unknown>).terminal ?? {},
+            terminal_identity: { ...((snap as Record<string, unknown>).terminal as Record<string, unknown> ?? {}), provider_environment: (snap as Record<string, unknown>).environment },
             open_positions_count: positions.length,
             pending_orders_count: orders.length,
             captured_at: nowIso,
           });
 
         if (snapshotError) {
-          console.error("mt5 snapshot write error:", snapshotError);
+          throw new Error("MT5_SNAPSHOT_NOT_PERSISTED");
         }
         const historyCoverage=(snap as Record<string,any>).history_coverage;
         if(historyCoverage){
@@ -657,7 +658,8 @@ Deno.serve(async (req: Request) => {
         volume_max: spec.volume_max,
         volume_step: spec.volume_step,
         stops_level_points: spec.stops_level_points ?? 0,
-        fill_policies: spec.fill_policies ?? ["return"],
+        fill_policies: spec.fill_policies ?? [],
+        tick_size:spec.tick_size??null,tick_value:spec.tick_value??null,currency_profit:spec.currency_profit??null,account_currency:spec.account_currency??null,quote_to_account_conversion:spec.quote_to_account_conversion??null,tick_at:spec.tick_at??null,trade_mode:spec.trade_mode??null,bid:spec.bid??null,ask:spec.ask??null,
         synchronized_at: nowIso,
       }));
 

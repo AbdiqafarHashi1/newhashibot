@@ -18,6 +18,7 @@ type NavItem =
 
 const adminNav: NavItem[] = [
   { section: 'Overview' },
+  { to: '/admin/launch', label: 'Setup & launch', icon: ListChecks },
   { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/mission-control', label: 'Operations Center', icon: Activity },
   { to: '/admin/scanner', label: 'Scanner', icon: Radio },

@@ -291,29 +291,9 @@ export class Mt5PersonalBrain implements AccountExecutionBrain {
     }
 
     // 8. Leverage Limit Check
-    if (context.leverage > policy.max_leverage_allowed) {
-      const levViolation = createRuleViolation({
-        rule_id: "rule_mt5_leverage_limit",
-        rule_category: "RISK_CAP",
-        severity: "CRITICAL_BLOCK",
-        message: `Account leverage ${context.leverage} exceeds maximum policy leverage ${policy.max_leverage_allowed}`,
-        evidence: {
-          account_leverage: context.leverage,
-          max_leverage_allowed: policy.max_leverage_allowed,
-        },
-        recommended_action: "SKIP_SIGNAL",
-      });
+    // Terminal leverage is the broker's available buying power, not requested trade leverage.
+    // Position planning caps effective leverage to the policy and verified contract ceilings.
 
-      return createExecutionDecision({
-        decision: "SKIP",
-        decision_code: "SKIPPED_LOW_CONFIDENCE",
-        reason: `Execution skipped: Account leverage (${context.leverage}:1) exceeds policy ceiling (${policy.max_leverage_allowed}:1)`,
-        account_id: context.account_id,
-        signal_id: signal.signal_id,
-        authorized_risk_pct: 0,
-        rule_violations: [levViolation],
-      });
-    }
 
     // 9. Stop Loss Distance & Required Margin Check
     const slDistance = Math.abs(signal.entry_price - signal.stop_loss);

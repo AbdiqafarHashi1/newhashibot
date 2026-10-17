@@ -49,6 +49,7 @@ class StateSyncManager:
             snapshot_extra={
                 "environment": acc_info.get("environment"), "history_coverage": getattr(self.mt5_client, "last_history_range", None),
                 "margin_level": acc_info.get("margin_level"), "currency": acc_info.get("currency"),
+                "free_margin": acc_info.get("free_margin"),
                 "leverage": acc_info.get("leverage"), "account_name": acc_info.get("name"),
                 "server": acc_info.get("server"), "terminal_authenticated": True,
                 "trade_permission": acc_info.get("trade_allowed", False),

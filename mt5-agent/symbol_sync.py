@@ -40,7 +40,8 @@ class SymbolSyncManager:
                     "volume_max": info["volume_max"],
                     "volume_step": info["volume_step"],
                     "stops_level_points": info["stops_level_points"],
-                    "fill_policies": info["fill_policies"]
+                    "fill_policies": info["fill_policies"],
+                    **{key: info.get(key) for key in ("tick_size", "tick_value", "currency_profit", "account_currency", "quote_to_account_conversion", "tick_at", "trade_mode", "bid", "ask")}
                 })
 
         if not collected_specs:
@@ -54,3 +55,4 @@ class SymbolSyncManager:
             logger.warning(f"[SymbolSync] Failed to sync symbol specifications for account {account_id}")
 
         return success
+

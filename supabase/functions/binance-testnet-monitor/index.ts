@@ -1,3 +1,5 @@
+import {mergeMonitorStatistics} from '../_shared/monitor-statistics.ts';
+import {admitBinanceFinancials,observedFinancialNumber} from '../_shared/provider-snapshot-admission.ts';
 import {collectCryptoProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import {synchronizeCanonicalMonitor} from '../_shared/canonical-monitor-observations.ts';
 import {admitBinanceConditionalOrders,admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
@@ -1604,12 +1606,12 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   ]);
   stats.monitor_status = classifyMonitor({ ...stats, monitor_status: monitorStatus });
   const assets = (accountBody as Record<string, unknown>).assets as Array<Record<string, unknown>> | undefined;
-  const usdt = assets?.find((a) => a.asset === "USDT");
+  const financials = admitBinanceFinancials(accountBody as Record<string, unknown>);
   const usdc = assets?.find((a) => a.asset === "USDC");
   const positions = (admitProviderPositions(positionsBody,"binance") as unknown as BinancePosition[]).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0);
   const orders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...parseOpenAlgoOrders(allAlgoOrdersBody)];
-  const totalMargin = n((accountBody as Record<string, unknown>).totalMarginBalance);
-  const totalWallet = n((accountBody as Record<string, unknown>).totalWalletBalance);
+  const totalMargin = observedFinancialNumber((accountBody as Record<string, unknown>).totalMarginBalance,"totalMarginBalance");
+  const totalWallet = observedFinancialNumber((accountBody as Record<string, unknown>).totalWalletBalance,"totalWalletBalance");
   const unrealized = positions.reduce((sum: number, p: BinancePosition) => sum + n(p.unRealizedProfit ?? p.unrealizedProfit), 0);
   const currentPositionSize = positions.reduce((sum: number, p: BinancePosition) => sum + Math.abs(n(p.positionAmt)), 0);
   const openNotional = positions.reduce((sum: number, p: BinancePosition) => sum + Math.abs(n((p as Record<string, unknown>).notional)), 0);
@@ -1629,7 +1631,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     unrealized_pnl: unrealized,
     account_total_margin_balance: totalMargin,
     account_total_wallet_balance: totalWallet,
-    available_usdt: n(usdt?.availableBalance),
+    available_usdt: financials.available_usdt,
     available_usdc: n(usdc?.availableBalance),
     current_open_risk_pct: currentOpenRiskPct,
     profit_lock_study_counters: stats.profit_lock_study,
@@ -1640,7 +1642,8 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     latest_account_state_at: monitorRunAt,
     updated_at: monitorRunAt,
   };
-  await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: {...settingsUpdate,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  const {error:proofError}=await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: {...settingsUpdate,account_initial_margin:observedFinancialNumber((accountBody as Record<string,unknown>).totalInitialMargin,"totalInitialMargin"),provider_position_risk:positionsBody,...financials,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  if(proofError)throw Error("PROVIDER_SNAPSHOT_NOT_PERSISTED");
   if(conditionalOrdersComplete&&Array.isArray(allOrdersBody))await synchronizeCanonicalMonitor({store:supabase,ownership,provider:'BINANCE',positions:positions as unknown as Record<string,any>[],orders:orders as Record<string,any>[],complete:true,observedAt:monitorRunAt,lookupEntry:async(symbol,orderId)=>{const order=await binanceRequest('/fapi/v1/order',{symbol,orderId}) as Record<string,unknown>;return{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??''),status:String(order.status??''),filledQuantity:Number(order.executedQty)}}});
   const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
   if (!error) return;
@@ -1729,13 +1732,16 @@ async function recordRowError(supabase: SupabaseClient, row: Row, err: unknown, 
   }).eq("id", row.id);
 }
 
+function freshMonitorStats():MonitorStats{return { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy", reconciliation_summary: { ran: false }, profit_lock_study: { evaluated: 0, reached_0_1r: 0, reached_0_2r: 0, reached_0_3r: 0, reached_0_5r: 0, later_reversed: 0, actions_taken: 0, skipped_reasons: {} } }}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
   const startedAt = new Date().toISOString();
   const runId = crypto.randomUUID();
   let triggerSource = "manual";
   let isAutomatic = false;
-  const stats: MonitorStats = { checked: 0, updated: 0, protected: 0, managed: 0, stale_closed: 0, closed_synced: 0, safety_closed: 0, row_errors: [], events: 0, telegram_sent: 0, stale_cleaned: 0, reduce_only_orders: 0, cancelled_orders: 0, last_managed_action: null, latest_monitor_error: "", latest_sync_error: "", latest_monitor_warning: "", warnings: [], critical_errors: [], unsafe_positions: 0, monitor_status: "healthy", reconciliation_summary: { ran: false }, profit_lock_study: { evaluated: 0, reached_0_1r: 0, reached_0_2r: 0, reached_0_3r: 0, reached_0_5r: 0, later_reversed: 0, actions_taken: 0, skipped_reasons: {} } };
+  const stats = freshMonitorStats();
+  const accountStatistics=new Map<string,MonitorStats>();
   let supabase: SupabaseClient | null = null;
   try {
     const parsedPayload = await parseMonitorPayload(req);
@@ -1780,7 +1786,7 @@ Deno.serve(async (req: Request) => {
     if (boolEnv(Deno.env.get("LIVE_TRADING_ENABLED")) || settings?.live_trading_enabled === true) return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, aborted: true, reason: "live_trading_enabled_abort", global_error: "startup_exception", ...stats });
     if (String(Deno.env.get("EXECUTION_MODE") ?? "").toLowerCase() !== "testnet") return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_execution_mode_not_testnet", global_error: "", ...stats });
     if (!boolEnv(Deno.env.get("TESTNET_ENABLED"))) return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_testnet_disabled", global_error: "", ...stats });
-    if (!settings || settings.execution_mode !== "testnet" || settings.testnet_enabled !== true || settings.kill_switch_enabled === true) {
+    if (!settings || settings.execution_mode !== "testnet" || settings.testnet_enabled !== true) {
       await safeSettingsUpdate(supabase, {
         latest_monitor_run_at: new Date().toISOString(),
         latest_monitor_status: "skipped",
@@ -1796,18 +1802,19 @@ Deno.serve(async (req: Request) => {
       return globalErrorResponse(reason, `execution_orders query failed: ${errorMessage(error)}`, stats);
     }
     for (const row of (rows ?? []) as Row[]) {
-      let ownership;
+      let ownership;let scopedStats=stats;
       try {
         ownership = ownershipFromRow(row as unknown as Record<string, unknown>, "binance");
+        scopedStats=accountStatistics.get(ownership.execution_scope_key)??freshMonitorStats();accountStatistics.set(ownership.execution_scope_key,scopedStats);
         const credential = await resolveEdgeProviderCredential(supabase, ownership);
         if (!await acquireExecutionLease(supabase, ownership, runId)) throw new Error(`monitor_lease_unavailable:${ownership.execution_scope_key}`);
         /* legacy proof pattern: monitorRow(supabase, row, stats) */
-        await withEdgeProviderCredential(credential, () => monitorRow(supabase, row, stats, settings as MonitorSettings, runId));
+        await withEdgeProviderCredential(credential, () => monitorRow(supabase, row, scopedStats, settings as MonitorSettings, runId));
         await releaseExecutionLease(supabase, ownership, runId, "completed");
       } catch (rowErr) {
         if (ownership) await releaseExecutionLease(supabase, ownership, runId, "failed").catch(() => null);
         try {
-          await recordRowError(supabase, row, rowErr, stats);
+          if(ownership)await recordRowError(supabase, row, rowErr, scopedStats);else addCriticalMonitorError(stats,"UNSCOPED_EXECUTION_ROW_REQUIRES_REVIEW");
         } catch (saveErr) {
           const message = `row_error_save_failed: ${errorMessage(saveErr)}; original=${errorMessage(rowErr)}`;
           stats.row_errors.push({ id: row.id, symbol: row.symbol, status: row.status, error: message, stack: errorStack(saveErr), action: "row_error_save_failed_continue", severity: "critical" });
@@ -1817,13 +1824,16 @@ Deno.serve(async (req: Request) => {
     }
     const accounts = (await enumerateExecutionAccounts(supabase, "binance")).filter((account) => account.environment === "testnet");
     const accountSync = await settleExecutionAccounts(accounts, async (ownership) => {
-      const credential = await resolveEdgeProviderCredential(supabase, ownership);
-      return withEdgeProviderCredential(credential, async () => {
-        await reconcileBinanceTruthGaps(supabase, stats, ownership.execution_scope_key);
-        await refreshAccountState(supabase, stats, stats.monitor_status, runtimeOwnershipFields(ownership));
-        await collectCryptoProviderOutcomes(supabase,ownership,'BINANCE',(path,params)=>binanceRequest(path,params));
-      });
+      const scopedStats=accountStatistics.get(ownership.execution_scope_key)??freshMonitorStats();accountStatistics.set(ownership.execution_scope_key,scopedStats);
+      try{const credential = await resolveEdgeProviderCredential(supabase!, ownership);
+       return await withEdgeProviderCredential(credential, async () => {
+        await reconcileBinanceTruthGaps(supabase!, scopedStats, ownership.execution_scope_key);
+        await refreshAccountState(supabase!, scopedStats, scopedStats.monitor_status, runtimeOwnershipFields(ownership));
+        await collectCryptoProviderOutcomes(supabase!,ownership,'BINANCE',(path,params)=>binanceRequest(path,params));
+       });
+      }catch(error){const observedAt=new Date().toISOString();const {error:saveError}=await supabase!.from('execution_account_runtime_proof').upsert({...runtimeOwnershipFields(ownership),environment:'testnet',monitor_status:'degraded',account_state:{latest_error:'ACCOUNT_OBSERVATION_UNAVAILABLE'},observed_at:observedAt,updated_at:observedAt},{onConflict:'execution_scope_key'});if(saveError)throw Error('DEGRADED_ACCOUNT_PROOF_NOT_PERSISTED');throw error;}
     });
+    for(const scopedStats of accountStatistics.values())mergeMonitorStatistics(stats,scopedStats);
     for (const failed of accountSync.filter((result) => result.status === "rejected")) addCriticalMonitorError(stats, `account_sync_failed:${errorMessage((failed as PromiseRejectedResult).reason)}`);
     stats.monitor_status = classifyMonitor(stats);
     try {
@@ -1849,40 +1859,6 @@ Deno.serve(async (req: Request) => {
     const errorMsg = errorMessage(err);
     addCriticalMonitorError(stats, errorMsg);
     stats.monitor_status = "critical_error";
-    if (supabase) {
-      try {
-        const { data: activeRows } = await supabase.from("execution_orders").select("*").eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").in("status", ACTIVE_STATUSES);
-        for (const row of (activeRows ?? []) as any) {
-          await upsertTradeManagementTruth(supabase, {
-            p_execution_order_id: row.id,
-            p_provider: "binance",
-            p_environment: "testnet",
-            p_symbol: row.symbol,
-            p_direction: String(row.direction).toLowerCase(),
-            p_status: "protection_failed",
-            p_protection_status: "protection_failed",
-            p_sl_present: false,
-            p_tp1_present: false,
-            p_tp2_present: false,
-            p_entry_price: Number(row.entry_price ?? 0) || null,
-            p_mark_price: null,
-            p_unrealized_pnl: 0,
-            p_quantity: Number(row.quantity ?? row.volume ?? 0) || null,
-            p_leverage: Number(row.leverage ?? 0) || null,
-            p_sl_price: Number(row.intended_sl ?? row.stop_loss ?? 0) || null,
-            p_tp1_price: Number(row.intended_tp1 ?? row.tp1 ?? 0) || null,
-            p_tp2_price: Number(row.intended_tp2 ?? row.tp2 ?? 0) || null,
-            p_monitor_run_id: runId,
-            p_repair_attempts: Number(row.repair_attempts ?? 0),
-            p_recovery_status: "provider_unavailable",
-            p_latest_error: errorMsg,
-            p_last_action_taken: "provider_health_failed"
-          }).catch(() => null);
-        }
-      } catch (_rowErr) {
-        // non-blocking
-      }
-    }
     await safeSettingsUpdate(supabase, { latest_monitor_run_at: new Date().toISOString(), latest_monitor_status: stats.monitor_status, latest_monitor_error: errorMessage(err), latest_sync_error: errorMessage(err), latest_monitor_result: { error: errorMessage(err), monitor_version: MONITOR_VERSION, ...monitorResult(stats) }, updated_at: new Date().toISOString() });
     if (supabase) await writeMonitorHeartbeat(supabase, heartbeatFromStats(runId, startedAt, new Date().toISOString(), false, stats, triggerSource, isAutomatic)).catch(() => null);
     return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, monitor_status: stats.monitor_status, global_error: "startup_exception", error: errorMessage(err), run_id: runId, ...stats }, 500);

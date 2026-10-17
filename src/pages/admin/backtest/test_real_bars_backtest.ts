@@ -63,7 +63,7 @@ async function runAudit() {
         category: sym.category,
         symbol: sym.symbol,
         displayName: sym.symbol,
-        assetClass: sym.assetClass,
+        assetClass: sym.category === 'forex' ? 'forex_majors' : sym.category === 'metals' ? 'metals_gold' : 'crypto',
         pipOrPointSize: sym.pipOrPointSize,
         spreadPipsOrPts: sym.spread,
         decimals: sym.decimals,

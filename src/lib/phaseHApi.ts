@@ -13,6 +13,7 @@ async function authority<T>(action:string, payload:Record<string,unknown>={}):Pr
   return data as AuthorityResult<T>;
 }
 export const phaseHApi = {
+  control: (executionAccountId:string, control:string) => authority('set_account_control',{execution_account_id:executionAccountId,control}),
   complete: () => authority('complete_onboarding'),
   load: () => authority<{session:OnboardingDraft|null}>('load_onboarding'),
   save: (draft:OnboardingDraft, idempotencyKey:string, version?:number) => authority('save_onboarding',{draft,idempotency_key:idempotencyKey,version}),

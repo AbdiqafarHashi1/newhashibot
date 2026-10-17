@@ -9,9 +9,9 @@ function fixture(){
  const context={...input.context,provider_contract:mt5Spec('MT5_PERSONAL')};
  const strategyPlan=JSON.parse(JSON.stringify(strategy));
  strategyPlan.entry_plan.expires_at='2026-09-25T12:05:00Z';strategyPlan.provenance.evaluated_at=at;
- strategyPlan.identity.strategy_id=signal.strategy_id;strategyPlan.identity.strategy_version='1.0.0';
+ strategyPlan.identity.strategy_id=signal.strategy_id;strategyPlan.identity.strategy_version='1.0.0';strategyPlan.provenance.measured_release_id='release';strategyPlan.provenance.evaluated_parameters={};
  const set={version:'qualified-strategy-set/v1',id:'FOREX_PERSONAL_QUALIFIED_SET',setVersion:'set-v1',product:'PERSONAL',researchPolicyVersion:'v1',entries:[{strategyId:signal.strategy_id,strategyVersion:'1.0.0',configId:'cfg',configVersion:'1',qualificationStatus:'FORWARD_VALIDATION_CANDIDATE',supportedSymbols:['EURUSD'],supportedTimeframes:['15m'],strategyParameters:{}}]};
- return {at,x:{account:{id:account.id,customer_id:account.customerId,immutable_identity:account.immutableIdentity,provider:'MT5_PERSONAL',environment:'demo',account_mode:'PERSONAL',enabled:true,execution_enabled:true,runtime_control:'START',policy_profile_id:account.policyProfileId,policy_version:account.policyVersion,policy_preset:'BALANCED',policy_overrides:{policy_configuration:{...input.configuration,lossResponse:undefined}}},signal:{id:signal.signal_id,...signal,strategy_version:'1.0.0',entry_low:signal.entry_price,status:'waiting',expires_at:'2026-09-25T12:05:00Z'},policy:input.basePolicy,context,observed_at:at,contract:mt5Spec('MT5_PERSONAL'),routing_policy:policy('MT5_PERSONAL'),capabilities:capabilities('MT5_PERSONAL'),strategy_plan:strategyPlan,qualified_set:set,provisioning:{state:'ACTIVE',qualified_set_id:set.id,qualified_set_version:set.setVersion},connection:{state:'CONNECTED',capabilities:{trading:true}},assignment:{policy_version:account.policyVersion},pending_orders:0,entitlement:{state:'ACTIVE',expiresAt:null},product:'FOREX_PERSONAL',evidence_hash:'database-loaded-fingerprint'}};
+ return {at,x:{measured_release:{id:'release',state:'PROMOTED',strategy_id:signal.strategy_id,configuration_hash:'release-hash',immutable_configuration:{strategies:[{id:signal.strategy_id,enabled:true,symbols:['EURUSD'],timeframes:['15m'],parameters:{}}]}},account:{id:account.id,customer_id:account.customerId,immutable_identity:account.immutableIdentity,provider:'MT5_PERSONAL',environment:'demo',account_mode:'PERSONAL',enabled:true,execution_enabled:true,runtime_control:'START',policy_profile_id:account.policyProfileId,policy_version:account.policyVersion,policy_preset:'BALANCED',policy_overrides:{policy_configuration:{...input.configuration,lossResponse:undefined}}},signal:{id:signal.signal_id,...signal,strategy_version:'1.0.0',entry_low:signal.entry_price,status:'waiting',expires_at:'2026-09-25T12:05:00Z'},policy:input.basePolicy,context,observed_at:at,contract:mt5Spec('MT5_PERSONAL'),routing_policy:policy('MT5_PERSONAL'),capabilities:capabilities('MT5_PERSONAL'),strategy_plan:strategyPlan,qualified_set:set,provisioning:{state:'ACTIVE',qualified_set_id:set.id,qualified_set_version:set.setVersion},connection:{state:'CONNECTED',capabilities:{trading:true}},assignment:{policy_version:account.policyVersion},pending_orders:0,entitlement:{state:'ACTIVE',expiresAt:null},product:'FOREX_PERSONAL',evidence_hash:'database-loaded-fingerprint'}};
 }
 test('production producer evaluates the assigned Brain and persists exact quantity before exposing a plan',async()=>{
  const {x,at}=fixture();let saved:any;
@@ -56,4 +56,22 @@ test('MT5 observed positions use the bridge quantity field and reject a changed 
  const db={from(table:string){const q:any={select:()=>q,eq:()=>q,order:()=>q,limit:()=>q,insert:()=>q,single:async()=>({data:table==='connected_execution_accounts'?account:{id:'saved'}}),maybeSingle:async()=>({data:snapshot})};return q}};
  const input={customer_id:'customer-a',execution_account_id:'a1',provider:'MT5_PERSONAL',symbol:'EURUSD',observed_at:at,account_context:c,contract_specification:x.contract,routing_policy:x.routing_policy,capabilities:x.capabilities,pending_orders:0};
  assert.equal((await recordObservedAccountPolicyEvidence(db,input,Date.parse(at))).id,'saved');snapshot.positions[0].quantity=.2;await assert.rejects(recordObservedAccountPolicyEvidence(db,input,Date.parse(at)),/POSITION_EVIDENCE_MISMATCH/);
+});
+
+
+test('higher MT5 broker buying power does not override the lower authorized leverage ceiling',async()=>{
+ const {x,at}=fixture();x.context.leverage=100;let saved:any;
+ const db={rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
+ const result=await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'broker-leverage'},at);
+ assert.equal(result.decision,'ALLOW',JSON.stringify(saved.p_decision));assert.ok(saved.p_decision.executionIntent.positionPlan.leverage<=x.policy.max_leverage_allowed);
+});
+
+test('production sizing consumes the observed tick value and cannot round a small risk up to the broker minimum',async()=>{
+ const {x,at}=fixture();x.contract.tick_value_account_currency=2;x.context.provider_contract=x.contract;let saved:any;
+ const db={rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
+ await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'tick-risk'},at);
+ assert.equal(saved.p_decision.decision,'ALLOW');const plan=saved.p_decision.executionIntent.positionPlan;
+ assert.ok(plan.quantity*Math.abs(plan.entry_price-plan.stop_loss)/x.contract.tick_size*x.contract.tick_value_account_currency<=x.context.balance*saved.p_decision.authorizedRiskPct/100+1e-6);
+ x.contract.minimum_lot=100;
+ await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'min-lot'},at);assert.equal(saved.p_decision.executionIntent,null);
 });

@@ -1,3 +1,4 @@
+import {measuredRuntimeConfiguration} from "../_shared/measured-strategy-runtime.ts";
 import {drainProductionAccountAuthorizations} from '../_shared/production-account-authorization.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -2182,17 +2183,20 @@ async function runScanPipeline(
   const scanStart = Date.now();
 
   // Load strategy configs (includes 018 distance-guard columns)
-  const { data: strategyConfigs } = await supabase.from("strategy_configs").select("strategy_name,enabled,signal_style,risk_mode,min_score,min_rr,min_stop_distance_pct,min_tp1_distance_pct,min_tp2_distance_pct,max_bars_in_trade,allowed_symbols,allowed_timeframes,params");
+  const { data: strategyConfigs,error:strategyConfigError } = await supabase.from("strategy_configs").select("strategy_name,enabled,signal_style,risk_mode,min_score,min_rr,min_stop_distance_pct,min_tp1_distance_pct,min_tp2_distance_pct,max_bars_in_trade,allowed_symbols,allowed_timeframes,params");
+  if(strategyConfigError||!Array.isArray(strategyConfigs))throw new Error("STRATEGY_CONFIGURATION_UNAVAILABLE");
+  const {data:measuredReleases,error:releaseError}=await supabase.from("strategy_release_candidates").select("id,strategy_id,state,immutable_configuration").eq("state","PROMOTED");
+  if(releaseError||!Array.isArray(measuredReleases))throw new Error("MEASURED_STRATEGY_RELEASES_UNAVAILABLE");
   const getStratCfg = (name: string): StrategyConfig => {
     const cfg = (strategyConfigs ?? []).find((s: Record<string, unknown>) => s.strategy_name === name);
     const isForex = name.startsWith("Forex") || name === "GoldVolatilityBreakout";
     const forexContract = FOREX_STRATEGY_CONTRACTS.find((contract) => contract.legacyName === name);
     const isMicroScalper = name === "MicroScalper";
     const isQuickScalp = name === "QuickScalp";
-    return {
+    return measuredRuntimeConfiguration(name,{
       strategy_name: name,
       config_source:         cfg ? "db" : "fallback",
-      enabled:               (cfg?.enabled as boolean)                      ?? true,
+      enabled:               (cfg?.enabled as boolean)                      ?? false,
       signal_style:          (cfg?.signal_style as string)                  ?? (isForex ? "forex_signal" : "scalper"),
       risk_mode:             (cfg?.risk_mode as string)                     ?? (isForex ? "conservative" : "balanced"),
       min_score:             (cfg?.min_score as number)                     ?? (isQuickScalp ? 82 : isMicroScalper ? 72 : isForex ? 78 : 75),
@@ -2204,7 +2208,7 @@ async function runScanPipeline(
       allowed_symbols:       forexContract ? [...forexContract.symbols] : ((cfg?.allowed_symbols as string[]) ?? []),
       allowed_timeframes:    forexContract ? forexStrategyTimeframes(forexContract) : ((cfg?.allowed_timeframes as string[]) ?? (isQuickScalp ? ["5m", "15m"] : isMicroScalper ? ["5m", "15m"] : [])),
       params:                (cfg?.params as Record<string, number>)        ?? {},
-    };
+    },measuredReleases,config.min_signal_grade);
   };
 
   // Load mode configs and risk profiles
@@ -3007,7 +3011,7 @@ async function runScanPipeline(
             const set = eligibilityProduct === "SIGNAL_ONLY" ? null : qualifiedSets.get(`${eligibilityProduct}_QUALIFIED_SET`) ?? null;
             const claim: EligibilityClaim = eligibilityProduct === "SIGNAL_ONLY"
               ? { product: eligibilityProduct, market: eligibilityMarket, strategyId, strategyVersion, configId: "", configVersion: "", qualifiedSetVersion: "", strategyParameters: {}, symbol: normalizedSymbol, timeframe: tf, requiredQualification: "FORWARD_VALIDATION_CANDIDATE" }
-              : pinnedClaimFromQualifiedSet({ product: eligibilityProduct, market: eligibilityMarket, set: set ?? { version: "qualified-strategy-set/v1", id: `${eligibilityProduct}_QUALIFIED_SET`, setVersion: "missing", product: eligibilityProduct.endsWith("PROP") ? "PROP" : "PERSONAL", researchPolicyVersion: "missing", entries: [] }, strategyId, strategyVersion, symbol: normalizedSymbol, timeframe: tf, requiredQualification: "FORWARD_VALIDATION_CANDIDATE" });
+              : pinnedClaimFromQualifiedSet({ product: eligibilityProduct, market: eligibilityMarket, set: set ?? { version: "qualified-strategy-set/v1", id: `${eligibilityProduct}_QUALIFIED_SET`, setVersion: "missing", product: eligibilityProduct.endsWith("PROP") ? "PROP" : "PERSONAL", researchPolicyVersion: "missing", entries: [] }, strategyId, strategyVersion, symbol: normalizedSymbol, timeframe: tf, requiredQualification: "FORWARD_VALIDATION_CANDIDATE", evaluatedParameters:ev.cfg.params });
             const eligibility = routeProductionEligibility({ claim, qualifiedSet: set, signalPolicy: scannerSignalPolicy });
             if (eligibility.decision === "INELIGIBLE") {
               await supabase.from("certified_runtime_events").insert({ event_id: `eligibility:${runId}:${cId}:${eligibilityProduct}`, execution_plan_id: `eligibility:${cId}`, account_id: eligibilityProduct, event_type: "ACCOUNT_REJECTED", normalized_status: "rejected", occurred_at: strategyContext.evaluated_at, payload: eligibility });

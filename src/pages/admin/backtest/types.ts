@@ -244,7 +244,7 @@ export interface ArbitrationEvent {
     score: number;
     weightedScore: number;
   } | null;
-  decision: 'executed' | 'rejected_conflict' | 'rejected_max_exposure' | 'rejected_score';
+  decision: 'approved' | 'executed' | 'rejected_conflict' | 'rejected_max_exposure' | 'rejected_score' | 'rejected_risk' | 'rejected_capacity';
   notes: string;
 }
 
@@ -302,3 +302,9 @@ export const STRATEGY_ASSET_MAP: Record<
   CryptoMomentumBreakout: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT', 'ETHUSDT'], decimals: 2 },
   CryptoReversalExhaustion: { category: 'crypto', defaultSymbol: 'BTCUSDT', supportedSymbols: ['BTCUSDT'], decimals: 2 },
 };
+
+/** Compatibility names for legacy research tools; these retain the concrete result contracts. */
+export type MultiAssetDatasetMap = Record<string, MultiAssetFeedItem>;
+export type CategorySummary = CategoryPerformanceSummary;
+export type SymbolSummary = SymbolPerformanceSummary;
+export type StrategyStat = StrategyContributionStat;

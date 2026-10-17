@@ -1,8 +1,8 @@
 {
   "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
   "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
-  "routeCount": 70,
-  "surfaceCount": 95,
+  "routeCount": 71,
+  "surfaceCount": 110,
   "routes": [
     {
       "route": "/admin/setup",
@@ -119,6 +119,10 @@
     {
       "route": "/admin/onboarding",
       "element": "<RequireAdmin><OnboardingOperations "
+    },
+    {
+      "route": "/admin/launch",
+      "element": "<RequireAdmin><LaunchSetup "
     },
     {
       "route": "/admin/commerce",
@@ -334,7 +338,7 @@
     },
     {
       "file": "src/pages/admin/BacktestLab.tsx",
-      "sourceHash": "ab58f14cae389892ea2e965bcca99bc0a8106768d022a60c821c4cab07a33668",
+      "sourceHash": "64f62445db42befe200d2a8d0fe4ab5fda23e979eadd60fb54c4f4b41a08a58b",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -379,7 +383,7 @@
     },
     {
       "file": "src/pages/admin/CommerceOperations.tsx",
-      "sourceHash": "9fb163c795ce16b1451bff2bcb52621105b2471cfc6ff986c4e3367ec5118e83",
+      "sourceHash": "82c77bc4d0acf519aa401d861c04161e6f88102521c1752af3a235e4b4a734d8",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -392,6 +396,56 @@
         }
       ],
       "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/ControlRoom.tsx",
+      "sourceHash": "ae8b556aa1bc85be89bea8eaea55cca8e03a0b1db47db647ca68b1db4ec9869b",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'symbols'"
+        },
+        {
+          "method": "from",
+          "target": "'candles'"
+        },
+        {
+          "method": "from",
+          "target": "'signals'"
+        },
+        {
+          "method": "from",
+          "target": "'strategy_candidates'"
+        },
+        {
+          "method": "from",
+          "target": "'profiles'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_runs'"
+        },
+        {
+          "method": "from",
+          "target": "'scanner_config'"
+        },
+        {
+          "method": "from",
+          "target": "'audit_logs'"
+        }
+      ],
+      "directMutationEdges": [
+        {
+          "line": 98,
+          "code": "supabase.from('scanner_config').update({ is_enabled: enable })"
+        },
+        {
+          "line": 100,
+          "code": "supabase.from('audit_logs').insert({\n        actor_user_id: session?.user.id ?? null,\n        action: enable ? 'scanner_enabled' : 'scanner_disabled',\n        entity_type: 'scanner_config',\n        entity_id: '1',\n        metadata: {},\n    "
+        }
+      ],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -420,7 +474,7 @@
     },
     {
       "file": "src/pages/admin/GrowthGoal.tsx",
-      "sourceHash": "bcf69e4beeec249e6b180b4583934a1a7d60b3e6ecaa6d147066d008a10c41c8",
+      "sourceHash": "ddc611e4386556ce9ab9e4edfceda58757ce5d2c06495d7d04e25358c1b68836",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -431,6 +485,19 @@
       "sourceHash": "96abd43bba6dff411aefdf28b96031fd70a4b1d3842ae6f6b6f4b6d264fe1371",
       "internalUiLabels": [],
       "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/LaunchSetup.tsx",
+      "sourceHash": "71bebda99e1c3d4c10cedcd466983ceb3324878777db2ef67cc2f2cb19b13715",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'saas-launch-status'"
+        }
+      ],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
@@ -494,7 +561,7 @@
     },
     {
       "file": "src/pages/admin/OnboardingOperations.tsx",
-      "sourceHash": "0341fac25f11858aae17620059864a1680b2d2e230947b45c83f4fe2a33699c0",
+      "sourceHash": "ad8b544059148a6403259ae045d49cacfbe3dff2c29d45888f6e331cee357b33",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -956,7 +1023,7 @@
     },
     {
       "file": "src/pages/admin/StrategyConfig.tsx",
-      "sourceHash": "712ea629bd36f4301faab01940e632dbb7daa0987912015e48e2296ee22a8b0c",
+      "sourceHash": "9c527e9417749b4fa570d43366cc61f7755ed327d025f3e400ce7123adf59864",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1059,8 +1126,32 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/pages/admin/backtest/AICalibrationPanel.tsx",
+      "sourceHash": "8ccea160acfbfdcf655cbc8ccff43217afea7cba26caa08ce4b900d2724d7ac2",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/pages/admin/backtest/CalibrationLab.tsx",
       "sourceHash": "4492026da75ef5e6c57f5775135169adbdcaa365a7bfc6c80093bacb069156dc",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/CapitalPoolManager.tsx",
+      "sourceHash": "e80831d09250909426538cf6f0f43b1ba817ad380966ae0294c56e746e520ca4",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/CategoryScorecards.tsx",
+      "sourceHash": "46181a60dd2fd6fc2ff3821c3819a35769f37e99f19117991966d7e3ca38c530",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1096,10 +1187,44 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/pages/admin/backtest/KnowledgeGuide.tsx",
+      "sourceHash": "f82ee9a836bf703a41eae2d7762a5ecc8dfe752a329d234e9cee41a4e9c57f2f",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/MultiAssetDataManager.tsx",
+      "sourceHash": "14a43a8631fff0fd670e0e6241e6860c98e85a14cbad53617be9436d42b1166b",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "uniqueFeedMap.values()"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/pages/admin/backtest/PermanentResearchLab.tsx",
       "sourceHash": "e805141071d2a7b7b50f30b6c1fdb501bb648a373b3e1dac30697e0c502e040a",
       "internalUiLabels": [],
       "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/PortfolioCertificationPanel.tsx",
+      "sourceHash": "cdbec88151c127a1ece0fb360393939058518deb8cdf7e7275744dca12752bb0",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "{length:11}"
+        }
+      ],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
@@ -1109,6 +1234,58 @@
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/PropClearanceLab.tsx",
+      "sourceHash": "1a3d157dcbbbac38ec8b3821584c23734230259af6edf2a3198e4d2ec638455e",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "files"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/ReplayCockpit.tsx",
+      "sourceHash": "d0079b6ba799e2597b080a5f3d59fa84050e7853d1cb4deddc266fec22f7bc7b",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/ResearchValidationWorkspace.tsx",
+      "sourceHash": "cfd319db49a17b57b6a62f3398b32017ae00e39fab0bec94fb4598a9f913d3ae",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'mt5_accounts_safe'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/SingleStrategyLab.tsx",
+      "sourceHash": "bc2ce5fa65a61b6d46ddb50aad62408ed4ef8cd4cf09ca79fccbe95566d94a75",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'backtest_runs'"
+        }
+      ],
+      "directMutationEdges": [
+        {
+          "line": 171,
+          "code": "supabase.from('backtest_runs').insert({ mode_slug: 'canonical_single_strategy', strategy_name: first.strategyId, symbol: first.symbol, timeframe: first.primaryTimeframe, dataset_name: feed?.datasetId ?? first.datasetIds.join(','), status: '"
+        }
+      ],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
@@ -1289,10 +1466,36 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/components/operations/CommerceConnections.tsx",
+      "sourceHash": "6f28d20110bf8c2dad6dc6f6079ae6360da695d3212fd338ba0cd38b36becb0b",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'commerce-configuration'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/components/operations/EventTimeline.tsx",
       "sourceHash": "47fb2467000b07d1ad602e7c67a53e14d39ccb7365bbe56254549df7b7cafc7b",
       "internalUiLabels": [],
       "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/GrowthPipeline.tsx",
+      "sourceHash": "91a8279c4b0c352d1c06ba6280fcb7294b6cb6253cc7112ef6fe9c3e52c6aaec",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'growth-pipeline'"
+        }
+      ],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
@@ -1354,7 +1557,7 @@
     },
     {
       "file": "src/components/operations/PhaseMOperationsPanel.tsx",
-      "sourceHash": "881af63f2eb6b57729a26507c6cbcbc7e557603fd3c56fbad545421e2824ebd4",
+      "sourceHash": "9b98bc3aa4d7af5c1ae3b1a85f1a83ac41384554d8f8a33ffdd61331f3f44d45",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1384,6 +1587,14 @@
     {
       "file": "src/components/operations/StatusBadges.tsx",
       "sourceHash": "5fe877cb90eb034bd235503f5c6c1cd5c5cad2551519562b51b2c1ea295eba9f",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/StrategyReleasePanel.tsx",
+      "sourceHash": "8982e705ae544d0d945fbb5e21c637e128bf5670f88f09d1e99c8fb1f7c0ccdd",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],

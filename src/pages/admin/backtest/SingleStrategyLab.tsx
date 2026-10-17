@@ -553,7 +553,7 @@ export const SingleStrategyLab: React.FC<SingleStrategyLabProps> = ({
               Isolated Performance Metrics: {selectedStrategy} ({env.symbol})
             </h4>
             <span className="text-xs text-slate-400 font-mono">
-              Tested on {metrics.evaluations.toLocaleString()} bar evaluations
+              Tested on {metrics.evaluations?.toLocaleString() ?? 'Not recorded'} bar evaluations
             </span>
           </div>
 
