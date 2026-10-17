@@ -101,3 +101,19 @@ declare c record;a record;begin
 end$$;
 revoke all on function public.acknowledge_mpesa_submission(uuid,uuid,text,text) from public,anon,authenticated;
 grant execute on function public.acknowledge_mpesa_submission(uuid,uuid,text,text) to service_role;
+
+-- Install the original backend's bounded payment-recovery pass when the owner enables checkout.
+-- Tokens are read at execution time, never embedded in cron.job.command or sent to the browser.
+create function public.configure_commerce_recovery_clock(p_project_url text) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare job_id bigint;statement text;begin
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ if p_project_url is null or p_project_url !~ '^https://[a-z0-9-]+[.]supabase[.]co/?$' then raise exception 'PROJECT_BACKEND_ORIGIN_REQUIRED';end if;
+ if to_regnamespace('cron') is null or to_regnamespace('net') is null then raise exception 'COMMERCE_RECOVERY_EXTENSIONS_REQUIRED';end if;
+ if not exists(select 1 from scanner_config where id=1 and nullif(cron_pg_token,'') is not null) then raise exception 'COMMERCE_RECOVERY_TOKEN_REQUIRED';end if;
+ statement:=format($job$select net.http_post(url := %L,headers := jsonb_build_object('Content-Type','application/json','x-hashibot-cron-token',(select cron_pg_token from public.scanner_config where id=1)),body := '{}'::jsonb,timeout_milliseconds := 90000);$job$,rtrim(p_project_url,'/')||'/functions/v1/commerce-reconcile');
+ select cron.schedule('hashibot_commerce_recovery_5m','*/5 * * * *',statement) into job_id;
+ return jsonb_build_object('state','SCHEDULED','interval_minutes',5,'job_id',job_id);
+end$$;
+revoke all on function public.configure_commerce_recovery_clock(text) from public,anon,authenticated;
+grant execute on function public.configure_commerce_recovery_clock(text) to service_role;

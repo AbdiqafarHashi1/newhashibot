@@ -1,0 +1,10 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {build} from 'esbuild';import {mkdir} from 'node:fs/promises';
+test('recovery HTTP handler accepts the existing cron token and service identity while rejecting customers and missing credentials',async()=>{
+ const g=globalThis as any,previous={Deno:g.Deno,client:g.__recoveryAuthClient};let handler:any;
+ try{const client={auth:{getUser:async()=>({data:{user:{id:'customer'}}})},rpc:async()=>({data:null}),from(table:string){const q:any={select:()=>q,eq:()=>q,not:()=>q,lte:()=>q,in:()=>q,order:()=>q,limit:()=>q,maybeSingle:async()=>({data:table==='scanner_config'?{cron_pg_token:'fixture-cron'}:table==='profiles'?{role:'user'}:null}),then:(fn:any)=>Promise.resolve({data:[],error:null}).then(fn)};return q}};
+ g.__recoveryAuthClient=client;g.Deno={env:{get:(key:string)=>key==='SUPABASE_URL'?'https://fixture.supabase.co':key==='SUPABASE_SERVICE_ROLE_KEY'?'fixture-service':undefined},serve:(fn:any)=>handler=fn};
+ await mkdir('.tmp/recovery-auth-http',{recursive:true});await build({entryPoints:['supabase/functions/commerce-reconcile/index.ts'],outfile:'.tmp/recovery-auth-http/index.mjs',bundle:true,platform:'node',format:'esm',logLevel:'silent',plugins:[{name:'fixture',setup(b){b.onResolve({filter:/^npm:/},args=>({path:args.path,namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const createClient=()=>globalThis.__recoveryAuthClient;',loader:'js'}))}}]});await import('../../.tmp/recovery-auth-http/index.mjs' as string);
+ const call=(headers:any)=>handler(new Request('https://fixture.supabase.co/functions/v1/commerce-reconcile',{method:'POST',headers,body:'{}'}));
+ assert.equal((await call({})).status,401);assert.equal((await call({'x-hashibot-cron-token':'wrong'})).status,401);assert.equal((await call({Authorization:'Bearer customer.jwt.token'})).status,403);assert.equal((await call({'x-hashibot-cron-token':'fixture-cron'})).status,200);assert.equal((await call({Authorization:'Bearer fixture-service'})).status,200);
+ }finally{g.Deno=previous.Deno;g.__recoveryAuthClient=previous.client}
+});

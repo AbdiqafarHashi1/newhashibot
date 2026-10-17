@@ -1,3 +1,4 @@
+import {authorizeInternalOrAdmin} from '../_shared/internal-auth.ts';
 import {recoverWhopPayments,recheckWhopMembershipPayments} from '../_shared/whop-payment-recovery.ts';
 import {commerceEnvironment} from '../_shared/commerce-provider-settings.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2';
@@ -7,8 +8,9 @@ import {whopRuntimeConfig,verifyWhopRuntimeEvent} from '../_shared/whop-runtime.
 Deno.serve(async req=>{
  const reply=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
  if(req.method!=='POST')return reply(405,{state:'BLOCKED'});
- const expected=Deno.env.get('HASHIBOT_INTERNAL_SECRET'),provided=req.headers.get('x-hashibot-internal-secret');if(!expected||provided!==expected)return reply(401,{state:'BLOCKED',reason:'SERVICE_AUTH_REQUIRED'});
- const db=createClient(Deno.env.get('SUPABASE_URL')??'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'',{auth:{persistSession:false}}),get=await commerceEnvironment(db,key=>Deno.env.get(key)),results:any[]=[],adapter=mpesaAdapterFromGetter(get);
+ const db=createClient(Deno.env.get('SUPABASE_URL')??'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'',{auth:{persistSession:false}});
+ const auth=await authorizeInternalOrAdmin(req,db);if(!auth.ok)return reply(auth.status,{state:'BLOCKED',reason:'SERVICE_AUTH_REQUIRED'});
+ const get=await commerceEnvironment(db,key=>Deno.env.get(key)),results:any[]=[],adapter=mpesaAdapterFromGetter(get);
  const whop=whopRuntimeConfig(get);if(whop){try{results.push(...await recoverWhopPayments(db,whop));results.push(...await recheckWhopMembershipPayments(db,whop))}catch{results.push({state:'WHOP_SOURCE_RECOVERY_RETRYABLE'})}}
  // Recover lost callbacks with provider queries against known requests; never submit a second STK request.
  const pending=await db.from('commerce_payment_attempts').select('id,external_reference').eq('provider','MPESA').eq('state','PENDING').not('external_reference','is',null).lte('next_status_query_at',new Date().toISOString()).order('next_status_query_at').limit(10);

@@ -65,3 +65,13 @@ test('higher MT5 broker buying power does not override the lower authorized leve
  const result=await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'broker-leverage'},at);
  assert.equal(result.decision,'ALLOW',JSON.stringify(saved.p_decision));assert.ok(saved.p_decision.executionIntent.positionPlan.leverage<=x.policy.max_leverage_allowed);
 });
+
+test('production sizing consumes the observed tick value and cannot round a small risk up to the broker minimum',async()=>{
+ const {x,at}=fixture();x.contract.tick_value_account_currency=2;x.context.provider_contract=x.contract;let saved:any;
+ const db={rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
+ await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'tick-risk'},at);
+ assert.equal(saved.p_decision.decision,'ALLOW');const plan=saved.p_decision.executionIntent.positionPlan;
+ assert.ok(plan.quantity*Math.abs(plan.entry_price-plan.stop_loss)/x.contract.tick_size*x.contract.tick_value_account_currency<=x.context.balance*saved.p_decision.authorizedRiskPct/100+1e-6);
+ x.contract.minimum_lot=100;
+ await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'min-lot'},at);assert.equal(saved.p_decision.executionIntent,null);
+});
