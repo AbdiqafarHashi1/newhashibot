@@ -13,3 +13,9 @@ export function admitBinanceConditionalOrders(value:unknown){
  for(const row of rows)if(!row||typeof row!=='object'||typeof row.symbol!=='string'||!row.symbol)throw new Error('PROVIDER_CONDITIONAL_ORDER_MALFORMED');
  return rows;
 }
+
+/** Provider financial fields are observations; missing values must not coerce to zero. */
+export function observedFinancialNumber(value:unknown,field:string,minimum=0){
+ if(value===null||value===undefined||typeof value==='boolean'||String(value).trim()===''||!Number.isFinite(Number(value))||Number(value)<minimum)throw Error(`PROVIDER_FINANCIAL_FIELD_REQUIRED:${field}`);
+ return Number(value);
+}

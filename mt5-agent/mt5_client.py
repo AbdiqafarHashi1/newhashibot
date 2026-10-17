@@ -260,11 +260,11 @@ class MT5Client:
 
     def get_positions(self) -> List[Dict[str, Any]]:
         if not HAS_MT5 or not self.check_connection():
-            return []
+            raise RuntimeError("MT5_POSITIONS_UNAVAILABLE")
 
         pos_list = mt5.positions_get()
         if pos_list is None:
-            return []
+            raise RuntimeError("MT5_POSITIONS_UNAVAILABLE")
 
         result = []
         for p in pos_list:
@@ -287,11 +287,11 @@ class MT5Client:
 
     def get_orders(self) -> List[Dict[str, Any]]:
         if not HAS_MT5 or not self.check_connection():
-            return []
+            raise RuntimeError("MT5_ORDERS_UNAVAILABLE")
 
         order_list = mt5.orders_get()
         if order_list is None:
-            return []
+            raise RuntimeError("MT5_ORDERS_UNAVAILABLE")
 
         result = []
         for o in order_list:
@@ -322,14 +322,41 @@ class MT5Client:
         if not HAS_MT5 or not self.check_connection():
             return None
 
+        if mt5.symbol_info(symbol) is None:
+            matches = [row.name for row in (mt5.symbols_get() or ()) if row.name.startswith(symbol) and row.currency_base + row.currency_profit == symbol]
+            if len(matches) != 1:
+                return None
+            symbol = matches[0]
         if not mt5.symbol_select(symbol, True):
-            logger.warning(f"[MT5Client] Could not select symbol {symbol} in Market Watch.")
+            return None
 
         s = mt5.symbol_info(symbol)
         if s is None:
             return None
 
+        tick = mt5.symbol_info_tick(symbol)
+        account = mt5.account_info()
+        conversion = None
+        if account and s.currency_profit == account.currency:
+            conversion = 1.0
+        elif account:
+            for pair, inverse in ((s.currency_profit + account.currency, False), (account.currency + s.currency_profit, True)):
+                pair_info = mt5.symbol_info(pair)
+                if pair_info is None:
+                    matches = [row.name for row in (mt5.symbols_get() or ()) if row.name.startswith(pair) and row.currency_base + row.currency_profit == pair]
+                    if len(matches) == 1:
+                        pair = matches[0]
+                if mt5.symbol_select(pair, True):
+                    quote = mt5.symbol_info_tick(pair)
+                    if quote and quote.bid > 0 and quote.ask > 0 and 0 <= datetime.now(timezone.utc).timestamp() - quote.time <= 60:
+                        conversion = 1.0 / float(quote.bid) if inverse else float(quote.ask)
+                        break
         return {
+            "tick_size": float(s.trade_tick_size), "tick_value": float(s.trade_tick_value),
+            "currency_profit": s.currency_profit, "account_currency": account.currency if account else None,
+            "quote_to_account_conversion": conversion,
+            "tick_at": datetime.fromtimestamp(tick.time, timezone.utc).isoformat() if tick else None,
+            "trade_mode": int(s.trade_mode),
             "broker_symbol": s.name,
             "digits": int(s.digits),
             "point": float(s.point),
@@ -341,7 +368,7 @@ class MT5Client:
             "bid": float(s.bid),
             "ask": float(s.ask),
             "spread": int(s.spread),
-            "fill_policies": ["return"] if s.filling_mode == 0 else ["ioc", "return"]
+            "fill_policies": (["fok"] if int(s.filling_mode) & 1 else []) + (["ioc"] if int(s.filling_mode) & 2 else []) + (["return"] if int(s.trade_exemode) != int(mt5.SYMBOL_TRADE_EXECUTION_MARKET) else [])
         }
 
     def place_order(self, payload: Dict[str, Any]) -> Dict[str, Any]:

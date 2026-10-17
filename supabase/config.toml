@@ -90,3 +90,6 @@ verify_jwt = true
 
 [functions.commerce-configuration]
 verify_jwt = true
+
+[functions.growth-pipeline]
+verify_jwt = true

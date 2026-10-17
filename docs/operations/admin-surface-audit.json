@@ -2,7 +2,7 @@
   "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
   "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
   "routeCount": 71,
-  "surfaceCount": 109,
+  "surfaceCount": 110,
   "routes": [
     {
       "route": "/admin/setup",
@@ -474,7 +474,7 @@
     },
     {
       "file": "src/pages/admin/GrowthGoal.tsx",
-      "sourceHash": "bcf69e4beeec249e6b180b4583934a1a7d60b3e6ecaa6d147066d008a10c41c8",
+      "sourceHash": "ddc611e4386556ce9ab9e4edfceda58757ce5d2c06495d7d04e25358c1b68836",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1483,6 +1483,19 @@
       "sourceHash": "47fb2467000b07d1ad602e7c67a53e14d39ccb7365bbe56254549df7b7cafc7b",
       "internalUiLabels": [],
       "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/GrowthPipeline.tsx",
+      "sourceHash": "91a8279c4b0c352d1c06ba6280fcb7294b6cb6253cc7112ef6fe9c3e52c6aaec",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'growth-pipeline'"
+        }
+      ],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },

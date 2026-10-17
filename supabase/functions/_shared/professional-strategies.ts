@@ -47,6 +47,7 @@ export interface ProfessionalStrategyResult {
 }
 
 export interface StrategyRuntimeConfig {
+  config_source?: string;
   strategy_name: string;
   enabled: boolean;
   min_score: number;

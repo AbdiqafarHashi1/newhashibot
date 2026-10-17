@@ -1,3 +1,4 @@
+import {observedFinancialNumber} from '../_shared/provider-snapshot-admission.ts';
 import {collectCryptoProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import {synchronizeCanonicalMonitor} from '../_shared/canonical-monitor-observations.ts';
 import {admitBinanceConditionalOrders,admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
@@ -1608,8 +1609,8 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   const usdc = assets?.find((a) => a.asset === "USDC");
   const positions = (admitProviderPositions(positionsBody,"binance") as unknown as BinancePosition[]).filter((p: BinancePosition) => Math.abs(n(p.positionAmt)) > 0);
   const orders = [...(Array.isArray(allOrdersBody) ? allOrdersBody : []), ...parseOpenAlgoOrders(allAlgoOrdersBody)];
-  const totalMargin = n((accountBody as Record<string, unknown>).totalMarginBalance);
-  const totalWallet = n((accountBody as Record<string, unknown>).totalWalletBalance);
+  const totalMargin = observedFinancialNumber((accountBody as Record<string, unknown>).totalMarginBalance,"totalMarginBalance");
+  const totalWallet = observedFinancialNumber((accountBody as Record<string, unknown>).totalWalletBalance,"totalWalletBalance");
   const unrealized = positions.reduce((sum: number, p: BinancePosition) => sum + n(p.unRealizedProfit ?? p.unrealizedProfit), 0);
   const currentPositionSize = positions.reduce((sum: number, p: BinancePosition) => sum + Math.abs(n(p.positionAmt)), 0);
   const openNotional = positions.reduce((sum: number, p: BinancePosition) => sum + Math.abs(n((p as Record<string, unknown>).notional)), 0);
@@ -1629,7 +1630,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     unrealized_pnl: unrealized,
     account_total_margin_balance: totalMargin,
     account_total_wallet_balance: totalWallet,
-    available_usdt: n(usdt?.availableBalance),
+    available_usdt: observedFinancialNumber((accountBody as Record<string, unknown>).availableBalance,"availableBalance"),
     available_usdc: n(usdc?.availableBalance),
     current_open_risk_pct: currentOpenRiskPct,
     profit_lock_study_counters: stats.profit_lock_study,
@@ -1640,7 +1641,8 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     latest_account_state_at: monitorRunAt,
     updated_at: monitorRunAt,
   };
-  await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: {...settingsUpdate,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  const {error:proofError}=await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: {...settingsUpdate,account_initial_margin:observedFinancialNumber((accountBody as Record<string,unknown>).totalInitialMargin,"totalInitialMargin"),provider_position_risk:positionsBody,provider_account_currency:"USDT",flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  if(proofError)throw Error("PROVIDER_SNAPSHOT_NOT_PERSISTED");
   if(conditionalOrdersComplete&&Array.isArray(allOrdersBody))await synchronizeCanonicalMonitor({store:supabase,ownership,provider:'BINANCE',positions:positions as unknown as Record<string,any>[],orders:orders as Record<string,any>[],complete:true,observedAt:monitorRunAt,lookupEntry:async(symbol,orderId)=>{const order=await binanceRequest('/fapi/v1/order',{symbol,orderId}) as Record<string,unknown>;return{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??''),status:String(order.status??''),filledQuantity:Number(order.executedQty)}}});
   const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
   if (!error) return;

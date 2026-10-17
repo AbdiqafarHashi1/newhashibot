@@ -62,3 +62,6 @@ grant select,insert,update on public.commerce_reconciliation_cursors to service_
 
 alter table public.commerce_payment_events add column if not exists next_reconcile_at timestamptz not null default now();
 create index commerce_payment_event_recovery_due on public.commerce_payment_events(processing_state,next_reconcile_at);
+
+alter table public.commerce_payment_attempts add column if not exists next_status_query_at timestamptz not null default now();
+create index commerce_mpesa_status_query_due on public.commerce_payment_attempts(provider,state,next_status_query_at) where state='PENDING';

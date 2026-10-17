@@ -45,6 +45,8 @@ export interface StrategyPlan {
     evaluated_at: string;
     config_version: typeof STRATEGY_CONFIG_SCHEMA_VERSION;
     config_hash: string;
+    measured_release_id?: string | null;
+    evaluated_parameters?:Readonly<Record<string,number>>;
     indicator_engine_version: typeof INDICATOR_ENGINE_VERSION;
     market_data_source: string;
     candle_boundary: { first_open_time: string | null; last_open_time: string | null; candle_count: number; closed_only: boolean };
@@ -244,7 +246,7 @@ export function createStrategyPlan(definition: StrategyDefinition, context: Stra
   const plan: StrategyPlan = {
     schema_version: STRATEGY_PLAN_SCHEMA_VERSION,
     identity: { strategy_id: definition.id, strategy_name: definition.legacyName, strategy_version: definition.version, asset_class: assetClass(definition, legacy), lifecycle: definition.lifecycle, certification_status: definition.certification ?? (definition.lifecycle === "RESEARCH" ? "RESEARCH" : "PRODUCTION"), publication_mode: definition.publicationMode ?? "LIVE" },
-    provenance: { evaluation_id: stableFingerprint({ strategy: definition.id, version: definition.version, evaluated_at: context.evaluated_at, symbol: context.symbol, timeframe: context.timeframe, candle: last?.open_time ?? null, config: configHash }), evaluated_at: context.evaluated_at, config_version: STRATEGY_CONFIG_SCHEMA_VERSION, config_hash: configHash, indicator_engine_version: INDICATOR_ENGINE_VERSION, market_data_source: sources.length === 1 ? sources[0] : sources.length ? `mixed:${sources.sort().join(",")}` : "unknown", candle_boundary: { first_open_time: first?.open_time ?? null, last_open_time: last?.open_time ?? null, candle_count: context.candles.length, closed_only: isClosedBoundary(context) } },
+    provenance: { evaluation_id: stableFingerprint({ strategy: definition.id, version: definition.version, evaluated_at: context.evaluated_at, symbol: context.symbol, timeframe: context.timeframe, candle: last?.open_time ?? null, config: configHash }), evaluated_at: context.evaluated_at, config_version: STRATEGY_CONFIG_SCHEMA_VERSION, config_hash: configHash, measured_release_id:definition.config.config_source?.startsWith("measured_release:")?definition.config.config_source.slice("measured_release:".length):null,evaluated_parameters:clone(definition.config.params), indicator_engine_version: INDICATOR_ENGINE_VERSION, market_data_source: sources.length === 1 ? sources[0] : sources.length ? `mixed:${sources.sort().join(",")}` : "unknown", candle_boundary: { first_open_time: first?.open_time ?? null, last_open_time: last?.open_time ?? null, candle_count: context.candles.length, closed_only: isClosedBoundary(context) } },
     market_context: { symbol: context.symbol.replace(/[^A-Za-z0-9]/g, "").toUpperCase(), timeframe: context.timeframe, market_regime: context.indicators.regime || "UNKNOWN", volatility_state: context.indicators.volatility_state || "UNKNOWN", trend_state: trendState(context.indicators), session, liquidity: { status: "UNKNOWN", value: null }, news: { status: "UNKNOWN", value: null } },
     decision: { action, qualified: action !== "NO_TRADE", reasons: rejection ? [rejection] : [legacy.reason] },
     qualification_ledger: qualificationLedger(definition, context, legacy),

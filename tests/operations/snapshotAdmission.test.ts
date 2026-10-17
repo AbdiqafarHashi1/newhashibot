@@ -7,3 +7,9 @@ test('unknown provider positions/conditional orders are not silently admitted as
  for(const size of [undefined,null,'',-1,NaN])assert.throws(()=>admitProviderPositions([{symbol:'BTCUSDT',size}],'bybit'),/MALFORMED/);
  assert.deepEqual(admitBinanceConditionalOrders({orders:[]}),[]);assert.throws(()=>admitBinanceConditionalOrders({code:-1}),/MALFORMED/);
 });
+
+test('financial observations reject missing, blank, boolean and non-finite values while preserving actual zero',async()=>{
+ const {observedFinancialNumber}=await import('../../supabase/functions/_shared/provider-snapshot-admission');
+ assert.equal(observedFinancialNumber('0','margin'),0);assert.equal(observedFinancialNumber('123.50','balance'),123.5);
+ for(const value of [undefined,null,'',' ',false,true,'NaN',Infinity,-1])assert.throws(()=>observedFinancialNumber(value,'balance'),/FINANCIAL_FIELD_REQUIRED/);
+});

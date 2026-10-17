@@ -1,3 +1,4 @@
+import {assertMeasuredExecutionLineage} from './measured-execution-lineage.ts';
 import {planFromAccountDecision} from './phase-d-execution-plan.ts';
 import {pinnedClaimFromQualifiedSet,routeProductionEligibility} from './trading-domain/production-eligibility-router.ts';
 import {evaluateAccountSignal,type AccountEvaluationInput,type AccountDecisionRecord} from './account-policy-authority.ts';
@@ -11,7 +12,8 @@ export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:s
  const x=loaded.data,account=x.account,signal=x.signal,provider=String(account.provider).toUpperCase() as AccountEvaluationInput['account']['provider'];
  const at=Date.parse(now),observed=Date.parse(x.observed_at),context=x.context;
  const reasons:string[]=[];
- if(x.qualified_set&&x.provisioning?.state==='ACTIVE'&&x.provisioning.qualified_set_id===x.qualified_set.id&&x.provisioning.qualified_set_version===x.qualified_set.setVersion){x.eligibility=routeProductionEligibility({claim:pinnedClaimFromQualifiedSet({product:x.product,market:String(x.product).startsWith('FOREX')?'FOREX':'CRYPTO',set:x.qualified_set,strategyId:signal.strategy_id,strategyVersion:signal.strategy_version,symbol:signal.symbol,timeframe:signal.timeframe,requiredQualification:'FORWARD_VALIDATION_CANDIDATE'}),qualifiedSet:x.qualified_set});}
+ try{assertMeasuredExecutionLineage(x)}catch(e){reasons.push(e instanceof Error?e.message:'MEASURED_EXECUTION_RELEASE_REQUIRED')}
+ if(x.qualified_set&&x.provisioning?.state==='ACTIVE'&&x.provisioning.qualified_set_id===x.qualified_set.id&&x.provisioning.qualified_set_version===x.qualified_set.setVersion){x.eligibility=routeProductionEligibility({claim:pinnedClaimFromQualifiedSet({product:x.product,market:String(x.product).startsWith('FOREX')?'FOREX':'CRYPTO',set:x.qualified_set,strategyId:signal.strategy_id,strategyVersion:signal.strategy_version,symbol:signal.symbol,timeframe:signal.timeframe,requiredQualification:'FORWARD_VALIDATION_CANDIDATE',evaluatedParameters:x.strategy_plan?.provenance?.evaluated_parameters??{}}),qualifiedSet:x.qualified_set});}
  if(!x.contract)reasons.push('OBSERVED_PROVIDER_CONTRACT_REQUIRED');
  if(context&&x.contract)context.provider_contract=x.contract;
  if(x.pending_orders===null||x.pending_orders===undefined||Number(x.pending_orders)>0)reasons.push('PENDING_ORDER_RECONCILIATION_REQUIRED');

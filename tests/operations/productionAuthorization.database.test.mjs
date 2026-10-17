@@ -48,6 +48,21 @@ test('production Phase-D schema loads scoped canonical evidence and atomically r
  assert.equal((await db.query('select count(*)::int n from certified_runtime_artifacts')).rows[0].n,1);
  assert.equal((await db.query('select enqueue_production_account_authorizations() n')).rows[0].n,2);
  assert.equal((await db.query('select enqueue_production_account_authorizations() n')).rows[0].n,0);
+
+ // The new loader fingerprints the measured release and the SQL commit repeats its lineage check.
+ await db.exec("create table mt5_symbol_specs(account_id uuid);create table mt5_account_snapshots(account_id uuid,owner_id uuid,bridge_id text,captured_at timestamptz,terminal_authenticated boolean,trade_permission boolean,terminal_autotrading boolean);alter table execution_account_runtime_proof add monitor_status text,add environment text;create table customer_execution_strategy_bindings(execution_account_id uuid,customer_id uuid,product text);create table strategy_release_candidates(id uuid primary key,strategy_id text,state text,immutable_configuration jsonb,configuration_hash text)");
+ await db.exec(await readFile('supabase/migrations/20261017014250_measured_execution_lineage.sql','utf8'));
+ await db.query("insert into execution_account_runtime_proof(customer_id,provider,account_id,execution_instance_id,credential_ref,observed_at,monitor_status,environment) select customer_id,provider,account_id,execution_instance_id,'wrong',now(),'healthy',environment from connected_execution_accounts where id=$1",[account]);
+ assert.equal((await db.query('select last_synchronized_at from connected_execution_accounts where id=$1',[account])).rows[0].last_synchronized_at,null);
+ await db.exec("update execution_account_runtime_proof set credential_ref='vault'");assert.ok((await db.query('select last_synchronized_at from connected_execution_accounts where id=$1',[account])).rows[0].last_synchronized_at);
+ await db.exec("update execution_account_runtime_proof set observed_at=clock_timestamp(),monitor_status='degraded'");assert.equal((await db.query('select provider_health from connected_execution_accounts where id=$1',[account])).rows[0].provider_health,'degraded');
+ const beforeRelease=await load();assert.equal(beforeRelease.measured_release,null);
+ const release=crypto.randomUUID();await db.query("insert into strategy_release_candidates values($1,'strategy','PROMOTED','{}','measured-hash')",[release]);
+ const afterRelease=await load();assert.equal(afterRelease.measured_release.id,release);assert.notEqual(beforeRelease.evidence_hash,afterRelease.evidence_hash);
+ const frame={measured_release:{id:release,strategy_id:'strategy',state:'PROMOTED',immutable_configuration:{strategies:[{id:'strategy',enabled:true,symbols:['BTCUSDT'],timeframes:['15m'],parameters:{stop:2}}]}},signal:{strategy_id:'strategy',strategy_version:'1',symbol:'BTCUSDT',timeframe:'15m'},strategy_plan:{provenance:{measured_release_id:release,evaluated_parameters:{stop:2}}},qualified_set:{entries:[{strategyId:'strategy',strategyVersion:'1',supportedSymbols:['BTCUSDT'],supportedTimeframes:['15m'],strategyParameters:{stop:2}}]}};
+ const check=(f=frame)=>db.query('select assert_measured_execution_lineage($1)',[JSON.stringify(f)]);await check();
+ await assert.rejects(check({...frame,strategy_plan:{provenance:{measured_release_id:release,evaluated_parameters:{stop:3}}}}),/PARAMETERS_MISMATCH/);
+ await assert.rejects(check({...frame,measured_release:{...frame.measured_release,state:'RETIRED'}}),/CURRENT_MEASURED/);
  await db.exec("set role authenticated;set request.jwt.claim.role='authenticated'");await assert.rejects(load(),/permission denied/);await assert.rejects(commit(),/permission denied/);
  }finally{await db.close()}
 });
