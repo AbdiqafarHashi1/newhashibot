@@ -1,3 +1,4 @@
+import {configureDedicatedScannerFeed} from '../_shared/dedicated-scanner-feed.ts';
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -157,6 +158,9 @@ Deno.serve(async req => {
     if (!owned) throw new ApiError('NOT_FOUND', 'MT5 account was not found.', 404);
     const { data: actorProfile } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (owned.user_id !== user.id && actorProfile?.role !== 'admin') throw new ApiError('NOT_FOUND', 'MT5 account was not found.', 404);
+    if(body.action==='configure_scanner_feed'){
+      try{return reply({state:'SCANNER_FEED_SAVED',feed:await configureDedicatedScannerFeed(db,user.id,{accountId,feedIdentity:String(body.feedIdentity??''),enabled:body.enabled as boolean})})}catch(error){throw new ApiError('SCANNER_FEED_CONFIGURATION_REJECTED',error instanceof Error?error.message:'Feed setup failed',409)}
+    }
     if (body.action === 'remove') { const { error } = await db.from('mt5_accounts').delete().eq('id', accountId); if (error) databaseFailure('remove', error); return reply({ removed: true }); }
     if (body.action === 'set_execution') { const enable = Boolean(body.enabled); const { error } = await db.from('mt5_accounts').update({ execution_enabled: enable, connection_status: enable ? 'connected' : 'disabled', provider_health: enable ? 'healthy' : 'unknown', operational: enable, disabled_at: enable ? null : new Date().toISOString() }).eq('id', accountId); if (error) databaseFailure('set_execution', error); return reply({ enabled: enable, connection_status: enable ? 'connected' : 'disabled' }); }
     if (body.action === 'set_mode') { if (!['personal', 'prop_challenge', 'demo'].includes(String(body.mode))) throw new ApiError('INVALID_MODE', 'Execution mode is invalid.', 400); const { error } = await db.from('mt5_accounts').update({ execution_mode: body.mode }).eq('id', accountId); if (error) databaseFailure('set_mode', error); return reply({ mode: body.mode }); }
@@ -221,3 +225,4 @@ Deno.serve(async req => {
     return reply({ error: { code: apiError.code, message: apiError.message, details: apiError.details ?? null } }, apiError.status);
   }
 });
+

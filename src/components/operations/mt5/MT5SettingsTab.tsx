@@ -1,3 +1,4 @@
+import {OwnerForexFeedSetup} from './OwnerForexFeedSetup';
 import { 
   Sliders, Shield, Clock, Info
 } from 'lucide-react';
@@ -5,6 +6,7 @@ import {
 export function MT5SettingsTab() {
   return (
     <div className="space-y-6">
+      <OwnerForexFeedSetup/>
       {/* Header */}
       <div className="flex items-center justify-between bg-zinc-900/80 p-4 border border-zinc-800 rounded-xl">
         <div>
@@ -17,7 +19,7 @@ export function MT5SettingsTab() {
           </p>
         </div>
         <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-          Active Production Spec
+          Bridge defaults
         </span>
       </div>
 
@@ -60,7 +62,7 @@ export function MT5SettingsTab() {
                 <span className="font-semibold text-white block">Symbol Spec Sync Interval</span>
                 <span className="text-[11px] text-zinc-500">Broker symbol digits, points, and fill policies sync cycle</span>
               </div>
-              <span className="font-mono font-bold text-purple-400 text-sm">300.0s</span>
+              <span className="font-mono font-bold text-purple-400 text-sm">30.0s</span>
             </div>
           </div>
         </div>
@@ -121,3 +123,4 @@ export function MT5SettingsTab() {
     </div>
   );
 }
+

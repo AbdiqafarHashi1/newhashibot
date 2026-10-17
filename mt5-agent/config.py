@@ -34,6 +34,7 @@ class Config:
     STATE_SYNC_INTERVAL_SECONDS = float(os.getenv("STATE_SYNC_INTERVAL_SECONDS", "5"))
     SYMBOL_SYNC_INTERVAL_SECONDS = float(os.getenv("SYMBOL_SYNC_INTERVAL_SECONDS", "30"))
     MARKET_DATA_INTERVAL_SECONDS = float(os.getenv("MARKET_DATA_INTERVAL_SECONDS", "30"))
+    DATA_ONLY = os.getenv("MT5_DATA_ONLY", "false").lower() in ("1", "true", "yes")
     MARKET_DATA_FEED_ID = os.getenv("MT5_MARKET_DATA_FEED_ID", "")
     ALLOW_OFFLINE_TEST_MODE = os.getenv("ALLOW_OFFLINE_TEST_MODE", "false").lower() in ("1", "true", "yes")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -67,6 +68,8 @@ class Config:
             missing.append("MT5_CREDENTIAL_REF")
         if missing:
             raise ValueError("BRIDGE_CONFIGURATION_ERROR: missing " + ", ".join(missing))
+        if cls.DATA_ONLY and (not cls.MARKET_DATA_FEED_ID or cls.CUSTOMER_EXECUTION_ACCOUNT_ID or cls.CUSTOMER_PAIRING_CODE):
+            raise ValueError("DATA_ONLY_CONFIGURATION_REQUIRED: dedicated feed identity, no customer execution pairing")
         cls._uuid("HASHIBOT_EXECUTION_ACCOUNT_ID", cls.CUSTOMER_EXECUTION_ACCOUNT_ID, False)
         if cls.CUSTOMER_PAIRING_CODE and not cls.CUSTOMER_EXECUTION_ACCOUNT_ID:
             raise ValueError("BRIDGE_CONFIGURATION_ERROR: pairing needs execution account ID")

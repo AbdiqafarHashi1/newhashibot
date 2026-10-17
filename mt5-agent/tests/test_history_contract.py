@@ -19,7 +19,11 @@ class HistoryContractTests(unittest.TestCase):
             for timeframe,expected in [('1m',1),('5m',5),('15m',15),('30m',30),('1h',60),('4h',240),('1d',1440)]:
                 result=client.get_historical_bars('EURUSD',timeframe,'2024-01-01T00:00:00Z','2024-01-02T00:00:00Z')
                 self.assertEqual(fake.frames[-1],('EURUSD.a',expected));self.assertEqual(result['source_symbol'],'EURUSD.a');self.assertEqual(result['bars'][0]['spread'],12)
+            for start,end in [('2024-01-01T00:00:00','2024-01-02T00:00:00'),('2024-01-02T00:00:00Z','2024-01-01T00:00:00Z'),('2024-01-01T00:00:00Z','2099-01-01T00:00:00Z')]:
+                with self.assertRaisesRegex(ValueError,'MT5_HISTORY_RANGE_INVALID'):
+                    client.get_historical_bars('EURUSD','1h',start,end)
             with self.assertRaisesRegex(ValueError,'MT5_TIMEFRAME_UNSUPPORTED'):
                 client.get_historical_bars('EURUSD','2m','2024-01-01T00:00:00Z','2024-01-02T00:00:00Z')
 
 if __name__=='__main__': unittest.main()
+

@@ -64,6 +64,10 @@ class CommandProcessor:
                     self.cloud_client.ack_command(cmd_id, False, "MT5_COMMAND_EXPIRY_INVALID", "Invalid command expiry", {})
                     processed_count += 1
                     continue
+            if Config.DATA_ONLY and not read_only:
+                self.cloud_client.ack_command(cmd_id, False, "DATA_ONLY_COMMAND_FORBIDDEN", "Dedicated scanner feed cannot execute trades", {})
+                processed_count += 1
+                continue
             if not read_only:
                 gate = cmd.get("execution_context", {})
                 blockers = execution_blockers(ExecutionContext(**{
@@ -157,3 +161,4 @@ class CommandProcessor:
             processed_count += 1
 
         return processed_count
+

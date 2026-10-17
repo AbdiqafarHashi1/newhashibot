@@ -96,4 +96,10 @@ The remote CI run for acdab48 exposed two previously omitted shared runtime depe
 
 Automatic Binance Personal testnet evidence now supports a conservative flat-account entry path. It reloads canonical customer/account ownership, exact credential/instance proof, continuous USDT drawdown baselines, observed per-symbol one-way margin/leverage configuration, current sandbox perpetual contract filters and recorded runtime failures. Missing limits are not defaulted. Open positions/orders, hedge mode, multi-asset USD conversion, stale cache and baseline gaps remain explicit retryable blockers; they are not represented as zero exposure. This does not claim Bybit/Prop automatic assembly or real Binance demo certification.
 
-The follow-up was branched from the tested PR #260 head because GitHub still reported that PR open and ready for review, with main unchanged, after the owner reported merging. No merge was performed on the owner's behalf.
+PR #260 is now merged. PR #261 was retargeted and rebuilt directly on main, keeping its incremental changes without the prior branch conflict.
+
+## Dedicated owner Forex feed follow-up
+
+Admin MT5 Settings now configures the dedicated owner investor feed without manual table edits. Customer/execution terminals are rejected. The Windows bridge has an explicit data-only mode for investor credentials, including live-market reads without opening live customer execution. Trade-changing commands are independently rejected in that mode. Independent runtime stages recover after read/cloud failures; historic requests reject missing timezones, reversed ranges and future end dates. Feed publication requires an exact history-account/owner/bridge match, stores validated closed candles only, and marks stale quotes explicitly. Historical acquisition can still use an online owner feed while market quotes are stale. Ambiguous feed selection and invalid/future observation timestamps fail closed.
+
+See FOREX_OWNER_FEED_SETUP.md for actual configuration and acceptance steps. These source/tests do not certify a real Windows terminal or uninterrupted broker availability. Full native migration-chain rehearsal cannot run in this execution environment because Docker and native PostgreSQL tools are absent; the prior Supabase CLI telemetry rejection was not bypassed.

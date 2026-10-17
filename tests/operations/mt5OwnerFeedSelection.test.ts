@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {loadMT5Candles} from '../../supabase/functions/_shared/mt5-market-data-provider';
+const now=Date.parse('2026-10-16T12:00:00Z');
+test('scanner rejects ambiguous owner feeds, invalid/future heartbeats and stale quote evidence without another-provider fallback',async()=>{
+ for(const mode of ['ambiguous','future','invalid','stale']){const db={from(table:string){const q:any={select:()=>q,eq:()=>q,is:()=>q,order:()=>q,limit:(n:number)=>{if(table==='mt5_scanner_feeds')assert.equal(n,2);return q},maybeSingle:async()=>table==='mt5_scanner_feeds'?mode==='ambiguous'?{error:{code:'PGRST116'}}:{data:{id:'feed',bridge_id:'bridge',feed_identity:'owner',status:'HEALTHY',last_heartbeat_at:mode==='future'?new Date(now+60000).toISOString():mode==='invalid'?'invalid':new Date(now).toISOString()}}:{data:{last_update_at:new Date(now-1000000).toISOString(),stale:true}}};return q}};const result=await loadMT5Candles(db,'EURUSD','5m',110,{now});assert.equal(result.candles.length,0);assert.equal(result.source,'mt5_hashibridge');assert.ok(result.error);}
+});

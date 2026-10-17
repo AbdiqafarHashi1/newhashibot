@@ -208,7 +208,7 @@ class MT5Client:
         broker_symbol = spec["broker_symbol"]
         start = datetime.fromisoformat(from_iso.replace("Z", "+00:00"))
         end = datetime.fromisoformat(to_iso.replace("Z", "+00:00"))
-        if end < start:
+        if start.tzinfo is None or end.tzinfo is None or end < start or end > datetime.now(timezone.utc) + timedelta(minutes=1):
             raise ValueError("MT5_HISTORY_RANGE_INVALID")
         rows = mt5.copy_rates_range(broker_symbol, frame_map[timeframe], start, end)
         if rows is None:
