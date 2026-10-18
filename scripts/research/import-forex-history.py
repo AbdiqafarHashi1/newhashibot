@@ -1,5 +1,5 @@
 """Public indicative FX history for offline research only, never the live scanner feed."""
-import argparse,hashlib,json,urllib.request,concurrent.futures,math
+import argparse,hashlib,json,urllib.request,concurrent.futures,math,os,uuid,atexit
 from pathlib import Path
 from datetime import datetime,timezone
 SYMBOLS={'EURUSD':'EURUSD=X','GBPUSD':'GBPUSD=X','USDJPY':'JPY=X','AUDUSD':'AUDUSD=X','USDCAD':'CAD=X','XAUUSD':'XAUUSD=X'}
@@ -24,5 +24,20 @@ def download(symbol,ticker,out,timeframe="15m"):
     except Exception as e:return {'symbol':symbol,'status':'UNAVAILABLE','error':str(e)}
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True);a=p.parse_args();out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
+    lock = out / '.hashibot-research.lock'
+    owner = json.dumps({'pid': os.getpid(), 'token': str(uuid.uuid4())})
+    try:
+        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        raise SystemExit('RESEARCH_WORKSPACE_BUSY: stop the active writer; verify a stale lock PID before removal')
+    with os.fdopen(descriptor, 'w') as handle:
+        handle.write(owner)
+    def release():
+        try:
+            if lock.read_text() == owner:
+                lock.unlink()
+        except FileNotFoundError:
+            pass
+    atexit.register(release)
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:results=list(pool.map(lambda item:download(item[0],item[1],out,item[2]),[(s,t,tf) for s,t in SYMBOLS.items() for tf in ['15m','1h']]))
     (out/'availability.json').write_text(json.dumps(results,indent=2)+'\n');print(json.dumps(results,indent=2))

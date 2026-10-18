@@ -1,0 +1,250 @@
+{
+  "status": "DIAGNOSTIC_COMBINED_REPLAY_NOT_PROMOTION_EVIDENCE",
+  "sourceIndividualReportHash": "105440cb552bae4d1923f766cd3c340d2c798ac769bcd8830650b35f327a1d83",
+  "accountModelHash": "3b692f5221ae54142df163790fc87a8b01a9392e1552442f1d9c9108b2f43abb",
+  "commonPeriod": {
+    "start": "2026-10-01T08:30:00.000Z",
+    "end": "2026-10-16T21:00:00.000Z"
+  },
+  "cycles": 6844,
+  "proposals": 856,
+  "signals": 202,
+  "globalSignalBlocked": 654,
+  "excluded": 0,
+  "ordering": {
+    "symbols": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY",
+      "AUDUSD",
+      "USDCAD"
+    ],
+    "timeframes": [
+      "15m",
+      "1h"
+    ]
+  },
+  "configurations": [
+    {
+      "version": "CHRONOLOGICAL_FOREX_15m",
+      "minSignalGrade": "A",
+      "strategies": [
+        {
+          "id": "forex.micro-scalper",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 74,
+          "minRiskReward": 1.25,
+          "maxBarsInTrade": 24,
+          "minStopDistancePct": 0,
+          "minTp1DistancePct": 0,
+          "minTp2DistancePct": 0,
+          "symbols": [],
+          "timeframes": [
+            "15m"
+          ],
+          "parameters": {
+            "market_adaptation_enabled": 1,
+            "stop_atr_mult": 1.8,
+            "stopAtr": 1.8,
+            "tp1_r": 1.2,
+            "tp2_r": 2.2
+          }
+        },
+        {
+          "id": "forex.new-york-continuation",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 79,
+          "minRiskReward": 1.25,
+          "maxBarsInTrade": 24,
+          "minStopDistancePct": 0,
+          "minTp1DistancePct": 0,
+          "minTp2DistancePct": 0,
+          "symbols": [],
+          "timeframes": [
+            "15m"
+          ],
+          "parameters": {
+            "market_adaptation_enabled": 1,
+            "min_body_atr": 0.25,
+            "bodyAtr": 0.6,
+            "extensionAtr": 0.65,
+            "minimumMoveAtr": 0.5,
+            "maximumMoveAtr": 2.7,
+            "maximumPullbackAtr": 0.6
+          }
+        },
+        {
+          "id": "forex.trend-pullback",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 75,
+          "minRiskReward": 1.25,
+          "maxBarsInTrade": 24,
+          "minStopDistancePct": 0,
+          "minTp1DistancePct": 0,
+          "minTp2DistancePct": 0,
+          "symbols": [],
+          "timeframes": [
+            "15m"
+          ],
+          "parameters": {
+            "market_adaptation_enabled": 1,
+            "stop_atr_mult": 1.8,
+            "stopAtr": 1.8,
+            "tp1_r": 1.2,
+            "tp2_r": 2.2
+          }
+        }
+      ],
+      "outcomeAssumptions": {
+        "entryTiming": "NEXT_OPEN",
+        "feeBps": 0.7,
+        "spreadBps": 0,
+        "slippageBps": 0,
+        "fundingBps": 0.3,
+        "partialExitPct": 0.5,
+        "moveStopToBreakevenAfterTp1": true,
+        "trailingStopR": null,
+        "sameCandlePolicy": "STOP_FIRST",
+        "closeAtHorizon": true,
+        "tp1StopPolicy": "CONSERVATIVE_SAME_BAR"
+      }
+    },
+    {
+      "version": "CHRONOLOGICAL_FOREX_1h",
+      "minSignalGrade": "A",
+      "strategies": [
+        {
+          "id": "forex.swing-continuation",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 76,
+          "minRiskReward": 1.25,
+          "maxBarsInTrade": 48,
+          "minStopDistancePct": 0,
+          "minTp1DistancePct": 0,
+          "minTp2DistancePct": 0,
+          "symbols": [],
+          "timeframes": [
+            "1h"
+          ],
+          "parameters": {
+            "market_adaptation_enabled": 1,
+            "stop_atr_mult": 1.8,
+            "stopAtr": 1.8,
+            "tp1_r": 1.2,
+            "tp2_r": 2.2
+          }
+        },
+        {
+          "id": "forex.new-york-continuation",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 79,
+          "minRiskReward": 1.25,
+          "maxBarsInTrade": 24,
+          "minStopDistancePct": 0,
+          "minTp1DistancePct": 0,
+          "minTp2DistancePct": 0,
+          "symbols": [],
+          "timeframes": [
+            "1h"
+          ],
+          "parameters": {
+            "market_adaptation_enabled": 1,
+            "min_body_atr": 0.25,
+            "bodyAtr": 0.6,
+            "extensionAtr": 0.65,
+            "minimumMoveAtr": 0.5,
+            "maximumMoveAtr": 2.7,
+            "maximumPullbackAtr": 0.6
+          }
+        },
+        {
+          "id": "forex.trend-pullback",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 75,
+          "minRiskReward": 1.25,
+          "maxBarsInTrade": 24,
+          "minStopDistancePct": 0,
+          "minTp1DistancePct": 0,
+          "minTp2DistancePct": 0,
+          "symbols": [],
+          "timeframes": [
+            "1h"
+          ],
+          "parameters": {
+            "market_adaptation_enabled": 1
+          }
+        }
+      ],
+      "outcomeAssumptions": {
+        "entryTiming": "NEXT_OPEN",
+        "feeBps": 0.7,
+        "spreadBps": 0,
+        "slippageBps": 0,
+        "fundingBps": 0.3,
+        "partialExitPct": 0.5,
+        "moveStopToBreakevenAfterTp1": true,
+        "trailingStopR": null,
+        "sameCandlePolicy": "STOP_FIRST",
+        "closeAtHorizon": true,
+        "tp1StopPolicy": "CONSERVATIVE_SAME_BAR"
+      }
+    }
+  ],
+  "metrics": {
+    "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+    "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+    "tradeCount": 202,
+    "resolvedCount": 202,
+    "openCount": 0,
+    "ambiguousCount": 0,
+    "excludedCount": 0,
+    "expectancyR": -0.1439456539177664,
+    "profitFactor": 0.7367494006751626,
+    "profitFactorUndefinedReason": null,
+    "realizedMaxDrawdownR": 39.34929370068322
+  },
+  "personal": {
+    "status": "COMPLETED",
+    "endingEquity": 9442.40130357613,
+    "returnPct": -5.575986964238691,
+    "maxIntrabarDrawdownPct": 5.853464640419461,
+    "trades": 49,
+    "liquidations": 0,
+    "overlapBlocked": 153,
+    "dailyLocked": 0,
+    "totalRiskBudgetLocked": 0,
+    "tradingDays": 12,
+    "maximumObservedRiskPct": 0.5000000000000001,
+    "traceSha256": "9b4e9ea9c30e1651380f444f22240272a23bba6f04e0a9a2ffe135d8c82cfb74"
+  },
+  "prop": {
+    "status": "COMPLETED",
+    "endingEquity": 9762.85778874826,
+    "returnPct": -2.3714221125173935,
+    "maxIntrabarDrawdownPct": 3.0775827338022284,
+    "trades": 50,
+    "liquidations": 0,
+    "overlapBlocked": 147,
+    "dailyLocked": 5,
+    "totalRiskBudgetLocked": 0,
+    "tradingDays": 12,
+    "maximumObservedRiskPct": 0.3,
+    "traceSha256": "43b374b562a8ee288bf6f49627519271d814ab0bdaf2678a9ecadc862df140b3"
+  },
+  "promoted": false,
+  "limitations": [
+    "The period has already been examined; this diagnostic is not a new unseen holdout.",
+    "Indicative OHLC and estimated costs, not broker certification or verified prop compliance.",
+    "Global signal lifecycles are simulated across timeframes, then each account applies its own risk and one-position limit.",
+    "Hourly exits use actual 15m candles and conservative intrabar ordering.",
+    "Declared symbol/timeframe ordering is fixed; no claim of maximum achievable portfolio return."
+  ],
+  "fullReportSha256": "3ee464ce43274da0c1535cd075507cf32c645238a02b55212c1fc02bceced036",
+  "signalLedgerSha256": "a577043b5e08c749df943c8c5d93a9b08ba769869bfc014371257da858c052fe"
+}

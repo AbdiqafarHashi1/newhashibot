@@ -34,3 +34,14 @@ const londonRows=Array.from({length:110},(_,i)=>{const at=londonAt-(110-i)*90000
 Object.assign(londonRows.at(-1)!,{open:1.1002,close:1.1009,high:1.101,low:1.1001});
 const londonResult=ForexLondonBreakout.evaluate({...ctx,timeframe:'15m',candles:londonRows,evaluated_at:new Date(londonAt).toISOString(),indicators:{...ctx.indicators,atr14:.001,ema20:1.1005,ema50:1.1,rsi14:60}});
 assert.equal(londonResult.status,'candidate','yesterday Asian high must not contaminate today DST-aware London breakout range');
+assert.throws(()=>simulateResearchAccount([{...trade,openedAt:'invalid'}],policy),/INVALID_SCENARIO_TRADE/);
+assert.throws(()=>simulateResearchAccount([trade],{...policy,maintenanceMarginRate:NaN}),/INVALID_RESEARCH/);
+const dailyLosses=Array.from({length:45},(_,i)=>({...trade,id:`loss-${i}`,openedAt:new Date(Date.UTC(2026,0,1+i)).toISOString(),closedAt:new Date(Date.UTC(2026,0,1+i,1)).toISOString(),netR:-1}));
+const capped=simulateResearchAccount(dailyLosses,policy);assert.ok(capped.endingEquity>=9000,'known stop risk must not knowingly overrun total-loss budget');assert.ok(capped.totalRiskBudgetLocked>0);
+const oneAttempt=repeatedResearchChallenges(dailyLosses,policy,1,30);assert.equal(oneAttempt.actualAttempts,1);assert.ok(oneAttempt.windows[0].start);
+const {mkdtempSync,rmSync,readFileSync:readText}=await import('node:fs');const {tmpdir}=await import('node:os');const {join}=await import('node:path');
+const {acquireResearchWorkspace,writeResearchJson}=await import('../../scripts/research/research-workspace-lock.ts');
+const workspace=mkdtempSync(join(tmpdir(),'hashibot-research-lock-'));const writer=acquireResearchWorkspace(workspace);
+assert.throws(()=>acquireResearchWorkspace(workspace),/RESEARCH_WORKSPACE_BUSY/,'a stale writer must not overwrite another campaign');
+await writeResearchJson(join(workspace,'result.json'),{complete:true});assert.deepEqual(JSON.parse(readText(join(workspace,'result.json'),'utf8')),{complete:true});
+writer.release();const next=acquireResearchWorkspace(workspace);next.release();rmSync(workspace,{recursive:true,force:true});

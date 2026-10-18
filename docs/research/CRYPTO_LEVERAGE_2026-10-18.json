@@ -7880,14 +7880,15 @@
       "leverage": 3,
       "mode": "RISK_CAPPED",
       "result": {
-        "status": "FAILED_TOTAL_LOSS",
-        "endingEquity": 900.2683790969027,
-        "returnPct": -9.973162090309733,
-        "maxIntrabarDrawdownPct": 10.216626828799837,
-        "trades": 37,
+        "status": "TOTAL_RISK_BUDGET_LOCK",
+        "endingEquity": 900.6154763737293,
+        "returnPct": -9.938452362627071,
+        "maxIntrabarDrawdownPct": 9.938452362627071,
+        "trades": 36,
         "liquidations": 0,
         "overlapBlocked": 10,
         "dailyLocked": 3,
+        "totalRiskBudgetLocked": 87,
         "tradingDays": 11,
         "maximumObservedRiskPct": 0.5,
         "trace": [
@@ -8178,14 +8179,6 @@
             "riskPct": 0.5,
             "notional": 1028.2330379039058,
             "liquidated": false
-          },
-          {
-            "id": "FROZEN_COMBINED_5M_RESEARCH:2026-09:ETHUSDT:5m:2026-09-17T01:30:00.000Z:crypto.micro-scalper",
-            "at": "2026-09-17T01:35:00.000Z",
-            "equity": 900.2683790969027,
-            "riskPct": 0.5,
-            "notional": 1027.0603964572806,
-            "liquidated": false
           }
         ]
       }
@@ -8202,6 +8195,7 @@
         "liquidations": 0,
         "overlapBlocked": 2,
         "dailyLocked": 12,
+        "totalRiskBudgetLocked": 0,
         "tradingDays": 7,
         "maximumObservedRiskPct": 2.0831147336461298,
         "trace": [
@@ -8308,15 +8302,16 @@
       "leverage": 5,
       "mode": "RISK_CAPPED",
       "result": {
-        "status": "FAILED_TOTAL_LOSS",
-        "endingEquity": 898.457129613128,
-        "returnPct": -10.1542870386872,
-        "maxIntrabarDrawdownPct": 10.1542870386872,
-        "trades": 36,
+        "status": "TOTAL_RISK_BUDGET_LOCK",
+        "endingEquity": 904.6730132863034,
+        "returnPct": -9.532698671369657,
+        "maxIntrabarDrawdownPct": 9.532698671369657,
+        "trades": 35,
         "liquidations": 0,
         "overlapBlocked": 10,
         "dailyLocked": 3,
-        "tradingDays": 11,
+        "totalRiskBudgetLocked": 88,
+        "tradingDays": 10,
         "maximumObservedRiskPct": 0.5,
         "trace": [
           {
@@ -8598,14 +8593,6 @@
             "riskPct": 0.5,
             "notional": 1025.8699514500634,
             "liquidated": false
-          },
-          {
-            "id": "FROZEN_COMBINED_5M_RESEARCH:2026-09:ETHUSDT:5m:2026-09-17T00:35:00.000Z:crypto.micro-scalper",
-            "at": "2026-09-17T01:05:00.000Z",
-            "equity": 898.457129613128,
-            "riskPct": 0.49999999999999994,
-            "notional": 1025.7688525720714,
-            "liquidated": false
           }
         ]
       }
@@ -8622,6 +8609,7 @@
         "liquidations": 0,
         "overlapBlocked": 1,
         "dailyLocked": 18,
+        "totalRiskBudgetLocked": 0,
         "tradingDays": 6,
         "maximumObservedRiskPct": 3.4718578894102166,
         "trace": [
@@ -8680,15 +8668,16 @@
       "leverage": 10,
       "mode": "RISK_CAPPED",
       "result": {
-        "status": "FAILED_TOTAL_LOSS",
-        "endingEquity": 898.457129613128,
-        "returnPct": -10.1542870386872,
-        "maxIntrabarDrawdownPct": 10.1542870386872,
-        "trades": 36,
+        "status": "TOTAL_RISK_BUDGET_LOCK",
+        "endingEquity": 904.6730132863034,
+        "returnPct": -9.532698671369657,
+        "maxIntrabarDrawdownPct": 9.532698671369657,
+        "trades": 35,
         "liquidations": 0,
         "overlapBlocked": 10,
         "dailyLocked": 3,
-        "tradingDays": 11,
+        "totalRiskBudgetLocked": 88,
+        "tradingDays": 10,
         "maximumObservedRiskPct": 0.5,
         "trace": [
           {
@@ -8970,14 +8959,6 @@
             "riskPct": 0.5,
             "notional": 1025.8699514500634,
             "liquidated": false
-          },
-          {
-            "id": "FROZEN_COMBINED_5M_RESEARCH:2026-09:ETHUSDT:5m:2026-09-17T00:35:00.000Z:crypto.micro-scalper",
-            "at": "2026-09-17T01:05:00.000Z",
-            "equity": 898.457129613128,
-            "riskPct": 0.49999999999999994,
-            "notional": 1025.7688525720714,
-            "liquidated": false
           }
         ]
       }
@@ -8994,6 +8975,7 @@
         "liquidations": 0,
         "overlapBlocked": 0,
         "dailyLocked": 14,
+        "totalRiskBudgetLocked": 0,
         "tradingDays": 3,
         "maximumObservedRiskPct": 6.943715778820432,
         "trace": [
@@ -9028,15 +9010,16 @@
       "leverage": 20,
       "mode": "RISK_CAPPED",
       "result": {
-        "status": "FAILED_TOTAL_LOSS",
-        "endingEquity": 898.457129613128,
-        "returnPct": -10.1542870386872,
-        "maxIntrabarDrawdownPct": 10.1542870386872,
-        "trades": 36,
+        "status": "TOTAL_RISK_BUDGET_LOCK",
+        "endingEquity": 904.6730132863034,
+        "returnPct": -9.532698671369657,
+        "maxIntrabarDrawdownPct": 9.532698671369657,
+        "trades": 35,
         "liquidations": 0,
         "overlapBlocked": 10,
         "dailyLocked": 3,
-        "tradingDays": 11,
+        "totalRiskBudgetLocked": 88,
+        "tradingDays": 10,
         "maximumObservedRiskPct": 0.5,
         "trace": [
           {
@@ -9318,14 +9301,6 @@
             "riskPct": 0.5,
             "notional": 1025.8699514500634,
             "liquidated": false
-          },
-          {
-            "id": "FROZEN_COMBINED_5M_RESEARCH:2026-09:ETHUSDT:5m:2026-09-17T00:35:00.000Z:crypto.micro-scalper",
-            "at": "2026-09-17T01:05:00.000Z",
-            "equity": 898.457129613128,
-            "riskPct": 0.49999999999999994,
-            "notional": 1025.7688525720714,
-            "liquidated": false
           }
         ]
       }
@@ -9342,6 +9317,7 @@
         "liquidations": 0,
         "overlapBlocked": 0,
         "dailyLocked": 3,
+        "totalRiskBudgetLocked": 0,
         "tradingDays": 2,
         "maximumObservedRiskPct": 8.37414299706162,
         "trace": [
@@ -9429,5 +9405,12 @@
     "MAX_MARGIN intentionally increases position risk and is a research comparison, not authorized live policy.",
     "One global active position in account scenarios; not a proof of the maximum achievable portfolio return.",
     "Previously examined months were not used; new 5m March/June/September 2026 split fixed before outcomes."
+  ],
+  "accountModelHash": "3b692f5221ae54142df163790fc87a8b01a9392e1552442f1d9c9108b2f43abb",
+  "accountModelNotes": [
+    "Stop risk plus declared costs must fit remaining daily and total-loss budgets before a risk-capped entry.",
+    "Underlying signals, market outcomes, frozen parameters and economic promotion gates are unchanged.",
+    "Research R accounting is not native MT5 lot/quote-currency conversion or broker margin certification.",
+    "Daily equity uses a conservative trade-level adverse-excursion proxy; this is not a full firm-specific intraday mark-to-market path."
   ]
 }
