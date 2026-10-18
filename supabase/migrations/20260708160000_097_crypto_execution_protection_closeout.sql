@@ -67,6 +67,6 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.upsert_trade_management_truth FROM anon;
+REVOKE EXECUTE ON FUNCTION public.upsert_trade_management_truth(uuid,text,text,text,text,text,text,boolean,boolean,boolean,numeric,numeric,numeric,numeric,numeric,numeric,numeric,numeric,text,integer,text,text,text) FROM anon;
 
 NOTIFY pgrst, 'reload schema';

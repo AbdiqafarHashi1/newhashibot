@@ -3,6 +3,8 @@
   Safety: keeps live_trading_enabled guarded false and testnet-only provider defaults.
 */
 
+ALTER TABLE public.execution_provider_controls ADD COLUMN IF NOT EXISTS entry_enabled boolean NOT NULL DEFAULT false;
+
 ALTER TABLE public.scanner_config
   ADD COLUMN IF NOT EXISTS max_symbols_per_scan integer NOT NULL DEFAULT 80,
   ADD COLUMN IF NOT EXISTS min_24h_volume numeric NOT NULL DEFAULT 10000000,
@@ -25,9 +27,9 @@ CREATE INDEX IF NOT EXISTS execution_orders_provider_lifecycle_idx ON public.exe
 
 INSERT INTO public.execution_provider_controls (provider_name, enabled, entry_enabled, monitor_enabled, protection_recovery_enabled, recovery_enabled, status, metadata, updated_at)
 VALUES
-  ('binance', true, true, true, true, true, 'configured', '{"role":"execution_provider","environment":"testnet"}'::jsonb, now()),
-  ('bybit', true, false, true, true, true, 'monitor_pending', '{"role":"execution_provider","environment":"testnet","entry_default":"disabled_until_operator_enables"}'::jsonb, now()),
-  ('mt5', false, false, false, false, false, 'placeholder', '{"role":"future_execution_provider","entry_default":"disabled"}'::jsonb, now())
+  ('binance', true, true, true, true, true, 'disconnected', '{"role":"execution_provider","environment":"testnet"}'::jsonb, now()),
+  ('bybit', true, false, true, true, true, 'disconnected', '{"role":"execution_provider","environment":"testnet","entry_default":"disabled_until_operator_enables"}'::jsonb, now()),
+  ('mt5', false, false, false, false, false, 'disconnected', '{"role":"future_execution_provider","entry_default":"disabled"}'::jsonb, now())
 ON CONFLICT (provider_name) DO UPDATE SET
   monitor_enabled = EXCLUDED.monitor_enabled,
   protection_recovery_enabled = EXCLUDED.protection_recovery_enabled,

@@ -17,6 +17,13 @@ jobs:
   rehearse:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    name: Native PostgreSQL ${{ matrix.postgres }}
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: [15, 17]
+    env:
+      HASHIBOT_REHEARSAL_PG_MAJOR: ${{ matrix.postgres }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,7 +45,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: native-migration-rehearsal-${{ github.run_id }}
+          name: native-migration-rehearsal-pg${{ matrix.postgres }}-${{ github.run_id }}
           path: |
             work/phase-p/offline/*-result.json
             work/phase-p/offline/*.log

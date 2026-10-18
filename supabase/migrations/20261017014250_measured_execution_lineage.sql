@@ -140,3 +140,15 @@ declare a connected_execution_accounts;proof jsonb;raw jsonb;observed timestampt
 end$$;
 revoke all on function public.track_current_provider_risk(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.track_current_provider_risk(uuid,uuid) to service_role;
+
+-- Quarantine is global provider state; subscriber JWTs cannot mutate it through legacy definer RPCs.
+DO $$BEGIN
+ IF to_regprocedure('public.record_symbol_failure(text,text,text)') IS NOT NULL THEN
+  REVOKE ALL ON FUNCTION public.record_symbol_failure(text,text,text) FROM PUBLIC,anon,authenticated;
+  GRANT EXECUTE ON FUNCTION public.record_symbol_failure(text,text,text) TO service_role;
+ END IF;
+ IF to_regprocedure('public.record_symbol_failure(text,text,text,jsonb,integer,integer)') IS NOT NULL THEN
+  REVOKE ALL ON FUNCTION public.record_symbol_failure(text,text,text,jsonb,integer,integer) FROM PUBLIC,anon,authenticated;
+  GRANT EXECUTE ON FUNCTION public.record_symbol_failure(text,text,text,jsonb,integer,integer) TO service_role;
+ END IF;
+END$$;

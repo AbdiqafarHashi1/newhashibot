@@ -23,7 +23,7 @@ WHERE market_type = 'forex'
 UPDATE public.scanner_config
 SET scan_crypto_enabled = true,
     scan_forex_enabled = false,
-    active_timeframes = '["5m","15m","1h","4h"]'::jsonb,
+    active_timeframes = ARRAY['5m','15m','1h','4h']::text[],
     updated_at = now()
 WHERE id = 1;
 

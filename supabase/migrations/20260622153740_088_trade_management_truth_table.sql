@@ -29,6 +29,19 @@ CREATE TABLE IF NOT EXISTS public.trade_management_truth (
   updated_at              timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.trade_management_truth
+ ADD COLUMN IF NOT EXISTS id uuid NOT NULL DEFAULT gen_random_uuid(),
+ ADD COLUMN IF NOT EXISTS direction text,
+ ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'unknown',
+ ADD COLUMN IF NOT EXISTS quantity numeric,
+ ADD COLUMN IF NOT EXISTS leverage numeric,
+ ADD COLUMN IF NOT EXISTS sl_price numeric,
+ ADD COLUMN IF NOT EXISTS tp1_price numeric,
+ ADD COLUMN IF NOT EXISTS tp2_price numeric,
+ ADD COLUMN IF NOT EXISTS monitor_run_id text,
+ ADD COLUMN IF NOT EXISTS notes text;
+UPDATE public.trade_management_truth SET direction=side WHERE direction IS NULL;
+UPDATE public.trade_management_truth SET quantity=qty WHERE quantity IS NULL;
 ALTER TABLE public.trade_management_truth ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "admin_all_trade_management_truth" ON public.trade_management_truth

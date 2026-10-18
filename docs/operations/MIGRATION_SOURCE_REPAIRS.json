@@ -1,0 +1,88 @@
+{
+  "scope": "Fresh-install SQL source corrections; no database/history writes",
+  "nativeEvidence": {
+    "run": 39077491238,
+    "unchanged": "BLOCKED_AT_020",
+    "explicitCompatibility": "PASSED_REAL_POSTGRESQL"
+  },
+  "files": [
+    {
+      "path": "supabase/migrations/20260530170000_020_c2_forex_signal_mode_parity.sql",
+      "originalSha256": "eecd345c6e9e21e872ff7c31b4ae8abef38ef18830052e6b356c2bd9eba14f19",
+      "canonicalSha256": "9c212e008158d1d98456cbcaeb5d005250fdb4a0f1a9d6f8ff40199051122c9e",
+      "rationale": "The unchanged chain fails before any forward migration can run. Preserve the existing column type and identical timeframe values; only correct the incompatible literal type."
+    },
+    {
+      "path": "supabase/migrations/20260605093000_038_end_to_end_strategy_scanner_parity_repair.sql",
+      "originalSha256": "e24bbc78e80164fc7d3568be2696bb9050973492942f40036599949fc1eaad74",
+      "canonicalSha256": "3586837e1af4a685659b68cac3cb76e9d0877fee221f6b655402b9de2bc651cb",
+      "rationale": "The separately executed compatibility chain proves text[] literals cannot be assigned to the JSONB column established by migration 007. Preserve the two identical timeframe arrays and every other strategy setting."
+    },
+    {
+      "path": "supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql",
+      "originalSha256": "c2f94fe052673d19e8355974ac2ffe01581e40dc84b4f6b7d1378dc2d1a79b58",
+      "canonicalSha256": "d8b699a429a18556ced4fa9820d8b29756fc5855b6812c73fe7a5cb91c22b64c",
+      "rationale": "Rehearsal proves migration 046 cannot replace the table-returning zero-argument routine from 027/031 with JSONB. Drop only that exact signature, without CASCADE, within the same transaction; preserve the intended existing body and explicit service-role-only grants. No reset routine is invoked and no data is deleted."
+    },
+    {
+      "path": "supabase/migrations/20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql",
+      "originalSha256": "0dd3aec7c87e3af5bacee5602b1892bed1031ef3d0e23a90a5784d79078c360a",
+      "canonicalSha256": "19778f727f9d528fecda1320f92f7b78002b9555f738963aad92288572efc595",
+      "rationale": "Status is operational health, not setup stage: 072 already seeds all providers and 050 conflict updates deliberately preserve their status. Use the disconnected default for hypothetical inserts, retaining every existing status, seed metadata and constraint. Actual compatibility rehearsal proves the INSERT consumes entry_enabled before migration 074 adds it. Copy only the identical additive column declaration from 074 before this first use; retain the original 074 identity and all original seeds. Default false adds no activation."
+    },
+    {
+      "path": "supabase/migrations/20260622153740_088_trade_management_truth_table.sql",
+      "originalSha256": "00b066bfb16c89d6da555d5b122d73e1a85fbb797263f7d7f0d67408aeafc68b",
+      "canonicalSha256": "b265b85d51c6d1a1fb5e8f9bd6a3a6bcea8f3097435a6980738072f2693d8220",
+      "rationale": "075 already creates the canonical composite-key truth table. IF NOT EXISTS in 088 does not add its newer columns. Add only absent fields, keep the existing key/checks/RLS and existing values. Unknown status explicitly represents absent historical evidence; direction and quantity derive from retained side/qty. Later account-ownership migration retains its primary-key replacement authority."
+    },
+    {
+      "path": "supabase/migrations/20260708000000_092_retention_batch_cleanup_and_runtime_stability.sql",
+      "originalSha256": "cb18a9c14b8c35f2827a89b6e01218f36cba7063da28ce6c4e7b6152f66d4853",
+      "canonicalSha256": "81d8db8572eded103377cec616a23a8a8b8b51825798166c5840b3ca8187c1e2",
+      "rationale": "001 uses open_time, not timestamp; the same 092 retention RPC already selects open_time as its candle fallback. Keep the index identity and retention behavior, pointing at the actual authoritative candle time."
+    },
+    {
+      "path": "supabase/migrations/20260708160000_097_crypto_execution_protection_closeout.sql",
+      "originalSha256": "3c842ccdafcc6eabb9b41d9226b3859298f120f00095a12eca23b404d7e8948f",
+      "canonicalSha256": "e730150914b876a0897a72d13fab888e5aa72996a9d83a8380529e054103bbcd",
+      "rationale": "088 leaves a 19-argument overload; this migration creates a 23-argument overload. The unqualified REVOKE is ambiguous. Revoke the precise newly defined signature; later 097 catch-up retains its explicit obsolete-overload DROP and final grants."
+    },
+    {
+      "path": "supabase/migrations/20260710230322_20260710120000_097_runtime_monitor_schema_catchup.sql.sql",
+      "originalSha256": "8ff25f4a8d3a179a94b0bb74980a65fff467bcd8a891a3088cddc94b2a91b897",
+      "canonicalSha256": "475d3d6c305542a2e6db0ee4e417ee60110789bbaf8eca375a209ade20b19e38",
+      "rationale": "085 quarantine and 072 provider controls exist already. Add the exact absent resolution fields required by the partial index and occurrence_count required by the retained RPC, deriving initial counts from existing failure_count without overwriting a pre-existing counter. The provider index uses a stored read-only alias of canonical provider_name and a nullable unknown subsystem; keep original provider key, flags and status checks. Drop/recreate only the exact six-argument signature without CASCADE in the same transaction, removing its overlapping metadata default so the published three-argument signature is callable; metadata-bearing four/six-argument Edge callers and trailing defaults remain intact. Require the original owner/current role and default ACL; verify identical stored body and ACL. Custom ownership/grants or dependencies refuse rather than losing privileges. No new subsystem authority or runtime activation."
+    },
+    {
+      "path": "supabase/migrations/20260902120000_102_prop_personal_execution_mode_and_scanner_combined.sql",
+      "originalSha256": "a59814e9f41fbf68e9ccb9236c61bf9ee51ec26ce023d121e33b04fb0ff0c1ff",
+      "canonicalSha256": "ba32f7942a6d658f3686fa542247166d59e763583d5d0c0f4cacf119827822e0",
+      "rationale": "102 updates a column that no earlier automatic migration creates. Add the exact boolean flag with a disabled default before the existing update; preserve the original seed and the scanner environment/execution gates. No scanner or schedule is invoked."
+    },
+    {
+      "path": "supabase/migrations/20260926210000_phase_h_completion.sql",
+      "originalSha256": "35fe4bab6c4a1b51d0317427ab79cf03702381dacb04c0f3d5f9e451510d4167",
+      "canonicalSha256": "0cbddd58d2b60e4584374a1717572383c79a76bdb03810cd61a89052647d162d",
+      "rationale": "CREATE OR REPLACE VIEW must retain every existing output name/type/order and append new fields. Keep all selected values, security_invoker, grants and dependent views; append Phase-H fields after existing timestamps rather than dropping/renaming the view."
+    },
+    {
+      "path": "supabase/migrations/20261003120000_phase_m_lifecycle_publication_and_edits.sql",
+      "originalSha256": "c2e81cc86960bca5fe04decfb805b1650de04b54afee930a036b9d5fbc97d25d",
+      "canonicalSha256": "a08c85957e6444880f7affbddb4381792596725be60d6fb127c2bb4ee68e4cd6",
+      "rationale": "Phase M reporting view exists already. Append customer_id and edit_parts after all existing columns; retain grouping, values, invoker security, grants and all canonical publication RPCs/triggers."
+    },
+    {
+      "path": "supabase/migrations/20261009120000_phase_n_certification_atomicity.sql",
+      "originalSha256": "761bcfbe821f78cb3f3d54e7e2c6de7e4bb7275ab0b6109cb7c9f0a8f11b0a33",
+      "canonicalSha256": "754162afdc88ab4dec7b4e5b7c8726f8383a66759cca0ca996efacc8e309b35a",
+      "rationale": "The PL/pgSQL IF parser terminates the unparenthesized CASE at its first THEN. Parenthesize the scalar CASE expression only; preserve every canonical Phase-D/G/provider/entitlement gate, lock, RPC signature and service-role grant."
+    },
+    {
+      "path": "supabase/migrations/20261012120000_phase_o_completion_controls.sql",
+      "originalSha256": "a595bb10d9d59b48b736cb1d53b7de31769cc4188aaf1911c4dc3e5f845d5638",
+      "canonicalSha256": "90358c2fe849ca36e5629066060f5eed091a11b828b53be79855609785fefc80",
+      "rationale": "Append enrollments, renewals and churn after every original funnel field, preserving all metrics, invoker security, grants, approval fences and dormant agent controls."
+    }
+  ]
+}
