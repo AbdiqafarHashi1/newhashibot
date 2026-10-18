@@ -1,3 +1,4 @@
+import {currentBinanceSandboxRule} from './automatic-symbol-rules.ts';
 import type {AccountExecutionContext,AccountPolicy} from './account-execution-brain/types.ts';
 import type {CryptoContractSpecification} from './professional-capital-allocation.ts';
 import {assertCompleteProductionContext,recordObservedAccountPolicyEvidence} from './observed-account-policy-evidence.ts';
@@ -32,7 +33,7 @@ export async function prepareAutomaticCryptoEvidence(db:any,loaded:any,now=Date.
  const identity=loaded.account;if(String(identity.provider).toUpperCase()!=='BINANCE')return;
  const owned=await db.from('connected_execution_accounts').select('*').eq('id',identity.id).eq('customer_id',identity.customer_id).single();if(owned.error||!owned.data)throw Error('ACCOUNT_OWNERSHIP_REQUIRED');
  const a=owned.data,tracking=await db.rpc('track_current_provider_risk',{p_customer:a.customer_id,p_account:a.id});if(tracking.error||tracking.data?.state!=='READY')throw Error('ACCOUNT_BASELINE_NOT_READY');
- const rule=await db.from('provider_symbol_cache').select('*').eq('provider','binance').eq('environment','testnet').eq('symbol',loaded.signal.symbol).maybeSingle();if(rule.error)throw Error('SYMBOL_RULE_UNAVAILABLE');
+ const rule=await currentBinanceSandboxRule(db,loaded.signal.symbol,now);
  const errors=await db.from('certified_runtime_events').select('id',{count:'exact',head:true}).eq('account_id',a.id).in('normalized_status',['failed','rejected','recovery_required']).gte('occurred_at',new Date(now-3600000).toISOString());if(errors.error||!Number.isInteger(errors.count))throw Error('SCOPED_RUNTIME_ERRORS_UNAVAILABLE');
- return recordObservedAccountPolicyEvidence(db,assembleFlatBinanceEvidence({account:a,proof:tracking.data.proof,tracking:tracking.data.tracking,policy:loaded.policy,symbol:loaded.signal.symbol,symbolRule:rule.data,recentRuntimeFailures:errors.count},now),now);
+ return recordObservedAccountPolicyEvidence(db,assembleFlatBinanceEvidence({account:a,proof:tracking.data.proof,tracking:tracking.data.tracking,policy:loaded.policy,symbol:loaded.signal.symbol,symbolRule:rule,recentRuntimeFailures:errors.count},now),now);
 }
