@@ -1,3 +1,4 @@
+import {applyBinanceCertifiedConfiguration} from '../_shared/binance-certified-configuration.ts';
 import {applyBybitCertifiedConfiguration} from '../_shared/bybit-certified-configuration.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -3055,6 +3056,10 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
   return {
     async send(operation, payload, identity) {
       try {
+        if(plan.provider==="BINANCE"&&["SET_LEVERAGE","VERIFY_PRECONFIGURED_LEVERAGE","SET_MARGIN_MODE","VERIFY_PRECONFIGURED_MARGIN_MODE"].includes(operation)){
+          await applyBinanceCertifiedConfiguration(operation,payload,(method,path,params)=>binanceRequest(method,path,params,true));
+          return {outcome:"ACKNOWLEDGED",provider_order_id:identity,provider_position_id:null,provider_timestamp:new Date().toISOString(),raw_status:"CONFIGURATION_VERIFIED",redacted_evidence:{operation},error:null};
+        }
         if(plan.provider==="BYBIT"&&["SET_LEVERAGE","VERIFY_PRECONFIGURED_LEVERAGE","SET_MARGIN_MODE","VERIFY_PRECONFIGURED_MARGIN_MODE"].includes(operation)){
           await applyBybitCertifiedConfiguration(operation,payload,(method,path,params)=>bybitRequest(method,path,params));
           return {outcome:"ACKNOWLEDGED",provider_order_id:identity,provider_position_id:null,provider_timestamp:new Date().toISOString(),raw_status:"CONFIGURATION_VERIFIED",redacted_evidence:{operation},error:null};
