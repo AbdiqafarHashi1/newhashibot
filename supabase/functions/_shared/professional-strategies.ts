@@ -68,6 +68,7 @@ export interface StrategyEvaluationContext {
   evaluated_at: string;
   /** Frozen, versioned research overrides. Production callers omit this field. */
   strategy_parameters?: Readonly<Record<string, number>>;
+  higher_timeframe_candles?: readonly StrategyCandle[];
 }
 
 export interface StrategyDefinition {

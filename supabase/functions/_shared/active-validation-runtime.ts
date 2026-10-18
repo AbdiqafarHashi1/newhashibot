@@ -1,3 +1,4 @@
+import {microScalperRuntimeParams} from "./micro-scalper-runtime.ts";
 import { atrRootV1, emaRootV1, rsiRootV1 } from "./indicator-engine.ts";
 import { FOREX_PRODUCTION_EVALUATORS, type ProductionEvaluatorId } from "./forex-production-strategies.ts";
 import { FOREX_STRATEGY_CONTRACTS, forexStrategyEligibility } from "./forex-runtime-contracts.ts";
@@ -27,7 +28,7 @@ export function createApprovedReplayRegistry(config:ApprovedReplayConfiguration,
   if(crypto&&!/^[A-Z0-9]{2,15}USDT$/.test(symbol))continue;
   if(contract&&!forexStrategyEligibility(contract,symbol).eligible)continue;
   const legacyName=contract?.legacyName??crypto!.name,market=contract?"forex":"crypto",runtime:StrategyRuntimeConfig={strategy_name:legacyName,enabled:true,min_score:item.minScore,min_rr:item.minRiskReward,max_bars_in_trade:item.maxBarsInTrade,min_stop_distance_pct:item.minStopDistancePct??0,min_tp1_distance_pct:item.minTp1DistancePct??0,min_tp2_distance_pct:item.minTp2DistancePct??0,allowed_symbols:item.symbols,allowed_timeframes:item.timeframes,params:item.parameters};
-  definitions.push({id:item.id,version:item.version,legacyName,market,lifecycle:"ENABLED",publicationMode:"LIVE",certification:"PRODUCTION",config:runtime,evaluate:ctx=>contract?forexEvaluator!(ctx,{...item.parameters,min_score:item.minScore,min_rr:item.minRiskReward}):crypto!.evaluate(ctx.candles as StrategyCandle[],ctx.indicators,ctx.timeframe,{...item.parameters,min_score:item.minScore,min_rr:item.minRiskReward,max_bars_in_trade:item.maxBarsInTrade,crypto_behavior_tuning:1})});
+  definitions.push({id:item.id,version:item.version,legacyName,market,lifecycle:"ENABLED",publicationMode:"LIVE",certification:"PRODUCTION",config:runtime,evaluate:ctx=>contract?forexEvaluator!(ctx,{...item.parameters,min_score:item.minScore,min_rr:item.minRiskReward}):crypto!.evaluate(ctx.candles as StrategyCandle[],ctx.indicators,ctx.timeframe,item.id==="crypto.micro-scalper"?microScalperRuntimeParams(runtime,ctx.timeframe).params:{...item.parameters,min_score:item.minScore,min_rr:item.minRiskReward,max_bars_in_trade:item.maxBarsInTrade,...(item.id!=="crypto.quick-scalp"?{crypto_behavior_tuning:1}:{})},ctx.higher_timeframe_candles as StrategyCandle[]|undefined)});
  }
  if(!definitions.length)throw new Error("NO_APPROVED_STRATEGY_FOR_SYMBOL_TIMEFRAME");
  return new ProfessionalStrategyRegistry(definitions);

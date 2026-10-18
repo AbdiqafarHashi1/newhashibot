@@ -23,7 +23,7 @@ function hash(input: string): string { let h1 = 0x811c9dc5; for (let i = 0; i < 
 function rejectionReasons(c: ArbitrationCandidate, options: ArbitrationOptions): string[] {
   const reasons: string[] = [];
   if (c.lifecycle !== "ENABLED" || c.publicationMode !== "LIVE") reasons.push("research_or_non_live_excluded");
-  if (c.eligible === false) reasons.push("legacy_gate_rejected");
+  if (c.eligible === false) reasons.push("legacy_gate_rejected", ...c.rejectionReasons);
   if (!c.fresh) reasons.push("stale_candidate");
   if (!Number.isFinite(Date.parse(c.expiry)) || Date.parse(c.expiry) <= options.now.getTime()) reasons.push("expired_candidate");
   if (![c.confidence, c.score, c.entry, c.stop, c.riskReward, ...c.targets].every(Number.isFinite)) reasons.push("non_finite_value");

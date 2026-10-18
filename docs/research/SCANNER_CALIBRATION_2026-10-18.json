@@ -1,0 +1,4120 @@
+{
+  "status": "REJECTED_NOT_FOR_PROMOTION",
+  "protocol": {
+    "development": [
+      "2023-01",
+      "2023-06",
+      "2023-09",
+      "2023-12"
+    ],
+    "validation": [
+      "2024-02",
+      "2024-04"
+    ],
+    "holdout": [
+      "2025-08",
+      "2025-11",
+      "2026-02"
+    ],
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "market": "futures/um",
+    "maxTrials": 12,
+    "minimumResolvedPerSplit": 30,
+    "minimumProfitFactor": 1.1,
+    "minimumExpectancyR": 0.02,
+    "costBps": {
+      "fee": 10,
+      "spread": 2,
+      "slippage": 4,
+      "fundingReserve": 4
+    },
+    "selection": "development only; validation pass/fail; holdout opened once for frozen winner; no retuning after holdout",
+    "limits": "Each month separate, first 200 bars warmup, one active signal per symbol, flat at dataset cutoff at market close.",
+    "timeframes": [
+      "15m",
+      "1h"
+    ]
+  },
+  "protocolHash": "1c39d513e5293a7324a556a053eb460b83f85a4d6151b134c5de94ea5123d0bf",
+  "selected": {
+    "id": "calibration-wide-score0-adaptive",
+    "adaptive": true,
+    "config": {
+      "version": "calibration-wide-score0-adaptive",
+      "minSignalGrade": "A",
+      "strategies": [
+        {
+          "id": "crypto.compression-breakout",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 72,
+          "minRiskReward": 1.3,
+          "maxBarsInTrade": 48,
+          "minStopDistancePct": 0.25,
+          "minTp1DistancePct": 0.35,
+          "minTp2DistancePct": 0.6,
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT"
+          ],
+          "timeframes": [
+            "15m",
+            "1h"
+          ],
+          "parameters": {
+            "tp1_r": 2.4,
+            "tp2_r": 6,
+            "atr_len": 14,
+            "rsi_len": 14,
+            "ema_fast": 20,
+            "ema_slow": 50,
+            "box_lookback": 36,
+            "min_box_bars": 8,
+            "max_box_atr_range": 8,
+            "min_atr_expansion": 0.95,
+            "breakout_buffer_atr": 0.05,
+            "box_bar_tolerance": 0.002,
+            "atr_expansion_lookback": 48,
+            "stop_atr_mult": 2.4,
+            "momentum_lookback": 3,
+            "max_bars_in_trade": 48,
+            "crypto_behavior_tuning": 1
+          }
+        },
+        {
+          "id": "crypto.swing-continuation",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 78,
+          "minRiskReward": 1.5,
+          "maxBarsInTrade": 96,
+          "minStopDistancePct": 0.45,
+          "minTp1DistancePct": 0.7,
+          "minTp2DistancePct": 1.2,
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT"
+          ],
+          "timeframes": [
+            "15m",
+            "1h"
+          ],
+          "parameters": {
+            "tp1_r": 2.4,
+            "tp2_r": 6,
+            "atr_len": 14,
+            "rsi_len": 14,
+            "ema_fast": 20,
+            "ema_slow": 50,
+            "max_atr_pct": 4,
+            "min_atr_pct": 0.15,
+            "rsi_buy_min": 50,
+            "rsi_sell_max": 50,
+            "pullback_bars": 8,
+            "pullback_ema_pct": 0.012,
+            "ema_trend_pct": 0.002,
+            "stop_atr_mult": 2.4,
+            "momentum_lookback": 3,
+            "max_bars_in_trade": 96,
+            "crypto_behavior_tuning": 1,
+            "min_confidence_balanced": 78,
+            "min_confidence_aggressive": 72,
+            "min_confidence_conservative": 80
+          }
+        },
+        {
+          "id": "crypto.micro-scalper",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 75,
+          "minRiskReward": 1.2,
+          "maxBarsInTrade": 24,
+          "minStopDistancePct": 0.15,
+          "minTp1DistancePct": 0.2,
+          "minTp2DistancePct": 0.3,
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT"
+          ],
+          "timeframes": [
+            "15m"
+          ],
+          "parameters": {
+            "stop_atr_mult": 2.4,
+            "tp1_r": 2.4,
+            "tp2_r": 6
+          }
+        },
+        {
+          "id": "crypto.quick-scalp",
+          "version": "1.0.0",
+          "enabled": true,
+          "minScore": 82,
+          "minRiskReward": 1.15,
+          "maxBarsInTrade": 4,
+          "minStopDistancePct": 0.1,
+          "minTp1DistancePct": 0.1,
+          "minTp2DistancePct": 0.15,
+          "symbols": [
+            "BTCUSDT",
+            "ETHUSDT"
+          ],
+          "timeframes": [
+            "15m"
+          ],
+          "parameters": {
+            "stop_atr_mult": 2.4,
+            "tp1_r": 2.4,
+            "tp2_r": 6
+          }
+        }
+      ],
+      "outcomeAssumptions": {
+        "entryTiming": "NEXT_OPEN",
+        "feeBps": 10,
+        "spreadBps": 2,
+        "slippageBps": 4,
+        "fundingBps": 4,
+        "partialExitPct": 0.5,
+        "moveStopToBreakevenAfterTp1": true,
+        "trailingStopR": null,
+        "sameCandlePolicy": "STOP_FIRST",
+        "closeAtHorizon": true,
+        "tp1StopPolicy": "CONSERVATIVE_SAME_BAR"
+      }
+    }
+  },
+  "frozenConfigurationHash": "b5bb6fef5d9ee492ee5fa12efcaafa6221ddd4d96a37ecf57cdb7e669a4476f6",
+  "development": [
+    {
+      "id": "calibration-base-score0-control",
+      "adaptive": false,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 420,
+        "resolvedCount": 420,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2731189922718448,
+        "profitFactor": 0.5285524422448292,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 117.43417300380887,
+        "totalNetR": -114.7099767541748
+      },
+      "cycles": 27536,
+      "noTrades": 23603,
+      "overlapBlocked": 3513,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 103,
+            "resolvedCount": 103,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1198852462581757,
+            "profitFactor": 0.7522658031736071,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 18.599558381897168,
+            "totalNetR": -12.348180364592098
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 98,
+            "resolvedCount": 98,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.31907034310624494,
+            "profitFactor": 0.45903941399211245,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 31.60679574878148,
+            "totalNetR": -31.268893624412005
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 115,
+            "resolvedCount": 115,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.5357008882283758,
+            "profitFactor": 0.29344935851931025,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 63.2772386474409,
+            "totalNetR": -61.60560214626322
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 104,
+            "resolvedCount": 104,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.09122404441257123,
+            "profitFactor": 0.8042860061446961,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 16.990432213589134,
+            "totalNetR": -9.487300618907408
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 67,
+          "resolvedCount": 67,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.30557428881761434,
+          "profitFactor": 0.47178555397154515,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 22.794598181781396,
+          "totalNetR": -20.47347735078016
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 55,
+          "resolvedCount": 55,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.016013468111213777,
+          "profitFactor": 0.9620664212345338,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.728621866383492,
+          "totalNetR": -0.8807407461167578
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 87,
+          "resolvedCount": 87,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.33442082400051165,
+          "profitFactor": 0.5035949756805711,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 29.553666678023376,
+          "totalNetR": -29.094611688044512
+        },
+        "SHOCK": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 75,
+          "resolvedCount": 75,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.09627641454326967,
+          "profitFactor": 0.7808858076383351,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 14.990004722831175,
+          "totalNetR": -7.220731090745225
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 116,
+          "resolvedCount": 116,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.45112128904120224,
+          "profitFactor": 0.342589153994332,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 55.28231055248097,
+          "totalNetR": -52.33006952877946
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 20,
+          "resolvedCount": 20,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.23551731748543042,
+          "profitFactor": 0.5369103162424614,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.070080809188466,
+          "totalNetR": -4.710346349708608
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 200,
+          "resolvedCount": 200,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.266763917019347,
+          "profitFactor": 0.5346792299767036,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 54.47611667792836,
+          "totalNetR": -53.352783403869395
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 123,
+          "resolvedCount": 123,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.019334626539928505,
+          "profitFactor": 0.9594963926957781,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 18.109856659821084,
+          "totalNetR": -2.3781590644112063
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 92,
+          "resolvedCount": 92,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5860649038191175,
+          "profitFactor": 0.1689650439686564,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 53.91797115135879,
+          "totalNetR": -53.917971151358806
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 5,
+          "resolvedCount": 5,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.0122126269070657,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.35053681874585,
+          "totalNetR": -5.0610631345353285
+        }
+      },
+      "rejectionCounts": {
+        "mixed_market_no_clear_strategy_requires_a_plus": 2775,
+        "LOWER_RANK": 2461,
+        "mixed_market_expected_value_too_low": 70,
+        "mixed_choppy_market_requires_a_plus": 10
+      }
+    },
+    {
+      "id": "calibration-base-score0-adaptive",
+      "adaptive": true,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 407,
+        "resolvedCount": 407,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2979236969724039,
+        "profitFactor": 0.4944220546201475,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 122.42956133148972,
+        "totalNetR": -121.25494466776838
+      },
+      "cycles": 27536,
+      "noTrades": 24539,
+      "overlapBlocked": 2590,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 91,
+            "resolvedCount": 91,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.17047546443155182,
+            "profitFactor": 0.6598215930487626,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 19.659807406311536,
+            "totalNetR": -15.513267263271215
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 93,
+            "resolvedCount": 93,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.3969798180068375,
+            "profitFactor": 0.3669431781639763,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 37.02161756591477,
+            "totalNetR": -36.91912307463589
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 100,
+            "resolvedCount": 100,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.4473151982396363,
+            "profitFactor": 0.3484132311621253,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 51.376399013637695,
+            "totalNetR": -44.73151982396363
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 123,
+            "resolvedCount": 123,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1958620691536395,
+            "profitFactor": 0.6418331653190089,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 30.0692929981797,
+            "totalNetR": -24.091034505897657
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 57,
+          "resolvedCount": 57,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.16678847714228653,
+          "profitFactor": 0.6731532166108964,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 11.423119198993888,
+          "totalNetR": -9.506943197110333
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 68,
+          "resolvedCount": 68,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.01749146756367609,
+          "profitFactor": 0.9581301038149037,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 8.563854053589122,
+          "totalNetR": -1.189419794329974
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 119,
+          "resolvedCount": 119,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.45111804597357075,
+          "profitFactor": 0.35821249133219585,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 53.68304747085496,
+          "totalNetR": -53.683047470854916
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 118,
+          "resolvedCount": 118,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3509954027188641,
+          "profitFactor": 0.4074565289357597,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 46.67655146571653,
+          "totalNetR": -41.41745752082596
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 45,
+          "resolvedCount": 45,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.34351281521438215,
+          "profitFactor": 0.463187863840452,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 16.66031617030339,
+          "totalNetR": -15.458076684647196
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 219,
+          "resolvedCount": 219,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.23992931380556856,
+          "profitFactor": 0.5636482903861272,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 53.71913638714085,
+          "totalNetR": -52.54451972341951
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 96,
+          "resolvedCount": 96,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.056376696985677564,
+          "profitFactor": 0.8915553994006213,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 13.792166369308198,
+          "totalNetR": -5.412162910625046
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 89,
+          "resolvedCount": 89,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.6831906156459631,
+          "profitFactor": 0.092681848560035,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 61.23253622106216,
+          "totalNetR": -60.80396479249071
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 3,
+          "resolvedCount": 3,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.8314324137443699,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 2.7837709254436316,
+          "totalNetR": -2.49429724123311
+        }
+      },
+      "rejectionCounts": {
+        "legacy_gate_rejected": 2945,
+        "adaptive_volatility_shock": 1527,
+        "mixed_market_no_clear_strategy_requires_a_plus": 1762,
+        "adaptive_range_unsuitable_for_continuation": 589,
+        "LOWER_RANK": 1493,
+        "adaptive_transition_without_trend": 829,
+        "mixed_market_expected_value_too_low": 52
+      }
+    },
+    {
+      "id": "calibration-base-score6-control",
+      "adaptive": false,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 406,
+        "resolvedCount": 406,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2873209963913096,
+        "profitFactor": 0.5151031603343768,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 122.38918563729689,
+        "totalNetR": -116.6523245348717
+      },
+      "cycles": 27536,
+      "noTrades": 24039,
+      "overlapBlocked": 3091,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 98,
+            "resolvedCount": 98,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.12237723121984628,
+            "profitFactor": 0.7523146177105632,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 18.139435779582435,
+            "totalNetR": -11.992968659544935
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 96,
+            "resolvedCount": 96,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.27033568293065807,
+            "profitFactor": 0.5317350170527277,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 28.82445441470442,
+            "totalNetR": -25.952225561343173
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 112,
+            "resolvedCount": 112,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.6107612313965675,
+            "profitFactor": 0.2324634123481282,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 68.91629535100004,
+            "totalNetR": -68.40525791641555
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 100,
+            "resolvedCount": 100,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.10301872397567992,
+            "profitFactor": 0.7836015628102542,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 15.701410173099957,
+            "totalNetR": -10.301872397567992
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 73,
+          "resolvedCount": 73,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3997524848280842,
+          "profitFactor": 0.36764253455134926,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 30.699353605614288,
+          "totalNetR": -29.181931392450146
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 53,
+          "resolvedCount": 53,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2184720044322272,
+          "profitFactor": 0.5973793448433651,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 15.90445137371585,
+          "totalNetR": -11.57901623490804
+        },
+        "SHOCK": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 71,
+          "resolvedCount": 71,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.0008214932081824933,
+          "profitFactor": 0.9978279410899796,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.896365129410796,
+          "totalNetR": -0.05832601778095703
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 116,
+          "resolvedCount": 116,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3427902909488647,
+          "profitFactor": 0.4758806412709543,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 42.47764951931198,
+          "totalNetR": -39.76367375006831
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 74,
+          "resolvedCount": 74,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.36981977569926117,
+          "profitFactor": 0.45529723902074265,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 28.495219671642676,
+          "totalNetR": -27.366663401745328
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 19,
+          "resolvedCount": 19,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.45803756515362726,
+          "profitFactor": 0.3148839344653133,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.986351203133172,
+          "totalNetR": -8.702713737918918
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 201,
+          "resolvedCount": 201,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2680046167654612,
+          "profitFactor": 0.5325017967517641,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 55.28973674940579,
+          "totalNetR": -53.8689279698577
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 122,
+          "resolvedCount": 122,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.07672993165738698,
+          "profitFactor": 0.8520822617912875,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 23.373921724195906,
+          "totalNetR": -9.361051662201211
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 77,
+          "resolvedCount": 77,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5967685774493081,
+          "profitFactor": 0.15819733034443675,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 45.951180463596714,
+          "totalNetR": -45.95118046359673
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 6,
+          "resolvedCount": 6,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.2451940732026754,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.760638123426574,
+          "totalNetR": -7.471164439216053
+        }
+      },
+      "rejectionCounts": {
+        "mixed_market_no_clear_strategy_requires_a_plus": 485,
+        "LOWER_RANK": 1381,
+        "mixed_market_expected_value_too_low": 34,
+        "mixed_choppy_market_requires_a_plus": 3
+      }
+    },
+    {
+      "id": "calibration-base-score6-adaptive",
+      "adaptive": true,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 371,
+        "resolvedCount": 371,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.24164259561984217,
+        "profitFactor": 0.5666879613752995,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 91.22223901237173,
+        "totalNetR": -89.64940297496145
+      },
+      "cycles": 27536,
+      "noTrades": 24896,
+      "overlapBlocked": 2269,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 84,
+            "resolvedCount": 84,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.12972279336629344,
+            "profitFactor": 0.7256300473637075,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 15.756051926017946,
+            "totalNetR": -10.89671464276865
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 76,
+            "resolvedCount": 76,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.16433577727000215,
+            "profitFactor": 0.6709160613121957,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 15.044254471796448,
+            "totalNetR": -12.489519072520164
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 91,
+            "resolvedCount": 91,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.5213425749389069,
+            "profitFactor": 0.29327844600197317,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 51.18461492983397,
+            "totalNetR": -47.44217431944053
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 120,
+            "resolvedCount": 120,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.15684162450193445,
+            "profitFactor": 0.696903298164612,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 24.51836987659691,
+            "totalNetR": -18.820994940232133
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 71,
+          "resolvedCount": 71,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.24656709856804107,
+          "profitFactor": 0.5489924941167217,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 19.023686211495065,
+          "totalNetR": -17.506263998330915
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 61,
+          "resolvedCount": 61,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.04803371585106237,
+          "profitFactor": 0.8905597407911443,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 11.054714683399556,
+          "totalNetR": -2.9300566669148047
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 107,
+          "resolvedCount": 107,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.20302298599828614,
+          "profitFactor": 0.5959285138247349,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 30.425914549228022,
+          "totalNetR": -21.723459501816617
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 95,
+          "resolvedCount": 95,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.44194454611650646,
+          "profitFactor": 0.37496440989891405,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 42.414325965397914,
+          "totalNetR": -41.984731881068114
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 37,
+          "resolvedCount": 37,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.14878083586029708,
+          "profitFactor": 0.7297710803924432,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.858452526700475,
+          "totalNetR": -5.504890926830992
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 234,
+          "resolvedCount": 234,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.22257609975371745,
+          "profitFactor": 0.5849735409254369,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 53.8129042914587,
+          "totalNetR": -52.08280734236988
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 90,
+          "resolvedCount": 90,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.06870863226029642,
+          "profitFactor": 0.8681379981746353,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 13.957167128208187,
+          "totalNetR": -6.183776903426677
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 45,
+          "resolvedCount": 45,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.6817940200927328,
+          "profitFactor": 0.09236007005822748,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 30.680730904172986,
+          "totalNetR": -30.68073090417298
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 2,
+          "resolvedCount": 2,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3510439124959551,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 0.9915615092024321,
+          "totalNetR": -0.7020878249919102
+        }
+      },
+      "rejectionCounts": {
+        "legacy_gate_rejected": 1482,
+        "adaptive_volatility_shock": 1016,
+        "mixed_market_no_clear_strategy_requires_a_plus": 383,
+        "adaptive_range_unsuitable_for_continuation": 160,
+        "LOWER_RANK": 871,
+        "adaptive_transition_without_trend": 306,
+        "mixed_market_expected_value_too_low": 24
+      }
+    },
+    {
+      "id": "calibration-balanced-score0-control",
+      "adaptive": false,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 412,
+        "resolvedCount": 412,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2864189410045064,
+        "profitFactor": 0.5595022112398478,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 122.64697686459003,
+        "totalNetR": -118.00460369385662
+      },
+      "cycles": 27536,
+      "noTrades": 23146,
+      "overlapBlocked": 3978,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 97,
+            "resolvedCount": 97,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1633872858851177,
+            "profitFactor": 0.7461491227769612,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 22.389599192902946,
+            "totalNetR": -15.848566730856415
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 104,
+            "resolvedCount": 104,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.3750009024323969,
+            "profitFactor": 0.4522894970144243,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 40.16576812339189,
+            "totalNetR": -39.00009385296928
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 104,
+            "resolvedCount": 104,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.42208030771246635,
+            "profitFactor": 0.3805930303913084,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 46.17605382437667,
+            "totalNetR": -43.8963520020965
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 107,
+            "resolvedCount": 107,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.17999617857882652,
+            "profitFactor": 0.6961375540601098,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 24.779457742368162,
+            "totalNetR": -19.259591107934437
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 82,
+          "resolvedCount": 82,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4214809069977807,
+          "profitFactor": 0.4012499998928209,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 37.54899319645847,
+          "totalNetR": -34.56143437381802
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 101,
+          "resolvedCount": 101,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.29713552333623905,
+          "profitFactor": 0.5937762083864205,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 36.13582760225364,
+          "totalNetR": -30.010687856960143
+        },
+        "SHOCK": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 68,
+          "resolvedCount": 68,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.12932965811924282,
+          "profitFactor": 1.3134903974875143,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.214552953956934,
+          "totalNetR": 8.794416752108512
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 102,
+          "resolvedCount": 102,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.35330807997708996,
+          "profitFactor": 0.4514842811481249,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 37.4611465595046,
+          "totalNetR": -36.037424157663175
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 19,
+          "resolvedCount": 19,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.6486485887505559,
+          "profitFactor": 0.24370402265159877,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 12.32432318626056,
+          "totalNetR": -12.324323186260562
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 40,
+          "resolvedCount": 40,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3466287717815814,
+          "profitFactor": 0.4716141566213412,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 14.395678991932229,
+          "totalNetR": -13.865150871263257
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 155,
+          "resolvedCount": 155,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.21742454699444255,
+          "profitFactor": 0.6588508434826622,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 40.91914384953626,
+          "totalNetR": -33.7008047841386
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 142,
+          "resolvedCount": 142,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4289462242053129,
+          "profitFactor": 0.3742127558094377,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 65.50974285365778,
+          "totalNetR": -60.910363837154435
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 105,
+          "resolvedCount": 105,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.12546323370370477,
+          "profitFactor": 0.7850537189101988,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.07979848289832,
+          "totalNetR": -13.173639538889
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 10,
+          "resolvedCount": 10,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.0219795533674594,
+          "profitFactor": 0.024925611860993544,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 10.900827178946628,
+          "totalNetR": -10.219795533674594
+        }
+      },
+      "rejectionCounts": {
+        "mixed_market_no_clear_strategy_requires_a_plus": 3950,
+        "LOWER_RANK": 2929,
+        "mixed_market_expected_value_too_low": 20,
+        "mixed_choppy_market_requires_a_plus": 16
+      }
+    },
+    {
+      "id": "calibration-balanced-score0-adaptive",
+      "adaptive": true,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 387,
+        "resolvedCount": 387,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.29521308789221723,
+        "profitFactor": 0.5564011031477006,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 121.42564760949452,
+        "totalNetR": -114.24746501428807
+      },
+      "cycles": 27536,
+      "noTrades": 24165,
+      "overlapBlocked": 2984,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 80,
+            "resolvedCount": 80,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1952501601625914,
+            "profitFactor": 0.6902099732873256,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 21.410743035351267,
+            "totalNetR": -15.62001281300731
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 99,
+            "resolvedCount": 99,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.49581138308330264,
+            "profitFactor": 0.3413766585600657,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 49.187821416525864,
+            "totalNetR": -49.08532692524696
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 98,
+            "resolvedCount": 98,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.3864206360270027,
+            "profitFactor": 0.45201706225060134,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 44.712291274575485,
+            "totalNetR": -37.86922233064627
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 110,
+            "resolvedCount": 110,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.10611729950352303,
+            "profitFactor": 0.8161508785132057,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 25.040019517152658,
+            "totalNetR": -11.672902945387532
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 56,
+          "resolvedCount": 56,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.18492446456112566,
+          "profitFactor": 0.7052907028708761,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 13.343328838063483,
+          "totalNetR": -10.355770015423037
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 123,
+          "resolvedCount": 123,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4098970358410991,
+          "profitFactor": 0.46975122135185776,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 52.7579432270201,
+          "totalNetR": -50.41733540845519
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 112,
+          "resolvedCount": 112,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.19350317424705513,
+          "profitFactor": 0.6450388270683015,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 34.78653346954228,
+          "totalNetR": -21.672355515670173
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 40,
+          "resolvedCount": 40,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.520946585852182,
+          "profitFactor": 0.36133974019656834,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 21.03054856262434,
+          "totalNetR": -20.83786343408728
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 56,
+          "resolvedCount": 56,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.1957882257259356,
+          "profitFactor": 0.6740975160229253,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 14.320646462949258,
+          "totalNetR": -10.964140640652394
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 173,
+          "resolvedCount": 173,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.1581005103545054,
+          "profitFactor": 0.7306949831719907,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 47.03390941125928,
+          "totalNetR": -27.35138829132943
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 114,
+          "resolvedCount": 114,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5162668953409738,
+          "profitFactor": 0.28788920268810897,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 62.4952718474011,
+          "totalNetR": -58.854426068871014
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 91,
+          "resolvedCount": 91,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2036660127824754,
+          "profitFactor": 0.7085430793182925,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.196617154616952,
+          "totalNetR": -18.53360716320526
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 9,
+          "resolvedCount": 9,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.056449276764705,
+          "profitFactor": 0.024469627103665327,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 10.18907513615438,
+          "totalNetR": -9.508043490882343
+        }
+      },
+      "rejectionCounts": {
+        "legacy_gate_rejected": 3575,
+        "adaptive_volatility_shock": 1672,
+        "adaptive_range_unsuitable_for_continuation": 874,
+        "mixed_market_no_clear_strategy_requires_a_plus": 2560,
+        "LOWER_RANK": 1789,
+        "mixed_market_expected_value_too_low": 10,
+        "adaptive_transition_without_trend": 1029
+      }
+    },
+    {
+      "id": "calibration-balanced-score6-control",
+      "adaptive": false,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 438,
+        "resolvedCount": 438,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3351202626894216,
+        "profitFactor": 0.5036582468050789,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 151.34135310896778,
+        "totalNetR": -146.78267505796666
+      },
+      "cycles": 27536,
+      "noTrades": 23485,
+      "overlapBlocked": 3613,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 106,
+            "resolvedCount": 106,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.21460844974457804,
+            "profitFactor": 0.6774192260713453,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 26.629737052462204,
+            "totalNetR": -22.748495672925273
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 103,
+            "resolvedCount": 103,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.3864520319290764,
+            "profitFactor": 0.4448134119074492,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 41.0765484103113,
+            "totalNetR": -39.80455928869487
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 120,
+            "resolvedCount": 120,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.524612412329519,
+            "profitFactor": 0.29021834011242037,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 64.05476596685563,
+            "totalNetR": -62.95348947954229
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 109,
+            "resolvedCount": 109,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1951938588697623,
+            "profitFactor": 0.6717596611727672,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 27.716628372640116,
+            "totalNetR": -21.27613061680409
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 88,
+          "resolvedCount": 88,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4738571475033121,
+          "profitFactor": 0.3458905596304692,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 44.68698780293192,
+          "totalNetR": -41.699428980291465
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 107,
+          "resolvedCount": 107,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4058714065235885,
+          "profitFactor": 0.47352791269220973,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 45.18059552616199,
+          "totalNetR": -43.42824049802397
+        },
+        "SHOCK": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 68,
+          "resolvedCount": 68,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.09126876604538216,
+          "profitFactor": 1.2072050755707249,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.358982481660256,
+          "totalNetR": 6.206276091085987
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 116,
+          "resolvedCount": 116,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.37382717341824473,
+          "profitFactor": 0.43747664008123294,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 47.765477377517826,
+          "totalNetR": -43.36395211651639
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 22,
+          "resolvedCount": 22,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.6944798494122937,
+          "profitFactor": 0.20630332100051094,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 15.278556687070461,
+          "totalNetR": -15.278556687070461
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 37,
+          "resolvedCount": 37,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2491560234364925,
+          "profitFactor": 0.6026303433886754,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 10.465996742310626,
+          "totalNetR": -9.218772867150223
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 176,
+          "resolvedCount": 176,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3083678138168386,
+          "profitFactor": 0.55883802465842,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 57.260294054404035,
+          "totalNetR": -54.27273523176359
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 154,
+          "resolvedCount": 154,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4901135344860445,
+          "profitFactor": 0.309504305748591,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 78.41667042745415,
+          "totalNetR": -75.47748431085085
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 99,
+          "resolvedCount": 99,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.09139863805429004,
+          "profitFactor": 0.833598007032308,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 22.20492848975544,
+          "totalNetR": -9.048465167374713
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 9,
+          "resolvedCount": 9,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.8871100386641496,
+          "profitFactor": 0.1149092204837361,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 8.930815241185227,
+          "totalNetR": -7.983990347977347
+        }
+      },
+      "rejectionCounts": {
+        "mixed_market_no_clear_strategy_requires_a_plus": 1045,
+        "LOWER_RANK": 2067,
+        "mixed_market_expected_value_too_low": 14,
+        "mixed_choppy_market_requires_a_plus": 5
+      }
+    },
+    {
+      "id": "calibration-balanced-score6-adaptive",
+      "adaptive": true,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 387,
+        "resolvedCount": 387,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.26984346257337727,
+        "profitFactor": 0.5797616956125328,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 114.41130671336245,
+        "totalNetR": -104.42942001589701
+      },
+      "cycles": 27536,
+      "noTrades": 24440,
+      "overlapBlocked": 2709,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 82,
+            "resolvedCount": 82,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.21517719130346916,
+            "profitFactor": 0.6591632412232004,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 22.310586777004975,
+            "totalNetR": -17.64452968688447
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 96,
+            "resolvedCount": 96,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.4252211629961664,
+            "profitFactor": 0.39170142656553547,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 41.030040990104666,
+            "totalNetR": -40.821231647631976
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 103,
+            "resolvedCount": 103,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.4591586693907101,
+            "profitFactor": 0.3739715481740566,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 52.957986556205505,
+            "totalNetR": -47.29334294724314
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 106,
+            "resolvedCount": 106,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.01254419118738308,
+            "profitFactor": 1.024587383526449,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 12.23759398842824,
+            "totalNetR": 1.3296842658626065
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 58,
+          "resolvedCount": 58,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.17618136162316314,
+          "profitFactor": 0.7080563381239072,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 14.444874482197816,
+          "totalNetR": -10.218518974143462
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 112,
+          "resolvedCount": 112,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.39135942160714177,
+          "profitFactor": 0.471622027371605,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 47.11756314938387,
+          "totalNetR": -43.83225521999988
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 122,
+          "resolvedCount": 122,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.1784189181577407,
+          "profitFactor": 0.6752973593559274,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 38.44383353764128,
+          "totalNetR": -21.767108015244364
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 41,
+          "resolvedCount": 41,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5308909540805852,
+          "profitFactor": 0.3513396645420127,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 21.766529117303993,
+          "totalNetR": -21.766529117303993
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 54,
+          "resolvedCount": 54,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.1267594201704678,
+          "profitFactor": 0.7714473040029088,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 12.064904530872,
+          "totalNetR": -6.84500868920526
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 187,
+          "resolvedCount": 187,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.1552424244397991,
+          "profitFactor": 0.7359808739437461,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 48.20445368286306,
+          "totalNetR": -29.030333370242435
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 110,
+          "resolvedCount": 110,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4689098755153832,
+          "profitFactor": 0.31630515941257165,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 54.3177468506834,
+          "totalNetR": -51.58008630669215
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 83,
+          "resolvedCount": 83,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2093716417556697,
+          "profitFactor": 0.6920037835599894,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 22.219654414102422,
+          "totalNetR": -17.377846265720585
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 7,
+          "resolvedCount": 7,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.9201648676059684,
+          "profitFactor": 0.03570459607301661,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.122185718513815,
+          "totalNetR": -6.441154073241779
+        }
+      },
+      "rejectionCounts": {
+        "legacy_gate_rejected": 1911,
+        "adaptive_volatility_shock": 1203,
+        "mixed_market_no_clear_strategy_requires_a_plus": 807,
+        "adaptive_range_unsuitable_for_continuation": 352,
+        "LOWER_RANK": 1356,
+        "mixed_market_expected_value_too_low": 12,
+        "adaptive_transition_without_trend": 356
+      }
+    },
+    {
+      "id": "calibration-wide-score0-control",
+      "adaptive": false,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 370,
+        "resolvedCount": 370,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.19054313478549798,
+        "profitFactor": 0.6871698137664459,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 82.24495277165906,
+        "totalNetR": -70.50095987063425
+      },
+      "cycles": 27536,
+      "noTrades": 23083,
+      "overlapBlocked": 4083,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 93,
+            "resolvedCount": 93,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.07462918556507414,
+            "profitFactor": 0.8765823497166684,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 19.65684454107236,
+            "totalNetR": -6.940514257551895
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 102,
+            "resolvedCount": 102,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.3407427953758422,
+            "profitFactor": 0.49326315083301275,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 35.23077719885917,
+            "totalNetR": -34.7557651283359
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 97,
+            "resolvedCount": 97,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.35095730734134056,
+            "profitFactor": 0.44182420957191776,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 36.27212771498169,
+            "totalNetR": -34.04285881211003
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 78,
+            "resolvedCount": 78,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.06715613240209652,
+            "profitFactor": 1.1324375606432069,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 7.786890333821641,
+            "totalNetR": 5.238178327363528
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 69,
+          "resolvedCount": 69,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.28434397712368925,
+          "profitFactor": 0.5850781930638677,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 25.249937221101305,
+          "totalNetR": -19.61973442153456
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 85,
+          "resolvedCount": 85,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3609013928782387,
+          "profitFactor": 0.48451547960332475,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 32.909167618109066,
+          "totalNetR": -30.676618394650287
+        },
+        "SHOCK": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 54,
+          "resolvedCount": 54,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.211777027369538,
+          "profitFactor": 1.623492617643128,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.1845457982346,
+          "totalNetR": 11.435959477955052
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 110,
+          "resolvedCount": 110,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2046980302020614,
+          "profitFactor": 0.6665520926497678,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 34.78206196859197,
+          "totalNetR": -22.516783322226754
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 15,
+          "resolvedCount": 15,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.44330307251337764,
+          "profitFactor": 0.36164485482519054,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.79869450657861,
+          "totalNetR": -6.6495460877006645
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 37,
+          "resolvedCount": 37,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.06687127358046228,
+          "profitFactor": 0.8889665731237688,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.603276177866605,
+          "totalNetR": -2.4742371224771045
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 137,
+          "resolvedCount": 137,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.12572356470461993,
+          "profitFactor": 0.7940084437089234,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 42.94892898403891,
+          "totalNetR": -17.22412836453293
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 119,
+          "resolvedCount": 119,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3447220180122557,
+          "profitFactor": 0.45020833116739045,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 41.656624533581855,
+          "totalNetR": -41.02192014345843
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 103,
+          "resolvedCount": 103,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.04233309212558345,
+          "profitFactor": 0.9262265370747583,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 21.560856231292526,
+          "totalNetR": -4.360308488935095
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 11,
+          "resolvedCount": 11,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.7176911703370771,
+          "profitFactor": 0.017064075780438608,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 8.169723903345337,
+          "totalNetR": -7.894602873707848
+        }
+      },
+      "rejectionCounts": {
+        "mixed_market_no_clear_strategy_requires_a_plus": 4067,
+        "LOWER_RANK": 3018,
+        "mixed_choppy_market_requires_a_plus": 16,
+        "mixed_market_expected_value_too_low": 16
+      }
+    },
+    {
+      "id": "calibration-wide-score0-adaptive",
+      "adaptive": true,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 373,
+        "resolvedCount": 373,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.22187659448755742,
+        "profitFactor": 0.6553177860671741,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 98.63285208687573,
+        "totalNetR": -82.75996974385892
+      },
+      "cycles": 27536,
+      "noTrades": 24109,
+      "overlapBlocked": 3054,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 93,
+            "resolvedCount": 93,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.13428954155968303,
+            "profitFactor": 0.7906651892560496,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 18.07876867909085,
+            "totalNetR": -12.488927365050522
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 102,
+            "resolvedCount": 102,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.4817351409761776,
+            "profitFactor": 0.3757627301234413,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 49.23947887084901,
+            "totalNetR": -49.136984379570116
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 90,
+            "resolvedCount": 90,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.30628505595598954,
+            "profitFactor": 0.5224796830832085,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 33.79168895657957,
+            "totalNetR": -27.565655036039058
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 88,
+            "resolvedCount": 88,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.07308632996364452,
+            "profitFactor": 1.1461621136227325,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 13.659834852198149,
+            "totalNetR": 6.431597036800717
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 56,
+          "resolvedCount": 56,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.12851235257658997,
+          "profitFactor": 1.2221526987296085,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.196635172840784,
+          "totalNetR": 7.196691744289039
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 119,
+          "resolvedCount": 119,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.33399015652486563,
+          "profitFactor": 0.5088757168226613,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 45.508554437769284,
+          "totalNetR": -39.74482862645901
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 108,
+          "resolvedCount": 108,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.23766221305453308,
+          "profitFactor": 0.6041159788014515,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 41.55059474118543,
+          "totalNetR": -25.667519009889574
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 34,
+          "resolvedCount": 34,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3538220550181382,
+          "profitFactor": 0.485357745707948,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 12.222634999153756,
+          "totalNetR": -12.029949870616699
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 56,
+          "resolvedCount": 56,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.22347078537826273,
+          "profitFactor": 0.6755613143504475,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 18.91071809983596,
+          "totalNetR": -12.514363981182713
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 167,
+          "resolvedCount": 167,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.08816203518792833,
+          "profitFactor": 0.854977853675562,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 45.80918791379847,
+          "totalNetR": -14.723059876384031
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 113,
+          "resolvedCount": 113,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.34786875400302525,
+          "profitFactor": 0.41759311449462566,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 39.30916920234184,
+          "totalNetR": -39.309169202341856
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 84,
+          "resolvedCount": 84,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.22919324062428753,
+          "profitFactor": 0.6875269052006704,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 30.20764371440964,
+          "totalNetR": -19.252232212440152
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 9,
+          "resolvedCount": 9,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.0528342725214375,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.747055920600989,
+          "totalNetR": -9.475508452692937
+        }
+      },
+      "rejectionCounts": {
+        "legacy_gate_rejected": 3645,
+        "adaptive_volatility_shock": 1676,
+        "adaptive_range_unsuitable_for_continuation": 908,
+        "mixed_market_no_clear_strategy_requires_a_plus": 2643,
+        "LOWER_RANK": 1849,
+        "adaptive_transition_without_trend": 1061,
+        "mixed_market_expected_value_too_low": 6
+      }
+    },
+    {
+      "id": "calibration-wide-score6-control",
+      "adaptive": false,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 386,
+        "resolvedCount": 386,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2767288807454707,
+        "profitFactor": 0.5720972993750428,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 116.89034822773269,
+        "totalNetR": -106.81734796775169
+      },
+      "cycles": 27536,
+      "noTrades": 23449,
+      "overlapBlocked": 3701,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 88,
+            "resolvedCount": 88,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.05839180514333859,
+            "profitFactor": 0.9036163776686442,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 17.90017801809927,
+            "totalNetR": -5.138478852613796
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 102,
+            "resolvedCount": 102,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.38099533269291985,
+            "profitFactor": 0.4437762089248567,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 39.44285085639491,
+            "totalNetR": -38.86152393467783
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 115,
+            "resolvedCount": 115,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.5394878714404403,
+            "profitFactor": 0.2618409632678251,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 63.0362190496088,
+            "totalNetR": -62.04110521565063
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 81,
+            "resolvedCount": 81,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.009583209442091798,
+            "profitFactor": 0.9816933520497398,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 13.567727285724763,
+            "totalNetR": -0.7762399648094356
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 72,
+          "resolvedCount": 72,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3926975272450999,
+          "profitFactor": 0.47695267818833526,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 31.489473347322697,
+          "totalNetR": -28.27422196164719
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 86,
+          "resolvedCount": 86,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5143454466368332,
+          "profitFactor": 0.28925703561967586,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 44.93557306036769,
+          "totalNetR": -44.23370841076766
+        },
+        "SHOCK": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 54,
+          "resolvedCount": 54,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.09194294312324901,
+          "profitFactor": 1.2226110884995391,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.26872276389613,
+          "totalNetR": 4.964918928655447
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 118,
+          "resolvedCount": 118,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2894731640788023,
+          "profitFactor": 0.558762413103212,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 42.07827958670381,
+          "totalNetR": -34.15783336129867
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 17,
+          "resolvedCount": 17,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5055900529747588,
+          "profitFactor": 0.3047313486423762,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 8.744179319448847,
+          "totalNetR": -8.5950309005709
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 39,
+          "resolvedCount": 39,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.08919301891992967,
+          "profitFactor": 1.1636305563977185,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.241760312176405,
+          "totalNetR": 3.478527737877257
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 152,
+          "resolvedCount": 152,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.30123024853857283,
+          "profitFactor": 0.5721429247308386,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 58.360591888480286,
+          "totalNetR": -45.78699777786307
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 136,
+          "resolvedCount": 136,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.38183291681074905,
+          "profitFactor": 0.40091896639129204,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 53.01468920184086,
+          "totalNetR": -51.92927668626187
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 91,
+          "resolvedCount": 91,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.05577755174901446,
+          "profitFactor": 0.9007539169796643,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 25.924211669459808,
+          "totalNetR": -5.075757209160316
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 7,
+          "resolvedCount": 7,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5750451849237742,
+          "profitFactor": 0.15974410777871503,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.97244441105656,
+          "totalNetR": -4.025316294466419
+        }
+      },
+      "rejectionCounts": {
+        "mixed_market_no_clear_strategy_requires_a_plus": 1065,
+        "LOWER_RANK": 2092,
+        "mixed_market_expected_value_too_low": 10,
+        "mixed_choppy_market_requires_a_plus": 5
+      }
+    },
+    {
+      "id": "calibration-wide-score6-adaptive",
+      "adaptive": true,
+      "metrics": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 380,
+        "resolvedCount": 380,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.23307838708832584,
+        "profitFactor": 0.6377306167326932,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 105.52140701438279,
+        "totalNetR": -88.56978709356382
+      },
+      "cycles": 27536,
+      "noTrades": 24409,
+      "overlapBlocked": 2747,
+      "periods": [
+        {
+          "month": "2023-01",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 94,
+            "resolvedCount": 94,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.17649692106050358,
+            "profitFactor": 0.7379006609310647,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 21.505835812474814,
+            "totalNetR": -16.590710579687336
+          }
+        },
+        {
+          "month": "2023-06",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 101,
+            "resolvedCount": 101,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.4261426028910885,
+            "profitFactor": 0.4163209255794282,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 43.249212234472665,
+            "totalNetR": -43.04040289199994
+          }
+        },
+        {
+          "month": "2023-09",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 96,
+            "resolvedCount": 96,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.3901720862595648,
+            "profitFactor": 0.4132100031979503,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 42.675042157019874,
+            "totalNetR": -37.45652028091822
+          }
+        },
+        {
+          "month": "2023-12",
+          "metrics": {
+            "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+            "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+            "tradeCount": 89,
+            "resolvedCount": 89,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.09570614223642371,
+            "profitFactor": 1.1953012001221968,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 12.70752501266131,
+            "totalNetR": 8.51784665904171
+          }
+        }
+      ],
+      "byRegime": {
+        "RANGE": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 56,
+          "resolvedCount": 56,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.11941462457718825,
+          "profitFactor": 1.2082251648601716,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.196635172840786,
+          "totalNetR": 6.6872189763225425
+        },
+        "COMPRESSION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 116,
+          "resolvedCount": 116,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3790495495931802,
+          "profitFactor": 0.4375653809389233,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 45.82687792123938,
+          "totalNetR": -43.96974775280891
+        },
+        "TRANSITION": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 123,
+          "resolvedCount": 123,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.21635973492521496,
+          "profitFactor": 0.6547970202697503,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 44.79659620912202,
+          "totalNetR": -26.61224739580144
+        },
+        "TREND_DOWN": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 35,
+          "resolvedCount": 35,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.34605781722798024,
+          "profitFactor": 0.49018435465593446,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 12.11202360297931,
+          "totalNetR": -12.112023602979308
+        },
+        "TREND_UP": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 50,
+          "resolvedCount": 50,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.25125974636593296,
+          "profitFactor": 0.6232296607227578,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 18.21590967126422,
+          "totalNetR": -12.562987318296647
+        }
+      },
+      "byStrategy": {
+        "crypto.compression-breakout": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 178,
+          "resolvedCount": 178,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.0976574531483101,
+          "profitFactor": 0.8438588976324789,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 46.12883169590388,
+          "totalNetR": -17.3830266603992
+        },
+        "crypto.micro-scalper": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 124,
+          "resolvedCount": 124,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.385170590937335,
+          "profitFactor": 0.3735804670811348,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 47.76115327622954,
+          "totalNetR": -47.76115327622954
+        },
+        "crypto.swing-continuation": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 73,
+          "resolvedCount": 73,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2623775570067863,
+          "profitFactor": 0.6361426518052633,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.22171439833923,
+          "totalNetR": -19.1535616614954
+        },
+        "crypto.quick-scalp": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 5,
+          "resolvedCount": 5,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.8544090990879267,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.543592963347688,
+          "totalNetR": -4.272045495439634
+        }
+      },
+      "rejectionCounts": {
+        "legacy_gate_rejected": 1925,
+        "adaptive_volatility_shock": 1206,
+        "mixed_market_no_clear_strategy_requires_a_plus": 824,
+        "LOWER_RANK": 1375,
+        "adaptive_range_unsuitable_for_continuation": 360,
+        "adaptive_transition_without_trend": 359,
+        "mixed_market_expected_value_too_low": 8
+      }
+    }
+  ],
+  "validation": {
+    "metrics": {
+      "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+      "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+      "tradeCount": 182,
+      "resolvedCount": 182,
+      "openCount": 0,
+      "ambiguousCount": 0,
+      "excludedCount": 0,
+      "expectancyR": -0.1468794546587123,
+      "profitFactor": 0.7559622420726247,
+      "profitFactorUndefinedReason": null,
+      "realizedMaxDrawdownR": 32.298661371364645,
+      "totalNetR": -26.732060747885637
+    },
+    "cycles": 13288,
+    "noTrades": 11017,
+    "overlapBlocked": 2089,
+    "periods": [
+      {
+        "month": "2024-02",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 90,
+          "resolvedCount": 90,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.08478969491359502,
+          "profitFactor": 0.8572329177588947,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 19.912193780207676,
+          "totalNetR": -7.631072542223552
+        }
+      },
+      {
+        "month": "2024-04",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 92,
+          "resolvedCount": 92,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.20761943701806618,
+          "profitFactor": 0.6594550084231052,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 31.648967687551654,
+          "totalNetR": -19.100988205662087
+        }
+      }
+    ],
+    "byRegime": {
+      "TRANSITION": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 54,
+        "resolvedCount": 54,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.03877085881778102,
+        "profitFactor": 0.9292854444464921,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.968237480502484,
+        "totalNetR": -2.093626376160175
+      },
+      "COMPRESSION": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 42,
+        "resolvedCount": 42,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.06650799216419892,
+        "profitFactor": 0.8984606558289421,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.311093546297478,
+        "totalNetR": -2.7933356708963544
+      },
+      "RANGE": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 33,
+        "resolvedCount": 33,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.5080043987358766,
+        "profitFactor": 0.23775781570325122,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 18.642748090725767,
+        "totalNetR": -16.764145158283927
+      },
+      "TREND_DOWN": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 22,
+        "resolvedCount": 22,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.22248416884905514,
+        "profitFactor": 0.6041600043666577,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 5.987098955388222,
+        "totalNetR": -4.894651714679213
+      },
+      "TREND_UP": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 31,
+        "resolvedCount": 31,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.006009736382773178,
+        "profitFactor": 0.9896875031217991,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.432016734019161,
+        "totalNetR": -0.1863018278659685
+      }
+    },
+    "byStrategy": {
+      "crypto.quick-scalp": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 6,
+        "resolvedCount": 6,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.009526954647212899,
+        "profitFactor": 1.095013338930867,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.1479015141472155,
+        "totalNetR": 0.05716172788327739
+      },
+      "crypto.micro-scalper": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 38,
+        "resolvedCount": 38,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.1281256761122637,
+        "profitFactor": 0.7350797822397264,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 7.305812554836898,
+        "totalNetR": -4.86877569226602
+      },
+      "crypto.compression-breakout": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 82,
+        "resolvedCount": 82,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.21863372956898933,
+        "profitFactor": 0.6526026056136524,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 24.612607455543824,
+        "totalNetR": -17.927965824657125
+      },
+      "crypto.swing-continuation": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 56,
+        "resolvedCount": 56,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.07129430283653145,
+        "profitFactor": 0.8975085400698406,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 19.065398672266703,
+        "totalNetR": -3.9924809588457606
+      }
+    },
+    "rejectionCounts": {
+      "LOWER_RANK": 1443,
+      "legacy_gate_rejected": 1590,
+      "adaptive_range_unsuitable_for_continuation": 462,
+      "mixed_market_no_clear_strategy_requires_a_plus": 1532,
+      "adaptive_transition_without_trend": 742,
+      "adaptive_volatility_shock": 386,
+      "mixed_market_expected_value_too_low": 8,
+      "mixed_choppy_market_requires_a_plus": 4
+    }
+  },
+  "holdout": {
+    "metrics": {
+      "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+      "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+      "tradeCount": 270,
+      "resolvedCount": 270,
+      "openCount": 0,
+      "ambiguousCount": 0,
+      "excludedCount": 0,
+      "expectancyR": -0.2719329889256985,
+      "profitFactor": 0.5564014427026204,
+      "profitFactorUndefinedReason": null,
+      "realizedMaxDrawdownR": 78.58237992364674,
+      "totalNetR": -73.4219070099386
+    },
+    "cycles": 20052,
+    "noTrades": 16465,
+    "overlapBlocked": 3315,
+    "periods": [
+      {
+        "month": "2025-08",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 97,
+          "resolvedCount": 97,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2393789843177893,
+          "profitFactor": 0.5748194046025109,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 27.139645601614063,
+          "totalNetR": -23.219761478825564
+        }
+      },
+      {
+        "month": "2025-11",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 81,
+          "resolvedCount": 81,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3175992603266259,
+          "profitFactor": 0.49485782854359406,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.305840523572193,
+          "totalNetR": -25.725540086456697
+        }
+      },
+      {
+        "month": "2026-02",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 92,
+          "resolvedCount": 92,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2660500591810469,
+          "profitFactor": 0.5918896066762275,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 34.145005705140754,
+          "totalNetR": -24.476605444656315
+        }
+      }
+    ],
+    "byRegime": {
+      "COMPRESSION": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 64,
+        "resolvedCount": 64,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3627380347471289,
+        "profitFactor": 0.4751919643657791,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 24.457285451128406,
+        "totalNetR": -23.21523422381625
+      },
+      "TRANSITION": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 97,
+        "resolvedCount": 97,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.115356284501331,
+        "profitFactor": 0.7591996128716283,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 16.20082267213965,
+        "totalNetR": -11.189559596629106
+      },
+      "RANGE": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 35,
+        "resolvedCount": 35,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.23990260200820213,
+        "profitFactor": 0.5813339994468962,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 10.375011376156694,
+        "totalNetR": -8.396591070287075
+      },
+      "TREND_DOWN": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 38,
+        "resolvedCount": 38,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.44059037101965903,
+        "profitFactor": 0.40551029277141315,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 16.74243409874704,
+        "totalNetR": -16.742434098747044
+      },
+      "TREND_UP": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 36,
+        "resolvedCount": 36,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3855024450127529,
+        "profitFactor": 0.47811352812353963,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 21.482030621004906,
+        "totalNetR": -13.878088020459105
+      }
+    },
+    "byStrategy": {
+      "crypto.compression-breakout": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 123,
+        "resolvedCount": 123,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.24230037029648271,
+        "profitFactor": 0.603693602904135,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 31.537179365295703,
+        "totalNetR": -29.802945546467374
+      },
+      "crypto.micro-scalper": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 60,
+        "resolvedCount": 60,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.21728986483341073,
+        "profitFactor": 0.5354452689642881,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 17.364933982353335,
+        "totalNetR": -13.037391890004644
+      },
+      "crypto.quick-scalp": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 7,
+        "resolvedCount": 7,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2613491308934119,
+        "profitFactor": 0.11083171490894181,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 2.0574776978989227,
+        "totalNetR": -1.8294439162538834
+      },
+      "crypto.swing-continuation": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 80,
+        "resolvedCount": 80,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.35940157071515844,
+        "profitFactor": 0.522316735826794,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 37.25471744117687,
+        "totalNetR": -28.752125657212677
+      }
+    },
+    "rejectionCounts": {
+      "mixed_market_no_clear_strategy_requires_a_plus": 2268,
+      "LOWER_RANK": 2248,
+      "legacy_gate_rejected": 2461,
+      "adaptive_transition_without_trend": 1189,
+      "adaptive_range_unsuitable_for_continuation": 746,
+      "adaptive_volatility_shock": 526,
+      "mixed_market_expected_value_too_low": 6
+    }
+  },
+  "stressedHoldout": {
+    "metrics": {
+      "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+      "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+      "tradeCount": 270,
+      "resolvedCount": 270,
+      "openCount": 0,
+      "ambiguousCount": 0,
+      "excludedCount": 0,
+      "expectancyR": -0.44972762346974915,
+      "profitFactor": 0.39711449170606833,
+      "profitFactorUndefinedReason": null,
+      "realizedMaxDrawdownR": 122.04242398184591,
+      "totalNetR": -121.42645833683227
+    },
+    "cycles": 20052,
+    "noTrades": 16465,
+    "overlapBlocked": 3315,
+    "periods": [
+      {
+        "month": "2025-08",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 97,
+          "resolvedCount": 97,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4781315205269049,
+          "profitFactor": 0.3525631684904103,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 46.81221019659209,
+          "totalNetR": -46.37875749110977
+        }
+      },
+      {
+        "month": "2025-11",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 81,
+          "resolvedCount": 81,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.47070550002924827,
+          "profitFactor": 0.37364497212163517,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 38.1271455023691,
+          "totalNetR": -38.12714550236911
+        }
+      },
+      {
+        "month": "2026-02",
+        "metrics": {
+          "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+          "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+          "tradeCount": 92,
+          "resolvedCount": 92,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.40131038416688425,
+          "profitFactor": 0.46416578853187895,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 44.057212945741256,
+          "totalNetR": -36.92055534335335
+        }
+      }
+    ],
+    "byRegime": {
+      "COMPRESSION": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 64,
+        "resolvedCount": 64,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.5956292526313847,
+        "profitFactor": 0.32282925201438645,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 38.67311085612753,
+        "totalNetR": -38.12027216840862
+      },
+      "TRANSITION": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 97,
+        "resolvedCount": 97,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3055996325395635,
+        "profitFactor": 0.5005103995700292,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 33.37614364195864,
+        "totalNetR": -29.64316435633766
+      },
+      "RANGE": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 35,
+        "resolvedCount": 35,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3865993860084291,
+        "profitFactor": 0.4346523909526721,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 15.042043447628831,
+        "totalNetR": -13.530978510295018
+      },
+      "TREND_DOWN": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 38,
+        "resolvedCount": 38,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.5625118145692533,
+        "profitFactor": 0.32178775986604885,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 21.375448953631626,
+        "totalNetR": -21.375448953631626
+      },
+      "TREND_UP": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 36,
+        "resolvedCount": 36,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.5210165096710925,
+        "profitFactor": 0.38132194769878813,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 25.48675298210464,
+        "totalNetR": -18.75659434815933
+      }
+    },
+    "byStrategy": {
+      "crypto.compression-breakout": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 123,
+        "resolvedCount": 123,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.40091483649419113,
+        "profitFactor": 0.44861181838416464,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 50.426940136001434,
+        "totalNetR": -49.31252488878551
+      },
+      "crypto.micro-scalper": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 60,
+        "resolvedCount": 60,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.4958257168577286,
+        "profitFactor": 0.2617957175591089,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 32.834784393779174,
+        "totalNetR": -29.749543011463714
+      },
+      "crypto.quick-scalp": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 7,
+        "resolvedCount": 7,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.509028606444102,
+        "profitFactor": 0.017407959561105392,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 3.6263272024034903,
+        "totalNetR": -3.563200245108714
+      },
+      "crypto.swing-continuation": {
+        "analysisMode": "FIXED_RISK_SIGNAL_SLOTS",
+        "overlapPolicy": "ONE_ACTIVE_SIGNAL_PER_SYMBOL_ACROSS_TIMEFRAMES",
+        "tradeCount": 80,
+        "resolvedCount": 80,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.48501487739342863,
+        "profitFactor": 0.42980684783138123,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 45.76874144384283,
+        "totalNetR": -38.80119019147429
+      }
+    },
+    "rejectionCounts": {
+      "mixed_market_no_clear_strategy_requires_a_plus": 2268,
+      "LOWER_RANK": 2248,
+      "legacy_gate_rejected": 2461,
+      "adaptive_transition_without_trend": 1189,
+      "adaptive_range_unsuitable_for_continuation": 746,
+      "adaptive_volatility_shock": 526,
+      "mixed_market_expected_value_too_low": 6
+    }
+  },
+  "sources": [
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-01-15m.json",
+      "datasetHash": "4be0fe9db55c4d390769ac23234c1c9d6072fda048f2b067fff7e173d4c79088",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-01.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-01.zip.CHECKSUM",
+        "archiveSha256": "7d9c643f940a65eaae7f8618a5f997ada493076a5f91b02bdd77b559d2ab2514",
+        "datasetSha256": "4be0fe9db55c4d390769ac23234c1c9d6072fda048f2b067fff7e173d4c79088",
+        "rows": 2976,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-01.json",
+      "datasetHash": "84151f408b4bcc131d7d4b9b6c499689cbb3a2234381b111e9b356f5a40c33d3",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-01.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-01.zip.CHECKSUM",
+        "archiveSha256": "b9ac60cc3ffc1e16db96ca2314120ff7531988108ebef1733ee54234f4fedf7f",
+        "datasetSha256": "84151f408b4bcc131d7d4b9b6c499689cbb3a2234381b111e9b356f5a40c33d3",
+        "rows": 744,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-01-15m.json",
+      "datasetHash": "3dee37dfcbc397878ccdba82c806b364f4a559dd7b3a75c86762f622f1ada1a1",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-01.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-01.zip.CHECKSUM",
+        "archiveSha256": "4b94b8078f553d56986966a816ab1888b57f1c4ac4be9385aa8eb4a0f5d0b5bf",
+        "datasetSha256": "3dee37dfcbc397878ccdba82c806b364f4a559dd7b3a75c86762f622f1ada1a1",
+        "rows": 2976,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-01.json",
+      "datasetHash": "a99b55920d68c32270f742f1e01892ffff5c59d5e0461d00f65250072f3f5da0",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-01.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-01.zip.CHECKSUM",
+        "archiveSha256": "247b85e0a8806e139f263831445e1d7bb91f9f56e6ab32e1f285038cdd1ceff4",
+        "datasetSha256": "a99b55920d68c32270f742f1e01892ffff5c59d5e0461d00f65250072f3f5da0",
+        "rows": 744,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-06-15m.json",
+      "datasetHash": "e33f011c70f27b06e9b03b5c7ed72dd914d79bf2bbedc1ac8e0699b42e7489a4",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-06.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-06.zip.CHECKSUM",
+        "archiveSha256": "8fb734f8a60a161b2f17b5458ed3659017a61d2a5dd24d2d810243ce1f621032",
+        "datasetSha256": "e33f011c70f27b06e9b03b5c7ed72dd914d79bf2bbedc1ac8e0699b42e7489a4",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-06.json",
+      "datasetHash": "688708506d74ddcf837cfa836c67119055f4579959ad6025f417d64e556de680",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-06.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-06.zip.CHECKSUM",
+        "archiveSha256": "19bd435cdf58b426642c24a0df3b5fa755433f52a8c39f05dc5cfdeffa453aa0",
+        "datasetSha256": "688708506d74ddcf837cfa836c67119055f4579959ad6025f417d64e556de680",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-06-15m.json",
+      "datasetHash": "05a2d4db76fdfb7b73311d117c937cfc51b4e67717455ddd4095bd688efe5481",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-06.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-06.zip.CHECKSUM",
+        "archiveSha256": "14cf1b27bb9325e34df4dd0cb2d2b05ae63a6d5706dbf5e0cb6b8f7e92e4cbe9",
+        "datasetSha256": "05a2d4db76fdfb7b73311d117c937cfc51b4e67717455ddd4095bd688efe5481",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-06.json",
+      "datasetHash": "a2a20ede3cf9efd443eb8f563414b0769ac760c02f5af03427cb3af65a9decf0",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-06.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-06.zip.CHECKSUM",
+        "archiveSha256": "fe108dc555560ded46bb0807d0c2e0bc7722900213a96e4e86bf355f84fbcafa",
+        "datasetSha256": "a2a20ede3cf9efd443eb8f563414b0769ac760c02f5af03427cb3af65a9decf0",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-09-15m.json",
+      "datasetHash": "6e8632cbf7fffe425c75dedd6f5a1b1a7280f1f0e6a2a83e773ba9121f5fc8aa",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-09.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-09.zip.CHECKSUM",
+        "archiveSha256": "f1f628bb4b1976ba632150bf999fde302ddcfc8899ff369a5119bdd5dba1e0d5",
+        "datasetSha256": "6e8632cbf7fffe425c75dedd6f5a1b1a7280f1f0e6a2a83e773ba9121f5fc8aa",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-09.json",
+      "datasetHash": "d2545766cfb06a708ec24d71f4d0cd1e6f9c36825ee710659a39b3edbe7d6cbb",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-09.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-09.zip.CHECKSUM",
+        "archiveSha256": "7849f82af86aabcb9a79f64d0527480f22117656a68f98280fe8b840a6ee1339",
+        "datasetSha256": "d2545766cfb06a708ec24d71f4d0cd1e6f9c36825ee710659a39b3edbe7d6cbb",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-09-15m.json",
+      "datasetHash": "c8efc1ff562a524e6a002b33d0cde4c5572688bbe6a4e457645ed2b2a301ef79",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-09.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-09.zip.CHECKSUM",
+        "archiveSha256": "a4f6804bd2edb66ff385d70a029a52447e68f31d94cccc803aafe34bb537d8ce",
+        "datasetSha256": "c8efc1ff562a524e6a002b33d0cde4c5572688bbe6a4e457645ed2b2a301ef79",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-09.json",
+      "datasetHash": "ee671902db81a4d40e22b358b3a15bb08475966cb7ec2b93ee1870f8efe8dc74",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-09.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-09.zip.CHECKSUM",
+        "archiveSha256": "38883595a881aadfbfd8c256e5170c8b016e9927119250f5128abfba96aba9c5",
+        "datasetSha256": "ee671902db81a4d40e22b358b3a15bb08475966cb7ec2b93ee1870f8efe8dc74",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-12-15m.json",
+      "datasetHash": "cc2fce3a4c85f8836d80fd96164d99da1937e1fa1012d6be69b1291571213787",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-12.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2023-12.zip.CHECKSUM",
+        "archiveSha256": "f6b191e620d269d229dee0c5b9abfb6e9610bd0a8e6718d2a96e0e820a013bb0",
+        "datasetSha256": "cc2fce3a4c85f8836d80fd96164d99da1937e1fa1012d6be69b1291571213787",
+        "rows": 2976,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2023-12.json",
+      "datasetHash": "626d07cdaccc86ff980cf3148155b2eefb59b004edf477303ade8375d71e86fb",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-12.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2023-12.zip.CHECKSUM",
+        "archiveSha256": "5377bec9e6dc04027717836cc1c2a3789da4e4122d57e8395265a0414b766b7c",
+        "datasetSha256": "626d07cdaccc86ff980cf3148155b2eefb59b004edf477303ade8375d71e86fb",
+        "rows": 744,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-12-15m.json",
+      "datasetHash": "de3d19c3f6b03e72d9a2374e5eeadb41bb436a1af78925c551e5c0ee7f417b0a",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-12.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2023-12.zip.CHECKSUM",
+        "archiveSha256": "8df8f98f81eda3ffc0a3514d9b643c0701c433fb2ee2241dac4e04abe6d312c1",
+        "datasetSha256": "de3d19c3f6b03e72d9a2374e5eeadb41bb436a1af78925c551e5c0ee7f417b0a",
+        "rows": 2976,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2023-12.json",
+      "datasetHash": "a5759b2ddf288d436121bc0593999d7265df42c4186ccb52206841e5ddb42c35",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-12.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2023-12.zip.CHECKSUM",
+        "archiveSha256": "8f581fcee21156d501435fc88db1d99515e6d7432fa7ae2993de3b5f95bb0069",
+        "datasetSha256": "a5759b2ddf288d436121bc0593999d7265df42c4186ccb52206841e5ddb42c35",
+        "rows": 744,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2024-02-15m.json",
+      "datasetHash": "5564bed85e4987995429671e4900d03b23bae28c81ae75edf21d2a9b0aeb1e80",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2024-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2024-02.zip.CHECKSUM",
+        "archiveSha256": "f6a9399826f593aa23746d920e595e9705addd1154d4ec53fcf7a2564755e67b",
+        "datasetSha256": "5564bed85e4987995429671e4900d03b23bae28c81ae75edf21d2a9b0aeb1e80",
+        "rows": 2784,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2024-02.json",
+      "datasetHash": "6996a3134b161dc9af2a5161c5edce61b6de2599287267ba6ca0856eddad65ad",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2024-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2024-02.zip.CHECKSUM",
+        "archiveSha256": "655ff5ac0fc570956756944c7afef4895c9bd149342f1e437de97292cbd1fe22",
+        "datasetSha256": "6996a3134b161dc9af2a5161c5edce61b6de2599287267ba6ca0856eddad65ad",
+        "rows": 696,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2024-02-15m.json",
+      "datasetHash": "75eb79169be1a7d2892f43f2b25c93b83a6c08beb9e9c2178c3d6517bdf866fe",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2024-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2024-02.zip.CHECKSUM",
+        "archiveSha256": "ace924d4afcd55ee43df9ed33423196099ffa83df6043c1310a110df0b3752d5",
+        "datasetSha256": "75eb79169be1a7d2892f43f2b25c93b83a6c08beb9e9c2178c3d6517bdf866fe",
+        "rows": 2784,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2024-02.json",
+      "datasetHash": "018d9a86126690f7ec9e039f3ce1b7d5fb2984e1ec28a720b7b7a3e3ced66cbe",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2024-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2024-02.zip.CHECKSUM",
+        "archiveSha256": "bde9a1b0824b212ef6cea97065543fda0fc57c33479709d34e5db995fc79af01",
+        "datasetSha256": "018d9a86126690f7ec9e039f3ce1b7d5fb2984e1ec28a720b7b7a3e3ced66cbe",
+        "rows": 696,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2024-04-15m.json",
+      "datasetHash": "da176d74c6a0cbc2d39dddcf6d7b499f2f8a0fda23036e68113d162e0a56c957",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2024-04.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2024-04.zip.CHECKSUM",
+        "archiveSha256": "e1e52aa89d7004e4b93af4cfa5d8f03826881604bf2a990fd2f6979ed754c7ff",
+        "datasetSha256": "da176d74c6a0cbc2d39dddcf6d7b499f2f8a0fda23036e68113d162e0a56c957",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2024-04.json",
+      "datasetHash": "98d3280ef49bcc3782f5aa113db07aa89d9fe120a5ed680cf527ad8cba070978",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2024-04.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2024-04.zip.CHECKSUM",
+        "archiveSha256": "4bf3ca3574e0075c1b79f5b22c4253e26f6260f3621943205e3a8016c4c12318",
+        "datasetSha256": "98d3280ef49bcc3782f5aa113db07aa89d9fe120a5ed680cf527ad8cba070978",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2024-04-15m.json",
+      "datasetHash": "86f3bf1f90a1566bab9bdca76e1a4e5dc02148cbebe098fff984b72076ac48b4",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2024-04.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2024-04.zip.CHECKSUM",
+        "archiveSha256": "e9c10a021e622dd6728b6114dab2c3549e3d52d7d75ca9aea4530cf8e1313413",
+        "datasetSha256": "86f3bf1f90a1566bab9bdca76e1a4e5dc02148cbebe098fff984b72076ac48b4",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2024-04.json",
+      "datasetHash": "e96b50f506522424e3e161141fab7cd6e32a6f39af742256a856efb3c500b5b4",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2024-04.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2024-04.zip.CHECKSUM",
+        "archiveSha256": "290b594fa46ef95ab9c1486e2640ce2d1894eecd4d71b79bcd30d6632ca75b9f",
+        "datasetSha256": "e96b50f506522424e3e161141fab7cd6e32a6f39af742256a856efb3c500b5b4",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2025-08-15m.json",
+      "datasetHash": "caf9e90dc7f91dd362a1cd2071cf78db326cfac72c404c003f65b36ab0bf6f6c",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-08.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-08.zip.CHECKSUM",
+        "archiveSha256": "b8965932ae4008e4f1f8ec1ed344f11fbd1f743b44679dacfab665f05414aced",
+        "datasetSha256": "caf9e90dc7f91dd362a1cd2071cf78db326cfac72c404c003f65b36ab0bf6f6c",
+        "rows": 2976,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2025-08.json",
+      "datasetHash": "f3d6f9e74180a3e5cc2dbecc91a86254bb187009dcab15f836a34cd131a74e08",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-08.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-08.zip.CHECKSUM",
+        "archiveSha256": "a240d3f766cd5c3db4e0702cf660ae54e327ec67aba169dda55abc90cae055f2",
+        "datasetSha256": "f3d6f9e74180a3e5cc2dbecc91a86254bb187009dcab15f836a34cd131a74e08",
+        "rows": 744,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2025-08-15m.json",
+      "datasetHash": "3ceeaccbb7c2f68fc5b43ac908592cf260299c0a6627b32c62ac9541cd4e977e",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-08.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-08.zip.CHECKSUM",
+        "archiveSha256": "22be96c56c387830ba231b125faef3d5dca790d5bba400be1c7943e76828859f",
+        "datasetSha256": "3ceeaccbb7c2f68fc5b43ac908592cf260299c0a6627b32c62ac9541cd4e977e",
+        "rows": 2976,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2025-08.json",
+      "datasetHash": "432866245058429cdfdaecd04824ce05490b564e5fe63c65c6056dc648088af0",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-08.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-08.zip.CHECKSUM",
+        "archiveSha256": "51e3ca163e71691ebb43b55d32698fc5c25506ee2e663a195d8e5863194908c2",
+        "datasetSha256": "432866245058429cdfdaecd04824ce05490b564e5fe63c65c6056dc648088af0",
+        "rows": 744,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2025-11-15m.json",
+      "datasetHash": "b918c5a5335ac61a77ed67ee17521894e1efacff0a2674f89e2f4bde9eca831d",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-11.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-11.zip.CHECKSUM",
+        "archiveSha256": "66c714d54807c313814d0aef6ee2ef21e07e311605b47c23ae32978c721a4b23",
+        "datasetSha256": "b918c5a5335ac61a77ed67ee17521894e1efacff0a2674f89e2f4bde9eca831d",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2025-11.json",
+      "datasetHash": "6121b92b920272204a427fe4e9b75d0dcfbef578fe48f1d30d07efbd13718994",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-11.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-11.zip.CHECKSUM",
+        "archiveSha256": "75c4069b8ff93aa5e4064e885077426fd60f1cf6239a728b2d4ca543c0210d5a",
+        "datasetSha256": "6121b92b920272204a427fe4e9b75d0dcfbef578fe48f1d30d07efbd13718994",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2025-11-15m.json",
+      "datasetHash": "e5f75cf0bc7e646264e410b09fa8b0ead003a85ff6692484cceb86965c56caeb",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-11.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-11.zip.CHECKSUM",
+        "archiveSha256": "c990b42346cfa801272495c3eab589298df0f53df7bf503b64c6407c8148e87e",
+        "datasetSha256": "e5f75cf0bc7e646264e410b09fa8b0ead003a85ff6692484cceb86965c56caeb",
+        "rows": 2880,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2025-11.json",
+      "datasetHash": "48c9ab075b1135a544f35d06ae0b38bc9ac5e565bc63ec1c88a374577021285f",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-11.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-11.zip.CHECKSUM",
+        "archiveSha256": "4b5622c5a4021b1a0bbd2d1fa754bb9d13f16b996d79b153b423bce0ec154f26",
+        "datasetSha256": "48c9ab075b1135a544f35d06ae0b38bc9ac5e565bc63ec1c88a374577021285f",
+        "rows": 720,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2026-02-15m.json",
+      "datasetHash": "781624f232479e89bca78aada247c5892b8eacd36f01de29837913aaf6489854",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-02.zip.CHECKSUM",
+        "archiveSha256": "983c066f0cf0171466e89d7596433f5ac717ea8c805fe5b650a83b3176cd92c1",
+        "datasetSha256": "781624f232479e89bca78aada247c5892b8eacd36f01de29837913aaf6489854",
+        "rows": 2688,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/BTCUSDT-2026-02.json",
+      "datasetHash": "1b5433496bf858836ed924261f2323a24352310422755dde81550fcf180100db",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-02.zip.CHECKSUM",
+        "archiveSha256": "886fca9764139a1d71d97ca28e0a2cb30fe7d6f44df9be2539452c02e3c4e775",
+        "datasetSha256": "1b5433496bf858836ed924261f2323a24352310422755dde81550fcf180100db",
+        "rows": 672,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2026-02-15m.json",
+      "datasetHash": "5a91ccc4578b6468d5c29dc383e3ed2e1cc8f64f5ce46446ad6b2229bb33d06c",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-02.zip.CHECKSUM",
+        "archiveSha256": "71de116aeb4643bad5eba4537673f1b1aea22f33064780bf6fa636429f63415a",
+        "datasetSha256": "5a91ccc4578b6468d5c29dc383e3ed2e1cc8f64f5ce46446ad6b2229bb33d06c",
+        "rows": 2688,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    },
+    {
+      "file": ".tmp/calibration/ETHUSDT-2026-02.json",
+      "datasetHash": "b96e10a3522d76bb44cd25bac777d5b34947c7a002204bdd3f325f1ccca02127",
+      "manifest": {
+        "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-02.zip",
+        "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-02.zip.CHECKSUM",
+        "archiveSha256": "97a6c569361290917a525d54d5f964af1642dc2d281e162834b4685157016540",
+        "datasetSha256": "b96e10a3522d76bb44cd25bac777d5b34947c7a002204bdd3f325f1ccca02127",
+        "rows": 672,
+        "instrumentType": "USDT_PERPETUAL",
+        "warning": "Spot bars do not certify futures execution or funding costs."
+      }
+    }
+  ],
+  "limitations": [
+    "Retrospective sampled months are not prospective certification or a complete contiguous multi-year portfolio.",
+    "Fixed 1R outcome accounting, not compounded account sizing, margin, cross-asset correlation or drawdown locks.",
+    "No parameter retuning after validation or holdout; controls are never eligible for selection.",
+    "Hourly fills resolved with actual 15m OHLC; same-bar protection ambiguities conservatively stop first.",
+    "Funding is an explicit reserve, not reconstructed realized funding history. Estimated execution costs need provider validation.",
+    "5m MicroScalper higher-timeframe wiring is tested separately, not performance-certified by this 15m/1h study.",
+    "Forex strategies need real MT5 broker history; no Forex performance inferred from crypto."
+  ],
+  "promoted": false,
+  "effectiveMarketWindowBars": 110,
+  "implementationNotes": [
+    "The predeclared protocol prose says 200 warmup bars. Before development began the implementation used 110 closed bars to match the production window; the original protocol and hash are retained transparently. No selection thresholds or time splits changed after evaluation."
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "protocolHash": "1c39d513e5293a7324a556a053eb460b83f85a4d6151b134c5de94ea5123d0bf",
+  "id": "calibration-wide-score0-adaptive",
+  "configurationHash": "b5bb6fef5d9ee492ee5fa12efcaafa6221ddd4d96a37ecf57cdb7e669a4476f6",
+  "config": {
+    "version": "calibration-wide-score0-adaptive",
+    "minSignalGrade": "A",
+    "strategies": [
+      {
+        "id": "crypto.compression-breakout",
+        "version": "1.0.0",
+        "enabled": true,
+        "minScore": 72,
+        "minRiskReward": 1.3,
+        "maxBarsInTrade": 48,
+        "minStopDistancePct": 0.25,
+        "minTp1DistancePct": 0.35,
+        "minTp2DistancePct": 0.6,
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "timeframes": [
+          "15m",
+          "1h"
+        ],
+        "parameters": {
+          "tp1_r": 2.4,
+          "tp2_r": 6,
+          "atr_len": 14,
+          "rsi_len": 14,
+          "ema_fast": 20,
+          "ema_slow": 50,
+          "box_lookback": 36,
+          "min_box_bars": 8,
+          "max_box_atr_range": 8,
+          "min_atr_expansion": 0.95,
+          "breakout_buffer_atr": 0.05,
+          "box_bar_tolerance": 0.002,
+          "atr_expansion_lookback": 48,
+          "stop_atr_mult": 2.4,
+          "momentum_lookback": 3,
+          "max_bars_in_trade": 48,
+          "crypto_behavior_tuning": 1
+        }
+      },
+      {
+        "id": "crypto.swing-continuation",
+        "version": "1.0.0",
+        "enabled": true,
+        "minScore": 78,
+        "minRiskReward": 1.5,
+        "maxBarsInTrade": 96,
+        "minStopDistancePct": 0.45,
+        "minTp1DistancePct": 0.7,
+        "minTp2DistancePct": 1.2,
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "timeframes": [
+          "15m",
+          "1h"
+        ],
+        "parameters": {
+          "tp1_r": 2.4,
+          "tp2_r": 6,
+          "atr_len": 14,
+          "rsi_len": 14,
+          "ema_fast": 20,
+          "ema_slow": 50,
+          "max_atr_pct": 4,
+          "min_atr_pct": 0.15,
+          "rsi_buy_min": 50,
+          "rsi_sell_max": 50,
+          "pullback_bars": 8,
+          "pullback_ema_pct": 0.012,
+          "ema_trend_pct": 0.002,
+          "stop_atr_mult": 2.4,
+          "momentum_lookback": 3,
+          "max_bars_in_trade": 96,
+          "crypto_behavior_tuning": 1,
+          "min_confidence_balanced": 78,
+          "min_confidence_aggressive": 72,
+          "min_confidence_conservative": 80
+        }
+      },
+      {
+        "id": "crypto.micro-scalper",
+        "version": "1.0.0",
+        "enabled": true,
+        "minScore": 75,
+        "minRiskReward": 1.2,
+        "maxBarsInTrade": 24,
+        "minStopDistancePct": 0.15,
+        "minTp1DistancePct": 0.2,
+        "minTp2DistancePct": 0.3,
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "parameters": {
+          "stop_atr_mult": 2.4,
+          "tp1_r": 2.4,
+          "tp2_r": 6
+        }
+      },
+      {
+        "id": "crypto.quick-scalp",
+        "version": "1.0.0",
+        "enabled": true,
+        "minScore": 82,
+        "minRiskReward": 1.15,
+        "maxBarsInTrade": 4,
+        "minStopDistancePct": 0.1,
+        "minTp1DistancePct": 0.1,
+        "minTp2DistancePct": 0.15,
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "parameters": {
+          "stop_atr_mult": 2.4,
+          "tp1_r": 2.4,
+          "tp2_r": 6
+        }
+      }
+    ],
+    "outcomeAssumptions": {
+      "entryTiming": "NEXT_OPEN",
+      "feeBps": 10,
+      "spreadBps": 2,
+      "slippageBps": 4,
+      "fundingBps": 4,
+      "partialExitPct": 0.5,
+      "moveStopToBreakevenAfterTp1": true,
+      "trailingStopR": null,
+      "sameCandlePolicy": "STOP_FIRST",
+      "closeAtHorizon": true,
+      "tp1StopPolicy": "CONSERVATIVE_SAME_BAR"
+    }
+  },
+  "selectedBeforeValidationAndHoldout": true
+}

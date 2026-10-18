@@ -1,0 +1,38 @@
+{
+  "development": [
+    "2023-01",
+    "2023-06",
+    "2023-09",
+    "2023-12"
+  ],
+  "validation": [
+    "2024-02",
+    "2024-04"
+  ],
+  "holdout": [
+    "2025-08",
+    "2025-11",
+    "2026-02"
+  ],
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "market": "futures/um",
+  "maxTrials": 12,
+  "minimumResolvedPerSplit": 30,
+  "minimumProfitFactor": 1.1,
+  "minimumExpectancyR": 0.02,
+  "costBps": {
+    "fee": 10,
+    "spread": 2,
+    "slippage": 4,
+    "fundingReserve": 4
+  },
+  "selection": "development only; validation pass/fail; holdout opened once for frozen winner; no retuning after holdout",
+  "limits": "Each month separate, first 200 bars warmup, one active signal per symbol, flat at dataset cutoff at market close.",
+  "timeframes": [
+    "15m",
+    "1h"
+  ]
+}
