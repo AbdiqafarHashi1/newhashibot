@@ -457,7 +457,7 @@ Deno.serve(async (req: Request) => {
             trade_permission: (snap as Record<string, unknown>).trade_permission === true,
             terminal_autotrading: (snap as Record<string, unknown>).autotrading === true,
             terminal_authenticated: (snap as Record<string, unknown>).terminal_authenticated === true,
-            terminal_identity: { ...((snap as Record<string, unknown>).terminal as Record<string, unknown> ?? {}), hedging: (snap as Record<string, unknown>).hedging === true, provider_environment: (snap as Record<string, unknown>).environment },
+            terminal_identity: { ...((snap as Record<string, unknown>).terminal as Record<string, unknown> ?? {}), account_login: payload.account_number, account_server: (snap as Record<string, unknown>).server, economic_calendar: (snap as Record<string, unknown>).economic_calendar ?? null, hedging: (snap as Record<string, unknown>).hedging === true, provider_environment: (snap as Record<string, unknown>).environment },
             open_positions_count: positions.length,
             pending_orders_count: orders.length,
             captured_at: nowIso,
