@@ -27,6 +27,8 @@ function rejectionReasons(c: ArbitrationCandidate, options: ArbitrationOptions):
   if (!c.fresh) reasons.push("stale_candidate");
   if (!Number.isFinite(Date.parse(c.expiry)) || Date.parse(c.expiry) <= options.now.getTime()) reasons.push("expired_candidate");
   if (![c.confidence, c.score, c.entry, c.stop, c.riskReward, ...c.targets].every(Number.isFinite)) reasons.push("non_finite_value");
+  if (!["buy", "sell"].includes(c.side)) reasons.push("invalid_side");
+  if (c.targets.some((target,i)=>i>0&&(c.side==="buy"?target<=c.targets[i-1]:target>=c.targets[i-1]))) reasons.push("invalid_target_order");
   if (c.entry <= 0 || c.stop <= 0 || c.targets.length === 0 || c.targets.some((v) => v <= 0)) reasons.push("invalid_price_structure");
   if ((c.side === "buy" && !(c.stop < c.entry && c.targets.every((t) => t > c.entry))) || (c.side === "sell" && !(c.stop > c.entry && c.targets.every((t) => t < c.entry)))) reasons.push("invalid_price_structure");
   if (c.riskReward <= 0 || c.riskReward < (options.minimumRiskReward ?? 0)) reasons.push("invalid_risk_reward");

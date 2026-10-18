@@ -1,0 +1,94 @@
+{
+  "version": "research-migration-038-with-018-distance-guards-not-live-config",
+  "minSignalGrade": "A",
+  "strategies": [
+    {
+      "id": "crypto.compression-breakout",
+      "version": "1.0.0",
+      "enabled": true,
+      "minScore": 72,
+      "minRiskReward": 1.3,
+      "maxBarsInTrade": 48,
+      "minStopDistancePct": 0.25,
+      "minTp1DistancePct": 0.35,
+      "minTp2DistancePct": 0.6,
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "parameters": {
+        "tp1_r": 1.2,
+        "tp2_r": 2.2,
+        "atr_len": 14.0,
+        "rsi_len": 14.0,
+        "ema_fast": 20.0,
+        "ema_slow": 50.0,
+        "box_lookback": 36.0,
+        "min_box_bars": 8.0,
+        "max_box_atr_range": 8.0,
+        "min_atr_expansion": 0.95,
+        "breakout_buffer_atr": 0.05,
+        "box_bar_tolerance": 0.002,
+        "atr_expansion_lookback": 48.0,
+        "stop_atr_mult": 1.1,
+        "momentum_lookback": 3.0,
+        "max_bars_in_trade": 48.0,
+        "crypto_behavior_tuning": 1.0
+      }
+    },
+    {
+      "id": "crypto.swing-continuation",
+      "version": "1.0.0",
+      "enabled": true,
+      "minScore": 78,
+      "minRiskReward": 1.5,
+      "maxBarsInTrade": 96,
+      "minStopDistancePct": 0.45,
+      "minTp1DistancePct": 0.7,
+      "minTp2DistancePct": 1.2,
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "parameters": {
+        "tp1_r": 1.2,
+        "tp2_r": 2.2,
+        "atr_len": 14.0,
+        "rsi_len": 14.0,
+        "ema_fast": 20.0,
+        "ema_slow": 50.0,
+        "max_atr_pct": 4.0,
+        "min_atr_pct": 0.15,
+        "rsi_buy_min": 50.0,
+        "rsi_sell_max": 50.0,
+        "pullback_bars": 8.0,
+        "pullback_ema_pct": 0.012,
+        "ema_trend_pct": 0.002,
+        "stop_atr_mult": 1.2,
+        "momentum_lookback": 3.0,
+        "max_bars_in_trade": 96.0,
+        "crypto_behavior_tuning": 1.0,
+        "min_confidence_balanced": 78.0,
+        "min_confidence_aggressive": 72.0,
+        "min_confidence_conservative": 80.0
+      }
+    }
+  ],
+  "outcomeAssumptions": {
+    "entryTiming": "NEXT_OPEN",
+    "feeBps": 10,
+    "spreadBps": 2,
+    "slippageBps": 4,
+    "fundingBps": 0,
+    "partialExitPct": 0.5,
+    "moveStopToBreakevenAfterTp1": true,
+    "trailingStopR": null,
+    "sameCandlePolicy": "STOP_FIRST"
+  }
+}

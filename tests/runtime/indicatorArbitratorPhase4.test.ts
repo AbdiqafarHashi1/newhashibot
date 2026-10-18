@@ -56,11 +56,17 @@ assert.equal(arbitrate([base], { now, forceNoTradeReason: "legacy_no_trade" }).d
 assert.equal(ARBITRATOR_VERSION, "arbitrator.root-compat-v1");
 
 const scanner = readFileSync("supabase/functions/market-scanner/index.ts", "utf8");
-for (const name of ["evalMicroScalper", "evalQuickScalp", "evalCompressionBreakout", "evalSwingContinuation", "evalForexMicroScalper", "evalForexSwingContinuation"]) assert.match(scanner, new RegExp(`function ${name}\\(`), `${name} production evaluator retained`);
-assert.equal((scanner.match(/const arbitrationDecision = arbitrate\(/g) ?? []).length, 1, "one production arbitration decision");
+const cryptoEvaluators = readFileSync("supabase/functions/_shared/crypto-production-evaluators.ts", "utf8");
+for (const name of ["evalMicroScalper", "evalQuickScalp", "evalCompressionBreakout", "evalSwingContinuation"]) {
+  assert.ok(scanner.includes(name), `${name} wired into scanner`);
+  assert.ok(cryptoEvaluators.includes(`export function ${name}(`), `${name} shared production evaluator retained`);
+}
+for (const name of ["evalForexMicroScalper", "evalForexSwingContinuation"]) assert.ok(scanner.includes(`function ${name}(`));
+assert.equal((scanner.match(/const arbitrationDecision = arbitrateActiveScanner\(/g) ?? []).length, 1, "one shared production arbitration decision");
 assert.doesNotMatch(scanner, /from ["'][^"']*v2\//);
 assert.match(scanner, /if \(!evaluation\.publishable\) arbitrationDiagnostics\.researchExcluded\(\);\s*if \(!evaluation\.publishable\) continue;/, "research excluded before allEvals and candidate persistence");
 assert.match(scanner, /professional_strategy_diagnostics/);
 assert.match(scanner, /shared_indicator_diagnostics/);
 assert.match(scanner, /arbitration_diagnostics/);
 console.log("Phase 4 indicator and arbitrator tests passed");
+

@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {evalMicroScalper} from '../../supabase/functions/_shared/crypto-production-evaluators.ts';
+import {arbitrate,type ArbitrationCandidate} from '../../supabase/functions/_shared/arbitrator.ts';
+import type {StrategyCandle,StrategyIndicatorSnapshot} from '../../supabase/functions/_shared/professional-strategies.ts';
+const candles:StrategyCandle[]=Array.from({length:60},(_,i)=>({symbol:'BTCUSDT',market_type:'crypto',timeframe:'15m',open_time:new Date(Date.UTC(2025,0,1,0,i*15)).toISOString(),open:100+i,high:102+i,low:99+i,close:101+i,volume:10,source:'fixture'}));
+const indicators:StrategyIndicatorSnapshot={ema20:150,ema50:145,atr14:2,rsi14:60,recent_high:161,recent_low:130,avg_volume:10,body_size:1,atr_pct:1,range_compression_ratio:1,momentum_score:0,volatility_state:'normal',regime:'trend_up'};
+const evaluate=(regime:string)=>evalMicroScalper(candles,{...indicators,regime},'15m',{min_score:0,min_rr:1});
+assert.equal(evaluate('trend_up').status,'candidate');
+assert.equal(evaluate('ranging').rejection_reason,'momentum_failed');
+assert.deepEqual(evaluate('ranging'),evaluate('range_chop'),'scanner regime and legacy alias enforce identical chop protection');
+const candidate:ArbitrationCandidate={id:'c',strategyId:'x',strategyVersion:'1',market:'crypto',symbol:'BTCUSDT',timeframe:'1h',side:'buy',confidence:90,grade:'A',score:90,entry:100,stop:99,targets:[101,102],riskReward:2,expiry:'2025-01-02T00:00:00Z',fresh:true,lifecycle:'ENABLED',publicationMode:'LIVE',evidence:{},rejectionReasons:[]};
+const options={now:new Date('2025-01-01T00:00:00Z')};
+assert.equal(arbitrate([candidate],options).decision,'WINNER');
+assert.equal(arbitrate([{...candidate,targets:[102,101]}],options).decision,'NO_TRADE');
+assert.equal(arbitrate([{...candidate,side:'hold' as any}],options).decision,'NO_TRADE');
+console.log('Scanner chop alias and arbitration target/side safety passed');

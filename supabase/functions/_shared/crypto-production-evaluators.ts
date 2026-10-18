@@ -57,7 +57,7 @@ export function evalMicroScalper(candles: Candle[], ind: Indicators, timeframe: 
   const momentumConfirmed = directionalMomentum > 0.2;
   const pressure = directionalPressure(candles, direction, 3);
   const volatilityHealthy = ind.atr_pct >= min_atr_pct && ind.atr_pct <= max_atr_pct;
-  const strongChop = ind.regime === "range_chop" && Math.abs(ind.momentum_score) < 0.30 && ind.range_compression_ratio > 0.78;
+  const strongChop = ["range_chop", "ranging"].includes(ind.regime) && Math.abs(ind.momentum_score) < 0.30 && ind.range_compression_ratio > 0.78;
   const priceExtensionAtr = atr > 0 ? (direction === "buy" ? price - ind.ema20 : ind.ema20 - price) / atr : 0;
   const overextended = priceExtensionAtr > max_chase_extension_atr;
   const chaseRisk = crypto_behavior_tuning && overextended && bodyAtr < min_body_atr * 1.25 && directionalMomentum < 0.7;

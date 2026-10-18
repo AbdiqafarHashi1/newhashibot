@@ -1,0 +1,29 @@
+[
+  {
+    "sourceUrl": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2024-06.zip",
+    "checksumUrl": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2024-06.zip.CHECKSUM",
+    "archiveSha256": "2e1f968fa34b9feabfb19cc6eec47a146e20d64a706f4b17d0babf4d2f475c39",
+    "datasetSha256": "8820298cf59cec6ba0b299958ceb871304c6bfac2f34b59e53f7578989582b43",
+    "rows": 720,
+    "instrumentType": "SPOT",
+    "warning": "Spot bars do not certify futures execution or funding costs."
+  },
+  {
+    "sourceUrl": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-01.zip",
+    "checksumUrl": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-01.zip.CHECKSUM",
+    "archiveSha256": "e7f2aaa5396a8062a57ab29ce9fab2d76b2c84ec58815d4ab7b3fe16f78c7118",
+    "datasetSha256": "d2048237ad3408642ddf39866186f788cdb7d3cc36442ec4a8f70d4317e65e67",
+    "rows": 744,
+    "instrumentType": "SPOT",
+    "warning": "Spot bars do not certify futures execution or funding costs."
+  },
+  {
+    "sourceUrl": "https://data.binance.vision/data/spot/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-03.zip",
+    "checksumUrl": "https://data.binance.vision/data/spot/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-03.zip.CHECKSUM",
+    "archiveSha256": "dc32ecad498d19f8663633196ec84cbd480595c89aa1ae6062c0fa0b8d9bd11d",
+    "datasetSha256": "d67741ed3c3573d7dbc2fe30d11bbf0640c55b1f3ecf98214275e8d59a744925",
+    "rows": 744,
+    "instrumentType": "SPOT",
+    "warning": "Spot bars do not certify futures execution or funding costs."
+  }
+]
