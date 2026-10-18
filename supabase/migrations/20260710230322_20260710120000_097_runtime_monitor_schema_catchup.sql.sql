@@ -307,7 +307,7 @@ END $bootstrap$;
 DO $overload$ DECLARE definition text; body text; acl aclitem[]; owner_name text; BEGIN
  SELECT pg_get_functiondef(oid),prosrc,proacl,pg_get_userbyid(proowner) INTO definition,body,acl,owner_name FROM pg_proc WHERE oid='public.record_symbol_failure(text,text,text,jsonb,integer,integer)'::regprocedure;
  IF position('p_metadata jsonb DEFAULT ''{}''::jsonb' in definition)=0 THEN RAISE EXCEPTION 'QUARANTINE_OVERLOAD_DEFAULT_PRECONDITION_FAILED'; END IF;
- IF acl IS NOT NULL OR owner_name<>current_user THEN RAISE EXCEPTION 'QUARANTINE_OVERLOAD_OWNER_OR_CUSTOM_ACL_REVIEW_REQUIRED'; END IF;
+ IF owner_name<>current_user THEN RAISE EXCEPTION 'QUARANTINE_OVERLOAD_OWNER_OR_CUSTOM_ACL_REVIEW_REQUIRED'; END IF;
  DROP FUNCTION public.record_symbol_failure(text,text,text,jsonb,integer,integer);
  EXECUTE replace(definition,'p_metadata jsonb DEFAULT ''{}''::jsonb','p_metadata jsonb');
  IF EXISTS(SELECT 1 FROM pg_proc WHERE oid='public.record_symbol_failure(text,text,text,jsonb,integer,integer)'::regprocedure AND (prosrc IS DISTINCT FROM body OR proacl IS DISTINCT FROM acl)) THEN RAISE EXCEPTION 'QUARANTINE_OVERLOAD_BODY_OR_GRANTS_CHANGED'; END IF;

@@ -7,8 +7,9 @@ import { EXPECTED_SUPABASE_ORIGIN, getSupabaseClientConfig, logSupabaseEnvProof 
 export const supabaseClientConfig = getSupabaseClientConfig();
 export const isSupabaseClientReal = supabaseClientConfig.hasValidConfig;
 export const isSupabaseClientEnabled = !isOwnerPreview() && supabaseClientConfig.hasValidConfig; // Always enabled (either real or mock) to allow app booting
-export const isSupabaseMocked = !isSupabaseClientReal;
-export const supabaseConfigErrorMessage = isSupabaseMocked ? null : supabaseClientConfig.frontendEnvError;
+// Missing configuration must never select operational fixtures.
+export const isSupabaseMocked: boolean = false;
+export const supabaseConfigErrorMessage = supabaseClientConfig.frontendEnvError;
 
 export interface AuthConnectivityProbeResult {
   urlOrigin: string | null;
@@ -28,11 +29,7 @@ if (supabaseClientConfig.warningMessage && !isSupabaseMocked) {
   console.warn(supabaseClientConfig.warningMessage);
 }
 
-if (isSupabaseMocked) {
-  console.info('[HashiBot] Running in high-fidelity in-memory Mock Demo Mode.');
-} else {
-  logSupabaseEnvProof(supabaseClientConfig);
-}
+if (isSupabaseClientReal) logSupabaseEnvProof(supabaseClientConfig);
 
 // Create mock supabase client for offline / demo preview mode
 class MockSupabaseClient {
@@ -367,9 +364,11 @@ const safeClientKey = supabaseClientConfig.hasValidConfig
   ? supabaseClientConfig.supabaseKey
   : 'disabled-browser-supabase-client-config-invalid';
 
-const applicationClient: any = isOwnerPreview() ? null : isSupabaseMocked
-  ? new MockSupabaseClient() 
-  : createClient(safeClientUrl, safeClientKey);
+const applicationClient = isOwnerPreview() ? null : createClient(safeClientUrl, safeClientKey,
+  supabaseClientConfig.hasValidConfig ? undefined : {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: async () => { throw new Error(supabaseConfigErrorMessage ?? 'Supabase frontend configuration is missing'); } },
+  });
 
 // Explicit preview selects only the local projection adapter, never offline fake auth.
 // The preview/offline adapters implement the application-facing SDK surface. Keep callers typed.
