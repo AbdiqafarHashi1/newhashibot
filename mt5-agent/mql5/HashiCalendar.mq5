@@ -7,7 +7,7 @@ void Publish(bool complete,bool blocked){
  string stamp=TimeToString(utc,TIME_DATE|TIME_SECONDS);StringReplace(stamp,".","-");StringReplace(stamp," ","T");stamp+="Z";
  string name="hashibot-calendar-"+(string)AccountInfoInteger(ACCOUNT_LOGIN)+".json";
  string json="{\"schema_version\":\"mt5-economic-calendar/v1\",\"observed_at\":\""+stamp+"\",\"complete\":"+(complete?"true":"false")+",\"high_impact_in_window\":"+(blocked?"true":"false")+",\"buffer_minutes\":30,\"currencies\":[\"USD\",\"EUR\",\"GBP\",\"JPY\",\"AUD\",\"CAD\",\"CHF\"],\"account_login\":\""+(string)AccountInfoInteger(ACCOUNT_LOGIN)+"\",\"server\":\""+Escape(AccountInfoString(ACCOUNT_SERVER))+"\"}";
- int handle=FileOpen(name+".pending",FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
+ int handle=FileOpen(name+".pending",FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI,0,CP_UTF8);
  if(handle==INVALID_HANDLE)return;
  FileWriteString(handle,json);FileFlush(handle);FileClose(handle);
  FileMove(name+".pending",FILE_COMMON,name,FILE_COMMON|FILE_REWRITE);

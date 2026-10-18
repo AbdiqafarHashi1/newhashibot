@@ -52,6 +52,10 @@ class ManagedTests(unittest.TestCase):
         self.client.hedging=True;self.payload['native_child_orders'][0]['quantity']=1
         with self.assertRaises(RuntimeError):self.manager.execute('cmd',self.payload)
         self.assertEqual(self.client.sent,[])
+    def test_pending_order_cannot_silently_turn_into_market_execution(self):
+        self.payload['native_child_orders'][0]['action']='pending'
+        with self.assertRaisesRegex(RuntimeError,'MARKET_ENTRY'):self.manager.execute('cmd',self.payload)
+        self.assertEqual(self.client.sent,[])
     def test_native_duplicate_without_journal_does_not_resubmit(self):
         self.manager.execute('cmd',self.payload)
         for path in self.manager.directory.glob('*.json'):path.unlink()

@@ -96,7 +96,7 @@ export function createMt5EntryCommand(input: {
   requireValue(Number.isFinite(lineage.authorizedRiskPct) && lineage.authorizedRiskPct > 0, "AUTHORIZED_RISK_INVALID");
   requireValue(Number.isFinite(input.stopLoss) && input.stopLoss > 0, "INITIAL_PROTECTION_REQUIRED");
 
-  if(input.nativeChildOrders){const c=input.nativeChildOrders;requireValue(c.length===2&&c.every((x,i)=>x.role===(i===0?'ENTRY_TP1':'ENTRY_TP2')&&x.symbol===input.symbol&&String(x.side).toUpperCase()===input.side&&Number(x.sl)===input.stopLoss&&Number(x.tp)===(i===0?input.takeProfit1:input.takeProfit2)&&Number(x.quantity)>0)&&Math.abs(c.reduce((n,x)=>n+Number(x.quantity),0)-lineage.approvedQuantity)<1e-9,'MT5_CHILD_ALLOCATION_MISMATCH');}
+  if(input.nativeChildOrders){const c=input.nativeChildOrders;requireValue(c.length===2&&c.every((x,i)=>x.role===(i===0?'ENTRY_TP1':'ENTRY_TP2')&&(x.action===undefined||x.action==='market')&&x.symbol===input.symbol&&String(x.side).toUpperCase()===input.side&&Number(x.sl)===input.stopLoss&&Number(x.tp)===(i===0?input.takeProfit1:input.takeProfit2)&&Number(x.quantity)>0)&&Math.abs(c.reduce((n,x)=>n+Number(x.quantity),0)-lineage.approvedQuantity)<1e-9,'MT5_CHILD_ALLOCATION_MISMATCH');}
   // Quantity and risk are copied from Phase D. MT5 is not permitted to resize.
   const payload = Object.freeze({
     certified: true,

@@ -53,6 +53,8 @@ class ManagedPositions:
             raise RuntimeError('CHILD_APPROVED_QUANTITY_MISMATCH')
         legs = []
         for index, child in enumerate(children):
+            if child.get('action','market') != 'market':
+                raise RuntimeError('MT5_AUTOMATIC_MARKET_ENTRY_REQUIRED')
             if child.get('role') != ('ENTRY_TP1' if index == 0 else 'ENTRY_TP2') or child['symbol'] != payload['symbol'] or child['side'].upper() != payload['side'] or float(child['sl']) != float(payload['stop_loss']) or float(child['tp']) != float(payload['take_profit_1' if index == 0 else 'take_profit_2']):
                 raise RuntimeError('CHILD_PROTECTION_LINEAGE_MISMATCH')
             if not all(math.isfinite(float(child[k])) and float(child[k]) > 0 for k in ('quantity','sl','tp')):
