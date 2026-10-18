@@ -39,8 +39,9 @@ export const ForexLondonBreakout: ForexResearchStrategy = {
   evaluate(input) {
     const market = contextFor(input), blocked = preflight(this, input, market); if (blocked || !market) return blocked!;
     const interval = timeframeMilliseconds(input.timeframe)!;
+    const londonOpen=Date.parse(market.sessionMetadata.londonOpenAt??""),dayStart=Date.parse(input.evaluated_at.slice(0,10)+"T00:00:00Z");
     const prior = market.normalizedCandles.slice(0, -1).filter((row) => {
-      const closeAt = new Date(Date.parse(row.open_time) + interval); const hour = closeAt.getUTCHours(); return hour >= 0 && hour < 8;
+      const opened=Date.parse(row.open_time),closed=opened+interval;return opened>=dayStart&&closed<=londonOpen;
     }).slice(-32);
     if (prior.length < 8) return reject("range_incomplete", { asian_candles: prior.length });
     const high = Math.max(...prior.map((c) => c.high)), low = Math.min(...prior.map((c) => c.low)), last = market.currentClosedCandle!, atr = market.indicators.atr14;

@@ -1,11 +1,11 @@
 import { arbitrateCanonical } from "./arbitrator.ts";
 import { buildCanonicalMarketView } from "./market-view.ts";
 import { resolveCanonicalStrategyParameters, strategyById } from "./strategies.ts";
-import type { ArbitrationDecision, Candidate, CanonicalSignal, DomainCandle, StrategyEvaluation } from "./contracts.ts";
+import type { ArbitrationDecision, Candidate, CanonicalSignal, DomainCandle, DomainTimeframe, StrategyEvaluation } from "./contracts.ts";
 
 export const CANONICAL_SCANNER_AUTHORITY = "trading-domain.scanner-runtime/v1" as const;
 export interface ScannerStrategyIdentity {strategyId:string;strategyVersion:string;configurationVersion:string;parameters:Readonly<Record<string,number>>}
-export interface CanonicalScannerInput {symbol:string;asOf:string;datasets:Readonly<Record<string,readonly DomainCandle[]>>;strategies:readonly {strategyId:string;configurationVersion:string;parameters?:Readonly<Record<string,number>>}[];minimumScore:number;blockedSymbols?:readonly string[];session:{open:boolean;code:string}}
+export interface CanonicalScannerInput {primaryTimeframe?:DomainTimeframe;symbol:string;asOf:string;datasets:Readonly<Record<string,readonly DomainCandle[]>>;strategies:readonly {strategyId:string;configurationVersion:string;parameters?:Readonly<Record<string,number>>}[];minimumScore:number;blockedSymbols?:readonly string[];session:{open:boolean;code:string}}
 export interface CanonicalScannerResult {version:"canonical-scanner-result/v1";authority:typeof CANONICAL_SCANNER_AUTHORITY;asOf:string;identities:readonly ScannerStrategyIdentity[];evaluations:readonly StrategyEvaluation[];candidates:readonly Candidate[];arbitration:ArbitrationDecision;signal:CanonicalSignal|null;outcome:"SIGNAL"|"NO_TRADE"}
 
 function stable(value:unknown):string {if(value===null||typeof value!=="object")return JSON.stringify(value);if(Array.isArray(value))return `[${value.map(stable).join(",")}]`;return `{${Object.entries(value as Record<string,unknown>).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${JSON.stringify(k)}:${stable(v)}`).join(",")}}`;}
@@ -17,7 +17,7 @@ export function materializeCanonicalSignal(arbitration:ArbitrationDecision,asOf:
  * strategy evaluation deliberately remain in their canonical domain owners. */
 export function runCanonicalScanner(input:CanonicalScannerInput):CanonicalScannerResult {
   const identities=input.strategies.map(request=>{const strategy=strategyById(request.strategyId);if(strategy.status!=="CANONICAL")throw new Error(`NON_PRODUCTION_STRATEGY:${strategy.id}`);return {strategyId:strategy.id,strategyVersion:strategy.version,configurationVersion:request.configurationVersion,parameters:resolveCanonicalStrategyParameters(strategy.id,request.parameters)};});
-  const evaluations=identities.map(identity=>{const strategy=strategyById(identity.strategyId),market=buildCanonicalMarketView({symbol:input.symbol,asOf:input.asOf,primaryTimeframe:strategy.requirements.primaryTimeframe,requiredTimeframes:strategy.requirements.requiredTimeframes,warmupBars:strategy.requirements.warmupBars,datasets:input.datasets,session:input.session});return strategy.evaluate({market,configurationVersion:identity.configurationVersion,parameters:identity.parameters});});
+  const evaluations=identities.map(identity=>{const strategy=strategyById(identity.strategyId),requested=input.primaryTimeframe??strategy.requirements.primaryTimeframe;if(!(strategy.requirements.supportedPrimaryTimeframes??[strategy.requirements.primaryTimeframe]).includes(requested))throw new Error(`UNSUPPORTED_PRIMARY_TIMEFRAME:${identity.strategyId}:${requested}`);const market=buildCanonicalMarketView({symbol:input.symbol,asOf:input.asOf,primaryTimeframe:requested,requiredTimeframes:strategy.requirements.requiredTimeframes,warmupBars:strategy.requirements.warmupBars,datasets:input.datasets,session:input.session});return strategy.evaluate({market,configurationVersion:identity.configurationVersion,parameters:identity.parameters});});
   const candidates=evaluations.flatMap(e=>e.decision==="CANDIDATE"?[e.candidate]:[]),arbitration=arbitrateCanonical(candidates,{minimumScore:input.minimumScore,blockedSymbols:input.blockedSymbols??[]}),signal=materializeCanonicalSignal(arbitration,input.asOf);
   return immutable({version:"canonical-scanner-result/v1",authority:CANONICAL_SCANNER_AUTHORITY,asOf:input.asOf,identities,evaluations,candidates,arbitration,signal,outcome:signal?"SIGNAL":"NO_TRADE"});
 }

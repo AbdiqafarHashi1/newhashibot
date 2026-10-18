@@ -93,7 +93,9 @@ export function classifyMarketContext(ind: StrategyIndicatorSnapshot, candles: r
   };
 }
 
+const forexRole=(name:string)=>({ForexLondonBreakout:"CompressionBreakout",GoldVolatilityBreakout:"CompressionBreakout",ForexNewYorkContinuation:"MicroScalper",ForexTrendPullback:"SwingContinuation"}[name]??name);
 export function marketRoleFit(e: MarketArbitrationEntry, ctx: MarketContext): number {
+  if(e.cfg.params.market_adaptation_enabled===1)e={...e,name:forexRole(e.name)};
   if (e.name === "QuickScalp") {
     return clampScore(ctx.momentum_strength * 0.34 + ctx.volatility_expansion * 0.24 + (100 - ctx.overextension) * 0.24 + (100 - ctx.chop_level) * 0.18);
   }
@@ -136,6 +138,12 @@ export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbi
   const top = entries[0];
   const topScore = arbitrationScore(top, ctx);
   const hasAPlus = entries.some((entry) => entry.result.grade === "A+");
+  if(entries.every(e=>/^(Forex|Gold)/.test(e.name)&&e.cfg.params.market_adaptation_enabled===1)){
+    if(ctx.chop_level>=76&&!hasAPlus)return "forex_chop_requires_a_plus";
+    if(marketRoleFit(top,ctx)<55&&!hasAPlus)return "forex_strategy_role_mismatch";
+    if(ctx.overextension>=90&&top.result.grade!=="A+")return "forex_overextended_entry";
+    return "";
+  }
   if (ctx.chop_level >= 76 && !hasAPlus) return "mixed_choppy_market_requires_a_plus";
   if (ctx.mixed_market && ctx.preferred_strategy === "none" && !hasAPlus) return "mixed_market_no_clear_strategy_requires_a_plus";
   if (ctx.mixed_market && top.result.grade !== "A+" && topScore < 0.68) return "mixed_market_expected_value_too_low";
