@@ -24,3 +24,9 @@ console.log('Phase L replay, shadow, evidence, and purchase lifecycle tests pass
 
 assert.throws(()=>runBoundedValidation(config,new ProfessionalStrategyRegistry([definition]),[{...context,candles:[{...candles[0],open_time:'2026-10-01T00:00:00Z'},...candles.slice(1)]}]),/LOOKAHEAD/,'future bar hidden before the last bar must never reach an evaluator');
 assert.throws(()=>runBoundedValidation(config,new ProfessionalStrategyRegistry([definition]),[{...context,candles:[candles[0],...candles]}]),/LOOKAHEAD/,'duplicate historical bars must not inflate indicators');
+
+const approvedAdaptiveDefinition={...definition,config:{...definition.config,params:{market_adaptation_enabled:1}}};
+const approvedAdaptiveDecision=runBoundedValidation({...config,adaptivePolicy:undefined},new ProfessionalStrategyRegistry([approvedAdaptiveDefinition]),[context])[0];
+assert.equal(approvedAdaptiveDecision.arbitration.decision,'NO_TRADE','replay honors the same approved strategy marker as production');
+assert.ok(approvedAdaptiveDecision.arbitration.rejected.some(r=>r.reasons.includes('adaptive_range_unsuitable_for_continuation')));
+assert.equal(runBoundedValidation(config,new ProfessionalStrategyRegistry([approvedAdaptiveDefinition]),[context])[0].arbitration.decision,'WINNER','explicit research control can measure the same settings without new gates');
