@@ -1,3 +1,4 @@
+import {prepareAutomaticBybitEvidence} from './automatic-bybit-policy-evidence.ts';
 import {prepareAutomaticCryptoEvidence} from './automatic-crypto-policy-evidence.ts';
 import {prepareAutomaticMt5Evidence} from './automatic-mt5-policy-evidence.ts';
 import {assertMeasuredExecutionLineage} from './measured-execution-lineage.ts';
@@ -52,6 +53,7 @@ export async function drainProductionAccountAuthorizations(db:any,limit=25){
   if(Date.parse(source.data.signal.expires_at)>Date.now()&&['waiting','active'].includes(source.data.signal.status)){
    await prepareAutomaticMt5Evidence(db,source.data);
    await prepareAutomaticCryptoEvidence(db,source.data);
+   await prepareAutomaticBybitEvidence(db,source.data);
    if(!['MT5_PERSONAL','BINANCE'].includes(String(source.data.account.provider).toUpperCase()))assertCompleteProductionContext(source.data.context,{customerId:job.customer_id,accountId:job.execution_account_id,provider:String(source.data.account.provider).toUpperCase(),observedAt:source.data.observed_at});
   }
   const decision=await authorizeCanonicalAccountSignal(db,{customerId:job.customer_id,accountId:job.execution_account_id,signalId:job.signal_id,idempotencyKey:`job:${job.id}`});

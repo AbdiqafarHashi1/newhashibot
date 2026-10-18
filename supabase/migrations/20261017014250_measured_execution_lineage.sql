@@ -97,7 +97,8 @@ create table public.account_observed_risk_tracking(
  currency text not null,initial_balance numeric not null check(initial_balance>0),inception_at timestamptz not null,
  total_peak_equity numeric not null,tracking_day date not null,daily_starting_balance numeric not null,daily_peak_equity numeric not null,
  last_balance numeric not null,last_equity numeric not null,last_observed_at timestamptz not null,source_reference text not null,
- continuity_state text not null check(continuity_state in('OBSERVED','GAP_RECONCILIATION_REQUIRED'))
+ continuity_state text not null check(continuity_state in('OBSERVED','GAP_RECONCILIATION_REQUIRED')),
+ reset_timezone text not null default 'UTC'
 );
 alter table public.account_observed_risk_tracking enable row level security;
 revoke all on public.account_observed_risk_tracking from public,anon,authenticated;
@@ -106,7 +107,7 @@ grant select,insert,update on public.account_observed_risk_tracking to service_r
 create policy account_observed_risk_read on public.account_observed_risk_tracking for select to authenticated using(customer_id=(select auth.uid()) or public.is_admin());
 create function public.track_current_provider_risk(p_customer uuid,p_account uuid) returns jsonb
 language plpgsql security definer set search_path=public as $$
-declare a connected_execution_accounts;proof jsonb;raw jsonb;observed timestamptz;balance_value numeric;equity_value numeric;currency_value text;flat boolean;prior account_observed_risk_tracking;result account_observed_risk_tracking;day_value date;begin
+declare a connected_execution_accounts;proof jsonb;raw jsonb;observed timestamptz;balance_value numeric;equity_value numeric;currency_value text;flat boolean;prior account_observed_risk_tracking;result account_observed_risk_tracking;day_value date;reset_zone text;begin
  if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
  select * into a from connected_execution_accounts where id=p_account and customer_id=p_customer for update;if not found then raise exception 'ACCOUNT_OWNERSHIP_REQUIRED';end if;
  if not((upper(a.provider)='BINANCE' and upper(a.environment)='TESTNET')or(upper(a.provider) in('BYBIT','MT5_PERSONAL','MT5_PROP')and upper(a.environment)='DEMO'))then return jsonb_build_object('state','SANDBOX_REQUIRED');end if;
@@ -122,11 +123,14 @@ declare a connected_execution_accounts;proof jsonb;raw jsonb;observed timestampt
   else balance_value:=nullif(raw->>'account_wallet_balance','')::numeric;equity_value:=nullif(raw->>'account_equity','')::numeric;currency_value:=raw->>'account_currency';end if;
  end if;
  if observed is null or observed>clock_timestamp()+interval '5 seconds' or observed<clock_timestamp()-interval '60 seconds' or balance_value is null or equity_value is null or balance_value<=0 or equity_value<=0 or balance_value in('NaN'::numeric,'Infinity'::numeric) or equity_value in('NaN'::numeric,'Infinity'::numeric) or nullif(currency_value,'') is null then return jsonb_build_object('state','CURRENT_FINANCIAL_OBSERVATION_REQUIRED');end if;
- day_value:=timezone('UTC',observed)::date;select * into prior from account_observed_risk_tracking where execution_account_id=a.id for update;
+ reset_zone:=case when upper(a.provider)='MT5_PROP' then a.policy_overrides->'approved_prop_rules'->>'reset_timezone' else 'UTC' end;
+ if reset_zone is null or not exists(select 1 from pg_timezone_names where name=reset_zone) then return jsonb_build_object('state','APPROVED_PROP_RESET_TIMEZONE_REQUIRED');end if;
+ day_value:=timezone(reset_zone,observed)::date;select * into prior from account_observed_risk_tracking where execution_account_id=a.id for update;
  if not found then
   if flat is distinct from true then return jsonb_build_object('state','FLAT_INITIAL_OBSERVATION_REQUIRED');end if;
-  insert into account_observed_risk_tracking values(a.id,a.customer_id,currency_value,balance_value,observed,greatest(balance_value,equity_value),day_value,balance_value,greatest(balance_value,equity_value),balance_value,equity_value,observed,coalesce(proof->>'id',a.id::text||':'||observed::text),'OBSERVED') returning * into result;
+  insert into account_observed_risk_tracking values(a.id,a.customer_id,currency_value,balance_value,observed,greatest(balance_value,equity_value),day_value,balance_value,greatest(balance_value,equity_value),balance_value,equity_value,observed,coalesce(proof->>'id',a.id::text||':'||observed::text),'OBSERVED',reset_zone) returning * into result;
  else
+  if prior.reset_timezone<>reset_zone then return jsonb_build_object('state','PROP_RESET_TIMEZONE_RECONCILIATION_REQUIRED');end if;
   if prior.currency<>currency_value then return jsonb_build_object('state','ACCOUNT_CURRENCY_RECONCILIATION_REQUIRED');end if;
   if observed<prior.last_observed_at then return jsonb_build_object('state','OBSERVATION_ORDER_RECONCILIATION_REQUIRED');end if;
   update account_observed_risk_tracking set total_peak_equity=greatest(total_peak_equity,balance_value,equity_value),tracking_day=day_value,
@@ -152,3 +156,24 @@ DO $$BEGIN
   GRANT EXECUTE ON FUNCTION public.record_symbol_failure(text,text,text,jsonb,integer,integer) TO service_role;
  END IF;
 END$$;
+
+-- Owner controls narrow the account's existing approved assignment. No activation or credential changes.
+create function public.admin_set_account_controls(p_actor uuid,p_customer uuid,p_account uuid,p_configuration jsonb,p_prop_rules jsonb default null) returns jsonb
+language plpgsql security definer set search_path=public,pg_temp as $$
+declare a connected_execution_accounts;approved jsonb;begin
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ if not exists(select 1 from profiles where id=p_actor and role='admin') then raise exception 'ADMIN_REQUIRED';end if;
+ select * into a from connected_execution_accounts where id=p_account and customer_id=p_customer for update;if not found then raise exception 'ACCOUNT_OWNERSHIP_REQUIRED';end if;
+ if jsonb_typeof(p_configuration)<>'object' or not(p_configuration?'preset') then raise exception 'VALIDATED_POLICY_CONFIGURATION_REQUIRED';end if;
+ if (p_configuration-ARRAY['maxLeverage','maxConcurrentPositions','maxDailyDrawdownPct','maxTotalDrawdownPct','allowedSymbols']) is distinct from ((a.policy_overrides->'policy_configuration')-ARRAY['maxLeverage','maxConcurrentPositions','maxDailyDrawdownPct','maxTotalDrawdownPct','allowedSymbols']) then raise exception 'ACCOUNT_ASSIGNMENT_CHANGED_RELOAD_REQUIRED';end if;
+ if p_prop_rules is not null then
+  if a.provider<>'MT5_PROP' or p_prop_rules->>'schema_version'<>'prop-account-rules/v1' or p_prop_rules->>'drawdown_model'<>'CONSERVATIVE_OBSERVED_HIGH_WATER' or not exists(select 1 from pg_timezone_names where name=p_prop_rules->>'reset_timezone') then raise exception 'VALIDATED_PROP_RULES_REQUIRED';end if;
+  approved:=p_prop_rules||jsonb_build_object('customer_id',p_customer,'execution_account_id',p_account,'policy_version',a.policy_version,'approved_by',p_actor,'approved_at',clock_timestamp());
+ end if;
+ update connected_execution_accounts set policy_overrides=policy_overrides||jsonb_build_object('policy_configuration',p_configuration)||case when approved is null then '{}'::jsonb else jsonb_build_object('approved_prop_rules',approved) end,execution_enabled=false,phase_h_certification_status='REQUIRED',updated_at=clock_timestamp() where id=a.id;
+ -- Existing protection/monitor flags are deliberately preserved; only new entry authority is revoked.
+ insert into phase_h_audit_events(customer_id,execution_account_id,actor_id,event_type,safe_metadata) values(p_customer,p_account,p_actor,'ADMIN_ACCOUNT_CONTROLS_CHANGED',jsonb_build_object('configuration',p_configuration,'prop_rules_approved',approved is not null));
+ return jsonb_build_object('execution_account_id',a.id,'new_entries_enabled',false,'certification','REQUIRED');
+end$$;
+revoke all on function public.admin_set_account_controls(uuid,uuid,uuid,jsonb,jsonb) from public,anon,authenticated;
+grant execute on function public.admin_set_account_controls(uuid,uuid,uuid,jsonb,jsonb) to service_role;

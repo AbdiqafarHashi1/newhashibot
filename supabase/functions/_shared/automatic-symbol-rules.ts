@@ -15,7 +15,8 @@ export async function currentBinanceSandboxRule(db:any,symbol:string,now=Date.no
   const values=raw.filters.filter((f:any)=>f.filterType===type);
   if(values.length!==1||fields.some(f=>!Number.isFinite(Number(values[0][f]))||Number(values[0][f])<=0))throw Error('SANDBOX_SYMBOL_LIMITS_REQUIRED');
  }
- const stamp=new Date(now).toISOString(),row={provider:'binance',environment:'testnet',symbol,status:raw.status,base_asset:raw.baseAsset??null,quote_asset:raw.quoteAsset,raw_exchange_info:raw,last_synced_at:stamp,updated_at:stamp};
+ const lot=raw.filters.find((f:any)=>f.filterType==='MARKET_LOT_SIZE'),price=raw.filters.find((f:any)=>f.filterType==='PRICE_FILTER'),notional=raw.filters.find((f:any)=>f.filterType==='MIN_NOTIONAL');
+ const stamp=new Date(now).toISOString(),row={tick_size:Number(price.tickSize),step_size:Number(lot.stepSize),qty_step:Number(lot.stepSize),min_qty:Number(lot.minQty),min_notional:Number(notional.notional),provider:'binance',environment:'testnet',symbol,status:raw.status,base_asset:raw.baseAsset??null,quote_asset:raw.quoteAsset,raw_exchange_info:raw,last_synced_at:stamp,updated_at:stamp};
  const saved=await db.from('provider_symbol_cache').upsert(row,{onConflict:'provider,symbol'});
  if(saved.error)throw Error('SANDBOX_SYMBOL_RULE_PERSISTENCE_FAILED');
  return row;
