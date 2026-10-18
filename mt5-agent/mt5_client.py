@@ -372,6 +372,12 @@ class MT5Client:
             "fill_policies": (["fok"] if int(s.filling_mode) & 1 else []) + (["ioc"] if int(s.filling_mode) & 2 else []) + (["return"] if int(s.trade_exemode) != int(mt5.SYMBOL_TRADE_EXECUTION_MARKET) else [])
         }
 
+    def assert_demo_execution_identity(self):
+        from config import Config
+        account = mt5.account_info() if HAS_MT5 else None
+        if Config.DATA_ONLY or account is None or account.login != Config.ACCOUNT_NUMBER or account.server != Config.SERVER or account.trade_mode != mt5.ACCOUNT_TRADE_MODE_DEMO:
+            raise RuntimeError("MT5_MUTATION_TERMINAL_SCOPE_MISMATCH")
+
     def place_order(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         if not HAS_MT5 or not self.check_connection():
             return {"success": False, "error": "MT5 terminal not connected", "error_code": "TERMINAL_DISCONNECTED"}
@@ -435,6 +441,7 @@ class MT5Client:
         if tp is not None and float(tp) > 0:
             request["tp"] = round(float(tp), digits)
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             err = mt5.last_error()
@@ -502,6 +509,7 @@ class MT5Client:
             "tp": new_tp,
         }
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             return {"success": False, "error": "Modify order_send returned None", "error_code": "MODIFY_FAILED"}
@@ -555,6 +563,7 @@ class MT5Client:
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             return {"success": False, "error": "Close order_send returned None", "error_code": "CLOSE_FAILED"}
@@ -580,6 +589,7 @@ class MT5Client:
             "order": int_ticket,
         }
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             return {"success": False, "error": "Cancel order_send returned None", "error_code": "CANCEL_FAILED"}

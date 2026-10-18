@@ -24,6 +24,7 @@ RUN --mount=type=secret,id=proxy_ca \
     cd /; update-ca-certificates --fresh >/dev/null; rm -rf /tmp/extensions /var/lib/apt/lists/*; \
     test ! -d /var/lib/postgresql/${PG_MAJOR}/main; mkdir -p /var/lib/postgresql/data; chown postgres:postgres /var/lib/postgresql/data; \
     runuser -u postgres -- /usr/lib/postgresql/${PG_MAJOR}/bin/initdb -D /var/lib/postgresql/data --auth=trust
+RUN printf '%s\n' '#!/bin/sh' 'set -eu' 'key=/var/lib/postgresql/data/rehearsal-vault-key' 'if [ ! -s "$key" ]; then' '  umask 077' '  od -An -N32 -tx1 /dev/urandom | tr -d " \n" > "$key"' 'fi' 'cat "$key"' > /usr/local/bin/hashibot-vault-getkey && chmod 755 /usr/local/bin/hashibot-vault-getkey
 ENV PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:${PATH}"
 USER postgres
-CMD ["postgres", "-D", "/var/lib/postgresql/data", "-c", "listen_addresses=*", "-c", "shared_preload_libraries=pg_cron,pg_net", "-c", "cron.database_name=postgres", "-c", "cron.launch_active_jobs=off"]
+CMD ["postgres", "-D", "/var/lib/postgresql/data", "-c", "listen_addresses=*", "-c", "shared_preload_libraries=pg_cron,pg_net,supabase_vault", "-c", "cron.database_name=postgres", "-c", "cron.launch_active_jobs=off", "-c", "vault.getkey_script=/usr/local/bin/hashibot-vault-getkey"]
