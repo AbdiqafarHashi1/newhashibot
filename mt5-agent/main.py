@@ -197,6 +197,8 @@ class MT5AgentDaemon:
             # 5. Command Polling & Execution Tick
             if now - self.last_poll >= Config.POLL_INTERVAL_SECONDS:
                 self._run_stage("commands", self.command_processor.process_pending_commands)
+                if not Config.DATA_ONLY:
+                    self._run_stage("position_protection", self.command_processor.managed_positions.monitor)
                 self.last_poll = now
 
             time.sleep(0.2)

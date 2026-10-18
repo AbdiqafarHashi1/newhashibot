@@ -50,3 +50,11 @@ Arrange supervised startup in your Windows environment, including restoring the 
 The path removes a per-request Forex-data API credit dependency. It cannot promise uninterrupted delivery: market closures, broker maintenance, history retention, network/VPS failures and the original backend's availability still apply. No real Windows terminal, VPS, broker feed or historical download was connected during repository tests.
 
 Reference: https://www.mql5.com/en/docs/python_metatrader5/mt5copyratesrange_py documents the UTC date requirements and terminal chart-history limits.
+
+## Customer MT5 execution is separate
+
+The owner investor feed never executes. The current automatic customer execution path requires a **hedging demo account** so TP1 and TP2 can be native protected child positions. Netting and live accounts are rejected. Update the Python bridge together with the deployed functions so the hedging flag and canonical child payload agree.
+
+A single approved plan queues once, preserving the total authorized quantity across its two legs. Each native leg carries SL and its own TP. The worker keeps an atomic per-account journal under `HASHIBOT_STATE_DIR` (default `hashibot-state` in the worker directory). Retain that directory across worker restarts and deployments; do not delete it to retry an uncertain submission. An uncertain or incomplete entry requires reconciliation rather than repeating orders. The source account, server and demo status are checked again for ongoing management.
+
+Native TP1 deals, matched to the exact first position, allow the runner's SL to move to its observed entry. A stronger existing stop is retained. Missing protection is repaired; a protection incident lasting over 30 seconds requests closing that exact position. A close request or modification ACK does not prove the provider result. TP2 and ordinary stop/manual exits are classified separately from actual deal history. Windows terminal behavior, partial fills, outages and provider receipts still need connected demo certification before any release.

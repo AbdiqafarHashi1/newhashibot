@@ -9,7 +9,7 @@ export type Mt5DemoProvider = "MT5_PERSONAL" | "MT5_PROP";
 export type Mt5LifecycleState =
   | "QUEUED" | "REJECTED" | "SUBMISSION_UNCERTAIN" | "PARTIALLY_FILLED"
   | "FILLED_PROTECTION_PENDING" | "PROTECTED" | "PROTECTION_INCIDENT"
-  | "RECONCILING" | "BREAKEVEN" | "TP1_PROTECTED" | "TP2_CLOSED";
+  | "RECONCILING" | "BREAKEVEN" | "TP1_PROTECTED" | "TP2_CLOSED" | "CLOSED";
 
 export interface PhaseDExecutionLineage {
   decisionId: string;
@@ -75,6 +75,7 @@ export function createMt5EntryCommand(input: {
   takeProfit2: number;
   now: string;
   maximumIntentAgeMs: number;
+  nativeChildOrders?: readonly Record<string,unknown>[];
 }): Readonly<Mt5EntryCommand> {
   const { lineage, route } = input;
   requireValue(lineage.decision === "ALLOW" || lineage.decision === "REDUCE", "PHASE_D_DECISION_NOT_EXECUTABLE");
@@ -93,11 +94,13 @@ export function createMt5EntryCommand(input: {
   requireValue(Number.isFinite(intentAge) && intentAge >= 0 && intentAge <= input.maximumIntentAgeMs, "MT5_INTENT_STALE");
   requireValue(Number.isFinite(lineage.approvedQuantity) && lineage.approvedQuantity > 0, "APPROVED_QUANTITY_INVALID");
   requireValue(Number.isFinite(lineage.authorizedRiskPct) && lineage.authorizedRiskPct > 0, "AUTHORIZED_RISK_INVALID");
-  requireValue(input.stopLoss > 0, "INITIAL_PROTECTION_REQUIRED");
+  requireValue(Number.isFinite(input.stopLoss) && input.stopLoss > 0, "INITIAL_PROTECTION_REQUIRED");
 
+  if(input.nativeChildOrders){const c=input.nativeChildOrders;requireValue(c.length===2&&c.every((x,i)=>x.role===(i===0?'ENTRY_TP1':'ENTRY_TP2')&&x.symbol===input.symbol&&String(x.side).toUpperCase()===input.side&&Number(x.sl)===input.stopLoss&&Number(x.tp)===(i===0?input.takeProfit1:input.takeProfit2)&&Number(x.quantity)>0)&&Math.abs(c.reduce((n,x)=>n+Number(x.quantity),0)-lineage.approvedQuantity)<1e-9,'MT5_CHILD_ALLOCATION_MISMATCH');}
   // Quantity and risk are copied from Phase D. MT5 is not permitted to resize.
   const payload = Object.freeze({
     certified: true,
+    ...(input.nativeChildOrders?{native_child_orders:Object.freeze(input.nativeChildOrders.map(x=>Object.freeze({...x})))}:{}),
     execution_plan_id: input.executionPlanId,
     deterministic_identity: input.deterministicOrderId,
     signal_id: lineage.signalId,
@@ -132,7 +135,7 @@ export type Mt5LifecycleEvent =
   | { type: "RECONCILIATION_STARTED" }
   | { type: "TP1_FILLED" }
   | { type: "BREAKEVEN_CONFIRMED" }
-  | { type: "TP2_FILLED" };
+  | { type: "TP2_FILLED" | "POSITION_CLOSED" };
 
 /** Projection only; command creation remains owned by the existing trade manager. */
 export function projectMt5Lifecycle(current: Mt5LifecycleState, event: Mt5LifecycleEvent): Mt5LifecycleState {
@@ -145,6 +148,7 @@ export function projectMt5Lifecycle(current: Mt5LifecycleState, event: Mt5Lifecy
   if (event.type === "PROTECTION_CONFIRMED") return "PROTECTED";
   if (event.type === "TP1_FILLED") return "TP1_PROTECTED";
   if (event.type === "BREAKEVEN_CONFIRMED") return "BREAKEVEN";
+  if (event.type === "POSITION_CLOSED") return "CLOSED";
   if (event.type === "TP2_FILLED") return "TP2_CLOSED";
   return current;
 }

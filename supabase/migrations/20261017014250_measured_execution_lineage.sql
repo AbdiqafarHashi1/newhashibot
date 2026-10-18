@@ -15,7 +15,7 @@ declare a connected_execution_accounts;s signals;c provider_connections;b accoun
  select to_jsonb(p) into binding from customer_execution_strategy_bindings p where execution_account_id=a.id and customer_id=a.customer_id and p.product=execution_product;
  select result_summary->'qualifiedSet' into qualified from backtest_runs where mode_slug='qualification_campaign' and status='completed' and result_summary->'qualifiedSet'->>'id'=execution_product||'_QUALIFIED_SET' order by created_at desc limit 1;
  select to_jsonb(x) into proof from account_policy_evidence x where execution_account_id=a.id and customer_id=a.customer_id and execution_instance_id=a.execution_instance_id and credential_ref=a.credential_ref and provider=upper(a.provider) and symbol=s.symbol order by observed_at desc limit 1;
- select jsonb_build_object('closed',coalesce((select jsonb_agg(to_jsonb(t) order by t.id) from crypto_account_execution_truth t where t.customer_id=a.customer_id and t.execution_account_id=a.id and t.lifecycle_state='CLOSED'),'[]'::jsonb),'mt5_closed',coalesce((select jsonb_agg(to_jsonb(t) order by t.id) from mt5_account_execution_truth t where t.customer_id=a.customer_id and t.execution_account_id=a.id and t.lifecycle_state='TP2_CLOSED'),'[]'::jsonb),'outcomes',coalesce((select jsonb_agg(to_jsonb(o) order by o.id) from account_closed_provider_outcomes o where o.customer_id=a.customer_id and o.execution_account_id=a.id),'[]'::jsonb)) into history;
+ select jsonb_build_object('closed',coalesce((select jsonb_agg(to_jsonb(t) order by t.id) from crypto_account_execution_truth t where t.customer_id=a.customer_id and t.execution_account_id=a.id and t.lifecycle_state='CLOSED'),'[]'::jsonb),'mt5_closed',coalesce((select jsonb_agg(to_jsonb(t) order by t.id) from mt5_account_execution_truth t where t.customer_id=a.customer_id and t.execution_account_id=a.id and t.lifecycle_state in('TP2_CLOSED','CLOSED')),'[]'::jsonb),'outcomes',coalesce((select jsonb_agg(to_jsonb(o) order by o.id) from account_closed_provider_outcomes o where o.customer_id=a.customer_id and o.execution_account_id=a.id),'[]'::jsonb)) into history;
  select to_jsonb(h) into e from execution_entitlement_bindings x join phase_h_entitlements h on h.id=x.entitlement_id and h.customer_id=x.customer_id where x.customer_id=a.customer_id and x.execution_account_id=a.id and x.state='ACTIVE' and h.state in('ACTIVE','TRIAL','GRACE') and h.source<>'NOT_CONFIGURED' and (h.valid_until is null or h.valid_until>now()) limit 1;
  result:=jsonb_build_object('measured_release',(select to_jsonb(m) from strategy_release_candidates m where m.strategy_id=s.strategy_id and m.state='PROMOTED' limit 1),'account',to_jsonb(a)-array['credential_ref'],'signal',to_jsonb(s),'assignment',to_jsonb(b),'connection',to_jsonb(c)-array['secret_reference'],'policy',a.policy_overrides->'base_policy','context',proof->'account_context','observed_at',coalesce(proof->>'observed_at',proof->>'captured_at'),'contract',proof->'contract_specification','routing_policy',proof->'routing_policy','capabilities',proof->'capabilities','strategy_plan',strategy,'qualified_set',qualified,'provisioning',binding,'product',execution_product,'entitlement',jsonb_build_object('state',case when e is null then 'INACTIVE' else 'ACTIVE' end,'expiresAt',e->>'valid_until'),'history_fingerprint',encode(sha256(convert_to(history::text,'UTF8')),'hex'),'pending_orders',(proof->>'pending_orders')::integer,'active_symbol_conflict',exists(select 1 from execution_orders x where x.customer_id=a.customer_id and x.account_id=a.account_id::text and x.symbol=s.symbol and x.status in('entry_submitted','entry_filled','protected','protected_native','partially_closed','protection_pending','protection_failed')));
  return result||jsonb_build_object('evidence_hash',encode(sha256(convert_to(result::text,'UTF8')),'hex'));
@@ -177,3 +177,83 @@ declare a connected_execution_accounts;approved jsonb;begin
 end$$;
 revoke all on function public.admin_set_account_controls(uuid,uuid,uuid,jsonb,jsonb) from public,anon,authenticated;
 grant execute on function public.admin_set_account_controls(uuid,uuid,uuid,jsonb,jsonb) to service_role;
+
+create function public.install_hashibot_release_schedules(p_actor uuid,p_project_url text,p_jobs jsonb) returns jsonb
+language plpgsql security definer set search_path=public,pg_temp as $$
+declare j jsonb;secret_id uuid;job_id bigint;statement text;result jsonb:='[]';begin
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ if not exists(select 1 from profiles where id=p_actor and role='admin') then raise exception 'ADMIN_REQUIRED';end if;
+ if p_project_url<>'https://uqiwbzfcntlcyyewawfc.supabase.co' or jsonb_typeof(p_jobs)<>'array' or jsonb_array_length(p_jobs)>10 then raise exception 'RELEASE_PROJECT_OR_JOB_SCOPE_INVALID';end if;
+ update cron.job set active=false where jobname like 'hashibot_%';
+ for j in select value from jsonb_array_elements(p_jobs) loop
+  if j->>'endpoint' not in('scheduled-market-scanner','evaluate-signal-outcomes','binance-testnet-monitor','bybit-testnet-monitor','account-signal-authorization','phase-n-command-worker','canonical-reporting-worker','commerce-reconcile','telegram-membership','phase-o-worker') or j->>'name'!~'^hashibot_[a-z0-9_]+$' or j->>'schedule' not in('* * * * *','*/5 * * * *') or j->>'header' not in('x-scanner-cron-secret','x-hashibot-cron-token','x-hashibot-internal-secret','Authorization','x-phase-o-worker-secret') or length(coalesce(j->>'token',''))<16 then raise exception 'RELEASE_JOB_CONFIGURATION_INVALID';end if;
+  select id into secret_id from vault.secrets where name='release_'||(j->>'name');
+  if secret_id is null then secret_id:=vault.create_secret(j->>'token','release_'||(j->>'name'),'HashiBot scheduled worker authorization');else perform vault.update_secret(secret_id,j->>'token');end if;
+  statement:=format('select net.http_post(url := %L,headers := jsonb_build_object(''Content-Type'',''application/json'',%L,(select decrypted_secret from vault.decrypted_secrets where id=%L::uuid)),body := %L::jsonb,timeout_milliseconds := 90000);',p_project_url||'/functions/v1/'||(j->>'endpoint'),j->>'header',secret_id::text,coalesce(j->'body','{}'::jsonb)::text);
+  select cron.schedule(j->>'name',j->>'schedule',statement) into job_id;perform cron.alter_job(job_id,active:=false);
+  result:=result||jsonb_build_array(jsonb_build_object('name',j->>'name','job_id',job_id,'active',false));
+ end loop;
+ insert into phase_h_audit_events(customer_id,actor_id,event_type,safe_metadata) values(p_actor,p_actor,'RELEASE_SCHEDULES_INSTALLED_PAUSED',jsonb_build_object('jobs',result));return result;
+end$$;
+revoke all on function public.install_hashibot_release_schedules(uuid,text,jsonb) from public,anon,authenticated;
+grant execute on function public.install_hashibot_release_schedules(uuid,text,jsonb) to service_role;
+
+-- Native stop/manual exits are closed outcomes too; never label them TP2 wins.
+alter table public.mt5_account_execution_truth drop constraint if exists mt5_account_execution_truth_lifecycle_state_check;
+alter table public.mt5_account_execution_truth add constraint mt5_account_execution_truth_lifecycle_state_check check(lifecycle_state in('QUEUED','REJECTED','SUBMISSION_UNCERTAIN','PARTIALLY_FILLED','FILLED_PROTECTION_PENDING','PROTECTED','PROTECTION_INCIDENT','RECONCILING','BREAKEVEN','TP1_PROTECTED','TP2_CLOSED','CLOSED'));
+create or replace function public.record_phase_e_mt5_lifecycle(
+  p_command_id uuid,p_account_id uuid,p_bridge_id text,p_event text,p_evidence jsonb default '{}')
+returns void language plpgsql security definer set search_path=public as $$
+declare t public.mt5_account_execution_truth; next_state text; incident text;
+begin
+  if auth.role()<>'service_role' then raise exception 'SERVICE_ROLE_REQUIRED'; end if;
+  select * into t from public.mt5_account_execution_truth where command_id=p_command_id and mt5_account_id=p_account_id and bridge_id=p_bridge_id for update;
+  if not found then raise exception 'MT5_COMMAND_SCOPE_MISMATCH'; end if;
+  next_state:=case p_event when 'ORDER_REJECTED' then 'REJECTED' when 'SUBMISSION_UNCERTAIN' then 'SUBMISSION_UNCERTAIN'
+    when 'PARTIAL_FILL' then 'PARTIALLY_FILLED' when 'FILL_CONFIRMED' then 'FILLED_PROTECTION_PENDING'
+    when 'PROTECTION_CONFIRMED' then 'PROTECTED' when 'PROTECTION_MISSING' then 'PROTECTION_INCIDENT'
+    when 'PROTECTION_FAILED' then 'PROTECTION_INCIDENT' when 'RECONCILIATION_STARTED' then 'RECONCILING'
+    when 'TP1_FILLED' then 'TP1_PROTECTED' when 'BREAKEVEN_CONFIRMED' then 'BREAKEVEN'
+    when 'POSITION_CLOSED' then 'CLOSED' when 'TP2_FILLED' then 'TP2_CLOSED' else null end;
+  if next_state is null then raise exception 'MT5_LIFECYCLE_EVENT_INVALID'; end if;
+  incident:=case when next_state='PROTECTION_INCIDENT' then p_event else null end;
+  update public.mt5_account_execution_truth set lifecycle_state=next_state,incident_code=incident,
+    provider_order_id=coalesce(p_evidence->>'provider_order_id',provider_order_id),
+    provider_position_id=coalesce(p_evidence->>'provider_position_id',provider_position_id),
+    last_provider_evidence=p_evidence,updated_at=clock_timestamp() where id=t.id;
+end $$;
+revoke all on function public.record_phase_e_mt5_lifecycle(uuid,uuid,text,text,jsonb) from public,anon,authenticated;
+grant execute on function public.record_phase_e_mt5_lifecycle(uuid,uuid,text,text,jsonb) to service_role;
+
+create or replace function public.record_account_closed_provider_outcome(p_customer_id uuid,p_account_id uuid,p_provider text,p_execution_id uuid,p_closed_at timestamptz,p_currency text,p_net_pnl numeric,p_source text,p_source_ids text[]) returns uuid
+language plpgsql security definer set search_path=public as $$
+declare a connected_execution_accounts;t jsonb;prior account_closed_provider_outcomes;result uuid;begin
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ select * into a from connected_execution_accounts where id=p_account_id and customer_id=p_customer_id for update;
+ if not found or upper(a.provider) is distinct from p_provider or not ((p_provider='BINANCE' and upper(a.environment)='TESTNET') or (p_provider in('BYBIT','MT5_PERSONAL','MT5_PROP') and upper(a.environment)='DEMO')) then raise exception 'OUTCOME_ACCOUNT_SCOPE';end if;
+ if p_provider in('BINANCE','BYBIT') then select to_jsonb(x) into t from crypto_account_execution_truth x where id=p_execution_id and customer_id=a.customer_id and execution_account_id=a.id and lifecycle_state='CLOSED';else select to_jsonb(x) into t from mt5_account_execution_truth x where id=p_execution_id and customer_id=a.customer_id and execution_account_id=a.id and lifecycle_state in('TP2_CLOSED','CLOSED');end if;
+ if t is null or p_closed_at is null or p_closed_at>clock_timestamp()+interval '5 seconds' or p_closed_at<(t->>'created_at')::timestamptz or nullif(p_currency,'') is null or p_net_pnl is null or p_net_pnl in('NaN'::numeric,'Infinity'::numeric,'-Infinity'::numeric) or coalesce(cardinality(p_source_ids),0)=0 then raise exception 'OUTCOME_EVIDENCE_INCOMPLETE';end if;
+ if (p_provider='BINANCE' and p_source is distinct from 'BINANCE_USER_TRADES_AND_INCOME') or (p_provider='BYBIT' and p_source is distinct from 'BYBIT_CLOSED_PNL') or (p_provider like 'MT5_%' and p_source is distinct from 'MT5_DEALS') then raise exception 'OUTCOME_SOURCE_MISMATCH';end if;
+ select * into prior from account_closed_provider_outcomes where execution_account_id=a.id and execution_truth_id=p_execution_id;
+ if found then if row(prior.closed_at,prior.currency,prior.net_pnl,prior.source,prior.source_ids) is distinct from row(p_closed_at,p_currency,p_net_pnl,p_source,p_source_ids) then raise exception 'OUTCOME_CONTENT_CONFLICT';end if;return prior.id;end if;
+ insert into account_closed_provider_outcomes(customer_id,execution_account_id,execution_truth_id,provider,closed_at,currency,net_pnl,source,source_ids) values(a.customer_id,a.id,p_execution_id,p_provider,p_closed_at,p_currency,p_net_pnl,p_source,p_source_ids) returning id into result;return result;
+end$$;
+revoke all on function public.record_account_closed_provider_outcome(uuid,uuid,text,uuid,timestamptz,text,numeric,text,text[]) from public,anon,authenticated;
+grant execute on function public.record_account_closed_provider_outcome(uuid,uuid,text,uuid,timestamptz,text,numeric,text,text[]) to service_role;
+
+create function public.control_hashibot_release_schedule(p_actor uuid,p_name text default null,p_enabled boolean default null) returns jsonb
+language plpgsql security definer set search_path=public,pg_temp as $$
+declare names text[]:=ARRAY['hashibot_scheduled_market_scanner_5m','hashibot_outcomes_5m','hashibot_binance_monitor_1m','hashibot_bybit_monitor_1m','hashibot_account_authorization_1m','hashibot_account_commands_1m','hashibot_reporting_1m','hashibot_commerce_recovery_5m','hashibot_telegram_membership_1m','hashibot_agents_5m'];job_id bigint;result jsonb;begin
+ if auth.role() is distinct from 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED';end if;
+ if not exists(select 1 from profiles where id=p_actor and role='admin') then raise exception 'ADMIN_REQUIRED';end if;
+ if p_enabled is not null then
+  if p_name is null or not(p_name=any(names)) then raise exception 'KNOWN_RELEASE_SCHEDULE_REQUIRED';end if;
+  select jobid into job_id from cron.job where jobname=p_name;if job_id is null then raise exception 'INSTALL_RELEASE_SCHEDULES_FIRST';end if;
+  perform cron.alter_job(job_id,active:=p_enabled);
+  insert into phase_h_audit_events(customer_id,actor_id,event_type,safe_metadata) values(p_actor,p_actor,'RELEASE_SCHEDULE_CONTROLLED',jsonb_build_object('name',p_name,'active',p_enabled));
+ end if;
+ select coalesce(jsonb_agg(jsonb_build_object('name',n,'job_id',j.jobid,'active',coalesce(j.active,false),'installed',j.jobid is not null,'schedule',j.schedule) order by n),'[]'::jsonb) into result from unnest(names) n left join cron.job j on j.jobname=n;
+ return result;
+end$$;
+revoke all on function public.control_hashibot_release_schedule(uuid,text,boolean) from public,anon,authenticated;
+grant execute on function public.control_hashibot_release_schedule(uuid,text,boolean) to service_role;

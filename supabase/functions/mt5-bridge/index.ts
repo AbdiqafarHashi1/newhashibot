@@ -378,6 +378,7 @@ Deno.serve(async (req: Request) => {
           const lifecycleEvent = !payload.success ? "ORDER_REJECTED"
             : ["FILLED","FILL_CONFIRMED"].includes(rawState) ? "FILL_CONFIRMED"
             : ["PARTIAL","PARTIALLY_FILLED","PARTIAL_FILL"].includes(rawState) ? "PARTIAL_FILL"
+            : ["TP1_FILLED","BREAKEVEN_CONFIRMED","TP2_FILLED","POSITION_CLOSED","SUBMISSION_UNCERTAIN"].includes(rawState) ? rawState
             : rawState === "PROTECTION_CONFIRMED" ? "PROTECTION_CONFIRMED"
             : rawState === "PROTECTION_MISSING" ? "PROTECTION_MISSING"
             : rawState === "PROTECTION_FAILED" ? "PROTECTION_FAILED" : null;
@@ -456,7 +457,7 @@ Deno.serve(async (req: Request) => {
             trade_permission: (snap as Record<string, unknown>).trade_permission === true,
             terminal_autotrading: (snap as Record<string, unknown>).autotrading === true,
             terminal_authenticated: (snap as Record<string, unknown>).terminal_authenticated === true,
-            terminal_identity: { ...((snap as Record<string, unknown>).terminal as Record<string, unknown> ?? {}), provider_environment: (snap as Record<string, unknown>).environment },
+            terminal_identity: { ...((snap as Record<string, unknown>).terminal as Record<string, unknown> ?? {}), hedging: (snap as Record<string, unknown>).hedging === true, provider_environment: (snap as Record<string, unknown>).environment },
             open_positions_count: positions.length,
             pending_orders_count: orders.length,
             captured_at: nowIso,

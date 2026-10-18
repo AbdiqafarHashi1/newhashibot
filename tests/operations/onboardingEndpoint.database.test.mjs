@@ -12,7 +12,7 @@ test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: authenticate
   await db.exec(accountSchema);
   await db.exec(await readFile('supabase/migrations/20261015221031_customer_account_setup_integrity.sql','utf8'));
   const controls=await readFile('supabase/migrations/20261015225107_account_execution_routing_guards.sql','utf8');await db.exec(controls.slice(controls.indexOf('-- An administrator')));
-  const latest=await readFile('supabase/migrations/20261017014250_measured_execution_lineage.sql','utf8');await db.exec(latest.slice(latest.indexOf('-- Owner controls narrow')));
+  const latest=await readFile('supabase/migrations/20261017014250_measured_execution_lineage.sql','utf8');await db.exec(latest.slice(latest.indexOf('-- Owner controls narrow'),latest.indexOf('create function public.install_hashibot_release_schedules')));
   await db.query("insert into profiles values($1,'user'),($2,'admin')",[customer,other]);
   const roles={customer:{id:customer,user_metadata:{role:'admin'}},admin:{id:other}};
   const client={auth:{async getUser(token){return {data:{user:roles[token]??null},error:null}}},
