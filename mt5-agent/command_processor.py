@@ -1,3 +1,4 @@
+from managed_positions import ManagedPositions
 """
 HashiBot MT5 Agent - Command Processor
 Polls pending commands, dispatches execution to MT5, and returns execution acknowledgements.
@@ -14,6 +15,7 @@ class CommandProcessor:
     def __init__(self, cloud_client: CloudClient, mt5_client: MT5Client):
         self.cloud_client = cloud_client
         self.mt5_client = mt5_client
+        self.managed_positions = ManagedPositions(mt5_client, cloud_client)
 
     def process_pending_commands(self) -> int:
         commands = self.cloud_client.poll_commands()
@@ -64,6 +66,10 @@ class CommandProcessor:
                     self.cloud_client.ack_command(cmd_id, False, "MT5_COMMAND_EXPIRY_INVALID", "Invalid command expiry", {})
                     processed_count += 1
                     continue
+            if Config.DATA_ONLY and not read_only:
+                self.cloud_client.ack_command(cmd_id, False, "DATA_ONLY_COMMAND_FORBIDDEN", "Dedicated scanner feed cannot execute trades", {})
+                processed_count += 1
+                continue
             if not read_only:
                 gate = cmd.get("execution_context", {})
                 blockers = execution_blockers(ExecutionContext(**{
@@ -76,7 +82,7 @@ class CommandProcessor:
 
             try:
                 if operation in ["place_order", "place_entry"]:
-                    res = self.mt5_client.place_order(payload)
+                    res = self.managed_positions.execute(cmd_id,payload) if payload.get("certified") else self.mt5_client.place_order(payload)
                     success = res.get("success", False)
                     error_code = res.get("error_code")
                     error_message = res.get("error")
@@ -157,3 +163,4 @@ class CommandProcessor:
             processed_count += 1
 
         return processed_count
+

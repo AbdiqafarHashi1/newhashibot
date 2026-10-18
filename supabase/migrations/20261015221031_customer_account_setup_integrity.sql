@@ -95,7 +95,7 @@ begin
  insert into public.account_brain_assignments(customer_id,execution_account_id,brain_family,policy_version,risk_preference,strategy_permissions,assignment_reason,assigned_by) values(p_customer_id,p_account_id,family,'1.0.0',p_risk,canonical_strategies,'SERVER_APPROVED_ONBOARDING',p_customer_id) returning id into assignment;
  insert into public.customer_brain_change_requests values(p_customer_id,p_account_id,p_idempotency_key,content,assignment,now());
  -- A policy change stops new entries and requires re-certification; monitoring is preserved.
- update public.connected_execution_accounts set execution_enabled=false,phase_h_certification_status='REQUIRED',policy_profile_id=expected_id,policy_version='1.0.0',policy_preset=preset,policy_overrides=policy_overrides||jsonb_build_object('base_policy',p_policy,'policy_configuration',jsonb_build_object('preset',preset,'riskPerTradePct',p_risk,'allowedStrategies',strategy_ids)) where id=p_account_id and customer_id=p_customer_id;
+ update public.connected_execution_accounts set execution_enabled=false,phase_h_certification_status='REQUIRED',policy_profile_id=expected_id,policy_version='1.0.0',policy_preset=preset,policy_overrides=policy_overrides||jsonb_build_object('base_policy',p_policy,'policy_configuration',coalesce(policy_overrides->'policy_configuration','{}'::jsonb)||jsonb_build_object('preset',preset,'riskPerTradePct',p_risk,'allowedStrategies',strategy_ids)) where id=p_account_id and customer_id=p_customer_id;
  insert into public.phase_h_audit_events(customer_id,execution_account_id,actor_id,event_type,safe_metadata) values(p_customer_id,p_account_id,p_customer_id,'BRAIN_ASSIGNED',content);
  return jsonb_build_object('assignment_id',assignment,'family',family,'version','1.0.0');
 end $$;

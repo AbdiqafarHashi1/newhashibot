@@ -306,7 +306,7 @@ export class BinancePersonalBrain implements AccountExecutionBrain {
     }
 
     // 8. Leverage Limit Check
-    if (context.leverage > policy.max_leverage_allowed) {
+    if (!context.provider_contract && context.leverage > policy.max_leverage_allowed) {
       const levViolation = createRuleViolation({
         rule_id: "rule_binance_leverage_limit",
         rule_category: "RISK_CAP",

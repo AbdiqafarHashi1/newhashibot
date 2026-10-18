@@ -298,6 +298,22 @@ CREATE TABLE IF NOT EXISTS public.problem_symbol_quarantine (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+DO $bootstrap$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid='public.problem_symbol_quarantine'::regclass AND attname='occurrence_count' AND NOT attisdropped) THEN
+  ALTER TABLE public.problem_symbol_quarantine ADD COLUMN occurrence_count integer NOT NULL DEFAULT 1;
+  UPDATE public.problem_symbol_quarantine SET occurrence_count=failure_count;
+ END IF;
+END $bootstrap$;
+DO $overload$ DECLARE definition text; body text; acl aclitem[]; owner_name text; BEGIN
+ SELECT pg_get_functiondef(oid),prosrc,proacl,pg_get_userbyid(proowner) INTO definition,body,acl,owner_name FROM pg_proc WHERE oid='public.record_symbol_failure(text,text,text,jsonb,integer,integer)'::regprocedure;
+ IF position('p_metadata jsonb DEFAULT ''{}''::jsonb' in definition)=0 THEN RAISE EXCEPTION 'QUARANTINE_OVERLOAD_DEFAULT_PRECONDITION_FAILED'; END IF;
+ IF owner_name<>current_user THEN RAISE EXCEPTION 'QUARANTINE_OVERLOAD_OWNER_OR_CUSTOM_ACL_REVIEW_REQUIRED'; END IF;
+ DROP FUNCTION public.record_symbol_failure(text,text,text,jsonb,integer,integer);
+ EXECUTE replace(definition,'p_metadata jsonb DEFAULT ''{}''::jsonb','p_metadata jsonb');
+ IF EXISTS(SELECT 1 FROM pg_proc WHERE oid='public.record_symbol_failure(text,text,text,jsonb,integer,integer)'::regprocedure AND (prosrc IS DISTINCT FROM body OR proacl IS DISTINCT FROM acl)) THEN RAISE EXCEPTION 'QUARANTINE_OVERLOAD_BODY_OR_GRANTS_CHANGED'; END IF;
+END $overload$;
+ALTER TABLE public.problem_symbol_quarantine ADD COLUMN IF NOT EXISTS resolved boolean NOT NULL DEFAULT false, ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
+ALTER TABLE public.execution_provider_controls ADD COLUMN IF NOT EXISTS provider text GENERATED ALWAYS AS (provider_name) STORED, ADD COLUMN IF NOT EXISTS subsystem text;
 ALTER TABLE public.problem_symbol_quarantine ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "select_quarantine" ON public.problem_symbol_quarantine;

@@ -14,7 +14,7 @@ SET
   min_score = 72,
   min_rr = 1.3,
   max_bars_in_trade = 48,
-  allowed_timeframes = ARRAY['15m','1h'],
+  allowed_timeframes = '["15m","1h"]'::jsonb,
   params = jsonb_build_object(
     'tp1_r',                  1.2,
     'tp2_r',                  2.2,
@@ -43,7 +43,7 @@ SET
   min_score = 78,
   min_rr = 1.5,
   max_bars_in_trade = 96,
-  allowed_timeframes = ARRAY['15m','1h'],
+  allowed_timeframes = '["15m","1h"]'::jsonb,
   params = jsonb_build_object(
     'tp1_r',                    1.2,
     'tp2_r',                    2.2,

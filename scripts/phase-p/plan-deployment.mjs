@@ -50,7 +50,7 @@ export function plan(manifest,observed,reference){
   if(deployed?.some(f=>manifest.functions.find(m=>m.name===f.name)?.verifyJwt!==f.verifyJwt))add('DEPLOYED_FUNCTION_JWT_POLICY_DRIFT');
  }
  const pending=automatic.filter(m=>!seen.has(m.version));
- return {schemaVersion:1,status:blockers.length?'REFUSED':'REVIEWABLE_DRY_RUN',executionAllowed:false,activationAllowed:false,blockers:[...new Set(blockers)],remoteStatus:blockers.length?'UNKNOWN_OR_DRIFT':'INSPECTED_CONTENT_VERIFIED',pending:blockers.length?null:pending.map(m=>({path:m.path,version:m.version,sha256:m.sha256})),batches:blockers.length?null:manifest.batches.map(b=>({...b,migrations:b.migrations.filter(p=>pending.some(m=>m.path===p))})).filter(b=>b.migrations.length),edgeChanges:blockers.length?null:manifest.functions.filter(f=>!observed.deployedFunctions.data.some(d=>d.name===f.name&&d.closureSha256===f.closureSha256)).map(f=>({name:f.name,closureSha256:f.closureSha256})),preparedAutomaticPromotion:false};
+ return {schemaVersion:1,projectRef:observed?.projectRef??null,status:blockers.length?'REFUSED':'REVIEWABLE_DRY_RUN',executionAllowed:false,activationAllowed:false,blockers:[...new Set(blockers)],remoteStatus:blockers.length?'UNKNOWN_OR_DRIFT':'INSPECTED_CONTENT_VERIFIED',pending:blockers.length?null:pending.map(m=>({path:m.path,version:m.version,sha256:m.sha256})),batches:blockers.length?null:manifest.batches.map(b=>({...b,migrations:b.migrations.filter(p=>pending.some(m=>m.path===p))})).filter(b=>b.migrations.length),edgeChanges:blockers.length?null:manifest.functions.filter(f=>!observed.deployedFunctions.data.some(d=>d.name===f.name&&d.closureSha256===f.closureSha256)).map(f=>({name:f.name,closureSha256:f.closureSha256})),preparedAutomaticPromotion:false};
 }
 function main(){const args=process.argv.slice(2),get=flag=>args[args.indexOf(flag)+1],read=flag=>args.includes(flag)?JSON.parse(readFileSync(get(flag),'utf8')):null;
  const manifest=read('--manifest')??JSON.parse(readFileSync('docs/phase-p/deployment-manifest.json','utf8'));
@@ -60,3 +60,4 @@ function main(){const args=process.argv.slice(2),get=flag=>args[args.indexOf(fla
  console.log(JSON.stringify(result,null,2));if(result.status==='REFUSED')process.exitCode=2;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)main();
+

@@ -1,3 +1,4 @@
+import {installReleaseSchedules} from '../_shared/release-schedules.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -271,8 +272,15 @@ Deno.serve(async (req: Request) => {
     const admin = await verifyAdmin(req, supabase);
     if (!admin.ok) return jsonResponse({ success: false, error: admin.error }, admin.status);
 
-    const body = await req.json().catch(() => ({})) as { action?: string };
+    const body = await req.json().catch(() => ({})) as { action?: string; name?: string; enabled?: boolean };
     const action = body.action ?? "status";
+
+    if(action === "release_schedules"||action === "set_release_schedule"){
+      if(action === "set_release_schedule"&&(typeof body.name!=="string"||typeof body.enabled!=="boolean"))return jsonResponse({success:false,error:"SCHEDULE_NAME_AND_STATE_REQUIRED"},400);
+      const {data,error}=await supabase.rpc("control_hashibot_release_schedule",{p_actor:admin.userId,p_name:body.name??null,p_enabled:action === "set_release_schedule"?body.enabled:null});
+      return jsonResponse(error?{success:false,error:"RELEASE_SCHEDULE_CONTROL_FAILED"}:{success:true,jobs:data},error?409:200);
+    }
+    if(action === "install_release_schedules")return jsonResponse(await installReleaseSchedules(supabase,admin.userId!,supabaseUrl,key=>Deno.env.get(key)));
 
     if (action === "status") {
       return jsonResponse({ success: true, action, ...(await getSchedulerStatus(supabase)) });
@@ -328,3 +336,4 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ success: false, error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
 });
+

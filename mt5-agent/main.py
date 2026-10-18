@@ -69,6 +69,9 @@ class MT5AgentDaemon:
         Config.PASSWORD = credential["password"]
         Config.SERVER = credential["server"]
         self.credential_capability = credential["capability"]
+        if Config.DATA_ONLY and self.credential_capability != "investor":
+            self._release_single_instance_lock()
+            raise RuntimeError("DATA_ONLY_INVESTOR_CREDENTIAL_REQUIRED")
         self.heartbeat_mgr = HeartbeatManager(self.cloud_client, self.mt5_client)
         self.command_processor = CommandProcessor(self.cloud_client, self.mt5_client)
         self.state_sync_mgr = StateSyncManager(self.cloud_client, self.mt5_client)
@@ -135,7 +138,7 @@ class MT5AgentDaemon:
                 logger.error("operation=terminal_verify error_code=%s", proof.get("blocker"))
                 self.mt5_client.is_connected = False
                 return False
-            if proof.get("account", {}).get("environment") != "demo":
+            if proof.get("account", {}).get("environment") != "demo" and not (Config.DATA_ONLY and self.credential_capability == "investor"):
                 logger.error("operation=terminal_verify error_code=LIVE_EXECUTION_PROHIBITED")
                 self.mt5_client.is_connected = False
                 return False
@@ -151,54 +154,66 @@ class MT5AgentDaemon:
             return False
 
     def run(self):
-        self.connect_mt5()
+        self._run_stage("connect", self.connect_mt5)
         logger.info("[Daemon] Event loop active. Press Ctrl+C to stop.")
         
         while self.running:
             now = time.time()
 
-            if not self.mt5_client.check_connection():
+            if not self._run_stage("connection_health", self.mt5_client.check_connection):
                 if Config.ALLOW_OFFLINE_TEST_MODE:
                     # In offline test mode, process commands without looping indefinitely on reconnect
                     pass
                 else:
                     logger.warning("[Daemon] Connection lost or not established with MT5 terminal.")
                     time.sleep(self.reconnect_backoff)
-                    self.connect_mt5()
+                    self._run_stage("reconnect", self.connect_mt5)
                     self.reconnect_backoff = min(self.reconnect_backoff * 1.5, self.max_reconnect_backoff)
                     continue
 
             # 2. Heartbeat Tick
             if now - self.last_heartbeat >= Config.HEARTBEAT_INTERVAL_SECONDS:
-                self.heartbeat_mgr.send_heartbeat()
+                self._run_stage("heartbeat", self.heartbeat_mgr.send_heartbeat)
                 self.last_heartbeat = now
 
             # 3. State Synchronization Tick
-            if now - self.last_state_sync >= Config.STATE_SYNC_INTERVAL_SECONDS:
-                self.state_sync_mgr.sync_account_state()
+            if not Config.DATA_ONLY and now - self.last_state_sync >= Config.STATE_SYNC_INTERVAL_SECONDS:
+                self._run_stage("account_snapshot", self.state_sync_mgr.sync_account_state)
                 self.last_state_sync = now
 
             # 4. Symbol Specification Synchronization Tick
             if now - self.last_symbol_sync >= Config.SYMBOL_SYNC_INTERVAL_SECONDS:
-                acc_info = self.mt5_client.get_account_info()
+                acc_info = self._run_stage("symbol_account", self.mt5_client.get_account_info) or {}
                 acc_num = str(acc_info.get("login", ""))
                 if acc_num and acc_num != "0":
-                    self.symbol_sync_mgr.sync_symbol_specifications(account_id=Config.ACCOUNT_ID)
+                    self._run_stage("symbol_specs", lambda: self.symbol_sync_mgr.sync_symbol_specifications(account_id=Config.ACCOUNT_ID))
                 self.last_symbol_sync = now
 
             # Missing broker candles fail closed; no synthetic/provider fallback.
             if now - self.last_market_data >= Config.MARKET_DATA_INTERVAL_SECONDS:
-                self.market_data_publisher.publish(Config.ACCOUNT_ID)
+                self._run_stage("market_data", lambda: self.market_data_publisher.publish(Config.ACCOUNT_ID))
                 self.last_market_data = now
 
             # 5. Command Polling & Execution Tick
             if now - self.last_poll >= Config.POLL_INTERVAL_SECONDS:
-                self.command_processor.process_pending_commands()
+                self._run_stage("commands", self.command_processor.process_pending_commands)
+                if not Config.DATA_ONLY:
+                    self._run_stage("position_protection", self.command_processor.managed_positions.monitor)
                 self.last_poll = now
 
             time.sleep(0.2)
 
         self._shutdown()
+
+    @staticmethod
+    def _run_stage(name, action):
+        """An unavailable read or cloud request cannot terminate unrelated feed/protection stages."""
+        try:
+            return action()
+        except Exception as error:
+            # Do not log request bodies, credentials or provider response strings.
+            logger.warning("operation=runtime_stage stage=%s error_type=%s retry=scheduled", name, type(error).__name__)
+            return False
 
     def _shutdown(self):
         logger.info("[Daemon] Performing final shutdown operations...")

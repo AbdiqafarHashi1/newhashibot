@@ -94,12 +94,30 @@ ALTER TABLE public.problem_symbol_quarantine ENABLE ROW LEVEL SECURITY;`,
  rationale:'Append enrollments, renewals and churn after every original funnel field, preserving all metrics, invoker security, grants, approval fences and dormant agent controls.'
 
 }];
+const canonicalSourceHashes={
+  "supabase/migrations/20260530170000_020_c2_forex_signal_mode_parity.sql": "9c212e008158d1d98456cbcaeb5d005250fdb4a0f1a9d6f8ff40199051122c9e",
+  "supabase/migrations/20260605093000_038_end_to_end_strategy_scanner_parity_repair.sql": "3586837e1af4a685659b68cac3cb76e9d0877fee221f6b655402b9de2bc651cb",
+  "supabase/migrations/20260608120000_046_b6_real_binance_futures_bot_lifecycle.sql": "d8b699a429a18556ced4fa9820d8b29756fc5855b6812c73fe7a5cb91c22b64c",
+  "supabase/migrations/20260616090000_050_provider_neutral_bybit_dynamic_scanner.sql": "19778f727f9d528fecda1320f92f7b78002b9555f738963aad92288572efc595",
+  "supabase/migrations/20260622153740_088_trade_management_truth_table.sql": "b265b85d51c6d1a1fb5e8f9bd6a3a6bcea8f3097435a6980738072f2693d8220",
+  "supabase/migrations/20260708000000_092_retention_batch_cleanup_and_runtime_stability.sql": "81d8db8572eded103377cec616a23a8a8b8b51825798166c5840b3ca8187c1e2",
+  "supabase/migrations/20260708160000_097_crypto_execution_protection_closeout.sql": "e730150914b876a0897a72d13fab888e5aa72996a9d83a8380529e054103bbcd",
+  "supabase/migrations/20260710230322_20260710120000_097_runtime_monitor_schema_catchup.sql.sql": "6aa8d78f7bcae46d59478942771923cb171469c27581e755432377de5baa78f5",
+  "supabase/migrations/20260902120000_102_prop_personal_execution_mode_and_scanner_combined.sql": "ba32f7942a6d658f3686fa542247166d59e763583d5d0c0f4cacf119827822e0",
+  "supabase/migrations/20260926210000_phase_h_completion.sql": "0cbddd58d2b60e4584374a1717572383c79a76bdb03810cd61a89052647d162d",
+  "supabase/migrations/20261003120000_phase_m_lifecycle_publication_and_edits.sql": "a08c85957e6444880f7affbddb4381792596725be60d6fb127c2bb4ee68e4cd6",
+  "supabase/migrations/20261009120000_phase_n_certification_atomicity.sql": "754162afdc88ab4dec7b4e5b7c8726f8383a66759cca0ca996efacc8e309b35a",
+  "supabase/migrations/20261012120000_phase_o_completion_controls.sql": "90358c2fe849ca36e5629066060f5eed091a11b828b53be79855609785fefc80"
+};
+for(const repair of compatibilityRepairs)repair.canonicalSourceSha256=canonicalSourceHashes[repair.path];
 export function compatibleSql(path,sql,id){
  if(id!==compatibility.id)throw Error('UNKNOWN_COMPATIBILITY_PATH');
  const repair=compatibilityRepairs.find(r=>r.path===path);if(!repair)return {sql,changed:false};
+ if(hash(sql)===repair.canonicalSourceSha256)return {sql,changed:false,sourceSha256:hash(sql),executedSha256:hash(sql),identity:path,compatibilityId:id};
  if(hash(sql)!==repair.sourceSha256)throw Error('COMPATIBILITY_SOURCE_HASH_MISMATCH');
  if(sql.split(repair.original).length!==repair.occurrences+1)throw Error('COMPATIBILITY_LITERAL_COUNT_MISMATCH');
  let output=sql.replaceAll(repair.original,()=>repair.replacement);
  for(const literal of repair.additionalLiterals??[]){if(output.split(literal.original).length!==2)throw Error('COMPATIBILITY_LITERAL_COUNT_MISMATCH');output=output.replace(literal.original,()=>literal.replacement);}
  return {sql:output,changed:true,sourceSha256:hash(sql),executedSha256:hash(output),identity:path,compatibilityId:id};
 }
+

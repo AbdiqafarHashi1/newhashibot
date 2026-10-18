@@ -1,3 +1,4 @@
+import {validateAdminAccountControls} from '../_shared/admin-account-controls.ts';
 import {loadAccountOperationsDetail} from '../_shared/account-operations-detail.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -33,12 +34,13 @@ Deno.serve(async req=>{
   if(action==="recommend_brain"){const p=brain(String(body.provider),String(body.mode));return p?reply({state:"RECOMMENDED",data:{family:p[0],version:p[1],max_risk:p[2],strategies:p[3]}}):reply({state:"BLOCKED",reason:"UNSUPPORTED_PROVIDER_MODE"},422)}
   if(action==="complete_onboarding"){const {data:session,error:readError}=await service.from("customer_onboarding_sessions").select("id,preferences").eq("customer_id",user.id).order("updated_at",{ascending:false}).limit(1).maybeSingle();if(readError)throw readError;if(!session||session.preferences?.access!=="SIGNALS")return reply({state:"BLOCKED",reason:"SIGNAL_ONBOARDING_REQUIRED"},409);const {error}=await service.from("customer_onboarding_sessions").update({status:"COMPLETE",completed_at:new Date().toISOString()}).eq("id",session.id).eq("customer_id",user.id);if(error)throw error;return reply({state:"COMPLETE"})}
   if(action==="create_account_draft"){if(body.environment==="live")return reply({state:"BLOCKED",reason:"DEMO_ENVIRONMENT_REQUIRED"},422);const provider=String(body.provider),mode=String(body.mode);if(!allowedProviders.includes(provider)||!brain(provider,mode)||body.environment!==(provider==="BINANCE"?"testnet":"demo"))return reply({state:"BLOCKED",reason:"DEMO_ENVIRONMENT_REQUIRED"},422);const key=String(body.idempotency_key??"");if(!key||key.length>200)return reply({state:"BLOCKED",reason:"IDEMPOTENCY_KEY_REQUIRED"},422);const {data,error}=await service.rpc("create_customer_demo_account",{p_customer_id:user.id,p_provider:provider,p_mode:mode,p_label:safeText(body.display_label||`${provider} setup`,80),p_idempotency_key:key});if(error)throw error;return reply({state:"DRAFT",data},201)}
-  if(action==='admin_account_policy'||action==='admin_assign_brain'||action==='admin_account_detail'){
+  if(action==='admin_account_policy'||action==='admin_assign_brain'||action==='admin_account_detail'||action==='admin_account_controls'){
    const {data:profile,error:roleError}=await service.from('profiles').select('role').eq('id',user.id).maybeSingle();
    if(roleError||profile?.role!=='admin')return reply({state:'BLOCKED',reason:'ADMIN_REQUIRED'},403);
    const customer=String(body.customer_id??''),account=String(body.execution_account_id??'');
-   const {data:a,error:accountError}=await service.from('connected_execution_accounts').select('id,customer_id,provider,account_mode').eq('id',account).eq('customer_id',customer).maybeSingle();
+   const {data:a,error:accountError}=await service.from('connected_execution_accounts').select('*').eq('id',account).eq('customer_id',customer).maybeSingle();
    if(accountError||!a)return reply({state:'BLOCKED',reason:'ACCOUNT_OWNERSHIP_REQUIRED'},403);
+   if(action==='admin_account_controls'){const checked=validateAdminAccountControls(a,body);const {data,error}=await service.rpc('admin_set_account_controls',{p_actor:user.id,p_customer:customer,p_account:account,p_configuration:checked.configuration,p_prop_rules:checked.propRules});if(error)throw error;return reply({state:'SAVED',data});}
    if(action==='admin_account_detail')return reply({state:'LOADED',data:await loadAccountOperationsDetail(service,customer,account)});
    if(action==='admin_account_policy'){
     const {data,error}=await service.from('account_brain_assignments').select('id,brain_family,policy_version,risk_preference,strategy_permissions').eq('customer_id',customer).eq('execution_account_id',account).is('superseded_at',null).maybeSingle();

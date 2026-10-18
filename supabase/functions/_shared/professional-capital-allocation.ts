@@ -52,6 +52,8 @@ export interface CryptoContractSpecification {
   leverage_mode: "NONE" | "ISOLATED" | "CROSS";
   maximum_leverage: number;
   quote_currency: string;
+  account_currency?: string;
+  quote_to_account_conversion?: number;
 }
 
 export interface Mt5ContractSpecification {
@@ -201,15 +203,22 @@ interface CalculationResult {
   adjustments: CapitalAllocationPlan["precision_adjustments"] extends readonly (infer T)[] ? T[] : never;
 }
 
+export function cryptoQuoteConversion(spec:CryptoContractSpecification):number{
+ const same=!spec.account_currency||spec.account_currency===spec.quote_currency;
+ const rate=spec.quote_to_account_conversion;
+ if(same)return rate===undefined||rate===1?1:Number.NaN;
+ return typeof rate==='number'&&Number.isFinite(rate)&&rate>0?rate:Number.NaN;
+}
+
 function cryptoCalculation(risk: NonNullable<RiskDecision["authorized_envelope"]>, spec: CryptoContractSpecification, entry: number, stop: number): CalculationResult | null {
-  const distance = Math.abs(entry - stop);
-  if (!finitePositive(distance) || !finitePositive(spec.contract_multiplier)) return null;
-  const riskQuantity = risk.maximum_authorized_risk_amount / (distance * spec.contract_multiplier);
-  const notionalQuantity = Math.min(spec.maximum_notional, risk.maximum_notional ?? Infinity) / (entry * spec.contract_multiplier);
+  const distance = Math.abs(entry - stop),conversion=cryptoQuoteConversion(spec);
+  if (!finitePositive(distance) || !finitePositive(spec.contract_multiplier)||!finitePositive(conversion)) return null;
+  const riskQuantity = risk.maximum_authorized_risk_amount / (distance * spec.contract_multiplier*conversion);
+  const notionalQuantity = Math.min(spec.maximum_notional*conversion, risk.maximum_notional ?? Infinity) / (entry * spec.contract_multiplier*conversion);
   const raw = Math.min(riskQuantity, notionalQuantity);
   const quantity = floorToIncrement(Math.min(raw, spec.maximum_quantity), spec.quantity_step, spec.quantity_precision);
   const leverage = spec.product === "SPOT" ? 1 : Math.min(risk.leverage_ceiling, spec.maximum_leverage);
-  const notional = quantity * entry * spec.contract_multiplier;
+  const notional = quantity * entry * spec.contract_multiplier*conversion;
   return { raw_quantity: raw, quantity, quantity_unit: "BASE_ASSET", contract_quantity: quantity, lot_size: null, notional, margin: notional / leverage, leverage, adjustments: [{ field: "quantity", raw, adjusted: quantity, rule: `floor to ${spec.provider} quantity_step ${spec.quantity_step} at precision ${spec.quantity_precision}` }] };
 }
 
@@ -254,7 +263,7 @@ export function allocateCapital(context: CapitalAllocationContext): DeepReadonly
   const strategy = risk.approved_strategy_plan.strategy_plan, zone = strategy.entry_plan.zone, stop = strategy.risk_proposal.initial_stop;
   const entry = zone ? (zone.low + zone.high) / 2 : 0;
   const providerMatch = spec.provider === context.provider;
-  const contractValid = providerMatch && (spec.kind === "CRYPTO" ? [spec.quantity_step, spec.tick_size, spec.minimum_quantity, spec.maximum_quantity, spec.contract_multiplier, spec.maximum_leverage].every(finitePositive) : [spec.contract_size, spec.tick_size, spec.tick_value_account_currency, spec.minimum_lot, spec.maximum_lot, spec.lot_step, spec.maximum_leverage, spec.quote_to_account_conversion].every(finitePositive));
+  const contractValid = providerMatch && (spec.kind === "CRYPTO" ? [spec.quantity_step, spec.tick_size, spec.minimum_quantity, spec.maximum_quantity, spec.contract_multiplier, spec.maximum_leverage,cryptoQuoteConversion(spec)].every(finitePositive) : [spec.contract_size, spec.tick_size, spec.tick_value_account_currency, spec.minimum_lot, spec.maximum_lot, spec.lot_step, spec.maximum_leverage, spec.quote_to_account_conversion].every(finitePositive));
   if (!contractValid) add("allocation.contract_specification", 5, "REJECT", spec, "complete provider-specific contract", "contract", providerMatch ? "contract_specification_invalid" : "contract_provider_mismatch", "Contract specification must be complete and belong to the authorized provider."); else add("allocation.contract_specification", 5, "PASS", spec.provider, context.provider, "provider", "contract_specification_valid", "Provider contract specification is complete.");
   const tick = spec.tick_size;
   const alignedToTick = (value: number) => finitePositive(tick) && Math.abs((value / tick) - Math.round(value / tick)) <= 1e-7;
@@ -267,9 +276,9 @@ export function allocateCapital(context: CapitalAllocationContext): DeepReadonly
   const minimumQuantity = spec.kind === "CRYPTO" ? spec.minimum_quantity : spec.minimum_lot;
   if (!calculation || calculation.quantity < minimumQuantity) add("allocation.quantity.minimum", 8, "REJECT", calculation?.quantity ?? null, minimumQuantity, calculation?.quantity_unit ?? "quantity", "minimum_quantity_not_met", "Rounded quantity is below provider minimum."); else add("allocation.quantity.minimum", 8, "PASS", calculation.quantity, minimumQuantity, calculation.quantity_unit, "minimum_quantity_met", "Provider minimum quantity is met.");
   if (spec.kind === "CRYPTO") {
-    if (!calculation || calculation.notional < spec.minimum_notional) add("allocation.notional.minimum", 9, "REJECT", calculation?.notional ?? null, spec.minimum_notional, spec.quote_currency, "minimum_notional_not_met", "Rounded Crypto allocation is below provider minimum notional."); else add("allocation.notional.minimum", 9, "PASS", calculation.notional, spec.minimum_notional, spec.quote_currency, "minimum_notional_met", "Provider minimum notional is met.");
+    if (!calculation || calculation.notional < spec.minimum_notional*cryptoQuoteConversion(spec)) add("allocation.notional.minimum", 9, "REJECT", calculation?.notional ?? null, spec.minimum_notional*cryptoQuoteConversion(spec), spec.account_currency??spec.quote_currency, "minimum_notional_not_met", "Rounded Crypto allocation is below provider minimum notional."); else add("allocation.notional.minimum", 9, "PASS", calculation.notional, spec.minimum_notional*cryptoQuoteConversion(spec), spec.account_currency??spec.quote_currency, "minimum_notional_met", "Provider minimum notional is met.");
   } else add("allocation.notional.minimum", 9, "NOT_APPLICABLE", null, null, "notional", "mt5_minimum_lot_used", "MT5 uses minimum lot at gate 8.");
-  const providerMaximum = spec.kind === "CRYPTO" ? Math.min(spec.maximum_notional, envelope?.maximum_notional ?? Infinity) : envelope?.maximum_notional ?? Infinity;
+  const providerMaximum = spec.kind === "CRYPTO" ? Math.min(spec.maximum_notional*cryptoQuoteConversion(spec), envelope?.maximum_notional ?? Infinity) : envelope?.maximum_notional ?? Infinity;
   if (!calculation || calculation.notional > providerMaximum + 1e-9) add("allocation.exposure.maximum", 10, "REJECT", calculation?.notional ?? null, providerMaximum, account?.account_currency ?? "currency", "maximum_notional_exceeded", "Allocation exceeds provider or RiskDecision maximum notional."); else add("allocation.exposure.maximum", 10, "PASS", calculation?.notional ?? null, providerMaximum, account?.account_currency ?? "currency", "maximum_notional_respected", "Allocation remains within maximum notional.");
   if (!calculation || !envelope || calculation.leverage > envelope.leverage_ceiling + 1e-9) add("allocation.leverage", 11, "REJECT", calculation?.leverage ?? null, envelope?.leverage_ceiling ?? null, "x", "authorized_leverage_exceeded", "Allocation cannot exceed authorized leverage."); else add("allocation.leverage", 11, "PASS", calculation.leverage, envelope.leverage_ceiling, "x", "authorized_leverage_respected", "Allocation leverage respects risk authorization and provider cap.");
   const marginMaximum = Math.min(account?.available_margin ?? 0, envelope?.maximum_margin ?? Infinity);
@@ -353,10 +362,11 @@ export function calculateCapitalManagerPositionPlan(params: {
       expectedNotional=quantity*signal.entry_price*contractSize*observed.quote_to_account_conversion;
     }else{
       if(!Number.isFinite(observed.contract_multiplier)||observed.contract_multiplier<=0)return null;
-      contractSize=observed.contract_multiplier;riskPerPriceUnit=contractSize;
+      const conversion=cryptoQuoteConversion(observed);if(!finitePositive(conversion))return null;
+      contractSize=observed.contract_multiplier;riskPerPriceUnit=contractSize*conversion;
       quantity=floorToIncrement(Math.min(max,targetRiskAmount/(slDistance*riskPerPriceUnit)),step,observed.quantity_precision);
-      expectedNotional=quantity*signal.entry_price*contractSize;
-      if(!Number.isFinite(observed.minimum_notional)||observed.minimum_notional<0||!Number.isFinite(observed.maximum_notional)||observed.maximum_notional<=0||expectedNotional<observed.minimum_notional||expectedNotional>observed.maximum_notional)return null;
+      expectedNotional=quantity*signal.entry_price*contractSize*conversion;
+      if(!Number.isFinite(observed.minimum_notional)||observed.minimum_notional<0||!Number.isFinite(observed.maximum_notional)||observed.maximum_notional<=0||expectedNotional<observed.minimum_notional*conversion||expectedNotional>observed.maximum_notional*conversion)return null;
     }
     if(quantity<min||quantity>max)return null;
   }

@@ -1,0 +1,12 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {context,cryptoSpec,mt5Spec,upstream,at} from './support/planningFixture';
+import {planExecution} from '../../supabase/functions/_shared/professional-execution-planning';
+import {disabledAdoptionPolicy,revalidateAdoption} from '../../supabase/functions/_shared/professional-execution-adoption';
+test('actual Binance, Bybit and both MT5 plans preserve provider-specific leverage instructions at adoption',()=>{
+ for(const provider of ['BINANCE','BYBIT','MT5_PERSONAL','MT5_PROP'] as const){const forex=provider.startsWith('MT5'),plan=planExecution(context(upstream(provider,forex?'forex':'crypto'),forex?mt5Spec(provider as 'MT5_PERSONAL'|'MT5_PROP'):cryptoSpec(provider as 'BINANCE'|'BYBIT')));assert.equal(plan.status,'PLANNED');const environment=provider==='BINANCE'?'TESTNET':'DEMO',route=plan.routing!;
+ const policy:any={...disabledAdoptionPolicy(provider,environment),enabled:true,certification_state:environment==='TESTNET'?'CERTIFIED_TESTNET':'CERTIFIED_DEMO',rollout_percentage:100,account_ids:[route.account_id],execution_modes:[environment],customer_scope:{mode:'ALL_AUTHORIZED',customer_ids:[]},maximum_plan_age_ms:60000};
+ const truth:any={provider,environment,account_id:route.account_id,customer_id:null,execution_mode:environment,observed_at:at,freshness:'KNOWN',provider_health:'HEALTHY',account_health:'HEALTHY',provider_operational:true,available_margin:1000000,contract_fingerprint:plan.capital_allocation_plan.diagnostics.contract_fingerprint,capability_fingerprint:plan.capability_fingerprint,routing_fingerprint:plan.routing_fingerprint,execution_fingerprint:plan.execution_fingerprint,canonical_symbol:route.canonical_symbol,provider_symbol:route.provider_symbol,active_client_ids:[],conflicting_position:false,conflicting_open_entry:false,configuration_change_safe:true,prop:{account_mode:'MT5_PROP',policy_version:plan.risk_decision.authorized_envelope?.policy_version,session_allowed:true,news_allowed:true,holding_allowed:true}};
+ const result=revalidateAdoption(plan,policy,truth,at);assert.equal(result.allowed,true,provider+':'+result.reasons.join(','));
+ const broken=JSON.parse(JSON.stringify(plan));const instruction=broken.provider_configuration.find((x:any)=>x.action.includes('LEVERAGE'));instruction.provider_payload.requiredLeverage=Number(plan.capital_allocation_plan.allocation!.leverage)+1;assert.ok(revalidateAdoption(broken,policy,truth,at).reasons.includes('allocation_not_preserved'));
+ }
+});

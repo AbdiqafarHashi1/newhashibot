@@ -4,7 +4,7 @@
 -- ============================================================
 -- 1. Create Timestamp Indexes for Non-Critical Tables
 -- ============================================================
-CREATE INDEX IF NOT EXISTS idx_candles_timestamp ON public.candles(timestamp);
+CREATE INDEX IF NOT EXISTS idx_candles_timestamp ON public.candles(open_time);
 CREATE INDEX IF NOT EXISTS idx_candles_open_time ON public.candles(open_time);
 CREATE INDEX IF NOT EXISTS idx_indicator_snapshots_created_at ON public.indicator_snapshots(created_at);
 CREATE INDEX IF NOT EXISTS idx_scanner_runs_started_at ON public.scanner_runs(started_at);

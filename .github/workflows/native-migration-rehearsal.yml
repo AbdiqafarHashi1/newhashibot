@@ -1,0 +1,63 @@
+name: Native isolated migration rehearsal
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - supabase/migrations/**
+      - scripts/phase-p/**
+      - tests/phaseP/**
+      - .github/workflows/native-migration-rehearsal.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-migrations-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rehearse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    name: Native PostgreSQL ${{ matrix.postgres }}
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: [15, 17]
+    env:
+      HASHIBOT_REHEARSAL_PG_MAJOR: ${{ matrix.postgres }}
+      HASHIBOT_REHEARSAL_PUBLIC_DEFAULTS: ${{ matrix.postgres == 17 && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build pinned native extension image
+        run: bash scripts/phase-p/build-rehearsal.sh
+      - name: Fetch real Auth platform image
+        run: docker pull ghcr.io/supabase/gotrue:v2.197.0
+      - name: Run unchanged migration chain
+        id: unchanged
+        continue-on-error: true
+        run: node tests/phaseP/run-migration-rehearsal.mjs
+      - name: Run explicit compatibility chain separately
+        id: compatibility
+        continue-on-error: true
+        run: node tests/phaseP/run-migration-rehearsal.mjs deployment-compatibility-v1
+      - name: Preserve exact rehearsal results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-migration-rehearsal-pg${{ matrix.postgres }}-${{ github.run_id }}
+          path: |
+            work/phase-p/offline/*-result.json
+            work/phase-p/offline/*.log
+            work/phase-p/offline/*-catalog.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Require the unchanged chain to pass
+        if: always()
+        env:
+          UNCHANGED_RESULT: ${{ steps.unchanged.outcome }}
+          COMPATIBILITY_RESULT: ${{ steps.compatibility.outcome }}
+        run: |
+          test "$UNCHANGED_RESULT" = success
+          test "$COMPATIBILITY_RESULT" = success

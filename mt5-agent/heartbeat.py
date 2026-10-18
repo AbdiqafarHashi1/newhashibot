@@ -5,6 +5,7 @@ Maintains periodic heartbeats reporting agent and terminal health to the cloud r
 
 import socket
 from typing import Dict, Any
+from config import Config
 from cloud_client import CloudClient
 from mt5_client import MT5Client
 from logging_config import logger
@@ -26,12 +27,15 @@ class HeartbeatManager:
             "version": self.VERSION,
             "hostname": self.hostname,
             "mt5_connected": conn_healthy,
+            "terminal_connected": conn_healthy,
+            "terminal_authenticated": bool(conn_healthy and acc_info.get("login") == Config.ACCOUNT_NUMBER and acc_info.get("server") == Config.SERVER),
+            "data_only": Config.DATA_ONLY,
             "account_number": acc_info.get("login"),
             "broker": acc_info.get("broker"),
             "server": acc_info.get("server"),
             "terminal_build": term_info.get("build"),
             "terminal_path": term_info.get("path"),
-            "capabilities": [
+            "capabilities": ["test_connection", "sync_account", "fetch_history", "market_data"] if Config.DATA_ONLY else [
                 "place_order",
                 "modify_position",
                 "close_position",
@@ -50,3 +54,4 @@ class HeartbeatManager:
             logger.warning(f"[Heartbeat] Failed to deliver heartbeat for Bridge #{self.cloud_client.bridge_id}")
 
         return success
+

@@ -40,7 +40,8 @@ function functionHash(name: string): string {
   return createHash('sha256').update(source.slice(start, end)).digest('hex');
 }
 const ROOT_EVALUATOR_BASELINE = {
-  evalMicroScalper: '47493ac46780570d9a3cb268b6910f8a66cb67dbdc73b4181add04d663999774',
+  // Intentional ranging/range_chop compatibility repair; behavioral guard covered by phaseL/regimeSafety.
+  evalMicroScalper: 'e1d505d2c903d9b110ec107eef13cdcc0480f248f978ea64cea34dedd47bd356',
   evalQuickScalp: 'b111879bc1aed3ba2e7d0b029d1e14a2eaedbe5e8fe50c2dadeac8dc4efc7a40',
   evalCompressionBreakout: 'af23c123a433050e22bd6840f5e728356720e4fd0622f173c07eb39d882a810f',
   evalSwingContinuation: '7ba5c9a2e4648ce4c53b0df560474b4a312d11d35c362aceaa219daccd75cf8f',
@@ -170,3 +171,4 @@ assert.ok(Object.isFrozen(sized) && Object.isFrozen(sized.sizing), 'sized wrappe
 assert.throws(() => appendSizedExecutionPlan(acceptedPlan, { ...appendix, correlation_id: 'wrong' }), /correlation_mismatch/);
 
 console.log('professional strategy framework compatibility tests passed');
+

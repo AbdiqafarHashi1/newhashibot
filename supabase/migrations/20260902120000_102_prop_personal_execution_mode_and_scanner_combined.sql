@@ -2,6 +2,7 @@
 -- Description: Updates hashibot_scheduler_jobs to run combined market scanner (Crypto + Forex/Gold for MT5)
 --              and sets proper default execution_mode on mt5_accounts for Prop Firm Guardian vs Personal Growth.
 
+ALTER TABLE public.scanner_config ADD COLUMN IF NOT EXISTS signal_enable_forex boolean NOT NULL DEFAULT false;
 DO $$
 BEGIN
   -- 1. Update hashibot_scheduler_jobs payload for scanner to combined mode

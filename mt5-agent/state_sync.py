@@ -1,3 +1,5 @@
+import os
+from economic_calendar import read_economic_calendar
 """
 HashiBot MT5 Agent - State Synchronization Manager
 Periodically captures MT5 account balance, equity, margin, open positions, and orders,
@@ -47,7 +49,8 @@ class StateSyncManager:
             history=history,
             account_id=__import__('config').Config.ACCOUNT_ID or None,
             snapshot_extra={
-                "environment": acc_info.get("environment"), "history_coverage": getattr(self.mt5_client, "last_history_range", None),
+                "economic_calendar": read_economic_calendar(os.getenv("MT5_NEWS_CONTEXT_PATH",""),acc_info.get("login"),acc_info.get("server")),
+                "environment": acc_info.get("environment"), "hedging": acc_info.get("hedging"), "history_coverage": getattr(self.mt5_client, "last_history_range", None),
                 "margin_level": acc_info.get("margin_level"), "currency": acc_info.get("currency"),
                 "free_margin": acc_info.get("free_margin"),
                 "leverage": acc_info.get("leverage"), "account_name": acc_info.get("name"),

@@ -1,3 +1,5 @@
+import {microScalperRuntimeParams} from "../_shared/micro-scalper-runtime.ts";
+import {classifyMarketContext,arbitrationScore,arbitrationNoTradeReason,strategyIdentityFit,marketRoleFit,strategyFreshnessScore,scoreBreakdownNumber,scoreBreakdownBool,overextensionPenalty,type MarketContext} from "../_shared/scanner-market-context.ts";
 import {measuredRuntimeConfiguration} from "../_shared/measured-strategy-runtime.ts";
 import {drainProductionAccountAuthorizations} from '../_shared/production-account-authorization.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -758,245 +760,6 @@ interface EvalEntry {
   plan: DeepReadonly<StrategyPlan>;
 }
 
-interface MarketContext {
-  regime: string;
-  trend_strength: number;
-  momentum_strength: number;
-  volatility_expansion: number;
-  volatility_contraction: number;
-  compression_state: number;
-  range_state: number;
-  chop_level: number;
-  atr_regime: string;
-  distance_from_ema_atr: number;
-  overextension: number;
-  breakout_state: number;
-  pullback_state: number;
-  reclaim_state: number;
-  preferred_strategy: StrategyName | "none";
-  mixed_market: boolean;
-  opportunity_score: number;
-  expected_move_bucket: string;
-  risk_quality: string;
-  liquidity_quality: string;
-  strategy_match: string;
-  recent_move_pct: number;
-  invalidation_distance_atr: number;
-}
-
-function classifyMarketContext(ind: Indicators, candles: Candle[]): MarketContext {
-  const last = candles[candles.length - 1];
-  const prev = candles[candles.length - 2] ?? last;
-  const atr = Math.max(ind.atr14, 0);
-  const price = Math.max(last?.close ?? 0, 0);
-  const emaSpreadAtr = atr > 0 ? Math.abs(ind.ema20 - ind.ema50) / atr : 0;
-  const distanceFromEmaAtr = atr > 0 ? Math.abs(price - ind.ema20) / atr : 0;
-  const bodyAtr = atr > 0 ? Math.abs(last.close - last.open) / atr : 0;
-  const barRangeAtr = atr > 0 ? (last.high - last.low) / atr : 0;
-  const recentHigh = ind.recent_high;
-  const recentLow = ind.recent_low;
-  const breakoutUp = atr > 0 && last.close > recentHigh - atr * 0.10 && last.close > last.open;
-  const breakoutDn = atr > 0 && last.close < recentLow + atr * 0.10 && last.close < last.open;
-  const trendStrength = clampScore(Math.min(1, emaSpreadAtr / 2.2) * 58 + (ind.regime.startsWith("trend") ? 24 : 0) + (Math.abs(ind.rsi14 - 50) / 50) * 18);
-  const momentumStrength = clampScore(Math.abs(ind.momentum_score) * 60 + Math.min(bodyAtr, 1.2) * 28 + ((last.close > prev.close) === (ind.momentum_score >= 0) ? 12 : 0));
-  const volatilityExpansion = clampScore(Math.min(barRangeAtr / 1.6, 1.4) * 72 + (ind.atr_pct > 2 ? 18 : 0));
-  const volatilityContraction = clampScore(Math.max(0, 1 - ind.range_compression_ratio) * 85 + (ind.atr_pct < 0.5 ? 15 : 0));
-  const compressionState = clampScore(Math.max(0, 1 - ind.range_compression_ratio / 0.75) * 100);
-  const rangeState = clampScore((ind.rsi14 > 45 && ind.rsi14 < 55 ? 45 : 0) + Math.max(0, 1 - emaSpreadAtr / 1.4) * 35 + (ind.range_compression_ratio > 0.70 ? 20 : 0));
-  const chopLevel = clampScore(rangeState * 0.65 + (bodyAtr < 0.22 ? 20 : 0) + (Math.abs(ind.momentum_score) < 0.2 ? 15 : 0));
-  const overextension = clampScore(Math.min(distanceFromEmaAtr / 2.4, 1.4) * 100);
-  const breakoutState = clampScore((breakoutUp || breakoutDn ? 55 : 0) + volatilityExpansion * 0.30 + compressionState * 0.15);
-  const pullbackState = clampScore((distanceFromEmaAtr <= 0.9 ? 45 : 0) + trendStrength * 0.35 + (bodyAtr >= 0.20 ? 20 : 0));
-  const reclaimState = clampScore(((last.close > ind.ema20 && last.close > last.open) || (last.close < ind.ema20 && last.close < last.open) ? 40 : 0) + pullbackState * 0.45 + momentumStrength * 0.15);
-  const atrRegime = ind.atr_pct > 3.5 ? "very_high" : ind.atr_pct > 2.0 ? "high" : ind.atr_pct < 0.15 ? "very_low" : ind.atr_pct < 0.5 ? "low" : "normal";
-  const recentMovePct = price > 0 && candles.length > 12 ? Math.abs(((price - candles[candles.length - 12].close) / price) * 100) : 0;
-  const invalidationDistanceAtr = atr > 0 ? Math.max(0.1, distanceFromEmaAtr) : 0;
-
-  let preferred_strategy: StrategyName | "none" = "none";
-  if (compressionState >= 58 && breakoutState >= 58 && overextension < 75 && chopLevel < 72) preferred_strategy = "CompressionBreakout";
-  else if (trendStrength >= 62 && reclaimState >= 58 && chopLevel < 58 && overextension < 82) preferred_strategy = "SwingContinuation";
-  else if (momentumStrength >= 72 && overextension < 58 && volatilityExpansion >= 55 && chopLevel < 52) preferred_strategy = "QuickScalp";
-  else if (momentumStrength >= 58 && overextension < 72 && volatilityExpansion >= 38 && chopLevel < 68) preferred_strategy = "MicroScalper";
-
-  const positiveStates = [
-    momentumStrength >= 55 && overextension < 72,
-    compressionState >= 55 && breakoutState >= 55,
-    trendStrength >= 60 && reclaimState >= 55,
-  ].filter(Boolean).length;
-  const mixed_market = preferred_strategy === "none" || positiveStates !== 1 || chopLevel >= 72;
-
-  const opportunityScore = clampScore(
-    trendStrength * 0.20 + momentumStrength * 0.18 + volatilityExpansion * 0.14 +
-    compressionState * 0.10 + breakoutState * 0.13 + (100 - chopLevel) * 0.13 +
-    Math.max(0, 100 - overextension) * 0.07 + Math.min(recentMovePct * 8, 100) * 0.05,
-  );
-  const expectedMoveBucket = opportunityScore >= 78 && ind.atr_pct >= 0.7 ? "1-2pct_clean_move" : opportunityScore >= 65 ? "0.5-1pct_profit_lock_candidate" : "low_expected_move";
-  const riskQuality = overextension > 82 || chopLevel > 76 ? "poor" : overextension < 65 && chopLevel < 62 ? "clean" : "mixed";
-  const liquidityQuality = ind.avg_volume > 0 ? "available" : "unknown";
-
-  return {
-    regime: ind.regime, trend_strength: trendStrength, momentum_strength: momentumStrength,
-    volatility_expansion: volatilityExpansion, volatility_contraction: volatilityContraction,
-    compression_state: compressionState, range_state: rangeState, chop_level: chopLevel,
-    atr_regime: atrRegime, distance_from_ema_atr: parseFloat(distanceFromEmaAtr.toFixed(3)),
-    overextension, breakout_state: breakoutState, pullback_state: pullbackState, reclaim_state: reclaimState,
-    preferred_strategy, mixed_market, opportunity_score: opportunityScore, expected_move_bucket: expectedMoveBucket,
-    risk_quality: riskQuality, liquidity_quality: liquidityQuality, strategy_match: preferred_strategy,
-    recent_move_pct: parseFloat(recentMovePct.toFixed(3)), invalidation_distance_atr: parseFloat(invalidationDistanceAtr.toFixed(3)),
-  };
-}
-
-function marketRoleFit(e: EvalEntry, ctx: MarketContext): number {
-  if (e.name === "QuickScalp") {
-    return clampScore(ctx.momentum_strength * 0.34 + ctx.volatility_expansion * 0.24 + (100 - ctx.overextension) * 0.24 + (100 - ctx.chop_level) * 0.18);
-  }
-  if (e.name === "MicroScalper" || e.name === "ForexMicroScalper") {
-    return clampScore(ctx.momentum_strength * 0.38 + (100 - ctx.overextension) * 0.24 + ctx.volatility_expansion * 0.20 + (100 - ctx.chop_level) * 0.18);
-  }
-  if (e.name === "CompressionBreakout") {
-    return clampScore(ctx.compression_state * 0.30 + ctx.breakout_state * 0.34 + ctx.volatility_expansion * 0.18 + (100 - Math.max(ctx.overextension, ctx.chop_level)) * 0.18);
-  }
-  if (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") {
-    return clampScore(ctx.trend_strength * 0.34 + ctx.reclaim_state * 0.28 + ctx.pullback_state * 0.18 + (100 - ctx.chop_level) * 0.20);
-  }
-  return 50;
-}
-
-function strategyFreshnessScore(e: EvalEntry, ctx: MarketContext): number {
-  const b = e.result.score_breakdown;
-  if (e.name === "CompressionBreakout") {
-    const breakoutFreshness = scoreBreakdownNumber(b, "breakout_freshness_score");
-    return breakoutFreshness > 0 ? breakoutFreshness : clampScore(100 - Math.max(0, scoreBreakdownNumber(b, "breakout_distance_atr") - 0.35) * 42);
-  }
-  if (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") {
-    const strictReclaim = scoreBreakdownBool(b, "strict_reclaim_confirmed");
-    const reclaimByQuality = scoreBreakdownBool(b, "reclaim_by_quality");
-    return clampScore((strictReclaim ? 78 : reclaimByQuality ? 56 : 35) + ctx.reclaim_state * 0.16 + (100 - ctx.chop_level) * 0.06);
-  }
-  if (e.name === "QuickScalp") {
-    const extension = scoreBreakdownNumber(b, "price_extension_atr");
-    return clampScore(94 - Math.max(0, extension - 0.6) * 34 + ctx.momentum_strength * 0.08 + ctx.volatility_expansion * 0.06);
-  }
-  if (e.name === "MicroScalper" || e.name === "ForexMicroScalper") {
-    const extension = scoreBreakdownNumber(b, "price_extension_atr");
-    return clampScore(88 - Math.max(0, extension - 0.8) * 22 - (scoreBreakdownBool(b, "chase_risk") ? 28 : 0) + ctx.momentum_strength * 0.10);
-  }
-  return 55;
-}
-
-function arbitrationNoTradeReason(ctx: MarketContext, entries: EvalEntry[]): string {
-  if (entries.length === 0) return "";
-  const top = entries[0];
-  const topScore = arbitrationScore(top, ctx);
-  const hasAPlus = entries.some((entry) => entry.result.grade === "A+");
-  if (ctx.chop_level >= 76 && !hasAPlus) return "mixed_choppy_market_requires_a_plus";
-  if (ctx.mixed_market && ctx.preferred_strategy === "none" && !hasAPlus) return "mixed_market_no_clear_strategy_requires_a_plus";
-  if (ctx.mixed_market && top.result.grade !== "A+" && topScore < 0.68) return "mixed_market_expected_value_too_low";
-  return "";
-}
-
-function scoreBreakdownNumber(breakdown: Record<string, number | string | boolean>, key: string): number {
-  const value = breakdown?.[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function scoreBreakdownBool(breakdown: Record<string, number | string | boolean>, key: string): boolean {
-  return breakdown?.[key] === true || breakdown?.[key] === "true" || breakdown?.[key] === "passed";
-}
-
-function strategyIdentityFit(e: EvalEntry): number {
-  const b = e.result.score_breakdown;
-  if (e.name === "CompressionBreakout") {
-    return clampScore(
-      scoreBreakdownNumber(b, "compression_score") * 0.30 +
-      scoreBreakdownNumber(b, "breakout_score") * 0.35 +
-      scoreBreakdownNumber(b, "atr_expansion_score") * 0.18 +
-      scoreBreakdownNumber(b, "momentum_score") * 0.17 +
-      (scoreBreakdownBool(b, "near_compression_ready") ? 6 : 0),
-    );
-  }
-  if (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") {
-    return clampScore(
-      scoreBreakdownNumber(b, "trend_score") * 0.30 +
-      scoreBreakdownNumber(b, "pullback_score") * 0.28 +
-      scoreBreakdownNumber(b, "momentum_score") * 0.22 +
-      scoreBreakdownNumber(b, "ema_slope_score") * 0.10 +
-      scoreBreakdownNumber(b, "rr_score") * 0.10,
-    );
-  }
-  if (e.name === "QuickScalp") {
-    return clampScore(
-      scoreBreakdownNumber(b, "volume_expansion_score") * 0.18 +
-      scoreBreakdownNumber(b, "liquidity_score") * 0.12 +
-      scoreBreakdownNumber(b, "ema_alignment_score") * 0.18 +
-      scoreBreakdownNumber(b, "momentum_acceleration_score") * 0.24 +
-      scoreBreakdownNumber(b, "atr_expansion_score") * 0.14 +
-      scoreBreakdownNumber(b, "impulse_quality_score") * 0.14,
-    );
-  }
-  if (e.name === "MicroScalper") {
-    // Mirrors evalMicroScalper final score weights: trend 0.24, momentum 0.22,
-    // rsi 0.18, body 0.12, volatility 0.12, rr 0.12
-    return clampScore(
-      scoreBreakdownNumber(b, "trend_score") * 0.24 +
-      scoreBreakdownNumber(b, "momentum_score") * 0.22 +
-      scoreBreakdownNumber(b, "rsi_score") * 0.18 +
-      scoreBreakdownNumber(b, "candle_body_score") * 0.12 +
-      scoreBreakdownNumber(b, "volatility_score") * 0.12 +
-      scoreBreakdownNumber(b, "rr_score") * 0.12,
-    );
-  }
-  if (e.name === "ForexMicroScalper") {
-    return clampScore(
-      scoreBreakdownNumber(b, "trend_score") * 0.25 +
-      scoreBreakdownNumber(b, "momentum_score") * 0.25 +
-      scoreBreakdownNumber(b, "candle_score") * 0.20 +
-      scoreBreakdownNumber(b, "spread_or_distance_score") * 0.20 +
-      scoreBreakdownNumber(b, "rr_score") * 0.10,
-    );
-  }
-  return clampScore(
-    scoreBreakdownNumber(b, "trend_score") * 0.25 +
-    scoreBreakdownNumber(b, "momentum_score") * 0.25 +
-    scoreBreakdownNumber(b, "rsi_score") * 0.18 +
-    scoreBreakdownNumber(b, "candle_body_score") * 0.14 +
-    scoreBreakdownNumber(b, "rr_score") * 0.18,
-  );
-}
-
-function overextensionPenalty(e: EvalEntry): number {
-  const b = e.result.score_breakdown;
-  let penalty = 0;
-  if (scoreBreakdownBool(b, "chase_risk")) penalty += 0.10;
-  const extensionAtr = scoreBreakdownNumber(b, "price_extension_atr");
-  if (extensionAtr > 2.0) penalty += Math.min((extensionAtr - 2.0) * 0.04, 0.12);
-  const bodyAtr = scoreBreakdownNumber(b, "body_atr");
-  if ((e.name === "MicroScalper" || e.name === "ForexMicroScalper") && bodyAtr > 1.35) penalty += 0.04;
-  return penalty;
-}
-
-function arbitrationScore(e: EvalEntry, ctx?: MarketContext): number {
-  const r = e.result;
-  const g = e.guard;
-  const scorePct = r.confidence_score / 100;
-  const rrPct = Math.min(r.risk_reward / 3.5, 1);
-  const slMargin = g.sl_pct > 0 && e.cfg.min_stop_distance_pct > 0 ? Math.min(Math.max((g.sl_pct - e.cfg.min_stop_distance_pct) / e.cfg.min_stop_distance_pct, 0), 1) : 0.5;
-  const tp1Margin = g.tp1_pct > 0 && e.cfg.min_tp1_distance_pct > 0 ? Math.min(Math.max((g.tp1_pct - e.cfg.min_tp1_distance_pct) / e.cfg.min_tp1_distance_pct, 0), 1) : 0.5;
-  const tp2Margin = g.tp2_pct > 0 && e.cfg.min_tp2_distance_pct > 0 ? Math.min(Math.max((g.tp2_pct - e.cfg.min_tp2_distance_pct) / e.cfg.min_tp2_distance_pct, 0), 1) : 0.5;
-  const distMargin = (slMargin + tp1Margin + tp2Margin) / 3;
-  const gradePct = gradeIndex(r.grade) / 3;
-  const identityPct = strategyIdentityFit(e) / 100;
-  const roleFitPct = ctx ? marketRoleFit(e, ctx) / 100 : identityPct;
-  const freshnessPct = ctx ? strategyFreshnessScore(e, ctx) / 100 : 0.55;
-  const preferredBonus = ctx?.preferred_strategy === e.name ? 0.05 : 0;
-  const gradeQualityBonus = r.grade === "A+" ? 0.04 : r.grade === "A" ? 0.015 : 0;
-  const mixedMarketPenalty = ctx?.mixed_market && r.grade !== "A+" ? 0.04 : 0;
-  const swingChopPenalty = ctx && (e.name === "SwingContinuation" || e.name === "ForexSwingContinuation") && ctx.chop_level >= 58 && r.grade !== "A+" ? 0.09 : 0;
-  const opportunityPct = ctx ? ctx.opportunity_score / 100 : 0.55;
-  const riskQualityPenalty = ctx?.risk_quality === "poor" ? 0.08 : ctx?.risk_quality === "mixed" ? 0.025 : 0;
-  return parseFloat(Math.max(0, (scorePct * 0.18) + (identityPct * 0.13) + (roleFitPct * 0.20) + (freshnessPct * 0.08) + (opportunityPct * 0.12) + (rrPct * 0.14) + (distMargin * 0.08) + (gradePct * 0.07) + gradeQualityBonus + preferredBonus - mixedMarketPenalty - swingChopPenalty - overextensionPenalty(e) - riskQualityPenalty).toFixed(4));
-}
-
 function arbitrationLossReason(entry: EvalEntry, selected: EvalEntry | undefined, ctx: MarketContext): string {
   if (!selected) return "no_selected_candidate";
   const reasons: string[] = [];
@@ -1104,66 +867,6 @@ function scoreBreakdownWithExpiry(scoreBreakdown: Record<string, number | string
   };
 }
 
-function microScalperRuntimeParams(cfg: StrategyConfig, timeframe: string): { params: Record<string, number>; config_source: "db" | "fallback" | "runtime_override"; base_config_source: "db" | "fallback"; runtime_overrides: string[] } {
-  const calibrated15m: Record<string, number> = {
-    min_score: 72,
-    min_rr: 1.2,
-    stop_atr_mult: 1.4,
-    tp1_r: 1.2,
-    tp2_r: 1.8,
-    min_body_atr: 0.30,
-    rsi_buy_min: 52,
-    rsi_sell_max: 48,
-    max_bars_in_trade: 24,
-    momentum_lookback: 3,
-    min_atr_pct: 0.10,
-    max_atr_pct: 3.0,
-    crypto_behavior_tuning: 1,
-  };
-  const calibrated5m: Record<string, number> = {
-    ...calibrated15m,
-    // Keep scanner 5m aligned with the successful live-like 5m CSV/backtest
-    // path unless DB explicitly provides timeframe-specific overrides.
-    rsi_buy_min: calibrated15m.rsi_buy_min,
-    rsi_sell_max: calibrated15m.rsi_sell_max,
-    stop_atr_mult: calibrated15m.stop_atr_mult,
-    max_bars_in_trade: calibrated15m.max_bars_in_trade,
-  };
-  const calibrated = timeframe === "5m" ? calibrated5m : calibrated15m;
-  const runtimeOverrides: string[] = [];
-  const params: Record<string, number> = { ...calibrated, ...cfg.params };
-
-  // The live scanner has a single DB strategy_config row for MicroScalper. Keep
-  // 5m on the same calibrated surface as the successful 5m CSV/backtest path
-  // unless the DB has explicit timeframe-specific keys.
-  if (timeframe === "5m") {
-    const timeframeKeys: Record<string, string> = {
-      rsi_buy_min: "rsi_buy_min_5m",
-      rsi_sell_max: "rsi_sell_max_5m",
-      stop_atr_mult: "stop_atr_mult_5m",
-      max_bars_in_trade: "max_bars_in_trade_5m",
-    };
-    for (const [key, tfKey] of Object.entries(timeframeKeys)) {
-      const explicit = cfg.params[tfKey];
-      const next = typeof explicit === "number" && Number.isFinite(explicit) ? explicit : (calibrated5m[key] ?? params[key] ?? 0);
-      if (params[key] !== next) runtimeOverrides.push(key);
-      params[key] = next;
-    }
-  }
-
-  params.min_score = cfg.min_score > 0 ? cfg.min_score : calibrated.min_score;
-  params.min_rr = cfg.min_rr > 0 ? cfg.min_rr : calibrated.min_rr;
-  if (cfg.max_bars_in_trade > 0 && timeframe !== "5m") params.max_bars_in_trade = cfg.max_bars_in_trade;
-  if (timeframe === "5m" && cfg.params.max_bars_in_trade_5m === undefined) params.max_bars_in_trade = calibrated5m.max_bars_in_trade;
-  params.crypto_behavior_tuning = 1;
-
-  return {
-    params,
-    config_source: runtimeOverrides.length > 0 ? "runtime_override" : cfg.config_source,
-    base_config_source: cfg.config_source,
-    runtime_overrides: runtimeOverrides,
-  };
-}
 
 function withMicroScalperDiagnostics(result: EvalResult, cfg: StrategyConfig, runtime: ReturnType<typeof microScalperRuntimeParams>): EvalResult {
   const raw = String(result.rejection_reason || result.score_breakdown?.raw_rejection_reason || result.score_breakdown?.primary_failed_gate || "passed");
@@ -2392,7 +2095,7 @@ async function runScanPipeline(
     if (cryptoFetchCache.has(key)) return cryptoFetchCache.get(key) ?? null;
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
-    const value = await fetchBinanceCandles(symbol, tf, 110);
+    const value = await fetchBinanceCandles(symbol, tf, 111);
     cryptoFetchCache.set(key, value);
     return value;
   }
@@ -2581,7 +2284,7 @@ async function runScanPipeline(
           errors.push(`[SKIP] ${sym.symbol} ${tf} ${reason}`);
           continue;
         }
-        candles = admitted.candles;
+        candles = marketType === "crypto" ? admitted.candles.slice(-110) : admitted.candles;
         candlesFetched += candles.length;
 
         if (!SCANNER_DISABLE_CANDLE_PERSISTENCE) {
@@ -2612,7 +2315,10 @@ async function runScanPipeline(
         if (marketType === "crypto" && tf === "5m") {
           try {
             const fetched15m = await fetchCryptoCandlesForRun(sym.symbol, "15m");
-            if (fetched15m && fetched15m.length >= 55) fifteenMinuteCandles = fetched15m;
+            if (fetched15m) {
+              const closed15m=admitClosedRuntimeCandles(fetched15m,15,Date.parse(candleCloseTime));
+              if(!closed15m.rejection&&closed15m.candles.length>=55)fifteenMinuteCandles=closed15m.candles.slice(-110);
+            }
           } catch (htfErr) {
             errors.push(`[WARN] MicroScalper ${sym.symbol} 5m HTF confirmation unavailable: ${htfErr instanceof Error ? htfErr.message : String(htfErr ?? "unknown")}`);
           }
@@ -2753,13 +2459,13 @@ async function runScanPipeline(
           entry: (entry.result.entry_low + entry.result.entry_high) / 2, stop: entry.result.stop_loss,
           targets: [entry.result.tp1, entry.result.tp2], riskReward: entry.result.risk_reward,
           expiry: new Date(Date.now() + entry.cfg.max_bars_in_trade * (timeframeMinutes(tf) ?? 5) * 60_000).toISOString(), fresh: true,
-          lifecycle: "ENABLED", publicationMode: "LIVE", evidence: { legacy_index: index }, rejectionReasons: [],
+          lifecycle: "ENABLED", publicationMode: "LIVE", evidence: { legacy_index: index, adaptive_policy_approved: entry.cfg.params.market_adaptation_enabled === 1 }, rejectionReasons: [],
           priority: strategyIdentityFit(entry), eligible: true,
         }));
         const byCandidateId = new Map(passingEntries.map((entry) => [String((entry as EvalEntry & { _candidateId: string })._candidateId), entry]));
         const decisionStarted = Date.now();
         let noTradeReason = "";
-        const arbitrationDecision = arbitrateActiveScanner(arbitrationInput, { now: new Date(), noTradePolicy: (ranked) => {
+        const arbitrationDecision = arbitrateActiveScanner(arbitrationInput, { now: new Date(), marketContext, noTradePolicy: (ranked) => {
           const rankedEntries = ranked.map((candidate) => byCandidateId.get(candidate.id)!).filter(Boolean);
           noTradeReason = arbitrationNoTradeReason(marketContext, rankedEntries);
           return noTradeReason || undefined;

@@ -52,3 +52,6 @@ export const syncMT5Account=(accountId:string)=>action({action:'sync_account',ac
 export const requestMT5OperationalAdoption=(accountId:string)=>action({action:'request_operational_adoption',accountId});
 export const replaceMT5DemoMasterCredential=(accountId:string,password:string)=>action({action:'replace_demo_master_credential',accountId,password});
 export const removeMT5Account=(accountId:string)=>action({action:'remove',accountId});
+
+
+export const configureMT5ScannerFeed=(accountId:string,feedIdentity:string,enabled:boolean)=>action({action:'configure_scanner_feed',accountId,feedIdentity,enabled});

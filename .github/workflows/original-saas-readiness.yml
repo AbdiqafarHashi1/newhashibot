@@ -24,10 +24,14 @@ jobs:
       - run: python3 -m pip install python-dotenv==1.2.4
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run check:edge-bundles
       - run: npm run typecheck:account-authorization
       - run: npm run build
       - run: npm run test:operations-readiness
       - run: python3 -m unittest discover -s mt5-agent/tests
+      - run: npm run test:strategies
+      - run: npm run test:phase-l
+      - run: npm run test:indicators-arbitrator
       - run: npm run test:phase-i
       - run: npm run test:phase-m
       - run: npm run test:phase-p

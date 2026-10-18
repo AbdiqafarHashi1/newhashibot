@@ -115,6 +115,7 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION public.admin_reset_trading_history();
 CREATE OR REPLACE FUNCTION public.admin_reset_trading_history()
 RETURNS jsonb
 LANGUAGE plpgsql

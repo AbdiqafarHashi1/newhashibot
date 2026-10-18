@@ -131,6 +131,7 @@ class MT5Client:
         acc = mt5.account_info()
         return {
             "login": acc.login,
+            "hedging": acc.margin_mode == mt5.ACCOUNT_MARGIN_MODE_RETAIL_HEDGING,
             "environment": "demo" if acc.trade_mode == mt5.ACCOUNT_TRADE_MODE_DEMO else "live",
             "broker": acc.company,
             "server": acc.server,
@@ -208,7 +209,7 @@ class MT5Client:
         broker_symbol = spec["broker_symbol"]
         start = datetime.fromisoformat(from_iso.replace("Z", "+00:00"))
         end = datetime.fromisoformat(to_iso.replace("Z", "+00:00"))
-        if end < start:
+        if start.tzinfo is None or end.tzinfo is None or end < start or end > datetime.now(timezone.utc) + timedelta(minutes=1):
             raise ValueError("MT5_HISTORY_RANGE_INVALID")
         rows = mt5.copy_rates_range(broker_symbol, frame_map[timeframe], start, end)
         if rows is None:
@@ -255,7 +256,7 @@ class MT5Client:
             return None
         self.last_history_range = {"from": history_from.isoformat(), "to": history_to.isoformat()}
         return [{"ticket": str(d.ticket), "order": str(d.order), "symbol": d.symbol,
-                 "type": int(d.type), "volume": float(d.volume), "price": float(d.price),
+                 "type": int(d.type), "comment": str(getattr(d,"comment","")), "volume": float(d.volume), "price": float(d.price),
                  "profit": float(d.profit), "commission": float(d.commission), "swap": float(d.swap), "fee": float(d.fee), "entry": int(d.entry), "position_id": str(d.position_id), "time": int(d.time)} for d in rows]
 
     def get_positions(self) -> List[Dict[str, Any]]:
@@ -371,16 +372,22 @@ class MT5Client:
             "fill_policies": (["fok"] if int(s.filling_mode) & 1 else []) + (["ioc"] if int(s.filling_mode) & 2 else []) + (["return"] if int(s.trade_exemode) != int(mt5.SYMBOL_TRADE_EXECUTION_MARKET) else [])
         }
 
+    def assert_demo_execution_identity(self):
+        from config import Config
+        account = mt5.account_info() if HAS_MT5 else None
+        if Config.DATA_ONLY or account is None or account.login != Config.ACCOUNT_NUMBER or account.server != Config.SERVER or account.trade_mode != mt5.ACCOUNT_TRADE_MODE_DEMO:
+            raise RuntimeError("MT5_MUTATION_TERMINAL_SCOPE_MISMATCH")
+
     def place_order(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         if not HAS_MT5 or not self.check_connection():
             return {"success": False, "error": "MT5 terminal not connected", "error_code": "TERMINAL_DISCONNECTED"}
 
         symbol = payload.get("symbol", "")
         side = payload.get("side", "buy").lower()
-        raw_volume = float(payload.get("volume", payload.get("quantity", 0.01)))
+        raw_volume = float(payload.get("volume", payload.get("quantity", 0)))
         price = payload.get("price")
-        sl = payload.get("sl", payload.get("stopLoss"))
-        tp = payload.get("tp", payload.get("takeProfit"))
+        sl = payload.get("sl", payload.get("stopLoss", payload.get("stop_loss")))
+        tp = payload.get("tp", payload.get("takeProfit", payload.get("take_profit_2")))
         action_type = payload.get("action", payload.get("order_type", "market")).lower()
         comment = payload.get("comment", "HashiBot Trade")
         magic = int(payload.get("magic", 888111))
@@ -390,6 +397,9 @@ class MT5Client:
             return {"success": False, "error": f"Symbol {symbol} unavailable", "error_code": "SYMBOL_UNAVAILABLE"}
 
         volume = self.normalize_volume(raw_volume, s_info["volume_min"], s_info["volume_max"], s_info["volume_step"])
+        if abs(volume - raw_volume) > 1e-9 or raw_volume <= 0:
+            return {"success": False, "error_code": "APPROVED_VOLUME_NOT_PROVIDER_EXACT"}
+        symbol = s_info["broker_symbol"]
         digits = s_info["digits"]
 
         tick = mt5.symbol_info_tick(symbol)
@@ -408,6 +418,11 @@ class MT5Client:
                 mt5_type = mt5.ORDER_TYPE_SELL_LIMIT if price and float(price) > tick.bid else mt5.ORDER_TYPE_SELL_STOP
             exec_price = float(price) if price else (tick.ask if side in ["buy", "long"] else tick.bid)
 
+        if sl is None or float(sl) <= 0 or tp is None or float(tp) <= 0:
+            return {"success": False, "error_code": "ATTACHED_SL_TP_REQUIRED"}
+        fill_name = str(payload.get("fill_policy", "IOC")).lower()
+        if fill_name not in s_info["fill_policies"] or fill_name not in ("ioc", "fok"):
+            return {"success": False, "error_code": "APPROVED_FILL_POLICY_UNAVAILABLE"}
         request = {
             "action": trade_action,
             "symbol": symbol,
@@ -417,14 +432,16 @@ class MT5Client:
             "magic": magic,
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
+            "type_filling": mt5.ORDER_FILLING_IOC if fill_name == "ioc" else mt5.ORDER_FILLING_FOK,
         }
 
         if sl is not None and float(sl) > 0:
-            request["sl"] = round(float(sl), digits)
+            request["sl"] = (math.ceil(float(sl) / s_info["tick_size"] - 1e-9) if side in ["buy", "long"] else math.floor(float(sl) / s_info["tick_size"] + 1e-9)) * s_info["tick_size"]
+            request["sl"] = round(request["sl"], digits)
         if tp is not None and float(tp) > 0:
             request["tp"] = round(float(tp), digits)
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             err = mt5.last_error()
@@ -440,16 +457,29 @@ class MT5Client:
                 "comment": result.comment
             }
 
+        source_deals = mt5.history_deals_get(ticket=int(result.order))
+        position_ids = {str(d.position_id) for d in (source_deals or ()) if d.position_id}
+        provider_position_id = next(iter(position_ids)) if len(position_ids) == 1 else None
         logger.info(f"[MT5Client] Order placed successfully: Ticket #{result.order}, Volume: {result.volume}, Price: {result.price}")
         return {
             "success": True,
             "ticket": str(result.order),
             "deal_ticket": str(result.deal),
+            "provider_order_id": str(result.order),
+            "provider_position_id": provider_position_id,
             "executed_price": float(result.price),
             "executed_volume": float(result.volume),
             "retcode": result.retcode,
             "comment": result.comment
         }
+
+    def position_deals(self, ticket: str) -> List[Dict[str, Any]]:
+        if not HAS_MT5 or not self.check_connection():
+            raise RuntimeError("MT5_HISTORY_UNAVAILABLE")
+        rows = mt5.history_deals_get(position=int(ticket))
+        if rows is None:
+            raise RuntimeError("MT5_HISTORY_UNAVAILABLE")
+        return [{**r._asdict(), "is_exit": r.entry == mt5.DEAL_ENTRY_OUT, "is_tp_exit": r.entry == mt5.DEAL_ENTRY_OUT and r.reason == mt5.DEAL_REASON_TP} for r in rows]
 
     def modify_position(self, ticket: str, sl: Optional[float] = None, tp: Optional[float] = None) -> Dict[str, Any]:
         if not HAS_MT5 or not self.check_connection():
@@ -479,6 +509,7 @@ class MT5Client:
             "tp": new_tp,
         }
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             return {"success": False, "error": "Modify order_send returned None", "error_code": "MODIFY_FAILED"}
@@ -532,6 +563,7 @@ class MT5Client:
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             return {"success": False, "error": "Close order_send returned None", "error_code": "CLOSE_FAILED"}
@@ -557,6 +589,7 @@ class MT5Client:
             "order": int_ticket,
         }
 
+        self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
             return {"success": False, "error": "Cancel order_send returned None", "error_code": "CANCEL_FAILED"}

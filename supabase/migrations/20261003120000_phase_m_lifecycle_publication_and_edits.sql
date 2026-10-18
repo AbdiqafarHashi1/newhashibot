@@ -50,8 +50,8 @@ BEGIN IF auth.role()<>'service_role' THEN RAISE EXCEPTION 'SERVICE_ROLE_REQUIRED
  ON CONFLICT(message_identity) DO UPDATE SET attempt_count=CASE WHEN canonical_telegram_delivery_parts.state IN ('RETRY','RESERVED') THEN canonical_telegram_delivery_parts.attempt_count+1 ELSE canonical_telegram_delivery_parts.attempt_count END,updated_at=now() RETURNING * INTO result; RETURN result; END $$;
 
 CREATE OR REPLACE VIEW public.canonical_reporting_operations WITH (security_invoker=true) AS
- SELECT w.id,w.entity_type,w.entity_id,w.event_type,w.event_version,w.destination,w.customer_id,w.status,w.attempt_count,w.lease_owner,w.lease_expires_at,w.next_attempt_at,w.last_error,w.created_at,
- count(p.id) AS message_parts,count(*) FILTER(WHERE p.state='UNCERTAIN') AS uncertain_parts,count(*) FILTER(WHERE p.state='DEAD') AS dead_parts,count(*) FILTER(WHERE p.operation='EDIT') AS edit_parts
+ SELECT w.id,w.entity_type,w.entity_id,w.event_type,w.event_version,w.destination,w.status,w.attempt_count,w.lease_owner,w.lease_expires_at,w.next_attempt_at,w.last_error,w.created_at,
+ count(p.id) AS message_parts,count(*) FILTER(WHERE p.state='UNCERTAIN') AS uncertain_parts,count(*) FILTER(WHERE p.state='DEAD') AS dead_parts,w.customer_id,count(*) FILTER(WHERE p.operation='EDIT') AS edit_parts
  FROM public.signal_publication_work w LEFT JOIN public.canonical_telegram_delivery_parts p ON p.publication_work_id=w.id GROUP BY w.id;
 
 CREATE OR REPLACE FUNCTION public.project_mt5_certification_publication() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$

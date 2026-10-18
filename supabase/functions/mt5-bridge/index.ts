@@ -1,3 +1,4 @@
+import {closedMt5FeedCandles} from '../_shared/mt5-feed-candles.ts';
 import {collectMt5ProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {verifyBridgeAccountEvidence,validateMt5ProviderSnapshot} from "../_shared/bridge-account-evidence.ts";
@@ -377,6 +378,7 @@ Deno.serve(async (req: Request) => {
           const lifecycleEvent = !payload.success ? "ORDER_REJECTED"
             : ["FILLED","FILL_CONFIRMED"].includes(rawState) ? "FILL_CONFIRMED"
             : ["PARTIAL","PARTIALLY_FILLED","PARTIAL_FILL"].includes(rawState) ? "PARTIAL_FILL"
+            : ["TP1_FILLED","BREAKEVEN_CONFIRMED","TP2_FILLED","POSITION_CLOSED","SUBMISSION_UNCERTAIN"].includes(rawState) ? rawState
             : rawState === "PROTECTION_CONFIRMED" ? "PROTECTION_CONFIRMED"
             : rawState === "PROTECTION_MISSING" ? "PROTECTION_MISSING"
             : rawState === "PROTECTION_FAILED" ? "PROTECTION_FAILED" : null;
@@ -455,7 +457,7 @@ Deno.serve(async (req: Request) => {
             trade_permission: (snap as Record<string, unknown>).trade_permission === true,
             terminal_autotrading: (snap as Record<string, unknown>).autotrading === true,
             terminal_authenticated: (snap as Record<string, unknown>).terminal_authenticated === true,
-            terminal_identity: { ...((snap as Record<string, unknown>).terminal as Record<string, unknown> ?? {}), provider_environment: (snap as Record<string, unknown>).environment },
+            terminal_identity: { ...((snap as Record<string, unknown>).terminal as Record<string, unknown> ?? {}), account_login: payload.account_number, account_server: (snap as Record<string, unknown>).server, economic_calendar: (snap as Record<string, unknown>).economic_calendar ?? null, hedging: (snap as Record<string, unknown>).hedging === true, provider_environment: (snap as Record<string, unknown>).environment },
             open_positions_count: positions.length,
             pending_orders_count: orders.length,
             captured_at: nowIso,
@@ -678,20 +680,19 @@ Deno.serve(async (req: Request) => {
 
     if (action === "publish_market_data") {
       const accountId=String(body.account_id??""), ownerId=String(body.owner_id??""), bridgeId=String(body.bridge_id??""), feedIdentity=String(body.feed_identity??"");
-      const {data:scannerFeed}=await supabase.from("mt5_scanner_feeds").select("id,bridge_id,feed_identity,enabled,owner_controlled,execution_account_id").eq("bridge_id",bridgeId).eq("feed_identity",feedIdentity).maybeSingle();
+      const {data:scannerFeed}=await supabase.from("mt5_scanner_feeds").select("id,bridge_id,feed_identity,enabled,owner_controlled,execution_account_id,history_account_id").eq("bridge_id",bridgeId).eq("feed_identity",feedIdentity).maybeSingle();
       if(!scannerFeed||!scannerFeed.enabled||!scannerFeed.owner_controlled||scannerFeed.execution_account_id!==null)return jsonResponse({success:false,error_code:"MT5_DEDICATED_FEED_NOT_AUTHORIZED"},403);
-      let effAccountId = accountId;
-      let effOwnerId = ownerId;
-      const { data: accData } = await supabase.from("mt5_accounts").select("id,user_id").or(`id.eq.${accountId},bridge_id.eq.${bridgeId}`).limit(1).maybeSingle();
-      if (accData) {
-        effAccountId = accData.id;
-        effOwnerId = accData.user_id || ownerId;
-      }
+      if(scannerFeed.history_account_id!==accountId)return jsonResponse({success:false,error_code:"MT5_FEED_HISTORY_ACCOUNT_MISMATCH"},403);
+      let accData:Record<string,unknown>;
+      try{accData=await scopedBridgeAccount("id,user_id,bridge_id,owner_kind,credential_capability,execution_enabled")}catch{return jsonResponse({success:false,error_code:"MT5_FEED_ACCOUNT_OWNERSHIP_REQUIRED"},403)}
+      if(accData.owner_kind!=="system"||accData.credential_capability!=="investor"||accData.execution_enabled!==false)return jsonResponse({success:false,error_code:"MT5_OWNER_INVESTOR_FEED_REQUIRED"},403);
+      const effAccountId=accData.id,effOwnerId=accData.user_id;
       const feeds=Array.isArray(body.feeds)?body.feeds:[]; let candleCount=0;
       const required=["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","XAUUSD"];
       const received=feeds.map((feed:Record<string,unknown>)=>String(feed.canonical_symbol));
       const validFeed=(feed:Record<string,unknown>)=>required.includes(String(feed.canonical_symbol))&&Number(feed.bid)>0&&Number(feed.ask)>0&&Number(feed.ask)>=Number(feed.bid)&&Number.isFinite(new Date(String(feed.last_update_at)).getTime())&&Array.isArray(feed.candles)&&["5m","15m","1h","4h"].every(tf=>(feed.candles as Array<Record<string,unknown>>).some(c=>c.timeframe===tf&&Number(c.open)>0&&Number(c.high)>=Number(c.low)&&Number(c.close)>0));
       if(feeds.length!==required.length||required.some(symbol=>received.filter((value:string)=>value===symbol).length!==1)||!feeds.every(validFeed)) return jsonResponse({success:false,error_code:"MT5_MARKET_DATA_PAYLOAD_INVALID",message:"All six symbols and real scanner-timeframe candles are required"},422);
+      try{for(const feed of feeds)feed.candles=closedMt5FeedCandles(feed.candles)}catch{return jsonResponse({success:false,error_code:"MT5_CLOSED_CANDLE_VALIDATION_FAILED"},422)}
       for(const feed of feeds){
         const latest={account_id:effAccountId,owner_id:effOwnerId,bridge_id:bridgeId,canonical_symbol:feed.canonical_symbol,broker_symbol:feed.broker_symbol,bid:feed.bid,ask:feed.ask,digits:feed.digits,point:feed.point,tick_size:feed.tick_size,tick_value:feed.tick_value,contract_size:feed.contract_size,volume_min:feed.volume_min,volume_step:feed.volume_step,volume_max:feed.volume_max,stops_level:feed.stops_level,freeze_level:feed.freeze_level,market_open:feed.market_open===true,stale:Date.now()-new Date(feed.last_update_at).getTime()>120000,last_update_at:feed.last_update_at};
         const {error}=await supabase.from("mt5_market_data_latest").upsert(latest,{onConflict:"account_id,bridge_id,canonical_symbol"}); if(error)return jsonResponse({success:false,error_code:"MT5_MARKET_DATA_WRITE_FAILED"},500);
@@ -700,7 +701,8 @@ Deno.serve(async (req: Request) => {
       }
       await supabase.rpc("prune_mt5_market_data",{p_account_id:effAccountId});
       const newest=feeds.map((f:Record<string,unknown>)=>Date.parse(String(f.last_update_at))).filter(Number.isFinite).sort((a:number,b:number)=>b-a)[0];
-      await supabase.from("mt5_scanner_feeds").update({status:"HEALTHY",last_heartbeat_at:new Date().toISOString(),last_valid_candle_at:new Date(newest).toISOString(),validation_evidence:{feed_identity:feedIdentity,bridge_id:bridgeId,symbols:required,candle_rows:candleCount,closed_candles_only:true}}).eq("id",scannerFeed.id);
+      const {error:feedHealthError}=await supabase.from("mt5_scanner_feeds").update({status:feeds.some((feed:Record<string,unknown>)=>Date.now()-Date.parse(String(feed.last_update_at))>120000)?"STALE":"HEALTHY",last_heartbeat_at:new Date().toISOString(),last_valid_candle_at:new Date(newest).toISOString(),validation_evidence:{feed_identity:feedIdentity,bridge_id:bridgeId,symbols:required,candle_rows:candleCount,closed_candles_only:true}}).eq("id",scannerFeed.id);
+      if(feedHealthError)return jsonResponse({success:false,error_code:"MT5_FEED_HEALTH_WRITE_FAILED"},500);
       await supabase.from("mt5_certification_results").upsert({account_id:effAccountId,owner_id:effOwnerId,bridge_id:bridgeId,check_key:"market_data",status:"PASS",error_code:null,evidence:{symbols:required,latest_rows:feeds.length,candle_rows:candleCount},checked_at:new Date().toISOString()},{onConflict:"account_id,check_key"});
       return jsonResponse({success:true,feeds:feeds.length,candles:candleCount});
     }
