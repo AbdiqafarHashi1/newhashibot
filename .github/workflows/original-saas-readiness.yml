@@ -29,6 +29,7 @@ jobs:
       - run: npm run build
       - run: npm run test:operations-readiness
       - run: python3 -m unittest discover -s mt5-agent/tests
+      - run: npm run test:strategies
       - run: npm run test:phase-l
       - run: npm run test:indicators-arbitrator
       - run: npm run test:phase-i
