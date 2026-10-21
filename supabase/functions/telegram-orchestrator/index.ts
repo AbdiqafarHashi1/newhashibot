@@ -60,6 +60,12 @@ Deno.serve(async (req: Request) => {
     const output = await generateIntelligence(supabase, kind);
     await storeIntelligenceEvent(supabase, output);
 
+    // Do not publish degraded, source-unverified or empty market intelligence as a briefing.
+    // A persisted partial/failed output remains available for admin investigation.
+    if (output.status !== "generated" || !output.summary?.trim() || !output.data_sources || Object.keys(output.data_sources).length === 0) {
+      return new Response(JSON.stringify({ success: false, state: "EDITORIAL_HELD_FOR_REVIEW", event_id: output.event_id, kind, reason: "INTELLIGENCE_EVIDENCE_INSUFFICIENT" }), { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const deliveries = await routeTelegramEvent(supabase, {
       event_id: output.event_id,
       event_type: output.event_type,
