@@ -22,7 +22,6 @@ const AdminVisualBridgeManagement = lazy(() => import('./pages/admin/AdminVisual
 const Home = lazy(() => import('./pages/public/Home'));
 const Features = lazy(() => import('./pages/public/Features'));
 const AISignals = lazy(() => import('./pages/public/AISignals'));
-const Pricing = lazy(() => import('./pages/public/Pricing'));
 const Vip = lazy(() => import('./pages/public/Vip'));
 const VipComplete = lazy(() => import('./pages/public/VipComplete'));
 const Free = lazy(() => import('./pages/public/Free'));
@@ -141,7 +140,7 @@ function App() {
             <Route path="/ai-signals" element={<AISignals />} />
             <Route path="/crypto-automation" element={<Navigate to="/execution/crypto" replace />} />
             <Route path="/mt5-automation" element={<Navigate to="/execution/mt5" replace />} />
-            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/pricing" element={<Navigate to="/vip" replace />} />
             <Route path="/vip" element={<Vip />} />
             <Route path="/vip/complete" element={<VipComplete />} />
             <Route path="/payment/result" element={<RequireAuth><PaymentResult /></RequireAuth>} />

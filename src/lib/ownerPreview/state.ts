@@ -8,7 +8,7 @@ export const isOwnerPreview = () => read?.(PREVIEW_FLAG) === 'active';
 /** Opens existing admin pages only; never establishes backend authorization. */
 export const isAdminPass = () => read?.(PREVIEW_FLAG) === 'admin-shell';
 export function enterOwnerPreview() {
-  write?.(PREVIEW_FLAG, 'admin-shell');
+  write?.(PREVIEW_FLAG, 'active');
   window.location.assign('/admin/operator');
 }
 export function exitOwnerPreview() {

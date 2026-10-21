@@ -148,11 +148,11 @@ export interface TemplateMessagePayload {
 export const FREE_UPGRADE_BANNER = [
   `━━━━━━━━━━━━━━━━━━━━━━`,
   `💎 *UPGRADE TO HASHIBOT VIP*`,
-  `• Instant real-time Crypto & Forex/Gold setups`,
-  `• Exact entry limit zones, SL, TP1, TP2 & TP3 targets`,
-  `• Live trade management: Automatic BE lock & trailing stop updates`,
+  `• Qualified Crypto & Forex/Gold setups when available`,
+  `• Entry zones, stop loss and supported targets`,
+  `• Signal lifecycle updates and verified recaps`,
   ``,
-  `🔗 *Instant Upgrade:* [hashibot.trade/vip](https://hashibot.trade/vip)`,
+  `🔗 *Instant Upgrade:* [hashibot.app/vip](https://hashibot.app/vip)`,
   `💬 *Manual Access & Inquiries:* Text @Abdihashi1 on Telegram`,
   `━━━━━━━━━━━━━━━━━━━━━━`,
 ].join("\n");
@@ -161,7 +161,7 @@ export const FREE_UPGRADE_BANNER = [
  * Render Free Channel Signal (Preview, Delayed, Full)
  */
 export function renderFreeChannelSignalTemplate(payload: TemplateMessagePayload): string {
-  const mode = payload.publicationMode ?? "full";
+  const mode = "preview"; // Release 1 Free is always a preview, including legacy callers.
   const timeStr = formatEastAfricaTime(payload.timestamp ? new Date(payload.timestamp) : new Date());
   const symbol = payload.symbol?.toUpperCase() ?? "BTCUSDT";
   const market = payload.market?.toUpperCase() ?? "CRYPTO";
@@ -408,7 +408,7 @@ export function renderTelegramTemplate(payload: TemplateMessagePayload, channelK
       `*Confidence:* ${payload.confidence ? `${payload.confidence}%` : "—"}`,
       payload.reason ? `*Analysis:* ${escapeMarkdown(payload.reason)}` : null,
       ``,
-      `🛡️ *Trade Management Plan:* On TP1 hit, Stop Loss automatically adjusts to Breakeven (+fees). Risk strictly 0.5%–1.0%.`,
+      `🛡️ *Trade Management Plan:* On TP1 hit, Review the signal lifecycle updates and manage your own stop.`,
       ``,
       `*Time:* ${timeStr}`,
       `_HashiBot VIP Institutional Execution._`,
@@ -466,7 +466,7 @@ export function renderTelegramTemplate(payload: TemplateMessagePayload, channelK
         `*Update:* ${escapeMarkdown(eventType.replace(/_/g, " "))}`,
         payload.eventPrice ? `*Trigger Price:* ${formatInstrumentPrice(payload.eventPrice, payload.market, payload.symbol)}` : null,
         payload.stopLoss ? `*New Protected Stop:* ${formatInstrumentPrice(payload.stopLoss, payload.market, payload.symbol)}` : null,
-        payload.details ? `*Action:* ${escapeMarkdown(payload.details)}` : `Stop Loss moved to Breakeven. Trade is now completely risk-free.`,
+        payload.details ? `*Action:* ${escapeMarkdown(payload.details)}` : `Review the verified stop update; market risk remains.`,
         ``,
         `*Time:* ${timeStr}`,
       ].filter(Boolean).join("\n");
@@ -535,26 +535,20 @@ export function renderTelegramTemplate(payload: TemplateMessagePayload, channelK
  * Split text safely into chunks
  */
 export function splitMessageSafely(text: string, maxLength = 4000): string[] {
+  if (!Number.isSafeInteger(maxLength) || maxLength < 128 || maxLength > 4096) throw Error("INVALID_TELEGRAM_CHUNK_LIMIT");
   if (text.length <= maxLength) return [text];
-
-  const lines = text.split("\n");
-  const chunks: string[] = [];
-  let currentChunk = "";
-
-  for (const line of lines) {
-    if ((currentChunk + line + "\n").length > maxLength) {
-      if (currentChunk.trim()) {
-        chunks.push(currentChunk.trim());
-      }
-      currentChunk = line + "\n";
-    } else {
-      currentChunk += line + "\n";
+  const limit = maxLength - 48, chunks: string[] = [];
+  let current = "";
+  for (const point of text) {
+    // Code points preserve emoji; the UTF-16 bound is conservative for Telegram.
+    if (current.length + point.length > limit) {
+      // Do not end a Markdown part with the first half of an escape sequence.
+      const trailing = current.match(/\\+$/)?.[0].length ?? 0;
+      if (trailing % 2) { chunks.push(current.slice(0,-1)); current = "\\"; }
+      else { chunks.push(current); current = ""; }
     }
+    current += point;
   }
-
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
-  }
-
-  return chunks.map((chunk, index) => `${chunk}\n\n_(Part ${index + 1}/${chunks.length})_`);
+  if (current) chunks.push(current);
+  return chunks.map((part, i) => `${part}\n\n_(Part ${i+1}/${chunks.length})_`);
 }

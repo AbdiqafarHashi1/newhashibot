@@ -27,6 +27,8 @@ jobs:
       - run: npm run check:edge-bundles
       - run: npm run typecheck:account-authorization
       - run: npm run build
+      - run: npm run test:release1
+      - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run test:operations-readiness
       - run: python3 -m unittest discover -s mt5-agent/tests
       - run: npm run test:strategies
@@ -37,3 +39,27 @@ jobs:
       - run: npm run test:phase-p
       - run: npm run typecheck:cloud
       - run: npm run audit:admin-surfaces
+
+  release1-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:web
+      - run: npx playwright test -c playwright.release1.config.ts
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint

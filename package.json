@@ -127,7 +127,10 @@
     "test:owner-preview": "node --import tsx --test tests/ownerPreview/adapter.test.ts",
     "test:owner-preview:browser": "npm run build && playwright test -c playwright.owner-preview.config.ts",
     "typecheck:account-authorization": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/production-account-authorization.ts supabase/functions/_shared/observed-account-policy-evidence.ts supabase/functions/_shared/phase-d-execution-plan.ts",
-    "check:edge-bundles": "node scripts/check-edge-bundles.mjs"
+    "check:edge-bundles": "node scripts/check-edge-bundles.mjs",
+    "build:web": "vite build",
+    "test:release1": "node scripts/release1/test.mjs",
+    "research:release1": "node --import tsx scripts/release1/certify-signals.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
@@ -141,7 +144,7 @@
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.30.3",
+    "react-router-dom": "7.18.4",
     "tsx": "^4.23.12"
   },
   "devDependencies": {

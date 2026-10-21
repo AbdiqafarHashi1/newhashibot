@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-test('Admin Pass opens real admin routes without activating fixture transport or authentication', async () => {
+test('Owner Preview opens isolated fixtures without establishing backend authentication', async () => {
   const values = new Map<string, string>();
   const redirects: string[] = [];
   Object.defineProperty(globalThis, 'window', { configurable: true, value: {
@@ -11,8 +11,8 @@ test('Admin Pass opens real admin routes without activating fixture transport or
   try {
     const state = await import('../../src/lib/ownerPreview/state');
     state.enterOwnerPreview();
-    assert.equal(state.isAdminPass(), true);
-    assert.equal(state.isOwnerPreview(), false);
+    assert.equal(state.isAdminPass(), false);
+    assert.equal(state.isOwnerPreview(), true);
     assert.equal(redirects[0], '/admin/operator');
     state.exitOwnerPreview();
     assert.equal(state.isAdminPass(), false);

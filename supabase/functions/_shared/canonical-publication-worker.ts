@@ -3,7 +3,7 @@ export type PublicationAudience = "free" | "vip" | "vip_forex_gold" | "vip_crypt
 export type SendResult = { kind: "accepted"; messageId: string } | { kind: "retry"; retryAfterMs: number; reason: string } | { kind: "permanent"; reason: string } | { kind: "uncertain"; reason: string } | {kind:"missing_original";reason:string};
 export interface PublicationClaim { id:string; entityType:string; entityId:string; eventType:string; eventVersion:number; destination:PublicationAudience; customerId:string|null; attemptCount:number; leaseToken:string }
 export interface CanonicalPublicationTruth { entityType:string; entityId:string; eventType:string; eventVersion:number; occurredAt:string; customerId?:string|null; payload:Readonly<Record<string,unknown>> }
-export interface PublicationPart { text:string; parseMode?:"HTML"|"MarkdownV2" }
+export interface PublicationPart { text:string; parseMode?:"HTML"|"MarkdownV2"|"Markdown" }
 export interface PublicationStore {
   claim(input:{workerId:string;limit:number;leaseSeconds:number;maxAttempts:number}):Promise<PublicationClaim[]>;
   loadTruth(claim:PublicationClaim):Promise<CanonicalPublicationTruth|null>;
@@ -11,10 +11,10 @@ export interface PublicationStore {
   finishPart(input:{deliveryId:string;state:"DELIVERED"|"RETRY"|"DEAD"|"UNCERTAIN";messageId?:string;reason?:string;nextAttemptAt?:string}):Promise<void>;
   finishClaim(input:{claim:PublicationClaim;state:"SENT"|"RETRY"|"DEAD"|"SUPPRESSED";reason?:string;nextAttemptAt?:string}):Promise<void>;
 }
-export interface PublicationTransport { send(input:{destination:PublicationAudience;customerId:string|null;text:string;parseMode?:"HTML"|"MarkdownV2";identity:string}):Promise<SendResult>;edit?(input:{destination:PublicationAudience;customerId:string|null;text:string;parseMode?:"HTML"|"MarkdownV2";identity:string;messageId:string}):Promise<SendResult> }
+export interface PublicationTransport { send(input:{destination:PublicationAudience;customerId:string|null;text:string;parseMode?:"HTML"|"MarkdownV2"|"Markdown";identity:string}):Promise<SendResult>;edit?(input:{destination:PublicationAudience;customerId:string|null;text:string;parseMode?:"HTML"|"MarkdownV2"|"Markdown";identity:string;messageId:string}):Promise<SendResult> }
 export type CanonicalRenderer=(truth:CanonicalPublicationTruth,audience:PublicationAudience)=>Promise<PublicationPart[]>|PublicationPart[];
 
-const PUBLIC_EVENTS=new Set(["SIGNAL_QUALIFIED","SIGNAL_ACTIVATED","SIGNAL_EXPIRED","SIGNAL_CANCELLED","SIGNAL_OUTCOME","TP1","BREAKEVEN","PROFIT_LOCK","TRAILING","TP2","STOP","TERMINAL_CLOSURE"]);
+const PUBLIC_EVENTS=new Set(["EDITORIAL","SIGNAL_QUALIFIED","SIGNAL_ACTIVATED","SIGNAL_EXPIRED","SIGNAL_CANCELLED","SIGNAL_OUTCOME","TP1","BREAKEVEN","PROFIT_LOCK","TRAILING","TP2","STOP","TERMINAL_CLOSURE"]);
 const CUSTOMER_EVENTS=new Set(["SUBMISSION","SUBMISSION_UNCERTAIN","RECONCILIATION","FILL","PROTECTION_PENDING","PROTECTION_VERIFIED","PROTECTION_INCIDENT","SAFETY_CLOSE","TERMINAL_CLOSURE"]);
 const ADMIN_EVENTS=new Set(["CERTIFICATION","OPERATIONAL_INCIDENT","PROTECTION_INCIDENT"]);
 export function audienceAllows(claim:PublicationClaim,truth:CanonicalPublicationTruth):boolean {
@@ -29,11 +29,12 @@ const next=(ms:number)=>new Date(Date.now()+Math.min(Math.max(ms,1_000),3_600_00
 
 /** A reserved part is never blindly resent after an uncertain response: operator reconciliation is required. */
 export async function processCanonicalPublicationBatch(input:{store:PublicationStore;transport:PublicationTransport;render:CanonicalRenderer;workerId:string;limit?:number;leaseSeconds?:number;maxAttempts?:number}){
- const claims=await input.store.claim({workerId:input.workerId,limit:Math.min(input.limit??25,100),leaseSeconds:Math.min(input.leaseSeconds??60,300),maxAttempts:Math.min(input.maxAttempts??5,10)}),results=[];
+ const claims=await input.store.claim({workerId:input.workerId,limit:Math.min(input.limit??25,100),leaseSeconds:Math.min(input.leaseSeconds??300,300),maxAttempts:Math.min(input.maxAttempts??5,10)}),results=[];
  for(const claim of claims){
   const truth=await input.store.loadTruth(claim);
   if(!truth||!audienceAllows(claim,truth)){await input.store.finishClaim({claim,state:"SUPPRESSED",reason:truth?"AUDIENCE_OR_VERSION_MISMATCH":"CANONICAL_TRUTH_MISSING"});results.push({id:claim.id,state:"SUPPRESSED"});continue}
-  const parts=await input.render(truth,claim.destination);let failed:false|"RETRY"|"DEAD"|"UNCERTAIN"=false,reason="",retryAt:string|undefined;
+  let parts:PublicationPart[];try{parts=await input.render(truth,claim.destination)}catch(error){await input.store.finishClaim({claim,state:"SUPPRESSED",reason:`PUBLICATION_HELD:${error instanceof Error?error.message:String(error)}`});results.push({id:claim.id,state:"SUPPRESSED"});continue}
+  let failed:false|"RETRY"|"DEAD"|"UNCERTAIN"=false,reason="",retryAt:string|undefined;
   for(let i=0;i<parts.length;i++){
    const identity=publicationIdentity(claim,i),reservation=await input.store.reservePart({claim,part:i,identity});
    if(reservation.state==="DELIVERED")continue;

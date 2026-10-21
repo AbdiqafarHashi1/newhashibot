@@ -18,7 +18,7 @@ assert.equal(verifyWhopWebhook(payload, stale, secret).verified, false);
 assert.equal(verifyWhopWebhook(payload, headers, undefined).verified, false);
 const verified = verifyWhopWebhook(payload, headers, secret); assert.ok(verified.verified);
 const normalized = normalizeWhopEvent(verified.event);
-assert.deepEqual([normalized.eventId,normalized.membershipId,normalized.planId,normalized.productId,normalized.providerCustomerId],['evt_1','mem_1','plan_vip','prod_1','user_1']);
+assert.deepEqual([normalized.eventId,normalized.membershipId,normalized.planId,normalized.productId,normalized.providerCustomerId],['msg_1','mem_1','plan_vip','prod_1','user_1']);
 const map = serverPlanMap(name => name==='WHOP_PLAN_VIP_SIGNALS'?'plan_vip':undefined);
 assert.equal(map.get('plan_vip'),'crypto_signal_room'); assert.equal(map.get('wrong'),undefined);
 const sql = readFileSync('supabase/migrations/20260914210000_whop_lifecycle_processing.sql','utf8');

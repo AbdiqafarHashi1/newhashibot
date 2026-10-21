@@ -2,19 +2,18 @@ name: Deploy Supabase Edge Functions
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'supabase/functions/**'
-      - 'supabase/config.toml'
-      - 'scripts/deploy-supabase-functions.mjs'
-      - '.github/workflows/deploy-supabase-functions.yml'
+    inputs:
+      approval:
+        description: 'Type DEPLOY_VERIFIED_RELEASE after release verification and owner authorization'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   deploy:
+    if: inputs.approval == 'DEPLOY_VERIFIED_RELEASE'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

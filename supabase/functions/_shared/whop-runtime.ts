@@ -30,6 +30,13 @@ export async function createWhopRuntimeCheckout(c:WhopRuntimeConfig,checkout:any
 }
 /** A signed event triggers a source lookup. Checkout/account/plan/amount are never inferred from a redirect. */
 export async function verifyWhopRuntimeEvent(db:any,c:WhopRuntimeConfig,event:NormalizedCommerceEvent,transport:typeof fetch=fetch):Promise<NormalizedCommerceEvent>{
+ if(!event.providerPaymentId&&event.providerSubscriptionId){
+  const {data:subscription,error}=await db.from('commerce_subscriptions').select('last_verified_payment_id').eq('provider','WHOP').eq('external_reference',event.providerSubscriptionId).maybeSingle();
+  if(error||!subscription?.last_verified_payment_id)throw Error('WHOP_BOUND_SUBSCRIPTION_REQUIRED');
+  const {data:payment,error:paymentError}=await db.from('commerce_payment_attempts').select('external_reference').eq('id',subscription.last_verified_payment_id).eq('provider','WHOP').maybeSingle();
+  if(paymentError||!payment?.external_reference)throw Error('WHOP_PAYMENT_SOURCE_REQUIRED');
+  event={...event,providerPaymentId:payment.external_reference};
+ }
  if(!event.providerPaymentId||!/^pay_[A-Za-z0-9]+$/.test(event.providerPaymentId))throw Error('WHOP_PAYMENT_SOURCE_REQUIRED');
  const p=await whopRequest(c,`payments/${encodeURIComponent(event.providerPaymentId)}`,undefined,undefined,transport),metadata=p.metadata??{};
  let checkout:any,error:any,renewal=false;
@@ -47,9 +54,13 @@ export async function verifyWhopRuntimeEvent(db:any,c:WhopRuntimeConfig,event:No
  }
  if(error||!checkout||p.id!==event.providerPaymentId||p.account_id!==c.companyId||p.plan_id!==c.planIds[checkout.product_code]||!renewal&&(p.checkout_configuration_id!==checkout.external_reference||metadata.hashibot_customer_id!==checkout.customer_id||metadata.hashibot_product_code!==checkout.product_code))throw Error('WHOP_SOURCE_LINEAGE_MISMATCH');
  const total=exactWhopMoney(p.total,checkout.currency),tax=p.tax_amount?exactWhopMoney(p.tax_amount,checkout.currency):0;if(total-tax!==Number(checkout.amount_minor))throw Error('WHOP_SOURCE_AMOUNT_MISMATCH');
- const refunded=p.refunded_at||p.refunded_amount&&exactWhopMoney(p.refunded_amount,checkout.currency)>0;
+ const refundAmount=p.refunded_amount?exactWhopMoney(p.refunded_amount,checkout.currency):0;
+ const refunded=Boolean(p.refunded_at)||refundAmount>0,partialRefund=refundAmount>0&&refundAmount<total;
  const disputed=/dispute|resolution/.test(String(p.substatus));
- const status=refunded?'REFUNDED':disputed?'DISPUTED':p.status==='paid'&&p.substatus==='succeeded'&&p.paid_at?'SUCCEEDED':p.status==='failed'?'FAILED':'PENDING';
- let periodEnd:string|null=null;if(p.membership_id){const m=await whopRequest(c,`memberships/${encodeURIComponent(p.membership_id)}`,undefined,undefined,transport);if(m.id!==p.membership_id||m.member_id&&m.member_id!==p.member_id)throw Error('WHOP_MEMBERSHIP_SOURCE_MISMATCH');periodEnd=m.current_period_end??null;}
- return {...event,checkoutId:checkout.id,customerReference:checkout.customer_id,productReference:checkout.product_code,providerCheckoutId:checkout.external_reference,providerSubscriptionId:p.membership_id??null,amountMinor:Number(checkout.amount_minor),currency:checkout.currency,paymentStatus:status,occurredAt:p.paid_at??event.occurredAt,periodEnd,reconciliationRequired:status==='PENDING',caseType:refunded?'REFUND':disputed?'DISPUTE':null,safeEvidence:{source_lookup_confirmed:true,sandbox:c.environment==='sandbox',account_id:c.companyId,plan_id:p.plan_id,member_id:p.member_id??null}};
+ let status:NormalizedCommerceEvent['paymentStatus']=refunded?(partialRefund?'PARTIALLY_REFUNDED':'REFUNDED'):disputed?'DISPUTED':p.status==='paid'&&p.substatus==='succeeded'&&p.paid_at?'SUCCEEDED':p.status==='failed'?'FAILED':'PENDING';
+ let periodEnd:string|null=null,cancelAtPeriodEnd=false;if(p.membership_id){const m=await whopRequest(c,`memberships/${encodeURIComponent(p.membership_id)}`,undefined,undefined,transport);if(m.id!==p.membership_id||m.member_id&&m.member_id!==p.member_id)throw Error('WHOP_MEMBERSHIP_SOURCE_MISMATCH');periodEnd=m.current_period_end??null;cancelAtPeriodEnd=m.cancel_at_period_end===true;
+  if(status==='SUCCEEDED'&&(cancelAtPeriodEnd||event.providerEventType==='membership.cancel_at_period_end_changed')){const {data:bound,error:boundError}=await db.from('commerce_subscriptions').select('id').eq('provider','WHOP').eq('external_reference',p.membership_id).maybeSingle();if(boundError)throw Error('WHOP_SUBSCRIPTION_LOOKUP_FAILED');if(bound)status='CANCEL_AT_PERIOD_END';}
+ }
+ const occurredAt=refunded?(p.refunded_at??event.occurredAt):disputed||status==='CANCEL_AT_PERIOD_END'?event.occurredAt:(p.paid_at??event.occurredAt);
+ return {...event,checkoutId:checkout.id,customerReference:checkout.customer_id,productReference:checkout.product_code,providerCheckoutId:checkout.external_reference,providerSubscriptionId:p.membership_id??null,amountMinor:Number(checkout.amount_minor),currency:checkout.currency,paymentStatus:status,occurredAt,periodEnd,cancelAtPeriodEnd,reconciliationRequired:status==='PENDING'||cancelAtPeriodEnd&&status==='SUCCEEDED',caseType:refunded?(partialRefund?'PARTIAL_REFUND':'REFUND'):disputed?'DISPUTE':null,safeEvidence:{source_lookup_confirmed:true,sandbox:c.environment==='sandbox',account_id:c.companyId,plan_id:p.plan_id,member_id:p.member_id??null}};
 }

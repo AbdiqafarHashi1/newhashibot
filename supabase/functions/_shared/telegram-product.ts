@@ -4,7 +4,7 @@ import { escapeMarkdown, formatEastAfricaTime, formatInstrumentPrice } from "./t
 export type ProductAudience = "admin" | "free" | "vip";
 export type EvidenceClass = "LIVE" | "FORWARD" | "RESEARCH";
 export type EditorialAuthor = "SYSTEM" | "ADMIN" | "EDITORIAL_AGENT" | "NEWS_AGENT" | "GROWTH_AGENT";
-export type EditorialContentType = "MORNING_BRIEF" | "SESSION_BRIEF" | "EDUCATION" | "PRODUCT_UPDATE" | "FEATURE_ANNOUNCEMENT" | "VIP_INVITATION" | "VERIFIED_RECAP" | "DAILY_RECAP" | "WEEKLY_RECAP" | "OPERATIONS_DIGEST" | "INCIDENT_SUMMARY";
+export type EditorialContentType = "MORNING_BRIEF" | "NEWS_DIGEST" | "MARKET_WRAP" | "WATCHLIST_UPDATE" | "SESSION_BRIEF" | "EDUCATION" | "PRODUCT_UPDATE" | "FEATURE_ANNOUNCEMENT" | "VIP_INVITATION" | "VERIFIED_RECAP" | "DAILY_RECAP" | "WEEKLY_RECAP" | "OPERATIONS_DIGEST" | "INCIDENT_SUMMARY";
 
 export interface EditorialPublication {
   content_id: string;
@@ -39,7 +39,9 @@ export function validateEditorialPublication(publication: EditorialPublication, 
   if (publication.author_type.endsWith("AGENT") && publication.sections.some((s) => PROHIBITED_TRADING_FIELDS.test(`${s.heading ?? ""} ${s.body}`))) {
     return { valid: false, reason: "EDITORIAL_TRADING_AUTHORITY_VIOLATION" };
   }
+  if (!Number.isFinite(Date.parse(publication.generated_at)) || publication.expires_at && !Number.isFinite(Date.parse(publication.expires_at))) return { valid: false, reason: "INVALID_CONTENT_TIMESTAMP" };
   if (publication.expires_at && new Date(publication.expires_at).getTime() <= now.getTime()) return { valid: false, reason: "CONTENT_STALE", stale: true };
+  if (!publication.expires_at && !["EDUCATION", "PRODUCT_UPDATE", "FEATURE_ANNOUNCEMENT", "VIP_INVITATION"].includes(publication.content_type)) return { valid: false, reason: "CONTENT_EXPIRY_REQUIRED" };
   if (new Date(publication.generated_at).getTime() > now.getTime() + 60_000) return { valid: false, reason: "INVALID_GENERATED_AT" };
   return { valid: true };
 }
@@ -74,7 +76,7 @@ export function renderCanonicalVipSignal(signal: CanonicalSignalPresentation): s
   add("Entry", entry); add("Stop Loss", signal.stop_loss == null ? undefined : formatInstrumentPrice(signal.stop_loss, signal.market, signal.symbol));
   signal.targets?.forEach((target, index) => add(`TP${index + 1}`, formatInstrumentPrice(target, signal.market, signal.symbol)));
   add("Risk / Reward", signal.risk_reward == null ? undefined : `1 : ${signal.risk_reward}`); add("Strategy", signal.strategy); add("Grade", signal.grade);
-  add("Confidence", signal.confidence == null ? undefined : `${signal.confidence}%`); add("Session", signal.session); add("Exchange", signal.exchange);
+  add("Scanner score (not win probability)", signal.confidence == null ? undefined : `${signal.confidence}/100`); add("Session", signal.session); add("Exchange", signal.exchange);
   add("Time", formatEastAfricaTime(signal.occurred_at, false)); rows.push("", `Reference: ${escapeMarkdown(signal.signal_id)}`, "HashiBot Qualified Signal · Manage risk independently.");
   return rows.join("\n");
 }

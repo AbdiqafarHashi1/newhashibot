@@ -1,3 +1,4 @@
+import {release1SaleDecision} from "../_shared/release1-sales-policy.ts";
 import {sha256Hex} from '../_shared/commerce-events.ts';
 import {commerceEnvironment} from '../_shared/commerce-provider-settings.ts';
 import {whopRuntimeConfig,createWhopRuntimeCheckout} from "../_shared/whop-runtime.ts";
@@ -12,10 +13,15 @@ Deno.serve(async req=>{
  if(!url||!anon||!serviceKey)return reply(503,{state:"READY_FOR_CONFIGURATION"});
  const auth=req.headers.get("Authorization")??""; const userClient=createClient(url,anon,{global:{headers:{Authorization:auth}}}); const {data:{user}}=await userClient.auth.getUser(); if(!user)return reply(401,{state:"BLOCKED",reason:"AUTHENTICATION_REQUIRED"});
  const service=createClient(url,serviceKey),get=await commerceEnvironment(service,key=>Deno.env.get(key)); const body=await req.json().catch(()=>({})); const product=String(body.product_code??""); const provider=String(body.provider??""); const currency=String(body.currency??"");
+ if(product==="FOUNDING_AUTO_EXECUTION" && get("RELEASE2_COMMERCE_ENABLED")!=="true")return reply(409,{state:"BLOCKED",reason:"RELEASE2_NOT_AVAILABLE"});
  if(!["VIP_SIGNALS","FOUNDING_AUTO_EXECUTION"].includes(product)||!["WHOP","MPESA"].includes(provider))return reply(422,{state:"BLOCKED",reason:"UNSUPPORTED_PRODUCT_OR_PROVIDER"});
  let priceQuery=service.from("commerce_product_prices").select("amount_minor,billing_interval,version,configured,fixed_period_days").eq("product_code",product).eq("provider",provider).eq("currency",currency).eq("active",true); if(provider==="MPESA"){const term=Number(body.term_days);if(![7,30].includes(term))return reply(422,{state:"BLOCKED",reason:"APPROVED_TERM_REQUIRED"});priceQuery=priceQuery.eq("fixed_period_days",term)} const {data:price}=await priceQuery.order("version",{ascending:false}).limit(1).maybeSingle();
  if(!price)return reply(422,{state:"BLOCKED",reason:"UNSUPPORTED_PROVIDER_OR_CURRENCY"}); if(body.amount_minor!==undefined&&Number(body.amount_minor)!==Number(price.amount_minor))return reply(409,{state:"BLOCKED",reason:"CLIENT_PRICE_TAMPERING"});
  if(!price.configured)return reply(503,{state:"CHECKOUT_NOT_CONFIGURED"});
+ const releases=await service.from("strategy_release_candidates").select("id",{count:"exact",head:true}).eq("state","PROMOTED");
+ if(releases.error)return reply(503,{state:"BLOCKED",reason:"STRATEGY_READINESS_UNAVAILABLE"});
+ const saleBlock=release1SaleDecision({product,provider,currency,termDays:Number(body.term_days),amountMinor:Number(price.amount_minor),salesEnabled:get("RELEASE1_SALES_ENABLED")==="true",promotedStrategies:releases.count??0,release2Enabled:get("RELEASE2_COMMERCE_ENABLED")==="true"});
+ if(saleBlock)return reply(409,{state:"BLOCKED",reason:saleBlock});
  let account:string|null=body.execution_account_id?String(body.execution_account_id):null; if(product==="FOUNDING_AUTO_EXECUTION"){if(!account)return reply(422,{state:"BLOCKED",reason:"EXECUTION_ACCOUNT_REQUIRED"});const {data:owned}=await service.from("connected_execution_accounts").select("id").eq("id",account).eq("customer_id",user.id).maybeSingle();if(!owned)return reply(403,{state:"BLOCKED",reason:"ACCOUNT_OWNERSHIP_MISMATCH"});}
  const origin=get("PUBLIC_APP_ORIGIN")??"https://hashibot.app"; let returnUrl:string; try{const parsed=new URL(String(body.return_url??"/app/billing"),origin);if(parsed.origin!==new URL(origin).origin)throw 0;returnUrl=parsed.toString();}catch{return reply(422,{state:"BLOCKED",reason:"UNSAFE_RETURN_URL"});}
  const idempotency=safe(req.headers.get("x-idempotency-key"),120);if(!idempotency)return reply(422,{state:"BLOCKED",reason:"IDEMPOTENCY_KEY_REQUIRED"}); const expiry=new Date(Date.now()+15*60_000).toISOString();

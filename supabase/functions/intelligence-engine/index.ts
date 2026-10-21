@@ -1,3 +1,5 @@
+import {dueIntelligenceKinds} from "../_shared/intelligence-schedule.ts";
+import {intelligencePublication} from "../_shared/intelligence-publication.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { generateIntelligence, storeIntelligenceEvent } from "../_shared/intelligence-engine.ts";
@@ -25,17 +27,23 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+    if (body.action === "scheduled") {
+      const results=[];
+      for(const kind of dueIntelligenceKinds()) {
+        const output=await generateIntelligence(supabase,kind);await storeIntelligenceEvent(supabase,output);
+        if(output.status!=="generated"){results.push({kind,state:"HELD_SOURCE_EVIDENCE"});continue;}
+        for(const audience of ["free","vip"] as const){const editorial=intelligencePublication(output,audience);results.push({kind,audience,deliveries:await routeTelegramEvent(supabase,{event_id:editorial.content_id,event_type:output.event_type,editorial,channels:[audience],source:"scheduled-intelligence",dedupe:true})});}
+      }
+      return new Response(JSON.stringify({success:true,timezone:"Africa/Nairobi",results}),{headers:{...corsHeaders,"Content-Type":"application/json"}});
+    }
     const kind = isContentKind(body.kind) ? body.kind : "morning_brief";
     const output = await generateIntelligence(supabase, kind);
     await storeIntelligenceEvent(supabase, output);
-    const deliveries = await routeTelegramEvent(supabase, {
-      event_id: output.event_id,
-      event_type: output.event_type,
-      text: output.summary,
-      source: "intelligence-engine",
-      channels: ["free", "vip"],
-      dedupe: false,
-    });
+    const deliveries = [];
+    for (const audience of ["free", "vip"] as const) {
+      const editorial = intelligencePublication(output, audience);
+      deliveries.push(...await routeTelegramEvent(supabase, {event_id:editorial.content_id,event_type:output.event_type,source:"intelligence-engine",channels:[audience],editorial,dedupe:true}));
+    }
 
     return new Response(JSON.stringify({ success: true, output, deliveries }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

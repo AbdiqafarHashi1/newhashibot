@@ -24,16 +24,16 @@ export function MpesaCheckout({ termDays }: { termDays: 7 | 30 }) {
     if (!session) { navigate(authResumePath()); return; }
     submitting.current = true; setBusy(true); setMessage('Starting a secure M-Pesa request…');
     const attemptScope = purchaseAttemptScope(session.user.id, `mpesa.vip.${termDays}.${phone.replace(/\D/g, '')}`);
-    let data: any, error: any;
+    let data: {state?:string;checkout_id?:string;masked_phone?:string;action_url?:string}|null=null, error: unknown;
     try {
       ({ data, error } = await supabase.functions.invoke('commerce-checkout', {
         body: { product_code: 'VIP_SIGNALS', provider: 'MPESA', currency: 'KES', term_days: termDays, phone, return_url: `${location.origin}/payment/result`, ...attribution },
         headers: { 'x-idempotency-key': getOrCreatePurchaseAttemptKey(attemptScope) },
       }));
       updatePurchaseAttempt(attemptScope, error ? 'UNCERTAIN' : data?.state === 'ACTION_REQUIRED' || data?.state === 'PROVIDER_PENDING' ? 'PENDING' : data?.state === 'FAILED' ? 'FAILED' : 'READY', data?.checkout_id);
-    } finally { submitting.current = false; setBusy(false); }
+    } catch { updatePurchaseAttempt(attemptScope,'UNCERTAIN'); setMessage('Confirmation was interrupted. Check Billing before trying another payment.'); return; } finally { submitting.current = false; setBusy(false); }
     if (error || data?.state === 'CHECKOUT_NOT_CONFIGURED') { setMessage('M-Pesa checkout cannot currently be started. Please try again later; do not send money manually.'); return; }
-    if (data?.state === 'PROVIDER_PENDING' || data?.state === 'ACTION_REQUIRED') {
+    if (data?.checkout_id && (data.state === 'PROVIDER_PENDING' || data.state === 'ACTION_REQUIRED')) {
       setMessage(data.masked_phone ? `Prompt sent to ${data.masked_phone}. Enter your M-Pesa PIN only on your phone. We are awaiting confirmation.` : 'This purchase attempt is already in progress. We are awaiting provider confirmation.');
       navigate(`/payment/result?checkout=${encodeURIComponent(data.checkout_id)}`);
       return;

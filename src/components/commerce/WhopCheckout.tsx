@@ -20,11 +20,11 @@ export function WhopCheckout({product,compact=false,executionAccountId}:{product
     if(productCode==='FOUNDING_AUTO_EXECUTION'&&!executionAccountId){setState('Create and select an execution account before purchasing this per-account entitlement.');return;}
     submitting.current=true;setBusy(true);setState('Creating your secure checkout…');
     const scope=purchaseAttemptScope(session.user.id,`whop.${productCode}.${executionAccountId??'signals'}`);
-    let data:any,error:any;
+    let data:{state?:string;checkout_id?:string;masked_phone?:string;action_url?:string}|null=null,error:unknown;
     try { ({data,error}=await supabase.functions.invoke('commerce-checkout',{body:{product_code:productCode,provider:'WHOP',currency:'USD',execution_account_id:executionAccountId,return_url:`${location.origin}/payment/result`,...attribution},headers:{'x-idempotency-key':getOrCreatePurchaseAttemptKey(scope)}}));
       updatePurchaseAttempt(scope,error?'UNCERTAIN':data?.state==='PROVIDER_PENDING'?'PENDING':data?.state==='FAILED'?'FAILED':'READY',data?.checkout_id);
-    } finally { submitting.current=false;setBusy(false); }
-    if(error){setState('International checkout cannot currently be started. No payment or access was created.');return;}
+    } catch { updatePurchaseAttempt(scope,'UNCERTAIN'); setState('Confirmation was interrupted. Check Billing before starting another payment.');return; } finally { submitting.current=false;setBusy(false); }
+    if(error){setState('Checkout could not be confirmed. Check Billing before trying again; do not repeat an uncertain payment.');return;}
     setState(customerMessage[String(data?.state)]??'We could not start checkout. No access was granted.');
     if(data?.action_url&&data.state==='PROVIDER_PENDING')location.assign(data.action_url);
   };

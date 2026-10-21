@@ -3,7 +3,7 @@ import { OwnerPreviewEntry } from '../preview/OwnerPreviewEntry';
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Zap, LogOut, Menu, X, ChevronDown, Copy, Check, Mail, Phone, Shield, Download, KeyRound, Monitor
+  Zap, LogOut, Menu, X, ChevronDown, Mail, Phone, Shield, Download, KeyRound, Monitor
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { createBridgeZipPackage } from '../../lib/visualBridgeEngine';
@@ -16,7 +16,6 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [copiedMpesa, setCopiedMpesa] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
   
   const loc = useLocation();
@@ -67,11 +66,6 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     nav('/');
   }
 
-  function handleCopyMpesa() {
-    navigator.clipboard.writeText('0748895225');
-    setCopiedMpesa(true);
-    setTimeout(() => setCopiedMpesa(false), 2000);
-  }
 
   const isProductsActive = ['/vip', '/free', '/ai-signals', '/crypto-automation', '/mt5-automation', '/signal-mode', '/personal-ea', '/prop-ea'].includes(loc.pathname);
 
@@ -82,9 +76,9 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold text-[10px] uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Platform Live
+            Release 1 preview
           </span>
-          <span>HashiBot Platform: AI Signals, Crypto Automation &amp; MT5 Forex/Prop Execution are fully Live &amp; Active</span>
+          <span>HashiBot Release 1: signals and market intelligence. Launch requires strategy certification and verified payment delivery.</span>
           <Link to="/pricing#pricing-plans" className="text-blue-400 hover:text-blue-300 underline font-medium ml-1">
             View Plans →
           </Link>
@@ -462,15 +456,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 </div>
                 <div className="flex items-center gap-2 text-zinc-300">
                   <Phone size={14} className="text-emerald-400" />
-                  <span>M-Pesa: 0748 895 225</span>
-              <button
-                    onClick={handleCopyMpesa}
-                    className="ml-2 text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-2 py-0.5 rounded flex items-center gap-1"
-                    title="Copy M-Pesa number"
-                  >
-                    {copiedMpesa ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                    <span>{copiedMpesa ? 'Copied' : 'Copy'}</span>
-              </button>
+                  <Link to="/vip" className="text-emerald-400">M-Pesa checkout · official payment options</Link>
                 </div>
               </div>
             </div>
@@ -518,7 +504,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     className="text-amber-400 hover:text-amber-300 font-mono text-[11px] flex items-center gap-1.5 transition-colors"
                   >
                     <KeyRound size={12} />
-                    <span>Admin Pass</span>
+                    <span>Owner Preview</span>
                   </button>
                 </li>
                 {isLoggedIn && (
@@ -572,14 +558,14 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   title="Inspect simulated admin and customer journeys"
                 >
                   <KeyRound size={12} />
-                  <span>Admin Pass</span>
+                  <span>Owner Preview</span>
                 </button>
               </div>
 
               <div className="flex items-center gap-4 text-zinc-400">
                 <Link to="/faq" className="hover:text-zinc-200 transition-colors">FAQ</Link>
                 <Link to="/contact#contact-form" className="hover:text-zinc-200 transition-colors">Contact</Link>
-                <Link to="/pricing#mpesa-payment-section" className="hover:text-zinc-200 transition-colors">M-Pesa Payment</Link>
+                <Link to="/vip#vip-purchase" className="hover:text-zinc-200 transition-colors">M-Pesa Payment</Link>
               </div>
             </div>
           </div>
