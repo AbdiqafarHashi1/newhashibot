@@ -37,7 +37,8 @@ try {
  create table telegram_memberships(id uuid primary key default gen_random_uuid(),customer_id uuid,telegram_link_id uuid,audience text,state text,telegram_status text,last_verified_at timestamptz,last_provider_classification text,safe_error text,updated_at timestamptz,unique(customer_id,audience));
  alter table telegram_fulfillment_requests add available_at timestamptz default now(),add claim_token uuid,add completed_at timestamptz,add provider_classification text,add evidence jsonb,add max_attempts int default 6,add entitlement_version timestamptz;
  alter table telegram_fulfillment_requests drop constraint telegram_fulfillment_requests_status_check;
- create table signal_publication_work(id uuid primary key,signal_id uuid,entity_type text,entity_id uuid,event_type text,event_version integer,destination text,customer_id uuid,event_key text unique,status text,lease_token uuid,lease_expires_at timestamptz);
+ create table signals(id uuid primary key,strategy_id text,contract_version text,source text,data_source text,arbitrator_decision jsonb);create table strategy_release_candidates(strategy_id text,state text);
+ create table signal_publication_work(id uuid primary key default gen_random_uuid(),signal_id uuid,entity_type text,entity_id uuid,event_type text,event_version integer,destination text,customer_id uuid,event_key text unique,status text,lease_token uuid,lease_expires_at timestamptz);
  create table canonical_lifecycle_events(id uuid primary key default gen_random_uuid(),event_key text,event_type text,event_version integer,signal_id uuid,execution_id uuid,customer_id uuid,account_id uuid,occurred_at timestamptz,payload jsonb,content_hash text);
  create table canonical_telegram_delivery_parts(id uuid primary key default gen_random_uuid(),publication_work_id uuid,message_identity text unique,message_part integer,state text,attempt_count integer,operation text,edited_from_message_id text,telegram_message_id text,updated_at timestamptz);
  insert into telegram_audience_configuration values('VIP','VIP_SIGNALS','-1001',true,now(),'JOIN_REQUEST');
@@ -54,6 +55,20 @@ try {
  const process=async(e:any,id:string)=>{await db.query("insert into commerce_payment_events(provider,external_event_id,event_type,signature_verified,processing_state,payload_hash,normalized_event) values('MPESA',$1,'fixture',true,'RECEIVED','hash',$2)",[id,JSON.stringify({...e,providerEventId:id})]);return(await db.query("select process_canonical_commerce_event('MPESA',$1) result",[id])).rows[0].result};
  await process(event,'payment1');const entitlement=(await db.query("select * from phase_h_entitlements where customer_id=$1",[customer])).rows[0];assert.equal(entitlement.state,'ACTIVE');
  assert.equal((await process(event,'duplicate')).state,'DUPLICATE_PAYMENT');assert.equal((await db.query('select count(*)::int n from phase_h_entitlements')).rows[0].n,1);
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[customer]);
+ assert.equal((await db.query('select my_release1_customer_subscription() sub')).rows[0].sub.access_status,'active');
+ const signalId='55555555-5555-4555-8555-555555555555';
+ await db.query("insert into signals values($1,'strategy','scanner-signal/v2','scanner','REAL DATA','{\"final_decision\":\"approved\"}')",[signalId]);
+ assert.equal((await db.query('select can_read_release1_signal($1) allowed',[signalId])).rows[0].allowed,false);
+ await db.query("insert into strategy_release_candidates values('strategy','PROMOTED')");
+ await db.query("insert into signal_publication_work(id,entity_type,entity_id,event_type,event_version,destination,status) values(gen_random_uuid(),'signal',$1,'SIGNAL_QUALIFIED',1,'vip_crypto','sent')",[signalId]);
+ assert.equal((await db.query('select can_read_release1_signal($1) allowed',[signalId])).rows[0].allowed,true);
+ await db.exec("grant select on signals to authenticated;set role authenticated;set request.jwt.claim.role='authenticated'");assert.equal((await db.query('select count(*)::int n from signals')).rows[0].n,1);
+ await db.query("select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false)");assert.equal((await db.query('select count(*)::int n from signals')).rows[0].n,0);assert.equal((await db.query('select my_release1_customer_subscription() sub')).rows[0].sub,null);
+ await db.exec("reset role;set request.jwt.claim.role='service_role'");await db.query("select set_config('request.jwt.claim.sub',$1,false)",[customer]);
+ // Editorial delivery uses both Phase-O VIP audiences, without a nonexistent signal foreign key.
+ const editorialId=(await db.query("select enqueue_canonical_lifecycle_event('editorial-fixture','EDITORIAL',1,null,null,null,null,now(),'{\"editorial\":{\"compliance_state\":\"APPROVED\",\"source_ids\":[\"record\"]}}',array['vip_crypto','vip_forex_gold']) id")).rows[0].id;
+ assert.equal((await db.query("select count(*)::int n from signal_publication_work where entity_id=$1",[editorialId])).rows[0].n,2);
  await db.query("insert into telegram_onboarding_tokens(user_id,token_hash,expires_at) values($1,'token-hash',now()+interval '10 minutes')",[customer]);
  await db.query("select consume_telegram_link_token('token-hash',7001,'fixture','Fixture')");await assert.rejects(db.query("select consume_telegram_link_token('token-hash',7002,'wrong','Wrong')"),/TOKEN_INVALID_OR_REPLAYED/);
  let run=await processTelegramFulfillmentJobs(apiDb,'mock-token',telegram);assert(run.results.some(x=>x.state==='ACTION_REQUIRED'));

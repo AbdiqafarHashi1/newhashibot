@@ -32,7 +32,7 @@ export default function SignalHistory() {
     }
 
     Promise.all([
-      supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.rpc('my_release1_customer_subscription'),
       supabase.from('access_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       query,
     ]).then(([subRes, reqRes, sigRes]) => {

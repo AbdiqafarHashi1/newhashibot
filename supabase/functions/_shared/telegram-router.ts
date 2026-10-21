@@ -219,7 +219,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     const checked=validateEditorialPublication(event.editorial);
     const channel=event.editorial.audience;
     if(!checked.valid)return [{channel,chat_id:"blocked",status:"skipped",error_message:checked.reason}];
-    const {data,error}=await supabase.rpc("enqueue_canonical_lifecycle_event",{p_event_key:event.editorial.dedupe_key,p_event_type:"EDITORIAL",p_event_version:1,p_signal_id:null,p_execution_id:null,p_customer_id:null,p_account_id:null,p_occurred_at:event.editorial.generated_at,p_payload:{editorial:event.editorial},p_destinations:[channel]});
+    const {data,error}=await supabase.rpc("enqueue_canonical_lifecycle_event",{p_event_key:event.editorial.dedupe_key,p_event_type:"EDITORIAL",p_event_version:1,p_signal_id:null,p_execution_id:null,p_customer_id:null,p_account_id:null,p_occurred_at:event.editorial.generated_at,p_payload:{editorial:event.editorial},p_destinations:channel==="vip"?["vip_crypto","vip_forex_gold"]:[channel]});
     return [{channel,chat_id:"durable_queue",status:error?"failed":"queued",error_message:error?"EDITORIAL_QUEUE_UNAVAILABLE":undefined,delivery_id:typeof data==="string"?data:undefined}];
   }
   if (event.channels?.length===1 && event.channels[0]==="admin") {
@@ -245,9 +245,10 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     try {
       const signal = await loadPublishableSignal(supabase, event.signal_id);
       for (const channel of publicDestinations) {
-        const { error } = await supabase.from("signal_publication_work").insert({ signal_id: signal.id, entity_type: "signal", entity_id: signal.id, event_type: "SIGNAL_QUALIFIED", event_version: 1, destination: channel, event_key: `signal:${signal.signal_identity}:${channel}` });
+        const destination=channel==="vip"?(String(signal.market_type).toLowerCase()==="crypto"?"vip_crypto":"vip_forex_gold"):channel;
+        const { error } = await supabase.from("signal_publication_work").insert({ signal_id: signal.id, entity_type: "signal", entity_id: signal.id, event_type: "SIGNAL_QUALIFIED", event_version: 1, destination, event_key: `signal:${signal.signal_identity}:${channel}` });
         if (error) {
-          const { data: existing, error: lookupError } = await supabase.from("signal_publication_work").select("id").eq("entity_type", "signal").eq("entity_id", signal.id).eq("event_type", "SIGNAL_QUALIFIED").eq("event_version", 1).eq("destination", channel).maybeSingle();
+          const { data: existing, error: lookupError } = await supabase.from("signal_publication_work").select("id").eq("entity_type", "signal").eq("entity_id", signal.id).eq("event_type", "SIGNAL_QUALIFIED").eq("event_version", 1).eq("destination", destination).maybeSingle();
           if (lookupError || !existing) throw Error("PUBLICATION_QUEUE_UNAVAILABLE");
         }
       }

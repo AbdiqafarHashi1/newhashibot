@@ -31,7 +31,7 @@ export function renderCanonicalTruth(t:CanonicalPublicationTruth,audience:any){
  const p=t.payload as any;
  if(p._publication_hold)throw Error(p._publication_hold);
  if(t.eventType==="EDITORIAL"){
-  if(!p.editorial||p.editorial.audience!==audience)throw Error("EDITORIAL_AUDIENCE_MISMATCH");
+  if(!p.editorial||p.editorial.audience!==(audience==="vip_crypto"||audience==="vip_forex_gold"?"vip":audience))throw Error("EDITORIAL_AUDIENCE_MISMATCH");
   const checked=validateEditorialPublication(p.editorial);if(!checked.valid)throw Error(checked.reason);
   return splitMessageSafely(renderEditorialPublication(p.editorial),4000).map(text=>({text,parseMode:"Markdown" as const}));
  }

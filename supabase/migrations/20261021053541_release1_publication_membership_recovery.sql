@@ -30,7 +30,7 @@ BEGIN IF auth.role()<>'service_role' THEN RAISE EXCEPTION 'SERVICE_ROLE_REQUIRED
  IF event_id IS NOT NULL AND existing_hash<>expected_hash THEN RAISE EXCEPTION 'LIFECYCLE_EVENT_CONTENT_CONFLICT'; END IF;
  IF event_id IS NULL THEN INSERT INTO public.canonical_lifecycle_events(event_key,event_type,event_version,signal_id,execution_id,customer_id,account_id,occurred_at,payload,content_hash) VALUES(p_event_key,p_event_type,p_event_version,p_signal_id,p_execution_id,p_customer_id,p_account_id,p_occurred_at,p_payload,expected_hash) RETURNING id INTO event_id; END IF;
  FOREACH destination IN ARRAY p_destinations LOOP
-  IF destination NOT IN ('free','vip','customer','admin','owner') OR (destination='free' AND p_event_type<>'EDITORIAL') THEN RAISE EXCEPTION 'INVALID_LIFECYCLE_DESTINATION'; END IF;
+  IF destination NOT IN ('free','vip','vip_crypto','vip_forex_gold','customer','admin','owner') OR (destination='free' AND p_event_type<>'EDITORIAL') THEN RAISE EXCEPTION 'INVALID_LIFECYCLE_DESTINATION'; END IF;
   IF destination='customer' AND (p_customer_id IS NULL OR p_account_id IS NULL) THEN RAISE EXCEPTION 'CUSTOMER_ACCOUNT_SCOPE_REQUIRED'; END IF;
   INSERT INTO public.signal_publication_work(signal_id,entity_type,entity_id,event_type,event_version,destination,customer_id,event_key,status)
   VALUES(p_signal_id,'lifecycle_event',coalesce(p_execution_id,p_signal_id,event_id),p_event_type,p_event_version,destination,CASE WHEN destination='customer' THEN p_customer_id ELSE NULL END,p_event_key||':'||destination,'pending') ON CONFLICT DO NOTHING;
@@ -241,3 +241,37 @@ begin
 end $$;
 revoke all on function public.process_canonical_commerce_event(text,text) from public,anon,authenticated;grant execute on function public.process_canonical_commerce_event(text,text) to service_role;
 
+
+-- Existing customer pages read the Phase-I entitlement instead of a second subscription table.
+create or replace function public.my_release1_customer_subscription() returns jsonb
+language plpgsql stable security definer set search_path=public,pg_temp as $$
+declare e phase_h_entitlements; p commerce_payment_attempts; active boolean;begin
+ if auth.uid() is null then return null;end if;
+ select * into e from phase_h_entitlements where customer_id=auth.uid() and product_code='VIP_SIGNALS' order by valid_until desc nulls last limit 1;
+ if e.id is null then return null;end if;
+ select * into p from commerce_payment_attempts where id=e.source_payment_id and customer_id=e.customer_id;
+ active:=has_product_entitlement(auth.uid(),'crypto_signal_room',now());
+ return jsonb_build_object('id',e.id,'user_id',e.customer_id,'package_name','VIP Signals','product_slug','crypto_signal_room','package_id',null,'access_status',case when active then 'active' when e.valid_until<=now() then 'expired' else 'suspended' end,'payment_status',case when active then 'paid' else 'pending' end,'amount_paid',p.amount_minor/100.0,'currency',p.currency,'payment_method',p.provider,'starts_at',e.valid_from,'expires_at',e.valid_until,'created_at',e.created_at,'updated_at',e.updated_at,'verified_commerce',true);
+end$$;
+revoke all on function public.my_release1_customer_subscription() from public,anon;
+grant execute on function public.my_release1_customer_subscription() to authenticated;
+
+-- Customers can read only previously published canonical scanner signals, with current paid access.
+create or replace function public.can_read_release1_signal(p_signal_id uuid) returns boolean
+language sql stable security definer set search_path=public,pg_temp as $$
+ select public.is_admin() or (has_product_entitlement(auth.uid(),'crypto_signal_room',now()) and exists(
+ select 1 from signals s join strategy_release_candidates r on r.strategy_id=s.strategy_id and r.state='PROMOTED'
+ join signal_publication_work w on w.entity_id=s.id and w.entity_type='signal' and w.status='sent' and w.destination in('vip','vip_crypto','vip_forex_gold')
+ where s.id=p_signal_id and s.contract_version='scanner-signal/v2' and s.source='scanner' and s.data_source='REAL DATA' and s.arbitrator_decision->>'final_decision'='approved'));
+$$;
+revoke all on function public.can_read_release1_signal(uuid) from public,anon;
+grant execute on function public.can_read_release1_signal(uuid) to authenticated;
+do $$declare p record;begin
+ for p in select policyname from pg_policies where schemaname='public' and tablename='signals' and cmd='SELECT' loop execute format('drop policy %I on public.signals',p.policyname);end loop;
+ alter table public.signals enable row level security;
+ create policy release1_verified_signal_read on public.signals for select to authenticated using(public.can_read_release1_signal(id));
+ if to_regclass('public.signal_updates') is not null then
+  for p in select policyname from pg_policies where schemaname='public' and tablename='signal_updates' and cmd='SELECT' loop execute format('drop policy %I on public.signal_updates',p.policyname);end loop;
+  create policy release1_verified_update_read on public.signal_updates for select to authenticated using(public.can_read_release1_signal(signal_id));
+ end if;
+end$$;

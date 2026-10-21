@@ -56,13 +56,17 @@ assert.equal(inactiveEntitlements.canConfigureBot, false);
 const activeSub = {
   id: 'sub-1',
   user_id: 'user-a',
-  package_name: 'Crypto Personal Bot',
+  package_name: 'VIP Signals',product_slug:'crypto_signal_room',
+  verified_commerce: true,
   access_status: 'active',
   payment_status: 'paid',
   expires_at: new Date(Date.now() + 86400000).toISOString(),
 } as any;
 
 assert.equal(getCustomerAccessState(activeSub, null), 'active');
+assert.equal(getCustomerAccessState({...activeSub,verified_commerce:false},null),'pending');
+assert.equal(getCustomerAccessState(null,{status:'approved'} as any),'pending');
+assert.equal(getCustomerAccessState({...activeSub,expires_at:'invalid'},null),'pending');
 
 const expiredSub = {
   ...activeSub,

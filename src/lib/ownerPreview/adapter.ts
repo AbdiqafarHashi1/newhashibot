@@ -42,6 +42,7 @@ export const previewClient = {
   rpc: async (name: string) => {
     const reads: Record<string, PreviewRow> = {
       telegram_operations_status: { queue_depth: 2, failures: 1, dead_letters: 0, unlinked_customers: 1, membership_drift: 1, configuration_issues: 0 },
+      my_release1_customer_subscription: {...tables.customer_subscriptions.find(r=>r.user_id===customerId),package_name:'VIP Signals',product_slug:'crypto_signal_room',verified_commerce:true},
       my_vip_commerce_status: customerId === previewCustomers[0].id ? { state:'ACTIVE', expires_at:'2099-01-01', provider:'DEMONSTRATION' } : { state:'VERIFYING', reference:'DEMONSTRATION_PENDING' },
       my_vip_telegram_status: customerId === previewCustomers[0].id ? { state:'HEALTHY',username:'demo_amina',access_state:'DEMONSTRATION',last_success_at:new Date().toISOString() } : { state:'LINKING_FAILED',safe_error:'Simulated pending membership; no Telegram action' },
     };

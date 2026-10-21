@@ -15,7 +15,7 @@ export function formatPackagePrice(pkg?: Package | null, sub?: CustomerSubscript
   const currency = pkg?.currency || sub?.currency || 'KES';
   const slug = pkg?.slug || slugFromPackageValue(sub?.package_name);
   const amount = slug && isBotPackage(slug) ? 10000 : pkg?.price ?? sub?.amount_paid ?? null;
-  if (amount == null) return currency === 'KES' ? '5,000 KES' : 'Contact admin';
+  if (amount == null) return currency === 'KES' ? '3,500 KES' : 'Contact admin';
   if (Number(amount) === 0) return 'Free';
   const main = currency === 'KES'
     ? `${Number(amount).toLocaleString()} KES`
@@ -43,8 +43,8 @@ export function getCustomerAccessState(sub?: CustomerSubscription | null, reques
   if (hasPackage && (sub?.access_status === 'expired' || sub?.payment_status === 'expired' || isPastExpiry)) return 'expired';
 
   // If subscription is active or marked as paid
-  if (hasPackage && (sub?.access_status === 'active' || sub?.payment_status === 'paid')) {
-    if (signalModeIncluded(sub?.package_name)) {
+  if (hasPackage && sub?.access_status === 'active' && sub?.payment_status === 'paid' && (sub as CustomerSubscription & {verified_commerce?:boolean}).verified_commerce === true && expiresAt!==null && Number.isFinite(expiresAt) && expiresAt>Date.now()) {
+    if (signalModeIncluded(sub?.product_slug ?? sub?.package_name)) {
       return 'active';
     }
   }
@@ -54,7 +54,7 @@ export function getCustomerAccessState(sub?: CustomerSubscription | null, reques
     if (request.status === 'rejected') return 'rejected';
     if (request.status === 'pending_payment') return 'pending_payment';
     if (request.status === 'pending_admin_approval' || request.status === 'pending') return 'pending_admin_approval';
-    if (request.status === 'approved' || request.status === 'converted_to_access') return 'active';
+    if (request.status === 'approved' || request.status === 'converted_to_access') return 'pending';
     if (request.status === 'expired') return 'expired';
   }
 
@@ -84,13 +84,13 @@ export function accessStateLabel(state: CustomerAccessState) {
 export function accessStateDescription(state: CustomerAccessState, packageValue?: string | null) {
   const packageName = packageDisplayName(packageValue);
   const descriptions: Record<CustomerAccessState, string> = {
-    active: `Your ${packageName} access is active. Signal Mode buyers see signals and Telegram status only; Bot packages include Signal Mode plus setup status.`,
+    active: `Your ${packageName} access is active. VIP provides signals and Telegram access.`,
     pending_payment: `Your ${packageName} request is saved and waiting for payment details or admin payment confirmation.`,
     pending_admin_approval: `Your ${packageName} request/payment details are waiting for admin approval. Submit Telegram details while you wait.`,
     pending: `Your ${packageName} account or payment is waiting for admin approval. Submit Telegram details while you wait.`,
-    expired: 'Your access has expired. Renew manually with admin to unlock Signal Mode again.',
+    expired: 'Your access has expired. Renew through Billing to restore VIP access after verified payment.',
     rejected: 'Your latest request was rejected. Review the admin note if provided and submit updated payment/contact details.',
-    no_package: 'Choose a package and submit manual payment/contact details for admin approval.',
+    no_package: 'Choose VIP and complete a verified payment through Billing.',
     suspended: 'Your access has been suspended. Please contact the administrator for resolution.',
   };
   return descriptions[state];

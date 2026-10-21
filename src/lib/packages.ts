@@ -18,13 +18,7 @@ export const BOT_PACKAGE_SLUGS = new Set<PackageCapability>([
   'crypto_prop_bot',
 ]);
 
-export const SIGNAL_INCLUDED_SLUGS = new Set<PackageCapability>([
-  'crypto_signal_room',
-  'crypto_personal_bot',
-  'forex_mt5_personal_bot',
-  'forex_mt5_prop_bot',
-  'crypto_prop_bot',
-]);
+export const SIGNAL_INCLUDED_SLUGS = new Set<PackageCapability>(['crypto_signal_room']);
 
 export const PUBLIC_PACKAGES: Package[] = [
   {
@@ -95,10 +89,7 @@ export function isKnownPackageSlug(slug?: string | null): slug is PackageCapabil
 export function signalModeIncluded(slugOrName?: string | null) {
   if (!slugOrName) return false;
   const slug = slugFromPackageValue(slugOrName);
-  if (!slug) {
-    const lower = slugOrName.toLowerCase();
-    return !lower.includes('free') && !lower.includes('preview');
-  }
+  if (!slug) return false;
   return slug === 'crypto_signal_room';
 }
 
