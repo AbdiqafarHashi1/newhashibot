@@ -15,6 +15,24 @@ export class DarajaMpesaAdapter implements MpesaAdapter {
  async query(checkoutRequestId:string){const timestamp=this.stamp(),password=btoa(`${this.c.shortCode}${this.c.passkey}${timestamp}`),token=await this.token();const r=await fetch(`${this.base()}/mpesa/stkpushquery/v1/query`,{method:"POST",signal:AbortSignal.timeout(15000),headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({BusinessShortCode:this.c.shortCode,Password:password,Timestamp:timestamp,CheckoutRequestID:checkoutRequestId})});const j=await r.json();if(!r.ok)return {state:"REVIEW_REQUIRED" as const};if(j.ResultCode===undefined||j.ResultCode===null||j.ResultCode==="")return {state:"PENDING" as const};if(j.CheckoutRequestID&&j.CheckoutRequestID!==checkoutRequestId)return {state:"REVIEW_REQUIRED" as const};const code=Number(j.ResultCode);return {state:code===0?"SUCCEEDED" as const:"FAILED" as const,resultCode:code}}
 }
 
-export function mpesaAdapterFromGetter(get:(key:string)=>string|undefined):MpesaAdapter {const c={consumerKey:get("DARAJA_CONSUMER_KEY")||undefined,consumerSecret:get("DARAJA_CONSUMER_SECRET")||undefined,shortCode:get("DARAJA_SHORT_CODE")||undefined,passkey:get("DARAJA_PASSKEY")||undefined,callbackUrl:get("DARAJA_CALLBACK_URL")||undefined,transactionType:(get("DARAJA_TRANSACTION_TYPE")||"CustomerPayBillOnline") as MpesaConfiguration["transactionType"],partyB:get("DARAJA_PARTY_B")||undefined,environment:(get("DARAJA_ENVIRONMENT")||"sandbox") as "sandbox"|"production"};return mpesaConfigurationState(c)==="READY"?new DarajaMpesaAdapter(c as Required<MpesaConfiguration>):new UnconfiguredMpesaAdapter()}
+/** Prefer the established DARAJA_* keys, but accept the documented MPESA_* aliases.
+ * Conflicting nonempty values fail closed instead of silently routing funds elsewhere.
+ */
+export function mpesaAdapterFromGetter(get:(key:string)=>string|undefined):MpesaAdapter {
+ const read=(primary:string,alias?:string)=>{const a=get(primary)?.trim(),b=alias?get(alias)?.trim():undefined;if(a&&b&&a!==b)throw new Error("MPESA_CONFIGURATION_CONFLICT");return a||b||undefined};
+ const c={
+  consumerKey:read("DARAJA_CONSUMER_KEY","MPESA_CONSUMER_KEY"),
+  consumerSecret:read("DARAJA_CONSUMER_SECRET","MPESA_CONSUMER_SECRET"),
+  shortCode:read("DARAJA_SHORT_CODE","MPESA_SHORTCODE"),
+  passkey:read("DARAJA_PASSKEY","MPESA_PASSKEY"),
+  callbackUrl:read("DARAJA_CALLBACK_URL","MPESA_CALLBACK_URL"),
+  transactionType:(read("DARAJA_TRANSACTION_TYPE","MPESA_TRANSACTION_TYPE")||"CustomerPayBillOnline") as MpesaConfiguration["transactionType"],
+  partyB:read("DARAJA_PARTY_B","MPESA_PARTY_B"),
+  environment:(read("DARAJA_ENVIRONMENT","MPESA_ENVIRONMENT")||"sandbox") as "sandbox"|"production"
+ };
+ if(!["sandbox","production"].includes(c.environment))throw new Error("MPESA_ENVIRONMENT_INVALID");
+ if(c.callbackUrl){let url:URL;try{url=new URL(c.callbackUrl)}catch{throw new Error("MPESA_CALLBACK_URL_INVALID")}if(url.protocol!=="https:"||url.username||url.password||!url.hostname)throw new Error("MPESA_CALLBACK_URL_INVALID")}
+ return mpesaConfigurationState(c)==="READY"?new DarajaMpesaAdapter(c as Required<MpesaConfiguration>):new UnconfiguredMpesaAdapter();
+}
 
 export function mpesaAdapterFromEnv():MpesaAdapter{return mpesaAdapterFromGetter(key=>Deno.env.get(key))}
