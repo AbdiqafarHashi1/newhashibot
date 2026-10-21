@@ -27,21 +27,21 @@ for (const table of expectedTablesWithRls) {
 
 // 2. Test Entitlements Mapping
 const cryptoBotEntitlements = getEntitlementsForPackage('crypto_personal_bot', true);
-assert.equal(cryptoBotEntitlements.signalAccess, true);
+assert.equal(cryptoBotEntitlements.signalAccess, false);
 assert.equal(cryptoBotEntitlements.cryptoExecution, true);
 assert.equal(cryptoBotEntitlements.mt5Personal, false);
 assert.equal(cryptoBotEntitlements.mt5Prop, false);
 assert.equal(cryptoBotEntitlements.canConfigureBot, true);
 
 const mt5PersonalEntitlements = getEntitlementsForPackage('forex_mt5_personal_bot', true);
-assert.equal(mt5PersonalEntitlements.signalAccess, true);
+assert.equal(mt5PersonalEntitlements.signalAccess, false);
 assert.equal(mt5PersonalEntitlements.cryptoExecution, false);
 assert.equal(mt5PersonalEntitlements.mt5Personal, true);
 assert.equal(mt5PersonalEntitlements.mt5Prop, false);
 assert.equal(mt5PersonalEntitlements.canConfigureBot, true);
 
 const mt5PropEntitlements = getEntitlementsForPackage('forex_mt5_prop_bot', true);
-assert.equal(mt5PropEntitlements.signalAccess, true);
+assert.equal(mt5PropEntitlements.signalAccess, false);
 assert.equal(mt5PropEntitlements.cryptoExecution, false);
 assert.equal(mt5PropEntitlements.mt5Personal, false);
 assert.equal(mt5PropEntitlements.mt5Prop, true);
@@ -93,7 +93,7 @@ assert.equal(isBotPackage('crypto_signal_room'), false);
 assert.equal(isBotPackage('free_preview'), false);
 
 assert.equal(signalModeIncluded('crypto_signal_room'), true);
-assert.equal(signalModeIncluded('crypto_personal_bot'), true);
+assert.equal(signalModeIncluded('crypto_personal_bot'), false);
 assert.equal(signalModeIncluded('free_preview'), false);
 
 console.log('✅ Customer security, entitlement, and access state tests PASSED.');

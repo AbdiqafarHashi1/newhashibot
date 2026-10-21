@@ -203,7 +203,7 @@ export function getEntitlementsForPackage(slugOrName?: string | null, isActive: 
   }
 
   return {
-    signalAccess: true, // All active paid packages have signal access
+    signalAccess: slug === 'crypto_signal_room', // VIP has its own verified entitlement.
     cryptoExecution: slug === 'crypto_personal_bot' || slug === 'crypto_prop_bot',
     cryptoProp: slug === 'crypto_prop_bot',
     mt5Personal: slug === 'forex_mt5_personal_bot',

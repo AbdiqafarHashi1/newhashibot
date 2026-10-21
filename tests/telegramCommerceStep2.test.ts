@@ -12,10 +12,10 @@ assert.match(sql, /interval '15 minutes'/); assert.match(sql, /used_at IS NOT NU
 assert.match(sql, /active_vip_entitlement_required/g); assert.match(sql, /telegram_identity_already_bound/);
 assert.match(sql, /auth\.role\(\)<>'service_role'/); assert.match(sql, /p_telegram_user_id bigint/);
 assert.doesNotMatch(sql, /email.*token|phone.*token|payment_reference.*token/i);
-assert.match(orchestrator, /X-Telegram-Bot-Api-Secret-Token/); assert.match(orchestrator, /^\s*const digest/m);
-assert.match(orchestrator, /consume_vip_telegram_onboarding/); assert.match(orchestrator, /limit\(50\)/);
+assert.match(orchestrator, /X-Telegram-Bot-Api-Secret-Token/); assert.match(orchestrator, /telegram-membership/);
+assert.match(read("supabase/functions/telegram-membership/index.ts"), /consume_telegram_link_token/); assert.match(orchestrator, /reconcile_release1_vip_memberships/);
 assert.match(fulfillment, /has_product_entitlement/g); assert.match(fulfillment, /crypto_signal_room/g);
-assert.match(fulfillment, /getChatMember/); assert.match(fulfillment, /createChatInviteLink/); assert.match(fulfillment, /member_limit: 1/);
+assert.match(fulfillment, /getChatMember/); assert.match(fulfillment, /createChatInviteLink/); assert.match(fulfillment, /creates_join_request: true/);
 assert.match(fulfillment, /banChatMember/); assert.match(fulfillment, /unbanChatMember/);
 assert.match(fulfillment, /\.eq\("user_id", userId\)/g); assert.doesNotMatch(fulfillment, /TELEGRAM_FREE_CHAT_ID|TELEGRAM_ADMIN_CHAT_ID/);
 assert.match(complete, /createVipTelegramOnboardingLink/); assert.match(complete, /Connect Telegram/); assert.match(complete, /Open Telegram/);

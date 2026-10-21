@@ -10,9 +10,9 @@ const commerce = read('src/lib/commerce.ts');
 const mpesa = read('src/lib/mpesa.ts');
 const env = read('.env.example');
 
-assert.match(app, /path="\/vip"/); assert.match(app, /path="\/free"/);
+assert.match(app, /path="\/pricing" element=\{<Navigate to="\/vip"/); assert.match(app, /path="\/vip"/); assert.match(app, /path="\/free"/);
 assert.match(vip, /<WhopCheckout product="HASHIBOT_VIP_SIGNALS"/); assert.doesNotMatch(vip, /to=["'`]\/pricing/);
-assert.match(vip, /<MpesaCheckout termDays=\{7\}/); assert.match(vip, /<MpesaCheckout termDays=\{30\}/);
+assert.doesNotMatch(vip, /<MpesaCheckout termDays=\{7\}/); assert.match(vip, /<MpesaCheckout termDays=\{30\}/);
 assert.doesNotMatch(vip, /submitManualMpesaRequest|VITE_MPESA_MERCHANT_NUMBER/, 'the approved funnel cannot ask customers to send money manually');
 assert.match(free, /Permanent free community/i); assert.match(free, /functions\.invoke\('free-enrollment'/);
 for (const product of ['Personal Auto-Bot', 'Prop Pass Master', 'Crypto Prop Pass Master']) assert.match(pricing, new RegExp(product));
