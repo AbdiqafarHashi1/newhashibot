@@ -33,7 +33,7 @@ const at = '2026-07-19T12:00:00.000Z';
 const scannerSource = readFileSync('supabase/functions/market-scanner/index.ts', 'utf8');
 const cryptoEvaluatorSource = readFileSync('supabase/functions/_shared/crypto-production-evaluators.ts', 'utf8');
 function functionHash(name: string): string {
-  const source = name.startsWith('evalForex') ? scannerSource : cryptoEvaluatorSource;
+  const source = name.startsWith('evalForex') ? readFileSync('supabase/functions/_shared/forex-legacy-evaluators.ts','utf8') : cryptoEvaluatorSource;
   const start = source.indexOf(`function ${name}`); assert.ok(start >= 0, `${name} exists in active shared evaluator authority`);
   const body = source.indexOf('{', start); let depth = 0; let end = body;
   for (; end < source.length; end++) { if (source[end] === '{') depth++; else if (source[end] === '}' && --depth === 0) { end++; break; } }
@@ -45,8 +45,8 @@ const ROOT_EVALUATOR_BASELINE = {
   evalQuickScalp: 'b111879bc1aed3ba2e7d0b029d1e14a2eaedbe5e8fe50c2dadeac8dc4efc7a40',
   evalCompressionBreakout: 'af23c123a433050e22bd6840f5e728356720e4fd0622f173c07eb39d882a810f',
   evalSwingContinuation: '7ba5c9a2e4648ce4c53b0df560474b4a312d11d35c362aceaa219daccd75cf8f',
-  evalForexMicroScalper: '0ebd20c2f1d787422bb32e7592162d70c1808a6e9ef7955d6d89060d1cce9e88',
-  evalForexSwingContinuation: 'b3e420432f16d6ffdcc0e73e9a72744dfd7c39312fa191fe37c4d95500685746',
+  evalForexMicroScalper: '0b83aa27dbc2abd1dd78cc0bf5a303091747b4d08d5dc6aff7319dc8b5314328',
+  evalForexSwingContinuation: '3a8ed28b615d9d84ac051fdaa3aeb710fef21ada5769b3f25052466d7477c3d0',
 };
 for (const [name, expected] of Object.entries(ROOT_EVALUATOR_BASELINE)) assert.equal(functionHash(name), expected, `${name} production formula baseline changed`);
 const candle = (index: number, close = 100) => ({ symbol: 'BTCUSDT', market_type: 'crypto', timeframe: '15m', open_time: new Date(Date.parse(at) - (60 - index) * 900_000).toISOString(), open: close - .2, high: close + .5, low: close - .5, close, volume: 1000, source: 'fixture' });

@@ -61,7 +61,7 @@ for (const name of ["evalMicroScalper", "evalQuickScalp", "evalCompressionBreako
   assert.ok(scanner.includes(name), `${name} wired into scanner`);
   assert.ok(cryptoEvaluators.includes(`export function ${name}(`), `${name} shared production evaluator retained`);
 }
-for (const name of ["evalForexMicroScalper", "evalForexSwingContinuation"]) assert.ok(scanner.includes(`function ${name}(`));
+for (const name of ["evalForexMicroScalper", "evalForexSwingContinuation"]) {assert.ok(scanner.includes(name));assert.ok(readFileSync("supabase/functions/_shared/forex-legacy-evaluators.ts","utf8").includes(`function ${name}(`));}
 assert.equal((scanner.match(/const arbitrationDecision = arbitrateActiveScanner\(/g) ?? []).length, 1, "one shared production arbitration decision");
 assert.doesNotMatch(scanner, /from ["'][^"']*v2\//);
 assert.match(scanner, /if \(!evaluation\.publishable\) arbitrationDiagnostics\.researchExcluded\(\);\s*if \(!evaluation\.publishable\) continue;/, "research excluded before allEvals and candidate persistence");

@@ -57,8 +57,10 @@ export function roundInstrumentPrice(id: ForexInstrumentId, value: number): numb
 export function priceToPips(id: ForexInstrumentId, value: number): number { return value / FOREX_INSTRUMENTS[id].pipSize; }
 export function pipsToPrice(id: ForexInstrumentId, value: number): number { return value * FOREX_INSTRUMENTS[id].pipSize; }
 
+const zoneFormatters=new Map<string,Intl.DateTimeFormat>();
 function zonedParts(at: Date, timeZone: string): { weekday: string; year: number; month: number; day: number; hour: number; minute: number } {
-  const parts = new Intl.DateTimeFormat("en-GB", { timeZone, weekday: "short", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(at);
+  let formatter=zoneFormatters.get(timeZone);if(!formatter){formatter=new Intl.DateTimeFormat("en-GB", { timeZone, weekday: "short", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });if(zoneFormatters.size>=16)zoneFormatters.delete(zoneFormatters.keys().next().value!);zoneFormatters.set(timeZone,formatter);}
+  const parts = formatter.formatToParts(at);
   const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
   return { weekday: get("weekday"), year: Number(get("year")), month: Number(get("month")), day: Number(get("day")), hour: Number(get("hour")), minute: Number(get("minute")) };
 }
