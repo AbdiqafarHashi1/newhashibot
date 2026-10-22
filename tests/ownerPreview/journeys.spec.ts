@@ -65,50 +65,48 @@ test('local actions, scoped customer journeys, network denial, reset and screens
   const observed = audit(page);
   mkdirSync('docs/owner-preview/screenshots',{recursive:true});
   await page.screenshot({path:`docs/owner-preview/screenshots/${info.project.name}-operations.png`});
-  await page.getByRole('button',{name:/^Start HashiBot$/i}).click();
+  await navigate(page,'/admin/mission-control');
+  await page.getByRole('button',{name:/^Start HashiBot$/i}).first().click();
   await expect(page.locator('body')).toContainText('Disposable preview state updated');
   await navigate(page,'/admin/recovery');
   await page.getByRole('button',{name:'Execute Repair',exact:true}).first().click();
   await expect(page.locator('body')).toContainText('Repair sequence executed');
   await navigate(page,'/admin/commerce');
-  await page.getByRole('button',{name:'Safe retry & reconcile',exact:true}).click();
-  await expect(page.locator('body')).toContainText('Reconciliation requested');
+  await page.getByRole('button',{name:'Retry eligible work & reconcile',exact:true}).click();
+  await expect(page.locator('body')).toContainText('Reconciliation accepted');
   await navigate(page,'/admin/scanner-config');
   await page.getByRole('button',{name:/Save Config/}).click();
   await navigate(page,'/admin/backtest');
   await page.getByRole('button',{name:/LOAD SIMULATED DEMONSTRATION DATA/i}).first().click();
   await expect(page.locator('body')).toContainText('SIMULATED: 600 illustrative candles');
-  const validation = page.getByRole('region',{name:'Phase L validation operations'});
-  await validation.getByLabel('Validation dataset').selectOption('preview-dataset');
-  await validation.getByRole('button',{name:'Start REPLAY',exact:true}).click();
-  await expect(validation).toContainText('COMPLETED');
-  await validation.getByRole('button',{name:'Evidence',exact:true}).first().click();
-  await expect(validation).toContainText('SIMULATED_DEMONSTRATION');
-  const simulations = page.locator('section').filter({has:page.getByRole('heading',{name:'Disposable simulated evidence · execution disabled',exact:true})});
-  await simulations.getByLabel('Mode').selectOption('SHADOW');
-  await simulations.getByRole('button',{name:'Queue / retry validation',exact:true}).click();
+  await page.getByRole('navigation',{name:'Backtest workflow'}).getByRole('button',{name:/Scanner pipeline/}).click();
+  const simulations=page.getByRole('region',{name:'Connected validation operations'});
+  await simulations.getByLabel('Complete datasets').selectOption('preview-dataset');
+  await simulations.getByRole('button',{name:'Run full scanner pipeline',exact:true}).click();
+  await expect(simulations).toContainText('COMPLETED');
+  await simulations.getByRole('button',{name:'Inspect',exact:true}).last().click();
+  await expect(simulations).toContainText('SIMULATED_DEMONSTRATION');
+  await simulations.getByLabel('Validation mode',{exact:true}).selectOption('SHADOW');
+  await simulations.getByRole('button',{name:'Start shadow observation',exact:true}).click();
   await expect(simulations).toContainText('RUNNING');
   await simulations.getByRole('button',{name:'Inspect',exact:true}).last().click();
   await simulations.getByRole('button',{name:'Cancel',exact:true}).click();
   await expect(simulations).toContainText('CANCELLED');
-  await simulations.getByLabel('Mode').selectOption('ACCOUNT');
+  await simulations.getByLabel('Validation mode',{exact:true}).selectOption('ACCOUNT');
   await simulations.getByLabel('Completed scanner run').selectOption('preview-replay-completed');
-  await simulations.getByLabel(/^Account/).selectOption('preview-amina-mt5-personal');
+  await simulations.getByLabel('Account',{exact:true}).selectOption('preview-amina-mt5-personal');
   await simulations.getByLabel('Approved Brain').selectOption('preview-brain-preview-amina-mt5-personal');
-  await simulations.getByRole('button',{name:'Queue / retry validation',exact:true}).click();
+  await simulations.getByRole('button',{name:'Run account simulation',exact:true}).click();
   await expect(simulations).toContainText('COMPLETED');
-  await simulations.getByLabel('Mode').selectOption('PROP');
+  await simulations.getByLabel('Validation mode',{exact:true}).selectOption('PROP');
   await simulations.getByLabel('Completed account run').selectOption('preview-account-completed');
   await simulations.getByLabel('Frozen profile').selectOption('preview-prop-profile');
-  await simulations.getByRole('button',{name:'Queue / retry validation',exact:true}).click();
+  await simulations.getByRole('button',{name:'Run 100 Prop challenges',exact:true}).click();
   await expect(simulations).toContainText('COMPLETED');
   await navigate(page,'/app/onboarding');
-  for(let step=0; step<12; step++) {
-    if(step===10) await page.getByRole('checkbox').check();
-    await page.getByRole('button',{name:'Save & continue',exact:true}).click();
-  }
-  await page.getByRole('button',{name:'Finish signal setup',exact:true}).click();
-  await expect(page.locator('body')).toContainText('SIGNAL_ACCESS_SAVED');
+  // Preview is deliberately not an authenticated Supabase customer.
+  // Saving real onboarding requires a genuine identity; do not forge one for this test.
+  await expect(page.getByRole('button',{name:'Save & continue',exact:true})).toBeDisabled();
   await navigate(page,'/app/readiness');
   await expect(page.locator('main').last()).toContainText('Amina');
   await expect(page.locator('main').last()).not.toContainText('Yusuf');
@@ -138,15 +136,7 @@ test('local actions, scoped customer journeys, network denial, reset and screens
   await expect(page.getByLabel('Preview customer')).toHaveValue('preview-customer-amina');
   await navigate(page,'/app/onboarding');
   await expect(page.locator('body')).toContainText('Step 1 of 13');
-  await page.getByRole('button',{name:/^Auto Execution/}).click();
-  for(let step=0;step<12;step++) {
-    if(step===2) await page.getByRole('button',{name:'Crypto',exact:true}).click();
-    if(step===4) await page.getByRole('button',{name:'Binance testnet',exact:true}).click();
-    if(step===10) await page.getByRole('checkbox').check();
-    await page.getByRole('button',{name:'Save & continue',exact:true}).click();
-  }
-  await page.getByRole('button',{name:'Create demo account',exact:true}).click();
-  await expect(page.locator('body')).toContainText('ACCOUNT_CREATED:preview-created-');
+  await expect(page.getByRole('button',{name:'Save & continue',exact:true})).toBeDisabled();
   expect(observed.requests).toEqual([]);
   expect(observed.errors).toEqual([]);
 });

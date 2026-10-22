@@ -1,5 +1,7 @@
 # Original HashiBot SaaS release status
 
+**Superseded release verdict (22 October 2026): [Release 1 evidence](../release1/README.md). Engineering checks repaired; strategy NOT CERTIFIED; NOT READY FOR ACTIVATION. Earlier status below is historical.**
+
 Updated 17 October 2026, EAT. Repository: AbdiqafarHashi1/newhashibot. Product domain: hashibot.app.
 
 ## Product decision

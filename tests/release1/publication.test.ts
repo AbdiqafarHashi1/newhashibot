@@ -1,4 +1,4 @@
-import {SupabasePublicationStore,renderCanonicalTruth} from '../../supabase/functions/_shared/canonical-publication-runtime.ts';
+import {SupabasePublicationStore,renderCanonicalTruth,TelegramCanonicalTransport} from '../../supabase/functions/_shared/canonical-publication-runtime.ts';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {assertPublishableSignal} from '../../supabase/functions/_shared/signal-publication-guard.ts';
@@ -26,3 +26,7 @@ const lifecycleDb={from:(table:string)=>{const q:any={select:()=>q,eq:()=>q,or:(
 const claim={id:'work',entityType:'lifecycle_event',entityId:'signal-parent',eventType:'TP1',eventVersion:2,destination:'vip' as const,customerId:null,attemptCount:1,leaseToken:'lease'};
 const lifecycleStore=new SupabasePublicationStore(lifecycleDb);const held=(await lifecycleStore.loadTruth(claim))!;assert.equal(held.entityId,claim.entityId);assert.throws(()=>renderCanonicalTruth(held,'vip'),/QUALIFIED_INITIAL_PUBLICATION_REQUIRED/);
 published=true;const deliveredParent=(await lifecycleStore.loadTruth(claim))!;assert.doesNotThrow(()=>renderCanonicalTruth(deliveredParent,'vip'));
+
+const oldDeno=globalThis.Deno;
+globalThis.Deno={env:{get:(key:string)=>key==='TELEGRAM_BOT_TOKEN'?'123456:fixture-secret':key==='TELEGRAM_ADMIN_CHAT_ID'?'-100123':undefined}} as typeof Deno;
+try{const transport=new TelegramCanonicalTransport({from:()=>({select(){return this},eq(){return this},maybeSingle:async()=>({data:{telegram_user_id:'7001',access_state:'ACTIVE'},error:null})})},async()=>{throw Error('request failed https://api.telegram.org/bot123456:fixture-secret/sendMessage')});const result=await transport.send({destination:'customer',customerId:'customer',text:'test',identity:'redaction'});assert.equal(result.kind,'uncertain');assert.doesNotMatch(JSON.stringify(result),/fixture-secret|123456:/);}finally{globalThis.Deno=oldDeno;}
