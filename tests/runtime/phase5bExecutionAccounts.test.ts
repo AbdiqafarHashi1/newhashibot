@@ -18,7 +18,7 @@ assert.doesNotMatch(workspace, /Primary: \{effectivePrimaryProvider\.toUpperCase
 assert.match(workspace, /ACCOUNT NOT CONFIGURED/);
 assert.match(workspace, /WRITE OPERATIONS BLOCKED/);
 assert.match(workspace, /Global provider permission only/);
-assert.match(manager, /Execution adoption always defaults OFF/);
+assert.match(manager, /OnboardingOperations title="Execution readiness"/);
 assert.match(operator, /execution_enabled: false/);
 assert.match(operator, /credential_ref_must_be_opaque_vault_uuid/);
 assert.match(migration, /ALTER COLUMN credential_ref DROP NOT NULL/);

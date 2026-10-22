@@ -1,10 +1,10 @@
-export type PreviewRow = Record<string, any>; // Existing UI projections have heterogeneous shapes.
+export type PreviewRow = Record<string, unknown>; // Existing UI projections have heterogeneous shapes.
 const now = new Date().toISOString();
 export const previewCustomers = [
   { id: 'preview-customer-amina', full_name: 'Amina — demonstration customer', email: 'amina@example.invalid', created_at: now, role: 'user' as const },
   { id: 'preview-customer-yusuf', full_name: 'Yusuf — demonstration customer', email: 'yusuf@example.invalid', created_at: now, role: 'user' as const },
 ];
-const account = (id: string, customer: number, provider: string, mode: string, state: string, risk: number): PreviewRow => ({
+const account = (id: string, customer: number, provider: string, mode: string, state: string, risk: number) => ({
   id, account_id: id, enabled: false, customer_id: previewCustomers[customer].id, user_id: previewCustomers[customer].id,
   provider, provider_name: provider, environment: provider === 'BINANCE' ? 'testnet' : 'demo', account_mode: mode,
   display_label: `${previewCustomers[customer].full_name.split(' ')[0]} ${provider} ${mode} — simulated`,
@@ -19,6 +19,7 @@ const account = (id: string, customer: number, provider: string, mode: string, s
   balance: customer ? 25000 : 100000, equity: customer ? 24750 : 100200, risk_percent: risk, status: state, created_at: now,
   evidence_kind: 'SIMULATED_DEMONSTRATION',
 });
+export type PreviewAccount=ReturnType<typeof account>;
 export const previewAccounts = [
   account('preview-amina-mt5-personal', 0, 'MT5', 'PERSONAL', 'healthy', .3),
   account('preview-amina-binance', 0, 'BINANCE', 'PERSONAL', 'uncertain', .2),

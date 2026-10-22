@@ -39,7 +39,7 @@ assert.match(executionFunction, /console\.log\("Bybit V5 safe debug", \{ endpoin
 assert.match(executionFunction, /providerEntryBlocked/, 'provider entry gates are isolated from global execution gates');
 assert.match(executionFunction, /executionReadiness/, 'dry-run readiness proof action exists');
 
-assert.match(executionHub, /<OnboardingOperations\s*\/>/, 'execution management reuses the customer/account operations and certification authority');
+assert.match(executionHub, /<OnboardingOperations\s+title="Execution readiness"/, 'execution management reuses the customer/account operations and certification authority');
 const accountOperations=readFileSync('src/pages/admin/OnboardingOperations.tsx','utf8');
 assert.match(accountOperations,/requestOperationsCommand/,'execution actions use the audited server coordinator');
 assert.match(accountOperations,/execution_account_id/,'execution management retains explicit account scope');

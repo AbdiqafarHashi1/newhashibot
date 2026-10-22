@@ -58,9 +58,9 @@ assert.doesNotMatch(scanner, /contract\.legacyName === "ForexMicroScalper"/);
 assert.match(scanner, /gold_strategy_not_certified/);
 assert.match(scanner, /loadMT5Candles/);
 assert.doesNotMatch(scanner, /api\.twelvedata\.com|api\.finnhub\.io|fetchMT5BridgeCandles/);
-assert.match(scanner, /if \(marketType === "crypto"\) \{\s+const fetched = await fetchBinanceCandles/,
+assert.match(scanner, /await fetchBinanceCandles\(symbol, tf, 111\)/,
   "Crypto branch retains Binance fetch behavior");
-assert.match(scanner, /const allEvals:[\s\S]*registry\.evaluate\(strategyContext\)[\s\S]*passingEntries/,
+assert.match(scanner, /const allEvals:[\s\S]*evaluateActiveStrategies\(registry, strategyContext\)[\s\S]*passingEntries/,
   "Forex evaluations still enter the unified registry and arbitration path");
 
 console.log("forex scanner uniformity tests passed");

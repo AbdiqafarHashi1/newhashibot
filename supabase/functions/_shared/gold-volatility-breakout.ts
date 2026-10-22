@@ -16,7 +16,7 @@ function fingerprint(evidence: Evidence): string {
   return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 function provenance(input: StrategyEvaluationContext, evidence: Evidence): Evidence {
-  const base: Evidence = { strategy_id: GOLD_STRATEGY_ID, strategy_version: GOLD_STRATEGY_VERSION, evaluator_identity: GOLD_EVALUATOR_ID, certification: "PRODUCTION", certification_provenance: GOLD_CERTIFICATION_PROVENANCE, symbol: input.symbol, instrument_class: "metal_gold", provider: "mt5", primary_timeframe: "15m", context_timeframe: "1h", ...evidence };
+  const base: Evidence = { strategy_id: GOLD_STRATEGY_ID, strategy_version: GOLD_STRATEGY_VERSION, evaluator_identity: GOLD_EVALUATOR_ID, certification: "MEASURED_RELEASE_REQUIRED", certification_provenance: GOLD_CERTIFICATION_PROVENANCE, symbol: input.symbol, instrument_class: "metal_gold", provider: "mt5", primary_timeframe: "15m", context_timeframe: "1h", ...evidence };
   return { ...base, deterministic_fingerprint: fingerprint(base) };
 }
 function reject(input: StrategyEvaluationContext, reason: string, evidence: Evidence = {}): LegacyStrategyResult {

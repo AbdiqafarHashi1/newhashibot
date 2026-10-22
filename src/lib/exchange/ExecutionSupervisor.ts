@@ -66,7 +66,7 @@ export class ExecutionSupervisor {
       }
 
       // 5. Package Gating Validation
-      if (!signalModeIncluded(signal.package)) {
+      if (!signalModeIncluded(signal.package) && !isBotPackage(signal.package)) {
         return {
           ok: false,
           reason: 'package_not_allowed',

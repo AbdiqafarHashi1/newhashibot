@@ -222,10 +222,8 @@ function runMt5PersonalBrainTests() {
   });
 
   const levDecision = brain.evaluateSignal(normalSignal, highLeverageCtx, defaultPolicy);
-  assert.equal(levDecision.decision, "SKIP", "Decision should be SKIP when leverage exceeds ceiling");
-  assert.ok(
-    levDecision.rule_violations.some((v) => v.rule_id === "rule_mt5_leverage_limit")
-  );
+  assert.equal(levDecision.decision,"EXECUTE","Broker buying power may exceed policy; planned trade leverage must be capped");
+  const cappedPlan=brain.createPositionPlan(levDecision,normalSignal,highLeverageCtx,defaultPolicy);assert(cappedPlan);assert(cappedPlan.leverage<=defaultPolicy.max_leverage_allowed);assert(cappedPlan.expected_risk_pct<=defaultPolicy.max_risk_per_trade_pct);
 
   // Test 7: Reduced Risk (Portfolio Risk Room Limit)
   console.log("Test 7: Evaluating reduced risk decision due to portfolio risk cap...");

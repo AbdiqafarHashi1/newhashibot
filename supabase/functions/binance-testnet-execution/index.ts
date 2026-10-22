@@ -4,7 +4,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
-import { persistTradeManagementTruth as upsertTradeManagementTruth, persistTradeManagementTruthRow as upsertTradeManagementTruthRow } from "../_shared/trade-truth/index.ts";
+import { persistTradeManagementTruthByIdentity, persistTradeManagementTruth as upsertTradeManagementTruth, persistTradeManagementTruthRow as upsertTradeManagementTruthRow } from "../_shared/trade-truth/index.ts";
 import { currentEdgeOwnership, currentEdgeProviderCredential, enumerateExecutionAccounts, OperatorCredentialResolutionError, ownershipFields, resolveEdgeProviderCredential, resolveOperatorProviderCredential, runtimeOwnershipFields, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
 import { deepFreeze, type DeepReadonly } from "../_shared/strategy-plan.ts";
 import { assertCertifiedExecutionInput } from "../_shared/certified-runtime.ts";
@@ -2523,8 +2523,8 @@ async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, pr
   let closedMarked = 0;
   for (const row of ((existing ?? []) as Json[])) {
     if (!openSymbols.has(String(row.symbol))) {
+      await persistTradeManagementTruthByIdentity(supabase, {execution_scope_key:ownership.execution_scope_key,provider:providerName,environment,symbol:String(row.symbol),side:row.side}, { protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now });
       closedMarked += 1;
-      await supabase.from("trade_management_truth").update({ protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now }).eq("execution_scope_key", ownership.execution_scope_key).eq("provider", providerName).eq("environment", environment).eq("symbol", String(row.symbol)).eq("side", row.side);
     }
   }
 

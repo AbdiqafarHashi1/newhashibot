@@ -109,7 +109,7 @@ export class CryptoCertification {
       provider_route: 'binance',
       customer_id: 'cust-123',
       account_id: 'acc-123',
-      package: 'crypto_bot',
+      package: 'crypto_personal_bot',
       execution_mode: 'demo',
       symbol: 'BTCUSDT',
       direction: 'buy',

@@ -6,7 +6,7 @@ const provider = readFileSync("supabase/functions/_shared/mt5-market-data-provid
 const health = readFileSync("src/pages/admin/ProviderHealth.tsx", "utf8");
 
 assert.match(scanner, /const C2_FOREX_PROVIDER = "mt5"/);
-assert.match(scanner, /loadMT5Candles\(supabase, testSymbol, testTf, 110\)/);
+assert.match(scanner, /loadMT5Candles\(supabase, testSymbol, testTf, 110, \{ feedIdentity:/);
 assert.match(scanner, /runtime_provider_policy: "mt5_durable_only_no_fallback"/);
 assert.match(scanner, /fallback_attempted: false/);
 assert.doesNotMatch(scanner, /api\.twelvedata\.com/);

@@ -232,7 +232,7 @@ const ui = readFileSync(
     "utf8",
   ),
   page = readFileSync("src/pages/admin/BacktestLab.tsx", "utf8");
-assert.match(page, /ResearchValidationWorkspace/);
+assert.match(page, /PhaseMOperationsPanel/);assert.match(page,/ProductPortfolioResearch/);
 for (const label of [
   "OOS",
   "WALK_FORWARD",

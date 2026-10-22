@@ -1,5 +1,15 @@
-import { createPreviewTables, previewAccounts, previewCustomers, type PreviewRow } from './fixtures.js';
+import { createPreviewTables, previewAccounts, previewCustomers, type PreviewRow,type PreviewAccount } from './fixtures.js';
 
+interface PreviewResult {data:PreviewRow|PreviewRow[]|null;count?:number|null;error:{message:string}|null}
+interface PreviewQuery extends PromiseLike<PreviewResult> {
+ select(columns?:string,options?:{count?:string;head?:boolean}):PreviewQuery;
+ eq(column:string,value:unknown):PreviewQuery;neq(column:string,value:unknown):PreviewQuery;in(column:string,values:unknown[]):PreviewQuery;is(column:string,value:unknown):PreviewQuery;not(column:string,op:string,value:unknown):PreviewQuery;
+ gte(column:string,value:unknown):PreviewQuery;lte(column:string,value:unknown):PreviewQuery;gt(column:string,value:unknown):PreviewQuery;lt(column:string,value:unknown):PreviewQuery;
+ ilike(column:string,value:string):PreviewQuery;like(column:string,value:string):PreviewQuery;or(expression:string):PreviewQuery;
+ order(column:string,options?:{ascending?:boolean}):PreviewQuery;limit(n:number):PreviewQuery;range(from:number,to:number):PreviewQuery;
+ insert(value:PreviewRow|PreviewRow[]):PreviewQuery;upsert(value:PreviewRow|PreviewRow[]):PreviewQuery;update(value:PreviewRow):PreviewQuery;delete():PreviewQuery;single():PreviewQuery;maybeSingle():PreviewQuery;
+}
+const compare=(left:unknown,right:unknown)=>typeof left==='number'&&typeof right==='number'?left-right:typeof left==='string'&&typeof right==='string'?left<right?-1:left>right?1:0:NaN;
 let tables = createPreviewTables();
 let customerId = previewCustomers[0].id;
 let accountId = previewAccounts[0].id;
@@ -11,8 +21,8 @@ export const previewStore = {
   subscribe(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; },
   snapshot: () => revision,
   customer: () => previewCustomers.find(c => c.id === customerId)!,
-  account: () => tables.execution_accounts_safe.find(a => a.id === accountId) ?? previewAccounts.find(a => a.customer_id === customerId)!,
-  accounts: () => tables.execution_accounts_safe.filter(a => a.customer_id === customerId),
+  account: () => (tables.execution_accounts_safe as PreviewAccount[]).find(a => a.id === accountId) ?? previewAccounts.find(a => a.customer_id === customerId)!,
+  accounts: () => (tables.execution_accounts_safe as PreviewAccount[]).filter(a => a.customer_id === customerId),
   selectCustomer(id: string) { if (!previewCustomers.some(c => c.id === id)) return; customerId = id; accountId = previewAccounts.find(a => a.customer_id === id)!.id; revision++; listeners.forEach(fn => fn()); },
   selectAccount(id: string) { if (!previewStore.accounts().some(a => a.id === id)) return; accountId = id; revision++; listeners.forEach(fn => fn()); },
   setView(next: typeof view, scopeAccount = false) { view = next; accountScoped = scopeAccount; },
@@ -50,22 +60,22 @@ export const previewClient = {
       : { data:null, error:{ message:`DEMONSTRATION_UNAVAILABLE: RPC ${name} has no fixture; payment and entitlement authority remains server-side` } };
   },
   from(table: string) {
-    let predicates: ((row: PreviewRow) => boolean)[] = [];
+    const predicates: ((row: PreviewRow) => boolean)[] = [];
     let operation: 'read'|'insert'|'upsert'|'update'|'delete' = 'read';
     let payload: PreviewRow | PreviewRow[] = {};
     let single = false, count = false, head = false, limit = Infinity, offset = 0;
     let order: { column: string; ascending: boolean } | null = null;
-    const builder: any = {
+    const builder: PreviewQuery = {
       select(_columns?: string, options?: { count?: string; head?: boolean }) { count = !!options?.count; head = !!options?.head; return builder; },
       eq(column: string, value: unknown) { predicates.push(row => row[column] === value); return builder; },
       neq(column: string, value: unknown) { predicates.push(row => row[column] !== value); return builder; },
       in(column: string, values: unknown[]) { predicates.push(row => values.includes(row[column])); return builder; },
       is(column: string, value: unknown) { predicates.push(row => (row[column] ?? null) === value); return builder; },
       not(column: string, op: string, value: unknown) { predicates.push(row => op === 'is' ? (row[column] ?? null) !== value : row[column] !== value); return builder; },
-      gte(column: string, value: any) { predicates.push(row => row[column] >= value); return builder; },
-      lte(column: string, value: any) { predicates.push(row => row[column] <= value); return builder; },
-      gt(column: string, value: any) { predicates.push(row => row[column] > value); return builder; },
-      lt(column: string, value: any) { predicates.push(row => row[column] < value); return builder; },
+      gte(column: string, value: unknown) { predicates.push(row => compare(row[column], value) >= 0); return builder; },
+      lte(column: string, value: unknown) { predicates.push(row => compare(row[column], value) <= 0); return builder; },
+      gt(column: string, value: unknown) { predicates.push(row => compare(row[column], value) > 0); return builder; },
+      lt(column: string, value: unknown) { predicates.push(row => compare(row[column], value) < 0); return builder; },
       ilike(column: string, value: string) { predicates.push(row => String(row[column] ?? '').toLowerCase().includes(value.replace(/%/g,'').toLowerCase())); return builder; },
       like(column: string, value: string) { return builder.ilike(column, value); },
       or(expression: string) { predicates.push(row => expression.split(',').some(term => { const [col,op,...value] = term.split('.'); return op === 'eq' ? String(row[col]) === value.join('.') : String(row[col] ?? '').includes(value.join('.').replace(/%/g,'')); })); return builder; },
@@ -77,8 +87,8 @@ export const previewClient = {
       update(value: PreviewRow) { operation = 'update'; payload = value; return builder; },
       delete() { operation = 'delete'; return builder; },
       single() { single = true; return builder; }, maybeSingle() { single = true; return builder; },
-      then(resolve: (value: any) => unknown, reject?: (error: unknown) => unknown) {
-        return Promise.resolve().then(() => {
+      then<TResult1=PreviewResult,TResult2=never>(resolve?:((value:PreviewResult)=>TResult1|PromiseLike<TResult1>)|null,reject?:((error:unknown)=>TResult2|PromiseLike<TResult2>)|null):Promise<TResult1|TResult2> {
+        return Promise.resolve().then(():PreviewResult => {
           if (!tables[table]) return { data: single ? null : [], count: count ? 0 : null, error: { message: `DEMONSTRATION_UNAVAILABLE: ${table} has no fixture` } };
           const forbidden = (value: unknown): boolean => !!value && typeof value === 'object' && Object.entries(value).some(([key, item]) => /^(password|api_?key|api_?secret|access_token|refresh_token|credentials|role|session)$/i.test(key) || forbidden(item));
           if (operation !== 'read' && forbidden(payload)) return { data: null, error: { message: 'OWNER_PREVIEW_CREDENTIALS_AND_AUTH_FIELDS_DISABLED' } };
@@ -92,7 +102,7 @@ export const previewClient = {
             for (const row of rows) { const existing = operation === 'upsert' && all.find(x => x.id === row.id); if (existing) Object.assign(existing, row); else all.push(row); }
           }
           const total = rows.length;
-          if (order) { const { column, ascending } = order; rows.sort((a,b) => (a[column] < b[column] ? -1 : a[column] > b[column] ? 1 : 0) * (ascending ? 1 : -1)); }
+          if (order) { const { column, ascending } = order; rows.sort((a,b) => (compare(a[column],b[column])||0) * (ascending ? 1 : -1)); }
           rows = rows.slice(offset, offset + limit);
           return { data: head ? null : single ? rows[0] ?? null : rows, count: count ? total : null, error: null };
         }).then(resolve, reject);
@@ -109,7 +119,7 @@ const runs: PreviewRow[] = [
 ];
 const datasets = [{ id: 'preview-dataset', source: 'SIMULATED', status: 'READY', symbol: 'EURUSD', timeframe: '15m', starts_at: '2026-01-01', ends_at: '2026-01-31', row_count: 120, dataset_hash: 'simulated-dataset', coverage: {}, provenance: 'SIMULATED DEMONSTRATION — illustrative only' }];
 const drafts = new Map<string, PreviewRow>();
-export async function previewFunction(name: string, body: PreviewRow): Promise<any> {
+export async function previewFunction(name: string, body: PreviewRow): Promise<PreviewRow> {
   const action = String(body.action ?? '');
   if (/credentials|pairing|checkout|payment|generate|ai-completion/.test(action + name)) throw new Error('OWNER_PREVIEW: credentials, payments and provider/AI actions disabled');
   if (name === 'phase-p-workers') {
@@ -119,7 +129,7 @@ export async function previewFunction(name: string, body: PreviewRow): Promise<a
   }
   if (name === 'phase-h-authority') {
     if (action === 'load_onboarding') return { state: 'SIMULATED', data: { session: drafts.get(customerId) ?? null }, ...evidence };
-    if (action === 'save_onboarding') drafts.set(customerId, structuredClone(body.draft));
+    if (action === 'save_onboarding') drafts.set(customerId, structuredClone(body.draft&&typeof body.draft==='object'?body.draft as PreviewRow:{}));
     if (action === 'create_account_draft') {
       const id = `preview-created-${crypto.randomUUID()}`;
       const row = { ...previewStore.account(), id, customer_id: customerId, user_id: customerId, provider: body.provider, account_mode: body.mode, environment: body.environment, display_label: `${previewStore.customer().full_name.split(' ')[0]} ${body.provider} ${body.mode} — simulated new account`, status: 'pending', phase_h_readiness: 'BLOCKED', phase_h_certification_status: 'SIMULATED_NOT_CERTIFIED', ...evidence };

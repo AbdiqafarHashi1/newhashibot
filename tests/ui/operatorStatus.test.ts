@@ -17,6 +17,6 @@ const progressed=researchWorkflowStages({dataReady:true,backtestComplete:true,va
 assert.equal(progressed.FREEZE,'READY'); assert.equal(progressed.FORWARD,'LOCKED');
 const researchUi=readFileSync('src/pages/admin/backtest/ResearchValidationWorkspace.tsx','utf8');
 for(const action of ['RUN CANONICAL BACKTEST','RUN VALIDATION SUITE','RUN FULL PROP EVALUATION','RUN MULTI-CHALLENGE','CALIBRATE &amp; QUALIFY','FREEZE QUALIFIED CONFIGURATION','START FORWARD VALIDATION']) assert.match(researchUi,new RegExp(action));
-assert.match(readFileSync('src/pages/admin/BacktestLab.tsx','utf8'),/FETCH &amp; SYNC DATA|FETCH & SYNC DATA/);
+assert.match(readFileSync('src/pages/admin/BacktestLab.tsx','utf8'),/<DataAcquisitionPanel onCampaign=\{setCampaign\}/);
 assert.match(readFileSync('src/pages/admin/MT5OperationsCenter.tsx','utf8'),/accountId=/);
 console.log('operator status truth tests passed');
