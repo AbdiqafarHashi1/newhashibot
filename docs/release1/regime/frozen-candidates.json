@@ -1,0 +1,464 @@
+{
+  "schema": "regime-research/v1",
+  "frozenAt": "2026-10-23T01:49:29.773Z",
+  "engineSha256": {
+    "scripts/release1/regime/certify.ts": "a5d7e1a9264c9ccf0f3115a33d18ba502ecee35b6e0f423aaeef47ee32b2fce2",
+    "scripts/release1/regime/replay.ts": "0f47766174291932e53a32dbf62c52a28c29724018f162f784fe3b1ece1029f2",
+    "supabase/functions/_shared/active-qualification.ts": "69c91854eb99ebed0e3dfd01c12f5dced3c0414128cd3cbda25581d3ce3011c4",
+    "supabase/functions/_shared/active-scanner-core.ts": "e935fe2f172ef9d9c959622c36ba4550839974110ebbeed9323fb92bfa8a054e",
+    "supabase/functions/_shared/active-validation-runtime.ts": "efeee858952b1411013c2db48ea7aca35e27ffbb9c7b2f43474b940279854ae8",
+    "supabase/functions/_shared/adaptive-market-policy.ts": "1646b2f3456c3db1689d2281935f9beef3ff0b90746fdc70334610563197800d",
+    "supabase/functions/_shared/arbitrator.ts": "147f0f421e6dae22c7495c2c2a27226dad47937ba57289f66b169787cfaed758",
+    "supabase/functions/_shared/crypto-production-evaluators.ts": "57b84bbf45a5590bacf96aa3ed7491e3202e31e705b8f12026dfd720a0a1991c",
+    "supabase/functions/_shared/forex-domain.ts": "5ff79b7f5472c44c68db41ecadbd07ce71b9fa45e79644e2be2018909a292d4d",
+    "supabase/functions/_shared/forex-legacy-evaluators.ts": "0399e6e4f77efe39f3e2be792aff9aa29750bb92dfb4b6cc1c3bb5a21543ff9f",
+    "supabase/functions/_shared/forex-production-strategies.ts": "47aa38a647e063d8e4490610c82f524345dddf7e120803edba62f313693a6d15",
+    "supabase/functions/_shared/forex-research-strategies.ts": "494978ccd28ccb680bf27ba2307e1995056854e7aa5dc59cd93e29c115c7c9fb",
+    "supabase/functions/_shared/forex-runtime-contracts.ts": "76d32bb335e0afbf3fa6b0b58bca848af4603e462968137bd2578decf5e29432",
+    "supabase/functions/_shared/gold-volatility-breakout.ts": "29d02c5492b02467f882ba1d18f84fa7788aa62b60d12952ed7e08aea84052ed",
+    "supabase/functions/_shared/hmm-regime-classifier.ts": "58ca638a86478f48589b2906069f6147ebd12383e5bdb1466438d3ed8593b557",
+    "supabase/functions/_shared/indicator-engine.ts": "9347360f7a7f8b0867a99ebef57f91b747a2dfa2f7687b520d2b12f0cfa24104",
+    "supabase/functions/_shared/kelly-sizing-optimizer.ts": "de94574270c35b877a8a09a24402f4e8cd643dc2ec34f4b3513192aeb9c7b652",
+    "supabase/functions/_shared/micro-scalper-runtime.ts": "1a7282d9f6c29a898876d979b29b76d4a6513ed47ecc3ee1075f20d65c8448cd",
+    "supabase/functions/_shared/phase-l-validation.ts": "275831aa012ae5c5b92cc1065b5e34d287848762413993db2262c6b892ae4493",
+    "supabase/functions/_shared/predictive-intelligence.ts": "9621327d1e072a84bc32c8658ca071fcab81b9d0372a99b57848f3303878cea6",
+    "supabase/functions/_shared/professional-strategies.ts": "5fd40bc42a03b600dffaa189b6d232ec138a4a241acca2f2320f0b1a85537422",
+    "supabase/functions/_shared/provider-certification.ts": "92869752773eb77a52b26614717dbbfd76bfc800dfcfa4ef72d6d93b2d64a76d",
+    "supabase/functions/_shared/regime-opportunities.ts": "d33912e56cb496c1fb6c26e6dc5f5abfd0e15406a60c4aa334a1a558cece74ba",
+    "supabase/functions/_shared/replay-outcomes.ts": "78bb98a4a63ba72b763164f191e84a2155db2c7d4cff27d35b8d43b74ceedd45",
+    "supabase/functions/_shared/scanner-market-context.ts": "8879e4fb00a7fdca96a220f9c45b093947cf1daece306dcdc1f971db64f9caea",
+    "supabase/functions/_shared/smart-order-router.ts": "d4df22bd9c13307a3a90439c02dc7697ecd754115bdc9650ea02d45e9b256669",
+    "supabase/functions/_shared/strategy-plan.ts": "65aeb0c8e37d8b705c8dbc6f5d2d2ca28c9c1bcabce9affce60a98a189664a0d",
+    "supabase/functions/_shared/trading-domain/adapters.ts": "5ad5306550fe0624f1c776613425a5f8522ccceea9d1cd635dec0d7e8cd230ac",
+    "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867",
+    "supabase/functions/_shared/trading-domain/canonical-replay.ts": "4d110562d964b3522af9d87408eca031b27101f30148ec8386ccafbe2df43053",
+    "supabase/functions/_shared/trading-domain/certification-runner.ts": "024b704f2cad95fbbffaa447175072a8aceb8ecbf815510d549bfce059e34a1c",
+    "supabase/functions/_shared/trading-domain/contracts.ts": "48114d96928c91b7444c4f51438cca4d34a0d2339d199ce85525223129dfdea8",
+    "supabase/functions/_shared/trading-domain/execution-observations.ts": "ab5307e69f1a29f2e9c0c43ce66ecbac772549d1ff71eb6d748f40fdd7d22f57",
+    "supabase/functions/_shared/trading-domain/index.ts": "5098ec105b827b4b3a09e0b8dd0c7f6e3955cc6c7dae02f4ce8bebcdb8a095ac",
+    "supabase/functions/_shared/trading-domain/indicators.ts": "304aa20edf340e1e146eb826a27fbd818fd72eb9bbf7704c28219659eaf934a2",
+    "supabase/functions/_shared/trading-domain/market-view.ts": "b11f574e24d59bcbf69dcff903c160177031058111d64f51acc0e840900dfad2",
+    "supabase/functions/_shared/trading-domain/phase-k.ts": "ab221dcee8c4110a0501909d3294a8d8796232af776a2658db0e2ebb8a240250",
+    "supabase/functions/_shared/trading-domain/pipeline.ts": "186a42642c03c8fe88b616afe36c28312faeb7c46091db0bf1a63cd5aa0039be",
+    "supabase/functions/_shared/trading-domain/production-eligibility-router.ts": "2d52ec711b4c4d716b3e77a2d1b97f40cf046c26dbb654ca796a1e5776416110",
+    "supabase/functions/_shared/trading-domain/production-gates.ts": "5d102dcb5facb2480b1274656e46ff0da06c95e7d3c62450c7a576e80633f836",
+    "supabase/functions/_shared/trading-domain/risk-capital.ts": "bef15fdc22f17f358c0e697dcfd0925873b23bf31b1df08f1bda02c328f068b7",
+    "supabase/functions/_shared/trading-domain/scanner-runtime.ts": "f48567431cfeda3d071271f6ad3655e5ec329f8aabee55a84a08401d98a74f38",
+    "supabase/functions/_shared/trading-domain/strategies.ts": "7cc2bd92076b161e86f06d3b9603924ab0c0d220be84f0a2a2391707d5dc328e",
+    "supabase/functions/_shared/trading-domain/trade-management.ts": "187bc4b9c9a1e800e25ab99bbda2d0557efae564d5a47bf47822990a0175c7b4",
+    "supabase/functions/_shared/trading-domain/trade-result.ts": "3e389786cef0390b858e5140c4b8b235433561afda7d69713338e8a15178e5ae"
+  },
+  "specs": [
+    {
+      "strategy": "crypto.regime-continuation",
+      "variant": "wider",
+      "parameters": {
+        "stopAtr": 2.2,
+        "targetR": 3,
+        "tp1R": 1.5,
+        "minimumStopBps": 50,
+        "maximumStopBps": 400,
+        "estimatedCostBps": 20.5,
+        "maximumCostR": 0.3,
+        "channelBars": 20,
+        "pullbackAtr": 0.6,
+        "rangeRsi": 35
+      }
+    },
+    {
+      "strategy": "crypto.regime-range-rejection",
+      "variant": "wider",
+      "parameters": {
+        "stopAtr": 1.5,
+        "targetR": 3,
+        "tp1R": 1.5,
+        "minimumStopBps": 50,
+        "maximumStopBps": 400,
+        "estimatedCostBps": 20.5,
+        "maximumCostR": 0.3,
+        "channelBars": 48,
+        "pullbackAtr": 0.6,
+        "rangeRsi": 10
+      }
+    },
+    {
+      "strategy": "crypto.regime-channel-breakout",
+      "variant": "wider",
+      "parameters": {
+        "stopAtr": 2.2,
+        "targetR": 3,
+        "tp1R": 1.5,
+        "minimumStopBps": 100,
+        "maximumStopBps": 600,
+        "estimatedCostBps": 40,
+        "maximumCostR": 0.3,
+        "channelBars": 55,
+        "pullbackAtr": 0.6,
+        "rangeRsi": 35
+      }
+    }
+  ],
+  "developmentGates": [
+    {
+      "strategy": "crypto.regime-continuation",
+      "reasons": [
+        "PROFIT_FACTOR_BELOW_1_2",
+        "NONPOSITIVE_EXPECTANCY",
+        "DRAWDOWN_ABOVE_10_PERCENT",
+        "NONPOSITIVE_INSTRUMENT_EXPECTANCY"
+      ]
+    },
+    {
+      "strategy": "crypto.regime-range-rejection",
+      "reasons": [
+        "PROFIT_FACTOR_BELOW_1_2",
+        "NONPOSITIVE_EXPECTANCY",
+        "DRAWDOWN_ABOVE_10_PERCENT",
+        "NONPOSITIVE_INSTRUMENT_EXPECTANCY"
+      ]
+    },
+    {
+      "strategy": "crypto.regime-channel-breakout",
+      "reasons": [
+        "PROFIT_FACTOR_BELOW_1_2",
+        "NONPOSITIVE_EXPECTANCY",
+        "NONPOSITIVE_INSTRUMENT_EXPECTANCY"
+      ]
+    }
+  ],
+  "developmentSources": [
+    {
+      "file": "BTCUSDT-1h-2025-01.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-01.zip",
+      "officialZipSha256": "9ebc05c9b3d5ab3591edf65bc5c7e5dbc2f96c1efc4adc4ea198c651a99a41b1",
+      "normalizedSha256": "e542770a0dc99ebc66c46a6dad626e823eb70dd28d0c8336f36634151144045e",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:29:38.671355+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-02.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-02.zip",
+      "officialZipSha256": "077d761098eb5f2dbde65457833b9edab41ea6475284a77fcce0d4bec1bfb5cf",
+      "normalizedSha256": "92531fd9748125719c67f36c9d0876380a2f72ab9d03fa316ffc45d3ed61fd7a",
+      "bars": 672,
+      "downloadedAt": "2026-10-23T01:29:38.803122+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-03.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-03.zip",
+      "officialZipSha256": "08043384c3336b0fa3eeee06e113a6f1eceb6d3fbe7b2971e9b9fa83625fdfb9",
+      "normalizedSha256": "46376a18563a59576ebc8a731893b18bb0e88c4f517bbcac5d9513756cf71941",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:29:38.720693+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-04.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-04.zip",
+      "officialZipSha256": "2adf7c1be412e43b04a128e997f4cb1e5e7f895f55b6e1bf66621807f221f274",
+      "normalizedSha256": "c97bd1ab2f7989f74d3f06fb69b384d747fe68d1fb905d77db27c201d28e4718",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:29:38.720774+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-05.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-05.zip",
+      "officialZipSha256": "2e736b9e792d5ae9d4607d7426e4530020762cb898d580b18d3fb0faf9d2ba8e",
+      "normalizedSha256": "ed67cdfde5df45d27b77ee72e3827835bcb2e5b19f7b654f06f54a10411d1a6e",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:29:55.733401+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-06.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-06.zip",
+      "officialZipSha256": "d1d9d5dbc540c19dd882305937f864f59ffffe3f5449a6b05b3f95efe7ca4fbc",
+      "normalizedSha256": "61f2a4df96436e9af6137204119301ce2b4e32ae2c8b2393467c7581ce9459d8",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:29:55.721568+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-07.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-07.zip",
+      "officialZipSha256": "3f471677b97cd3c5c21e9c1420bd7d58c1fe4041a3d2e195369277298ca01ea2",
+      "normalizedSha256": "e14c1d112661b8abfd7ef550223d02230a16ea948f7469bb8e8d88f994e92f46",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:29:55.740971+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-08.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-08.zip",
+      "officialZipSha256": "a240d3f766cd5c3db4e0702cf660ae54e327ec67aba169dda55abc90cae055f2",
+      "normalizedSha256": "bd1cdc6e20c2111c7a515434f6cfda295bd5650a2bed28179929f9052dfbdbc7",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:29:55.752602+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-09.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-09.zip",
+      "officialZipSha256": "b15817c45e6ca13a907772591664a57e00b711fecbd4285f2a16ced3c7023019",
+      "normalizedSha256": "3af604ff68506650dff14973db67eeaa42c121d1df40e14695d0e6ea2dffc7e0",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:30:12.682522+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-10.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-10.zip",
+      "officialZipSha256": "b173469216acad36058ecfb0a5432471ec58b3c49032246d4d687dd3af8ae34a",
+      "normalizedSha256": "98aaa2e1f35baa84027e4e704fcbc01c1b153e4bc866495d21662d9134d4d195",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:30:12.534556+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-11.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-11.zip",
+      "officialZipSha256": "75c4069b8ff93aa5e4064e885077426fd60f1cf6239a728b2d4ca543c0210d5a",
+      "normalizedSha256": "e64a4171ad810deb32b5547aa7a1c7d9c60b617b7d4acc3cf585a777fecdeebf",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:30:12.582347+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2025-12.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-12.zip",
+      "officialZipSha256": "41e977a06b7806ce1398aca5f9075befffd1e6303db891795f3b179c762709ec",
+      "normalizedSha256": "9509e551af640953bf7b53a87ca3fc568884cab75cae8eda717c70dc2bd9a621",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:30:12.529279+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2026-01.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-01.zip",
+      "officialZipSha256": "6c15ac5fd895f26bf8e12b99df6ab9aff637dc94b37128e92c75c19887d0e3b3",
+      "normalizedSha256": "25ce8ea6d90ee8c1e8bf288df5c16faaff87993eb83a5ad3caac547c3bd6f9e8",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:30:29.106956+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2026-02.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-02.zip",
+      "officialZipSha256": "886fca9764139a1d71d97ca28e0a2cb30fe7d6f44df9be2539452c02e3c4e775",
+      "normalizedSha256": "67e4c18e9b383acd5b6e24e8c2ff31cfee6da867e11c244defbab7bb3ff5d78e",
+      "bars": 672,
+      "downloadedAt": "2026-10-23T01:30:29.100378+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2026-03.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-03.zip",
+      "officialZipSha256": "41199df2dd62c333ea306d28de331bfffbbfed03609d100c63b2de1d173f7414",
+      "normalizedSha256": "a5a87fcb7d97e186dfa7e367e578d2e16353aa764607bdbacc6197dc926966f7",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:30:29.063211+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2026-04.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-04.zip",
+      "officialZipSha256": "c822801b16eb317f4672e376a73664f2e5f9180409c57b6c7517707f4f873e8c",
+      "normalizedSha256": "85670adf11ccf9ec6e6810d705bb75c6c38f97f10257fdd20ca5e3a05aab8e03",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:30:29.005639+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2026-05.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-05.zip",
+      "officialZipSha256": "9a367708c90de999a7a9d3114fd111ff28203b13c8daef77d154b5216fb571f7",
+      "normalizedSha256": "a0b90d0c7bfe1edd08810d8a13b53584eb289a3aaaf2b2cc4ef2e1c32a630130",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:30:45.861021+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "BTCUSDT-1h-2026-06.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-06.zip",
+      "officialZipSha256": "30bba473837a672a6a00a181a447446852414e6927bbda6684f873571788e9aa",
+      "normalizedSha256": "b440b44c285f88505c4799814fc1543370369fbee6a315a116806bef4d93b356",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:30:45.846261+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-01.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-01.zip",
+      "officialZipSha256": "99928eb8fdc5d565d317b0e9685e07fc5f9487510a39b8675d7374cfdfcbec82",
+      "normalizedSha256": "fcff9284c4a58230e1874573c525460661dcdf5e1156e274615a552d2f3efce6",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:30:45.834804+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-02.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-02.zip",
+      "officialZipSha256": "d7466620f50bb4048080ece1deab8eb0298274413a3eb2a9f4c728536ab3c647",
+      "normalizedSha256": "58251a1d50286a029246b96acae164153855990015f1c796f2fe0241c69a5162",
+      "bars": 672,
+      "downloadedAt": "2026-10-23T01:30:45.851108+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-03.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-03.zip",
+      "officialZipSha256": "9dbad1e542ff8344fe8610450cf71d5cb98e1af2e8f2d7a31dbe8679ef263535",
+      "normalizedSha256": "de07f76ad28a4c7e16e79c644f96d476963488d7f9369a6ca51ef361dc0daaa0",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:02.356987+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-04.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-04.zip",
+      "officialZipSha256": "238c691129962d9fe08aaca46ea367f911e62c58a820a8e5ded371bff7f4eec4",
+      "normalizedSha256": "8b291d25fa65dc76c78e3f88d82b7b66b051b3bd398cf3746ec8674f24325b8b",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:31:02.636670+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-05.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-05.zip",
+      "officialZipSha256": "201829c864a26677ad0b53df5b0491e9eab00e6f48e1a8bf5204dc7d794dd7ea",
+      "normalizedSha256": "0ac11409584a40a0bdfd2dbd97fba1702ef9448743be229f219c566c4a3c23b4",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:02.349866+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-06.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-06.zip",
+      "officialZipSha256": "45763ee27ad110703c6f71d9ec80711de151b8211b14ad98cc978c4d5ede82ce",
+      "normalizedSha256": "d9fff6c82906b82fc1e4be0ecf6dd13c4bffea904006116e333f1bac393c5688",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:31:02.469990+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-07.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-07.zip",
+      "officialZipSha256": "e9c3dcdc09de72386d465800c665169c9bb011f35d350f9ba9bc7b4d7a69876a",
+      "normalizedSha256": "7734e91ce584f569edd83c77d12ffaf4fe413e7ea2c0a0d53a851564bd5ec8ba",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:19.071213+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-08.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-08.zip",
+      "officialZipSha256": "51e3ca163e71691ebb43b55d32698fc5c25506ee2e663a195d8e5863194908c2",
+      "normalizedSha256": "d80b06b9aaae475d060f4bba9c8af6cbc8bec7b545aa57403aaf2795fec51404",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:19.229009+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-09.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-09.zip",
+      "officialZipSha256": "9bab9763c1cb2514df907fe6e746405428c6b92cbba12ff987e4820b2a8726f0",
+      "normalizedSha256": "7c54abaff918325b3077a774c9ad942c737319dcbc1915b192c5d017cfe2e249",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:31:18.984563+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-10.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-10.zip",
+      "officialZipSha256": "6c51ad0250f4174431c659a3c78f604be087e844c6357e5feb48ba66e6bb1862",
+      "normalizedSha256": "2a83d165b71d81b73ed44e79cc3a3a9257b8db39f49478429f5cf6f8c85457dc",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:19.111918+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-11.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-11.zip",
+      "officialZipSha256": "4b5622c5a4021b1a0bbd2d1fa754bb9d13f16b996d79b153b423bce0ec154f26",
+      "normalizedSha256": "ca27db2acfa78cb4f1070642af8759fbf88e4bd61c6756c4230ab4ac652db572",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:31:35.714730+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2025-12.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-12.zip",
+      "officialZipSha256": "80080e1303ab2c291e53103d703b5364ef7a3da36dff5eaf45044cca74e764ca",
+      "normalizedSha256": "4529a95178070fedbf4f833b5caee90d3c62b249fa08b8c9ee8c2df9b1fb89ae",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:35.735025+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2026-01.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-01.zip",
+      "officialZipSha256": "d710e68cf0dc90759814647dff64be482b4ddd05bf332adb73126885cb2979d7",
+      "normalizedSha256": "d38745050c1b2682f8145e12ffd975b71f47f6a67b978bf7fcbe1fa4bb6cb6c3",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:35.602509+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2026-02.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-02.zip",
+      "officialZipSha256": "97a6c569361290917a525d54d5f964af1642dc2d281e162834b4685157016540",
+      "normalizedSha256": "89e2cd845046a51289aa3ae19418ba9ef5445200f76d72acee5eef8d69e3a3d8",
+      "bars": 672,
+      "downloadedAt": "2026-10-23T01:31:35.442173+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2026-03.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-03.zip",
+      "officialZipSha256": "9ec5e28db1e0cf093d5c756b85329b43db730d6f95d6ed142a9717044b1423c2",
+      "normalizedSha256": "13ddbee27d5cb3b3e95ec0f58866283238d025ac44109161fc64c788c94d9eed",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:52.047701+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2026-04.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-04.zip",
+      "officialZipSha256": "b72f5a102bd468d1e3d0c3b88619f1354a29e81616f9a55935d2e00837958e4b",
+      "normalizedSha256": "6f05e61aedc5b36d848979c4111b29f19eabacc7f2d760830872df96b1ac9ab6",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:31:52.031273+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2026-05.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-05.zip",
+      "officialZipSha256": "5353c7cd71f610eca5a58824606ba1016efe34ea62fd6e6cd4b7be4b99277915",
+      "normalizedSha256": "6c30ba14ab3adc60b931a6e8ba5bacbc91ad14cebea3fe0eb0ceb49132fdb551",
+      "bars": 744,
+      "downloadedAt": "2026-10-23T01:31:51.806117+00:00",
+      "phase": "development"
+    },
+    {
+      "file": "ETHUSDT-1h-2026-06.json",
+      "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-06.zip",
+      "officialZipSha256": "138bcb6c7c8be4c5bdd8048fa417be551fbeffe4024f64e5bef5ed30d3069d8c",
+      "normalizedSha256": "3fcf25387fe3a550284cbe94e368a3e1d4793ab6bd25efee63f3d399dd85d5ca",
+      "bars": 720,
+      "downloadedAt": "2026-10-23T01:31:52.065923+00:00",
+      "phase": "development"
+    }
+  ],
+  "trialCount": 9,
+  "totalDevelopmentEvaluations": 27,
+  "validCompletePeriodEvaluations": 21,
+  "holdoutFrom": "2026-10-01T00:00:00Z",
+  "holdoutToExclusive": "2026-10-21T00:00:00Z",
+  "holdoutConsumed": false,
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

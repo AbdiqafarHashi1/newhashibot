@@ -1,0 +1,646 @@
+[
+  {
+    "command": "npm run test:operations-readiness",
+    "exit_code": 0,
+    "seconds": 20.37,
+    "logSha256": "494791426a4f368948cedc62567b20609e6522f6b8e54fdaad66f2062a6a67d2",
+    "outputTail": " (5899.402897ms)\n\u2714 actual PostgreSQL E queue: paired terminal mapping, null rejection, immutable retry and tenant denial (3951.004281ms)\n\u2714 actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: authenticated ownership, duplicate setup and admin policy control (4338.474546ms)\n\u2714 production Phase-D schema loads scoped canonical evidence and atomically records a blocked decision (4552.749041ms)\n\u2714 actual PostgreSQL outcomes are service-only, immutable, idempotent and account scoped (3909.479463ms)\n\u2714 atomic provider claim is single-use; real account controls require canonical payment/certification and remain tenant scoped (4068.568396ms)\n\u2714 PostgreSQL measured releases freeze matching periods, consume one holdout atomically, and cannot promote insufficient evidence (4006.611491ms)\n\u2139 tests 13\n\u2139 suites 0\n\u2139 pass 13\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 10403.638358\n.......\n----------------------------------------------------------------------\nRan 7 tests in 0.022s\n\nOK\n"
+  },
+  {
+    "command": "npm run test:backtest-lab",
+    "exit_code": 0,
+    "seconds": 1.47,
+    "logSha256": "29bbf4f7ea9c68c3a0eb515b536c4a603f63983b99f1ca81df691fb2979f31d3",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:backtest-lab\n> node --import tsx --test tests/ownerPreview/labWorkflow.test.ts\n\n\u2714 cached campaigns reopen without a provider and reject changed candles (2.268679ms)\n\u2714 calibration partitions chronological candles before evaluation; risk and arbitrary model output are rejected (0.925697ms)\n\u2714 evidence inspection loads beyond default database page and refuses truncation (0.467129ms)\n\u2714 the workflow exposes full pipeline, 100 Prop campaign, forward and calibration workspaces (0.111534ms)\n\u2714 calibration measures the existing evaluator with split-scoped evidence and rejects invalid costs (862.651639ms)\n\u2139 tests 5\n\u2139 suites 0\n\u2139 pass 5\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 1223.485029\n"
+  },
+  {
+    "command": "npm run test:analytics",
+    "exit_code": 0,
+    "seconds": 0.97,
+    "logSha256": "e0011e73a47d8fb273268ef1b7300c2d3a39bcd5f0e460a556375084132748ca",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:analytics\n> rm -rf .tmp/analytics-tests && tsc --outDir .tmp/analytics-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/analytics/capitalHardness.test.ts src/lib/capitalHardness.ts && node .tmp/analytics-tests/tests/analytics/capitalHardness.test.js && rm -rf .tmp/analytics-tests\n\ncapitalHardness analytics tests passed\n"
+  },
+  {
+    "command": "npm run test:backtest-csv",
+    "exit_code": 0,
+    "seconds": 0.22,
+    "logSha256": "82ad21724a2555f6d818a524dd320420d6eff9d81f0d809083674ad651640da4",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:backtest-csv\n> rm -rf .tmp/backtest-csv-tests && mkdir -p .tmp/backtest-csv-tests && esbuild tests/backtest/brokerCsv.test.ts --bundle --platform=node --format=esm --outfile=.tmp/backtest-csv-tests/test.mjs && node .tmp/backtest-csv-tests/test.mjs && rm -rf .tmp/backtest-csv-tests\n\n\n  .tmp/backtest-csv-tests/test.mjs  4.7kb\n\n\u26a1 Done in 4ms\nbrokerCsv tests passed\n"
+  },
+  {
+    "command": "npm run test:historical-data",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "2a3413469daa6c370836a96a132448f1efb7f08c20b2cd94f03de08a8012e508",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:historical-data\n> rm -rf .tmp/historical-data-tests && mkdir -p .tmp/historical-data-tests && esbuild tests/historicalData/historicalDataService.test.ts --bundle --platform=node --format=esm --outfile=.tmp/historical-data-tests/test.mjs && node .tmp/historical-data-tests/test.mjs && rm -rf .tmp/historical-data-tests\n\n\n  .tmp/historical-data-tests/test.mjs  887.8kb\n\n\u26a1 Done in 22ms\nSupabase frontend config invalid: missing browser Supabase anon or publishable key\nhistorical data foundation: 15 deterministic checks passed\n"
+  },
+  {
+    "command": "npm run test:operator-ui",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "3895ccb91ee144f1dd80c5879d067d0b1ac4487d843b366fee8654357913052f",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:operator-ui\n> rm -rf .tmp/operator-ui-tests && mkdir -p .tmp/operator-ui-tests && esbuild tests/ui/operatorStatus.test.ts --bundle --platform=node --format=esm --outfile=.tmp/operator-ui-tests/test.mjs && node .tmp/operator-ui-tests/test.mjs && rm -rf .tmp/operator-ui-tests\n\n\n  .tmp/operator-ui-tests/test.mjs  5.8kb\n\n\u26a1 Done in 4ms\noperator status truth tests passed\n"
+  },
+  {
+    "command": "npm run test:commerce",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "cf4266e98dea638e444da94d44515bb3b80c6971801553e548788628f568c303",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:commerce\n> rm -rf .tmp/commerce-tests && mkdir -p .tmp/commerce-tests && esbuild tests/commerceFoundation.test.ts --bundle --platform=node --format=esm --outfile=.tmp/commerce-tests/test.mjs && node .tmp/commerce-tests/test.mjs && rm -rf .tmp/commerce-tests\n\n\n  .tmp/commerce-tests/test.mjs  1.9kb\n\n\u26a1 Done in 2ms\ncommerce foundation checks passed\n"
+  },
+  {
+    "command": "npm run test:phase-j",
+    "exit_code": 0,
+    "seconds": 0.22,
+    "logSha256": "cfab86ab1d3684b70aeb9f37c50f18a766982e699e9115085f3c4cf25be8c102",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-j\n> rm -rf .tmp/phase-j-tests && mkdir -p .tmp/phase-j-tests && esbuild tests/phaseJ/phaseJ.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-j-tests/test.mjs && node .tmp/phase-j-tests/test.mjs && rm -rf .tmp/phase-j-tests\n\n\n  .tmp/phase-j-tests/test.mjs  4.3kb\n\n\u26a1 Done in 3ms\nPhase J deterministic policy, security, queue, lifecycle, and Telegram evidence checks passed\n"
+  },
+  {
+    "command": "npm run test:phase-k",
+    "exit_code": 0,
+    "seconds": 0.31,
+    "logSha256": "665fbaef3e7f2fdb81b6bb0a47b7982a6fe6ad205d74ed0006e4f59538042721",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-k\n> rm -rf .tmp/phase-k-tests && mkdir -p .tmp/phase-k-tests && esbuild tests/phaseK/phaseK.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-k-tests/phase-k.mjs && node .tmp/phase-k-tests/phase-k.mjs && esbuild tests/phaseK/activeScannerIntegration.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-k-tests/active-scanner.mjs && node .tmp/phase-k-tests/active-scanner.mjs && rm -rf .tmp/phase-k-tests\n\n\n  .tmp/phase-k-tests/phase-k.mjs  65.6kb\n\n\u26a1 Done in 6ms\nPhase K scanner signal calibration tests passed\n\n  .tmp/phase-k-tests/active-scanner.mjs  19.2kb\n\n\u26a1 Done in 3ms\nPhase K active market-scanner integration tests passed\n"
+  },
+  {
+    "command": "npm run test:commerce-step1",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "d157714a585a5cb3d65bbb15416895dbe6688968bd3b35fc3f5d141f2c83539d",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:commerce-step1\n> rm -rf .tmp/commerce-step1-tests && mkdir -p .tmp/commerce-step1-tests && esbuild tests/commerceStep1.test.ts --bundle --platform=node --format=esm --outfile=.tmp/commerce-step1-tests/test.mjs && node .tmp/commerce-step1-tests/test.mjs && rm -rf .tmp/commerce-step1-tests\n\n\n  .tmp/commerce-step1-tests/test.mjs  2.4kb\n\n\u26a1 Done in 2ms\ncommerce Step 1 security and lifecycle checks passed\n"
+  },
+  {
+    "command": "npm run test:commerce-step2",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "090aceb06bf182f083f61b80cfc7f93ef15bf760c75c73b52979961bfe72393c",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:commerce-step2\n> rm -rf .tmp/commerce-step2-tests && mkdir -p .tmp/commerce-step2-tests && esbuild tests/telegramCommerceStep2.test.ts --bundle --platform=node --format=esm --outfile=.tmp/commerce-step2-tests/test.mjs && node .tmp/commerce-step2-tests/test.mjs && rm -rf .tmp/commerce-step2-tests\n\n\n  .tmp/commerce-step2-tests/test.mjs  2.0kb\n\n\u26a1 Done in 2ms\nTelegram commerce Step 2 checks passed\n"
+  },
+  {
+    "command": "npm run test:whop-backend",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "1177f1baa83dafadd9bae2c501da13d7aa0249065e787a1c5f73f0bedac20b3d",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:whop-backend\n> rm -rf .tmp/whop-tests && mkdir -p .tmp/whop-tests && esbuild tests/whopBackendReadiness.test.ts --bundle --platform=node --format=esm --alias:npm:standardwebhooks@1.0.0=standardwebhooks --outfile=.tmp/whop-tests/test.mjs && node .tmp/whop-tests/test.mjs && rm -rf .tmp/whop-tests\n\n\n  .tmp/whop-tests/test.mjs  34.2kb\n\n\u26a1 Done in 9ms\nWhop backend readiness checks passed\n"
+  },
+  {
+    "command": "npm run test:phase2-research",
+    "exit_code": 0,
+    "seconds": 7.64,
+    "logSha256": "efe55ecb7dfc13be3731bf8c95893fbb1cdf8fd30dfce39d0ede5e23f1b7eca2",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase2-research\n> rm -rf .tmp/phase2-research-tests && mkdir -p .tmp/phase2-research-tests && esbuild tests/historicalData/phase2ConnectedResearch.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase2-research-tests/test.mjs && node .tmp/phase2-research-tests/test.mjs && rm -rf .tmp/phase2-research-tests\n\n\n  .tmp/phase2-research-tests/test.mjs  1011.3kb\n\n\u26a1 Done in 32ms\nSupabase frontend config invalid: missing browser Supabase anon or publishable key\nphase 2 connected research: deterministic checks passed\n"
+  },
+  {
+    "command": "npm run test:trading-domain",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "fa908a358c82693396da115481d7401b72bff3a2e3942f80ee5dbd9a42d813dd",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:trading-domain\n> rm -rf .tmp/trading-domain-tests && mkdir -p .tmp/trading-domain-tests && esbuild tests/tradingDomain/canonicalParity.test.ts --bundle --platform=node --format=esm --outfile=.tmp/trading-domain-tests/test.mjs && node .tmp/trading-domain-tests/test.mjs && rm -rf .tmp/trading-domain-tests\n\n\n  .tmp/trading-domain-tests/test.mjs  53.9kb\n\n\u26a1 Done in 13ms\ncanonical trading-domain golden parity tests passed\n"
+  },
+  {
+    "command": "npm run test:phase4-convergence",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "1f3174c7d3f33187dc85f694d6f1487c001b413b783da4fbd4bd98d3fae1c9de",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase4-convergence\n> rm -rf .tmp/phase4-tests && mkdir -p .tmp/phase4-tests && esbuild tests/tradingDomain/phase4Convergence.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase4-tests/test.mjs && node .tmp/phase4-tests/test.mjs && rm -rf .tmp/phase4-tests\n\n\n  .tmp/phase4-tests/test.mjs  54.1kb\n\n\u26a1 Done in 8ms\nphase4 convergence tests passed\n"
+  },
+  {
+    "command": "npm run test:phase5-convergence",
+    "exit_code": 0,
+    "seconds": 0.32,
+    "logSha256": "2990e7edc96f04b3cc0e921f542cc91739cb24272d8ace0bfce8e39bc72185b6",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase5-convergence\n> rm -rf .tmp/phase5-tests && mkdir -p .tmp/phase5-tests && esbuild tests/tradingDomain/phase5FinalConvergence.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase5-tests/test.mjs && node .tmp/phase5-tests/test.mjs && rm -rf .tmp/phase5-tests\n\n\n  .tmp/phase5-tests/test.mjs  59.3kb\n\n\u26a1 Done in 9ms\nphase 5 convergence fixtures passed\n"
+  },
+  {
+    "command": "npm run test:phase6-remediation",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "ca66516071044cdf1fe1ca098c367e506effc75b984ea6afd4abe16552b9c49b",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase6-remediation\n> rm -rf .tmp/phase6-tests && mkdir -p .tmp/phase6-tests && esbuild tests/tradingDomain/phase6Remediation.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase6-tests/test.mjs && node .tmp/phase6-tests/test.mjs && rm -rf .tmp/phase6-tests\n\n\n  .tmp/phase6-tests/test.mjs  47.0kb\n\n\u26a1 Done in 9ms\nphase 6 remediation tests passed\n"
+  },
+  {
+    "command": "npm run test:canonical-runtime-integration",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "5e7da093f642ca96aa92e350a7b087ffade51964a8203777730f5ae516907068",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:canonical-runtime-integration\n> rm -rf .tmp/canonical-runtime-tests && mkdir -p .tmp/canonical-runtime-tests && esbuild tests/tradingDomain/canonicalRuntimeIntegration.test.ts --bundle --platform=node --format=esm --outfile=.tmp/canonical-runtime-tests/test.mjs && node .tmp/canonical-runtime-tests/test.mjs && rm -rf .tmp/canonical-runtime-tests\n\n\n  .tmp/canonical-runtime-tests/test.mjs  54.6kb\n\n\u26a1 Done in 9ms\ncanonical runtime integration tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-c-parity",
+    "exit_code": 0,
+    "seconds": 0.32,
+    "logSha256": "87fbc65517b7fb6cb2520dba76ee317a822225fbbae6d959a9c29db9903a1996",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-c-parity\n> rm -rf .tmp/phase-c-tests && mkdir -p .tmp/phase-c-tests && esbuild tests/tradingDomain/phaseCScannerParity.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-c-tests/test.mjs && node .tmp/phase-c-tests/test.mjs && rm -rf .tmp/phase-c-tests\n\n\n  .tmp/phase-c-tests/test.mjs  50.9kb\n\n\u26a1 Done in 6ms\nphase C scanner parity tests passed\n"
+  },
+  {
+    "command": "npm run test:prop-clearance",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "31bdff4a2a66049395e7cfae50bd112825e9c5301d57129723811389e41ced2b",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:prop-clearance\n> rm -rf .tmp/prop-clearance-tests && mkdir -p .tmp/prop-clearance-tests && esbuild tests/backtest/propClearanceTruthGuard.test.ts --bundle --platform=node --format=esm --outfile=.tmp/prop-clearance-tests/test.mjs && node .tmp/prop-clearance-tests/test.mjs && rm -rf .tmp/prop-clearance-tests\n\n\n  .tmp/prop-clearance-tests/test.mjs  1.1kb\n\n\u26a1 Done in 3ms\nprop clearance truth guard tests passed\n"
+  },
+  {
+    "command": "npm run test:execution",
+    "exit_code": 0,
+    "seconds": 9.97,
+    "logSha256": "c45194f7a3de412ff747b8e7831b05017d8a7f7a1170556ef83d57e722eb13ee",
+    "outputTail": "ASS | Self-Healed: YES | Latency: 0ms\n - Scenario: recovery_after_restart                   | Result: PASS | Self-Healed: YES | Latency: 0ms\n - Scenario: trade_truth_rebuild                      | Result: PASS | Self-Healed: YES | Latency: 0ms\n - Scenario: supervisor_restart                       | Result: PASS | Self-Healed: YES | Latency: 0ms\n - Scenario: cron_interruption                        | Result: PASS | Self-Healed: YES | Latency: 0ms\n - Scenario: retention_cleanup_during_execution       | Result: PASS | Self-Healed: YES | Latency: 0ms\n - Scenario: customer_approval_change                 | Result: PASS | Self-Healed: YES | Latency: 0ms\n - Scenario: execution_disabled_while_queued          | Result: PASS | Self-Healed: YES | Latency: 0ms\n - Scenario: signal_expiration_during_queue           | Result: PASS | Self-Healed: YES | Latency: 1ms\n\nCertification Summary:\n - PASS:    23\n - WARNING: 2\n - FAIL:    0\n--- Crypto Certification & Chaos Test Suite Completed Successfully ---\n"
+  },
+  {
+    "command": "npm run test:recovery",
+    "exit_code": 0,
+    "seconds": 1.18,
+    "logSha256": "e178f2f1ab81457901981d1ec40dfd84d761db7fe53838ba86c6a6790785ec3f",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:recovery\n> rm -rf .tmp/recovery-tests && tsc --outDir .tmp/recovery-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/recovery/recoveryGuards.test.ts && node .tmp/recovery-tests/recoveryGuards.test.js && rm -rf .tmp/recovery-tests\n\nRecovery guard tests passed\n"
+  },
+  {
+    "command": "npm run test:trade-truth",
+    "exit_code": 0,
+    "seconds": 1.27,
+    "logSha256": "b1cdad6c8f67725866af7cf7c2da980531c9f4dfae1b18a2a794a66c12ee0f6b",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:trade-truth\n> rm -rf .tmp/trade-truth-tests && tsc --outDir .tmp/trade-truth-tests --module ESNext --moduleResolution Bundler --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/tradeTruthService.test.ts src/lib/runtime/tradeTruth/index.ts src/lib/runtime/tradeTruth/types.ts src/lib/runtime/tradeTruth/validation.ts src/lib/runtime/tradeTruth/TradeTruthRepository.ts src/lib/runtime/tradeTruth/TradeTruthService.ts src/lib/runtime/tradeTruth/compatibility.ts src/lib/runtimeContracts/index.ts src/lib/runtimeContracts/types.ts src/lib/runtimeContracts/validation.ts src/lib/runtimeContracts/compatibility.ts && node --experimental-specifier-resolution=node .tmp/trade-truth-tests/tests/runtime/tradeTruthService.test.js && rm -rf .tmp/trade-truth-tests\n\ntradeTruthService tests passed\n"
+  },
+  {
+    "command": "npm run test:phase3-runtime",
+    "exit_code": 0,
+    "seconds": 1.08,
+    "logSha256": "2032d24df650774bdb484863ac6f4dba69c46393422f9651896621e3c23a2f61",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase3-runtime\n> rm -rf .tmp/phase3-runtime-tests && tsc --outDir .tmp/phase3-runtime-tests --module ESNext --moduleResolution Bundler --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/phase3Static.test.ts src/lib/runtime/executionOrders/index.ts src/lib/runtime/worker/index.ts src/lib/runtime/monitor/index.ts src/lib/runtime/reporting/index.ts src/lib/runtimeContracts/index.ts src/lib/runtimeContracts/types.ts src/lib/runtimeContracts/validation.ts src/lib/runtimeContracts/compatibility.ts && node --experimental-specifier-resolution=node .tmp/phase3-runtime-tests/tests/runtime/phase3Static.test.js && rm -rf .tmp/phase3-runtime-tests\n\nphase3 static tests passed\n"
+  },
+  {
+    "command": "npm run test:final-readiness",
+    "exit_code": 0,
+    "seconds": 1.07,
+    "logSha256": "9f512b425ca7c39b1272a886c4082b60999b2a05412abd5fe68147ffede5020d",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:final-readiness\n> rm -rf .tmp/final-readiness-tests && tsc --outDir .tmp/final-readiness-tests --module ESNext --moduleResolution Bundler --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/finalReadiness.test.ts src/lib/auth/authResilience.ts src/lib/runtime/safety/index.ts src/lib/runtime/reporting/index.ts && node --experimental-specifier-resolution=node .tmp/final-readiness-tests/tests/runtime/finalReadiness.test.js && rm -rf .tmp/final-readiness-tests\n\nfinal readiness tests passed\n"
+  },
+  {
+    "command": "npm run test:final-cron",
+    "exit_code": 0,
+    "seconds": 0.97,
+    "logSha256": "fddbbd291b6f2b9fef65119d1b81268065e47d266238fc5cd781b3dcfd193ca0",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:final-cron\n> rm -rf .tmp/final-cron-tests && tsc --outDir .tmp/final-cron-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/finalCronConsolidation.test.ts && node .tmp/final-cron-tests/finalCronConsolidation.test.js && rm -rf .tmp/final-cron-tests\n\nfinalCronConsolidation static checks passed\n"
+  },
+  {
+    "command": "npm run test:customer-security",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "5f4bc22516b9f6ec6160c545bd27c08688ab9a3b1a1af63282a96b408918b46f",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:customer-security\n> rm -rf .tmp/customer-security-tests && mkdir -p .tmp/customer-security-tests && esbuild tests/runtime/customerSecurityAndRuntimeCompletion.test.ts --bundle --platform=node --format=esm --outfile=.tmp/customer-security-tests/test.mjs && node .tmp/customer-security-tests/test.mjs && rm -rf .tmp/customer-security-tests\n\n\n  .tmp/customer-security-tests/test.mjs  11.2kb\n\n\u26a1 Done in 3ms\n\u2705 Customer security, entitlement, and access state tests PASSED.\n"
+  },
+  {
+    "command": "npm run test:operator-actions",
+    "exit_code": 0,
+    "seconds": 1.07,
+    "logSha256": "cf35312002354fc80b3655f1b52bf5dcaff5a042f142ada535cabc8909a251ea",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:operator-actions\n> rm -rf .tmp/operator-action-tests && tsc --outDir .tmp/operator-action-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/operatorActionAuthTimeout.test.ts tests/runtime/operatorButtonSafety.test.ts tests/runtime/operatorCredentialResolution.test.ts && node .tmp/operator-action-tests/operatorActionAuthTimeout.test.js && node .tmp/operator-action-tests/operatorButtonSafety.test.js && node .tmp/operator-action-tests/operatorCredentialResolution.test.js && rm -rf .tmp/operator-action-tests\n\noperator action auth/timeout static tests passed\noperator button routing and safety tests passed\noperator credential resolution tests passed\n"
+  },
+  {
+    "command": "npm run test:operator-credentials",
+    "exit_code": 0,
+    "seconds": 0.92,
+    "logSha256": "afbb572713f0ec17a5f3d451c8dbcb5f9791e5b84c473bcb8e585d44e9825009",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:operator-credentials\n> rm -rf .tmp/operator-credential-tests && tsc --outDir .tmp/operator-credential-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/operatorCredentialResolution.test.ts && node .tmp/operator-credential-tests/operatorCredentialResolution.test.js && rm -rf .tmp/operator-credential-tests\n\noperator credential resolution tests passed\n"
+  },
+  {
+    "command": "npm run test:provider-parity",
+    "exit_code": 0,
+    "seconds": 0.87,
+    "logSha256": "80e7356976f296821f690f0a29464a73ebed99dbdc98e89c8f61220037035d0d",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:provider-parity\n> rm -rf .tmp/provider-parity-tests && tsc --outDir .tmp/provider-parity-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/providerParityRemediation.test.ts && node .tmp/provider-parity-tests/providerParityRemediation.test.js && rm -rf .tmp/provider-parity-tests\n\nprovider parity remediation tests passed\n"
+  },
+  {
+    "command": "npm run test:provider-accounts",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "83c126c3e88bb58ff0f4dc5d777141e7c8d61ba733d9ebd2f90c2e9253da5c5a",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:provider-accounts\n> rm -rf .tmp/provider-account-tests && mkdir -p .tmp/provider-account-tests && esbuild tests/runtime/providerAccountNormalization.test.ts --bundle --platform=node --format=esm --outfile=.tmp/provider-account-tests/test.mjs && node .tmp/provider-account-tests/test.mjs && rm -rf .tmp/provider-account-tests\n\n\n  .tmp/provider-account-tests/test.mjs  4.0kb\n\n\u26a1 Done in 3ms\nprovider account normalization tests passed\n"
+  },
+  {
+    "command": "npm run test:bybit-auth",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "b966b47bc80bd639278354acf05565447677fff8cac9688a5edd255c60ba36a1",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:bybit-auth\n> rm -rf .tmp/bybit-auth-tests && mkdir -p .tmp/bybit-auth-tests && esbuild tests/runtime/bybitV5Auth.test.ts --bundle --platform=node --format=esm --outfile=.tmp/bybit-auth-tests/test.mjs && node .tmp/bybit-auth-tests/test.mjs && rm -rf .tmp/bybit-auth-tests\n\n\n  .tmp/bybit-auth-tests/test.mjs  7.6kb\n\n\u26a1 Done in 3ms\nBybit V5 auth diagnostics tests passed\n"
+  },
+  {
+    "command": "npm run test:phase1-runtime",
+    "exit_code": 0,
+    "seconds": 0.82,
+    "logSha256": "ba175f0d95965ad6108e48ed07afe6096d673df1448f963d38000d586a4884b0",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase1-runtime\n> rm -rf .tmp/phase1-runtime-tests && tsc --outDir .tmp/phase1-runtime-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/phase1RuntimeCertification.test.ts && node .tmp/phase1-runtime-tests/phase1RuntimeCertification.test.js && rm -rf .tmp/phase1-runtime-tests\n\nphase1 runtime certification static tests passed\n"
+  },
+  {
+    "command": "npm run test:phase15-runtime",
+    "exit_code": 0,
+    "seconds": 0.97,
+    "logSha256": "e62b2d08f6a3958f48d544cd543bbffc2e4bd5724f656be5aa5bf5d77c0adc31",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase15-runtime\n> rm -rf .tmp/phase15-runtime-tests && tsc --outDir .tmp/phase15-runtime-tests --module ESNext --moduleResolution Bundler --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/phase15RuntimeTruthCertification.test.ts src/lib/runtimeTruthCertification.ts src/lib/operatorRuntime.ts && node --experimental-specifier-resolution=node .tmp/phase15-runtime-tests/tests/runtime/phase15RuntimeTruthCertification.test.js && rm -rf .tmp/phase15-runtime-tests\n\nphase 1.5 runtime truth certification tests passed\n"
+  },
+  {
+    "command": "npm run test:strategies",
+    "exit_code": 0,
+    "seconds": 1.18,
+    "logSha256": "b3b55ffe3821e004729d721cf50f7f18abd3143f9d69971ed8dd1b70cca60880",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:strategies\n> rm -rf .tmp/strategy-tests && tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck --allowImportingTsExtensions tests/strategies/professionalStrategyFramework.test.ts supabase/functions/_shared/professional-strategies.ts supabase/functions/_shared/strategy-plan.ts && mkdir -p .tmp/strategy-tests && esbuild tests/strategies/professionalStrategyFramework.test.ts --bundle --platform=node --format=esm --outfile=.tmp/strategy-tests/test.mjs && node .tmp/strategy-tests/test.mjs && rm -rf .tmp/strategy-tests\n\n\n  .tmp/strategy-tests/test.mjs  37.5kb\n\n\u26a1 Done in 8ms\nprofessional strategy framework compatibility tests passed\n"
+  },
+  {
+    "command": "npm run test:risk-engine",
+    "exit_code": 0,
+    "seconds": 1.32,
+    "logSha256": "214c3dea49190f8cc126611c5ab9ac860b5d79148db9a2107613c58177a52611",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:risk-engine\n> rm -rf .tmp/risk-engine-tests && tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck --allowImportingTsExtensions tests/risk/professionalRiskEngine.test.ts supabase/functions/_shared/professional-risk-engine.ts supabase/functions/_shared/strategy-plan.ts supabase/functions/_shared/professional-strategies.ts && mkdir -p .tmp/risk-engine-tests && esbuild tests/risk/professionalRiskEngine.test.ts --bundle --platform=node --format=esm --outfile=.tmp/risk-engine-tests/test.mjs && node .tmp/risk-engine-tests/test.mjs && rm -rf .tmp/risk-engine-tests\n\n\n  .tmp/risk-engine-tests/test.mjs  62.8kb\n\n\u26a1 Done in 7ms\nprofessional risk engine certification tests passed\n"
+  },
+  {
+    "command": "npm run test:capital-allocation",
+    "exit_code": 0,
+    "seconds": 1.17,
+    "logSha256": "e4eee9614989de4be1ee6f2084a5af8463698156cfbe01a2961727396fca15d7",
+    "outputTail": "fig \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:capital-allocation\n> rm -rf .tmp/capital-allocation-tests && tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck --allowImportingTsExtensions tests/capital/professionalCapitalAllocation.test.ts supabase/functions/_shared/professional-capital-allocation.ts supabase/functions/_shared/professional-risk-engine.ts supabase/functions/_shared/strategy-plan.ts supabase/functions/_shared/professional-strategies.ts && mkdir -p .tmp/capital-allocation-tests && esbuild tests/capital/professionalCapitalAllocation.test.ts --bundle --platform=node --format=esm --outfile=.tmp/capital-allocation-tests/test.mjs && node .tmp/capital-allocation-tests/test.mjs && rm -rf .tmp/capital-allocation-tests\n\n\n  .tmp/capital-allocation-tests/test.mjs  45.1kb\n\n\u26a1 Done in 7ms\nprofessional capital allocation certification tests passed\n"
+  },
+  {
+    "command": "npm run test:execution-planning",
+    "exit_code": 0,
+    "seconds": 1.32,
+    "logSha256": "06fd7bd2619f70cd00f40d53e89da8d183f4ab3fc7d3d9d29808dc6d61712eb1",
+    "outputTail": " of npm.\n\n> vite-react-typescript-starter@0.0.0 test:execution-planning\n> rm -rf .tmp/execution-planning-tests && tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck --allowImportingTsExtensions tests/execution/professionalExecutionPlanning.test.ts supabase/functions/_shared/professional-execution-planning.ts supabase/functions/_shared/professional-capital-allocation.ts supabase/functions/_shared/professional-risk-engine.ts supabase/functions/_shared/strategy-plan.ts supabase/functions/_shared/professional-strategies.ts && mkdir -p .tmp/execution-planning-tests && esbuild tests/execution/professionalExecutionPlanning.test.ts --bundle --platform=node --format=esm --outfile=.tmp/execution-planning-tests/test.mjs && node .tmp/execution-planning-tests/test.mjs && rm -rf .tmp/execution-planning-tests\n\n\n  .tmp/execution-planning-tests/test.mjs  50.1kb\n\n\u26a1 Done in 7ms\nprofessional execution planning certification tests passed\n"
+  },
+  {
+    "command": "npm run test:forex-recovery",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "cb86e8afafd6bbd28a685284cc59f97f74acd060197398cd21b5075c683079d0",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:forex-recovery\n> rm -rf .tmp/forex-recovery-tests && mkdir -p .tmp/forex-recovery-tests && esbuild tests/strategies/forexRecoveryPhase2.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-recovery-tests/test.mjs && node .tmp/forex-recovery-tests/test.mjs && rm -rf .tmp/forex-recovery-tests\n\n\n  .tmp/forex-recovery-tests/test.mjs  50.1kb\n\n\u26a1 Done in 8ms\nPhase 2 Forex recovery tests passed\n"
+  },
+  {
+    "command": "npm run test:forex-phase7",
+    "exit_code": 0,
+    "seconds": 8.25,
+    "logSha256": "bc552df7b84f9ac844ceb70b4936e60cc23538662b058fe5c2205f3410bb23f1",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:forex-phase7\n> rm -rf .tmp/forex-phase7-tests && mkdir -p .tmp/forex-phase7-tests && esbuild tests/forex/phase7ForexEngine.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-phase7-tests/test.mjs && node .tmp/forex-phase7-tests/test.mjs && rm -rf .tmp/forex-phase7-tests\n\n\n  .tmp/forex-phase7-tests/test.mjs  15.0kb\n\n\u26a1 Done in 5ms\nPhase 7 Forex engine tests passed\n"
+  },
+  {
+    "command": "npm run test:paper-telegram",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "27362a317adc7408234a5f452e4a46ac87d69644f3f5e78295b9c53a9528572f",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:paper-telegram\n> rm -rf .tmp/paper-telegram-tests && mkdir -p .tmp/paper-telegram-tests && esbuild tests/runtime/paperTelegramPhase3.test.ts --bundle --platform=node --format=esm --outfile=.tmp/paper-telegram-tests/test.mjs && node .tmp/paper-telegram-tests/test.mjs && rm -rf .tmp/paper-telegram-tests\n\n\n  .tmp/paper-telegram-tests/test.mjs  30.5kb\n\n\u26a1 Done in 4ms\nPhase 3 paper lifecycle and Telegram tests passed\n"
+  },
+  {
+    "command": "npm run test:indicators-arbitrator",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "4b75794f71c9c6498f5bb2ef9a00ef2a6c537786e5a62d7ef738dafcb7fe6576",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:indicators-arbitrator\n> rm -rf .tmp/phase4-tests && mkdir -p .tmp/phase4-tests && esbuild tests/runtime/indicatorArbitratorPhase4.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase4-tests/test.mjs && node .tmp/phase4-tests/test.mjs && rm -rf .tmp/phase4-tests\n\n\n  .tmp/phase4-tests/test.mjs  17.9kb\n\n\u26a1 Done in 4ms\nPhase 4 indicator and arbitrator tests passed\n"
+  },
+  {
+    "command": "npm run test:phase6-content",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "4c77a193ccc99d60417d53fc6bea5156fac6d281a76f60dfee13924198221e0a",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase6-content\n> rm -rf .tmp/phase6-content-tests && mkdir -p .tmp/phase6-content-tests && esbuild tests/runtime/phase6Content.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase6-content-tests/test.mjs && node .tmp/phase6-content-tests/test.mjs && rm -rf .tmp/phase6-content-tests\n\n\n  .tmp/phase6-content-tests/test.mjs  6.8kb\n\n\u26a1 Done in 2ms\nphase6 content tests passed\n"
+  },
+  {
+    "command": "npm run test:mt5",
+    "exit_code": 0,
+    "seconds": 0.52,
+    "logSha256": "8dbb316276b360812c4a0b7670c41aae78c833d15f589b167495330aba274bff",
+    "outputTail": " import.meta !== 'undefined' && import.meta && import.meta.env) {\n        \u2575                                                     ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n\u25b2 [WARNING] \"import.meta\" is not available with the \"cjs\" output format and will be empty [empty-import-meta]\n\n    src/lib/supabaseEnv.ts:7:11:\n      7 \u2502     return import.meta.env[name] || null;\n        \u2575            ~~~~~~~~~~~\n\n  You need to set the output format to \"esm\" for \"import.meta\" to work correctly.\n\n4 warnings\n\n  .tmp/mt5-tests/phase8a.cjs  878.8kb\n\n\u26a1 Done in 21ms\nSupabase frontend config invalid: missing browser Supabase anon or publishable key\nPhase 8A MT5 provider tests passed\n\n  .tmp/mt5-tests/phase8b.mjs  12.0kb\n\n\u26a1 Done in 4ms\nPhase 8B professional trade management tests passed\n\n  .tmp/mt5-tests/phase8c.mjs  6.3kb\n\n\u26a1 Done in 3ms\nStarting Phase 8C-2 MT5 Cloud Integration Verification Tests...\nAll Phase 8C-2 MT5 integration tests passed successfully!\n"
+  },
+  {
+    "command": "npm run test:public-site",
+    "exit_code": 0,
+    "seconds": 0.22,
+    "logSha256": "5c651b556286b4e8c87b814d9a3488a134dce2c84a862e00db0faa9f3e73eaea",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:public-site\n> rm -rf .tmp/public-site-tests && mkdir -p .tmp/public-site-tests && esbuild tests/publicWebsiteRebuild.test.ts --bundle --platform=node --format=esm --outfile=.tmp/public-site-tests/test.mjs && node .tmp/public-site-tests/test.mjs && rm -rf .tmp/public-site-tests\n\n\n  .tmp/public-site-tests/test.mjs  9.0kb\n\n\u26a1 Done in 2ms\n=== HASHIBOT PUBLIC WEBSITE REBUILD TEST SUITE ===\n\nTest 1: Verifying Public Packages & Positioning...\n  \u2713 Public package matrix & pricing tiers verified\nTest 2: Verifying M-Pesa Payment & Contact Contracts...\n  \u2713 Official provider checkout and launch disclosures verified\nTest 3: Verifying Bot Package Classification...\n  \u2713 Bot package classification logic verified\n\n\u2705 ALL PUBLIC WEBSITE REBUILD TESTS PASSED SUCCESSFULLY!\n"
+  },
+  {
+    "command": "npm run test:telegram",
+    "exit_code": 0,
+    "seconds": 0.42,
+    "logSha256": "eb6c998d5a64c32883728261a8b566f8e47fd232cace5e63a64cde8ee643ec9a",
+    "outputTail": "te Engine & Formatting...\n4. Verifying Idempotency Key & Delivery Error Classification...\n=== Phase 7A-1 Telegram Core Infrastructure Tests Passed Successfully! ===\n\n  .tmp/telegram-tests/test2.mjs  37.6kb\n\n\u26a1 Done in 6ms\n--- Starting HashiBot Phase 7A-2A Signal Channels & Free Automation Tests ---\n\n1. Testing Customer Eligibility Engine...\n   \u2705 Customer Eligibility Engine passed.\n2. Testing Free Channel Publisher Engine...\n   \u2705 Free Channel Publisher Engine passed.\n3. Testing Incentive Engine & Anti-Spam Compliance...\n   \u2705 Incentive Engine & Anti-Spam Compliance passed.\n4. Testing Scheduled Content Contracts...\n   \u2705 Scheduled Content Contracts passed.\n5. Testing Template Engine Rendering...\n   \u2705 Template Engine Rendering passed.\n6. Testing Router & Idempotency...\n   \u2705 Router & Idempotency passed.\n\n--- All HashiBot Phase 7A-2A Signal Channels & Free Automation Tests Passed Successfully! ---\n\n\n  .tmp/telegram-tests/test3.mjs  21.3kb\n\n\u26a1 Done in 5ms\nTelegram product ecosystem tests passed\n"
+  },
+  {
+    "command": "npm run test:execution-adoption",
+    "exit_code": 0,
+    "seconds": 1.42,
+    "logSha256": "3ad65865a909db2d8238643df74ce482bb0ae1afd6ded6ff64bc5e0e01ed13b8",
+    "outputTail": "ajor version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:execution-adoption\n> rm -rf .tmp/execution-adoption-tests && tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck --allowImportingTsExtensions tests/execution/professionalExecutionAdoption.test.ts supabase/functions/_shared/professional-execution-adoption.ts supabase/functions/_shared/professional-execution-adapters.ts supabase/functions/_shared/professional-protection-verification.ts && mkdir -p .tmp/execution-adoption-tests && esbuild tests/execution/professionalExecutionAdoption.test.ts --bundle --platform=node --format=esm --outfile=.tmp/execution-adoption-tests/test.mjs && node .tmp/execution-adoption-tests/test.mjs && rm -rf .tmp/execution-adoption-tests\n\n\n  .tmp/execution-adoption-tests/test.mjs  92.2kb\n\n\u26a1 Done in 6ms\nprofessional execution planning certification tests passed\nprofessional execution adoption and protection certification tests passed\n"
+  },
+  {
+    "command": "npm run test:phase1ga-runtime",
+    "exit_code": 0,
+    "seconds": 0.36,
+    "logSha256": "0b090df52a77a6ebe08c01ff44b1950072e599717db3c05baf69895b8752039f",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase1ga-runtime\n> rm -rf .tmp/phase1ga-tests && mkdir -p .tmp/phase1ga-tests && esbuild tests/runtime/phase1gaCertifiedRuntime.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase1ga-tests/test.mjs && node .tmp/phase1ga-tests/test.mjs && esbuild tests/runtime/phase1gaActiveWiring.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase1ga-tests/active.mjs && node .tmp/phase1ga-tests/active.mjs && rm -rf .tmp/phase1ga-tests\n\n\n  .tmp/phase1ga-tests/test.mjs  109.4kb\n\n\u26a1 Done in 6ms\nprofessional execution planning certification tests passed\nPhase 1G-A certified runtime golden tests passed\n\n  .tmp/phase1ga-tests/active.mjs  141.9kb\n\n\u26a1 Done in 7ms\nprofessional risk engine certification tests passed\nprofessional execution planning certification tests passed\nPhase 1G-A active wiring tests passed\n"
+  },
+  {
+    "command": "npm run test:phase5b",
+    "exit_code": 0,
+    "seconds": 0.82,
+    "logSha256": "9e08ef4d6d3d5afd7f785ebf392b9212e50ad4ff92d42bbaae5f16f054371c08",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase5b\n> rm -rf .tmp/phase5b-tests && tsc --outDir .tmp/phase5b-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/runtime/phase5bExecutionAccounts.test.ts src/lib/executionAccounts.ts && node .tmp/phase5b-tests/tests/runtime/phase5bExecutionAccounts.test.js && rm -rf .tmp/phase5b-tests\n\nPhase 5B execution account and provider truth tests passed\n"
+  },
+  {
+    "command": "npm run test:phase5c",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "d9ddcf662ca4c9d9defc35272cdc62eeee20e32d8256239b463ce188a5fc6ced",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase5c\n> rm -rf .tmp/phase5c-tests && mkdir -p .tmp/phase5c-tests && esbuild tests/runtime/phase5cAccountOnboarding.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase5c-tests/test.mjs && node .tmp/phase5c-tests/test.mjs && rm -rf .tmp/phase5c-tests\n\n\n  .tmp/phase5c-tests/test.mjs  19.7kb\n\n\u26a1 Done in 4ms\nPhase 5C secure account onboarding tests passed\n"
+  },
+  {
+    "command": "npm run test:runtime-proof-routing",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "8a2b4ac8b265871e0b1d89aab3b5810056fde54e163725fdcf9c2cffb84cdf4d",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:runtime-proof-routing\n> rm -rf .tmp/runtime-proof-routing-tests && mkdir -p .tmp/runtime-proof-routing-tests && esbuild tests/runtime/runtimeProofProviderRouting.test.ts --bundle --platform=node --format=esm --outfile=.tmp/runtime-proof-routing-tests/test.mjs && node .tmp/runtime-proof-routing-tests/test.mjs && rm -rf .tmp/runtime-proof-routing-tests\n\n\n  .tmp/runtime-proof-routing-tests/test.mjs  4.5kb\n\n\u26a1 Done in 2ms\nruntime proof provider routing tests passed\n"
+  },
+  {
+    "command": "npm run test:provider-truth",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "6447f169e958fd9ceee887aefa9ed39ad496773d008594b7eae82dd267ef3f43",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:provider-truth\n> rm -rf .tmp/provider-truth-tests && mkdir -p .tmp/provider-truth-tests && esbuild tests/runtime/mt5CanonicalProviderTruth.test.ts --bundle --platform=node --format=esm --outfile=.tmp/provider-truth-tests/test.mjs && node .tmp/provider-truth-tests/test.mjs && rm -rf .tmp/provider-truth-tests\n\n\n  .tmp/provider-truth-tests/test.mjs  1.2kb\n\n\u26a1 Done in 2ms\ncanonical MT5 provider truth tests passed\n"
+  },
+  {
+    "command": "npm run test:forex-uniformity",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "e8e0fc295e95a06be3b5a457403a876b6088c0a7efef3df080faa471f67f5c7a",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:forex-uniformity\n> rm -rf .tmp/forex-uniformity-tests && mkdir -p .tmp/forex-uniformity-tests && esbuild tests/runtime/forexScannerUniformity.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-uniformity-tests/test.mjs && node .tmp/forex-uniformity-tests/test.mjs && rm -rf .tmp/forex-uniformity-tests\n\n\n  .tmp/forex-uniformity-tests/test.mjs  9.5kb\n\n\u26a1 Done in 3ms\nforex scanner uniformity tests passed\n"
+  },
+  {
+    "command": "npm run test:forex-production",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "b46f71f8fb7c811847c8f55d83a4a3c6ea9ecc18973ce6c261457719038abbac",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:forex-production\n> rm -rf .tmp/forex-production-tests && mkdir -p .tmp/forex-production-tests && esbuild tests/strategies/forexProductionSuite.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-production-tests/test.mjs && node .tmp/forex-production-tests/test.mjs && rm -rf .tmp/forex-production-tests\n\n\n  .tmp/forex-production-tests/test.mjs  79.9kb\n\n\u26a1 Done in 6ms\nForex production suite tests passed\n"
+  },
+  {
+    "command": "npm run test:gold-production",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "bd0678ef257c4f98958a5491fb56b81a5d32fe73752ebf9c696d11f28b01a953",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:gold-production\n> rm -rf .tmp/gold-production-tests && mkdir -p .tmp/gold-production-tests && esbuild tests/strategies/goldProduction.test.ts --bundle --platform=node --format=esm --outfile=.tmp/gold-production-tests/test.mjs && node .tmp/gold-production-tests/test.mjs && rm -rf .tmp/gold-production-tests\n\n\n  .tmp/gold-production-tests/test.mjs  82.8kb\n\n\u26a1 Done in 8ms\nGold production and strategy registry tests passed\n"
+  },
+  {
+    "command": "npm run test:account-brain",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "735c3a6aaf54b3e2aaa7a68bccce00a02197865b9c6225b0b6144edc7804ae02",
+    "outputTail": "nown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:account-brain\n> rm -rf .tmp/account-brain-tests && mkdir -p .tmp/account-brain-tests && esbuild tests/accountBrain/accountExecutionBrainContracts.test.ts --bundle --platform=node --format=esm --outfile=.tmp/account-brain-tests/test.mjs && node .tmp/account-brain-tests/test.mjs && rm -rf .tmp/account-brain-tests\n\n\n  .tmp/account-brain-tests/test.mjs  123.5kb\n\n\u26a1 Done in 6ms\n=== Running Account Execution Brain Contract Tests ===\nTest 1: Validating AccountExecutionContext...\nTest 2: Rejecting invalid AccountExecutionContext...\nTest 3: Validating default policy templates...\nTest 4: Composing AccountPolicy with overrides...\nTest 5: Creating RuleViolation and ExecutionDecision...\nTest 6: Verifying Single-Owner Ownership Matrix...\nTest 7: Verifying AccountExecutionBrain Interface Compliance...\n=== All Account Execution Brain Contract Tests Passed Successfully! ===\n"
+  },
+  {
+    "command": "npm run test:mt5-personal-brain",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "2c08c504647741b0186d6fd2d3a5763f575b57897f4194d1c4cc377ce581bcf3",
+    "outputTail": ":mt5-personal-brain\n> rm -rf .tmp/mt5-brain-tests && mkdir -p .tmp/mt5-brain-tests && esbuild tests/accountBrain/mt5PersonalBrain.test.ts --bundle --platform=node --format=esm --outfile=.tmp/mt5-brain-tests/test.mjs && node .tmp/mt5-brain-tests/test.mjs && rm -rf .tmp/mt5-brain-tests\n\n\n  .tmp/mt5-brain-tests/test.mjs  120.1kb\n\n\u26a1 Done in 6ms\n=== Running MT5 Personal Brain Deterministic Unit Tests ===\nTest 1: Evaluating normal execution signal...\nTest 2: Evaluating daily loss exceeded breach...\nTest 3: Evaluating max total drawdown breach...\nTest 4: Evaluating insufficient free margin...\nTest 5: Evaluating duplicate position rule...\nTest 6: Evaluating leverage ceiling violation...\nTest 7: Evaluating reduced risk decision due to portfolio risk cap...\nTest 8: Evaluating drawdown safety buffer scaling...\nTest 9: Evaluating Gold (XAUUSD) signal position sizing...\nTest 10: Verifying exported singleton mt5PersonalBrain instance...\n=== All MT5 Personal Brain Unit Tests Passed Successfully! ===\n"
+  },
+  {
+    "command": "npm run test:mt5-prop-brain",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "6aecff4896dbb9ebeff6574b29d6994b1235837a090411624d3eaef54d00dbef",
+    "outputTail": "ts --bundle --platform=node --format=esm --outfile=.tmp/mt5-prop-brain-tests/test.mjs && node .tmp/mt5-prop-brain-tests/test.mjs && rm -rf .tmp/mt5-prop-brain-tests\n\n\n  .tmp/mt5-prop-brain-tests/test.mjs  120.8kb\n\n\u26a1 Done in 5ms\n=== Running MT5 Prop Brain Deterministic Unit Tests ===\nTest 1: Evaluating successful execution on Challenge account...\nTest 2: Evaluating successful execution on Funded account...\nTest 3: Evaluating daily drawdown breach...\nTest 4: Evaluating trailing drawdown breach...\nTest 5: Evaluating prop firm status BREACHED...\nTest 6: Evaluating open floating loss rejection...\nTest 7: Evaluating weekend holding restriction...\nTest 8: Evaluating high-impact news window restriction...\nTest 9: Evaluating duplicate position per symbol...\nTest 10: Evaluating degraded / disconnected provider bridge...\nTest 11: Evaluating reduced risk decision due to portfolio cap...\nTest 12: Verifying exported mt5PropBrain instance...\n=== All MT5 Prop Brain Unit Tests Passed Successfully! ===\n"
+  },
+  {
+    "command": "npm run test:binance-personal-brain",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "4e9f6dcabc100f0cf4850b327af7f8e372fb3e60c0104ed88aa647e92b560d10",
+    "outputTail": "inance Personal Brain Deterministic Unit Tests ===\nTest 1: Evaluating normal execution signal...\nTest 2: Evaluating daily drawdown breach...\nTest 3: Evaluating max total drawdown breach...\nTest 4: Evaluating insufficient free margin...\nTest 5: Evaluating duplicate position rule per symbol...\nTest 6: Evaluating max total open positions cap...\nTest 7: Evaluating leverage ceiling violation...\nTest 8: Evaluating reduced risk decision due to portfolio risk cap...\nTest 9: Evaluating drawdown safety buffer scaling...\nTest 10: Evaluating validatePositionPlan with exchange symbol filters...\nTest 11: Evaluating degraded provider bridge status...\nTest 12: Evaluating high-impact news window restriction...\nTest 13: Verifying policy-driven behavior across two distinct account policies...\nTest 14: Verifying Capital Manager single-owner position sizing ownership...\nTest 15: Verifying exported binancePersonalBrain singleton instance...\n=== All Binance Personal Brain Unit Tests Passed Successfully! ===\n"
+  },
+  {
+    "command": "npm run test:bybit-personal-brain",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "ee3ff88c14ec040370240210c31680cd2b45ab9b28aea37250f2f00862e669e9",
+    "outputTail": "1kb\n\n\u26a1 Done in 6ms\n=== Running Bybit Personal Brain Deterministic Unit Tests ===\nTest 1: Evaluating normal execution signal...\nTest 2: Evaluating daily drawdown breach...\nTest 3: Evaluating max total drawdown breach...\nTest 4: Evaluating insufficient free margin...\nTest 5: Evaluating duplicate position rule per symbol...\nTest 6: Evaluating max total open positions cap...\nTest 7: Evaluating leverage ceiling violation...\nTest 8: Evaluating reduced risk decision due to portfolio risk cap...\nTest 9: Evaluating drawdown safety buffer scaling...\nTest 10: Evaluating validatePositionPlan with Bybit symbol filters...\nTest 11: Evaluating degraded provider connectivity status...\nTest 12: Evaluating Bybit operational state parameters...\nTest 13: Evaluating policy symbol eligibility list...\nTest 14: Verifying Capital Manager single-owner position sizing ownership...\nTest 15: Verifying exported bybitPersonalBrain singleton instance...\n=== All Bybit Personal Brain Unit Tests Passed Successfully! ===\n"
+  },
+  {
+    "command": "npm run test:trade-management",
+    "exit_code": 0,
+    "seconds": 0.57,
+    "logSha256": "e0c4ce90fa391160f88da3ff65e23015a8c30b6a90bd82bec9d65ad6f33eb7fe",
+    "outputTail": "ching less protective stop loss adjustment...\n=== Trade Management Invariants Unit Tests Passed! ===\n\n  .tmp/tm-tests/t5.mjs  16.8kb\n\n\u26a1 Done in 3ms\n=== Running Trade Management Idempotency Unit Tests ===\nTest 1: Verifying deterministic idempotency key generation...\nTest 2: Verifying intent creation captures generated key...\n=== Trade Management Idempotency Unit Tests Passed! ===\n\n  .tmp/tm-tests/t6.mjs  16.7kb\n\n\u26a1 Done in 3ms\n=== Running Trade Management Provider Capabilities Unit Tests ===\nTest 1: Validating default provider capabilities...\nTest 2: Checking capability matrix differences...\nTest 3: Validating capability requirement satisfiability...\n=== Trade Management Provider Capabilities Unit Tests Passed! ===\n\n  .tmp/tm-tests/t7.mjs  61.2kb\n\n\u26a1 Done in 4ms\n=== Running Trade Management Compatibility Unit Tests ===\nTest 1: Adapting legacy TradeManagementPlan to policy...\nTest 2: Translating evaluation to Trade Truth payload...\n=== Trade Management Compatibility Unit Tests Passed! ===\n"
+  },
+  {
+    "command": "npm run test:runtime-orchestrator",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "97deb2c35317ddf4bc1d704f3035d4cc2d5c5dc0b9dbdfd600e2a6a1e39830f5",
+    "outputTail": "nfig \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:runtime-orchestrator\n> rm -rf .tmp/ro-tests && mkdir -p .tmp/ro-tests && esbuild tests/runtimeOrchestrator/runtimeOrchestrator.test.ts --bundle --platform=node --format=esm --outfile=.tmp/ro-tests/test.mjs && node .tmp/ro-tests/test.mjs && rm -rf .tmp/ro-tests\n\n\n  .tmp/ro-tests/test.mjs  249.1kb\n\n\u26a1 Done in 7ms\n=== Running Phase 7 Runtime Orchestrator Unit Tests ===\nTest 1: Full successful execution pipeline for MT5 Personal...\nTest 2: Brain selection for all 4 supported providers...\nTest 3: Account Lock handling in Orchestrator...\nTest 4: SKIP handling in Orchestrator...\nTest 5: Provider Validation failure routes to Recovery...\nTest 6: Idempotency deduplication check...\nTest 7: Stale aggregate version rejection...\nTest 8: Runtime State Machine transitions...\nTest 9: Registry explicit mappings...\n=== All Phase 7 Runtime Orchestrator Unit Tests Passed Successfully! ===\n"
+  },
+  {
+    "command": "npm run test:strategy-independence",
+    "exit_code": 0,
+    "seconds": 0.57,
+    "logSha256": "7474cd35f7dd78bdff55df838e9623d8afb7d9f085bf08aca9285f4e199d5b75",
+    "outputTail": "arter@0.0.0 test:forex-production\n> rm -rf .tmp/forex-production-tests && mkdir -p .tmp/forex-production-tests && esbuild tests/strategies/forexProductionSuite.test.ts --bundle --platform=node --format=esm --outfile=.tmp/forex-production-tests/test.mjs && node .tmp/forex-production-tests/test.mjs && rm -rf .tmp/forex-production-tests\n\n\n  .tmp/forex-production-tests/test.mjs  79.9kb\n\n\u26a1 Done in 6ms\nForex production suite tests passed\nnpm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:gold-production\n> rm -rf .tmp/gold-production-tests && mkdir -p .tmp/gold-production-tests && esbuild tests/strategies/goldProduction.test.ts --bundle --platform=node --format=esm --outfile=.tmp/gold-production-tests/test.mjs && node .tmp/gold-production-tests/test.mjs && rm -rf .tmp/gold-production-tests\n\n\n  .tmp/gold-production-tests/test.mjs  82.8kb\n\n\u26a1 Done in 7ms\nGold production and strategy registry tests passed\n"
+  },
+  {
+    "command": "npm run test:professional-prop",
+    "exit_code": 0,
+    "seconds": 0.37,
+    "logSha256": "e2bddf59f9a39c228157b2917c7b77d13cfc71c506391db337eb968a458c1f55",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:professional-prop\n> rm -rf .tmp/professional-prop-tests && mkdir -p .tmp/professional-prop-tests && esbuild tests/prop/professionalPropProduct.test.ts --bundle --platform=node --format=esm --outfile=.tmp/professional-prop-tests/test.mjs && node .tmp/professional-prop-tests/test.mjs && rm -rf .tmp/professional-prop-tests\n\n\n  .tmp/professional-prop-tests/test.mjs  37.6kb\n\n\u26a1 Done in 4ms\nprofessional prop product tests passed\n"
+  },
+  {
+    "command": "npm run test:research-product",
+    "exit_code": 0,
+    "seconds": 0.47,
+    "logSha256": "29f64f43fb13208fee2581b2b0c9e14db1543840f8542fa1b23b202b15188475",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:research-product\n> rm -rf .tmp/research-product-tests && mkdir -p .tmp/research-product-tests && esbuild tests/research/finalResearchProduct.test.ts --bundle --platform=node --format=esm --outfile=.tmp/research-product-tests/test.mjs && node .tmp/research-product-tests/test.mjs && rm -rf .tmp/research-product-tests\n\n\n  .tmp/research-product-tests/test.mjs  27.7kb\n\n\u26a1 Done in 4ms\nfinal research product tests passed\n"
+  },
+  {
+    "command": "npm run test:prompt1-pipeline",
+    "exit_code": 0,
+    "seconds": 0.36,
+    "logSha256": "546d93d21a9e445e1319fe2959638bb9be8e4ba0f66438f1bf14783103bda00c",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:prompt1-pipeline\n> rm -rf .tmp/prompt1-pipeline-tests && mkdir -p .tmp/prompt1-pipeline-tests && esbuild tests/research/prompt1CanonicalPipeline.test.ts --bundle --platform=node --format=esm --outfile=.tmp/prompt1-pipeline-tests/test.mjs && node .tmp/prompt1-pipeline-tests/test.mjs && rm -rf .tmp/prompt1-pipeline-tests\n\n\n  .tmp/prompt1-pipeline-tests/test.mjs  116.5kb\n\n\u26a1 Done in 10ms\n[PROP] crypto.trend-pullback 1/1 attempts\n[PROP] crypto.trend-pullback 1/1 attempts\nprompt 1 canonical pipeline tests passed {\"singleRunHash\":\"pipeline_6b4a6610\",\"portfolioRunHash\":\"pipeline_46712246\",\"rollingRunHashes\":[\"pipeline_96176b5a\"],\"singleTrades\":2,\"portfolioTrades\":3,\"rollingAttempts\":1}\n"
+  },
+  {
+    "command": "npm run test:prompt2-qualification",
+    "exit_code": 0,
+    "seconds": 0.57,
+    "logSha256": "aaef55ca208d745031b715a4772138da32b09a6a270c099e84915b4fe61e1b82",
+    "outputTail": "y:after rss_mb=72 heap_used_mb=11 heap_total_mb=27\n[PHASE_B_MEMORY] qualification=crypto-prop-campaign strategy=crypto.trend-pullback stage=config:config_7d54a6a7:walk_forward:after rss_mb=72 heap_used_mb=11 heap_total_mb=27\n[PHASE_B_MEMORY] qualification=crypto-prop-campaign strategy=crypto.trend-pullback stage=config:config_7d54a6a7:stress:after rss_mb=72 heap_used_mb=11 heap_total_mb=27\n[PHASE_B_MEMORY] qualification=crypto-prop-campaign strategy=crypto.trend-pullback stage=config:config_7d54a6a7:monte_carlo:after rss_mb=72 heap_used_mb=15 heap_total_mb=27\nprompt 2 qualification campaign tests passed {\"campaignHash\":\"campaign_4a93b6b9\",\"variants\":4,\"eliminated\":2,\"survivors\":1,\"recommendation\":\"QUALIFIED_WINNERS\",\"winner\":{\"strategyVersion\":\"0.1.0-research-frozen\",\"configVersion\":\"research/random_seeded/v1/1\",\"parameters\":{\"pullbackAtr\":0.65,\"stopAtr\":1.5}},\"frozenVersion\":\"qualified-forward-config/v1\",\"qualifiedSetVersion\":\"set_4112d7e3\",\"noWinner\":\"NO_ROBUST_CONFIGURATION_FOUND\"}\n"
+  },
+  {
+    "command": "npm run test:production-eligibility-router",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "18e3b91fbabf5a562934de2f4e0318058e9e79d63d26d4a7ced90b14c670830a",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:production-eligibility-router\n> rm -rf .tmp/eligibility-router-tests && mkdir -p .tmp/eligibility-router-tests && esbuild tests/tradingDomain/productionEligibilityRouter.test.ts --bundle --platform=node --format=esm --outfile=.tmp/eligibility-router-tests/test.mjs && node .tmp/eligibility-router-tests/test.mjs && rm -rf .tmp/eligibility-router-tests\n\n\n  .tmp/eligibility-router-tests/test.mjs  9.1kb\n\n\u26a1 Done in 3ms\nproduction eligibility router tests passed\n"
+  },
+  {
+    "command": "npm run test:account-execution-controller",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "3b4c4a52f6bdb4f39e22234851aabb7528574fa61a372c48397f023081a9ff74",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:account-execution-controller\n> rm -rf .tmp/account-controller-tests && mkdir -p .tmp/account-controller-tests && esbuild tests/runtime/accountExecutionController.test.ts --bundle --platform=node --format=esm --outfile=.tmp/account-controller-tests/test.mjs && node .tmp/account-controller-tests/test.mjs && rm -rf .tmp/account-controller-tests\n\n\n  .tmp/account-controller-tests/test.mjs  9.0kb\n\n\u26a1 Done in 3ms\naccount execution controller tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-d",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "c94054d5f7a13369357b8fa1e8ad40c746ea29b6da7b90ab9f119809a91f24f6",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-d\n> rm -rf .tmp/phase-d-tests && mkdir -p .tmp/phase-d-tests && esbuild tests/runtime/multiTenantAccountPolicy.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-d-tests/test.mjs && node .tmp/phase-d-tests/test.mjs && rm -rf .tmp/phase-d-tests\n\n\n  .tmp/phase-d-tests/test.mjs  241.4kb\n\n\u26a1 Done in 8ms\nPhase D multi-tenant account policy tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-e",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "de2aa63ddc9157f43f03dad0648ac11d1f19c2b5e27db4bf73a512d399556297",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-e\n> rm -rf .tmp/phase-e-tests && mkdir -p .tmp/phase-e-tests && esbuild tests/mt5/phaseEExecution.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-e-tests/test.mjs && node .tmp/phase-e-tests/test.mjs && rm -rf .tmp/phase-e-tests\n\n\n  .tmp/phase-e-tests/test.mjs  9.9kb\n\n\u26a1 Done in 3ms\nPhase E MT5 Personal + Prop demo execution tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-f",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "a058a1bbc15fa07efc475cb1501fb5836c4858b1beea8ca4075b454e61f3d817",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-f\n> rm -rf .tmp/phase-f-tests && mkdir -p .tmp/phase-f-tests && esbuild tests/execution/phaseFCryptoExecution.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-f-tests/test.mjs && node .tmp/phase-f-tests/test.mjs && rm -rf .tmp/phase-f-tests\n\n\n  .tmp/phase-f-tests/test.mjs  12.0kb\n\n\u26a1 Done in 3ms\nPhase F Binance + Bybit execution and unified protection tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-g",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "a0b1f22a4edf5b066c44562865c09f26adf1b698ccb8f636f08a68f524ba3437",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-g\n> rm -rf .tmp/phase-g-tests && mkdir -p .tmp/phase-g-tests && esbuild tests/execution/phaseGCustomer001Certification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-g-tests/test.mjs && node .tmp/phase-g-tests/test.mjs && rm -rf .tmp/phase-g-tests\n\n\n  .tmp/phase-g-tests/test.mjs  11.4kb\n\n\u26a1 Done in 3ms\nPhase G Customer #001 deterministic certification: PASS\n"
+  },
+  {
+    "command": "npm run test:phase-h",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "4daaf9dc2d72ac995659a8a13e2f7a4a685e292b9b6d366f16e66ef59d359158",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-h\n> rm -rf .tmp/phase-h-tests && mkdir -p .tmp/phase-h-tests && esbuild tests/phaseH/phaseH.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-h-tests/test.mjs && node .tmp/phase-h-tests/test.mjs && rm -rf .tmp/phase-h-tests\n\n\n  .tmp/phase-h-tests/test.mjs  14.7kb\n\n\u26a1 Done in 5ms\nPhase H deterministic contract suite passed: onboarding variants, canonical multi-account ownership/RLS migration, packages/slots, brains, pairing/heartbeat, provider verification/redaction/rotation boundary, readiness, payment and portable job contracts.\n"
+  },
+  {
+    "command": "npm run test:customer-provisioning",
+    "exit_code": 0,
+    "seconds": 0.22,
+    "logSha256": "e27cec935528d7626ae19307d0dfaa8116b1a0c91cec96f72ef1f86bacdeafdb",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:customer-provisioning\n> rm -rf .tmp/customer-provisioning-tests && mkdir -p .tmp/customer-provisioning-tests && esbuild tests/runtime/customerProvisioning.test.ts --bundle --platform=node --format=esm --outfile=.tmp/customer-provisioning-tests/test.mjs && node .tmp/customer-provisioning-tests/test.mjs && rm -rf .tmp/customer-provisioning-tests\n\n\n  .tmp/customer-provisioning-tests/test.mjs  5.7kb\n\n\u26a1 Done in 3ms\ncustomer provisioning tests passed\n"
+  },
+  {
+    "command": "npm run test:final-3c",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "4258485433170cfbc120e5fa70157901f2c13dff34636b1b88e8e846648507ce",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:final-3c\n> rm -rf .tmp/final-3c-tests && mkdir -p .tmp/final-3c-tests && esbuild tests/runtime/final3CCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/final-3c-tests/test.mjs && node .tmp/final-3c-tests/test.mjs && rm -rf .tmp/final-3c-tests\n\n\n  .tmp/final-3c-tests/test.mjs  18.7kb\n\n\u26a1 Done in 5ms\nfinal 3C certification: history provenance, provider capability, immutable handoff and truth checks passed\n"
+  },
+  {
+    "command": "npm run test:phase-a-research",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "24c9b2e3e70ee674ce06f923b09a773fcd819407f97c88cdbefd7ca07ffd20be",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-a-research\n> rm -rf .tmp/phase-a-tests && mkdir -p .tmp/phase-a-tests && esbuild tests/research/canonicalResearchAuthority.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-a-tests/test.mjs && node .tmp/phase-a-tests/test.mjs && rm -rf .tmp/phase-a-tests\n\n\n  .tmp/phase-a-tests/test.mjs  53.7kb\n\n\u26a1 Done in 5ms\ncanonical research authority tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-a2-replay",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "8e1e048a4ed94e36f9f3cd5db3938c3d607097f97d8dc00e54d936c4613e6d24",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-a2-replay\n> rm -rf .tmp/phase-a2-tests && mkdir -p .tmp/phase-a2-tests && esbuild tests/research/historicalReplay.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-a2-tests/test.mjs && node .tmp/phase-a2-tests/test.mjs && rm -rf .tmp/phase-a2-tests\n\n\n  .tmp/phase-a2-tests/test.mjs  117.1kb\n\n\u26a1 Done in 8ms\nPhase A.2 historical replay tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-a3-cockpit",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "69a407f5736dca8398de3b14112169f80fa836d1a99ca442ff8d09e39544d9b2",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-a3-cockpit\n> rm -rf .tmp/phase-a3-tests && mkdir -p .tmp/phase-a3-tests && esbuild tests/research/phaseA3Cockpit.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-a3-tests/test.mjs && node .tmp/phase-a3-tests/test.mjs && rm -rf .tmp/phase-a3-tests\n\n\n  .tmp/phase-a3-tests/test.mjs  242.7kb\n\n\u26a1 Done in 11ms\nPhase A.3 cockpit tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-b-certification",
+    "exit_code": 0,
+    "seconds": 0.47,
+    "logSha256": "4ecd61814ca6b1035371aeaa6af2d721051a0671c409387d041efbf501dfe05b",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-b-certification\n> rm -rf .tmp/phase-b-tests && mkdir -p .tmp/phase-b-tests && esbuild tests/research/phaseBPortfolioCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/phase-b-tests/test.mjs && node .tmp/phase-b-tests/test.mjs && rm -rf .tmp/phase-b-tests\n\n\n  .tmp/phase-b-tests/test.mjs  647.9kb\n\n\u26a1 Done in 22ms\nphase B portfolio certification tests passed {\"protocol\":\"protocol_b084a02c\",\"campaign\":\"portfolio_8ca391c9\",\"state\":\"QUALIFIED_MULTI_PRODUCT\",\"eligible\":[\"EURUSD\"],\"statusWithoutReplay\":\"REAL_DATA_REQUIRED\"}\n"
+  },
+  {
+    "command": "npm run test:permanent-backtest-lab",
+    "exit_code": 0,
+    "seconds": 0.27,
+    "logSha256": "12910d562302a46f13a09d14ddcc68a53f4bc142d6697e2714813f65ba43d9ad",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:permanent-backtest-lab\n> rm -rf .tmp/permanent-lab-tests && mkdir -p .tmp/permanent-lab-tests && esbuild tests/research/permanentBacktestLab.test.ts --bundle --platform=node --format=esm --outfile=.tmp/permanent-lab-tests/test.mjs && node .tmp/permanent-lab-tests/test.mjs && rm -rf .tmp/permanent-lab-tests\n\n\n  .tmp/permanent-lab-tests/test.mjs  458.8kb\n\n\u26a1 Done in 16ms\nPermanent Backtest Lab tests passed\n"
+  },
+  {
+    "command": "npm run test:product-research",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "4710c5112b05a6d2750c7a4ad1e957875577ee83410c75d517e65142739dd0b3",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:product-research\n> rm -rf .tmp/product-research-tests && mkdir -p .tmp/product-research-tests && esbuild tests/research/productResearchLab.test.ts --bundle --platform=node --format=esm --outfile=.tmp/product-research-tests/test.mjs && node .tmp/product-research-tests/test.mjs && rm -rf .tmp/product-research-tests\n\n\n  .tmp/product-research-tests/test.mjs  478.4kb\n\n\u26a1 Done in 19ms\nproduct research identity, matrix, canonical qualification adapter, staleness: PASS\n"
+  },
+  {
+    "command": "npm run test:prop-certification",
+    "exit_code": 0,
+    "seconds": 0.57,
+    "logSha256": "bb4ac1d79e01858b3c498e399a891eede76914976acf744e519b9d20758c6827",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:prop-certification\n> rm -rf .tmp/prop-certification-tests && mkdir -p .tmp/prop-certification-tests && esbuild tests/research/propCertification.test.ts --bundle --platform=node --format=esm --outfile=.tmp/prop-certification-tests/test.mjs && node .tmp/prop-certification-tests/test.mjs && rm -rf .tmp/prop-certification-tests\n\n\n  .tmp/prop-certification-tests/test.mjs  393.4kb\n\n\u26a1 Done in 14ms\nPrompt 3 frozen identity, tiers, deterministic starts, canonical breach/funded/final certification: PASS\n"
+  },
+  {
+    "command": "npm run test:phase-i",
+    "exit_code": 0,
+    "seconds": 0.26,
+    "logSha256": "a567aa90c5f8e15a784ffd05692a1f51776166ac0c9394f730c20efedfeacdd8",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-i\n> rm -rf .tmp/phase-i-tests && mkdir -p .tmp/phase-i-tests && esbuild tests/phaseI/phaseI.test.ts --bundle --platform=node --format=esm --alias:npm:standardwebhooks@1.0.0=standardwebhooks --outfile=.tmp/phase-i-tests/test.mjs && node .tmp/phase-i-tests/test.mjs && rm -rf .tmp/phase-i-tests\n\n\n  .tmp/phase-i-tests/test.mjs  42.8kb\n\n\u26a1 Done in 5ms\nPhase I atomic commerce completion tests passed\n"
+  },
+  {
+    "command": "npm run test:purchase-journey",
+    "exit_code": 0,
+    "seconds": 0.21,
+    "logSha256": "47b86fc04cfd3e2ea24ed066921184cf772e9448b39d6a7b13e5ed9ddfc0d873",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:purchase-journey\n> rm -rf .tmp/purchase-journey && mkdir -p .tmp/purchase-journey && esbuild tests/purchaseJourney/publicPurchaseJourney.test.ts --bundle --platform=node --format=esm --outfile=.tmp/purchase-journey/test.mjs && node .tmp/purchase-journey/test.mjs && rm -rf .tmp/purchase-journey\n\n\n  .tmp/purchase-journey/test.mjs  9.9kb\n\n\u26a1 Done in 3ms\npublic purchase journey unit contracts passed\n"
+  },
+  {
+    "command": "npm run test:phase-l",
+    "exit_code": 0,
+    "seconds": 1.07,
+    "logSha256": "d16d59533579fa4aa215b8c6263c842c946a63df71df5616e89fffc6bb683d11",
+    "outputTail": "ase-l-tests/crossMarketEvidence.mjs  3.2kb\n\n\u26a1 Done in 2ms\nRecorded Forex/crypto source, frozen-config, account-model, leverage and challenge evidence checks passed\n\n  .tmp/phase-l-tests/downloadOrchestration.mjs  49.8kb\n\n\u26a1 Done in 6ms\nPhase L shared Crypto/Forex download orchestration passed\n\n  .tmp/phase-l-tests/forexAndLeverage.mjs  182.4kb\n\n\u26a1 Done in 9ms\nForex registry/parameter/timeframe parity and leverage, liquidation, overlap and challenge truth checks passed\n\n  .tmp/phase-l-tests/fullPaths.mjs  215.8kb\n\n\u26a1 Done in 9ms\nPhase L complete replay, server authority, cancellation, and download paths passed\n\n  .tmp/phase-l-tests/outcomesShadow.mjs  202.6kb\n\n\u26a1 Done in 9ms\nPhase L outcome, integrity, and genuine shadow observation paths passed\n\n  .tmp/phase-l-tests/phaseL.mjs  62.3kb\n\n\u26a1 Done in 5ms\nPhase L replay, shadow, evidence, and purchase lifecycle tests passed\n\n  .tmp/phase-l-tests/regimeSafety.mjs  18.7kb\n\n\u26a1 Done in 6ms\nScanner chop alias and arbitration target/side safety passed\n"
+  },
+  {
+    "command": "npm run test:phase-m",
+    "exit_code": 0,
+    "seconds": 0.67,
+    "logSha256": "ad9d16fe3766b91b8486711bd97f8ccd7e5b9ae88a3e243405991bc62f1de1e8",
+    "outputTail": "phase-m-tests && mkdir -p .tmp/phase-m-tests && for f in tests/phaseM/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-m-tests/$n.mjs\" && node \".tmp/phase-m-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-m-tests\n\n\n  .tmp/phase-m-tests/completionPaths.mjs  224.2kb\n\n\u26a1 Done in 11ms\nPhase M lifecycle, edits, multi-replay lineage, and professional Prop adapter tests passed\n\n  .tmp/phase-m-tests/connectedRuntime.mjs  57.9kb\n\n\u26a1 Done in 11ms\nPhase M connected endpoint/store/runtime tests passed\n\n  .tmp/phase-m-tests/persistedPipeline.mjs  460.0kb\n\n\u26a1 Done in 14ms\nPhase M persisted scanner -> account -> Prop chain passed; independent ending balance 10162.07000000\n\n  .tmp/phase-m-tests/phaseM.mjs  17.8kb\n\n\u26a1 Done in 4ms\nPhase M deterministic integration tests passed\n\n  .tmp/phase-m-tests/reviewedBlockers.mjs  14.5kb\n\n\u26a1 Done in 5ms\nPhase M reviewed blocker persistence, routing, cancellation, authority, and UI mapping tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-n",
+    "exit_code": 0,
+    "seconds": 0.42,
+    "logSha256": "18d4f83f23772437a0ddbaeb40e01776e672d65d597cb12e37d9febf408fbb32",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-n\n> rm -rf .tmp/phase-n-tests && mkdir -p .tmp/phase-n-tests && for f in tests/phaseN/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-n-tests/$n.mjs\" && node \".tmp/phase-n-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-n-tests\n\n\n  .tmp/phase-n-tests/phaseNConsumer.mjs  5.0kb\n\n\u26a1 Done in 3ms\nPhase N durable consumer tests passed\n\n  .tmp/phase-n-tests/phaseNCredentialsAndDispatch.mjs  90.9kb\n\n\u26a1 Done in 7ms\nprofessional execution planning certification tests passed\nPhase N credential and certification dispatch adapters passed\n\n  .tmp/phase-n-tests/phaseNOperations.mjs  8.5kb\n\n\u26a1 Done in 3ms\nPhase N operations behavioral integration tests passed\n"
+  },
+  {
+    "command": "npm run test:phase-o",
+    "exit_code": 0,
+    "seconds": 0.31,
+    "logSha256": "eccaf4224d7f65c4be09812658b0b79de29f027cd4339c09656c7a38c7226aab",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:phase-o\n> rm -rf .tmp/phase-o-tests && mkdir -p .tmp/phase-o-tests && for f in tests/phaseO/*.test.ts; do n=$(basename \"$f\" .test.ts); esbuild \"$f\" --bundle --platform=node --format=esm --outfile=\".tmp/phase-o-tests/$n.mjs\" && node \".tmp/phase-o-tests/$n.mjs\" || exit 1; done; rm -rf .tmp/phase-o-tests\n\n\n  .tmp/phase-o-tests/phaseOConnectedAgents.mjs  13.8kb\n\n\u26a1 Done in 3ms\nPhase O connected agents, routing, artifacts, approval, budget and delivery simulations passed\n\n  .tmp/phase-o-tests/phaseOVipLifecycle.mjs  2.1kb\n\n\u26a1 Done in 3ms\nPhase O two-audience Phase J lifecycle simulation passed\n"
+  },
+  {
+    "command": "npm run test:phase-p",
+    "exit_code": 0,
+    "seconds": 3.12,
+    "logSha256": "1a8284058e1bba29621cd3cf041c0d0f5d80cde6e8dd31a0c31f1e6c3f4b8d66",
+    "outputTail": "epted response loss, refresh, ordering, concurrent clicks, new selections, new runs and users (14.690414ms)\n\u2714 replay cancels while processing a selected outcome and never finalizes cancelled work (4.565793ms)\n\u2714 concrete replay yields with durable scanner state; restart does not repeat the persisted prefix (17.515972ms)\n\u2714 health distinguishes configuration-only, read-only schema readiness and database failure (1.163826ms)\n\u2714 Account evaluation checkpoints Phase-D state, resumes without recomputing its prefix, and survives shutdown (46.893881ms)\n\u2714 Prop yields during shared professional evaluation and resumes at the next persisted window; cancellation never completes (2179.457279ms)\n\u2714 an accepted attempt returns frozen authority even when current strategy approval has changed (2.625503ms)\n\u2714 retained Phase-O approval binding and uncertainty cannot be bypassed by portable work (12.540494ms)\n\u2139 tests 18\n\u2139 suites 0\n\u2139 pass 18\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 2887.628826\n"
+  },
+  {
+    "command": "npm run test:owner-preview",
+    "exit_code": 0,
+    "seconds": 0.42,
+    "logSha256": "1266168e950e5f3e2c17d08b49e4b787210948699116dbbf6a18fd9aa9f88b09",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:owner-preview\n> node --import tsx --test tests/ownerPreview/adapter.test.ts\n\n\u2714 preview supplies no authenticated user, session, JWT or administrator role (1.008928ms)\n\u2714 two independent fixture customers own distinct account configurations; this is not an RLS test (1.393025ms)\n\u2714 query updates apply filters after update, and modify disposable fixtures only (2.760472ms)\n\u2714 illustrative research cannot be mistaken for venue-certified data (0.996169ms)\n\u2714 network allowlist rejects all APIs, providers and mutations while permitting local assets (0.2978ms)\n\u2139 tests 5\n\u2139 suites 0\n\u2139 pass 5\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 231.139785\n"
+  },
+  {
+    "command": "npm run test:release1",
+    "exit_code": 0,
+    "seconds": 2.88,
+    "logSha256": "30e5202e8367b62ef9223c18fb51e879c481f1bc292f38bfdfed6142d28ab66e",
+    "outputTail": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> vite-react-typescript-starter@0.0.0 test:release1\n> node scripts/release1/test.mjs\n\nRelease 1 qualification, message snapshots, preview secrecy, long Unicode messages, and source freshness passed\nRelease 1 real SQL + mocked Daraja and Telegram: pending \u2192 verified payment \u2192 duplicate \u2192 token binding \u2192 identity-bound admission \u2192 renewal \u2192 expiry \u2192 removal passed.\nWhop signed envelope, provider source lineage, first payment, scheduled cancellation, partial/full refund, dispute, and provider outage tests passed\nRegime specialist routing, shock/stale/gap/open rejection, closed HTF, frozen version, replay parity and research-only publication boundary passed\n"
+  }
+]

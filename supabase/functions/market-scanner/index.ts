@@ -1,4 +1,5 @@
 import {evalForexMicroScalper,evalForexSwingContinuation} from "../_shared/forex-legacy-evaluators.ts";
+import {regimeResearchDefinitions} from '../_shared/regime-opportunities.ts';
 import {microScalperRuntimeParams} from "../_shared/micro-scalper-runtime.ts";
 import {classifyMarketContext,arbitrationScore,arbitrationNoTradeReason,strategyIdentityFit,marketRoleFit,strategyFreshnessScore,scoreBreakdownNumber,scoreBreakdownBool,overextensionPenalty,type MarketContext} from "../_shared/scanner-market-context.ts";
 import {measuredRuntimeConfiguration} from "../_shared/measured-strategy-runtime.ts";
@@ -2052,6 +2053,7 @@ async function runScanPipeline(
           registerLegacy("CompressionBreakout", "crypto.compression-breakout", "1.0.0", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, max_bars_in_trade: cbConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
           registerLegacy("SwingContinuation", "crypto.swing-continuation", "1.0.0", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, max_bars_in_trade: swConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
           activeDefinitions.push(
+            ...regimeResearchDefinitions(),
             { id: "crypto.trend-pullback", version: "0.1.0-research", legacyName: "CryptoTrendPullback", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "CryptoTrendPullback" }, evaluate: evaluateCryptoTrendPullback },
             { id: "crypto.reversal-exhaustion", version: "0.1.0-research", legacyName: "ReversalExhaustion", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "ReversalExhaustion" }, evaluate: evaluateReversalExhaustion },
           );

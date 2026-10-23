@@ -1,5 +1,7 @@
 # Strategy certification — NOT CERTIFIED
 
+23 October continuation: [new specialist rebuild, additional exchange history and final rejection results](regime/README.md). The earlier288-cell report below is retained as historical evidence.
+
 Generated 2026-10-22T02:28:02.561Z. None promoted. Credentials and infrastructure cannot resolve this blocker.
 
 288 independent historical scenario cells cover nine strategy families, two frozen profiles, markets and chronological periods. The full cell and regime metrics, source hashes, configuration hashes and rejection counts are in [strategy-evidence.json](strategy-evidence.json) and [strategy-results.csv](strategy-results.csv). These are research results, not certified customer returns.

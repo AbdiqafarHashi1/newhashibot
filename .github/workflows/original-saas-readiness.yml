@@ -22,13 +22,12 @@ jobs:
         with:
           python-version: '3.12'
       - run: python3 -m pip install python-dotenv==1.2.4
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npm run typecheck
       - run: npm run check:edge-bundles
       - run: npm run typecheck:account-authorization
       - run: npm run build
       - run: npm run test:release1
-      - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run test:operations-readiness
       - run: python3 -m unittest discover -s mt5-agent/tests
       - run: npm run test:strategies
@@ -39,6 +38,13 @@ jobs:
       - run: npm run test:phase-p
       - run: npm run typecheck:cloud
       - run: npm run audit:admin-surfaces
+      - name: Required production dependency audit
+        env:
+          npm_config_fetch_timeout: '20000'
+          npm_config_fetch_retries: '1'
+          npm_config_fetch_retry_mintimeout: '1000'
+          npm_config_fetch_retry_maxtimeout: '1000'
+        run: npm audit --omit=dev --audit-level=moderate
 
   release1-browser:
     runs-on: ubuntu-latest
@@ -49,7 +55,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
       - run: npx playwright test -c playwright.release1.config.ts
@@ -61,7 +67,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npm run lint
 
   release-source:

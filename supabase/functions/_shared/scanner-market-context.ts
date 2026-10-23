@@ -135,6 +135,12 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  if(entries.every(e=>['RegimeContinuation','RegimeRangeRejection','RegimeChannelBreakout'].includes(e.name))){
+    // Explicit specialist policy: sideways balance is eligible only for range rejection.
+    // Legacy choppiness thresholds must not label a valid range setup a trend failure.
+    return entries.every(e=>e.result.score_breakdown.regime_policy_version==='regime-opportunity/v1'&&
+      (e.name!=='RegimeRangeRejection'?['TREND_UP','TREND_DOWN','EXPANSION_UP','EXPANSION_DOWN'].includes(String(e.result.score_breakdown.regime)):e.result.score_breakdown.regime==='RANGE'))?'':'REGIME_POLICY_MISMATCH';
+  }
   const top = entries[0];
   const topScore = arbitrationScore(top, ctx);
   const hasAPlus = entries.some((entry) => entry.result.grade === "A+");
