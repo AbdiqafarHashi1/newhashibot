@@ -1,6 +1,9 @@
 import {evalForexMicroScalper,evalForexSwingContinuation} from "../_shared/forex-legacy-evaluators.ts";
 import {regimeResearchDefinitions} from '../_shared/regime-opportunities.ts';
 import {intradayResearchDefinitions} from '../_shared/intraday-opportunities.ts';
+import {decodeNativeKline} from '../_shared/native-kline.ts';
+import {costAwareResearchDefinitions} from '../_shared/cost-aware-opportunities.ts';
+import {chooseObservedUniverse,unverifiedCoreRows,type ObservedUniverseRow,type NativeExchangeSymbol} from '../_shared/opportunity-universe.ts';
 import {microScalperRuntimeParams} from "../_shared/micro-scalper-runtime.ts";
 import {classifyMarketContext,arbitrationScore,arbitrationNoTradeReason,strategyIdentityFit,marketRoleFit,strategyFreshnessScore,scoreBreakdownNumber,scoreBreakdownBool,overextensionPenalty,type MarketContext} from "../_shared/scanner-market-context.ts";
 import {measuredRuntimeConfiguration} from "../_shared/measured-strategy-runtime.ts";
@@ -136,6 +139,7 @@ interface ScannerConfig {
   scan_interval_minutes: number; schedule_enabled: boolean;
   max_symbols_per_scan?: number; min_24h_volume?: number; min_liquidity?: number;
   exclude_symbols?: string[]; include_symbols?: string[];
+  dynamic_binance_universe_enabled?: boolean;
 }
 
 interface StrategyConfig {
@@ -886,7 +890,7 @@ async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 11
     if (res.ok) {
       const raw: unknown[][] = await res.json();
       if (raw && raw.length > 0) {
-        return raw.map((k) => ({ symbol, market_type: "crypto", timeframe, open_time: new Date(k[0] as number).toISOString(), open: parseFloat(k[1] as string), high: parseFloat(k[2] as string), low: parseFloat(k[3] as string), close: parseFloat(k[4] as string), volume: parseFloat(k[5] as string), source: "binance" }));
+        return raw.map((k) => decodeNativeKline(symbol, timeframe, k, 'SPOT'));
       }
     }
   } catch {}
@@ -895,20 +899,11 @@ async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 11
     const fres = await fetch(furl, { signal: AbortSignal.timeout(8000) });
     if (!fres.ok) return null;
     const fraw: unknown[][] = await fres.json();
-    return fraw.map((k) => ({ symbol, market_type: "crypto", timeframe, open_time: new Date(k[0] as number).toISOString(), open: parseFloat(k[1] as string), high: parseFloat(k[2] as string), low: parseFloat(k[3] as string), close: parseFloat(k[4] as string), volume: parseFloat(k[5] as string), source: "binance" }));
+    return fraw.map((k) => decodeNativeKline(symbol, timeframe, k, 'USDT_PERPETUAL'));
   } catch { return null; }
 }
 
-type BinanceUniverseRow = {
-  symbol: string;
-  market_type: "crypto";
-  is_active: boolean;
-  universe_rank: number;
-  universe_reason: string;
-  quote_volume: number;
-  price_change_pct: number;
-  volatility_proxy: number;
-};
+type BinanceUniverseRow = ObservedUniverseRow;
 
 const DEFAULT_STABLECOIN_BASES = new Set(["USDC", "FDUSD", "TUSD", "BUSD", "DAI", "USDP", "USDE", "SUSDE", "EUR", "TRY", "BRL"]);
 
@@ -917,21 +912,9 @@ function scannerCsvSet(value: unknown): Set<string> {
   return new Set(String(value ?? "").split(",").map((x) => normalizeSymbol(x)).filter(Boolean));
 }
 
-async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null }> {
-  const fixedList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "LINKUSDT", "AVAXUSDT", "LTCUSDT"];
-
+async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null; coverage:Record<string,unknown>|null }> {
   if (!config.dynamic_binance_universe_enabled) {
-    const fixedRows = fixedList.map((sym, idx) => ({
-      symbol: normalizeSymbol(sym),
-      market_type: "crypto" as const,
-      is_active: true,
-      universe_rank: 100 - idx,
-      universe_reason: "fixed_production_crypto_universe",
-      quote_volume: 50_000_000,
-      price_change_pct: 1.0,
-      volatility_proxy: 1.0
-    }));
-    return { symbols: fixedRows, warning: null };
+    return { symbols: unverifiedCoreRows().filter(r=>!scannerCsvSet(config.exclude_symbols).has(r.symbol)), warning: 'Static core selection; liquidity has not been observed by universe discovery.',coverage:null };
   }
 
   const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined;
@@ -949,6 +932,7 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
 
   cryptoLimit = boundedScannerLimit("SCANNER_MAX_CRYPTO_SYMBOLS", String(cryptoLimit), 10, SCANNER_HARD_MAX_CRYPTO_SYMBOLS);
   const maxSymbols = cryptoLimit;
+  const poolSize=boundedScannerLimit('SCANNER_WATCHLIST_POOL_SIZE',Deno.env.get('SCANNER_WATCHLIST_POOL_SIZE')??undefined,100,200);
   const minVolume = Math.max(0, Number(config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000));
   const include = scannerCsvSet(config.include_symbols);
   const exclude = scannerCsvSet(config.exclude_symbols);
@@ -961,32 +945,14 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
       fetch("https://fapi.binance.com/fapi/v1/ticker/24hr", { signal: AbortSignal.timeout(8000) }),
     ]);
     if (!exchangeRes.ok || !tickerRes.ok) throw new Error(`Binance universe HTTP ${exchangeRes.status}/${tickerRes.status}`);
-    const exchangeInfo = await exchangeRes.json() as { symbols?: Array<{ symbol?: string; status?: string; contractType?: string; quoteAsset?: string; baseAsset?: string }> };
-    const tickers = await tickerRes.json() as Array<Record<string, string>>;
-    const tradable = new Map((exchangeInfo.symbols ?? [])
-      .filter((s) => s.status === "TRADING" && s.contractType === "PERPETUAL" && s.quoteAsset === "USDT" && !stableExclusions.has(String(s.baseAsset ?? "").toUpperCase()))
-      .map((s) => [String(s.symbol ?? "").toUpperCase(), s]));
-    const ranked = tickers
-      .map((t) => {
-        const symbol = normalizeSymbol(String(t.symbol ?? ""));
-        const quoteVolume = Number(t.quoteVolume ?? 0);
-        const priceChangePct = Math.abs(Number(t.priceChangePercent ?? 0));
-        const high = Number(t.highPrice ?? 0);
-        const low = Number(t.lowPrice ?? 0);
-        const last = Number(t.lastPrice ?? 0);
-        const volatilityProxy = last > 0 ? ((high - low) / last) * 100 : 0;
-        const score = Math.log10(Math.max(quoteVolume, 1)) * 18 + priceChangePct * 2.2 + volatilityProxy * 1.4;
-        return { symbol, market_type: "crypto" as const, is_active: true, universe_rank: score, universe_reason: "dynamic_binance_usdt_perp_liquidity_volume_volatility", quote_volume: quoteVolume, price_change_pct: priceChangePct, volatility_proxy: volatilityProxy };
-      })
-      .filter((row) => tradable.has(row.symbol) && (row.quote_volume >= minVolume || include.has(row.symbol)) && !exclude.has(row.symbol))
-      .sort((a, b) => b.universe_rank - a.universe_rank);
-    const includedRows = Array.from(include).filter((symbol) => tradable.has(symbol) && !ranked.some((row) => row.symbol === symbol)).map((symbol) => ({ symbol, market_type: "crypto" as const, is_active: true, universe_rank: 999, universe_reason: "configured_include_symbol", quote_volume: 0, price_change_pct: 0, volatility_proxy: 0 }));
-    const resultSymbols = [...includedRows, ...ranked].slice(0, maxSymbols);
-    if (resultSymbols.length > 0) return { symbols: resultSymbols, warning: null };
+    const exchangeInfo = await exchangeRes.json() as { symbols?: NativeExchangeSymbol[] };
+    const tickers = await tickerRes.json() as Array<Record<string, unknown>>;
+    const result=chooseObservedUniverse({exchange:exchangeInfo.symbols??[],tickers,asOf:Date.now(),limit:maxSymbols,poolSize,
+      minQuoteVolume:minVolume,include:[...include],exclude:[...exclude],stableExclusions:[...stableExclusions]});
+    if (result.symbols.length > 0) return { symbols: result.symbols, warning: null,coverage:result.coverage };
     throw new Error("No dynamic symbols found");
   } catch (_e) {
-    const fallbackRows = fixedList.map((sym, idx) => ({ symbol: sym, market_type: "crypto" as const, is_active: true, universe_rank: 100 - idx, universe_reason: "crypto_core_fixed", quote_volume: 50_000_000, price_change_pct: 1.0, volatility_proxy: 1.0 }));
-    return { symbols: fallbackRows.slice(0, maxSymbols), warning: null };
+    return { symbols: unverifiedCoreRows().filter(r=>!exclude.has(r.symbol)).slice(0,maxSymbols), warning: 'Universe discovery unavailable; static core fallback has unverified liquidity and no wider-coverage claim.',coverage:null };
   }
 }
 
@@ -1821,21 +1787,18 @@ async function runScanPipeline(
 
   const { data: configuredSymbols } = await supabase.from("symbols").select("*").eq("is_active", true);
 
-  // Fixed 10-symbol production crypto universe
-  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "LINKUSDT", "AVAXUSDT", "LTCUSDT"];
   // Fixed 6-symbol production forex & gold universe
   const canonicalForexList = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"];
 
-  const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null };
+  const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null,coverage:null };
   if (dynamicUniverse.warning) errors.push(`[WARN] ${dynamicUniverse.warning}`);
+  if(dynamicUniverse.coverage)errors.push(`[INFO] observed_universe_coverage=${JSON.stringify(dynamicUniverse.coverage)}`);
 
   const executionUniverse = await loadExecutionUniverse(supabase);
   if (executionUniverse.warning) errors.push(`[WARN] ${executionUniverse.warning}`);
 
   let cryptoToScan = config.signal_enable_crypto
-    ? (dynamicUniverse.symbols.length > 0
-        ? dynamicUniverse.symbols
-        : cryptoCoreList.map((sym, idx) => ({ symbol: sym, market_type: "crypto" as const, is_active: true, universe_rank: 100 - idx, universe_reason: "crypto_core_fixed", quote_volume: 50_000_000, price_change_pct: 1.0, volatility_proxy: 1.0 })))
+    ? dynamicUniverse.symbols
     : [];
 
   let forexToScan = config.signal_enable_forex
@@ -2060,6 +2023,7 @@ async function runScanPipeline(
             { id: "crypto.reversal-exhaustion", version: "0.1.0-research", legacyName: "ReversalExhaustion", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "ReversalExhaustion" }, evaluate: evaluateReversalExhaustion },
           );
         }
+        activeDefinitions.push(...costAwareResearchDefinitions().filter(definition=>definition.market===marketType));
         const strategyContext: StrategyEvaluationContext = { symbol: normalizedSymbol, market: marketType as "crypto" | "forex", timeframe: tf, candles, indicators: ind, evaluated_at: new Date().toISOString() };
         const registry = new ProfessionalStrategyRegistry(activeDefinitions, professionalStrategyDiagnostics);
         for (const evaluation of evaluateActiveStrategies(registry, strategyContext)) {

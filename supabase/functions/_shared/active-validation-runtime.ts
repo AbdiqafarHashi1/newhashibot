@@ -1,6 +1,7 @@
 import {microScalperRuntimeParams} from "./micro-scalper-runtime.ts";
-import {regimeResearchDefinitions,REGIME_ENGINE_VERSION} from './regime-opportunities.ts';
+import {regimeResearchDefinitions} from './regime-opportunities.ts';
 import {intradayResearchDefinitions} from './intraday-opportunities.ts';
+import {costAwareResearchDefinitions} from './cost-aware-opportunities.ts';
 import { atrRootV1, emaRootV1, rsiRootV1 } from "./indicator-engine.ts";
 import { FOREX_PRODUCTION_EVALUATORS, type ProductionEvaluatorId } from "./forex-production-strategies.ts";
 import { FOREX_STRATEGY_CONTRACTS, forexStrategyEligibility } from "./forex-runtime-contracts.ts";
@@ -25,9 +26,9 @@ export function createApprovedReplayRegistry(config:ApprovedReplayConfiguration,
  if(!config.version||!config.strategies.length)throw new Error("APPROVED_SCANNER_CONFIGURATION_REQUIRED");
  const definitions:StrategyDefinition[]=[];
  for(const item of config.strategies.filter(s=>s.enabled)){
-  const regime=[...regimeResearchDefinitions(),...intradayResearchDefinitions()].find(s=>s.id===item.id);
+  const regime=[...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions()].find(s=>s.id===item.id);
   if(regime){
-   if(item.version!==REGIME_ENGINE_VERSION)throw new Error(`ACTIVE_STRATEGY_VERSION_MISMATCH:${item.id}`);
+   if(item.version!==regime.version)throw new Error(`ACTIVE_STRATEGY_VERSION_MISMATCH:${item.id}`);
    if(!regime.config.allowed_timeframes.includes(timeframe)||!regime.config.allowed_symbols.includes(symbol)||!item.timeframes.includes(timeframe)||(item.symbols.length&&!item.symbols.includes(symbol)))continue;
    // Counterfactual replay eligibility is not a production publication grant.
    const params={...regime.config.params,...item.parameters};

@@ -135,6 +135,15 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  if(entries.every(e=>['crypto.cost-aware-15m','forex.cost-aware-hourly'].includes(e.name))){
+    return entries.every(e=>{
+      const b=e.result.score_breakdown;
+      return b.cost_aware_policy_version==='cost-aware-opportunity/v1'&&typeof b.forecast_net_r==='number'&&
+        Number.isFinite(b.forecast_net_r)&&b.forecast_net_r>=e.cfg.params.minimum_predicted_net_r&&
+        typeof b.estimated_cost_r==='number'&&Number.isFinite(b.estimated_cost_r)&&b.estimated_cost_r>=0&&
+        b.score_is_probability===false&&b.forecast_is_guarantee===false;
+    })?'':'COST_AWARE_POLICY_MISMATCH';
+  }
   if(entries.every(e=>['crypto.vwap-reclaim-15m','crypto.failed-auction-15m'].includes(e.name))){
     // Explicit closed-bar specialist policy, shared by production and replay. These
     // disabled research definitions do not impersonate the four legacy trend roles.

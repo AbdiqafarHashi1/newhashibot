@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {freshListingObservations,type NativeExchangeSymbol} from './opportunity-universe.ts';
+import {loadMT5Candles} from './mt5-market-data-provider.ts';
 import {
   type MarketRegimeToken,
 } from "./hmm-regime-classifier.ts";
@@ -255,6 +257,13 @@ async function news(): Promise<FeedResult> {
   return feedResult({ feed_type: "news", value: { headlines, buckets }, classification: "headlines_available", source: usedSource, provider: usedSource, endpoint: usedEndpoint, freshness: "live fetch", status: "available", error_message: fallbackError, update_frequency: "per intelligence run", fallback_source: configuredUrl ? null : fallbackUrl, historical_coverage: "latest provider headlines" });
 }
 async function buildFeeds(snapshots: SymbolSnapshot[]): Promise<FeedResult[]> { const coreFeeds = await Promise.all([fearGreed(), btcDominance(), funding(), openInterest(), liquidations(), news()]); const breadth = marketBreadth(snapshots); const sector = sectorRotation(snapshots); const stablecoin = stablecoinFlow([...coreFeeds, breadth]); return [...coreFeeds, breadth, sector, stablecoin]; }
+async function listingWatch():Promise<FeedResult>{
+  try{const json=await fetchJson('https://fapi.binance.com/fapi/v1/exchangeInfo') as {symbols?:NativeExchangeSymbol[]};
+    if(!Array.isArray(json.symbols)||!json.symbols.length)throw Error('EXCHANGE_LISTING_SOURCE_INVALID');
+    return feedResult({feed_type:'listing_watch',value:freshListingObservations(json.symbols,Date.now()),classification:'new_listing_research_only',
+      source:'binance_native_exchange_info',endpoint:'https://fapi.binance.com/fapi/v1/exchangeInfo',freshness:new Date().toISOString(),status:'available',error_message:null,ranking_eligible:false});
+  }catch(e){return failed('listing_watch','binance_native_exchange_info',e);}
+}
 function feed(feeds: FeedResult[], type: string): FeedResult { return feeds.find((f) => f.feed_type === type) ?? unavailable(type); }
 function feedLine(f: FeedResult): string { return `${f.feed_type.replaceAll("_", " ")}: ${f.status}${f.status === "available" ? ` (${f.classification})` : f.error_message ? ` — ${f.error_message}` : ""}`; }
 function fundingLine(f: FeedResult): string { const rows = Array.isArray(f.value) ? f.value as Array<{ symbol: string; fundingRate?: number | null }> : []; return f.status === "available" ? rows.map((r) => `${r.symbol} ${(Number(r.fundingRate ?? 0) * 100).toFixed(4)}%`).join(" · ") : "Funding unavailable"; }
@@ -279,13 +288,16 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
   const [candles, candidates, signals] = await Promise.all([fetchCandles(supabase), fetchCandidates(supabase), fetchSignals(supabase)]);
   const symbols = Array.from(new Set(["BTCUSDT", "ETHUSDT", "SOLUSDT", ...candles.map((c) => c.symbol)])).slice(0, 20);
   const snapshots = symbols.map((symbol) => snapshotFromCandles(symbol, candles));
-  const feeds = await buildFeeds(snapshots);
+  const [baseFeeds,listings] = await Promise.all([buildFeeds(snapshots),listingWatch()]);
+  const feeds=[...baseFeeds,listings];
   const btc = snapshots.find((s) => s.symbol === "BTCUSDT") ?? snapshotFromCandles("BTCUSDT", []), eth = snapshots.find((s) => s.symbol === "ETHUSDT") ?? snapshotFromCandles("ETHUSDT", []);
   
   // Descriptive candle/verified-feed heuristic; no invented order-book or funding inputs.
   const regime = deriveRegime(btc, eth, snapshots, feeds);
   const confidence = confidenceFromData(snapshots, feeds);
-  const summary = render(kind, snapshots, candidates, signals, regime, feeds);
+  const listingRows=Array.isArray(listings.value)?listings.value as Array<{symbol:string;listedAt:string}>:[];
+  const listingText=kind==='watchlist_pattern_update'&&listingRows.length?`\n\nNew listing research watch — not trade signals\n${listingRows.slice(0,5).map(r=>`${r.symbol}: listed ${r.listedAt}`).join('\n')}\nSource: https://fapi.binance.com/fapi/v1/exchangeInfo\nNew listings can gap sharply; observation does not imply expected return or strategy qualification.`:'';
+  const summary = render(kind, snapshots, candidates, signals, regime, feeds)+listingText;
   const dataSources = Object.fromEntries(feeds.map((f) => [f.feed_type, f.source]));
   
   return {
@@ -322,8 +334,32 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
       signals: signals.slice(0, 10),
       feed_health: feeds,
       confidence_meaning: "data coverage score; not trade probability",
+      listing_observations:listings.value,
     },
   };
+}
+
+/** The same editorial authority, scoped to owner-feed Forex/Gold candles. No execution account reads. */
+export async function generateForexIntelligence(supabase: SupabaseClient,kind:ContentKind,now=Date.now()):Promise<IntelligenceOutput>{
+  const symbols=['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','XAUUSD'],generated=new Date(now).toISOString();
+  const observations=await Promise.all(symbols.map(symbol=>loadMT5Candles(supabase,symbol,'1h',55,{now,feedIdentity:Deno.env.get('MT5_MARKET_DATA_FEED_ID')})));
+  const snapshots=symbols.map((symbol,i)=>snapshotFromCandles(symbol,observations[i].error?[]:observations[i].candles as Candle[],now));
+  const fresh=snapshots.filter(s=>s.dataSource!=='unavailable');
+  let headlines:Array<{title:string;url:string;source:string;published_at:string}>=[],newsSource='unavailable';
+  const configured=Deno.env.get('FOREX_NEWS_API_URL');
+  if(kind==='news_digest'&&configured){
+    try{headlines=normalizeNewsHeadlines(await fetchJson(configured) as Record<string,unknown>,now);if(headlines.length)newsSource='configured_forex_news_provider';}catch{/* Missing news holds a digest; it is never synthesized. */}
+  }
+  const state=fresh.length>=2&&(kind!=='news_digest'||headlines.length>0)?'generated':'partial';
+  const label=kind==='news_digest'?'Forex & Gold News Digest':kind==='market_wrap'?'Forex & Gold Session Wrap':kind==='watchlist_pattern_update'?'Forex & Gold Watchlist':'Forex & Gold Session Brief';
+  const body=kind==='news_digest'?headlines.slice(0,8).map(h=>`${h.title}\n${h.source} · ${h.published_at}\n${h.url}`).join('\n\n'):
+    fresh.map(s=>`${s.symbol}: ${fmtPct(s.changePct)} over the observed candle window; ${s.trend} structure; ${s.freshness}`).join('\n');
+  return{event_id:crypto.randomUUID(),event_type:kind,title:`HashiBot ${label}`,summary:`${label}\n\n${body}\n\nWatch conditions, not trade instructions. A watchlist observation is not a qualified signal. No qualifying trade is required for a factual session update.`,
+    market:'forex',symbols:fresh.map(s=>s.symbol),sentiment:{},regime:'neutral',confidence:Math.round(fresh.length/symbols.length*100),
+    data_sources:{candles:fresh.length?'dedicated_mt5_hashibridge_feed':'unavailable',news:newsSource},freshness:{generated_at:generated},
+    output_channel:['admin','free','vip'],status:state,metadata:{snapshots,feed_health:[],confidence_meaning:'data coverage only; not a forecast',
+      gold_evidence_present:fresh.some(s=>s.symbol==='XAUUSD'),missing_symbols:snapshots.filter(s=>s.dataSource==='unavailable').map(s=>s.symbol),
+      feed_failures:observations.map((r,i)=>({symbol:symbols[i],reason:r.error??null}))}};
 }
 
 export async function storeIntelligenceEvent(supabase: SupabaseClient, output: IntelligenceOutput): Promise<void> {

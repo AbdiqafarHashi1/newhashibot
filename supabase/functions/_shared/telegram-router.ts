@@ -1,4 +1,5 @@
 import { loadPublishableSignal } from "./signal-publication-guard.ts";
+import {editorialDestinations} from './telegram-product.ts';
 /**
  * HashiBot Phase 7A-2A Root Telegram Router Service
  * Backend-owned central routing, delivery queue, idempotency engine, retry manager,
@@ -219,7 +220,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     const checked=validateEditorialPublication(event.editorial);
     const channel=event.editorial.audience;
     if(!checked.valid)return [{channel,chat_id:"blocked",status:"skipped",error_message:checked.reason}];
-    const {data,error}=await supabase.rpc("enqueue_canonical_lifecycle_event",{p_event_key:event.editorial.dedupe_key,p_event_type:"EDITORIAL",p_event_version:1,p_signal_id:null,p_execution_id:null,p_customer_id:null,p_account_id:null,p_occurred_at:event.editorial.generated_at,p_payload:{editorial:event.editorial},p_destinations:channel==="vip"?["vip_crypto","vip_forex_gold"]:[channel]});
+    const {data,error}=await supabase.rpc("enqueue_canonical_lifecycle_event",{p_event_key:event.editorial.dedupe_key,p_event_type:"EDITORIAL",p_event_version:1,p_signal_id:null,p_execution_id:null,p_customer_id:null,p_account_id:null,p_occurred_at:event.editorial.generated_at,p_payload:{editorial:event.editorial},p_destinations:editorialDestinations(event.editorial)});
     return [{channel,chat_id:"durable_queue",status:error?"failed":"queued",error_message:error?"EDITORIAL_QUEUE_UNAVAILABLE":undefined,delivery_id:typeof data==="string"?data:undefined}];
   }
   if (event.channels?.length===1 && event.channels[0]==="admin") {

@@ -30,8 +30,19 @@ const PROHIBITED_TRADING_FIELDS = /(^|[\s_*])(entry|stop(?: loss)?|sl|tp\d*|take
 const ADMIN_CONTENT = new Set<EditorialContentType>(["OPERATIONS_DIGEST", "INCIDENT_SUMMARY"]);
 const PROMOTIONAL_CONTENT = new Set<EditorialContentType>(["VIP_INVITATION", "PRODUCT_UPDATE", "FEATURE_ANNOUNCEMENT"]);
 
+/** Market-specific editorial must not leak into the other paid market channel. */
+export function editorialDestinations(publication: EditorialPublication): string[] {
+  if(publication.audience!=='vip')return [publication.audience];
+  if(!publication.market_scope?.length)return ['vip_crypto','vip_forex_gold']; // Existing explicitly general editorials.
+  const values=new Set(publication.market_scope.map(x=>x.toLowerCase()));
+  if([...values].some(x=>!['crypto','forex','gold','metals','all'].includes(x)))throw Error('EDITORIAL_MARKET_SCOPE_INVALID');
+  return [...(values.has('crypto')||values.has('all')?['vip_crypto']:[]),
+    ...(values.has('forex')||values.has('gold')||values.has('metals')||values.has('all')?['vip_forex_gold']:[])];
+}
+
 export function validateEditorialPublication(publication: EditorialPublication, now = new Date()): { valid: boolean; reason?: string; stale?: boolean } {
   if (!publication.content_id || !publication.dedupe_key || publication.source_ids.length === 0) return { valid: false, reason: "SOURCE_EVIDENCE_REQUIRED" };
+  try{editorialDestinations(publication)}catch{return {valid:false,reason:'EDITORIAL_MARKET_SCOPE_INVALID'}}
   if (publication.compliance_state !== "APPROVED") return { valid: false, reason: "COMPLIANCE_NOT_APPROVED" };
   if (publication.requires_approval && publication.approval_state !== "APPROVED") return { valid: false, reason: "EDITORIAL_APPROVAL_REQUIRED" };
   if (publication.audience === "admin" && !ADMIN_CONTENT.has(publication.content_type)) return { valid: false, reason: "ADMIN_OPERATIONS_ONLY" };

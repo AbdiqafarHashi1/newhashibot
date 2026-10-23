@@ -9,8 +9,8 @@ export function intelligencePublication(output: IntelligenceOutput, audience: 'f
   if (!sources.length) throw Error('INTELLIGENCE_SOURCES_REQUIRED');
   const slot = Math.floor(generated/(30*60_000));
   return {
-    content_id: `intelligence:${output.event_type}:${slot}`, content_type: output.event_type === 'news_digest' ? 'NEWS_DIGEST' : output.event_type === 'market_wrap' ? 'MARKET_WRAP' : output.event_type === 'watchlist_pattern_update' ? 'WATCHLIST_UPDATE' : 'MORNING_BRIEF',
+    content_id: `intelligence:${output.market}:${output.event_type}:${slot}`, content_type: output.event_type === 'news_digest' ? 'NEWS_DIGEST' : output.event_type === 'market_wrap' ? 'MARKET_WRAP' : output.event_type === 'watchlist_pattern_update' ? 'WATCHLIST_UPDATE' : 'MORNING_BRIEF',
     audience, title: output.title, sections: [{body:output.summary},{heading:'Evidence',body:`Record: ${output.event_id}\n${sources.map(([name,source])=>`${name}: ${source}`).join('\n')}\nFetched/generated: ${new Date(generated).toISOString()}\nRegime descriptions are heuristics, not forecasts.`}],
-    source_type:'APPROVED_INTELLIGENCE',source_ids:[output.event_id],generated_at:new Date(generated).toISOString(),expires_at:new Date(generated+30*60_000).toISOString(),evidence_class:'LIVE',author_type:'SYSTEM',requires_approval:false,approval_state:'NOT_REQUIRED',compliance_state:'APPROVED',dedupe_key:`${audience}:${output.event_type}:${slot}`,
+    source_type:'APPROVED_INTELLIGENCE',source_ids:[output.event_id],market_scope:[output.market],generated_at:new Date(generated).toISOString(),expires_at:new Date(generated+30*60_000).toISOString(),evidence_class:'LIVE',author_type:'SYSTEM',requires_approval:false,approval_state:'NOT_REQUIRED',compliance_state:'APPROVED',dedupe_key:`${audience}:${output.market}:${output.event_type}:${slot}`,
   };
 }
