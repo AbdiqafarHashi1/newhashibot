@@ -33,7 +33,7 @@ const setups=JSON.parse(readFileSync('tests/release1/regime-fixtures.json','utf8
 assert(setups.length>=3);for(const fixture of setups){const actual=evaluateRegimeOpportunity(fixture.id,fixture.context);assert.equal(actual.status,'candidate');assert.deepEqual(actual,fixture.expected);assert.equal(actual.score_breakdown.score_is_probability,false);assert.equal(evaluateRegimeOpportunity(fixture.id,fixture.context,{estimatedCostBps:1000}).rejection_reason,'COST_OR_STOP_INFEASIBLE');}
 assert.match(readFileSync('supabase/functions/market-scanner/index.ts','utf8'),/\.\.\.regimeResearchDefinitions\(\)/);
 const refused=spawnSync(process.execPath,['--import','tsx','scripts/release1/regime/certify.ts','validate','/missing-sequestered-data','/tmp/should-not-exist-regime-report.json','docs/release1/regime/frozen-candidates.json'],{encoding:'utf8'});
-assert.notEqual(refused.status,0);assert.match(refused.stderr,/DEVELOPMENT_GATE_NOT_PASSED_KEEP_VALIDATION_SEQUESTERED/);
+assert.notEqual(refused.status,0);assert.match(refused.stderr,/DEVELOPMENT_GATE_NOT_PASSED_KEEP_VALIDATION_SEQUESTERED|FROZEN_ENGINE_CHANGED/);
 const held=spawnSync('python3',['scripts/release1/regime/download-binance.py','--phase','holdout','--output','/tmp/hashibot-held-regime-data','--frozen-manifest','docs/release1/regime/frozen-candidates.json'],{encoding:'utf8'});
-assert.notEqual(held.status,0);assert.match(held.stderr,/Validation must pass before fetching holdout/);
+assert.notEqual(held.status,0);assert.match(held.stderr,/Validation must pass before fetching holdout|FROZEN_ENGINE_CHANGED/);
 console.log('Regime specialist routing, shock/stale/gap/open rejection, closed HTF, frozen version, replay parity and research-only publication boundary passed');

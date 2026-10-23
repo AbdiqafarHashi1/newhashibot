@@ -135,6 +135,20 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  if(entries.every(e=>['crypto.vwap-reclaim-15m','crypto.failed-auction-15m'].includes(e.name))){
+    // Explicit closed-bar specialist policy, shared by production and replay. These
+    // disabled research definitions do not impersonate the four legacy trend roles.
+    return entries.every(e=>{
+      const b=e.result.score_breakdown,eff=b.efficiency,trend=b.hourly_trend_atr,cost=b.estimated_cost_r;
+      return b.intraday_policy_version==='intraday-opportunity/v1'&&
+        typeof eff==='number'&&Number.isFinite(eff)&&typeof trend==='number'&&Number.isFinite(trend)&&
+        typeof cost==='number'&&Number.isFinite(cost)&&cost>=0&&cost<=e.cfg.params.maximumCostR&&
+        (e.name==='crypto.vwap-reclaim-15m'?
+          b.setup==='CLOSED_HOURLY_TREND_VWAP_RECLAIM'&&eff>=.2&&trend>=.4&&
+          (e.result.direction==='buy'?b.hourly_direction===1:b.hourly_direction===-1):
+          b.setup==='PRIOR_RANGE_SWEEP_AND_REJECTION'&&eff<=.3&&trend<=1.2);
+    })?'':'INTRADAY_POLICY_MISMATCH';
+  }
   if(entries.every(e=>['RegimeContinuation','RegimeRangeRejection','RegimeChannelBreakout'].includes(e.name))){
     // Explicit specialist policy: sideways balance is eligible only for range rejection.
     // Legacy choppiness thresholds must not label a valid range setup a trend failure.

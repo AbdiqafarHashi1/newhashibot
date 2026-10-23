@@ -1,0 +1,23 @@
+{
+  "schema": "intraday15-research/v1",
+  "createdAt": "2026-10-23",
+  "hypotheses": ["crypto.vwap-reclaim-15m", "crypto.failed-auction-15m"],
+  "symbols": ["BTCUSDT", "ETHUSDT"],
+  "developmentFrom": "2025-01-01T00:00:00.000Z",
+  "developmentToExclusive": "2026-07-01T00:00:00.000Z",
+  "timeframe": "15m",
+  "horizonBars": 48,
+  "variants": [
+    {"name": "structural", "parameters": {}, "breakeven": false},
+    {"name": "breakeven", "parameters": {}, "breakeven": true},
+    {"name": "wider", "parameters": {"stopAtr": 2.4, "targetR": 3}, "breakeven": false}
+  ],
+  "costsBps": {"feeBps": 10, "spreadBps": 2, "slippageBps": 4, "fundingBps": 4.5},
+  "stressMultiplier": 1.5,
+  "gates": {"minimumResolvedTrades": 50, "minimumProfitFactor": 1.2, "minimumExpectancyR": 0, "positiveEachInstrument": true},
+  "trialCount": 6,
+  "splitDisclosure": "Already-examined calendar periods remain development. No untouched validation claim is made for reused prices; no new validation/holdout prices are acquired here.",
+  "selection": "All six prespecified cases reported, no hidden search or automatic promotion.",
+  "publication": false,
+  "execution": false
+}
