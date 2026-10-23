@@ -1,4 +1,5 @@
-import importlib.util,lzma,math,pathlib,struct,unittest
+import importlib.util,lzma,pathlib,struct,unittest,tempfile,json
+from unittest.mock import patch
 path=pathlib.Path(__file__).resolve().parents[2]/'scripts/research/iteration2/download-broker-development.py'
 spec=importlib.util.spec_from_file_location('broker_archive',path);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 class BrokerArchiveTests(unittest.TestCase):
@@ -15,4 +16,19 @@ class BrokerArchiveTests(unittest.TestCase):
   row=(0,103000,103020,102980,103040,12)
   with self.assertRaises(ValueError):module.decode(self.payload(row,row),'EURUSD',2025,1)
   with self.assertRaises(ValueError):module.decode(lzma.compress(b'wrong length'),'EURUSD',2025,1)
+ def test_partial_source_failure_preserves_health_and_never_normalizes(self):
+  raw=self.payload((0,103000,103020,102980,103040,12))
+  def fetch(url):
+   if '/2025/01/' in url:raise TimeoutError('fixture timeout')
+   return raw
+  with tempfile.TemporaryDirectory() as tmp,patch.object(module,'fetch',side_effect=fetch),patch('sys.argv',['archive','--output',tmp]),patch('builtins.print'):
+   self.assertEqual(module.main(),2)
+   health=json.loads((pathlib.Path(tmp)/'health.json').read_text())
+   self.assertEqual(health['status'],'INCOMPLETE');self.assertEqual(health['expectedArchives'],160)
+   self.assertGreater(len(health['failures']),0);self.assertGreater(health['completedArchives'],0)
+   self.assertFalse(list(pathlib.Path(tmp).glob('*-1h.json')))
+ def test_probe_failure_records_unavailable(self):
+  with tempfile.TemporaryDirectory() as tmp,patch.object(module,'fetch',side_effect=TimeoutError('fixture timeout')),patch('sys.argv',['archive','--output',tmp]),patch('builtins.print'):
+   self.assertEqual(module.main(),2)
+   self.assertEqual(json.loads((pathlib.Path(tmp)/'health.json').read_text())['status'],'UNAVAILABLE')
 if __name__=='__main__':unittest.main()

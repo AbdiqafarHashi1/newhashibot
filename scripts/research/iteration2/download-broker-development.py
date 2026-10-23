@@ -30,7 +30,16 @@ def main():
   symbol,year,month,side=spec;url=f'https://datafeed.dukascopy.com/datafeed/{symbol}/{year}/{month-1:02d}/{side}_candles_hour_1.bi5';file=root/f'{symbol}-{year}-{month:02d}-{side}.bi5';raw=file.read_bytes() if file.exists() else fetch(url);rows=decode(raw,symbol,year,month);file.write_bytes(raw);return spec,rows,{'url':url,'rawSha256':hashlib.sha256(raw).hexdigest(),'records':len(rows),'side':side}
  months=[(2025,m) for m in range(1,13)]+[(2026,m) for m in range(1,5)];specs=[(s,y,m,side) for s in SYMBOLS for y,m in months for side in ['BID','ASK']];parts={}
  with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-  for spec,rows,meta in pool.map(job,specs):parts[spec]=rows;sources.append(meta);print(json.dumps({'symbol':spec[0],'year':spec[1],'month':spec[2],'side':spec[3],'records':len(rows)}),flush=True)
+  futures={pool.submit(job,spec):spec for spec in specs}
+  for future in concurrent.futures.as_completed(futures):
+   spec=futures[future]
+   try:
+    spec,rows,meta=future.result();parts[spec]=rows;sources.append(meta)
+    print(json.dumps({'symbol':spec[0],'year':spec[1],'month':spec[2],'side':spec[3],'records':len(rows)}),flush=True)
+   except Exception as e:health.append({'symbol':spec[0],'year':spec[1],'month':spec[2],'side':spec[3],'error':str(e)})
+ (root/'sources.json').write_text(json.dumps(sources,indent=2))
+ if health:
+  (root/'health.json').write_text(json.dumps({'status':'INCOMPLETE','completedArchives':len(sources),'expectedArchives':len(specs),'failures':health,'pricesFabricated':False,'noHeldoutPricesRequested':True},indent=2));return 2
  for symbol in SYMBOLS:
   bid=[r for y,m in months for r in parts[(symbol,y,m,'BID')]];ask=[r for y,m in months for r in parts[(symbol,y,m,'ASK')]];askmap={r['open_time']:r for r in ask};paired=[(b,askmap[b['open_time']]) for b in bid if b['open_time'] in askmap]
   if any(any(a[k]<b[k] for k in ['open','high','low','close']) for b,a in paired):raise ValueError('CROSSED_BID_ASK_ARCHIVE:'+symbol)
