@@ -1,0 +1,12 @@
+{
+ "schema":"major-bear-breakout-development/v1",
+ "symbols":["BTCUSDT","ETHUSDT"],"variants":["PEER_RELATIVE","PEER_BREADTH"],
+ "period":{"from":"2025-01-01T00:00:00.000Z","toExclusive":"2026-07-01T00:00:00.000Z"},
+ "disclosure":"Separate short-side hypothesis specified after the four bullish transfers failed. All original bullish failures retained; no threshold tuning or untouched-data claim.",
+ "shared":"Asset24h return<=-3%, negative7d return, negative peer24h return; close below previous24h low; quote volume>=1.5x previous24h mean. Short stop is wider of2ATR20 or prior24h high; target3R, maximum24h, at least1% risk and gross target move>=5x25bps reserve.",
+ "relative":"Asset underperforms peer by at least2 percentage points in24h.",
+ "breadth":"No relative threshold; both majors weakening supplies negative market breadth.",
+ "costsBps":{"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBps":9},"stressMultiplier":1.5,
+ "gates":{"minimumResolvedPerAsset":50,"minimumNetPF":1.2,"minimumMeanR":0.02,"positiveEachCalendarSlice":true,"positiveStress":true},
+ "trials":4,"publication":false,"execution":false,"promotion":false
+}

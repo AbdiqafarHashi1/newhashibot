@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
+import {summarizeReplayOutcomes} from '../../supabase/functions/_shared/replay-outcomes.ts';
+const sha=(s:Buffer)=>createHash('sha256').update(s).digest('hex');let n=0;
+for(const dir of ['docs/research/major-breakout','docs/research/major-bear-breakout']){const summary=JSON.parse(await readFile(`${dir}/summary.json`,'utf8')),compressed=await readFile(`${dir}/evidence.json.gz`);assert.equal(sha(compressed),summary.compressedSha256);const raw=gunzipSync(compressed);assert.equal(sha(raw),summary.uncompressedSha256);const r=JSON.parse(raw.toString());assert.equal(r.studies.length,4);assert.equal(r.sources.length,36);assert.equal(r.publication,false);assert.equal(r.promotion,false);assert.equal(r.execution,false);
+for(const study of r.studies){let until=-Infinity;for(const t of study.selections){assert.equal(t.candidate.symbol,study.symbol);assert.notEqual(t.candidate.symbol,t.candidate.evidence.peer);assert.equal(t.candidate.side,dir.includes('bear')?'sell':'buy');assert.equal(t.arbitration.chosen.id,t.candidate.id);assert.ok(Date.parse(t.decisionAt)>until);if(t.outcome.status!=='EXCLUDED')until=t.outcome.exitTime?Date.parse(t.outcome.exitTime)+900000:Infinity;assert.equal(t.outcome.entryPrice,t.stressOutcome.entryPrice);assert.equal(t.outcome.exitTime,t.stressOutcome.exitTime);for(const o of [t.outcome,t.stressOutcome])if(o.netR!==null){assert.ok(Math.abs(o.grossR-o.costR-o.netR)<1e-9);assert.ok(Math.abs(o.cashFlowEvents.reduce((n:number,c:{realizedR:number})=>n+c.realizedR,0)-o.netR)<1e-9);n++;}}assert.equal(summarizeReplayOutcomes(study.selections.map((t:any)=>t.outcome)).profitFactor,study.summary.profitFactor);}}
+console.log(`Major transfer evidence: all eight cases and ${n} resolved baseline/stress cash-flow outcomes passed.`);
