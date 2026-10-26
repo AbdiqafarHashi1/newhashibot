@@ -1,0 +1,22 @@
+{
+  "schema": "crypto-three-role-development/v1",
+  "symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT"],
+  "from": "2025-01-01T00:00:00.000Z",
+  "toExclusive": "2026-07-01T00:00:00.000Z",
+  "roles": ["TREND_PULLBACK", "RANGE_REVERSION", "ALT_RELATIVE_BREAKOUT"],
+  "entryClock": "Completed hourly decisions, native 15m next-open fills",
+  "trend": "48h efficiency >= 0.3, aligned EMA50/EMA200, previous close across EMA20 then reclaim; 2 ATR/24h structural stop; 3R target; 48h maximum",
+  "range": "48h efficiency <= 0.2, previous close beyond prior 48h mean +/-2.5 standard deviations then re-enters; 1.5 ATR/structural stop; frozen mean target >=1.3R; 8h maximum",
+  "alt": "BNB/SOL/XRP only; BTC positive 24h return; alt 24h return >=3% and >=2% above BTC; positive 7d return; closes above previous24h high; quote volume >=1.5x previous24h mean; 2 ATR/24h structural stop; 3R target; 24h maximum",
+  "qualification": "Minimum 1% stop distance; target gross move >=5 times declared round-trip costs. Rule score is fixed ordering, never a win probability.",
+  "costs": {"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBpsPer8Hours":3},
+  "stressMultiplier": 1.5,
+  "gates": {"minimumResolved":50,"minimumNetPF":1.2,"minimumNetMeanR":0.02,"positiveEachEligibleAsset":true,"positiveEachCalendarSlice":true,"positiveStress":true},
+  "selection": "Exactly three fixed hypotheses and combined arbitration; all assets and both cost scenarios retained. One active position per asset within each scenario. No profits-based asset exclusions or parameter optimization.",
+  "arbitration": "Existing trading-domain arbitrateCanonical, minimumScore0, deterministic IDs. Role ordering ALT80/TREND75/RANGE70 is fixed before results. No new live arbitrator.",
+  "evidence": "Already examined DEVELOPMENT prices, fixed five-asset universe with survivorship/selection bias. Not untouched validation, portfolio/Prop results, historical news or independent venue evidence.",
+  "scope": "Research feasibility. Not registered in production; live scanner admission requires successful screen followed by actual production-path parity and new evidence.",
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

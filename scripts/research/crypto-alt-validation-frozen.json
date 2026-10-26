@@ -1,0 +1,68 @@
+{
+  "schema": "crypto-alt-validation/v1",
+  "frozenOn": "2026-10-26",
+  "developmentPassed": true,
+  "developmentReportSha256": "dfb1fbb26ffe3c6b0cb24e54dc062425ec467f3d01c27f73e50719e70d9f665c",
+  "developmentSummary": {
+    "n": 135,
+    "netPF": 1.2216700283753148,
+    "stressPF": 1.1238689862526299
+  },
+  "engineHashes": {
+    "scripts/research/crypto-three-role-rules.ts": "f36c40823ae1cefe08f98cbf4395258d93a1b0179fdc8fc59025552231cedc9a",
+    "scripts/research/crypto-three-role-study.ts": "07d24e93246a01a38863cf0379ac9c6beffa3fab0640785b6508356d55eafea4",
+    "scripts/research/crypto-three-role-protocol.json": "3db76920f2ba3b95852cce292a273deba76c3b68c621142941426a892ef63413",
+    "scripts/research/download-alt-validation.py": "0105fa5f379c238e52e30980c708e8eb890eb3e0147e565d0959bb449cbcc888",
+    "scripts/research/cost-aware/download.py": "1e55fa01dee96df4a1cd9f8803b0897a1ed1fe9ec2d40276ba07f87ec17ccce3",
+    "supabase/functions/_shared/replay-outcomes.ts": "51ab1dec93eab0471ff704c2f0be1573e6489a013a4def6523b51a811ac7b7e9",
+    "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867",
+    "supabase/functions/_shared/trading-domain/contracts.ts": "48114d96928c91b7444c4f51438cca4d34a0d2339d199ce85525223129dfdea8"
+  },
+  "protocol": {
+    "schema": "crypto-three-role-development/v1",
+    "symbols": [
+      "BTCUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT"
+    ],
+    "from": "2026-06-01T00:00:00.000Z",
+    "toExclusive": "2026-10-01T00:00:00.000Z",
+    "roles": [
+      "TREND_PULLBACK",
+      "RANGE_REVERSION",
+      "ALT_RELATIVE_BREAKOUT"
+    ],
+    "entryClock": "Completed hourly decisions, native 15m next-open fills",
+    "trend": "48h efficiency >= 0.3, aligned EMA50/EMA200, previous close across EMA20 then reclaim; 2 ATR/24h structural stop; 3R target; 48h maximum",
+    "range": "48h efficiency <= 0.2, previous close beyond prior 48h mean +/-2.5 standard deviations then re-enters; 1.5 ATR/structural stop; frozen mean target >=1.3R; 8h maximum",
+    "alt": "BNB/SOL/XRP only; BTC positive 24h return; alt 24h return >=3% and >=2% above BTC; positive 7d return; closes above previous24h high; quote volume >=1.5x previous24h mean; 2 ATR/24h structural stop; 3R target; 24h maximum",
+    "qualification": "Minimum 1% stop distance; target gross move >=5 times declared round-trip costs. Rule score is fixed ordering, never a win probability.",
+    "costs": {
+      "feeBps": 10,
+      "spreadBps": 2,
+      "slippageBps": 4,
+      "fundingBpsPer8Hours": 3
+    },
+    "stressMultiplier": 1.5,
+    "gates": {
+      "minimumResolved": 50,
+      "minimumNetPF": 1.2,
+      "minimumNetMeanR": 0.02,
+      "positiveEachEligibleAsset": true,
+      "positiveEachCalendarSlice": true,
+      "positiveStress": true
+    },
+    "selection": "Exactly three fixed hypotheses and combined arbitration; all assets and both cost scenarios retained. One active position per asset within each scenario. No profits-based asset exclusions or parameter optimization.",
+    "arbitration": "Existing trading-domain arbitrateCanonical, minimumScore0, deterministic IDs. Role ordering ALT80/TREND75/RANGE70 is fixed before results. No new live arbitrator.",
+    "evidence": "Prospective frozen-rule July-September validation. June provides warmup only. Newly acquired for this experiment; no global project-wide untouched claim. October excluded.",
+    "scope": "Research feasibility. Not registered in production; live scanner admission requires successful screen followed by actual production-path parity and new evidence.",
+    "publication": false,
+    "execution": false,
+    "promotion": false,
+    "decisionFrom": "2026-07-01T00:00:00.000Z",
+    "modes": [
+      "ALT_RELATIVE_BREAKOUT"
+    ]
+  }
+}

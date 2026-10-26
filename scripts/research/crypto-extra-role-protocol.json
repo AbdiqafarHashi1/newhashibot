@@ -1,0 +1,15 @@
+{
+ "schema":"crypto-extra-roles-development/v1",
+ "hypotheses":["MAJOR_WEEKLY_MOMENTUM","POST_SHOCK_RECOVERY"],
+ "from":"2025-01-01T00:00:00.000Z",
+ "toExclusive":"2026-07-01T00:00:00.000Z",
+ "selection":"Two additional economic hypotheses, fixed before their outcomes; no parameter sweep. All five asset cells retained, with explicit ineligible universes.",
+ "weekly":"BTC/ETH only. One daily decision at 00:00UTC. Asset and BTC positive 7d and30d returns; asset 7d >=5%, 30d >=10%; yesterday positive. Stop two daily ATR14; target3R; maximum7days. Long-only risk-on condition.",
+ "shock":"BTC/ETH/SOL only. Previous hour marks a new24h low; asset previous24h <=-8% and previous6h <=-4%; current close above previous high and current return >=1%; current quote volume >=2x preceding24h mean; BTC previous6h negative. Stop below previous/current lows or2 hourly ATR20, whichever wider; target3R; maximum12h.",
+ "costs":{"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBpsPer8Hours":3},
+ "stressMultiplier":1.5,
+ "qualification":"Minimum1% stop distance; target gross move >=5x declared round-trip costs. One active per asset/hypothesis. Native15m next-open fills, original stops, full target, conservative collision handling.",
+ "gates":{"minimumResolved":50,"minimumNetPF":1.2,"minimumMeanR":0.02,"positiveEachEligibleAsset":true,"positiveEachCalendarSlice":true,"positiveStress":true},
+ "evidence":"Previously examined development data; fixed surviving assets; independent signal outcomes, not portfolio/Prop/live fills. Funding is a reserve, not historical measured payments.",
+ "publication":false,"execution":false,"promotion":false
+}

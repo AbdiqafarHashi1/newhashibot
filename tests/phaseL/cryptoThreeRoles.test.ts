@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {aggregateHours,proposeRole,ROLES} from '../../scripts/research/crypto-three-role-rules.ts';
+import {arbitrateCanonical} from '../../supabase/functions/_shared/trading-domain/arbitrator.ts';
+import type {StrategyCandle} from '../../supabase/functions/_shared/professional-strategies.ts';
+const start=Date.parse('2025-01-01T00:00:00Z');
+const candle=(i:number,close:number,symbol='SOLUSDT',q=1000):StrategyCandle=>({symbol,market_type:'crypto',instrument_type:'USDT_PERPETUAL',source:'BINANCE_USDM_KLINES',timeframe:'1h',open_time:new Date(start+i*3600000).toISOString(),open:close,high:close+.1,low:close-.1,close,volume:100,quote_volume:q});
+const btc=Array.from({length:240},(_,i)=>candle(i,100+i*.01,'BTCUSDT'));
+const alt=Array.from({length:240},(_,i)=>candle(i,100+i*.01));alt[239]=candle(239,110,'SOLUSDT',2000);
+const a=proposeRole('ALT_RELATIVE_BREAKOUT',alt,btc,25);assert.ok(a.proposal);assert.equal(a.proposal.candidate.side,'buy');assert.equal(a.proposal.candidate.lifecycle,'RESEARCH');assert.equal(a.proposal.candidate.publicationMode,'SHADOW');
+assert.equal(proposeRole('ALT_RELATIVE_BREAKOUT',alt.map(c=>({...c,symbol:'BTCUSDT'})),btc,25).proposal,null);
+assert.equal(proposeRole('ALT_RELATIVE_BREAKOUT',alt,btc.map(c=>({...c,open_time:new Date(Date.parse(c.open_time)+3600000).toISOString()})),25).proposal,null);
+assert.equal(proposeRole('ALT_RELATIVE_BREAKOUT',alt.map((c,i)=>i===239?{...c,quote_volume:100}:c),btc,25).proposal,null);
+assert.equal(proposeRole('ALT_RELATIVE_BREAKOUT',alt.slice(1),btc.slice(1),25).proposal,null);
+assert.equal(proposeRole('ALT_RELATIVE_BREAKOUT',alt,btc,NaN).proposal,null);
+assert.equal(proposeRole('ALT_RELATIVE_BREAKOUT',alt,btc,100000).proposal,null);
+const trend=Array.from({length:240},(_,i)=>candle(i,100+i*.2));trend[238]=candle(238,145.3);trend[239]=candle(239,148.5);
+const t=proposeRole('TREND_PULLBACK',trend,btc,34);assert.ok(t.proposal);
+const range=Array.from({length:240},(_,i)=>candle(i,i<218?100+(i%2?1:-1):100));range[238]=candle(238,97.5);range[239]=candle(239,98.5);
+const r=proposeRole('RANGE_REVERSION',range,btc,19);assert.ok(r.proposal);
+for(const role of ROLES){const history=role==='TREND_PULLBACK'?trend:role==='RANGE_REVERSION'?range:alt;const result=proposeRole(role,history,btc,25);const future=[...history,candle(240,1000000)];assert.deepEqual(proposeRole(role,future.slice(0,240),btc,25),result);assert.equal(proposeRole(role,history.map((c,i)=>i===100?{...c,low:-1}:c),btc,25).proposal,null);}
+const quarter=Array.from({length:4},(_,i)=>({...candle(0,100+i),timeframe:'15m',open_time:new Date(start+i*900000).toISOString()}));const hour=aggregateHours(quarter)[0];assert.equal(hour.open,100);assert.equal(hour.close,103);assert.equal(hour.quote_volume,4000);assert.throws(()=>aggregateHours(quarter.slice(1)));assert.throws(()=>aggregateHours(quarter.map((c,i)=>i===1?{...c,open_time:quarter[0].open_time}:c)));
+const proposals=[a.proposal!,t.proposal!,r.proposal!];const candidates=proposals.map(({candidate:c})=>({id:c.id,strategyId:c.strategyId,strategyVersion:c.strategyVersion,configurationVersion:'test',timestamp:new Date(start+240*3600000).toISOString(),symbol:c.symbol,primaryTimeframe:'1h' as const,side:'BUY' as const,entry:c.entry,stop:c.stop,targets:c.targets,score:c.score,evidence:{reasonCodes:[],indicators:{},observations:{}}}));assert.equal(arbitrateCanonical(candidates,{minimumScore:0,blockedSymbols:[]}).chosen?.strategyId,'ALT_RELATIVE_BREAKOUT');assert.equal(arbitrateCanonical(candidates,{minimumScore:0,blockedSymbols:['SOLUSDT']}).chosen,null);
+console.log('Three-role closed-history, positive setups, geometry/cost, feed/volume, warmup, aggregation and canonical arbitration checks passed.');
