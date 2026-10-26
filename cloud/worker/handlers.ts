@@ -1,6 +1,5 @@
 import type {ValidationDecision} from '../../supabase/functions/_shared/phase-l-validation.ts';
 import type {SupabaseClient} from '@supabase/supabase-js';
-import type {StrategyCandle} from '../../supabase/functions/_shared/professional-strategies.ts';
 import type {ReplayOutcome} from '../../supabase/functions/_shared/replay-outcomes.ts';
 import {BinanceHistoricalAdapter,BybitHistoricalAdapter} from '../../src/lib/historicalData/adapters.ts';
 import {normalizeAndValidate,TIMEFRAME_MS} from '../../src/lib/historicalData/validation.ts';
@@ -10,25 +9,16 @@ import {hashValidationDataset,validateDatasetIntegrity} from '../../supabase/fun
 import {deriveAccountSimulationAuthority,derivePropCampaignAuthority} from '../../supabase/functions/_shared/phase-m-authority-loader.ts';
 import {simulateWithPhaseDSteps} from '../../supabase/functions/_shared/phase-m-account-adapter.ts';
 import {prepareProfessionalPropCampaign,summarizeProfessionalPropCampaign} from '../../supabase/functions/_shared/professional-prop-validation-adapter.ts';
-import {LIMITS,WorkerFault,type PortableKind} from '../../supabase/functions/_shared/phase-p-contract.ts';
+import {LIMITS,RESEARCH_LIMITS,WorkerFault,type PortableKind} from '../../supabase/functions/_shared/phase-p-contract.ts';
 import {simulateFullChallengeSteps,type FullChallengeResult,type ChallengeWindow} from '../../src/lib/prop/professionalPropEngine.ts';
 import {computationCheck,consumeSteps,ComputationYield} from './computation.ts';
 import type {TaskHandler} from './runtime.ts';
+import {loadValidationDataset} from '../../supabase/functions/_shared/validation-dataset-upload.ts';
 export async function fingerprint(value:unknown){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value))))].map(x=>x.toString(16).padStart(2,'0')).join('');}
-export async function loadPortableCandles(db:SupabaseClient,datasetId:string){
-  const rows:StrategyCandle[]=[];
-  for(let from=0;from<=LIMITS.candles;from+=500){
-    const {data,error}=await db.from('validation_dataset_candles').select('symbol,market_type,timeframe,open_time,open,high,low,close,volume,source').eq('dataset_id',datasetId).order('open_time').range(from,from+499);
-    if(error)throw new WorkerFault('DATASET_STORE_UNAVAILABLE');
-    rows.push(...(data??[]).map((x:StrategyCandle)=>({...x,open:Number(x.open),high:Number(x.high),low:Number(x.low),close:Number(x.close),volume:Number(x.volume)})));
-    if(rows.length>LIMITS.candles)throw new WorkerFault('CANDLE_LIMIT_EXCEEDED',true);
-    if(!data||data.length<500)return rows;
-  }
-  throw new WorkerFault('CANDLE_LIMIT_EXCEEDED',true);
-}
-async function loadNativeEvidence<T>(db:SupabaseClient,table:string,runId:string,order:string){
+export async function loadPortableCandles(db:SupabaseClient,datasetId:string){return loadValidationDataset(db,datasetId);}
+async function loadNativeEvidence<T>(db:SupabaseClient,table:string,runId:string,order:string,maximum:number=LIMITS.cycles){
  const rows:T[]=[];
- for(let from=0;from<=LIMITS.cycles;from+=100){const {data,error}=await db.from(table).select('*').eq('run_id',runId).order(order).range(from,from+99);if(error)throw new WorkerFault('EVIDENCE_STORE_UNAVAILABLE');rows.push(...(data??[]) as T[]);if(rows.length>LIMITS.cycles)throw new WorkerFault('EVIDENCE_LIMIT_EXCEEDED',true);if(!data||data.length<100)return rows;}
+ for(let from=0;from<=maximum;from+=100){const {data,error}=await db.from(table).select('*').eq('run_id',runId).order(order).range(from,from+99);if(error)throw new WorkerFault('EVIDENCE_STORE_UNAVAILABLE');rows.push(...(data??[]) as T[]);if(rows.length>maximum)throw new WorkerFault('EVIDENCE_LIMIT_EXCEEDED',true);if(!data||data.length<100)return rows;}
  throw new WorkerFault('EVIDENCE_LIMIT_EXCEEDED',true);
 }
 export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Record<PortableKind,TaskHandler>{
@@ -58,7 +48,10 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         if(error||!data||data.status!=='READY'||data.dataset_hash!==item.hash)throw new WorkerFault('SOURCE_NOT_CURRENT',true);
         const candles=await loadPortableCandles(db,item.id);validateDatasetIntegrity(candles,{symbol:data.symbol,timeframe:data.timeframe,rowCount:data.row_count});
         if(await hashValidationDataset(candles)!==item.hash)throw new WorkerFault('DATASET_HASH_MISMATCH',true);
-        datasets.push({id:item.id,hash:item.hash,configurationHash:job.configuration_hash!,source:data.source,symbol:data.symbol,market:(candles[0]?.market_type==='crypto'?'crypto':'forex') as 'forex'|'crypto',timeframe:data.timeframe,candles});
+        const width=TIMEFRAME_MS[data.timeframe as keyof typeof TIMEFRAME_MS],window=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(p.start)-220*width&&Date.parse(c.open_time)<Date.parse(p.end));
+        if(window.length>(p.extended?RESEARCH_LIMITS.candles:LIMITS.candles))throw new WorkerFault('REPLAY_WINDOW_TOO_LARGE_SELECT_SHORTER_DATES',true);
+        if(window.length<55)throw new WorkerFault('REPLAY_WINDOW_INSUFFICIENT_HISTORY',true);
+        datasets.push({id:item.id,hash:item.hash,configurationHash:job.configuration_hash!,source:data.source,symbol:data.symbol,market:(candles[0]?.market_type==='crypto'?'crypto':'forex') as 'forex'|'crypto',timeframe:data.timeframe,candles:window});
       }
       const evaluationEnd=new Date(Math.min(Date.parse(p.end)-1,...datasets.map(d=>Date.parse(d.candles.at(-1)!.open_time)))).toISOString();
       const assumptions=p.assumptions??DEFAULT_REPLAY_ASSUMPTIONS;
@@ -71,6 +64,7 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
           const dataset=datasets.find(x=>x.id===cycle.datasetId)!;
           const strategy=p.configuration.strategies.find((s:{id:string;maxBarsInTrade:number})=>s.id===winner.strategyId);
           const frozenAssumptions={...assumptions,maxBarsInTrade:assumptions.maxBarsInTrade??strategy?.maxBarsInTrade};
+          if(p.researchModelId&&dataset.market==='forex'){const width=TIMEFRAME_MS[dataset.timeframe as keyof typeof TIMEFRAME_MS],quote=dataset.candles.find(c=>Date.parse(c.open_time)+width===Date.parse(row.event.closedAt));if(!quote||!Number.isFinite(quote.ask_close)||quote.ask_close!<quote.close)throw new WorkerFault('RESEARCH_NATIVE_SPREAD_REQUIRED',true);frozenAssumptions.spreadBps+=(quote.ask_close!-quote.close)/quote.close*10000;}
           const computed=await consumeSteps(evaluateReplayOutcomeSteps(winner,dataset.candles.filter(c=>Date.parse(c.open_time)<Date.parse(p.end)),row.event.closedAt,frozenAssumptions),context);
           if(!computed)throw new WorkerFault('SCANNER_OUTCOME_MISSING',true);
           outcome={candidate_id:computed.candidateId,strategy_id:computed.strategyId,symbol:computed.symbol,timeframe:computed.timeframe,status:computed.status,entry_time:computed.entryTime,exit_time:computed.exitTime,entry_price:computed.entryPrice,exit_price:computed.exitPrice,gross_r:computed.grossR,net_r:computed.netR,cost_r:computed.costR,partial_exit:computed.partialExit,conservative:computed.conservative,exclusion_reason:computed.exclusionReason??null,cash_flow_events:computed.cashFlowEvents,assumptions:frozenAssumptions,configuration_hash:job.configuration_hash,dataset_hash:dataset.hash};
@@ -83,9 +77,9 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         await runMultiDatasetScannerReplay({runId:job.run_id,datasets,configuration:p.configuration,configurationHash:job.configuration_hash!,start:p.start,end:evaluationEnd,cooldownMs:0,maxCycles:p.maxCycles,resume:job.checkpoint.replay,onEvidence,shouldCancel:async()=>{await computationCheck(context);if(context.remainingMs()<5000)throw new ComputationYield();return context.signal.aborted;}});
       }catch(e){if(e instanceof ComputationYield)return {done:false,summary:{}};throw e;}
       const cycles=Number(job.checkpoint.cursor??0);if(!cycles)throw new WorkerFault('SOURCE_RANGE_NOT_COVERED',true);
-      const stored=await loadNativeEvidence<{candidate_id:string;strategy_id:string;symbol:string;timeframe:string;status:ReplayOutcome['status'];entry_time:string;exit_time:string|null;entry_price:number;exit_price:number|null;gross_r:number|null;net_r:number|null;cost_r:number;partial_exit:boolean;conservative:boolean;cash_flow_events:ReplayOutcome['cashFlowEvents']}>(db,'validation_outcomes',job.run_id,'entry_time');
+      const stored=await loadNativeEvidence<{candidate_id:string;strategy_id:string;symbol:string;timeframe:string;status:ReplayOutcome['status'];entry_time:string;exit_time:string|null;entry_price:number;exit_price:number|null;gross_r:number|null;net_r:number|null;cost_r:number;partial_exit:boolean;conservative:boolean;cash_flow_events:ReplayOutcome['cashFlowEvents']}>(db,'validation_outcomes',job.run_id,'entry_time',p.extended?RESEARCH_LIMITS.cycles:LIMITS.cycles);
       const outcomes=stored.map(o=>({candidateId:o.candidate_id,strategyId:o.strategy_id,symbol:o.symbol,timeframe:o.timeframe,status:o.status,entryTime:o.entry_time,exitTime:o.exit_time,entryPrice:Number(o.entry_price),exitPrice:o.exit_price===null?null:Number(o.exit_price),grossR:o.gross_r===null?null:Number(o.gross_r),netR:o.net_r===null?null:Number(o.net_r),costR:Number(o.cost_r),partialExit:o.partial_exit,conservative:o.conservative,cashFlowEvents:o.cash_flow_events}));
-      return {done:true,summary:{cycles,outcomes:outcomes.length,overall:summarizeReplayOutcomes(outcomes),classification:'REPLAY',evaluationEnd,requestedEnd:p.end,coverageReason:evaluationEnd<p.end?'FORWARD_CANDLE_REQUIRED':null,publication:false,execution:false}};
+      return {done:true,summary:{cycles,outcomes:outcomes.length,overall:summarizeReplayOutcomes(outcomes),classification:p.researchModelId?'RESEARCH_MODEL_SIMULATION':'REPLAY',researchOnly:Boolean(p.researchModelId),evaluationEnd,requestedEnd:p.end,coverageReason:evaluationEnd<p.end?'FORWARD_CANDLE_REQUIRED':null,publication:false,execution:false}};
     },
     ACCOUNT:async context=>{
       await context.check();const authority=await deriveAccountSimulationAuthority(db,{...context.job.payload,actorId:context.job.customer_id,maxEvidenceRows:LIMITS.cycles} as Parameters<typeof deriveAccountSimulationAuthority>[1]);

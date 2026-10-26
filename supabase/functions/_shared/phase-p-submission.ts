@@ -3,6 +3,8 @@ import {DEFAULT_REPLAY_ASSUMPTIONS} from './replay-outcomes.ts';
 import {LIMITS,parsePortableRequest,WorkerFault} from './phase-p-contract.ts';
 import {loadApprovedValidationConfiguration} from './approved-validation-configuration.ts';
 import {deriveAccountSimulationAuthority,derivePropCampaignAuthority} from './phase-m-authority-loader.ts';
+import {MAX_STORED_CANDLES} from './native-candle-evidence.ts';
+import {researchModelSnapshot} from './research-model-snapshots.ts';
 export async function fingerprint(value:unknown){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value))))].map(x=>x.toString(16).padStart(2,'0')).join('');}
 export async function preparePortableSubmission(db:any,actor:string,body:Record<string,any>){
   const {data:profile,error}=await db.from('profiles').select('role').eq('id',actor).maybeSingle();
@@ -18,10 +20,14 @@ export async function preparePortableSubmission(db:any,actor:string,body:Record<
   let hash:string|null=null,account:string|null=null;
   if(kind==='REPLAY'){
     const {data,error}=await db.from('validation_datasets').select('*').in('id',payload.datasetIds).eq('created_by',actor);
-    if(error||data?.length!==payload.datasetIds.length||data.some((x:any)=>x.status!=='READY'||x.row_count>LIMITS.candles||x.row_count<55))throw new WorkerFault('DATASET_NOT_READY_OR_UNAUTHORIZED',true);
+    if(error||data?.length!==payload.datasetIds.length||data.some((x:any)=>x.status!=='READY'||x.row_count>MAX_STORED_CANDLES||x.row_count<55))throw new WorkerFault('DATASET_NOT_READY_OR_UNAUTHORIZED',true);
+    if(data.reduce((n:number,d:{row_count:number})=>n+Number(d.row_count),0)>MAX_STORED_CANDLES)throw new WorkerFault('SOURCE_BATCH_TOO_LARGE_SELECT_FEWER_DATASETS',true);
     if(new Set(data.map((x:any)=>x.configuration_version??'strategy-config/current')).size>1)throw new WorkerFault('REPLAY_CONFIGURATION_LINEAGE_CONFLICT',true);
     if(new Set(data.map((x:any)=>`${x.symbol}:${x.timeframe}`)).size!==data.length)throw new WorkerFault('REPLAY_DUPLICATE_SYMBOL_TIMEFRAME',true);
-    let approved=await loadApprovedValidationConfiguration(db);
+    let approved;
+    if(payload.researchModelId){const {data:model,error}=await db.from('validation_research_models').select('*').eq('id',payload.researchModelId).eq('created_by',actor).eq('publication_eligible',false).maybeSingle();if(error||!model)throw new WorkerFault('RESEARCH_MODEL_NOT_OWNED',true);approved=await researchModelSnapshot({strategyId:model.strategy_id,parameters:model.configuration?.strategies?.[0]?.parameters});if(approved.hash!==model.content_hash||Date.parse(payload.start)<Date.parse(model.valid_from)||Date.parse(payload.end)>Date.parse(model.valid_until))throw new WorkerFault('RESEARCH_MODEL_LINEAGE_OR_DATE_INVALID',true);payload.researchOnly=true;}
+    else approved=await loadApprovedValidationConfiguration(db);
+    if(payload.strategyIds){const strategies=approved.configuration.strategies.filter((s:{id:string})=>payload.strategyIds.includes(s.id));if(strategies.length!==payload.strategyIds.length)throw new WorkerFault('STRATEGY_SELECTION_NOT_APPROVED',true);const configuration={...approved.configuration,version:'strategy-config/isolated-subset',strategies};approved={configuration,hash:await fingerprint(configuration)};}
     if(payload.releaseCandidateId){const {data:c,error}=await db.from('strategy_release_candidates').select('*').eq('id',payload.releaseCandidateId).eq('created_by',actor).eq('state','FROZEN').maybeSingle();if(error||!c||c.holdout_run_id)throw new WorkerFault('FROZEN_RELEASE_CANDIDATE_REQUIRED',true);approved={configuration:c.immutable_configuration,hash:c.configuration_hash};}
     hash=approved.hash;
     for(const dataset of data){
@@ -30,6 +36,7 @@ export async function preparePortableSubmission(db:any,actor:string,body:Record<
       try{createApprovedReplayRegistry(approved.configuration,dataset.symbol,dataset.timeframe);}catch{throw new WorkerFault('REPLAY_SELECTION_NOT_APPROVED',true);}
     }
     payload.assumptions={...DEFAULT_REPLAY_ASSUMPTIONS,feeBps:payload.fees,spreadBps:payload.spread,slippageBps:payload.slippage,fundingBps:payload.funding};
+    if(payload.researchModelId)payload.assumptions=approved.configuration.outcomeAssumptions;
     payload.configuration=approved.configuration;payload.datasets=payload.datasetIds.map((id:string)=>({id,hash:data.find((x:any)=>x.id===id).dataset_hash}));
     payload.datasetHashes=payload.datasets.map((x:any)=>x.hash);payload.datasetHash=payload.datasetHashes.join(':');
   }else if(kind==='ACCOUNT'){

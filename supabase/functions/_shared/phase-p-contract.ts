@@ -1,6 +1,8 @@
 export const PORTABLE_KINDS = ['HISTORY', 'REPLAY', 'ACCOUNT', 'PROP'] as const;
 export type PortableKind = typeof PORTABLE_KINDS[number];
 export const LIMITS = Object.freeze({cycles:500, symbols:4, candles:3000, pages:12, runtimeMs:45000, attempts:3, concurrency:1, dailyJobs:20, dailySlices:100, aiTokens:0, aiSpend:0, artifacts:0, artifactRetentionDays:0});
+/** Explicit research capacity; does not change slice time, daily budgets, retries or execution authority. */
+export const RESEARCH_LIMITS=Object.freeze({cycles:10000,candles:12000});
 export interface PortableJob {
   id:string; kind:PortableKind; customer_id:string; execution_account_id:string|null;
   payload:Record<string,any>; checkpoint:Record<string,any>; lease_token:string;
@@ -19,7 +21,7 @@ const uuid=(x:unknown)=>{if(typeof x!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9
 export function parsePortableRequest(body:Record<string,any>){
   const kind=body.kind as PortableKind;
   if(!PORTABLE_KINDS.includes(kind))throw new WorkerFault('TASK_KIND_INVALID',true);
-  const allowed=['kind','idempotencyKey',...(kind==='HISTORY'?['provider','symbol','timeframe','start','end']:kind==='REPLAY'?['datasetIds','start','end','maxCycles','releaseCandidateId','fees','funding','spread','slippage']:kind==='ACCOUNT'?['sourceRunId','accountId','brainAssignmentId','initialCapital','currency']:['accountRunId','propConfigId'])];
+  const allowed=['kind','idempotencyKey',...(kind==='HISTORY'?['provider','symbol','timeframe','start','end']:kind==='REPLAY'?['datasetIds','extended','strategyIds','researchModelId','start','end','maxCycles','releaseCandidateId','fees','funding','spread','slippage']:kind==='ACCOUNT'?['sourceRunId','accountId','brainAssignmentId','initialCapital','currency']:['accountRunId','propConfigId'])];
   if(Object.keys(body).some(k=>!allowed.includes(k)))throw new WorkerFault('TASK_FIELD_NOT_ALLOWED',true);
   if(typeof body.idempotencyKey!=='string'||!/^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey))throw new WorkerFault('IDEMPOTENCY_REQUIRED',true);
   let input:Record<string,any>;
@@ -34,7 +36,11 @@ export function parsePortableRequest(body:Record<string,any>){
     }else{
       if(!Array.isArray(body.datasetIds)||!body.datasetIds.length||body.datasetIds.length>LIMITS.symbols)throw new WorkerFault('DATASET_LIMIT_INVALID',true);
       const costs=Object.fromEntries(['fees','funding','spread','slippage'].map(k=>{const n=Number(body[k]??0);if(!Number.isFinite(n)||n<0||n>100)throw new WorkerFault('REPLAY_COST_INVALID',true);return[k,n];}));
-      input={...(body.releaseCandidateId?{releaseCandidateId:uuid(body.releaseCandidateId)}:{}),datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,LIMITS.cycles),...costs};
+      if(body.strategyIds!==undefined&&(!Array.isArray(body.strategyIds)||!body.strategyIds.length||body.strategyIds.length>20||body.strategyIds.some((x:unknown)=>typeof x!=='string'||!/^[a-z][a-z0-9.-]{2,80}$/.test(x))))throw new WorkerFault('STRATEGY_SELECTION_INVALID',true);
+      if(body.strategyIds&&body.releaseCandidateId)throw new WorkerFault('FROZEN_RELEASE_CANNOT_BE_SUBSET',true);
+      if(body.researchModelId&&(body.strategyIds||body.releaseCandidateId))throw new WorkerFault('RESEARCH_MODEL_SCOPE_CONFLICT',true);
+      if(body.extended!==undefined&&typeof body.extended!=='boolean')throw new WorkerFault('RESEARCH_PROFILE_INVALID',true);
+      input={...(body.extended?{extended:true}:{}),...(body.researchModelId?{researchModelId:uuid(body.researchModelId)}:{}),...(body.strategyIds?{strategyIds:[...new Set<string>(body.strategyIds)].sort()}:{}),...(body.releaseCandidateId?{releaseCandidateId:uuid(body.releaseCandidateId)}:{}),datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,body.extended?RESEARCH_LIMITS.cycles:LIMITS.cycles),...costs};
     }
   }else if(kind==='ACCOUNT'){
     if(!Number.isFinite(body.initialCapital)||body.initialCapital<=0||body.initialCapital>1e8||!/^[A-Z]{3}$/.test(body.currency))throw new WorkerFault('ACCOUNT_INPUT_INVALID',true);
