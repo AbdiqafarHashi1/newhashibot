@@ -58,14 +58,15 @@ export function* evaluateReplayOutcomeSteps(candidate:ArbitrationCandidate,candl
       const fill=sign===1?Math.min(stop,candle.open):Math.max(stop,candle.open);const amount=realized(fill,tp1Hit?1-a.partialExitPct:1); gross+=amount; events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount}); return row("STOP",candle.open_time,fill);
     }
     if(hitStop){const fill=sign===1?Math.min(stop,candle.open):Math.max(stop,candle.open);const amount=realized(fill,tp1Hit?1-a.partialExitPct:1);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("STOP",candle.open_time,fill);}
-    if(hitTp1){tp1Hit=true;const amount=realized(tp1,a.partialExitPct);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"TP1",sequence:seq++,realizedR:amount});if(a.moveStopToBreakevenAfterTp1)stop=entry;if(a.trailingStopR!==null)stop=sign===1?Math.max(stop,entry+risk*a.trailingStopR):Math.min(stop,entry-risk*a.trailingStopR);}
+    if(hitTp1){tp1Hit=true;const amount=realized(tp1,a.partialExitPct);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"TP1",sequence:seq++,realizedR:amount});if(a.partialExitPct===1)return row("TARGET",candle.open_time,tp1);if(a.moveStopToBreakevenAfterTp1)stop=entry;if(a.trailingStopR!==null)stop=sign===1?Math.max(stop,entry+risk*a.trailingStopR):Math.min(stop,entry-risk*a.trailingStopR);}
     if(hitTp1&&a.tp1StopPolicy==="CONSERVATIVE_SAME_BAR"&&(a.moveStopToBreakevenAfterTp1||a.trailingStopR!==null)&&(sign===1?candle.low<=stop:candle.high>=stop)){
       if(a.sameCandlePolicy==="AMBIGUOUS")return row("AMBIGUOUS",candle.open_time,null,true);
       const amount=realized(stop,1-a.partialExitPct);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("STOP",candle.open_time,stop);
     }
     if(hitTp2){const amount=realized(tp2,tp1Hit?1-a.partialExitPct:1);gross+=amount;events.push({time:candle.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("TARGET",candle.open_time,tp2);}
   }
-  if(a.closeAtHorizon&&limited.length){const last=limited.at(-1)!,amount=realized(last.close,tp1Hit?1-a.partialExitPct:1);gross+=amount;events.push({time:last.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("TIMEOUT",last.open_time,last.close);}
+  // Missing future candles are not a completed maximum holding period.
+  if(a.closeAtHorizon&&limited.length&&(a.maxBarsInTrade===undefined||limited.length===a.maxBarsInTrade)){const last=limited.at(-1)!,amount=realized(last.close,tp1Hit?1-a.partialExitPct:1);gross+=amount;events.push({time:last.open_time,candidateId:candidate.id,kind:"EXIT",sequence:seq++,realizedR:amount});return row("TIMEOUT",last.open_time,last.close);}
   return row("OPEN",null,null);
 }
 

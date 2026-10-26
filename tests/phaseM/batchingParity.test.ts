@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {runMultiDatasetScannerReplay} from '../../supabase/functions/_shared/multi-dataset-scanner-replay.ts';
+import type {ReplayResumeState} from '../../supabase/functions/_shared/phase-m-validation.ts';
+const base=Date.parse('2025-01-01T00:00:00Z'),width=900000,stamp=(n:number)=>new Date(base+n*width).toISOString(),candles=Array.from({length:300},(_,i)=>({symbol:'BTCUSDT',market_type:'crypto' as const,timeframe:'15m',source:'BATCH_PARITY_FIXTURE',open_time:stamp(i),open:100+i*.3,high:101+i*.3,low:99+i*.3,close:100.2+i*.3,volume:100}));
+const configuration={version:'batch-parity-fixture',minSignalGrade:'B',strategies:[{id:'crypto.swing-continuation',version:'1.0.0',enabled:true,minScore:0,minRiskReward:0,maxBarsInTrade:40,symbols:['BTCUSDT'],timeframes:['15m'],parameters:{}}]};
+let checkpoint:ReplayResumeState|undefined;
+const run=(rows:typeof candles,start:string,end:string,resume?:ReplayResumeState)=>runMultiDatasetScannerReplay({runId:'same-run',datasets:[{id:'same-data',hash:'full-source-hash',configurationHash:'same-config',source:'fixture',symbol:'BTCUSDT',market:'crypto',timeframe:'15m',candles:rows}],configuration,configurationHash:'same-config',start,end,cooldownMs:0,maxCycles:10000,resume,onEvidence:async(_row,state)=>{checkpoint=state;}});
+const full=await run(candles,stamp(0),stamp(300)),first=await run(candles.slice(0,150),stamp(0),stamp(150)),second=await run(candles.slice(40),new Date(base+150*width+1).toISOString(),stamp(300),{...checkpoint!,cursor:0});
+assert.deepEqual([...first,...second],full,'batch boundaries must preserve prior active signals, cooldown state, context and all decisions');
+assert.ok(full.some(r=>r.selection.decision==='SIGNAL'));
+assert.ok(second.some(r=>r.selection.reasons.includes('ACTIVE_SIGNAL_RESTRICTION')));
+console.log('Chronological batch replay matches one continuous run with active/cooldown state intact.');
