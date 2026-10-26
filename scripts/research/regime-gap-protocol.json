@@ -1,0 +1,15 @@
+{
+  "schema":"crypto-regime-gap/v1","writtenOn":"2026-10-27",
+  "assets":["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT"],
+  "period":{"from":"2025-01-01T00:00:00.000Z","until":"2026-07-01T00:00:00.000Z"},
+  "modes":["RANGE_FAILED_AUCTION","BEAR_RALLY_REJECTION","COMPRESSION_RELEASE"],
+  "disclosure":"New fixed hypotheses after previously disclosed failures. These dates and assets are reused development; no untouched-validation claim. No parameter sweep, dropping losing assets, sign flipping after results or automatic promotion.",
+  "range":"1h, prior48-bar path efficiency<=0.20 and EMA50 change over6bars<=0.5ATR14. Candle pierces prior24h high/low by>=0.1ATR and closes back inside, rejection wick>=0.4 candle range. Fade toward prior24h midpoint, stop beyond wick by0.25ATR, minimum1.3RR and gross target>=5x19bps. Hold at most12h.",
+  "bear":"4h, EMA50<EMA200, close<EMA200, EMA50 below its6-bar-prior value. Prior candle reaches EMA20 and current bearish close falls below prior low. Stop wider of2ATR14 or prior3bar high+0.25ATR; target3R, hold at most7days.",
+  "compression":"4h, previous12bar mean true range<=0.75 previous60bar mean true range. Current close breaks previous20bar highs/lows, quote volume>=1.5previous20barmean, EMA50/200 direction agrees. Stop2ATR14; target3R; hold at most7days.",
+  "costsBps":{"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBps":3},
+  "funding":"Additional adverse reserve1bp per commenced8h of actual holding time; stress multiplies all modeled costs1.5. These are reserves, not measured fills/funding settlement. No positive funding credits.",
+  "accounting":"Next15m open, stop-first collision, full target, no partial/BE, no trade overlap within each asset/mode. Incomplete horizon stays OPEN. SignedR based on actual fill. Constant-risk independent-signal outcomes, not portfolio performance.",
+  "gates":{"minimumPooledClosed":100,"minimumEachDirection":30,"minimumPooledPF":1.2,"positiveEachCalendarSlice":true,"positiveStress":true,"minimumEachAssetClosed":15,"positiveEachAsset":true},
+  "publication":false,"execution":false,"promotion":false
+}
