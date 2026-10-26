@@ -1,0 +1,15 @@
+{
+ "schema":"spot-swing-literature/v1","writtenOn":"2026-10-27",
+ "assets":["BTCUSDT","ETHUSDT"],"modes":["CHANNEL20_10_TREND","EMA20_50_REGIME"],
+ "stages":[{"name":"DEVELOPMENT","from":"2018-01-01","until":"2022-01-01"},{"name":"VALIDATION","from":"2022-01-01","until":"2025-01-01"},{"name":"REUSED_RECENT_DIAGNOSTIC","from":"2025-01-01","until":"2026-07-01"}],
+ "instrument":"Actual Binance SPOT daily UTC data. Long/cash only; no shorts, leverage, funding or pretending perp candles are spot.",
+ "channel":"Previous completed close exceeds prior20 completed daily highs and EMA200. Entry next daily open. Exit via prior10-day low or protective/trailing stop.",
+ "ema":"Previous completed EMA20>EMA50 and close>EMA200; entry next daily open. Exit next open after EMA20<=EMA50 or close<EMA200, or protective/trailing stop.",
+ "management":"Initial2WilderATR14 stop from signal close;3ATR14 protective trail from previous completed closes. No fixed TP or short bar-age cap: separate swing research profile. No same-day reentry after exit. Invalid entry gap cancels.",
+ "stageAccounting":"Each stage starts flat with prior data as indicator warmup. First200 observed days warmup. Fixed stage-end close virtual liquidation, with modeled exit costs; no reading next stage open.",
+ "costsBps":{"roundTripFee":20,"spread":2,"slippage":4},"stressMultiplier":1.5,
+ "researchGates":{"developmentMinimumPooledTrades":30,"validationMinimumPooledTrades":50,"minimumTradesEachAsset":10,"pooledNetPF":1.2,"positiveEachAsset":true,"positiveStressedMean":true},
+ "gating":"Only modes passing development may acquire/evaluate validation; only passing validation may evaluate the reused recent diagnostic. All cases retained; no parameter selection or release authority. These frequency-specific research gates do not override existing release/forward gates.",
+ "evidence":"Different hypothesis and instrument/horizon from intraday futures studies. Primary motivation https://arxiv.org/abs/2009.12155 and authors' public code https://github.com/Globe-Research/bittrends . Fixed parameters here are HashiBot adaptations, not an exact paper replication. Stage years written before acquisition; no global project-wide untouched claim.",
+ "publication":false,"execution":false,"promotion":false
+}

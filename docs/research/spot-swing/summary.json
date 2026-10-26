@@ -1,0 +1,327 @@
+{
+  "protocol": {
+    "schema": "spot-swing-literature/v1",
+    "writtenOn": "2026-10-27",
+    "assets": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "modes": [
+      "CHANNEL20_10_TREND",
+      "EMA20_50_REGIME"
+    ],
+    "stages": [
+      {
+        "name": "DEVELOPMENT",
+        "from": "2018-01-01",
+        "until": "2022-01-01"
+      },
+      {
+        "name": "VALIDATION",
+        "from": "2022-01-01",
+        "until": "2025-01-01"
+      },
+      {
+        "name": "REUSED_RECENT_DIAGNOSTIC",
+        "from": "2025-01-01",
+        "until": "2026-07-01"
+      }
+    ],
+    "instrument": "Actual Binance SPOT daily UTC data. Long/cash only; no shorts, leverage, funding or pretending perp candles are spot.",
+    "channel": "Previous completed close exceeds prior20 completed daily highs and EMA200. Entry next daily open. Exit via prior10-day low or protective/trailing stop.",
+    "ema": "Previous completed EMA20>EMA50 and close>EMA200; entry next daily open. Exit next open after EMA20<=EMA50 or close<EMA200, or protective/trailing stop.",
+    "management": "Initial2WilderATR14 stop from signal close;3ATR14 protective trail from previous completed closes. No fixed TP or short bar-age cap: separate swing research profile. No same-day reentry after exit. Invalid entry gap cancels.",
+    "stageAccounting": "Each stage starts flat with prior data as indicator warmup. First200 observed days warmup. Fixed stage-end close virtual liquidation, with modeled exit costs; no reading next stage open.",
+    "costsBps": {
+      "roundTripFee": 20,
+      "spread": 2,
+      "slippage": 4
+    },
+    "stressMultiplier": 1.5,
+    "researchGates": {
+      "developmentMinimumPooledTrades": 30,
+      "validationMinimumPooledTrades": 50,
+      "minimumTradesEachAsset": 10,
+      "pooledNetPF": 1.2,
+      "positiveEachAsset": true,
+      "positiveStressedMean": true
+    },
+    "gating": "Only modes passing development may acquire/evaluate validation; only passing validation may evaluate the reused recent diagnostic. All cases retained; no parameter selection or release authority. These frequency-specific research gates do not override existing release/forward gates.",
+    "evidence": "Different hypothesis and instrument/horizon from intraday futures studies. Primary motivation https://arxiv.org/abs/2009.12155 and authors' public code https://github.com/Globe-Research/bittrends . Fixed parameters here are HashiBot adaptations, not an exact paper replication. Stage years written before acquisition; no global project-wide untouched claim.",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "sources": [
+    {
+      "symbol": "BTCUSDT",
+      "stage": "DEVELOPMENT",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1514764800000&endTime=1640995199999&limit=1000",
+      "rawSha256": "66c6c45e9f3b6a5e25a1f3391cba9499f745704b91a211f4675717b51f8d95d2",
+      "rows": 1000,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [
+        {
+          "openTime": 1518048000000,
+          "nativeCloseTime": 1518049694788
+        }
+      ],
+      "warmupResetAfter": 1518134400000
+    },
+    {
+      "symbol": "BTCUSDT",
+      "stage": "DEVELOPMENT",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1601164800000&endTime=1640995199999&limit=1000",
+      "rawSha256": "32fd7c65b98697863402b91cf9d3a4a64f4730c9f823e117aae526dda048286e",
+      "rows": 461,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [],
+      "warmupResetAfter": null
+    },
+    {
+      "symbol": "ETHUSDT",
+      "stage": "DEVELOPMENT",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT&interval=1d&startTime=1514764800000&endTime=1640995199999&limit=1000",
+      "rawSha256": "26150b4969bbf41dd2edd524d5d1c22a3be1e244293c1db67c7cebe44c392a43",
+      "rows": 1000,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [
+        {
+          "openTime": 1518048000000,
+          "nativeCloseTime": 1518049694799
+        }
+      ],
+      "warmupResetAfter": 1518134400000
+    },
+    {
+      "symbol": "ETHUSDT",
+      "stage": "DEVELOPMENT",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT&interval=1d&startTime=1601164800000&endTime=1640995199999&limit=1000",
+      "rawSha256": "06e9898508ff8d228d6624172e202f2ae09facbafe053193fef8a5ec2f2eed8d",
+      "rows": 461,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [],
+      "warmupResetAfter": null
+    },
+    {
+      "symbol": "BTCUSDT",
+      "stage": "VALIDATION",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1640995200000&endTime=1735689599999&limit=1000",
+      "rawSha256": "067de9f0797b91220111e60f9179c2353257b6b8c039fad47c2ea3f1b9e23d89",
+      "rows": 1000,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [],
+      "warmupResetAfter": null
+    },
+    {
+      "symbol": "BTCUSDT",
+      "stage": "VALIDATION",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1727395200000&endTime=1735689599999&limit=1000",
+      "rawSha256": "dada49d6746ad3094b6a4874e69f1627d2d2bcea8c2addf9a639043b507ad6e8",
+      "rows": 96,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [],
+      "warmupResetAfter": null
+    },
+    {
+      "symbol": "ETHUSDT",
+      "stage": "VALIDATION",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT&interval=1d&startTime=1640995200000&endTime=1735689599999&limit=1000",
+      "rawSha256": "30669e470d16ed1cd6c7e41ea96b702c0a6c03f9ee4a7c10aba31d1887472f77",
+      "rows": 1000,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [],
+      "warmupResetAfter": null
+    },
+    {
+      "symbol": "ETHUSDT",
+      "stage": "VALIDATION",
+      "url": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT&interval=1d&startTime=1727395200000&endTime=1735689599999&limit=1000",
+      "rawSha256": "df24f3c7874dec4661a00e7a363e50b440aa669265f06e9371494ad83298cd62",
+      "rows": 96,
+      "vendorChecksum": false,
+      "instrument": "SPOT",
+      "nonstandardCloses": [],
+      "warmupResetAfter": null
+    }
+  ],
+  "results": [
+    {
+      "stage": "DEVELOPMENT",
+      "status": "EVALUATED",
+      "cases": [
+        {
+          "mode": "CHANNEL20_10_TREND",
+          "pooled": {
+            "trades": 39,
+            "netPF": 2.733116711319378,
+            "stressPF": 2.679296679211193,
+            "grossPF": 2.8454058050142903,
+            "meanNet": 0.07430880010399231,
+            "meanStress": 0.0730088001039923
+          },
+          "failures": [],
+          "assets": [
+            {
+              "symbol": "BTCUSDT",
+              "metrics": {
+                "trades": 20,
+                "netPF": 2.305112073606292,
+                "stressPF": 2.2596609540798007,
+                "grossPF": 2.400163985362656,
+                "meanNet": 0.0631910679050574,
+                "meanStress": 0.0618910679050574
+              }
+            },
+            {
+              "symbol": "ETHUSDT",
+              "metrics": {
+                "trades": 19,
+                "netPF": 3.322015136128236,
+                "stressPF": 3.257727464313377,
+                "grossPF": 3.455710278819937,
+                "meanNet": 0.08601167610287118,
+                "meanStress": 0.08471167610287114
+              }
+            }
+          ]
+        },
+        {
+          "mode": "EMA20_50_REGIME",
+          "pooled": {
+            "trades": 58,
+            "netPF": 2.722226991060206,
+            "stressPF": 2.675290332997651,
+            "grossPF": 2.819995010312935,
+            "meanNet": 0.0917896964876325,
+            "meanStress": 0.09048969648763246
+          },
+          "failures": [],
+          "assets": [
+            {
+              "symbol": "BTCUSDT",
+              "metrics": {
+                "trades": 31,
+                "netPF": 2.7033549955219023,
+                "stressPF": 2.6440253222515104,
+                "grossPF": 2.828517648361089,
+                "meanNet": 0.07295136544037421,
+                "meanStress": 0.07165136544037425
+              }
+            },
+            {
+              "symbol": "ETHUSDT",
+              "metrics": {
+                "trades": 27,
+                "netPF": 2.7364344697000718,
+                "stressPF": 2.6989978745904266,
+                "grossPF": 2.8136745924272657,
+                "meanNet": 0.11341889139374378,
+                "meanStress": 0.11211889139374377
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "VALIDATION",
+      "status": "EVALUATED",
+      "cases": [
+        {
+          "mode": "CHANNEL20_10_TREND",
+          "pooled": {
+            "trades": 30,
+            "netPF": 1.6831065208037883,
+            "stressPF": 1.6330305752648764,
+            "grossPF": 1.7900987354620534,
+            "meanNet": 0.0244694686969302,
+            "meanStress": 0.023169468696930207
+          },
+          "failures": [
+            "POOLED_SAMPLE"
+          ],
+          "assets": [
+            {
+              "symbol": "BTCUSDT",
+              "metrics": {
+                "trades": 17,
+                "netPF": 1.9516139397945724,
+                "stressPF": 1.8961652724318632,
+                "grossPF": 2.0699339463349373,
+                "meanNet": 0.034071907617617025,
+                "meanStress": 0.03277190761761702
+              }
+            },
+            {
+              "symbol": "ETHUSDT",
+              "metrics": {
+                "trades": 13,
+                "netPF": 1.3323551219703214,
+                "stressPF": 1.2896210078760288,
+                "grossPF": 1.4238136792151912,
+                "meanNet": 0.011912433185262835,
+                "meanStress": 0.010612433185262837
+              }
+            }
+          ]
+        },
+        {
+          "mode": "EMA20_50_REGIME",
+          "pooled": {
+            "trades": 46,
+            "netPF": 1.9950071545725367,
+            "stressPF": 1.924121109436493,
+            "grossPF": 2.1469652117279803,
+            "meanNet": 0.03018118177098153,
+            "meanStress": 0.028881181770981534
+          },
+          "failures": [
+            "POOLED_SAMPLE"
+          ],
+          "assets": [
+            {
+              "symbol": "BTCUSDT",
+              "metrics": {
+                "trades": 23,
+                "netPF": 2.5267899173116195,
+                "stressPF": 2.4411194967916874,
+                "grossPF": 2.7061612567962525,
+                "meanNet": 0.047196925598365566,
+                "meanStress": 0.04589692559836558
+              }
+            },
+            {
+              "symbol": "ETHUSDT",
+              "metrics": {
+                "trades": 23,
+                "netPF": 1.4424950546811606,
+                "stressPF": 1.387037414758458,
+                "grossPF": 1.563553160121839,
+                "meanNet": 0.013165437943597485,
+                "meanStress": 0.011865437943597476
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "REUSED_RECENT_DIAGNOSTIC",
+      "status": "BLOCKED_PREVIOUS_STAGE",
+      "cases": []
+    }
+  ],
+  "compressedSha256": "36afae936ca30a19294f65c8809688a0a31c57614ed539e2aa65a96396a05869",
+  "uncompressedSha256": "aecef17186b6fcaec843a70b88ee85a619a7fdd0d9fdb1c38c7c6224a7ae129a",
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

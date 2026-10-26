@@ -1,0 +1,52 @@
+{
+  "schema": "spot-swing-posthoc-risk/v1",
+  "sourceCompressedSha256": "36afae936ca30a19294f65c8809688a0a31c57614ed539e2aa65a96396a05869",
+  "scope": "Posthoc realized-trade diagnostics only; not used to choose parameters or change gates; BTC/ETH and models overlap.",
+  "models": [
+    {
+      "mode": "CHANNEL20_10_TREND",
+      "closedTrades": 30,
+      "minimumRolling10PF": 0.7753876167581124,
+      "calendar": [
+        {
+          "year": 2022,
+          "trades": 2,
+          "netPF": 0.0
+        },
+        {
+          "year": 2023,
+          "trades": 12,
+          "netPF": 2.391465767850328
+        },
+        {
+          "year": 2024,
+          "trades": 16,
+          "netPF": 1.6586134279861802
+        }
+      ]
+    },
+    {
+      "mode": "EMA20_50_REGIME",
+      "closedTrades": 46,
+      "minimumRolling10PF": 0.0,
+      "calendar": [
+        {
+          "year": 2022,
+          "trades": 2,
+          "netPF": 0.0
+        },
+        {
+          "year": 2023,
+          "trades": 21,
+          "netPF": 1.1770053816633697
+        },
+        {
+          "year": 2024,
+          "trades": 21,
+          "netPF": 3.0120030204914983
+        }
+      ]
+    }
+  ],
+  "releaseApproved": false
+}
