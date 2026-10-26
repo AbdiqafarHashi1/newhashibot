@@ -1,0 +1,14 @@
+{
+  "schema": "slower-entry-development/v1",
+  "symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT"],
+  "hypotheses": ["4h close breaks prior 20 completed 4h highs/lows", "daily close has same direction of 20-day and 60-day returns"],
+  "risk": "2 times arithmetic mean true range of previous 20 completed decision bars",
+  "exit": "Full position at 3R target, original stop, or 72 hours; next 15m open entry; one position per symbol and hypothesis",
+  "costsBps": {"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBps":27},
+  "funding": "Declared conservative three-day reserve, not observed funding",
+  "evidence": "Previously examined Jan 2025-Jun 2026 DEVELOPMENT data. No untouched claim, optimization, per-asset selection or automatic promotion.",
+  "scope": "Research entry feasibility only; not production scanner parity, portfolio simulation or certification",
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

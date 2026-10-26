@@ -1,0 +1,134 @@
+{
+  "protocol": {
+    "schema": "slower-entry-development/v1",
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT"
+    ],
+    "hypotheses": [
+      "4h close breaks prior 20 completed 4h highs/lows",
+      "daily close has same direction of 20-day and 60-day returns"
+    ],
+    "risk": "2 times arithmetic mean true range of previous 20 completed decision bars",
+    "exit": "Full position at 3R target, original stop, or 72 hours; next 15m open entry; one position per symbol and hypothesis",
+    "costsBps": {
+      "feeBps": 10,
+      "spreadBps": 2,
+      "slippageBps": 4,
+      "fundingBps": 27
+    },
+    "funding": "Declared conservative three-day reserve, not observed funding",
+    "evidence": "Previously examined Jan 2025-Jun 2026 DEVELOPMENT data. No untouched claim, optimization, per-asset selection or automatic promotion.",
+    "scope": "Research entry feasibility only; not production scanner parity, portfolio simulation or certification",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "compressedSha256": "046331e9634efffeb6c021ed5953f7eaf5b367207481b5c78b73387576b60697",
+  "uncompressedSha256": "5e1dc937a4bf9c49a08dfcdb61b87c66f4d194d0774a8a9d369b72ed6d4c6437",
+  "aggregate": [
+    {
+      "id": "4H_BREAKOUT",
+      "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+      "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+      "tradeCount": 718,
+      "resolvedCount": 716,
+      "openCount": 2,
+      "ambiguousCount": 0,
+      "excludedCount": 0,
+      "expectancyR": -0.08849078764938571,
+      "profitFactor": 0.8625985658845238,
+      "profitFactorUndefinedReason": null,
+      "realizedMaxDrawdownR": 114.03591269368644
+    },
+    {
+      "id": "DAILY_MOMENTUM",
+      "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+      "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+      "tradeCount": 640,
+      "resolvedCount": 638,
+      "openCount": 2,
+      "ambiguousCount": 0,
+      "excludedCount": 0,
+      "expectancyR": 0.003164331417472932,
+      "profitFactor": 1.0139988724214684,
+      "profitFactorUndefinedReason": null,
+      "realizedMaxDrawdownR": 21.27022574453048
+    }
+  ],
+  "byAsset": [
+    {
+      "symbol": "BTCUSDT",
+      "id": "4H_BREAKOUT",
+      "resolved": 141,
+      "PF": 0.8220145019350117,
+      "meanR": -0.11712602968548674
+    },
+    {
+      "symbol": "BTCUSDT",
+      "id": "DAILY_MOMENTUM",
+      "resolved": 128,
+      "PF": 0.880129816217213,
+      "meanR": -0.029189205518947957
+    },
+    {
+      "symbol": "ETHUSDT",
+      "id": "4H_BREAKOUT",
+      "resolved": 144,
+      "PF": 0.8358341789678384,
+      "meanR": -0.11014274160386872
+    },
+    {
+      "symbol": "ETHUSDT",
+      "id": "DAILY_MOMENTUM",
+      "resolved": 129,
+      "PF": 1.2042058788596615,
+      "meanR": 0.044598145402428575
+    },
+    {
+      "symbol": "BNBUSDT",
+      "id": "4H_BREAKOUT",
+      "resolved": 140,
+      "PF": 0.7833962271849612,
+      "meanR": -0.14115808050484605
+    },
+    {
+      "symbol": "BNBUSDT",
+      "id": "DAILY_MOMENTUM",
+      "resolved": 129,
+      "PF": 1.1957847388094869,
+      "meanR": 0.043019296880845236
+    },
+    {
+      "symbol": "SOLUSDT",
+      "id": "4H_BREAKOUT",
+      "resolved": 145,
+      "PF": 0.866724025569537,
+      "meanR": -0.08159176946020136
+    },
+    {
+      "symbol": "SOLUSDT",
+      "id": "DAILY_MOMENTUM",
+      "resolved": 127,
+      "PF": 0.8696498395574057,
+      "meanR": -0.028725489087601617
+    },
+    {
+      "symbol": "XRPUSDT",
+      "id": "4H_BREAKOUT",
+      "resolved": 146,
+      "PF": 1.0066381996218874,
+      "meanR": 0.004170266178480565
+    },
+    {
+      "symbol": "XRPUSDT",
+      "id": "DAILY_MOMENTUM",
+      "resolved": 125,
+      "PF": 0.9334470529948397,
+      "meanR": -0.015195609517150769
+    }
+  ]
+}
