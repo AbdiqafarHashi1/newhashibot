@@ -1,0 +1,18 @@
+{
+ "schema":"crypto-evidence-governor-development/v1",
+ "roles":["TREND_PULLBACK","RANGE_REVERSION","ALT_RELATIVE_BREAKOUT","MAJOR_WEEKLY_MOMENTUM","POST_SHOCK_RECOVERY"],
+ "states":{"TREND_PULLBACK":["TREND_UP","TREND_DOWN"],"RANGE_REVERSION":["RANGE"],"ALT_RELATIVE_BREAKOUT":["TREND_UP","COMPRESSION"],"MAJOR_WEEKLY_MOMENTUM":["TREND_UP"],"POST_SHOCK_RECOVERY":["TRANSITION","RANGE"]},
+ "windowDays":180,
+ "minimumOutcomes":30,
+ "minimumWeeks":8,
+ "minimumPF":1.15,
+ "minimumMeanR":0.03,
+ "lowerMeanZ":1.645,
+ "minimumAssetOutcomes":10,
+ "scope":"Strategy eligibility only; no quantity/risk changes, parameter optimization or release permission. A strategy must have positive matching-asset evidence and positive strategy/state pooled evidence, stressed expectancy and a positive one-sided normal weekly-cluster lower estimate.",
+ "chronology":"Labels enter only after exit candle closes. At every event use trailing180days; matching strategy and existing adaptive-market state at entry. No random split or current-trade label. Research only; initial strategies were researched using these dates already.",
+ "arbitration":"Existing canonical arbitrator among admitted candidates; independent fixed-score baseline for comparison. One active per asset; no winner means no trade.",
+ "decisionFrom":"2025-07-01T00:00:00.000Z",
+ "evidenceToExclusive":"2026-07-01T00:00:00.000Z",
+ "publication":false,"execution":false,"promotion":false
+}

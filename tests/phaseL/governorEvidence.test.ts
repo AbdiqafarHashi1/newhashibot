@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
+import {evaluateEvidenceGovernor} from '../../supabase/functions/_shared/strategy-evidence-governor.ts';
+import {summarizeReplayOutcomes} from '../../supabase/functions/_shared/replay-outcomes.ts';
+const root='docs/research/crypto-governor',summary=JSON.parse(await readFile(`${root}/summary.json`,'utf8')),compressed=await readFile(`${root}/evidence.json.gz`),sha=(s:Buffer)=>createHash('sha256').update(s).digest('hex');assert.equal(sha(compressed),summary.compressedSha256);const raw=gunzipSync(compressed);assert.equal(sha(raw),summary.uncompressedSha256);const report=JSON.parse(raw.toString());assert.equal(report.publication,false);assert.equal(report.execution,false);assert.equal(report.promotion,false);
+let assessments=0;
+for(const result of report.results){assert.equal(summarizeReplayOutcomes(result.selected.map((e:any)=>e.outcome)).profitFactor,result.summary.profitFactor);for(const decision of result.decisions)for(const assessment of decision.assessments){const parts=assessment.id.split(':'),strategyId=parts[0],symbol=parts[1];const actual=evaluateEvidenceGovernor({strategyId,symbol,state:decision.state,at:decision.at,sourceHash:report.sourceHash},report.labels,report.protocol);assert.equal(actual.eligible,assessment.eligible);assert.equal(actual.observations,assessment.observations);assert.deepEqual(actual.reasons,assessment.reasons);if(result.mode==='EVIDENCE_GOVERNED'&&decision.winner===assessment.id)assert.equal(actual.eligible,true);assessments++;}}
+const governed=report.results.find((r:any)=>r.mode==='EVIDENCE_GOVERNED');assert.equal(governed.summary.resolvedCount,10);assert.ok(governed.summary.profitFactor<1);assert.equal(summary.publication,false);console.log(`Governor report hashes, ${assessments} chronological assessments, exact selected outcome metrics and failed-promotion status verified.`);
