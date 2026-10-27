@@ -1,3 +1,7 @@
+import {CRYPTO_TEAM_MANAGEMENT} from '../_shared/coordinated-crypto-management.ts';
+import {fetchCoordinatedCryptoHistory} from '../_shared/coordinated-crypto-feed.ts';
+import {coordinatedCryptoDefinitions} from '../_shared/coordinated-crypto.ts';
+import {CRYPTO_TEAM_ROLES} from '../_shared/coordinated-crypto-contract.ts';
 import {altResearchDefinitions} from '../_shared/crypto-relative-strength.ts';
 import {evalForexMicroScalper,evalForexSwingContinuation} from "../_shared/forex-legacy-evaluators.ts";
 import {regimeResearchDefinitions} from '../_shared/regime-opportunities.ts';
@@ -86,8 +90,9 @@ interface EvalResult {
   rejection_reason: string; score_breakdown: Record<string, number | string | boolean>;
 }
 
-type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback" | "GoldVolatilityBreakout";
+type StrategyName = typeof CRYPTO_TEAM_ROLES[number]["name"] | "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback" | "GoldVolatilityBreakout";
 const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
+  CryptoTrendContinuation:'crypto.team-trend',CryptoRangeReversal:'crypto.team-range',CryptoExpansionBreakout:'crypto.team-breakout',CryptoAltRelativeStrength:'crypto.team-alt',
   MicroScalper: "crypto.micro-scalper",
   QuickScalp: "crypto.quick-scalp",
   CompressionBreakout: "crypto.compression-breakout",
@@ -1185,6 +1190,7 @@ function tradeManagementPlan(signal: Record<string, unknown>): Record<string, un
       ? `Effective leverage guidance: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x maximum only if stop-risk stays within plan.`
       : "Use effective leverage only if stop-risk stays within the planned account risk.";
 
+  if(CRYPTO_TEAM_ROLES.some(role=>role.name===strategy))return {...CRYPTO_TEAM_MANAGEMENT,riskGuidance,exposureGuidance};
   if (strategy.includes("MicroScalper")) {
     return {
       tp1PartialPct: 50,
@@ -1585,6 +1591,9 @@ async function runScanPipeline(
     },measuredReleases,config.min_signal_grade);
   };
 
+  const cryptoTeamEnabled=CRYPTO_TEAM_ROLES.some(role=>getStratCfg(role.name).enabled);
+  if(cryptoTeamEnabled&&['MicroScalper','QuickScalp','CompressionBreakout','SwingContinuation'].some(name=>getStratCfg(name).enabled))throw new Error('MIXED_CRYPTO_INSTRUMENT_PROFILE_REQUIRES_VALIDATION');
+
   // Load mode configs and risk profiles
   const { data: modeRows } = await supabase.from("mode_configs").select("*");
   const { data: riskRows } = await supabase.from("risk_profiles").select("*");
@@ -1766,7 +1775,8 @@ async function runScanPipeline(
     if (cryptoFetchCache.has(key)) return cryptoFetchCache.get(key) ?? null;
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
-    const value = await fetchBinanceCandles(symbol, tf, 111);
+    const native=cryptoTeamEnabled&&tf==='15m';
+    const value = native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
     cryptoFetchCache.set(key, value);
     return value;
   }
@@ -1851,8 +1861,9 @@ async function runScanPipeline(
 
   const activeSymbolSet = new Set<string>();
   const activeSignalBySymbol = new Map<string, { id: string; status: string; created_at: string | null }>();
-  if (config.prevent_duplicate_symbol_signals) {
-    const { data: activeSigs } = await supabase.from("signals").select("id,symbol,status,created_at").in("status", ["waiting", "active"]);
+  if (config.prevent_duplicate_symbol_signals||cryptoTeamEnabled) {
+    const { data: activeSigs,error:activeSignalError } = await supabase.from("signals").select("id,symbol,status,created_at").in("status", ["waiting", "active"]);
+    if(activeSignalError)throw new Error("ACTIVE_SIGNAL_STATE_UNAVAILABLE");
     for (const sig of (activeSigs ?? []) as Array<{ id: string; symbol: string; status: string; created_at: string | null }>) {
       activeSymbolSet.add(sig.symbol);
       if (!activeSignalBySymbol.has(sig.symbol)) activeSignalBySymbol.set(sig.symbol, { id: sig.id, status: sig.status, created_at: sig.created_at });
@@ -1952,6 +1963,7 @@ async function runScanPipeline(
           errors.push(`[SKIP] ${sym.symbol} ${tf} ${reason}`);
           continue;
         }
+        const teamCandles=marketType==="crypto"&&cryptoTeamEnabled&&tf==="15m"?admitted.candles.slice(-960):undefined;
         candles = marketType === "crypto" ? admitted.candles.slice(-110) : admitted.candles;
         candlesFetched += candles.length;
 
@@ -2024,6 +2036,16 @@ async function runScanPipeline(
             { id: "crypto.trend-pullback", version: "0.1.0-research", legacyName: "CryptoTrendPullback", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "CryptoTrendPullback" }, evaluate: evaluateCryptoTrendPullback },
             { id: "crypto.reversal-exhaustion", version: "0.1.0-research", legacyName: "ReversalExhaustion", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "ReversalExhaustion" }, evaluate: evaluateReversalExhaustion },
           );
+        }
+        if(marketType==='crypto'){
+          const team=coordinatedCryptoDefinitions(getStratCfg);
+          let reference:Candle[]|undefined;
+          if(cryptoTeamEnabled&&tf==='15m'&&teamCandles?.length===960){
+            const fetched=normalizedSymbol==='BTCUSDT'?teamCandles:await fetchCryptoCandlesForRun('BTCUSDT','15m');
+            const closed=fetched?admitClosedRuntimeCandles(fetched,15,Date.now()):null;
+            if(closed&&!closed.rejection)reference=closed.candles.slice(-960);
+          }
+          activeDefinitions.push(...team.map(definition=>({...definition,evaluate:(context:StrategyEvaluationContext)=>definition.evaluate({...context,candles:teamCandles??context.candles,reference_candles:reference,evaluated_at:teamCandles?.length?new Date(Date.parse(teamCandles.at(-1)!.open_time)+900000).toISOString():context.evaluated_at})})));
         }
         activeDefinitions.push(...costAwareResearchDefinitions().filter(definition=>definition.market===marketType));
         const strategyContext: StrategyEvaluationContext = { symbol: normalizedSymbol, market: marketType as "crypto" | "forex", timeframe: tf, candles, indicators: ind, evaluated_at: new Date().toISOString() };
@@ -2129,9 +2151,9 @@ async function runScanPipeline(
           side: entry.result.direction.toLowerCase() as "buy" | "sell", confidence: entry.result.confidence_score,
           grade: entry.result.grade, score: arbitrationScore(entry, marketContext),
           entry: (entry.result.entry_low + entry.result.entry_high) / 2, stop: entry.result.stop_loss,
-          targets: [entry.result.tp1, entry.result.tp2], riskReward: entry.result.risk_reward,
+          targets: [...new Set([entry.result.tp1, entry.result.tp2])], riskReward: entry.result.risk_reward,
           expiry: new Date(Date.now() + entry.cfg.max_bars_in_trade * (timeframeMinutes(tf) ?? 5) * 60_000).toISOString(), fresh: true,
-          lifecycle: "ENABLED", publicationMode: "LIVE", evidence: { legacy_index: index, adaptive_policy_approved: entry.cfg.params.market_adaptation_enabled === 1, ...(entry.cfg.params.estimated_round_trip_cost_bps!==undefined?{estimated_round_trip_cost_bps:entry.cfg.params.estimated_round_trip_cost_bps,minimum_net_target_r:entry.cfg.params.minimum_net_target_r??0}:{}) }, rejectionReasons: [],
+          lifecycle: "ENABLED", publicationMode: "LIVE", evidence: { ...entry.result.score_breakdown,legacy_index: index, adaptive_policy_approved: entry.cfg.params.market_adaptation_enabled === 1, ...(entry.cfg.params.estimated_round_trip_cost_bps!==undefined?{estimated_round_trip_cost_bps:entry.cfg.params.estimated_round_trip_cost_bps,minimum_net_target_r:entry.cfg.params.minimum_net_target_r??0}:{}) }, rejectionReasons: [],
           priority: strategyIdentityFit(entry), eligible: true,
         }));
         const byCandidateId = new Map(passingEntries.map((entry) => [String((entry as EvalEntry & { _candidateId: string })._candidateId), entry]));
@@ -2300,7 +2322,7 @@ async function runScanPipeline(
           candidatesFound++;
 
           // Duplicate gate
-          if (!applyScannerSelectionPolicy(new Date().toISOString(), { activeSignalId: activeSignalBySymbol.get(sym.symbol)?.id }, { preventDuplicateSymbolSignals: config.prevent_duplicate_symbol_signals, cooldownMs: 0 }).allowed) {
+          if (!applyScannerSelectionPolicy(new Date().toISOString(), { activeSignalId: activeSignalBySymbol.get(sym.symbol)?.id,activeCount:[...activeSignalBySymbol.keys()].filter(symbol=>symbol.endsWith('USDT')).length }, { preventDuplicateSymbolSignals: config.prevent_duplicate_symbol_signals||CRYPTO_TEAM_ROLES.some(role=>role.name===ev.name), cooldownMs: 0,...(CRYPTO_TEAM_ROLES.some(role=>role.name===ev.name)?{maxActiveSignals:3}:{}) }).allowed) {
             const blockingSignal = activeSignalBySymbol.get(sym.symbol);
             const blockingAgeMinutes = blockingSignal?.created_at ? Math.max(0, Math.round((Date.now() - new Date(blockingSignal.created_at).getTime()) / 60000)) : null;
             await supabase.from("strategy_candidates").update({
@@ -2425,7 +2447,7 @@ async function runScanPipeline(
             };
             const tradeManagement = tradeManagementPlan(managementInput);
             const signalCreatedAt = new Date();
-            const expiryMetadata = buildSignalExpiryMetadata(ev.name, tf, ev.cfg, r.score_breakdown ?? {}, signalCreatedAt);
+            const expiryMetadata = buildSignalExpiryMetadata(ev.name, tf, ev.cfg, r.score_breakdown ?? {}, CRYPTO_TEAM_ROLES.some(role=>role.name===ev.name)?new Date(candleCloseTime):signalCreatedAt);
             const expiryScoreBreakdown = scoreBreakdownWithExpiry(r.score_breakdown ?? {}, expiryMetadata);
 
             const arbitratorDecision: ArbitratorDecision = {

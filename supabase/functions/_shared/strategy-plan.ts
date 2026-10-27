@@ -219,6 +219,13 @@ function qualificationLedger(definition: StrategyDefinition, context: StrategyEv
 }
 
 function managementIntent(definition: StrategyDefinition, maxBars: number): StrategyPlan["management_intent"] {
+  if(definition.id.startsWith('crypto.team-'))return {
+    break_even:'No break-even mutation in the tested signal contract.',
+    trailing:'Static protective stop; no trailing in the tested signal contract.',
+    partial_exits:['One full-position signal target; no partial exits. Account quantities remain Phase-D owned.'],
+    cancel_conditions:['Cancel unfilled invalid/expired entry plans; never infer a provider fill.'],
+    time_exit:`Virtual close after ${maxBars} native 15m bars; missing future candles remain unresolved.`,
+  };
   const scalp = definition.id.includes("scalp");
   return {
     break_even: "Use the currently certified downstream protection policy; strategy does not authorize an independent level mutation.",

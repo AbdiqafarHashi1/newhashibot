@@ -1,3 +1,4 @@
+import {CRYPTO_TEAM_ROLES} from './coordinated-crypto-contract.ts';
 import type { TelegramChannelKey } from "./telegram-registry.ts";
 import { escapeMarkdown, formatEastAfricaTime, formatInstrumentPrice } from "./telegram-templates.ts";
 
@@ -85,9 +86,10 @@ export function renderCanonicalVipSignal(signal: CanonicalSignalPresentation): s
   const rows = [`*HASHIBOT VIP • ${escapeMarkdown(marketLabel(signal.market, signal.symbol))}*`, "", `*${escapeMarkdown(signal.symbol.toUpperCase())} — ${direction}*`];
   const add = (label: string, value: string | number | undefined) => { if (value !== undefined && value !== "") rows.push("", `*${label}*`, escapeMarkdown(value)); };
   add("Entry", entry); add("Stop Loss", signal.stop_loss == null ? undefined : formatInstrumentPrice(signal.stop_loss, signal.market, signal.symbol));
-  signal.targets?.forEach((target, index) => add(`TP${index + 1}`, formatInstrumentPrice(target, signal.market, signal.symbol)));
+  [...new Set(signal.targets??[])].forEach((target, index) => add(`TP${index + 1}`, formatInstrumentPrice(target, signal.market, signal.symbol)));
   add("Risk / Reward", signal.risk_reward == null ? undefined : `1 : ${signal.risk_reward}`); add("Strategy", signal.strategy); add("Grade", signal.grade);
   add("Scanner score (not win probability)", signal.confidence == null ? undefined : `${signal.confidence}/100`); add("Session", signal.session); add("Exchange", signal.exchange);
+  if(CRYPTO_TEAM_ROLES.some(r=>r.name===signal.strategy)){add('Tracking','Signal-only alert; virtual outcomes are not provider fills.');add('Management','Full target or protective stop; no partial exits, break-even or trailing. Maximum 24 hours; unresolved fills/results remain unknown.');}
   add("Time", formatEastAfricaTime(signal.occurred_at, false)); rows.push("", `Reference: ${escapeMarkdown(signal.signal_id)}`, "HashiBot Qualified Signal · Manage risk independently.");
   return rows.join("\n");
 }

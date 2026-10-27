@@ -1,5 +1,5 @@
 import {ACTIVE_MARKET_WINDOW,closedFifteenMinuteContext} from './replay-market-window.ts';
-import {replayContextBars,usesAltReference,validateAltDatasetSelection} from './crypto-relative-strength.ts';
+import {requiredReplayBars,needsBtcReference,referenceOnly,validateCoordinatedDatasets,isCryptoTeam} from './coordinated-crypto-selection.ts';
 import {calculateActiveIndicators,createApprovedReplayRegistry,type ApprovedReplayConfiguration} from './active-validation-runtime.ts';
 import {admitHistoricalCandles,runBoundedValidation,type ReplayConfiguration} from './phase-l-validation.ts';
 import {replayScannerChronologically,type ReplayEvent,type ReplayResumeState,type ScannerSelection} from './phase-m-validation.ts';
@@ -10,24 +10,24 @@ const width=(tf:string)=>{const m=/^(\d+)(m|h|d)$/.exec(tf);if(!m)throw new Erro
 export async function runMultiDatasetScannerReplay(input:{runId:string;datasets:readonly ReplayDatasetInput[];configuration:ApprovedReplayConfiguration;configurationHash:string;start:string;end:string;cooldownMs:number;maxCycles:number;shouldCancel?:()=>Promise<boolean>|boolean;resume?:ReplayResumeState;onEvidence?:(row:{event:ReplayEvent;selection:ScannerSelection},state:ReplayResumeState)=>Promise<void>}){
  if(!input.datasets.length)throw new Error('REPLAY_DATASETS_REQUIRED');
  if(input.datasets.some(d=>d.configurationHash!==input.configurationHash))throw new Error('REPLAY_CONFIGURATION_LINEAGE_CONFLICT');
- validateAltDatasetSelection(input.configuration,input.datasets);
- const alt=usesAltReference(input.configuration),windowSize=replayContextBars(input.configuration),events:ReplayEvent[]=[],contexts=new Map<string,{dataset:ReplayDatasetInput;candles:StrategyCandle[]}>();
+ validateCoordinatedDatasets(input.configuration,input.datasets);
+ const alt=needsBtcReference(input.configuration),windowSize=requiredReplayBars(input.configuration),events:ReplayEvent[]=[],contexts=new Map<string,{dataset:ReplayDatasetInput;candles:StrategyCandle[]}>();
  const admitted=input.datasets.map(dataset=>({dataset,rows:admitHistoricalCandles(dataset.candles,dataset.timeframe,input.end,dataset.market==='crypto'?'24x7':'FOREX_24x5').candles}));
  const reference=alt?admitted.find(d=>d.dataset.symbol==='BTCUSDT'):undefined;
  const referenceCloses=new Map(reference?.rows.map((c,i)=>[Date.parse(c.open_time)+900000,i])??[]);
  if(alt&&admitted.some(d=>d.rows.filter(c=>Date.parse(c.open_time)+900000<=Date.parse(input.start)).length<windowSize))throw Error('ALT_WARMUP_COVERAGE_REQUIRED');
  for(const {dataset,rows} of admitted){
-  if(alt&&dataset.symbol==='BTCUSDT')continue;
+  if(referenceOnly(input.configuration,dataset.symbol))continue;
   for(let i=alt?windowSize-1:54;i<rows.length;i++){
    if(i%64===0&&await input.shouldCancel?.())throw new Error('RUN_CANCELLED');
    const candles=rows.slice(Math.max(0,i-windowSize+1),i+1),closedAt=new Date(Date.parse(candles.at(-1)!.open_time)+width(dataset.timeframe)).toISOString();
-   if(closedAt<input.start||closedAt>input.end)continue;
+   if(closedAt<input.start||closedAt>input.end||isCryptoTeam(input.configuration)&&Date.parse(closedAt)%3600000!==0)continue;
    const identity=`${dataset.symbol}:${dataset.timeframe}:${closedAt}`,contentHash=`${dataset.hash}:${candles.at(-1)!.open_time}:${candles.at(-1)!.close}`;
    events.push({symbol:dataset.symbol,timeframe:dataset.timeframe,closedAt,contentHash,payload:identity});contexts.set(identity,{dataset,candles});
   }
  }
  if(events.length>input.maxCycles)throw new Error('REPLAY_RANGE_EXCEEDS_CYCLE_LIMIT_SELECT_SHORTER_PERIOD');
- return replayScannerChronologically({shouldCancel:input.shouldCancel,resume:input.resume,onEvidence:input.onEvidence,events:events.sort((a,b)=>Date.parse(a.closedAt)-Date.parse(b.closedAt)||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe)).slice(0,input.maxCycles),cooldownMs:input.cooldownMs,evaluate:event=>{
+ return replayScannerChronologically({shouldCancel:input.shouldCancel,resume:input.resume,onEvidence:input.onEvidence,events:events.sort((a,b)=>Date.parse(a.closedAt)-Date.parse(b.closedAt)||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe)).slice(0,input.maxCycles),cooldownMs:input.cooldownMs,...(isCryptoTeam(input.configuration)?{maxActiveSignals:3}:{}),evaluate:event=>{
   const ctx=contexts.get(String(event.payload))!,registry=createApprovedReplayRegistry(input.configuration,event.symbol,event.timeframe);
   const config:ReplayConfiguration={runId:input.runId,mode:'REPLAY',dataset:{id:ctx.dataset.id,source:ctx.dataset.source,provenance:'MULTI_DATASET_REPLAY',sha256:ctx.dataset.hash,timezone:'UTC',marketCalendar:ctx.dataset.market==='crypto'?'24x7':'FOREX_24x5'},configurationVersion:input.configuration.version,parameterVersion:input.configurationHash,symbol:event.symbol,market:ctx.dataset.market,timeframe:event.timeframe,start:event.closedAt,end:event.closedAt,maxCycles:1,minimumScore:0,allowedGrades:['A+','A','B'],minSignalGrade:input.configuration.minSignalGrade};
   const referenceIndex=referenceCloses.get(Date.parse(event.closedAt));

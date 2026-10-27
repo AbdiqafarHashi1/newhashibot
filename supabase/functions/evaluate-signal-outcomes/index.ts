@@ -1,3 +1,4 @@
+import {signalReferenceR} from '../_shared/signal-level-outcomes.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
@@ -82,21 +83,7 @@ function formatPips(value: number | null): string {
 }
 
 function rMultipleForStatus(sig: SignalRow, status: string): number | null {
-  if (status === "sl_hit") return -1;
-  const entry = entryMidpoint(sig);
-  const stop = numberField(sig, "stop_loss", "sl");
-  const risk = entry !== null && stop !== null ? Math.abs(entry - stop) : 0;
-  if (!Number.isFinite(risk) || risk <= 0 || entry === null) return null;
-  if (status === "tp1_hit") {
-    const tp1 = numberField(sig, "tp1");
-    return tp1 !== null ? Math.abs(tp1 - entry) / risk : null;
-  }
-  if (status === "tp2_hit") {
-    const tp2 = numberField(sig, "tp2");
-    return tp2 !== null ? Math.abs(tp2 - entry) / risk : numberField(sig, "risk_reward");
-  }
-  if (status === "expired") return 0;
-  return null;
+  return signalReferenceR({entry:entryMidpoint(sig),stop:numberField(sig,'stop_loss','sl'),tp1:numberField(sig,'tp1'),tp2:numberField(sig,'tp2'),direction:String(sig.direction??'').toLowerCase()},status);
 }
 
 function toTwelveDataInterval(tf: string): string | null {
@@ -406,7 +393,7 @@ function formatOutcomeMessage(sig: SignalRow, newStatus: string, price: number |
     strategy_version: typeof sig.strategy_version === "string" ? sig.strategy_version : undefined, timeframe: String(sig.timeframe ?? "—"), event_price: price,
     entry_low: entry ?? undefined, entry_high: entry ?? undefined, stop_loss: stopLoss ?? undefined, tp1: tp1 ?? undefined, tp2: tp2 ?? undefined,
     realized_r: rMultipleForStatus(sig, newStatus), closure_reason: newStatus, session_context: marketType === "forex" ? String(sig.session_context ?? "Forex session") : undefined,
-    evidence: [`Persisted lifecycle status: ${newStatus}`], occurred_at: new Date().toISOString(),
+    evidence: [`Persisted lifecycle status: ${newStatus}`, "Virtual signal-level observation; reference-level R is gross and is not provider fill or net account P&L."], occurred_at: new Date().toISOString(),
   });
 }
 

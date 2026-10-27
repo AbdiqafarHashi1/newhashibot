@@ -1,0 +1,16 @@
+{
+ "schema":"crypto-team-study/v1",
+ "declaredOn":"2026-10-27",
+ "scope":["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT"],
+ "scopeReason":"Fixed major assets plus two large alts; four datasets fit the existing worker bound. XRP and the wider old watchlist evidence remain retained, not removed for losses. This is not historical point-in-time universe reconstruction.",
+ "development":{"start":"2025-01-11T00:00:00.000Z","end":"2026-01-01T00:00:00.000Z"},
+ "validation":{"start":"2026-01-01T00:00:00.000Z","end":"2026-07-01T00:00:00.000Z"},
+ "disclosure":"Both calendar periods were previously observed elsewhere in the project. New fixed coordinated hypotheses; not project-wide untouched validation. Do not tune on results. Later holdout and forward evidence remain separate. Each role is measured with the same symbol lock and three-active-signal concentration cap; combined stream is measured separately.",
+ "roles":["crypto.team-trend","crypto.team-range","crypto.team-breakout","crypto.team-alt"],
+ "costBps":{"fees":10,"spread":2,"slippage":4,"funding":9},
+ "stressMultiplier":1.5,
+ "lifecycle":"next native15m open; full strategy target; no partial/BE/trailing; stop-first;96nativebars maximum; incomplete horizons OPEN",
+ "gates":{"developmentTrades":50,"validationTrades":30,"netPF":1.2,"stressPF":1.0,"expectancyR":0.0},
+ "qualification":"A role failing development is not evaluated in validation. All existing source files are checked for integrity; these dates are not held out from the project. Combined development is diagnostic for all4; later combined validation uses only individually eligible roles if at least2 pass. No automatic promotion or publication.",
+ "publication":false,"execution":false
+}

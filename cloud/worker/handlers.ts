@@ -1,4 +1,4 @@
-import {replayContextBars,validateAltDatasetSelection} from '../../supabase/functions/_shared/crypto-relative-strength.ts';
+import {requiredReplayBars,validateCoordinatedDatasets} from '../../supabase/functions/_shared/coordinated-crypto-selection.ts';
 import type {ValidationDecision} from '../../supabase/functions/_shared/phase-l-validation.ts';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import type {ReplayOutcome} from '../../supabase/functions/_shared/replay-outcomes.ts';
@@ -49,12 +49,12 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         if(error||!data||data.status!=='READY'||data.dataset_hash!==item.hash)throw new WorkerFault('SOURCE_NOT_CURRENT',true);
         const candles=await loadPortableCandles(db,item.id);validateDatasetIntegrity(candles,{symbol:data.symbol,timeframe:data.timeframe,rowCount:data.row_count});
         if(await hashValidationDataset(candles)!==item.hash)throw new WorkerFault('DATASET_HASH_MISMATCH',true);
-        const width=TIMEFRAME_MS[data.timeframe as keyof typeof TIMEFRAME_MS],window=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(p.start)-Math.max(220,replayContextBars(p.configuration))*width&&Date.parse(c.open_time)<Date.parse(p.end));
+        const width=TIMEFRAME_MS[data.timeframe as keyof typeof TIMEFRAME_MS],window=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(p.start)-Math.max(220,requiredReplayBars(p.configuration))*width&&Date.parse(c.open_time)<Date.parse(p.end));
         if(window.length>(p.extended?RESEARCH_LIMITS.candles:LIMITS.candles))throw new WorkerFault('REPLAY_WINDOW_TOO_LARGE_SELECT_SHORTER_DATES',true);
         if(window.length<55)throw new WorkerFault('REPLAY_WINDOW_INSUFFICIENT_HISTORY',true);
         datasets.push({id:item.id,hash:item.hash,configurationHash:job.configuration_hash!,source:data.source,symbol:data.symbol,market:(candles[0]?.market_type==='crypto'?'crypto':'forex') as 'forex'|'crypto',timeframe:data.timeframe,candles:window});
       }
-      validateAltDatasetSelection(p.configuration,datasets);
+      validateCoordinatedDatasets(p.configuration,datasets);
       const evaluationEnd=new Date(Math.min(Date.parse(p.end)-1,...datasets.map(d=>Date.parse(d.candles.at(-1)!.open_time)))).toISOString();
       const assumptions=p.assumptions??DEFAULT_REPLAY_ASSUMPTIONS;
       if(job.checkpoint.cursor&&(!job.checkpoint.replay||job.checkpoint.replay.cursor!==job.checkpoint.cursor))throw new WorkerFault('CHECKPOINT_INVALID',true);

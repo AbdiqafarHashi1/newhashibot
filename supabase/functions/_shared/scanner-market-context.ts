@@ -1,3 +1,4 @@
+import {cryptoTeamPolicy} from './coordinated-crypto-policy.ts';
 import {observeAdaptiveMarket,type AdaptiveMarketEvidence} from "./adaptive-market-policy.ts";
 import type {LegacyStrategyResult,StrategyRuntimeConfig,StrategyCandle,StrategyIndicatorSnapshot} from "./professional-strategies.ts";
 export interface MarketArbitrationEntry {name:string;result:LegacyStrategyResult;cfg:StrategyRuntimeConfig;guard:{sl_pct:number;tp1_pct:number;tp2_pct:number}}
@@ -135,6 +136,7 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  const teamPolicy=cryptoTeamPolicy(entries);if(teamPolicy!==undefined)return teamPolicy;
   if(entries.every(e=>['crypto.cost-aware-15m','forex.cost-aware-hourly'].includes(e.name))){
     return entries.every(e=>{
       const b=e.result.score_breakdown;

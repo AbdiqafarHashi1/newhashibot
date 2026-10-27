@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {gunzipSync} from 'node:zlib';
 const sha=(b:Buffer|string)=>createHash('sha256').update(b).digest('hex'),folder='docs/research/alt-connected',summary=JSON.parse(readFileSync(`${folder}/summary.json`,'utf8')),z=readFileSync(`${folder}/evidence.json.gz`),raw=gunzipSync(z),e=JSON.parse(raw.toString());
 assert.equal(sha(z),summary.compressedSha256);assert.equal(sha(raw),summary.uncompressedSha256);
-for(const [path,hash]of Object.entries(e.sourceHashes))assert.equal(sha(readFileSync(path)),hash,path);
+const snapshot=JSON.parse(gunzipSync(readFileSync(`${folder}/source-snapshot.json.gz`)).toString());assert.equal(snapshot.commit,'e7a5afc12e392c3bf628f38cef3d70f17144ba80');for(const [path,hash]of Object.entries(e.sourceHashes))assert.equal(sha(snapshot.sources[path]),hash,path);
 assert.equal(e.configuration.researchOnly,true);assert.equal(e.publication,false);assert.equal(e.execution,false);assert.equal(e.promotion,false);assert.equal(e.parityDecisions,24288);assert.equal(e.sources.length,48);assert.equal(e.runs.length,12);assert.equal(e.runs.reduce((n:number,r:{cycles:number})=>n+r.cycles,0),97152);assert.equal(e.bySymbol.length,11);
 const old=JSON.parse(gunzipSync(readFileSync('docs/research/alt-universe/evidence.json.gz')).toString()),prior=new Map<string,{candidate:{stop:number;entry:number};outcome:Record<string,number|string>;stressOutcome:Record<string,number|string>}>(old.cases.flatMap((c:{symbol:string;selections:{decisionAt:string}[]})=>c.selections.map(s=>[`${c.symbol}:${s.decisionAt}`,s])));
 const near=(a:number,b:number)=>assert.ok(Math.abs(a-b)<1e-10,`${a} != ${b}`);let positive=0,negative=0,net=0;
