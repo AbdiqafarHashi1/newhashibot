@@ -1,0 +1,35 @@
+{
+  "schema": "daily-ema-bracket/v1",
+  "declaredOn": "2026-10-28",
+  "motivation": "Adapt the previously positive fixed daily EMA20/50 spot model to the existing scanner numeric stop/target contract. This is a new lifecycle hypothesis, not a claim to reproduce the old trailing-exit returns. Declared after the daily-specialist results; all prior failures retained. Exactly one candidate, no parameter grid.",
+  "assets": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "stages": [
+    {
+      "name": "DEVELOPMENT",
+      "from": "2018-01-01",
+      "until": "2022-01-01"
+    },
+    {
+      "name": "VALIDATION",
+      "from": "2022-01-01",
+      "until": "2025-01-01"
+    }
+  ],
+  "entry": "completed close>EMA200 and EMA20>EMA50; next daily open;250 warmup",
+  "stopATR": 2,
+  "targetATR": 6,
+  "maxBars": 30,
+  "rules": "actual SPOT long/cash; WilderATR14; stop-first; no BE/partial/trail;26bps cost,39stress; no samebar reentry; endstage incomplete OPEN; signed fill risk. Equity/portfolio not claimed.",
+  "gates": {
+    "developmentTrades": 30,
+    "validationTrades": 50,
+    "minEachAsset": 10,
+    "netPF": 1.2,
+    "stressPF": 1
+  },
+  "publication": false,
+  "execution": false
+}

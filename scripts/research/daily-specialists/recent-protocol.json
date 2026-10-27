@@ -1,0 +1,25 @@
+{
+  "schema": "daily-ema-recent-check/v1",
+  "declaredOn": "2026-10-28",
+  "primary": "EMA_BRACKET unchanged 2ATR stop/6ATR target/30days, recursive seeded indicators and250warmup. Fixed before acquiring these SPOT rows. No parameter changes based on results.",
+  "period": {
+    "name": "RECENT_EXTENSION",
+    "from": "2025-01-01",
+    "until": "2026-10-01"
+  },
+  "assets": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "disclosure": "These SPOT daily rows are not in the local prior spot cache; equivalent calendar futures prices have been researched extensively. This is new-instrument chronological corroboration, NOT untouched project-wide holdout. Earlier validation fixed at2022-2024 is retained.",
+  "gates": {
+    "minimumResolved": 30,
+    "minimumEachAsset": 10,
+    "netPF": 1.2,
+    "stressPF": 1.0,
+    "positiveEachAsset": true
+  },
+  "costs": "26bps/39bps same fixed reserves; no funding/short/leverage. One active symbol; new actual engine parity still required.",
+  "publication": false,
+  "execution": false
+}

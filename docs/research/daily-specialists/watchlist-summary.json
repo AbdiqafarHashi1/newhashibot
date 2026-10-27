@@ -1,0 +1,305 @@
+{
+  "protocol": {
+    "schema": "spot-ema-liquid-watchlist/v1",
+    "declaredOn": "2026-10-28",
+    "assets": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "LINKUSDT"
+    ],
+    "scope": "Fixed liquid large-cap cross section chosen before new per-asset results. Contemporary scope, NOT point-in-time universe reconstruction; survivorship bias disclosed. Do not remove losing assets.",
+    "model": "Original EMA20/50_REGIME from spot-swing-study.py unchanged, 2WilderATR initial stop,3ATR favorable-close trail, next-open regime exit, long/cash SPOT. No numeric target substituted. No leverage/short/funding.",
+    "stages": [
+      {
+        "name": "DEVELOPMENT",
+        "from": "2018-01-01",
+        "until": "2022-01-01"
+      },
+      {
+        "name": "VALIDATION",
+        "from": "2022-01-01",
+        "until": "2025-01-01"
+      },
+      {
+        "name": "RECENT_EXTENSION",
+        "from": "2025-01-01",
+        "until": "2026-10-01"
+      }
+    ],
+    "gates": {
+      "developmentTrades": 80,
+      "validationTrades": 80,
+      "recentTrades": 60,
+      "assetMinimums": [
+        5,
+        10,
+        5
+      ],
+      "netPF": 1.2,
+      "stressPF": 1.0,
+      "positiveEachAsset": true
+    },
+    "costs": "26bps roundtrip;39bps stress; equal-notional closed returns, not account equity. Stage-end virtual liquidation retained from original protocol.",
+    "acquisition": "Public GET market-data-only REST, at most4pages per asset/stage,1000rows/page,25second timeout,2MB/body. Raw SHA and gap/closed/OHLC admission, no provider/account credentials.",
+    "source": "Existing BTC/ETH raw cache preserved; other assets newly acquired. Initial prelisting gap and early2018 nonstandard candle prefix are disclosed;200bar warmup follows admitted start, matching the explicitly referenced original model. No candles fabricated.",
+    "disclosure": "Exploratory scope extension after BTC/ETH evidence; not independent untouched project-wide holdout, not correction of old gate failures or old validation. All four daily-specialist results and every prior failure retained. New fixed recent stage is evaluated only if broader preceding stages pass.",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "sourceHashes": {
+    "/workspace/scratch/40cca52b0b61/hashibot/scripts/research/daily-specialists/watchlist-protocol.json": "ea4a8be86a162db450872aaf348296b295a36bbd29d4b360967d5207669461b5",
+    "/workspace/scratch/40cca52b0b61/hashibot/scripts/research/daily-specialists/watchlist.py": "fd0ea165e196802a766bc6bf98da024d84e242844514009177ca0e9a6f1e0153",
+    "/workspace/scratch/40cca52b0b61/hashibot/scripts/research/spot-swing-study.py": "5a2c36a1bc5e4e4584c80a773906a3c5cc68a98dc670c033f656ff1ffa13f494"
+  },
+  "cases": [
+    {
+      "stage": "DEVELOPMENT",
+      "pooled": {
+        "trades": 154,
+        "netPF": 2.8409161285117546,
+        "stressPF": 2.800460275055368,
+        "grossPF": 2.924721652298624,
+        "meanNet": 0.12278337735788612,
+        "meanStress": 0.12148337735788614
+      },
+      "failures": [],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "trades": 31,
+            "netPF": 2.7033549955219023,
+            "stressPF": 2.6440253222515104,
+            "grossPF": 2.828517648361089,
+            "meanNet": 0.07295136544037421,
+            "meanStress": 0.07165136544037425
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "trades": 27,
+            "netPF": 2.7364344697000718,
+            "stressPF": 2.6989978745904266,
+            "grossPF": 2.8136745924272657,
+            "meanNet": 0.11341889139374378,
+            "meanStress": 0.11211889139374377
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "trades": 32,
+            "netPF": 5.30500481941259,
+            "stressPF": 5.232499707000015,
+            "grossPF": 5.455298592063452,
+            "meanNet": 0.25074558982060013,
+            "meanStress": 0.24944558982060017
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "trades": 8,
+            "netPF": 4.788543454488606,
+            "stressPF": 4.7487718026950505,
+            "grossPF": 4.869760831667888,
+            "meanNet": 0.35594842108583075,
+            "meanStress": 0.35464842108583083
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "trades": 26,
+            "netPF": 1.4862604726474558,
+            "stressPF": 1.4656921908235212,
+            "grossPF": 1.5289237099681634,
+            "meanNet": 0.04229369822657741,
+            "meanStress": 0.040993698226577405
+          }
+        },
+        {
+          "symbol": "LINKUSDT",
+          "metrics": {
+            "trades": 30,
+            "netPF": 1.7006579452850683,
+            "stressPF": 1.6768483527704565,
+            "grossPF": 1.7497586348857523,
+            "meanNet": 0.053791843999830585,
+            "meanStress": 0.05249184399983056
+          }
+        }
+      ]
+    },
+    {
+      "stage": "VALIDATION",
+      "pooled": {
+        "trades": 150,
+        "netPF": 1.886008586400429,
+        "stressPF": 1.8377422708338433,
+        "grossPF": 1.9887241774567905,
+        "meanNet": 0.03913093585229723,
+        "meanStress": 0.037830935852297236
+      },
+      "failures": [],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "trades": 23,
+            "netPF": 2.5267899173116195,
+            "stressPF": 2.4411194967916874,
+            "grossPF": 2.7061612567962525,
+            "meanNet": 0.047196925598365566,
+            "meanStress": 0.04589692559836558
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "trades": 23,
+            "netPF": 1.4424950546811606,
+            "stressPF": 1.387037414758458,
+            "grossPF": 1.563553160121839,
+            "meanNet": 0.013165437943597485,
+            "meanStress": 0.011865437943597476
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "trades": 27,
+            "netPF": 1.4721641303101591,
+            "stressPF": 1.4221494912129449,
+            "grossPF": 1.5800499486554036,
+            "meanNet": 0.015534724306526295,
+            "meanStress": 0.014234724306526291
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "trades": 20,
+            "netPF": 3.385319100065229,
+            "stressPF": 3.3277570689278964,
+            "grossPF": 3.5060496240673418,
+            "meanNet": 0.14791950481516636,
+            "meanStress": 0.1466195048151664
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "trades": 33,
+            "netPF": 1.389611277853054,
+            "stressPF": 1.3590288636372183,
+            "grossPF": 1.454790591395068,
+            "meanNet": 0.021967179770421313,
+            "meanStress": 0.02066717977042131
+          }
+        },
+        {
+          "symbol": "LINKUSDT",
+          "metrics": {
+            "trades": 24,
+            "netPF": 1.3052136674697752,
+            "stressPF": 1.274308623476602,
+            "grossPF": 1.3710809139744007,
+            "meanNet": 0.015773392973999763,
+            "meanStress": 0.014473392973999777
+          }
+        }
+      ]
+    },
+    {
+      "stage": "RECENT_EXTENSION",
+      "pooled": {
+        "trades": 81,
+        "netPF": 1.0364746915680927,
+        "stressPF": 1.0070851286424074,
+        "grossPF": 1.0988990990819958,
+        "meanNet": 0.001621161144791558,
+        "meanStress": 0.0003211611447915541
+      },
+      "failures": [
+        "NET_PF",
+        "ASSET_EVIDENCE"
+      ],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "trades": 13,
+            "netPF": 1.1559041932707161,
+            "stressPF": 1.0979029304299976,
+            "grossPF": 1.2859992149491037,
+            "meanNet": 0.003731170155639741,
+            "meanStress": 0.0024311701556397423
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "trades": 12,
+            "netPF": 2.6569426762729327,
+            "stressPF": 2.567412245903356,
+            "grossPF": 2.8501975158253665,
+            "meanNet": 0.042914441718890285,
+            "meanStress": 0.041614441718890276
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "trades": 14,
+            "netPF": 2.172249108210167,
+            "stressPF": 2.085955641828727,
+            "grossPF": 2.364149596078056,
+            "meanNet": 0.03135816838829898,
+            "meanStress": 0.03005816838829897
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "trades": 14,
+            "netPF": 0.7968228046745911,
+            "stressPF": 0.7777388149180325,
+            "grossPF": 0.8369083411506278,
+            "meanNet": -0.01164313924099963,
+            "meanStress": -0.012943139240999638
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "trades": 17,
+            "netPF": 0.3782823343630701,
+            "stressPF": 0.3685206177807175,
+            "grossPF": 0.39867641746279325,
+            "meanNet": -0.0428142424806171,
+            "meanStress": -0.044114242480617086
+          }
+        },
+        {
+          "symbol": "LINKUSDT",
+          "metrics": {
+            "trades": 11,
+            "netPF": 1.0311809463649009,
+            "stressPF": 1.0083883543790633,
+            "grossPF": 1.0787977748473767,
+            "meanNet": 0.0017879321987650874,
+            "meanStress": 0.0004879321987650766
+          }
+        }
+      ]
+    }
+  ],
+  "compressedSha256": "36848a4901b9f57edf630f58b4f26a65a7307c333eaaebcde7c0e4d76ad0e32f",
+  "uncompressedSha256": "09bb09eba14fa89ced46510270218e0f1a96d13eb9ebc888ef466c4902a57a52"
+}

@@ -1,0 +1,113 @@
+{
+  "protocol": {
+    "schema": "daily-ema-bracket/v1",
+    "declaredOn": "2026-10-28",
+    "motivation": "Adapt the previously positive fixed daily EMA20/50 spot model to the existing scanner numeric stop/target contract. This is a new lifecycle hypothesis, not a claim to reproduce the old trailing-exit returns. Declared after the daily-specialist results; all prior failures retained. Exactly one candidate, no parameter grid.",
+    "assets": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "stages": [
+      {
+        "name": "DEVELOPMENT",
+        "from": "2018-01-01",
+        "until": "2022-01-01"
+      },
+      {
+        "name": "VALIDATION",
+        "from": "2022-01-01",
+        "until": "2025-01-01"
+      }
+    ],
+    "entry": "completed close>EMA200 and EMA20>EMA50; next daily open;250 warmup",
+    "stopATR": 2,
+    "targetATR": 6,
+    "maxBars": 30,
+    "rules": "actual SPOT long/cash; WilderATR14; stop-first; no BE/partial/trail;26bps cost,39stress; no samebar reentry; endstage incomplete OPEN; signed fill risk. Equity/portfolio not claimed.",
+    "gates": {
+      "developmentTrades": 30,
+      "validationTrades": 50,
+      "minEachAsset": 10,
+      "netPF": 1.2,
+      "stressPF": 1
+    },
+    "publication": false,
+    "execution": false
+  },
+  "cases": [
+    {
+      "stage": "DEVELOPMENT",
+      "pooled": {
+        "selected": 76,
+        "resolved": 75,
+        "open": 1,
+        "netPF": 2.6298965829826324,
+        "stressPF": 2.5848795740137898,
+        "meanR": 0.7177065577884321
+      },
+      "failures": [],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 38,
+            "resolved": 38,
+            "open": 0,
+            "netPF": 2.459799278116016,
+            "stressPF": 2.410227185657282,
+            "meanR": 0.6533475058283067
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 38,
+            "resolved": 37,
+            "open": 1,
+            "netPF": 2.81049764897769,
+            "stressPF": 2.771039532482139,
+            "meanR": 0.7838050435853177
+          }
+        }
+      ]
+    },
+    {
+      "stage": "VALIDATION",
+      "pooled": {
+        "selected": 53,
+        "resolved": 51,
+        "open": 2,
+        "netPF": 1.6206752512786748,
+        "stressPF": 1.5778485834066271,
+        "meanR": 0.34136188397046674
+      },
+      "failures": [],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 28,
+            "resolved": 27,
+            "open": 1,
+            "netPF": 2.1927369793954283,
+            "stressPF": 2.1290514715381086,
+            "meanR": 0.5712256369109084
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 25,
+            "resolved": 24,
+            "open": 1,
+            "netPF": 1.1313873667505103,
+            "stressPF": 1.1044931624890428,
+            "meanR": 0.08276516191246983
+          }
+        }
+      ]
+    }
+  ],
+  "compressedSha256": "f194f42235cdcb797a56083fadc1c8943aa2db35ae5b2401593abae35e433b76",
+  "uncompressedSha256": "a2df3a8453e2299b7aac9ce3668d15a613e78b6cc6f88a5effe6be044c9eee36"
+}
