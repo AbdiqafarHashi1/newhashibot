@@ -1,0 +1,16 @@
+{
+ "schema":"crypto-niche-activity/v1","writtenOn":"2026-10-27",
+ "assets":["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT"],
+ "from":"2025-01-01T00:00:00.000Z","decisionFrom":"2025-01-11T00:00:00.000Z","until":"2026-07-01T00:00:00.000Z",
+ "setups":["LEADER_RELAY","RANGE_FLOW_TURN","TREND_SHOCK_RECOVERY"],
+ "relay":"ETH/BNB/SOL/XRP follow a BTC1h impulse of at least1%; own1h return has same sign but is no more than half BTC magnitude. BTC hourly quote volume>=1.5x previous24h average. Own closed H1 EMA50/200 agrees; current15m price breaks previous candle in trend direction and buyer share>=0.55 for BUY or<=0.45 for SELL. Stop wider of2ATR14 or previous8bar extreme; target2.5R;8h maximum.",
+ "flow":"Closed H1 prior24h path efficiency<=0.20 and EMA50/EMA200 distance<=1H1ATR. Recent16bar low/high exceeds prior16bar extreme. Recent4bar native taker-buy share improves by>=0.15 versus the4bars ending16bars ago (or worsens symmetrically); current share>=0.55/<=0.45 and current close breaks prior candle high/low. Price remains in outer25% of previous32bar range. Stop beyond recent16bar extreme by0.25ATR or1.5ATR minimum; target previous32bar midpoint, RR>=1.3;8h maximum. This is observed taker-flow divergence, not synthetic CVD or whale/liquidation evidence.",
+ "shock":"Closed H1 EMA50/200 and price/EMA50 agree. Previous15m candle moves against trend by>=1.5 priorATR, has range>=2.5priorATR and quote volume>=2x preceding24h mean. Current close recovers at least half previous real body and moves with trend; buyer share>=0.60 or<=0.40. Stop beyond shock/current extreme by0.25ATR and at least1.5ATR;target2R;8h maximum. Volume shock is not verified liquidation/news evidence.",
+ "geometry":"All targets positive and directional, minimum0.5% stop distance, target price move>=5x19bp modeled roundtrip costs. No arbitrary confidence probability.",
+ "costsBps":{"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBps":3},"stressMultiplier":1.5,
+ "accounting":"Next native15m open; full target/no BE; conservative stop-first collisions and adverse gap fills;8h maximum; incomplete horizon remains OPEN. One active per symbol per experiment; COMBINED uses existing canonical arbitrator with equal fixed rule scores and deterministic IDs. Independent signal R, not netted account/portfolio returns.",
+ "activity":"Measure candidate decisions and actual non-excluded research entries by UTCdate across all536days after10day warmup. Include zero-signal days, active-day share, average/median/max entries and longest zero-entry streak. One trade/day is a service aspiration, never a forced-entry rule or guaranteed delivery count.",
+ "gates":{"minimumPooledResolved":100,"minimumEligibleAssetResolved":10,"minimumEachDirectionResolved":20,"minimumNetPF":1.2,"minimumMeanR":0.02,"positiveEachEligibleAsset":true,"positiveEachDirection":true,"positiveEachCalendarSlice":true,"positiveStress":true},
+ "disclosure":"Three fixed hypotheses after prior failures. All dates/assets are reused development. No parameter sweep, later-period rescue or dropping losing eligible assets. BTC is structurally ineligible for following itself in relay. Native source ZIP/CHECKSUM verification is required. No independent holdout/production parity/edge or release claim.",
+ "publication":false,"execution":false,"promotion":false
+}
