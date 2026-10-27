@@ -1,3 +1,4 @@
+import {replayContextBars,validateAltDatasetSelection} from '../../supabase/functions/_shared/crypto-relative-strength.ts';
 import type {ValidationDecision} from '../../supabase/functions/_shared/phase-l-validation.ts';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import type {ReplayOutcome} from '../../supabase/functions/_shared/replay-outcomes.ts';
@@ -48,11 +49,12 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         if(error||!data||data.status!=='READY'||data.dataset_hash!==item.hash)throw new WorkerFault('SOURCE_NOT_CURRENT',true);
         const candles=await loadPortableCandles(db,item.id);validateDatasetIntegrity(candles,{symbol:data.symbol,timeframe:data.timeframe,rowCount:data.row_count});
         if(await hashValidationDataset(candles)!==item.hash)throw new WorkerFault('DATASET_HASH_MISMATCH',true);
-        const width=TIMEFRAME_MS[data.timeframe as keyof typeof TIMEFRAME_MS],window=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(p.start)-220*width&&Date.parse(c.open_time)<Date.parse(p.end));
+        const width=TIMEFRAME_MS[data.timeframe as keyof typeof TIMEFRAME_MS],window=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(p.start)-Math.max(220,replayContextBars(p.configuration))*width&&Date.parse(c.open_time)<Date.parse(p.end));
         if(window.length>(p.extended?RESEARCH_LIMITS.candles:LIMITS.candles))throw new WorkerFault('REPLAY_WINDOW_TOO_LARGE_SELECT_SHORTER_DATES',true);
         if(window.length<55)throw new WorkerFault('REPLAY_WINDOW_INSUFFICIENT_HISTORY',true);
         datasets.push({id:item.id,hash:item.hash,configurationHash:job.configuration_hash!,source:data.source,symbol:data.symbol,market:(candles[0]?.market_type==='crypto'?'crypto':'forex') as 'forex'|'crypto',timeframe:data.timeframe,candles:window});
       }
+      validateAltDatasetSelection(p.configuration,datasets);
       const evaluationEnd=new Date(Math.min(Date.parse(p.end)-1,...datasets.map(d=>Date.parse(d.candles.at(-1)!.open_time)))).toISOString();
       const assumptions=p.assumptions??DEFAULT_REPLAY_ASSUMPTIONS;
       if(job.checkpoint.cursor&&(!job.checkpoint.replay||job.checkpoint.replay.cursor!==job.checkpoint.cursor))throw new WorkerFault('CHECKPOINT_INVALID',true);
@@ -79,7 +81,7 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
       const cycles=Number(job.checkpoint.cursor??0);if(!cycles)throw new WorkerFault('SOURCE_RANGE_NOT_COVERED',true);
       const stored=await loadNativeEvidence<{candidate_id:string;strategy_id:string;symbol:string;timeframe:string;status:ReplayOutcome['status'];entry_time:string;exit_time:string|null;entry_price:number;exit_price:number|null;gross_r:number|null;net_r:number|null;cost_r:number;partial_exit:boolean;conservative:boolean;cash_flow_events:ReplayOutcome['cashFlowEvents']}>(db,'validation_outcomes',job.run_id,'entry_time',p.extended?RESEARCH_LIMITS.cycles:LIMITS.cycles);
       const outcomes=stored.map(o=>({candidateId:o.candidate_id,strategyId:o.strategy_id,symbol:o.symbol,timeframe:o.timeframe,status:o.status,entryTime:o.entry_time,exitTime:o.exit_time,entryPrice:Number(o.entry_price),exitPrice:o.exit_price===null?null:Number(o.exit_price),grossR:o.gross_r===null?null:Number(o.gross_r),netR:o.net_r===null?null:Number(o.net_r),costR:Number(o.cost_r),partialExit:o.partial_exit,conservative:o.conservative,cashFlowEvents:o.cash_flow_events}));
-      return {done:true,summary:{cycles,outcomes:outcomes.length,overall:summarizeReplayOutcomes(outcomes),classification:p.researchModelId?'RESEARCH_MODEL_SIMULATION':'REPLAY',researchOnly:Boolean(p.researchModelId),evaluationEnd,requestedEnd:p.end,coverageReason:evaluationEnd<p.end?'FORWARD_CANDLE_REQUIRED':null,publication:false,execution:false}};
+      return {done:true,summary:{cycles,outcomes:outcomes.length,overall:summarizeReplayOutcomes(outcomes),classification:p.researchCandidateId?'RESEARCH_CANDIDATE_SIMULATION':p.researchModelId?'RESEARCH_MODEL_SIMULATION':'REPLAY',researchOnly:Boolean(p.researchModelId||p.researchCandidateId),evaluationEnd,requestedEnd:p.end,coverageReason:evaluationEnd<p.end?'FORWARD_CANDLE_REQUIRED':null,publication:false,execution:false}};
     },
     ACCOUNT:async context=>{
       await context.check();const authority=await deriveAccountSimulationAuthority(db,{...context.job.payload,actorId:context.job.customer_id,maxEvidenceRows:LIMITS.cycles} as Parameters<typeof deriveAccountSimulationAuthority>[1]);

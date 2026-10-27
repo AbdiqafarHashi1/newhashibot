@@ -1,0 +1,953 @@
+{
+  "schema": "alt-connected-scanner-diagnostic/v1",
+  "configuration": {
+    "researchOnly": true,
+    "version": "research/alt-relative-strength/v1",
+    "minSignalGrade": "A",
+    "outcomeAssumptions": {
+      "entryTiming": "NEXT_OPEN",
+      "feeBps": 10,
+      "spreadBps": 2,
+      "slippageBps": 4,
+      "fundingBps": 9,
+      "partialExitPct": 0,
+      "moveStopToBreakevenAfterTp1": false,
+      "trailingStopR": null,
+      "sameCandlePolicy": "STOP_FIRST",
+      "maxBarsInTrade": 96,
+      "closeAtHorizon": true
+    },
+    "strategies": [
+      {
+        "id": "crypto.alt-relative-strength-v1",
+        "version": "1.0.0",
+        "enabled": true,
+        "minScore": 75,
+        "minRiskReward": 1.3,
+        "maxBarsInTrade": 96,
+        "symbols": [
+          "BNBUSDT",
+          "SOLUSDT",
+          "XRPUSDT",
+          "ADAUSDT",
+          "DOGEUSDT",
+          "LINKUSDT",
+          "AVAXUSDT",
+          "LTCUSDT",
+          "BCHUSDT",
+          "NEARUSDT",
+          "TRXUSDT"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "parameters": {}
+      }
+    ]
+  },
+  "configurationHash": "c2f61fed6e1ae9cd5fe79c8c26e8dc1c029e6c2d31263eaa16b58dcd6997d5df",
+  "sourceHashes": {
+    "scripts/research/alt-scanner-connected.ts": "12921e942bb3399b21f7e4a6c45badc8a01c2c21bff14ea58b8d42c0b5c64743",
+    "supabase/functions/_shared/crypto-relative-strength.ts": "037974bf2888088ef8ca6ff6f608866fb0ed76fee1430836bf7a720febfac42d",
+    "supabase/functions/_shared/crypto-relative-strength-contract.ts": "7f6c6cc00e9d40277f1193a6a79e0dd344bad2e8da0f2fd4c36ed125435bda73",
+    "supabase/functions/_shared/active-validation-runtime.ts": "c7587d34ba7a35b3475065358477618417bbdfa557c2bc4ee2ec78e0190214b9",
+    "supabase/functions/_shared/multi-dataset-scanner-replay.ts": "2c72da1370e829752d254b7bc11291b239f8ce3232e8eacc1a390a45a1f8654a",
+    "supabase/functions/_shared/phase-l-validation.ts": "44754b4425880c8644cfcf41e37514e019c638448fa46461e1b008768c1319cd",
+    "supabase/functions/_shared/professional-strategies.ts": "226a4aa52a9efb275364e51fc52496c24c446191cc83b2192f8c56f1b043ebcc",
+    "supabase/functions/_shared/scanner-market-context.ts": "19ad2a892ddf9f3fa65cf54ba3b25d873e03bd1000fe4a3e65bb3dd9a612ce07",
+    "supabase/functions/_shared/scanner-selection-policy.ts": "b1b614241c4009c514fc2e5dca1f102d367cc24752c1db9bee273d7b7d25e505",
+    "supabase/functions/_shared/phase-m-validation.ts": "4f85a5a7037e997e79d12665382a9737b9de8f002def1e3ba9191bc139a5bf26",
+    "supabase/functions/_shared/active-qualification.ts": "69c91854eb99ebed0e3dfd01c12f5dced3c0414128cd3cbda25581d3ce3011c4",
+    "supabase/functions/_shared/active-scanner-core.ts": "e935fe2f172ef9d9c959622c36ba4550839974110ebbeed9323fb92bfa8a054e",
+    "supabase/functions/_shared/arbitrator.ts": "147f0f421e6dae22c7495c2c2a27226dad47937ba57289f66b169787cfaed758",
+    "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867",
+    "supabase/functions/_shared/replay-outcomes.ts": "51ab1dec93eab0471ff704c2f0be1573e6489a013a4def6523b51a811ac7b7e9"
+  },
+  "parityDecisions": 24288,
+  "runs": [
+    {
+      "start": "2026-07-01T00:00:00.000Z",
+      "end": "2026-08-01T00:00:00.000Z",
+      "evaluationEnd": "2026-07-31T23:45:00.000Z",
+      "symbols": [
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT"
+      ],
+      "cycles": 8928,
+      "selected": 4
+    },
+    {
+      "start": "2026-07-01T00:00:00.000Z",
+      "end": "2026-08-01T00:00:00.000Z",
+      "evaluationEnd": "2026-07-31T23:45:00.000Z",
+      "symbols": [
+        "ADAUSDT",
+        "DOGEUSDT",
+        "LINKUSDT"
+      ],
+      "cycles": 8928,
+      "selected": 11
+    },
+    {
+      "start": "2026-07-01T00:00:00.000Z",
+      "end": "2026-08-01T00:00:00.000Z",
+      "evaluationEnd": "2026-07-31T23:45:00.000Z",
+      "symbols": [
+        "AVAXUSDT",
+        "LTCUSDT",
+        "BCHUSDT"
+      ],
+      "cycles": 8928,
+      "selected": 11
+    },
+    {
+      "start": "2026-07-01T00:00:00.000Z",
+      "end": "2026-08-01T00:00:00.000Z",
+      "evaluationEnd": "2026-07-31T23:45:00.000Z",
+      "symbols": [
+        "NEARUSDT",
+        "TRXUSDT"
+      ],
+      "cycles": 5952,
+      "selected": 4
+    },
+    {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-09-01T00:00:00.000Z",
+      "evaluationEnd": "2026-08-31T23:45:00.000Z",
+      "symbols": [
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT"
+      ],
+      "cycles": 8928,
+      "selected": 9
+    },
+    {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-09-01T00:00:00.000Z",
+      "evaluationEnd": "2026-08-31T23:45:00.000Z",
+      "symbols": [
+        "ADAUSDT",
+        "DOGEUSDT",
+        "LINKUSDT"
+      ],
+      "cycles": 8928,
+      "selected": 10
+    },
+    {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-09-01T00:00:00.000Z",
+      "evaluationEnd": "2026-08-31T23:45:00.000Z",
+      "symbols": [
+        "AVAXUSDT",
+        "LTCUSDT",
+        "BCHUSDT"
+      ],
+      "cycles": 8928,
+      "selected": 5
+    },
+    {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-09-01T00:00:00.000Z",
+      "evaluationEnd": "2026-08-31T23:45:00.000Z",
+      "symbols": [
+        "NEARUSDT",
+        "TRXUSDT"
+      ],
+      "cycles": 5952,
+      "selected": 4
+    },
+    {
+      "start": "2026-09-01T00:00:00.000Z",
+      "end": "2026-10-01T00:00:00.000Z",
+      "evaluationEnd": "2026-09-30T23:45:00.000Z",
+      "symbols": [
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT"
+      ],
+      "cycles": 8640,
+      "selected": 13
+    },
+    {
+      "start": "2026-09-01T00:00:00.000Z",
+      "end": "2026-10-01T00:00:00.000Z",
+      "evaluationEnd": "2026-09-30T23:45:00.000Z",
+      "symbols": [
+        "ADAUSDT",
+        "DOGEUSDT",
+        "LINKUSDT"
+      ],
+      "cycles": 8640,
+      "selected": 18
+    },
+    {
+      "start": "2026-09-01T00:00:00.000Z",
+      "end": "2026-10-01T00:00:00.000Z",
+      "evaluationEnd": "2026-09-30T23:45:00.000Z",
+      "symbols": [
+        "AVAXUSDT",
+        "LTCUSDT",
+        "BCHUSDT"
+      ],
+      "cycles": 8640,
+      "selected": 17
+    },
+    {
+      "start": "2026-09-01T00:00:00.000Z",
+      "end": "2026-10-01T00:00:00.000Z",
+      "evaluationEnd": "2026-09-30T23:45:00.000Z",
+      "symbols": [
+        "NEARUSDT",
+        "TRXUSDT"
+      ],
+      "cycles": 5760,
+      "selected": 11
+    }
+  ],
+  "rejections": {
+    "ACTIVE_SIGNAL_RESTRICTION": 11115
+  },
+  "bySymbol": [
+    {
+      "symbol": "BNBUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 5,
+        "resolvedCount": 5,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.05734563882526843,
+        "profitFactor": 1.5302908444677676,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 0.4270726744396805
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 5,
+        "resolvedCount": 5,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.031974304845941805,
+        "profitFactor": 1.2784165323557402,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 0.47209181968244307
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 11,
+        "resolvedCount": 11,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.3673170385211258,
+        "profitFactor": 2.6980004593086155,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.6980857875193913
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 11,
+        "resolvedCount": 11,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.34563689147946786,
+        "profitFactor": 2.5472903444894976,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.745606433035527
+      }
+    },
+    {
+      "symbol": "XRPUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 10,
+        "resolvedCount": 10,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.1712457733511942,
+        "profitFactor": 2.240803430887741,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 0.7588703474497576
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 10,
+        "resolvedCount": 10,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.15211708210042119,
+        "profitFactor": 2.009040223804678,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 0.8482309498726217
+      }
+    },
+    {
+      "symbol": "ADAUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.08077922728599167,
+        "profitFactor": 1.3841082618103022,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.5931912124976981
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.06396700307995425,
+        "profitFactor": 1.2907804656334296,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.6816496591862893
+      }
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 9,
+        "resolvedCount": 9,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.24345131210816703,
+        "profitFactor": 2.870867164385404,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.161733960858882
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 9,
+        "resolvedCount": 9,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.22508804062849264,
+        "profitFactor": 2.665866477774574,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.2130744884374454
+      }
+    },
+    {
+      "symbol": "LINKUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 12,
+        "resolvedCount": 12,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.2887492430888035,
+        "profitFactor": 2.37078405731933,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.3572172398476885
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 12,
+        "resolvedCount": 12,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.2674832056287232,
+        "profitFactor": 2.2247369001536192,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.41379832535351
+      }
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 12,
+        "resolvedCount": 12,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.10015748657988661,
+        "profitFactor": 1.644932616656285,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.1409786987664974
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 12,
+        "resolvedCount": 12,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.08295286564261957,
+        "profitFactor": 1.5055198952676194,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.2097901958007524
+      }
+    },
+    {
+      "symbol": "LTCUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 9,
+        "resolvedCount": 9,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.15946934216397943,
+        "profitFactor": 0.4623799309341667,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.7372906575791227
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 9,
+        "resolvedCount": 9,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.18069751074334114,
+        "profitFactor": 0.41621987854174214,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.8723426608386653
+      }
+    },
+    {
+      "symbol": "BCHUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 12,
+        "resolvedCount": 12,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.16066021316947884,
+        "profitFactor": 1.8020593634566373,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.5920471592168832
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 12,
+        "resolvedCount": 12,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.14328209961336902,
+        "profitFactor": 1.681054633793448,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.6723668168016512
+      }
+    },
+    {
+      "symbol": "NEARUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 19,
+        "resolvedCount": 19,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.06164072938493898,
+        "profitFactor": 0.7844779621116251,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.016957725514053
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 19,
+        "resolvedCount": 19,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.0767139465578277,
+        "profitFactor": 0.7421135014088074,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.2647790602033595
+      }
+    },
+    {
+      "symbol": "TRXUSDT",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null
+      }
+    }
+  ],
+  "activity": {
+    "observedDays": 92,
+    "entries": 117,
+    "meanPerDay": 1.2717391304347827,
+    "medianPerDay": 0,
+    "activeDays": 45,
+    "zeroEntryDays": 47,
+    "longestZeroEntryDays": 10,
+    "maxPerDay": 9,
+    "daily": [
+      {
+        "date": "2026-07-01",
+        "entries": 3
+      },
+      {
+        "date": "2026-07-02",
+        "entries": 1
+      },
+      {
+        "date": "2026-07-03",
+        "entries": 6
+      },
+      {
+        "date": "2026-07-04",
+        "entries": 1
+      },
+      {
+        "date": "2026-07-05",
+        "entries": 1
+      },
+      {
+        "date": "2026-07-06",
+        "entries": 1
+      },
+      {
+        "date": "2026-07-07",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-08",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-09",
+        "entries": 1
+      },
+      {
+        "date": "2026-07-10",
+        "entries": 1
+      },
+      {
+        "date": "2026-07-11",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-12",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-13",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-14",
+        "entries": 2
+      },
+      {
+        "date": "2026-07-15",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-16",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-17",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-18",
+        "entries": 1
+      },
+      {
+        "date": "2026-07-19",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-20",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-21",
+        "entries": 4
+      },
+      {
+        "date": "2026-07-22",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-23",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-24",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-25",
+        "entries": 2
+      },
+      {
+        "date": "2026-07-26",
+        "entries": 3
+      },
+      {
+        "date": "2026-07-27",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-28",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-29",
+        "entries": 0
+      },
+      {
+        "date": "2026-07-30",
+        "entries": 3
+      },
+      {
+        "date": "2026-07-31",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-01",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-02",
+        "entries": 1
+      },
+      {
+        "date": "2026-08-03",
+        "entries": 1
+      },
+      {
+        "date": "2026-08-04",
+        "entries": 1
+      },
+      {
+        "date": "2026-08-05",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-06",
+        "entries": 1
+      },
+      {
+        "date": "2026-08-07",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-08",
+        "entries": 1
+      },
+      {
+        "date": "2026-08-09",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-10",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-11",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-12",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-13",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-14",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-15",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-16",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-17",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-18",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-19",
+        "entries": 4
+      },
+      {
+        "date": "2026-08-20",
+        "entries": 3
+      },
+      {
+        "date": "2026-08-21",
+        "entries": 7
+      },
+      {
+        "date": "2026-08-22",
+        "entries": 3
+      },
+      {
+        "date": "2026-08-23",
+        "entries": 1
+      },
+      {
+        "date": "2026-08-24",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-25",
+        "entries": 1
+      },
+      {
+        "date": "2026-08-26",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-27",
+        "entries": 4
+      },
+      {
+        "date": "2026-08-28",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-29",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-30",
+        "entries": 0
+      },
+      {
+        "date": "2026-08-31",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-01",
+        "entries": 1
+      },
+      {
+        "date": "2026-09-02",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-03",
+        "entries": 5
+      },
+      {
+        "date": "2026-09-04",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-05",
+        "entries": 6
+      },
+      {
+        "date": "2026-09-06",
+        "entries": 4
+      },
+      {
+        "date": "2026-09-07",
+        "entries": 1
+      },
+      {
+        "date": "2026-09-08",
+        "entries": 3
+      },
+      {
+        "date": "2026-09-09",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-10",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-11",
+        "entries": 2
+      },
+      {
+        "date": "2026-09-12",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-13",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-14",
+        "entries": 2
+      },
+      {
+        "date": "2026-09-15",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-16",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-17",
+        "entries": 3
+      },
+      {
+        "date": "2026-09-18",
+        "entries": 8
+      },
+      {
+        "date": "2026-09-19",
+        "entries": 2
+      },
+      {
+        "date": "2026-09-20",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-21",
+        "entries": 9
+      },
+      {
+        "date": "2026-09-22",
+        "entries": 3
+      },
+      {
+        "date": "2026-09-23",
+        "entries": 1
+      },
+      {
+        "date": "2026-09-24",
+        "entries": 2
+      },
+      {
+        "date": "2026-09-25",
+        "entries": 4
+      },
+      {
+        "date": "2026-09-26",
+        "entries": 1
+      },
+      {
+        "date": "2026-09-27",
+        "entries": 1
+      },
+      {
+        "date": "2026-09-28",
+        "entries": 0
+      },
+      {
+        "date": "2026-09-29",
+        "entries": 1
+      },
+      {
+        "date": "2026-09-30",
+        "entries": 0
+      }
+    ]
+  },
+  "releaseBlockers": [
+    "PREVIOUSLY_OBSERVED_PERIOD",
+    "MONTHLY_STATE_RESETS",
+    "FRESH_HOLDOUT_NOT_RUN",
+    "FORWARD_EVIDENCE_NOT_RUN",
+    "NOT_PORTFOLIO_NETTED"
+  ],
+  "overall": {
+    "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+    "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+    "tradeCount": 117,
+    "resolvedCount": 117,
+    "openCount": 0,
+    "ambiguousCount": 0,
+    "excludedCount": 0,
+    "expectancyR": 0.1168646720321401,
+    "profitFactor": 1.5660419996362143,
+    "profitFactorUndefinedReason": null,
+    "realizedMaxDrawdownR": 7.925834717872416
+  },
+  "stress": {
+    "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+    "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+    "tradeCount": 117,
+    "resolvedCount": 117,
+    "openCount": 0,
+    "ambiguousCount": 0,
+    "excludedCount": 0,
+    "expectancyR": 0.09829933369172153,
+    "profitFactor": 1.4551796918448165,
+    "profitFactorUndefinedReason": null,
+    "realizedMaxDrawdownR": 8.660540818952098
+  },
+  "publication": false,
+  "execution": false,
+  "promotion": false,
+  "disclosure": "Same previously observed Jul-Sep2026; integration diagnostic, not fresh holdout. Shared legacy market-policy filters and expiry-held active signals can change selections. Monthly bounded jobs reset active state at boundaries; no cross-job portfolio or live-forward claim. All fixed assets retained, including losers. In-memory evidence callbacks, no real database job executed.",
+  "compressedSha256": "387d7052f6860dcbbc1342d602f0047db0846b2e14f9082ce8a985d0a5bc998d",
+  "uncompressedSha256": "141c524c5a7574587973c557e29d201f39349a833499a4c6b912636ea92703f3"
+}

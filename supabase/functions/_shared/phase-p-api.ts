@@ -1,3 +1,4 @@
+import {ALT_CANDIDATE_ID,ALT_SYMBOLS} from './crypto-relative-strength.ts';
 import {preparePortableSubmission} from './phase-p-submission.ts';
 import {portableDetails} from './phase-p-evidence.ts';
 import {LIMITS,WorkerFault,PORTABLE_KINDS} from './phase-p-contract.ts';
@@ -15,7 +16,7 @@ export async function handlePortableRequest(req:Request,db:any){
   try{
     const text=await req.text();if(text.length>8192)return reply({error:'REQUEST_TOO_LARGE'},413);
     const body=JSON.parse(text),action=body.action;
-    if(action==='strategies'&&Object.keys(body).length===1){let approved;try{approved=await loadApprovedValidationConfiguration(db)}catch{/* Research catalog remains readable without enabled production candidates. */}const {data:models,error}=await db.from('validation_research_models').select('id,strategy_id,valid_from,valid_until,provenance').eq('created_by',user.id).eq('publication_eligible',false).order('created_at',{ascending:false}).limit(200);if(error)throw new WorkerFault('RESEARCH_CATALOG_UNAVAILABLE');return reply({strategies:approved?.configuration.strategies.map((s:{id:string;version:string;timeframes:string[];symbols:string[]})=>({id:s.id,version:s.version,timeframes:s.timeframes,symbols:s.symbols}))??[],researchModels:models??[],configurationHash:approved?.hash??null});}
+    if(action==='strategies'&&Object.keys(body).length===1){let approved;try{approved=await loadApprovedValidationConfiguration(db)}catch{/* Research catalog remains readable without enabled production candidates. */}const {data:models,error}=await db.from('validation_research_models').select('id,strategy_id,valid_from,valid_until,provenance').eq('created_by',user.id).eq('publication_eligible',false).order('created_at',{ascending:false}).limit(200);if(error)throw new WorkerFault('RESEARCH_CATALOG_UNAVAILABLE');return reply({researchCandidates:[{id:ALT_CANDIDATE_ID,label:'Altcoin relative strength · research only',timeframe:'15m',reference:'BTCUSDT',symbols:[...ALT_SYMBOLS],costBps:25,warmupBars:960}],strategies:approved?.configuration.strategies.map((s:{id:string;version:string;timeframes:string[];symbols:string[]})=>({id:s.id,version:s.version,timeframes:s.timeframes,symbols:s.symbols}))??[],researchModels:models??[],configurationHash:approved?.hash??null});}
     if(action==='details'&&Object.keys(body).every(k=>['action','kind','runId'].includes(k))&&PORTABLE_KINDS.includes(body.kind))return reply(await portableDetails(db,user.id,body.kind,String(body.runId)));
     if(action==='inspect'){
       const results=await Promise.all([

@@ -10,7 +10,7 @@ import { supabase } from "../../../lib/supabase";
 import { uploadValidationDataset } from "../../../lib/phaseLValidation";
 
 type Account={id:string;history_account_id?:string;feed_identity?:string;status?:string;enabled?:boolean;bridge_id?:string;last_heartbeat_at?:string;validation_evidence?:Record<string,unknown>;broker?:string;server?:string;environment?:string};
-const UNIVERSE:Record<ResearchMarket,string[]>={FOREX:["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD"],METALS:["XAUUSD","XAGUSD"],CRYPTO:["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT"]};
+const UNIVERSE:Record<ResearchMarket,string[]>={FOREX:["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD"],METALS:["XAUUSD","XAGUSD"],CRYPTO:["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LINKUSDT","AVAXUSDT","LTCUSDT","BCHUSDT","NEARUSDT","TRXUSDT"]};
 const RANGES=[{id:"30D",days:30},{id:"90D",days:90},{id:"6M",days:183},{id:"1Y",days:365},{id:"2Y",days:730},{id:"CUSTOM",days:0}] as const;
 const CAMPAIGN_STORAGE="hashibot.dataset-campaigns.v1";
 export default function DataAcquisitionPanel({onCampaign}:{onCampaign:(campaign:DatasetCampaign)=>void}){

@@ -1,3 +1,4 @@
+import {altResearchDefinitions} from '../_shared/crypto-relative-strength.ts';
 import {evalForexMicroScalper,evalForexSwingContinuation} from "../_shared/forex-legacy-evaluators.ts";
 import {regimeResearchDefinitions} from '../_shared/regime-opportunities.ts';
 import {intradayResearchDefinitions} from '../_shared/intraday-opportunities.ts';
@@ -2019,6 +2020,7 @@ async function runScanPipeline(
           activeDefinitions.push(
             ...regimeResearchDefinitions(),
             ...intradayResearchDefinitions(),
+          ...altResearchDefinitions(),
             { id: "crypto.trend-pullback", version: "0.1.0-research", legacyName: "CryptoTrendPullback", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "CryptoTrendPullback" }, evaluate: evaluateCryptoTrendPullback },
             { id: "crypto.reversal-exhaustion", version: "0.1.0-research", legacyName: "ReversalExhaustion", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "ReversalExhaustion" }, evaluate: evaluateReversalExhaustion },
           );

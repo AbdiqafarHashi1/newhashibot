@@ -1,3 +1,4 @@
+import {altReplayConfiguration,validateAltDatasetSelection} from './crypto-relative-strength.ts';
 import {createApprovedReplayRegistry} from './active-validation-runtime.ts';
 import {DEFAULT_REPLAY_ASSUMPTIONS} from './replay-outcomes.ts';
 import {LIMITS,parsePortableRequest,WorkerFault} from './phase-p-contract.ts';
@@ -26,6 +27,7 @@ export async function preparePortableSubmission(db:any,actor:string,body:Record<
     if(new Set(data.map((x:any)=>`${x.symbol}:${x.timeframe}`)).size!==data.length)throw new WorkerFault('REPLAY_DUPLICATE_SYMBOL_TIMEFRAME',true);
     let approved;
     if(payload.researchModelId){const {data:model,error}=await db.from('validation_research_models').select('*').eq('id',payload.researchModelId).eq('created_by',actor).eq('publication_eligible',false).maybeSingle();if(error||!model)throw new WorkerFault('RESEARCH_MODEL_NOT_OWNED',true);approved=await researchModelSnapshot({strategyId:model.strategy_id,parameters:model.configuration?.strategies?.[0]?.parameters});if(approved.hash!==model.content_hash||Date.parse(payload.start)<Date.parse(model.valid_from)||Date.parse(payload.end)>Date.parse(model.valid_until))throw new WorkerFault('RESEARCH_MODEL_LINEAGE_OR_DATE_INVALID',true);payload.researchOnly=true;}
+    else if(payload.researchCandidateId){const configuration=altReplayConfiguration();approved={configuration,hash:await fingerprint(configuration)};validateAltDatasetSelection(configuration,data.map((d:{symbol:string;timeframe:string;market_type?:string})=>({...d,market:d.market_type??(/USDT$/.test(d.symbol)?'crypto':'forex')})));payload.researchOnly=true;}
     else approved=await loadApprovedValidationConfiguration(db);
     if(payload.strategyIds){const strategies=approved.configuration.strategies.filter((s:{id:string})=>payload.strategyIds.includes(s.id));if(strategies.length!==payload.strategyIds.length)throw new WorkerFault('STRATEGY_SELECTION_NOT_APPROVED',true);const configuration={...approved.configuration,version:'strategy-config/isolated-subset',strategies};approved={configuration,hash:await fingerprint(configuration)};}
     if(payload.releaseCandidateId){const {data:c,error}=await db.from('strategy_release_candidates').select('*').eq('id',payload.releaseCandidateId).eq('created_by',actor).eq('state','FROZEN').maybeSingle();if(error||!c||c.holdout_run_id)throw new WorkerFault('FROZEN_RELEASE_CANDIDATE_REQUIRED',true);approved={configuration:c.immutable_configuration,hash:c.configuration_hash};}
@@ -33,10 +35,11 @@ export async function preparePortableSubmission(db:any,actor:string,body:Record<
     for(const dataset of data){
       const market=dataset.market_type??(/USDT$/.test(dataset.symbol)?'crypto':'forex');
       if(!['crypto','forex','gold','metal'].includes(market)||(market==='crypto')!==/USDT$/.test(dataset.symbol))throw new WorkerFault('REPLAY_MARKET_UNSUPPORTED',true);
+      if(payload.researchCandidateId&&dataset.symbol==='BTCUSDT')continue;
       try{createApprovedReplayRegistry(approved.configuration,dataset.symbol,dataset.timeframe);}catch{throw new WorkerFault('REPLAY_SELECTION_NOT_APPROVED',true);}
     }
     payload.assumptions={...DEFAULT_REPLAY_ASSUMPTIONS,feeBps:payload.fees,spreadBps:payload.spread,slippageBps:payload.slippage,fundingBps:payload.funding};
-    if(payload.researchModelId)payload.assumptions=approved.configuration.outcomeAssumptions;
+    if(payload.researchModelId||payload.researchCandidateId)payload.assumptions=approved.configuration.outcomeAssumptions;
     payload.configuration=approved.configuration;payload.datasets=payload.datasetIds.map((id:string)=>({id,hash:data.find((x:any)=>x.id===id).dataset_hash}));
     payload.datasetHashes=payload.datasets.map((x:any)=>x.hash);payload.datasetHash=payload.datasetHashes.join(':');
   }else if(kind==='ACCOUNT'){

@@ -1,3 +1,4 @@
+import {altResearchDefinitions} from './crypto-relative-strength.ts';
 import {microScalperRuntimeParams} from "./micro-scalper-runtime.ts";
 import {regimeResearchDefinitions} from './regime-opportunities.ts';
 import {intradayResearchDefinitions} from './intraday-opportunities.ts';
@@ -26,7 +27,7 @@ export function createApprovedReplayRegistry(config:ApprovedReplayConfiguration,
  if(!config.version||!config.strategies.length)throw new Error("APPROVED_SCANNER_CONFIGURATION_REQUIRED");
  const definitions:StrategyDefinition[]=[];
  for(const item of config.strategies.filter(s=>s.enabled)){
-  const regime=[...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions()].find(s=>s.id===item.id);
+  const regime=[...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions(),...altResearchDefinitions()].find(s=>s.id===item.id);
   if(regime){
    if(item.version!==regime.version)throw new Error(`ACTIVE_STRATEGY_VERSION_MISMATCH:${item.id}`);
    if(!regime.config.allowed_timeframes.includes(timeframe)||!regime.config.allowed_symbols.includes(symbol)||!item.timeframes.includes(timeframe)||(item.symbols.length&&!item.symbols.includes(symbol)))continue;

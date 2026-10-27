@@ -1,3 +1,4 @@
+import {ALT_CANDIDATE_ID} from './crypto-relative-strength-contract.ts';
 export const PORTABLE_KINDS = ['HISTORY', 'REPLAY', 'ACCOUNT', 'PROP'] as const;
 export type PortableKind = typeof PORTABLE_KINDS[number];
 export const LIMITS = Object.freeze({cycles:500, symbols:4, candles:3000, pages:12, runtimeMs:45000, attempts:3, concurrency:1, dailyJobs:20, dailySlices:100, aiTokens:0, aiSpend:0, artifacts:0, artifactRetentionDays:0});
@@ -21,7 +22,7 @@ const uuid=(x:unknown)=>{if(typeof x!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9
 export function parsePortableRequest(body:Record<string,any>){
   const kind=body.kind as PortableKind;
   if(!PORTABLE_KINDS.includes(kind))throw new WorkerFault('TASK_KIND_INVALID',true);
-  const allowed=['kind','idempotencyKey',...(kind==='HISTORY'?['provider','symbol','timeframe','start','end']:kind==='REPLAY'?['datasetIds','extended','strategyIds','researchModelId','start','end','maxCycles','releaseCandidateId','fees','funding','spread','slippage']:kind==='ACCOUNT'?['sourceRunId','accountId','brainAssignmentId','initialCapital','currency']:['accountRunId','propConfigId'])];
+  const allowed=['kind','idempotencyKey',...(kind==='HISTORY'?['provider','symbol','timeframe','start','end']:kind==='REPLAY'?['datasetIds','extended','strategyIds','researchCandidateId','researchModelId','start','end','maxCycles','releaseCandidateId','fees','funding','spread','slippage']:kind==='ACCOUNT'?['sourceRunId','accountId','brainAssignmentId','initialCapital','currency']:['accountRunId','propConfigId'])];
   if(Object.keys(body).some(k=>!allowed.includes(k)))throw new WorkerFault('TASK_FIELD_NOT_ALLOWED',true);
   if(typeof body.idempotencyKey!=='string'||!/^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey))throw new WorkerFault('IDEMPOTENCY_REQUIRED',true);
   let input:Record<string,any>;
@@ -39,8 +40,9 @@ export function parsePortableRequest(body:Record<string,any>){
       if(body.strategyIds!==undefined&&(!Array.isArray(body.strategyIds)||!body.strategyIds.length||body.strategyIds.length>20||body.strategyIds.some((x:unknown)=>typeof x!=='string'||!/^[a-z][a-z0-9.-]{2,80}$/.test(x))))throw new WorkerFault('STRATEGY_SELECTION_INVALID',true);
       if(body.strategyIds&&body.releaseCandidateId)throw new WorkerFault('FROZEN_RELEASE_CANNOT_BE_SUBSET',true);
       if(body.researchModelId&&(body.strategyIds||body.releaseCandidateId))throw new WorkerFault('RESEARCH_MODEL_SCOPE_CONFLICT',true);
+      if(body.researchCandidateId!==undefined&&(body.researchCandidateId!==ALT_CANDIDATE_ID||body.strategyIds||body.researchModelId||body.releaseCandidateId))throw new WorkerFault('RESEARCH_CANDIDATE_SCOPE_INVALID',true);
       if(body.extended!==undefined&&typeof body.extended!=='boolean')throw new WorkerFault('RESEARCH_PROFILE_INVALID',true);
-      input={...(body.extended?{extended:true}:{}),...(body.researchModelId?{researchModelId:uuid(body.researchModelId)}:{}),...(body.strategyIds?{strategyIds:[...new Set<string>(body.strategyIds)].sort()}:{}),...(body.releaseCandidateId?{releaseCandidateId:uuid(body.releaseCandidateId)}:{}),datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,body.extended?RESEARCH_LIMITS.cycles:LIMITS.cycles),...costs};
+      input={...(body.researchCandidateId?{researchCandidateId:body.researchCandidateId}:{}),...(body.extended?{extended:true}:{}),...(body.researchModelId?{researchModelId:uuid(body.researchModelId)}:{}),...(body.strategyIds?{strategyIds:[...new Set<string>(body.strategyIds)].sort()}:{}),...(body.releaseCandidateId?{releaseCandidateId:uuid(body.releaseCandidateId)}:{}),datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,body.extended?RESEARCH_LIMITS.cycles:LIMITS.cycles),...costs};
     }
   }else if(kind==='ACCOUNT'){
     if(!Number.isFinite(body.initialCapital)||body.initialCapital<=0||body.initialCapital>1e8||!/^[A-Z]{3}$/.test(body.currency))throw new WorkerFault('ACCOUNT_INPUT_INVALID',true);

@@ -1,9 +1,10 @@
 # Release 1 candidate — NOT READY FOR ACTIVATION
 
-Evidence updated: 23 October 2026, EAT. Single integration PR: [#269](https://github.com/AbdiqafarHashi1/newhashibot/pull/269), branch `release1-integration-20261021`.
+Evidence updated: 27 October 2026, EAT. Single integration PR: [#269](https://github.com/AbdiqafarHashi1/newhashibot/pull/269), branch `release1-integration-20261021`.
 
 The engineering checks have been repaired; this is not certification of a profitable paid-signal product. Paid signal publication and sales stay gated. No production deployment, real charge, trading activation, credential rotation or destructive database operation was performed.
 
+- [Connected altcoin candidate and Forex handoff](../research/alt-connected/README.md) — research only; no live approval.
 - [Feature inventory](FEATURE_INVENTORY.md)
 - [Actual test commands and results](TEST_REPORT.md), [machine-readable test results](test-results.json)
 - [New regime-aware rebuild and rejected candidates](regime/README.md)
