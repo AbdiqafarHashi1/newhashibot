@@ -1,0 +1,23 @@
+{
+  "commit": "cacaf8f49fd0c9fcca9de717d7b80f962e14ac63",
+  "retrievedOn": "2026-10-28",
+  "source": "Authenticated GitHub connector, recursive historical Git tree; no truncation",
+  "blobs": [
+    {
+      "path": "supabase/functions/_shared/indicator-engine.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "79140c98d9120d7b13994a8e631c4d83d7dd722a",
+      "size": 8406,
+      "url": "https://api.github.com/repos/AbdiqafarHashi1/newhashibot/git/blobs/79140c98d9120d7b13994a8e631c4d83d7dd722a"
+    },
+    {
+      "path": "supabase/functions/market-scanner/index.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ce5d6e61fea82fd03b3adb55ff687f66bc777b11",
+      "size": 241796,
+      "url": "https://api.github.com/repos/AbdiqafarHashi1/newhashibot/git/blobs/ce5d6e61fea82fd03b3adb55ff687f66bc777b11"
+    }
+  ]
+}

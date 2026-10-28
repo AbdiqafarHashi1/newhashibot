@@ -1,0 +1,47 @@
+{
+  "schema": "scanner-participation-regression/v1",
+  "declaredOn": "2026-10-28",
+  "historicalCommit": "cacaf8f49fd0c9fcca9de717d7b80f962e14ac63",
+  "symbols": [
+    "BTCUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "ADAUSDT",
+    "DOGEUSDT",
+    "LINKUSDT",
+    "AVAXUSDT",
+    "LTCUSDT",
+    "BCHUSDT",
+    "NEARUSDT",
+    "TRXUSDT"
+  ],
+  "from": "2026-07-01T00:00:00.000Z",
+  "until": "2026-10-01T00:00:00.000Z",
+  "warmupFrom": "2026-06-01T00:00:00.000Z",
+  "legacyStrategies": [
+    "crypto.micro-scalper",
+    "crypto.quick-scalp",
+    "crypto.compression-breakout",
+    "crypto.swing-continuation"
+  ],
+  "timeframe": "15m",
+  "disclosure": "Same genuine native USD-M futures candles in both lifetime comparisons. These dates/assets were previously researched; no untouched holdout or reconstruction of July SPOT fills, actual DB parameters or complete deployment. ETH data is not present in this recovered Q3 pool; absence is explicit, not a P&L exclusion. No5m source is synthesized.",
+  "comparison": "Old-vs-current pure evaluator/indicator differential on hourly sampled closed contexts; all four legacy strategies combined through existing canonical pipeline with expiry lock vs closed-outcome release; global chronological state carried across weekly compute slices. No parameter sweep or threshold relaxation.",
+  "assumptions": {
+    "entryTiming": "NEXT_OPEN",
+    "feeBps": 10,
+    "spreadBps": 2,
+    "slippageBps": 4,
+    "fundingBps": 4.5,
+    "partialExitPct": 0.5,
+    "moveStopToBreakevenAfterTp1": true,
+    "trailingStopR": null,
+    "sameCandlePolicy": "STOP_FIRST",
+    "tp1StopPolicy": "CONSERVATIVE_SAME_BAR",
+    "closeAtHorizon": true
+  },
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

@@ -1,3 +1,4 @@
+import {LEGACY_CRYPTO_PROFILE_ID} from './legacy-crypto-research-profile.ts';
 import {CRYPTO_TEAM_PROFILE_IDS} from './coordinated-crypto-contract.ts';
 import {ALT_CANDIDATE_ID} from './crypto-relative-strength-contract.ts';
 export const PORTABLE_KINDS = ['HISTORY', 'REPLAY', 'ACCOUNT', 'PROP'] as const;
@@ -41,7 +42,7 @@ export function parsePortableRequest(body:Record<string,any>){
       if(body.strategyIds!==undefined&&(!Array.isArray(body.strategyIds)||!body.strategyIds.length||body.strategyIds.length>20||body.strategyIds.some((x:unknown)=>typeof x!=='string'||!/^[a-z][a-z0-9.-]{2,80}$/.test(x))))throw new WorkerFault('STRATEGY_SELECTION_INVALID',true);
       if(body.strategyIds&&body.releaseCandidateId)throw new WorkerFault('FROZEN_RELEASE_CANNOT_BE_SUBSET',true);
       if(body.researchModelId&&(body.strategyIds||body.releaseCandidateId))throw new WorkerFault('RESEARCH_MODEL_SCOPE_CONFLICT',true);
-      if(body.researchCandidateId!==undefined&&(body.researchCandidateId!==ALT_CANDIDATE_ID&&!CRYPTO_TEAM_PROFILE_IDS.includes(body.researchCandidateId)||body.strategyIds||body.researchModelId||body.releaseCandidateId))throw new WorkerFault('RESEARCH_CANDIDATE_SCOPE_INVALID',true);
+      if(body.researchCandidateId!==undefined&&(body.researchCandidateId!==ALT_CANDIDATE_ID&&body.researchCandidateId!==LEGACY_CRYPTO_PROFILE_ID&&!CRYPTO_TEAM_PROFILE_IDS.includes(body.researchCandidateId)||body.strategyIds||body.researchModelId||body.releaseCandidateId))throw new WorkerFault('RESEARCH_CANDIDATE_SCOPE_INVALID',true);
       if(body.extended!==undefined&&typeof body.extended!=='boolean')throw new WorkerFault('RESEARCH_PROFILE_INVALID',true);
       input={...(body.researchCandidateId?{researchCandidateId:body.researchCandidateId}:{}),...(body.extended?{extended:true}:{}),...(body.researchModelId?{researchModelId:uuid(body.researchModelId)}:{}),...(body.strategyIds?{strategyIds:[...new Set<string>(body.strategyIds)].sort()}:{}),...(body.releaseCandidateId?{releaseCandidateId:uuid(body.releaseCandidateId)}:{}),datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,body.extended?RESEARCH_LIMITS.cycles:LIMITS.cycles),...costs};
     }
