@@ -1,0 +1,14 @@
+{
+  "retrievedOn": "2026-10-28",
+  "alpacaArticle": "https://alpaca.markets/learn/algo-trading-bitcoin-using-bollinger-bands-and-rsi",
+  "originalCodeRepository": "akshay-rakheja/Trading-Algos",
+  "path": "Bollinger_Bands_RSI/bb_rsi.py",
+  "gitBlobSha": "f0a43d208206433a4096f84f150266e02dd3c623",
+  "immutableBlobUrl": "https://api.github.com/repos/akshay-rakheja/Trading-Algos/git/blobs/f0a43d208206433a4096f84f150266e02dd3c623",
+  "verifiedFinding": "Live branch exits upper-band/RSI>70;Backtrader branch repeats lower-band/RSI<30 entry condition in exit. RSIIndicator versus RSI_SMA also differ. Public source inspected,not executed or copied wholesale.",
+  "limitations": [
+    "BinanceUSDTperp adaptation is not AlpacaBTCUSDspot reproduction.",
+    "CanonicalWilderSMA seed plusJanuarywarmup;source ta.EWM initialization is not relabelled identical on the initial warmup.",
+    "Source has no explicit protective stop or fixed numeric target;reference P&L cannot grant scanner publication."
+  ]
+}

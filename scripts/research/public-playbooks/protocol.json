@@ -1,0 +1,120 @@
+{
+  "schema": "source-faithful-crypto-playbooks/v1",
+  "declaredOn": "2026-10-28",
+  "goal": "Source-first reproduction, then explicitly separate protected/adapted variants; four complementary profitable candidates and combined>=1signal/day. No guarantee and no retroactive change to failed old studies.",
+  "assets": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT"
+  ],
+  "acquisition": {
+    "from": "2025-01",
+    "untilInclusive": "2026-09",
+    "timeframe": "5m",
+    "archiveKinds": [
+      "klines",
+      "fundingRate"
+    ],
+    "maxArchives": 210,
+    "concurrency": 8,
+    "maxBytes": 2000000,
+    "timeoutSeconds": 25,
+    "attempts": 2
+  },
+  "development": {
+    "from": "2025-02-01T00:00:00Z",
+    "until": "2026-01-01T00:00:00Z"
+  },
+  "validation": {
+    "from": "2026-01-01T00:00:00Z",
+    "until": "2026-07-01T00:00:00Z"
+  },
+  "later": {
+    "from": "2026-07-01T00:00:00Z",
+    "until": "2026-10-01T00:00:00Z"
+  },
+  "sources": [
+    {
+      "id": "reddit-ORB",
+      "url": "https://www.reddit.com/r/Daytrading/comments/1izfkaw/",
+      "type": "FIRST_PERSON_ANECDOTE",
+      "facts": "NQ5mopeningrange,1mretest/confirmation,min2R; exits and exact strong-PA rule incomplete. Crypto/lower-frequency implementation is an adaptation, not an exact replication."
+    },
+    {
+      "id": "oanda-vwap",
+      "url": "https://ftmo.oanda.com/blog/vwap-pullback-strategy-trade-with-volume-not-emotion/",
+      "type": "PUBLISHER_EDUCATIONAL_RULES",
+      "facts": "Extension beyond VWAP deviation, pullback to central VWAP, protective stop beyond line, deviation target or trail. Deviation multiplier/session/buffer unspecified; any chosen values labelled operational choices."
+    },
+    {
+      "id": "obside-playbook",
+      "url": "https://obside.com/trading-guides/day-trading-crypto",
+      "type": "AUTHOR_CRYPTO_PLAYBOOK",
+      "facts": "09UTC15mrange then5mvolume breakout;1330UTC VWAP pullback;BTC RSI2<5 aboveH4EMA50 exitRSI2>60/6h;BBquietrange;fundingcontrarian. Performance claims are not imported as evidence."
+    },
+    {
+      "id": "alpaca-bb-rsi",
+      "url": "https://alpaca.markets/learn/algo-trading-bitcoin-using-bollinger-bands-and-rsi",
+      "type": "PUBLISHER_WITH_CODE",
+      "facts": "Hourly BTC long/cash,BB20/2 andRSI14<30 buy,upperband/RSI>70 exit. Article backtest repeats entry condition in sell branch and usesRSI_SMA whereas live example uses ta.RSIIndicator. Test as-written and intended variants separately; source has no explicit SL/TP, hence reference-only until protected adaptation."
+    },
+    {
+      "id": "tv-vwap-orb",
+      "url": "https://www.tradingview.com/script/75epRRh2-VWAP-ORB-Pullback-Strategy/",
+      "type": "AUTHOR_SCRIPT_DESCRIPTION",
+      "facts": "NY0930 openingrange breakout and VWAP/EMA9pullback,ATR14 stops/target. Complete source/defaults not retrieved; no exact-source claim."
+    },
+    {
+      "id": "raschke-hg",
+      "url": "https://lindaraschke.net/wp-content/uploads/2026/03/raschke_pt2_0304.pdf",
+      "type": "AUTHOR_HOSTED_INTERVIEW",
+      "facts": "ADX14 and firstEMA20pullback. Stop-entry/target/discretion require full specification before automation; not silently approximated."
+    },
+    {
+      "id": "fmz-zvwap",
+      "url": "https://www.fmz.com/lang/en/strategy/431669",
+      "type": "REPUBLISHER_SUMMARY",
+      "facts": "Full source sign-in gated; prose entry conditions appear incompatible. Not a reproducible baseline without public full code."
+    },
+    {
+      "id": "fmz-scalper",
+      "url": "https://www.fmz.com/lang/en/strategy/494817",
+      "type": "REPUBLISHER_SUMMARY",
+      "facts": "Full source gated;default0.1percent target is below declared roundtrip friction. Inventory only; no claim profitable or replicated."
+    }
+  ],
+  "unsupported": "Dark-pool,stock-halt,earnings,merger/options-gamma/Level2 claims are not generated from OHLC. News/event variants require point-in-time timestamped source data. No fabricated liquidity/whales/probabilities.",
+  "costs": {
+    "feeBpsRoundTrip": 10,
+    "spreadBpsRoundTrip": 2,
+    "slippageBpsRoundTrip": 4,
+    "funding": "Actual historical settlement rates and timestamps; candle-price proxy for settlement notional explicitly disclosed; uncertain boundary never credited. Not the old flat9bps reserve. Missing funding coverage blocks perp cost certification.",
+    "stressMultiplier": 1.5
+  },
+  "gates": {
+    "developmentResolved": 50,
+    "validationResolved": 30,
+    "netPF": 1.2,
+    "stressPF": 1.0,
+    "positiveMean": true,
+    "combinedSignalsPerDay": 1.0,
+    "combinedActiveDayFraction": 0.7
+  },
+  "selection": "All preregistered variants reported; development selects roster before validation; no validation pruning. Opposing equal-quality setups abstain,one underlying symbol,maximum3concurrent signals. Reference source benchmarks are not production/scanner evidence.",
+  "disclosure": "2025/2026calendar prices already observed; native5m detail and these source hypotheses are new. No project-wide untouched-holdout claim. Original studies and failed methods retained. No paid access/source restrictions bypassed.",
+  "publication": false,
+  "execution": false,
+  "promotion": false,
+  "operationalChoices": {
+    "warmup": "Full prior January used; only complete1h/4h groups. Native5mexecution; no5m bars inferred from15m. Recursive EMA SMA seed; WilderRSI documented variant; quote/base and HLC3-VWAP distinction explicit.",
+    "crypto.pub-orb": "Crypto source:09:00\u201309:15UTC3nativebars range;first5m close beyondrange withbasevolume>1.5prior20mean,until11UTC;BUY and explicitly adapted SELL mirror;SLrange midpoint;TPone range beyondbrokenedge;fulltarget rather than unspecified trailing remainder;6hmaximum;one signal/side/day.",
+    "crypto.pub-vwap": "13:30UTC session anchor HLC3-volumeVWAP;prior extension beyond2weightedSD then later VWAPtouch anddirectionalreversal close;SLwiderof1WilderATR14native/setupwick;TP2R full exit is source alternative;entry13:30\u201317UTC;6hmax;new extension required to rearm. OANDA deviation/pullback concept with Obside explicit stop/2Ralternative;quantified2SD and rearm are adaptation.",
+    "crypto.pub-rsi-dip": "Source RSI2Wilder<5 andprice>lastclosedH4EMA50;sourceBTC-only;other4assets explicit adaptation. ProtectiveversionSL2WilderATR14onclosedH1,TPpriorclosedH1high;exitafterclosed5mRSI2>60 at nextopen or6hhorizon. Source-only reference has no inventedstop/target and is not eligible for release.",
+    "crypto.pub-band-range": "ClosedH1BB20/2;bandwidth<=75thpercentileofprior120closedH1widths;barlowpierceslowerbandandbullishclosebackinside(orSELLmirror);SLwick+0.1H1WilderATR14;TPbandmean;6hmaximum. Quartilelookback/stopbuffer are fixedquantifications.",
+    "crypto.pub-day-sweep": "Adapted Redditpreviousdayliquiditytrap:UTCprior dayhigh/low;5mwickpiercesboundaryanddirectionalclosebackinsidewithbody>=0.25nativeWilderATR14;SLwick+0.1ATR;TPpriorrangemidpoint;6hmax;one signal/side/day. No claim to know actual hidden stops.",
+    "crypto.pub-ema100": "Adapted Reddit H1EMA100 directionalbias;5mEMA20pullback reclaim previousbarhigh/low withdirectionalclose,SLprior3barstructure+0.1nativeATR,TP2R,6hmaximum. LTFtrigger/stop/target are explicitly specified adaptations;not borrowed claimed winrate.",
+    "references": "AlpacaH1BB20/2 RSI14 live-intentWilder vsBacktraderSMA;as-writtenbacktest SELL-on-entrycondition reportedseparately. Long/cash exit signal fills nextnative5mopen;noSL/TPinvented;openMTM andadverseexcursion reported. SourceBTCUSDspot converted toUSD-M prices is an instrument adaptation and cannotcertify originalspotmethod."
+  }
+}
