@@ -132,7 +132,8 @@
     "test:release1": "node scripts/release1/test.mjs",
     "research:release1": "node --import tsx scripts/release1/certify-signals.ts",
     "test:signal-ensemble": "node --import tsx --test tests/signalEnsemble/*.test.ts",
-    "test:public-playbooks": "python3 -m unittest discover -s tests/publicPlaybooks -p 'test_*.py'"
+    "test:public-playbooks": "python3 -m unittest discover -s tests/publicPlaybooks -p 'test_*.py'",
+    "test:daily-trend": "node --import tsx --test tests/dailyTrend/*.test.ts && node tests/dailyTrend/database.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

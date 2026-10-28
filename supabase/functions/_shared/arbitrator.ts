@@ -1,3 +1,4 @@
+import {dailyCandidate} from './daily-trend-contract.ts';
 /** Pure root arbitrator. It has no database, network, Telegram, or execution access. */
 import { arbitrateCanonical } from "./trading-domain/arbitrator.ts";
 export type ArbitrationSide = "buy" | "sell";
@@ -22,6 +23,7 @@ function hash(input: string): string { let h1 = 0x811c9dc5; for (let i = 0; i < 
 
 function rejectionReasons(c: ArbitrationCandidate, options: ArbitrationOptions): string[] {
   const reasons: string[] = [];
+  const dynamic=dailyCandidate(c);
   if (c.lifecycle !== "ENABLED" || c.publicationMode !== "LIVE") reasons.push("research_or_non_live_excluded");
   if (c.eligible === false) reasons.push("legacy_gate_rejected", ...c.rejectionReasons);
   if (!c.fresh) reasons.push("stale_candidate");
@@ -29,9 +31,9 @@ function rejectionReasons(c: ArbitrationCandidate, options: ArbitrationOptions):
   if (![c.confidence, c.score, c.entry, c.stop, c.riskReward, ...c.targets].every(Number.isFinite)) reasons.push("non_finite_value");
   if (!["buy", "sell"].includes(c.side)) reasons.push("invalid_side");
   if (c.targets.some((target,i)=>i>0&&(c.side==="buy"?target<=c.targets[i-1]:target>=c.targets[i-1]))) reasons.push("invalid_target_order");
-  if (c.entry <= 0 || c.stop <= 0 || c.targets.length === 0 || c.targets.some((v) => v <= 0)) reasons.push("invalid_price_structure");
+  if (c.entry <= 0 || c.stop <= 0 || (!dynamic&&c.targets.length === 0) || c.targets.some((v) => v <= 0)) reasons.push("invalid_price_structure");
   if ((c.side === "buy" && !(c.stop < c.entry && c.targets.every((t) => t > c.entry))) || (c.side === "sell" && !(c.stop > c.entry && c.targets.every((t) => t < c.entry)))) reasons.push("invalid_price_structure");
-  if (c.riskReward <= 0 || c.riskReward < (options.minimumRiskReward ?? 0)) reasons.push("invalid_risk_reward");
+  if (!dynamic&&(c.riskReward <= 0 || c.riskReward < (options.minimumRiskReward ?? 0))) reasons.push("invalid_risk_reward");
   if (c.score < (options.minimumScore ?? 0)) reasons.push("below_score_threshold");
   if (options.allowedGrades && !options.allowedGrades.includes(c.grade)) reasons.push("grade_filtered");
   return [...new Set(reasons)];

@@ -1,0 +1,961 @@
+{
+  "classification": "GENUINE_DAILY_REGISTRY_ARBITRATION_LIFECYCLE_PARITY_ALREADY_OBSERVED_DATA",
+  "sourceHashes": {
+    "supabase/functions/_shared/daily-trend-contract.ts": "e5f6645b429c2c5d6a6078c7d8d5184c0d427360cf4fe5c51cebe3689b669dbd",
+    "supabase/functions/_shared/daily-trend.ts": "282a469a12c2236a4f014bb7e38bade9e019f831a9bad24537402b9f22e9b6bf",
+    "supabase/functions/_shared/daily-trend-outcome.ts": "d7ff70cb32775df5a23077df9e9ef1c11fdadcbc453bbf42adaca6c986f7d78b",
+    "supabase/functions/_shared/daily-trend-profile.ts": "287a9a4a66dbfcc5430f12623899e6ea8d43ab66d9794512b2175cf04fa279b5",
+    "supabase/functions/_shared/replay-outcomes.ts": "03361b145ccbde2bb5ac3c61c20076e939b5cd96075b05fcc4210369b3e418c7",
+    "supabase/functions/_shared/phase-l-validation.ts": "d3b407dc5d04712541f7316af1dcfc2f41ab607e3ea26533b4f8c13530972b02",
+    "supabase/functions/_shared/active-qualification.ts": "299d7adb4c6abb1f674e7ee9ccbfc1f344da5d4c39637d0cfed71faa1223d053",
+    "supabase/functions/_shared/arbitrator.ts": "68736eb446feec88a5573febf424ca17ec32885f61f91132943ae1a2cf96a569",
+    "supabase/functions/_shared/scanner-replay-lifecycle.ts": "e95e93294692fb32ae6332b731ff8ac50620eecd5aad6ac713c782b7730c8dd5",
+    "supabase/functions/_shared/multi-dataset-scanner-replay.ts": "8f44ed35f80aefe99fc955a10af08420359d36b6d0677c22e6e74ba37769a448",
+    "supabase/functions/_shared/signal-ensemble-selection.ts": "ff0d96e7c5b8e13c9de90638e67ed295e52433bafcc93e7d3f73bf67752fa99d",
+    "supabase/functions/_shared/active-validation-runtime.ts": "f5039c58f951383655de07cccebd44ca1cc81048289abbdd8a012fe673793f1d",
+    "supabase/functions/_shared/scanner-market-context.ts": "d33e2916e4d65fca51f48a4c5df105f1c5e3f28299a57e20331d35a70d973f6f"
+  },
+  "sources": [
+    {
+      "symbol": "BTCUSDT",
+      "file": "BTCUSDT-DEVELOPMENT-0.json",
+      "rawSha256": "66c6c45e9f3b6a5e25a1f3391cba9499f745704b91a211f4675717b51f8d95d2",
+      "rows": 1000,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "BTCUSDT",
+      "file": "BTCUSDT-DEVELOPMENT-1.json",
+      "rawSha256": "32fd7c65b98697863402b91cf9d3a4a64f4730c9f823e117aae526dda048286e",
+      "rows": 461,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "BTCUSDT",
+      "file": "BTCUSDT-VALIDATION-0.json",
+      "rawSha256": "067de9f0797b91220111e60f9179c2353257b6b8c039fad47c2ea3f1b9e23d89",
+      "rows": 1000,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "BTCUSDT",
+      "file": "BTCUSDT-VALIDATION-1.json",
+      "rawSha256": "dada49d6746ad3094b6a4874e69f1627d2d2bcea8c2addf9a639043b507ad6e8",
+      "rows": 96,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "BTCUSDT",
+      "file": "BTCUSDT-RECENT_EXTENSION-0.json",
+      "rawSha256": "254b0d9fe9abfec7ec86043d04f023cda851fec023571acb93290c5198477fac",
+      "rows": 638,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "ETHUSDT",
+      "file": "ETHUSDT-DEVELOPMENT-0.json",
+      "rawSha256": "26150b4969bbf41dd2edd524d5d1c22a3be1e244293c1db67c7cebe44c392a43",
+      "rows": 1000,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "ETHUSDT",
+      "file": "ETHUSDT-DEVELOPMENT-1.json",
+      "rawSha256": "06e9898508ff8d228d6624172e202f2ae09facbafe053193fef8a5ec2f2eed8d",
+      "rows": 461,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "ETHUSDT",
+      "file": "ETHUSDT-VALIDATION-0.json",
+      "rawSha256": "30669e470d16ed1cd6c7e41ea96b702c0a6c03f9ee4a7c10aba31d1887472f77",
+      "rows": 1000,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "ETHUSDT",
+      "file": "ETHUSDT-VALIDATION-1.json",
+      "rawSha256": "df24f3c7874dec4661a00e7a363e50b440aa669265f06e9371494ad83298cd62",
+      "rows": 96,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    },
+    {
+      "symbol": "ETHUSDT",
+      "file": "ETHUSDT-RECENT_EXTENSION-0.json",
+      "rawSha256": "60d08b620e90b748a186db4900f858ef32069eb4331cf816ec814b34b2ac8765",
+      "rows": 638,
+      "origin": "https://data-api.binance.vision/api/v3/klines",
+      "vendorChecksum": false
+    }
+  ],
+  "configuration": {
+    "researchOnly": true,
+    "version": "crypto.daily-ema-trend-v1",
+    "minSignalGrade": "A",
+    "outcomeAssumptions": {
+      "entryTiming": "NEXT_OPEN",
+      "feeBps": 20,
+      "spreadBps": 2,
+      "slippageBps": 4,
+      "fundingBps": 0,
+      "partialExitPct": 0,
+      "moveStopToBreakevenAfterTp1": false,
+      "trailingStopR": null,
+      "sameCandlePolicy": "STOP_FIRST",
+      "closeAtHorizon": false
+    },
+    "strategies": [
+      {
+        "id": "crypto.daily-ema-trend",
+        "version": "1.0.0",
+        "enabled": true,
+        "minScore": 75,
+        "minRiskReward": 0,
+        "maxBarsInTrade": 3650,
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT"
+        ],
+        "timeframes": [
+          "1d"
+        ],
+        "parameters": {}
+      }
+    ]
+  },
+  "configurationHash": "5ddb726c82de0558d208c9b52a118e92c5f825996810c8bb007aeeee8e008edc",
+  "comparedClosedTrades": 23,
+  "metrics": {
+    "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+    "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+    "tradeCount": 25,
+    "resolvedCount": 23,
+    "openCount": 2,
+    "ambiguousCount": 0,
+    "excludedCount": 0,
+    "expectancyR": 0.054254341174399846,
+    "profitFactor": 1.1507037952716281,
+    "profitFactorUndefinedReason": null,
+    "realizedMaxDrawdownR": 4.052255078683067,
+    "realizedEquityCurve": [
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-01-02T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.03239903503918883,
+        "equityR": -0.03239903503918883
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-01-02T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.02447274057008838,
+        "equityR": -0.05687177560927721
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-01-09T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.3663293336599736,
+        "equityR": -0.4232011092692508
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-01-09T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.46538977259025494,
+        "equityR": -0.8885908818595057
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-01-10T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.0316641483541934,
+        "equityR": -0.9202550302136991
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-01-10T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.02314598221380426,
+        "equityR": -0.9434010124275034
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-01-14T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.22590362716079254,
+        "equityR": -1.169304639588296
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-02-03T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 0.09606501743403528,
+        "equityR": -1.0732396221542606
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-02-04T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-02-04T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.028445007965376762,
+        "equityR": -1.1016846301196375
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-02-04T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-02-18T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.5990687224837503,
+        "equityR": -1.7007533526033878
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-04-25T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-04-25T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.03700227422563092,
+        "equityR": -1.7377556268290186
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-05-11T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.025397527699009086,
+        "equityR": -1.7631531545280277
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-04-25T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-05T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 1.3145334990547102,
+        "equityR": -0.4486196554733175
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-06T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-06T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.045744410754511224,
+        "equityR": -0.49436406622782875
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-06T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.6398188913110132,
+        "equityR": -1.134182957538842
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-07T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-07T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.022971447152905264,
+        "equityR": -1.1571544046917472
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-07T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-20T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.27728977466690685,
+        "equityR": -1.4344441793586542
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-06T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-21T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 0.001043871041303204,
+        "equityR": -1.433400308317351
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-22T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-22T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.04559272735428838,
+        "equityR": -1.4789930356716394
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-30T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-06-30T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.02468043791687303,
+        "equityR": -1.5036734735885124
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-30T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-07-02T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.36100485569231594,
+        "equityR": -1.8646783292808284
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-07-03T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-07-03T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.02450626422826317,
+        "equityR": -1.8891845935090916
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-07-03T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-02T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 2.9487771851954303,
+        "equityR": 1.0595925916863387
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-03T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-03T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.024929681631301194,
+        "equityR": 1.0346629100550375
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-22T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-18T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 2.186122060429873,
+        "equityR": 3.2207849704849103
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-19T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-19T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.05361715615150951,
+        "equityR": 3.1671678143334008
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-03T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-19T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 2.040064059508793,
+        "equityR": 5.207231873842193
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-20T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-20T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.02369834112474261,
+        "equityR": 5.183533532717451
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-19T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-25T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -1,
+        "equityR": 4.183533532717451
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-26T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-26T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.044116186957275406,
+        "equityR": 4.139417345760176
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-26T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-08-30T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.26729102910422803,
+        "equityR": 3.872126316655948
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-09-16T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-09-16T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.06148384369411567,
+        "equityR": 3.810642472961832
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-20T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-09-22T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 0.08105894296628398,
+        "equityR": 3.891701415928116
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-23T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-09-23T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.030422497511331338,
+        "equityR": 3.8612789184167844
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-09-16T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-09-25T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -1,
+        "equityR": 2.8612789184167844
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-23T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-09-25T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -1,
+        "equityR": 1.8612789184167844
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-26T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-09-26T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.02733371606475227,
+        "equityR": 1.8339452023520322
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-02T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-10-02T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.06104046926781307,
+        "equityR": 1.7729047330842191
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-02T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-10-10T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.39958721003662206,
+        "equityR": 1.3733175230475971
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-26T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-10-10T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 0.7765124411415535,
+        "equityR": 2.1498299641891507
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-10-11T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.034934811314441344,
+        "equityR": 2.1148951528747095
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-10-11T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.020441780413727902,
+        "equityR": 2.0944533724609817
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-10-16T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": 0.3200343576730704,
+        "equityR": 2.414487730134052
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2025-10-17T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -1,
+        "equityR": 1.4144877301340522
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2026-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2026-05-11T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.05252213610886519,
+        "equityR": 1.361965594025187
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2026-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2026-05-12T00:00:00.000Z",
+        "kind": "EXIT",
+        "sequence": 1,
+        "realizedR": -0.11411574701399,
+        "equityR": 1.247849847011197
+      },
+      {
+        "candidateId": "genuine-daily:ETHUSDT:1d:2026-08-20T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2026-08-20T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.03985288359106704,
+        "equityR": 1.20799696342013
+      },
+      {
+        "candidateId": "genuine-daily:BTCUSDT:1d:2026-08-21T00:00:00.000Z:crypto.daily-ema-trend",
+        "time": "2026-08-21T00:00:00.000Z",
+        "kind": "COST",
+        "sequence": 0,
+        "realizedR": -0.053020168261003205,
+        "equityR": 1.1549767951591268
+      }
+    ]
+  },
+  "equalNotionalClosedReturnPF": 1.3718817576082831,
+  "bySymbol": [
+    {
+      "symbol": "BTCUSDT",
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 13,
+        "resolvedCount": 12,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.139765816793821,
+        "profitFactor": 0.6749412455907269,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.141728757909863,
+        "realizedEquityCurve": [
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-01-02T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.03239903503918883,
+            "equityR": -0.03239903503918883
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-01-09T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.3663293336599736,
+            "equityR": -0.39872836869916245
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-01-10T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.0316641483541934,
+            "equityR": -0.43039251705335585
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-02-03T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 0.09606501743403528,
+            "equityR": -0.33432749961932057
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-02-04T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-02-04T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.028445007965376762,
+            "equityR": -0.3627725075846973
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-02-04T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-02-18T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.5990687224837503,
+            "equityR": -0.9618412300684476
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-04-25T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-04-25T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.03700227422563092,
+            "equityR": -0.9988435042940785
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-04-25T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-05T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 1.3145334990547102,
+            "equityR": 0.31568999476063164
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-06T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-06T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.045744410754511224,
+            "equityR": 0.2699455840061204
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-06T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-21T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 0.001043871041303204,
+            "equityR": 0.2709894550474236
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-22T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-22T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.04559272735428838,
+            "equityR": 0.22539672769313523
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-06-22T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-18T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 2.186122060429873,
+            "equityR": 2.411518788123008
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-19T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-19T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.05361715615150951,
+            "equityR": 2.3579016319714983
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-19T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-25T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -1,
+            "equityR": 1.3579016319714983
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-26T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-26T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.044116186957275406,
+            "equityR": 1.3137854450142228
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-08-26T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-30T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.26729102910422803,
+            "equityR": 1.0464944159099947
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-09-16T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-09-16T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.06148384369411567,
+            "equityR": 0.9850105722158791
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-09-16T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-09-25T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -1,
+            "equityR": -0.014989427784120934
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-02T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-10-02T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.06104046926781307,
+            "equityR": -0.076029897051934
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-02T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-10-10T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.39958721003662206,
+            "equityR": -0.4756171070885561
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-10-11T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.034934811314441344,
+            "equityR": -0.5105519184029974
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-10-17T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -1,
+            "equityR": -1.5105519184029974
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2026-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2026-05-11T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.05252213610886519,
+            "equityR": -1.5630740545118627
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2026-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2026-05-12T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.11411574701399,
+            "equityR": -1.6771898015258526
+          },
+          {
+            "candidateId": "genuine-daily:BTCUSDT:1d:2026-08-21T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2026-08-21T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.053020168261003205,
+            "equityR": -1.7302099697868558
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 12,
+        "resolvedCount": 11,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.26591269532154993,
+        "profitFactor": 1.9373632241219667,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 2.1145813212022264,
+        "realizedEquityCurve": [
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-01-02T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.02447274057008838,
+            "equityR": -0.02447274057008838
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-02T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-01-09T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.46538977259025494,
+            "equityR": -0.4898625131603433
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-01-10T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.02314598221380426,
+            "equityR": -0.5130084953741476
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-01-10T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-01-14T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.22590362716079254,
+            "equityR": -0.7389121225349402
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-05-11T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.025397527699009086,
+            "equityR": -0.7643096502339493
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-05-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-06T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.6398188913110132,
+            "equityR": -1.4041285415449625
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-07T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-07T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.022971447152905264,
+            "equityR": -1.4270999886978677
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-07T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-20T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.27728977466690685,
+            "equityR": -1.7043897633647744
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-30T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-06-30T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.02468043791687303,
+            "equityR": -1.7290702012816475
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-06-30T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-07-02T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -0.36100485569231594,
+            "equityR": -2.0900750569739635
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-07-03T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-07-03T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.02450626422826317,
+            "equityR": -2.1145813212022264
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-07-03T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-02T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 2.9487771851954303,
+            "equityR": 0.8341958639932039
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-03T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-03T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.024929681631301194,
+            "equityR": 0.8092661823619027
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-03T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-19T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 2.040064059508793,
+            "equityR": 2.849330241870696
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-20T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-08-20T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.02369834112474261,
+            "equityR": 2.8256319007459534
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-08-20T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-09-22T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 0.08105894296628398,
+            "equityR": 2.906690843712237
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-23T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-09-23T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.030422497511331338,
+            "equityR": 2.8762683462009058
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-23T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-09-25T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": -1,
+            "equityR": 1.8762683462009058
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-26T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-09-26T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.02733371606475227,
+            "equityR": 1.8489346301361536
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-09-26T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-10-10T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 0.7765124411415535,
+            "equityR": 2.625447071277707
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-10-11T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.020441780413727902,
+            "equityR": 2.6050052908639794
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2025-10-11T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2025-10-16T00:00:00.000Z",
+            "kind": "EXIT",
+            "sequence": 1,
+            "realizedR": 0.3200343576730704,
+            "equityR": 2.92503964853705
+          },
+          {
+            "candidateId": "genuine-daily:ETHUSDT:1d:2026-08-20T00:00:00.000Z:crypto.daily-ema-trend",
+            "time": "2026-08-20T00:00:00.000Z",
+            "kind": "COST",
+            "sequence": 0,
+            "realizedR": -0.03985288359106704,
+            "equityR": 2.8851867649459826
+          }
+        ]
+      }
+    }
+  ],
+  "publication": false,
+  "execution": false
+}

@@ -1,0 +1,2 @@
+import {DAILY_TREND_PROFILE,PROMISING_PAIR_PROFILE,DAILY_SYMBOLS} from './daily-trend-contract.ts';
+export const DAILY_CATALOG=[{id:DAILY_TREND_PROFILE,label:'BTC / ETH daily trend · trailing exit research',symbols:[...DAILY_SYMBOLS],timeframe:'1d',costBps:26,warmupBars:201},{id:PROMISING_PAIR_PROFILE,label:'Daily BTC/ETH + altcoin relative strength · combined research',symbols:['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT'],costBps:26,warmupBars:201}];

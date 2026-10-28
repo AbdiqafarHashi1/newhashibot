@@ -1,8 +1,14 @@
+import {dailyEvidence} from './daily-trend-contract.ts';
 import type { LegacyStrategyResult, StrategyRuntimeConfig } from './professional-strategies.ts';
 export interface ActiveQualification {passed:boolean;reasons:string[];slPct:number;tp1Pct:number;tp2Pct:number;riskReward:number;}
 const grade=(value:string)=>value==='A+'?3:value==='A'?2:value==='B'?1:0;
 export function qualifyActiveCandidate(result:LegacyStrategyResult,config:StrategyRuntimeConfig,minSignalGrade:string):ActiveQualification {
  const reasons:string[]=[];
+ if(config.strategy_name==='DailyEmaTrend'&&dailyEvidence(result.score_breakdown)){
+  const entry=result.entry_high,slPct=(entry-result.stop_loss)/entry*100;
+  if(result.status!=='candidate'||result.direction!=='buy'||![entry,result.entry_low,result.stop_loss,result.confidence_score].every(Number.isFinite)||entry!==result.entry_low||result.stop_loss<=0||entry<=result.stop_loss||result.tp1!==0||result.tp2!==0||result.risk_reward!==0||config.min_rr!==0||result.confidence_score<config.min_score||grade(result.grade)<grade(minSignalGrade))reasons.push('invalid_daily_trend_contract');
+  return {passed:!reasons.length,reasons,slPct,tp1Pct:0,tp2Pct:0,riskReward:0};
+ }
  if(result.status==='rejected')reasons.push(result.rejection_reason||'evaluator_rejected');
  const buy=/^(buy|long)$/i.test(result.direction),sell=/^(sell|short)$/i.test(result.direction);
  const levels=[result.entry_low,result.entry_high,result.stop_loss,result.tp1,result.tp2];

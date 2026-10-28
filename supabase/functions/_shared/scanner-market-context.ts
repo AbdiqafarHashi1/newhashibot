@@ -1,3 +1,4 @@
+import {dailyEvidence} from './daily-trend-contract.ts';
 import {signalEnsembleMarketPolicy} from './crypto-signal-ensemble.ts';
 import {cryptoTeamPolicy} from './coordinated-crypto-policy.ts';
 import {observeAdaptiveMarket,type AdaptiveMarketEvidence} from "./adaptive-market-policy.ts";
@@ -137,6 +138,7 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  if(entries.every(e=>e.name==='DailyEmaTrend'))return entries.every(e=>dailyEvidence(e.result.score_breakdown))?"":"DAILY_POLICY_MISMATCH";
   const sleevePolicy=signalEnsembleMarketPolicy(entries);if(sleevePolicy!==undefined)return sleevePolicy;
   const teamPolicy=cryptoTeamPolicy(entries);if(teamPolicy!==undefined)return teamPolicy;
   if(entries.every(e=>['crypto.cost-aware-15m','forex.cost-aware-hourly'].includes(e.name))){
@@ -279,6 +281,7 @@ export function overextensionPenalty(e: MarketArbitrationEntry): number {
 
 export function arbitrationScore(e: MarketArbitrationEntry, ctx?: MarketContext): number {
   const r = e.result;
+  if(e.name==='DailyEmaTrend'&&dailyEvidence(r.score_breakdown))return r.confidence_score;
   const g = e.guard;
   const scorePct = r.confidence_score / 100;
   const rrPct = Math.min(r.risk_reward / 3.5, 1);

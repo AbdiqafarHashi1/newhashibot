@@ -1,3 +1,4 @@
+import {dailyCandidate} from './daily-trend-contract.ts';
 import type {ArbitrationCandidate} from './arbitrator.ts';
 import type {StrategyCandle} from './professional-strategies.ts';
 import {evaluateReplayOutcome,type ReplayFillAssumptions} from './replay-outcomes.ts';
@@ -12,7 +13,7 @@ export function observeReplayPosition(position:ReplayTrackedPosition,candles:rea
  const from=lower(start),until=lower(at-width+1),path=candles.slice(from,Math.min(until,from+(position.assumptions.maxBarsInTrade??candles.length)));
  if(!path.length||Date.parse(path[0].open_time)!==start)return null;
  if(path.some((c,i)=>c.symbol!==position.candidate.symbol||c.timeframe!==position.candidate.timeframe||Date.parse(c.open_time)!==start+i*width||![c.open,c.high,c.low,c.close].every(Number.isFinite)||c.low<=0||c.low>Math.min(c.open,c.close)||c.high<Math.max(c.open,c.close)))return null;
- const result=evaluateReplayOutcome(position.candidate,path,position.decisionAt,position.assumptions);
+ const result=evaluateReplayOutcome(position.candidate,dailyCandidate(position.candidate)?candles.slice(0,until):path,position.decisionAt,position.assumptions);
  if(!result||result.status==='OPEN'||result.status==='AMBIGUOUS')return null;
  // A gap-excluded entry is only knowable after this first admitted candle; do not backdate it.
  const knownAt=Date.parse(result.exitTime??path[0].open_time)+width;

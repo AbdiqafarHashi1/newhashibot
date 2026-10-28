@@ -1,3 +1,5 @@
+import {admitDailyRows} from '../../supabase/functions/_shared/daily-trend.ts';
+import {hasDaily,dailyOutcomeAssumptions} from '../../supabase/functions/_shared/daily-trend-profile.ts';
 import {LEGACY_CRYPTO_PROFILE_ID} from '../../supabase/functions/_shared/legacy-crypto-research-profile.ts';
 import {OBSERVED_REPLAY_SELECTION_POLICY} from '../../supabase/functions/_shared/scanner-replay-policy.ts';
 import {REPLAY_LIFECYCLE_VERSION} from '../../supabase/functions/_shared/scanner-replay-lifecycle.ts';
@@ -55,9 +57,10 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         const candles=await loadPortableCandles(db,item.id);validateDatasetIntegrity(candles,{symbol:data.symbol,timeframe:data.timeframe,rowCount:data.row_count});
         if(await hashValidationDataset(candles)!==item.hash)throw new WorkerFault('DATASET_HASH_MISMATCH',true);
         if(p.researchCandidateId===LEGACY_CRYPTO_PROFILE_ID&&candles.some(c=>c.market_type!=='crypto'||c.timeframe!=='15m'||c.instrument_type!=='USDT_PERPETUAL'||c.source!=='BINANCE_USDM_KLINES'))throw new WorkerFault('LEGACY_RESEARCH_NATIVE_USDM_REQUIRED',true);
-        const width=TIMEFRAME_MS[data.timeframe as keyof typeof TIMEFRAME_MS],window=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(p.start)-Math.max(220,requiredReplayBars(p.configuration))*width&&Date.parse(c.open_time)<Date.parse(p.end));
+        const width=TIMEFRAME_MS[data.timeframe as keyof typeof TIMEFRAME_MS],window=candles.filter(c=>(hasDaily(p.configuration)&&data.timeframe==='1d'||Date.parse(c.open_time)>=Date.parse(p.start)-Math.max(220,requiredReplayBars(p.configuration))*width)&&Date.parse(c.open_time)<Date.parse(p.end));
         if(window.length>(p.extended?RESEARCH_LIMITS.candles:LIMITS.candles))throw new WorkerFault('REPLAY_WINDOW_TOO_LARGE_SELECT_SHORTER_DATES',true);
         if(window.length<55)throw new WorkerFault('REPLAY_WINDOW_INSUFFICIENT_HISTORY',true);
+        if(hasDaily(p.configuration)&&data.timeframe==='1d'&&(!admitDailyRows(window,data.symbol)||window.filter(c=>Date.parse(c.open_time)+width<=Date.parse(p.start)).length<201))throw new WorkerFault('DAILY_NATIVE_SPOT_201_SEED_BARS_REQUIRED',true);
         if(p.researchCandidateId===LEGACY_CRYPTO_PROFILE_ID&&window.filter(c=>Date.parse(c.open_time)+width<=Date.parse(p.start)).length<110)throw new WorkerFault('LEGACY_RESEARCH_110_WARMUP_REQUIRED',true);
         datasets.push({id:item.id,hash:item.hash,configurationHash:job.configuration_hash!,source:data.source,symbol:data.symbol,market:(candles[0]?.market_type==='crypto'?'crypto':'forex') as 'forex'|'crypto',timeframe:data.timeframe,candles:window});
       }
@@ -72,7 +75,7 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         if(winner){
           const dataset=datasets.find(x=>x.id===cycle.datasetId)!;
           const strategy=p.configuration.strategies.find((s:{id:string;maxBarsInTrade:number})=>s.id===winner.strategyId);
-          const frozenAssumptions={...assumptions,maxBarsInTrade:assumptions.maxBarsInTrade??strategy?.maxBarsInTrade};
+          const perStrategy=dailyOutcomeAssumptions(winner.strategyId,assumptions);const frozenAssumptions={...perStrategy,maxBarsInTrade:perStrategy.maxBarsInTrade??strategy?.maxBarsInTrade};
           if(p.researchModelId&&dataset.market==='forex'){const width=TIMEFRAME_MS[dataset.timeframe as keyof typeof TIMEFRAME_MS],quote=dataset.candles.find(c=>Date.parse(c.open_time)+width===Date.parse(row.event.closedAt));if(!quote||!Number.isFinite(quote.ask_close)||quote.ask_close!<quote.close)throw new WorkerFault('RESEARCH_NATIVE_SPREAD_REQUIRED',true);frozenAssumptions.spreadBps+=(quote.ask_close!-quote.close)/quote.close*10000;}
           const computed=await consumeSteps(evaluateReplayOutcomeSteps(winner,dataset.candles.filter(c=>Date.parse(c.open_time)<Date.parse(p.end)),row.event.closedAt,frozenAssumptions),context);
           if(!computed)throw new WorkerFault('SCANNER_OUTCOME_MISSING',true);

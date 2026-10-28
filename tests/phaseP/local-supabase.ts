@@ -52,7 +52,7 @@ try{
  const base={action:'submit',kind:'HISTORY',provider:'BINANCE',symbol:'BTCUSDT',timeframe:'15m',start:new Date(start).toISOString(),end:new Date(start+99*900000).toISOString(),idempotencyKey:'lost-history-response'};
  const [first,duplicate]=await Promise.all([request(base),request(base)]);assert.equal(first.status,202);assert.equal(duplicate.body.jobId,first.body.jobId);assert.equal((await request(base)).body.runId,first.body.runId);
  assert.equal((await get('phase_p_worker_usage'))[0].jobs,1);assert.equal((await get('validation_datasets')).length,1);
- const fetcher:typeof fetch=async url=>{assert.match(String(url),/api.binance.com/);return new Response(JSON.stringify(candles.map(c=>[Date.parse(c.open_time),c.open,c.high,c.low,c.close,c.volume])),{status:200});};
+ const fetcher:typeof fetch=async url=>{assert.match(String(url),/api.binance.com/);return new Response(JSON.stringify(candles.map(c=>[Date.parse(c.open_time),c.open,c.high,c.low,c.close,c.volume,Date.parse(c.open_time)+899999,c.close*c.volume,10,c.volume/2,c.close*c.volume/2,0])),{status:200});};
  const handlers=createHandlers(db,fetcher),store=new SupabaseWorkerStore(db),slice=()=>runSlice({store,handlers,host:'real-local',revision:'test'});
  assert.equal((await slice()).state,'COMPLETED');const historyId=first.body.runId;
  const history=await request({action:'details',kind:'HISTORY',runId:historyId});assert.equal(history.status,200);assert.equal(history.body.run.status,'READY');assert.equal(history.body.evidence.length,100);

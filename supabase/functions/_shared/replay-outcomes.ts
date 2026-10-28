@@ -1,3 +1,5 @@
+import {dailyCandidate} from './daily-trend-contract.ts';
+import {dailyTrendOutcomeSteps} from './daily-trend-outcome.ts';
 import type { ArbitrationCandidate } from "./arbitrator.ts";
 import type { StrategyCandle } from "./professional-strategies.ts";
 
@@ -15,7 +17,7 @@ export interface ReplayFillAssumptions {
 export interface ReplayCashFlowEvent { time: string; candidateId: string; kind: "COST"|"TP1"|"EXIT"; sequence: number; realizedR: number; }
 export interface ReplayOutcome {
   candidateId:string; strategyId:string; symbol:string; timeframe:string;
-  status:"TARGET"|"STOP"|"OPEN"|"AMBIGUOUS"|"EXCLUDED"|"TIMEOUT";
+  status:"TARGET"|"STOP"|"OPEN"|"AMBIGUOUS"|"EXCLUDED"|"TIMEOUT"|"REGIME_EXIT";
   entryTime:string; exitTime:string|null; entryPrice:number; exitPrice:number|null;
   grossR:number|null; netR:number|null; costR:number; partialExit:boolean; conservative:boolean;
   exclusionReason?:string; cashFlowEvents:ReplayCashFlowEvent[];
@@ -33,6 +35,7 @@ export function validateReplayAssumptions(a: ReplayFillAssumptions) {
 
 export function* evaluateReplayOutcomeSteps(candidate:ArbitrationCandidate,candles:readonly StrategyCandle[],after:string,a:ReplayFillAssumptions):Generator<void,ReplayOutcome|null> {
   validateReplayAssumptions(a);
+  if(dailyCandidate(candidate)){const cost=a.feeBps+a.spreadBps+a.slippageBps;if(a.fundingBps!==0||![26,39].includes(cost)||a.partialExitPct!==0||a.moveStopToBreakevenAfterTp1||a.closeAtHorizon)throw Error("DAILY_FROZEN_EXIT_COST_REQUIRED");return yield* dailyTrendOutcomeSteps(candidate,candles,after,cost);}
   const path=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(after)); if(!path.length)return null;
   const entryCandle=path[0], entry=entryCandle.open, sign=candidate.side==="buy"?1:-1;
   const excluded=(reason:string):ReplayOutcome=>({candidateId:candidate.id,strategyId:candidate.strategyId,symbol:candidate.symbol,timeframe:candidate.timeframe,status:"EXCLUDED",entryTime:entryCandle.open_time,exitTime:null,entryPrice:entry,exitPrice:null,grossR:null,netR:null,costR:0,partialExit:false,conservative:true,exclusionReason:reason,cashFlowEvents:[]});

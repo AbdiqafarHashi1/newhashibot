@@ -27,7 +27,7 @@ test('authenticated source and customer/account isolation is revalidated',async(
 test('concrete historical adapter -> worker RPC store -> durable checkpoint',async()=>{
  const db=new Db();db.job=job('HISTORY',{provider:'BINANCE',symbol:'BTCUSDT',timeframe:'15m',start:new Date(start).toISOString(),end:new Date(start+99*900000).toISOString()});
  db.tables.validation_dataset_candles=candles.map(c=>({...c,dataset_id:'run'}));let requests=0;
- const fetcher:typeof fetch=async url=>{requests++;assert.match(String(url),/^https:\/\/api.binance.com\/api\/v3\/klines/);return new Response(JSON.stringify(candles.map(c=>[Date.parse(c.open_time),c.open,c.high,c.low,c.close,c.volume])),{status:200});};
+ const fetcher:typeof fetch=async url=>{requests++;assert.match(String(url),/^https:\/\/api.binance.com\/api\/v3\/klines/);return new Response(JSON.stringify(candles.map(c=>[Date.parse(c.open_time),c.open,c.high,c.low,c.close,c.volume,Date.parse(c.open_time)+899999,c.close*c.volume,10,c.volume/2,c.close*c.volume/2,0])),{status:200});};
  const result=await runSlice({store:new SupabaseWorkerStore(db),handlers:createHandlers(db,fetcher),host:'test',revision:'test'});
  assert.equal(result.state,'COMPLETED');assert.equal(requests,1);assert.equal(db.rows.length,100);assert.equal(db.job.checkpoint.cursor,100);assert.equal(db.finish.p_summary.rowCount,100);
  assert.match(db.finish.p_summary.datasetHash,/^[0-9a-f]{64}$/);
