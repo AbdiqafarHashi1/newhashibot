@@ -1,3 +1,5 @@
+import {SIGNAL_ENSEMBLE_PROFILE_IDS} from './signal-ensemble-catalog.ts';
+import {signalEnsembleConfiguration} from './crypto-signal-ensemble.ts';
 import {OBSERVED_REPLAY_SELECTION_POLICY} from './scanner-replay-policy.ts';
 import {LEGACY_CRYPTO_PROFILE_ID,legacyCryptoResearchConfiguration} from './legacy-crypto-research-profile.ts';
 import {teamReleaseScopeAllowed} from './coordinated-crypto-release.ts';
@@ -5,7 +7,7 @@ import {REPLAY_LIFECYCLE_VERSION} from './scanner-replay-lifecycle.ts';
 import {CRYPTO_TEAM_ASSUMPTIONS} from './coordinated-crypto-contract.ts';
 import {coordinatedConfiguration} from './coordinated-crypto.ts';
 import {CRYPTO_TEAM_PROFILE_IDS} from './coordinated-crypto-contract.ts';
-import {isCryptoTeam,referenceOnly,validateCoordinatedDatasets} from './coordinated-crypto-selection.ts';
+import {isCryptoTeam,referenceOnly,validateCoordinatedDatasets} from './signal-ensemble-selection.ts';
 import {altReplayConfiguration} from './crypto-relative-strength.ts';
 import {createApprovedReplayRegistry} from './active-validation-runtime.ts';
 import {DEFAULT_REPLAY_ASSUMPTIONS} from './replay-outcomes.ts';
@@ -35,7 +37,7 @@ export async function preparePortableSubmission(db:any,actor:string,body:Record<
     if(new Set(data.map((x:any)=>`${x.symbol}:${x.timeframe}`)).size!==data.length)throw new WorkerFault('REPLAY_DUPLICATE_SYMBOL_TIMEFRAME',true);
     let approved;
     if(payload.researchModelId){const {data:model,error}=await db.from('validation_research_models').select('*').eq('id',payload.researchModelId).eq('created_by',actor).eq('publication_eligible',false).maybeSingle();if(error||!model)throw new WorkerFault('RESEARCH_MODEL_NOT_OWNED',true);approved=await researchModelSnapshot({strategyId:model.strategy_id,parameters:model.configuration?.strategies?.[0]?.parameters});if(approved.hash!==model.content_hash||Date.parse(payload.start)<Date.parse(model.valid_from)||Date.parse(payload.end)>Date.parse(model.valid_until))throw new WorkerFault('RESEARCH_MODEL_LINEAGE_OR_DATE_INVALID',true);payload.researchOnly=true;}
-    else if(payload.researchCandidateId){const configuration=payload.researchCandidateId===LEGACY_CRYPTO_PROFILE_ID?legacyCryptoResearchConfiguration():CRYPTO_TEAM_PROFILE_IDS.includes(payload.researchCandidateId)?coordinatedConfiguration(payload.researchCandidateId):altReplayConfiguration();approved={configuration,hash:await fingerprint(configuration)};validateCoordinatedDatasets(configuration,data.map((d:{symbol:string;timeframe:string;market_type?:string})=>({...d,market:d.market_type??(/USDT$/.test(d.symbol)?'crypto':'forex')})));payload.researchOnly=true;}
+    else if(payload.researchCandidateId){const configuration=payload.researchCandidateId===LEGACY_CRYPTO_PROFILE_ID?legacyCryptoResearchConfiguration():CRYPTO_TEAM_PROFILE_IDS.includes(payload.researchCandidateId)?coordinatedConfiguration(payload.researchCandidateId):SIGNAL_ENSEMBLE_PROFILE_IDS.includes(payload.researchCandidateId)?signalEnsembleConfiguration(payload.researchCandidateId):altReplayConfiguration();approved={configuration,hash:await fingerprint(configuration)};validateCoordinatedDatasets(configuration,data.map((d:{symbol:string;timeframe:string;market_type?:string})=>({...d,market:d.market_type??(/USDT$/.test(d.symbol)?'crypto':'forex')})));payload.researchOnly=true;}
     else approved=await loadApprovedValidationConfiguration(db);
     if(payload.strategyIds){const strategies=approved.configuration.strategies.filter((s:{id:string})=>payload.strategyIds.includes(s.id));if(strategies.length!==payload.strategyIds.length)throw new WorkerFault('STRATEGY_SELECTION_NOT_APPROVED',true);const configuration={...approved.configuration,version:'strategy-config/isolated-subset',strategies};approved={configuration,hash:await fingerprint(configuration)};}
     if(payload.releaseCandidateId){const {data:c,error}=await db.from('strategy_release_candidates').select('*').eq('id',payload.releaseCandidateId).eq('created_by',actor).eq('state','FROZEN').maybeSingle();if(error||!c||c.holdout_run_id)throw new WorkerFault('FROZEN_RELEASE_CANDIDATE_REQUIRED',true);approved={configuration:c.immutable_configuration,hash:c.configuration_hash};}

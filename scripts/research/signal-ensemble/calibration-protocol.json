@@ -1,0 +1,19 @@
+{
+ "schema":"prior-closed-sleeve-calibration/v1",
+ "declaredOn":"2026-10-28",
+ "hypothesis":"Fixed prior-only 90-day role-level calibration of all four unchanged sleeve evaluators. A shadow proposal book supplies labels even for withheld signals; publication eligibility never sees an unfinished result. No parameter sweep or discarded failed static result.",
+ "parent":"crypto-signal-ensemble/v1",
+ "lookbackDays":90,
+ "minimumClosedLabels":20,
+ "minimumPriorNetPF":1.2,
+ "minimumPriorStressPF":1.0,
+ "requirePositivePriorMean":true,
+ "scope":["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT"],
+ "development":{"from":"2025-01-11T00:00:00.000Z","until":"2026-01-01T00:00:00.000Z"},
+ "validation":{"from":"2026-01-01T00:00:00.000Z","until":"2026-07-01T00:00:00.000Z"},
+ "rules":"Every15m close; existing native-source/geometry/qualification/arbitration. Independently simulated per-role shadow books have one active signal per symbol and no artificial three-symbol research-label cap. A single combined publication simulation retains three active symbols maximum, one per asset, opposing setup abstention and observed-close release. Labels enter calibration only after their exit candle CLOSE; rolling-window boundary uses known-close time. No stage-end forced profits. Validation carries prior development labels but resets the combined book at the declared boundary.",
+ "gates":{"netPF":1.2,"stressPF":1.0,"developmentResolved":50,"validationResolved":30,"signalsPerDay":1,"activeDayFraction":0.7},
+ "costs":"Unchanged25bps /37.5stress;96bar horizon; fees, spread, slippage, funding reserves; no account-return claim.",
+ "disclosure":"New causal policy after the static sleeve failure. Calendars have been repeatedly examined and this is exploratory development, not untouched holdout or deployment approval. All roles and abstentions retained.",
+ "publication":false,"execution":false,"promotion":false
+}

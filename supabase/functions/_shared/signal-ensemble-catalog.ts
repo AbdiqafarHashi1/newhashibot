@@ -1,0 +1,3 @@
+import {SIGNAL_ENSEMBLE_ID,SIGNAL_ENSEMBLE_ROLES,SIGNAL_ENSEMBLE_SYMBOLS} from './crypto-signal-ensemble-contract.ts';
+export const SIGNAL_ENSEMBLE_PROFILE_IDS=[SIGNAL_ENSEMBLE_ID,...SIGNAL_ENSEMBLE_ROLES.map(r=>r.id)];
+export const SIGNAL_ENSEMBLE_CATALOG=[{id:SIGNAL_ENSEMBLE_ID,label:'Four complementary setups · unapproved research',symbols:[...SIGNAL_ENSEMBLE_SYMBOLS],costBps:25,warmupBars:960},...SIGNAL_ENSEMBLE_ROLES.map(r=>({id:r.id,label:`${r.label} · unapproved research`,symbols:r.id==='crypto.sleeve-relative'?SIGNAL_ENSEMBLE_SYMBOLS.filter(s=>s!=='BTCUSDT'):[...SIGNAL_ENSEMBLE_SYMBOLS],costBps:25,warmupBars:960}))];

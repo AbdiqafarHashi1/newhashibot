@@ -1,0 +1,57 @@
+{
+  "schema": "multi-cycle-context-experts/v1",
+  "declaredOn": "2026-10-28",
+  "scope": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT"
+  ],
+  "newAcquisition": {
+    "years": [
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "recentMonths": [
+      "2026-07",
+      "2026-08",
+      "2026-09"
+    ],
+    "maxArchives": 255,
+    "maxWorkers": 12,
+    "maxBytesPerArchive": 2000000,
+    "timeoutSeconds": 25,
+    "maxAttempts": 2,
+    "transport": "At most4 initial urllib workers plus8 bounded reverse-order resume workers with persistent HTTP sessions. Immutable official checksums reverified after completion; atomic writes for the resume worker. No change to hypothesis, assets, dates or model parameters."
+  },
+  "reuse": "Existing checksum-verified2025-Jan2026-Jun native cache, unchanged.",
+  "model": "Four unchanged15msetup experts, same16features and fixed regularized histogram-gradient model from model-protocol.json. One fit per role, no parameter or threshold search.",
+  "train": {
+    "from": "2021-01-11T00:00:00.000Z",
+    "until": "2024-01-01T00:00:00.000Z"
+  },
+  "validation": {
+    "from": "2024-01-01T00:00:00.000Z",
+    "until": "2025-01-01T00:00:00.000Z"
+  },
+  "later": {
+    "from": "2025-01-01T00:00:00.000Z",
+    "until": "2026-10-01T00:00:00.000Z"
+  },
+  "gates": {
+    "minimumValidationResolved": 50,
+    "minimumLaterResolved": 50,
+    "netPF": 1.2,
+    "stressPF": 1.0,
+    "signalsPerDay": 1,
+    "activeDayFraction": 0.7
+  },
+  "selection": "Past-closed training outcomes only, all5assets retained, fixed models before validation. Complete candidate stream is materialized once from actual production admission/indicators/qualification/arbitration. Shadow labels one active proposal per role/asset. Combined simulation one arbitrator and three active underlying symbols; no opposed publications. Every15mclose allowed.25bps/37.5stress;96barsnextopen full target.",
+  "disclosure": "New model hypothesis after recorded2025/2026 failures. Older daily price calendars and some4h prices have appeared in prior research; not global untouched historical evidence. No deletion of failed models, survivor-only trade reporting, or automatic promotion. Validation is evaluated unchanged, later period gated by prior stage results for certification; diagnostics may still be recorded but cannot be called qualified.",
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

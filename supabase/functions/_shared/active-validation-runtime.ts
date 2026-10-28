@@ -1,3 +1,4 @@
+import {signalEnsembleDefinitions} from './crypto-signal-ensemble.ts';
 import {coordinatedCryptoDefinitions} from './coordinated-crypto.ts';
 import {altResearchDefinitions} from './crypto-relative-strength.ts';
 import {microScalperRuntimeParams} from "./micro-scalper-runtime.ts";
@@ -26,7 +27,7 @@ export function calculateActiveIndicators(candles:readonly StrategyCandle[]):Str
 /** Builds only definitions backed by the production evaluator registry; unknown or unapproved configuration fails closed. */
 export function createApprovedReplayRegistry(config:ApprovedReplayConfiguration,symbol:string,timeframe:string):ProfessionalStrategyRegistry {
  if(!config.version||!config.strategies.length)throw new Error("APPROVED_SCANNER_CONFIGURATION_REQUIRED");
- const definitions:StrategyDefinition[]=[],researchDefinitions=[...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions(),...altResearchDefinitions(),...coordinatedCryptoDefinitions()];
+ const definitions:StrategyDefinition[]=[],researchDefinitions=[...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions(),...altResearchDefinitions(),...coordinatedCryptoDefinitions(),...signalEnsembleDefinitions()];
  for(const item of config.strategies.filter(s=>s.enabled)){
   const regime=researchDefinitions.find(s=>s.id===item.id);
   if(regime){

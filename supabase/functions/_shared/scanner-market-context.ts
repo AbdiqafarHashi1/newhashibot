@@ -1,3 +1,4 @@
+import {signalEnsembleMarketPolicy} from './crypto-signal-ensemble.ts';
 import {cryptoTeamPolicy} from './coordinated-crypto-policy.ts';
 import {observeAdaptiveMarket,type AdaptiveMarketEvidence} from "./adaptive-market-policy.ts";
 import type {LegacyStrategyResult,StrategyRuntimeConfig,StrategyCandle,StrategyIndicatorSnapshot} from "./professional-strategies.ts";
@@ -136,6 +137,7 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  const sleevePolicy=signalEnsembleMarketPolicy(entries);if(sleevePolicy!==undefined)return sleevePolicy;
   const teamPolicy=cryptoTeamPolicy(entries);if(teamPolicy!==undefined)return teamPolicy;
   if(entries.every(e=>['crypto.cost-aware-15m','forex.cost-aware-hourly'].includes(e.name))){
     return entries.every(e=>{

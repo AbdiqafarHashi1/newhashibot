@@ -1,7 +1,7 @@
 import {LEGACY_CRYPTO_PROFILE_ID} from '../../supabase/functions/_shared/legacy-crypto-research-profile.ts';
 import {OBSERVED_REPLAY_SELECTION_POLICY} from '../../supabase/functions/_shared/scanner-replay-policy.ts';
 import {REPLAY_LIFECYCLE_VERSION} from '../../supabase/functions/_shared/scanner-replay-lifecycle.ts';
-import {requiredReplayBars,validateCoordinatedDatasets} from '../../supabase/functions/_shared/coordinated-crypto-selection.ts';
+import {requiredReplayBars,validateCoordinatedDatasets} from '../../supabase/functions/_shared/signal-ensemble-selection.ts';
 import type {ValidationDecision} from '../../supabase/functions/_shared/phase-l-validation.ts';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import type {ReplayOutcome} from '../../supabase/functions/_shared/replay-outcomes.ts';

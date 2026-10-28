@@ -28,7 +28,7 @@ export function arbitrateActiveScanner(candidates: readonly ArbitrationCandidate
     return reason?{...candidate,eligible:false,rejectionReasons:[...candidate.rejectionReasons,reason],evidence}:{...candidate,evidence};
   });
   const eligible=checked.filter(c=>c.eligible!==false&&c.lifecycle==='ENABLED'&&c.publicationMode==='LIVE'&&c.fresh&&c.score>=(options.minimumScore??0)&&Date.parse(c.expiry)>options.now.getTime());
-  const opposing=eligible.some(c=>c.evidence.team_policy==='crypto-team/v1')?eligible.flatMap(a=>eligible.filter(b=>b.symbol===a.symbol&&b.side!==a.side).map(b=>Math.abs(a.score-b.score))):[];
+  const opposing=eligible.some(c=>(c.evidence.team_policy==='crypto-team/v1'||c.evidence.signal_ensemble_policy==='crypto-signal-ensemble/v1'))?eligible.flatMap(a=>eligible.filter(b=>b.symbol===a.symbol&&b.side!==a.side).map(b=>Math.abs(a.score-b.score))):[];
   const conflict=opposing.some(margin=>margin<=.08)?'OPPOSING_SETUP_SCORES_TOO_CLOSE':undefined;
   const result=arbitrate(checked, {...options,forceNoTradeReason:options.forceNoTradeReason??conflict});
   return {...result,evidence:{...result.evidence,...(options.marketContext?{market_context:options.marketContext,adaptive_policy_enabled:options.adaptivePolicy??checked.some(c=>c.evidence.adaptive_policy_approved===true),market_policy_version:"adaptive-market/v1"}:{})}};

@@ -1,0 +1,428 @@
+{
+  "protocol": {
+    "schema": "frozen-sleeve-context-model/v1",
+    "declaredOn": "2026-10-28",
+    "hypothesis": "One fixed regularized context regressor per unchanged setup; predicts net signal R from contemporaneous structure/volatility/volume/cost evidence. This is a new exploratory calibration after both static and rolling-PF failures; all failures retained.",
+    "train": {
+      "from": "2025-01-11T00:00:00.000Z",
+      "until": "2025-07-01T00:00:00.000Z"
+    },
+    "validation": {
+      "from": "2025-07-01T00:00:00.000Z",
+      "until": "2026-01-01T00:00:00.000Z"
+    },
+    "later": {
+      "from": "2026-01-01T00:00:00.000Z",
+      "until": "2026-07-01T00:00:00.000Z"
+    },
+    "model": {
+      "type": "HistGradientBoostingRegressor",
+      "max_iter": 100,
+      "max_leaf_nodes": 7,
+      "min_samples_leaf": 30,
+      "l2_regularization": 10,
+      "learning_rate": 0.05,
+      "early_stopping": false,
+      "random_state": 0
+    },
+    "features": [
+      "side",
+      "macro_direction",
+      "macro_strength",
+      "volume_ratio",
+      "estimated_cost_r",
+      "risk_reward",
+      "stop_fraction",
+      "efficiency",
+      "relative_atr",
+      "bar_range_atr",
+      "trend_atr",
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT"
+    ],
+    "gate": "Predicted net R>=0.15 AND predicted net R minus0.5declared decision costR>0.05; no fitted threshold sweep. Forecast is not a confidence probability or guaranteed return.",
+    "trainingLabels": "Only independently tracked shadow proposals whose exit-candle close was known strictly before train.until; unfinished and invalid outcomes excluded. No validation labels, metrics, or asset pruning enter training.",
+    "gates": {
+      "minimumValidationResolved": 30,
+      "minimumLaterResolved": 30,
+      "netPF": 1.2,
+      "stressPF": 1,
+      "signalsPerDay": 1,
+      "activeDayFraction": 0.7
+    },
+    "selection": "Actual canonical arbitrator, close-observed lifecycle, one underlying asset, maximum3active signals. Four experts are frozen before their validation outputs are evaluated. Raw label-book proposal stream is a conservative subset of possible scanner events and is not complete runtime participation certification.",
+    "disclosure": "Calendars repeatedly examined in this project; exploratory new model, not project-wide untouched holdout. All four models and all stage results retained. Any connected-runtime claim requires exact native-feature/inference parity and a fresh release review. This diagnostic cannot promote itself.",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "modelProposalsSha256": "d0d087690c51fc6ee70b7dc631e4bf893674a2fdf0144c25a6a9bfb4c7ef31f9",
+  "evaluationSourceSha256": "3179f6b01e9a23b7c9c03acc170b6fbcdd22eb2353d3dceda0bdb7fdc8aa6adb",
+  "diagnostics": [
+    {
+      "role": "crypto.sleeve-trend",
+      "train": 226,
+      "proposals": 103
+    },
+    {
+      "role": "crypto.sleeve-breakout",
+      "train": 223,
+      "proposals": 144
+    },
+    {
+      "role": "crypto.sleeve-reversal",
+      "train": 480,
+      "proposals": 57
+    },
+    {
+      "role": "crypto.sleeve-relative",
+      "train": 62,
+      "proposals": 60
+    }
+  ],
+  "cases": [
+    {
+      "stage": "validation",
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 171,
+        "resolvedCount": 170,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.21252407243159865,
+        "profitFactor": 0.6600785334755926,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 36.1963478689273
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 171,
+        "resolvedCount": 170,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.28418389939264865,
+        "profitFactor": 0.577727024023564,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 48.41214623008361
+      },
+      "signalsPerDay": 0.9293478260869565,
+      "activeDayFraction": 0.5706521739130435,
+      "byRole": [
+        {
+          "id": "crypto.sleeve-trend",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 52,
+            "resolvedCount": 52,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.2756225850971885,
+            "profitFactor": 0.6596018332414001,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 14.3323744250538
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 52,
+            "resolvedCount": 52,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.36009244754723746,
+            "profitFactor": 0.5859411305749104,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 18.724807272456346
+          },
+          "failures": [
+            "NET_PF",
+            "STRESS_PF"
+          ]
+        },
+        {
+          "id": "crypto.sleeve-breakout",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 59,
+            "resolvedCount": 59,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.48019712870489506,
+            "profitFactor": 0.3812157165729493,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 28.331630593588812
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 59,
+            "resolvedCount": 59,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.5589928445385188,
+            "profitFactor": 0.3349280164598985,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 32.980577827772606
+          },
+          "failures": [
+            "NET_PF",
+            "STRESS_PF"
+          ]
+        },
+        {
+          "id": "crypto.sleeve-reversal",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 26,
+            "resolvedCount": 26,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.15478045523489942,
+            "profitFactor": 1.3827362052047492,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 3.0027346120301277
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 26,
+            "resolvedCount": 26,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.06850053226891324,
+            "profitFactor": 1.1580062016972201,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 3.493503896444486
+          },
+          "failures": [
+            "RESOLVED_COUNT"
+          ]
+        },
+        {
+          "id": "crypto.sleeve-relative",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 34,
+            "resolvedCount": 33,
+            "openCount": 1,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.07607942027768075,
+            "profitFactor": 1.3185515878059797,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 3.841493496091161
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 34,
+            "resolvedCount": 33,
+            "openCount": 1,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.048882071651118665,
+            "profitFactor": 1.1937946126533356,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 3.97126221574864
+          },
+          "failures": []
+        }
+      ],
+      "blocks": {
+        "ACTIVE_SYMBOL_OR_CAP": 20
+      },
+      "trades": {
+        "count": 171,
+        "evidence": "evidence.json.gz"
+      }
+    },
+    {
+      "stage": "later",
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 151,
+        "resolvedCount": 151,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.025804078558175333,
+        "profitFactor": 1.0483567551964639,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 17.407085235524686
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 151,
+        "resolvedCount": 151,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.04247454145353706,
+        "profitFactor": 0.9261729738680216,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 23.099467304352068
+      },
+      "signalsPerDay": 0.8342541436464088,
+      "activeDayFraction": 0.4696132596685083,
+      "byRole": [
+        {
+          "id": "crypto.sleeve-trend",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 38,
+            "resolvedCount": 38,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.21881414072521221,
+            "profitFactor": 1.3569463341214418,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 11.33864305589474
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 38,
+            "resolvedCount": 38,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.1360704777253253,
+            "profitFactor": 1.2050529886206953,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 12.523739239013825
+          },
+          "failures": []
+        },
+        {
+          "id": "crypto.sleeve-breakout",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 71,
+            "resolvedCount": 71,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.10068681178473453,
+            "profitFactor": 0.827335908253852,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 19.202848445442115
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 71,
+            "resolvedCount": 71,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.16849487786614314,
+            "profitFactor": 0.7317481839501861,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 22.132936637724534
+          },
+          "failures": [
+            "NET_PF",
+            "STRESS_PF"
+          ]
+        },
+        {
+          "id": "crypto.sleeve-reversal",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 20,
+            "resolvedCount": 20,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1004966401835039,
+            "profitFactor": 0.8107774762501264,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 5.709476352056797
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 20,
+            "resolvedCount": 20,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1892353101649093,
+            "profitFactor": 0.6725452181683425,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 6.347374994196654
+          },
+          "failures": [
+            "RESOLVED_COUNT",
+            "NET_PF",
+            "STRESS_PF"
+          ]
+        },
+        {
+          "id": "crypto.sleeve-relative",
+          "summary": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 22,
+            "resolvedCount": 22,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.21546249795966543,
+            "profitFactor": 1.9016832669950947,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 2.096104137437744
+          },
+          "stress": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 22,
+            "resolvedCount": 22,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.1892503917612679,
+            "profitFactor": 1.75656511789874,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 2.175581641838984
+          },
+          "failures": [
+            "RESOLVED_COUNT"
+          ]
+        }
+      ],
+      "blocks": {
+        "ACTIVE_SYMBOL_OR_CAP": 22
+      },
+      "trades": {
+        "count": 151,
+        "evidence": "evidence.json.gz"
+      }
+    }
+  ],
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

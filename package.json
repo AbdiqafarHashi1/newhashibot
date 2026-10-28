@@ -130,7 +130,8 @@
     "check:edge-bundles": "node scripts/check-edge-bundles.mjs",
     "build:web": "vite build",
     "test:release1": "node scripts/release1/test.mjs",
-    "research:release1": "node --import tsx scripts/release1/certify-signals.ts"
+    "research:release1": "node --import tsx scripts/release1/certify-signals.ts",
+    "test:signal-ensemble": "node --import tsx --test tests/signalEnsemble/*.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

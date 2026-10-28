@@ -1,0 +1,8 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {gunzipSync} from 'node:zlib';
+import type {StrategyCandle} from '../../supabase/functions/_shared/professional-strategies.ts';
+import type {ArbitrationCandidate} from '../../supabase/functions/_shared/arbitrator.ts';
+const source=JSON.parse(gunzipSync(readFileSync('tests/signalEnsemble/native-fixtures.json.gz')).toString()) as {examples:{role:string;decisionAt:string;candles:StrategyCandle[];candidate:ArbitrationCandidate;outcome:{netR:number;entryPrice:number;exitPrice:number;exitTime:string;status:string}}[]};
+for(const example of source.examples)test(`${example.role}: independently calculated signed next-open payoff and all declared costs`,()=>{const path=example.candles.filter(c=>c.open_time>=example.decisionAt).slice(0,96),candidate=example.candidate,entry=path[0].open,sign=candidate.side==='buy'?1:-1,risk=(entry-candidate.stop)*sign;assert.ok(risk>0);assert.equal(candidate.targets.length,1);const target=candidate.targets[0];let fill=path.at(-1)!.close,time=path.at(-1)!.open_time,status='TIMEOUT';for(const bar of path){const stop=sign===1?bar.low<=candidate.stop:bar.high>=candidate.stop,take=sign===1?bar.high>=target:bar.low<=target;if(stop){fill=sign===1?Math.min(candidate.stop,bar.open):Math.max(candidate.stop,bar.open);time=bar.open_time;status='STOP';break;}if(take){fill=target;time=bar.open_time;status='TARGET';break;}}const expected=(fill-entry)*sign/risk-entry*.0025/risk;assert.equal(example.outcome.entryPrice,entry);assert.equal(example.outcome.exitPrice,fill);assert.equal(example.outcome.exitTime,time);assert.equal(example.outcome.status,status);assert.ok(Math.abs(example.outcome.netR-expected)<1e-12);});
