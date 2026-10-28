@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {freshListingObservations,type NativeExchangeSymbol} from './opportunity-universe.ts';
+import {fetchCryptoCatalystEvidence,renderCryptoCatalystCards,type CatalystHeadline,type CatalystEvidence} from './crypto-catalyst-watch.ts';
 import {loadMT5Candles} from './mt5-market-data-provider.ts';
 import {
   type MarketRegimeToken,
@@ -294,10 +295,24 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
   
   // Descriptive candle/verified-feed heuristic; no invented order-book or funding inputs.
   const regime = deriveRegime(btc, eth, snapshots, feeds);
-  const confidence = confidenceFromData(snapshots, feeds);
   const listingRows=Array.isArray(listings.value)?listings.value as Array<{symbol:string;listedAt:string}>:[];
   const listingText=kind==='watchlist_pattern_update'&&listingRows.length?`\n\nNew listing research watch — not trade signals\n${listingRows.slice(0,5).map(r=>`${r.symbol}: listed ${r.listedAt}`).join('\n')}\nSource: https://fapi.binance.com/fapi/v1/exchangeInfo\nNew listings can gap sharply; observation does not imply expected return or strategy qualification.`:'';
-  const summary = render(kind, snapshots, candidates, signals, regime, feeds)+listingText;
+  let opportunityWatch:CatalystEvidence|null=null;
+  let opportunityState='NOT_DUE';
+  if(kind==='watchlist_pattern_update'){
+    // Existing persisted intelligence is the comparison authority; a failed read cannot pretend all cards are new.
+    try{
+      const now=Date.now(),{data:prior,error}=await supabase.from('intelligence_events').select('metadata').eq('market','crypto').gte('created_at',new Date(now-86400000).toISOString()).order('created_at',{ascending:false}).limit(200);
+      if(error||!Array.isArray(prior)||prior.length===200)throw Error('CATALYST_COMPARISON_UNAVAILABLE_OR_TRUNCATED');
+      const seen=new Set<string>();for(const row of prior){const cards=row.metadata?.opportunity_watch?.cards;if(Array.isArray(cards))for(const c of cards)if(typeof c?.id==='string')seen.add(c.id);}
+      const headlines=(feed(feeds,'news').value as {headlines?:CatalystHeadline[]}|null)?.headlines??[];
+      opportunityWatch=await fetchCryptoCatalystEvidence(headlines,now,fetch,seen);
+      opportunityState=opportunityWatch.cards.length?'SOURCE_BACKED_ANALYSIS':opportunityWatch.exchangeStatus==='failed'&&opportunityWatch.tickerStatus==='failed'?'FEEDS_UNAVAILABLE':'NO_NEW_SOURCE_BACKED_CARDS';
+    }catch{opportunityState='COMPARISON_UNAVAILABLE_HELD';}
+    feeds.push(feedResult({feed_type:'catalyst_watch',value:opportunityWatch,classification:opportunityState,source:'binance_public_metadata_tickers_and_normalized_news',endpoint:'https://fapi.binance.com/fapi/v1/exchangeInfo + https://fapi.binance.com/fapi/v1/ticker/24hr',freshness:opportunityWatch?.observedAt??'unavailable',status:opportunityWatch&&(opportunityWatch.cards.length||opportunityWatch.exchangeStatus==='available'||opportunityWatch.tickerStatus==='available')?'available':'unavailable',error_message:opportunityWatch?null:opportunityState,ranking_eligible:false}));
+  }
+  const confidence = confidenceFromData(snapshots, feeds);
+  const summary = render(kind, snapshots, candidates, signals, regime, feeds)+listingText+renderCryptoCatalystCards(opportunityWatch?.cards??[]);
   const dataSources = Object.fromEntries(feeds.map((f) => [f.feed_type, f.source]));
   
   return {
@@ -335,6 +350,8 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
       feed_health: feeds,
       confidence_meaning: "data coverage score; not trade probability",
       listing_observations:listings.value,
+      opportunity_watch:opportunityWatch,
+      opportunity_watch_state:opportunityState,
     },
   };
 }
