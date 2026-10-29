@@ -1,3 +1,4 @@
+import {isEditorialPolicyWait} from '../../supabase/functions/_shared/phase-o-agents.ts';
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {resolveHubChat,hubAudience,telegramHubOverview,sendHubTest} from '../../supabase/functions/_shared/telegram-hub.ts';
 import {verifyAcquisitionDestination} from '../../supabase/functions/_shared/acquisition-destinations.ts';
@@ -13,3 +14,5 @@ test('VIP verification requires invite/remove rights; explicit test uses the act
  await assert.rejects(verifyAcquisitionDestination('fixture','@crypto',fetcher,true),/INVITE_AND_REMOVE/);
  let sent=0;const result=await sendHubTest(channelDb({chat_id:'-42',enabled:true,bot_permission_verified_at:'observed'}),()=> 'fixture','VIP_CRYPTO',(async(_url,init)=>{sent++;const p=JSON.parse(String(init?.body));assert.equal(p.chat_id,'-42');assert.match(p.text,/VIP CRYPTO/);return new Response(JSON.stringify({ok:true,result:{message_id:12}}));}) as typeof fetch);assert.equal(sent,1);assert.equal(result.messageId,'12');
 });
+
+test('only routine destination policy holds get automatic wait handling',()=>{assert.equal(isEditorialPolicyWait(new Error('DESTINATION_QUIET_HOURS')),true);assert.equal(isEditorialPolicyWait(new Error('NETWORK_SUBMISSION_UNCERTAIN')),false);});

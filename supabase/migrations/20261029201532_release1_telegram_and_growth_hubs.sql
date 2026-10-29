@@ -69,3 +69,17 @@ create function public.create_release1_telegram_recovery(p_actor uuid,p_customer
 revoke all on function public.create_release1_telegram_recovery(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.create_release1_telegram_recovery(uuid,uuid) to service_role;
 grant select,insert,update on public.telegram_onboarding_tokens to service_role;
+
+-- Routine policy waits and confirmed retryable sends must remain resumable without exhausting attempts overnight.
+create or replace function public.finish_phase_o_agent_job(p_id uuid,p_lease_token uuid,p_status text,p_checkpoint jsonb default '{}',p_safe_error text default null) returns boolean language plpgsql security invoker set search_path=public,pg_temp as $$declare j phase_o_agent_jobs;policy_wait boolean;retry boolean;begin
+ if p_status not in('DRAFTED','AWAITING_APPROVAL','COMPLETED','FAILED','DEAD_LETTER','UNCERTAIN') then raise exception 'INVALID_JOB_STATUS';end if;
+ select * into j from phase_o_agent_jobs where id=p_id and status='CLAIMED' and lease_token=p_lease_token and lease_expires_at>now() for update;
+ if not found then return false;end if;
+ policy_wait:=p_status='FAILED' and p_safe_error in('DESTINATION_QUIET_HOURS','DESTINATION_RATE_LIMIT','APPROVAL_FREQUENCY_LIMIT');
+ retry:=p_status='FAILED' and p_safe_error='RETRY' and j.attempt<j.max_attempts;
+ update phase_o_agent_jobs set status=case when policy_wait or retry then 'QUEUED' when p_status='FAILED' and p_safe_error='RETRY' then 'DEAD_LETTER' else p_status end,
+ attempt=case when policy_wait then greatest(0,attempt-1) else attempt end,checkpoint=coalesce(p_checkpoint,'{}'),safe_error=left(p_safe_error,240),
+ available_at=case when policy_wait then now()+interval '15 minutes' when retry then greatest(now()+make_interval(secs=>least(900,15*j.attempt)),coalesce((select max(part.next_attempt_at) from phase_o_delivery_parts part join phase_o_drafts d on d.id=part.draft_id where d.job_id=j.id and part.state='RETRY'),now())) else available_at end,
+ lease_token=null,lease_owner=null,lease_expires_at=null,updated_at=now() where id=j.id;return true;end$$;
+revoke all on function public.finish_phase_o_agent_job(uuid,uuid,text,jsonb,text) from public,anon,authenticated;
+grant execute on function public.finish_phase_o_agent_job(uuid,uuid,text,jsonb,text) to service_role;
