@@ -1,5 +1,5 @@
 /** Resolve a configured partner destination using read-only Bot API calls. Never sends a test post. */
-export async function verifyAcquisitionDestination(token:string,identity:string,fetcher:typeof fetch=fetch){
+export async function verifyAcquisitionDestination(token:string,identity:string,fetcher:typeof fetch=fetch,requireMembership=false){
  if(!token||!/^(-[0-9]+|@[A-Za-z0-9_]{5,32})$/.test(identity))throw Error('TELEGRAM_DESTINATION_REQUIRED');
  const call=async(method:string,body:Record<string,unknown>)=>{
   const response=await fetcher(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
@@ -12,6 +12,7 @@ export async function verifyAcquisitionDestination(token:string,identity:string,
  const canPost=chat.type==='channel'?(member.status==='creator'||member.status==='administrator'&&member.can_post_messages===true):
   admin||(member.status==='member'&&chat.permissions?.can_send_messages!==false)||(member.status==='restricted'&&member.is_member===true&&member.can_send_messages===true);
  if(!canPost)throw Error('BOT_POSTING_PERMISSION_REQUIRED');
+ if(requireMembership&&!(member.status==='creator'||member.status==='administrator'&&member.can_invite_users===true&&member.can_restrict_members===true))throw Error('BOT_INVITE_AND_REMOVE_PERMISSION_REQUIRED');
  return{chatId:String(chat.id),title:String(chat.title??identity),verifiedAt:new Date().toISOString()};
 }
 

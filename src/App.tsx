@@ -64,9 +64,7 @@ const Candidates = lazy(() => import('./pages/admin/Candidates'));
 const RejectedSetups = lazy(() => import('./pages/admin/RejectedSetups'));
 const SignalsManager = lazy(() => import('./pages/admin/SignalsManager'));
 const ManualSignal = lazy(() => import('./pages/admin/ManualSignal'));
-const TelegramTest = lazy(() => import('./pages/admin/TelegramTest'));
-const TelegramLogs = lazy(() => import('./pages/admin/TelegramLogs'));
-const TelegramLinks = lazy(() => import('./pages/admin/TelegramLinks'));
+const TelegramHub = lazy(() => import('./pages/admin/TelegramHub'));
 const UsersAccess = lazy(() => import('./pages/admin/UsersAccess'));
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
 const SchedulerGuide = lazy(() => import('./pages/admin/SchedulerGuide'));
@@ -211,10 +209,10 @@ function App() {
             <Route path="/admin/rejected"         element={<RequireAdmin><RejectedSetups /></RequireAdmin>} />
             <Route path="/admin/signals"          element={<RequireAdmin><SignalsManager /></RequireAdmin>} />
             <Route path="/admin/signals/new"      element={<RequireAdmin><ManualSignal /></RequireAdmin>} />
-            <Route path="/admin/telegram-test"    element={<RequireAdmin><TelegramTest /></RequireAdmin>} />
-            <Route path="/admin/telegram"         element={<RequireAdmin><TelegramLogs /></RequireAdmin>} />
-            <Route path="/admin/telegram-links"   element={<RequireAdmin><TelegramLinks /></RequireAdmin>} />
-            <Route path="/admin/telegram-requests" element={<RequireAdmin><TelegramLinks /></RequireAdmin>} />
+            <Route path="/admin/telegram-test"    element={<RequireAdmin><Navigate to="/admin/telegram?tab=channels" replace /></RequireAdmin>} />
+            <Route path="/admin/telegram"         element={<RequireAdmin><TelegramHub /></RequireAdmin>} />
+            <Route path="/admin/telegram-links"   element={<RequireAdmin><Navigate to="/admin/telegram?tab=members" replace /></RequireAdmin>} />
+            <Route path="/admin/telegram-requests" element={<RequireAdmin><Navigate to="/admin/telegram?tab=members" replace /></RequireAdmin>} />
             <Route path="/admin/users"            element={<RequireAdmin><UsersAccess /></RequireAdmin>} />
             <Route path="/admin/customers"        element={<RequireAdmin><Customers /></RequireAdmin>} />
             <Route path="/admin/customer-fleet"   element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />

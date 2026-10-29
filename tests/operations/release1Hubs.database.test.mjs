@@ -1,0 +1,33 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import {PGlite} from '@electric-sql/pglite';
+test('hub goals count distinct current VIP Signals and confirmed Free membership; channel CAS, separation and service-only writes',async()=>{
+ const db=new PGlite();try{await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);create function public.is_admin() returns boolean language sql as $$select current_setting('test.admin',true)='yes'$$;
+ create table profiles(id uuid primary key,role text);create table phase_h_entitlements(customer_id uuid,product_code text,state text,source text,source_payment_id uuid,revoked_at timestamptz,valid_from timestamptz,valid_until timestamptz);
+ create table telegram_links(user_id uuid,telegram_user_id bigint);create table telegram_onboarding_tokens(user_id uuid,product_slug text,token_hash text,expires_at timestamptz,purpose text,used_at timestamptz,replaced_at timestamptz);create table telegram_memberships(customer_id uuid,audience text,state text,last_verified_at timestamptz);
+ create table telegram_fulfillment_requests(status text);create table phase_o_attribution_events(event_type text,customer_id uuid,occurred_at timestamptz);
+ create table phase_o_agent_jobs(status text);create table phase_o_destinations(id uuid primary key,audience text,external_identity_ref text,configuration_state text,permission_verified_at timestamptz);create table phase_o_drafts(id uuid primary key,destination_id uuid);create table phase_o_approvals(draft_id uuid,revoked_at timestamptz);create table phase_o_delivery_parts(state text);create table phase_o_campaigns(status text);
+ create table telegram_audience_configuration(audience text primary key,product_code text,chat_id text,enabled boolean,join_mode text,bot_permission_verified_at timestamptz,updated_at timestamptz default now());
+ insert into phase_h_entitlements select md5(i::text)::uuid,'VIP_SIGNALS','ACTIVE','VERIFIED_WHOP',gen_random_uuid(),null,now()-interval '1 day',now()+interval '2 days' from generate_series(1,1201)i;
+ insert into phase_h_entitlements select * from phase_h_entitlements;
+ insert into phase_h_entitlements select md5(('exec'||i)::text)::uuid,'FOUNDING_AUTO_EXECUTION','ACTIVE','VERIFIED_WHOP',gen_random_uuid(),null,now()-interval '1 day',now()+interval '2 days' from generate_series(1,200)i;
+ insert into phase_h_entitlements select md5(('free'||i)::text)::uuid,'FREE_SIGNALS','ACTIVE','FREE_ENROLLMENT',null,null,now()-interval '1 day',null from generate_series(1,1300)i;
+ insert into telegram_memberships select md5(('free'||i)::text)::uuid,'FREE','ACTIVE',now() from generate_series(1,1100)i;
+ insert into telegram_memberships select md5(i::text)::uuid,a.audience,'ACTIVE',now() from generate_series(1,12)i cross join(values('VIP_CRYPTO'),('VIP_FOREX_GOLD')) a(audience);
+ insert into phase_h_entitlements values(gen_random_uuid(),'VIP_SIGNALS','ACTIVE','MANUAL',gen_random_uuid(),null,now()-interval '1 day',now()+interval '1 day'),(gen_random_uuid(),'VIP_SIGNALS','ACTIVE','VERIFIED_WHOP',gen_random_uuid(),null,now()-interval '2 days',now()-interval '1 day');`);
+ await db.exec(await readFile('supabase/migrations/20261029201532_release1_telegram_and_growth_hubs.sql','utf8'));
+ const read=async()=>(await db.query('select phase_o_growth_overview() data')).rows[0].data;
+ const stats=await read();assert.equal(stats.paid_customers,1201);assert.equal(stats.free_customers,1300);assert.equal(stats.confirmed_free_members,1100);assert.equal(stats.confirmed_vip_members,12);assert.equal(stats.both_vip_channels,12);assert.equal(stats.vip_target,1000);assert.equal(stats.free_target,1000);assert.equal(stats.vip_expiring_7d,1201);
+ const admin='11111111-1111-4111-8111-111111111111',user='22222222-2222-4222-8222-222222222222';await db.query("insert into profiles values($1,'admin'),($2,'user')",[admin,user]);await db.query('insert into auth.users values($1),($2)',[admin,user]);
+ const save=async(a,id,enabled=false,expected=null,actor=admin)=>(await db.query('select save_release1_telegram_channel($1,$2,$3,$4,$5) ok',[actor,a,id,enabled,expected])).rows[0].ok;
+ assert.equal(await save('VIP_CRYPTO','@crypto'),true);await assert.rejects(save('FREE','@crypto'),/MUST_BE_SEPARATE/);await assert.rejects(save('VIP_CRYPTO','-1002',true,'@crypto'),/VERIFY_CHANNEL/);await assert.rejects(save('VIP_CRYPTO','-1002',false,'@stale'),/CHANGED_RELOAD/);await assert.rejects(save('FREE','-1003',false,null,user),/ADMIN_REQUIRED/);
+ assert.equal((await db.query("select verify_release1_telegram_channel($1,'VIP_CRYPTO','@crypto','-1002',now()) ok",[admin])).rows[0].ok,true);
+ assert.equal((await db.query("select enabled from telegram_audience_configuration where audience='VIP_CRYPTO'")).rows[0].enabled,true);
+ assert.equal(await save('VIP_CRYPTO','-1002',false,'-1002'),true);assert.equal((await db.query("select enabled from telegram_audience_configuration")).rows[0].enabled,false);
+ assert.equal(await save('VIP_CRYPTO','-1004',false,'-1002'),true);assert.equal((await db.query("select bot_permission_verified_at from telegram_audience_configuration")).rows[0].bot_permission_verified_at,null);
+ const free=(await db.query("select customer_id from phase_h_entitlements where product_code='FREE_SIGNALS' limit 1")).rows[0].customer_id;
+ const recover=async(actor=admin)=>(await db.query('select create_release1_telegram_recovery($1,$2) data',[actor,free])).rows[0].data;
+ const first=await recover();assert.match(first.token,/^[0-9a-f]{48}$/);const stored=(await db.query('select token_hash from telegram_onboarding_tokens')).rows[0].token_hash;const {createHash}=await import('node:crypto');assert.equal(stored,createHash('sha256').update(first.token).digest('hex'));
+ await recover();assert.equal((await db.query('select count(*)::int n from telegram_onboarding_tokens where replaced_at is null')).rows[0].n,1);await assert.rejects(recover(user),/ADMIN_REQUIRED/);
+ await db.exec('set role authenticated');await assert.rejects(read(),/permission denied/);await assert.rejects(save('FREE','-1003'),/permission denied/);await db.exec('reset role');
+ await db.exec('set role service_role');assert.equal((await read()).paid_customers,1201);await db.exec('reset role');
+ }finally{await db.close();}
+});

@@ -11,7 +11,7 @@ export const releaseSchedules=[
  {name:'hashibot_telegram_membership_1m',endpoint:'telegram-membership',schedule:'* * * * *',header:'Authorization',secret:'TELEGRAM_WORKER_SECRET',body:{}},
  {name:'hashibot_agents_5m',endpoint:'phase-o-worker',schedule:'*/5 * * * *',header:'x-phase-o-worker-secret',secret:'PHASE_O_WORKER_SECRET',body:{worker_id:'scheduled-agent-worker',limit:5}},
 ] as const;
-export const release1Schedules=[...releaseSchedules.filter(j=>['hashibot_scheduled_market_scanner_5m','hashibot_outcomes_5m','hashibot_reporting_1m','hashibot_commerce_recovery_5m','hashibot_telegram_membership_1m'].includes(j.name)),{name:'hashibot_intelligence_5m',endpoint:'intelligence-engine',schedule:'*/5 * * * *',header:'x-hashibot-cron-token',secret:'HASHIBOT_CRON_TOKEN',body:{action:'scheduled'}}] as const;
+export const release1Schedules=[...releaseSchedules.filter(j=>['hashibot_scheduled_market_scanner_5m','hashibot_outcomes_5m','hashibot_reporting_1m','hashibot_commerce_recovery_5m','hashibot_telegram_membership_1m','hashibot_agents_5m'].includes(j.name)),{name:'hashibot_intelligence_5m',endpoint:'intelligence-engine',schedule:'*/5 * * * *',header:'x-hashibot-cron-token',secret:'HASHIBOT_CRON_TOKEN',body:{action:'scheduled'}}] as const;
 export async function installReleaseSchedules(db:any,actor:string,projectUrl:string,env:(key:string)=>string|undefined,scope:"RELEASE1"|"ALL"="RELEASE1"){
  const selected=scope==="ALL"?releaseSchedules:release1Schedules;
  const missing=selected.filter(j=>!env(j.secret)).map(j=>({name:j.name,missingSecret:j.secret}));

@@ -1,3 +1,4 @@
+import {resolveHubChat} from './telegram-hub.ts';
 import { loadPublishableSignal } from "./signal-publication-guard.ts";
 import {editorialDestinations} from './telegram-product.ts';
 /**
@@ -385,7 +386,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     }
 
     const destination = channelRegistry.getDestination(channelKey);
-    const chatId = destination?.chatId || "";
+    const chatId = channelKey==='free'||channelKey==='admin'?await resolveHubChat(supabase,channelKey==='free'?'FREE':'ADMIN',destination?.chatId||''):destination?.chatId||'';
     const idempotencyKey = buildIdempotencyKey(event, channelKey);
 
     // 4. Missing Token or Destination Config
