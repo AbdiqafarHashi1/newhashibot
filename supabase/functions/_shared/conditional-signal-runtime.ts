@@ -1,4 +1,4 @@
-import { advanceConditionalSetup, conditionalCandidates, conditionalMessage, selectConditionalSetup, type ConditionalSetup } from './conditional-signal-service.ts';
+import { advanceConditionalSetup, originalThesisValid, conditionalCandidates, conditionalMessage, selectConditionalSetup, type ConditionalSetup } from './conditional-signal-service.ts';
 import type {StrategyCandle} from './professional-strategies.ts';
 export class ConditionalSignalStore {
  constructor(private db:any){}
@@ -11,12 +11,17 @@ export class ConditionalSignalStore {
   if(error)throw error;return data===true;
  }
 }
-/** Existing scanner invokes this after closed-candle admission; no independent daemon or executor. */
+/** Shared by discovery and the independent watcher; CAS makes overlapping runs safe. */
 export async function observeConditionalSymbol(store:ConditionalSignalStore,symbol:string,tf:'15m'|'1h',rows:readonly StrategyCandle[],now:number):Promise<ConditionalSetup[]> {
  const open=await store.open(symbol,tf);
  for(const saved of open){let state=saved;
   for(const bar of rows){if(Date.parse(bar.open_time)<=Date.parse(state.lastBar)||Date.parse(bar.open_time)+(tf==='15m'?900000:3600000)>now)continue;
-   const next=advanceConditionalSetup(state,bar);if(next===state)continue;
+   let next=advanceConditionalSetup(state,bar);if(next===state)continue;
+   if(state.status==='WAITING'&&['WAITING','ARMED'].includes(next.status)){
+    const thesis=originalThesisValid(state,rows.filter(r=>Date.parse(r.open_time)<=Date.parse(bar.open_time)),Date.parse(bar.open_time)+(tf==='15m'?900000:3600000));
+    if(thesis===false)next={...next,status:'INVALIDATED',result:'Original strategy context invalidated before entry; no paper fill.'};
+    if(thesis===null)next={...next,status:'DATA_GAP',result:'Original strategy context unavailable; outcome unknown.'};
+   }
    if(!await store.save(next,state.version))break;state=next;
   }
  }

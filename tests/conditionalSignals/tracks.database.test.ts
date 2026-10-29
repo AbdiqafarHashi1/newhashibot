@@ -19,6 +19,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  grant select on signals to service_role;`);
  await db.exec(readFileSync('supabase/migrations/20261029031319_conditional_signal_service.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261029053521_conditional_tracks_and_acquisition.sql','utf8'));
+ await db.exec(readFileSync('supabase/migrations/20261029205531_dual_market_conditional_watch.sql','utf8'));
  const t=Math.floor(Date.now()/3600000)*3600000,iso=(n:number)=>new Date(t+n*3600000).toISOString();
  const setup=(symbol:string,track:'INTRADAY'|'SWING',side:'buy'|'sell'='buy'):ConditionalSetup=>({id:`${symbol}:${track}:${side}`,symbol,track,timeframe:track==='INTRADAY'?'15m':'1h',side,strategy:'conditional',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',source:'TEST',sourceClose:iso(0),lastBar:iso(-1),trigger:100,stop:side==='buy'?90:110,tp1:side==='buy'?110:90,tp2:side==='buy'?120:80,expiresAt:iso(8),holdBars:48,score:85,reason:'Higher timeframe trend pullback',status:'WAITING',version:1});
  const save=async(s:ConditionalSetup,v=0)=>(await db.query<{ok:boolean}>('select commit_conditional_signal_setup($1::jsonb,$2,$3) ok',[JSON.stringify(s),v,conditionalMessage(s)])).rows[0].ok;
@@ -64,6 +65,34 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  const cohort=(await db.query<any>("select conditional_proof_cohort(now()-interval '1 day',now()) data")).rows[0].data;
  assert.equal(cohort.total,5);assert.equal(cohort.rows.length,5);assert.ok(cohort.observed_at);
  await db.exec('set role authenticated');await assert.rejects(db.query("select conditional_proof_cohort(now()-interval '1 day',now())"),/permission denied/);await db.exec('reset role');
+ const fx={...setup('EURUSD','INTRADAY'),market:'forex' as const,strategy:'forex.conditional-intraday',source:'mt5_hashibridge:owner'};
+ assert.equal(await save(fx),true); // Crypto's per-hour quota cannot consume Forex's capacity.
+ const fe=(await db.query<any>('select * from test_events where key=$1',[`conditional:${fx.id}:1`])).rows[0];
+ assert.deepEqual(fe.destinations,['vip_forex_gold','free']);assert.equal(fe.payload.market_type,'forex');
+ assert.equal((await db.query('select * from conditional_free_samples')).rows.length,2);
+ const ftruth={...truth,payload:fe.payload};
+ assert.equal(audienceAllows({...claim,destination:'vip_forex_gold'},ftruth),true);
+ assert.equal(audienceAllows(claim,ftruth),false);assert.match(renderCanonicalTruth(ftruth,'vip_forex_gold')[0].text,/EURUSD/);
+ assert.throws(()=>renderCanonicalTruth(ftruth,'vip_crypto'),/SCOPE/);
+ await assert.rejects(save({...fx,id:'wrong',market:'crypto'}),/MARKET_MISMATCH/);
+ const armed={...fx,status:'ARMED' as const,version:2,lastBar:iso(0),armedAt:iso(1)};assert.equal(await save(armed,1),true);
+ await assert.rejects(save({...armed,status:'ACTIVE',version:3,fill:100,fillAt:iso(1)},2),/NONCHRONOLOGICAL_SETUP/);
+ const entered={...armed,status:'ACTIVE' as const,version:3,fill:100,fillAt:iso(1),observedAt:iso(1),bars:0,netR:0};
+ assert.equal(await save(entered,2),true);assert.equal(await save(entered,2),true);
+ assert.equal(await save({...entered,version:4},2),false); // overlapping watcher lost CAS; cannot overwrite
+ const closed={...entered,status:'CLOSED' as const,version:4,lastBar:iso(1),exit:90,netR:-1};assert.equal(await save(closed,3),true);
+ const fclosed=(await db.query<any>('select * from test_events where key=$1',[`conditional:${fx.id}:4`])).rows[0];assert.deepEqual(fclosed.destinations,['vip_forex_gold','free']);
+
+ const health={symbol:'EURUSD',timeframe:'15m',market:'forex',checked_at:iso(2),state:'FEED_UNAVAILABLE',error:'MT5_DISCONNECTED'};
+ const record=async(h:any)=>db.query('select record_conditional_watch_health($1::jsonb)',[JSON.stringify(h)]);
+ await record(health);await record(health);assert.equal((await db.query("select * from test_events where event='OPERATIONAL_INCIDENT'")).rows.length,1);
+ assert.deepEqual((await db.query<any>("select destinations from test_events where event='OPERATIONAL_INCIDENT'")).rows[0].destinations,['admin']);
+ await record({...health,checked_at:iso(1),state:'HEALTHY',error:null});assert.equal((await db.query<any>('select state from conditional_asset_watch')).rows[0].state,'FEED_UNAVAILABLE');
+ await record({...health,checked_at:iso(3),state:'HEALTHY',error:null});assert.equal((await db.query<any>('select state from conditional_asset_watch')).rows[0].state,'HEALTHY');
+ await db.exec("set role authenticated");assert.equal((await db.query('select * from conditional_asset_watch')).rows.length,1);
+ await assert.rejects(record(health),/permission denied/);
+ await assert.rejects(db.exec("insert into conditional_asset_watch(symbol,timeframe,market,checked_at,state) values('EURUSD','15m','forex',now(),'HEALTHY')"),/permission denied/);await db.exec('reset role');
+
 
 
  }finally{await db.close();}

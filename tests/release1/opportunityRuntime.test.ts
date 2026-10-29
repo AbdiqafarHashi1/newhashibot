@@ -55,14 +55,14 @@ assert.throws(()=>editorialDestinations({...editorial,market_scope:['unknown']})
 // Concrete owner-feed reader is exercised with a query transport, never customer accounts or HTTP.
 (globalThis as any).Deno={env:{get:()=>undefined}};
 const readTables:string[]=[];
-function database(healthy:boolean){return {from(table:string){readTables.push(table);const q:any={};for(const method of ['select','eq','is','limit','order'])q[method]=()=>q;
+function database(healthy:boolean){return {from(table:string){readTables.push(table);const q:any={};for(const method of ['select','eq','in','is','limit','order'])q[method]=()=>q;
  q.maybeSingle=async()=>({data:table==='mt5_scanner_feeds'?{bridge_id:'owner-bridge',feed_identity:'owner',status:healthy?'HEALTHY':'UNHEALTHY',last_heartbeat_at:new Date(asOf).toISOString()}:{last_update_at:new Date(asOf).toISOString(),stale:false}});
- q.then=(resolve:any)=>resolve({data:Array.from({length:55},(_,i)=>({open_time:new Date(asOf-(i+1)*3600000).toISOString(),open:100,high:102,low:99,close:101,tick_volume:100})),error:null});return q;}};}
+ q.then=(resolve:any)=>resolve({data:table.startsWith('conditional_')?[]:Array.from({length:55},(_,i)=>({open_time:new Date(asOf-(i+1)*3600000).toISOString(),open:100,high:102,low:99,close:101,tick_volume:100})),error:null});return q;}};}
 const good=await generateForexIntelligence(database(true) as never,'morning_brief',asOf);
 assert.equal(good.status,'generated');assert.equal(good.market,'forex');assert.equal(good.symbols.length,6);
 const bad=await generateForexIntelligence(database(false) as never,'morning_brief',asOf);
 assert.equal(bad.status,'partial');assert.equal(bad.symbols.length,0);
-assert.ok(readTables.every(t=>['mt5_scanner_feeds','mt5_market_data_latest','mt5_market_candles'].includes(t)));
+assert.ok(readTables.every(t=>['mt5_scanner_feeds','mt5_market_data_latest','mt5_market_candles','conditional_signal_setups','conditional_free_samples'].includes(t)));
 const instant=Date.now(),fresh={...good,freshness:{generated_at:new Date(instant).toISOString()}};
 const fxPublication=intelligencePublication(fresh,'vip',instant),cryptoPublication=intelligencePublication({...fresh,market:'crypto'},'vip',instant);
 assert.notEqual(fxPublication.dedupe_key,cryptoPublication.dedupe_key);

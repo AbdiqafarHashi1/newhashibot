@@ -19,7 +19,7 @@ const originalFetch=globalThis.fetch,oldDeno=globalThis.Deno;
 globalThis.Deno={env:{get:()=>undefined}} as typeof Deno;
 const events:Record<string,unknown>[]=[],writes:string[]=[];let comparisonFails=false;
 const candles=['BTCUSDT','ETHUSDT','SOLUSDT'].flatMap(symbol=>Array.from({length:24},(_,i)=>({symbol,timeframe:'1h',open_time:new Date(Math.floor(now/3600000)*3600000-(24-i)*3600000).toISOString(),open:100,high:103,low:99,close:101,volume:100,source:'INJECTED_SOURCE'})));
-function database(){return{from(table:string){const q:Record<string,unknown>={};for(const method of ['select','eq','gte','order','limit'])q[method]=()=>q;
+function database(){return{from(table:string){const q:Record<string,unknown>={};for(const method of ['select','eq','in','gte','order','limit'])q[method]=()=>q;
  q.insert=async(value:Record<string,unknown>)=>{writes.push(table);if(table==='intelligence_events')events.push(value);return{error:null}};
  q.then=(resolve:(v:unknown)=>unknown)=>resolve({data:table==='candles'?candles:table==='intelligence_events'?events:[],error:table==='intelligence_events'&&comparisonFails?{message:'injected read failure'}:null});return q;}};}
 try{

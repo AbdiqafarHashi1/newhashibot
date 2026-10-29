@@ -1594,7 +1594,7 @@ async function runScanPipeline(
     },measuredReleases,config.min_signal_grade);
   };
 
-  const conditionalEnabled=Deno.env.get("CONDITIONAL_SIGNALS_ENABLED")==="TRUE";
+  const conditionalEnabled=Deno.env.get("CONDITIONAL_SIGNALS_ENABLED")!=="FALSE";
   const conditionalStore=new ConditionalSignalStore(supabase);
   const conditionalBatch:ConditionalSetup[]=[];
   const cryptoTeamEnabled=CRYPTO_TEAM_ROLES.some(role=>getStratCfg(role.name).enabled);
@@ -1826,9 +1826,10 @@ async function runScanPipeline(
   // configuration aborts the whole cycle rather than silently scanning a larger
   // universe. Forex cannot exceed the six symbols whose contracts are locked.
   if(conditionalEnabled&&config.signal_enable_crypto)cryptoToScan=CORE_CRYPTO_SYMBOLS.map(symbol=>({symbol,market_type:"crypto" as const,is_active:true}));
-  const boundedUniverse = boundedScannerUniverse(cryptoToScan, forexToScan, Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? undefined);
+  const boundedUniverse = boundedScannerUniverse(cryptoToScan, forexToScan, Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS") ?? (conditionalEnabled?"6":undefined), Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? (conditionalEnabled?"16":undefined));
   forexToScan = boundedUniverse.forex;
   cryptoToScan = boundedUniverse.crypto;
+  if(conditionalEnabled&&config.signal_enable_forex&&forexToScan.length!==6)throw new Error("CONDITIONAL_SIX_FOREX_SYMBOL_BUDGET_REQUIRED");
   if(conditionalEnabled&&config.signal_enable_crypto&&cryptoToScan.length!==10)throw new Error("CONDITIONAL_TEN_SYMBOL_BUDGET_REQUIRED");
 
   let symbols = [
@@ -1983,7 +1984,7 @@ async function runScanPipeline(
         })), { onConflict: "symbol,timeframe,open_time" });
 
         }
-        if(conditionalEnabled&&marketType==="crypto"&&(tf==="15m"||tf==="1h")){
+        if(conditionalEnabled&&(marketType==="crypto"||marketType==="forex")&&(tf==="15m"||tf==="1h")){
           conditionalBatch.push(...await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf,admitted.candles,Date.now()));
           continue; // Signal service only: never enter the legacy signal/execution-adoption path.
         }

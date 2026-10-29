@@ -93,3 +93,7 @@ verify_jwt = true
 
 [functions.growth-pipeline]
 verify_jwt = true
+
+# Internally authenticated recurring asset watcher; no customer execution.
+[functions.conditional-watch]
+verify_jwt = false

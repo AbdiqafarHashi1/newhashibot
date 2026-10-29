@@ -1,3 +1,4 @@
+import {conditionalIntelligence} from './conditional-intelligence.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {freshListingObservations,type NativeExchangeSymbol} from './opportunity-universe.ts';
 import {fetchCryptoCatalystEvidence,renderCryptoCatalystCards,type CatalystHeadline,type CatalystEvidence} from './crypto-catalyst-watch.ts';
@@ -286,7 +287,7 @@ function render(kind: ContentKind, snapshots: SymbolSnapshot[], candidates: Cand
 }
 
 export async function generateIntelligence(supabase: SupabaseClient, kind: ContentKind): Promise<IntelligenceOutput> {
-  const [candles, candidates, signals] = await Promise.all([fetchCandles(supabase), fetchCandidates(supabase), fetchSignals(supabase)]);
+  const [candles, candidates, signals,tracked] = await Promise.all([fetchCandles(supabase), fetchCandidates(supabase), fetchSignals(supabase),conditionalIntelligence(supabase,'crypto')]);
   const symbols = Array.from(new Set(["BTCUSDT", "ETHUSDT", "SOLUSDT", ...candles.map((c) => c.symbol)])).slice(0, 20);
   const snapshots = symbols.map((symbol) => snapshotFromCandles(symbol, candles));
   const [baseFeeds,listings] = await Promise.all([buildFeeds(snapshots),listingWatch()]);
@@ -346,6 +347,7 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
     metadata: {
       snapshots,
       candidates: candidates.slice(0, 10),
+      tracked_setups:tracked,
       signals: signals.slice(0, 10),
       feed_health: feeds,
       confidence_meaning: "data coverage score; not trade probability",
@@ -358,6 +360,7 @@ export async function generateIntelligence(supabase: SupabaseClient, kind: Conte
 
 /** The same editorial authority, scoped to owner-feed Forex/Gold candles. No execution account reads. */
 export async function generateForexIntelligence(supabase: SupabaseClient,kind:ContentKind,now=Date.now()):Promise<IntelligenceOutput>{
+  const tracked=await conditionalIntelligence(supabase,'forex');
   const symbols=['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','XAUUSD'],generated=new Date(now).toISOString();
   const observations=await Promise.all(symbols.map(symbol=>loadMT5Candles(supabase,symbol,'1h',55,{now,feedIdentity:Deno.env.get('MT5_MARKET_DATA_FEED_ID')})));
   const snapshots=symbols.map((symbol,i)=>snapshotFromCandles(symbol,observations[i].error?[]:observations[i].candles as Candle[],now));
@@ -375,7 +378,7 @@ export async function generateForexIntelligence(supabase: SupabaseClient,kind:Co
     market:'forex',symbols:fresh.map(s=>s.symbol),sentiment:{},regime:'neutral',confidence:Math.round(fresh.length/symbols.length*100),
     data_sources:{candles:fresh.length?'dedicated_mt5_hashibridge_feed':'unavailable',news:newsSource},freshness:{generated_at:generated},
     output_channel:['admin','free','vip'],status:state,metadata:{snapshots,feed_health:[],confidence_meaning:'data coverage only; not a forecast',
-      gold_evidence_present:fresh.some(s=>s.symbol==='XAUUSD'),missing_symbols:snapshots.filter(s=>s.dataSource==='unavailable').map(s=>s.symbol),
+      tracked_setups:tracked, gold_evidence_present:fresh.some(s=>s.symbol==='XAUUSD'),missing_symbols:snapshots.filter(s=>s.dataSource==='unavailable').map(s=>s.symbol),
       feed_failures:observations.map((r,i)=>({symbol:symbols[i],reason:r.error??null}))}};
 }
 
