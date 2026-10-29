@@ -61,6 +61,10 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await db.query("update phase_o_agent_jobs set status='COMPLETED' where id=$1",[job]);
  await db.exec("update phase_o_agent_configurations set enabled=false");
  assert.equal((await db.query<any>('select queue_due_phase_o_standing() n')).rows[0].n,0);
+ const cohort=(await db.query<any>("select conditional_proof_cohort(now()-interval '1 day',now()) data")).rows[0].data;
+ assert.equal(cohort.total,5);assert.equal(cohort.rows.length,5);assert.ok(cohort.observed_at);
+ await db.exec('set role authenticated');await assert.rejects(db.query("select conditional_proof_cohort(now()-interval '1 day',now())"),/permission denied/);await db.exec('reset role');
+
 
  }finally{await db.close();}
 });

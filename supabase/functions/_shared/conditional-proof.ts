@@ -7,9 +7,10 @@ export function conditionalPeriod(id:string,now=Date.now()){
 }
 /** Complete creation cohort, current outcomes as of observation. Not portfolio return or entry-period performance. */
 export async function loadConditionalProof(db:any,id:string,now=Date.now()):Promise<EvidenceFact>{
- const period=conditionalPeriod(id,now),{data,error}=await db.from('conditional_signal_setups').select('state,created_at,updated_at')
-  .gte('created_at',period.start).lt('created_at',period.end).order('created_at').limit(10001);
- if(error||!data?.length||data.length>10000)throw Error('CONDITIONAL_COMPLETE_COHORT_UNAVAILABLE');
+ const period=conditionalPeriod(id,now),response=await db.rpc('conditional_proof_cohort',{p_start:period.start,p_end:period.end});
+ const data=response.data?.rows;
+ if(response.error||!Array.isArray(data)||!data.length||data.length>10000||response.data.total!==data.length||!Number.isFinite(Date.parse(response.data.observed_at)))throw Error('CONDITIONAL_COMPLETE_COHORT_UNAVAILABLE');
+ now=Date.parse(response.data.observed_at);
  const states=data.map((r:any)=>r.state),closed=states.filter((s:any)=>s.status==='CLOSED'&&typeof s.netR==='number'&&Number.isFinite(s.netR));
  const wins=closed.filter((s:any)=>s.netR>0).length,losses=closed.filter((s:any)=>s.netR<0).length,breakEven=closed.filter((s:any)=>s.netR===0).length;
  const notEntered=states.filter((s:any)=>['EXPIRED','INVALIDATED'].includes(s.status)&&!s.fill).length;

@@ -109,3 +109,12 @@ create function public.queue_due_phase_o_standing() returns integer language plp
  end loop;return n;end$$;
 revoke all on function public.queue_due_phase_o_standing() from public,anon,authenticated;
 grant execute on function public.queue_due_phase_o_standing() to service_role;
+
+-- Return one JSON snapshot so PostgREST row limits cannot truncate a purported full proof cohort.
+create function public.conditional_proof_cohort(p_start timestamptz,p_end timestamptz) returns jsonb language plpgsql stable security invoker set search_path=public,pg_temp as $$begin
+ if p_start is null or p_end is null or p_end<=p_start or p_end>statement_timestamp() or p_end-p_start>interval '31 days' then raise exception 'CONDITIONAL_PERIOD_INVALID';end if;
+ return (with cohort as(select state,created_at,updated_at from conditional_signal_setups where created_at>=p_start and created_at<p_end order by created_at,id limit 10001)
+ select jsonb_build_object('rows',coalesce(jsonb_agg(to_jsonb(cohort)),'[]'::jsonb),'total',count(*),'observed_at',statement_timestamp()) from cohort);
+ end$$;
+revoke all on function public.conditional_proof_cohort(timestamptz,timestamptz) from public,anon,authenticated;
+grant execute on function public.conditional_proof_cohort(timestamptz,timestamptz) to service_role;
