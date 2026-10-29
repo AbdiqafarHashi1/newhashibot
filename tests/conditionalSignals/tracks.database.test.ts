@@ -7,7 +7,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  const db=new PGlite();try{
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
  create function public.is_admin() returns boolean language sql as $$select current_setting('test.admin',true)='yes'$$;
- create table signals(symbol text,status text);
+ create table signals(symbol text,status text);create table strategy_configs(strategy_name text,allowed_timeframes jsonb);
  create table phase_o_destinations(id uuid primary key,external_identity_ref text,platform text,audience text,configuration_state text,permission_verified_at timestamptz,enabled boolean,min_interval_minutes integer);
  create table phase_o_drafts(id uuid primary key,job_id uuid,destination_id uuid);
  create table phase_o_approvals(id uuid primary key,draft_id uuid,scope text,revoked_at timestamptz,expires_at timestamptz,used_count integer,max_uses integer,min_interval_minutes integer,last_used_at timestamptz);
@@ -20,6 +20,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await db.exec(readFileSync('supabase/migrations/20261029031319_conditional_signal_service.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261029053521_conditional_tracks_and_acquisition.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261029205531_dual_market_conditional_watch.sql','utf8'));
+ await db.exec(readFileSync('supabase/migrations/20261029212305_strategy_watches_and_context.sql','utf8'));
  const t=Math.floor(Date.now()/3600000)*3600000,iso=(n:number)=>new Date(t+n*3600000).toISOString();
  const setup=(symbol:string,track:'INTRADAY'|'SWING',side:'buy'|'sell'='buy'):ConditionalSetup=>({id:`${symbol}:${track}:${side}`,symbol,track,timeframe:track==='INTRADAY'?'15m':'1h',side,strategy:'conditional',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',source:'TEST',sourceClose:iso(0),lastBar:iso(-1),trigger:100,stop:side==='buy'?90:110,tp1:side==='buy'?110:90,tp2:side==='buy'?120:80,expiresAt:iso(8),holdBars:48,score:85,reason:'Higher timeframe trend pullback',status:'WAITING',version:1});
  const save=async(s:ConditionalSetup,v=0)=>(await db.query<{ok:boolean}>('select commit_conditional_signal_setup($1::jsonb,$2,$3) ok',[JSON.stringify(s),v,conditionalMessage(s)])).rows[0].ok;
@@ -30,7 +31,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  assert.equal(await save(setup('XRPUSDT','SWING')),true); // separate Swing throughput
  assert.equal((await db.query('select * from conditional_free_samples')).rows.length,1);
  assert.equal((await db.query('select * from conditional_setup_history')).rows.length,5);
- await assert.rejects(save({...a,track:'SWING',version:2,lastBar:iso(0)},1),/INVALID_CONDITIONAL_STATE/);
+ await assert.rejects(save({...a,track:'SWING',version:2,lastBar:iso(0)},1),/INVALID_CONDITIONAL_STATE|IMMUTABLE_SETUP_PLAN/);
  await assert.rejects(save({...a,reason:'Rewritten plan',version:2,lastBar:iso(0)},1),/IMMUTABLE_SETUP_PLAN/);
  const unknown={...a,status:'DATA_GAP' as const,version:2,lastBar:iso(0),result:'Missing candles; outcome unknown.'};assert.equal(await save(unknown,1),true);
  const e=(await db.query<any>("select * from test_events where key=$1",[`conditional:${a.id}:2`])).rows[0];assert.deepEqual(e.destinations,['admin']);
@@ -92,6 +93,20 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await db.exec("set role authenticated");assert.equal((await db.query('select * from conditional_asset_watch')).rows.length,1);
  await assert.rejects(record(health),/permission denied/);
  await assert.rejects(db.exec("insert into conditional_asset_watch(symbol,timeframe,market,checked_at,state) values('EURUSD','15m','forex',now(),'HEALTHY')"),/permission denied/);await db.exec('reset role');
+
+ const scalp:any={...setup('GBPUSD','INTRADAY'),id:'forex-micro-scalp',track:'SCALP',timeframe:'5m',strategy:'forex.micro-scalper'};
+ scalp.intelligence={priceSource:scalp.source,sourceIds:['TEST:GBPUSD:5m:observed'],volumeRatio:1,higherDirection:1,session:'LONDON',news:'UNAVAILABLE'};
+ scalp.origin={version:'1.0.0',configuration:{params:{stop_atr_mult:1.4}},plan:{identity:{strategy_id:scalp.strategy,strategy_version:'1.0.0'},market_context:{symbol:scalp.symbol,timeframe:scalp.timeframe},risk_proposal:{initial_stop:scalp.stop,tp1:scalp.tp1,tp2:scalp.tp2},entry_plan:{zone:{low:scalp.trigger,high:scalp.trigger}},provenance:{market_data_source:scalp.source,candle_boundary:{closed_only:true}}}};
+ await assert.rejects(save({...scalp,origin:{...scalp.origin,version:'FORGED'}}),/ORIGIN_STRATEGY_PLAN_MISMATCH/);
+
+ assert.equal(await save(scalp),true);assert.equal((await db.query<any>('select admit_conditional_signal_setup($1::jsonb,$2) ok',[JSON.stringify({...scalp,intelligence:{...scalp.intelligence,volumeRatio:1.1}}),conditionalMessage(scalp)])).rows[0].ok,false);await assert.rejects(save({...scalp,version:2,lastBar:iso(0),origin:{...scalp.origin,configuration:{params:{stop_atr_mult:9}}}},1),/IMMUTABLE_SETUP_PLAN/);const scalpEvent=(await db.query<any>('select * from test_events where key=$1',[`conditional:${scalp.id}:1`])).rows[0];assert.deepEqual(scalpEvent.destinations,['vip_forex_gold']);
+ const observation={strategy_id:'forex.micro-scalper',symbol:'GBPUSD',timeframe:'5m',checked_at:iso(0),decision:'WATCH',reason:'ORIGINAL_EVALUATOR_AND_CONTEXT_PASSED',evidence:{strategy_version:'1.0.0',source_close:iso(-1),configuration:{enabled:true}}};
+ const recordStrategy=async(o:any)=>db.query('select record_watched_strategy_observations($1::jsonb)',[JSON.stringify([o])]);
+ await recordStrategy(observation);await recordStrategy({...observation,checked_at:iso(1)});assert.equal(new Date((await db.query<any>('select checked_at from watched_strategy_observations')).rows[0].checked_at).toISOString(),iso(0));
+ await recordStrategy({...observation,checked_at:iso(2),decision:'HELD_CONTEXT',reason:'HIGH_IMPACT_WINDOW'});await recordStrategy({...observation,checked_at:iso(1),decision:'NO_SETUP'});
+ assert.equal((await db.query<any>('select decision from watched_strategy_observations')).rows[0].decision,'HELD_CONTEXT');
+ const coverage=(await db.query<any>('select watched_strategy_coverage() result')).rows[0].result;assert.equal(coverage.strategies.length,1);assert.equal(coverage.strategies[0].held,1);
+ await db.exec('set role authenticated');await assert.rejects(recordStrategy(observation),/permission denied/);await db.exec('reset role');
 
 
 

@@ -1,3 +1,4 @@
+import {verifiedCalendarEvents} from './watched-market-context.ts';
 import {conditionalIntelligence} from './conditional-intelligence.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {freshListingObservations,type NativeExchangeSymbol} from './opportunity-universe.ts';
@@ -365,10 +366,10 @@ export async function generateForexIntelligence(supabase: SupabaseClient,kind:Co
   const observations=await Promise.all(symbols.map(symbol=>loadMT5Candles(supabase,symbol,'1h',55,{now,feedIdentity:Deno.env.get('MT5_MARKET_DATA_FEED_ID')})));
   const snapshots=symbols.map((symbol,i)=>snapshotFromCandles(symbol,observations[i].error?[]:observations[i].candles as Candle[],now));
   const fresh=snapshots.filter(s=>s.dataSource!=='unavailable');
-  let headlines:Array<{title:string;url:string;source:string;published_at:string}>=[],newsSource='unavailable';
+  let headlines:Array<{title:string;url:string;source:string;published_at:string}>=[],newsSource='unavailable',calendar:ReturnType<typeof verifiedCalendarEvents>=[];
   const configured=Deno.env.get('FOREX_NEWS_API_URL');
-  if(kind==='news_digest'&&configured){
-    try{headlines=normalizeNewsHeadlines(await fetchJson(configured) as Record<string,unknown>,now);if(headlines.length)newsSource='configured_forex_news_provider';}catch{/* Missing news holds a digest; it is never synthesized. */}
+  if(configured){
+    try{const raw=await fetchJson(configured) as Record<string,unknown>;headlines=normalizeNewsHeadlines(raw,now);calendar=verifiedCalendarEvents(raw.high_impact_events);if(headlines.length)newsSource='configured_forex_news_provider';}catch{/* Missing news holds a digest; it is never synthesized. */}
   }
   const state=fresh.length>=2&&(kind!=='news_digest'||headlines.length>0)?'generated':'partial';
   const label=kind==='news_digest'?'Forex & Gold News Digest':kind==='market_wrap'?'Forex & Gold Session Wrap':kind==='watchlist_pattern_update'?'Forex & Gold Watchlist':'Forex & Gold Session Brief';
@@ -378,7 +379,7 @@ export async function generateForexIntelligence(supabase: SupabaseClient,kind:Co
     market:'forex',symbols:fresh.map(s=>s.symbol),sentiment:{},regime:'neutral',confidence:Math.round(fresh.length/symbols.length*100),
     data_sources:{candles:fresh.length?'dedicated_mt5_hashibridge_feed':'unavailable',news:newsSource},freshness:{generated_at:generated},
     output_channel:['admin','free','vip'],status:state,metadata:{snapshots,feed_health:[],confidence_meaning:'data coverage only; not a forecast',
-      tracked_setups:tracked, gold_evidence_present:fresh.some(s=>s.symbol==='XAUUSD'),missing_symbols:snapshots.filter(s=>s.dataSource==='unavailable').map(s=>s.symbol),
+      high_impact_events:calendar,news_available:headlines.length>0,tracked_setups:tracked, gold_evidence_present:fresh.some(s=>s.symbol==='XAUUSD'),missing_symbols:snapshots.filter(s=>s.dataSource==='unavailable').map(s=>s.symbol),
       feed_failures:observations.map((r,i)=>({symbol:symbols[i],reason:r.error??null}))}};
 }
 

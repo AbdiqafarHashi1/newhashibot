@@ -1,3 +1,7 @@
+import {watchWidth,type WatchTimeframe,type WatchTrack} from './conditional-contract.ts';
+import {strategyContextDecision,watchedMarketContext,type WatchedIntelligence,type StrategyThesis} from './watched-market-context.ts';
+import type {StrategyRuntimeConfig} from './professional-strategies.ts';
+import type {DeepReadonly,StrategyPlan} from './strategy-plan.ts';
 /** Conditional signal service: deterministic candle authority, no account or order access. */
 import { atrRootV1, emaRootV1 } from './indicator-engine.ts';
 import { closedAggregate } from './regime-opportunities.ts';
@@ -8,15 +12,18 @@ import {conditionalMarket,conditionalCost,consecutiveMarketBars,scheduledMarketC
 export const CONDITIONAL_POLICY = 'conditional-signals/v1';
 export type SetupStatus = 'WAITING'|'ARMED'|'ACTIVE'|'CLOSED'|'EXPIRED'|'INVALIDATED'|'DATA_GAP';
 export interface ConditionalSetup {
- id:string; market?:'crypto'|'forex'; symbol:string; timeframe:'15m'|'1h'; track:'INTRADAY'|'SWING'; side:'buy'|'sell';
+ id:string; market?:'crypto'|'forex'; symbol:string; timeframe:WatchTimeframe; track:WatchTrack; side:'buy'|'sell';
  strategy:string; variant:string; policy:string; sourceClose:string; source:string; trigger:number;
  stop:number; tp1:number; tp2:number; expiresAt:string; holdBars:number; score:number; reason:string;
  status:SetupStatus; version:number; lastBar:string; armedAt?:string; fill?:number; bars?:number;
  partial?:boolean; netR?:number; result?:string; exit?:number; fillAt?:string; observedAt?:string;
- validation?:{kind:'TREND_PULLBACK'|'RANGE_REJECTION';boundary:number;higherMinutes:number;lookbackBars?:number;fastPeriod?:number;slowPeriod?:number};
+ validation?:{kind:'TREND_PULLBACK'|'RANGE_REJECTION'|'STRATEGY';boundary:number;higherMinutes:number;lookbackBars?:number;fastPeriod?:number;slowPeriod?:number};
  cost?:{price:number;label:string};
+ intelligence?:WatchedIntelligence;confirmationIntelligence?:WatchedIntelligence;
+ origin?:{version:string;configuration:StrategyRuntimeConfig;plan:DeepReadonly<StrategyPlan>;thesis:StrategyThesis};
+ management?:{partialFraction:number;breakEvenAfterTp1:boolean;maximumChaseR:number};
 }
-const width=(tf:string)=>tf==='15m'?900000:3600000;
+const width=watchWidth;
 export function validClosedBars(rows:readonly StrategyCandle[],symbol:string,tf:string,now:number):boolean {
  const w=width(tf);return rows.length>=100 && Number.isFinite(now) && rows.every((r,i)=>r.symbol===symbol&&r.timeframe===tf&&
  [r.open,r.high,r.low,r.close,r.volume].every(Number.isFinite)&&r.low>0&&r.volume>=0&&r.high>=Math.max(r.open,r.close)&&r.low<=Math.min(r.open,r.close)&&
@@ -24,7 +31,8 @@ export function validClosedBars(rows:readonly StrategyCandle[],symbol:string,tf:
  now-Date.parse(rows.at(-1)!.open_time)-w<w;
 }
 /** Two broad tracks; trend continuation or balanced-range rejection is selected by observed context. */
-export function conditionalCandidates(symbol:string,tf:'15m'|'1h',rows:readonly StrategyCandle[],now:number):ConditionalSetup[] {
+export function conditionalCandidates(symbol:string,tf:WatchTimeframe,rows:readonly StrategyCandle[],now:number):ConditionalSetup[] {
+ if(tf!=='15m'&&tf!=='1h')return [];
  rows=rows.slice(-110);
  const market=conditionalMarket(symbol);
  if(!market||scheduledMarketClosed(symbol,now)||!validClosedBars(rows,symbol,tf,now))return [];
@@ -64,15 +72,16 @@ export function conditionalCandidates(symbol:string,tf:'15m'|'1h',rows:readonly 
 }
 export function selectConditionalSetup(setups:readonly ConditionalSetup[],now:number):ConditionalSetup|undefined {
  const candidates:ArbitrationCandidate[]=setups.map(s=>({id:s.id,strategyId:s.strategy,strategyVersion:'1.0.0',market:s.market??conditionalMarket(s.symbol)??'crypto',symbol:s.symbol,timeframe:s.timeframe,
- side:s.side,confidence:s.score,grade:'A',score:s.score,entry:s.trigger,stop:s.stop,targets:[s.tp1,s.tp2],riskReward:2,expiry:s.expiresAt,
+ side:s.side,confidence:s.score,grade:'A',score:s.score,entry:s.trigger,stop:s.stop,targets:[s.tp1,s.tp2],riskReward:Math.abs(s.tp2-s.trigger)/Math.abs(s.trigger-s.stop),expiry:s.expiresAt,
  fresh:now-Date.parse(s.sourceClose)<width(s.timeframe),lifecycle:'ENABLED',publicationMode:'LIVE',eligible:true,
  evidence:{policy:CONDITIONAL_POLICY,score_is_probability:false,conditional_only:true},rejectionReasons:[]}));
  const opposing=new Set(setups.map(s=>s.side)).size>1;
- const result=arbitrateActiveScanner(candidates,{now:new Date(now),minimumRiskReward:1.5,forceNoTradeReason:opposing?'OPPOSING_CONDITIONAL_SETUPS':undefined});
+ const result=arbitrateActiveScanner(candidates,{now:new Date(now),minimumRiskReward:0,forceNoTradeReason:opposing?'OPPOSING_CONDITIONAL_SETUPS':undefined});
  return setups.find(s=>s.id===result.winner?.id);
 }
 /** Revalidate the ORIGINAL variant against available closed context; no strategy switching. */
 export function originalThesisValid(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number):boolean|null {
+ if(s.origin){const r=strategyContextDecision(s.origin.thesis,s.side,rows,watchedMarketContext(rows,at));return r==='VALID'?true:r==='INVALID'?false:null;}
  if(!s.validation)return true; // existing immutable plans retain their original price-only rules
  const d=s.side==='buy'?1:-1,last=rows.at(-1);if(!last)return true;
  if(s.validation.kind==='RANGE_REJECTION')return d*(last.close-s.validation.boundary)>0;
@@ -89,7 +98,7 @@ export function enterConditionalAtOpen(old:ConditionalSetup,b:StrategyCandle,now
   return {...old,version:old.version+1,status:'INVALIDATED',observedAt:new Date(now).toISOString(),result:'Confirmation led into a scheduled market closure; original next-open condition cancelled, no paper fill.'};
  }
  const d=old.side==='buy'?1:-1,s={...old,version:old.version+1,observedAt:new Date(now).toISOString()};
- if(d*(b.open-old.stop)<=0||d*(b.open-old.trigger)>.25*Math.abs(old.trigger-old.stop))return {...s,status:'INVALIDATED',result:'Next open crossed invalidation or exceeded chase limit; no paper fill.'};
+ if(d*(b.open-old.stop)<=0||d*(b.open-old.trigger)>(old.management?.maximumChaseR??.25)*Math.abs(old.trigger-old.stop))return {...s,status:'INVALIDATED',result:'Next open crossed invalidation or exceeded chase limit; no paper fill.'};
  return {...s,status:'ACTIVE',fill:b.open,fillAt:b.open_time,bars:0,netR:0,result:'Paper entry at observed next open; outcomes await closed candles.'};
 }
 /** Confirmation at a completed candle close, paper fill at the NEXT bar open. Never retroactive entry. */
@@ -108,7 +117,7 @@ export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):C
  }
  if(s.status==='ARMED'){
   if(t!==Date.parse(s.armedAt!)||t>=Date.parse(s.expiresAt)){s.status='INVALIDATED';s.result='Original next-open window unavailable or expired; no paper fill.';return s;}
-  if(d*(b.open-s.stop)<=0||d*(b.open-s.trigger)>.25*Math.abs(s.trigger-s.stop)){
+  if(d*(b.open-s.stop)<=0||d*(b.open-s.trigger)>(s.management?.maximumChaseR??.25)*Math.abs(s.trigger-s.stop)){
    s.status='INVALIDATED';s.result='Next open crossed invalidation or exceeded chase limit; no paper fill.';return s;
   }
   s.status='ACTIVE';s.fill=b.open;s.bars=0;s.netR=0;s.result='Paper entry at next open, not a provider fill.';
@@ -130,11 +139,12 @@ export function conditionalMessage(s:ConditionalSetup):string {
  const price=(v:number)=>Number(v.toPrecision(8)).toString();
  const time=(iso:string)=>new Intl.DateTimeFormat('en-KE',{timeZone:'Africa/Nairobi',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(iso))+' EAT';
  const headline=s.status==='WAITING'?'SETUP WATCH':s.status==='ARMED'?'CONDITION CONFIRMED':s.status==='ACTIVE'?(s.partial?'TP1 REACHED · HALF REMAINS':'PAPER ENTRY TRACKED'):s.status==='CLOSED'?'SETUP CLOSED':s.status==='EXPIRED'?'WATCH EXPIRED':s.status==='INVALIDATED'?'SETUP CANCELLED':'TRACKING PAUSED';
- const rows=[`HASHIBOT · ${s.track==='INTRADAY'?'INTRADAY':'SWING'} · ${s.symbol} · ${s.side==='buy'?'LONG':'SHORT'}`,headline];
- if(s.status==='WAITING')rows.push('',s.reason,`Confirmation: ${s.timeframe} candle close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}. Entry tracked at the next open, within ${price(.25*Math.abs(s.trigger-s.stop))} of the trigger on the chase side.`,`Stop: ${price(s.stop)}`,`TP1: ${price(s.tp1)} · take 50% | TP2: ${price(s.tp2)} · remainder`,`Valid until ${time(s.expiresAt)} · maximum hold ${s.track==='INTRADAY'?'12 hours':'7 days'}`,'Risk guide: 0.25%–0.5% of account at the stop.');
+ const rows=[`HASHIBOT · ${s.track} · ${s.symbol} · ${s.side==='buy'?'LONG':'SHORT'}`,headline];
+ if(s.status==='WAITING')rows.push('',s.reason,`Confirmation: ${s.timeframe} candle close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}. Entry tracked at the next open, within ${price((s.management?.maximumChaseR??.25)*Math.abs(s.trigger-s.stop))} of the trigger on the chase side.`,`Stop: ${price(s.stop)}`,s.tp1===s.tp2?`Target: ${price(s.tp2)} · full paper position`:`TP1: ${price(s.tp1)} · take 50% | TP2: ${price(s.tp2)} · remainder`,`Valid until ${time(s.expiresAt)} · maximum hold ${s.holdBars} ${s.timeframe} bars`,'Risk guide: 0.25%–0.5% of account at the stop.');
  else if(s.status==='ARMED')rows.push(`Confirmed ${time(s.armedAt!)}. Next open must respect the original stop and chase limit.`);
  else if(s.status==='ACTIVE')rows.push(`Paper entry: ${price(s.fill!)}.`,s.partial?`TP1 ${price(s.tp1)} reached. 50% remains toward ${price(s.tp2)}; stop stays ${price(s.stop)}.`:`Stop ${price(s.stop)} · TP1 ${price(s.tp1)} · TP2 ${price(s.tp2)}.`);
  else if(s.status==='CLOSED')rows.push(`Paper entry ${price(s.fill!)} → exit ${price(s.exit!)}.`,`${s.result==='TP2'?'TP2 reached':s.result==='TIME_STOP'?'Holding period completed':'Stop reached'} · net ${(s.netR??0).toFixed(3)}R.`,`Paper result includes ${s.cost?.label??conditionalCost(s.symbol,s.fill!).label}; not actual fills.${s.result==='STOP_FIRST_AMBIGUOUS_BAR'?' Stop used where candle order is ambiguous.':''}`);
  else rows.push(s.status==='DATA_GAP'?'Outcome unknown.':s.status==='EXPIRED'?'The confirmation window closed without an entry.':'Original entry conditions no longer valid; no paper entry.');
+ if(s.intelligence&&s.status==='WAITING')rows.push(`Context: ${s.intelligence.session} · higher timeframe ${s.intelligence.higherDirection>0?'up':s.intelligence.higherDirection<0?'down':'balanced'} · volume ${s.intelligence.volumeRatio.toFixed(2)}× recent average.`,s.intelligence.news==='SOURCE_AVAILABLE'?'News sources recorded alongside the setup.':s.intelligence.news==='HIGH_IMPACT_WINDOW'?'High-impact event window is being monitored.':'Price and market-structure evidence recorded.');
  rows.push('',`Strategy: ${s.strategy} · ${s.variant}`,`Ref: ${s.id}`);if(s.status!=='CLOSED')rows.push('Paper tracking');return rows.join('\n');
 }

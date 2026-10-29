@@ -36,7 +36,7 @@ test('existing arbitrator blocks opposing directions and chooses strongest track
 test('concrete adapter reloads and CAS-persists restart progress; batch strongest first',async()=>{
  let current=setup();const saved:string[]=[];
  const db={from:()=>{const q:any={select:()=>q,eq:()=>q,in:()=>q,limit:async()=>({data:[{state:current}],error:null})};return q;},rpc:async(name:string,p:any)=>{
- assert.equal(name,'commit_conditional_signal_setup');saved.push(p.p_state.id);
+ assert(['commit_conditional_signal_setup','admit_conditional_signal_setup'].includes(name));saved.push(p.p_state.id);
  if(p.p_expected_version&&p.p_expected_version!==current.version)return {data:false};current=p.p_state;return{data:true};}};
  const store=new ConditionalSignalStore(db);
  await observeConditionalSymbol(store,'BTCUSDT','15m',[bar(1),bar(2,100,105,98,103)],t+2700000);

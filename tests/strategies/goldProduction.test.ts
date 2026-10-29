@@ -50,7 +50,7 @@ const goldContract = FOREX_STRATEGY_CONTRACTS.find(c => c.id === GOLD_STRATEGY_I
 assert.deepEqual(forexStrategyEligibility(goldContract, "XAUUSD"), { eligible: true, reason: null });
 for (const contract of FOREX_STRATEGY_CONTRACTS.filter(c => c.id.startsWith("forex."))) assert.equal(forexStrategyEligibility(contract, "XAUUSD").reason, "strategy_instrument_class_not_supported");
 assert.deepEqual(forexStrategyEligibility(goldContract, "EURUSD"), { eligible: false, reason: "strategy_instrument_class_not_supported" });
-assert.deepEqual(forexScannerFetchPlan(), ["15m", "1h"]);
+assert.deepEqual(forexScannerFetchPlan(), ["5m", "15m", "1h"]);
 
 const entries = Object.entries(FOREX_PRODUCTION_EVALUATORS);
 validateProductionEvaluatorRegistry(FOREX_STRATEGY_CONTRACTS.map(c=>c.id), entries);

@@ -10,7 +10,8 @@ Deno.serve(async req=>{
  const {data:profile,error:roleError}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();if(roleError||profile?.role!=='admin')return reply({error:'ADMIN_REQUIRED'},403);
  const requests=[
   ['conditionalTracks',()=>db.rpc('conditional_service_overview')],
-  ['assetWatch',()=>db.from('conditional_asset_watch').select('symbol,timeframe,market,state,checked_at,last_closed_at,error').order('symbol').limit(32)],
+  ['strategyCoverage',()=>db.rpc('watched_strategy_coverage')],
+  ['assetWatch',()=>db.from('conditional_asset_watch').select('symbol,timeframe,market,state,checked_at,last_closed_at,error').order('symbol').limit(80)],
   ['scanner',()=>db.from('scanner_config').select('is_enabled,min_signal_grade').eq('id',1).maybeSingle()],
   ['telegram',()=>db.from('telegram_audience_configuration').select('audience,enabled,bot_permission_verified_at,join_mode')],
   ['prices',()=>db.from('commerce_product_prices').select('product_code,provider,currency,amount_minor,configured,fixed_period_days').eq('active',true)],

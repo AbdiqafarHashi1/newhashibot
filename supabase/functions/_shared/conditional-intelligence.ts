@@ -1,8 +1,8 @@
 import type {ConditionalSetup} from './conditional-signal-service.ts';
 /** Read recorded setups for editorial references. Numeric trade management stays in lifecycle messages. */
 export async function conditionalIntelligence(db:any,market:'crypto'|'forex') {
- const r=await db.from('conditional_signal_setups').select('state').eq('market',market).in('status',['WAITING','ARMED','ACTIVE']).order('updated_at',{ascending:false}).limit(21);
- if(r.error||!Array.isArray(r.data)||r.data.length>20)throw Error('TRACKED_SETUP_SNAPSHOT_UNAVAILABLE');
+ const r=await db.from('conditional_signal_setups').select('state').eq('market',market).in('status',['WAITING','ARMED','ACTIVE']).order('updated_at',{ascending:false}).limit(31);
+ if(r.error||!Array.isArray(r.data)||r.data.length>30)throw Error('TRACKED_SETUP_SNAPSHOT_UNAVAILABLE');
  const states=r.data.map((r:any)=>r.state as ConditionalSetup);
  if(!states.length)return [];
  const samples=await db.from('conditional_free_samples').select('setup_id').in('setup_id',states.map((s:ConditionalSetup)=>s.id));

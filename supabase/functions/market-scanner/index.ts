@@ -1,3 +1,7 @@
+import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
+import {discoverWatchedStrategies} from '../_shared/watched-strategy-discovery.ts';
+import {watchedMarketContext} from '../_shared/watched-market-context.ts';
+import type {WatchTimeframe} from '../_shared/conditional-contract.ts';
 import {conditionalWatchFeed} from '../_shared/conditional-watch-feed.ts';
 import {ConditionalSignalStore,observeConditionalSymbol,admitConditionalBatch} from '../_shared/conditional-signal-runtime.ts';
 import type {ConditionalSetup} from '../_shared/conditional-signal-service.ts';
@@ -1140,7 +1144,7 @@ function buildForexScanBudget(symbols: Array<Record<string, unknown>>, timeframe
 async function fetchForexCandles(
   symbol: string, tf: string,
   supabase: ReturnType<typeof createClient>
-): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }> {
+): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass;spreadPrice?:number|null;spreadObservedAt?:string }> {
   const now = new Date().toISOString();
 
   if (!C2_FOREX_TIMEFRAMES.has(tf)) {
@@ -1152,14 +1156,14 @@ async function fetchForexCandles(
     return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_symbol: ${symbol}`, statusClass: "unsupported_symbol" };
   }
 
-  const result = await loadMT5Candles(supabase, normalized, tf, 110, { feedIdentity: Deno.env.get("MT5_MARKET_DATA_FEED_ID") ?? undefined });
+  const result = await loadMT5Candles(supabase, normalized, tf, 240, { feedIdentity: Deno.env.get("MT5_MARKET_DATA_FEED_ID") ?? undefined });
   if (!result.error && result.candles && result.candles.length >= 55) {
     await supabase.from("provider_status").upsert({
       provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "active",
       last_success_at: now, error_message: "", data_source_label: "REAL DATA",
       last_candles_count: result.candles.length, updated_at: now,
     }, { onConflict: "provider_name" });
-    return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null, statusClass: "ok" };
+    return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null, statusClass: "ok",spreadPrice:Number(result.lineage?.bid)>0&&Number(result.lineage?.ask)>=Number(result.lineage?.bid)?Number(result.lineage.ask)-Number(result.lineage.bid):null,spreadObservedAt:result.lineage?.last_update_at };
   }
 
   const candleCount = result.candles?.length ?? 0;
@@ -1596,6 +1600,9 @@ async function runScanPipeline(
   };
 
   const conditionalEnabled=Deno.env.get("CONDITIONAL_SIGNALS_ENABLED")!=="FALSE";
+  const watchedDefinitions=conditionalEnabled?watchedStrategyCatalog(strategyConfigs,measuredReleases):[];
+  const sourceRead=conditionalEnabled?await supabase.from('intelligence_events').select('event_id,market,created_at,metadata,data_sources').gte('created_at',new Date(Date.now()-1800000).toISOString()).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
+  const watchedSources=(sourceRead.error?[]:sourceRead.data??[]).map((r:any)=>({...r,id:r.event_id}));
   const conditionalStore=new ConditionalSignalStore(supabase);
   const conditionalBatch:ConditionalSetup[]=[];
   const cryptoTeamEnabled=CRYPTO_TEAM_ROLES.some(role=>getStratCfg(role.name).enabled);
@@ -1734,7 +1741,7 @@ async function runScanPipeline(
     incrementStrategyStat(name, "runtime_errors");
     errors.push(`[ERROR] ${name} ${symbol} ${timeframe}: ${error instanceof Error ? error.message : String(error ?? "unknown")}`);
   };
-  const forexFetchCache = new Map<string, { candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }>();
+  const forexFetchCache = new Map<string, { candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass;spreadPrice?:number|null;spreadObservedAt?:string }>();
   const cryptoFetchCache = new Map<string, Candle[] | null>();
   let cryptoProviderRequests = 0;
   const forexProviderRejectionKeys = new Set<string>();
@@ -1783,7 +1790,7 @@ async function runScanPipeline(
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
     const native=!conditionalEnabled&&cryptoTeamEnabled&&tf==='15m';
-    const value = conditionalEnabled&&(tf==='15m'||tf==='1h')?[...(await conditionalWatchFeed(supabase,symbol,tf,Date.now())).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
+    const value = conditionalEnabled&&['5m','15m','1h','4h','1d'].includes(tf)?[...(await conditionalWatchFeed(supabase,symbol,tf as WatchTimeframe,Date.now())).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
     cryptoFetchCache.set(key, value);
     return value;
   }
@@ -1911,7 +1918,7 @@ async function runScanPipeline(
     if (marketType === "forex") {
       forexSymbolsScanned++;
     }
-    const timeframesToScan = marketType === "forex" ? forexScanTimeframes : conditionalEnabled?["15m","1h"]:config.active_timeframes;
+    const timeframesToScan = marketType === "forex" ? forexScanTimeframes : conditionalEnabled?["5m","15m","1h"]:config.active_timeframes;
     for (const tf of timeframesToScan) {
       if (tf === "4h" && marketType === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
       if (marketType === "forex" && forexBudget && !forexBudget.allowedPairs.has(`${normalizedSymbol}|${tf}`)) {
@@ -1985,9 +1992,17 @@ async function runScanPipeline(
         })), { onConflict: "symbol,timeframe,open_time" });
 
         }
-        if(conditionalEnabled&&(marketType==="crypto"||marketType==="forex")&&(tf==="15m"||tf==="1h")){
-          conditionalBatch.push(...await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf,admitted.candles,Date.now()));
-          continue; // Signal service only: never enter the legacy signal/execution-adoption path.
+        if(conditionalEnabled&&(marketType==="crypto"||marketType==="forex")&&['5m','15m','1h'].includes(tf)){
+          const at=Date.now(),higherTf=tf==='5m'?'15m':tf==='15m'?'1h':'4h';
+          const higher=marketType==='crypto'?await fetchCryptoCandlesForRun(normalizedSymbol,higherTf):(await fetchForexCandlesForRun(normalizedSymbol,higherTf)).candles;
+          const anchor=marketType==='crypto'&&normalizedSymbol!=='BTCUSDT'?await fetchCryptoCandlesForRun('BTCUSDT',tf):undefined;
+          const quote=marketType==='forex'?await fetchForexCandlesForRun(normalizedSymbol,tf):undefined;
+          const contextOptions={higher:higher??[],anchor:anchor??undefined,sources:watchedSources,spreadPrice:quote?.spreadPrice,spreadObservedAt:quote?.spreadObservedAt};
+          await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf as WatchTimeframe,admitted.candles,at,{intelligence:(rows,time)=>watchedMarketContext(rows,time,contextOptions)});
+          const assessment=discoverWatchedStrategies({definitions:watchedDefinitions,symbol:normalizedSymbol,tf:tf as WatchTimeframe,rows:admitted.candles,now:at,...contextOptions});
+          conditionalBatch.push(...assessment.setups);
+          const recorded=await supabase.rpc('record_watched_strategy_observations',{p_rows:assessment.observations});if(recorded.error)throw Error('STRATEGY_OBSERVATIONS_WRITE_FAILED');
+          continue; // Same strategy contract and paper ledger; no customer execution adoption.
         }
         const ind = calculateIndicators(candles);
         const marketContext = classifyMarketContext(ind, candles);

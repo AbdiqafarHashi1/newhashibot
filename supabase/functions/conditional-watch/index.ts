@@ -1,3 +1,7 @@
+import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
+import {discoverWatchedStrategies} from '../_shared/watched-strategy-discovery.ts';
+import {watchedMarketContext} from '../_shared/watched-market-context.ts';
+import {WATCH_TIMEFRAMES,type WatchTimeframe} from '../_shared/conditional-contract.ts';
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2';
 import {authorizeInternalOrAdmin,authJsonResponse} from '../_shared/internal-auth.ts';
@@ -15,8 +19,25 @@ Deno.serve(async(req:Request)=>{
   const prior=await db.from('conditional_asset_watch').select('symbol,timeframe,last_closed_at');
   if(prior.error)throw Error('WATCH_HEALTH_READ_FAILED');
   const watermarks=new Map<string,string>((prior.data??[]).map((r:any)=>[`${r.symbol}:${r.timeframe}`,r.last_closed_at]));
+  const [configs,releases,sources,open]=await Promise.all([
+   db.from('strategy_configs').select('*'),db.from('strategy_release_candidates').select('id,strategy_id,state,immutable_configuration').eq('state','PROMOTED'),
+   db.from('intelligence_events').select('event_id,market,created_at,metadata,data_sources').gte('created_at',new Date(Date.now()-1800000).toISOString()).order('created_at',{ascending:false}).limit(100),
+   db.from('conditional_signal_setups').select('symbol,timeframe').in('status',['WAITING','ARMED','ACTIVE'])
+  ]);
+  if(configs.error||releases.error||open.error)throw Error('WATCH_STRATEGY_CONFIGURATION_UNAVAILABLE');
+  const definitions=watchedStrategyCatalog(configs.data??[],releases.data??[]),evidence=(sources.error?[]:sources.data??[]).map((r:any)=>({...r,id:r.event_id}));
+  const frames=new Set<WatchTimeframe>(['5m','15m','1h']);
+  for(const d of definitions.filter(d=>d.lifecycle==='ENABLED'&&d.config.enabled))for(const tf of d.config.allowed_timeframes)if(WATCH_TIMEFRAMES.includes(tf as WatchTimeframe))frames.add(tf as WatchTimeframe);
   const enabled=Deno.env.get('CONDITIONAL_SIGNALS_ENABLED')!=='FALSE';
-  const result=await runConditionalWatch({store:new ConditionalSignalStore(db),
+  const result=await runConditionalWatch({store:new ConditionalSignalStore(db),timeframes:[...frames],additionalTasks:(open.data??[]).map((r:any)=>({symbol:r.symbol,tf:r.timeframe})),
+   assess:async({symbol,tf,rows,now,feed,load})=>{
+    const higherTf:WatchTimeframe=tf==='5m'?'15m':tf==='15m'?'1h':tf==='1h'?'4h':'1d';
+    const [higher,anchor]=await Promise.all([load(symbol,higherTf).catch(()=>({candles:[]})),symbol.endsWith('USDT')&&symbol!=='BTCUSDT'?load('BTCUSDT',tf).catch(()=>({candles:[]})):Promise.resolve(undefined)]);
+    const options={higher:higher.candles,anchor:anchor?.candles,spreadPrice:feed.spreadPrice,spreadObservedAt:feed.spreadObservedAt,sources:evidence};
+    const assessment=discoverWatchedStrategies({definitions,symbol,tf,rows,now,...options});
+    const saved=await db.rpc('record_watched_strategy_observations',{p_rows:assessment.observations});if(saved.error)throw Error('STRATEGY_OBSERVATIONS_WRITE_FAILED');
+    return {setups:assessment.setups,intelligence:(prefix,at)=>watchedMarketContext(prefix,at,options)};
+   },
    discovery:{crypto:enabled&&cfg.data.signal_enable_crypto===true,forex:enabled&&cfg.data.signal_enable_forex===true},
    feed:async(symbol,tf,now)=>{
     const feed=await conditionalWatchFeed(db,symbol,tf,now,Deno.env.get('MT5_MARKET_DATA_FEED_ID'));

@@ -44,3 +44,11 @@ Forex/Gold has independent throughput/capacity and a separate daily Free sample 
 Crypto uses a frozen 25bps paper cost reserve; Forex/Gold uses a disclosed pip reserve, excluding unobserved swaps. These are models, not broker spread/fill claims. Known New York weekly FX closure and Gold daily maintenance are handled separately from unexplained gaps; broker holidays are not assumed. A confirmation into a closure cannot obtain a later invented next-open entry.
 
 Feed failures persist monotonic asset health and an Admin-only incident with affected setup references. Missing candles or source changes cannot generate assumed outcomes. The Setups & follow-ups tab shows each market/track, strategy history and 32-stream health, including stale watcher timestamps. The owner can connect the existing dedicated MT5 data feed once Supabase is restored; no customer execution terminal is adopted as the scanner source.
+
+## Named strategy intelligence and scalp extension
+
+The watcher now runs 48 base asset streams (5m, 15m, 1h across the 16 assets). Configured additional supported frames and previously open setups are retained. The scanner and independent watcher share the actual named evaluator catalog and conditional adapter. See `STRATEGY_WATCH_COVERAGE.md` for the precise publication boundary.
+
+Ten primary evaluator strategies are connected to their own original plans, with 20 additional research definitions included in coverage diagnostics. Enabled database configuration is respected; no missing row is treated as permission to enable a named strategy. Existing broad conditional Intraday/Swing profiles continue alongside named candidates. Per-asset arbitration, opposing-direction holds and separate track capacity still apply.
+
+The Setups & follow-ups page now includes Scalp totals, named-strategy coverage and source/original-plan inspection. Context snapshots at admission and confirmation preserve source IDs and distinguish unavailable news or stale quotes from known observations. The applied paper holding limit uses the evaluator-reported limit when present, otherwise the configured limit; both the original plan and applied frozen limit are retained.
