@@ -1,0 +1,13 @@
+{
+ "schema":"ten-asset-complementary/v1","declaredOn":"2026-10-29",
+ "assets":["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LINKUSDT","AVAXUSDT","LTCUSDT"],
+ "altAssets":["BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LINKUSDT","AVAXUSDT","LTCUSDT"],
+ "scope":"BTC/ETH original Spot daily lead unchanged; eight USD-M alt assets use the unchanged registered relative-strength setup and BTC reference. Contemporary liquid-asset selection, not point-in-time universe reconstruction; all were observed in earlier work. LTC retained despite earlier losses. No losing asset removed after this run.",
+ "period":{"from":"2025-02-01","until":"2026-10-01"},
+ "controls":{"maxActive":3,"onePerUnderlying":true,"cooldownMs":0,"ranking":"Canonical winner score, then current relative return, then current quote-volume ratio, then stable ID; no future returns or learned success probabilities. All same-close setups are qualified before admission. Old profiles preserve old ordering."},
+ "accounting":"Native15m USD-M outcomes for alt; original target-free Spot daily lifecycle. 25/26bps base reserves, stress1.5x. Funding reserve for alt, not actual historical funding. Independent initial-risk R, not account equity.",
+ "gates":{"netPF":1.2,"stressPF":1.0,"entriesPerDay":1.0,"activeDayFraction":0.7,"minimumResolvedPerPeriod":30},
+ "periods":[["2025-02-01","2026-01-01"],["2026-01-01","2026-07-01"],["2026-07-01","2026-10-01"]],
+ "hypothesis":"More eligible assets can increase participation without altering entry rules. It does not guarantee frequency, independence or profitability. Two bullish families cannot supply bearish/range coverage. No all-regime guarantee.",
+ "publication":false,"execution":false,"promotion":false
+}

@@ -170,6 +170,7 @@ export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbi
     return entries.every(e=>e.result.score_breakdown.regime_policy_version==='regime-opportunity/v1'&&
       (e.name!=='RegimeRangeRejection'?['TREND_UP','TREND_DOWN','EXPANSION_UP','EXPANSION_DOWN'].includes(String(e.result.score_breakdown.regime)):e.result.score_breakdown.regime==='RANGE'))?'':'REGIME_POLICY_MISMATCH';
   }
+  if(entries.every(e=>e.name==='AltRelativeWeakness'))return entries.every(e=>{const b=e.result.score_breakdown;return b.relative_weakness_policy==='alt-relative-weakness/v1'&&b.score_is_probability===false&&e.result.direction==='sell'&&b.closed_hour_breakdown===true&&b.estimated_cost_bps===25&&typeof b.btc_return==='number'&&Number.isFinite(b.btc_return)&&b.btc_return<0&&typeof b.alt_return==='number'&&Number.isFinite(b.alt_return)&&b.alt_return<=-.03&&typeof b.relative_return==='number'&&Number.isFinite(b.relative_return)&&b.relative_return<=-.02&&typeof b.week_return==='number'&&Number.isFinite(b.week_return)&&b.week_return<0&&typeof b.quote_volume_ratio==='number'&&Number.isFinite(b.quote_volume_ratio)&&b.quote_volume_ratio>=1.5;})?'':'ALT_RELATIVE_WEAKNESS_POLICY_MISMATCH';
   if(entries.every(e=>e.name==='AltRelativeStrength')){
     // Registered relative-strength specialist, not a legacy pullback impersonation.
     // Definition remains disabled/research; this policy also governs isolated replay.

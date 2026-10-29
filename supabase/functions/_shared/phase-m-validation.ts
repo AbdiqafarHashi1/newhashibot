@@ -1,16 +1,33 @@
+import {rankScannerOpportunities,opportunityIdentity} from './scanner-opportunity-order.ts';
+import {OPPORTUNITY_ORDER,REGIME_OPPORTUNITY_ORDER} from './ten-asset-contract.ts';
 /** Isolated validation orchestration. Callers inject the production scanner and Phase-D boundary. */
 import {applyScannerSelectionPolicy} from "./scanner-selection-policy.ts";
 export interface ReplayEvent {symbol:string;timeframe:string;closedAt:string;contentHash:string;payload:unknown}
 export interface ScannerSelection {decision:"SIGNAL"|"NO_TRADE"|"REJECTED";signalId?:string;expiresAt?:string;reasons:readonly string[];cycle?:{cycleId:string;candidates:readonly unknown[];arbitration:unknown;datasetId:string;datasetHash:string;configurationHash:string}}
-export interface ReplayResumeState {cursor:number;active:[string,string][];lastSignal:[string,string][];lifecycleVersion?:string;positions?:import('./scanner-replay-lifecycle.ts').ReplayTrackedPosition[]}
-export async function replayScannerChronologically(input:{events:readonly ReplayEvent[];cooldownMs:number;maxActiveSignals?:number;shouldCancel?:()=>Promise<boolean>|boolean;resume?:ReplayResumeState;beforeEvent?:(event:ReplayEvent)=>readonly string[];onEvidence?:(row:{event:ReplayEvent;selection:ScannerSelection},state:ReplayResumeState)=>Promise<void>;evaluate:(event:ReplayEvent,state:Readonly<{active:ReadonlyMap<string,string>;lastSignal:ReadonlyMap<string,string>}>)=>Promise<ScannerSelection>|ScannerSelection}){
- const events=[...input.events].sort((a,b)=>Date.parse(a.closedAt)-Date.parse(b.closedAt)||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe));
+export interface ReplayResumeState {orderingVersion?:string;cursor:number;active:[string,string][];lastSignal:[string,string][];lifecycleVersion?:string;positions?:import('./scanner-replay-lifecycle.ts').ReplayTrackedPosition[]}
+export async function replayScannerChronologically(input:{events:readonly ReplayEvent[];cooldownMs:number;maxActiveSignals?:number;selectionOrder?:typeof OPPORTUNITY_ORDER|typeof REGIME_OPPORTUNITY_ORDER;shouldCancel?:()=>Promise<boolean>|boolean;resume?:ReplayResumeState;beforeEvent?:(event:ReplayEvent)=>readonly string[];onEvidence?:(row:{event:ReplayEvent;selection:ScannerSelection},state:ReplayResumeState)=>Promise<void>;evaluate:(event:ReplayEvent,state:Readonly<{active:ReadonlyMap<string,string>;lastSignal:ReadonlyMap<string,string>}>)=>Promise<ScannerSelection>|ScannerSelection}){
+ let events=[...input.events].sort((a,b)=>Date.parse(a.closedAt)-Date.parse(b.closedAt)||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe));
  const identities=new Map<string,string>(),active=new Map<string,string>(input.resume?.active),lastSignal=new Map<string,string>(input.resume?.lastSignal),evidence:({event:ReplayEvent;selection:ScannerSelection})[]=[];
  let cursor=input.resume?.cursor??0;
- for(const event of events.slice(cursor)){if(await input.shouldCancel?.())throw new Error("RUN_CANCELLED");const id=`${event.symbol}:${event.timeframe}:${event.closedAt}`,prior=identities.get(id);if(prior&&prior!==event.contentHash)throw new Error(`REPLAY_CONTENT_CONFLICT:${id}`);if(prior)continue;identities.set(id,event.contentHash);for(const [symbol,expiry] of active)if(Date.parse(expiry)<=Date.parse(event.closedAt))active.delete(symbol);
+ const prepared=new Map<string,ScannerSelection>();
+ if(input.selectionOrder){
+  if(![OPPORTUNITY_ORDER,REGIME_OPPORTUNITY_ORDER].includes(input.selectionOrder)||cursor>0&&input.resume?.orderingVersion!==input.selectionOrder)throw Error('OPPORTUNITY_ORDER_CHECKPOINT_MISMATCH');
+  const seen=new Map<string,string>();events=events.filter(event=>{const id=opportunityIdentity(event),prior=seen.get(id);if(prior&&prior!==event.contentHash)throw Error('REPLAY_CONTENT_CONFLICT:'+id);if(prior)return false;seen.set(id,event.contentHash);return true;});
+ }
+ /** Only the current close is prepared, so a bounded worker can checkpoint progress.
+  * Ranked callers supply pure, selection-state-independent strategy evaluation. */
+ async function* orderedEvents(){
+  if(!input.selectionOrder){yield* events.slice(cursor);return;}
+  for(let i=0;i<events.length;){let end=i+1;while(end<events.length&&events[end].closedAt===events[i].closedAt)end++;if(end<=cursor){i=end;continue;}
+   const batch:{event:ReplayEvent;selection:ScannerSelection}[]=[];prepared.clear();
+   for(const event of events.slice(i,end)){if(await input.shouldCancel?.())throw Error('RUN_CANCELLED');const selection=await input.evaluate(event,{active,lastSignal});prepared.set(opportunityIdentity(event),selection);batch.push({event,selection});}
+   const ranked=rankScannerOpportunities(batch,input.selectionOrder===REGIME_OPPORTUNITY_ORDER);for(let k=Math.max(0,cursor-i);k<ranked.length;k++)yield ranked[k].event;i=end;
+  }
+ }
+ for await(const event of orderedEvents()){if(await input.shouldCancel?.())throw new Error("RUN_CANCELLED");const id=`${event.symbol}:${event.timeframe}:${event.closedAt}`,prior=identities.get(id);if(prior&&prior!==event.contentHash)throw new Error(`REPLAY_CONTENT_CONFLICT:${id}`);if(prior)continue;identities.set(id,event.contentHash);for(const [symbol,expiry] of active)if(Date.parse(expiry)<=Date.parse(event.closedAt))active.delete(symbol);
   for(const symbol of input.beforeEvent?.(event)??[])active.delete(symbol);
-  const last=lastSignal.get(event.symbol),admission=applyScannerSelectionPolicy(event.closedAt,{activeSignalId:active.has(event.symbol)?event.symbol:undefined,lastSelectedAt:last,activeCount:active.size},{preventDuplicateSymbolSignals:true,cooldownMs:input.cooldownMs,maxActiveSignals:input.maxActiveSignals});let selection:ScannerSelection;if(!admission.allowed)selection={decision:"REJECTED",reasons:[admission.reason==="duplicate_active_signal"?"ACTIVE_SIGNAL_RESTRICTION":admission.reason==="crypto_concentration_limit"?"CRYPTO_CONCENTRATION_LIMIT":"SCANNER_COOLDOWN"]};else selection=await input.evaluate(event,{active,lastSignal});
-  if(selection.decision==="SIGNAL"){if(!selection.signalId||!selection.expiresAt)throw new Error("INVALID_SCANNER_SELECTION");active.set(event.symbol,selection.expiresAt);lastSignal.set(event.symbol,event.closedAt)}const row={event,selection};evidence.push(row);await input.onEvidence?.(row,{cursor:++cursor,active:[...active],lastSignal:[...lastSignal]});
+  const last=lastSignal.get(event.symbol),admission=applyScannerSelectionPolicy(event.closedAt,{activeSignalId:active.has(event.symbol)?event.symbol:undefined,lastSelectedAt:last,activeCount:active.size},{preventDuplicateSymbolSignals:true,cooldownMs:input.cooldownMs,maxActiveSignals:input.maxActiveSignals});let selection:ScannerSelection;if(!admission.allowed)selection={decision:"REJECTED",reasons:[admission.reason==="duplicate_active_signal"?"ACTIVE_SIGNAL_RESTRICTION":admission.reason==="crypto_concentration_limit"?"CRYPTO_CONCENTRATION_LIMIT":"SCANNER_COOLDOWN"]};else selection=prepared.get(id)??await input.evaluate(event,{active,lastSignal});
+  if(selection.decision==="SIGNAL"){if(!selection.signalId||!selection.expiresAt)throw new Error("INVALID_SCANNER_SELECTION");active.set(event.symbol,selection.expiresAt);lastSignal.set(event.symbol,event.closedAt)}const row={event,selection};evidence.push(row);await input.onEvidence?.(row,{...(input.selectionOrder?{orderingVersion:input.selectionOrder}:{}),cursor:++cursor,active:[...active],lastSignal:[...lastSignal]});
  }
  return Object.freeze(evidence);
 }

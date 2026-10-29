@@ -4,7 +4,7 @@ import type {ArbitrationCandidate} from './arbitrator.ts';
 import type {StrategyCandle} from './professional-strategies.ts';
 import type {ReplayOutcome,ReplayCashFlowEvent} from './replay-outcomes.ts';
 /** Whole admitted prefix is needed for original indicator seeds. Trail applies only NEXT candle. */
-export function* dailyTrendOutcomeSteps(c:ArbitrationCandidate,rows:readonly StrategyCandle[],after:string,costBps=26):Generator<void,ReplayOutcome|null>{
+export function* dailyTrendOutcomeSteps(c:ArbitrationCandidate,rows:readonly StrategyCandle[],after:string,costBps=26,observationEnd?:string):Generator<void,ReplayOutcome|null>{
  if(!dailyCandidate(c)||!admitDailyRows(rows,c.symbol))throw Error('DAILY_EXIT_CONTRACT_INVALID');
  const at=Date.parse(after),first=rows.findIndex(r=>Date.parse(r.open_time)===at);if(first<0)return null;
  if(first<201)throw Error('DAILY_SEED_PREFIX_REQUIRED');
@@ -17,6 +17,7 @@ export function* dailyTrendOutcomeSteps(c:ArbitrationCandidate,rows:readonly Str
   yield;
   const row=rows[i];let fill:number|null=null,status:ReplayOutcome['status']='OPEN';
   if(exitNext){fill=row.open;status='REGIME_EXIT';}
+  else if(observationEnd!==undefined&&Date.parse(row.open_time)+86400000>Date.parse(observationEnd))break;
   else if(row.low<=stop){fill=Math.min(stop,row.open);status='STOP';}
   if(fill!==null){events.push({candidateId:c.id,time:row.open_time,kind:'EXIT',sequence:1,realizedR:(fill-entry)/risk});return result(status,fill,i);}
   stop=Math.max(stop,row.close-3*f.atr[i]);exitNext=f.fast[i]<=f.slow[i]||row.close<f.regime[i];

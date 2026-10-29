@@ -5,6 +5,7 @@ import type { StrategyCandle } from "./professional-strategies.ts";
 
 export interface ReplayFillAssumptions {
   entryTiming: "NEXT_OPEN";
+  observationEnd?:string;
   feeBps: number; spreadBps: number; slippageBps: number; fundingBps: number;
   partialExitPct: number;
   moveStopToBreakevenAfterTp1: boolean;
@@ -25,6 +26,7 @@ export interface ReplayOutcome {
 export const DEFAULT_REPLAY_ASSUMPTIONS:ReplayFillAssumptions={entryTiming:"NEXT_OPEN",feeBps:0,spreadBps:0,slippageBps:0,fundingBps:0,partialExitPct:.5,moveStopToBreakevenAfterTp1:true,trailingStopR:null,sameCandlePolicy:"STOP_FIRST"};
 
 export function validateReplayAssumptions(a: ReplayFillAssumptions) {
+  if(a.observationEnd!==undefined&&!Number.isFinite(Date.parse(a.observationEnd)))throw Error("INVALID_OUTCOME_OBSERVATION_END");
   if(a.tp1StopPolicy!==undefined&&!["NEXT_BAR","CONSERVATIVE_SAME_BAR"].includes(a.tp1StopPolicy))throw new Error("INVALID_TP1_STOP_POLICY");
   if (a.entryTiming !== "NEXT_OPEN" || !["STOP_FIRST","AMBIGUOUS"].includes(a.sameCandlePolicy)) throw new Error("UNSUPPORTED_REPLAY_POLICY");
   if (![a.feeBps,a.spreadBps,a.slippageBps,a.fundingBps].every(x=>Number.isFinite(x)&&x>=0)) throw new Error("INVALID_REPLAY_COSTS");
@@ -35,9 +37,10 @@ export function validateReplayAssumptions(a: ReplayFillAssumptions) {
 
 export function* evaluateReplayOutcomeSteps(candidate:ArbitrationCandidate,candles:readonly StrategyCandle[],after:string,a:ReplayFillAssumptions):Generator<void,ReplayOutcome|null> {
   validateReplayAssumptions(a);
-  if(dailyCandidate(candidate)){const cost=a.feeBps+a.spreadBps+a.slippageBps;if(a.fundingBps!==0||![26,39].includes(cost)||a.partialExitPct!==0||a.moveStopToBreakevenAfterTp1||a.closeAtHorizon)throw Error("DAILY_FROZEN_EXIT_COST_REQUIRED");return yield* dailyTrendOutcomeSteps(candidate,candles,after,cost);}
+  if(dailyCandidate(candidate)){const cost=a.feeBps+a.spreadBps+a.slippageBps;if(a.fundingBps!==0||![26,39].includes(cost)||a.partialExitPct!==0||a.moveStopToBreakevenAfterTp1||a.closeAtHorizon)throw Error("DAILY_FROZEN_EXIT_COST_REQUIRED");return yield* dailyTrendOutcomeSteps(candidate,candles,after,cost,a.observationEnd);}
   const path=candles.filter(c=>Date.parse(c.open_time)>=Date.parse(after)); if(!path.length)return null;
   const entryCandle=path[0], entry=entryCandle.open, sign=candidate.side==="buy"?1:-1;
+  if(a.observationEnd!==undefined&&(Date.parse(entryCandle.open_time)!==Date.parse(after)||Date.parse(entryCandle.open_time)>Date.parse(a.observationEnd)))return null;
   const excluded=(reason:string):ReplayOutcome=>({candidateId:candidate.id,strategyId:candidate.strategyId,symbol:candidate.symbol,timeframe:candidate.timeframe,status:"EXCLUDED",entryTime:entryCandle.open_time,exitTime:null,entryPrice:entry,exitPrice:null,grossR:null,netR:null,costR:0,partialExit:false,conservative:true,exclusionReason:reason,cashFlowEvents:[]});
   if (!Number.isFinite(entry)||!Number.isFinite(candidate.stop)||!candidate.targets.length||candidate.targets.some(x=>!Number.isFinite(x))) return excluded("INVALID_ENTRY_GEOMETRY");
   const stopDistance=(entry-candidate.stop)*sign;
@@ -50,7 +53,9 @@ export function* evaluateReplayOutcomeSteps(candidate:ArbitrationCandidate,candl
   const events:ReplayCashFlowEvent[]=[{time:entryCandle.open_time,candidateId:candidate.id,kind:"COST",sequence:seq++,realizedR:-costR}];
   const realized=(price:number,qty:number)=>(price-entry)*sign/risk*qty;
   const row=(status:ReplayOutcome["status"],exitTime:string|null,exitPrice:number|null,ambiguous=false):ReplayOutcome=>({candidateId:candidate.id,strategyId:candidate.strategyId,symbol:candidate.symbol,timeframe:candidate.timeframe,status,entryTime:entryCandle.open_time,exitTime,entryPrice:entry,exitPrice,grossR:status==="OPEN"||ambiguous?null:gross,netR:status==="OPEN"||ambiguous?null:gross-costR,costR,partialExit:tp1Hit,conservative:ambiguous||status==="STOP",cashFlowEvents:events});
-  const limited=path.slice(0,a.maxBarsInTrade??path.length);
+  const match=/^(\d+)(m|h|d)$/.exec(candidate.timeframe),width=match?Number(match[1])*(match[2]==='m'?60000:match[2]==='h'?3600000:86400000):NaN;
+  if(a.observationEnd!==undefined&&!Number.isFinite(width))throw Error("INVALID_OUTCOME_TIMEFRAME");
+  const limited=path.slice(0,a.maxBarsInTrade??path.length).filter(c=>a.observationEnd===undefined||Date.parse(c.open_time)+width<=Date.parse(a.observationEnd));
   for(const candle of limited){
     yield;
     const hitStop=sign===1?candle.low<=stop:candle.high>=stop;

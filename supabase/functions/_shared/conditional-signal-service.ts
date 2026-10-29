@@ -1,0 +1,112 @@
+/** Conditional signal service: deterministic candle authority, no account or order access. */
+import { atrRootV1, emaRootV1 } from './indicator-engine.ts';
+import { closedAggregate } from './regime-opportunities.ts';
+import { arbitrateActiveScanner } from './active-scanner-core.ts';
+import type { ArbitrationCandidate } from './arbitrator.ts';
+import type { StrategyCandle } from './professional-strategies.ts';
+import { CORE_CRYPTO_SYMBOLS } from './opportunity-universe.ts';
+export const CONDITIONAL_POLICY = 'conditional-signals/v1';
+export type SetupStatus = 'WAITING'|'ARMED'|'ACTIVE'|'CLOSED'|'EXPIRED'|'INVALIDATED'|'DATA_GAP';
+export interface ConditionalSetup {
+ id:string; symbol:string; timeframe:'15m'|'1h'; track:'INTRADAY'|'SWING'; side:'buy'|'sell';
+ strategy:string; variant:string; policy:string; sourceClose:string; source:string; trigger:number;
+ stop:number; tp1:number; tp2:number; expiresAt:string; holdBars:number; score:number; reason:string;
+ status:SetupStatus; version:number; lastBar:string; armedAt?:string; fill?:number; bars?:number;
+ partial?:boolean; netR?:number; result?:string; exit?:number;
+}
+const width=(tf:string)=>tf==='15m'?900000:3600000;
+export function validClosedBars(rows:readonly StrategyCandle[],symbol:string,tf:string,now:number):boolean {
+ const w=width(tf);return rows.length>=100 && Number.isFinite(now) && rows.every((r,i)=>r.symbol===symbol&&r.timeframe===tf&&
+ [r.open,r.high,r.low,r.close,r.volume].every(Number.isFinite)&&r.low>0&&r.volume>=0&&r.high>=Math.max(r.open,r.close)&&r.low<=Math.min(r.open,r.close)&&
+ Date.parse(r.open_time)%w===0&&Date.parse(r.open_time)+w<=now&&(!i||Date.parse(r.open_time)-Date.parse(rows[i-1].open_time)===w))&&
+ now-Date.parse(rows.at(-1)!.open_time)-w<w;
+}
+/** Two broad tracks; trend continuation or balanced-range rejection is selected by observed context. */
+export function conditionalCandidates(symbol:string,tf:'15m'|'1h',rows:readonly StrategyCandle[],now:number):ConditionalSetup[] {
+ if(!CORE_CRYPTO_SYMBOLS.includes(symbol)||!validClosedBars(rows,symbol,tf,now))return [];
+ const last=rows.at(-1)!,prior=rows.slice(0,-1),atr=atrRootV1([...prior],14),closes=rows.map(r=>r.close);
+ if(!(atr>0)||last.high-last.low>3*atr)return [];
+ const higher=closedAggregate(rows,tf==='15m'?60:240,new Date(now).toISOString());
+ if(higher.length<24)return [];
+ const hc=higher.map(r=>r.close),fast=emaRootV1(hc,8),slow=emaRootV1(hc,20),trend=(fast-slow)/atr;
+ const range=prior.slice(-20),hi=Math.max(...range.map(r=>r.high)),lo=Math.min(...range.map(r=>r.low));
+ const volume=range.reduce((n,r)=>n+r.volume,0)/20;
+ if(!(volume>0)||last.volume<.7*volume)return [];
+ let side:1|-1,trigger:number,stop:number,variant:string,reason:string;
+ if(Math.abs(trend)>=.5){
+  side=trend>0?1:-1;const ema=emaRootV1(closes,20);
+  if(Math.abs(last.close-ema)>2*atr||!rows.slice(-4).some(r=>side*(r.close-r.open)<-.25*atr))return [];
+  trigger=side===1?last.high+.1*atr:last.low-.1*atr;
+  stop=side===1?Math.min(...rows.slice(-4).map(r=>r.low))-.25*atr:Math.max(...rows.slice(-4).map(r=>r.high))+.25*atr;
+  variant='TREND_PULLBACK';reason=`Higher-timeframe ${side===1?'uptrend':'downtrend'}; wait for a closed ${tf} candle beyond the pullback boundary.`;
+ }else{
+  if(hi-lo<4*atr)return [];
+  const buy=last.low<lo&&last.close>lo&&last.close>last.open;
+  const sell=last.high>hi&&last.close<hi&&last.close<last.open;
+  if(buy===sell)return [];side=buy?1:-1;trigger=side===1?last.high+.1*atr:last.low-.1*atr;
+  stop=side===1?last.low-.25*atr:last.high+.25*atr;variant='RANGE_REJECTION';
+  reason='Balanced higher-timeframe context with a rejected range sweep; wait for confirmation, not a touch.';
+ }
+ const risk=Math.max(side*(trigger-stop),1.5*atr);stop=trigger-side*risk;
+ if(risk/trigger<.003||risk/trigger>.08||trigger<=0||stop<=0)return [];
+ if(variant==='RANGE_REJECTION'&&side*((hi+lo)/2-trigger)<1.5*risk)return [];
+ const track=tf==='15m'?'INTRADAY':'SWING',close=new Date(Date.parse(last.open_time)+width(tf)).toISOString();
+ const score=Math.min(94,75+Math.min(Math.abs(trend),3)*4+Math.min(last.volume/volume,2)*3);
+ return [{id:`${CONDITIONAL_POLICY}:${symbol}:${tf}:${close}:${side}`,symbol,timeframe:tf,track,side:side===1?'buy':'sell',
+ strategy:`crypto.conditional-${track.toLowerCase()}`,variant,policy:CONDITIONAL_POLICY,sourceClose:close,source:String(last.source??'UNKNOWN'),
+ trigger,stop,tp1:trigger+side*risk,tp2:trigger+side*2*risk,expiresAt:new Date(Date.parse(close)+(tf==='15m'?8:24)*width(tf)).toISOString(),
+ holdBars:tf==='15m'?48:168,score,reason,status:'WAITING',version:1,lastBar:last.open_time}];
+}
+export function selectConditionalSetup(setups:readonly ConditionalSetup[],now:number):ConditionalSetup|undefined {
+ const candidates:ArbitrationCandidate[]=setups.map(s=>({id:s.id,strategyId:s.strategy,strategyVersion:'1.0.0',market:'crypto',symbol:s.symbol,timeframe:s.timeframe,
+ side:s.side,confidence:s.score,grade:'A',score:s.score,entry:s.trigger,stop:s.stop,targets:[s.tp1,s.tp2],riskReward:2,expiry:s.expiresAt,
+ fresh:now-Date.parse(s.sourceClose)<width(s.timeframe),lifecycle:'ENABLED',publicationMode:'LIVE',eligible:true,
+ evidence:{policy:CONDITIONAL_POLICY,score_is_probability:false,conditional_only:true},rejectionReasons:[]}));
+ const opposing=new Set(setups.map(s=>s.side)).size>1;
+ const result=arbitrateActiveScanner(candidates,{now:new Date(now),minimumRiskReward:1.5,forceNoTradeReason:opposing?'OPPOSING_CONDITIONAL_SETUPS':undefined});
+ return setups.find(s=>s.id===result.winner?.id);
+}
+/** Confirmation at a completed candle close, paper fill at the NEXT bar open. Never retroactive entry. */
+export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):ConditionalSetup {
+ const s={...old},w=width(s.timeframe),t=Date.parse(b.open_time),previous=Date.parse(s.lastBar),d=s.side==='buy'?1:-1;
+ if(t<=previous||['CLOSED','EXPIRED','INVALIDATED','DATA_GAP'].includes(s.status))return old;
+ if(![b.open,b.high,b.low,b.close].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||b.symbol!==s.symbol||b.timeframe!==s.timeframe)throw Error('INVALID_OBSERVATION');
+ s.version++;s.lastBar=b.open_time;
+ if(t!==previous+w){s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
+ if(s.status==='WAITING'){
+  if(t+w>=Date.parse(s.expiresAt)){s.status='EXPIRED';s.result='Condition did not confirm before expiry.';}
+  else if(d*(b.close-s.stop)<=0){s.status='INVALIDATED';s.result='Closed beyond invalidation before entry.';}
+  else if(d*(b.close-s.trigger)>0){s.status='ARMED';s.armedAt=new Date(t+w).toISOString();s.result='Confirmed at close; waiting for next candle open.';}
+  return s;
+ }
+ if(s.status==='ARMED'){
+  if(t!==Date.parse(s.armedAt!))throw Error('NEXT_OPEN_REQUIRED');
+  if(d*(b.open-s.stop)<=0||d*(b.open-s.trigger)>.25*Math.abs(s.trigger-s.stop)){
+   s.status='INVALIDATED';s.result='Next open crossed invalidation or exceeded chase limit; no paper fill.';return s;
+  }
+  s.status='ACTIVE';s.fill=b.open;s.bars=0;s.netR=0;s.result='Paper entry at next open, not a provider fill.';
+ }
+ const risk=Math.abs(s.fill!-s.stop);s.bars=(s.bars??0)+1;
+ const stopped=d*((d===1?b.low:b.high)-s.stop)<=0;
+ const first=d*((d===1?b.high:b.low)-s.tp1)>=0,final=d*((d===1?b.high:b.low)-s.tp2)>=0;
+ const remaining=s.partial?.5:1;
+ if(stopped){s.status='CLOSED';s.exit=d===1?Math.min(b.open,s.stop):Math.max(b.open,s.stop);
+  s.netR=(s.netR??0)+remaining*d*(s.exit-s.fill!)/risk;s.result=first?'STOP_FIRST_AMBIGUOUS_BAR':'STOP';}
+ else if(final){s.status='CLOSED';s.exit=d===1?Math.max(b.open,s.tp2):Math.min(b.open,s.tp2);
+  s.netR=(s.netR??0)+(s.partial?.5*d*(s.exit-s.fill!)/risk:.5*d*(s.tp1-s.fill!)/risk+.5*d*(s.exit-s.fill!)/risk);s.partial=true;s.result='TP2';}
+ else{if(first&&!s.partial){s.partial=true;s.netR=.5*d*(s.tp1-s.fill!)/risk;s.result='TP1; half paper position remains, original stop unchanged.';}
+  if(s.bars>=s.holdBars){s.status='CLOSED';s.exit=b.close;s.netR=(s.netR??0)+(s.partial?.5:1)*d*(b.close-s.fill!)/risk;s.result='TIME_STOP';}}
+ if(s.status==='CLOSED')s.netR=(s.netR??0)-s.fill!*.0025/risk; // fixed disclosed 25bps modeled round trip
+ return s;
+}
+export function conditionalMessage(s:ConditionalSetup):string {
+ const price=(v:number)=>Number(v.toPrecision(8)).toString();
+ return [`HashiBot ${s.track==='INTRADAY'?'Intraday':'Swing'} · ${s.symbol} · ${s.side.toUpperCase()}`,
+ `Status: ${s.status}`,s.reason,`Condition: completed ${s.timeframe} close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}, then next open within 0.25 initial R; otherwise no entry.`,
+ `Invalidation / original stop: ${price(s.stop)}`,`TP1: ${price(s.tp1)} (50%); TP2: ${price(s.tp2)} (remainder). No automatic break-even.`,
+ `Waiting expires: ${s.expiresAt}`,`Max paper hold: ${s.holdBars} bars.`,
+ 'Educational risk suggestion: consider 0.25%–0.5% maximum account loss at stop, subject to your own limits. Shorts require a suitable product.',
+ s.fill?`Paper entry: ${price(s.fill)}; ${s.result??''}`:s.result??'WAITING: not an entry instruction.',
+ s.status==='CLOSED'?`Modeled net result: ${(s.netR??0).toFixed(3)}R; 25bps round-trip reserve. Not actual fills. Intrabar stop/target ambiguity uses stop first.`:'Paper tracking only; no customer orders.',
+ `Rule score: ${s.score.toFixed(1)}/100, not win probability. Reference: ${s.id}`].join('\n');
+}

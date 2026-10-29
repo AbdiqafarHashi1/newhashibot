@@ -1,3 +1,6 @@
+import {ConditionalSignalStore,observeConditionalSymbol,admitConditionalBatch} from '../_shared/conditional-signal-runtime.ts';
+import type {ConditionalSetup} from '../_shared/conditional-signal-service.ts';
+import {CORE_CRYPTO_SYMBOLS} from '../_shared/opportunity-universe.ts';
 import {CRYPTO_TEAM_MANAGEMENT} from '../_shared/coordinated-crypto-management.ts';
 import {fetchCoordinatedCryptoHistory} from '../_shared/coordinated-crypto-feed.ts';
 import {coordinatedCryptoDefinitions} from '../_shared/coordinated-crypto.ts';
@@ -1591,8 +1594,11 @@ async function runScanPipeline(
     },measuredReleases,config.min_signal_grade);
   };
 
+  const conditionalEnabled=Deno.env.get("CONDITIONAL_SIGNALS_ENABLED")==="TRUE";
+  const conditionalStore=new ConditionalSignalStore(supabase);
+  const conditionalBatch:ConditionalSetup[]=[];
   const cryptoTeamEnabled=CRYPTO_TEAM_ROLES.some(role=>getStratCfg(role.name).enabled);
-  if(cryptoTeamEnabled&&['MicroScalper','QuickScalp','CompressionBreakout','SwingContinuation'].some(name=>getStratCfg(name).enabled))throw new Error('MIXED_CRYPTO_INSTRUMENT_PROFILE_REQUIRES_VALIDATION');
+  if(!conditionalEnabled&&cryptoTeamEnabled&&['MicroScalper','QuickScalp','CompressionBreakout','SwingContinuation'].some(name=>getStratCfg(name).enabled))throw new Error('MIXED_CRYPTO_INSTRUMENT_PROFILE_REQUIRES_VALIDATION');
 
   // Load mode configs and risk profiles
   const { data: modeRows } = await supabase.from("mode_configs").select("*");
@@ -1775,7 +1781,7 @@ async function runScanPipeline(
     if (cryptoFetchCache.has(key)) return cryptoFetchCache.get(key) ?? null;
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
-    const native=cryptoTeamEnabled&&tf==='15m';
+    const native=!conditionalEnabled&&cryptoTeamEnabled&&tf==='15m';
     const value = native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
     cryptoFetchCache.set(key, value);
     return value;
@@ -1819,9 +1825,11 @@ async function runScanPipeline(
   // Phase K: limits are validated before the provider loop. Invalid or excessive
   // configuration aborts the whole cycle rather than silently scanning a larger
   // universe. Forex cannot exceed the six symbols whose contracts are locked.
+  if(conditionalEnabled&&config.signal_enable_crypto)cryptoToScan=CORE_CRYPTO_SYMBOLS.map(symbol=>({symbol,market_type:"crypto" as const,is_active:true}));
   const boundedUniverse = boundedScannerUniverse(cryptoToScan, forexToScan, Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? undefined);
   forexToScan = boundedUniverse.forex;
   cryptoToScan = boundedUniverse.crypto;
+  if(conditionalEnabled&&config.signal_enable_crypto&&cryptoToScan.length!==10)throw new Error("CONDITIONAL_TEN_SYMBOL_BUDGET_REQUIRED");
 
   let symbols = [
     ...cryptoToScan,
@@ -1901,7 +1909,7 @@ async function runScanPipeline(
     if (marketType === "forex") {
       forexSymbolsScanned++;
     }
-    const timeframesToScan = marketType === "forex" ? forexScanTimeframes : config.active_timeframes;
+    const timeframesToScan = marketType === "forex" ? forexScanTimeframes : conditionalEnabled?["15m","1h"]:config.active_timeframes;
     for (const tf of timeframesToScan) {
       if (tf === "4h" && marketType === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
       if (marketType === "forex" && forexBudget && !forexBudget.allowedPairs.has(`${normalizedSymbol}|${tf}`)) {
@@ -1974,6 +1982,10 @@ async function runScanPipeline(
           volume: c.volume, source: c.source,
         })), { onConflict: "symbol,timeframe,open_time" });
 
+        }
+        if(conditionalEnabled&&marketType==="crypto"&&(tf==="15m"||tf==="1h")){
+          conditionalBatch.push(...await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf,admitted.candles,Date.now()));
+          continue; // Signal service only: never enter the legacy signal/execution-adoption path.
         }
         const ind = calculateIndicators(candles);
         const marketContext = classifyMarketContext(ind, candles);
@@ -2618,6 +2630,7 @@ async function runScanPipeline(
     }, { onConflict: "provider_name" });
   }
 
+  if(conditionalEnabled)errors.push(`[INFO] conditional_signals=${JSON.stringify(await admitConditionalBatch(conditionalStore,conditionalBatch,Date.now()))}`);
   for (const stats of Object.values(strategyEvaluationSummary)) {
     stats.arbitration_win_pct = stats.arbitration_entered > 0 ? Number(((stats.arbitration_won / stats.arbitration_entered) * 100).toFixed(2)) : 0;
   }
@@ -2637,7 +2650,7 @@ async function runScanPipeline(
   const durationMs = Date.now() - scanStart;
   const realErrors = errors.filter((e) => e.startsWith("[ERROR]"));
   const hasRealError = realErrors.length > 0;
-  
+
   let runStatus: "Completed" | "CompletedNoTrade" | "Partial" | "Failed" = "Completed";
   if (hasRealError && candlesFetched === 0) {
     runStatus = "Failed";

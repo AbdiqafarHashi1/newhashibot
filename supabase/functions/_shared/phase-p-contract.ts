@@ -1,3 +1,4 @@
+import {TEN_ASSET_PROFILES} from './ten-asset-contract.ts';
 import {DAILY_PROFILES} from './daily-trend-contract.ts';
 import {SIGNAL_ENSEMBLE_PROFILE_IDS} from './signal-ensemble-catalog.ts';
 import {LEGACY_CRYPTO_PROFILE_ID} from './legacy-crypto-research-profile.ts';
@@ -39,12 +40,12 @@ export function parsePortableRequest(body:Record<string,any>){
       if(Math.ceil((Date.parse(end)-Date.parse(start))/width)>LIMITS.candles)throw new WorkerFault('CANDLE_LIMIT_EXCEEDED',true);
       input={provider:body.provider,symbol:body.symbol,timeframe:body.timeframe,start,end};
     }else{
-      if(!Array.isArray(body.datasetIds)||!body.datasetIds.length||body.datasetIds.length>(DAILY_PROFILES.includes(body.researchCandidateId)?6:SIGNAL_ENSEMBLE_PROFILE_IDS.includes(body.researchCandidateId)?5:LIMITS.symbols))throw new WorkerFault('DATASET_LIMIT_INVALID',true);
+      if(!Array.isArray(body.datasetIds)||!body.datasetIds.length||body.datasetIds.length>(TEN_ASSET_PROFILES.includes(body.researchCandidateId)?11:DAILY_PROFILES.includes(body.researchCandidateId)?6:SIGNAL_ENSEMBLE_PROFILE_IDS.includes(body.researchCandidateId)?5:LIMITS.symbols))throw new WorkerFault('DATASET_LIMIT_INVALID',true);
       const costs=Object.fromEntries(['fees','funding','spread','slippage'].map(k=>{const n=Number(body[k]??0);if(!Number.isFinite(n)||n<0||n>100)throw new WorkerFault('REPLAY_COST_INVALID',true);return[k,n];}));
       if(body.strategyIds!==undefined&&(!Array.isArray(body.strategyIds)||!body.strategyIds.length||body.strategyIds.length>20||body.strategyIds.some((x:unknown)=>typeof x!=='string'||!/^[a-z][a-z0-9.-]{2,80}$/.test(x))))throw new WorkerFault('STRATEGY_SELECTION_INVALID',true);
       if(body.strategyIds&&body.releaseCandidateId)throw new WorkerFault('FROZEN_RELEASE_CANNOT_BE_SUBSET',true);
       if(body.researchModelId&&(body.strategyIds||body.releaseCandidateId))throw new WorkerFault('RESEARCH_MODEL_SCOPE_CONFLICT',true);
-      if(body.researchCandidateId!==undefined&&(body.researchCandidateId!==ALT_CANDIDATE_ID&&body.researchCandidateId!==LEGACY_CRYPTO_PROFILE_ID&&!CRYPTO_TEAM_PROFILE_IDS.includes(body.researchCandidateId)&&!DAILY_PROFILES.includes(body.researchCandidateId)&&!SIGNAL_ENSEMBLE_PROFILE_IDS.includes(body.researchCandidateId)||body.strategyIds||body.researchModelId||body.releaseCandidateId))throw new WorkerFault('RESEARCH_CANDIDATE_SCOPE_INVALID',true);
+      if(body.researchCandidateId!==undefined&&(body.researchCandidateId!==ALT_CANDIDATE_ID&&body.researchCandidateId!==LEGACY_CRYPTO_PROFILE_ID&&!CRYPTO_TEAM_PROFILE_IDS.includes(body.researchCandidateId)&&!TEN_ASSET_PROFILES.includes(body.researchCandidateId)&&!DAILY_PROFILES.includes(body.researchCandidateId)&&!SIGNAL_ENSEMBLE_PROFILE_IDS.includes(body.researchCandidateId)||body.strategyIds||body.researchModelId||body.releaseCandidateId))throw new WorkerFault('RESEARCH_CANDIDATE_SCOPE_INVALID',true);
       if(body.extended!==undefined&&typeof body.extended!=='boolean')throw new WorkerFault('RESEARCH_PROFILE_INVALID',true);
       input={...(body.researchCandidateId?{researchCandidateId:body.researchCandidateId}:{}),...(body.extended?{extended:true}:{}),...(body.researchModelId?{researchModelId:uuid(body.researchModelId)}:{}),...(body.strategyIds?{strategyIds:[...new Set<string>(body.strategyIds)].sort()}:{}),...(body.releaseCandidateId?{releaseCandidateId:uuid(body.releaseCandidateId)}:{}),datasetIds:[...new Set<string>(body.datasetIds.map(uuid))].sort(),start,end,maxCycles:boundedInteger(body.maxCycles,LIMITS.cycles,body.extended?RESEARCH_LIMITS.cycles:LIMITS.cycles),...costs};
     }

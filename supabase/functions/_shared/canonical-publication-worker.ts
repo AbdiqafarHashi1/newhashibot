@@ -19,6 +19,7 @@ const CUSTOMER_EVENTS=new Set(["SUBMISSION","SUBMISSION_UNCERTAIN","RECONCILIATI
 const ADMIN_EVENTS=new Set(["CERTIFICATION","OPERATIONAL_INCIDENT","PROTECTION_INCIDENT"]);
 export function audienceAllows(claim:PublicationClaim,truth:CanonicalPublicationTruth):boolean {
   if(claim.entityId!==truth.entityId||claim.entityType!==truth.entityType||claim.eventType!==truth.eventType||claim.eventVersion!==truth.eventVersion)return false;
+  if(claim.eventType==="CONDITIONAL_SETUP")return claim.destination==="vip_crypto"&&truth.entityType==="lifecycle_event"&&!truth.customerId&&!claim.customerId&&truth.payload.market_type==="crypto"&&truth.payload.policy==="conditional-signals/v1";
   if(claim.destination==="free"||claim.destination==="vip"||claim.destination==="vip_forex_gold"||claim.destination==="vip_crypto")return PUBLIC_EVENTS.has(claim.eventType)&&!truth.customerId&&!claim.customerId;
   if(claim.destination==="customer")return CUSTOMER_EVENTS.has(claim.eventType)&&!!claim.customerId&&claim.customerId===truth.customerId;
   if(claim.destination==="admin")return ADMIN_EVENTS.has(claim.eventType)||CUSTOMER_EVENTS.has(claim.eventType);

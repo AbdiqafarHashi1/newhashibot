@@ -1,7 +1,8 @@
+import {isTenAsset} from '../../supabase/functions/_shared/ten-asset-profile.ts';
 import {admitDailyRows} from '../../supabase/functions/_shared/daily-trend.ts';
 import {hasDaily,dailyOutcomeAssumptions} from '../../supabase/functions/_shared/daily-trend-profile.ts';
 import {LEGACY_CRYPTO_PROFILE_ID} from '../../supabase/functions/_shared/legacy-crypto-research-profile.ts';
-import {OBSERVED_REPLAY_SELECTION_POLICY} from '../../supabase/functions/_shared/scanner-replay-policy.ts';
+import {replaySelectionDescriptor} from '../../supabase/functions/_shared/scanner-replay-policy.ts';
 import {REPLAY_LIFECYCLE_VERSION} from '../../supabase/functions/_shared/scanner-replay-lifecycle.ts';
 import {requiredReplayBars,validateCoordinatedDatasets} from '../../supabase/functions/_shared/signal-ensemble-selection.ts';
 import type {ValidationDecision} from '../../supabase/functions/_shared/phase-l-validation.ts';
@@ -50,7 +51,7 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
     REPLAY:async context=>{
       const job=context.job,p=job.payload,datasets=[];
       if(p.signalLifecycleVersion!==undefined&&p.signalLifecycleVersion!==REPLAY_LIFECYCLE_VERSION)throw new WorkerFault('UNSUPPORTED_SELECTION_LIFECYCLE',true);
-      if(p.signalLifecycleVersion===REPLAY_LIFECYCLE_VERSION&&p.selectionPolicyHash!==await fingerprint(OBSERVED_REPLAY_SELECTION_POLICY))throw new WorkerFault('SELECTION_POLICY_LINEAGE_INVALID',true);
+      if(p.signalLifecycleVersion===REPLAY_LIFECYCLE_VERSION&&p.selectionPolicyHash!==await fingerprint(replaySelectionDescriptor(p.configuration)))throw new WorkerFault('SELECTION_POLICY_LINEAGE_INVALID',true);
       for(const item of p.datasets){
         await context.check();const {data,error}=await db.from('validation_datasets').select('*').eq('id',item.id).eq('created_by',job.customer_id).maybeSingle();
         if(error||!data||data.status!=='READY'||data.dataset_hash!==item.hash)throw new WorkerFault('SOURCE_NOT_CURRENT',true);
@@ -65,7 +66,7 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         datasets.push({id:item.id,hash:item.hash,configurationHash:job.configuration_hash!,source:data.source,symbol:data.symbol,market:(candles[0]?.market_type==='crypto'?'crypto':'forex') as 'forex'|'crypto',timeframe:data.timeframe,candles:window});
       }
       validateCoordinatedDatasets(p.configuration,datasets);
-      const evaluationEnd=new Date(Math.min(Date.parse(p.end)-1,...datasets.map(d=>Date.parse(d.candles.at(-1)!.open_time)))).toISOString();
+      const evaluationEnd=new Date(isTenAsset(p.configuration)?Date.parse(p.end)-1:Math.min(Date.parse(p.end)-1,...datasets.map(d=>Date.parse(d.candles.at(-1)!.open_time)))).toISOString();
       const assumptions=p.assumptions??DEFAULT_REPLAY_ASSUMPTIONS;
       if(job.checkpoint.cursor&&(!job.checkpoint.replay||job.checkpoint.replay.cursor!==job.checkpoint.cursor))throw new WorkerFault('CHECKPOINT_INVALID',true);
       const onEvidence:NonNullable<Parameters<typeof runMultiDatasetScannerReplay>[0]["onEvidence"]>=async(row,resume)=>{
@@ -75,7 +76,7 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
         if(winner){
           const dataset=datasets.find(x=>x.id===cycle.datasetId)!;
           const strategy=p.configuration.strategies.find((s:{id:string;maxBarsInTrade:number})=>s.id===winner.strategyId);
-          const perStrategy=dailyOutcomeAssumptions(winner.strategyId,assumptions);const frozenAssumptions={...perStrategy,maxBarsInTrade:perStrategy.maxBarsInTrade??strategy?.maxBarsInTrade};
+          const perStrategy=dailyOutcomeAssumptions(winner.strategyId,assumptions);const frozenAssumptions={...perStrategy,...(isTenAsset(p.configuration)?{observationEnd:p.end}:{}),maxBarsInTrade:perStrategy.maxBarsInTrade??strategy?.maxBarsInTrade};
           if(p.researchModelId&&dataset.market==='forex'){const width=TIMEFRAME_MS[dataset.timeframe as keyof typeof TIMEFRAME_MS],quote=dataset.candles.find(c=>Date.parse(c.open_time)+width===Date.parse(row.event.closedAt));if(!quote||!Number.isFinite(quote.ask_close)||quote.ask_close!<quote.close)throw new WorkerFault('RESEARCH_NATIVE_SPREAD_REQUIRED',true);frozenAssumptions.spreadBps+=(quote.ask_close!-quote.close)/quote.close*10000;}
           const computed=await consumeSteps(evaluateReplayOutcomeSteps(winner,dataset.candles.filter(c=>Date.parse(c.open_time)<Date.parse(p.end)),row.event.closedAt,frozenAssumptions),context);
           if(!computed)throw new WorkerFault('SCANNER_OUTCOME_MISSING',true);

@@ -16,6 +16,11 @@ export class SupabasePublicationStore implements PublicationStore{
    const {data:parent,error:parentError}=await this.db.from("signal_publication_work").select("id").eq("entity_type","signal").eq("entity_id",data.signal_id).eq("destination",c.destination).eq("status","sent").limit(1).maybeSingle();
    if(parentError||!parent)data.payload={...(data.payload??{}),_publication_hold:"QUALIFIED_INITIAL_PUBLICATION_REQUIRED"};
   }
+  if(c.entityType==="lifecycle_event"&&data.event_type==="CONDITIONAL_SETUP"){
+   const {data:latest,error:setupError}=await this.db.from("conditional_signal_setups").select("state").eq("id",data.payload?.setup_id).maybeSingle();
+   const state=data.payload?.state,current=latest?.state;
+   if(setupError||!current||!state||(["WAITING","ARMED"].includes(state.status)&&(current.status!==state.status||Date.parse(state.expiresAt)<=Date.now())))data.payload={...(data.payload??{}),_publication_hold:"CONDITIONAL_STATE_SUPERSEDED_OR_UNAVAILABLE"};
+  }
   return{entityType:c.entityType,entityId:c.entityId,eventType:String(data.event_type??c.eventType),eventVersion:Number(data.event_version??c.eventVersion),occurredAt:data.occurred_at??data.created_at,customerId:data.customer_id??null,payload:Object.freeze(c.entityType==="lifecycle_event"?{...(data.payload??{}),event_key:data.event_key}: {...data})}}
  async reservePart(i:{claim:PublicationClaim;part:number;identity:string}){const {data,error}=await this.db.rpc("reserve_canonical_delivery_part",{p_work_id:i.claim.id,p_lease_token:i.claim.leaseToken,p_part:i.part,p_identity:i.identity});if(error)throw error;return{state:data.state==="DELIVERED"?"DELIVERED":data.state==="UNCERTAIN"?"UNCERTAIN":"SEND",deliveryId:data.id,messageId:data.telegram_message_id??undefined,operation:data.operation,previousMessageId:data.edited_from_message_id??undefined} as const}
  async finishPart(i:any){const {error}=await this.db.rpc("finish_canonical_delivery_part",{p_delivery_id:i.deliveryId,p_state:i.state,p_message_id:i.messageId??null,p_reason:i.reason??null,p_next_attempt_at:i.nextAttemptAt??null});if(error)throw error}
@@ -31,6 +36,11 @@ export class TelegramCanonicalTransport implements PublicationTransport{
 export function renderCanonicalTruth(t:CanonicalPublicationTruth,audience:any){
  const p=t.payload as any;
  if(p._publication_hold)throw Error(p._publication_hold);
+ if(t.eventType==="CONDITIONAL_SETUP"){
+  if(audience!=="vip_crypto"||p.market_type!=="crypto"||p.policy!=="conditional-signals/v1"||typeof p.message!=="string"||!p.message.trim())throw Error("CONDITIONAL_PUBLICATION_SCOPE_INVALID");
+  const escaped=p.message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return splitMessageSafely(escaped,4000).map(text=>({text,parseMode:"HTML" as const}));
+ }
  if(t.eventType==="EDITORIAL"){
   if(!p.editorial||p.editorial.audience!==(audience==="vip_crypto"||audience==="vip_forex_gold"?"vip":audience))throw Error("EDITORIAL_AUDIENCE_MISMATCH");
   const checked=validateEditorialPublication(p.editorial);if(!checked.valid)throw Error(checked.reason);
