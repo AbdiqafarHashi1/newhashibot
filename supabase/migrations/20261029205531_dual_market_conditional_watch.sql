@@ -60,6 +60,7 @@ begin
   if old.version=v then if old.state=p_state then return true;else raise exception 'CONDITIONAL_CONTENT_CONFLICT';end if;end if;
   if old.version<>p_expected_version or v<>old.version+1 then return false;end if;
   if (old.state-mutable) is distinct from (p_state-mutable) then raise exception 'IMMUTABLE_SETUP_PLAN';end if;
+  if old.state->>'fill' is not null and (old.state->'fill' is distinct from p_state->'fill' or old.state->'fillAt' is distinct from p_state->'fillAt') then raise exception 'IMMUTABLE_PAPER_ENTRY';end if;
   if old.status in('CLOSED','EXPIRED','INVALIDATED','DATA_GAP') then raise exception 'TERMINAL_SETUP';end if;
   if not ((old.status='WAITING' and st in('WAITING','ARMED','EXPIRED','INVALIDATED','DATA_GAP')) or(old.status='ARMED' and st in('ACTIVE','CLOSED','INVALIDATED','DATA_GAP')) or(old.status='ACTIVE' and st in('ACTIVE','CLOSED','DATA_GAP'))) then raise exception 'INVALID_SETUP_TRANSITION';end if;
   if (p_state->>'lastBar')::timestamptz<=(old.state->>'lastBar')::timestamptz then

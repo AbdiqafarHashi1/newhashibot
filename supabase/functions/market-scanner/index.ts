@@ -1,3 +1,4 @@
+import {conditionalWatchFeed} from '../_shared/conditional-watch-feed.ts';
 import {ConditionalSignalStore,observeConditionalSymbol,admitConditionalBatch} from '../_shared/conditional-signal-runtime.ts';
 import type {ConditionalSetup} from '../_shared/conditional-signal-service.ts';
 import {CORE_CRYPTO_SYMBOLS} from '../_shared/opportunity-universe.ts';
@@ -1782,7 +1783,7 @@ async function runScanPipeline(
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
     const native=!conditionalEnabled&&cryptoTeamEnabled&&tf==='15m';
-    const value = native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
+    const value = conditionalEnabled&&(tf==='15m'||tf==='1h')?[...(await conditionalWatchFeed(supabase,symbol,tf,Date.now())).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
     cryptoFetchCache.set(key, value);
     return value;
   }
