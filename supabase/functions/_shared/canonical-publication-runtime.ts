@@ -37,8 +37,10 @@ export function renderCanonicalTruth(t:CanonicalPublicationTruth,audience:any){
  const p=t.payload as any;
  if(p._publication_hold)throw Error(p._publication_hold);
  if(t.eventType==="CONDITIONAL_SETUP"){
-  if(audience!=="vip_crypto"||p.market_type!=="crypto"||p.policy!=="conditional-signals/v1"||typeof p.message!=="string"||!p.message.trim())throw Error("CONDITIONAL_PUBLICATION_SCOPE_INVALID");
-  const escaped=p.message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const gap=p.state?.status==='DATA_GAP';
+  if((gap?audience!=='admin':audience!=="vip_crypto"&&!(audience==='free'&&p.free_sample===true))||p.market_type!=="crypto"||p.policy!=="conditional-signals/v1"||typeof p.message!=="string"||!p.message.trim())throw Error("CONDITIONAL_PUBLICATION_SCOPE_INVALID");
+  const text=p.message+(audience==='free'?'\n\nToday’s Free selection. Get the full Intraday & Swing stream with VIP — $29/month or KES 3,500/30 days.\nhttps://hashibot.app/vip':gap?`\nAdmin review: ${p.state.result??'Outcome unknown'}`:'');
+  const escaped=text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   return splitMessageSafely(escaped,4000).map(text=>({text,parseMode:"HTML" as const}));
  }
  if(t.eventType==="EDITORIAL"){

@@ -1,5 +1,7 @@
 # Release 1 conditional analysis and signal service — 29 October 2026
 
+> Track capacity, Free sampling, customer templates and acquisition behavior are updated by [29 October implementation](release1/TRACKS_AND_ACQUISITION_20261029.md). That document supersedes the earlier shared three-setup cap and VIP-only conditional routing below.
+
 ## Product boundary
 
 USD29/month is an analysis/signals subscription. Customer execution certification is not its launch gate. The service must still distinguish waiting setups, confirmed conditions, paper fills, actual orders and measured performance. No promise of profitability, guaranteed daily trades, or exhaustive market coverage is made. The earlier reserve-cost and actual-rate studies are retained unchanged; this product change does not reclassify their failures as successes.

@@ -17,7 +17,7 @@ export async function loadConditionalProof(db:any,id:string,now=Date.now()):Prom
  return{id,kind:'CONDITIONAL_PERIOD',observedAt:new Date(now).toISOString(),classification:'PAPER',facts:{
  period:`Created ${period.start} to ${period.end} (exclusive); outcomes observed ${new Date(now).toISOString()}`,
  total:states.length,wins,losses,breakEven,notEntered,unresolved,netR:closed.reduce((n:number,s:any)=>n+s.netR,0),
- cohort_hash:await sha256(JSON.stringify(data)),source_count:states.length,source_ids_sample:states.slice(0,20).map((s:any)=>s.id),scope:'Complete setup creation cohort; R sum is not an account return. Includes losses, pending and no-entry setups.',
+ tracks:Object.fromEntries(['INTRADAY','SWING'].map(track=>{const group=states.filter((s:any)=>s.track===track),done=closed.filter((s:any)=>s.track===track);return[track,{total:group.length,closed:done.length,unknown:group.filter((s:any)=>s.status==='DATA_GAP').length,wins:done.filter((s:any)=>s.netR>0).length,losses:done.filter((s:any)=>s.netR<0).length,netR:done.reduce((n:number,s:any)=>n+s.netR,0)}];})),cohort_hash:await sha256(JSON.stringify(data)),source_count:states.length,source_ids_sample:states.slice(0,20).map((s:any)=>s.id),scope:'Complete setup creation cohort; R sum is not an account return. Includes losses, pending and no-entry setups.',
  accounting:'50% TP1 / 50% TP2; original stop; 25bps modeled round-trip reserve; stop first on ambiguous candles. No provider fills.'}};
 }
 const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));

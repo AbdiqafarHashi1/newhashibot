@@ -18,7 +18,7 @@ const width=(tf:string)=>tf==='15m'?900000:3600000;
 export function validClosedBars(rows:readonly StrategyCandle[],symbol:string,tf:string,now:number):boolean {
  const w=width(tf);return rows.length>=100 && Number.isFinite(now) && rows.every((r,i)=>r.symbol===symbol&&r.timeframe===tf&&
  [r.open,r.high,r.low,r.close,r.volume].every(Number.isFinite)&&r.low>0&&r.volume>=0&&r.high>=Math.max(r.open,r.close)&&r.low<=Math.min(r.open,r.close)&&
- Date.parse(r.open_time)%w===0&&Date.parse(r.open_time)+w<=now&&(!i||Date.parse(r.open_time)-Date.parse(rows[i-1].open_time)===w))&&
+ Boolean(r.source)&&r.source!=='UNKNOWN'&&r.source===rows[0].source&&Date.parse(r.open_time)%w===0&&Date.parse(r.open_time)+w<=now&&(!i||Date.parse(r.open_time)-Date.parse(rows[i-1].open_time)===w))&&
  now-Date.parse(rows.at(-1)!.open_time)-w<w;
 }
 /** Two broad tracks; trend continuation or balanced-range rejection is selected by observed context. */
@@ -45,7 +45,7 @@ export function conditionalCandidates(symbol:string,tf:'15m'|'1h',rows:readonly 
   const sell=last.high>hi&&last.close<hi&&last.close<last.open;
   if(buy===sell)return [];side=buy?1:-1;trigger=side===1?last.high+.1*atr:last.low-.1*atr;
   stop=side===1?last.low-.25*atr:last.high+.25*atr;variant='RANGE_REJECTION';
-  reason='Balanced higher-timeframe context with a rejected range sweep; wait for confirmation, not a touch.';
+  reason=`Balanced higher-timeframe context; ${side===1?'buyers reclaimed range support':'sellers rejected range resistance'} after a sweep of ${side===1?lo.toPrecision(7):hi.toPrecision(7)}. A completed ${tf} close through the trigger confirms the rejection.`;
  }
  const risk=Math.max(side*(trigger-stop),1.5*atr);stop=trigger-side*risk;
  if(risk/trigger<.003||risk/trigger>.08||trigger<=0||stop<=0)return [];
@@ -72,6 +72,7 @@ export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):C
  if(t<=previous||['CLOSED','EXPIRED','INVALIDATED','DATA_GAP'].includes(s.status))return old;
  if(![b.open,b.high,b.low,b.close].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||b.symbol!==s.symbol||b.timeframe!==s.timeframe)throw Error('INVALID_OBSERVATION');
  s.version++;s.lastBar=b.open_time;
+ if(!b.source||b.source!==s.source){s.status='DATA_GAP';s.result='Price source changed; outcome unknown.';return s;}
  if(t!==previous+w){s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
  if(s.status==='WAITING'){
   if(t+w>=Date.parse(s.expiresAt)){s.status='EXPIRED';s.result='Condition did not confirm before expiry.';}
@@ -101,12 +102,13 @@ export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):C
 }
 export function conditionalMessage(s:ConditionalSetup):string {
  const price=(v:number)=>Number(v.toPrecision(8)).toString();
- return [`HashiBot ${s.track==='INTRADAY'?'Intraday':'Swing'} · ${s.symbol} · ${s.side.toUpperCase()}`,
- `Status: ${s.status}`,s.reason,`Condition: completed ${s.timeframe} close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}, then next open within 0.25 initial R; otherwise no entry.`,
- `Invalidation / original stop: ${price(s.stop)}`,`TP1: ${price(s.tp1)} (50%); TP2: ${price(s.tp2)} (remainder). No automatic break-even.`,
- `Waiting expires: ${s.expiresAt}`,`Max paper hold: ${s.holdBars} bars.`,
- 'Educational risk suggestion: consider 0.25%–0.5% maximum account loss at stop, subject to your own limits. Shorts require a suitable product.',
- s.fill?`Paper entry: ${price(s.fill)}; ${s.result??''}`:s.result??'WAITING: not an entry instruction.',
- s.status==='CLOSED'?`Modeled net result: ${(s.netR??0).toFixed(3)}R; 25bps round-trip reserve. Not actual fills. Intrabar stop/target ambiguity uses stop first.`:'Paper tracking only; no customer orders.',
- `Rule score: ${s.score.toFixed(1)}/100, not win probability. Reference: ${s.id}`].join('\n');
+ const time=(iso:string)=>new Intl.DateTimeFormat('en-KE',{timeZone:'Africa/Nairobi',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(iso))+' EAT';
+ const headline=s.status==='WAITING'?'SETUP WATCH':s.status==='ARMED'?'CONDITION CONFIRMED':s.status==='ACTIVE'?(s.partial?'TP1 REACHED · HALF REMAINS':'PAPER ENTRY TRACKED'):s.status==='CLOSED'?'SETUP CLOSED':s.status==='EXPIRED'?'WATCH EXPIRED':s.status==='INVALIDATED'?'SETUP CANCELLED':'TRACKING PAUSED';
+ const rows=[`HASHIBOT · ${s.track==='INTRADAY'?'INTRADAY':'SWING'} · ${s.symbol} · ${s.side==='buy'?'LONG':'SHORT'}`,headline];
+ if(s.status==='WAITING')rows.push('',s.reason,`Confirmation: ${s.timeframe} candle close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}. Entry tracked at the next open, within ${price(.25*Math.abs(s.trigger-s.stop))} of the trigger on the chase side.`,`Stop: ${price(s.stop)}`,`TP1: ${price(s.tp1)} · take 50% | TP2: ${price(s.tp2)} · remainder`,`Valid until ${time(s.expiresAt)} · maximum hold ${s.track==='INTRADAY'?'12 hours':'7 days'}`,'Risk guide: 0.25%–0.5% of account at the stop.');
+ else if(s.status==='ARMED')rows.push(`Confirmed ${time(s.armedAt!)}. Next open must respect the original stop and chase limit.`);
+ else if(s.status==='ACTIVE')rows.push(`Paper entry: ${price(s.fill!)}.`,s.partial?`TP1 ${price(s.tp1)} reached. 50% remains toward ${price(s.tp2)}; stop stays ${price(s.stop)}.`:`Stop ${price(s.stop)} · TP1 ${price(s.tp1)} · TP2 ${price(s.tp2)}.`);
+ else if(s.status==='CLOSED')rows.push(`Paper entry ${price(s.fill!)} → exit ${price(s.exit!)}.`,`${s.result==='TP2'?'TP2 reached':s.result==='TIME_STOP'?'Holding period completed':'Stop reached'} · net ${(s.netR??0).toFixed(3)}R.`,`Paper result includes 25bps modeled costs; not actual fills.${s.result==='STOP_FIRST_AMBIGUOUS_BAR'?' Stop used where candle order is ambiguous.':''}`);
+ else rows.push(s.status==='DATA_GAP'?'Outcome unknown.':s.status==='EXPIRED'?'The confirmation window closed without an entry.':'Original entry conditions no longer valid; no paper entry.');
+ rows.push('',`Ref: ${s.id}`);if(s.status!=='CLOSED')rows.push('Paper tracking');return rows.join('\n');
 }

@@ -25,7 +25,9 @@ export async function observeConditionalSymbol(store:ConditionalSignalStore,symb
 /** Strongest first across the whole bounded universe, not database symbol iteration order. */
 export async function admitConditionalBatch(store:ConditionalSignalStore,candidates:readonly ConditionalSetup[],now:number){
  const grouped=new Map<string,ConditionalSetup[]>();for(const s of candidates){const g=grouped.get(s.symbol)??[];g.push(s);grouped.set(s.symbol,g);}
- const winners=[...grouped.values()].flatMap(g=>{const winner=selectConditionalSetup(g,now);return winner?[winner]:[];})
+ const winners=[...grouped.values()].flatMap(g=>{
+  if(new Set(g.map(s=>s.side)).size>1)return [];
+  return (['INTRADAY','SWING'] as const).flatMap(track=>{const winner=selectConditionalSetup(g.filter(s=>s.track===track),now);return winner?[winner]:[];});})
   .sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
  let admitted=0;for(const s of winners)if(await store.save(s,0))admitted++;
  return {considered:candidates.length,winners:winners.length,admitted};

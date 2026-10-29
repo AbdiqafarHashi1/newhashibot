@@ -54,3 +54,13 @@ test('closed-candle multi-timeframe evaluator produces a conditional hypothesis,
  assert.equal(conditionalCandidates('BTCUSDT','15m',rows,now-1).length,0);
  assert.equal(conditionalCandidates('BTCUSDT','15m',rows,now+900000).length,0);
 });
+
+
+test('changed source is unknown; independent tracks survive batch arbitration; messages keep exact setup reference',async()=>{
+ const initial=setup();const changed=advanceConditionalSetup(initial,{...bar(1),source:'OTHER_VENUE'});
+ assert.equal(changed.status,'DATA_GAP');assert.equal(changed.netR,undefined);assert.match(changed.result!,/unknown/);
+ const saved:ConditionalSetup[]=[];const store={save:async(s:ConditionalSetup)=>{saved.push(s);return true;}} as ConditionalSignalStore;
+ const swing={...initial,id:'swing',track:'SWING' as const,timeframe:'1h' as const};
+ await admitConditionalBatch(store,[initial,swing],t+900001);assert.equal(saved.length,2);assert.deepEqual(new Set(saved.map(s=>s.track)),new Set(['INTRADAY','SWING']));
+ for(const s of saved){const msg=conditionalMessage(s);assert.match(msg,new RegExp(s.id));assert.doesNotMatch(msg,/Rule score|backend|manual review/);}
+});
