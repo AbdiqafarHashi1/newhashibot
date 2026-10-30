@@ -76,3 +76,14 @@ test('production sizing consumes the observed tick value and cannot round a smal
  x.contract.minimum_lot=100;
  await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'min-lot'},at);assert.equal(saved.p_decision.executionIntent,null);
 });
+
+
+test('dispatch revalidation consumes current provider evidence and rejects paused, expired, changed-contract and cross-account plans',async()=>{
+ const {currentAccountAdoptionTruth}=await import('../../supabase/functions/_shared/account-adoption-truth');
+ const {x,at}=fixture();let saved:any;const db={from:journal(x),rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:args.p_decision})};
+ await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'dispatch'},at);
+ const current:any={...x,account:{...x.account,is_operational:true,provider_health:'HEALTHY'}};
+ const truth=currentAccountAdoptionTruth(current,saved.p_execution_plan,Date.parse(at));assert.equal(truth.available_margin,x.context.free_margin);assert.equal(truth.account_id,x.account.id);assert.equal(truth.conflicting_position,false);
+ for(const change of [(y:any)=>y.account.runtime_control='PAUSE_NEW_ENTRIES',(y:any)=>y.entitlement.expiresAt=at,(y:any)=>y.contract.tick_size=999,(y:any)=>y.account.customer_id='another-customer',(y:any)=>y.context.updated_at='2026-09-24T12:00:00Z']){
+ const y=structuredClone(current);change(y);assert.throws(()=>currentAccountAdoptionTruth(y,saved.p_execution_plan,Date.parse(at)));}
+});

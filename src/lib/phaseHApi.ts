@@ -2,17 +2,21 @@ import { supabase } from './supabase';
 import type { AccountMode, AssetClass, Provider } from './phaseH';
 
 export type OnboardingDraft = {
-  stage: number; packageCode: string; access: 'SIGNALS'|'AUTO'; asset: AssetClass;
+  environment?:'testnet'|'demo'|'live'; stage: number; packageCode: string; access: 'SIGNALS'|'AUTO'; asset: AssetClass;
   mode: AccountMode; provider: Provider; risk: number; strategies: string[]; ack: boolean;
 };
 export type AuthorityResult<T=Record<string,unknown>> = { state:string; data?:T; reason?:string; version?:number };
 
 async function authority<T>(action:string, payload:Record<string,unknown>={}):Promise<AuthorityResult<T>> {
   const { data, error } = await supabase.functions.invoke('phase-h-authority', { body: { action, ...payload } });
-  if (error) throw new Error(error.message || 'READY_FOR_CONFIGURATION');
+  if (error) {
+    let reason='REQUEST_NOT_CONFIRMED';try{const payload=await error.context?.json();if(typeof payload?.reason==='string'&&/^[A-Z0-9_]+$/.test(payload.reason))reason=payload.reason;}catch{/* Only safe authority codes are presented. */}
+    throw new Error(reason);
+  }
   return data as AuthorityResult<T>;
 }
 export const phaseHApi = {
+  ownerDemoAccess: (executionAccountId:string) => authority('grant_owner_demo_access',{execution_account_id:executionAccountId}),
   control: (executionAccountId:string, control:string) => authority('set_account_control',{execution_account_id:executionAccountId,control}),
   complete: () => authority('complete_onboarding'),
   load: () => authority<{session:OnboardingDraft|null}>('load_onboarding'),

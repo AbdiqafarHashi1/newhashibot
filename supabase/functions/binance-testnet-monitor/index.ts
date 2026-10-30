@@ -1,3 +1,4 @@
+function binanceEnvironment(): 'testnet'|'live' {try{return currentEdgeProviderCredential('binance').ownership.environment==='live'?'live':'testnet'}catch{return 'testnet'}}
 import {mergeMonitorStatistics} from '../_shared/monitor-statistics.ts';
 import {admitBinanceFinancials,observedFinancialNumber} from '../_shared/provider-snapshot-admission.ts';
 import {collectCryptoProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
@@ -450,8 +451,8 @@ async function binanceRequest(path: string, params: Record<string, string | numb
     apiSecret = Deno.env.get("BINANCE_TESTNET_API_SECRET") ?? "";
   }
   if (!apiKey || !apiSecret) throw new Error("Binance testnet API keys are not configured");
-  const baseUrl = Deno.env.get("BINANCE_TESTNET_BASE_URL") ?? "https://demo-fapi.binance.com";
-  const target=new URL(baseUrl);if(target.protocol!=="https:"||!["demo-fapi.binance.com","testnet.binancefuture.com"].includes(target.hostname)||target.pathname!=="/"||target.search||target.username||target.password)throw new Error("SANDBOX_PROVIDER_HOST_REQUIRED");
+  const baseUrl = binanceEnvironment()==='live'?'https://fapi.binance.com':'https://demo-fapi.binance.com';
+  const target=new URL(baseUrl);if(target.protocol!=="https:"||!["demo-fapi.binance.com","fapi.binance.com"].includes(target.hostname)||target.pathname!=="/"||target.search||target.username||target.password)throw new Error("SANDBOX_PROVIDER_HOST_REQUIRED");
   const search = new URLSearchParams({ ...params, timestamp: String(Date.now()), recvWindow: "5000" });
   search.set("signature", await hmacSha256(apiSecret, search.toString()));
   const res = await fetch(`${baseUrl}${path}?${search.toString()}`, { method, headers: { "X-MBX-APIKEY": apiKey } });
@@ -722,7 +723,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
       await upsertTradeManagementTruth(supabase, {
         p_execution_order_id: row.id,
         p_provider: "binance",
-        p_environment: "testnet",
+        p_environment: binanceEnvironment(),
         p_symbol: row.symbol,
         p_direction: row.direction,
         p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native",
@@ -758,7 +759,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
     await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
-      p_environment: "testnet",
+      p_environment: binanceEnvironment(),
       p_symbol: row.symbol,
       p_direction: row.direction,
       p_status: "protection_failed",
@@ -814,7 +815,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
       await upsertTradeManagementTruth(supabase, {
         p_execution_order_id: row.id,
         p_provider: "binance",
-        p_environment: "testnet",
+        p_environment: binanceEnvironment(),
         p_symbol: row.symbol,
         p_direction: row.direction,
         p_status: "protection_failed",
@@ -850,7 +851,7 @@ async function repairNativeProtectionSet(supabase: SupabaseClient, row: Row, pos
     await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
-      p_environment: "testnet",
+      p_environment: binanceEnvironment(),
       p_symbol: row.symbol,
       p_direction: row.direction,
       p_status: row.status === "partially_closed" || row.tp1_filled || row.tp1_closed_at ? "partially_closed" : "protected_native",
@@ -931,7 +932,7 @@ async function submitProtectionForRow(
     await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
-      p_environment: row.environment || "testnet",
+      p_environment: row.environment || binanceEnvironment(),
       p_symbol: row.symbol,
       p_direction: row.direction,
       p_status: "protected_native",
@@ -974,7 +975,7 @@ async function submitProtectionForRow(
     await upsertTradeManagementTruth(supabase, {
       p_execution_order_id: row.id,
       p_provider: "binance",
-      p_environment: row.environment || "testnet",
+      p_environment: row.environment || binanceEnvironment(),
       p_symbol: row.symbol,
       p_direction: row.direction,
       p_status: "protection_failed",
@@ -1442,7 +1443,7 @@ async function reconcileBinanceTruthGaps(supabase: SupabaseClient, stats: Monito
       addMonitorWarning(stats, { warning: `open_algo_orders_reconcile_warning: ${errorMessage(err)}`, action: "open_algo_orders_reconcile_continue", source: "account_sync" });
       return [];
     }),
-    supabase.from("execution_orders").select("*").eq("execution_scope_key", scopeKey).eq("exchange", "binance_usdm_testnet").eq("environment", "testnet").order("created_at", { ascending: false }).limit(500),
+    supabase.from("execution_orders").select("*").eq("execution_scope_key", scopeKey).eq("exchange", (binanceEnvironment()==='live'?'binance_usdm_live':'binance_usdm_testnet')).eq("environment", binanceEnvironment()).order("created_at", { ascending: false }).limit(500),
   ]);
   if (dbRows.error) throw dbRows.error;
   const rows = (dbRows.data ?? []) as Row[];
@@ -1642,7 +1643,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
     latest_account_state_at: monitorRunAt,
     updated_at: monitorRunAt,
   };
-  const {error:proofError}=await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: "testnet", monitor_status: stats.monitor_status, account_state: {...settingsUpdate,account_initial_margin:observedFinancialNumber((accountBody as Record<string,unknown>).totalInitialMargin,"totalInitialMargin"),provider_position_risk:positionsBody,...financials,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
+  const {error:proofError}=await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: binanceEnvironment(), monitor_status: stats.monitor_status, account_state: {...settingsUpdate,account_initial_margin:observedFinancialNumber((accountBody as Record<string,unknown>).totalInitialMargin,"totalInitialMargin"),provider_position_risk:positionsBody,...financials,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
   if(proofError)throw Error("PROVIDER_SNAPSHOT_NOT_PERSISTED");
   if(conditionalOrdersComplete&&Array.isArray(allOrdersBody))await synchronizeCanonicalMonitor({store:supabase,ownership,provider:'BINANCE',positions:positions as unknown as Record<string,any>[],orders:orders as Record<string,any>[],complete:true,observedAt:monitorRunAt,lookupEntry:async(symbol,orderId)=>{const order=await binanceRequest('/fapi/v1/order',{symbol,orderId}) as Record<string,unknown>;return{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??''),status:String(order.status??''),filledQuantity:Number(order.executedQty)}}});
   const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
@@ -1673,7 +1674,7 @@ async function writeMonitorHeartbeat(supabase: SupabaseClient, heartbeat: Record
     provider: "binance",
     trigger_source: String(heartbeat.trigger_source ?? "unknown"),
     is_automatic: heartbeat.is_automatic === true,
-    environment: "testnet",
+    environment: binanceEnvironment(),
     updated_at: new Date().toISOString(),
     ...heartbeat,
   }, { onConflict: "provider,environment,run_id" });
@@ -1784,9 +1785,9 @@ Deno.serve(async (req: Request) => {
       return globalErrorResponse(reason, `execution_settings query failed: ${errorMessage(settingsError)}`, stats);
     }
     if (boolEnv(Deno.env.get("LIVE_TRADING_ENABLED")) || settings?.live_trading_enabled === true) return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, aborted: true, reason: "live_trading_enabled_abort", global_error: "startup_exception", ...stats });
-    if (String(Deno.env.get("EXECUTION_MODE") ?? "").toLowerCase() !== "testnet") return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_execution_mode_not_testnet", global_error: "", ...stats });
+    if (String(Deno.env.get("EXECUTION_MODE") ?? "").toLowerCase() !== binanceEnvironment()) return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_execution_mode_not_testnet", global_error: "", ...stats });
     if (!boolEnv(Deno.env.get("TESTNET_ENABLED"))) return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_testnet_disabled", global_error: "", ...stats });
-    if (!settings || settings.execution_mode !== "testnet" || settings.testnet_enabled !== true) {
+    if (!settings || settings.execution_mode !== binanceEnvironment() || settings.testnet_enabled !== true) {
       await safeSettingsUpdate(supabase, {
         latest_monitor_run_at: new Date().toISOString(),
         latest_monitor_status: "skipped",
@@ -1822,7 +1823,7 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
-    const accounts = (await enumerateExecutionAccounts(supabase, "binance")).filter((account) => account.environment === "testnet");
+    const accounts = (await enumerateExecutionAccounts(supabase, "binance")).filter((account) => ['testnet','live'].includes(account.environment));
     const accountSync = await settleExecutionAccounts(accounts, async (ownership) => {
       const scopedStats=accountStatistics.get(ownership.execution_scope_key)??freshMonitorStats();accountStatistics.set(ownership.execution_scope_key,scopedStats);
       try{const credential = await resolveEdgeProviderCredential(supabase!, ownership);
@@ -1831,7 +1832,7 @@ Deno.serve(async (req: Request) => {
         await refreshAccountState(supabase!, scopedStats, scopedStats.monitor_status, runtimeOwnershipFields(ownership));
         await collectCryptoProviderOutcomes(supabase!,ownership,'BINANCE',(path,params)=>binanceRequest(path,params));
        });
-      }catch(error){const observedAt=new Date().toISOString();const {error:saveError}=await supabase!.from('execution_account_runtime_proof').upsert({...runtimeOwnershipFields(ownership),environment:'testnet',monitor_status:'degraded',account_state:{latest_error:'ACCOUNT_OBSERVATION_UNAVAILABLE'},observed_at:observedAt,updated_at:observedAt},{onConflict:'execution_scope_key'});if(saveError)throw Error('DEGRADED_ACCOUNT_PROOF_NOT_PERSISTED');throw error;}
+      }catch(error){const observedAt=new Date().toISOString();const {error:saveError}=await supabase!.from('execution_account_runtime_proof').upsert({...runtimeOwnershipFields(ownership),environment:ownership.environment,monitor_status:'degraded',account_state:{latest_error:'ACCOUNT_OBSERVATION_UNAVAILABLE'},observed_at:observedAt,updated_at:observedAt},{onConflict:'execution_scope_key'});if(saveError)throw Error('DEGRADED_ACCOUNT_PROOF_NOT_PERSISTED');throw error;}
     });
     for(const scopedStats of accountStatistics.values())mergeMonitorStatistics(stats,scopedStats);
     for (const failed of accountSync.filter((result) => result.status === "rejected")) addCriticalMonitorError(stats, `account_sync_failed:${errorMessage((failed as PromiseRejectedResult).reason)}`);

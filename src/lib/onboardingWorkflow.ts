@@ -12,10 +12,10 @@ export function normalizeOnboarding(value:Partial<OnboardingDraft>):OnboardingDr
  if(!['MT5','BINANCE','BYBIT'].includes(next.provider)||!['PERSONAL','PROP'].includes(next.mode)||!validProviderCombination(next.provider,next.asset,next.mode))throw new Error('UNSUPPORTED_PROVIDER_MODE');
  if(!['SIGNALS','AUTO'].includes(next.access)||!Number.isInteger(next.stage)||next.stage<0||next.stage>12)throw new Error('INVALID_ONBOARDING_PREFERENCES');
  const profile=recommendBrain(next.provider,next.mode);
- return {...next,risk:Number.isFinite(next.risk)?Math.max(profile.minRisk,Math.min(next.risk,profile.maxRisk)):.25,strategies:Array.isArray(next.strategies)?[...new Set(next.strategies.filter(s=>profile.strategies.includes(s)))]:[],ack:next.ack===true};
+ return {...next,environment:next.environment==='live'?'live':next.provider==='BINANCE'?'testnet':'demo',risk:Number.isFinite(next.risk)?Math.max(profile.minRisk,Math.min(next.risk,profile.maxRisk)):.25,strategies:Array.isArray(next.strategies)?[...new Set(next.strategies.filter(s=>profile.strategies.includes(s)))]:[],ack:next.ack===true};
 }
 export function requireCreatedAccount(value:unknown):string {
  if(typeof value!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))throw new Error('ACCOUNT_CREATION_NOT_CONFIRMED');
  return value;
 }
-export function accountSetupScope(customerId:string,provider:string,mode:string){return `hashibot.setup.${customerId}.${provider}.${mode}`;}
+export function accountSetupScope(customerId:string,provider:string,mode:string,environment?:string){return `hashibot.setup.${customerId}.${provider}.${mode}${environment==='live'?'.live':''}`;}

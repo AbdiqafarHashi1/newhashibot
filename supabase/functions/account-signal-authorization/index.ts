@@ -1,3 +1,4 @@
+import {drainAccountDispatch} from '../_shared/account-dispatch.ts';
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2';
 import {authorizeInternalOrAdmin} from '../_shared/internal-auth.ts';
@@ -17,7 +18,13 @@ Deno.serve(async req=>{
    if(Object.keys(input).some(k=>!keys.includes(k)))throw Error('OBSERVED_EVIDENCE_FIELDS_REQUIRED');
    result=await recordObservedAccountPolicyEvidence(db,input);
   }else if(body.action==='drain'){
-   if(Object.keys(body).some(k=>k!=='action'))throw Error('CANONICAL_IDENTIFIERS_ONLY');result=await drainProductionAccountAuthorizations(db);
+   if(Object.keys(body).some(k=>k!=='action'))throw Error('CANONICAL_IDENTIFIERS_ONLY');const authorizations=await drainProductionAccountAuthorizations(db);
+   const dispatches=await drainAccountDispatch(db,async(plan,version)=>{
+    const secret=Deno.env.get('HASHIBOT_INTERNAL_SECRET');if(!secret)throw Error('INTERNAL_DISPATCH_AUTH_REQUIRED');
+    const response=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/binance-testnet-execution`,{method:'POST',headers:{'content-type':'application/json','x-hashibot-internal-secret':secret},body:JSON.stringify({action:'adopt_execution_plan',execution_plan:plan,expected_policy_version:version}),signal:AbortSignal.timeout(25000)});
+    const receipt=await response.json().catch(()=>null);if(!receipt||typeof receipt.success!=='boolean')return {accepted:false,uncertain:true,receipt:{reason:'DISPATCH_RECEIPT_UNKNOWN'}};
+    return {accepted:response.ok&&receipt.success===true,receipt:{success:receipt.success,reason:receipt.blocker??receipt.reason??null,execution_plan_id:receipt.execution_plan_id??plan.execution_plan_id,canonical_state:receipt.canonical_state??null}};
+   });result={authorizations,dispatches};
   }else{
    if(Object.keys(body).some(k=>!['customer_id','execution_account_id','signal_id','idempotency_key'].includes(k)))throw Error('CANONICAL_IDENTIFIERS_ONLY');
    result=await authorizeCanonicalAccountSignal(db,{customerId:body.customer_id,accountId:body.execution_account_id,signalId:body.signal_id,idempotencyKey:body.idempotency_key});

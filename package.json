@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "test:operations-readiness": "node --import tsx --test tests/operations/*.test.ts && node --test tests/operations/*.database.test.mjs && python3 -m unittest discover -s tests/operations -p 'test_*.py'",
+    "test:operations-readiness": "node --import tsx --test tests/operations/*.test.ts && node --test --test-concurrency=2 tests/operations/*.database.test.mjs && python3 -m unittest discover -s tests/operations -p 'test_*.py'",
     "audit:admin-surfaces": "node scripts/audit-admin-surfaces.mjs --check",
     "test:backtest-lab": "node --import tsx --test tests/ownerPreview/labWorkflow.test.ts",
     "test:analytics": "rm -rf .tmp/analytics-tests && tsc --outDir .tmp/analytics-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck tests/analytics/capitalHardness.test.ts src/lib/capitalHardness.ts && node .tmp/analytics-tests/tests/analytics/capitalHardness.test.js && rm -rf .tmp/analytics-tests",

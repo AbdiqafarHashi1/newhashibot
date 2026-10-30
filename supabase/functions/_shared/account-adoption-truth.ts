@@ -1,0 +1,22 @@
+import {stableFingerprint} from './strategy-plan.ts';
+import {assertCompleteProductionContext} from './observed-account-policy-evidence.ts';
+import {assertMeasuredExecutionLineage} from './measured-execution-lineage.ts';
+import type {AdoptionTruth} from './professional-execution-adoption.ts';
+import type {ExecutionPlan} from './professional-execution-planning.ts';
+/** Revalidate persisted Phase-D artifacts against current, scoped provider evidence; never echo fingerprints without checking their source. */
+export function currentAccountAdoptionTruth(x:any,plan:Readonly<ExecutionPlan>,now=Date.now()):AdoptionTruth & Record<string,unknown>{
+ const a=x.account,c=x.context,route=plan.routing;
+ if(!a||!route||a.id!==route.account_id||a.customer_id!==plan.risk_decision.account.customer_id||a.policy_version!==plan.risk_decision.authorized_envelope?.policy_version||a.policy_profile_id!==plan.risk_decision.authorized_envelope?.policy_id||a.enabled!==true||a.execution_enabled!==true||!['START','RESUME'].includes(a.runtime_control))throw Error('CURRENT_EXECUTION_ACCOUNT_REQUIRED');
+ assertCompleteProductionContext(c,{customerId:a.customer_id,accountId:a.id,provider:String(a.provider).toUpperCase(),observedAt:x.observed_at},now);assertMeasuredExecutionLineage(x);
+ if(x.signal.id!==x.decision_signal_id&&x.decision_signal_id)throw Error('ADOPTION_SIGNAL_MISMATCH');
+ if(x.signal.status!=='active'||!Number.isFinite(Date.parse(x.signal.expires_at))||Date.parse(x.signal.expires_at)<=now||x.entitlement?.state!=='ACTIVE'||!Number.isFinite(Date.parse(x.entitlement.expiresAt))||Date.parse(x.entitlement.expiresAt)<=now)throw Error('CURRENT_SIGNAL_AND_ACCESS_REQUIRED');
+ if(String(a.environment).toUpperCase()!==route.environment||c.environment!==route.environment||String(a.provider).toUpperCase()!==plan.provider)throw Error('CURRENT_PROVIDER_ENVIRONMENT_REQUIRED');
+ if(stableFingerprint({provider:plan.provider,environment:route.environment,account_id:a.id,symbol:x.capabilities?.provider_symbol,policy:x.routing_policy,capabilities:x.capabilities,contract:stableFingerprint(x.contract)})!==plan.routing_fingerprint)throw Error('OBSERVED_ROUTING_DRIFT');
+ if(stableFingerprint(x.contract)!==plan.capital_allocation_plan.diagnostics.contract_fingerprint||stableFingerprint(x.capabilities)!==plan.capability_fingerprint)throw Error('OBSERVED_CONTRACT_OR_CAPABILITY_DRIFT');
+ if(x.assignment?.policy_version!==a.policy_version||x.provisioning?.state!=='ACTIVE'||x.provisioning.qualified_set_version!==x.qualified_set?.setVersion)throw Error('CURRENT_ACCOUNT_POLICY_REQUIRED');
+ if(!Number.isInteger(x.pending_orders)||x.pending_orders<0)throw Error('CURRENT_ORDER_EVIDENCE_REQUIRED');
+ const conn=x.connection;if(!conn||!['CONNECTED','VERIFIED'].includes(conn.state)||conn.capabilities?.trading!==true||(!plan.provider.startsWith('MT5')&&(conn.capabilities?.verified!==true||conn.capabilities?.withdrawal!==false)))throw Error('CURRENT_TRADING_CAPABILITY_REQUIRED');
+ if(!c.runtime_health.is_healthy||c.daily_drawdown.is_violated||c.total_drawdown.is_violated)throw Error('CURRENT_ACCOUNT_LOCK');
+ return {observed_at:x.observed_at,freshness:'KNOWN',provider_health:String(a.provider_health).toUpperCase() as 'HEALTHY',account_health:'HEALTHY',provider:plan.provider,environment:route.environment,account_id:a.id,customer_id:a.customer_id,execution_mode:route.execution_mode,canonical_symbol:route.canonical_symbol,provider_symbol:route.provider_symbol,contract_fingerprint:stableFingerprint(x.contract),capability_fingerprint:stableFingerprint(x.capabilities),routing_fingerprint:plan.routing_fingerprint,execution_fingerprint:plan.execution_fingerprint,available_margin:c.free_margin,conflicting_position:c.open_positions.length>0||x.active_symbol_conflict===true,conflicting_open_entry:x.pending_orders>0,active_client_ids:[],configuration_change_safe:c.open_positions.length===0&&x.pending_orders===0,provider_operational:a.is_operational===true,execution_scope_key:x.execution_scope_key??'',execution_instance_id:x.execution_instance_id??null,credential_ref:x.credential_ref??null,execution_product:x.product,
+ ...(plan.provider==='MT5_PROP'?{prop:{account_mode:'MT5_PROP' as const,stage:c.prop_rules?.stage??a.account_mode,policy_version:a.policy_version,session_allowed:c.session_state.is_session_open,news_allowed:!c.news_state.in_high_impact_news_window,holding_allowed:c.prop_rules?.allow_overnight===true}}:{})};
+}

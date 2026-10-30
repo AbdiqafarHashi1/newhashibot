@@ -6,7 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authJsonResponse, authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { persistTradeManagementTruth as upsertTradeManagementTruth, persistTradeManagementTruthRow as upsertTradeManagementTruthRow, persistTradeManagementTruthByIdentity as updateTradeManagementTruthByIdentity } from "../_shared/trade-truth/index.ts";
-import { acquireExecutionLease, enumerateExecutionAccounts, ownershipFields, releaseExecutionLease, resolveEdgeProviderCredential, runtimeOwnershipFields, settleExecutionAccounts, type EdgeExecutionOwnership, type EdgeProviderCredential } from "../_shared/execution-ownership.ts";
+import { currentEdgeProviderCredential, withEdgeProviderCredential, acquireExecutionLease, enumerateExecutionAccounts, ownershipFields, releaseExecutionLease, resolveEdgeProviderCredential, runtimeOwnershipFields, settleExecutionAccounts, type EdgeExecutionOwnership, type EdgeProviderCredential } from "../_shared/execution-ownership.ts";
 import {collectBybitPages,confirmedBybitTp1,reconcileBybitStop} from "../_shared/bybit-managed-protection.ts";
 import {canonicalLifecycleType,enqueueCanonicalLifecycle,lifecycleAudience} from "../_shared/canonical-lifecycle-publication.ts";
 
@@ -160,6 +160,7 @@ function stringifyParams(params: Record<string, string | number | boolean>) {
 type BybitEnvironment = "demo" | "testnet" | "live";
 
 function bybitEnvironment(): BybitEnvironment {
+  try{return currentEdgeProviderCredential("bybit").ownership.environment as BybitEnvironment}catch{/* Unscoped operator defaults do not select customer accounts. */}
   const raw = String(Deno.env.get("BYBIT_ENVIRONMENT") || Deno.env.get("BYBIT_MODE") || "testnet").toLowerCase().trim();
   if (raw === "demo" || raw === "bybit_demo") return "demo";
   if (raw === "live" || raw === "mainnet" || raw === "bybit_live") throw new Error("LIVE_EXECUTION_PROHIBITED");
@@ -168,10 +169,10 @@ function bybitEnvironment(): BybitEnvironment {
 
 function bybitBaseUrl(): string {
   const environment = bybitEnvironment();
-  const explicit = Deno.env.get("BYBIT_BASE_URL") || Deno.env.get("BYBIT_TESTNET_BASE_URL") || "";
+  const explicit = "";
   const fallback = environment === "demo" ? "https://api-demo.bybit.com" : environment === "live" ? "https://api.bybit.com" : "https://api-testnet.bybit.com";
   const base = (explicit || fallback).replace(/\/$/, "");
-  const parsed=new URL(base);const expected=environment==="demo"?"api-demo.bybit.com":"api-testnet.bybit.com";if(parsed.protocol!=="https:"||parsed.hostname!==expected||parsed.pathname!=="/"||parsed.search||parsed.username||parsed.password)throw new Error("SANDBOX_PROVIDER_HOST_REQUIRED");
+  const parsed=new URL(base);const expected=environment==="demo"?"api-demo.bybit.com":environment==="live"?"api.bybit.com":"api-testnet.bybit.com";if(parsed.protocol!=="https:"||parsed.hostname!==expected||parsed.pathname!=="/"||parsed.search||parsed.username||parsed.password)throw new Error("SANDBOX_PROVIDER_HOST_REQUIRED");
   if (environment === "demo" && !base.includes("api-demo.bybit.com")) throw new Error("Bybit Demo Trading requires BYBIT_BASE_URL=https://api-demo.bybit.com or no override");
   if (environment === "testnet" && !base.includes("testnet")) throw new Error("Bybit testnet requires a testnet base URL");
   if (environment === "live" && (base.includes("testnet") || base.includes("api-demo"))) throw new Error("Bybit live requires the mainnet base URL");
@@ -672,13 +673,13 @@ Deno.serve(async (req: Request) => {
   const payload = await req.clone().json().catch(() => ({})) as Json;
   const auth = await authorizeInternalOrAdmin(req, supabase);
   if (!auth.ok) return authJsonResponse(auth, corsHeaders);
-  const accounts = (await enumerateExecutionAccounts(supabase, "bybit")).filter((account) => account.environment === bybitEnvironment());
+  const accounts = (await enumerateExecutionAccounts(supabase, "bybit")).filter((account) => ["demo","testnet","live"].includes(account.environment));
   if (accounts.length === 0) {
     return json({ success: true, overall_status: "DEGRADED", provider: "bybit", credential_reachability: "UNKNOWN", account_configuration: "NOT CONFIGURED", execution_adoption: "EXECUTION DISABLED", monitor_status: "NOT CONFIGURED", configured_account: false, writes_skipped: true, first_blocker: "No canonical execution-account identity", accounts_total: 0, accounts_fulfilled: 0, accounts_rejected: 0, results: [] });
   }
   const settled = await settleExecutionAccounts(accounts, async (ownership) => {
     const credential = await resolveEdgeProviderCredential(supabase, ownership);
-    return monitorBybit(supabase, payload, ownership, credential);
+    return withEdgeProviderCredential(credential,()=>monitorBybit(supabase, payload, ownership, credential));
   });
   return json({ success: true, overall_status: settled.some((result) => result.status === "rejected") ? "DEGRADED" : "PASS", provider: "bybit", account_configuration: "CONFIGURED", execution_adoption: "EXECUTION DISABLED", monitor_status: settled.some((result) => result.status === "rejected") ? "DEGRADED" : "MONITORING", configured_account: true, writes_skipped: false, first_blocker: null, accounts_total: accounts.length, accounts_fulfilled: settled.filter((result) => result.status === "fulfilled").length, accounts_rejected: settled.filter((result) => result.status === "rejected").length, results: settled.map((result, index) => result.status === "fulfilled" ? result.value : { success: false, execution_scope_key: accounts[index]?.execution_scope_key, error: result.reason instanceof Error ? result.reason.message : String(result.reason) }) });
 });

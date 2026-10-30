@@ -1,7 +1,8 @@
+import {providerEnvironmentContract} from './provider-environment.ts';
 import { normalizedQuery, signBybitV5Get } from "./bybit-v5-auth.ts";
 
 export type OnboardingProvider = "binance" | "bybit";
-export type OnboardingEnvironment = "testnet" | "demo";
+export type OnboardingEnvironment = "testnet" | "demo" | "live";
 export type RawCredential = { apiKey: string; apiSecret: string; passphrase?: string };
 /**
  * Routing identities are atoms in the colon-delimited execution scope key.
@@ -56,13 +57,13 @@ async function safeJson(response: Response): Promise<Record<string, unknown>> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-export async function verifyBinanceTestnet(credential: RawCredential, fetcher: typeof fetch = fetch): Promise<SafeVerification> {
+export async function verifyBinanceTestnet(credential: RawCredential, fetcher: typeof fetch = fetch, environment: OnboardingEnvironment = "testnet"): Promise<SafeVerification> {
   validateCredentialShape("binance", credential);
   const timestamp = Date.now();
   const query = `timestamp=${timestamp}&recvWindow=10000`;
   const signature = await hmacSha256(credential.apiSecret, query);
   const headers = { "X-MBX-APIKEY": credential.apiKey };
-  const base = "https://demo-fapi.binance.com";
+  const base = providerEnvironmentContract("binance",environment).baseUrl;
   const [accountResponse, ordersResponse] = await Promise.all([
     fetcher(`${base}/fapi/v2/account?${query}&signature=${signature}`, { headers }),
     (async () => {
@@ -86,7 +87,7 @@ export async function verifyBinanceTestnet(credential: RawCredential, fetcher: t
   const ok = accountResponse.ok && ordersResponse.ok;
   return {
     connection_verified: ok,
-    provider: "binance", environment: "testnet", discovered_account_identity: identity,
+    provider: "binance", environment, discovered_account_identity: identity,
     read_permissions: { account: accountResponse.ok, balances: accountResponse.ok && Array.isArray(account.assets), positions: accountResponse.ok && Array.isArray(account.positions), orders: ordersResponse.ok },
     trading_permission: account.canTrade === true, withdrawal_permission: typeof account.canWithdraw === "boolean" ? account.canWithdraw : null,
     warnings: accountResponse.ok && !nativeIdentity ? ["Native stable provider identity unavailable; safe canonical fallback used."] : [],
@@ -94,12 +95,12 @@ export async function verifyBinanceTestnet(credential: RawCredential, fetcher: t
   };
 }
 
-async function bybitGet(path: string, params: Record<string, string>, credential: RawCredential, fetcher: typeof fetch) {
+async function bybitGet(path: string, params: Record<string, string>, credential: RawCredential, fetcher: typeof fetch, environment: OnboardingEnvironment = "demo") {
   const timestamp = String(Date.now());
   const recvWindow = "10000";
   const query = normalizedQuery(params);
   const { signature } = await signBybitV5Get({ timestamp, apiKey: credential.apiKey, apiSecret: credential.apiSecret, recvWindow, query });
-  const response = await fetcher(`https://api-demo.bybit.com${path}${query ? `?${query}` : ""}`, { headers: {
+  const response = await fetcher(`${providerEnvironmentContract("bybit",environment).baseUrl}${path}${query ? `?${query}` : ""}`, { headers: {
     "X-BAPI-API-KEY": credential.apiKey, "X-BAPI-TIMESTAMP": timestamp, "X-BAPI-RECV-WINDOW": recvWindow, "X-BAPI-SIGN": signature,
   } });
   return { response, body: await safeJson(response) };
@@ -107,13 +108,13 @@ async function bybitGet(path: string, params: Record<string, string>, credential
 
 function bybitOk(value: { response: Response; body: Record<string, unknown> }) { return value.response.ok && Number(value.body.retCode) === 0; }
 
-export async function verifyBybitDemo(credential: RawCredential, fetcher: typeof fetch = fetch): Promise<SafeVerification> {
+export async function verifyBybitDemo(credential: RawCredential, fetcher: typeof fetch = fetch, environment: OnboardingEnvironment = "demo"): Promise<SafeVerification> {
   validateCredentialShape("bybit", credential);
   const [keyInfo, wallet, positions, orders] = await Promise.all([
-    bybitGet("/v5/user/query-api", {}, credential, fetcher),
-    bybitGet("/v5/account/wallet-balance", { accountType: "UNIFIED" }, credential, fetcher),
-    bybitGet("/v5/position/list", { category: "linear", settleCoin: "USDT" }, credential, fetcher),
-    bybitGet("/v5/order/realtime", { category: "linear", settleCoin: "USDT" }, credential, fetcher),
+    bybitGet("/v5/user/query-api", {}, credential, fetcher, environment),
+    bybitGet("/v5/account/wallet-balance", { accountType: "UNIFIED" }, credential, fetcher, environment),
+    bybitGet("/v5/position/list", { category: "linear", settleCoin: "USDT" }, credential, fetcher, environment),
+    bybitGet("/v5/order/realtime", { category: "linear", settleCoin: "USDT" }, credential, fetcher, environment),
   ]);
   const result = keyInfo.body.result as Record<string, unknown> | undefined;
   const identity = result?.userID === undefined || result?.userID === null ? null : String(result.userID);
@@ -122,7 +123,7 @@ export async function verifyBybitDemo(credential: RawCredential, fetcher: typeof
   const verified = auth && bybitOk(wallet) && Boolean(identity);
   return {
     connection_verified: verified,
-    provider: "bybit", environment: "demo", discovered_account_identity: identity,
+    provider: "bybit", environment, discovered_account_identity: identity,
     read_permissions: { account: auth, balances: bybitOk(wallet), positions: bybitOk(positions), orders: bybitOk(orders) },
     trading_permission: permissionKnown&&(permissionText.includes("order") || permissionText.includes("trade")), withdrawal_permission: permissionKnown?permissionText.includes("withdraw"):null,
     warnings: [],
@@ -131,8 +132,8 @@ export async function verifyBybitDemo(credential: RawCredential, fetcher: typeof
 }
 
 export async function verifyProvider(provider: OnboardingProvider, environment: string, credential: RawCredential, fetcher: typeof fetch = fetch) {
-  if (providerEnvironment(provider) !== environment) throw new Error("provider_environment_mismatch");
-  return provider === "binance" ? verifyBinanceTestnet(credential, fetcher) : verifyBybitDemo(credential, fetcher);
+  providerEnvironmentContract(provider,environment);
+  return provider === "binance" ? verifyBinanceTestnet(credential, fetcher, environment as OnboardingEnvironment) : verifyBybitDemo(credential, fetcher, environment as OnboardingEnvironment);
 }
 
 export function safeAccountSummary(row: Record<string, unknown>) {

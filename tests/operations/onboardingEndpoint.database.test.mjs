@@ -11,6 +11,7 @@ test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: authenticate
  try{
   await db.exec(accountSchema);
   await db.exec(await readFile('supabase/migrations/20261015221031_customer_account_setup_integrity.sql','utf8'));
+  const unified=await readFile('supabase/migrations/20261030170618_account_forward_activation.sql','utf8');await db.exec(unified.slice(unified.indexOf('create function public.create_customer_execution_account'),unified.indexOf('create or replace function public.assign_customer_account_brain')));
   const controls=await readFile('supabase/migrations/20261015225107_account_execution_routing_guards.sql','utf8');await db.exec(controls.slice(controls.indexOf('-- An administrator')));
   const latest=await readFile('supabase/migrations/20261017014250_measured_execution_lineage.sql','utf8');await db.exec(latest.slice(latest.indexOf('-- Owner controls narrow'),latest.indexOf('create function public.install_hashibot_release_schedules')));
   await db.query("insert into profiles values($1,'user'),($2,'admin')",[customer,other]);
@@ -21,7 +22,7 @@ test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: authenticate
     const values=[],where=filters.map(([key,value])=>{assert.ok(/^[a-z_]+$/.test(key));if(value===null)return `${key} is null`;values.push(value);return `${key}=$${values.length}`});
     try{const result=await db.query(`select ${columns} from ${table} where ${where.join(' and ')}`,values);assert.ok(result.rows.length<=1);return {data:result.rows[0]??null,error:null}}catch(error){return {data:null,error}}
    }}},
-   async rpc(fn,args){const signatures={admin_set_account_controls:['p_actor','p_customer','p_account','p_configuration','p_prop_rules'],create_customer_demo_account:['p_customer_id','p_provider','p_mode','p_label','p_idempotency_key'],assign_customer_account_brain:['p_customer_id','p_account_id','p_risk','p_strategies','p_idempotency_key','p_policy'],admin_assign_customer_account_brain:['p_actor_id','p_customer_id','p_account_id','p_risk','p_strategies','p_idempotency_key','p_policy']};
+   async rpc(fn,args){const signatures={admin_set_account_controls:['p_actor','p_customer','p_account','p_configuration','p_prop_rules'],create_customer_execution_account:['p_customer_id','p_provider','p_mode','p_label','p_idempotency_key','p_environment'],assign_customer_account_brain:['p_customer_id','p_account_id','p_risk','p_strategies','p_idempotency_key','p_policy'],admin_assign_customer_account_brain:['p_actor_id','p_customer_id','p_account_id','p_risk','p_strategies','p_idempotency_key','p_policy']};
     const keys=signatures[fn];assert.ok(keys,fn);try{const result=await db.query(`select ${fn}(${keys.map((_,i)=>'$'+(i+1)).join(',')}) value`,keys.map(key=>['p_policy','p_configuration','p_prop_rules'].includes(key)&&args[key]!=null?JSON.stringify(args[key]):args[key]));return {data:result.rows[0].value,error:null}}catch(error){return {data:null,error}}
    }};
   globalThis.__operationsTestClient=client;let handler;globalThis.Deno={env:{get:()=>''},serve(value){handler=value}};
