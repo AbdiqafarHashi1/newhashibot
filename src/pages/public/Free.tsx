@@ -24,6 +24,7 @@ export default function Free() {
     setAvailability(false); setEnrollmentState('Setting up your free access…');
     const { data, error } = await supabase.functions.invoke('free-enrollment', { headers: { 'idempotency-key': crypto.randomUUID() } });
     if (error) { setAvailability(true); setEnrollmentState('We could not enroll you right now. Please try again.'); return; }
+    if(data?.state==='ACTIVE'){navigate('/app/onboarding');return;}
     setEnrollmentState(data?.state === 'ACTIVE' ? 'Free access is ready. Connect Telegram in your account to continue; channel membership is confirmed separately.' : 'Your request is being prepared. We will show the next Telegram step when it is ready.');
   };
   const FreeButton = ({ short = false }: { short?: boolean }) => <button onClick={joinFree} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/20 hover:bg-emerald-500">{short ? 'Join Free' : 'Join Free Telegram'} <Send size={15}/></button>;

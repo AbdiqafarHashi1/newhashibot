@@ -246,25 +246,7 @@ export default function Account() {
               </div>
             </div>
 
-            {/* Step-by-step workflow */}
-            <div className="bg-zinc-800/40 border border-zinc-700/50 rounded-lg px-4 py-4 space-y-2.5">
-              <div className="text-xs font-medium text-zinc-400 mb-1">How Telegram access works:</div>
-              {[
-                { done: isPaid, text: 'Complete payment — admin marks your subscription as paid' },
-                { done: hasAccess, text: 'Admin activates your access' },
-                { done: ['invited', 'joined'].includes(sub?.telegram_status ?? ''), text: 'Admin sends you a Telegram group invite link' },
-                { done: sub?.telegram_status === 'joined', text: 'You join the group and receive live signal alerts' },
-              ].map((step, i) => (
-                <div key={i} className="flex items-start gap-2.5 text-xs">
-                  <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${step.done ? 'bg-emerald-600/30' : 'bg-zinc-700'}`}>
-                    {step.done
-                      ? <CheckCircle size={10} className="text-emerald-400" />
-                      : <span className="text-zinc-500 text-xs leading-none">{i + 1}</span>}
-                  </div>
-                  <span className={step.done ? 'text-zinc-300' : 'text-zinc-500'}>{step.text}</span>
-                </div>
-              ))}
-            </div>
+            <Link to="/app/onboarding" className="block rounded-lg border border-cyan-800 px-4 py-3 text-sm text-cyan-300">View your onboarding and channel membership progress →</Link>
 
             {sub?.telegram_status === 'invited' && (
               <div className="bg-sky-500/8 border border-sky-500/20 rounded-lg px-4 py-3 flex items-start gap-2.5">

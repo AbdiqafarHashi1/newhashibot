@@ -4,7 +4,7 @@ import {commerceEnvironment} from '../_shared/commerce-provider-settings.ts';
 import {whopRuntimeConfig,createWhopRuntimeCheckout} from "../_shared/whop-runtime.ts";
 import { maskKenyanPhone, mpesaAdapterFromGetter, normalizeKenyanPhone, UnconfiguredMpesaAdapter } from "../_shared/mpesa-adapter.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-const headers={"Content-Type":"application/json","Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST,OPTIONS","Access-Control-Allow-Headers":"authorization,content-type,x-idempotency-key,apikey"};
+const headers={"Content-Type":"application/json","Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST,OPTIONS","Access-Control-Allow-Headers":"authorization,content-type,x-idempotency-key,apikey,x-client-info"};
 const reply=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers});
 const safe=(v:unknown,n=80)=>String(v??"").replace(/[^a-zA-Z0-9_.-]/g,"").slice(0,n)||null;
 Deno.serve(async req=>{

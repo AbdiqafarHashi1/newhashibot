@@ -32,12 +32,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div>
               <span className="font-extrabold text-sm tracking-tight text-white">HashiBot VIP</span>
-              <span className="block text-[9px] font-mono text-zinc-500 uppercase tracking-widest">Signal & Bot Terminal</span>
+              <span className="block text-[9px] font-mono text-zinc-500 uppercase tracking-widest">Analysis & Membership</span>
             </div>
           </Link>
         </div>
 
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-5 overflow-y-auto"><Link to="/app/onboarding" className="rounded border border-cyan-800 px-3 py-2 text-sm text-cyan-300">My onboarding</Link><Link to="/app/billing" className="px-3 text-sm text-zinc-300">Billing &amp; access</Link>
           {/* Section 1: Signals & Market Stream */}
           <div>
             <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 flex items-center justify-between">
@@ -95,9 +95,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
 
           {/* Section 2: Execution Automation (Auto-Bots) */}
-          <div>
+          <details>
+            <summary className="px-3 text-xs text-zinc-400 cursor-pointer">Execution accounts · advanced</summary>
             <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 flex items-center justify-between">
-              <span>Auto-Bot Fleet (Tiers 2 & 3)</span>
+              <span>Separate account setup</span>
               <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.2 rounded font-mono">AUTO</span>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -171,7 +172,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <span>Bot Setup & API Keys</span>
               </Link>
             </div>
-          </div>
+          </details>
 
           {/* Section 3: Membership, Telegram & Billing */}
           <div>
@@ -180,7 +181,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="flex flex-col gap-0.5">
               <Link
-                to="/app/package-request"
+                to="/vip"
                 onClick={() => setSideOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
                   isCurrent('/app/package-request')
@@ -189,7 +190,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 }`}
               >
                 <Package size={15} className="text-emerald-400" />
-                <span>Packages & M-Pesa</span>
+                <span>Upgrade to VIP</span>
               </Link>
 
               <Link
@@ -225,11 +226,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="hidden md:block border-t border-zinc-800 p-3 bg-zinc-950/40">
           {isAdmin && (
             <Link
-              to="/admin/control-room"
+              to="/admin/launch"
               className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-xl mb-2 transition-colors border border-orange-500/20"
             >
               <ShieldCheck size={14} />
-              <span>Operator Control Room</span>
+              <span>Admin setup & launch</span>
             </Link>
           )}
 
@@ -287,7 +288,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
             {isAdmin && (
               <Link
-                to="/admin/control-room"
+                to="/admin/launch"
                 className="hidden sm:inline-flex items-center gap-1 h-8 rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 text-xs font-bold text-orange-300 hover:bg-orange-500/20"
               >
                 ADMIN

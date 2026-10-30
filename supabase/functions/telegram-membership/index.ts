@@ -3,7 +3,8 @@ import {handleTelegramJoinRequest} from "../_shared/telegram-join-request.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,apikey,content-type,x-client-info","Access-Control-Allow-Methods":"POST,OPTIONS"};
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "content-type": "application/json" } });
 
 async function telegram(token: string, method: string, body: Record<string, unknown>) {
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(8000) });
@@ -13,6 +14,8 @@ async function telegram(token: string, method: string, body: Record<string, unkn
 }
 
 Deno.serve(async (request) => {
+  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
+  if(request.method!=='POST')return json({error:'method_not_allowed'},405);
   const url = Deno.env.get("SUPABASE_URL") ?? "", key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const db = createClient(url, key), secret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET"), token = Deno.env.get("TELEGRAM_BOT_TOKEN");
   const webhookHeader = request.headers.get("X-Telegram-Bot-Api-Secret-Token");

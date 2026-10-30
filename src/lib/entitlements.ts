@@ -33,12 +33,11 @@ export async function getMyVipTelegramStatus(): Promise<VipTelegramState> {
 }
 
 export async function createVipTelegramOnboardingLink() {
-  const { data, error } = await supabase.rpc('create_vip_telegram_onboarding');
-  if (error) throw new Error(error.message);
-  if (data?.state === 'LINKED') return { state: 'LINKED' as const };
-  const botUsername = String(import.meta.env.VITE_TELEGRAM_BOT_USERNAME ?? '').replace(/^@/, '');
-  if (!botUsername || !data?.token) throw new Error('Telegram bot onboarding is not configured.');
-  return { state: 'ONBOARDING_REQUIRED' as const, url: `https://t.me/${botUsername}?start=${data.token}`, expiresAt: data.expires_at as string };
+  const {data,error}=await supabase.functions.invoke('phase-o-agents',{body:{action:'CUSTOMER_TELEGRAM_LINK'}});
+  if(error||data?.error)throw Error('Your Telegram link is temporarily unavailable. Please try again.');
+  if(data?.state==='LINKED')return {state:'LINKED' as const};
+  if(typeof data?.url!=='string'||!/^https:\/\/t\.me\/[A-Za-z0-9_]{5,32}\?start=[a-f0-9]{48}$/i.test(data.url))throw Error('Your Telegram link could not be confirmed.');
+  return {state:'ONBOARDING_REQUIRED' as const,url:data.url,expiresAt:data.expiresAt as string};
 }
 
 export async function adminCreateVipTelegramOnboardingLink(userId: string, reason = 'Admin resend') {

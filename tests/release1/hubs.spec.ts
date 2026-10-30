@@ -50,8 +50,8 @@ test('manual 30-day grant and four-hour Free guide controls use explicit admin a
   if(b.action==='PREVIEW_FREE_GUIDE')return route.fulfill({json:{templates:['CONDITIONAL means watch and wait.','INVALIDATED means cancel the unfilled idea.']}});
   return route.fulfill({json:{state:'OK'}});
  });
- await page.goto('/admin/telegram?tab=members');await page.getByLabel('Manual VIP customer email').fill('customer@example.test');await page.getByLabel('Manual VIP reason').fill('Owner confirmed 30-day allowance');await page.getByRole('button',{name:'Grant 30-day VIP access'}).click();
- await expect(page.getByRole('status')).toContainText('30-day VIP access granted');await expect(page.getByRole('button',{name:'Copy personal onboarding link'})).toBeVisible();
+ await page.goto('/admin/customers');await page.getByLabel('Manual VIP customer email').fill('customer@example.test');await page.getByLabel('Manual VIP reason').fill('Owner confirmed 30-day allowance');await page.getByRole('button',{name:'Grant 30-day VIP access'}).click();
+ await expect(page.getByRole('status')).toContainText('30-day VIP access granted');await expect(page.getByRole('button',{name:'Recover personal Telegram link'})).toBeVisible();
  expect(actions.find(a=>a.action==='MANUAL_VIP_GRANT')).toMatchObject({email:'customer@example.test',reason:'Owner confirmed 30-day allowance'});
  await page.screenshot({path:`test-results/manual-vip-${test.info().project.name}.png`,fullPage:true});
  await page.goto('/admin/telegram?tab=content');await page.getByLabel('Free guide campaign').selectOption('campaign');await page.getByLabel('Free guide destination').selectOption('free');await page.getByRole('button',{name:'Preview six messages'}).click();await expect(page.getByText('CONDITIONAL means watch and wait.',{exact:true})).toBeVisible();
