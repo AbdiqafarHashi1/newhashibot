@@ -33,6 +33,8 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  assert.equal((await db.query('select * from conditional_setup_history')).rows.length,5);
  await assert.rejects(save({...a,track:'SWING',version:2,lastBar:iso(0)},1),/INVALID_CONDITIONAL_STATE|IMMUTABLE_SETUP_PLAN/);
  await assert.rejects(save({...a,reason:'Rewritten plan',version:2,lastBar:iso(0)},1),/IMMUTABLE_SETUP_PLAN/);
+ await assert.rejects(save({...a,selectionScore:90,version:2,lastBar:iso(0)},1),/IMMUTABLE_SETUP_PLAN/); // learning cannot rewrite an admitted setup
+
  const unknown={...a,status:'DATA_GAP' as const,version:2,lastBar:iso(0),result:'Missing candles; outcome unknown.'};assert.equal(await save(unknown,1),true);
  const e=(await db.query<any>("select * from test_events where key=$1",[`conditional:${a.id}:2`])).rows[0];assert.deepEqual(e.destinations,['admin']);
  const truth:any={entityId:'event',entityType:'lifecycle_event',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:iso(0),payload:e.payload};

@@ -40,3 +40,19 @@ Existing broad conditional profiles remain available, with their own identities 
 ## Verification boundary
 
 Synthetic candle fixtures and injected transports verify evaluator connections, source timing, state transitions, paper arithmetic, permissions and routing. They are not market-performance evidence. The deployment must still be rehearsed with the real connected MT5 feed and actual Telegram destinations before live service verification is recorded.
+
+
+## Online paper learning
+
+`paper-learning/rank-v1` runs automatically in the conditional scanner and independent watcher. It reloads the existing service-only, complete SQL creation-cohort snapshot once per worker invocation. Its memory is the permanent paper ledger, so restarts do not reset it. No new credentials, schedule or schema migration are required beyond the migrations already in this branch.
+
+- History window: setups created in the preceding 30 days. Never a partial REST page. Read errors, a stale/inconsistent snapshot or more than 10,000 rows produce `UNAVAILABLE` and preserve original strategy ranking. Position management continues.
+- Comparable cohorts require the same asset, named strategy/version/configuration hash, direction, variant, timeframe, track, price source, cost model label and admitted volatility band. Changed settings/source start a separate cohort. Old unclassified records cannot teach a newly classified regime.
+- Volatility is classified from current 14-bar ATR as a percentage of price relative to the median of up to 119 preceding rolling ATR-percent observations on that asset/timeframe. Quiet is below 0.75× its own baseline, high above 1.5×; the remainder is normal. This is measured context, not per-asset research certification.
+- Only closed, filled, cost-recorded paper outcomes available before the decision contribute returns. Losses count. Unentered expiry/invalidation is separate; open, malformed and data-gap outcomes remain unresolved. No outcome comes from an AI explanation or inferred candle.
+- At least 20 comparable closes, effective sample size of 18 and 80% resolution of entered/pending outcomes are required before priority changes. These are conservative engineering defaults, not statistically validated evidence of profitability.
+- Ranking uses outcomes weighted with a 14-day half-life, a 20-observation zero-return prior and per-outcome influence clipped to ±3R. The resulting priority adjustment is bounded to ±5 points. Raw paper returns, original evaluator score/grade and full history are retained. It is not a win probability or an account return.
+- The updated priority reaches the existing arbitrator and cross-asset admission ordering. Existing qualification, cost, capacity and contradiction rules remain authoritative; learning cannot revive disabled/research strategies. Small samples keep baseline priority and continue collecting observations; a losing cohort is not permanently disabled.
+- The first admitted setup freezes its learning policy, counts, summary, cutoff, cohort identity and sample reference IDs. Database immutability prevents later learning from rewriting that decision or trade plan. Admin setup details show the learning status, closed/unresolved counts and adjustment; source inspection shows the complete recorded evidence.
+
+This first learning version adapts **selection priority**. It does not automatically optimize TP/SL multipliers, generate strategies, increase account risk or change an active plan. Each new plan still obtains its dynamic levels from the original asset/timeframe evaluator. No unpublished/rejected candidate is retrospectively represented as a completed trade, so this learns from the admitted paper cohort rather than claiming performance for every opportunity the scanner could have taken. Counterfactual TP/SL optimization needs separately tracked alternatives and forward validation.

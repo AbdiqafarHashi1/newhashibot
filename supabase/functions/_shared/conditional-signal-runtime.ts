@@ -55,7 +55,7 @@ export async function admitConditionalBatch(store:ConditionalSignalStore,candida
  const winners=[...grouped.values()].flatMap(g=>{
   if(new Set(g.map(s=>s.side)).size>1)return [];
   return (['SCALP','INTRADAY','SWING'] as const).flatMap(track=>{const winner=selectConditionalSetup(g.filter(s=>s.track===track),now);return winner?[winner]:[];});})
-  .sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+  .sort((a,b)=>(b.selectionScore??b.score)-(a.selectionScore??a.score)||a.id.localeCompare(b.id));
  let admitted=0;for(const s of winners)if(await (store.admit?store.admit(s):store.save(s,0)))admitted++;
  return {considered:candidates.length,winners:winners.length,admitted};
 }

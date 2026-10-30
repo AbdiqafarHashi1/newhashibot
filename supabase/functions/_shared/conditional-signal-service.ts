@@ -1,3 +1,4 @@
+import type {PaperLearningEvidence} from './paper-learning.ts';
 import {watchWidth,type WatchTimeframe,type WatchTrack} from './conditional-contract.ts';
 import {strategyContextDecision,watchedMarketContext,type WatchedIntelligence,type StrategyThesis} from './watched-market-context.ts';
 import type {StrategyRuntimeConfig} from './professional-strategies.ts';
@@ -19,6 +20,7 @@ export interface ConditionalSetup {
  partial?:boolean; netR?:number; result?:string; exit?:number; fillAt?:string; observedAt?:string;
  validation?:{kind:'TREND_PULLBACK'|'RANGE_REJECTION'|'STRATEGY';boundary:number;higherMinutes:number;lookbackBars?:number;fastPeriod?:number;slowPeriod?:number};
  cost?:{price:number;label:string};
+ learning?:PaperLearningEvidence;selectionScore?:number;
  intelligence?:WatchedIntelligence;confirmationIntelligence?:WatchedIntelligence;
  origin?:{version:string;configuration:StrategyRuntimeConfig;plan:DeepReadonly<StrategyPlan>;thesis:StrategyThesis};
  management?:{partialFraction:number;breakEvenAfterTp1:boolean;maximumChaseR:number};
@@ -71,8 +73,8 @@ export function conditionalCandidates(symbol:string,tf:WatchTimeframe,rows:reado
  holdBars:tf==='15m'?48:168,score,reason,cost,validation:{kind:variant as 'TREND_PULLBACK'|'RANGE_REJECTION',boundary:variant==='RANGE_REJECTION'?(side===1?lo:hi):stop,higherMinutes:tf==='15m'?60:240,lookbackBars:110,fastPeriod:8,slowPeriod:20},status:'WAITING',version:1,lastBar:last.open_time}];
 }
 export function selectConditionalSetup(setups:readonly ConditionalSetup[],now:number):ConditionalSetup|undefined {
- const candidates:ArbitrationCandidate[]=setups.map(s=>({id:s.id,strategyId:s.strategy,strategyVersion:'1.0.0',market:s.market??conditionalMarket(s.symbol)??'crypto',symbol:s.symbol,timeframe:s.timeframe,
- side:s.side,confidence:s.score,grade:'A',score:s.score,entry:s.trigger,stop:s.stop,targets:[s.tp1,s.tp2],riskReward:Math.abs(s.tp2-s.trigger)/Math.abs(s.trigger-s.stop),expiry:s.expiresAt,
+ const candidates:ArbitrationCandidate[]=setups.map(s=>({id:s.id,strategyId:s.strategy,strategyVersion:s.origin?.version??'1.0.0',market:s.market??conditionalMarket(s.symbol)??'crypto',symbol:s.symbol,timeframe:s.timeframe,
+ side:s.side,confidence:s.score,grade:s.origin?.plan.diagnostics.grade??(s.score>=85?'A+':'A'),score:s.selectionScore??s.score,entry:s.trigger,stop:s.stop,targets:[s.tp1,s.tp2],riskReward:Math.abs(s.tp2-s.trigger)/Math.abs(s.trigger-s.stop),expiry:s.expiresAt,
  fresh:now-Date.parse(s.sourceClose)<width(s.timeframe),lifecycle:'ENABLED',publicationMode:'LIVE',eligible:true,
  evidence:{policy:CONDITIONAL_POLICY,score_is_probability:false,conditional_only:true},rejectionReasons:[]}));
  const opposing=new Set(setups.map(s=>s.side)).size>1;

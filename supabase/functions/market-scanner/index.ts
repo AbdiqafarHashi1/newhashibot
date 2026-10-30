@@ -1,3 +1,4 @@
+import {loadPaperLearning} from '../_shared/paper-learning.ts';
 import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
 import {discoverWatchedStrategies} from '../_shared/watched-strategy-discovery.ts';
 import {watchedMarketContext} from '../_shared/watched-market-context.ts';
@@ -1604,6 +1605,7 @@ async function runScanPipeline(
   const sourceRead=conditionalEnabled?await supabase.from('intelligence_events').select('event_id,market,created_at,metadata,data_sources').gte('created_at',new Date(Date.now()-1800000).toISOString()).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
   const watchedSources=(sourceRead.error?[]:sourceRead.data??[]).map((r:any)=>({...r,id:r.event_id}));
   const conditionalStore=new ConditionalSignalStore(supabase);
+  const paperLearning=conditionalEnabled?await loadPaperLearning(supabase):undefined;
   const conditionalBatch:ConditionalSetup[]=[];
   const cryptoTeamEnabled=CRYPTO_TEAM_ROLES.some(role=>getStratCfg(role.name).enabled);
   if(!conditionalEnabled&&cryptoTeamEnabled&&['MicroScalper','QuickScalp','CompressionBreakout','SwingContinuation'].some(name=>getStratCfg(name).enabled))throw new Error('MIXED_CRYPTO_INSTRUMENT_PROFILE_REQUIRES_VALIDATION');
@@ -1999,7 +2001,7 @@ async function runScanPipeline(
           const quote=marketType==='forex'?await fetchForexCandlesForRun(normalizedSymbol,tf):undefined;
           const contextOptions={higher:higher??[],anchor:anchor??undefined,sources:watchedSources,spreadPrice:quote?.spreadPrice,spreadObservedAt:quote?.spreadObservedAt};
           await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf as WatchTimeframe,admitted.candles,at,{intelligence:(rows,time)=>watchedMarketContext(rows,time,contextOptions)});
-          const assessment=discoverWatchedStrategies({definitions:watchedDefinitions,symbol:normalizedSymbol,tf:tf as WatchTimeframe,rows:admitted.candles,now:at,...contextOptions});
+          const assessment=discoverWatchedStrategies({definitions:watchedDefinitions,symbol:normalizedSymbol,tf:tf as WatchTimeframe,rows:admitted.candles,now:at,learning:paperLearning,...contextOptions});
           conditionalBatch.push(...assessment.setups);
           const recorded=await supabase.rpc('record_watched_strategy_observations',{p_rows:assessment.observations});if(recorded.error)throw Error('STRATEGY_OBSERVATIONS_WRITE_FAILED');
           continue; // Same strategy contract and paper ledger; no customer execution adoption.
