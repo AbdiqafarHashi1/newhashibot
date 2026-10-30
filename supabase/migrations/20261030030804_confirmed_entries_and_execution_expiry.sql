@@ -22,12 +22,12 @@ create function public.guard_confirmed_crypto_submission() returns trigger langu
 revoke all on function public.guard_confirmed_crypto_submission() from public,anon,authenticated;
 create trigger confirmed_crypto_submission before insert on public.crypto_account_execution_truth for each row execute function public.guard_confirmed_crypto_submission();
 create function public.guard_confirmed_mt5_submission() returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$begin
- if new.operation='OPEN_POSITION' and new.payload ? 'phase_d_decision_id' then
+ if new.operation='OPEN_POSITION' and (tg_op='INSERT' or new.status='accepted') then
   perform assert_confirmed_account_entry(d.customer_id,d.execution_account_id,d.signal_id) from execution_account_policy_decisions d where d.id=new.payload->>'phase_d_decision_id';
   if not found then raise exception 'PHASE_D_DECISION_NOT_EXECUTABLE';end if;
  end if;return new;end$$;
 revoke all on function public.guard_confirmed_mt5_submission() from public,anon,authenticated;
-create trigger confirmed_mt5_submission before insert on public.mt5_commands for each row execute function public.guard_confirmed_mt5_submission();
+create trigger confirmed_mt5_submission before insert or update of status on public.mt5_commands for each row execute function public.guard_confirmed_mt5_submission();
 
 -- Each newly verified execution payment grants at most 30 days from its activation.
 -- Never create a payment, extend a provider period, or grant access from this trigger.
@@ -52,3 +52,71 @@ create function public.first_month_launch_overview() returns jsonb language sql 
 $$;
 revoke all on function public.first_month_launch_overview() from public,anon,authenticated;
 grant execute on function public.first_month_launch_overview() to service_role;
+
+-- Expired open commands must not starve protective/close commands behind them.
+CREATE OR REPLACE FUNCTION public.claim_mt5_command(
+  p_account_id uuid, p_owner_id uuid, p_bridge_id text, p_worker_id text)
+RETURNS SETOF public.mt5_commands LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE claimed public.mt5_commands;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM public.mt5_accounts a
+     WHERE a.id = p_account_id
+       AND a.user_id = p_owner_id
+       AND a.bridge_id = p_bridge_id
+  ) THEN
+    RAISE EXCEPTION 'BRIDGE_ACCOUNT_SCOPE_MISMATCH';
+  END IF;
+
+  SELECT * INTO claimed
+    FROM public.mt5_commands c
+   WHERE c.account_id = p_account_id
+     AND c.bridge_id = p_bridge_id
+     AND (c.expires_at IS NULL OR c.expires_at > now())
+     AND (c.status = 'received' OR (
+       c.status = 'accepted'
+       AND c.claimed_at < now() - interval '2 minutes'
+     ))
+     AND (c.operation <> 'OPEN_POSITION' OR (
+       EXISTS (
+         SELECT 1 FROM public.execution_account_policy_decisions d
+         JOIN public.execution_entitlement_bindings b ON b.execution_account_id=d.execution_account_id AND b.customer_id=d.customer_id AND b.state='ACTIVE'
+         JOIN public.phase_h_entitlements e ON e.id=b.entitlement_id AND e.customer_id=d.customer_id AND e.execution_account_id=d.execution_account_id
+         JOIN public.signals s ON s.id=d.signal_id
+         WHERE d.id=c.payload->>'phase_d_decision_id' AND d.customer_id=p_owner_id AND d.decision IN('ALLOW','REDUCE')
+           AND e.state='ACTIVE' AND e.source<>'NOT_CONFIGURED' AND e.valid_until>clock_timestamp()
+           AND s.source='scanner' AND s.status='active' AND s.expires_at>clock_timestamp()
+           AND EXISTS(SELECT 1 FROM public.signal_updates u WHERE u.signal_id=s.id AND u.new_status='active' AND u.reason IN('entry_trigger','candle_entry_trigger','conditional_close_confirmed') AND u.price>0 AND u.price::text NOT IN('NaN','Infinity','-Infinity') AND u.created_at>=s.created_at AND u.created_at<=clock_timestamp() AND u.created_at<s.expires_at)
+       )
+       AND c.payload->>'certified' = 'true'
+       AND c.payload->>'deterministic_identity' = c.idempotency_key
+       AND EXISTS (
+         SELECT 1
+           FROM public.certified_runtime_claims r
+          WHERE r.execution_plan_id = c.payload->>'execution_plan_id'
+            AND r.account_id = c.account_id::text
+            AND r.state = 'completed'
+       )
+     ))
+   ORDER BY c.created_at
+   FOR UPDATE SKIP LOCKED
+   LIMIT 1;
+
+  -- SETOF functions return an empty set normally when no eligible command is
+  -- present, including read-only TEST_CONNECTION/SYNC_ACCOUNT polling cycles.
+  IF NOT FOUND THEN RETURN; END IF;
+
+  UPDATE public.mt5_commands
+     SET status = 'accepted',
+         claimed_at = now(),
+         worker_id = p_worker_id,
+         attempts = attempts + 1
+   WHERE id = claimed.id
+   RETURNING * INTO claimed;
+
+  RETURN NEXT claimed;
+END $$;
+
+REVOKE ALL ON FUNCTION public.claim_mt5_command(uuid,uuid,text,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_mt5_command(uuid,uuid,text,text) TO service_role;

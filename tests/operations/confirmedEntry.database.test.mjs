@@ -9,7 +9,9 @@ test('database entry gates require confirmation and finite per-account access; e
  create table execution_entitlement_bindings(customer_id uuid,execution_account_id uuid,entitlement_id uuid,state text);
  create table execution_account_policy_decisions(id text primary key,customer_id uuid,execution_account_id uuid,signal_id uuid,decision text);
  create table crypto_account_execution_truth(customer_id uuid,execution_account_id uuid,signal_id uuid,lifecycle_state text);
- create table mt5_commands(operation text,payload jsonb);`);
+ create table mt5_commands(id uuid default gen_random_uuid(),operation text,payload jsonb,status text default 'received',account_id uuid,bridge_id text,expires_at timestamptz,claimed_at timestamptz,worker_id text,attempts integer default 0,idempotency_key text,created_at timestamptz default now());
+ create table mt5_accounts(id uuid,user_id uuid,bridge_id text);
+ create table certified_runtime_claims(execution_plan_id text,account_id text,state text);`);
  await db.exec(await readFile('supabase/migrations/20261030030804_confirmed_entries_and_execution_expiry.sql','utf8'));
  const c='11111111-1111-4111-8111-111111111111',a='22222222-2222-4222-8222-222222222222',s='33333333-3333-4333-8333-333333333333',e='44444444-4444-4444-8444-444444444444';
  await db.query("insert into signals values($1,'scanner','waiting',now()+interval '1 hour',now()-interval '1 hour')",[s]);
@@ -21,11 +23,16 @@ test('database entry gates require confirmation and finite per-account access; e
  await db.exec("update signals set status='active'");await assert.rejects(insert(),/CONFIRMATION_REQUIRED/);
  await db.query("insert into signal_updates values($1,'active',100,'candle_entry_trigger',now()-interval '1 minute')",[s]);await insert();
  await db.query("insert into crypto_account_execution_truth values($1,$2,$3,'ENTRY_SUBMITTED')",[c,a,s]);
+ await db.query("insert into mt5_commands(operation,payload,account_id,bridge_id,idempotency_key) values('OPEN_POSITION',$1,$2,'bridge','entry-key')",[JSON.stringify({phase_d_decision_id:'decision',certified:true,deterministic_identity:'entry-key',execution_plan_id:'plan'}),a]);
+ await db.query("insert into mt5_accounts values($1,$2,'bridge');",[a,c]);
+ await db.query("insert into certified_runtime_claims values('plan',$1,'completed')",[a]);
  await db.exec("update phase_h_entitlements set valid_until=now()-interval '1 second'");
  await assert.rejects(db.query("insert into crypto_account_execution_truth values($1,$2,$3,'ENTRY_SUBMITTED')",[c,a,s]),/FINITE_ACTIVE_EXECUTION_ACCESS_REQUIRED/);
- await assert.rejects(db.query("insert into mt5_commands values('OPEN_POSITION',$1)",[JSON.stringify({phase_d_decision_id:'decision'})]),/FINITE_ACTIVE_EXECUTION_ACCESS_REQUIRED/);
- await db.exec("insert into mt5_commands values('MODIFY_PROTECTION','{}'),('CLOSE_POSITION','{}');update crypto_account_execution_truth set lifecycle_state='PROTECTION_VERIFIED'");
+ await assert.rejects(db.query("insert into mt5_commands(operation,payload) values('OPEN_POSITION',$1)",[JSON.stringify({phase_d_decision_id:'decision'})]),/FINITE_ACTIVE_EXECUTION_ACCESS_REQUIRED/);
+ await db.exec("insert into mt5_commands(operation,payload) values('MODIFY_PROTECTION','{}'),('CLOSE_POSITION','{}');update crypto_account_execution_truth set lifecycle_state='PROTECTION_VERIFIED'");
  await db.query("insert into execution_account_policy_decisions values('blocked',$1,$2,$3,'BLOCK')",[c,a,s]);
+ await db.query("insert into mt5_commands(operation,payload,account_id,bridge_id) values('MODIFY_PROTECTION','{}',$1,'bridge')",[a]);
+ const claimed=await db.query("select * from claim_mt5_command($1,$2,'bridge','worker')",[a,c]);assert.equal(claimed.rows[0]?.operation,'MODIFY_PROTECTION');
  await assert.rejects(db.exec("set role authenticated;select assert_confirmed_account_entry(null,null,null)"),/permission denied/);
  }finally{await db.close()}
 });
