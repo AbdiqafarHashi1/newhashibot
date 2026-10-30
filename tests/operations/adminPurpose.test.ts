@@ -1,8 +1,8 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {adminPrimaryPages,adminAdvancedPages} from '../../src/lib/adminNavigation';
 import {customerTelegramLink} from '../../supabase/functions/_shared/customer-telegram-link.ts';
-test('Release 1 navigation has seven unique, implemented owners; advanced execution is separate',()=>{
- const app=readFileSync('src/App.tsx','utf8');assert.equal(adminPrimaryPages.length,7);
+test('Release 1 navigation has eight unique, implemented owners; advanced execution is separate',()=>{
+ const app=readFileSync('src/App.tsx','utf8');assert.equal(adminPrimaryPages.length,8);
  const all=[...adminPrimaryPages,...adminAdvancedPages];assert.equal(new Set(all.map(p=>p.to)).size,all.length);
  for(const p of all){assert(app.includes(`path="${p.to}"`),p.to);assert(p.purpose.length>20);}
  assert(!adminPrimaryPages.some(p=>/execution|fleet|readiness|operator/.test(p.to)));

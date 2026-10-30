@@ -23,7 +23,7 @@ export function AdminLayout({ children, title, description }: { children: ReactN
   const [sideOpen, setSideOpen] = useState(false);
   const [advanced,setAdvanced]=useState(adminAdvancedPages.some(p=>p.to===loc.pathname));
 
-  const bottomNav=[adminPrimaryPages[0],adminPrimaryPages[1],adminPrimaryPages[3],adminPrimaryPages[4],adminPrimaryPages[6]].map((p,i)=>({...p,label:['Setup','Scanner','Telegram','Customers','Growth'][i]}));
+  const bottomNav=['/admin/launch','/admin/scanner','/admin/telegram','/admin/customers','/admin/growth-goal'].map((to,i)=>({...adminPrimaryPages.find(p=>p.to===to)!,label:['Setup','Scanner','Telegram','Customers','Growth'][i]}));
 
   const navRef = useRef<HTMLElement>(null);
   const scrollPosRef = useRef(0);

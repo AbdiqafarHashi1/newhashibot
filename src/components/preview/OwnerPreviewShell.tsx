@@ -52,7 +52,7 @@ export function OwnerPreviewShell() {
     <aside ref={controls} aria-label="Owner Preview controls" className="fixed inset-x-0 top-0 z-[100] border-b border-amber-400/40 bg-zinc-950 px-3 py-2 text-amber-200" style={{top:0}}>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <strong>OWNER PREVIEW — simulated data; no real actions.</strong>
-        <div className="flex gap-3"><Link to="/admin/mission-control">Admin journey</Link><Link to="/app/onboarding">Customer journey</Link><button onClick={resetOwnerPreview}>Reset demonstration data</button><button onClick={exitOwnerPreview}>Exit preview</button></div>
+        <div className="flex gap-3"><Link to="/admin/investor">Investor tour</Link><Link to="/admin/mission-control">Admin journey</Link><Link to="/app/onboarding">Customer journey</Link><button onClick={resetOwnerPreview}>Reset demonstration data</button><button onClick={exitOwnerPreview}>Exit preview</button></div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
         <label>Customer <select aria-label="Preview customer" className="max-w-48 rounded bg-zinc-800 p-1" value={previewStore.customer().id} onChange={e => previewStore.selectCustomer(e.target.value)}>{previewCustomers.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}</select></label>

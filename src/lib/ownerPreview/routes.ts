@@ -1,5 +1,7 @@
 // Actual App.tsx routes, including compatibility aliases. No invented screens.
 export const ownerPreviewRoutes = [
+  "/admin/investor",
+  "/app/execution-onboarding",
   "/app/dashboard",
   "/app/signals/preview-signal-btc", // Fixture instance of /app/signals/:id
   "/app/signals",

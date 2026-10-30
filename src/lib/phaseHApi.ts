@@ -21,6 +21,7 @@ export const phaseHApi = {
   assignBrain: (executionAccountId:string, risk:number, strategies:string[], idempotencyKey:string) => authority('assign_brain',{execution_account_id:executionAccountId,risk,strategies,idempotency_key:idempotencyKey}),
   createAccountDraft: (input:Record<string,unknown>) => authority('create_account_draft',input),
   acknowledge: (executionAccountId:string|undefined, version='2026.09') => authority('acknowledge_risk',{execution_account_id:executionAccountId,version}),
+  detail: (executionAccountId:string) => authority('account_detail',{execution_account_id:executionAccountId}),
   policy: (executionAccountId:string) => authority<{family:string;version:string;risk:number;strategies:string[];assignmentId:string}>('account_policy',{execution_account_id:executionAccountId}),
   readiness: (executionAccountId:string) => authority('refresh_readiness',{execution_account_id:executionAccountId}),
   pairing: (executionAccountId:string) => authority<{code:string;expires_at:string}>('create_pairing',{execution_account_id:executionAccountId}),

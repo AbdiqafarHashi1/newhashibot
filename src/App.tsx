@@ -15,6 +15,8 @@ import { ScrollToAnchor } from './components/common/ScrollToAnchor';
 // Eager: critical infrastructure (tiny, needed on every load)
 
 // Lazy: all pages — each becomes its own chunk loaded on demand
+const InvestorWalkthrough=lazy(()=>import('./pages/admin/InvestorWalkthrough'));
+const Demo=lazy(()=>import('./pages/public/Demo'));
 const CustomerVisualBridge = lazy(() => import('./pages/app/CustomerVisualBridge').then(m => ({ default: m.CustomerVisualBridge })));
 const AdminVisualBridgeManagement = lazy(() => import('./pages/admin/AdminVisualBridgeManagement').then(m => ({ default: m.AdminVisualBridgeManagement })));
 
@@ -152,6 +154,8 @@ function App() {
             <Route path="/forex-mt5-prop-bot" element={<Navigate to="/execution/prop" replace />} />
 
             {/* Auth pages */}
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/admin/investor" element={<RequireAdmin><InvestorWalkthrough /></RequireAdmin>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 

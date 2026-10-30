@@ -1,3 +1,4 @@
+import {loadConfirmedEntry} from './confirmed-entry.ts';
 import {prepareAutomaticBybitEvidence} from './automatic-bybit-policy-evidence.ts';
 import {prepareAutomaticCryptoEvidence} from './automatic-crypto-policy-evidence.ts';
 import {prepareAutomaticMt5Evidence} from './automatic-mt5-policy-evidence.ts';
@@ -14,7 +15,9 @@ export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:s
  const loaded=await db.rpc('load_production_account_authorization_input',{p_customer_id:input.customerId,p_account_id:input.accountId,p_signal_id:input.signalId});if(loaded.error||!loaded.data)throw Error('ACCOUNT_AUTHORIZATION_INPUT_UNAVAILABLE');
  const x=loaded.data,account=x.account,signal=x.signal,provider=String(account.provider).toUpperCase() as AccountEvaluationInput['account']['provider'];
  const at=Date.parse(now),observed=Date.parse(x.observed_at),context=x.context;
+ await loadConfirmedEntry(db,signal,at);
  const reasons:string[]=[];
+ if(!x.entitlement?.expiresAt||!Number.isFinite(Date.parse(x.entitlement.expiresAt)))reasons.push('FINITE_EXECUTION_ACCESS_REQUIRED');
  try{assertMeasuredExecutionLineage(x)}catch(e){reasons.push(e instanceof Error?e.message:'MEASURED_EXECUTION_RELEASE_REQUIRED')}
  if(x.qualified_set&&x.provisioning?.state==='ACTIVE'&&x.provisioning.qualified_set_id===x.qualified_set.id&&x.provisioning.qualified_set_version===x.qualified_set.setVersion){x.eligibility=routeProductionEligibility({claim:pinnedClaimFromQualifiedSet({product:x.product,market:String(x.product).startsWith('FOREX')?'FOREX':'CRYPTO',set:x.qualified_set,strategyId:signal.strategy_id,strategyVersion:signal.strategy_version,symbol:signal.symbol,timeframe:signal.timeframe,requiredQualification:'FORWARD_VALIDATION_CANDIDATE',evaluatedParameters:x.strategy_plan?.provenance?.evaluated_parameters??{}}),qualifiedSet:x.qualified_set});}
  if(!x.contract)reasons.push('OBSERVED_PROVIDER_CONTRACT_REQUIRED');
@@ -26,7 +29,7 @@ export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:s
  if(x.policy?.policy_id!==account.policy_profile_id||x.policy?.policy_version!==account.policy_version||x.assignment?.policy_version!==account.policy_version)reasons.push('CURRENT_BRAIN_POLICY_REQUIRED');
  if(!x.eligibility||x.eligibility.decision!=='ELIGIBLE')reasons.push('CURRENT_QUALIFIED_SET_REQUIRED');
  if(!Number.isFinite(Date.parse(signal.expires_at))||Date.parse(signal.expires_at)<=at)reasons.push('CANONICAL_SIGNAL_EXPIRED');
- if(!['waiting','active'].includes(signal.status))reasons.push('CANONICAL_SIGNAL_NOT_ADMITTED');
+ if(signal.status!=='active')reasons.push('CANONICAL_SIGNAL_NOT_ADMITTED');
  if(provider.startsWith('MT5')?(x.connection?.state!=='CONNECTED'||x.connection?.capabilities?.trading!==true):(x.connection?.state!=='VERIFIED'||x.connection?.capabilities?.verified!==true||x.connection?.capabilities?.trading!==true||x.connection?.capabilities?.withdrawal!==false))reasons.push('CURRENT_PROVIDER_CAPABILITIES_REQUIRED');
  const sp=x.strategy_plan;if(!sp||sp.identity?.strategy_id!==signal.strategy_id||sp.identity?.strategy_version!==signal.strategy_version||sp.market_context?.symbol!==signal.symbol||sp.decision?.action!==String(signal.direction).toUpperCase()||sp.risk_proposal?.initial_stop!==Number(signal.stop_loss)||sp.risk_proposal?.tp1!==Number(signal.tp1)||sp.risk_proposal?.tp2!==Number(signal.tp2)||Date.parse(sp.entry_plan?.expires_at)<=at||!Number.isFinite(Date.parse(sp.entry_plan?.expires_at)))reasons.push('CANONICAL_STRATEGY_PLAN_REQUIRED');
  const ownership={id:account.id,immutableIdentity:account.immutable_identity,customerId:account.customer_id,provider,accountType:account.account_mode,active:account.enabled===true,executionEnabled:account.execution_enabled===true,runtimeControl:account.runtime_control,policyProfileId:account.policy_profile_id,policyVersion:account.policy_version};
@@ -49,6 +52,7 @@ export async function drainProductionAccountAuthorizations(db:any,limit=25){
  const results=[];
  for(const job of pending.data){try{
   const source=await db.rpc('load_production_account_authorization_input',{p_customer_id:job.customer_id,p_account_id:job.execution_account_id,p_signal_id:job.signal_id});if(source.error||!source.data)throw Error('ACCOUNT_AUTHORIZATION_INPUT_UNAVAILABLE');
+  if(source.data.signal.status==='waiting'){results.push({id:job.id,state:'WAITING_FOR_CONFIRMATION'});continue}
   // Transient missing observations stay retryable; they must not freeze a permanent BLOCK for this signal.
   if(Date.parse(source.data.signal.expires_at)>Date.now()&&['waiting','active'].includes(source.data.signal.status)){
    await prepareAutomaticMt5Evidence(db,source.data);

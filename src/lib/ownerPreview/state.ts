@@ -7,9 +7,9 @@ const remove = session?.removeItem.bind(session);
 export const isOwnerPreview = () => read?.(PREVIEW_FLAG) === 'active';
 /** Opens existing admin pages only; never establishes backend authorization. */
 export const isAdminPass = () => read?.(PREVIEW_FLAG) === 'admin-shell';
-export function enterOwnerPreview() {
+export function enterOwnerPreview(destination='/admin/operator') {
   write?.(PREVIEW_FLAG, 'active');
-  window.location.assign('/admin/operator');
+  window.location.assign(destination==='/admin/investor'?destination:'/admin/operator');
 }
 export function exitOwnerPreview() {
   remove?.(PREVIEW_FLAG);
