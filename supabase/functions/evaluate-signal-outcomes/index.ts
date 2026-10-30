@@ -438,6 +438,7 @@ Deno.serve(async (req: Request) => {
       .from("signals")
       .select("*")
       .in("status", EVALUATED_STATUSES)
+      .or("mode_slug.is.null,mode_slug.neq.conditional_execution")
       .order("created_at", { ascending: false })
       .limit(200);
 

@@ -280,6 +280,7 @@ Deno.serve(async (req: Request) => {
       const {data,error}=await supabase.rpc("control_hashibot_release_schedule",{p_actor:admin.userId,p_name:body.name??null,p_enabled:action === "set_release_schedule"?body.enabled:null});
       return jsonResponse(error?{success:false,error:"RELEASE_SCHEDULE_CONTROL_FAILED"}:{success:true,jobs:data},error?409:200);
     }
+    if(action === "install_execution_schedules")return jsonResponse(await installReleaseSchedules(supabase,admin.userId!,supabaseUrl,key=>Deno.env.get(key),"ALL"));
     if(action === "install_release_schedules")return jsonResponse(await installReleaseSchedules(supabase,admin.userId!,supabaseUrl,key=>Deno.env.get(key)));
 
     if (action === "status") {

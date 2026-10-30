@@ -95,3 +95,10 @@ test('context changing at the entry open cancels the watch; a filled position st
  s={...s,status:'ACTIVE',fill:s.trigger,fillAt:opening.open_time,bars:0,netR:0};const stop={...opening,low:s.stop-risk*.1,high:s.trigger+risk*.1,close:s.trigger-risk*.5};
  await observeConditionalSymbol(store,s.symbol,'5m',[...c.rows,confirm,stop],now+600000,{intelligence:(rows,at)=>({...watchedMarketContext(rows,at,{higher:c.higher}),news:'HIGH_IMPACT_WINDOW'})});assert.equal(s.status,'CLOSED');assert.ok(s.netR!<0);
 });
+
+test('promoted core watches use the same frozen parameters that account execution verifies',()=>{
+ const release={id:'core-release',strategy_id:'crypto.compression-breakout',state:'PROMOTED',immutable_configuration:{minSignalGrade:'A',strategies:[{id:'crypto.compression-breakout',enabled:true,symbols:['BTCUSDT'],timeframes:['15m'],minScore:84,minRiskReward:1.5,maxBarsInTrade:32,parameters:{lookback:20}}]}};
+ const definitions=watchedStrategyCatalog([{strategy_name:'CompressionBreakout',enabled:true,params:{lookback:99}}],[release]);
+ const watched=definitions.find(d=>d.id==='crypto.compression-breakout')!;
+ assert.equal(watched.config.config_source,'measured_release:core-release');assert.deepEqual(watched.config.params,{lookback:20});assert.deepEqual(watched.config.allowed_symbols,['BTCUSDT']);assert.equal(watched.config.min_score,84);
+});
