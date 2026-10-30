@@ -76,3 +76,8 @@ Subscriber copy rejects recognizable technical diagnostics at intelligence gener
 8. Owner: enable the Free four-hour guide and approved partner destinations. Share `/free` and `/vip` with campaign attribution in Meta/TikTok promotion. Automated partner Telegram publishing requires bot permissions; other social networks remain manual exports in this release.
 
 The live `/free` and `/vip` URLs could not be independently fetched by the web tool during this check. Source routes and browser fixtures are verified separately; a successful frontend deployment and real public-route smoke check remain part of activation.
+
+
+## Analysis/news source failures are Admin-only
+
+Both scheduled and manually requested intelligence use the same delivery policy. Partial/failed analysis or news is held from Free and VIP and generates a deduplicated Admin sourcing report tied to the stored record. Non-available feed diagnostics and Forex candle/news failures are also reported to Admin. Crypto subscriber templates omit unavailable feed lines and raw provider errors. Independent successful analysis may still be published from healthy sources; it does not include or imply evidence from the failed feed. Publication additionally rejects a summary containing its recorded provider error. A failed news digest never becomes a subscriber “news unavailable” post.

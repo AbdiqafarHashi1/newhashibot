@@ -6,6 +6,8 @@ import type {EditorialPublication} from './telegram-product.ts';
 /** A stored evidence record is required; the score means feed coverage, never predictive confidence. */
 export function intelligencePublication(output: IntelligenceOutput, audience: 'free'|'vip', now = Date.now()): EditorialPublication {
   if(!subscriberCopySafe(`${output.title}\n${output.summary}`))throw Error('SUBSCRIBER_DIAGNOSTIC_BLOCKED');
+  const failedFeeds=Array.isArray(output.metadata?.feed_health)?output.metadata.feed_health:[];
+  if(failedFeeds.some((f:any)=>f.status!=='available'&&typeof f.error_message==='string'&&f.error_message.length>0&&output.summary.includes(f.error_message)))throw Error('INTELLIGENCE_SOURCE_DIAGNOSTIC_IN_SUMMARY');
   const generated = Date.parse(String(output.freshness.generated_at));
   if (output.status !== 'generated' || !output.summary.trim() || !Number.isFinite(generated) || generated > now+5000 || now-generated > 15*60_000) throw Error('INTELLIGENCE_EVIDENCE_INSUFFICIENT');
   const sources = Object.entries(output.data_sources).filter(([,v])=>typeof v === 'string' && v !== 'unavailable');
