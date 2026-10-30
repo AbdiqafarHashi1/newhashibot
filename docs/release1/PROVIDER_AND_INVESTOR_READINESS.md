@@ -31,4 +31,4 @@ No real orders, payments, Telegram messages or production schedules were activat
 
 ## Local verification
 
-Application build and TypeScript checks, all 39 Edge Function dependency bundles, operation policy/provider tests, 21 PostgreSQL operation tests, bridge tests, conditional-signal tests and commerce/operations integration tests are run against this change. These checks validate code paths and persisted guards, not real provider availability or investment returns. Browser test execution depends on a usable Chromium runtime; the investor mirror remains private.
+Application build and TypeScript checks, all 39 Edge Function dependency bundles, operation policy/provider tests, 22 PostgreSQL operation tests, bridge tests, conditional-signal tests and commerce/operations integration tests are run against this change. These checks validate code paths and persisted guards, not real provider availability or investment returns. Browser test execution depends on a usable Chromium runtime; the investor mirror remains private.
