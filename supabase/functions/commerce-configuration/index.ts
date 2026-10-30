@@ -11,6 +11,7 @@ Deno.serve(async req=>{
  try{
   const raw=await req.text();if(raw.length>22000)return reply({error:'REQUEST_TOO_LARGE'},413);const body=JSON.parse(raw),provider=String(body.provider??'') as CommerceProvider;
   if(!Object.hasOwn(COMMERCE_FIELDS,provider))return reply({error:'PROVIDER_REQUIRED'},422);
+  if(body.action==='set_execution_kes_price'){if(provider!=='MPESA')return reply({error:'MPESA_PROVIDER_REQUIRED'},422);const{data,error}=await db.rpc('configure_execution_kes_price',{p_actor:user.id,p_amount_kes:body.amount_kes});if(error)return reply({error:'EXECUTION_PRICE_NOT_SAVED'},409);return reply(data);}
   if(body.action==='recovery_status'){
    const {data,error}=await db.from('commerce_payment_events').select('provider,external_event_id,event_type,processing_state,review_reason,safe_error,next_reconcile_at,received_at').eq('provider',provider).order('received_at',{ascending:false}).limit(20);if(error)throw Error('RECOVERY_STATUS_UNAVAILABLE');return reply({state:'LOADED',events:data??[]});
   }
@@ -37,7 +38,7 @@ Deno.serve(async req=>{
    for(const price of prices){if(!config.planIds[price.product_code])continue;await verifyWhopRuntimePlan(config,price.product_code,Number(price.amount_minor),price.currency);products.push(price.product_code)}
   }else{
    const adapter=mpesaAdapterFromGetter(get);if(!(adapter instanceof DarajaMpesaAdapter))throw Error('DARAJA_FIELDS_REQUIRED');await adapter.verifyCredentials();
-   if(prices.some((p:any)=>p.product_code!=='VIP_SIGNALS'||p.currency!=='KES'||!Number.isSafeInteger(Number(p.amount_minor)/100)||![7,30].includes(p.fixed_period_days)))throw Error('APPROVED_MPESA_PRICES_REQUIRED');products.push('VIP_SIGNALS');
+   if(prices.some((p:any)=>!['VIP_SIGNALS','FOUNDING_AUTO_EXECUTION'].includes(p.product_code)||p.currency!=='KES'||Number(p.amount_minor)<=0||!Number.isSafeInteger(Number(p.amount_minor)/100)||(p.product_code==='FOUNDING_AUTO_EXECUTION'?p.fixed_period_days!==30:![7,30].includes(p.fixed_period_days))))throw Error('APPROVED_MPESA_PRICES_REQUIRED');products.push(...prices.map((p:any)=>p.product_code));
   }
   if(!products.length)throw Error('MATCHING_PROVIDER_PLANS_REQUIRED');
   const args={p_actor:user.id,p_provider:provider,p_revision:metadata.revision,p_products:[...new Set(products)]};

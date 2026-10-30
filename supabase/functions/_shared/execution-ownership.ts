@@ -14,6 +14,7 @@ export interface EdgeExecutionOwnership {
 }
 
 export interface EdgeProviderCredential {
+  canonicalLiveAuthorized?: boolean;
   apiKey: string;
   apiSecret: string;
   ownership: EdgeExecutionOwnership;

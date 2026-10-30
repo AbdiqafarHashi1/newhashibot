@@ -17,14 +17,14 @@ export interface CryptoPhaseDLineage {
 export interface CryptoRouteTruth {
   provider: CryptoProvider; executionAccountId: string; customerId: string;
   immutableAccountIdentity: string; environment: "TESTNET" | "DEMO" | "LIVE";
-  executionEnabled: boolean; operational: boolean; providerHealth: "HEALTHY" | "DEGRADED" | "UNHEALTHY";
+  liveAuthorized?: boolean; executionEnabled: boolean; operational: boolean; providerHealth: "HEALTHY" | "DEGRADED" | "UNHEALTHY";
   symbol: string; symbolStatus: string; symbolObservedAt: string;
   tickSize: number; stepSize: number; minimumQuantity: number; minimumNotional: number;
   permissions: { trading: boolean; withdrawal: boolean | null; verified: boolean };
 }
 export interface NormalizationFact { field: "quantity" | "price"; requested: number; submitted: number; reason: string; }
 export interface CryptoSubmissionEnvelope {
-  version: typeof CRYPTO_PHASE_F_VERSION; provider: CryptoProvider; environment: "TESTNET" | "DEMO";
+  version: typeof CRYPTO_PHASE_F_VERSION; provider: CryptoProvider; environment: "TESTNET" | "DEMO" | "LIVE";
   deterministicClientOrderId: string; idempotencyKey: string; customerId: string; accountId: string;
   symbol: string; requestedQuantity: number; submittedQuantity: number; requestedPrice: number;
   submittedPrice: number; authorizedRiskPct: number; normalization: readonly NormalizationFact[];
@@ -44,7 +44,7 @@ export function createCryptoSubmissionEnvelope(input: { lineage: CryptoPhaseDLin
   requireValue(lineage.executionAccountId === route.executionAccountId, "ACCOUNT_SCOPE_MISMATCH");
   requireValue(lineage.immutableAccountIdentity === route.immutableAccountIdentity, "ACCOUNT_IDENTITY_MISMATCH");
   requireValue(lineage.provider === route.provider, "PROVIDER_SCOPE_MISMATCH");
-  requireValue((route.provider === "BINANCE" && route.environment === "TESTNET") || (route.provider === "BYBIT" && route.environment === "DEMO"), "LIVE_EXECUTION_FORBIDDEN");
+  requireValue((route.provider === "BINANCE" && route.environment === "TESTNET") || (route.provider === "BYBIT" && route.environment === "DEMO") || (route.environment === "LIVE" && route.liveAuthorized === true), "LIVE_EXECUTION_FORBIDDEN");
   requireValue(route.executionEnabled && route.operational && route.providerHealth === "HEALTHY", "PROVIDER_ROUTE_NOT_READY");
   requireValue(route.permissions.verified && route.permissions.trading, "TRADING_PERMISSION_NOT_VERIFIED");
   requireValue(route.permissions.withdrawal !== true, "UNSAFE_WITHDRAWAL_PERMISSION");
@@ -64,7 +64,7 @@ export function createCryptoSubmissionEnvelope(input: { lineage: CryptoPhaseDLin
   const normalization: NormalizationFact[] = [];
   if (quantity !== lineage.approvedQuantity) normalization.push({ field:"quantity", requested:lineage.approvedQuantity, submitted:quantity, reason:`${route.provider}_STEP_SIZE:${route.stepSize}` });
   if (price !== input.requestedPrice) normalization.push({ field:"price", requested:input.requestedPrice, submitted:price, reason:`${route.provider}_TICK_SIZE:${route.tickSize}` });
-  return Object.freeze({ version:CRYPTO_PHASE_F_VERSION, provider:route.provider, environment:route.environment as "TESTNET"|"DEMO", deterministicClientOrderId:input.deterministicClientOrderId, idempotencyKey:`${route.executionAccountId}:${lineage.intentId}:${input.deterministicClientOrderId}`, customerId:lineage.customerId, accountId:lineage.executionAccountId, symbol:route.symbol, requestedQuantity:lineage.approvedQuantity, submittedQuantity:quantity, requestedPrice:input.requestedPrice, submittedPrice:price, authorizedRiskPct:lineage.authorizedRiskPct, normalization:Object.freeze(normalization.map(Object.freeze)), lineage:Object.freeze({ signalId:lineage.signalId, decisionId:lineage.decisionId, intentId:lineage.intentId, policyProfileId:lineage.policyProfileId, policyVersion:lineage.policyVersion, brainVersion:lineage.brainVersion, immutableAccountIdentity:lineage.immutableAccountIdentity }) });
+  return Object.freeze({ version:CRYPTO_PHASE_F_VERSION, provider:route.provider, environment:route.environment as "TESTNET"|"DEMO"|"LIVE", deterministicClientOrderId:input.deterministicClientOrderId, idempotencyKey:`${route.executionAccountId}:${lineage.intentId}:${input.deterministicClientOrderId}`, customerId:lineage.customerId, accountId:lineage.executionAccountId, symbol:route.symbol, requestedQuantity:lineage.approvedQuantity, submittedQuantity:quantity, requestedPrice:input.requestedPrice, submittedPrice:price, authorizedRiskPct:lineage.authorizedRiskPct, normalization:Object.freeze(normalization.map(Object.freeze)), lineage:Object.freeze({ signalId:lineage.signalId, decisionId:lineage.decisionId, intentId:lineage.intentId, policyProfileId:lineage.policyProfileId, policyVersion:lineage.policyVersion, brainVersion:lineage.brainVersion, immutableAccountIdentity:lineage.immutableAccountIdentity }) });
 }
 
 export type CryptoLifecycleEvent = "ORDER_REJECTED"|"SUBMISSION_UNCERTAIN"|"RECONCILIATION_STARTED"|"PARTIAL_FILL"|"ENTRY_FILLED"|"PROTECTION_REQUESTED"|"PROTECTION_VERIFIED"|"PROTECTION_MISSING"|"PROTECTION_FAILED"|"SAFETY_CLOSE_REQUESTED"|"TP1_FILLED"|"BREAKEVEN_CONFIRMED"|"PROFIT_LOCK_CONFIRMED"|"TRAILING_ACTIVE"|"TP2_FILLED"|"TERMINAL_EXIT";

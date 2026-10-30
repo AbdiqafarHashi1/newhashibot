@@ -1,35 +1,34 @@
-# Provider/account continuation and investor demonstration
+# HashiBot provider and launch handover
 
-## Implemented in this pass
+## Implemented behavior
 
-- Providers & accounts is a daily Admin page. Its paginated directory reads actual safe execution-account records, filters provider/environment and opens an account-specific report.
-- The report reads the exact customer/account/instance/credential/provider/environment monitor scope (or the owned MT5 terminal snapshot), displays account totals in their supplied currency, whitelists position/order fields, and includes recent provider outcomes, decisions and access expiry. Missing observations remain unknown; observations older than 90 seconds are marked stale. Reports poll every 15 seconds while visible.
-- Execution onboarding has three presentation steps: provider/purpose, risk/strategies, review/connection. It reuses canonical account creation, Brain assignment, acknowledgement and the existing verified key/pairing form. The form is available directly after account creation. It does not grant execution permission.
-- Waiting canonical scanner signals cannot be authorized. The authorizer requires an active signal and its persisted positive-price entry-trigger journal, with matching identity, valid chronology and unexpired signal. Waiting jobs remain pending rather than committing a permanent rejection before confirmation.
-- Additive database guards repeat confirmation/access checks when recording ALLOW/REDUCE, creating crypto submission truth or creating a Phase-D MT5 open command. Expiry blocks new entries while protection and closes remain possible. New verified execution grants are bounded to 30 days; no payment is fabricated.
-- The first-month dashboard targets are 50 distinct paying signal customers and 30 distinct paying execution customers. Counts require a current entitlement and a succeeded payment belonging to the same customer. Owner allowances are excluded. The separate long-term 1,000 Free / 1,000 VIP goals remain.
-- `/demo` starts an isolated investor walkthrough at `/admin/investor`. The existing fixture transport is reused; credentials, real HTTP/provider/payment actions and real local caches remain unavailable. The demonstration contains sample losses as well as wins and labels all results. It is not verified strategy performance or customer traction.
+The real application has one three-step onboarding flow for demo/testnet and live accounts. Environment selection is explicit and identities, credentials, reports and execution evidence remain account scoped. Connecting credentials does not start trading.
 
-## Important remaining engineering and external gates
+- Binance verifies futures reads and per-key live trading/withdrawal permissions. Bybit verifies supported native endpoints; demo keys without a UID use an explicitly classified key-bound identity. A missing demo write permission requires consent for an empty-account cancellation check, never a sample entry. Raw credentials stay in Vault.
+- MT5 pairing matches the selected environment to authenticated terminal evidence. Live terminals can report without mutation permission. Live mutations additionally require the local bridge setting and the exact terminal identity.
+- Providers & accounts shows current balances, margin, positions, orders, outcomes, decisions, access expiry, dispatch receipts and certification evidence. Missing data remains unknown. Crypto reports can be refreshed from the UI; MT5 pushes snapshots from the bridge.
+- Own-admin demo access is a separate audited 30-day allowance. It never creates payment or PASSED certification. Start still needs current provider health, risk acknowledgement and a qualified measured strategy configuration.
+- Only a persisted conditional movement confirmation, projected with its original measured strategy lineage, can enter automatic execution. The database repeats confirmation and finite-access checks at decision and submission boundaries. Expiry stops new entries while observation and protection remain available.
+- The canonical dispatcher uses durable claims and exact stored plans. Unknown submissions require native client-ID reconciliation; they are never silently retried. Crypto forward testing is flat-account only, with one unresolved entry per account. MT5 uses its measured exposure context.
+- Native quotes can reject an entry that moved outside its geometry or risk budget; they cannot increase the approved quantity. Live execution also needs explicit bounded approval, current paid or own-admin access, a genuine protected and closed demo round trip with the same policy configuration, and current capital evidence. Live risk is capped at 0.25 percent and an owner-selected equity ceiling. Approval and Start are separate actions.
+- Certification follows actual submission, observed protection, closure and attributed provider outcome. A loss can pass system-mechanics certification; no profitability claim is created.
+- Execution purchases are account scoped with 30-day access, verified payment evidence and 30 paid account slots. Admin Payments configures the execution KES price and requires provider re-verification after price changes. Owner test allowances do not count as sales.
+- Telegram channels, payments and provider connections have UI configuration paths. Setup & launch installs the 12 service schedules paused, with explicit activation controls.
+- First-month targets are 50 paying signal customers and 30 paying execution customers, counted from real current payment-backed entitlements.
+- `/demo` opens the isolated investor tour covering Scanner, Strategies, Backtest Lab, Providers & accounts, customer onboarding, trading controls and growth. Fixture results are labeled and include losses. They establish neither strategy performance nor traction.
 
-This pass is **not a claim of complete market readiness**.
+## External activation steps
 
-1. Supabase project `uqiwbzfcntlcyyewawfc` was observed INACTIVE. Restore it, compare the real migration ledger, deploy the complete branch and run actual end-to-end receipts before activating production schedules.
-2. Execution account onboarding, policy evidence and certified MT5/crypto dispatch still enforce demo/testnet. The live-money onboarding and certification path requested by the owner remains to be implemented. Legacy provider environment flags are not a certified customer live path.
-3. Fresh conditional next-open confirmations now materialize through the canonical scanner commit, preserving the original qualified strategy plan and requiring the exact promoted measured release and frozen parameters. Analysis-only, stale and mismatched setups remain blocked with an admin-visible reason. The watcher owns conditional lifecycle reporting; duplicate canonical publication is disabled. This bridge passes database tests but still needs deployed provider execution receipts.
-4. A startup dependency remains: ordinary runtime START requires PASSED demo certification, while certification dispatch requires START and a canonical account decision. A separate audited owner-demo bootstrap path must resolve that cycle without fabricating payment or certification. Supabase activation alone will not resolve it.
-5. Owner demo/testnet forward certification needs genuine account credentials, online provider/bridge feeds, measured strategy release/qualification, per-account access and current provider observations. Unit or fixture results do not establish profitable strategies or real fills.
-6. The current founding execution product has 20 account slots. A 30-customer target does not alter that commercial/support capacity. Further slots and any changed offer need a deliberate, tested product/capacity update.
-7. Payment configuration, real payment → entitlement → account activation → 30-day expiry/renewal and provider protection/reconnect/closure require deployed verification. No real orders, payments, Telegram sends or production schedules were activated in this pass.
+Project `uqiwbzfcntlcyyewawfc` was rechecked on 2026-10-30 and is INACTIVE. No deployment or native provider receipt is claimed while it is paused.
 
-## Review paths
+1. Owner restores Supabase and supplies the deployment connection when requested. Apply the complete integration branch migration chain against the actual ledger, deploy its functions and frontend, then verify deployed endpoints before enabling schedules.
+2. Owner enters demo/testnet provider credentials in onboarding and runs the MT5 bridge on the terminal host. Enter live credentials separately when ready. Keys must belong to the selected environment.
+3. Owner supplies Telegram bot/channel administration, payment merchant credentials, and chosen execution price through the setup screens. Verification must succeed before collection or publication is enabled.
+4. Owner selects and qualifies real strategy configurations and starts the three own demo accounts. Real forward trades must produce protection, closure and outcome receipts before the corresponding small-capital live approval becomes available.
+5. After those inputs exist, perform the connected acceptance run: conditional signal → account decision → native order → protection → closure → reported outcome; actual payment → entitlement → account start → expiry. Local tests do not replace these receipts.
 
-Demo: `/demo` → investor tour → Scanner / Strategies / Backtest Lab / Providers & accounts / Customer connection / Trading controls / Customers / Growth.
+No real orders, payments, Telegram messages or production schedules were activated during local preparation. Engineering changes and their tests are on PR 269; deployment and real-account verification remain contingent on these external inputs.
 
-Production: Setup & launch → configure sources/payment/channels → verify a customer signal subscription → validate owner demo accounts → inspect real provider evidence → enable only certified account entry controls.
+## Local verification
 
-The private investor mirror forces preview mode before application modules load. It has no server credentials or functional live account transport. HashiBot's main repository remains the source of production implementation.
-
-## Conditional execution validation
-
-The all-services scheduler now includes the conditional watcher and intelligence feed (12 distinct services), installed paused through an explicit admin action. Verified credential onboarding defaults to mandatory provider verification and Supabase Vault; no plaintext fallback is introduced. The operations suite passes 104 TypeScript checks, 16 database checks and 7 Python checks. Local tests are not live provider or deployment receipts.
+Application build and TypeScript checks, all 39 Edge Function dependency bundles, operation policy/provider tests, 21 PostgreSQL operation tests, bridge tests, conditional-signal tests and commerce/operations integration tests are run against this change. These checks validate code paths and persisted guards, not real provider availability or investment returns. Browser test execution depends on a usable Chromium runtime; the investor mirror remains private.

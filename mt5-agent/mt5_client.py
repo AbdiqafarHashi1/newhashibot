@@ -375,7 +375,7 @@ class MT5Client:
     def assert_demo_execution_identity(self):
         from config import Config
         account = mt5.account_info() if HAS_MT5 else None
-        if Config.DATA_ONLY or account is None or account.login != Config.ACCOUNT_NUMBER or account.server != Config.SERVER or account.trade_mode != mt5.ACCOUNT_TRADE_MODE_DEMO:
+        if Config.DATA_ONLY or account is None or account.login != Config.ACCOUNT_NUMBER or account.server != Config.SERVER or (account.trade_mode != mt5.ACCOUNT_TRADE_MODE_DEMO and not (getattr(Config, "ALLOW_LIVE_EXECUTION", False) and account.trade_mode == mt5.ACCOUNT_TRADE_MODE_REAL)):
             raise RuntimeError("MT5_MUTATION_TERMINAL_SCOPE_MISMATCH")
 
     def place_order(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -442,6 +442,17 @@ class MT5Client:
             request["tp"] = round(float(tp), digits)
 
         self.assert_demo_execution_identity()
+        native_account = mt5.account_info() if callable(getattr(mt5, "account_info", None)) else None
+        live_account = native_account is not None and native_account.trade_mode == getattr(mt5, "ACCOUNT_TRADE_MODE_REAL", 2)
+        risk_budget = payload.get("authorized_risk_amount")
+        if live_account or risk_budget is not None:
+            if risk_budget is None or not math.isfinite(float(risk_budget)) or float(risk_budget) <= 0:
+                return {"success": False, "error_code": "APPROVED_RISK_AMOUNT_REQUIRED", "error": "A canonical risk budget is required"}
+            if not callable(getattr(mt5, "order_calc_profit", None)):
+                return {"success": False, "error_code": "NATIVE_RISK_EVIDENCE_REQUIRED", "error": "Native risk calculation is unavailable"}
+            estimate = mt5.order_calc_profit(request["type"], symbol, request["volume"], request["price"], request.get("sl", 0))
+            if estimate is None or not math.isfinite(float(estimate)) or float(estimate) >= 0 or abs(float(estimate)) > float(risk_budget) + 0.000001:
+                return {"success": False, "error_code": "NATIVE_ENTRY_EXCEEDS_APPROVED_RISK", "error": "Current native entry risk is outside the approved amount"}
         result = mt5.order_send(request)
         if result is None:
             err = mt5.last_error()

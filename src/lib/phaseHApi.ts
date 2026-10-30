@@ -16,6 +16,9 @@ async function authority<T>(action:string, payload:Record<string,unknown>={}):Pr
   return data as AuthorityResult<T>;
 }
 export const phaseHApi = {
+  authorizeLive: (executionAccountId:string,demoAccountId:string,maximumEquity:number,maximumRiskPct:number,confirmation:string) => authority('authorize_live_account',{execution_account_id:executionAccountId,demo_account_id:demoAccountId,maximum_equity:maximumEquity,maximum_risk_pct:maximumRiskPct,confirmation}),
+  refreshAccountData: (executionAccountId:string) => authority('refresh_account_data',{execution_account_id:executionAccountId}),
+  revokeLive: (executionAccountId:string) => authority('revoke_live_permission',{execution_account_id:executionAccountId}),
   ownerDemoAccess: (executionAccountId:string) => authority('grant_owner_demo_access',{execution_account_id:executionAccountId}),
   control: (executionAccountId:string, control:string) => authority('set_account_control',{execution_account_id:executionAccountId,control}),
   complete: () => authority('complete_onboarding'),
@@ -31,7 +34,7 @@ export const phaseHApi = {
   pairing: (executionAccountId:string) => authority<{code:string;expires_at:string}>('create_pairing',{execution_account_id:executionAccountId}),
   pairingStatus: (executionAccountId:string) => authority('pairing_status',{execution_account_id:executionAccountId}),
   revokePairing: (executionAccountId:string) => authority('revoke_pairing',{execution_account_id:executionAccountId}),
-  submitCredentials: (provider:'BINANCE'|'BYBIT', executionAccountId:string, credentials:{apiKey:string;apiSecret:string;passphrase?:string}, idempotencyKey:string) => authority('submit_credentials',{provider,execution_account_id:executionAccountId,credentials,idempotency_key:idempotencyKey}),
+  submitCredentials: (provider:'BINANCE'|'BYBIT', executionAccountId:string, credentials:{apiKey:string;apiSecret:string;passphrase?:string}, idempotencyKey:string,allowDemoWriteProbe=false) => authority('submit_credentials',{provider,execution_account_id:executionAccountId,credentials,idempotency_key:idempotencyKey,allow_demo_write_probe:allowDemoWriteProbe}),
   rotateCredentials: (executionAccountId:string) => authority('rotate_credentials',{execution_account_id:executionAccountId}),
   revokeCredentials: (executionAccountId:string) => authority('revoke_credentials',{execution_account_id:executionAccountId}),
   support: (input:Record<string,unknown>) => authority('create_support_request',input),

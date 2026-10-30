@@ -20,7 +20,7 @@ class ManagedPositions:
 
     def _scope(self):
         info = self.client.get_account_info()
-        if Config.DATA_ONLY or info.get('environment') != 'demo' or info.get('login') != Config.ACCOUNT_NUMBER or info.get('server') != Config.SERVER:
+        if Config.DATA_ONLY or (info.get('environment') != 'demo' and not (info.get('environment') == 'live' and Config.ALLOW_LIVE_EXECUTION)) or info.get('login') != Config.ACCOUNT_NUMBER or info.get('server') != Config.SERVER:
             raise RuntimeError('MANAGED_POSITION_TERMINAL_SCOPE_REQUIRED')
         return info
 
@@ -88,7 +88,7 @@ class ManagedPositions:
         for leg in legs:
             leg['state'] = 'SUBMITTING'
             self._save(path, record)
-            result = self.client.place_order({**leg,'volume':leg['quantity']})
+            result = self.client.place_order({**leg,'volume':leg['quantity'],'authorized_risk_amount':(float(payload['authorized_risk_amount'])*float(leg['quantity'])/float(payload['quantity'])) if payload.get('authorized_risk_amount') is not None else None})
             leg['receipt'] = result
             if not result.get('success'):
                 leg['state'] = 'UNCERTAIN_OR_REJECTED'

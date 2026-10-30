@@ -17,6 +17,16 @@ export class BybitDemoAdoptionAdapter extends ExactAdapter { protected validateO
 export class Mt5PersonalDemoAdoptionAdapter extends ExactAdapter { protected validateOrder(order: DeepReadonly<PlannedOrder>): void { if (this.plan.provider !== "MT5_PERSONAL" || this.plan.routing?.environment !== "DEMO" || order.provider !== "MT5_PERSONAL" || order.provider_payload.comment !== order.client_order_id || order.provider_payload.lots !== order.quantity) throw new Error("mt5_personal_demo_command_not_certified"); } }
 export class Mt5PropDemoAdoptionAdapter extends ExactAdapter { protected validateOrder(order: DeepReadonly<PlannedOrder>): void { if (this.plan.provider !== "MT5_PROP" || this.plan.routing?.environment !== "DEMO" || order.provider !== "MT5_PROP" || order.provider_payload.comment !== order.client_order_id || order.provider_payload.lots !== order.quantity) throw new Error("mt5_prop_demo_command_not_certified"); } }
 
+/** Only the canonical revalidator may provide the live permission; demo adapters still reject live by default. */
+export class ApprovedLiveAdoptionAdapter extends ExactAdapter {
+ constructor(plan:DeepReadonly<ExecutionPlan>,transport:ExactProviderTransport,private readonly permissionVerified:boolean=false){super(plan,transport)}
+ protected validateOrder(order:DeepReadonly<PlannedOrder>):void {
+  if(!this.permissionVerified||this.plan.routing?.environment!=='LIVE'||order.provider!==this.plan.provider)throw Error('LIVE_EXECUTION_PERMISSION_REQUIRED');
+  const p=order.provider_payload;
+  if(this.plan.provider==='BINANCE'&&p.newClientOrderId!==order.client_order_id||this.plan.provider==='BYBIT'&&(p.orderLinkId!==order.client_order_id||p.category!=='linear')||this.plan.provider.startsWith('MT5')&&(p.comment!==order.client_order_id||p.lots!==order.quantity))throw Error('LIVE_NATIVE_PAYLOAD_MISMATCH');
+ }
+}
+
 export const SHADOW_COMPARE_VERSION = "execution-shadow-compare/v1" as const;
 export interface LegacyExecutionProjection { provider: string; account_id: string; symbol: string; side: string; entry_type: string; quantity: number; leverage: number; entry_price: number | null; stop: number | null; tp1: number | null; tp2: number | null; time_in_force: string; reduce_only_semantics: string; protection_sequence: readonly string[]; }
 export function shadowCompare(plan: DeepReadonly<ExecutionPlan>, legacy: LegacyExecutionProjection) {

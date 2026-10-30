@@ -38,7 +38,7 @@ export interface Mt5RouteTruth {
   assignedBridgeId: string | null;
   accountMode: "PERSONAL" | "PROP_EVALUATION" | "PROP_FUNDED";
   environment: "DEMO" | "LIVE";
-  executionEnabled: boolean;
+  liveAuthorized?: boolean; executionEnabled: boolean;
   operational: boolean;
   providerHealth: "HEALTHY" | "DEGRADED" | "UNHEALTHY";
   lastHeartbeatAt: string | null;
@@ -63,7 +63,7 @@ function requireValue(condition: unknown, code: string): asserts condition {
 }
 
 /** Fail-closed validation performed immediately before the existing queue. */
-export function createMt5EntryCommand(input: {
+export function createMt5EntryCommand(input: { authorizedRiskAmount?:number;
   lineage: PhaseDExecutionLineage;
   route: Mt5RouteTruth;
   executionPlanId: string;
@@ -85,7 +85,7 @@ export function createMt5EntryCommand(input: {
   requireValue(lineage.immutableAccountIdentity === route.immutableAccountIdentity, "ACCOUNT_IDENTITY_MISMATCH");
   requireValue(lineage.provider === route.provider, "MT5_PROVIDER_SCOPE_MISMATCH");
   requireValue(route.bridgeId !== null && route.bridgeId === route.assignedBridgeId, "BRIDGE_ACCOUNT_SCOPE_MISMATCH");
-  requireValue(route.environment === "DEMO", "LIVE_EXECUTION_FORBIDDEN");
+  requireValue(route.environment === "DEMO" || (route.environment === "LIVE" && route.liveAuthorized === true), "LIVE_EXECUTION_FORBIDDEN");
   requireValue(lineage.provider === "MT5_PERSONAL" ? route.accountMode === "PERSONAL" : route.accountMode !== "PERSONAL", "MT5_ACCOUNT_MODE_MISMATCH");
   requireValue(route.executionEnabled && route.operational && route.providerHealth === "HEALTHY", "MT5_ACCOUNT_NOT_READY");
   const heartbeatAge = Date.parse(input.now) - Date.parse(route.lastHeartbeatAt ?? "");
@@ -113,6 +113,7 @@ export function createMt5EntryCommand(input: {
     policy_version: lineage.policyVersion,
     brain_version: lineage.brainVersion,
     phase_d_decision: lineage.decision,
+    authorized_risk_amount:input.authorizedRiskAmount,
     authorized_risk_pct: lineage.authorizedRiskPct,
     quantity: lineage.approvedQuantity,
     symbol: input.symbol,

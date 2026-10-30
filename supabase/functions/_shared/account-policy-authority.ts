@@ -41,6 +41,7 @@ export interface PolicyConfiguration {
 }
 
 export interface AccountEvaluationInput {
+  readonly liveAuthorization?: {execution_account_id:string;customer_id:string;expires_at:string;maximum_equity:number;maximum_risk_pct:number};
   readonly signal: SignalContract;
   readonly account: OwnedExecutionAccount;
   readonly context: AccountExecutionContext;
@@ -119,7 +120,9 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const policy=performance.riskMultiplier>0&&performance.riskMultiplier<1?composeAccountPolicy(approvedPolicy,{max_risk_per_trade_pct:approvedPolicy.max_risk_per_trade_pct*performance.riskMultiplier}):approvedPolicy;
   const brain = getExecutionBrain(input.account.provider);
   const preReasons: string[] = performance.blocked?[...performance.reasonCodes]:[];
-  if(!['DEMO','TESTNET'].includes(input.context.environment))preReasons.push('LIVE_ENVIRONMENT_FORBIDDEN');
+  if(input.context.environment==='LIVE'){
+   const p=input.liveAuthorization;if(!p||p.execution_account_id!==input.account.id||p.customer_id!==input.account.customerId||!Number.isFinite(Date.parse(p.expires_at))||Date.parse(p.expires_at)<=Date.parse(input.evaluatedAt)||!Number.isFinite(p.maximum_equity)||p.maximum_equity<=0||input.context.equity>p.maximum_equity||!Number.isFinite(p.maximum_risk_pct)||p.maximum_risk_pct<=0||p.maximum_risk_pct>.25||policy.max_risk_per_trade_pct>p.maximum_risk_pct)preReasons.push('LIVE_ENVIRONMENT_FORBIDDEN');
+  }else if(!['DEMO','TESTNET'].includes(input.context.environment))preReasons.push('LIVE_ENVIRONMENT_FORBIDDEN');
   if(![input.context.balance,input.context.equity,input.context.free_margin,input.context.exposure.total_open_risk_pct,input.context.daily_drawdown.current_drawdown_pct,input.context.total_drawdown.current_drawdown_pct].every(x=>Number.isFinite(x)&&x>=0)||input.context.equity<=0)throw new Error('INVALID_ACCOUNT_FINANCIAL_CONTEXT');
   if(!Number.isFinite(Date.parse(input.evaluatedAt))||!Number.isFinite(Date.parse(input.context.updated_at)))throw new Error('INVALID_ACCOUNT_EVIDENCE_TIME');
   if (!input.account.active) preReasons.push("ACCOUNT_INACTIVE");

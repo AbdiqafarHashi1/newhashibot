@@ -2,7 +2,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 /** Logical execution accounts and terminal accounts are separate identities. */
 export function resolveMt5TerminalRoute(account: Record<string, unknown>, customerId: string) {
-  if (!customerId || account.customer_id !== customerId || !['MT5_PERSONAL', 'MT5_PROP'].includes(String(account.provider)) || String(account.environment).toLowerCase() !== 'demo') throw new Error('MT5_ACCOUNT_SCOPE_MISMATCH');
+  if (!customerId || account.customer_id !== customerId || !['MT5_PERSONAL', 'MT5_PROP'].includes(String(account.provider)) || !['demo','live'].includes(String(account.environment).toLowerCase())) throw new Error('MT5_ACCOUNT_SCOPE_MISMATCH');
   const overrides = account.policy_overrides as Record<string, unknown> | null;
   const pairedId = overrides?.mt5_account_id;
   const physicalId = typeof pairedId === 'string' ? pairedId : String(account.account_id ?? '');

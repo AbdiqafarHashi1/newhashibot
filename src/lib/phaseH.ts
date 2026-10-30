@@ -11,7 +11,7 @@ export const PRODUCT_CATALOG = [
   { code: 'FREE_SIGNALS', name: 'Free Signals', checkout: false },
   { code: 'VIP_SIGNALS', name: 'VIP Signals', checkout: true },
   { code: 'AUTO_EXECUTION', name: 'Auto Execution', checkout: true },
-  { code: 'FOUNDING_AUTO_EXECUTION', name: 'HashiBot Auto Execution — Founding 20', checkout: true, priceCents: 10000, currency: 'USD', interval: 'month', capacity: 20, billingUnit: 'connected execution account' },
+  { code: 'FOUNDING_AUTO_EXECUTION', name: 'HashiBot Auto Execution', checkout: true, priceCents: 10000, currency: 'USD', interval: 'month', capacity: 30, billingUnit: 'connected execution account' },
 ] as const;
 export const CANONICAL_SHARE_ROUTES = ['/free','/vip','/pricing','/execution','/execution/mt5','/execution/crypto','/execution/prop'] as const;
 export const SUPPORT_SECRET_WARNING = 'HashiBot support will never ask you to send API secrets, MT5 passwords or private keys through WhatsApp.';

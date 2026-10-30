@@ -13,3 +13,13 @@ test('monitor writes exact plan/account evidence and refuses incomplete or ambig
  await assert.rejects(synchronizeCanonicalMonitor({...base,store:{...store,rpc:async()=>({error:{message:'failed'}})}}),/NOT_PERSISTED/);
  assert.equal(calls.length,1);
 });
+
+test('unknown submissions reconcile only by exact native client identity and persist final rejection',async()=>{
+ const now=new Date().toISOString(),canonical='11111111-1111-4111-8111-111111111111',writes:any[]=[],events:any[]=[];
+ const row:any={id:'execution',direction:'buy',last_monitor_checked_at:now,entry_order_id:null};
+ const store={from(table:string){let patch:any=null;const read=()=>({data:table==='connected_execution_accounts'?[{id:canonical,environment:'testnet'}]:table==='crypto_account_execution_truth'?[{id:'truth',symbol:'BTCUSDT',execution_plan_id:'plan',decision_id:'decision',deterministic_client_order_id:'client',lifecycle_state:'RECONCILING'}]:[row],error:null});const chain:any={select:()=>chain,eq:()=>chain,not:()=>chain,update:(x:any)=>{patch=x;writes.push({table,x});return chain},limit:async()=>read(),maybeSingle:async()=>({data:{id:'execution'},error:null}),then:(resolve:any)=>resolve({data:null,error:null})};return chain},rpc:async(name:string,args:any)=>{events.push({name,args});return {error:null}}};
+ const base={store,ownership:{customer_id:'customer',account_id:'alias',execution_scope_key:'scope',execution_instance_id:'instance',credential_ref:'vault'},provider:'BINANCE' as const,positions:[],orders:[],complete:true,observedAt:now};
+ await assert.rejects(synchronizeCanonicalMonitor({...base,lookupEntry:async()=>({id:'native',clientOrderId:'foreign-client',symbol:'BTCUSDT',side:'BUY',status:'FILLED',filledQuantity:1})}),/NATIVE_SCOPE_MISMATCH/);assert.equal(writes.length,0);
+ await synchronizeCanonicalMonitor({...base,lookupEntry:async()=>({id:'native',clientOrderId:'client',symbol:'BTCUSDT',side:'BUY',status:'REJECTED',filledQuantity:0})});
+ assert.ok(writes.some(x=>x.table==='execution_orders'&&x.x.entry_order_id==='native'));assert.ok(writes.some(x=>x.table==='execution_orders'&&x.x.status==='failed'));assert.ok(writes.some(x=>x.table==='account_signal_authorization_jobs'&&x.x.dispatch_state==='FAILED'));assert.equal(events[0].args.p_event,'ORDER_REJECTED');
+});

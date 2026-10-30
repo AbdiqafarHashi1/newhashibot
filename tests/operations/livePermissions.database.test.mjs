@@ -1,0 +1,43 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {PGlite} from '@electric-sql/pglite';import {readFile} from 'node:fs/promises';import {accountSchema} from './support/accountSchema.mjs';
+test('live approval requires owned matching demo evidence, typed consent and bounded risk; retries preserve 30-day access and changed policy invalidates permission',async()=>{
+ const db=new PGlite(),owner='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',demo='33333333-3333-4333-8333-333333333333',live='44444444-4444-4444-8444-444444444444',outcome='55555555-5555-4555-8555-555555555555';
+ try{await db.exec(accountSchema);await db.exec(`
+ alter table connected_execution_accounts add runtime_control text default 'PAUSE_NEW_ENTRIES';
+ alter table crypto_account_execution_truth add id uuid default gen_random_uuid(),add provider text,add environment text,add decision_id text,add execution_plan_id text,add incident_code text;
+ create table mt5_account_execution_truth(id uuid,execution_account_id uuid,customer_id uuid,lifecycle_state text,decision_id text,execution_plan_id text,incident_code text);
+ create table execution_account_policy_decisions(id text primary key,execution_account_id uuid,customer_id uuid,decision text,signal_id uuid,intent_id text,approved_quantity numeric,authorized_risk_pct numeric,policy_version text,configuration jsonb);
+ create table certified_runtime_artifacts(account_id text,execution_plan jsonb);
+ create table account_closed_provider_outcomes(id uuid default gen_random_uuid(),customer_id uuid,execution_account_id uuid,execution_truth_id uuid,provider text,closed_at timestamptz,currency text,net_pnl numeric,source text,source_ids text[]);
+ create table account_signal_authorization_jobs(id uuid,customer_id uuid,execution_account_id uuid,signal_id uuid,decision_id text,policy_version text,state text,last_error text,updated_at timestamptz,dispatch_state text,dispatch_claimed_at timestamptz,dispatch_receipt jsonb);
+ create table certified_execution_adoption_policies(account_id text,provider text,environment text,version text,current boolean,enabled boolean,rollout_percentage numeric,policy jsonb,changed_by uuid,changed_at timestamptz,unique(account_id,provider,environment,version));
+ create table signals(id uuid,source text,status text,created_at timestamptz,expires_at timestamptz);
+ create table signal_updates(signal_id uuid,new_status text,price numeric,reason text,created_at timestamptz);
+ create table mt5_commands(id uuid);
+ create table phase_h_entitlements(id uuid primary key default gen_random_uuid(),customer_id uuid,source_payment_id uuid,state text,source text,product_code text,execution_account_id uuid,valid_from timestamptz,valid_until timestamptz,account_limit int,feature_permissions jsonb,grant_reason text);
+ create table execution_entitlement_bindings(entitlement_id uuid,customer_id uuid,execution_account_id uuid unique,state text,activated_at timestamptz,revoked_at timestamptz);
+ create table commerce_payment_attempts(id uuid,customer_id uuid,state text);
+ create table account_policy_evidence(execution_account_id uuid,customer_id uuid,execution_instance_id uuid,credential_ref text,account_context jsonb,observed_at timestamptz);
+ `);
+ const g=await readFile('supabase/migrations/20260926120000_phase_g_customer_001_certification.sql','utf8');await db.exec(g.slice(0,g.indexOf('create or replace function')));
+ const measured=await readFile('supabase/migrations/20261017014250_measured_execution_lineage.sql','utf8');await db.exec(measured.slice(measured.indexOf('create table public.account_observed_risk_tracking'),measured.indexOf('create function public.track_current_provider_risk')));
+ await db.exec(await readFile('supabase/migrations/20261030172615_bounded_live_execution.sql','utf8'));
+ await db.query("insert into profiles values($1,'admin'),($2,'user')",[owner,other]);
+ for(const [id,env] of [[demo,'testnet'],[live,'live']])await db.query("insert into connected_execution_accounts(id,customer_id,account_id,provider,environment,credential_ref,credentials_verified_at,account_mode,policy_version,policy_preset,phase_h_certification_status,provider_health,policy_overrides,enabled,monitor_enabled,execution_enabled,last_synchronized_at) values($1::uuid,$2,$1::text,'binance',$3,'fixture',now(),'PERSONAL','1','CONSERVATIVE','REQUIRED','healthy','{\"policy_configuration\":{\"riskPerTradePct\":0.25}}',true,true,false,now())",[id,owner,env]);
+ const approve=(actor=owner,confirmation='ENABLE LIVE EXECUTION',risk=.25)=>db.query('select authorize_customer_live_account($1,$2,$3,100,$4,$5) result',[actor,live,demo,risk,confirmation]);
+ await assert.rejects(approve(other),/OWN_LIVE/);await assert.rejects(approve(owner,''),/CONSENT/);await assert.rejects(approve(owner,'ENABLE LIVE EXECUTION',1),/BOUNDED/);await assert.rejects(approve(),/DEMO_ROUND_TRIP/);
+ await db.query("insert into execution_account_policy_decisions values('decision',$1,$2,'ALLOW',gen_random_uuid(),'intent',1,.25,'1','{\"preset\":\"CONSERVATIVE\",\"riskPerTradePct\":0.25}')",[demo,owner]);
+ await db.query("insert into customer_system_certification_runs(certification_reference,customer_id,execution_account_id,account_type,provider,environment,status,decision_id,execution_plan_id,strategy_id,strategy_version,symbol,side,protection_state,completed_at,expires_at,last_provider_evidence) values('CUSTOMER_001',$1,$2,'PERSONAL','BINANCE','TESTNET','PASSED','decision','plan','measured','1','BTCUSDT','BUY','VERIFIED',now(),now(),jsonb_build_object('closed_outcome_id',$3::text))",[owner,demo,outcome]);
+ await assert.rejects(approve(),/DEMO_ROUND_TRIP/);
+ await db.query("insert into account_closed_provider_outcomes(id,customer_id,execution_account_id,execution_truth_id,provider,source,source_ids) values($1,$2,$3,gen_random_uuid(),'BINANCE','VERIFIED_FILL',array['native-fill'])",[outcome,owner,demo]);
+ const first=(await approve()).rows[0].result;const repeat=(await approve()).rows[0].result;assert.equal(first.expires_at,repeat.expires_at);assert.equal(first.execution_enabled,false);assert.equal((await db.query('select count(*) n from commerce_payment_attempts')).rows[0].n,0);
+ assert.equal((await db.query('select execution_environment_permitted($1) ok',[live])).rows[0].ok,true);
+ await db.query("update connected_execution_accounts set policy_overrides='{\"policy_configuration\":{\"riskPerTradePct\":0.5}}' where id=$1",[live]);assert.equal((await db.query('select execution_environment_permitted($1) ok',[live])).rows[0].ok,false);
+ await assert.rejects(db.query("update connected_execution_accounts set execution_enabled=true,runtime_control='START' where id=$1",[live]),/LIVE_PERMISSION/);
+ await assert.rejects(db.query('select revoke_customer_live_permission($1,$2)',[other,live]),/OWN_LIVE/);
+ await db.query('select revoke_customer_live_permission($1,$2)',[owner,live]);assert.equal((await db.query('select execution_environment_permitted($1) ok',[live])).rows[0].ok,false);
+ const management=(await db.query("select set_customer_account_runtime($1,$1,$2,'MANAGE_ONLY') result",[owner,live])).rows[0].result;assert.equal(management.protection_enabled,true);
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);await db.exec('set role authenticated');assert.equal((await db.query('select count(*) n from account_live_permissions')).rows[0].n,1);
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[other]);assert.equal((await db.query('select count(*) n from account_live_permissions')).rows[0].n,0);
+ await assert.rejects(approve(),/permission denied/);
+ }finally{await db.close()}
+});

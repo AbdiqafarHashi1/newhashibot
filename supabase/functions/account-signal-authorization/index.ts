@@ -18,12 +18,18 @@ Deno.serve(async req=>{
    if(Object.keys(input).some(k=>!keys.includes(k)))throw Error('OBSERVED_EVIDENCE_FIELDS_REQUIRED');
    result=await recordObservedAccountPolicyEvidence(db,input);
   }else if(body.action==='drain'){
-   if(Object.keys(body).some(k=>k!=='action'))throw Error('CANONICAL_IDENTIFIERS_ONLY');const authorizations=await drainProductionAccountAuthorizations(db);
+   if(Object.keys(body).some(k=>k!=='action'))throw Error('CANONICAL_IDENTIFIERS_ONLY');const authorizations=await drainProductionAccountAuthorizations(db,25,async(account)=>{
+    if(String(account.provider).toUpperCase().startsWith('MT5'))return;
+    const owned=await db.from('connected_execution_accounts').select('account_id,provider,last_synchronized_at').eq('id',account.id).eq('customer_id',account.customer_id).single();if(owned.error||!owned.data)throw Error('SCOPED_PROVIDER_REFRESH_REQUIRED');
+    if(Date.now()-Date.parse(owned.data.last_synchronized_at)<20000)return;
+    const name=String(owned.data.provider).toUpperCase()==='BINANCE'?'binance-testnet-monitor':'bybit-testnet-monitor';
+    const refreshed=await db.functions.invoke(name,{body:{source:'confirmed_entry_refresh',customer_id:account.customer_id,account_id:owned.data.account_id}});if(refreshed.error)throw Error('SCOPED_PROVIDER_REFRESH_FAILED');
+   });
    const dispatches=await drainAccountDispatch(db,async(plan,version)=>{
     const secret=Deno.env.get('HASHIBOT_INTERNAL_SECRET');if(!secret)throw Error('INTERNAL_DISPATCH_AUTH_REQUIRED');
     const response=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/binance-testnet-execution`,{method:'POST',headers:{'content-type':'application/json','x-hashibot-internal-secret':secret},body:JSON.stringify({action:'adopt_execution_plan',execution_plan:plan,expected_policy_version:version}),signal:AbortSignal.timeout(25000)});
     const receipt=await response.json().catch(()=>null);if(!receipt||typeof receipt.success!=='boolean')return {accepted:false,uncertain:true,receipt:{reason:'DISPATCH_RECEIPT_UNKNOWN'}};
-    return {accepted:response.ok&&receipt.success===true,receipt:{success:receipt.success,reason:receipt.blocker??receipt.reason??null,execution_plan_id:receipt.execution_plan_id??plan.execution_plan_id,canonical_state:receipt.canonical_state??null}};
+    return {accepted:response.ok&&receipt.success===true,uncertain:receipt.uncertain===true,receipt:{success:receipt.success,reason:receipt.blocker??receipt.reason??null,execution_plan_id:receipt.execution_plan_id??plan.execution_plan_id,canonical_state:receipt.canonical_state??null}};
    });result={authorizations,dispatches};
   }else{
    if(Object.keys(body).some(k=>!['customer_id','execution_account_id','signal_id','idempotency_key'].includes(k)))throw Error('CANONICAL_IDENTIFIERS_ONLY');

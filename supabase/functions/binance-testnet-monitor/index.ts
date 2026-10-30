@@ -35,6 +35,7 @@ type MonitorLevel = "healthy" | "completed_with_warnings" | "partial_sync_warnin
 
 
 type MonitorPayload = {
+  customer_id?:string; account_id?:string;
   expected_monitor_version?: string;
   [key: string]: unknown;
 };
@@ -1645,7 +1646,7 @@ async function refreshAccountState(supabase: SupabaseClient, stats: MonitorStats
   };
   const {error:proofError}=await supabase.from("execution_account_runtime_proof").upsert({ ...ownership, provider: "binance", environment: binanceEnvironment(), monitor_status: stats.monitor_status, account_state: {...settingsUpdate,account_initial_margin:observedFinancialNumber((accountBody as Record<string,unknown>).totalInitialMargin,"totalInitialMargin"),provider_position_risk:positionsBody,...financials,flat_verified:conditionalOrdersComplete&&stats.monitor_status==="healthy"&&Array.isArray(positionsBody)&&Array.isArray(allOrdersBody)&&positions.length===0&&orders.length===0}, observed_at: monitorRunAt, updated_at: monitorRunAt }, { onConflict: "execution_scope_key" });
   if(proofError)throw Error("PROVIDER_SNAPSHOT_NOT_PERSISTED");
-  if(conditionalOrdersComplete&&Array.isArray(allOrdersBody))await synchronizeCanonicalMonitor({store:supabase,ownership,provider:'BINANCE',positions:positions as unknown as Record<string,any>[],orders:orders as Record<string,any>[],complete:true,observedAt:monitorRunAt,lookupEntry:async(symbol,orderId)=>{const order=await binanceRequest('/fapi/v1/order',{symbol,orderId}) as Record<string,unknown>;return{id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??''),status:String(order.status??''),filledQuantity:Number(order.executedQty)}}});
+  if(conditionalOrdersComplete&&Array.isArray(allOrdersBody))await synchronizeCanonicalMonitor({store:supabase,ownership,provider:'BINANCE',positions:positions as unknown as Record<string,any>[],orders:orders as Record<string,any>[],complete:true,observedAt:monitorRunAt,lookupEntry:async(symbol,orderId,clientOrderId)=>{let order:Record<string,unknown>;try{order=await binanceRequest('/fapi/v1/order',{symbol,...(orderId?{orderId}:{origClientOrderId:String(clientOrderId??'')})}) as Record<string,unknown>}catch(e){if(String(e).includes('-2013'))return null;throw e}return{clientOrderId:String(order.clientOrderId??''),id:String(order.orderId??''),symbol:String(order.symbol??''),side:String(order.side??''),status:String(order.status??''),filledQuantity:Number(order.executedQty)}}});
   const { error } = await supabase.from("execution_settings").update(settingsUpdate).eq("id", 1);
   if (!error) return;
 
@@ -1784,25 +1785,14 @@ Deno.serve(async (req: Request) => {
       const reason = isMissingTableOrColumn(settingsError) ? "missing_table_or_column" : "db_query_failed";
       return globalErrorResponse(reason, `execution_settings query failed: ${errorMessage(settingsError)}`, stats);
     }
-    if (boolEnv(Deno.env.get("LIVE_TRADING_ENABLED")) || settings?.live_trading_enabled === true) return jsonResponse({ success: false, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, aborted: true, reason: "live_trading_enabled_abort", global_error: "startup_exception", ...stats });
-    if (String(Deno.env.get("EXECUTION_MODE") ?? "").toLowerCase() !== binanceEnvironment()) return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_execution_mode_not_testnet", global_error: "", ...stats });
-    if (!boolEnv(Deno.env.get("TESTNET_ENABLED"))) return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "env_testnet_disabled", global_error: "", ...stats });
-    if (!settings || settings.execution_mode !== binanceEnvironment() || settings.testnet_enabled !== true) {
-      await safeSettingsUpdate(supabase, {
-        latest_monitor_run_at: new Date().toISOString(),
-        latest_monitor_status: "skipped",
-        latest_monitor_result: { action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "execution_settings_gate_closed", unsafe_positions: 0, critical_errors_count: 0, http_status: 200 },
-        updated_at: new Date().toISOString(),
-      });
-      return jsonResponse({ success: true, action: "binance_testnet_monitor", monitor_version: MONITOR_VERSION, monitor_started: false, skipped: true, reason: "execution_settings_gate_closed", global_error: "", ...stats });
-    }
-
+    // Entry switches do not disable account observation or protection of existing scoped positions.
     const { data: rows, error } = await supabase.from("execution_orders").select("*").eq("execution_provider", "binance").not("execution_scope_key", "is", null).in("status", ACTIVE_STATUSES).order("created_at", { ascending: true }).limit(100);
     if (error) {
       const reason = isMissingTableOrColumn(error) ? "missing_table_or_column" : "db_query_failed";
       return globalErrorResponse(reason, `execution_orders query failed: ${errorMessage(error)}`, stats);
     }
-    for (const row of (rows ?? []) as Row[]) {
+    if(Boolean(parsedPayload.payload.customer_id)!==Boolean(parsedPayload.payload.account_id))throw Error('EXPLICIT_ACCOUNT_SCOPE_REQUIRED');
+    for (const row of ((rows??[]) as Row[]).filter(r=>!parsedPayload.payload.customer_id||(r.customer_id===parsedPayload.payload.customer_id&&r.account_id===parsedPayload.payload.account_id))) {
       let ownership;let scopedStats=stats;
       try {
         ownership = ownershipFromRow(row as unknown as Record<string, unknown>, "binance");
@@ -1823,7 +1813,8 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
-    const accounts = (await enumerateExecutionAccounts(supabase, "binance")).filter((account) => ['testnet','live'].includes(account.environment));
+    const requested=parsedPayload.payload;if(Boolean(requested.customer_id)!==Boolean(requested.account_id))throw Error('EXPLICIT_ACCOUNT_SCOPE_REQUIRED');
+    const accounts = (await enumerateExecutionAccounts(supabase, "binance")).filter((account) => ['testnet','live'].includes(account.environment)&&(!requested.customer_id||(account.customer_id===requested.customer_id&&account.account_id===requested.account_id)));
     const accountSync = await settleExecutionAccounts(accounts, async (ownership) => {
       const scopedStats=accountStatistics.get(ownership.execution_scope_key)??freshMonitorStats();accountStatistics.set(ownership.execution_scope_key,scopedStats);
       try{const credential = await resolveEdgeProviderCredential(supabase!, ownership);
