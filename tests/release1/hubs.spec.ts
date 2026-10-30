@@ -36,3 +36,28 @@ test('Telegram and Growth hubs: routes, channel controls, two goals and unavaila
  await page.goto('/admin/growth-goal');unavailable=true;await page.getByRole('button',{name:'Refresh totals',exact:true}).click();await expect(page.getByRole('alert')).toBeVisible();await expect(page.getByRole('progressbar')).toHaveCount(0);
  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
 });
+
+test('manual 30-day grant and four-hour Free guide controls use explicit admin actions',async({page})=>{
+ await page.addInitScript(()=>sessionStorage.setItem('hashibot.owner-preview.v1','admin-shell'));
+ const actions:Record<string,any>[]=[];
+ await page.route('**/*.supabase.co/**',async route=>{
+  const url=new URL(route.request().url());let b:any={};try{b=route.request().postDataJSON()??{};}catch{/* read */}
+  if(!url.pathname.endsWith('/phase-o-agents'))return route.fulfill({json:[]});actions.push(b);
+  if(b.action==='TELEGRAM_MEMBERS')return route.fulfill({json:{data:{links:[],hasMore:false}}});
+  if(b.action==='MANUAL_VIP_GRANT')return route.fulfill({json:{state:'GRANTED',customer_id:'fixture-customer',valid_until:'2026-11-29T12:00:00Z'}});
+  if(b.action==='LIST')return route.fulfill({json:{data:{phase_o_campaigns:[{id:'campaign',name:'Free conversion',status:'ACTIVE'}],phase_o_destinations:[{id:'free',label:'Free channel',platform:'TELEGRAM',audience:'FREE'}]}}});
+  if(b.action==='EVIDENCE_OPTIONS')return route.fulfill({json:{sources:[]}});
+  if(b.action==='PREVIEW_FREE_GUIDE')return route.fulfill({json:{templates:['CONDITIONAL means watch and wait.','INVALIDATED means cancel the unfilled idea.']}});
+  return route.fulfill({json:{state:'OK'}});
+ });
+ await page.goto('/admin/telegram?tab=members');await page.getByLabel('Manual VIP customer email').fill('customer@example.test');await page.getByLabel('Manual VIP reason').fill('Owner confirmed 30-day allowance');await page.getByRole('button',{name:'Grant 30-day VIP access'}).click();
+ await expect(page.getByRole('status')).toContainText('30-day VIP access granted');await expect(page.getByRole('button',{name:'Copy personal onboarding link'})).toBeVisible();
+ expect(actions.find(a=>a.action==='MANUAL_VIP_GRANT')).toMatchObject({email:'customer@example.test',reason:'Owner confirmed 30-day allowance'});
+ await page.screenshot({path:`test-results/manual-vip-${test.info().project.name}.png`,fullPage:true});
+ await page.goto('/admin/telegram?tab=content');await page.getByLabel('Free guide campaign').selectOption('campaign');await page.getByLabel('Free guide destination').selectOption('free');await page.getByRole('button',{name:'Preview six messages'}).click();await expect(page.getByText('CONDITIONAL means watch and wait.',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Enable four-hour guide'}).click();await expect.poll(()=>actions.some(a=>a.action==='CONFIGURE_FREE_GUIDE'&&a.enabled===true&&a.destination_id==='free')).toBe(true);
+ await expect(page.getByRole('status')).toContainText('Four-hour Free guide enabled');
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+ await page.screenshot({path:`test-results/free-guide-${test.info().project.name}.png`,fullPage:true});
+ await page.getByRole('button',{name:'Pause guide'}).click();await expect.poll(()=>actions.some(a=>a.action==='CONFIGURE_FREE_GUIDE'&&a.enabled===false)).toBe(true);
+});

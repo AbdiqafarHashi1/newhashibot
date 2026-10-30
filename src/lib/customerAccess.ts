@@ -42,8 +42,9 @@ export function getCustomerAccessState(sub?: CustomerSubscription | null, reques
   // If subscription has expired
   if (hasPackage && (sub?.access_status === 'expired' || sub?.payment_status === 'expired' || isPastExpiry)) return 'expired';
 
-  // If subscription is active or marked as paid
-  if (hasPackage && sub?.access_status === 'active' && sub?.payment_status === 'paid' && (sub as CustomerSubscription & {verified_commerce?:boolean}).verified_commerce === true && expiresAt!==null && Number.isFinite(expiresAt) && expiresAt>Date.now()) {
+  // Server-projected owner grants are access, not verified provider payments.
+  const authorized = sub?.payment_status === 'paid' && sub?.verified_commerce === true || sub?.product_slug === 'crypto_signal_room' && sub?.payment_status === 'manual_access' && sub?.manual_access === true;
+  if (hasPackage && sub?.access_status === 'active' && authorized && expiresAt!==null && Number.isFinite(expiresAt) && expiresAt>Date.now()) {
     if (signalModeIncluded(sub?.product_slug ?? sub?.package_name)) {
       return 'active';
     }

@@ -1,0 +1,2 @@
+/** Technical diagnostics belong in operations records, never subscriber content. */
+export const subscriberCopySafe=(text:string)=>Boolean(text.trim())&&!/(?:site not found|deployment not found|404\s*:\s*NOT_FOUND|FUNCTION_INVOCATION_FAILED|Traceback \(most recent call last\)|SyntaxError:|\b(?:ECONNREFUSED|ENOTFOUND|SUPABASE_SERVICE_ROLE_KEY)\b|HTTP[_ ](?:4\d\d|5\d\d)|<!doctype html|<html[\s>])/i.test(text);

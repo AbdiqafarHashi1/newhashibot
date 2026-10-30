@@ -18,12 +18,14 @@ export interface Package {
   updated_at: string;
 }
 
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'cancelled';
+export type PaymentStatus = 'manual_access' | 'pending' | 'paid' | 'failed' | 'expired' | 'cancelled';
 export type AccessRequestStatus = 'pending_payment' | 'pending_admin_approval' | 'pending' | 'approved' | 'rejected' | 'converted_to_access' | 'cancelled' | 'expired';
 export type AccessStatus = 'suspended' | 'active' | 'inactive' | 'expired';
 export type TelegramStatus = 'not_invited' | 'invited' | 'joined' | 'removed';
 
 export interface CustomerSubscription {
+  manual_access?: boolean;
+  verified_commerce?: boolean;
   id: string;
   user_id: string | null;
   profile_id: string | null;

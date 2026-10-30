@@ -64,6 +64,9 @@ const activeSub = {
 } as any;
 
 assert.equal(getCustomerAccessState(activeSub, null), 'active');
+assert.equal(getCustomerAccessState({...activeSub,payment_status:'manual_access',verified_commerce:false,manual_access:true},null),'active');
+assert.equal(getCustomerAccessState({...activeSub,payment_status:'manual_access',verified_commerce:false,manual_access:false},null),'pending');
+assert.equal(getCustomerAccessState({...activeSub,payment_status:'manual_access',verified_commerce:false,manual_access:true,expires_at:new Date(Date.now()-1).toISOString()},null),'expired');
 assert.equal(getCustomerAccessState({...activeSub,verified_commerce:false},null),'pending');
 assert.equal(getCustomerAccessState(null,{status:'approved'} as any),'pending');
 assert.equal(getCustomerAccessState({...activeSub,expires_at:'invalid'},null),'pending');
