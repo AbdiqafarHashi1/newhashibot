@@ -1,0 +1,364 @@
+{
+  "protocol": {
+    "schema": "crypto-evidence-governor-development/v1",
+    "roles": [
+      "TREND_PULLBACK",
+      "RANGE_REVERSION",
+      "ALT_RELATIVE_BREAKOUT",
+      "MAJOR_WEEKLY_MOMENTUM",
+      "POST_SHOCK_RECOVERY"
+    ],
+    "states": {
+      "TREND_PULLBACK": [
+        "TREND_UP",
+        "TREND_DOWN"
+      ],
+      "RANGE_REVERSION": [
+        "RANGE"
+      ],
+      "ALT_RELATIVE_BREAKOUT": [
+        "TREND_UP",
+        "COMPRESSION"
+      ],
+      "MAJOR_WEEKLY_MOMENTUM": [
+        "TREND_UP"
+      ],
+      "POST_SHOCK_RECOVERY": [
+        "TRANSITION",
+        "RANGE"
+      ]
+    },
+    "windowDays": 180,
+    "minimumOutcomes": 30,
+    "minimumWeeks": 8,
+    "minimumPF": 1.15,
+    "minimumMeanR": 0.03,
+    "lowerMeanZ": 1.645,
+    "minimumAssetOutcomes": 10,
+    "scope": "Strategy eligibility only; no quantity/risk changes, parameter optimization or release permission. A strategy must have positive matching-asset evidence and positive strategy/state pooled evidence, stressed expectancy and a positive one-sided normal weekly-cluster lower estimate.",
+    "chronology": "Labels enter only after exit candle closes. At every event use trailing180days; matching strategy and existing adaptive-market state at entry. No random split or current-trade label. Research only; initial strategies were researched using these dates already.",
+    "arbitration": "Existing canonical arbitrator among admitted candidates; independent fixed-score baseline for comparison. One active per asset; no winner means no trade.",
+    "decisionFrom": "2025-07-01T00:00:00.000Z",
+    "evidenceToExclusive": "2026-07-01T00:00:00.000Z",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "events": 526,
+  "labels": 526,
+  "sourceHash": "fea445a2f9af674c786e3a1812c5ac70e5bb4acefdad900c2f356c4f58412686",
+  "uncompressedSha256": "dace55801fe127f14e0d1f964e67a57a0eec9dd90babd4a092187334422d1d45",
+  "compressedSha256": "2ecfbbe91b75f6ba95a93ab8853c3ba11795b989bc8da14ef7bc8a44842cf3ed",
+  "diagnostics": [
+    {
+      "role": "TREND_PULLBACK",
+      "state": "TREND_UP",
+      "candidates": 5,
+      "resolved": 5,
+      "netR": 2.5546584144315476
+    },
+    {
+      "role": "TREND_PULLBACK",
+      "state": "TREND_DOWN",
+      "candidates": 6,
+      "resolved": 6,
+      "netR": -4.763556592099005
+    },
+    {
+      "role": "TREND_PULLBACK",
+      "state": "RANGE",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "TREND_PULLBACK",
+      "state": "COMPRESSION",
+      "candidates": 59,
+      "resolved": 59,
+      "netR": -8.629019894129762
+    },
+    {
+      "role": "TREND_PULLBACK",
+      "state": "TRANSITION",
+      "candidates": 19,
+      "resolved": 19,
+      "netR": -9.460022454448538
+    },
+    {
+      "role": "TREND_PULLBACK",
+      "state": "SHOCK",
+      "candidates": 7,
+      "resolved": 7,
+      "netR": -1.2754208134821161
+    },
+    {
+      "role": "TREND_PULLBACK",
+      "state": "INVALID",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "RANGE_REVERSION",
+      "state": "TREND_UP",
+      "candidates": 71,
+      "resolved": 71,
+      "netR": -10.055666555635053
+    },
+    {
+      "role": "RANGE_REVERSION",
+      "state": "TREND_DOWN",
+      "candidates": 66,
+      "resolved": 66,
+      "netR": -4.9463956870746495
+    },
+    {
+      "role": "RANGE_REVERSION",
+      "state": "RANGE",
+      "candidates": 11,
+      "resolved": 11,
+      "netR": 4.7832276299249115
+    },
+    {
+      "role": "RANGE_REVERSION",
+      "state": "COMPRESSION",
+      "candidates": 2,
+      "resolved": 2,
+      "netR": -0.22357460115061425
+    },
+    {
+      "role": "RANGE_REVERSION",
+      "state": "TRANSITION",
+      "candidates": 123,
+      "resolved": 123,
+      "netR": -26.775537075350407
+    },
+    {
+      "role": "RANGE_REVERSION",
+      "state": "SHOCK",
+      "candidates": 2,
+      "resolved": 2,
+      "netR": -1.2207544376402626
+    },
+    {
+      "role": "RANGE_REVERSION",
+      "state": "INVALID",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "ALT_RELATIVE_BREAKOUT",
+      "state": "TREND_UP",
+      "candidates": 81,
+      "resolved": 81,
+      "netR": 12.286202918092952
+    },
+    {
+      "role": "ALT_RELATIVE_BREAKOUT",
+      "state": "TREND_DOWN",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "ALT_RELATIVE_BREAKOUT",
+      "state": "RANGE",
+      "candidates": 1,
+      "resolved": 1,
+      "netR": -0.04597596717467894
+    },
+    {
+      "role": "ALT_RELATIVE_BREAKOUT",
+      "state": "COMPRESSION",
+      "candidates": 5,
+      "resolved": 5,
+      "netR": -0.7004715558725646
+    },
+    {
+      "role": "ALT_RELATIVE_BREAKOUT",
+      "state": "TRANSITION",
+      "candidates": 34,
+      "resolved": 34,
+      "netR": -1.5005642596384743
+    },
+    {
+      "role": "ALT_RELATIVE_BREAKOUT",
+      "state": "SHOCK",
+      "candidates": 14,
+      "resolved": 14,
+      "netR": -3.299923849622214
+    },
+    {
+      "role": "ALT_RELATIVE_BREAKOUT",
+      "state": "INVALID",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "MAJOR_WEEKLY_MOMENTUM",
+      "state": "TREND_UP",
+      "candidates": 6,
+      "resolved": 6,
+      "netR": -1.3938999502464426
+    },
+    {
+      "role": "MAJOR_WEEKLY_MOMENTUM",
+      "state": "TREND_DOWN",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "MAJOR_WEEKLY_MOMENTUM",
+      "state": "RANGE",
+      "candidates": 1,
+      "resolved": 1,
+      "netR": -0.20283444840220738
+    },
+    {
+      "role": "MAJOR_WEEKLY_MOMENTUM",
+      "state": "COMPRESSION",
+      "candidates": 3,
+      "resolved": 3,
+      "netR": -2.55034438745099
+    },
+    {
+      "role": "MAJOR_WEEKLY_MOMENTUM",
+      "state": "TRANSITION",
+      "candidates": 5,
+      "resolved": 5,
+      "netR": 1.5071648390765249
+    },
+    {
+      "role": "MAJOR_WEEKLY_MOMENTUM",
+      "state": "SHOCK",
+      "candidates": 1,
+      "resolved": 1,
+      "netR": 1.7453288036531043
+    },
+    {
+      "role": "MAJOR_WEEKLY_MOMENTUM",
+      "state": "INVALID",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "POST_SHOCK_RECOVERY",
+      "state": "TREND_UP",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "POST_SHOCK_RECOVERY",
+      "state": "TREND_DOWN",
+      "candidates": 3,
+      "resolved": 3,
+      "netR": -3.1893293274691112
+    },
+    {
+      "role": "POST_SHOCK_RECOVERY",
+      "state": "RANGE",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "POST_SHOCK_RECOVERY",
+      "state": "COMPRESSION",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "POST_SHOCK_RECOVERY",
+      "state": "TRANSITION",
+      "candidates": 1,
+      "resolved": 1,
+      "netR": 0.015822938840825827
+    },
+    {
+      "role": "POST_SHOCK_RECOVERY",
+      "state": "SHOCK",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    },
+    {
+      "role": "POST_SHOCK_RECOVERY",
+      "state": "INVALID",
+      "candidates": 0,
+      "resolved": 0,
+      "netR": 0
+    }
+  ],
+  "results": [
+    {
+      "mode": "BASELINE",
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 321,
+        "resolvedCount": 321,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.05743126751248553,
+        "profitFactor": 0.8691006958639247,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 49.94824801825307
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 321,
+        "resolvedCount": 321,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.11045159530220972,
+        "profitFactor": 0.7654047241701574,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 62.40297015675292
+      },
+      "decisions": 321
+    },
+    {
+      "mode": "EVIDENCE_GOVERNED",
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 10,
+        "resolvedCount": 10,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.0987046606871868,
+        "profitFactor": 0.5549023635085226,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.8229693867151078
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 10,
+        "resolvedCount": 10,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.11999847817520962,
+        "profitFactor": 0.48229067472296505,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.9505390972565415
+      },
+      "decisions": 359
+    }
+  ],
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

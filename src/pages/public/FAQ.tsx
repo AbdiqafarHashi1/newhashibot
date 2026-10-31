@@ -67,13 +67,13 @@ export default function FAQ() {
       id: 'pay-1',
       category: 'Payments & M-Pesa',
       q: 'How do I pay using M-Pesa?',
-      a: 'Send the exact plan amount to official M-Pesa number 0748 895 225 via M-Pesa Send Money. Save the transaction ref code (e.g. SJK789XYZ) and submit it on the Pricing page confirmation form.',
+      a: 'Choose M-Pesa on the VIP page and enter your Kenyan phone number. When checkout is activated, enter your PIN only in the Safaricom prompt. Access follows independent provider verification. Do not send money to personal numbers.',
     },
     {
       id: 'pay-2',
       category: 'Payments & M-Pesa',
       q: 'How long does account activation take after payment?',
-      a: 'Submissions are verified manually by the HashiBot admin team. Activations are typically processed within 15 to 60 minutes during standard operational hours.',
+      a: 'A verified successful provider payment activates your subscription automatically. Pending or uncertain payments do not grant access. Use Billing to check status and recover Telegram access without paying again.',
     },
     // Risk & Disclaimers
     {

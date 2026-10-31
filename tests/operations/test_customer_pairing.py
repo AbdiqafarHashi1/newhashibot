@@ -32,10 +32,14 @@ class CustomerPairingTests(unittest.TestCase):
         self.assertEqual(self.config.CUSTOMER_PAIRING_CODE, '')
         self.assertNotIn('password', payload)
 
-    def test_live_and_unknown_terminal_do_not_call_transport(self):
-        for evidence in ({'connected': True, 'environment': 'live'}, {'connected': True}):
-            with self.assertRaisesRegex(RuntimeError, 'DEMO_TERMINAL'): self.client.pair_customer_account(evidence)
+    def test_unknown_terminal_does_not_call_transport(self):
+        with self.assertRaisesRegex(RuntimeError, 'VERIFIED_TERMINAL'): self.client.pair_customer_account({'connected': True})
         self.assertEqual(len(self.calls), 0)
+
+    def test_live_pairing_is_observation_only_and_keeps_server_environment_check(self):
+        self.client.pair_customer_account({'connected': True, 'environment': 'live'})
+        self.assertEqual(len(self.calls), 1)
+        self.assertNotIn('execution_enabled', self.calls[0][1])
 
     def test_rejected_pairing_does_not_report_success(self):
         self.client._post = lambda *_: (409, {'success': False, 'error_code': 'PAIRING_INVALID'})

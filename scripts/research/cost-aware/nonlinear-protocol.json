@@ -1,0 +1,17 @@
+{
+  "schema": "cost-aware-nonlinear-development/v1",
+  "decisionTime": "2026-10-23 after observing the two disclosed linear development cases",
+  "additionalCasesPerMarket": 1,
+  "estimator": "GradientBoostingRegressor",
+  "n_estimators": 40,
+  "max_depth": 2,
+  "learning_rate": 0.05,
+  "min_samples_leaf_crypto": 500,
+  "min_samples_leaf_forex": 50,
+  "loss": "squared_error",
+  "random_state": 219823,
+  "selection": "One fixed shallow nonlinear hypothesis; no tree/threshold search. All monthly artifacts and failed linear cases retained.",
+  "splits": "Same purged, prior-six-month monthly walk-forward as the corresponding linear protocol. Incomplete Forex months remain explicit.",
+  "publication": false,
+  "execution": false
+}

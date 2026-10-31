@@ -1,0 +1,59 @@
+{
+  "schema": "crypto-signal-ensemble/v1",
+  "declaredOn": "2026-10-28",
+  "objective": "Four complementary release candidates, positive net/stress results and measured combined participation. No forced signals, no claimed approvals before gates pass.",
+  "roles": [
+    "TREND_PULLBACK",
+    "VOLATILITY_BREAKOUT",
+    "EXHAUSTION_REVERSAL",
+    "RELATIVE_MOMENTUM"
+  ],
+  "development": {
+    "from": "2025-01-11T00:00:00.000Z",
+    "until": "2026-01-01T00:00:00.000Z"
+  },
+  "validation": {
+    "from": "2026-01-01T00:00:00.000Z",
+    "until": "2026-07-01T00:00:00.000Z"
+  },
+  "scope": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT"
+  ],
+  "disclosure": "Fixed new hypotheses after the documented legacy and coordinated-role failures. Calendars and assets have been observed extensively elsewhere in the project; not project-wide untouched validation. Exactly one parameter set per role, no P&L sweep. Development-only eligibility freezing, then unchanged validation. All losers retained.",
+  "data": "Official vendor-checksummed Binance USD-M native15m with quote/taker evidence;960closed bars plus aligned BTC reference. Never manufacture H4 bars from incomplete groups. All15m closes are eligible, not only hourly boundaries.",
+  "entries": {
+    "TREND_PULLBACK": "Closed H4 EMA8/21 direction and strength>=0.35ATR; native EMA20/50 alignment, five-bar pullback and current reclaim, directional candle body>=0.25ATR and quote volume>=prior20 mean.",
+    "VOLATILITY_BREAKOUT": "Prior32nativebar channel break+0.1ATR; prior8mean range<=0.9ATR; volume>=1.5prior20; body>=0.5ATR; H4 not opposing.",
+    "EXHAUSTION_REVERSAL": "H4 strength<=0.75ATR; pierce prior20/2sigma band then close back inside, directional candle and prior RSI2<15/>85, observed taker quote flow confirms reversal. Target prior mean, minimum0.8R.",
+    "RELATIVE_MOMENTUM": "Native24h asset move>=3%, outperform BTC by>=2pp and same-sign7d return; BTC day direction aligned, break prior24h high/low and volume>=1.5prior20. Long and short mirror are new hypothesis, not old alt-rule certification."
+  },
+  "management": "Wider of structural invalidation/2nativeATR14; minimum0.8% stop, maximum6%; target3R except mean-reversion mean target>=0.8R; full target/no partial/BE/trail;96nativebars max; stop-first; next-open; gaps excluded. One active underlying symbol, max3 concurrent signals, observed-close release.",
+  "costBps": {
+    "feeBps": 10,
+    "spreadBps": 2,
+    "slippageBps": 4,
+    "fundingBps": 9
+  },
+  "stressMultiplier": 1.5,
+  "gates": {
+    "developmentResolved": 50,
+    "validationResolved": 30,
+    "netPF": 1.2,
+    "stressPF": 1.0,
+    "positiveMean": true,
+    "minimumEligibleAssets": 2,
+    "minimumAssetDevelopmentResolved": 10,
+    "assetDevelopmentNetPF": 1.1,
+    "maxSingleAssetProfitFraction": 0.7,
+    "combinedMeanSignalsPerDay": 1,
+    "combinedActiveDayFraction": 0.7
+  },
+  "calibration": "Every development asset is reported. Eligible scope freezes only from prior development count/netPF/positive stress; no validation P&L asset pruning. Old failed gates are not relabelled as passed. Any promotion still requires controlled later holdout/release review and deployment authority; live execution remains disabled.",
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

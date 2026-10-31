@@ -1,8 +1,2 @@
-import { Link } from 'react-router-dom';
-import { AdminLayout } from '../../components/layout/AdminLayout';
-import { PhaseOAgentsOperations } from '../../components/operations/PhaseOAgentsOperations';
-import { PhasePWorkersOperations } from '../../components/operations/PhasePWorkersOperations';
-
-export default function AIAgentsCommand(){
- return <AdminLayout><main className="mx-auto max-w-6xl space-y-6 p-4 pb-20 text-zinc-100 sm:p-8"><header><p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Agents & distribution</p><h1 className="mt-2 text-3xl font-bold">Agents Hub</h1><p className="mt-3 max-w-3xl text-sm text-zinc-400">Create evidence-backed content, approve the exact draft and destination, and inspect delivery records. Agent output never changes signals, account risk, payment or membership truth.</p></header><div className="grid gap-3 sm:grid-cols-3">{[['Content & Proof','Signal analysis, admitted-candle charts and complete-period outcome cards.'],['Growth & Engagement','Approved offers, Free-to-VIP links and campaign attribution. External social exports remain drafts until actually published.'],['Customer Guide','Account-scoped setup guidance from authorized customer records, without exposing credentials.']].map(([name,body])=><article key={name} className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"><h2 className="font-semibold">{name}</h2><p className="mt-2 text-sm text-zinc-400">{body}</p></article>)}</div><nav className="flex flex-wrap gap-4 text-sm text-cyan-300"><Link to="/admin/growth-goal">1,000 customer goal →</Link><Link to="/admin/commerce">Payments & memberships →</Link><Link to="/admin/telegram">Telegram delivery logs →</Link><Link to="/admin/onboarding">Customer support & readiness →</Link></nav><PhaseOAgentsOperations/><details className="rounded-xl border border-zinc-800 p-4"><summary className="cursor-pointer font-semibold">Worker queue, leases & recovery</summary><PhasePWorkersOperations/></details></main></AdminLayout>;
-}
+import {Navigate} from 'react-router-dom';
+export default function AIAgentsCommand(){return <Navigate to="/admin/growth-goal?tab=campaigns" replace/>;}

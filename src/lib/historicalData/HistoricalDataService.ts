@@ -1,12 +1,13 @@
 import { datasetKey, type HistoricalCache } from './cache';
 import type { HistoricalAdapter } from './adapters';
 import type { DataQualityClassification, HistoricalDataRequest, HistoricalDataset, HistoricalRange } from './types';
-import { normalizeAndValidate } from './validation';
+import { normalizeAndValidate,TIMEFRAME_MS } from './validation';
 import { createSessionCalendar } from './sessions';
+import {nativeCandleEvidence} from '../../../supabase/functions/_shared/native-candle-evidence.ts';
 
 export function hashHistoricalBars(bars: readonly {timestamp:number;open:number;high:number;low:number;close:number;volume?:number}[]):string {
   let hash=2166136261;
-  const value=bars.map(b=>[b.timestamp,b.open,b.high,b.low,b.close,b.volume??null].join(':')).join('|');
+  const value=bars.map(b=>{const old=[b.timestamp,b.open,b.high,b.low,b.close,b.volume??null].join(':'),evidence=nativeCandleEvidence(b as unknown as Record<string,unknown>),source=(b as {source?:string}).source;return Object.keys(evidence).length||source?`${old}:${source??''}:${JSON.stringify(evidence)}`:old;}).join('|');
   for(let i=0;i<value.length;i++){hash^=value.charCodeAt(i);hash=Math.imul(hash,16777619);}
   return `fnv1a32:${(hash>>>0).toString(16).padStart(8,'0')}`;
 }
@@ -25,7 +26,9 @@ export class HistoricalDataService {
   async refreshRange(r:HistoricalDataRequest){return this.get({...r},true)}
   async get(r:HistoricalDataRequest,force=false):Promise<HistoricalDataset>{
     if(!Number.isFinite(r.from)||!Number.isFinite(r.to)||r.from>r.to)throw new Error('HISTORICAL_REQUEST_RANGE_INVALID');
-    const kind=r.provider==='BINANCE'||r.provider==='BYBIT'?'CRYPTO':r.symbol.includes('XAU')||r.symbol.includes('XAG')||r.symbol.includes('GOLD')?'METALS':'FOREX',calendar=createSessionCalendar(kind);
+    const width=TIMEFRAME_MS[r.timeframe];r={...r,from:Math.ceil(r.from/width)*width,to:Math.min(Math.floor(r.to/width)*width,r.includeOpenCandle?Infinity:Math.floor(Date.now()/width)*width-width)};
+    if(r.from>r.to)throw Error('NO_CLOSED_CANDLES_IN_REQUESTED_RANGE');
+    const kind=r.provider==='BINANCE'||r.provider==='BINANCE_USDM'||r.provider==='BYBIT'?'CRYPTO':r.symbol.includes('XAU')||r.symbol.includes('XAG')||r.symbol.includes('GOLD')?'METALS':'FOREX',calendar=createSessionCalendar(kind);
     const cached=await this.cache.getBars(r);const missing=force?[{from:r.from,to:r.to}]:normalizeAndValidate(cached,r.timeframe,{from:r.from,to:r.to},'RESEARCH',Date.now(),calendar.isExpected).quality.missingRanges;
     const adapter=this.adapters.get(r.provider);
     if(missing.length&&!adapter){const coverage=await this.cache.getCoverage(r);throw new HistoricalDataUnavailableError({requested:{from:r.from,to:r.to},cached:coverage.ranges,missing,provider:r.provider,bridgeStatus:r.provider==='MT5_BRIDGE'?'unavailable':undefined,mt5Status:r.provider==='MT5_BRIDGE'?'unknown':undefined});}

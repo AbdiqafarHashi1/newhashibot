@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {buildCryptoCatalystCards,fetchCryptoCatalystEvidence,renderCryptoCatalystCards} from '../../supabase/functions/_shared/crypto-catalyst-watch.ts';
+import {generateIntelligence,storeIntelligenceEvent} from '../../supabase/functions/_shared/intelligence-engine.ts';
+import {intelligencePublication} from '../../supabase/functions/_shared/intelligence-publication.ts';
+import {editorialDestinations} from '../../supabase/functions/_shared/telegram-product.ts';
+const now=Date.now(),exchange=[{symbol:'NEWUSDT',contractType:'PERPETUAL',quoteAsset:'USDT',status:'PENDING_TRADING',onboardDate:now+3600000},{symbol:'SOLUSDT',contractType:'PERPETUAL',quoteAsset:'USDT',status:'TRADING',onboardDate:now-90*86400000}],tickers=[{symbol:'SOLUSDT',closeTime:now-100,quoteVolume:'50000000',priceChangePercent:'12',lastPrice:'110',lowPrice:'98',highPrice:'115'}],headlines=[{title:'Network mainnet upgrade announced',url:'https://ethereum.org/en/updates?utm_source=fixture',source:'Project feed',published_at:new Date(now-1000).toISOString()}];
+const cards=buildCryptoCatalystCards({now,exchange,tickers,headlines});assert.equal(cards.length,3);assert.equal(cards[0].kind,'EXCHANGE_SCHEDULED_LISTING');assert.equal(cards[0].publishedAt,null);assert.equal(cards[1].expectedAt,null);assert.equal(cards[2].kind,'OBSERVED_MOMENTUM');assert.ok(cards.every(c=>c.tradeSignal===false&&!('entry' in c)&&!('tp' in c)));assert.ok(cards[1].sourceUrl.endsWith('/updates'));assert.match(renderCryptoCatalystCards(cards),/EAT/);assert.match(renderCryptoCatalystCards(cards),/already underway/);assert.match(renderCryptoCatalystCards(cards),/timing unverified/);
+assert.deepEqual(buildCryptoCatalystCards({now,exchange,tickers,headlines,seenIds:new Set(cards.map(c=>c.id))}),[]);
+for(const invalid of [undefined,null,'',true,'123',0,now-1,now+8*86400000])assert.equal(buildCryptoCatalystCards({now,exchange:[{...exchange[0],onboardDate:invalid as never}],tickers:[],headlines:[]}).length,0);
+for(const patch of [{closeTime:now+1},{closeTime:now-300001},{quoteVolume:null},{quoteVolume:'1000'},{priceChangePercent:'99'},{highPrice:'80'},{lastPrice:''}])assert.equal(buildCryptoCatalystCards({now,exchange,tickers:[{...tickers[0],...patch}],headlines:[]}).filter(c=>c.kind==='OBSERVED_MOMENTUM').length,0);
+assert.equal(buildCryptoCatalystCards({now,exchange:[...exchange,{...exchange[0],status:'TRADING'}],tickers:[],headlines:[]}).length,0);
+assert.equal(buildCryptoCatalystCards({now,exchange:[],tickers:[],headlines:[{...headlines[0],published_at:new Date(now+1).toISOString()},{...headlines[0],url:'javascript:alert(1)'},{...headlines[0],published_at:new Date(now-86400001).toISOString()}]}).length,0);
+let requests=0;const fetched=await fetchCryptoCatalystEvidence(headlines,now,async(url,options)=>{requests++;assert.equal(options?.method,undefined);assert.ok(String(url).startsWith('https://fapi.binance.com/fapi/v1/'));return new Response(JSON.stringify(String(url).includes('exchangeInfo')?{symbols:exchange}:tickers));},undefined,()=>now);assert.equal(requests,2);assert.equal(fetched.cards.length,3);
+const failed=await fetchCryptoCatalystEvidence([],now,async()=>new Response('',{status:503}),undefined,()=>now);assert.deepEqual(failed.cards,[]);assert.equal(failed.exchangeStatus,'failed');assert.equal(failed.tickerStatus,'failed');
+const tooBig=await fetchCryptoCatalystEvidence([],now,async()=>new Response('x'.repeat(4000001)),undefined,()=>now);assert.equal(tooBig.exchangeStatus,'failed');assert.deepEqual(tooBig.cards,[]);
+
+// Actual intelligence generator -> concrete persistence call -> existing editorial routing. HTTP and DB are injected.
+const originalFetch=globalThis.fetch,oldDeno=globalThis.Deno;
+globalThis.Deno={env:{get:()=>undefined}} as typeof Deno;
+const events:Record<string,unknown>[]=[],writes:string[]=[];let comparisonFails=false;
+const candles=['BTCUSDT','ETHUSDT','SOLUSDT'].flatMap(symbol=>Array.from({length:24},(_,i)=>({symbol,timeframe:'1h',open_time:new Date(Math.floor(now/3600000)*3600000-(24-i)*3600000).toISOString(),open:100,high:103,low:99,close:101,volume:100,source:'INJECTED_SOURCE'})));
+function database(){return{from(table:string){const q:Record<string,unknown>={};for(const method of ['select','eq','in','gte','order','limit'])q[method]=()=>q;
+ q.insert=async(value:Record<string,unknown>)=>{writes.push(table);if(table==='intelligence_events')events.push(value);return{error:null}};
+ q.then=(resolve:(v:unknown)=>unknown)=>resolve({data:table==='candles'?candles:table==='intelligence_events'?events:[],error:table==='intelligence_events'&&comparisonFails?{message:'injected read failure'}:null});return q;}};}
+try{
+ globalThis.fetch=async url=>{const u=String(url);assert.doesNotMatch(u,/telegram|order|account|trade\?/);if(u.includes('exchangeInfo'))return new Response(JSON.stringify({symbols:exchange}));if(u.includes('ticker/24hr'))return new Response(JSON.stringify(tickers));if(u.includes('cryptocompare'))return new Response(JSON.stringify({Data:headlines}));return new Response('{}');};
+ const db=database() as never,first=await generateIntelligence(db,'watchlist_pattern_update');assert.equal(first.market,'crypto');assert.equal(first.status,'generated');assert.match(first.summary,/Crypto catalyst & opportunity watch/);assert.equal((first.metadata.opportunity_watch as {cards:unknown[]}).cards.length,3);await storeIntelligenceEvent(db,first);assert.equal(events.length,1);assert.deepEqual(editorialDestinations(intelligencePublication(first,'vip')),['vip_crypto']);
+ const second=await generateIntelligence(db,'watchlist_pattern_update');assert.equal((second.metadata.opportunity_watch as {cards:unknown[]}).cards.length,0);assert.doesNotMatch(second.summary,/Crypto catalyst & opportunity watch/);
+ comparisonFails=true;const held=await generateIntelligence(db,'watchlist_pattern_update');assert.equal(held.metadata.opportunity_watch_state,'COMPARISON_UNAVAILABLE_HELD');assert.equal(held.metadata.opportunity_watch,null);assert.doesNotMatch(held.summary,/Crypto catalyst & opportunity watch/);
+ assert.ok(writes.every(t=>['intelligence_events','intelligence_feed_results'].includes(t)));assert.ok(!writes.some(t=>/signals|orders|execution/.test(t)));
+}finally{globalThis.fetch=originalFetch;globalThis.Deno=oldDeno;}
+console.log('Catalyst watch: source clocks, pending listings, reported-vs-known timing, observed momentum, bounds, durable comparison, concrete intelligence persistence and Crypto-only editorial routing passed; no external sends/orders.');

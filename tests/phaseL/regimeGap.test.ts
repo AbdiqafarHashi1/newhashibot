@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {aggregateGap,gapEma,proposeGap} from '../../scripts/research/regime-gap-rules.ts';
+import type {StrategyCandle} from '../../supabase/functions/_shared/professional-strategies.ts';
+const t=Date.parse('2025-01-01T00:00:00Z');
+const fixture=(step:number,f:(i:number)=>number):StrategyCandle[]=>Array.from({length:240},(_,i)=>{const c=f(i);return{symbol:'BTCUSDT',source:'BINANCE_USDM_KLINES',market_type:'crypto',instrument_type:'USDT_PERPETUAL',timeframe:step===3600000?'1h':'4h',open_time:new Date(t+i*step).toISOString(),open:c,high:c+.2,low:c-.2,close:c,volume:10,quote_volume:1000};});
+const range=fixture(3600000,i=>100+3*Math.sin(i*2*Math.PI/12));Object.assign(range[239],{open:97.5,close:97,high:98,low:95.5});
+const bull=fixture(14400000,i=>100+i*.01);for(let i=180;i<227;i++){bull[i].high+=2;bull[i].low-=2;}Object.assign(bull[239],{open:102.4,close:110,high:110.2,low:102.3,quote_volume:3000});
+const bear=fixture(14400000,i=>200-i*.2);const e=gapEma(bear.slice(0,-1).map(x=>x.close),20);Object.assign(bear[238],{high:e+1});Object.assign(bear[239],{open:bear[238].low,close:bear[238].low-.5,high:bear[238].low+.2,low:bear[238].low-.6});
+const reflected=bull.map(b=>({...b,open:300-b.open,close:300-b.close,high:300-b.low,low:300-b.high}));
+for(const [mode,h,side] of [['RANGE_FAILED_AUCTION',range,'buy'],['BEAR_RALLY_REJECTION',bear,'sell'],['COMPRESSION_RELEASE',bull,'buy'],['COMPRESSION_RELEASE',reflected,'sell']] as const){const result=proposeGap(mode,h);assert.ok(result,mode);assert.equal(result.candidate.side,side);assert.equal(result.candidate.lifecycle,'RESEARCH');assert.equal(result.candidate.publicationMode,'SHADOW');assert.equal(result.candidate.confidence,0);assert.ok(result.candidate.riskReward>=1.3);assert.equal(proposeGap(mode,h.slice(1)),null);assert.throws(()=>proposeGap(mode,h.map((b,i)=>i===20?{...b,open_time:'invalid'}:b)),/INVALID_PREFIX/);assert.throws(()=>proposeGap(mode,h.map((b,i)=>i===20?{...b,high:b.low-1}:b)),/INVALID_PREFIX/);assert.deepEqual(proposeGap(mode,[...h,{...h[239],close:1e6}].slice(0,240)),result);}
+assert.equal(proposeGap('BEAR_RALLY_REJECTION',bull),null);
+assert.equal(proposeGap('COMPRESSION_RELEASE',bull.map((b,i)=>i===239?{...b,quote_volume:1}:b)),null);
+const q=fixture(900000,i=>100+i*.01);const a=aggregateGap(q,16);assert.equal(a.length,15);assert.equal(a[0].open,q[0].open);assert.equal(a[0].close,q[15].close);assert.equal(a[0].quote_volume,16000);assert.throws(()=>aggregateGap(q.slice(1),16),/INCOMPLETE/);assert.throws(()=>aggregateGap(q.map((b,i)=>i===1?{...b,open_time:q[0].open_time}:b),16),/INVALID_SOURCE/);
+console.log('Regime gaps: positive range/short/expansion fixtures, reflection symmetry, prefix-only decisions, stale/gap/OHLC rejection, research isolation and native aggregation passed.');

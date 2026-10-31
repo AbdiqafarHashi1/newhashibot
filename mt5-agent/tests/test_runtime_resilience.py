@@ -37,3 +37,14 @@ class RuntimeResilienceTests(unittest.TestCase):
         daemon.credential_capability='master'
         with patch.object(Config,'DATA_ONLY',True):
             self.assertFalse(daemon.connect_mt5())
+
+    def test_live_master_can_connect_for_reporting_without_enabling_mutations(self):
+        from config import Config
+        from unittest.mock import MagicMock, patch
+        daemon=MT5AgentDaemon.__new__(MT5AgentDaemon)
+        daemon.mt5_client=MagicMock();daemon.mt5_client.connect.return_value=True
+        daemon.mt5_client.verify_connection.return_value={'ok':True,'account':{'environment':'live'}}
+        daemon.credential_capability='master'
+        with patch.object(Config,'DATA_ONLY',False),patch.object(Config,'ALLOW_LIVE_EXECUTION',False),patch.object(Config,'CUSTOMER_PAIRING_CODE',''):
+            self.assertTrue(daemon.connect_mt5())
+        daemon.mt5_client.place_order.assert_not_called()

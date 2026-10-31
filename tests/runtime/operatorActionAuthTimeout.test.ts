@@ -45,7 +45,7 @@ function includesAll(text: string, values: string[]) {
 }
 
 includesAll(admin, ['verifyAdmin', 'return { ok: false, status: 401', 'return { ok: false, status: 403']);
-includesAll(helper, ['invokeInternalFunction', 'DEFAULT_OPERATOR_TIMEOUT_MS = 12000', 'controller.abort()', 'x-hashibot-internal-secret']);
+includesAll(helper, ['invokeInternalFunction', 'DEFAULT_OPERATOR_TIMEOUT_MS = 30000', 'controller.abort()', 'x-hashibot-internal-secret']);
 assert.ok(!helper.includes('Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")'), 'shared helper must not use service-role Authorization bearer');
 includesAll(auth, ['UNAUTHORIZED_INVALID_JWT_FORMAT', 'x-hashibot-internal-secret', 'hashibot_internal_secret']);
 
@@ -84,7 +84,7 @@ for (const [action, target] of Object.entries(expectedRoutes)) {
 }
 
 includesAll(admin, ['idempotencyKey', 'UNKNOWN_OUTCOME_REQUIRES_RECONCILIATION', 'operator_runtime_events', 'runtimeEventId']);
-includesAll(ui, ['session.access_token, 20000', 'runningAction === action', 'runningAction']);
+includesAll(ui, ['session?.access_token, timeout', 'runningAction === action', 'runningAction']);
 includesAll(result, ['<b>Target:</b>', '<b>HTTP:</b>', '<b>Error code:</b>', '<b>Timed out:</b>', '<b>Auth failed:</b>']);
 
 const forbiddenGlobalJwtDisable = ['verify_jwt = false', 'jwt = false'];

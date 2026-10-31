@@ -6,7 +6,7 @@ import { readAttribution } from '../../lib/commerce';
 import { authResumePath, getOrCreatePurchaseAttemptKey, purchaseAttemptScope, savePurchaseIntent, updatePurchaseAttempt } from '../../lib/purchaseIntent';
 import { supabase } from '../../lib/supabase';
 
-export function MpesaCheckout({ termDays }: { termDays: 7 | 30 }) {
+export function MpesaCheckout({termDays,productCode='VIP_SIGNALS',executionAccountId,amountMinor}:{termDays:7|30;productCode?:'VIP_SIGNALS'|'FOUNDING_AUTO_EXECUTION';executionAccountId?:string;amountMinor?:number}) {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -14,26 +14,27 @@ export function MpesaCheckout({ termDays }: { termDays: 7 | 30 }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
-  const amount = termDays === 7 ? '1,200' : '3,500';
+  const amount=amountMinor!==undefined?(amountMinor/100).toLocaleString('en-KE'):termDays===7?'1,200':'3,500';
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (submitting.current) return;
     const attribution = readAttribution(params);
-    savePurchaseIntent({ product: 'VIP_SIGNALS', provider: 'MPESA', termDays, attribution: { ...attribution } });
+    savePurchaseIntent({ product:productCode,provider:'MPESA',executionAccountId,termDays, attribution: { ...attribution } });
     if (!session) { navigate(authResumePath()); return; }
+    if(productCode==='FOUNDING_AUTO_EXECUTION'&&!executionAccountId){setMessage('Select your trading account first.');return;}
     submitting.current = true; setBusy(true); setMessage('Starting a secure M-Pesa request…');
-    const attemptScope = purchaseAttemptScope(session.user.id, `mpesa.vip.${termDays}.${phone.replace(/\D/g, '')}`);
-    let data: any, error: any;
+    const attemptScope = purchaseAttemptScope(session.user.id, `mpesa.${productCode}.${executionAccountId??'signals'}.${termDays}.${phone.replace(/\D/g, '')}`);
+    let data: {state?:string;checkout_id?:string;masked_phone?:string;action_url?:string}|null=null, error: unknown;
     try {
       ({ data, error } = await supabase.functions.invoke('commerce-checkout', {
-        body: { product_code: 'VIP_SIGNALS', provider: 'MPESA', currency: 'KES', term_days: termDays, phone, return_url: `${location.origin}/payment/result`, ...attribution },
+        body: { product_code:productCode,execution_account_id:executionAccountId,...(amountMinor===undefined?{}:{amount_minor:amountMinor}),provider:'MPESA', currency: 'KES', term_days: termDays, phone, return_url: `${location.origin}/payment/result`, ...attribution },
         headers: { 'x-idempotency-key': getOrCreatePurchaseAttemptKey(attemptScope) },
       }));
       updatePurchaseAttempt(attemptScope, error ? 'UNCERTAIN' : data?.state === 'ACTION_REQUIRED' || data?.state === 'PROVIDER_PENDING' ? 'PENDING' : data?.state === 'FAILED' ? 'FAILED' : 'READY', data?.checkout_id);
-    } finally { submitting.current = false; setBusy(false); }
+    } catch { updatePurchaseAttempt(attemptScope,'UNCERTAIN'); setMessage('Confirmation was interrupted. Check Billing before trying another payment.'); return; } finally { submitting.current = false; setBusy(false); }
     if (error || data?.state === 'CHECKOUT_NOT_CONFIGURED') { setMessage('M-Pesa checkout cannot currently be started. Please try again later; do not send money manually.'); return; }
-    if (data?.state === 'PROVIDER_PENDING' || data?.state === 'ACTION_REQUIRED') {
+    if (data?.checkout_id && (data.state === 'PROVIDER_PENDING' || data.state === 'ACTION_REQUIRED')) {
       setMessage(data.masked_phone ? `Prompt sent to ${data.masked_phone}. Enter your M-Pesa PIN only on your phone. We are awaiting confirmation.` : 'This purchase attempt is already in progress. We are awaiting provider confirmation.');
       navigate(`/payment/result?checkout=${encodeURIComponent(data.checkout_id)}`);
       return;

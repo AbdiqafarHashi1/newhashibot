@@ -1,0 +1,1645 @@
+{
+  "protocol": {
+    "schema": "crypto-regime-gap/v1",
+    "writtenOn": "2026-10-27",
+    "assets": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT"
+    ],
+    "period": {
+      "from": "2025-01-01T00:00:00.000Z",
+      "until": "2026-07-01T00:00:00.000Z"
+    },
+    "modes": [
+      "RANGE_FAILED_AUCTION",
+      "BEAR_RALLY_REJECTION",
+      "COMPRESSION_RELEASE"
+    ],
+    "disclosure": "New fixed hypotheses after previously disclosed failures. These dates and assets are reused development; no untouched-validation claim. No parameter sweep, dropping losing assets, sign flipping after results or automatic promotion.",
+    "range": "1h, prior48-bar path efficiency<=0.20 and EMA50 change over6bars<=0.5ATR14. Candle pierces prior24h high/low by>=0.1ATR and closes back inside, rejection wick>=0.4 candle range. Fade toward prior24h midpoint, stop beyond wick by0.25ATR, minimum1.3RR and gross target>=5x19bps. Hold at most12h.",
+    "bear": "4h, EMA50<EMA200, close<EMA200, EMA50 below its6-bar-prior value. Prior candle reaches EMA20 and current bearish close falls below prior low. Stop wider of2ATR14 or prior3bar high+0.25ATR; target3R, hold at most7days.",
+    "compression": "4h, previous12bar mean true range<=0.75 previous60bar mean true range. Current close breaks previous20bar highs/lows, quote volume>=1.5previous20barmean, EMA50/200 direction agrees. Stop2ATR14; target3R; hold at most7days.",
+    "costsBps": {
+      "feeBps": 10,
+      "spreadBps": 2,
+      "slippageBps": 4,
+      "fundingBps": 3
+    },
+    "funding": "Additional adverse reserve1bp per commenced8h of actual holding time; stress multiplies all modeled costs1.5. These are reserves, not measured fills/funding settlement. No positive funding credits.",
+    "accounting": "Next15m open, stop-first collision, full target, no partial/BE, no trade overlap within each asset/mode. Incomplete horizon stays OPEN. SignedR based on actual fill. Constant-risk independent-signal outcomes, not portfolio performance.",
+    "gates": {
+      "minimumPooledClosed": 100,
+      "minimumEachDirection": 30,
+      "minimumPooledPF": 1.2,
+      "positiveEachCalendarSlice": true,
+      "positiveStress": true,
+      "minimumEachAssetClosed": 15,
+      "positiveEachAsset": true
+    },
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "sourceHashes": {
+    "scripts/research/regime-gap-protocol.json": "9501e6d9d57c0cce298a6ffad1ccad43f9bc8c032ade1e032e2cc4e76f8e2d72",
+    "scripts/research/regime-gap-rules.ts": "399a466d6ebd676ef0f655c6a7a605cc4dd36130cfefe6dbcabf33463feb49f8",
+    "scripts/research/regime-gap-study.ts": "c5d822d080799faad191bd7a2266fd0eeb3a624f9c1b2eb7cd35be71a985b062",
+    "supabase/functions/_shared/replay-outcomes.ts": "51ab1dec93eab0471ff704c2f0be1573e6489a013a4def6523b51a811ac7b7e9",
+    "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867"
+  },
+  "cases": [
+    {
+      "symbol": "BTCUSDT",
+      "mode": "RANGE_FAILED_AUCTION",
+      "proposals": 111,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 111,
+        "resolvedCount": 111,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3983879485663665,
+        "profitFactor": 0.5416190572448637,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 53.81798250857436
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 111,
+        "resolvedCount": 111,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.5711523758716405,
+        "profitFactor": 0.4233832240854971,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 70.49252086065727
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 48,
+          "resolvedCount": 48,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5271374154638628,
+          "profitFactor": 0.38655601682556046,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 28.154975727304066
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 63,
+          "resolvedCount": 63,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.30029311664446434,
+          "profitFactor": 0.6574324449661391,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 27.643291319361325
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 66,
+          "resolvedCount": 66,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.15630925040246052,
+          "profitFactor": 0.8021956577945853,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 24.26449666497433
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 45,
+          "resolvedCount": 45,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.7534367058734284,
+          "profitFactor": 0.23496322030085134,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 33.90465176430428
+        }
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "mode": "BEAR_RALLY_REJECTION",
+      "proposals": 34,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 34,
+        "resolvedCount": 34,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.07501630913545074,
+        "profitFactor": 0.8914796915943619,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 5.888456568400738
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 34,
+        "resolvedCount": 34,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.12610605209717443,
+        "profitFactor": 0.8257405335897172,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 6.900095526095606
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 34,
+          "resolvedCount": 34,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.07501630913545074,
+          "profitFactor": 0.8914796915943619,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.888456568400738
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 23,
+          "resolvedCount": 23,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.154216157471096,
+          "profitFactor": 0.7866510212179495,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.048600270150105
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 11,
+          "resolvedCount": 11,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.09058337374817112,
+          "profitFactor": 1.1448742794279363,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 3.466094120934646
+        }
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "mode": "COMPRESSION_RELEASE",
+      "proposals": 18,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.22708460980092443,
+        "profitFactor": 0.7370785143999998,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 10.609635311087068
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.28508454616551576,
+        "profitFactor": 0.6855652484766306,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 11.414557241826358
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 9,
+          "resolvedCount": 9,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.24424610835379498,
+          "profitFactor": 0.7207061346588228,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.06190334173607
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 9,
+          "resolvedCount": 9,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.20992311124805393,
+          "profitFactor": 0.7538661363272618,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.633465160523473
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 11,
+          "resolvedCount": 11,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.03542789317845763,
+          "profitFactor": 0.9564927879462684,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.732938977423229
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 7,
+          "resolvedCount": 7,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5282594502076582,
+          "profitFactor": 0.4388117138022245,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.698082333770742
+        }
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "mode": "RANGE_FAILED_AUCTION",
+      "proposals": 165,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 165,
+        "resolvedCount": 165,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.31435684019819693,
+        "profitFactor": 0.5857598173077652,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 52.07050795160562
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 165,
+        "resolvedCount": 165,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.4288538012410378,
+        "profitFactor": 0.48748922311455195,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 70.76087720477126
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 76,
+          "resolvedCount": 76,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5180293593983546,
+          "profitFactor": 0.3681917098060681,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 39.68403196159183
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 89,
+          "resolvedCount": 89,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.14043423953289375,
+          "profitFactor": 0.8012963070301082,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 13.732532625079475
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 102,
+          "resolvedCount": 102,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.147196641820538,
+          "profitFactor": 0.7811306702207181,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 22.976037477593792
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 63,
+          "resolvedCount": 63,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5849971613810733,
+          "profitFactor": 0.34904144238540646,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 37.05645048591077
+        }
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "mode": "BEAR_RALLY_REJECTION",
+      "proposals": 33,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 33,
+        "resolvedCount": 32,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.19977343866910655,
+        "profitFactor": 1.3664028224960119,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 5.63134856635941
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 33,
+        "resolvedCount": 32,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.16897753136174537,
+        "profitFactor": 1.3007819135404644,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 5.833240582055537
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 33,
+          "resolvedCount": 32,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.19977343866910655,
+          "profitFactor": 1.3664028224960119,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.63134856635941
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 23,
+          "resolvedCount": 23,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.04516401947298515,
+          "profitFactor": 1.0741462191025084,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.521618704863344
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 10,
+          "resolvedCount": 9,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.5948863988369724,
+          "profitFactor": 2.5575006439942327,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 1.4524459937371956
+        }
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "mode": "COMPRESSION_RELEASE",
+      "proposals": 19,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 19,
+        "resolvedCount": 19,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.0918975319165619,
+        "profitFactor": 0.8583706664723417,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 8.521890265457047
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 19,
+        "resolvedCount": 19,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.13380150229291007,
+        "profitFactor": 0.8019653877678757,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.127312374444635
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 9,
+          "resolvedCount": 9,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.20049068937031744,
+          "profitFactor": 0.762669848023203,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.3620987656498444
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 10,
+          "resolvedCount": 10,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.005836309791818151,
+          "profitFactor": 1.0123510623741498,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.8693228444740075
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 7,
+          "resolvedCount": 7,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.25558807852129617,
+          "profitFactor": 1.6791443018016654,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 1.557412434931597
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 12,
+          "resolvedCount": 12,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2945974713386457,
+          "profitFactor": 0.6353224734950869,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.964477830525451
+        }
+      }
+    },
+    {
+      "symbol": "BNBUSDT",
+      "mode": "RANGE_FAILED_AUCTION",
+      "proposals": 110,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 110,
+        "resolvedCount": 110,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.17140980136257886,
+        "profitFactor": 0.7712804501161389,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 22.171121284376312
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 110,
+        "resolvedCount": 110,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3336040991935766,
+        "profitFactor": 0.6089962147408331,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 39.619563158527576
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 52,
+          "resolvedCount": 52,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5102353783259886,
+          "profitFactor": 0.400870014586461,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 29.57888639697042
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 58,
+          "resolvedCount": 58,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.1323648538459955,
+          "profitFactor": 1.2012207501952021,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.370630652296612
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 76,
+          "resolvedCount": 76,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.1458654643246103,
+          "profitFactor": 0.8042985429277679,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 21.02856413878838
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 34,
+          "resolvedCount": 34,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2285089076827438,
+          "profitFactor": 0.6987612992260928,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 13.96319918763252
+        }
+      }
+    },
+    {
+      "symbol": "BNBUSDT",
+      "mode": "BEAR_RALLY_REJECTION",
+      "proposals": 28,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 28,
+        "resolvedCount": 27,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.15225810821004687,
+        "profitFactor": 1.2488528028148587,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 10.099560222683763
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 28,
+        "resolvedCount": 27,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.1005581443170063,
+        "profitFactor": 1.1568166398427686,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 10.839610895065105
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 28,
+          "resolvedCount": 27,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.15225810821004687,
+          "profitFactor": 1.2488528028148587,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 10.099560222683763
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 18,
+          "resolvedCount": 18,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.41205112997417387,
+          "profitFactor": 1.728208873702538,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 3.7911571114065357
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 10,
+          "resolvedCount": 9,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.36732793531820723,
+          "profitFactor": 0.4781059428046304,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.308403111277227
+        }
+      }
+    },
+    {
+      "symbol": "BNBUSDT",
+      "mode": "COMPRESSION_RELEASE",
+      "proposals": 16,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 16,
+        "resolvedCount": 16,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.443908490586882,
+        "profitFactor": 0.5026578721381907,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 8.966892921579309
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 16,
+        "resolvedCount": 16,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.49152645805723666,
+        "profitFactor": 0.47294611257932173,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.660958937199583
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 7,
+          "resolvedCount": 7,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.107376921090429,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.751638447633003
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 9,
+          "resolvedCount": 9,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.07212251091587668,
+          "profitFactor": 1.099413090846667,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.282870535724626
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 13,
+          "resolvedCount": 13,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2973356543730962,
+          "profitFactor": 0.6499973914587684,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 7.890020026904808
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 3,
+          "resolvedCount": 3,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.079057447513287,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 3.237172342539861
+        }
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "mode": "RANGE_FAILED_AUCTION",
+      "proposals": 196,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 196,
+        "resolvedCount": 196,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2482278538635219,
+        "profitFactor": 0.6807426113207465,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 49.37644790630674
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 196,
+        "resolvedCount": 196,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.35490987624244685,
+        "profitFactor": 0.5824334441098487,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 69.71905518962024
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 103,
+          "resolvedCount": 103,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2912865483955282,
+          "profitFactor": 0.6309446200926894,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 33.64406082735792
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 93,
+          "resolvedCount": 93,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.20053919217753663,
+          "profitFactor": 0.7376831871866267,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 18.9319587076865
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 130,
+          "resolvedCount": 130,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.22119979783679328,
+          "profitFactor": 0.7138192832123453,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 41.21086802499836
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 66,
+          "resolvedCount": 66,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3014649339161693,
+          "profitFactor": 0.6167179555278461,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 22.458687029027786
+        }
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "mode": "BEAR_RALLY_REJECTION",
+      "proposals": 39,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 39,
+        "resolvedCount": 39,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.06892557858111709,
+        "profitFactor": 0.892226851521881,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 11.591628453485825
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 39,
+        "resolvedCount": 39,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.09718279215810696,
+        "profitFactor": 0.8521895463668786,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 12.341431943251052
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 39,
+          "resolvedCount": 39,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.06892557858111709,
+          "profitFactor": 0.892226851521881,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 11.591628453485825
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 29,
+          "resolvedCount": 29,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.22391626375386486,
+          "profitFactor": 0.6642249301489322,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 11.485197341033663
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 10,
+          "resolvedCount": 10,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.3805474084198514,
+          "profitFactor": 1.679169286485645,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 3.352978297100624
+        }
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "mode": "COMPRESSION_RELEASE",
+      "proposals": 13,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 13,
+        "resolvedCount": 13,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.020429261702725573,
+        "profitFactor": 0.9694390525171385,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 7.455451719793073
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 13,
+        "resolvedCount": 13,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.054005408515246836,
+        "profitFactor": 0.9218635441292358,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 7.68317757968961
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 3,
+          "resolvedCount": 3,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.23138593406328326,
+          "profitFactor": 1.3142882352897032,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 2.208666199515844
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 10,
+          "resolvedCount": 10,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.09597382043252825,
+          "profitFactor": 0.8519270439595782,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.246785520277229
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 8,
+          "resolvedCount": 8,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.6356300558092619,
+          "profitFactor": 2.52266418594255,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 2.1048308711835455
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 5,
+          "resolvedCount": 5,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.0701241697219053,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.350620848609528
+        }
+      }
+    },
+    {
+      "symbol": "XRPUSDT",
+      "mode": "RANGE_FAILED_AUCTION",
+      "proposals": 179,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 179,
+        "resolvedCount": 179,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.20694205820553555,
+        "profitFactor": 0.7277304186213771,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 37.511720493132046
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 179,
+        "resolvedCount": 179,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3240012542708618,
+        "profitFactor": 0.6124184381320239,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 58.23123463412402
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 107,
+          "resolvedCount": 107,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4432863818605715,
+          "profitFactor": 0.4863768009545379,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 47.58158511330442
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 72,
+          "resolvedCount": 72,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.1442918672262538,
+          "profitFactor": 1.2377123962657068,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.137887782368438
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 128,
+          "resolvedCount": 128,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.1288920114911174,
+          "profitFactor": 0.8240030552834935,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 27.7689112777352
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 51,
+          "resolvedCount": 51,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.402832371527997,
+          "profitFactor": 0.5144306057153315,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 23.142655613109106
+        }
+      }
+    },
+    {
+      "symbol": "XRPUSDT",
+      "mode": "BEAR_RALLY_REJECTION",
+      "proposals": 39,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 39,
+        "resolvedCount": 38,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.017455031457053603,
+        "profitFactor": 1.0286225158938338,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 6.7550109853583
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 39,
+        "resolvedCount": 38,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.018156892881297966,
+        "profitFactor": 0.9712594779169443,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 7.9318880555498525
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 39,
+          "resolvedCount": 38,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.017455031457053603,
+          "profitFactor": 1.0286225158938338,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.7550109853583
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 26,
+          "resolvedCount": 26,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.0956210001527428,
+          "profitFactor": 0.8500058356453539,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 6.544949395538881
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 13,
+          "resolvedCount": 12,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.26245309994494576,
+          "profitFactor": 1.4772739185438248,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.388075996027501
+        }
+      }
+    },
+    {
+      "symbol": "XRPUSDT",
+      "mode": "COMPRESSION_RELEASE",
+      "proposals": 11,
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 11,
+        "resolvedCount": 11,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.6243389644053591,
+        "profitFactor": 0.30106165841822563,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.825943434318576
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 11,
+        "resolvedCount": 11,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.6574772504338777,
+        "profitFactor": 0.28859693798647224,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 10.166177432948876
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 1,
+          "resolvedCount": 1,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.1066271380569188,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 1.1066271380569188
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 10,
+          "resolvedCount": 10,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.5761101470402032,
+          "profitFactor": 0.3392714205273112,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 8.719316296261658
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 7,
+          "resolvedCount": 7,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3715425734106445,
+          "profitFactor": 0.5321475073263375,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 5.559012839734138
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 4,
+          "resolvedCount": 4,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -1.0667326486461097,
+          "profitFactor": 0,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 4.266930594584439
+        }
+      }
+    }
+  ],
+  "pooled": [
+    {
+      "mode": "RANGE_FAILED_AUCTION",
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 761,
+        "resolvedCount": 761,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2636534912608334,
+        "profitFactor": 0.6614059163972993,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 200.64030684949392
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 761,
+        "resolvedCount": 761,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3921337741075166,
+        "profitFactor": 0.5465477390109429,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 298.4138020958207
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 386,
+          "resolvedCount": 386,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.43688918205521327,
+          "profitFactor": 0.4754409044958625,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 169.19627875237532
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 375,
+          "resolvedCount": 375,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.08533622020315107,
+          "profitFactor": 0.8819502346751781,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 46.20993828743474
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 502,
+          "resolvedCount": 502,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.16269002882584424,
+          "profitFactor": 0.7802328501486587,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 104.59985708612122
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 259,
+          "resolvedCount": 259,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.45934329103830207,
+          "profitFactor": 0.46154414671812355,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 119.85350262319602
+        }
+      },
+      "failures": [
+        "NET_PF",
+        "COST_STRESS",
+        "ASSET_EVIDENCE",
+        "CALENDAR",
+        "BUY_EVIDENCE",
+        "SELL_EVIDENCE"
+      ]
+    },
+    {
+      "mode": "BEAR_RALLY_REJECTION",
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 173,
+        "resolvedCount": 170,
+        "openCount": 3,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.034872694583422466,
+        "profitFactor": 1.0561472180799012,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 27.470597358511256
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 173,
+        "resolvedCount": 170,
+        "openCount": 3,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.003796151146025909,
+        "profitFactor": 0.9941088102605319,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 30.104388580594073
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 173,
+          "resolvedCount": 170,
+          "openCount": 3,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.034872694583422466,
+          "profitFactor": 1.0561472180799012,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 27.470597358511256
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 119,
+          "resolvedCount": 119,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.03421005451474633,
+          "profitFactor": 0.9469467458152638,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 17.693441711771232
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 54,
+          "resolvedCount": 51,
+          "openCount": 3,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.19606577581248297,
+          "profitFactor": 1.346576329155577,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 16.11975689154278
+        }
+      },
+      "failures": [
+        "NET_PF",
+        "COST_STRESS",
+        "ASSET_EVIDENCE",
+        "CALENDAR"
+      ]
+    },
+    {
+      "mode": "COMPRESSION_RELEASE",
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 77,
+        "resolvedCount": 77,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.26064183042617933,
+        "profitFactor": 0.6692144556524705,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 36.75463895083594
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 77,
+        "resolvedCount": 77,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.30483758141469114,
+        "profitFactor": 0.6287757787381538,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 38.39483087716712
+      },
+      "directions": {
+        "buy": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 29,
+          "resolvedCount": 29,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.41954272286265804,
+          "profitFactor": 0.5415788603492687,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 12.862461635388419
+        },
+        "sell": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 48,
+          "resolvedCount": 48,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.16463920791247352,
+          "profitFactor": 0.7684634979409758,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 25.342442246188654
+        }
+      },
+      "calendar": {
+        "2025": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 46,
+          "resolvedCount": 46,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.0003975793572906831,
+          "profitFactor": 1.0005799650619387,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 10.346176221328102
+        },
+        "2026": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 31,
+          "resolvedCount": 31,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.6479906320403608,
+          "profitFactor": 0.3105996633103923,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.408462729507836
+        }
+      },
+      "failures": [
+        "POOLED_SAMPLE",
+        "NET_PF",
+        "COST_STRESS",
+        "ASSET_EVIDENCE",
+        "CALENDAR",
+        "BUY_EVIDENCE",
+        "SELL_EVIDENCE"
+      ]
+    }
+  ],
+  "publication": false,
+  "execution": false,
+  "promotion": false,
+  "compressedSha256": "481af6a564e86acc867c2dfe0c00d793892c038c402530816c152d15fc90cb42",
+  "uncompressedSha256": "911e3bcdc002f09fd5145f88913ad4c1b99e232ca66ed5346d3c373ec6af71ce"
+}

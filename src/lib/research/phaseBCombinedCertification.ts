@@ -7,7 +7,7 @@ import { arbitrationEvidence, pipelineEvidence } from "./phaseBCertification.ts"
 
 export const PROP_ATTEMPT_TIERS=Object.freeze([10,25,50,100,200,500] as const);
 export function payoutContract(profile:PropProgramProfile){
-  const supportedFields=["payout.waitingDays","payout.profitSplitPct","payout.frequency","rules.flatRequiredForPayout"].filter(path=>{const [,field]=path.split(".");return path.startsWith("payout.")?(profile.payout as any)[field]!==null:(profile.rules as any)[field]!==undefined});
+  const supportedFields=["payout.waitingDays","payout.profitSplitPct","payout.frequency","rules.flatRequiredForPayout"].filter(path=>{const [,field]=path.split(".");return path.startsWith("payout.")?profile.payout[field as keyof PropProgramProfile["payout"]]!==null:profile.rules[field as keyof PropProgramProfile["rules"]]!==undefined});
   const unsupportedFields=["minimumProfitableDays","profitThreshold","withdrawalBalanceAdjustment","postPayoutHighWaterMark","accountResetSemantics"];
   const complete=profile.verificationStatus==="VERIFIED"&&profile.payout.waitingDays!==null&&profile.payout.profitSplitPct!==null&&profile.payout.frequency!=="PENDING_VERIFICATION";
   return Object.freeze({supportedFields:Object.freeze(supportedFields),unsupportedFields:Object.freeze(unsupportedFields),complete});

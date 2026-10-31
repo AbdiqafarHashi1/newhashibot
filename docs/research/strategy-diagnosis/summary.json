@@ -1,0 +1,1381 @@
+{
+  "schema": "strategy-diagnosis-summary/v1",
+  "period": {
+    "from": "2025-01-01T00:00:00.000Z",
+    "toExclusive": "2026-07-01T00:00:00.000Z"
+  },
+  "scope": "Crypto15m only; previously examined DEVELOPMENT. Forex15m/Gold not measured.",
+  "caseCount": 25,
+  "exitCaseCount": 50,
+  "totalCandidateCycles": 1309050,
+  "costsBps": {
+    "feeBps": 10,
+    "spreadBps": 2,
+    "slippageBps": 4,
+    "fundingBps": 4.5
+  },
+  "configurationAuthority": "One fixed repository-default candidate configuration per strategy plus the combined pipeline. Not deployed database configuration.",
+  "baseline": [
+    {
+      "strategyId": "crypto.micro-scalper",
+      "metrics": {
+        "selected": 4391,
+        "resolved": 4391,
+        "open": 0,
+        "excluded": 0,
+        "grossR": -456.8554245727412,
+        "netR": -1690.1668129092748,
+        "grossPF": 0.771439669117448,
+        "netPF": 0.341771225027899,
+        "meanGrossR": -0.10404359475580532,
+        "meanNetR": -0.38491614960356973,
+        "costDragR": 1233.3113883365352,
+        "meanCostR": 0.2808725548477648
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 524,
+            "resolved": 524,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -53.76741978939661,
+            "netR": -216.27586343595516,
+            "grossPF": 0.7704768500134779,
+            "netPF": 0.29839304978863646,
+            "meanGrossR": -0.1026095797507569,
+            "meanNetR": -0.41274019739686096,
+            "costDragR": 162.5084436465584,
+            "meanCostR": 0.3101306176461038
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 1003,
+            "resolved": 1003,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -126.55438474283197,
+            "netR": -407.2671232184873,
+            "grossPF": 0.7263252080004541,
+            "netPF": 0.314520915537245,
+            "meanGrossR": -0.12617585717131802,
+            "meanNetR": -0.40604897628961845,
+            "costDragR": 280.7127384756565,
+            "meanCostR": 0.2798731191183016
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 627,
+            "resolved": 627,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -80.63175758277542,
+            "netR": -271.17473040029626,
+            "grossPF": 0.7282460697426112,
+            "netPF": 0.30048251735783515,
+            "meanGrossR": -0.12859929439039142,
+            "meanNetR": -0.43249558277559214,
+            "costDragR": 190.54297281752076,
+            "meanCostR": 0.30389628838520055
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 1206,
+            "resolved": 1206,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -109.75067569479896,
+            "netR": -430.33138224675855,
+            "grossPF": 0.7969154165872074,
+            "netPF": 0.37260281438362586,
+            "meanGrossR": -0.09100387702719648,
+            "meanNetR": -0.35682535841356433,
+            "costDragR": 320.58070655196053,
+            "meanCostR": 0.2658214813863686
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 1031,
+            "resolved": 1031,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -86.15118676294138,
+            "netR": -365.1177136077819,
+            "grossPF": 0.8147402014011179,
+            "netPF": 0.383036374236433,
+            "meanGrossR": -0.08356080190391986,
+            "meanNetR": -0.35413939244207754,
+            "costDragR": 278.9665268448404,
+            "meanCostR": 0.2705785905381575
+          }
+        }
+      ],
+      "diagnosis": "NO_OBSERVED_GROSS_EDGE"
+    },
+    {
+      "strategyId": "crypto.quick-scalp",
+      "metrics": {
+        "selected": 470,
+        "resolved": 470,
+        "open": 0,
+        "excluded": 0,
+        "grossR": -84.3004985581811,
+        "netR": -248.58556873602822,
+        "grossPF": 0.5267980527125933,
+        "netPF": 0.04437851371992555,
+        "meanGrossR": -0.17936276288974703,
+        "meanNetR": -0.5289054653958047,
+        "costDragR": 164.28507017784733,
+        "meanCostR": 0.3495427025060582
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 37,
+            "resolved": 37,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -4.170324648058062,
+            "netR": -17.594730387175478,
+            "grossPF": 0.6524729459951614,
+            "netPF": 0.04514707506800369,
+            "meanGrossR": -0.11271147697454223,
+            "meanNetR": -0.47553325370744537,
+            "costDragR": 13.424405739117416,
+            "meanCostR": 0.36282177673290317
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 127,
+            "resolved": 127,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -18.67354607330328,
+            "netR": -62.91397968675186,
+            "grossPF": 0.5864026474152191,
+            "netPF": 0.05420857390276763,
+            "meanGrossR": -0.14703579585278176,
+            "meanNetR": -0.49538566682481777,
+            "costDragR": 44.240433613448545,
+            "meanCostR": 0.3483498709720358
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 47,
+            "resolved": 47,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -4.605239969316299,
+            "netR": -21.82110083067013,
+            "grossPF": 0.7121725019177314,
+            "netPF": 0.09014762329439421,
+            "meanGrossR": -0.09798382913438934,
+            "meanNetR": -0.46427874107808786,
+            "costDragR": 17.215860861353825,
+            "meanCostR": 0.3662949119436984
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 161,
+            "resolved": 161,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -34.87447173081596,
+            "netR": -90.27928692458543,
+            "grossPF": 0.4634696656797545,
+            "netPF": 0.0339967715815395,
+            "meanGrossR": -0.216611625657242,
+            "meanNetR": -0.5607409125750649,
+            "costDragR": 55.40481519376945,
+            "meanCostR": 0.3441292869178227
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 98,
+            "resolved": 98,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -21.976916136687464,
+            "netR": -55.97647090684563,
+            "grossPF": 0.4505770965828134,
+            "netPF": 0.030602051483960703,
+            "meanGrossR": -0.22425424629272922,
+            "meanNetR": -0.5711884786412819,
+            "costDragR": 33.999554770158156,
+            "meanCostR": 0.3469342323485526
+          }
+        }
+      ],
+      "diagnosis": "NO_OBSERVED_GROSS_EDGE"
+    },
+    {
+      "strategyId": "crypto.compression-breakout",
+      "metrics": {
+        "selected": 4379,
+        "resolved": 4379,
+        "open": 0,
+        "excluded": 0,
+        "grossR": -33.55422712575258,
+        "netR": -857.9090405397751,
+        "grossPF": 0.9832562576877312,
+        "netPF": 0.6502862833221089,
+        "meanGrossR": -0.007662531885305454,
+        "meanNetR": -0.19591437326781802,
+        "costDragR": 824.3548134140212,
+        "meanCostR": 0.18825184138251227
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 872,
+            "resolved": 872,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -28.304170951869928,
+            "netR": -259.8058962347385,
+            "grossPF": 0.9317352624045394,
+            "netPF": 0.5229881930376756,
+            "meanGrossR": -0.03245891164205267,
+            "meanNetR": -0.29794254155359917,
+            "costDragR": 231.50172528286856,
+            "meanCostR": 0.2654836299115465
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 867,
+            "resolved": 867,
+            "open": 0,
+            "excluded": 0,
+            "grossR": 9.807661120123855,
+            "netR": -131.7663462192242,
+            "grossPF": 1.0252432401294207,
+            "netPF": 0.7161511807655537,
+            "meanGrossR": 0.011312181222749546,
+            "meanNetR": -0.15197963808445697,
+            "costDragR": 141.57400733934819,
+            "meanCostR": 0.16329181930720668
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 887,
+            "resolved": 887,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -7.1737437466197145,
+            "netR": -205.11548071603642,
+            "grossPF": 0.9822236674244155,
+            "netPF": 0.5974449055608392,
+            "meanGrossR": -0.008087647966876792,
+            "meanNetR": -0.23124631422326541,
+            "costDragR": 197.94173696941652,
+            "meanCostR": 0.22315866625638842
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 876,
+            "resolved": 876,
+            "open": 0,
+            "excluded": 0,
+            "grossR": 1.0822691020321313,
+            "netR": -118.16332205670113,
+            "grossPF": 1.0027280751772822,
+            "netPF": 0.743066856481458,
+            "meanGrossR": 0.0012354670114522047,
+            "meanNetR": -0.1348896370510287,
+            "costDragR": 119.24559115873322,
+            "meanCostR": 0.13612510406248085
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 877,
+            "resolved": 877,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -8.966242649418946,
+            "netR": -143.05799531307267,
+            "grossPF": 0.9776160170707745,
+            "netPF": 0.698746721089654,
+            "meanGrossR": -0.01022376584882434,
+            "meanNetR": -0.16312200149723224,
+            "costDragR": 134.09175266365384,
+            "meanCostR": 0.15289823564840802
+          }
+        }
+      ],
+      "diagnosis": "NO_OBSERVED_GROSS_EDGE"
+    },
+    {
+      "strategyId": "crypto.swing-continuation",
+      "metrics": {
+        "selected": 2355,
+        "resolved": 2354,
+        "open": 1,
+        "excluded": 0,
+        "grossR": 11.667117844594634,
+        "netR": -532.9732613890512,
+        "grossPF": 1.00982312080902,
+        "netPF": 0.6397308911422802,
+        "meanGrossR": 0.004956294751314628,
+        "meanNetR": -0.22641175080248566,
+        "costDragR": 544.6403792336449,
+        "meanCostR": 0.2313680455537999
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 444,
+            "resolved": 444,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -4.67044730197486,
+            "netR": -131.13928951089432,
+            "grossPF": 0.9787622715837342,
+            "netPF": 0.5427994735586351,
+            "meanGrossR": -0.010519025454898332,
+            "meanNetR": -0.2953587601596719,
+            "costDragR": 126.46884220891941,
+            "meanCostR": 0.2848397347047735
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 476,
+            "resolved": 476,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -18.001153786913584,
+            "netR": -120.07706842919657,
+            "grossPF": 0.9280744235988302,
+            "netPF": 0.6076356857154781,
+            "meanGrossR": -0.03781754997250753,
+            "meanNetR": -0.25226274880083316,
+            "costDragR": 102.07591464228295,
+            "meanCostR": 0.21444519882832552
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 461,
+            "resolved": 460,
+            "open": 1,
+            "excluded": 0,
+            "grossR": 19.771744446419753,
+            "netR": -111.19910395397545,
+            "grossPF": 1.0857274599051085,
+            "netPF": 0.6278094584094139,
+            "meanGrossR": 0.04298205314439077,
+            "meanNetR": -0.2417371825086423,
+            "costDragR": 130.9708484003954,
+            "meanCostR": 0.2847192356530335
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 489,
+            "resolved": 489,
+            "open": 0,
+            "excluded": 0,
+            "grossR": 12.466142372163763,
+            "netR": -73.9560130641764,
+            "grossPF": 1.0519284656533687,
+            "netPF": 0.74179036833085,
+            "meanGrossR": 0.02549313368540647,
+            "meanNetR": -0.15123929051978816,
+            "costDragR": 86.42215543634018,
+            "meanCostR": 0.17673242420519464
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 485,
+            "resolved": 485,
+            "open": 0,
+            "excluded": 0,
+            "grossR": 2.1008321148995988,
+            "netR": -96.60178643080877,
+            "grossPF": 1.0085111149836745,
+            "netPF": 0.6794067793294599,
+            "meanGrossR": 0.00433161260804041,
+            "meanNetR": -0.19917894109445108,
+            "costDragR": 98.7026185457084,
+            "meanCostR": 0.20351055370249155
+          }
+        }
+      ],
+      "diagnosis": "GROSS_EDGE_ERASED_BY_DECLARED_COSTS"
+    },
+    {
+      "strategyId": "COMBINED",
+      "metrics": {
+        "selected": 3572,
+        "resolved": 3570,
+        "open": 2,
+        "excluded": 0,
+        "grossR": -33.40857351738088,
+        "netR": -916.1800044661784,
+        "grossPF": 0.980534208563835,
+        "netPF": 0.5813057030477587,
+        "meanGrossR": -0.009358143842403608,
+        "meanNetR": -0.2566330544723189,
+        "costDragR": 882.771430948798,
+        "meanCostR": 0.24727491062991538
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 695,
+            "resolved": 694,
+            "open": 1,
+            "excluded": 0,
+            "grossR": -30.63523654898476,
+            "netR": -256.4192680855017,
+            "grossPF": 0.9118684153170039,
+            "netPF": 0.46156010433781824,
+            "meanGrossR": -0.044142992145511185,
+            "meanNetR": -0.36948021337968545,
+            "costDragR": 225.7840315365168,
+            "meanCostR": 0.3253372212341741
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 718,
+            "resolved": 718,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -19.573398334047162,
+            "netR": -181.40664918373207,
+            "grossPF": 0.9438731649416153,
+            "netPF": 0.5834385017378436,
+            "meanGrossR": -0.027261000465246744,
+            "meanNetR": -0.2526555002558942,
+            "costDragR": 161.83325084968484,
+            "meanCostR": 0.2253944997906474
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 718,
+            "resolved": 717,
+            "open": 1,
+            "excluded": 0,
+            "grossR": 17.633740953620613,
+            "netR": -191.29344677187908,
+            "grossPF": 1.0528154875198326,
+            "netPF": 0.5705941464050686,
+            "meanGrossR": 0.024593780967392766,
+            "meanNetR": -0.2667969968924394,
+            "costDragR": 208.9271877254996,
+            "meanCostR": 0.2913907778598321
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 711,
+            "resolved": 711,
+            "open": 0,
+            "excluded": 0,
+            "grossR": -10.774429159053401,
+            "netR": -147.25201058222822,
+            "grossPF": 0.9690759899737383,
+            "netPF": 0.649012401679145,
+            "meanGrossR": -0.01515390880316934,
+            "meanNetR": -0.20710550011565151,
+            "costDragR": 136.4775814231749,
+            "meanCostR": 0.1919515913124823
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 730,
+            "resolved": 730,
+            "open": 0,
+            "excluded": 0,
+            "grossR": 9.94074957108391,
+            "netR": -139.80862984283684,
+            "grossPF": 1.0294421002505558,
+            "netPF": 0.6602060070519127,
+            "meanGrossR": 0.013617465165868368,
+            "meanNetR": -0.1915186710175847,
+            "costDragR": 149.7493794139208,
+            "meanCostR": 0.20513613618345314
+          }
+        }
+      ],
+      "diagnosis": "NO_OBSERVED_GROSS_EDGE"
+    }
+  ],
+  "exitAlternatives": [
+    {
+      "strategyId": "crypto.micro-scalper",
+      "policy": "ORIGINAL_STOP_HALF_TP1",
+      "metrics": {
+        "selected": 4391,
+        "resolved": 4391,
+        "open": 0,
+        "netR": -1218.394767690542,
+        "grossR": 14.916620645992062,
+        "netPF": 0.548867855059066,
+        "grossPF": 1.0073675836727491,
+        "meanNetR": -0.2774754651993947
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 524,
+            "resolved": 524,
+            "open": 0,
+            "netR": -166.68460879369755,
+            "grossR": -4.176165147139009,
+            "netPF": 0.48801324085593506,
+            "grossPF": 0.9824032869625666,
+            "meanNetR": -0.3181003984612549
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 1003,
+            "resolved": 1003,
+            "open": 0,
+            "netR": -290.44860865362034,
+            "grossR": -9.735870177963935,
+            "netPF": 0.5351514537383038,
+            "grossPF": 0.9792129226886346,
+            "meanNetR": -0.2895798690464809
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 627,
+            "resolved": 627,
+            "open": 0,
+            "netR": -219.37606562314025,
+            "grossR": -28.833092805619405,
+            "netPF": 0.4663182827904282,
+            "grossPF": 0.9042120135880809,
+            "meanNetR": -0.349882082333557
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 1206,
+            "resolved": 1206,
+            "open": 0,
+            "netR": -279.37731068148906,
+            "grossR": 41.20339587047048,
+            "netPF": 0.6100898622801959,
+            "grossPF": 1.075372631640128,
+            "meanNetR": -0.2316561448436891
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 1031,
+            "resolved": 1031,
+            "open": 0,
+            "netR": -262.5081739385967,
+            "grossR": 16.45835290624391,
+            "netPF": 0.5784910160873963,
+            "grossPF": 1.0349235192384736,
+            "meanNetR": -0.2546151056630424
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "crypto.micro-scalper",
+      "policy": "ORIGINAL_STOP_FULL_TARGET",
+      "metrics": {
+        "selected": 4391,
+        "resolved": 4391,
+        "open": 0,
+        "netR": -1204.785016474705,
+        "grossR": 28.526371861830782,
+        "netPF": 0.6062765255496066,
+        "grossPF": 1.0120368036808292,
+        "meanNetR": -0.2743760001081086
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 524,
+            "resolved": 524,
+            "open": 0,
+            "netR": -172.30043684608196,
+            "grossR": -9.791993199523544,
+            "netPF": 0.5348910975405619,
+            "grossPF": 0.9648728387759797,
+            "meanNetR": -0.32881762756885874
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 1003,
+            "resolved": 1003,
+            "open": 0,
+            "netR": -287.0037868119903,
+            "grossR": -6.2910483363338034,
+            "netPF": 0.5940092057284418,
+            "grossPF": 0.9885125329426058,
+            "meanNetR": -0.2861453507597112
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 627,
+            "resolved": 627,
+            "open": 0,
+            "netR": -229.41348591583053,
+            "grossR": -38.87051309830968,
+            "netPF": 0.5126420065923264,
+            "grossPF": 0.8915029927675281,
+            "meanNetR": -0.3658907271384857
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 1206,
+            "resolved": 1206,
+            "open": 0,
+            "netR": -260.3172991181664,
+            "grossR": 60.26340743379322,
+            "netPF": 0.6766055730735191,
+            "grossPF": 1.0953790748148513,
+            "meanNetR": -0.21585182348106666
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 1031,
+            "resolved": 1031,
+            "open": 0,
+            "netR": -255.75000778263583,
+            "grossR": 23.21651906220465,
+            "netPF": 0.6382203543479279,
+            "grossPF": 1.0419500671211528,
+            "meanNetR": -0.24806014333912302
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "crypto.quick-scalp",
+      "policy": "ORIGINAL_STOP_HALF_TP1",
+      "metrics": {
+        "selected": 470,
+        "resolved": 470,
+        "open": 0,
+        "netR": -172.22272514058722,
+        "grossR": -7.937654962739779,
+        "netPF": 0.39589322137519894,
+        "grossPF": 0.9591978654294127,
+        "meanNetR": -0.36643133008635576
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 37,
+            "resolved": 37,
+            "open": 0,
+            "netR": -10.451061789153817,
+            "grossR": 2.9733439499635996,
+            "netPF": 0.47569246275789273,
+            "grossPF": 1.2241748768390612,
+            "meanNetR": -0.28246112943658963
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 127,
+            "resolved": 127,
+            "open": 0,
+            "netR": -37.98736130658198,
+            "grossR": 6.253072306866574,
+            "netPF": 0.46952042495691315,
+            "grossPF": 1.1272245827268792,
+            "meanNetR": -0.29911308115418883
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 47,
+            "resolved": 47,
+            "open": 0,
+            "netR": -15.436226052264562,
+            "grossR": 1.7796348090892664,
+            "netPF": 0.42648202141167285,
+            "grossPF": 1.0994579137036864,
+            "meanNetR": -0.32843034153754386
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 161,
+            "resolved": 161,
+            "open": 0,
+            "netR": -65.17901706887301,
+            "grossR": -9.774201875103605,
+            "netPF": 0.3617322321620731,
+            "grossPF": 0.8617349901533636,
+            "meanNetR": -0.40483861533461496
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 98,
+            "resolved": 98,
+            "open": 0,
+            "netR": -43.16905892371375,
+            "grossR": -9.169504153555597,
+            "netPF": 0.33082042731437616,
+            "grossPF": 0.7894085352987442,
+            "meanNetR": -0.4405006012623852
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "crypto.quick-scalp",
+      "policy": "ORIGINAL_STOP_FULL_TARGET",
+      "metrics": {
+        "selected": 470,
+        "resolved": 470,
+        "open": 0,
+        "netR": -170.36128877837103,
+        "grossR": -6.076218600523706,
+        "netPF": 0.5115673133389758,
+        "grossPF": 0.9763973542973762,
+        "meanNetR": -0.3624708271880235
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 37,
+            "resolved": 37,
+            "open": 0,
+            "netR": -9.926141847850188,
+            "grossR": 3.4982638912672286,
+            "netPF": 0.6043421401191721,
+            "grossPF": 1.191596683224287,
+            "meanNetR": -0.26827410399595103
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 127,
+            "resolved": 127,
+            "open": 0,
+            "netR": -33.48533785191356,
+            "grossR": 10.755095761535,
+            "netPF": 0.6133720787734382,
+            "grossPF": 1.1676577946756324,
+            "meanNetR": -0.2636640775741225
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 47,
+            "resolved": 47,
+            "open": 0,
+            "netR": -15.597383875373307,
+            "grossR": 1.618476985980518,
+            "netPF": 0.5415451613084572,
+            "grossPF": 1.0647390794392206,
+            "meanNetR": -0.33185923139092144
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 161,
+            "resolved": 161,
+            "open": 0,
+            "netR": -65.38874703091855,
+            "grossR": -9.983931837149136,
+            "netPF": 0.47173241274459105,
+            "grossPF": 0.891647074027782,
+            "meanNetR": -0.4061412859063264
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 98,
+            "resolved": 98,
+            "open": 0,
+            "netR": -45.96367817231546,
+            "grossR": -11.96412340215731,
+            "netPF": 0.4203394912376105,
+            "grossPF": 0.7933220173049356,
+            "meanNetR": -0.46901712420730063
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "crypto.compression-breakout",
+      "policy": "ORIGINAL_STOP_HALF_TP1",
+      "metrics": {
+        "selected": 4379,
+        "resolved": 4378,
+        "open": 1,
+        "netR": -791.0231510427999,
+        "grossR": 33.058416014082596,
+        "netPF": 0.6806077804498862,
+        "grossPF": 1.016496329863812,
+        "meanNetR": -0.18068139585262674
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 872,
+            "resolved": 871,
+            "open": 1,
+            "netR": -241.3449113901149,
+            "grossR": -10.1164324643855,
+            "netPF": 0.563211152022331,
+            "grossPF": 0.9756009243740859,
+            "meanNetR": -0.2770894505052984
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 867,
+            "resolved": 867,
+            "open": 0,
+            "netR": -115.67755349939156,
+            "grossR": 25.89645383995654,
+            "netPF": 0.7524389198193225,
+            "grossPF": 1.0666530373323326,
+            "meanNetR": -0.13342278373632244
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 887,
+            "resolved": 887,
+            "open": 0,
+            "netR": -184.64487876133126,
+            "grossR": 13.296858208085442,
+            "netPF": 0.6413210692939166,
+            "grossPF": 1.0329492357221015,
+            "meanNetR": -0.20816784527771282
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 876,
+            "resolved": 876,
+            "open": 0,
+            "netR": -104.98171539364917,
+            "grossR": 14.263875765084101,
+            "netPF": 0.7735158870836467,
+            "grossPF": 1.0359549444158502,
+            "meanNetR": -0.1198421408603301
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 877,
+            "resolved": 877,
+            "open": 0,
+            "netR": -144.37409199831168,
+            "grossR": -10.282339334657996,
+            "netPF": 0.6982899903013898,
+            "grossPF": 0.9743304171949431,
+            "meanNetR": -0.1646226818680863
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "crypto.compression-breakout",
+      "policy": "ORIGINAL_STOP_FULL_TARGET",
+      "metrics": {
+        "selected": 4379,
+        "resolved": 4378,
+        "open": 1,
+        "netR": -778.3624975136362,
+        "grossR": 45.719069543245936,
+        "netPF": 0.7125208901059493,
+        "grossPF": 1.0207968904820863,
+        "meanNetR": -0.177789515192699
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 872,
+            "resolved": 871,
+            "open": 1,
+            "netR": -231.8327005324287,
+            "grossR": -0.604221606699384,
+            "netPF": 0.6146556112060303,
+            "grossPF": 0.9986742798748297,
+            "meanNetR": -0.26616842770657717
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 867,
+            "resolved": 867,
+            "open": 0,
+            "netR": -101.40181556106191,
+            "grossR": 40.17219177828622,
+            "netPF": 0.8003976534012884,
+            "grossPF": 1.0948995824224983,
+            "meanNetR": -0.11695711137377383
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 887,
+            "resolved": 887,
+            "open": 0,
+            "netR": -179.87880573987647,
+            "grossR": 18.062931229540467,
+            "netPF": 0.6761536207929049,
+            "grossPF": 1.0414572955183417,
+            "meanNetR": -0.20279459497167585
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 876,
+            "resolved": 876,
+            "open": 0,
+            "netR": -114.44245453298345,
+            "grossR": 4.803136625749875,
+            "netPF": 0.7765157248793991,
+            "grossPF": 1.0109556086327958,
+            "meanNetR": -0.1306420713846843
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 877,
+            "resolved": 877,
+            "open": 0,
+            "netR": -150.80672114728512,
+            "grossR": -16.714968483631523,
+            "netPF": 0.715659148642036,
+            "grossPF": 0.962451929627838,
+            "meanNetR": -0.17195749275631142
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "crypto.swing-continuation",
+      "policy": "ORIGINAL_STOP_HALF_TP1",
+      "metrics": {
+        "selected": 2355,
+        "resolved": 2354,
+        "open": 1,
+        "netR": -462.52826398972303,
+        "grossR": 82.11211524392269,
+        "netPF": 0.695166923346494,
+        "grossPF": 1.0691342316644736,
+        "meanNetR": -0.19648609345357818
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 444,
+            "resolved": 444,
+            "open": 0,
+            "netR": -110.66884906930956,
+            "grossR": 15.79999313960991,
+            "netPF": 0.6264486559936201,
+            "grossPF": 1.0718466437114076,
+            "meanNetR": -0.24925416457051702
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 476,
+            "resolved": 476,
+            "open": 0,
+            "netR": -117.2114329768404,
+            "grossR": -15.135518334557384,
+            "netPF": 0.6278206872323967,
+            "grossPF": 0.9395243830906592,
+            "meanNetR": -0.24624250625386637
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 461,
+            "resolved": 460,
+            "open": 1,
+            "netR": -105.34900252016136,
+            "grossR": 25.621845880233863,
+            "netPF": 0.6569917354254212,
+            "grossPF": 1.111092664147314,
+            "meanNetR": -0.22901957069600296
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 489,
+            "resolved": 489,
+            "open": 0,
+            "netR": -51.248970335991345,
+            "grossR": 35.17318510034871,
+            "netPF": 0.8247112757378091,
+            "grossPF": 1.146516017535749,
+            "meanNetR": -0.1048036203190007
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 485,
+            "resolved": 485,
+            "open": 0,
+            "netR": -78.05000908742086,
+            "grossR": 20.652609458287518,
+            "netPF": 0.7454511748782077,
+            "grossPF": 1.0836700527213827,
+            "meanNetR": -0.1609278537884966
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "crypto.swing-continuation",
+      "policy": "ORIGINAL_STOP_FULL_TARGET",
+      "metrics": {
+        "selected": 2355,
+        "resolved": 2354,
+        "open": 1,
+        "netR": -445.7037669087938,
+        "grossR": 98.93661232485205,
+        "netPF": 0.7494724250494366,
+        "grossPF": 1.0695444206756621,
+        "meanNetR": -0.189338898431943
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 444,
+            "resolved": 444,
+            "open": 0,
+            "netR": -97.35732890552508,
+            "grossR": 29.11151330339442,
+            "netPF": 0.7101783949623471,
+            "grossPF": 1.1139883123038208,
+            "meanNetR": -0.21927326330073216
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 476,
+            "resolved": 476,
+            "open": 0,
+            "netR": -124.52964473911837,
+            "grossR": -22.453730096835336,
+            "netPF": 0.6682903150305358,
+            "grossPF": 0.9263748776108501,
+            "meanNetR": -0.26161690071243354
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 461,
+            "resolved": 460,
+            "open": 1,
+            "netR": -103.21031381676676,
+            "grossR": 27.760534583628477,
+            "netPF": 0.7135663528114758,
+            "grossPF": 1.100079430957526,
+            "meanNetR": -0.22437024742775383
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 489,
+            "resolved": 489,
+            "open": 0,
+            "netR": -46.18922271395524,
+            "grossR": 40.23293272238486,
+            "netPF": 0.8660587128168574,
+            "grossPF": 1.1398418217207438,
+            "meanNetR": -0.09445648816759762
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 485,
+            "resolved": 485,
+            "open": 0,
+            "netR": -74.41725673342877,
+            "grossR": 24.285361812279632,
+            "netPF": 0.7947370116680865,
+            "grossPF": 1.081717485641803,
+            "meanNetR": -0.15343764274933766
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "COMBINED",
+      "policy": "ORIGINAL_STOP_HALF_TP1",
+      "metrics": {
+        "selected": 3572,
+        "resolved": 3570,
+        "open": 2,
+        "netR": -768.0641680779387,
+        "grossR": 114.70726287085687,
+        "netPF": 0.6574636375306279,
+        "grossPF": 1.066703965372473,
+        "meanNetR": -0.2151440246716915
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 695,
+            "resolved": 694,
+            "open": 1,
+            "netR": -231.5715405096885,
+            "grossR": -5.787508973171492,
+            "netPF": 0.5264114306874047,
+            "grossPF": 0.9833774555876869,
+            "meanNetR": -0.3336765713396088
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 718,
+            "resolved": 718,
+            "open": 0,
+            "netR": -140.30857315295222,
+            "grossR": 21.524677696732667,
+            "netPF": 0.683754170585547,
+            "grossPF": 1.0616463183828675,
+            "meanNetR": -0.19541584004589446
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 718,
+            "resolved": 717,
+            "open": 1,
+            "netR": -170.77648546950888,
+            "grossR": 38.150702255990666,
+            "netPF": 0.6277371116985473,
+            "grossPF": 1.1140487449361238,
+            "meanNetR": -0.23818198810252286
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 711,
+            "resolved": 711,
+            "open": 0,
+            "netR": -121.97856742727446,
+            "grossR": 14.499013995900338,
+            "netPF": 0.7157634571736953,
+            "grossPF": 1.0414915832949647,
+            "meanNetR": -0.1715591665643804
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 730,
+            "resolved": 730,
+            "open": 0,
+            "netR": -103.42900151851602,
+            "grossR": 46.32037789540479,
+            "netPF": 0.7547604433209635,
+            "grossPF": 1.136899331596082,
+            "meanNetR": -0.14168356372399454
+          }
+        }
+      ]
+    },
+    {
+      "strategyId": "COMBINED",
+      "policy": "ORIGINAL_STOP_FULL_TARGET",
+      "metrics": {
+        "selected": 3572,
+        "resolved": 3570,
+        "open": 2,
+        "netR": -725.4723577283485,
+        "grossR": 157.29907322044772,
+        "netPF": 0.7158693890639117,
+        "grossPF": 1.0788440340258152,
+        "meanNetR": -0.20321354558217045
+      },
+      "byAsset": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 695,
+            "resolved": 694,
+            "open": 1,
+            "netR": -220.73544691321536,
+            "grossR": 5.048584623301333,
+            "netPF": 0.5929575594279,
+            "grossPF": 1.0128083740174691,
+            "meanNetR": -0.31806260362134775
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 718,
+            "resolved": 718,
+            "open": 0,
+            "netR": -129.9100341065824,
+            "grossR": 31.923216743102405,
+            "netPF": 0.7420440658291558,
+            "grossPF": 1.0793513485511237,
+            "meanNetR": -0.1809331951345159
+          }
+        },
+        {
+          "symbol": "BNBUSDT",
+          "metrics": {
+            "selected": 718,
+            "resolved": 717,
+            "open": 1,
+            "netR": -162.43706142433402,
+            "grossR": 46.49012630116565,
+            "netPF": 0.6887190575373665,
+            "grossPF": 1.1194069325714164,
+            "meanNetR": -0.22655099222361788
+          }
+        },
+        {
+          "symbol": "SOLUSDT",
+          "metrics": {
+            "selected": 711,
+            "resolved": 711,
+            "open": 0,
+            "netR": -118.5496041572666,
+            "grossR": 17.927977265908343,
+            "netPF": 0.760056255149382,
+            "grossPF": 1.0438915065971985,
+            "meanNetR": -0.16673643341387706
+          }
+        },
+        {
+          "symbol": "XRPUSDT",
+          "metrics": {
+            "selected": 730,
+            "resolved": 730,
+            "open": 0,
+            "netR": -93.84021112695102,
+            "grossR": 55.909168286969745,
+            "netPF": 0.8090718322226609,
+            "grossPF": 1.1394945573613524,
+            "meanNetR": -0.12854823442048086
+          }
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "baseline.json.gz",
+      "jsonSha256": "aff4b7223f4f780c1c7af37a350321614a70cf5e4343146284c72489b58095ea",
+      "gzipSha256": "31592b85cd39b8b8f951f99bd1137d3c2955cbd227695b43171cf45f5d5a2ff9",
+      "bytes": 1376700
+    },
+    {
+      "file": "exits.json.gz",
+      "jsonSha256": "a59679994f917310a668e7f0fcd40dd6d99e3803cfd8a94bf2d667fa10195cf9",
+      "gzipSha256": "408f3ab337a020cd27088767a9051f735364d403f839c936e60a80072df480d9",
+      "bytes": 2682277
+    }
+  ],
+  "verdict": "NO_STRATEGY_CERTIFIED",
+  "publication": false,
+  "execution": false,
+  "limitations": [
+    "Independent signal outcomes, not portfolio/account returns.",
+    "Funding/slippage/spread are declared reserves, not measured executable costs.",
+    "No parameter search; no per-asset winner promoted.",
+    "All cases reuse development data; no new untouched claim.",
+    "Forex native15m and Gold coverage remain unavailable; absent tests are not zero performance."
+  ]
+}

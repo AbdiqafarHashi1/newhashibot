@@ -13,6 +13,23 @@ class NativePayloadTests(unittest.TestCase):
             self.assertTrue(r['success']);self.assertEqual(sent[0]['volume'],.12);self.assertEqual(sent[0]['symbol'],'EURUSD.r');self.assertGreaterEqual(sent[0]['sl'],1.090001);self.assertEqual(sent[0]['tp'],1.12);self.assertEqual(r['provider_position_id'],'42')
             self.assertFalse(client.place_order({'symbol':'EURUSD','quantity':.125,'sl':1.09,'tp':1.12})['success'])
             self.assertFalse(client.place_order({'symbol':'EURUSD','quantity':.12})['success']);self.assertEqual(len(sent),1)
+    def test_canonical_entry_risk_uses_native_loss_before_order_send(self):
+        sent=[]
+        native=SimpleNamespace(TRADE_ACTION_DEAL=1,ORDER_TYPE_BUY=0,ORDER_TYPE_SELL=1,ORDER_TIME_GTC=0,ORDER_FILLING_IOC=1,ORDER_FILLING_FOK=0,symbol_info_tick=lambda _:SimpleNamespace(ask=1.1,bid=1.0999),order_calc_profit=lambda *a:-11,order_send=lambda p:sent.append(p))
+        client=MT5Client();client.assert_demo_execution_identity=lambda:None;client.check_connection=lambda:True;client.get_symbol_info=lambda _:dict(broker_symbol='EURUSD.r',volume_min=.01,volume_max=10,volume_step=.01,digits=5,tick_size=.00001,fill_policies=['ioc'])
+        with patch.object(module,'HAS_MT5',True),patch.object(module,'mt5',native):
+            result=client.place_order({'symbol':'EURUSD','side':'buy','quantity':.12,'stop_loss':1.09,'take_profit_2':1.12,'authorized_risk_amount':10})
+            self.assertEqual(result['error_code'],'NATIVE_ENTRY_EXCEEDS_APPROVED_RISK');self.assertEqual(sent,[])
+            native.order_calc_profit=lambda *a:None
+            self.assertEqual(client.place_order({'symbol':'EURUSD','side':'buy','quantity':.12,'stop_loss':1.09,'take_profit_2':1.12,'authorized_risk_amount':10})['error_code'],'NATIVE_ENTRY_EXCEEDS_APPROVED_RISK')
+
+    def test_cancel_is_protective_and_needs_no_entry_budget(self):
+        sent=[]
+        native=SimpleNamespace(TRADE_ACTION_REMOVE=8,order_send=lambda p:(sent.append(p) or SimpleNamespace(retcode=10009,comment='done')))
+        client=MT5Client();client.assert_demo_execution_identity=lambda:None;client.check_connection=lambda:True
+        with patch.object(module,'HAS_MT5',True),patch.object(module,'mt5',native):
+            self.assertTrue(client.cancel_order('42')['success']);self.assertEqual(sent,[{'action':8,'order':42}])
+
     def test_terminal_switch_blocks_mutations_even_after_an_earlier_successful_connection(self):
         from config import Config
         account=SimpleNamespace(login=123,server='demo-server',trade_mode=0)

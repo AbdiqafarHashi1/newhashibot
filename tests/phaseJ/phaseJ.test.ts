@@ -23,7 +23,8 @@ assert.equal(boundedBackoffSeconds(1),5);assert.equal(boundedBackoffSeconds(20),
 const migration=await import('node:fs').then(fs=>fs.readFileSync('supabase/migrations/20260928180000_phase_j_telegram_membership.sql','utf8'));
 for(const guard of ['TOKEN_INVALID_OR_REPLAYED','TOKEN_EXPIRED','TELEGRAM_IDENTITY_ALREADY_BOUND','for update skip locked','SERVICE_ROLE_REQUIRED','READY_FOR_CONFIGURATION','telegram_membership_owner_read','revoke insert,update,delete on public.telegram_links']) assert(migration.includes(guard),`missing ${guard}`);
 const worker=await import('node:fs').then(fs=>fs.readFileSync('supabase/functions/telegram-membership/index.ts','utf8'));
-for(const action of ['ADD','RESTORE','SUSPEND','REMOVE']) assert(worker.includes(action));
-for(const guard of ['actionStillValid','getChatMember','INVITE_SENT_AWAITING_EVIDENCE','claim_token','TELEGRAM_WORKER_SECRET','TELEGRAM_WEBHOOK_SECRET']) assert(worker.includes(guard),`worker missing ${guard}`);
+const fulfillment=await import('node:fs').then(fs=>fs.readFileSync('supabase/functions/_shared/telegram-fulfillment-worker.ts','utf8'));
+for(const action of ['ADD','RESTORE','SUSPEND','REMOVE']) assert(fulfillment.includes(action));
+for(const guard of ['actionStillValid','getChatMember','INVITE_SENT_AWAITING_EVIDENCE','claim_token','TELEGRAM_WORKER_SECRET','TELEGRAM_WEBHOOK_SECRET']) assert((worker+fulfillment).includes(guard),`worker missing ${guard}`);
 assert(!worker.includes('VITE_TELEGRAM_BOT_TOKEN'));assert(!migration.includes('bot_token text'));
 console.log('Phase J deterministic policy, security, queue, lifecycle, and Telegram evidence checks passed');

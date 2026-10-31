@@ -7,6 +7,9 @@ export type StrategyLifecycle = "ENABLED" | "DISABLED" | "SHADOW" | "RESEARCH";
 export interface StrategyCandle {
   symbol: string; market_type: string; timeframe: string; open_time: string;
   open: number; high: number; low: number; close: number; volume: number; source: string;
+  instrument_type?: 'SPOT' | 'USDT_PERPETUAL';
+  quote_volume?: number; trade_count?: number; taker_buy_volume?: number; taker_buy_quote_volume?: number;
+  ask_open?: number; ask_high?: number; ask_low?: number; ask_close?: number;
 }
 
 export interface StrategyIndicatorSnapshot {
@@ -68,6 +71,7 @@ export interface StrategyEvaluationContext {
   evaluated_at: string;
   /** Frozen, versioned research overrides. Production callers omit this field. */
   strategy_parameters?: Readonly<Record<string, number>>;
+  reference_candles?: readonly StrategyCandle[];
   higher_timeframe_candles?: readonly StrategyCandle[];
 }
 

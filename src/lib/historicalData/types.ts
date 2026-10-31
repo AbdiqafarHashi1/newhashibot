@@ -1,4 +1,4 @@
-export type HistoricalProvider = 'MT5_BRIDGE' | 'BINANCE' | 'BYBIT' | 'COINBASE' | 'TWELVE_DATA' | 'CSV' | 'PUBLIC_RESEARCH' | 'HISTDATA';
+export type HistoricalProvider = 'MT5_BRIDGE' | 'BINANCE' | 'BINANCE_USDM' | 'BYBIT' | 'COINBASE' | 'TWELVE_DATA' | 'CSV' | 'PUBLIC_RESEARCH' | 'HISTDATA';
 export type HistoricalTimeframe = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d';
 export type DataQualityClassification = 'RESEARCH' | 'BROKER_VALIDATED' | 'CERTIFICATION';
 
@@ -12,6 +12,10 @@ export interface CanonicalCandle {
   tickVolume?: number;
   realVolume?: number;
   spread?: number;
+  source?:string;
+  instrument_type?:'SPOT'|'USDT_PERPETUAL';
+  quote_volume?:number;trade_count?:number;taker_buy_volume?:number;taker_buy_quote_volume?:number;
+  ask_open?:number;ask_high?:number;ask_low?:number;ask_close?:number;
 }
 
 export interface CandleDerivation {

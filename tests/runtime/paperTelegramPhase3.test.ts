@@ -84,8 +84,8 @@ const preparedMigration = readFileSync('supabase/migrations/prepared/20260721000
 assert.match(scanner, /paper_execution_intents[\s\S]*\.eq\("signal_id", signalId\)[\s\S]*if \(existing\?\.id\) return/, 'paper intent creation suppresses duplicate signal intents');
 assert.match(scanner, /if \(!evaluation\.publishable\) continue;/, 'research strategies remain publication blocked');
 assert.match(outcomes, /truthTimestamp[\s\S]*from\("signals"\)\.update[\s\S]*from\("signal_updates"\)\.insert[\s\S]*await sendOutcomeNotification/, 'signal truth persists before Telegram delivery');
-assert.match(outcomes, /event_id: `\$\{sig\.id\}:\$\{newStatus\}`/); assert.match(outcomes, /dedupe: true/);
-assert.match(router, /\.eq\("event_id", event\.event_id\)/); assert.match(router, /\.eq\("signal_id", event\.signal_id\)/);
+assert.match(outcomes,/enqueueCanonicalLifecycle/);assert.match(outcomes,/eventKey:`signal-outcome:\$\{sig\.id\}`/);assert.match(outcomes,/eventType:"SIGNAL_OUTCOME"/);
+assert.match(router, /\.eq\("event_id", event\.event_id\)/); assert.match(router, /\.eq\("entity_id", signal\.id\)/);
 assert.match(preparedMigration, /duplicate paper intents exist for signal_id \+ mode_slug/); assert.match(preparedMigration, /unique index[\s\S]*\(signal_id, mode_slug\)/);
 assert.match(readFileSync('src/pages/admin/Performance.tsx', 'utf8'), /signal_analytics_view/);
 

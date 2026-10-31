@@ -1,0 +1,3202 @@
+{
+  "protocol": {
+    "schema": "observed-settlement-cost-audit/v1",
+    "declaredOn": "2026-10-29",
+    "scope": "Reprice the already-frozen ten-asset long-only and bull/bear selections; no changes to entries, exits, ranking, asset selection or allocation. No parameter search.",
+    "prices": "Native15m opening-price proxy for funding notional; no claim actual mark price or provider fills.",
+    "tradingFriction": "USD-M fee/spread/slippage base16bps and stress24bps; original Spot daily26/39 unchanged. Only the old9/13.5bps funding reserve is replaced with observed per-symbol historical settlements.",
+    "ambiguity": "Adverse settlements included from entry-15s through latest possible exit+15s. Credits only after entry+15s and strictly before earliest possible exit-15s. TIMEOUT closes at bar end; stop/target time withinbar uncertain. Stress adverse funding1.5x,never amplify credits.",
+    "disclosure": "This is a separate cost diagnostic on known selections, not a newly approved backtest mode. Runnable profiles retain frozen reserve costs. Known calendar, not fresh holdout; no production or provider certification.",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "sourceHashes": {
+    "scripts/research/funding-audit/acquire.py": "569d96a0cc8608b7984b00b0c3c7d018344b6513c77d1f555b7c135cec5affbb",
+    "scripts/research/funding-audit/audit.py": "2091373eeb526ac8bfc8e2618f8e498fcfa344935abe4031ad2ac0adb711a469",
+    "scripts/research/funding-audit/protocol.json": "4cb2a84ccd7cba1b722cd218a6f14e9a29802717f7db7565850d6729ecbd1e2f"
+  },
+  "sources": [
+    {
+      "name": "BNBUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "74544eee335ba817f34c28bad187eabc9c19b730a84e875eb636499944198479",
+      "datasetSha256": "64e576eef9123f16076f27043fbb264f940d1010dafd3aca073486338ed9bdd0",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-01.zip",
+      "rawSha256": "7a9c38e1f06ef095d03e010d64aaa96e0dad8a796c5110c5454962f6a2a7ad46",
+      "datasetSha256": "44d22702cf57fb4740f320d65d1ce887285217b4d8902f63a7cd0d0eb0aa01b7",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "b5094d4dfe17e0b07b4a4cfeca6baef32a96711b824ea45e1c9bcf80db0d2b06",
+      "datasetSha256": "df4f96863f11fa493e7e6c57991b9f60b342731ac060679e2d90299dd515d3e0",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-02.zip",
+      "rawSha256": "7cfd5e89d91ae26524ea303a98be84f20f3007038e751cd165a68acb1df0f917",
+      "datasetSha256": "3bc399857204f2e8b2868b1a5c75862295964f331d1b17c7d0c8b892f131540e",
+      "rows": 2688,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "8bd05f64e15a3f1731d75ad21dea232b6ae9e93cff351a0699a4c1ab0dc0d2ea",
+      "datasetSha256": "a2a74a89572af6b82f0ab14eb3c307fb5f1f37d62e7e65553b714e4ea146b35b",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-03.zip",
+      "rawSha256": "fba01faac3d0bf1af389c8faa1e510753c237b18085280558a13b13986f64402",
+      "datasetSha256": "34b4ebf32ba62dbd71d2aef0bf94d604f62ff8c7ac339c30c28acdfef735bdb0",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "d5b35805679bb3a410fce7ddb370ce4b6f69bc37233e4ffde4eec40f524e3ff2",
+      "datasetSha256": "aa65f9ba257a7010c0eefc6ef0b998768857e7e197dcccf22298cf577bf9af40",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-04.zip",
+      "rawSha256": "1027448261aacfb1652b55a8212e0b8700b511d33b44e2a45be4de1f347d89d5",
+      "datasetSha256": "049e13d62dc5767f8268378297605643fcf4b71c1c6ebd8bda16279a5848f20d",
+      "rows": 2880,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "fc9a418d195865c4a61e0c858c56dfa62dab80c4d5f0df37cd71aed1173fd37b",
+      "datasetSha256": "803c3ee03ffecc43db88daf38e10a73f662c848108095166d0d305ac064f8302",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-05.zip",
+      "rawSha256": "bb9d2ba29025c52ff66945b182f2273488b548868fbc2ed2df90e344fdfad6a8",
+      "datasetSha256": "5212426d4a1755d505bf262d6b30905e7f8f884e4f3abde53cc85aeea8ad55c4",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "2ea8b6a079ab89270eeeecee1bd47128cbf585ada1bc65a1b657b76061e12c04",
+      "datasetSha256": "58ea86a4b97b77affa9614f50f23217790556fa3022b9042bb96ab6b3567db84",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-06.zip",
+      "rawSha256": "74f16bf50fdfb93311481df70aa4ec93f5c1d7f8512118b70d6d8c40edc64350",
+      "datasetSha256": "38a5f1bce190651ac79c09ef368cb33e5988578c15ac8bf0fed0ce634c3ef703",
+      "rows": 2880,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "014c717df6ca0fbc5c8850a22741cf07b425af5aeec07de42265f7a70aa9fd39",
+      "datasetSha256": "04844eb964d0553eeaaa40bf3dcbe427bed7647a180777273a717e8befb19cb0",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-07.zip",
+      "rawSha256": "5eb3c42c521d5ce8c7bf54c7a023db7080be348c92dca072174b9ded7e84dfcb",
+      "datasetSha256": "ea6aa333832068ef6316a943a53f292db93bca8058d2ba4c227d78953d119020",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "1ca07a28c070cd092a04c4e002f5d7ae123c45a149f385c3b316ba1b9cd0a7b6",
+      "datasetSha256": "a783f0d5d406481343511134813b5f22445e5beb3862ff943761a2314b4e1679",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-08.zip",
+      "rawSha256": "c0e024090b7eaa5d3634fcbf1c4cde94c1772dee51ce4fd9d36a718aa2a08747",
+      "datasetSha256": "45477df214b0d36268ad69043a85d2d21177b5df33a8518b71c46979ee58bbe6",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "e87adf5d21d31f7c49739eb0cffb7347284bdb2d981d4ab8d2cde6cdfe94d4af",
+      "datasetSha256": "36ace2f01a0c45a7e26c6117e5d94d055cce7b6bf7fcb9281f6e8a4f2b58d12f",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-09.zip",
+      "rawSha256": "f2216f0bc3591bc86871f03933bd894c567e72bb971ce3cae591c69e1d6de2ad",
+      "datasetSha256": "111c31146ab959b8456bb327544c5a1d55b986eeda0db4374e855a8ad9e05777",
+      "rows": 2880,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "6c45db6d53c47e1413c842bffba176aa58d8fe5bef0b1326ce5a4acb5b9abaef",
+      "datasetSha256": "834ae138f7abd53be6aed43f7eb3840b70e94974269ebd6382a3a8e5cae01d0e",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-10.zip",
+      "rawSha256": "ca505d622072cb52fe0b912d9de4ca80cd766c488d68a73749a469c7fb455b71",
+      "datasetSha256": "23b8a230dc5c6c406c13a8df86088d4ee4a5e971ece238486cf781d0082c9785",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "e1bb556f0d0b00f4615c41048dc71377b91ea43351100c90a3750efd519d7682",
+      "datasetSha256": "b0b359f5673fcfaf6d658de984576191dd12c9992e195e8c1337636b8b809333",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-11.zip",
+      "rawSha256": "12f950e770934ba30bf043638e735d7acb42dedf38a0678cdf4df753dac4c6e3",
+      "datasetSha256": "25de67f352c30c14a63d886a602076f5ce3743ef99fc0ba6ce0e3cd0cdf540b0",
+      "rows": 2880,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "18000c78612678f3daf1b493828f2c61f0e680f2a23f6bde34a4624504f228e5",
+      "datasetSha256": "3c3867d809693e80a49061cc015c5faf5788f80593e2b507908946c6d28b2efc",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-12.zip",
+      "rawSha256": "5c6d80d9215832797752f5a647dee0407cac991b28dc3c1c31eb7db7bfdc1777",
+      "datasetSha256": "c6fd91b025868f64fddf5f716cc91cf313c270a8b8fa0b5ff30b3ddfb6a9a1ce",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "b7fc86f2e15ed637796db819d03ec7fba66f2651ad1077cb143e2cd4bafc7e1d",
+      "datasetSha256": "492fb1b66d2c9ca406b402fc4fb11d91b4cf3524d5b2b871f7997c154fa167d4",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-01.zip",
+      "rawSha256": "3302a77b3af0391f4f88c45a686f531de7a1e208e04e83ccda771a20d72f7616",
+      "datasetSha256": "dce33c1068e3f4ce36196a0bee64372848dc78a13d26208272b732c48b13c8c5",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "1b474640f9646c08f2dac80db4b4716303972dbf35613f5c7da948e2f858b646",
+      "datasetSha256": "124f823e4aa43c9a0f1152399d3682f6e6b391450f2e54b13eea56111edd04b9",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-02.zip",
+      "rawSha256": "4be571a245dbcb73be9c671056b3a501490dcbb0f88e63f36a94e205c15e0ece",
+      "datasetSha256": "26eb9afee5ba3b1b54a96fa2563bf4c1684c3b44bac4b255aac29937ab3b5816",
+      "rows": 2688,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "19e6e88c1a0c318fee6b8c570ed39fbfd4e3dcbcd917e0738347c3b03fad52c3",
+      "datasetSha256": "e70d5054668a7a7221e75ef4dd8d4518dea3ba8ec757bf46f0dd4cf7a3fcbbe8",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-03.zip",
+      "rawSha256": "ecf8c70031ba5d36cd70a93e1023eaea15cf8fbae42403e861edd617dc026a35",
+      "datasetSha256": "315c4d347389767c220963e92c17611f06e0fbd9daacac2e2aea21679a1a8354",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "64ad28743203161c89a5c64582ed14a599a5d47addcffc3f7e2f07063ef9bb2b",
+      "datasetSha256": "0059add42551d665d1ffb7e78fc802c81df682096263a1b4e3203ad9c57cfbc7",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-04.zip",
+      "rawSha256": "ab293f08ba196b29d4d164189c07360ad443e840c58cca4db26f2761ae4e17a3",
+      "datasetSha256": "6d05113ea8d7535cf35b366edaf38b58f1e2936347e425d4f53fda6688b05c9b",
+      "rows": 2880,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "b62dd555a8c1ecc25644f529e4cd351a835aeabaa70258909d9f1c328f427cd8",
+      "datasetSha256": "e0b589f9495e422e08ea697a176342b28eed295c4c75e80886a711a03a1282cd",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-05.zip",
+      "rawSha256": "af87367b3470893af159d7352003ba351bf1c147d9d1cbedd76d0c88a8834efd",
+      "datasetSha256": "e4de818beac4073646b9fa01491d4407a41027b338ecce9d324dae20eb7e0b88",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "fffa72378e35dd0fc6faf22e8e7b5b22794201124e4727da92d6cb2b591459be",
+      "datasetSha256": "bed6ad83bcdfece127986e31586bed9a1fe7f5448ab6e2b25f8888db7a3d819a",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-06.zip",
+      "rawSha256": "70281dcb771df1d572ddf9fe3a5fa1442a60162917c5954335edd433638f27cc",
+      "datasetSha256": "7fb808c307cd95ea377878c8be13e7baaf7b7b759c4008218bf35d9e75bf515e",
+      "rows": 2880,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "0ff2884392a6efe9a33063971dd583090124e916a3c8b59dca6949cb6ed81124",
+      "datasetSha256": "011272c083b956f7fea51a4650a273fe34c6ade4efd7ca6923bb1ab0e9bb5c8b",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-07.zip",
+      "rawSha256": "d89b57d3ee1b1c0dc2d1c705737d223b0273ee7939f03cec3ced35e77e54395c",
+      "datasetSha256": "708c0820e1f9e59df3223cab2707b0bd97481e0ad98eea5d5cce0246b2112bbc",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "153df2d91fbf1fb06106fcba4660640f6299f9debf661c4f29664bc52eb74136",
+      "datasetSha256": "fe574aed0a2978afa84c7947547787e1d6038058eb872875fd8b3e6006a0d672",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-08.zip",
+      "rawSha256": "550d884c0cc6bf8987e811cb1d288410d23c8b4f571768fad24b1110a9f87c81",
+      "datasetSha256": "9002108a7c4485cfa6fc53cc7645027292b553a32b06891ef1a7a8b6e24dc06a",
+      "rows": 2976,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "BNBUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT/BNBUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "127c24c4cd9d2f6504dff2a82747eafd57067fd6d27919b1e3ac05e198ed603f",
+      "datasetSha256": "59e4c4fce3d94fb2e3bf4fa24ba2f3530a27a32ce681c45af1f5528ae136f65a",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-09.zip",
+      "rawSha256": "b1a5b3b8938051ec85f7c02e2dbeb81ce911ef75b146996307e418f9b7b4dfa0",
+      "datasetSha256": "3719c413801bf585b369c2737b40338fe16e298cf5411c265ae3f2d26b5e81fa",
+      "rows": 2880,
+      "symbol": "BNBUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "314888152c16bc2d846f9aaa9ea3ebeec7c67d235ef2671f1a5e6fe0a8b4dbf2",
+      "datasetSha256": "b77d36d94e3178dae38391c3c2335db3cca69569faca86ef384942338a653ffa",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-01.zip",
+      "rawSha256": "6a759ce4216c49dded5107bae6c65293cd7fddb6c18010f7f408d5aed2b98ce3",
+      "datasetSha256": "82b22d7f5cc537c87854949a812e60fa565b0939245f193fdd00279af7de8ccf",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "eeade74c1ca2a6dc9d78ba0d7a1ff145c323be72cfa2c09fcef9edab88baef9f",
+      "datasetSha256": "0daa78b73f95b2f7942631c6d3b132a237da28e0bc4c4ab475310d575c50fa37",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-02.zip",
+      "rawSha256": "039762b522b365b8d6a3fcbc24e32978a3e165056cb43930bc19f9c792372588",
+      "datasetSha256": "b4fb00868f6e75695c2f245d92e5cfed208c5911c0764d4777a5c6c17b2dea71",
+      "rows": 2688,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "3f77a33779c946da6f3082d14fb9a5497e7e4a4e3fff4d68967e6ddf96cf99ea",
+      "datasetSha256": "93972c98a83162d6117b53ff30cc940c53d2ec31d7e75e11bf2c9d2267a51527",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-03.zip",
+      "rawSha256": "64f4d457dcd2976ade3a1c07770bcf5cd85156b47b6e2a776e54e04ddeabf91a",
+      "datasetSha256": "d435eac0e2577a21b9f4145586f109e6b3fd979e7481f0d13ef1d01545d3cb8e",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "6cd3fb27bae9313e15734d7214f4a83dc37a7a199cfc12c23f7777a5e27f7fd7",
+      "datasetSha256": "140e785edd8a8249746b257f39ca156bccda5c15a676e970437e7c8a136bb619",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-04.zip",
+      "rawSha256": "31fcad7d766e2cc96fc751427184e4d9f8f1adff220e3bc4095a64fc38ef5b71",
+      "datasetSha256": "e8d38a25bfb92719958ea9f5b49cde9c0ce575f472725a7afeaddcd7ad8d8b9c",
+      "rows": 2880,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "eb03fd0d0b31eef9ee05544ea8dcce097a807d3475f67d0a5f0859c487c5f5c3",
+      "datasetSha256": "848f97d7bb5b7d21d888b362556e0ae7021b51e6700664240bb32bab4f8e6632",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-05.zip",
+      "rawSha256": "524f840632d2f6b2f5d4907c4dbd79b00a9a92d3499df2543350897e3bbad04e",
+      "datasetSha256": "615b241c76c2b19d5dc5023ebf293464a0e65c2dbada0c70374f6c89fa9b3847",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "4ccee0a6fd67cb775be49d124b9eb038f26acd09426fcb9aaf9d3de74cf3a24e",
+      "datasetSha256": "7e6cfee369fe6e9938e7d0712167fd0c73546e1e06bc0793f1a2185ab4e04eeb",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-06.zip",
+      "rawSha256": "53ec6585320f925110a83bf1db6bf17797a837679539691c95414bdeae011888",
+      "datasetSha256": "5d10312a9470c23db6275660ad13eec553eb6a5737c23a17242b6a2cb893e82d",
+      "rows": 2880,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "66ce38d1a8bc4bdd53af29d8ea5c72493ed48fe9894ee5e9ff4600ccec864c4f",
+      "datasetSha256": "7bcf993210d730ddc69600e433077a7861893accef116d9dbbb06c110d4c58f3",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-07.zip",
+      "rawSha256": "de55e5a6546cfc453ed787e86dc8a5475aa92eff5538853eb2472df64047f548",
+      "datasetSha256": "60ddeb8f99467f530935f0f0854f7526b9760c9baf9eef988cc6cdb6181a1a2d",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "fe9efc3abe1e4be2a2fa9a4008e6957856387f6783a06b97cac3ee271746915f",
+      "datasetSha256": "031b9731d87dd9f0138b19fcfc10732053fcd4c2ca812a3e823b3f50a22c630f",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-08.zip",
+      "rawSha256": "3af93f5bcf67fa6dc6d2644b6fa71227c89a823c34d064aa9388b0f7b80e659c",
+      "datasetSha256": "d6ecce11fd8adc5502f70f5104b8d77ae1782a8eb0985468d4f06f4aec2a34f8",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "f953315124d20dab98ba710d108103fb4cf054d1535787fd76d35d6b9c18e534",
+      "datasetSha256": "8ac67b49802cdadde52a85804519a1f9fec78fc091c0d5c534ab15e4a706b285",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-09.zip",
+      "rawSha256": "e6707deab30b895d3b4f3961bc97320cdc846cc864fe8390c231f62b17ba2754",
+      "datasetSha256": "963fc657e88088c26ed99cf21d0f847a11ef1af47f8cce8c9d9107eed1871563",
+      "rows": 2880,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "d80c5be7660a950ad673a0e82488877c6ca0eb81f084d4c844320f892ad2c020",
+      "datasetSha256": "10946301ea3a3d98b5158cc6bd03a23e95f252c7ba011d970c3545e2fdeee7b2",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-10.zip",
+      "rawSha256": "40ee1f37bd08566f21dd2d1e1d4d25f5b44681935c10f3f6f2b2096f6f4ad739",
+      "datasetSha256": "3f34ff449318fe572e2e543b569c8cb87dd41066085658ea7a7b7be0393e5d21",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "5134fdf4319d629473f8cff1e66dc74180844ae2846ab41a8128466ab3682c2f",
+      "datasetSha256": "bc5a55455cd010388723fa1725307862d368ae88afbe249a0808276c536d4588",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-11.zip",
+      "rawSha256": "71aa48e6374b4798bedf077a7f238417d89092d092f9469afc78ab327ff09d50",
+      "datasetSha256": "2b4f5f9d6d86be008a80f2787e1b17964f83ad3f6211edf4dd928ba5bd927a81",
+      "rows": 2880,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "01db13c460b0190736e1da019c7fcd7ea0abbf3b047e16d3aa8a9e9acec3101f",
+      "datasetSha256": "084620e9918ff875cda5dfd801a3261999390cdd626694a43d3ba7dc3b003d6d",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-12.zip",
+      "rawSha256": "b8e8ab5a4978839027bcc8a869236565cddd0ddf17d3e5ef3c20e0674e28a594",
+      "datasetSha256": "127012d365651799415220cc43ba25cd232f2cec9ed71f8170fd73bbc70fc81b",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "c53be79aae38a1f35e94880f106df4eceab57bfa74a0b5fc5852fdfabf57ab8e",
+      "datasetSha256": "ee9ad84cebd36199fe649a105845dc4cdd96bb479457c69a8a8c8067005552d3",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-01.zip",
+      "rawSha256": "4b8776dad2aaa78d3b65d9ea2f9633ee684619ae82df4dfaee82d47d97916127",
+      "datasetSha256": "b555aa7d93cd11eb06f5722acd9fc9118d83f05d352e6c51e453692450921d37",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "84cb9bcf44ba1364b37db876e7c852aa1b831371556b610e2387115addec9d5f",
+      "datasetSha256": "3c14d61a7714957b64117ede5c24c31a162116d8170939ee126b4db262875ff0",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-02.zip",
+      "rawSha256": "c722dfb99c8188214ec0e385f727d9d62cedca394ff85b621621fc72fa762c22",
+      "datasetSha256": "d6295c704ff9e09bdb513249bf124a59a4738b0646c4d083639f49248b990601",
+      "rows": 2688,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "75cfaea075d97779a577c3744ea63e3d83704f281806fb5f76f2d3e0f089fd2c",
+      "datasetSha256": "e9226c2581a6eda69561f4c3d8c715771761940709c633d4810a0f3d00661723",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-03.zip",
+      "rawSha256": "220843dfa95a260eb7592cc31e55e708f0a597943f70a9f91f48efaba10a2bef",
+      "datasetSha256": "c707a0bcbc119790bad3e58bc8281a3e367c29377608299d252106408ce16268",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "951a280e98b6d20fe4be25bf2b71f3cda1c07c7583a88cb874151e2b1fe941f1",
+      "datasetSha256": "6c832d5ee8ce8679bfca5d7e660fb5b0fdf2e18266b1d7827259b653b6e4bc8b",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-04.zip",
+      "rawSha256": "d53aca5418e2bf2b375a66a57607984a3fca1fb190d6c7544645e394cdbd7868",
+      "datasetSha256": "6cddb9044a99afe60b37b09a5f4eb9017fe6b56b2ae08b32c605c9f58593516b",
+      "rows": 2880,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "c13066e5f7c5d161dbebd488cbeaab1205688c6dc7f9fafcc8f94296f2c1e47b",
+      "datasetSha256": "f0b2be0d1b4651c46e65eafec30b2aec0db3a5867e1be2c8684159bd3669254c",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-05.zip",
+      "rawSha256": "b047cecfb3b3c2448c252740a91b9135c5e152d911887d29231af8e0d54f8174",
+      "datasetSha256": "45ddacb9893cc2f7e57f3191993c0431b0ae1d6a1db0eaf8b46eb1f17a70dc59",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "8d32fa3153d54c58667650e8b2c65e489b3a433b775052a93208bf60541a40d3",
+      "datasetSha256": "54849e092befcb46f884d25970b10bd31199ebf333ccf921976260499273346f",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-06.zip",
+      "rawSha256": "141d6d45369c1a423fb844fc9ebc8f1c8753c892b9fa6a2810b1f68440ff8679",
+      "datasetSha256": "e30a2fee1b4d38302c3c87bc8ca12b389ab697f3fa0f1df6b2a09fbeb537b70f",
+      "rows": 2880,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "13f655eaa29865b16acc7bd97be74e212bc4c2139fc2f9ead4d150852c2a9ebb",
+      "datasetSha256": "cb4f8ce93557c364fcb78454013edd0813fa421f1562ed85018a0a8f9c9b1303",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-07.zip",
+      "rawSha256": "393c30e6d60456e94f019297b21c86b30d2a90ecf8e16d585ddf88fd7030735f",
+      "datasetSha256": "1c87f037ea8abb61596915865497634c27b2fa4277d50d22f7d20f40d2848ee3",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "593e99bb628c0b178a5a2c8f415e1ed489dfd7dea497366f1fee91b8768c704d",
+      "datasetSha256": "77a6e47bc0e6bf34bc859dc92eae9ae54ec21ab159b617b3e59050d1e8e02f4d",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-08.zip",
+      "rawSha256": "7861d59b7f70f3d7d56e8c1c12538f8001110467524215593e60173e7df50655",
+      "datasetSha256": "80fa37c7ebdf43b9d2d5b0a552e6b6bb15f324ee75c0321d979d96c8929af29e",
+      "rows": 2976,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "SOLUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT/SOLUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "8503ce0767496c63929bedc4f43307efcea8216d181a873b32a695f6d85092ef",
+      "datasetSha256": "843c707bfa0d49c8c805796c7804c985c4fdba3d18fc9b8b37b513ee06a80a9d",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-09.zip",
+      "rawSha256": "d6b4f23739c277032b3ffaf849b5a9bbb5c1026dbcfb0de0c80d35909ec63a33",
+      "datasetSha256": "87d42f5a9eaf1b587b874668757bc3c6a56c868ffa108bf85f9f12fe7ff54dee",
+      "rows": 2880,
+      "symbol": "SOLUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "b14759b7a99d6111f819790de938b2b0f3eeeaac57402c2e1ef71fd38302d26d",
+      "datasetSha256": "861c0332c36a8c2742caad374e5d6f1615928878b1de5b9452859dc3df63c59f",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-01.zip",
+      "rawSha256": "d9fb8b46952fbcb1850cde7573f08724168c9679944e396be18bb037cdb079a6",
+      "datasetSha256": "4b8bd102644a93aa144489b476e3abd527cdc72710a3b7faad6f62dba8f9db83",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "927da57e3d0a92fa6e024c00397abac93ab5722ca7a353e92e493cfd28de2f3c",
+      "datasetSha256": "9078518db7c7282b2d32ee05f9c076b97fb7a314988ccd9d73bbbf77972224c8",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-02.zip",
+      "rawSha256": "65d73f8603bd37a01becd0f9bcce3a801faee5d5016cf607d1aa32aa5f4db5fe",
+      "datasetSha256": "43a8310c75f66b7a1b034fb21ca8bcdc5934939fd2d5f709e85b15cf97b688be",
+      "rows": 2688,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "690fb0f227c2b8b1467428b2e3340ea9928d8ef81ac461bd6f641f100dd21d66",
+      "datasetSha256": "9acbe4f1229622f80f681af2a06ba512e5f1966e84912cf69474fd83bfa51b81",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-03.zip",
+      "rawSha256": "990cbf4c5c458b08562f1be48347936342880ab2391022fd0a27216db046f311",
+      "datasetSha256": "7d22d509bf3de86b2cc060725e0529f07e148c8cf734db02c2b4a47fd9072595",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "d47ea402f11ad727be1c1b4adfa8483698151509d90e9cb53b84b0a43ca67de8",
+      "datasetSha256": "7c1f495a2545a5789e9805662536076b351588132d26cb6a93e4c96d3a93133c",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-04.zip",
+      "rawSha256": "16773b7b3d32e8a1d22688448e0d11c6a384d3dc88cd512a5be7e93bdef11829",
+      "datasetSha256": "37859e2cdb41be03a46c145abbcb59c63da117b6aeae8896ef9badc84ae30a82",
+      "rows": 2880,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "7c664b87b0ae630b033f67ab334a46d433374927e74445c56f4b3be7b9b23092",
+      "datasetSha256": "c7e3d0d35ffe27a9bb9f56beeabc059546cbf8cc72ed886c7adf67500d5a923f",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-05.zip",
+      "rawSha256": "45193ae7ddb78da9ff8605aec107d006f5c4bc6203f0abaf2e0b53fa47c5b7a5",
+      "datasetSha256": "380204b75ca1c99dbc6b038748949cedd47712a0c698039e4d16a07049af5a87",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "5bfb1683c2b8c738a0059ee02078706585b62c1e430685af76e3796a0ee58613",
+      "datasetSha256": "cb49741cc14f3ea8ee9750361543e47800b4f76b0b3ca07b18458c0ef700e6a7",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-06.zip",
+      "rawSha256": "83ac2a4862b1fbdcb1343b866c5784e9c14b1e7a7781a90c2afacaaa8ea90e51",
+      "datasetSha256": "5225f1c1e3e2af56b0e1b19f89c583fc8926b068a74e8a1d7fbbc1e99cba4dac",
+      "rows": 2880,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "039ff5c8dab9d9f2633f1bd4d191e6a727d6d169d897b6cbcd7fc162ff374723",
+      "datasetSha256": "bf28fb1dfde377a71457b6ef20da5e68a747ed7ce51be1b49e2686ef51779201",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-07.zip",
+      "rawSha256": "8221405ad024c8b7134edd7cf0204a0c281535dd86b1c44a2e91775ccf3a56d8",
+      "datasetSha256": "a57224d5b511db7d71394524acf07e9a3bd2d8160c74a31a3d656f09cdccd35c",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "07a8182394836928094bb6b476fef9e8858e234d0ff05ef41114ff25bab923ba",
+      "datasetSha256": "5e3f4aa9b0a51cdfdd64f04f25c10d6db5b29d32c93001dcf737af173e41cf1c",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-08.zip",
+      "rawSha256": "44c130faa26d80f5eaa6d1c5ac1a44f1ba8ce78f360fc56e69d17e56b13e1d8d",
+      "datasetSha256": "90d38904ba27a5ea4a1cd8f297731baa7518ead172dbe26093357e8f1b34ce19",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "1f09cb45eadb64731acaaae997167c54b76c3a08b367cd5acbd89f8562593ee3",
+      "datasetSha256": "aa4bb38f2a6158084fd85621ae4ecd154d51343454e6eb0e7e72e34cb8b755ac",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-09.zip",
+      "rawSha256": "04a8b132dfecc54e10bcab4388659126d54a3e2139ed939f8d438fbed1676d06",
+      "datasetSha256": "588e84c68a3b9b317ea1ea196d725d0af7061f94f4c047dd34e424506b060600",
+      "rows": 2880,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "3fc5b1bcac5579e6cc49e17457282c6bfb970932d2aefcbc0c896d660b81a939",
+      "datasetSha256": "cf18e5dd7eb38f251c80fbe535a543cab5a9fcb542ca866ebe926f434a781aae",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-10.zip",
+      "rawSha256": "532ad2b83250a3f14e960e92efdda21657c119e72c6c39be266f5149a197c7d6",
+      "datasetSha256": "12f5d3d3dd96cb29ad1616a082abc6abaf54c3583aa40873d0509604051b2437",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "22040d49b1cdce5337571f5641008a81f1374680226b7c7a5ae63d37dcc449fd",
+      "datasetSha256": "6814462f6b15a87975a341182cc5414ed146d40e7902838a13906c33000ea3ca",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-11.zip",
+      "rawSha256": "7ecbcec0c139c1a97a103745dc4de7c03f9318cb96c077c63dc64eec1acfea16",
+      "datasetSha256": "7730a5a7f9c03b9d15f236887f27ecec75f3e0bfdbfaccc150a25e8db06cf8a0",
+      "rows": 2880,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "21c4a5933de28ec693fbe3a43d9ae4504b762e70e7cc0e0de4afd46104abe7f0",
+      "datasetSha256": "936b3e9cb65c245be411139db5dd14ccbf9b6c68ed8e64e2c4796d626f37b637",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-12.zip",
+      "rawSha256": "72d7a49a560dd9c103a8c83c0c341d22ef3881b724eb0b69b7c6023fafd9f9c4",
+      "datasetSha256": "7f538c040cd5abf215ad153d5da388390bb1f47d924d895670f6c13a85fa0ee3",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "618977f8e0c4d048292fae038094ea9624c96debfbb1d2bd6463ffcdce2fcd2a",
+      "datasetSha256": "76ae7a6fa48e636ecefb1dab5d0c237216eccea988db0d9e8eddc41ed7d882da",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-01.zip",
+      "rawSha256": "f184e24e86e9344ee5846318872712967b43e6847e81b3bebb6576adf232f68c",
+      "datasetSha256": "4b7af4d9fb224857bdf79a6ad6887f0621bfeb82f26b51252b004a52dba93a8f",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "8d8be995b48b2085a8384d9e417bfeef2d213b35478baa88cbe5001d0497535d",
+      "datasetSha256": "8caddd43675fc2049e913d9b60dd01ad6c3fae69d1f966a01d54c95cfaa66859",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-02.zip",
+      "rawSha256": "2e6b234e38ef89a95d1cc655d4374eed7a908a0ff8a2e3ac054365d113ec02eb",
+      "datasetSha256": "3413fef7f3d3a5e5ed257395440c3816c5be077e06163480a058536ef1e06e1e",
+      "rows": 2688,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "e3399c2e5fd5c18a2716b26530bcedc7fb9ce8adb2641c0882c8ba6e0a336567",
+      "datasetSha256": "6bc5d24b932496a4e47b9875b61e28e63463cd32946249a0b15ae963c9f39b65",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-03.zip",
+      "rawSha256": "0fe006b330f2cd00b45be0303f7c303a6c6fa8c9e2b6d1c1cfb75f34b7af60e5",
+      "datasetSha256": "a38d5326722bf8f33e08b13a03a0e272588ad8ae5e14793ee81abed4e3aa7f8e",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "0e586915d578a977ad69482ddc52c11d9c2c1a767d3865078553b3e91fb7716a",
+      "datasetSha256": "9e9ac3fc83708830745e02005d957b55c5dd0bc1eae0a8f898ea31d6d9c61101",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-04.zip",
+      "rawSha256": "1106aa92f6191a5ed5fcf710e718f9f58123486440e5aca5405f0a7c42e74e2e",
+      "datasetSha256": "fc032cd905b015f1b73a38676c15bff81e710a800978ff8addf38bb7c587b4a8",
+      "rows": 2880,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "f8c0c09953b112a7f5ac203a826811ead1ac43db8c075b17b2ca69e837828255",
+      "datasetSha256": "e8867cb57d70ee76f3a6f58173e1da4b9697d8ce2d8138ffa6ac372d7efeb49c",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-05.zip",
+      "rawSha256": "6e8cb695ef9e1c926296c8529f11eb746f295b44213d4f0bea764e72b505fee0",
+      "datasetSha256": "a222829e7ab874f2f32c7fd55f52adab550ae70f4e8970ce2aa28e940efca9df",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "f5d1b51767ddc812c4608080adf54cfca0db7cba592d3e62d7416cd358a3ebde",
+      "datasetSha256": "f1fc1f550b63ab27f7e6af0c146df9d29bd3e9e1f8d30f0a678dd6cd6711fe95",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-06.zip",
+      "rawSha256": "1c9bceda3e026aa9d9fedc6cc8292ba6c4fe705ced786ef1a8470c9e489b1744",
+      "datasetSha256": "a42c6a140b5759e44ed989abd3aa818d57e4de161f9458c112465748fb8de50f",
+      "rows": 2880,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "c705d06f311e974474a74dc2c5f572c9180630930cf2d5dbaf08cfb7f3d1948c",
+      "datasetSha256": "e95a9d07af9d9858310f3ba334230b8a6dbb258a9338d3d6e2c3be0f3656d618",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-07.zip",
+      "rawSha256": "71f622b545e485d23b94989d8507ec5fee115591e2bde0190ff19e9143d288f5",
+      "datasetSha256": "31feccbfdf68176fb2a055387272fa327d108c8041cf25c31bbb207b76568e22",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "7796d84350af4b2b162dd362c9d27cc79643578115f1cde3e333075085596d1c",
+      "datasetSha256": "50e97ef1608c0954e4302bd64d9a8f0b5653bdd2dae2755a92f0b606114dce11",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-08.zip",
+      "rawSha256": "98836ee605b9189f09f1f6b6f16d4a4839f80ec97e2fac8047b1d2d63e637d2b",
+      "datasetSha256": "2850eb87e6bb2076d77d2ca8f81fffb35b66962ed0fcd02199a8f85ba8f030f5",
+      "rows": 2976,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "XRPUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT/XRPUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "f668315d6cd6da13cfcd5f83e4658dd4c1e9042e06f2277e804feb9d857da5b2",
+      "datasetSha256": "2138acd452d0a495e3c3f6cb7e9d65c388f775991b00bc2bd8513b07b07f19ac",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-09.zip",
+      "rawSha256": "9c88a2290a1083fb16baa66ecfb80ab9d694adc2f6a94720f1bb7791d721ccb4",
+      "datasetSha256": "7cbff6b67c2592bed2115e8e41e68eae22ce38ce0bc860c293c7b85ce35af7bf",
+      "rows": 2880,
+      "symbol": "XRPUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "ef6a5a286fc3d91fcdb479226500693ce9bc16ee39399ef09076a40349d2e399",
+      "datasetSha256": "90f8d5882043ef427e8d38ccc3a13ebbe23cffa6a2025f1eb4af11cd7918c131",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-01.zip",
+      "rawSha256": "3820d0d1872a48ff9a636287592e4539366caae6788262340e56846ec67c454b",
+      "datasetSha256": "74d1d4e39ea570e4fbe596d466a6827af586bf6f1da604edb6680dff94a5450d",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "4bc50dceb5108bef8e51c417b13108595c64460d738080a619b60ce341718ed0",
+      "datasetSha256": "ec0f20cc08b814d9a5dea9a996ae42db3b932fa32cb44b4dc2d7b9ad58f87956",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-02.zip",
+      "rawSha256": "6e637fb816d3fadd3823f50025f52c4717e56bc9fa13f70c6b8b8707ec3014f6",
+      "datasetSha256": "bb795787d481c8c25dd343bc9fbe4bf58dc02a6ffcce183051c18d10b444f1fd",
+      "rows": 2688,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "3d0e98df673dad946ea8a6318d7b3f7189323127362f3aa80734a78d42aa5594",
+      "datasetSha256": "4d308d46ae3008b3c931cc32608054cb489761bcb34b60a9bc02ae89911625f8",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-03.zip",
+      "rawSha256": "915e7e1c9d812826e33781a5390fc3efc46e9c026ecb93942514f731d7672736",
+      "datasetSha256": "0acefb3260066ac0aa530bde087ecf76034f03a10c368b346c93886aefe01a95",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "0db8f973876decb78f7ef39c4114216c769c92e10ed5bbdae1ca148178b2104d",
+      "datasetSha256": "5d57907f86c34cd105b2ce87228ebc88dd11bb689e74e09a71d040deddd1366a",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-04.zip",
+      "rawSha256": "ae07ccbc9ed03b0744dcc6afc52c49e1736e823276ab15cc929b6df90af6a025",
+      "datasetSha256": "7f1b5061d33a39e1ecc418574ae34955d5aaa17b3ca03e6af5b4d7215825076e",
+      "rows": 2880,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "2c2596eb60963e0970ccd887e4e7da52d6eed2ea2c33523407803fb7a28ff951",
+      "datasetSha256": "2c650e228384e567d9de4d6e8fe849793ba609c36f1bf3dee051f5bde61b44f5",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-05.zip",
+      "rawSha256": "75258c8a1553db3b73b71b281670d8515d6dac30a689091cb34be8e20d509729",
+      "datasetSha256": "8516b6652f03550e64495f79213f7c18120736776a1d62a07b0ac6421af71848",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "c5cc8021595af02e572658ebbc6ee76210d0226e0d474bb354106b55b12edea9",
+      "datasetSha256": "b8fbd96eaba64f927f114844177e6401427cf2811ca4800191c979d28e5622f0",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-06.zip",
+      "rawSha256": "7a60a95a56f29b22ae951b05ac18def52ee57dea5202c19f9b50e78331bd6c35",
+      "datasetSha256": "63973f909bb69765e0705c596d3e90532d19750395f6149ec1d00ceadb4b5bc8",
+      "rows": 2880,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "17222cc957c27ecb23eb4ab528fe954bf8da05256a38ffc9b04d06ffe1f26811",
+      "datasetSha256": "9f7a49cd6ce08ef561ece5d09d7975c31323dd4b7062deb2ab61c7ddb7756411",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-07.zip",
+      "rawSha256": "c03affa2042c8afa25ceb4f9c3954513a8c7cd2a5dbbf9f2203e3c5ff4111286",
+      "datasetSha256": "3f3392d685864057e607ac42b1beb0c31029012507ba87bb291a796f45ccfc2c",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "f89ac9f7c6feb4a4ce110a7c40571cb1bdf0ac9ff273ee708216a2eb94ce5355",
+      "datasetSha256": "26077c75cb3752904c5fe5a3c9e6b2cd39f4b257197e14f0162438b863ed3feb",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-08.zip",
+      "rawSha256": "e53d6c6bc0fef94c25912242db3b59423489dfdafcaeb48622ba10a1b41b1bc5",
+      "datasetSha256": "4852de58f3fa64b2ddcc1a5335561618d862b308bef6382c5e577bd3af84e615",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "2ea59a1d407e7c2888128227a070f68d4bd9bf25dc89066b92a217b7fe2eab45",
+      "datasetSha256": "0a6d39d15835d094eb9b28575553e897c01c3adf786cac1eed64069c4e7883f7",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-09.zip",
+      "rawSha256": "c745d52029897e08a9e2aee1c5b7ef5e1f477675e5720b5ea79ae977ed5ee754",
+      "datasetSha256": "fc948bf913f0af6aa01d4f0a66670df67085f88c5c8054e27539956922bc3446",
+      "rows": 2880,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "5b127fad9e89c53cece939b1ebafa4921f20ba47f10a7069e5eeb19ab2de63fb",
+      "datasetSha256": "150fd93f49f3bcb55c3d7509ee829dc2733f149f8c7f051973cc4d5000cbcf35",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-10.zip",
+      "rawSha256": "75c2a99ad6cb8d86a235a09a9dd2f26a5c5aadbe3313ac0148efde672b5a2424",
+      "datasetSha256": "eb9c7f93860943ba11ded1f1c97c5a28fa06587e0fce7eefdc9b53fc11021c15",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "a70b35260554e81dc79aa1ed0448e2cafddbf1952bbac0120251184c09b548fa",
+      "datasetSha256": "af35477622741a872e13e6b8fbd2dc51f27c9b8bea86b0a85a6e22d60d16ccff",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-11.zip",
+      "rawSha256": "78615ad07d5954e0347397ef38299da18362e5a0fa3268cdf4d3de2cff95acbd",
+      "datasetSha256": "1c10cf7c398adc4a7c165974a029e6349d9800729ddbf4b8d20cfe15e36f1c0b",
+      "rows": 2880,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "14d01f1b4dba807e178f3e21154c2b70e0d6a7921322dd082da59d7356e63879",
+      "datasetSha256": "36958b5492e9b32220444ab3bdf83978b52aedbcdde71338d222bc2be590cbc6",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2025-12.zip",
+      "rawSha256": "1f2b887ce7514f824d2c1e2dd592de977dab7b563e7b07b68333458ee923aa13",
+      "datasetSha256": "1e6ef0e8699671c9833a21f1ef0706fdf26434c31e983696018183cb986a5e2f",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "261376bf6f7d275b4dce115e8d2802e4a18a05504b8fb6717db4d3834aad7d3e",
+      "datasetSha256": "860528c4da667d17fc46dae03dd0a1b1a33ac926ffcc8c7bd32f4af44df9196a",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-01.zip",
+      "rawSha256": "c315263cf14bb07a03769e43ca884d4a885f8575b7b16a0e399328de89a7dbd5",
+      "datasetSha256": "3d6701440628d27640fc7fbfabd5dbc2ec8368d0a356800b708e6146cb2c1e07",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "b9934577dcac9d5a9d3a63a66261738d7f9c128bd986b4fd90393e15c131e182",
+      "datasetSha256": "e4a321a719132fd803827f5c2445658bdb4287756dbc2a99cecaf4544706e7a8",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-02.zip",
+      "rawSha256": "26ffc0cd6a9a09c21766bdb4fd64975fe5d9c67d38ddc960922b372048f84f49",
+      "datasetSha256": "5ec8fdb5af1bdb63d0d003639697d00b6fb7c6b21d5c3eede76d1dcab7d12066",
+      "rows": 2688,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "5a9a9b2e3b41521ab2cc28ece3ece06d8611f0f033cabaa1ac1f7e678ce23c0e",
+      "datasetSha256": "67091e066fd77a7af194f0d09483236ea75b79387c6114b1c69b1c04f5050f15",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-03.zip",
+      "rawSha256": "34dc5af87cca15d264edaf4353f4bbc80f6124f41a9cf4c0aecc6b0f144b31a3",
+      "datasetSha256": "a9cdaacd5cda351a9f7133de83dd4e2e53b3e04bab95e9103e87f53000955f76",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "b2769eeed3ad6e22d871c995632110cc568c6a40d1d61be7158cad1fc4d60cf8",
+      "datasetSha256": "3eb41e1ebb7a99c90c129cd5522cadf4f416dae8bf19f2de616635a200106e3b",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-04.zip",
+      "rawSha256": "d74a17eab0978ba38ec58b9e93e4d65e84a278846d03eecf5aab5d6d61567662",
+      "datasetSha256": "fd0579b13f05bf5deb65258db7bb7b4af63fba0335166c1cee4fab2ab8236f64",
+      "rows": 2880,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "6e32d7bbdfaa3a2542fe39f918c1b79fccb01be6ee725775095a93c253778862",
+      "datasetSha256": "92f2e849d79be80567ea3f6fba8d8de2311437e6fc3d9fa6d350f1dc96024e1a",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-05.zip",
+      "rawSha256": "0dfeae1c6724e4e47be6e416c8cde62b540a04ffc1d714e63db985ba74286b45",
+      "datasetSha256": "d68e3498472f08b3110588f16a3ea621faffe9b4907e1ed7160ac76b966e1bce",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "e41b9ac1f3d6651ff94562de9b3a0297016c6dc2d2def42f6561d963cfdb0fc1",
+      "datasetSha256": "d3b3c03b35b0ab6465ffe511b7b3dfa7edc7813a76b2decf72efb949f03f5edc",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-06.zip",
+      "rawSha256": "0db0352f1a944b0fbad75681da47a1ca90a4ac425867a6aaf99e84a80e1a353f",
+      "datasetSha256": "855c10903bd8fedf9e5a690c3100999c433ef06e0ccfed6ace592875d85153ae",
+      "rows": 2880,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "b5f0642d725a80e55a4f6588ad2c55529ac22ea21e08022fde0056d39ee7a59c",
+      "datasetSha256": "c0a3c878551a74be48f8548c9dd02f45ebcb611d1b5bfc58ec1ed4111f2f49d1",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-07.zip",
+      "rawSha256": "fd45a894cef9f8d2c3108e93f66eebd239d8a019131eee78200359bbe00f3380",
+      "datasetSha256": "e91f6d26e081d5540716e6b36d79c1ea119bfd1262c8f320f1f8709598a174f7",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "ede6e08abb0784007fe2d768644069ede9012a1a2e271b534d75a97fcd8edd34",
+      "datasetSha256": "b30109678fa06453ca48932b17aadaf9b59572d65f7dc73418090462c80c750a",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-08.zip",
+      "rawSha256": "17bfcfdc55f575df96dcf6b979029774db9cad18cb11a74dc76ac9a96a72c03c",
+      "datasetSha256": "c73d6cbd4cd603e94ddf354bf1824d74d78afc8b7a4c4ef43b6c2669ff75bac8",
+      "rows": 2976,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "ADAUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT/ADAUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "987dea07f28d553b81153d542b0c476686773af011b4b31c3aed1a335f5c6518",
+      "datasetSha256": "37f0c4150b93e61972a4b3ea2eb25773dda68a5cad2cbffbecc8a25b90946073",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/15m/ADAUSDT-15m-2026-09.zip",
+      "rawSha256": "6931cb3fbade38f62b8df99b457b3e5b748ae1f0233726de55e1ad81ec34c41b",
+      "datasetSha256": "c286d583af5e5ba10a03c9a25b74c236309b2ba4ec6ea115055e9b026e461cfb",
+      "rows": 2880,
+      "symbol": "ADAUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "be2ccf953a2fa5e84f49be601917340ba1b220b7ca42566f4066173633c80107",
+      "datasetSha256": "cd13f868fbbf8e6e075d1392ca4a563811c71e599a83598d6c3582840f7ac104",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-01.zip",
+      "rawSha256": "0b8a38a87ddaac2ccdc7f6798dcce12b331fa60a3272134eeb859155c959b989",
+      "datasetSha256": "ef4fd30891fde06bdcda84e7bfd006716ddc1f3591994dac8f24d39be642c065",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "fa3a34848d0a10af64b9e534bf9209ac317fe0da05378d622dc9d406ca88f69d",
+      "datasetSha256": "e19b3bd84b00d052feda322e653161c280e3193c434fa7078c161cc41ee0bbcb",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-02.zip",
+      "rawSha256": "273c6cdbfeb7e964faa970144cb7adb288a04473ce912fe3f0408557d83adb65",
+      "datasetSha256": "3955b029d0d4c78d15aa95fb43a4ee87bbfead382927ebbaf9b17b11553dd906",
+      "rows": 2688,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "3d9ac62d34961c5bd7b2e2b9f33abef0bcb295fdfae421bd38abab67598b2482",
+      "datasetSha256": "64b81a5815a28f5cb0609472a732e70ff48092e5af7549262d8043f01876561c",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-03.zip",
+      "rawSha256": "923a9d2e53787e54b3a00e47e816a4250511c511c7cbd26642920c4d667b4eec",
+      "datasetSha256": "edc88fc7eee60c64c39384d1e781da05a3c84d91377475913a25f0abd12c2649",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "ef81cc81573c727ba251f68e73593322ccf16db7055de77856b4dd5cd1e7cfc8",
+      "datasetSha256": "63b6224a14b1592783d1a9ca5f8d642bdd9ef573d66f7ac5638cf066ebbacf25",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-04.zip",
+      "rawSha256": "c481255662170359b6bca11634029657178ec8ba467dbbc3e735a86bb3508881",
+      "datasetSha256": "4a74b87061a9664335146e984aebb3cbd61b37bd73c98cb6a51f39791d1ecaff",
+      "rows": 2880,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "408322bd25a392d3fb10b66ebf214e2d7c0426456bfa1d3dab79da804a511188",
+      "datasetSha256": "5c8560ef7aa014216575ba1c733087cc1f595c980a9e181fca0ba7d105842be7",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-05.zip",
+      "rawSha256": "eec01cdc85704c61e73e3e8a3c52c133bbc28837c1fd897fbbf8e94daa32638e",
+      "datasetSha256": "2f07610b56a23c9ee9d3ba45dc382fb238a1db0491201367a31f8a274703e6d0",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "5a18b464cd2d6a6e106c497a5e265327762cff0ee86ebcf8fd20e0150d5a67a5",
+      "datasetSha256": "ab52cc6fb16cf33dfc78cf863004cc9c8de2d1aea02153cc413873269fcba7d5",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-06.zip",
+      "rawSha256": "985742b13cb2577608a09a3555d2b4b542ef9a15e9f969addd83d2832601d599",
+      "datasetSha256": "2484b4c0de934ff437363dc2bf7caae31127425c865375372b371f60db6826e1",
+      "rows": 2880,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "e56f1173899b2be5b35e14cdd61d6549dfed04bd2eacc1673285fbc067affe11",
+      "datasetSha256": "0fe4c7a3c354257a115120110c6292cc6ae9ebe33e483fbdba9dbea5d902ddf7",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-07.zip",
+      "rawSha256": "f008f2ea4e0ff691583cc90859107e7227c3c49ec3b38bef5f3a840183b243d7",
+      "datasetSha256": "ede8c8c26de81f9eb79bfce87932a15bc7b713e9eea37598e16dc98c008fd04d",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "c73e14c91a6e44f2a7a4795c845f54f0c82fac1529dd0852c66c52175d76ff53",
+      "datasetSha256": "dbf963c3c591db39c25c6fe57e268b682d6ee4abfed49cf06e92191054b0c8c6",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-08.zip",
+      "rawSha256": "52ed61b3f2f1462ba33bf0620688a29744085abd43fb5ddc92e4f12886d7b722",
+      "datasetSha256": "b60b3bcda26ec11e6aec6027bfd23d506418501d573e645673c3f8e5492c4993",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "1105b391de748f50048b5590f6a5265fcb2a6354ec8a6ac3ba79b5ca734aa9cc",
+      "datasetSha256": "3db13e4c8b27f22f5ebe51f8c50807991c69cd51e7e1984207ef24efc2d2c016",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-09.zip",
+      "rawSha256": "e44958306ebabb83f7db3e27f4b9283e339ef09a40be17c22dcc93ce2a145d65",
+      "datasetSha256": "8ea92887dc325a72799b5ad11fbc0efb7c39218c3491940ad56b426b707de098",
+      "rows": 2880,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "6217d0bc8ab8abe35dd0c56d18cc008e8a8e36adef2be37ed9ccbf3c91c71d0a",
+      "datasetSha256": "4e30a073c56eb085975407019d269e6dc48dcae566f5af0183d93e224cbdc731",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-10.zip",
+      "rawSha256": "821a6bbc88d964a3c8aa4968d0106ca15436721117313e25500efe2becf00ade",
+      "datasetSha256": "e467a49264c1b6c78ca6b043d314354600fec3556d7aaaa5b944d9faf4ca0d97",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "ea4b56653bb13210c5fbdeceb668f632b15a8fe6e7676d1afcbbcb5a019d92f4",
+      "datasetSha256": "cf9a8d08124967e51123d37d69f7c57d191e3e953ce907c2d8985b0815358519",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-11.zip",
+      "rawSha256": "b5f41c7ffd1bd9f585909deb1e8117ee22634ae45a9feca143a544d3f60d8655",
+      "datasetSha256": "59ed5cb1bb2c417272f0fe7983bfad73fa7a8a9e44219785fbd8aaecca665946",
+      "rows": 2880,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "8e84dea86eb7fe0cb7b2f9278f0df0479b68ae10ac9b6ade872372888769f874",
+      "datasetSha256": "51d53ad294ef7282af02e008ac0213e29ab022a72595b8d1b75a6388f58d4343",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2025-12.zip",
+      "rawSha256": "f609d5c2fda46d9633f0474d872d2f89f15228b4862999bc651282047339b9ae",
+      "datasetSha256": "f6f78cd9979874065defe1fcb38836e62338e2899732cc5053203be615d3dd56",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "73c2760e0bf4a5dd8af31d1f03ba1e6d213aa1ed42da17a8c537f28c7f033f44",
+      "datasetSha256": "43832a711d76ca0ec5b74097a741ddd6ab9826d4256e9aa3d3e6bae6184caa83",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-01.zip",
+      "rawSha256": "6ca5ed8efe52f102f394cd29ea1cf907f92b14f7ce1872a31bc6262db28e59aa",
+      "datasetSha256": "f119b4dfe37f41b3682a96e3f26b301dd35e3d0afbb447d063a1042e9202d0b3",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "5a82031b9e3009265751cf02853ded1e1649bd3c2c3c764d5e50e64edc944a6e",
+      "datasetSha256": "f86244e4c7c650e5eafeefdd8572db3d91d30455a271948d33c9b7fe770c8f15",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-02.zip",
+      "rawSha256": "7cc244e52003acfe3c413c72c86965974816d878107063a2d693eb60ebc72ac7",
+      "datasetSha256": "4dea1de1631c66642b1f2c9618117ccbef6d12558b9cac1bab59487960afb3d5",
+      "rows": 2688,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "f4b2222b88d3cf518939c38a20fdd224629c3844a8d2f710c8c14e4fe9409d85",
+      "datasetSha256": "4956b934ab400c0f16dd2e43d84487c450e0429802bd6ad03e6fb48563535864",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-03.zip",
+      "rawSha256": "f0fafd21bb3235ddf2238ff20013f039108611044c168dc1decb361a27458f1b",
+      "datasetSha256": "db53ca51ecea1bd1c16b6fdccf1f9dc0f125ac72785e72acadc1d5ae91d2ac8b",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "1a041267001c6417220e595f9c723919eec3b2e317012a8cfd22f95ac8105ceb",
+      "datasetSha256": "f1f6851379751673111a1ab9a6748175209a2b0c06fdeba56c9816ebd42f38b9",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-04.zip",
+      "rawSha256": "866393c5955d1d1daf9deccfeeae1822a04ba9cfc9b762b43691ee2413263a36",
+      "datasetSha256": "ccea308dfa0b2317cc838e4194a264251f06da099c3a7812518627ef2c2c0675",
+      "rows": 2880,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "99411bbfdc7508a498204faf9ce3f02958f484828a5ffd309b6c267b89c89ba6",
+      "datasetSha256": "06677d4c8c647171957edf9e3199ee29722e31691558e2bccbffbbc837b1b833",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-05.zip",
+      "rawSha256": "a0772098c4a2457f07af9478412c7623bb4dd510c6bfcb83861520d931514fb9",
+      "datasetSha256": "0de081f5075bf12f6c3e00e89c626743106ba79237b70ff76f71bed8185b03fd",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "b701956a49aa6e9daf692eccbe0c79be94dd3e0dbacde8996852f551a5fbfdba",
+      "datasetSha256": "e9b2c770e5777b012314929744c2a494654b008a23b793a9e1e9e9acd5f3c999",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-06.zip",
+      "rawSha256": "2f1d79de76cd113992abf41261a46b051b655a1437b721dce6f17826a208dc16",
+      "datasetSha256": "8eb73b782609f34582f8aca0f6ea1a1211bdec9b36cb3e9d91a9b4166635e9c2",
+      "rows": 2880,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "c057c34d18f83d10284d62eed9d377cb195e8ba12f0cc272a1cb7c34aafdb40b",
+      "datasetSha256": "955319e7d85cd906f47b07334193767959ab98dad3ffa71f7c6061e6cf71e2e8",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-07.zip",
+      "rawSha256": "7c80aa4e00a0fae3cd382a93fdf8d64fd634245c408dc441eb506acf4431157d",
+      "datasetSha256": "509018cd0100d64b1be59c328be730202187fe0b60eaddfef2506f90558ee35c",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "e94b7f308b5182da6bc8cd121ff4cde1dd185a75cc755ba774a15446c8909dd9",
+      "datasetSha256": "3b51725cf81d24b02af1281780c03a2af0cd5aa1f513209591297e655618ce94",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-08.zip",
+      "rawSha256": "d9f1cb766e7de8acb8ba1d5142d2e167ef5c3d4cc3bb2d372bd276aa02197bd8",
+      "datasetSha256": "44660426e98170275b8e4027b298a4520530ba5f7d6593d32e19ced1d98bff48",
+      "rows": 2976,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "DOGEUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT/DOGEUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "c16b0e33fa893bc12f9cdb2a89fd2eef29c50fbe1de5d0b594cbb0cd0e03a7cb",
+      "datasetSha256": "709787326a5b7360f922aeb363fade6f6a5089c520466ebea38b772a964865b4",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/15m/DOGEUSDT-15m-2026-09.zip",
+      "rawSha256": "93bf6356322a165c57e5ffec8cdbcb9ecbe6f245a2fb2b3f95db8aa5ebb60850",
+      "datasetSha256": "1718714bdb8f490e09db4f7f927333ee9ef58195b3d2743c2cfc0f28f7267bcd",
+      "rows": 2880,
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "13713b66ca784964b080a68c8a944d758202e8ab454fba9bd8b42fc1c8fdb804",
+      "datasetSha256": "79ef9885933be96c219b47280bc0031028eef2165ac5e4ee75b1ffefc8fd93c5",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-01.zip",
+      "rawSha256": "2e49b0123b5cde15591edeea6f6221e0fac4e9fdf22a7eaf60ca12ed8202593b",
+      "datasetSha256": "566bb1b6aca43464cd2a9ddc9c82c864eebc92cf9e781d808705723a844fa8e4",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "92d748c5583035811fa307d7f0f039d2fdcaabf59c78095ba61f24426328e77c",
+      "datasetSha256": "08d307742464d239bf03c32b0ede34acb893fc531d5c79e67373bc151ebd98a7",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-02.zip",
+      "rawSha256": "0cff3224eb7b99f45bc5dca3b39db6533004934120382b275bf1582ea399f3f0",
+      "datasetSha256": "b9be46a2465cad0104c6a4dd7e16f00c9436c4de6c2de304c048fef43b33e03e",
+      "rows": 2688,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "bb73dc71a95ee0127f66248f1912b605f8bccaaa52b318be42397b4263c42be7",
+      "datasetSha256": "7d4dd92f45941693866c9b0f328e3147d85821035c9cac55980b8e6557ba63b3",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-03.zip",
+      "rawSha256": "8c2a39518f0515f810b79412a9a5d71c8760b6fcf8efd85a685622a39ba49854",
+      "datasetSha256": "0248d13ce574b419d03be3f17f74c49b6a81629a3f21a273444ae921a9770f85",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "17f6f5f71e62fb2478167db581286c36f298d266b5b73a18d954bfca1a61c874",
+      "datasetSha256": "6dec5e4bf399e64f567d060754b2ebcd91a4f5291ca5008c308be36e282a9de6",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-04.zip",
+      "rawSha256": "394b43270beebcc25df08ca8b0550bfe3e5d97770e8a1044779c1ba290aa0579",
+      "datasetSha256": "5f4bea0ea29e0b29387fd263a9467429b81c87eba1e2e391b3919990590982f8",
+      "rows": 2880,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "7d3b60afb85860117409e2137884e2a01e45a22eb2e4d1353514244f83796002",
+      "datasetSha256": "6c002a861ff7951403793f4d03223515acb3d7642a5f54d0c62dd11b6bc1c4b5",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-05.zip",
+      "rawSha256": "fe100f3ba25f3a48821cdd941bf07d7791bcfe7c57a1c4c23e7a7f993d2d9aba",
+      "datasetSha256": "4b3f8db4800ae37dcd29933a4b44049db2e8c642dc95ed43621d812621369bc0",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "cbdf6273e84d457b4915139e41a278629cbdfc02855e290b6d9ff34218eb36a5",
+      "datasetSha256": "fd33128f44b089cdfb44f161f4122bc3ca9b943c3b5872bc3f234105eea8c769",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-06.zip",
+      "rawSha256": "e5ba7dab466ef0b940efc2059f1e8502ef2627e67b2b5e8000080cc5d4ffa01e",
+      "datasetSha256": "0e66432b9b96114152196181265b030e95e2deb6baabc89aff8ed4d2304a22c5",
+      "rows": 2880,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "56651da01247f19d5e63e6c40f8835934735e60915587068e325f2859101b7e4",
+      "datasetSha256": "ef160b5bceb5fc95d61df12c284834ae46de3de7f36470134f493117766f3588",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-07.zip",
+      "rawSha256": "f63df92f77ff6cd17091c57d6e6ad091e1bd83f0e2aa8231217724cadabb15ba",
+      "datasetSha256": "db97f089100b84606e93b8707d6b2a1f2f2a1ac9096a69c7eb2a5c4ad1625af1",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "3fd351cfdd3aa11d1e280740f56a0a244112862fb3a583d7600d658339060f53",
+      "datasetSha256": "9a1044d6f76c1f699b02a12f97060fa8e4b64f52a36322b51037dcc62a30ee4a",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-08.zip",
+      "rawSha256": "db47df9f2fba22a91b50dbc2b93ae96204d4ab7f0181529293b6dfbf6b3be199",
+      "datasetSha256": "f0bc8ab1819ba5146296b8cddf4ce606a3904d0432f080b64026174a9b384adb",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "5b90724992ead316299b755ec6ff59e70adb6a61dbfa93b58942470a7cf091df",
+      "datasetSha256": "fa9f015321ba36e50182a982bc7729a2053fc48d5c3c00a658d6de62235438d8",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-09.zip",
+      "rawSha256": "751424cb432864b82892905b75c2605b38bdda25568385f8a619297f35ca1a17",
+      "datasetSha256": "79e4e0b6df8e1239ca6d9a9163a76d14313c90c36d43c6ec82bb547995b9a1c1",
+      "rows": 2880,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "b13c0df55c83c64e2a8416bd059140f2fbbea0b3b73da9461abbded358c81160",
+      "datasetSha256": "5e82e4e48687f1df101f9cd93a22745cb124d41e3524d5cd849c91a2ba674475",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-10.zip",
+      "rawSha256": "d354c8d24407efd5aec126eecdfa49112a78bcd992dc36d6d5c6be7c024dcbb0",
+      "datasetSha256": "305bdc44fbd99456579f13606e25dd7bece6af655892a7564d968ef794540ee0",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "a964d712cdfecb1efeadaab133468d8658be24c420f3b91b91a51d183281fb19",
+      "datasetSha256": "a818604cb07f67cad5352d8e706e55338526a7e34200dba89991dd886ccfd221",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-11.zip",
+      "rawSha256": "1a83719a0723eab26b8ff05db296e521d9aa029a4d9f6a7bc7526c193541c860",
+      "datasetSha256": "5dc81ac4d71f9b7067e3b3c0288227903d3473753a69ea6f3e54f46c16354b2a",
+      "rows": 2880,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "728b6a16940b6189bb1aa97f636160e9b66b4289a8cc1296cefc802e0d0ed098",
+      "datasetSha256": "13888269d8a02dcde2da4ef81321521f01c6629c2d4d8b5f2c55dad65ca58eb4",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2025-12.zip",
+      "rawSha256": "f498e2522d6501e2147837b65654d8a92b6a01ce8ff8f0c0820a9b99c695ecd8",
+      "datasetSha256": "87a6f4f7cd830f3c2ab764e5997620c763ece82d8d7f02f1a02593c9c346a10e",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "01e4199765b3954d6a110f498ba4dfc015b0e7f92e4b6985cbec9a56b752d66e",
+      "datasetSha256": "6d5f9d65cccf9b426cd3d0c2b89d68fae338888b54235a9414a739f81edebc43",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-01.zip",
+      "rawSha256": "18cfc4c960d08a697d403b96384fd7987412fdf15c6bec97899d9f3c320865e1",
+      "datasetSha256": "be4952e4a5a7d091529e1d2d23f7ba984c9a5f9376b79aecf7e90402f0a58702",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "1db75bdf9189111e79c0c4e9df854bb716c14c9609462c054c8046d1e03542f0",
+      "datasetSha256": "cf90c52fb3aff4baf0e51006027d7de0458bb15b6ef6bc07029fd8f17376e893",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-02.zip",
+      "rawSha256": "6947b6e9429e4f3e45262c7f02e00448a2930d15509adbd6abe7c2a6042bd8fa",
+      "datasetSha256": "87beae0eada4786ed8689cea44a53e9a45d76739ab1998b761140e52fbf2289c",
+      "rows": 2688,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "f9f7bf447ea91651ae9a5f28feb1275c97445d912a958cb8f999847996411262",
+      "datasetSha256": "a8a45fbfccf8e80bb95b13a3bb6d6549354bc00f19446460352f73e8c15d46e5",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-03.zip",
+      "rawSha256": "aa1e4335daa11037ad916ad94cba2bb98995275e610ea92095770c4390dc70ff",
+      "datasetSha256": "9a9b5a4f56ec6fe33b8fb07a9950dc735ae06c354e9e942039f8daef8c351209",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "ff4c11fa47f8a0268f4194e51712a3bc4bb5672d3b1f54860e5d929114a4bf20",
+      "datasetSha256": "903579b26927d5ed2e76c226d5462762b6d100797bd1eb79678f1b5b3c962e69",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-04.zip",
+      "rawSha256": "44b8b12daded7f5043d1e80b231cb72a9ba8aa70bba31868431bd185bb96e548",
+      "datasetSha256": "9141787f21b25e16c48f6727634fbbfe60580c3b797cb566979fc1d544ff6857",
+      "rows": 2880,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "06536cdd66211e1a25629a54d489493aaab6b3613b9d2207a65af44a3826da1b",
+      "datasetSha256": "b295270fa96e91d4b485730950b91bffe55406241c525be153f18f6ccf62a32d",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-05.zip",
+      "rawSha256": "df7a61d8f9da81f1199b137abe1ac2cf7c4e0da9efdcf6de5aaaeeeb681f1292",
+      "datasetSha256": "563c467fd7781136eebda551d4f2289f2bbd16a44aa7c040bbdf6617d9cadbbf",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "33654b89221e8e9c544632cdee76e38c3eedf40aa2c1536ead56e849781e8d07",
+      "datasetSha256": "7a4bf844adfddb2b856c535b2c09395d7428b517e362b63f17ba64af05cc841a",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-06.zip",
+      "rawSha256": "1a94d8937b50ee99c4e3470e4f0cc05fa72c4a749ac7329e67436b5e6215b416",
+      "datasetSha256": "6d18dc6487b43a240e7399da13b5ba8f07ce8e153f4ab10e790dfdb0d15a1368",
+      "rows": 2880,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "42f06dfc2f6ab34dda1a7ae739d978b11b05384e098be9d556abf9015414ba9f",
+      "datasetSha256": "2771bcd94ec50d6c686070b4024fea9f12c2dafc3fcfca389abf63c0485d0ec1",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-07.zip",
+      "rawSha256": "a4c084e581aef23882de3bc9dc6cea4199b073ad976732774ef26f558afd0777",
+      "datasetSha256": "f51551f12d333e09834fbdc1d71879aebef91c381c38610845380bdd7c730529",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "45134ee1041a243a361107c70d558b553c0919ee4f524c87364f4529f6971667",
+      "datasetSha256": "b29fe086e81c5d0ec502c0be7488368b7aa728ec26c2b1dee0051d9de3872a1a",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-08.zip",
+      "rawSha256": "99c38a5195c5a9cad60e3897909c41ca8400ccc3151996292c7571cc3015fe72",
+      "datasetSha256": "716e7a4e9ebebd6eb972a600992f75a7059c778a1c2b8a0cf454ecbfeef4c699",
+      "rows": 2976,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LINKUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LINKUSDT/LINKUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "9b171146a071a8223ccd8082927af5b8076b70deab0b95a80a249c0941cc5eb5",
+      "datasetSha256": "1c3c134e30ec45f061253e6f50494f8f62f361e568e8c6c845493e771b143391",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/15m/LINKUSDT-15m-2026-09.zip",
+      "rawSha256": "796b330c0bb86d6d56e2462e9a871249ae14601ec6c32200a595a1b44c0a6882",
+      "datasetSha256": "8473114c294eb879a0fdeac3687addd6b0c397dea7ee0ef73f92297e60ff227d",
+      "rows": 2880,
+      "symbol": "LINKUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "141b34b255a63e4a8c398df4d5a020e7a27b6ba1eba49b54c783cae27e308b8c",
+      "datasetSha256": "f7983d31a48fbb518b7e6e50e831895418a493fc28510d5c6b7b51e0ec09786e",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-01.zip",
+      "rawSha256": "543a97035ec537bcee86c89b18c0688288c7de395f0eaed25cf914bfb28a5424",
+      "datasetSha256": "a7875175a8c95234a4e316ba338a5a657e2480997406334ed925673b7ee0ebe7",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "86f4c9d7d39f199e55718ac2bbb388401851c989e8dc000450e6586dd245a3f8",
+      "datasetSha256": "67d17c4ee616cacb4cf91ceeac6b117521ed75f6f063a8b2407f66c096209e3d",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-02.zip",
+      "rawSha256": "916fb7f5a333f6a32f102bbf3eb0f602582d6cc34372721064c2826dda48eeb7",
+      "datasetSha256": "b2f8c49826bb34b4ea53a013f058022362113596693460c235cd1102202349b6",
+      "rows": 2688,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "cb0107d6ec4a78fbf5e70501a3089ecfe2fea1eb8284fed7d32d3b4ef8e6a719",
+      "datasetSha256": "6ef982ea1237565d6a9b747df9978e1afde50a78d78f28aca5abce72521061da",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-03.zip",
+      "rawSha256": "0f6225ec62a2f49ec71e882ac07610f1e6266df6526b5ab991ced733c12cbb51",
+      "datasetSha256": "48ae7f54d60ef4a71882b525afda6cec5cd5ca060e02ae196669f14ccb264814",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "116af3098e0221ae14893cf2ab26a7845aa8e4ceb5e4ba390d169b5e75907928",
+      "datasetSha256": "387031cc7ce26f9481ab821d9a476a622f410947fcf51959c0d8f0276b7141fe",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-04.zip",
+      "rawSha256": "9d6a6cca71407dee5eb6e3c8a5b0c7686c1f3128229b094a490999076b488c98",
+      "datasetSha256": "2c5aa079444cc8a0b9afb7ea2d60a9037e401eecb86f1df545c317dbe3f199d0",
+      "rows": 2880,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "ca460af4a1a1fb71ccb2a0236f2221be914294f9940113434bdbf3967cf0a454",
+      "datasetSha256": "6b9dd8128b195f53251cdb51fcb1627290556e89dcaf62306a483c62579d4758",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-05.zip",
+      "rawSha256": "9bfd90edc4c7b65efa24b70c80a361505113b7d0634339a105432f40939726a8",
+      "datasetSha256": "28018dd0ba098b1f139647b37e24801fcbe320bae899ea057ed5c859e9865668",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "dd24aae0ead63e998dcd4d5f2e84431c4792074d87e95d8f7449c4a13af05394",
+      "datasetSha256": "94092c4555735358b07b53d81304710c54ac0ceaf8a4c01c9436e5ac04840655",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-06.zip",
+      "rawSha256": "7fb0c305571ebc495224b3f961b19aca62d4fc7f7c0e83a22d97cac4b539c78d",
+      "datasetSha256": "a9ad6308d804dd8a8f3beea82e3755b3c4255927c7fbd2d4036c6e2001ca6a5e",
+      "rows": 2880,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "848d31809445344af44b459d37f1624e34251e2f31a80d1c2b3c43874c4cb65d",
+      "datasetSha256": "c064b8a8f87e191a2994478d058e80bac6e82a2dc0562adb79b5f45a4f6e7eff",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-07.zip",
+      "rawSha256": "2746278e60e09607bd65ee635d2081d583565e7d3d25ff84080150399710d0fe",
+      "datasetSha256": "b72976cb569f6f9dc7c764ca7cacebedbea07d9bc58337559a790685d99b86ea",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "20e641197556b32c5ac4ec06e7c85880bea387b4eb75efa38778f1baabb32003",
+      "datasetSha256": "38fb58c08a7d7465664c3747aa702a2423576197144544a7b86194342fb3f814",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-08.zip",
+      "rawSha256": "dee14a410db040cc1ea2d0cd36185c14584819dcb113eaf088fd187112ff802e",
+      "datasetSha256": "686e33380b31a8e3faa2a0ca569e926dc60394df4c0a0e2f506f72d5785a77b7",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "f73dd93bbfa3ff9d35c57058e3a52239d370a3605a753dfb9d3a73cffe053834",
+      "datasetSha256": "d69b1e1b2b073ca0a27da0ee588a67715567774fbae792b54b7538ab4dbeb17e",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-09.zip",
+      "rawSha256": "0e0bd567efece00f59696c5c7e9b480b0a5dc4f49b88dd2e23d5b14831e9979c",
+      "datasetSha256": "48cea12c28214ae325b5e7210e2a7e8cc905e92b907f1002dcef2ecba66c6cc6",
+      "rows": 2880,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "698b7e7898459b19d18a36d95dc8580d15c9fdfcf6e414fc4f645efd0a55e197",
+      "datasetSha256": "f941eb0be7844bf17a3fe876ecc2f9817d5e1ecd80e9f9e0746d88b2c219ba11",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-10.zip",
+      "rawSha256": "935e6a9d7688d358d3c9ffef88b518dcb02c19d8b998411f85cadba4d867638b",
+      "datasetSha256": "b790dfe46d6d62b481f57817d23fd28863452110ba35bad3095a70865b5523a6",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "10dc01e52485b8ab471ad284a4c26c548c4caf2c1e08881425dad490c7db8bd5",
+      "datasetSha256": "7519b5de4b1f06011f9c628e508094962343c80829cb73013b623e131dc78bd8",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-11.zip",
+      "rawSha256": "2838f5be902bb0e24e66416b71328314889aa8eb5438f49aa47551922deaa003",
+      "datasetSha256": "28e93306a78292945bbb0e3cec4233e04d2b02b7fc7cdfae989b0f7bd3daed9b",
+      "rows": 2880,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "033b66574531d243a67760a6679de6b181c1b0e7abcd9484f4f6fceab6074845",
+      "datasetSha256": "3cc6fb402b7ac824d3af78929f13d43e24053381cd668b92a4b0ac4f429b0c61",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2025-12.zip",
+      "rawSha256": "418197975ca4a2b5814718ea9ba7606130c93030b24b41d2d17290838a34b8fe",
+      "datasetSha256": "e2df3246f81910b89745b523f25426c67ae8deb40603cf24076ffd8971302b33",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "a0873e7123feeef469cabf9e97abe22810fe141092539ee03adec6d8849ec475",
+      "datasetSha256": "3232968b5a39c0b9eb8a786970de3e27f91954f66214a5b6f104ff7a86d25fe2",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-01.zip",
+      "rawSha256": "3221d3348b91aa9fc492e7d0c3a0f31fe9669d8906298c46328df61208f8dcac",
+      "datasetSha256": "0aecbc38ec4307ef0f4fbf267fa6a87e1aca28ee180234e3d0745eb94fb1d1f6",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "bf30b007a2ace0eab24012522b4f9cc65d34705313609d4fa34b9d6c4abae424",
+      "datasetSha256": "63dbcbc1877e1dc8c4880a4d280236d9ca2816c020ed6e4baad9e0b1a07c124d",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-02.zip",
+      "rawSha256": "e664ae2b99d4ff9ecd53d25dffa902ff5e9cb375952b1c66a8f3a7adc305cfaa",
+      "datasetSha256": "a0ba69a90e5614d12e6435880ad6a1b64e4737f553f96306912c2b0f2d275bc9",
+      "rows": 2688,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "99d797f431a2c838dab0b0cc994f824d5504fdc23a907bdb091bd35bc5f9622e",
+      "datasetSha256": "246bf274c599ed9d15a4c27bdc19cca1ac58cfa1051de6e83da3ade1115fd98f",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-03.zip",
+      "rawSha256": "4fb0c9e8e27e5183de8c7ac75cc7b60e9cc5d0dd7b1f9bc9ce03d8ab837a9aa5",
+      "datasetSha256": "1086265eb31fc3ddecf7fae7b78f34728ca301b1c4adf3ab8360e969b1ba9e02",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "65b607cb328fa7fc10ae0989455c5f309fc112eb403e6874b4e005e64af941f0",
+      "datasetSha256": "b9ca90cdd13ead7d3cf1235656ed5402c34dfa6081f242bcd0d6fba1eb2b5918",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-04.zip",
+      "rawSha256": "0dc6c4e221d0d7a1588197bcc09846fea9eaa4c2c9d701d1fe41211b43e02b00",
+      "datasetSha256": "50f94b27657946b5822ff00c0426b8d43bfe163660fedbb0c732ea38b8e2f334",
+      "rows": 2880,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "13dfb89d73e28b10121be4018fee2f3071bfe3fe8f73faafe813d3684bfb9ccb",
+      "datasetSha256": "8138904626edb8c178b9e94d0bb7a4f373765ff797168e17ba137d3c04a19077",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-05.zip",
+      "rawSha256": "b38ff128c624b3f9c39648e76230c980695204e369be3c9423906e8fb207f6a8",
+      "datasetSha256": "89bafd56a479251db804645f534716c371ad237b7d8634fe1415155a3167ba5f",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "d89f850bc8d231872575402ab9b514ad0f5a3bcffd00510127ecd694b82e5261",
+      "datasetSha256": "1b97829e918282bf2cf16809a0d4966b5988cda942cf80f69723698bb761e569",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-06.zip",
+      "rawSha256": "bf8306c9ecfbcaf60a2e9f3a11257741daee42c2523dedaef33411bb8ca96b2f",
+      "datasetSha256": "199aac07bd6568742b9b9325eff8ebd013f2739c4b3953a60485b345f1e7055d",
+      "rows": 2880,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "5bf8c87477bdefc138b26cc29945f4ec64137b8c58e3e4683407aad367874712",
+      "datasetSha256": "c1904eacc6015a9a524be66840bb80b383bda728bf935e0de4d7c99044ad6446",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-07.zip",
+      "rawSha256": "de0ad0328607df583ec02ecad8bbe511e22dccc7f6001269b2bf93b60f9bc38c",
+      "datasetSha256": "21e452b939ea1bd8525a834e93091d8c5d4486ba4ce1fafe12464cf518b1a103",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "9fcb67ba7298b786401daa3605fb9839f1f1af5695100d0e10eaa3e99163c619",
+      "datasetSha256": "b290634c049753ec350faab59bad069c1efb40bb9133eb23a47b4b0b2dad0fbd",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-08.zip",
+      "rawSha256": "a3f67479df2f7058a364146a25f52992361aa05492d7d739d7861c1e9b2030d5",
+      "datasetSha256": "855e6239e5c9435bd122c5efc1039418c5b65b62ad4c1965cfe7210f5dcf08da",
+      "rows": 2976,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "AVAXUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/AVAXUSDT/AVAXUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "d89f166fe7daec69573d13fcd61e4443f245c3ffbc8f71b7582bbe30aee6d993",
+      "datasetSha256": "7f4fbd552c4c94d23dfb8d1529dd3bb931eca4723497b4ae4800eef7286c65d5",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/15m/AVAXUSDT-15m-2026-09.zip",
+      "rawSha256": "287cbbe29360cc51440de5b84e0949f83599ba6ef58fc50fe5324c0550e063cd",
+      "datasetSha256": "fc57c743b2182c27b3b093c9532bb8d625d44c1491cc26ab3c7542bd14dbff20",
+      "rows": 2880,
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-01.zip",
+      "rawSha256": "0ba4ae7a317bf2d4d708cdcfabfca13332c9e87ca2875b89e968ab6368234cfb",
+      "datasetSha256": "7dc0458101f197c1322075dae38ddddbac1b5a4a49eaad469450c9076e0676d7",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-01.zip",
+      "rawSha256": "f3fef19ca810350df677a254a7c3870bd9e08ee164d3f616896c98c55bf5a6ca",
+      "datasetSha256": "e9c143d59aba36ed505e31be890e44fc936f02b20dde2ddbb7e037c0bbeca4f2",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-02.zip",
+      "rawSha256": "8c30729e7412ed01cb0dc5237432f47e6316fbe50465d4a6d95360db04e6c8f6",
+      "datasetSha256": "1fe48cb248eeac27f0d7885b52773726409627ada52dfce4922ee0a2914962f6",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-02.zip",
+      "rawSha256": "169895ed2e693554103fba0b3a53e80021563303c24a55d1840f241cc16f1ea2",
+      "datasetSha256": "7ba24450811c7c8aebb7dcdcb3fb960e422441771dceaf0c95a7846a8be4576d",
+      "rows": 2688,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-03.zip",
+      "rawSha256": "d4b7be682d103815845bd1e6d8d3f7b420577ed55b91a0471ae70581cd7317b6",
+      "datasetSha256": "4079719efa716f6522564e62792fc881f94ff02acef7c4b5b786ab871195b3a0",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-03.zip",
+      "rawSha256": "96cd99b4f7eda626628711d67bae04b211840447f945537dcca30893df8537c3",
+      "datasetSha256": "e6270c0336a0da81985995b6221e6e6da0649ab8016b42d4b7788888168f677f",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-04.zip",
+      "rawSha256": "e84071807012cee4af78727a72862e87bfa8afe7993c478a531674358fe15aec",
+      "datasetSha256": "546a45e75a9676ada3a9043884bc31d0a857f330766d3a5164a2f9b396dc0a03",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-04.zip",
+      "rawSha256": "3fad47ff9f381258e36d4ed8a8455779351b220351544fe329a0da2fd0e4f0cc",
+      "datasetSha256": "b0807a837fc7e297eede63272a2f7aae39241d71adfe81a25e2e7d56dd1bed8b",
+      "rows": 2880,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-05.zip",
+      "rawSha256": "ade502ee0d0be2a666ec94f8361525808b7b911fa9e576a27bce326e06b4edf6",
+      "datasetSha256": "c1066257ebc021e72de930a77fcb6cc2a7444c81a0427738d81025d743488b89",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-05.zip",
+      "rawSha256": "9bd5512e70d89b9067f62e66bf25e39a2e1677cdac2572a3f05f0f781122d9eb",
+      "datasetSha256": "12485ef3e06237f684ee499aef281daf15f2b6477dccbd0e9544ed170c6f5061",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-06.zip",
+      "rawSha256": "9159d2d6e16e41b82f77f51f0005038d6d718a3b6222604a5209a2ce92e0ad1c",
+      "datasetSha256": "68d6731a22461f488a1e8882802993a3e38d275b1ac6dc9789029e3262902b64",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-06.zip",
+      "rawSha256": "8459208c4f71d6ffcfceea3a0eb6e5188fe077e3406918823c546a4d5684ed32",
+      "datasetSha256": "3cbfc3bf9160bad5997f8b2a58dbb23dd6176f76da71b7ba9ebe332651c97651",
+      "rows": 2880,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-07.zip",
+      "rawSha256": "942cd83f944849728142ce40a74581a59f0652d68d5606a5d073c8c82c552abd",
+      "datasetSha256": "f7092f59114c6bc9bcdbcb8831f81eaf2aacd1424e234ca2712161be1610ee3f",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-07.zip",
+      "rawSha256": "ad7c4e6cb81f448147d46b0fb3900417916661cb25f5822e655e3171496f33ab",
+      "datasetSha256": "e86f4d5115eeeea8d5d6c19a258f91af5af4f12854f772124abb039018cca65c",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-08.zip",
+      "rawSha256": "442ef6b2ac4fd75879f1d9e0dbf7b8c73223778d79049fe557e57b5e3ec3d599",
+      "datasetSha256": "85e6c4c0afc85fd6e51675a372e3b3201f5b75a572077c8575d767bb6e3e613d",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-08.zip",
+      "rawSha256": "9513d0b668b07cd30121a6c669e59c50e57c46f1ab5eb909aa6f218bb9e01a27",
+      "datasetSha256": "93ac06e8e873bb1f742d4cf0d7ccbb4f3ea217f291d05fc757738b3de4597313",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-09.zip",
+      "rawSha256": "d894fe4b8535b1abd3726a19affb4bc51bcd5414a427c371a88bdd3140d47939",
+      "datasetSha256": "ace3d75a481ca60f75ddbe6372c63590e03c2d83aff2779ce4c49d41d04974f6",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-09.zip",
+      "rawSha256": "32c720c0bbd121c9cf4aa1d7bd0a04c57767b7a6ef97e5be8ccb10f32dd3353f",
+      "datasetSha256": "bec85926ec7f84fd1032e5d6361963f931189b1b2b3a843a0ec1b4acf9d8d073",
+      "rows": 2880,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-10",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-10.zip",
+      "rawSha256": "a350099f02341e7feda8bf5c1b89e704234883656147a7643dd1e0d61e72b250",
+      "datasetSha256": "5a50dc04d4fcdf65e595aa407f569906182cd64c2c5e2de01e5ae3ee6eec5abc",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-10.zip",
+      "rawSha256": "a03e4568603580d201e080836372cb8209e1eb6a5774be302f830a425d08c5f6",
+      "datasetSha256": "91620b1e39e07db454ad5ab49b9f94101ca8290b6ad83eeaff2c53536df3df44",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-11",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-11.zip",
+      "rawSha256": "39c5faa4155fd1685fa7cce6889a25b243ac84b4d6851224f41902a4e93d0eb5",
+      "datasetSha256": "57fa97d05d9ffd4a3f985cbc3d84e48daa5c8595964d4b3f345949713a3cf495",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-11.zip",
+      "rawSha256": "cbce493af94cb5fda7144d3ed819aa19069e4845244b6313f2754236bb4710e1",
+      "datasetSha256": "c6b4347b5a9a46f0e79e094455aeac7cee5a3ef980c99a1481e7410154f8cf00",
+      "rows": 2880,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2025-12",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2025-12.zip",
+      "rawSha256": "19b12c1ea4d4e179a99eecdff14bafa61197d2c8aee20928735ea95fa385e919",
+      "datasetSha256": "f2c97288d7ca1cf7975cd1a109de5f86dc412a05bc02bb533983a6afd694a66c",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2025-12.zip",
+      "rawSha256": "7c83ea6816ea18d91694bd72d9237784faabeb75da7b29741910d16e645bb0da",
+      "datasetSha256": "ac480acd616e81156448b9f7e704a061dcdd8a18d6d92675255f4b4e00293957",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-01",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-01.zip",
+      "rawSha256": "838f7df6e943284f32d15d8831fd1d752e61e93aefe9d05ca942d690dbe2808c",
+      "datasetSha256": "ac73c119c04b913e6b0adaa4fdbf87321cb351465bfaa3bc1d0272387d3ac4d8",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-01.zip",
+      "rawSha256": "3ec7ee62cb5858680e3fb9639532901f3e681234848347cb5fffc8f8813a66c1",
+      "datasetSha256": "d303c68c65088a3fa99878f59a5270a1e480cdfec7751f9754492e4e71945613",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-02",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-02.zip",
+      "rawSha256": "2519014547b6375a5e6ddccec4b1754a33bfa59a2d3427b19a394b7f7a4b82fe",
+      "datasetSha256": "62480ece72022c2e36fbac8dee51646324045edf267ac809b2208906670b5c70",
+      "rows": 84,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-02.zip",
+      "rawSha256": "0aa734a58058f81d0733e80b69324906a9175c94f0c7e48f264804d93fc4d77a",
+      "datasetSha256": "e05266468950ff924da2da796d25a662bc7ec289c072b2b9d97c5ed14c12a2e3",
+      "rows": 2688,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-03",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-03.zip",
+      "rawSha256": "974389f7a8ad54876da69b018199314aced19f467b2801064ad4c3e664ccd1ee",
+      "datasetSha256": "cdf59c5621d579736a54293f7a102e3f7184d1151c6925634be0d4820543195f",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-03.zip",
+      "rawSha256": "075f6d6bb8bfc05cb7d608b061622e5035aa9099540e22e21d13d6f6bf92a236",
+      "datasetSha256": "51143f417feb666da3a566ac1a8d6fcaa8de36f1069faee92a35c21b382fc644",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-04",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-04.zip",
+      "rawSha256": "f8bc5ca888bcd55ab26648c32dc98a3f71a31321255899f632dfa8234623280e",
+      "datasetSha256": "0f4c87433501052187e908fb482d9c4f873d0f67d87396a3b5d9f9641b335025",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-04.zip",
+      "rawSha256": "632fcd5c0090db4453c6b38a5b81eefa966c8fa2057bc2fa12e919a04864675b",
+      "datasetSha256": "78b974fff5d60cf4efe9e3fb3d26aec2cd987283e3fa41efd00168d7f63b5faf",
+      "rows": 2880,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-05",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-05.zip",
+      "rawSha256": "ee5e2aae6af731b54c2153b9354e53f7a1c6c4702c14caac2de2aa2edae43d5b",
+      "datasetSha256": "3718e39f1640599d515655292e4c445802074626eaa4e6366a84365565e42043",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-05.zip",
+      "rawSha256": "a16058449eb49eedb2a044f97cdd806c1b14aa68c5e4a00a33010ab4ece799f4",
+      "datasetSha256": "c300d2c091616b31b6a26f65710c8e46fb0dc466fa275f55aa431a173cc5e7a6",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-06",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-06.zip",
+      "rawSha256": "0831db478f5045e685514f9362219db7d68aa18ce25305f4acb3838919d6ce9e",
+      "datasetSha256": "e33fb342be7511ecf35947f75fe401d2483bed6dc1ff7eac0b5ff93e23727b2b",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-06.zip",
+      "rawSha256": "52c0a9ef1b0c58ff6b589f7a6eadd23f642f06b73feabfd0f09e646867a4c4df",
+      "datasetSha256": "c8e48250e20110d68f71d22d1710c09ea57a616cd1dea68357b6d89e63dba1e5",
+      "rows": 2880,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-07",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-07.zip",
+      "rawSha256": "de0d5d38c94456f30b0cf88dab4fd752c4ce411aa7d23513016ebd811871727c",
+      "datasetSha256": "ee1befd12f6adcd42b138de17b30a4e1ca7dcb51df8eb85683397e7648f0f973",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-07.zip",
+      "rawSha256": "14fe4281245b2be30fadf38078718950962e18b38d2a4b943bc932974aaa18f7",
+      "datasetSha256": "af48f054a85ebed7e7037c797c5c9003d347cc54b04781119bd179711822e437",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-08",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-08.zip",
+      "rawSha256": "75069c1f8cfc296a56c4a376859d746ea24ec54998f1654346212a2f08e72bae",
+      "datasetSha256": "819d7259c994c05dcc7ee4081cda684ebf94a51ec70dbd63b92ad79183d11065",
+      "rows": 93,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-08.zip",
+      "rawSha256": "d28013156a6e290c9d06ba856b3c58e4dac8f0d4ca5bfe75a7c29feddfbea2d3",
+      "datasetSha256": "3a72a03a175a7c49455775208e039ed66c4b537d3ed44d739a853d69838b2c7c",
+      "rows": 2976,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    },
+    {
+      "name": "LTCUSDT-fundingRate-2026-09",
+      "kind": "fundingRate",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/fundingRate/LTCUSDT/LTCUSDT-fundingRate-2026-09.zip",
+      "rawSha256": "b48b211712afaf6b1914011b04eabc6b2c1364d389c488417005408ccc54ed10",
+      "datasetSha256": "dd41a1013d0308cddda306ea8f922fc9947f09a8e8d81b6d08579a8f10ab95f9",
+      "rows": 90,
+      "nativeFlow": false,
+      "actualIntervals": true
+    },
+    {
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/15m/LTCUSDT-15m-2026-09.zip",
+      "rawSha256": "e7e5d8981c43b77a07290d476e2f6b168ae75ce25b18d157572a1b878d04fa43",
+      "datasetSha256": "79fd484126dc4ca471466b306a6a0adf8cd4b22ac37d6f1f2ccdba383d624d2c",
+      "rows": 2880,
+      "symbol": "LTCUSDT",
+      "timeframe": "15m"
+    }
+  ],
+  "reports": [
+    {
+      "sourceStudy": "ten-asset",
+      "sourceEvidenceSha256": "ffa8d428c0a798e9df80442c0f9bbadf28ba3d9bf4bc3ea9a3926c809c1dd26f",
+      "base": {
+        "resolved": 299,
+        "profitFactor": 1.1570473212087313,
+        "meanNetR": 0.03732069693030353
+      },
+      "stress": {
+        "resolved": 299,
+        "profitFactor": 1.094016174925319,
+        "meanNetR": 0.02304448339283913
+      },
+      "periods": [
+        {
+          "start": "2025-02-01",
+          "end": "2026-01-01",
+          "base": {
+            "resolved": 173,
+            "profitFactor": 1.077776577136564,
+            "meanNetR": 0.02020057204155313
+          },
+          "stress": {
+            "resolved": 173,
+            "profitFactor": 1.0237444091422236,
+            "meanNetR": 0.006342029308534694
+          }
+        },
+        {
+          "start": "2026-01-01",
+          "end": "2026-07-01",
+          "base": {
+            "resolved": 79,
+            "profitFactor": 0.8903586608567863,
+            "meanNetR": -0.02682036535158193
+          },
+          "stress": {
+            "resolved": 79,
+            "profitFactor": 0.8342443403624573,
+            "meanNetR": -0.0419368358244194
+          }
+        },
+        {
+          "start": "2026-07-01",
+          "end": "2026-10-01",
+          "base": {
+            "resolved": 47,
+            "profitFactor": 2.439340918184286,
+            "meanNetR": 0.2081488996116391
+          },
+          "stress": {
+            "resolved": 47,
+            "profitFactor": 2.283713325260205,
+            "meanNetR": 0.1937476488130113
+          }
+        }
+      ],
+      "byDirection": [
+        {
+          "side": "buy",
+          "base": {
+            "resolved": 299,
+            "profitFactor": 1.1570473212087313,
+            "meanNetR": 0.03732069693030353
+          }
+        },
+        {
+          "side": "sell",
+          "base": {
+            "resolved": 0,
+            "profitFactor": null,
+            "meanNetR": null
+          }
+        }
+      ]
+    },
+    {
+      "sourceStudy": "ten-asset-regimes",
+      "sourceEvidenceSha256": "f8ddd1e70c57094806898ee28052bdb62ae97c686f99395e62654c8aaa1148c4",
+      "base": {
+        "resolved": 585,
+        "profitFactor": 0.98646497882354,
+        "meanNetR": -0.0034462814916109813
+      },
+      "stress": {
+        "resolved": 585,
+        "profitFactor": 0.9343739438144015,
+        "meanNetR": -0.017191436605905802
+      },
+      "periods": [
+        {
+          "start": "2025-02-01",
+          "end": "2026-01-01",
+          "base": {
+            "resolved": 357,
+            "profitFactor": 0.970643965803413,
+            "meanNetR": -0.00798240321258096
+          },
+          "stress": {
+            "resolved": 357,
+            "profitFactor": 0.9239590128766433,
+            "meanNetR": -0.02123003673167955
+          }
+        },
+        {
+          "start": "2026-01-01",
+          "end": "2026-07-01",
+          "base": {
+            "resolved": 159,
+            "profitFactor": 0.8700629008222376,
+            "meanNetR": -0.03199014345918628
+          },
+          "stress": {
+            "resolved": 159,
+            "profitFactor": 0.8171845801950125,
+            "meanNetR": -0.04636517877433748
+          }
+        },
+        {
+          "start": "2026-07-01",
+          "end": "2026-10-01",
+          "base": {
+            "resolved": 69,
+            "profitFactor": 1.4649483450974843,
+            "meanNetR": 0.08579820412042893
+          },
+          "stress": {
+            "resolved": 69,
+            "profitFactor": 1.3693680640747339,
+            "meanNetR": 0.07093037860687487
+          }
+        }
+      ],
+      "byDirection": [
+        {
+          "side": "buy",
+          "base": {
+            "resolved": 295,
+            "profitFactor": 1.1423570689068667,
+            "meanNetR": 0.033864088732632
+          }
+        },
+        {
+          "side": "sell",
+          "base": {
+            "resolved": 290,
+            "profitFactor": 0.847596254725674,
+            "meanNetR": -0.04139993396109952
+          }
+        }
+      ]
+    }
+  ],
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

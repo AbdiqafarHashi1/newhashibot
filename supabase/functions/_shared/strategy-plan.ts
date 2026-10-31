@@ -1,3 +1,4 @@
+import {DAILY_TREND_ID,dailyEvidence} from './daily-trend-contract.ts';
 import type {
   LegacyStrategyResult,
   StrategyDefinition,
@@ -206,7 +207,7 @@ function qualificationLedger(definition: StrategyDefinition, context: StrategyEv
     { id: "atr_valid", category: "VOLATILITY", status: Number.isFinite(context.indicators.atr14) && context.indicators.atr14 > 0 ? "PASS" : "FAIL", reason: Number.isFinite(context.indicators.atr14) && context.indicators.atr14 > 0 ? "ATR is finite and positive" : "ATR unavailable or invalid", observed: context.indicators.atr14, source: "CONTEXT" },
     { id: "liquidity_context", category: "LIQUIDITY", status: "UNKNOWN", reason: "authoritative liquidity context unavailable to strategy", source: "UNAVAILABLE" },
     { id: "news_context", category: "NEWS", status: "UNKNOWN", reason: "authoritative news context unavailable to strategy", source: "UNAVAILABLE" },
-    { id: "risk_reward", category: "RISK_REWARD", status: legacy.status === "candidate" ? "PASS" : primary === "rr_too_low" ? "FAIL" : "NOT_APPLICABLE", reason: legacy.status === "candidate" ? "risk/reward gate passed" : primary === "rr_too_low" ? primary : "evaluation rejected before risk/reward became the deciding gate", observed: legacy.risk_reward, required: definition.config.min_rr, source: "EVALUATOR" },
+    { id: "risk_reward", category: "RISK_REWARD", status: dailyEvidence(legacy.score_breakdown)?"NOT_APPLICABLE":legacy.status === "candidate" ? "PASS" : primary === "rr_too_low" ? "FAIL" : "NOT_APPLICABLE", reason: dailyEvidence(legacy.score_breakdown)?"Target-free regime/trailing exit; fixed risk/reward is not applicable":legacy.status === "candidate" ? "risk/reward gate passed" : primary === "rr_too_low" ? primary : "evaluation rejected before risk/reward became the deciding gate", observed: legacy.risk_reward, required: definition.config.min_rr, source: "EVALUATOR" },
     { id: "confidence", category: "CONFIDENCE", status: legacy.status === "candidate" ? "PASS" : ["confidence_too_low", "score_below_min"].includes(primary) ? "FAIL" : "NOT_APPLICABLE", reason: legacy.status === "candidate" ? "confidence gate passed" : ["confidence_too_low", "score_below_min"].includes(primary) ? primary : "evaluation rejected before confidence became the deciding gate", observed: legacy.confidence_score, required: definition.config.min_score, source: "EVALUATOR" },
     { id: "evaluator_decision", category: CATEGORY_BY_REASON[primary] ?? "EVALUATOR", status: legacy.status === "candidate" ? "PASS" : "FAIL", reason: legacy.status === "candidate" ? "all evaluator gates passed" : primary, source: "EVALUATOR" },
   ];
@@ -219,6 +220,14 @@ function qualificationLedger(definition: StrategyDefinition, context: StrategyEv
 }
 
 function managementIntent(definition: StrategyDefinition, maxBars: number): StrategyPlan["management_intent"] {
+  if(definition.id===DAILY_TREND_ID)return {break_even:'No break-even or partial-exit mutation.',trailing:'Raise protection to the greater of the existing stop and closed daily close minus 3 Wilder ATR14; apply from the following candle.',partial_exits:['No fixed take-profit levels. One full virtual exit; no account sizing or execution authority.'],cancel_conditions:['Cancel if next-open entry gaps below the initial 2ATR protection.','Missing/non-native SPOT daily history blocks evaluation.'],time_exit:'Exit next open after EMA20 <= EMA50 or close < EMA200. No arbitrary bar-age liquidation; unfinished positions remain OPEN.'};
+  if(definition.id.startsWith('crypto.team-'))return {
+    break_even:'No break-even mutation in the tested signal contract.',
+    trailing:'Static protective stop; no trailing in the tested signal contract.',
+    partial_exits:['One full-position signal target; no partial exits. Account quantities remain Phase-D owned.'],
+    cancel_conditions:['Cancel unfilled invalid/expired entry plans; never infer a provider fill.'],
+    time_exit:`Virtual close after ${maxBars} native 15m bars; missing future candles remain unresolved.`,
+  };
   const scalp = definition.id.includes("scalp");
   return {
     break_even: "Use the currently certified downstream protection policy; strategy does not authorize an independent level mutation.",
@@ -251,7 +260,7 @@ export function createStrategyPlan(definition: StrategyDefinition, context: Stra
     decision: { action, qualified: action !== "NO_TRADE", reasons: rejection ? [rejection] : [legacy.reason] },
     qualification_ledger: qualificationLedger(definition, context, legacy),
     entry_plan: { type: action === "NO_TRADE" ? "NONE" : "ZONE", zone: action === "NO_TRADE" ? null : { low: legacy.entry_low, high: legacy.entry_high }, expires_at: expiresAt, maximum_slippage: { status: "UNKNOWN", value: null, unit: "PERCENT" }, order_validity: action === "NO_TRADE" ? "NOT_APPLICABLE" : "UNTIL_ENTRY_EXPIRY" },
-    risk_proposal: { initial_stop: action === "NO_TRADE" ? null : legacy.stop_loss, invalidation_thesis: action === "NO_TRADE" ? `No risk proposal: ${rejection || "strategy rejected"}` : `The strategy thesis is invalidated at the certified initial stop (${legacy.stop_loss}); basis: ${legacy.reason}.`, tp1: action === "NO_TRADE" ? null : legacy.tp1, tp2: action === "NO_TRADE" ? null : legacy.tp2, additional_targets: [], proposed_risk_reward: legacy.risk_reward, maximum_holding: action === "NO_TRADE" ? null : { bars: definition.config.max_bars_in_trade, timeframe: context.timeframe } },
+    risk_proposal: { initial_stop: action === "NO_TRADE" ? null : legacy.stop_loss, invalidation_thesis: action === "NO_TRADE" ? `No risk proposal: ${rejection || "strategy rejected"}` : `The strategy thesis is invalidated at the certified initial stop (${legacy.stop_loss}); basis: ${legacy.reason}.`, tp1: action === "NO_TRADE"||dailyEvidence(legacy.score_breakdown) ? null : legacy.tp1, tp2: action === "NO_TRADE"||dailyEvidence(legacy.score_breakdown) ? null : legacy.tp2, additional_targets: [], proposed_risk_reward: legacy.risk_reward, maximum_holding: action === "NO_TRADE"||dailyEvidence(legacy.score_breakdown) ? null : { bars: definition.config.max_bars_in_trade, timeframe: context.timeframe } },
     management_intent: managementIntent(definition, definition.config.max_bars_in_trade),
     evidence: { indicators: clone(context.indicators), strategy_specific: evidence, explanation: legacy.reason },
     diagnostics: { warnings, runtime_ms: runtimeMs, confidence: legacy.confidence_score, grade: legacy.grade, evaluator_status: legacy.status === "candidate" ? "CANDIDATE" : rejection === "runtime_error" || legacy.score_breakdown.runtime_error === true ? "RUNTIME_ERROR" : "REJECTED", rejection_category: action === "NO_TRADE" ? rejectionCategory(legacy.rejection_reason || String(legacy.score_breakdown.primary_failed_gate ?? "")) : null },

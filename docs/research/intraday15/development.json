@@ -1,0 +1,2262 @@
+{
+  "schema": "intraday15-development/v1",
+  "generatedAt": "2026-10-23T05:29:49.618Z",
+  "protocolHash": "65bd21c8d2df055d24c33c83056880e3692fc9e466c8d5476293b091a7384e05",
+  "engineHashes": {
+    "scripts/release1/regime/certify.ts": "a5d7e1a9264c9ccf0f3115a33d18ba502ecee35b6e0f423aaeef47ee32b2fce2",
+    "scripts/release1/regime/replay.ts": "0f47766174291932e53a32dbf62c52a28c29724018f162f784fe3b1ece1029f2",
+    "supabase/functions/_shared/active-qualification.ts": "69c91854eb99ebed0e3dfd01c12f5dced3c0414128cd3cbda25581d3ce3011c4",
+    "supabase/functions/_shared/active-scanner-core.ts": "e935fe2f172ef9d9c959622c36ba4550839974110ebbeed9323fb92bfa8a054e",
+    "supabase/functions/_shared/active-validation-runtime.ts": "dd619eee12caf3a4e148789c616d0017428b7ea5097960bcf19e3ff47da6e635",
+    "supabase/functions/_shared/adaptive-market-policy.ts": "1646b2f3456c3db1689d2281935f9beef3ff0b90746fdc70334610563197800d",
+    "supabase/functions/_shared/arbitrator.ts": "147f0f421e6dae22c7495c2c2a27226dad47937ba57289f66b169787cfaed758",
+    "supabase/functions/_shared/crypto-production-evaluators.ts": "57b84bbf45a5590bacf96aa3ed7491e3202e31e705b8f12026dfd720a0a1991c",
+    "supabase/functions/_shared/forex-domain.ts": "5ff79b7f5472c44c68db41ecadbd07ce71b9fa45e79644e2be2018909a292d4d",
+    "supabase/functions/_shared/forex-legacy-evaluators.ts": "0399e6e4f77efe39f3e2be792aff9aa29750bb92dfb4b6cc1c3bb5a21543ff9f",
+    "supabase/functions/_shared/forex-production-strategies.ts": "47aa38a647e063d8e4490610c82f524345dddf7e120803edba62f313693a6d15",
+    "supabase/functions/_shared/forex-research-strategies.ts": "494978ccd28ccb680bf27ba2307e1995056854e7aa5dc59cd93e29c115c7c9fb",
+    "supabase/functions/_shared/forex-runtime-contracts.ts": "76d32bb335e0afbf3fa6b0b58bca848af4603e462968137bd2578decf5e29432",
+    "supabase/functions/_shared/gold-volatility-breakout.ts": "29d02c5492b02467f882ba1d18f84fa7788aa62b60d12952ed7e08aea84052ed",
+    "supabase/functions/_shared/hmm-regime-classifier.ts": "58ca638a86478f48589b2906069f6147ebd12383e5bdb1466438d3ed8593b557",
+    "supabase/functions/_shared/indicator-engine.ts": "9347360f7a7f8b0867a99ebef57f91b747a2dfa2f7687b520d2b12f0cfa24104",
+    "supabase/functions/_shared/intraday-opportunities.ts": "166458ecaedc5c2c793e245797c550e2d12e08c833e3dfab1b9392cb0835d73c",
+    "supabase/functions/_shared/kelly-sizing-optimizer.ts": "de94574270c35b877a8a09a24402f4e8cd643dc2ec34f4b3513192aeb9c7b652",
+    "supabase/functions/_shared/micro-scalper-runtime.ts": "1a7282d9f6c29a898876d979b29b76d4a6513ed47ecc3ee1075f20d65c8448cd",
+    "supabase/functions/_shared/phase-l-validation.ts": "275831aa012ae5c5b92cc1065b5e34d287848762413993db2262c6b892ae4493",
+    "supabase/functions/_shared/predictive-intelligence.ts": "9621327d1e072a84bc32c8658ca071fcab81b9d0372a99b57848f3303878cea6",
+    "supabase/functions/_shared/professional-strategies.ts": "5fd40bc42a03b600dffaa189b6d232ec138a4a241acca2f2320f0b1a85537422",
+    "supabase/functions/_shared/provider-certification.ts": "92869752773eb77a52b26614717dbbfd76bfc800dfcfa4ef72d6d93b2d64a76d",
+    "supabase/functions/_shared/regime-opportunities.ts": "d33912e56cb496c1fb6c26e6dc5f5abfd0e15406a60c4aa334a1a558cece74ba",
+    "supabase/functions/_shared/replay-outcomes.ts": "78bb98a4a63ba72b763164f191e84a2155db2c7d4cff27d35b8d43b74ceedd45",
+    "supabase/functions/_shared/scanner-market-context.ts": "a8245d81baef7c92b7a4946264c14af427c35907430edebe7627bfb39fecfe1b",
+    "supabase/functions/_shared/smart-order-router.ts": "d4df22bd9c13307a3a90439c02dc7697ecd754115bdc9650ea02d45e9b256669",
+    "supabase/functions/_shared/strategy-plan.ts": "65aeb0c8e37d8b705c8dbc6f5d2d2ca28c9c1bcabce9affce60a98a189664a0d",
+    "supabase/functions/_shared/trading-domain/adapters.ts": "5ad5306550fe0624f1c776613425a5f8522ccceea9d1cd635dec0d7e8cd230ac",
+    "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867",
+    "supabase/functions/_shared/trading-domain/canonical-replay.ts": "4d110562d964b3522af9d87408eca031b27101f30148ec8386ccafbe2df43053",
+    "supabase/functions/_shared/trading-domain/certification-runner.ts": "024b704f2cad95fbbffaa447175072a8aceb8ecbf815510d549bfce059e34a1c",
+    "supabase/functions/_shared/trading-domain/contracts.ts": "48114d96928c91b7444c4f51438cca4d34a0d2339d199ce85525223129dfdea8",
+    "supabase/functions/_shared/trading-domain/execution-observations.ts": "ab5307e69f1a29f2e9c0c43ce66ecbac772549d1ff71eb6d748f40fdd7d22f57",
+    "supabase/functions/_shared/trading-domain/index.ts": "5098ec105b827b4b3a09e0b8dd0c7f6e3955cc6c7dae02f4ce8bebcdb8a095ac",
+    "supabase/functions/_shared/trading-domain/indicators.ts": "304aa20edf340e1e146eb826a27fbd818fd72eb9bbf7704c28219659eaf934a2",
+    "supabase/functions/_shared/trading-domain/market-view.ts": "b11f574e24d59bcbf69dcff903c160177031058111d64f51acc0e840900dfad2",
+    "supabase/functions/_shared/trading-domain/phase-k.ts": "ab221dcee8c4110a0501909d3294a8d8796232af776a2658db0e2ebb8a240250",
+    "supabase/functions/_shared/trading-domain/pipeline.ts": "186a42642c03c8fe88b616afe36c28312faeb7c46091db0bf1a63cd5aa0039be",
+    "supabase/functions/_shared/trading-domain/production-eligibility-router.ts": "2d52ec711b4c4d716b3e77a2d1b97f40cf046c26dbb654ca796a1e5776416110",
+    "supabase/functions/_shared/trading-domain/production-gates.ts": "5d102dcb5facb2480b1274656e46ff0da06c95e7d3c62450c7a576e80633f836",
+    "supabase/functions/_shared/trading-domain/risk-capital.ts": "bef15fdc22f17f358c0e697dcfd0925873b23bf31b1df08f1bda02c328f068b7",
+    "supabase/functions/_shared/trading-domain/scanner-runtime.ts": "f48567431cfeda3d071271f6ad3655e5ec329f8aabee55a84a08401d98a74f38",
+    "supabase/functions/_shared/trading-domain/strategies.ts": "7cc2bd92076b161e86f06d3b9603924ab0c0d220be84f0a2a2391707d5dc328e",
+    "supabase/functions/_shared/trading-domain/trade-management.ts": "187bc4b9c9a1e800e25ab99bbda2d0557efae564d5a47bf47822990a0175c7b4",
+    "supabase/functions/_shared/trading-domain/trade-result.ts": "3e389786cef0390b858e5140c4b8b235433561afda7d69713338e8a15178e5ae",
+    "scripts/research/intraday15/develop.ts": "e224f34ffa40382341c5eeeb86e2b55bb7682dbc0701afd346338943a06303ab",
+    "scripts/research/intraday15/download.py": "562f53d01f79e4fc3b9a18be340fe81e111138d875dde89c0ff32b02c12c2e91",
+    "scripts/research/intraday15/protocol.json": "65bd21c8d2df055d24c33c83056880e3692fc9e466c8d5476293b091a7384e05"
+  },
+  "sources": [
+    {
+      "symbol": "BTCUSDT",
+      "datasetHash": "a94749b0dcbbb81b5253b7fe85ea2e817e501ec9d1631a60544935d5655cd80a",
+      "sources": [
+        {
+          "file": "BTCUSDT-15m-2025-01.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-01.zip.CHECKSUM",
+          "archiveSha256": "0867b0b8e22069621de45df42cc49a8df1b8217cf777529b1df6d43253927588",
+          "datasetSha256": "2729c3ee863e997548156c08041a8fd48f8658e0306fb5970527c141386d9001",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-02.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-02.zip.CHECKSUM",
+          "archiveSha256": "44280cf80923ec6ee42e28e4606723b2f36909eab5c334ee5aee132ff989f12b",
+          "datasetSha256": "e127792756a727ba51ad126fabe28c2c1330ecbc47a7659597f70bd5bfae67ad",
+          "rows": 2688,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-03.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-03.zip.CHECKSUM",
+          "archiveSha256": "aea345f1561a16710812658f2d435f0e02de5fc25d7ba8ad821526d67b2ab229",
+          "datasetSha256": "9c75ac1dff51601ffa01b69808a3e7b17b96bf5bf40256fbe20421fed0e1ad91",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-04.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-04.zip.CHECKSUM",
+          "archiveSha256": "6a5166823a9e80e25f520a8e7e26f34550c975e26bd1c5bb95a20d530b89bfa5",
+          "datasetSha256": "5bf82660fbdbb0f600668ec5995bd8240c8859516af415f2dff5ff0d4f24b2d1",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-05.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-05.zip.CHECKSUM",
+          "archiveSha256": "303a174c2d15248fe00342ac2b01bec41bb4e11c4a5d26d480e2a382808bc020",
+          "datasetSha256": "9b09605a2ff276f5e652c9e8d1d70eaf9ceb8541c82b5d7c4337e77591d598c5",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-06.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-06.zip.CHECKSUM",
+          "archiveSha256": "4c980922647b630dbf146cb80934776930f8b4a9b419967710ecb8ce398e036d",
+          "datasetSha256": "d89217214b4ee1fadbfa05bedf94193c32b64ff46c3629534c18981655d182c7",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-07.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-07.zip.CHECKSUM",
+          "archiveSha256": "dd5bb32a02e5a3dc93717530abe572f41e1bc50b920daad6e226bb6024e52b51",
+          "datasetSha256": "8ef63599bf50ff079c80ec263e3514e25f395b9635d4791e5a7f090925aac144",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-08.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-08.zip.CHECKSUM",
+          "archiveSha256": "b8965932ae4008e4f1f8ec1ed344f11fbd1f743b44679dacfab665f05414aced",
+          "datasetSha256": "caf9e90dc7f91dd362a1cd2071cf78db326cfac72c404c003f65b36ab0bf6f6c",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-09.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-09.zip.CHECKSUM",
+          "archiveSha256": "fcfe6d1c17890b82788b13707bbdc99694361f701a49f15347c8f0e85e55fd1f",
+          "datasetSha256": "29d62473a1ed2cf0671f83274b9e2a60fbd2e74a126776820a31fd5dca37f886",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-10.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-10.zip.CHECKSUM",
+          "archiveSha256": "14f11249137327f5ecadfaceab1eea9ba87f819298af645998fc9bd2cde02b77",
+          "datasetSha256": "bb0a15df419de716709cf62ce4254ad6434332c79f8de97a7073814da721c892",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-11.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-11.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-11.zip.CHECKSUM",
+          "archiveSha256": "66c714d54807c313814d0aef6ee2ef21e07e311605b47c23ae32978c721a4b23",
+          "datasetSha256": "b918c5a5335ac61a77ed67ee17521894e1efacff0a2674f89e2f4bde9eca831d",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2025-12.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-12.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-12.zip.CHECKSUM",
+          "archiveSha256": "d497e319364b0c13a0cd59e0192568ea1542e8f430844046189a8cf534895805",
+          "datasetSha256": "4cf0074bd5e3569083089afcbeebda8d70cde304e5e1400244a072c78ccf302d",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2026-01.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-01.zip.CHECKSUM",
+          "archiveSha256": "065fc8cf21f51ad6bd043fa670ba2dbc8c6030efd5dff63d5d4a9d99e0b88d0b",
+          "datasetSha256": "e2cb7fc7dd50ebe67a20f27a34364ed76369ab1407e8a05efaff54d5b30d50b1",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2026-02.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-02.zip.CHECKSUM",
+          "archiveSha256": "983c066f0cf0171466e89d7596433f5ac717ea8c805fe5b650a83b3176cd92c1",
+          "datasetSha256": "781624f232479e89bca78aada247c5892b8eacd36f01de29837913aaf6489854",
+          "rows": 2688,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2026-03.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-03.zip.CHECKSUM",
+          "archiveSha256": "ea25e84ddffdcc8b7ba68fb47363daee6a9ef53941f152c9ebf6d4e165d32bf8",
+          "datasetSha256": "8bb2d23d3856c50385471e2a91435fe55661a78b19d84e359b6840d15fb0d76e",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2026-04.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-04.zip.CHECKSUM",
+          "archiveSha256": "0bc151133aa47be76f535539e25c04970bd6d0afd54e532951638dc8330fcc58",
+          "datasetSha256": "335b490188f2ceec0d737804c025f08dc5e772ac7aa816c19cb8bf873e94f630",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2026-05.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-05.zip.CHECKSUM",
+          "archiveSha256": "1c0a865f62ddca9890f5d7bbe901b7261a3818785594d960f5fce36ee7ce81f5",
+          "datasetSha256": "e98fff9a03f72b4496edd73555688d097be85c8204f32c0781c23797d976ff49",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "BTCUSDT-15m-2026-06.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-06.zip.CHECKSUM",
+          "archiveSha256": "54369ae74f8122e0d3c8152807f78ec3ced435a8b0ab59c5efcea2cbad878857",
+          "datasetSha256": "936bb7995fd8a369e4deeae8e08064573284138a0d4174cc2959c0b4d1d0d76d",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        }
+      ]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "datasetHash": "ed527077389ae6a453d2e128bc9c71569b42a458e90dd476857266fb44638eeb",
+      "sources": [
+        {
+          "file": "ETHUSDT-15m-2025-01.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-01.zip.CHECKSUM",
+          "archiveSha256": "e4583eaeb9f60a36f51edc0c420c5dae46ada08a95a2e187cc37a6d4ca01da2c",
+          "datasetSha256": "592d12726c89cacab5db92a7e7092524065b4467f4a00b760e0a7d3e670b7864",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-02.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-02.zip.CHECKSUM",
+          "archiveSha256": "0ffea7062a8ddcce2cc352a37f0329cdb172cab2128da90f00d4e4faa276e70b",
+          "datasetSha256": "4bfcad375ff3467f1ef71ed43e23b4dee2d96360234cdfcdb6e6aa6f608fbafb",
+          "rows": 2688,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-03.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-03.zip.CHECKSUM",
+          "archiveSha256": "b85a8fdf1e969d04b4035672b2f3e04e42dfbadf2697e103f1ce8556c9df33ba",
+          "datasetSha256": "a1ddce87b5a46072dc2234a228921668faaac8cb7b39b5e06f364cde86dd9e04",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-04.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-04.zip.CHECKSUM",
+          "archiveSha256": "e0425f5d963857b2a66ed2a5a8da635182633a33d8388c723fe9e255ae9e783a",
+          "datasetSha256": "5becf19fe9313fbb576a957a9eecd1ac1d212370538213fe4d7b09650b853cdb",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-05.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-05.zip.CHECKSUM",
+          "archiveSha256": "08a8b62945c67b1c6cb7852290865421033e6b629585d222d0120927938b3c0e",
+          "datasetSha256": "d6ca037aeaf39447ccbb3ed1d82a9625e67d8c4ec2f89ef404f70e0c172f112b",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-06.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-06.zip.CHECKSUM",
+          "archiveSha256": "9cf0b46281a62106d755ca9ee79b91b456dd71fad45f9e63d967f1e59fe44955",
+          "datasetSha256": "edaa933917516a8d27b1934f6ac0fa50499932dc13f7f4da558a74cfdb62e984",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-07.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-07.zip.CHECKSUM",
+          "archiveSha256": "474a1539ea3341ecd1225144d447a0e465a5bdf104a773d1466b2a69b9b285a9",
+          "datasetSha256": "a03adae5a857d1b5190531efea730cbcb23ae1a8336c91ec1b5d782b875bdc59",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-08.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-08.zip.CHECKSUM",
+          "archiveSha256": "22be96c56c387830ba231b125faef3d5dca790d5bba400be1c7943e76828859f",
+          "datasetSha256": "3ceeaccbb7c2f68fc5b43ac908592cf260299c0a6627b32c62ac9541cd4e977e",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-09.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-09.zip.CHECKSUM",
+          "archiveSha256": "a13d3ec67f1d3a3a0f64958c0ebf44408f586c0763b98ad61d5a053b38e4140b",
+          "datasetSha256": "dd9accde08f4adbc3ed5b70541aa1dbb7088f8778e96f95a1de46ad1b4d0bec5",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-10.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-10.zip.CHECKSUM",
+          "archiveSha256": "791ea1d15568f9654251e133166b5811ed9dd2a870d0430a1f770ae1d4be9634",
+          "datasetSha256": "24646bb4ddd4330eb61d4e7055d83b256cb883c97f8a6f3448436009d9d90b55",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-11.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-11.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-11.zip.CHECKSUM",
+          "archiveSha256": "c990b42346cfa801272495c3eab589298df0f53df7bf503b64c6407c8148e87e",
+          "datasetSha256": "e5f75cf0bc7e646264e410b09fa8b0ead003a85ff6692484cceb86965c56caeb",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2025-12.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-12.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-12.zip.CHECKSUM",
+          "archiveSha256": "976ec3149859d3dfcb1fad77e61765fa54e515b16191c0acc068c68a8410f344",
+          "datasetSha256": "a6550585fab412c0b3d27b6892601b19712b5c0ee003c1e1ebdf1f081116a34c",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2026-01.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-01.zip.CHECKSUM",
+          "archiveSha256": "447a9db9356fac7d162cf485d5ac4488a587dc053ac0a59f35f24cae84e6403d",
+          "datasetSha256": "f014a4c18893d7e25248239cb2f4cd57926a4cd4a7d92b48734efdfaa2c07190",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2026-02.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-02.zip.CHECKSUM",
+          "archiveSha256": "71de116aeb4643bad5eba4537673f1b1aea22f33064780bf6fa636429f63415a",
+          "datasetSha256": "5a91ccc4578b6468d5c29dc383e3ed2e1cc8f64f5ce46446ad6b2229bb33d06c",
+          "rows": 2688,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2026-03.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-03.zip.CHECKSUM",
+          "archiveSha256": "8070870b512ab7c312329a7fc1a45217fc7aff5ed7bbb4f805d96caf7c99fd5d",
+          "datasetSha256": "03dcb2508ccb07c61696484f056f80e039799f90aaefb45262424c0f5a3137c4",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2026-04.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-04.zip.CHECKSUM",
+          "archiveSha256": "d9974b77eb5b1b37c1b6b82f064a4edbb8c0b2a0531fbee487e3a34e519da6be",
+          "datasetSha256": "ca5aaeb248ebf8c784c26cb13e2623bf6ff326bf27e4658fa449416d854cbc20",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2026-05.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-05.zip.CHECKSUM",
+          "archiveSha256": "3db40bf90a856aa0977bcac53c46750c174b58c9e0a438ea9803948e81d42260",
+          "datasetSha256": "4a745609970a9e6ca2562c242f374811f6e5898c43345b6b78d0a5a34e68f6ac",
+          "rows": 2976,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        },
+        {
+          "file": "ETHUSDT-15m-2026-06.json",
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-06.zip.CHECKSUM",
+          "archiveSha256": "d4d7c7087b6813c219c39c1cfcb7b3f5c493551b94d33a8d7c6ee0b7201f010a",
+          "datasetSha256": "32a315980913c94778f4d6eabfd8c248ed1b191292870ff94dbe39afb74e9dfd",
+          "rows": 2880,
+          "instrumentType": "USDT_PERPETUAL",
+          "warning": "Spot bars do not certify futures execution or funding costs."
+        }
+      ]
+    }
+  ],
+  "trials": [
+    {
+      "strategy": "crypto.vwap-reclaim-15m",
+      "variant": {
+        "name": "structural",
+        "parameters": {},
+        "breakeven": false
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 149,
+        "resolvedCount": 149,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.22023255741161235,
+        "profitFactor": 0.6979144775862671,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 40.515912908640296,
+        "winCount": 52,
+        "winRatePct": 34.899328859060404,
+        "netR": -32.81465105433024,
+        "netReturnPctAtHalfPercentRisk": -15.402083290062961,
+        "maxDrawdownPctAtHalfPercentRisk": 18.50737568150275,
+        "expectancy95PctBlockBootstrap": [
+          -0.4429962147345954,
+          0.008269167582784693
+        ]
+      },
+      "stressMetrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 149,
+        "resolvedCount": 149,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3226415003332133,
+        "profitFactor": 0.5950100261107905,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 55.03813952814277,
+        "winCount": 50,
+        "winRatePct": 33.557046979865774,
+        "netR": -48.07358354964879,
+        "netReturnPctAtHalfPercentRisk": -21.62559148254355,
+        "maxDrawdownPctAtHalfPercentRisk": 24.1816962869074,
+        "expectancy95PctBlockBootstrap": [
+          -0.49478449846798034,
+          -0.13119375182036352
+        ]
+      },
+      "reasons": [
+        "NET_PF_BELOW_GATE",
+        "NONPOSITIVE_EXPECTANCY",
+        "NONPOSITIVE_INSTRUMENT",
+        "COST_STRESS_FAILED"
+      ],
+      "perInstrument": [
+        {
+          "symbol": "BTCUSDT",
+          "strategy": "crypto.vwap-reclaim-15m",
+          "variant": {
+            "name": "structural",
+            "parameters": {},
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 53,
+            "resolvedCount": 53,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.33926571568440306,
+            "profitFactor": 0.5232140827980168,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 20.473242712559376,
+            "winCount": 16,
+            "winRatePct": 30.18867924528302,
+            "netR": -17.981082931273363,
+            "netReturnPctAtHalfPercentRisk": -8.68284410788277,
+            "maxDrawdownPctAtHalfPercentRisk": 9.50865685853214,
+            "expectancy95PctBlockBootstrap": [
+              -0.6174874193662274,
+              -0.03237888421857816
+            ]
+          },
+          "grossNetR": -7.164617455643605,
+          "totalCostR": 10.816465475629746,
+          "eligible": 60,
+          "rejections": {
+            "RECLAIM_REQUIRES_HOURLY_TREND": 35894,
+            "NO_ACCEPTED_VWAP_RECLAIM": 15345,
+            "SHOCK_OR_INVALID_VOLATILITY": 885,
+            "COST_OR_STOP_INFEASIBLE": 122,
+            "ONE_ACTIVE_PER_SYMBOL": 6,
+            "SPLIT_BOUNDARY_HORIZON": 1
+          },
+          "persistedTradeCount": 53,
+          "persistedDiagnosticCount": 53
+        },
+        {
+          "symbol": "ETHUSDT",
+          "strategy": "crypto.vwap-reclaim-15m",
+          "variant": {
+            "name": "structural",
+            "parameters": {},
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 96,
+            "resolvedCount": 96,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.1545163346151759,
+            "profitFactor": 0.7908228604081871,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 21.96548675572758,
+            "winCount": 36,
+            "winRatePct": 37.5,
+            "netR": -14.833568123056885,
+            "netReturnPctAtHalfPercentRisk": -7.3581345329222,
+            "maxDrawdownPctAtHalfPercentRisk": 10.418516134602521,
+            "expectancy95PctBlockBootstrap": [
+              -0.3709211663067616,
+              0.08452194608456655
+            ]
+          },
+          "grossNetR": 4.8678313919504275,
+          "totalCostR": 19.70139951500731,
+          "eligible": 105,
+          "rejections": {
+            "NO_ACCEPTED_VWAP_RECLAIM": 15050,
+            "RECLAIM_REQUIRES_HOURLY_TREND": 36143,
+            "SHOCK_OR_INVALID_VOLATILITY": 937,
+            "COST_OR_STOP_INFEASIBLE": 71,
+            "ONE_ACTIVE_PER_SYMBOL": 9
+          },
+          "persistedTradeCount": 96,
+          "persistedDiagnosticCount": 96
+        }
+      ]
+    },
+    {
+      "strategy": "crypto.vwap-reclaim-15m",
+      "variant": {
+        "name": "breakeven",
+        "parameters": {},
+        "breakeven": true
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 149,
+        "resolvedCount": 149,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.23803553523442939,
+        "profitFactor": 0.6733274816301125,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 44.00483814569035,
+        "winCount": 54,
+        "winRatePct": 36.241610738255034,
+        "netR": -35.46729474992998,
+        "netReturnPctAtHalfPercentRisk": -16.50610055672025,
+        "maxDrawdownPctAtHalfPercentRisk": 19.90606808369993,
+        "expectancy95PctBlockBootstrap": [
+          -0.4632065381030638,
+          -0.022148296409230887
+        ]
+      },
+      "stressMetrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 149,
+        "resolvedCount": 149,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.34044447815603024,
+        "profitFactor": 0.5713389619519454,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 58.47071161479052,
+        "winCount": 54,
+        "winRatePct": 36.241610738255034,
+        "netR": -50.7262272452485,
+        "netReturnPctAtHalfPercentRisk": -22.64900491280549,
+        "maxDrawdownPctAtHalfPercentRisk": 25.471311202723644,
+        "expectancy95PctBlockBootstrap": [
+          -0.5091401219206175,
+          -0.16627364025894614
+        ]
+      },
+      "reasons": [
+        "NET_PF_BELOW_GATE",
+        "NONPOSITIVE_EXPECTANCY",
+        "NONPOSITIVE_INSTRUMENT",
+        "COST_STRESS_FAILED"
+      ],
+      "perInstrument": [
+        {
+          "symbol": "BTCUSDT",
+          "strategy": "crypto.vwap-reclaim-15m",
+          "variant": {
+            "name": "breakeven",
+            "parameters": {},
+            "breakeven": true
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 53,
+            "resolvedCount": 53,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.31096382889195023,
+            "profitFactor": 0.5628005904618467,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 19.973242712559383,
+            "winCount": 17,
+            "winRatePct": 32.075471698113205,
+            "netR": -16.481082931273363,
+            "netReturnPctAtHalfPercentRisk": -7.996398957027628,
+            "maxDrawdownPctAtHalfPercentRisk": 9.501340142588173,
+            "expectancy95PctBlockBootstrap": [
+              -0.5797822184571917,
+              0.013582306134601279
+            ]
+          },
+          "grossNetR": -5.664617455643605,
+          "totalCostR": 10.816465475629746,
+          "eligible": 60,
+          "rejections": {
+            "RECLAIM_REQUIRES_HOURLY_TREND": 35894,
+            "NO_ACCEPTED_VWAP_RECLAIM": 15345,
+            "SHOCK_OR_INVALID_VOLATILITY": 885,
+            "COST_OR_STOP_INFEASIBLE": 122,
+            "ONE_ACTIVE_PER_SYMBOL": 6,
+            "SPLIT_BOUNDARY_HORIZON": 1
+          },
+          "persistedTradeCount": 53,
+          "persistedDiagnosticCount": 53
+        },
+        {
+          "symbol": "ETHUSDT",
+          "strategy": "crypto.vwap-reclaim-15m",
+          "variant": {
+            "name": "breakeven",
+            "parameters": {},
+            "breakeven": true
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 96,
+            "resolvedCount": 96,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.197773039777673,
+            "profitFactor": 0.7321148978461915,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 24.71393838733315,
+            "winCount": 37,
+            "winRatePct": 38.54166666666667,
+            "netR": -18.986211818656606,
+            "netReturnPctAtHalfPercentRisk": -9.249313617320132,
+            "maxDrawdownPctAtHalfPercentRisk": 11.710692379805922,
+            "expectancy95PctBlockBootstrap": [
+              -0.41122368308416474,
+              0.02803120574956941
+            ]
+          },
+          "grossNetR": 0.7151876963507053,
+          "totalCostR": 19.70139951500731,
+          "eligible": 105,
+          "rejections": {
+            "NO_ACCEPTED_VWAP_RECLAIM": 15050,
+            "RECLAIM_REQUIRES_HOURLY_TREND": 36143,
+            "SHOCK_OR_INVALID_VOLATILITY": 937,
+            "COST_OR_STOP_INFEASIBLE": 71,
+            "ONE_ACTIVE_PER_SYMBOL": 9
+          },
+          "persistedTradeCount": 96,
+          "persistedDiagnosticCount": 96
+        }
+      ]
+    },
+    {
+      "strategy": "crypto.vwap-reclaim-15m",
+      "variant": {
+        "name": "wider",
+        "parameters": {
+          "stopAtr": 2.4,
+          "targetR": 3
+        },
+        "breakeven": false
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 183,
+        "resolvedCount": 183,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.17150485457018766,
+        "profitFactor": 0.7424619017603642,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 40.024063037981676,
+        "winCount": 71,
+        "winRatePct": 38.79781420765027,
+        "netR": -31.385388386344342,
+        "netReturnPctAtHalfPercentRisk": -14.834680724564898,
+        "maxDrawdownPctAtHalfPercentRisk": 18.30372435814602,
+        "expectancy95PctBlockBootstrap": [
+          -0.36075080280041444,
+          0.04616405088808075
+        ]
+      },
+      "stressMetrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 183,
+        "resolvedCount": 183,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.265990303543989,
+        "profitFactor": 0.6338643603970078,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 56.71959285023968,
+        "winCount": 66,
+        "winRatePct": 36.0655737704918,
+        "netR": -48.676225548549986,
+        "netReturnPctAtHalfPercentRisk": -21.897316154102754,
+        "maxDrawdownPctAtHalfPercentRisk": 24.874917428159332,
+        "expectancy95PctBlockBootstrap": [
+          -0.4384220748857044,
+          -0.10486790461346997
+        ]
+      },
+      "reasons": [
+        "NET_PF_BELOW_GATE",
+        "NONPOSITIVE_EXPECTANCY",
+        "NONPOSITIVE_INSTRUMENT",
+        "COST_STRESS_FAILED"
+      ],
+      "perInstrument": [
+        {
+          "symbol": "BTCUSDT",
+          "strategy": "crypto.vwap-reclaim-15m",
+          "variant": {
+            "name": "wider",
+            "parameters": {
+              "stopAtr": 2.4,
+              "targetR": 3
+            },
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 68,
+            "resolvedCount": 68,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.3504592000778329,
+            "profitFactor": 0.49739938718836707,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 26.9157493114342,
+            "winCount": 22,
+            "winRatePct": 32.35294117647059,
+            "netR": -23.831225605292637,
+            "netReturnPctAtHalfPercentRisk": -11.3329748392894,
+            "maxDrawdownPctAtHalfPercentRisk": 12.405591624049976,
+            "expectancy95PctBlockBootstrap": [
+              -0.5516388877949221,
+              -0.13848829324467798
+            ]
+          },
+          "grossNetR": -10.667489666570816,
+          "totalCostR": 13.163735938721816,
+          "eligible": 79,
+          "rejections": {
+            "RECLAIM_REQUIRES_HOURLY_TREND": 35894,
+            "NO_ACCEPTED_VWAP_RECLAIM": 15345,
+            "SHOCK_OR_INVALID_VOLATILITY": 885,
+            "COST_OR_STOP_INFEASIBLE": 103,
+            "ONE_ACTIVE_PER_SYMBOL": 10,
+            "SPLIT_BOUNDARY_HORIZON": 1
+          },
+          "persistedTradeCount": 68,
+          "persistedDiagnosticCount": 68
+        },
+        {
+          "symbol": "ETHUSDT",
+          "strategy": "crypto.vwap-reclaim-15m",
+          "variant": {
+            "name": "wider",
+            "parameters": {
+              "stopAtr": 2.4,
+              "targetR": 3
+            },
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 115,
+            "resolvedCount": 115,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.06568837200914505,
+            "profitFactor": 0.8985352999792543,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 18.684858154794128,
+            "winCount": 49,
+            "winRatePct": 42.608695652173914,
+            "netR": -7.554162781051681,
+            "netReturnPctAtHalfPercentRisk": -3.9492763842349676,
+            "maxDrawdownPctAtHalfPercentRisk": 8.96518066309448,
+            "expectancy95PctBlockBootstrap": [
+              -0.3007239200585816,
+              0.15714159808668934
+            ]
+          },
+          "grossNetR": 13.863775604637812,
+          "totalCostR": 21.417938385689503,
+          "eligible": 131,
+          "rejections": {
+            "NO_ACCEPTED_VWAP_RECLAIM": 15050,
+            "RECLAIM_REQUIRES_HOURLY_TREND": 36143,
+            "SHOCK_OR_INVALID_VOLATILITY": 937,
+            "ONE_ACTIVE_PER_SYMBOL": 16,
+            "COST_OR_STOP_INFEASIBLE": 45
+          },
+          "persistedTradeCount": 115,
+          "persistedDiagnosticCount": 115
+        }
+      ]
+    },
+    {
+      "strategy": "crypto.failed-auction-15m",
+      "variant": {
+        "name": "structural",
+        "parameters": {},
+        "breakeven": false
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 1,
+        "resolvedCount": 1,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -1.2348028464065743,
+        "profitFactor": 0,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.2348028464065743,
+        "winCount": 0,
+        "winRatePct": 0,
+        "netR": -1.2348028464065743,
+        "netReturnPctAtHalfPercentRisk": -0.6174014232032787,
+        "maxDrawdownPctAtHalfPercentRisk": 0.6174014232032823,
+        "expectancy95PctBlockBootstrap": [
+          -1.2348028464065743,
+          -1.2348028464065743
+        ]
+      },
+      "stressMetrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 1,
+        "resolvedCount": 1,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -1.3522042696098615,
+        "profitFactor": 0,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.3522042696098615,
+        "winCount": 0,
+        "winRatePct": 0,
+        "netR": -1.3522042696098615,
+        "netReturnPctAtHalfPercentRisk": -0.6761021348049345,
+        "maxDrawdownPctAtHalfPercentRisk": 0.6761021348049325,
+        "expectancy95PctBlockBootstrap": [
+          -1.3522042696098615,
+          -1.3522042696098615
+        ]
+      },
+      "reasons": [
+        "INSUFFICIENT_TRADES",
+        "NET_PF_BELOW_GATE",
+        "NONPOSITIVE_EXPECTANCY",
+        "NONPOSITIVE_INSTRUMENT",
+        "COST_STRESS_FAILED"
+      ],
+      "perInstrument": [
+        {
+          "symbol": "BTCUSDT",
+          "strategy": "crypto.failed-auction-15m",
+          "variant": {
+            "name": "structural",
+            "parameters": {},
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 0,
+            "resolvedCount": 0,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": null,
+            "profitFactor": null,
+            "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+            "realizedMaxDrawdownR": null,
+            "winCount": 0,
+            "winRatePct": null,
+            "netR": 0,
+            "netReturnPctAtHalfPercentRisk": 0,
+            "maxDrawdownPctAtHalfPercentRisk": 0,
+            "expectancy95PctBlockBootstrap": null
+          },
+          "grossNetR": 0,
+          "totalCostR": 0,
+          "eligible": 0,
+          "rejections": {
+            "FAILED_AUCTION_REQUIRES_BALANCE": 38886,
+            "SHOCK_OR_INVALID_VOLATILITY": 885,
+            "NO_FAILED_AUCTION": 12391,
+            "COST_OR_STOP_INFEASIBLE": 111,
+            "INSUFFICIENT_STRUCTURAL_REWARD": 33
+          },
+          "persistedTradeCount": 0,
+          "persistedDiagnosticCount": 0
+        },
+        {
+          "symbol": "ETHUSDT",
+          "strategy": "crypto.failed-auction-15m",
+          "variant": {
+            "name": "structural",
+            "parameters": {},
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 1,
+            "resolvedCount": 1,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -1.2348028464065743,
+            "profitFactor": 0,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 1.2348028464065743,
+            "winCount": 0,
+            "winRatePct": 0,
+            "netR": -1.2348028464065743,
+            "netReturnPctAtHalfPercentRisk": -0.6174014232032787,
+            "maxDrawdownPctAtHalfPercentRisk": 0.6174014232032823,
+            "expectancy95PctBlockBootstrap": [
+              -1.2348028464065743,
+              -1.2348028464065743
+            ]
+          },
+          "grossNetR": -1,
+          "totalCostR": 0.23480284640657445,
+          "eligible": 1,
+          "rejections": {
+            "FAILED_AUCTION_REQUIRES_BALANCE": 38691,
+            "NO_FAILED_AUCTION": 12565,
+            "SHOCK_OR_INVALID_VOLATILITY": 937,
+            "COST_OR_STOP_INFEASIBLE": 57,
+            "INSUFFICIENT_STRUCTURAL_REWARD": 55
+          },
+          "persistedTradeCount": 1,
+          "persistedDiagnosticCount": 1
+        }
+      ]
+    },
+    {
+      "strategy": "crypto.failed-auction-15m",
+      "variant": {
+        "name": "breakeven",
+        "parameters": {},
+        "breakeven": true
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 1,
+        "resolvedCount": 1,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -1.2348028464065743,
+        "profitFactor": 0,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.2348028464065743,
+        "winCount": 0,
+        "winRatePct": 0,
+        "netR": -1.2348028464065743,
+        "netReturnPctAtHalfPercentRisk": -0.6174014232032787,
+        "maxDrawdownPctAtHalfPercentRisk": 0.6174014232032823,
+        "expectancy95PctBlockBootstrap": [
+          -1.2348028464065743,
+          -1.2348028464065743
+        ]
+      },
+      "stressMetrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 1,
+        "resolvedCount": 1,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -1.3522042696098615,
+        "profitFactor": 0,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 1.3522042696098615,
+        "winCount": 0,
+        "winRatePct": 0,
+        "netR": -1.3522042696098615,
+        "netReturnPctAtHalfPercentRisk": -0.6761021348049345,
+        "maxDrawdownPctAtHalfPercentRisk": 0.6761021348049325,
+        "expectancy95PctBlockBootstrap": [
+          -1.3522042696098615,
+          -1.3522042696098615
+        ]
+      },
+      "reasons": [
+        "INSUFFICIENT_TRADES",
+        "NET_PF_BELOW_GATE",
+        "NONPOSITIVE_EXPECTANCY",
+        "NONPOSITIVE_INSTRUMENT",
+        "COST_STRESS_FAILED"
+      ],
+      "perInstrument": [
+        {
+          "symbol": "BTCUSDT",
+          "strategy": "crypto.failed-auction-15m",
+          "variant": {
+            "name": "breakeven",
+            "parameters": {},
+            "breakeven": true
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 0,
+            "resolvedCount": 0,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": null,
+            "profitFactor": null,
+            "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+            "realizedMaxDrawdownR": null,
+            "winCount": 0,
+            "winRatePct": null,
+            "netR": 0,
+            "netReturnPctAtHalfPercentRisk": 0,
+            "maxDrawdownPctAtHalfPercentRisk": 0,
+            "expectancy95PctBlockBootstrap": null
+          },
+          "grossNetR": 0,
+          "totalCostR": 0,
+          "eligible": 0,
+          "rejections": {
+            "FAILED_AUCTION_REQUIRES_BALANCE": 38886,
+            "SHOCK_OR_INVALID_VOLATILITY": 885,
+            "NO_FAILED_AUCTION": 12391,
+            "COST_OR_STOP_INFEASIBLE": 111,
+            "INSUFFICIENT_STRUCTURAL_REWARD": 33
+          },
+          "persistedTradeCount": 0,
+          "persistedDiagnosticCount": 0
+        },
+        {
+          "symbol": "ETHUSDT",
+          "strategy": "crypto.failed-auction-15m",
+          "variant": {
+            "name": "breakeven",
+            "parameters": {},
+            "breakeven": true
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 1,
+            "resolvedCount": 1,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -1.2348028464065743,
+            "profitFactor": 0,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 1.2348028464065743,
+            "winCount": 0,
+            "winRatePct": 0,
+            "netR": -1.2348028464065743,
+            "netReturnPctAtHalfPercentRisk": -0.6174014232032787,
+            "maxDrawdownPctAtHalfPercentRisk": 0.6174014232032823,
+            "expectancy95PctBlockBootstrap": [
+              -1.2348028464065743,
+              -1.2348028464065743
+            ]
+          },
+          "grossNetR": -1,
+          "totalCostR": 0.23480284640657445,
+          "eligible": 1,
+          "rejections": {
+            "FAILED_AUCTION_REQUIRES_BALANCE": 38691,
+            "NO_FAILED_AUCTION": 12565,
+            "SHOCK_OR_INVALID_VOLATILITY": 937,
+            "COST_OR_STOP_INFEASIBLE": 57,
+            "INSUFFICIENT_STRUCTURAL_REWARD": 55
+          },
+          "persistedTradeCount": 1,
+          "persistedDiagnosticCount": 1
+        }
+      ]
+    },
+    {
+      "strategy": "crypto.failed-auction-15m",
+      "variant": {
+        "name": "wider",
+        "parameters": {
+          "stopAtr": 2.4,
+          "targetR": 3
+        },
+        "breakeven": false
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null,
+        "winCount": 0,
+        "winRatePct": null,
+        "netR": 0,
+        "netReturnPctAtHalfPercentRisk": 0,
+        "maxDrawdownPctAtHalfPercentRisk": 0,
+        "expectancy95PctBlockBootstrap": null
+      },
+      "stressMetrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null,
+        "winCount": 0,
+        "winRatePct": null,
+        "netR": 0,
+        "netReturnPctAtHalfPercentRisk": 0,
+        "maxDrawdownPctAtHalfPercentRisk": 0,
+        "expectancy95PctBlockBootstrap": null
+      },
+      "reasons": [
+        "INSUFFICIENT_TRADES",
+        "NET_PF_BELOW_GATE",
+        "NONPOSITIVE_EXPECTANCY",
+        "NONPOSITIVE_INSTRUMENT",
+        "COST_STRESS_FAILED"
+      ],
+      "perInstrument": [
+        {
+          "symbol": "BTCUSDT",
+          "strategy": "crypto.failed-auction-15m",
+          "variant": {
+            "name": "wider",
+            "parameters": {
+              "stopAtr": 2.4,
+              "targetR": 3
+            },
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 0,
+            "resolvedCount": 0,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": null,
+            "profitFactor": null,
+            "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+            "realizedMaxDrawdownR": null,
+            "winCount": 0,
+            "winRatePct": null,
+            "netR": 0,
+            "netReturnPctAtHalfPercentRisk": 0,
+            "maxDrawdownPctAtHalfPercentRisk": 0,
+            "expectancy95PctBlockBootstrap": null
+          },
+          "grossNetR": 0,
+          "totalCostR": 0,
+          "eligible": 0,
+          "rejections": {
+            "FAILED_AUCTION_REQUIRES_BALANCE": 38886,
+            "SHOCK_OR_INVALID_VOLATILITY": 885,
+            "NO_FAILED_AUCTION": 12391,
+            "COST_OR_STOP_INFEASIBLE": 91,
+            "INSUFFICIENT_STRUCTURAL_REWARD": 53
+          },
+          "persistedTradeCount": 0,
+          "persistedDiagnosticCount": 0
+        },
+        {
+          "symbol": "ETHUSDT",
+          "strategy": "crypto.failed-auction-15m",
+          "variant": {
+            "name": "wider",
+            "parameters": {
+              "stopAtr": 2.4,
+              "targetR": 3
+            },
+            "breakeven": false
+          },
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 0,
+            "resolvedCount": 0,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": null,
+            "profitFactor": null,
+            "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+            "realizedMaxDrawdownR": null,
+            "winCount": 0,
+            "winRatePct": null,
+            "netR": 0,
+            "netReturnPctAtHalfPercentRisk": 0,
+            "maxDrawdownPctAtHalfPercentRisk": 0,
+            "expectancy95PctBlockBootstrap": null
+          },
+          "grossNetR": 0,
+          "totalCostR": 0,
+          "eligible": 0,
+          "rejections": {
+            "FAILED_AUCTION_REQUIRES_BALANCE": 38691,
+            "NO_FAILED_AUCTION": 12565,
+            "SHOCK_OR_INVALID_VOLATILITY": 937,
+            "INSUFFICIENT_STRUCTURAL_REWARD": 78,
+            "COST_OR_STOP_INFEASIBLE": 35
+          },
+          "persistedTradeCount": 0,
+          "persistedDiagnosticCount": 0
+        }
+      ]
+    }
+  ],
+  "verdict": "REJECTED_DEVELOPMENT",
+  "publication": false,
+  "execution": false,
+  "promotion": false,
+  "limitations": [
+    "Reused calendar periods are development, never fresh holdout.",
+    "No actual order book, historic funding, provider fill or live evidence.",
+    "Two symbols pooled as independent signal outcomes, not portfolio or Prop account performance.",
+    "All trials disclosed; selecting among them creates multiple-testing bias.",
+    "OHLC stop-first and same-candle breakeven are conservative; no intrabar path inferred.",
+    "MAE/MFE includes whole exit candle; never calibrated only on winners."
+  ],
+  "rawReportSha256": "bf30ff310b37baf379f9427a5d299bd8422edcdea6595ffa78f5a67bf7239464",
+  "tradeEvidence": {
+    "file": "trades.csv",
+    "sha256": "bc8dc300983299edd8d43dc3ecaf82f4487ced38cd59b5ccaa990e3b6bbfe110",
+    "rows": 483
+  },
+  "priorLegacyPolicyDiagnostic": {
+    "rawReportSha256": "243b3c04945dcf517a4e622e1baa55c12ae46793c8fcaa0410f22973b7b209a5",
+    "engineHashes": {
+      "scripts/release1/regime/certify.ts": "a5d7e1a9264c9ccf0f3115a33d18ba502ecee35b6e0f423aaeef47ee32b2fce2",
+      "scripts/release1/regime/replay.ts": "0f47766174291932e53a32dbf62c52a28c29724018f162f784fe3b1ece1029f2",
+      "supabase/functions/_shared/active-qualification.ts": "69c91854eb99ebed0e3dfd01c12f5dced3c0414128cd3cbda25581d3ce3011c4",
+      "supabase/functions/_shared/active-scanner-core.ts": "e935fe2f172ef9d9c959622c36ba4550839974110ebbeed9323fb92bfa8a054e",
+      "supabase/functions/_shared/active-validation-runtime.ts": "dd619eee12caf3a4e148789c616d0017428b7ea5097960bcf19e3ff47da6e635",
+      "supabase/functions/_shared/adaptive-market-policy.ts": "1646b2f3456c3db1689d2281935f9beef3ff0b90746fdc70334610563197800d",
+      "supabase/functions/_shared/arbitrator.ts": "147f0f421e6dae22c7495c2c2a27226dad47937ba57289f66b169787cfaed758",
+      "supabase/functions/_shared/crypto-production-evaluators.ts": "57b84bbf45a5590bacf96aa3ed7491e3202e31e705b8f12026dfd720a0a1991c",
+      "supabase/functions/_shared/forex-domain.ts": "5ff79b7f5472c44c68db41ecadbd07ce71b9fa45e79644e2be2018909a292d4d",
+      "supabase/functions/_shared/forex-legacy-evaluators.ts": "0399e6e4f77efe39f3e2be792aff9aa29750bb92dfb4b6cc1c3bb5a21543ff9f",
+      "supabase/functions/_shared/forex-production-strategies.ts": "47aa38a647e063d8e4490610c82f524345dddf7e120803edba62f313693a6d15",
+      "supabase/functions/_shared/forex-research-strategies.ts": "494978ccd28ccb680bf27ba2307e1995056854e7aa5dc59cd93e29c115c7c9fb",
+      "supabase/functions/_shared/forex-runtime-contracts.ts": "76d32bb335e0afbf3fa6b0b58bca848af4603e462968137bd2578decf5e29432",
+      "supabase/functions/_shared/gold-volatility-breakout.ts": "29d02c5492b02467f882ba1d18f84fa7788aa62b60d12952ed7e08aea84052ed",
+      "supabase/functions/_shared/hmm-regime-classifier.ts": "58ca638a86478f48589b2906069f6147ebd12383e5bdb1466438d3ed8593b557",
+      "supabase/functions/_shared/indicator-engine.ts": "9347360f7a7f8b0867a99ebef57f91b747a2dfa2f7687b520d2b12f0cfa24104",
+      "supabase/functions/_shared/intraday-opportunities.ts": "b23455fcfc3e75f4e32f64a2340eeab40f0c8234169784b3b70022d814d235e9",
+      "supabase/functions/_shared/kelly-sizing-optimizer.ts": "de94574270c35b877a8a09a24402f4e8cd643dc2ec34f4b3513192aeb9c7b652",
+      "supabase/functions/_shared/micro-scalper-runtime.ts": "1a7282d9f6c29a898876d979b29b76d4a6513ed47ecc3ee1075f20d65c8448cd",
+      "supabase/functions/_shared/phase-l-validation.ts": "275831aa012ae5c5b92cc1065b5e34d287848762413993db2262c6b892ae4493",
+      "supabase/functions/_shared/predictive-intelligence.ts": "9621327d1e072a84bc32c8658ca071fcab81b9d0372a99b57848f3303878cea6",
+      "supabase/functions/_shared/professional-strategies.ts": "5fd40bc42a03b600dffaa189b6d232ec138a4a241acca2f2320f0b1a85537422",
+      "supabase/functions/_shared/provider-certification.ts": "92869752773eb77a52b26614717dbbfd76bfc800dfcfa4ef72d6d93b2d64a76d",
+      "supabase/functions/_shared/regime-opportunities.ts": "d33912e56cb496c1fb6c26e6dc5f5abfd0e15406a60c4aa334a1a558cece74ba",
+      "supabase/functions/_shared/replay-outcomes.ts": "78bb98a4a63ba72b763164f191e84a2155db2c7d4cff27d35b8d43b74ceedd45",
+      "supabase/functions/_shared/scanner-market-context.ts": "8879e4fb00a7fdca96a220f9c45b093947cf1daece306dcdc1f971db64f9caea",
+      "supabase/functions/_shared/smart-order-router.ts": "d4df22bd9c13307a3a90439c02dc7697ecd754115bdc9650ea02d45e9b256669",
+      "supabase/functions/_shared/strategy-plan.ts": "65aeb0c8e37d8b705c8dbc6f5d2d2ca28c9c1bcabce9affce60a98a189664a0d",
+      "supabase/functions/_shared/trading-domain/adapters.ts": "5ad5306550fe0624f1c776613425a5f8522ccceea9d1cd635dec0d7e8cd230ac",
+      "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867",
+      "supabase/functions/_shared/trading-domain/canonical-replay.ts": "4d110562d964b3522af9d87408eca031b27101f30148ec8386ccafbe2df43053",
+      "supabase/functions/_shared/trading-domain/certification-runner.ts": "024b704f2cad95fbbffaa447175072a8aceb8ecbf815510d549bfce059e34a1c",
+      "supabase/functions/_shared/trading-domain/contracts.ts": "48114d96928c91b7444c4f51438cca4d34a0d2339d199ce85525223129dfdea8",
+      "supabase/functions/_shared/trading-domain/execution-observations.ts": "ab5307e69f1a29f2e9c0c43ce66ecbac772549d1ff71eb6d748f40fdd7d22f57",
+      "supabase/functions/_shared/trading-domain/index.ts": "5098ec105b827b4b3a09e0b8dd0c7f6e3955cc6c7dae02f4ce8bebcdb8a095ac",
+      "supabase/functions/_shared/trading-domain/indicators.ts": "304aa20edf340e1e146eb826a27fbd818fd72eb9bbf7704c28219659eaf934a2",
+      "supabase/functions/_shared/trading-domain/market-view.ts": "b11f574e24d59bcbf69dcff903c160177031058111d64f51acc0e840900dfad2",
+      "supabase/functions/_shared/trading-domain/phase-k.ts": "ab221dcee8c4110a0501909d3294a8d8796232af776a2658db0e2ebb8a240250",
+      "supabase/functions/_shared/trading-domain/pipeline.ts": "186a42642c03c8fe88b616afe36c28312faeb7c46091db0bf1a63cd5aa0039be",
+      "supabase/functions/_shared/trading-domain/production-eligibility-router.ts": "2d52ec711b4c4d716b3e77a2d1b97f40cf046c26dbb654ca796a1e5776416110",
+      "supabase/functions/_shared/trading-domain/production-gates.ts": "5d102dcb5facb2480b1274656e46ff0da06c95e7d3c62450c7a576e80633f836",
+      "supabase/functions/_shared/trading-domain/risk-capital.ts": "bef15fdc22f17f358c0e697dcfd0925873b23bf31b1df08f1bda02c328f068b7",
+      "supabase/functions/_shared/trading-domain/scanner-runtime.ts": "f48567431cfeda3d071271f6ad3655e5ec329f8aabee55a84a08401d98a74f38",
+      "supabase/functions/_shared/trading-domain/strategies.ts": "7cc2bd92076b161e86f06d3b9603924ab0c0d220be84f0a2a2391707d5dc328e",
+      "supabase/functions/_shared/trading-domain/trade-management.ts": "187bc4b9c9a1e800e25ab99bbda2d0557efae564d5a47bf47822990a0175c7b4",
+      "supabase/functions/_shared/trading-domain/trade-result.ts": "3e389786cef0390b858e5140c4b8b235433561afda7d69713338e8a15178e5ae",
+      "scripts/research/intraday15/develop.ts": "e224f34ffa40382341c5eeeb86e2b55bb7682dbc0701afd346338943a06303ab",
+      "scripts/research/intraday15/download.py": "562f53d01f79e4fc3b9a18be340fe81e111138d875dde89c0ff32b02c12c2e91",
+      "scripts/research/intraday15/protocol.json": "65bd21c8d2df055d24c33c83056880e3692fc9e466c8d5476293b091a7384e05"
+    },
+    "trials": [
+      {
+        "strategy": "crypto.vwap-reclaim-15m",
+        "variant": {
+          "name": "structural",
+          "parameters": {},
+          "breakeven": false
+        },
+        "metrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 63,
+          "resolvedCount": 63,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3499223748113762,
+          "profitFactor": 0.5546605417014737,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.46904366088575,
+          "winCount": 19,
+          "winRatePct": 30.158730158730158,
+          "netR": -22.0451096131167,
+          "netReturnPctAtHalfPercentRisk": -10.551993550415284,
+          "maxDrawdownPctAtHalfPercentRisk": 12.413012675084055,
+          "expectancy95PctBlockBootstrap": [
+            -0.6166794154170311,
+            -0.08428842155018515
+          ]
+        },
+        "stressMetrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 63,
+          "resolvedCount": 63,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4481833247001322,
+          "profitFactor": 0.47635338346927275,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 31.73783843109369,
+          "winCount": 19,
+          "winRatePct": 30.158730158730158,
+          "netR": -28.23554945610833,
+          "netReturnPctAtHalfPercentRisk": -13.284195456376036,
+          "maxDrawdownPctAtHalfPercentRisk": 14.662534374172328,
+          "expectancy95PctBlockBootstrap": [
+            -0.6959917493072965,
+            -0.17670818351839246
+          ]
+        },
+        "reasons": [
+          "NET_PF_BELOW_GATE",
+          "NONPOSITIVE_EXPECTANCY",
+          "NONPOSITIVE_INSTRUMENT",
+          "COST_STRESS_FAILED"
+        ],
+        "perInstrument": [
+          {
+            "symbol": "BTCUSDT",
+            "strategy": "crypto.vwap-reclaim-15m",
+            "variant": {
+              "name": "structural",
+              "parameters": {},
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 24,
+              "resolvedCount": 24,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.5534189648135364,
+              "profitFactor": 0.31393789410651984,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 13.282055155524874,
+              "winCount": 5,
+              "winRatePct": 20.833333333333336,
+              "netR": -13.282055155524873,
+              "netReturnPctAtHalfPercentRisk": -6.461434445794689,
+              "maxDrawdownPctAtHalfPercentRisk": 6.461434445794693,
+              "expectancy95PctBlockBootstrap": [
+                -0.8921605957883827,
+                -0.22244638356129584
+              ]
+            },
+            "grossNetR": -8.564819165028943,
+            "totalCostR": 4.717235990495931,
+            "eligible": 60,
+            "rejections": {
+              "RECLAIM_REQUIRES_HOURLY_TREND": 35894,
+              "NO_ACCEPTED_VWAP_RECLAIM": 15345,
+              "SHOCK_OR_INVALID_VOLATILITY": 885,
+              "COST_OR_STOP_INFEASIBLE": 122,
+              "QUALIFICATION_OR_ARBITRATION": 30,
+              "ONE_ACTIVE_PER_SYMBOL": 5,
+              "SPLIT_BOUNDARY_HORIZON": 1
+            },
+            "persistedTradeCount": 24,
+            "persistedDiagnosticCount": 24
+          },
+          {
+            "symbol": "ETHUSDT",
+            "strategy": "crypto.vwap-reclaim-15m",
+            "variant": {
+              "name": "structural",
+              "parameters": {},
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 39,
+              "resolvedCount": 39,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.2246937040408161,
+              "profitFactor": 0.7092739690360959,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 14.454777725403877,
+              "winCount": 14,
+              "winRatePct": 35.8974358974359,
+              "netR": -8.763054457591828,
+              "netReturnPctAtHalfPercentRisk": -4.373125758754637,
+              "maxDrawdownPctAtHalfPercentRisk": 6.9621262441855345,
+              "expectancy95PctBlockBootstrap": [
+                -0.586998892145752,
+                0.14224406862270633
+              ]
+            },
+            "grossNetR": -1.09941076210452,
+            "totalCostR": 7.663643695487312,
+            "eligible": 105,
+            "rejections": {
+              "NO_ACCEPTED_VWAP_RECLAIM": 15050,
+              "RECLAIM_REQUIRES_HOURLY_TREND": 36143,
+              "SHOCK_OR_INVALID_VOLATILITY": 937,
+              "COST_OR_STOP_INFEASIBLE": 71,
+              "QUALIFICATION_OR_ARBITRATION": 64,
+              "ONE_ACTIVE_PER_SYMBOL": 2
+            },
+            "persistedTradeCount": 39,
+            "persistedDiagnosticCount": 39
+          }
+        ]
+      },
+      {
+        "strategy": "crypto.vwap-reclaim-15m",
+        "variant": {
+          "name": "breakeven",
+          "parameters": {},
+          "breakeven": true
+        },
+        "metrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 63,
+          "resolvedCount": 63,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.37050716799803773,
+          "profitFactor": 0.5284626723829525,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.352167173095776,
+          "winCount": 19,
+          "winRatePct": 30.158730158730158,
+          "netR": -23.341951583876376,
+          "netReturnPctAtHalfPercentRisk": -11.126782868854335,
+          "maxDrawdownPctAtHalfPercentRisk": 12.361948897555223,
+          "expectancy95PctBlockBootstrap": [
+            -0.6237203774772997,
+            -0.12088719492205446
+          ]
+        },
+        "stressMetrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 63,
+          "resolvedCount": 63,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.4687681178867939,
+          "profitFactor": 0.4523026062312036,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 32.13163992976874,
+          "winCount": 19,
+          "winRatePct": 30.158730158730158,
+          "netR": -29.532391426868017,
+          "netReturnPctAtHalfPercentRisk": -13.841708981073019,
+          "maxDrawdownPctAtHalfPercentRisk": 14.848248770134143,
+          "expectancy95PctBlockBootstrap": [
+            -0.6994627412468312,
+            -0.21118804483368173
+          ]
+        },
+        "reasons": [
+          "NET_PF_BELOW_GATE",
+          "NONPOSITIVE_EXPECTANCY",
+          "NONPOSITIVE_INSTRUMENT",
+          "COST_STRESS_FAILED"
+        ],
+        "perInstrument": [
+          {
+            "symbol": "BTCUSDT",
+            "strategy": "crypto.vwap-reclaim-15m",
+            "variant": {
+              "name": "breakeven",
+              "parameters": {},
+              "breakeven": true
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 24,
+              "resolvedCount": 24,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.5534189648135364,
+              "profitFactor": 0.31393789410651984,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 13.282055155524874,
+              "winCount": 5,
+              "winRatePct": 20.833333333333336,
+              "netR": -13.282055155524873,
+              "netReturnPctAtHalfPercentRisk": -6.461434445794689,
+              "maxDrawdownPctAtHalfPercentRisk": 6.461434445794693,
+              "expectancy95PctBlockBootstrap": [
+                -0.8921605957883827,
+                -0.22244638356129584
+              ]
+            },
+            "grossNetR": -8.564819165028943,
+            "totalCostR": 4.717235990495931,
+            "eligible": 60,
+            "rejections": {
+              "RECLAIM_REQUIRES_HOURLY_TREND": 35894,
+              "NO_ACCEPTED_VWAP_RECLAIM": 15345,
+              "SHOCK_OR_INVALID_VOLATILITY": 885,
+              "COST_OR_STOP_INFEASIBLE": 122,
+              "QUALIFICATION_OR_ARBITRATION": 30,
+              "ONE_ACTIVE_PER_SYMBOL": 5,
+              "SPLIT_BOUNDARY_HORIZON": 1
+            },
+            "persistedTradeCount": 24,
+            "persistedDiagnosticCount": 24
+          },
+          {
+            "symbol": "ETHUSDT",
+            "strategy": "crypto.vwap-reclaim-15m",
+            "variant": {
+              "name": "breakeven",
+              "parameters": {},
+              "breakeven": true
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 39,
+              "resolvedCount": 39,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.25794606226542327,
+              "profitFactor": 0.6662495052750912,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 14.337901237613893,
+              "winCount": 14,
+              "winRatePct": 35.8974358974359,
+              "netR": -10.059896428351507,
+              "netReturnPctAtHalfPercentRisk": -4.987620234945844,
+              "maxDrawdownPctAtHalfPercentRisk": 6.907884564772656,
+              "expectancy95PctBlockBootstrap": [
+                -0.6029693716925016,
+                0.08711965322814112
+              ]
+            },
+            "grossNetR": -2.3962527328641983,
+            "totalCostR": 7.663643695487312,
+            "eligible": 105,
+            "rejections": {
+              "NO_ACCEPTED_VWAP_RECLAIM": 15050,
+              "RECLAIM_REQUIRES_HOURLY_TREND": 36143,
+              "SHOCK_OR_INVALID_VOLATILITY": 937,
+              "COST_OR_STOP_INFEASIBLE": 71,
+              "QUALIFICATION_OR_ARBITRATION": 64,
+              "ONE_ACTIVE_PER_SYMBOL": 2
+            },
+            "persistedTradeCount": 39,
+            "persistedDiagnosticCount": 39
+          }
+        ]
+      },
+      {
+        "strategy": "crypto.vwap-reclaim-15m",
+        "variant": {
+          "name": "wider",
+          "parameters": {
+            "stopAtr": 2.4,
+            "targetR": 3
+          },
+          "breakeven": false
+        },
+        "metrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 73,
+          "resolvedCount": 73,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2716236410547715,
+          "profitFactor": 0.6243399974738346,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 26.613169749310305,
+          "winCount": 25,
+          "winRatePct": 34.24657534246575,
+          "netR": -19.82852579699832,
+          "netReturnPctAtHalfPercentRisk": -9.571043900011622,
+          "maxDrawdownPctAtHalfPercentRisk": 12.494596378262148,
+          "expectancy95PctBlockBootstrap": [
+            -0.5115401167144712,
+            -0.020325767295647952
+          ]
+        },
+        "stressMetrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 73,
+          "resolvedCount": 73,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.36439048855316697,
+          "profitFactor": 0.5384227260963729,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 32.079008393606465,
+          "winCount": 23,
+          "winRatePct": 31.506849315068493,
+          "netR": -26.60050566438119,
+          "netReturnPctAtHalfPercentRisk": -12.587955525614891,
+          "maxDrawdownPctAtHalfPercentRisk": 14.835045114663146,
+          "expectancy95PctBlockBootstrap": [
+            -0.6203405260710024,
+            -0.07081687678239662
+          ]
+        },
+        "reasons": [
+          "NET_PF_BELOW_GATE",
+          "NONPOSITIVE_EXPECTANCY",
+          "NONPOSITIVE_INSTRUMENT",
+          "COST_STRESS_FAILED"
+        ],
+        "perInstrument": [
+          {
+            "symbol": "BTCUSDT",
+            "strategy": "crypto.vwap-reclaim-15m",
+            "variant": {
+              "name": "wider",
+              "parameters": {
+                "stopAtr": 2.4,
+                "targetR": 3
+              },
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 27,
+              "resolvedCount": 27,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.514725537947158,
+              "profitFactor": 0.2967699929599141,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 13.897589524573268,
+              "winCount": 7,
+              "winRatePct": 25.925925925925924,
+              "netR": -13.897589524573267,
+              "netReturnPctAtHalfPercentRisk": -6.748526657048992,
+              "maxDrawdownPctAtHalfPercentRisk": 6.748526657048988,
+              "expectancy95PctBlockBootstrap": [
+                -0.7967425351473777,
+                -0.19606303797666622
+              ]
+            },
+            "grossNetR": -9.026545291884576,
+            "totalCostR": 4.8710442326886945,
+            "eligible": 79,
+            "rejections": {
+              "RECLAIM_REQUIRES_HOURLY_TREND": 35894,
+              "NO_ACCEPTED_VWAP_RECLAIM": 15345,
+              "SHOCK_OR_INVALID_VOLATILITY": 885,
+              "COST_OR_STOP_INFEASIBLE": 103,
+              "QUALIFICATION_OR_ARBITRATION": 43,
+              "ONE_ACTIVE_PER_SYMBOL": 8,
+              "SPLIT_BOUNDARY_HORIZON": 1
+            },
+            "persistedTradeCount": 27,
+            "persistedDiagnosticCount": 27
+          },
+          {
+            "symbol": "ETHUSDT",
+            "strategy": "crypto.vwap-reclaim-15m",
+            "variant": {
+              "name": "wider",
+              "parameters": {
+                "stopAtr": 2.4,
+                "targetR": 3
+              },
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 46,
+              "resolvedCount": 46,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.12893339722663133,
+              "profitFactor": 0.8203871113152567,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 14.28375486630928,
+              "winCount": 18,
+              "winRatePct": 39.130434782608695,
+              "netR": -5.930936272425042,
+              "netReturnPctAtHalfPercentRisk": -3.0267803196870946,
+              "maxDrawdownPctAtHalfPercentRisk": 6.892925698230995,
+              "expectancy95PctBlockBootstrap": [
+                -0.4588424428092501,
+                0.23636157429635715
+              ]
+            },
+            "grossNetR": 2.7419792296520127,
+            "totalCostR": 8.672915502077055,
+            "eligible": 131,
+            "rejections": {
+              "NO_ACCEPTED_VWAP_RECLAIM": 15050,
+              "RECLAIM_REQUIRES_HOURLY_TREND": 36143,
+              "SHOCK_OR_INVALID_VOLATILITY": 937,
+              "QUALIFICATION_OR_ARBITRATION": 78,
+              "COST_OR_STOP_INFEASIBLE": 45,
+              "ONE_ACTIVE_PER_SYMBOL": 7
+            },
+            "persistedTradeCount": 46,
+            "persistedDiagnosticCount": 46
+          }
+        ]
+      },
+      {
+        "strategy": "crypto.failed-auction-15m",
+        "variant": {
+          "name": "structural",
+          "parameters": {},
+          "breakeven": false
+        },
+        "metrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null,
+          "winCount": 0,
+          "winRatePct": null,
+          "netR": 0,
+          "netReturnPctAtHalfPercentRisk": 0,
+          "maxDrawdownPctAtHalfPercentRisk": 0,
+          "expectancy95PctBlockBootstrap": null
+        },
+        "stressMetrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null,
+          "winCount": 0,
+          "winRatePct": null,
+          "netR": 0,
+          "netReturnPctAtHalfPercentRisk": 0,
+          "maxDrawdownPctAtHalfPercentRisk": 0,
+          "expectancy95PctBlockBootstrap": null
+        },
+        "reasons": [
+          "INSUFFICIENT_TRADES",
+          "NET_PF_BELOW_GATE",
+          "NONPOSITIVE_EXPECTANCY",
+          "NONPOSITIVE_INSTRUMENT",
+          "COST_STRESS_FAILED"
+        ],
+        "perInstrument": [
+          {
+            "symbol": "BTCUSDT",
+            "strategy": "crypto.failed-auction-15m",
+            "variant": {
+              "name": "structural",
+              "parameters": {},
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null,
+              "winCount": 0,
+              "winRatePct": null,
+              "netR": 0,
+              "netReturnPctAtHalfPercentRisk": 0,
+              "maxDrawdownPctAtHalfPercentRisk": 0,
+              "expectancy95PctBlockBootstrap": null
+            },
+            "grossNetR": 0,
+            "totalCostR": 0,
+            "eligible": 0,
+            "rejections": {
+              "FAILED_AUCTION_REQUIRES_BALANCE": 38886,
+              "SHOCK_OR_INVALID_VOLATILITY": 885,
+              "NO_FAILED_AUCTION": 12391,
+              "COST_OR_STOP_INFEASIBLE": 111,
+              "INSUFFICIENT_STRUCTURAL_REWARD": 33
+            },
+            "persistedTradeCount": 0,
+            "persistedDiagnosticCount": 0
+          },
+          {
+            "symbol": "ETHUSDT",
+            "strategy": "crypto.failed-auction-15m",
+            "variant": {
+              "name": "structural",
+              "parameters": {},
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null,
+              "winCount": 0,
+              "winRatePct": null,
+              "netR": 0,
+              "netReturnPctAtHalfPercentRisk": 0,
+              "maxDrawdownPctAtHalfPercentRisk": 0,
+              "expectancy95PctBlockBootstrap": null
+            },
+            "grossNetR": 0,
+            "totalCostR": 0,
+            "eligible": 1,
+            "rejections": {
+              "FAILED_AUCTION_REQUIRES_BALANCE": 38691,
+              "NO_FAILED_AUCTION": 12565,
+              "SHOCK_OR_INVALID_VOLATILITY": 937,
+              "COST_OR_STOP_INFEASIBLE": 57,
+              "INSUFFICIENT_STRUCTURAL_REWARD": 55,
+              "QUALIFICATION_OR_ARBITRATION": 1
+            },
+            "persistedTradeCount": 0,
+            "persistedDiagnosticCount": 0
+          }
+        ]
+      },
+      {
+        "strategy": "crypto.failed-auction-15m",
+        "variant": {
+          "name": "breakeven",
+          "parameters": {},
+          "breakeven": true
+        },
+        "metrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null,
+          "winCount": 0,
+          "winRatePct": null,
+          "netR": 0,
+          "netReturnPctAtHalfPercentRisk": 0,
+          "maxDrawdownPctAtHalfPercentRisk": 0,
+          "expectancy95PctBlockBootstrap": null
+        },
+        "stressMetrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null,
+          "winCount": 0,
+          "winRatePct": null,
+          "netR": 0,
+          "netReturnPctAtHalfPercentRisk": 0,
+          "maxDrawdownPctAtHalfPercentRisk": 0,
+          "expectancy95PctBlockBootstrap": null
+        },
+        "reasons": [
+          "INSUFFICIENT_TRADES",
+          "NET_PF_BELOW_GATE",
+          "NONPOSITIVE_EXPECTANCY",
+          "NONPOSITIVE_INSTRUMENT",
+          "COST_STRESS_FAILED"
+        ],
+        "perInstrument": [
+          {
+            "symbol": "BTCUSDT",
+            "strategy": "crypto.failed-auction-15m",
+            "variant": {
+              "name": "breakeven",
+              "parameters": {},
+              "breakeven": true
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null,
+              "winCount": 0,
+              "winRatePct": null,
+              "netR": 0,
+              "netReturnPctAtHalfPercentRisk": 0,
+              "maxDrawdownPctAtHalfPercentRisk": 0,
+              "expectancy95PctBlockBootstrap": null
+            },
+            "grossNetR": 0,
+            "totalCostR": 0,
+            "eligible": 0,
+            "rejections": {
+              "FAILED_AUCTION_REQUIRES_BALANCE": 38886,
+              "SHOCK_OR_INVALID_VOLATILITY": 885,
+              "NO_FAILED_AUCTION": 12391,
+              "COST_OR_STOP_INFEASIBLE": 111,
+              "INSUFFICIENT_STRUCTURAL_REWARD": 33
+            },
+            "persistedTradeCount": 0,
+            "persistedDiagnosticCount": 0
+          },
+          {
+            "symbol": "ETHUSDT",
+            "strategy": "crypto.failed-auction-15m",
+            "variant": {
+              "name": "breakeven",
+              "parameters": {},
+              "breakeven": true
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null,
+              "winCount": 0,
+              "winRatePct": null,
+              "netR": 0,
+              "netReturnPctAtHalfPercentRisk": 0,
+              "maxDrawdownPctAtHalfPercentRisk": 0,
+              "expectancy95PctBlockBootstrap": null
+            },
+            "grossNetR": 0,
+            "totalCostR": 0,
+            "eligible": 1,
+            "rejections": {
+              "FAILED_AUCTION_REQUIRES_BALANCE": 38691,
+              "NO_FAILED_AUCTION": 12565,
+              "SHOCK_OR_INVALID_VOLATILITY": 937,
+              "COST_OR_STOP_INFEASIBLE": 57,
+              "INSUFFICIENT_STRUCTURAL_REWARD": 55,
+              "QUALIFICATION_OR_ARBITRATION": 1
+            },
+            "persistedTradeCount": 0,
+            "persistedDiagnosticCount": 0
+          }
+        ]
+      },
+      {
+        "strategy": "crypto.failed-auction-15m",
+        "variant": {
+          "name": "wider",
+          "parameters": {
+            "stopAtr": 2.4,
+            "targetR": 3
+          },
+          "breakeven": false
+        },
+        "metrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null,
+          "winCount": 0,
+          "winRatePct": null,
+          "netR": 0,
+          "netReturnPctAtHalfPercentRisk": 0,
+          "maxDrawdownPctAtHalfPercentRisk": 0,
+          "expectancy95PctBlockBootstrap": null
+        },
+        "stressMetrics": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null,
+          "winCount": 0,
+          "winRatePct": null,
+          "netR": 0,
+          "netReturnPctAtHalfPercentRisk": 0,
+          "maxDrawdownPctAtHalfPercentRisk": 0,
+          "expectancy95PctBlockBootstrap": null
+        },
+        "reasons": [
+          "INSUFFICIENT_TRADES",
+          "NET_PF_BELOW_GATE",
+          "NONPOSITIVE_EXPECTANCY",
+          "NONPOSITIVE_INSTRUMENT",
+          "COST_STRESS_FAILED"
+        ],
+        "perInstrument": [
+          {
+            "symbol": "BTCUSDT",
+            "strategy": "crypto.failed-auction-15m",
+            "variant": {
+              "name": "wider",
+              "parameters": {
+                "stopAtr": 2.4,
+                "targetR": 3
+              },
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null,
+              "winCount": 0,
+              "winRatePct": null,
+              "netR": 0,
+              "netReturnPctAtHalfPercentRisk": 0,
+              "maxDrawdownPctAtHalfPercentRisk": 0,
+              "expectancy95PctBlockBootstrap": null
+            },
+            "grossNetR": 0,
+            "totalCostR": 0,
+            "eligible": 0,
+            "rejections": {
+              "FAILED_AUCTION_REQUIRES_BALANCE": 38886,
+              "SHOCK_OR_INVALID_VOLATILITY": 885,
+              "NO_FAILED_AUCTION": 12391,
+              "COST_OR_STOP_INFEASIBLE": 91,
+              "INSUFFICIENT_STRUCTURAL_REWARD": 53
+            },
+            "persistedTradeCount": 0,
+            "persistedDiagnosticCount": 0
+          },
+          {
+            "symbol": "ETHUSDT",
+            "strategy": "crypto.failed-auction-15m",
+            "variant": {
+              "name": "wider",
+              "parameters": {
+                "stopAtr": 2.4,
+                "targetR": 3
+              },
+              "breakeven": false
+            },
+            "metrics": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null,
+              "winCount": 0,
+              "winRatePct": null,
+              "netR": 0,
+              "netReturnPctAtHalfPercentRisk": 0,
+              "maxDrawdownPctAtHalfPercentRisk": 0,
+              "expectancy95PctBlockBootstrap": null
+            },
+            "grossNetR": 0,
+            "totalCostR": 0,
+            "eligible": 0,
+            "rejections": {
+              "FAILED_AUCTION_REQUIRES_BALANCE": 38691,
+              "NO_FAILED_AUCTION": 12565,
+              "SHOCK_OR_INVALID_VOLATILITY": 937,
+              "INSUFFICIENT_STRUCTURAL_REWARD": 78,
+              "COST_OR_STOP_INFEASIBLE": 35
+            },
+            "persistedTradeCount": 0,
+            "persistedDiagnosticCount": 0
+          }
+        ]
+      }
+    ],
+    "disclosure": "Initial integration diagnostic with legacy strategy-name no-trade gates. Six cases; all rejected. Not omitted from the research history."
+  },
+  "totalDevelopmentCasesThisIteration": 12
+}

@@ -13,7 +13,7 @@ const messages:Record<string,string>={
 };
 /** Only known server reason codes become UI messages; database/provider details are never echoed. */
 export async function adminRequestError(data:unknown,error:unknown){
- let body=data as any;const context=(error as any)?.context;
+ let body:Record<string,unknown>|null=data&&typeof data==='object'?data as Record<string,unknown>:null;const context=error&&typeof error==='object'&&'context' in error?error.context:undefined;
  if(!body&&context instanceof Response){try{body=await context.clone().json()}catch{/* The transport may return a non-JSON error page. */}}
  const code=body?.error??body?.reason;if(typeof code==='string'&&messages[code])return messages[code];
  if(context instanceof Response&&context.status===401)return 'Please sign in again.';

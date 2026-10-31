@@ -29,7 +29,7 @@ for (const contract of FOREX_STRATEGY_CONTRACTS) {
   assert.deepEqual(forexStrategyEligibility(contract, "XAUUSD"), contract.id === "gold.volatility-breakout" ? { eligible: true, reason: null } : { eligible: false, reason: "strategy_instrument_class_not_supported" });
   assert.deepEqual(forexStrategyEligibility(contract, "EURUSD"), contract.id === "gold.volatility-breakout" ? { eligible: false, reason: "strategy_instrument_class_not_supported" } : { eligible: true, reason: null });
 }
-assert.deepEqual(forexScannerFetchPlan(), ["15m", "1h"]);
+assert.deepEqual(forexScannerFetchPlan(), ["5m", "15m", "1h"]);
 assert.equal(new Set(forexScannerFetchPlan()).size, forexScannerFetchPlan().length, "fetch plan is deduplicated");
 assert.equal(FOREX_STRATEGY_CONTRACTS.length, 6);
 for (const contract of FOREX_STRATEGY_CONTRACTS) {
@@ -41,7 +41,7 @@ for (const contract of FOREX_STRATEGY_CONTRACTS) {
   assert.ok(contract.requiredIndicators.includes("atr14"));
   assert.ok(forexStrategyTimeframes(contract).every((tf) => MT5_PROVIDER_MARKET_DATA_TIMEFRAMES.includes(tf as never)));
 }
-assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.micro-scalper")?.primaryTimeframes, ["15m"]);
+assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.micro-scalper")?.primaryTimeframes, ["5m", "15m"]);
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.swing-continuation")?.primaryTimeframes, ["1h"]);
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.london-breakout")?.primaryTimeframes, ["15m"]);
 assert.deepEqual(FOREX_STRATEGY_CONTRACTS.find((c) => c.id === "forex.new-york-continuation")?.primaryTimeframes, ["15m", "1h"]);
@@ -58,9 +58,10 @@ assert.doesNotMatch(scanner, /contract\.legacyName === "ForexMicroScalper"/);
 assert.match(scanner, /gold_strategy_not_certified/);
 assert.match(scanner, /loadMT5Candles/);
 assert.doesNotMatch(scanner, /api\.twelvedata\.com|api\.finnhub\.io|fetchMT5BridgeCandles/);
-assert.match(scanner, /if \(marketType === "crypto"\) \{\s+const fetched = await fetchBinanceCandles/,
-  "Crypto branch retains Binance fetch behavior");
-assert.match(scanner, /const allEvals:[\s\S]*registry\.evaluate\(strategyContext\)[\s\S]*passingEntries/,
+assert.match(scanner, /await fetchBinanceCandles\(symbol,\s*tf,\s*111\)/,
+  "Legacy Crypto branch retains Binance fetch behavior");
+assert.match(scanner, /conditionalWatchFeed\(supabase,symbol,tf as WatchTimeframe/);
+assert.match(scanner, /const allEvals:[\s\S]*evaluateActiveStrategies\(registry, strategyContext\)[\s\S]*passingEntries/,
   "Forex evaluations still enter the unified registry and arbitration path");
 
 console.log("forex scanner uniformity tests passed");

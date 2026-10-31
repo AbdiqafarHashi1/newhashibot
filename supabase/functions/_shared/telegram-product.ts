@@ -1,10 +1,11 @@
+import {CRYPTO_TEAM_ROLES} from './coordinated-crypto-contract.ts';
 import type { TelegramChannelKey } from "./telegram-registry.ts";
 import { escapeMarkdown, formatEastAfricaTime, formatInstrumentPrice } from "./telegram-templates.ts";
 
 export type ProductAudience = "admin" | "free" | "vip";
 export type EvidenceClass = "LIVE" | "FORWARD" | "RESEARCH";
 export type EditorialAuthor = "SYSTEM" | "ADMIN" | "EDITORIAL_AGENT" | "NEWS_AGENT" | "GROWTH_AGENT";
-export type EditorialContentType = "MORNING_BRIEF" | "SESSION_BRIEF" | "EDUCATION" | "PRODUCT_UPDATE" | "FEATURE_ANNOUNCEMENT" | "VIP_INVITATION" | "VERIFIED_RECAP" | "DAILY_RECAP" | "WEEKLY_RECAP" | "OPERATIONS_DIGEST" | "INCIDENT_SUMMARY";
+export type EditorialContentType = "MORNING_BRIEF" | "NEWS_DIGEST" | "MARKET_WRAP" | "WATCHLIST_UPDATE" | "SESSION_BRIEF" | "EDUCATION" | "PRODUCT_UPDATE" | "FEATURE_ANNOUNCEMENT" | "VIP_INVITATION" | "VERIFIED_RECAP" | "DAILY_RECAP" | "WEEKLY_RECAP" | "OPERATIONS_DIGEST" | "INCIDENT_SUMMARY";
 
 export interface EditorialPublication {
   content_id: string;
@@ -30,8 +31,19 @@ const PROHIBITED_TRADING_FIELDS = /(^|[\s_*])(entry|stop(?: loss)?|sl|tp\d*|take
 const ADMIN_CONTENT = new Set<EditorialContentType>(["OPERATIONS_DIGEST", "INCIDENT_SUMMARY"]);
 const PROMOTIONAL_CONTENT = new Set<EditorialContentType>(["VIP_INVITATION", "PRODUCT_UPDATE", "FEATURE_ANNOUNCEMENT"]);
 
+/** Market-specific editorial must not leak into the other paid market channel. */
+export function editorialDestinations(publication: EditorialPublication): string[] {
+  if(publication.audience!=='vip')return [publication.audience];
+  if(!publication.market_scope?.length)return ['vip_crypto','vip_forex_gold']; // Existing explicitly general editorials.
+  const values=new Set(publication.market_scope.map(x=>x.toLowerCase()));
+  if([...values].some(x=>!['crypto','forex','gold','metals','all'].includes(x)))throw Error('EDITORIAL_MARKET_SCOPE_INVALID');
+  return [...(values.has('crypto')||values.has('all')?['vip_crypto']:[]),
+    ...(values.has('forex')||values.has('gold')||values.has('metals')||values.has('all')?['vip_forex_gold']:[])];
+}
+
 export function validateEditorialPublication(publication: EditorialPublication, now = new Date()): { valid: boolean; reason?: string; stale?: boolean } {
   if (!publication.content_id || !publication.dedupe_key || publication.source_ids.length === 0) return { valid: false, reason: "SOURCE_EVIDENCE_REQUIRED" };
+  try{editorialDestinations(publication)}catch{return {valid:false,reason:'EDITORIAL_MARKET_SCOPE_INVALID'}}
   if (publication.compliance_state !== "APPROVED") return { valid: false, reason: "COMPLIANCE_NOT_APPROVED" };
   if (publication.requires_approval && publication.approval_state !== "APPROVED") return { valid: false, reason: "EDITORIAL_APPROVAL_REQUIRED" };
   if (publication.audience === "admin" && !ADMIN_CONTENT.has(publication.content_type)) return { valid: false, reason: "ADMIN_OPERATIONS_ONLY" };
@@ -39,7 +51,9 @@ export function validateEditorialPublication(publication: EditorialPublication, 
   if (publication.author_type.endsWith("AGENT") && publication.sections.some((s) => PROHIBITED_TRADING_FIELDS.test(`${s.heading ?? ""} ${s.body}`))) {
     return { valid: false, reason: "EDITORIAL_TRADING_AUTHORITY_VIOLATION" };
   }
+  if (!Number.isFinite(Date.parse(publication.generated_at)) || publication.expires_at && !Number.isFinite(Date.parse(publication.expires_at))) return { valid: false, reason: "INVALID_CONTENT_TIMESTAMP" };
   if (publication.expires_at && new Date(publication.expires_at).getTime() <= now.getTime()) return { valid: false, reason: "CONTENT_STALE", stale: true };
+  if (!publication.expires_at && !["EDUCATION", "PRODUCT_UPDATE", "FEATURE_ANNOUNCEMENT", "VIP_INVITATION"].includes(publication.content_type)) return { valid: false, reason: "CONTENT_EXPIRY_REQUIRED" };
   if (new Date(publication.generated_at).getTime() > now.getTime() + 60_000) return { valid: false, reason: "INVALID_GENERATED_AT" };
   return { valid: true };
 }
@@ -72,9 +86,10 @@ export function renderCanonicalVipSignal(signal: CanonicalSignalPresentation): s
   const rows = [`*HASHIBOT VIP • ${escapeMarkdown(marketLabel(signal.market, signal.symbol))}*`, "", `*${escapeMarkdown(signal.symbol.toUpperCase())} — ${direction}*`];
   const add = (label: string, value: string | number | undefined) => { if (value !== undefined && value !== "") rows.push("", `*${label}*`, escapeMarkdown(value)); };
   add("Entry", entry); add("Stop Loss", signal.stop_loss == null ? undefined : formatInstrumentPrice(signal.stop_loss, signal.market, signal.symbol));
-  signal.targets?.forEach((target, index) => add(`TP${index + 1}`, formatInstrumentPrice(target, signal.market, signal.symbol)));
+  [...new Set(signal.targets??[])].forEach((target, index) => add(`TP${index + 1}`, formatInstrumentPrice(target, signal.market, signal.symbol)));
   add("Risk / Reward", signal.risk_reward == null ? undefined : `1 : ${signal.risk_reward}`); add("Strategy", signal.strategy); add("Grade", signal.grade);
-  add("Confidence", signal.confidence == null ? undefined : `${signal.confidence}%`); add("Session", signal.session); add("Exchange", signal.exchange);
+  add("Scanner score (not win probability)", signal.confidence == null ? undefined : `${signal.confidence}/100`); add("Session", signal.session); add("Exchange", signal.exchange);
+  if(CRYPTO_TEAM_ROLES.some(r=>r.name===signal.strategy)){add('Tracking','Signal-only alert; virtual outcomes are not provider fills.');add('Management','Full target or protective stop; no partial exits, break-even or trailing. Maximum 24 hours; unresolved fills/results remain unknown.');}
   add("Time", formatEastAfricaTime(signal.occurred_at, false)); rows.push("", `Reference: ${escapeMarkdown(signal.signal_id)}`, "HashiBot Qualified Signal · Manage risk independently.");
   return rows.join("\n");
 }

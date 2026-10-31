@@ -136,10 +136,10 @@ Deno.serve(async (req: Request) => {
 
     if(action==="pair_customer_account"){
       const proof=body.account_proof as Record<string,unknown>|undefined;
-      if(!proof||proof.connected!==true||proof.environment!=="demo"||proof.trade_allowed!==true||proof.trade_expert!==true)return jsonResponse({success:false,error_code:"VERIFIED_DEMO_TERMINAL_REQUIRED"},409);
+      if(!proof||proof.connected!==true||!["demo","live"].includes(String(proof.environment))||proof.trade_allowed!==true||proof.trade_expert!==true)return jsonResponse({success:false,error_code:"VERIFIED_TERMINAL_REQUIRED"},409);
       const code=String(body.pairing_code??"");if(!/^\d{10}$/.test(code))return jsonResponse({success:false,error_code:"PAIRING_INVALID"},400);
       const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,"0")).join("");
-      const {data,error}=await supabase.rpc("consume_customer_bridge_pairing",{p_customer_id:String(body.owner_id??""),p_execution_account_id:String(body.execution_account_id??""),p_mt5_account_id:String(body.account_id??""),p_bridge_id:String(body.bridge_id??""),p_worker_id:String(body.worker_id??""),p_code_hash:hash});
+      const {data,error}=await supabase.rpc("consume_customer_environment_pairing",{p_environment:String(proof.environment),p_customer_id:String(body.owner_id??""),p_execution_account_id:String(body.execution_account_id??""),p_mt5_account_id:String(body.account_id??""),p_bridge_id:String(body.bridge_id??""),p_worker_id:String(body.worker_id??""),p_code_hash:hash});
       if(error||data?.state!=="CONNECTED")return jsonResponse({success:false,error_code:String(data?.reason??"PAIRING_NOT_CONFIRMED")},409);
       return jsonResponse({success:true,pairing:data});
     }

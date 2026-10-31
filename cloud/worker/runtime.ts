@@ -2,7 +2,7 @@ import {LIMITS,WorkerFault,type PortableJob,type PortableKind} from '../../supab
 export interface WorkerStore {
   claim(host:string,revision:string):Promise<PortableJob|null>;
   heartbeat(job:PortableJob):Promise<void>;
-  checkpoint(job:PortableJob,checkpoint:Record<string,any>,rows:unknown[]):Promise<void>;
+  checkpoint(job:PortableJob,checkpoint:Record<string,unknown>,rows:unknown[]):Promise<void>;
   finish(job:PortableJob,state:'COMPLETED'|'YIELD'|'RETRY'|'DEAD_LETTER',summary:unknown,reason:string|null):Promise<void>;
 }
 export interface TaskContext {job:PortableJob;signal:AbortSignal;store:WorkerStore;check():Promise<void>;remainingMs():number;}

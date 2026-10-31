@@ -10,8 +10,8 @@ const admin = read('src/pages/admin/AccessRequests.tsx');
 
 assert.match(verifier, /if \(!secret\).*verified: false/);
 assert.match(verifier, /standardwebhooks@1\.0\.0/);
-assert.match(webhook, /request\.method !== "POST"/);
-assert.ok(webhook.indexOf('verifyWhopWebhook(rawBody') < webhook.indexOf('const event = verification.event'));
+assert.match(webhook, /request\.method\s*!==\s*"POST"/);
+assert.ok(webhook.indexOf('verifyWhopWebhook(raw,') < webhook.indexOf('normalizeWhopCommerceEvent(verification.event')); assert.match(webhook,/verifyWhopRuntimeEvent/);
 for (const event of ['membership.activated','membership.cancel_at_period_end_changed','membership.deactivated','payment.succeeded','payment.pending','payment.failed','refund.created','dispute.created']) assert.match(whopEvents, new RegExp(event.replace('.', '\\.')));
 assert.match(migration, /UNIQUE\(provider, provider_event_id\)/);
 assert.match(migration, /pg_advisory_xact_lock/g);
@@ -30,5 +30,5 @@ assert.match(complete, /VIP access is active/);
 assert.match(complete, /Payment submitted/);
 assert.match(complete, /Manage your plan anytime through your payment provider/);
 assert.doesNotMatch(complete, /authoritative entitlement|provider truth|Build 2|commerce review/i);
-assert.match(admin, /adminReviewMpesaRequest/);
+assert.match(admin, /Historical access requests/); assert.match(admin, /Verified commerce & membership/); assert.doesNotMatch(admin,/adminReviewMpesaRequest/);
 console.log('commerce Step 1 security and lifecycle checks passed');

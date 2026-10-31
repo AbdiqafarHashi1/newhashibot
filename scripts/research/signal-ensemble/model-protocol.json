@@ -1,0 +1,16 @@
+{
+ "schema":"frozen-sleeve-context-model/v1",
+ "declaredOn":"2026-10-28",
+ "hypothesis":"One fixed regularized context regressor per unchanged setup; predicts net signal R from contemporaneous structure/volatility/volume/cost evidence. This is a new exploratory calibration after both static and rolling-PF failures; all failures retained.",
+ "train":{"from":"2025-01-11T00:00:00.000Z","until":"2025-07-01T00:00:00.000Z"},
+ "validation":{"from":"2025-07-01T00:00:00.000Z","until":"2026-01-01T00:00:00.000Z"},
+ "later":{"from":"2026-01-01T00:00:00.000Z","until":"2026-07-01T00:00:00.000Z"},
+ "model":{"type":"HistGradientBoostingRegressor","max_iter":100,"max_leaf_nodes":7,"min_samples_leaf":30,"l2_regularization":10,"learning_rate":0.05,"early_stopping":false,"random_state":0},
+ "features":["side","macro_direction","macro_strength","volume_ratio","estimated_cost_r","risk_reward","stop_fraction","efficiency","relative_atr","bar_range_atr","trend_atr","BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT"],
+ "gate":"Predicted net R>=0.15 AND predicted net R minus0.5declared decision costR>0.05; no fitted threshold sweep. Forecast is not a confidence probability or guaranteed return.",
+ "trainingLabels":"Only independently tracked shadow proposals whose exit-candle close was known strictly before train.until; unfinished and invalid outcomes excluded. No validation labels, metrics, or asset pruning enter training.",
+ "gates":{"minimumValidationResolved":30,"minimumLaterResolved":30,"netPF":1.2,"stressPF":1.0,"signalsPerDay":1,"activeDayFraction":0.7},
+ "selection":"Actual canonical arbitrator, close-observed lifecycle, one underlying asset, maximum3active signals. Four experts are frozen before their validation outputs are evaluated. Raw label-book proposal stream is a conservative subset of possible scanner events and is not complete runtime participation certification.",
+ "disclosure":"Calendars repeatedly examined in this project; exploratory new model, not project-wide untouched holdout. All four models and all stage results retained. Any connected-runtime claim requires exact native-feature/inference parity and a fresh release review. This diagnostic cannot promote itself.",
+ "publication":false,"execution":false,"promotion":false
+}

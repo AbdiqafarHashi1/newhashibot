@@ -16,7 +16,7 @@ export async function restoreDatasetCampaign(cache: HistoricalCache, campaign: D
     const metadata = await cache.getMetadata(request);
     const bars = await cache.getBars(request);
     if (!metadata || bars.length !== item.bars || hashHistoricalBars(bars) !== item.datasetHash) throw new Error(`CACHE_MISSING_OR_CHANGED:${item.symbol}:${item.timeframe}`);
-    const calendar=createSessionCalendar(provider==='BINANCE'||provider==='BYBIT'?'CRYPTO':symbol.includes('XAU')||symbol.includes('XAG')?'METALS':'FOREX');
+    const calendar=createSessionCalendar(provider==='BINANCE'||provider==='BINANCE_USDM'||provider==='BYBIT'?'CRYPTO':symbol.includes('XAU')||symbol.includes('XAG')?'METALS':'FOREX');
     const checked=normalizeAndValidate(bars,request.timeframe,campaign.requestedRange,metadata.quality.classification,Date.now(),calendar.isExpected);
     datasets.push({ bars, metadata: { ...metadata, ...request, requestedRange: campaign.requestedRange, quality:checked.quality, dataHash: item.datasetHash, barCount: bars.length } });
   }

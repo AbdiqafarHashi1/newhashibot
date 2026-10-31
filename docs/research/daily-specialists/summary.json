@@ -1,0 +1,283 @@
+{
+  "protocol": {
+    "schema": "daily-specialists/v1",
+    "declaredOn": "2026-10-28",
+    "assets": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "instrument": "BINANCE_SPOT daily UTC; long/cash, no short/funding/leverage",
+    "stages": [
+      {
+        "name": "DEVELOPMENT",
+        "from": "2018-01-01",
+        "until": "2022-01-01"
+      },
+      {
+        "name": "VALIDATION",
+        "from": "2022-01-01",
+        "until": "2025-01-01"
+      }
+    ],
+    "disclosure": "Previously observed calendar prices in different hypotheses; no global untouched-data claim. All three fixed hypotheses retained. No post-result parameter sweeps. Old failed futures and positive slow-spot studies preserved. Later data is reserved until this study passes its gates.",
+    "rules": {
+      "BULL_DIP": {
+        "entry": "close>EMA200 and RSI2<10 and close<previous close",
+        "stopATR": 2,
+        "targetATR": 1.5,
+        "maxBars": 10
+      },
+      "REJECTED_SELLOFF": {
+        "entry": "close>EMA200 and previous close below previous lower Bollinger20/2sigma and current close back above current lower band and current close>open",
+        "stopATR": 2,
+        "targetATR": 3,
+        "maxBars": 10
+      },
+      "SLOW_BREAKOUT": {
+        "entry": "close>EMA200 and close above previous55 daily highs",
+        "stopATR": 2,
+        "targetATR": 6,
+        "maxBars": 30
+      }
+    },
+    "indicators": "recursive EMA, WilderATR14 and WilderRSI2, population standard deviation; first250 admitted bars warmup",
+    "costBps": {
+      "fee": 20,
+      "spread": 2,
+      "slippage": 4,
+      "funding": 0
+    },
+    "stressMultiplier": 1.5,
+    "management": "next daily open; signed actual fill risk; gap beyond SL/TP excluded; STOP_FIRST; no BE/partial/trail; max bars virtual close; stage-end unresolved OPEN not forced profit; one active position per symbol per mode, no same-day reentry",
+    "gates": {
+      "developmentTrades": 30,
+      "validationTrades": 50,
+      "minEachAsset": 10,
+      "netPF": 1.2,
+      "stressPF": 1.0,
+      "positiveEachAsset": true
+    },
+    "baselines": [
+      "buy-hold net return per same admitted stage; not tradePF and not risk matched",
+      "earlier fixed channel/EMA slow-spot studies retained, no cherry-picking merged samples"
+    ],
+    "researchOnly": true,
+    "publication": false,
+    "execution": false
+  },
+  "sourceHashes": {
+    "/workspace/scratch/40cca52b0b61/hashibot/scripts/research/daily-specialists/protocol.json": "305ad600520236a35ed734c47d48f4d4026ebab30774e7a8549fae2dcac9cc14",
+    "/workspace/scratch/40cca52b0b61/hashibot/scripts/research/daily-specialists/study.py": "76e39eeb9fec385b76c2aa47f19a2f60ec13ddf325f098d6c58485562851c2b2",
+    "/workspace/scratch/40cca52b0b61/hashibot/scripts/research/spot-swing-study.py": "5a2c36a1bc5e4e4584c80a773906a3c5cc68a98dc670c033f656ff1ffa13f494"
+  },
+  "cases": [
+    {
+      "stage": "DEVELOPMENT",
+      "mode": "BULL_DIP",
+      "pooled": {
+        "selected": 55,
+        "resolved": 54,
+        "open": 1,
+        "netPF": 1.5529876256112252,
+        "stressPF": 1.499801411448306,
+        "meanR": 0.1303860834725122
+      },
+      "failures": [],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 28,
+            "resolved": 28,
+            "open": 0,
+            "netPF": 1.074096468222425,
+            "stressPF": 1.0335471729269188,
+            "meanR": 0.022613501812747943
+          },
+          "buyHoldNetReturn": 5.841817623102554
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 27,
+            "resolved": 26,
+            "open": 1,
+            "netPF": 2.5303509051520825,
+            "stressPF": 2.450774371846052,
+            "meanR": 0.2464488637214891
+          },
+          "buyHoldNetReturn": 16.144794934465228
+        }
+      ]
+    },
+    {
+      "stage": "DEVELOPMENT",
+      "mode": "REJECTED_SELLOFF",
+      "pooled": {
+        "selected": 22,
+        "resolved": 21,
+        "open": 1,
+        "netPF": 1.452687962480174,
+        "stressPF": 1.412215234462804,
+        "meanR": 0.12558088846063514
+      },
+      "failures": [
+        "SAMPLE",
+        "ASSET_EVIDENCE"
+      ],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 8,
+            "resolved": 8,
+            "open": 0,
+            "netPF": 1.0832512097595142,
+            "stressPF": 1.0445017468945366,
+            "meanR": 0.027629318047118635
+          },
+          "buyHoldNetReturn": 5.841817623102554
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 14,
+            "resolved": 13,
+            "open": 1,
+            "netPF": 1.7620496596775301,
+            "stressPF": 1.7248786196871293,
+            "meanR": 0.18585877794587605
+          },
+          "buyHoldNetReturn": 16.144794934465228
+        }
+      ]
+    },
+    {
+      "stage": "DEVELOPMENT",
+      "mode": "SLOW_BREAKOUT",
+      "pooled": {
+        "selected": 41,
+        "resolved": 41,
+        "open": 0,
+        "netPF": 2.712513118949436,
+        "stressPF": 2.6642244687941354,
+        "meanR": 0.813097754870251
+      },
+      "failures": [],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 22,
+            "resolved": 22,
+            "open": 0,
+            "netPF": 2.509603993113954,
+            "stressPF": 2.459511275884681,
+            "meanR": 0.7040276155858131
+          },
+          "buyHoldNetReturn": 5.841817623102554
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 19,
+            "resolved": 19,
+            "open": 0,
+            "netPF": 2.9386379935739857,
+            "stressPF": 2.8926866880032347,
+            "meanR": 0.939389495094337
+          },
+          "buyHoldNetReturn": 16.144794934465228
+        }
+      ]
+    },
+    {
+      "stage": "VALIDATION",
+      "mode": "BULL_DIP",
+      "pooled": {
+        "selected": 47,
+        "resolved": 46,
+        "open": 1,
+        "netPF": 0.5682272352552553,
+        "stressPF": 0.5394245481986502,
+        "meanR": -0.18378782213667452
+      },
+      "failures": [
+        "SAMPLE",
+        "NET_PF",
+        "COST_STRESS",
+        "ASSET_EVIDENCE"
+      ],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 25,
+            "resolved": 25,
+            "open": 0,
+            "netPF": 0.6468447969908228,
+            "stressPF": 0.6158849038262154,
+            "meanR": -0.16290492002371834
+          },
+          "buyHoldNetReturn": 1.0221125890880247
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 22,
+            "resolved": 21,
+            "open": 1,
+            "netPF": 0.45557760916164075,
+            "stressPF": 0.43019069638627633,
+            "meanR": -0.20864841989019384
+          },
+          "buyHoldNetReturn": -0.09466195494284886
+        }
+      ]
+    },
+    {
+      "stage": "VALIDATION",
+      "mode": "SLOW_BREAKOUT",
+      "pooled": {
+        "selected": 27,
+        "resolved": 27,
+        "open": 0,
+        "netPF": 1.8331816298836616,
+        "stressPF": 1.7852707349337533,
+        "meanR": 0.43142580854364737
+      },
+      "failures": [
+        "SAMPLE"
+      ],
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "selected": 14,
+            "resolved": 14,
+            "open": 0,
+            "netPF": 2.1636360749101757,
+            "stressPF": 2.101171702450679,
+            "meanR": 0.5226377957426228
+          },
+          "buyHoldNetReturn": 1.0221125890880247
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "selected": 13,
+            "resolved": 13,
+            "open": 0,
+            "netPF": 1.5630711472864336,
+            "stressPF": 1.5263298083290922,
+            "meanR": 0.3331975146370584
+          },
+          "buyHoldNetReturn": -0.09466195494284886
+        }
+      ]
+    }
+  ],
+  "eligibleResearchModes": [],
+  "compressedSha256": "6a89941753b807328ed13bcb3d6b96a83cdd289ae2643424da2f8d9e644465d1",
+  "uncompressedSha256": "a8f85f7cad99d6f1391d44f2d93b4071961c532968cf1c77153ae1227cf256c0"
+}

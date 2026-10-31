@@ -18,18 +18,12 @@ export const BOT_PACKAGE_SLUGS = new Set<PackageCapability>([
   'crypto_prop_bot',
 ]);
 
-export const SIGNAL_INCLUDED_SLUGS = new Set<PackageCapability>([
-  'crypto_signal_room',
-  'crypto_personal_bot',
-  'forex_mt5_personal_bot',
-  'forex_mt5_prop_bot',
-  'crypto_prop_bot',
-]);
+export const SIGNAL_INCLUDED_SLUGS = new Set<PackageCapability>(['crypto_signal_room']);
 
 export const PUBLIC_PACKAGES: Package[] = [
   {
-    id: 'free_preview', name: 'Free Preview', slug: 'free_preview', price: 0, price_kes: 0, currency: 'KES', billing_period: '7-day preview',
-    duration_days: 7, active: true, telegram_access_required: false, sort_order: 0,
+    id: 'free_preview', name: 'Free Preview', slug: 'free_preview', price: 0, price_kes: 0, currency: 'KES', billing_period: 'permanent free community',
+    duration_days: 0, active: true, telegram_access_required: false, sort_order: 0,
     description: 'Instant platform tour. Explore dashboard analytics, live signal stream previews, strategy metrics, and risk management architecture.',
     features: ['Live terminal tour & dashboard access', 'Complete strategy qualification rules', 'Risk & capital management engine walkthrough', 'Telegram alert integration guide', 'Community onboarding channel'],
     created_at: '', updated_at: '',
@@ -38,28 +32,28 @@ export const PUBLIC_PACKAGES: Package[] = [
     id: 'crypto_signal_room', name: 'VIP Signal Room (Forex & Crypto)', slug: 'crypto_signal_room', price: 29, price_kes: 3500, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 1,
     description: 'Instant VIP signals for Forex (Gold/XAUUSD, EURUSD, GBPUSD) and Crypto (BTC, ETH, SOL) with exact Entry, SL & TP alerts.',
-    features: ['Combined Forex (Gold/FX) & Crypto signals', 'Exact entry zones, invalidation SL, TP1 & TP2', 'VIP Telegram channel instant push alerts', 'Daily EAT Morning London & NY Market Pulse', '1,200 KES weekly trial option available', 'Deterministic setup quality scoring & grade audit'],
+    features: ['Combined Forex (Gold/FX) & Crypto signals', 'Exact entry zones, invalidation SL, TP1 & TP2', 'VIP Telegram channel instant push alerts', 'Daily EAT Morning London & NY Market Pulse', 'KES 3,500 for 30 days or USD 29 per month', 'Deterministic setup quality scoring & grade audit'],
     created_at: '', updated_at: '',
   },
   {
     id: 'forex_mt5_personal_bot', name: 'Personal Auto-Bot (MT5 & Crypto)', slug: 'forex_mt5_personal_bot', price: 65, price_kes: 8500, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 2,
     description: 'Fully automated algorithmic execution on personal MetaTrader 5 brokers (Exness, IC Markets) and Binance/Bybit API accounts.',
-    features: ['Includes full VIP Signal Room access', 'Dedicated Windows MT5 daemon bridge & Crypto API execution', '0.5% fixed risk calculation per trade', 'Automated break-even trailing & TP scaling', '24/7 continuous trade protection & trade reconciliation'],
+    features: ['Separate VIP subscription required', 'Dedicated Windows MT5 daemon bridge & Crypto API execution', '0.5% fixed risk calculation per trade', 'Automated break-even trailing & TP scaling', '24/7 continuous trade protection & trade reconciliation'],
     created_at: '', updated_at: '',
   },
   {
     id: 'forex_mt5_prop_bot', name: 'Prop Pass Master (Funded Accounts)', slug: 'forex_mt5_prop_bot', price: 95, price_kes: 12500, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 3,
     description: 'Institutional MT5 execution specifically tuned for FTMO, FundedNext, and The5ers challenges with hard drawdown defense.',
-    features: ['Includes full VIP Signals & Bot features', '4.5% Hard daily & total drawdown safety locks', 'Conservative position sizing (0.25% – 0.75% per trade)', 'High-impact news spread & slippage protection gateway', '1-on-1 Portfolio Advisor AI support & pass tracking'],
+    features: ['Separate VIP subscription required', '4.5% Hard daily & total drawdown safety locks', 'Conservative position sizing (0.25% – 0.75% per trade)', 'High-impact news spread & slippage protection gateway', '1-on-1 Portfolio Advisor AI support & pass tracking'],
     created_at: '', updated_at: '',
   },
   {
     id: 'crypto_prop_bot', name: 'Crypto Prop Pass Master (24/7 Challenges)', slug: 'crypto_prop_bot', price: 95, price_kes: 12500, currency: 'KES', billing_period: 'monthly',
     duration_days: 30, active: true, telegram_access_required: true, sort_order: 4,
     description: 'Specialized 24/7 algorithmic execution for Crypto Prop challenges (Crypto Fund Trader, HyroTrader, Bybit Prop) with weekend holding.',
-    features: ['Includes full VIP Crypto Signals & Bot features', 'Tuned for Crypto Fund Trader, HyroTrader & Bybit/MT5 Crypto challenges', '24/7 continuous weekend crypto execution (no Friday cutoff)', '4.0% Hard daily & 8.0% max trailing drawdown circuit breakers', 'Conservative position sizing (0.25% – 0.50% per trade)', 'Automated partial scale-out (50% at TP1) & dynamic ATR runner trailing', '1-on-1 Prop Advisor AI support & challenge clearance tracking'],
+    features: ['Separate VIP subscription required', 'Tuned for Crypto Fund Trader, HyroTrader & Bybit/MT5 Crypto challenges', '24/7 continuous weekend crypto execution (no Friday cutoff)', '4.0% Hard daily & 8.0% max trailing drawdown circuit breakers', 'Conservative position sizing (0.25% – 0.50% per trade)', 'Automated partial scale-out (50% at TP1) & dynamic ATR runner trailing', '1-on-1 Prop Advisor AI support & challenge clearance tracking'],
     created_at: '', updated_at: '',
   },
 ];
@@ -95,11 +89,8 @@ export function isKnownPackageSlug(slug?: string | null): slug is PackageCapabil
 export function signalModeIncluded(slugOrName?: string | null) {
   if (!slugOrName) return false;
   const slug = slugFromPackageValue(slugOrName);
-  if (!slug) {
-    const lower = slugOrName.toLowerCase();
-    return !lower.includes('free') && !lower.includes('preview');
-  }
-  return Boolean(SIGNAL_INCLUDED_SLUGS.has(slug));
+  if (!slug) return false;
+  return slug === 'crypto_signal_room';
 }
 
 export function isBotPackage(slugOrName?: string | null) {
@@ -120,9 +111,9 @@ export function slugFromPackageValue(value?: string | null): PackageCapability |
 }
 
 export function packageStatusLabel(pkg: Package) {
-  if (pkg.slug === 'crypto_signal_room') return 'Available Now';
-  if (pkg.slug === 'forex_mt5_prop_bot') return 'Live & Ready';
-  if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return 'Live & Ready';
+  if (pkg.slug === 'crypto_signal_room') return 'Launch verification';
+  if (pkg.slug === 'forex_mt5_prop_bot') return 'Release 2 preview';
+  if (BOT_PACKAGE_SLUGS.has(pkg.slug as PackageCapability)) return 'Release 2 preview';
   return 'Instant Access';
 }
 
@@ -135,7 +126,7 @@ export function priceLabel(pkg: Package, currency: 'KES' | 'USD' = 'KES') {
   if (pkg.slug === 'crypto_signal_room') {
     return {
       main: currency === 'USD' ? '$29 USD' : '3,500 KES',
-      period: '/month (or 1,200 KES/week)',
+      period: '/30 days',
       usdEquivalent: currency === 'KES' ? '~$29/mo' : '3,500 KES/mo',
     };
   }
@@ -203,7 +194,7 @@ export function getEntitlementsForPackage(slugOrName?: string | null, isActive: 
   }
 
   return {
-    signalAccess: true, // All active paid packages have signal access
+    signalAccess: slug === 'crypto_signal_room', // VIP has its own verified entitlement.
     cryptoExecution: slug === 'crypto_personal_bot' || slug === 'crypto_prop_bot',
     cryptoProp: slug === 'crypto_prop_bot',
     mt5Personal: slug === 'forex_mt5_personal_bot',

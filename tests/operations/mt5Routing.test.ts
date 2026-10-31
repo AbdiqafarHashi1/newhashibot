@@ -6,7 +6,8 @@ const row={customer_id:'owner',provider:'MT5_PERSONAL',environment:'demo',accoun
 test('verified MT5 mapping separates logical account from physical terminal and bridge',()=>{
  assert.deepEqual(resolveMt5TerminalRoute(row,'owner'),{mt5AccountId:terminal,bridgeId:'bridge-a'});
  assert.throws(()=>resolveMt5TerminalRoute(row,'other'),/SCOPE/);
- assert.throws(()=>resolveMt5TerminalRoute({...row,environment:'live'},'owner'),/SCOPE/);
+ assert.deepEqual(resolveMt5TerminalRoute({...row,environment:'live'},'owner'),{mt5AccountId:terminal,bridgeId:'bridge-a'});
+ assert.throws(()=>resolveMt5TerminalRoute({...row,environment:'unknown'},'owner'),/SCOPE/);
  assert.throws(()=>resolveMt5TerminalRoute({...row,provider_account_identity:'other-terminal'},'owner'),/PAIRING/);
  assert.throws(()=>resolveMt5TerminalRoute({...row,policy_overrides:{mt5_account_id:terminal}},'owner'),/PAIRING/);
  assert.throws(()=>resolveMt5TerminalRoute({...row,policy_overrides:{}},'owner'),/PAIRING/);

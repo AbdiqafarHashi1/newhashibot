@@ -9,7 +9,7 @@ export const COMMERCE_VERSION = 'phase-i/1';
 export const PRODUCTS = {
   FREE_SIGNALS: { name:'Free Signals', accountLimit:0, prices:{ USD:{amount:0,interval:null,providers:[] as CommerceProvider[]}, KES:{amount:0,interval:null,providers:[] as CommerceProvider[]} } },
   VIP_SIGNALS: { name:'VIP Signals', accountLimit:0, prices:{ USD:{amount:2900,interval:'month',providers:['WHOP'] as CommerceProvider[]}, KES:{amount:350000,interval:'30_days',providers:['MPESA'] as CommerceProvider[]} } },
-  FOUNDING_AUTO_EXECUTION: { name:'Founding 20 Auto Execution', accountLimit:1, capacity:20, prices:{ USD:{amount:10000,interval:'month',providers:['WHOP'] as CommerceProvider[]} } },
+  FOUNDING_AUTO_EXECUTION: { name:'Auto Execution', accountLimit:1, capacity:30, prices:{ USD:{amount:10000,interval:'month',providers:['WHOP'] as CommerceProvider[]} } },
 } as const;
 
 const transitions: Record<PaymentState, readonly PaymentState[]> = {
@@ -60,7 +60,7 @@ export class DeterministicUnconfiguredAdapter implements ProviderAdapter {
 /** Pure inventory model used by deterministic tests; SQL uses row locks for the real authority. */
 export class FoundingInventory {
   private slots=new Map<number,{customer:string;checkout:string;state:'RESERVED'|'ACTIVE';expires:number}>();
-  constructor(readonly capacity=20,private now=()=>Date.now()){}
+  constructor(readonly capacity=30,private now=()=>Date.now()){}
   reserve(customer:string,checkout:string,ttlMs=15*60_000){this.releaseExpired();const prior=[...this.slots.entries()].find(([,v])=>v.checkout===checkout);if(prior)return prior[0];for(let n=1;n<=this.capacity;n++)if(!this.slots.has(n)){this.slots.set(n,{customer,checkout,state:'RESERVED',expires:this.now()+ttlMs});return n;}throw new Error('FOUNDING_CAPACITY_EXHAUSTED');}
   activate(checkout:string){this.releaseExpired();const item=[...this.slots.entries()].find(([,v])=>v.checkout===checkout);if(!item)throw new Error('PAYMENT_REVIEW_REQUIRED');item[1].state='ACTIVE';return item[0];}
   releaseExpired(){for(const [n,v] of this.slots)if(v.state==='RESERVED'&&v.expires<=this.now())this.slots.delete(n);}

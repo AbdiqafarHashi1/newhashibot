@@ -1,11 +1,12 @@
 import { parseBrokerOhlcv } from '../backtest/brokerCsv';
 import type { CanonicalCandle, HistoricalDataRequest, HistoricalProvider, HistoricalRange } from './types';
 import { TIMEFRAME_MS } from './validation';
+import {decodeNativeKline} from '../../../supabase/functions/_shared/native-kline.ts';
 
 export interface HistoricalAdapterResult { bars:CanonicalCandle[];sourceSymbol:string;broker?:string;server?:string;accountId?:string;environment?:string;sourceName?:'DUKASCOPY'|'TWELVE_DATA'|'BINANCE'|'BYBIT'|'COINBASE'|'MT5'|'CSV';sourceVersion?:string;sourceUrl?:string }
 export interface HistoricalAdapter {readonly provider:HistoricalProvider;fetch(request:HistoricalDataRequest,range:HistoricalRange):Promise<HistoricalAdapterResult>}
 export interface MT5HistoryContractRequest {version:'1.0';operation:'FETCH_HISTORY';account_id:string;symbol:string;source_symbol?:string;timeframe:string;from:string;to:string}
-export interface MT5HistoryContractResponse {version:'1.0';provider:'MT5';broker:string;server:string;account_id:string;environment:string;canonical_symbol:string;source_symbol:string;timeframe:string;from:string;to:string;bars:Array<{time:number|string;open:number;high:number;low:number;close:number;tick_volume?:number;real_volume?:number;spread?:number}>}
+export interface MT5HistoryContractResponse {version:'1.0';provider:'MT5';broker:string;server:string;account_id:string;environment:string;canonical_symbol:string;source_symbol:string;timeframe:string;from:string;to:string;bars:Array<{time:number|string;open:number;high:number;low:number;close:number;tick_volume?:number;real_volume?:number;spread?:number;ask_open?:number;ask_high?:number;ask_low?:number;ask_close?:number}>}
 export type MT5HistoryTransport=(request:MT5HistoryContractRequest)=>Promise<MT5HistoryContractResponse>;
 
 export class MT5BridgeHistoricalAdapter implements HistoricalAdapter {
@@ -14,18 +15,34 @@ export class MT5BridgeHistoricalAdapter implements HistoricalAdapter {
   async fetch(r:HistoricalDataRequest,range:HistoricalRange):Promise<HistoricalAdapterResult>{
     if(!r.accountId)throw new Error('MT5_ACCOUNT_REQUIRED');
     const chunkMs=30*86_400_000,bars:CanonicalCandle[]=[];let cursor=range.from,pages=0,last:MT5HistoryContractResponse|undefined;
-    while(cursor<=range.to){if(++pages>250)throw new Error('MT5_HISTORY_PAGE_LIMIT');const end=Math.min(range.to,cursor+chunkMs-1),payload:MT5HistoryContractRequest={version:'1.0',operation:'FETCH_HISTORY',account_id:r.accountId,symbol:r.symbol,source_symbol:r.sourceSymbol,timeframe:r.timeframe,from:new Date(cursor).toISOString(),to:new Date(end).toISOString()};last=await this.transport(payload);if(last.version!=='1.0'||last.provider!=='MT5'||last.timeframe!==r.timeframe||last.account_id!==r.accountId||last.canonical_symbol!==r.symbol)throw new Error('MT5_HISTORY_CONTRACT_INVALID');for(const b of last.bars)bars.push({timestamp:typeof b.time==='number'?(b.time<1e12?b.time*1000:b.time):Date.parse(b.time),open:b.open,high:b.high,low:b.low,close:b.close,tickVolume:b.tick_volume,realVolume:b.real_volume,spread:b.spread});cursor=end+1;}
+    while(cursor<=range.to){if(++pages>250)throw new Error('MT5_HISTORY_PAGE_LIMIT');const end=Math.min(range.to,cursor+chunkMs-1),payload:MT5HistoryContractRequest={version:'1.0',operation:'FETCH_HISTORY',account_id:r.accountId,symbol:r.symbol,source_symbol:r.sourceSymbol,timeframe:r.timeframe,from:new Date(cursor).toISOString(),to:new Date(end).toISOString()};last=await this.transport(payload);if(last.version!=='1.0'||last.provider!=='MT5'||last.timeframe!==r.timeframe||last.account_id!==r.accountId||last.canonical_symbol!==r.symbol)throw new Error('MT5_HISTORY_CONTRACT_INVALID');for(const b of last.bars)bars.push({timestamp:typeof b.time==='number'?(b.time<1e12?b.time*1000:b.time):Date.parse(b.time),open:b.open,high:b.high,low:b.low,close:b.close,volume:b.real_volume&&b.real_volume>0?b.real_volume:b.tick_volume,tickVolume:b.tick_volume,realVolume:b.real_volume,spread:b.spread,source:`mt5_hashibridge:${last.account_id}`,ask_open:b.ask_open,ask_high:b.ask_high,ask_low:b.ask_low,ask_close:b.ask_close});cursor=end+1;}
     if(!last)throw new Error('MT5_HISTORY_EMPTY_RANGE');return {sourceSymbol:last.source_symbol,broker:last.broker,server:last.server,accountId:last.account_id,environment:last.environment,bars:finalize(bars,r),sourceName:'MT5',sourceVersion:'hashibridge-history/v1'};
   }
 }
 
 type Fetcher=typeof fetch;
+/** Explicit futures history; never conflates spot prices with USD-M flow. */
+export class BinanceFuturesHistoricalAdapter implements HistoricalAdapter {
+ readonly provider='BINANCE_USDM' as const;
+ constructor(private fetcher:Fetcher=fetch,private http:HistoricalHttpOptions={}){}
+ async fetch(r:HistoricalDataRequest,range:HistoricalRange):Promise<HistoricalAdapterResult>{
+  const bars:CanonicalCandle[]=[];let cursor=range.from,pages=0;
+  while(cursor<=range.to){if(++pages>250)throw Error('BINANCE_USDM_PAGE_LIMIT');
+   const response=await fetchHistoricalWithRetry(this.fetcher,`https://fapi.binance.com/fapi/v1/klines?symbol=${encodeURIComponent(r.symbol)}&interval=${r.timeframe}&startTime=${cursor}&endTime=${range.to}&limit=1000`,r.signal,this.http),raw=await response.json();
+   if(!Array.isArray(raw))throw Error('BINANCE_USDM_PAYLOAD_INVALID');if(!raw.length)break;
+   for(const row of raw){const c=decodeNativeKline(r.symbol,r.timeframe,row,'USDT_PERPETUAL');bars.push({timestamp:Date.parse(c.open_time),open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume,source:c.source,instrument_type:c.instrument_type,quote_volume:c.quote_volume,trade_count:c.trade_count,taker_buy_volume:c.taker_buy_volume,taker_buy_quote_volume:c.taker_buy_quote_volume});}
+   const last=Number(raw.at(-1)[0]);if(last<cursor)throw Error('BINANCE_USDM_HISTORY_NON_ADVANCING');cursor=last+TIMEFRAME_MS[r.timeframe];if(raw.length<1000)break;
+  }
+  return {sourceSymbol:r.symbol,bars:finalize(bars,r),sourceName:'BINANCE',sourceVersion:'usdm-native-flow/v1',sourceUrl:'https://fapi.binance.com/fapi/v1/klines'};
+ }
+}
 const sleep=(ms:number,signal?:AbortSignal)=>new Promise<void>((resolve,reject)=>{const id=setTimeout(resolve,ms);signal?.addEventListener('abort',()=>{clearTimeout(id);reject(new DOMException('Aborted','AbortError'));},{once:true});});
 export interface HistoricalHttpAttempt {url:string;attempt:number;status:number|null;retryDelayMs:number;outcome:'SUCCESS'|'RETRY'|'FAILED'}
 export interface HistoricalHttpOptions {maxAttempts?:number;baseDelayMs?:number;retryDelaysMs?:number[];requestDelayMs?:number;requestTimeoutMs?:number;retryBudgetMs?:number;maximumRetryAfterMs?:number;jitter?:()=>number;sleep?:typeof sleep;now?:()=>number;onAttempt?:(event:HistoricalHttpAttempt)=>void}
 let nextRequestAt=0;
 export async function fetchHistoricalWithRetry(fetcher:Fetcher,url:string,signal?:AbortSignal,options:HistoricalHttpOptions={}){
-  const max=Math.max(1,options.maxAttempts??Number(process.env.HISTORICAL_MAX_ATTEMPTS??4)),base=options.baseDelayMs??Number(process.env.HISTORICAL_RETRY_BASE_MS??2000),delays=options.retryDelaysMs??(options.baseDelayMs===undefined?[2000,5000,10000]:[]),pace=options.requestDelayMs??Number(process.env.HISTORICAL_REQUEST_DELAY_MS??0),requestTimeout=options.requestTimeoutMs??Number(process.env.HISTORICAL_REQUEST_TIMEOUT_MS??15000),budget=options.retryBudgetMs??Number(process.env.HISTORICAL_RETRY_BUDGET_MS??60000),retryAfterCap=options.maximumRetryAfterMs??15000,wait=options.sleep??sleep,jitter=options.jitter??Math.random,now=options.now??Date.now,started=now();
+  const env=typeof process!=='undefined'?process.env:{};
+  const max=Math.max(1,options.maxAttempts??Number(env.HISTORICAL_MAX_ATTEMPTS??4)),base=options.baseDelayMs??Number(env.HISTORICAL_RETRY_BASE_MS??2000),delays=options.retryDelaysMs??(options.baseDelayMs===undefined?[2000,5000,10000]:[]),pace=options.requestDelayMs??Number(env.HISTORICAL_REQUEST_DELAY_MS??0),requestTimeout=options.requestTimeoutMs??Number(env.HISTORICAL_REQUEST_TIMEOUT_MS??15000),budget=options.retryBudgetMs??Number(env.HISTORICAL_RETRY_BUDGET_MS??60000),retryAfterCap=options.maximumRetryAfterMs??15000,wait=options.sleep??sleep,jitter=options.jitter??Math.random,now=options.now??Date.now,started=now();
   for(let attempt=1;attempt<=max;attempt++){
     if(now()-started>=budget)throw new Error('HISTORY_RETRY_BUDGET_EXCEEDED');
     const pacing=Math.max(0,nextRequestAt-now());if(pacing)await wait(pacing,signal);nextRequestAt=now()+pace;
@@ -41,7 +58,7 @@ function finalize(bars:CanonicalCandle[],r:HistoricalDataRequest){const unique=n
 export class BinanceHistoricalAdapter implements HistoricalAdapter {
   readonly provider='BINANCE' as const;
   constructor(private fetcher:Fetcher=fetch,private http:HistoricalHttpOptions={}){}
-  async fetch(r:HistoricalDataRequest,range:HistoricalRange){const symbol=(r.sourceSymbol||r.symbol).toUpperCase(),bars:CanonicalCandle[]=[];let cursor=range.from,pages=0;while(cursor<=range.to){if(++pages>250)throw new Error('BINANCE_HISTORY_PAGE_LIMIT');const url=`https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${r.timeframe}&startTime=${cursor}&endTime=${range.to}&limit=1000`;const response=await fetchHistoricalWithRetry(this.fetcher,url,r.signal,this.http);const rows=await response.json() as unknown[][];if(!rows.length)break;for(const x of rows)bars.push({timestamp:Number(x[0]),open:Number(x[1]),high:Number(x[2]),low:Number(x[3]),close:Number(x[4]),volume:Number(x[5])});const last=Number(rows[rows.length-1][0]);if(last<cursor)throw new Error('BINANCE_HISTORY_NON_ADVANCING');cursor=last+TIMEFRAME_MS[r.timeframe];if(rows.length<1000)break;}return {sourceSymbol:symbol,bars:finalize(bars,r),sourceName:'BINANCE' as const,sourceVersion:'spot-klines/v1',sourceUrl:'https://api.binance.com/api/v3/klines'};}
+  async fetch(r:HistoricalDataRequest,range:HistoricalRange){const symbol=(r.sourceSymbol||r.symbol).toUpperCase(),bars:CanonicalCandle[]=[];let cursor=range.from,pages=0;while(cursor<=range.to){if(++pages>250)throw new Error('BINANCE_HISTORY_PAGE_LIMIT');const url=`https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${r.timeframe}&startTime=${cursor}&endTime=${range.to}&limit=1000`;const response=await fetchHistoricalWithRetry(this.fetcher,url,r.signal,this.http);const rows=await response.json() as unknown[][];if(!rows.length)break;for(const x of rows){const c=decodeNativeKline(r.symbol,r.timeframe,x,'SPOT');bars.push({timestamp:Date.parse(c.open_time),open:c.open,high:c.high,low:c.low,close:c.close,volume:c.volume,source:c.source,instrument_type:c.instrument_type,quote_volume:c.quote_volume,trade_count:c.trade_count,taker_buy_volume:c.taker_buy_volume,taker_buy_quote_volume:c.taker_buy_quote_volume});}const last=Number(rows[rows.length-1][0]);if(last<cursor)throw new Error('BINANCE_HISTORY_NON_ADVANCING');cursor=last+TIMEFRAME_MS[r.timeframe];if(rows.length<1000)break;}return {sourceSymbol:symbol,bars:finalize(bars,r),sourceName:'BINANCE' as const,sourceVersion:'spot-klines/v1',sourceUrl:'https://api.binance.com/api/v3/klines'};}
 }
 
 export class BybitHistoricalAdapter implements HistoricalAdapter {

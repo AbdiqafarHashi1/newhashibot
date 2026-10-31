@@ -36,7 +36,7 @@ includesAll(bybitMonitor, [
   'symbolOrders.slice(0, cancelBudget)',
   'repairBudget > 0',
   'verificationOrderList = repairAttempted',
-  '/v5/order/realtime", { category: "linear", symbol: row.symbol, openOnly: 0 }',
+  '/v5/order/realtime",{category:"linear",symbol:row.symbol,openOnly:0,limit:50',
 ], 'Bybit duplicate reconciliation and bounded repair contract');
 
 for (const source of [bybitMonitor, binanceMonitor]) {
@@ -56,11 +56,11 @@ includesAll(admin, [
 
 includesAll(providerWorkspace, [
   'active_trade_management_truth',
-  'Monitor truth guard',
-  'adapter pending',
-  'latestRecoveryAction',
+  'getMonitorTruth(monitorState)',
+  'monitorTruth.label',
+  'latest_recovery_run_at',
 ], 'dashboard truth contract');
-includesAll(propTrading, ['bybit_latest_monitor_result', 'bybit_latest_successful_sync_at'], 'Bybit dashboard truth contract');
+includesAll(propTrading, ['Historical Bybit Prop account records', 'not verified firm results'], 'Bybit dashboard truth contract');
 
 includesAll(performance, [
   'System safety truth from execution rows plus monitor-synced Binance positions and orders.',

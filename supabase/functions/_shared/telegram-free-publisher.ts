@@ -56,7 +56,7 @@ export const DEFAULT_FREE_PUBLISHER_CONFIG: FreePublisherConfig = {
   minGrade: "A",
   minConfidence: 75,
   minRR: 1.5,
-  publicationMode: "full",
+  publicationMode: "preview",
   cooldownHours: 4,
 };
 
@@ -74,7 +74,7 @@ export async function persistPublicationDecision(
   signalId: string,
   decision: DecisionCode,
   reason: string,
-  mode: FreePublicationMode = "full",
+  mode: FreePublicationMode = "preview",
   candidate?: FreeSignalCandidate
 ): Promise<void> {
   try {

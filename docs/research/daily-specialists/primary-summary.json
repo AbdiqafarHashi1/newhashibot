@@ -1,0 +1,116 @@
+{
+  "model": "Original BTC/ETH EMA20/50 long/cash with daily regime/trailing exit",
+  "scopeReason": "Original two-asset hypothesis, not selected by removing losers from the later six-asset extension",
+  "costBps": 26,
+  "stressBps": 39,
+  "stages": [
+    {
+      "stage": "DEVELOPMENT",
+      "pooled": {
+        "trades": 58,
+        "netPF": 2.722226991060206,
+        "stressPF": 2.675290332997651,
+        "grossPF": 2.819995010312935,
+        "meanNet": 0.0917896964876325,
+        "meanStress": 0.09048969648763246
+      },
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "trades": 31,
+            "netPF": 2.7033549955219023,
+            "stressPF": 2.6440253222515104,
+            "grossPF": 2.828517648361089,
+            "meanNet": 0.07295136544037421,
+            "meanStress": 0.07165136544037425
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "trades": 27,
+            "netPF": 2.7364344697000718,
+            "stressPF": 2.6989978745904266,
+            "grossPF": 2.8136745924272657,
+            "meanNet": 0.11341889139374378,
+            "meanStress": 0.11211889139374377
+          }
+        }
+      ]
+    },
+    {
+      "stage": "VALIDATION",
+      "pooled": {
+        "trades": 46,
+        "netPF": 1.9950071545725367,
+        "stressPF": 1.924121109436493,
+        "grossPF": 2.1469652117279803,
+        "meanNet": 0.03018118177098153,
+        "meanStress": 0.028881181770981534
+      },
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "trades": 23,
+            "netPF": 2.5267899173116195,
+            "stressPF": 2.4411194967916874,
+            "grossPF": 2.7061612567962525,
+            "meanNet": 0.047196925598365566,
+            "meanStress": 0.04589692559836558
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "trades": 23,
+            "netPF": 1.4424950546811606,
+            "stressPF": 1.387037414758458,
+            "grossPF": 1.563553160121839,
+            "meanNet": 0.013165437943597485,
+            "meanStress": 0.011865437943597476
+          }
+        }
+      ]
+    },
+    {
+      "stage": "RECENT_EXTENSION",
+      "pooled": {
+        "trades": 25,
+        "netPF": 1.906031682620649,
+        "stressPF": 1.8278182199543853,
+        "grossPF": 2.078047412023507,
+        "meanNet": 0.022539140505999998,
+        "meanStress": 0.021239140506000002
+      },
+      "assets": [
+        {
+          "symbol": "BTCUSDT",
+          "metrics": {
+            "trades": 13,
+            "netPF": 1.1559041932707161,
+            "stressPF": 1.0979029304299976,
+            "grossPF": 1.2859992149491037,
+            "meanNet": 0.003731170155639741,
+            "meanStress": 0.0024311701556397423
+          }
+        },
+        {
+          "symbol": "ETHUSDT",
+          "metrics": {
+            "trades": 12,
+            "netPF": 2.6569426762729327,
+            "stressPF": 2.567412245903356,
+            "grossPF": 2.8501975158253665,
+            "meanNet": 0.042914441718890285,
+            "meanStress": 0.041614441718890276
+          }
+        }
+      ]
+    }
+  ],
+  "classification": "EXPLORATORY HISTORICAL RESEARCH; not scanner integration, fills, portfolio or release approval",
+  "publication": false,
+  "execution": false
+}

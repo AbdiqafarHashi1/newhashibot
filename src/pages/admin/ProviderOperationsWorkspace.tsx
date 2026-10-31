@@ -1598,7 +1598,7 @@ export function ProviderOperationsWorkspace({ provider, mode = 'binance_testnet'
                 </div>
                 <div className="space-y-2 text-xs mb-4">
                   <ProofRow label="Last supervisor run" value={monitorState?.latest_supervisor_run_at ? new Date(monitorState.latest_supervisor_run_at).toLocaleTimeString() : '—'} />
-                  <ProofRow label="Status" value={monitorState?.latest_supervisor_status ?? 'HEALTHY'} />
+                  <ProofRow label="Status" value={monitorState?.latest_supervisor_status ?? 'UNKNOWN'} />
                   <ProofRow label="Supervisor errors" value={shortOperatorText(monitorState?.latest_supervisor_error || 'None')} />
                 </div>
                 <button

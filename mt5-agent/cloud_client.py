@@ -100,8 +100,8 @@ class CloudClient:
         return data["assignment"]
 
     def pair_customer_account(self, account_proof: Dict[str, Any]) -> Dict[str, Any]:
-        if account_proof.get("environment") != "demo" or account_proof.get("connected") is not True:
-            raise RuntimeError("VERIFIED_DEMO_TERMINAL_REQUIRED")
+        if account_proof.get("environment") not in ("demo", "live") or account_proof.get("connected") is not True:
+            raise RuntimeError("VERIFIED_TERMINAL_REQUIRED")
         code, data = self._post(self._bridge_url("pair_customer_account"), {
             "bridge_id": self.bridge_id, "worker_id": Config.WORKER_ID,
             "account_id": Config.ACCOUNT_ID, "owner_id": Config.OWNER_ID,

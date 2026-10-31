@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { AdminLayout } from '../../components/layout/AdminLayout';
 import { getTelegramLogs } from '../../lib/hashibotBackend';
 import { TelegramDelivery } from '../../lib/types';
 import { statusBadge, Badge } from '../../components/ui/Badge';
@@ -13,7 +12,7 @@ function deliveryFamily(type: string) {
   return 'Other';
 }
 
-export default function TelegramLogs() {
+export function TelegramDeliveryPanel() {
   const [logs, setLogs] = useState<TelegramDelivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState('');
@@ -36,7 +35,7 @@ export default function TelegramLogs() {
   const outcomeCount = logs.filter(l => deliveryFamily(l.delivery_type) === 'Outcome update').length;
 
   return (
-    <AdminLayout>
+    <>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Telegram Delivery Logs</h1>
         <p className="text-sm text-zinc-500 mt-0.5">{logs.length} records · {initialCount} initial · {outcomeCount} outcome</p>
@@ -91,6 +90,6 @@ export default function TelegramLogs() {
           </table>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }

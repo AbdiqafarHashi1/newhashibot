@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle, LockKeyhole, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import { CommerceLayout } from '../../components/layout/CommerceLayout';
-import { ExecutionProductPreview } from '../../components/public/ExecutionProductPreview';
 import { MpesaCheckout } from '../../components/commerce/MpesaCheckout';
 import { WhopCheckout } from '../../components/commerce/WhopCheckout';
 
@@ -20,11 +19,12 @@ export default function Vip() {
       </div>
     </section>
 
+    <div role="status" className="mx-auto max-w-3xl px-4 py-5 text-sm text-amber-200">Release 1 launch verification is in progress. Paid signal publication requires a certified strategy; checkout stays paused until launch approval. Historical research is not a guarantee of profitability.</div>
     <SignalDemo />
 
-    <section id="vip-purchase" className="border-b border-zinc-800 bg-zinc-900/30 px-4 py-10 sm:px-6"><div className="mx-auto max-w-5xl"><div className="text-center"><p className="text-xs font-black uppercase tracking-widest text-emerald-400">Choose your VIP term</p><h2 className="mt-2 text-3xl font-black text-white">Three approved ways to join</h2><p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-zinc-400">The seven-day option is paid fixed access—not a trial. Neither M-Pesa term silently renews; renewal requires a new verified payment.</p></div><div className="mt-7 grid gap-4 lg:grid-cols-3"><MpesaCheckout termDays={7}/><MpesaCheckout termDays={30}/><WhopCheckout product="HASHIBOT_VIP_SIGNALS"/></div></div></section>
+    <section id="vip-purchase" className="border-b border-zinc-800 bg-zinc-900/30 px-4 py-10 sm:px-6"><div className="mx-auto max-w-5xl"><div className="text-center"><p className="text-xs font-black uppercase tracking-widest text-emerald-400">Choose your VIP term</p><h2 className="mt-2 text-3xl font-black text-white">Kenya or international</h2><p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Kenya: KES 3,500 for 30 days through M-Pesa. International: USD 29 per month through Whop. M-Pesa renewal requires a new verified payment.</p></div><div className="mt-7 grid gap-4 lg:grid-cols-2"><MpesaCheckout termDays={30}/><WhopCheckout product="HASHIBOT_VIP_SIGNALS"/></div></div></section>
 
-    <section className="mx-auto max-w-5xl px-4 py-9 sm:px-6"><div className="mb-5 rounded-2xl border border-cyan-500/25 bg-cyan-500/[.06] p-5"><p className="text-[11px] font-black uppercase tracking-widest text-cyan-400">VIP Signals vs Auto Execution</p><h2 className="mt-2 text-2xl font-black text-white">Separate products, separate entitlements</h2><p className="mt-2 text-sm leading-6 text-zinc-300">One VIP Signals entitlement includes both private channels; it is not two purchases. Auto Execution is Founding 20 at $100/month per connected execution account. One does not include the other, and every additional execution account needs its own entitlement and onboarding.</p><div className="mt-4"><Link to="/execution" className="rounded-xl bg-cyan-500 px-5 py-3 font-bold text-zinc-950">Explore Auto Execution</Link></div></div><ExecutionProductPreview compact/></section>
+
 
     <section className="mx-auto max-w-5xl px-4 py-9 sm:px-6"><div className="grid overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 md:grid-cols-[1.15fr_.85fr]"><div className="p-5 sm:p-7"><p className="text-[11px] font-bold uppercase tracking-[.16em] text-blue-400">Everything you need to act</p><h2 className="mt-2 text-2xl font-extrabold text-white">The complete setup, at a glance.</h2><div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3">{benefits.map(item => <div key={item} className="flex gap-2 text-sm text-zinc-300"><CheckCircle className="mt-0.5 shrink-0 text-emerald-400" size={15}/>{item}</div>)}</div></div><div className="border-t border-zinc-800 bg-zinc-950/60 p-5 md:border-l md:border-t-0 sm:p-7"><ShieldCheck className="text-blue-400" size={22}/><h2 className="mt-3 text-xl font-extrabold text-white">Qualified, not crowded</h2><p className="mt-3 text-sm leading-6 text-zinc-400">HashiBot filters structure, liquidity, volatility, timing and risk. You receive the setups that pass — formatted to scan quickly and manage responsibly.</p><p className="mt-4 text-xs text-zinc-600">Signals are informational and never guarantee a result.</p></div></div></section>
 

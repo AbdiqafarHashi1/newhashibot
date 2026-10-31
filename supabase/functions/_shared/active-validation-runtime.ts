@@ -1,4 +1,12 @@
+import {relativeWeaknessDefinitions} from './crypto-relative-weakness.ts';
+import {dailyTrendDefinitions} from './daily-trend.ts';
+import {signalEnsembleDefinitions} from './crypto-signal-ensemble.ts';
+import {coordinatedCryptoDefinitions} from './coordinated-crypto.ts';
+import {altResearchDefinitions} from './crypto-relative-strength.ts';
 import {microScalperRuntimeParams} from "./micro-scalper-runtime.ts";
+import {regimeResearchDefinitions} from './regime-opportunities.ts';
+import {intradayResearchDefinitions} from './intraday-opportunities.ts';
+import {costAwareResearchDefinitions} from './cost-aware-opportunities.ts';
 import { atrRootV1, emaRootV1, rsiRootV1 } from "./indicator-engine.ts";
 import { FOREX_PRODUCTION_EVALUATORS, type ProductionEvaluatorId } from "./forex-production-strategies.ts";
 import { FOREX_STRATEGY_CONTRACTS, forexStrategyEligibility } from "./forex-runtime-contracts.ts";
@@ -21,8 +29,17 @@ export function calculateActiveIndicators(candles:readonly StrategyCandle[]):Str
 /** Builds only definitions backed by the production evaluator registry; unknown or unapproved configuration fails closed. */
 export function createApprovedReplayRegistry(config:ApprovedReplayConfiguration,symbol:string,timeframe:string):ProfessionalStrategyRegistry {
  if(!config.version||!config.strategies.length)throw new Error("APPROVED_SCANNER_CONFIGURATION_REQUIRED");
- const definitions:StrategyDefinition[]=[];
+ const definitions:StrategyDefinition[]=[],researchDefinitions=[...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions(),...altResearchDefinitions(),...coordinatedCryptoDefinitions(),...signalEnsembleDefinitions(),...dailyTrendDefinitions(),...relativeWeaknessDefinitions()];
  for(const item of config.strategies.filter(s=>s.enabled)){
+  const regime=researchDefinitions.find(s=>s.id===item.id);
+  if(regime){
+   if(item.version!==regime.version)throw new Error(`ACTIVE_STRATEGY_VERSION_MISMATCH:${item.id}`);
+   if(!regime.config.allowed_timeframes.includes(timeframe)||!regime.config.allowed_symbols.includes(symbol)||!item.timeframes.includes(timeframe)||(item.symbols.length&&!item.symbols.includes(symbol)))continue;
+   // Counterfactual replay eligibility is not a production publication grant.
+   const params={...regime.config.params,...item.parameters};
+   definitions.push({...regime,lifecycle:'ENABLED',publicationMode:'LIVE',config:{...regime.config,enabled:true,min_score:item.minScore,min_rr:item.minRiskReward,max_bars_in_trade:item.maxBarsInTrade,params},evaluate:ctx=>regime.evaluate({...ctx,strategy_parameters:params})});
+   continue;
+  }
   const contract=FOREX_STRATEGY_CONTRACTS.find(c=>c.id===item.id),forexEvaluator=FOREX_PRODUCTION_EVALUATORS[item.id as ProductionEvaluatorId],crypto={"crypto.micro-scalper":{name:"MicroScalper",evaluate:evalMicroScalper},"crypto.quick-scalp":{name:"QuickScalp",evaluate:evalQuickScalp},"crypto.compression-breakout":{name:"CompressionBreakout",evaluate:evalCompressionBreakout},"crypto.swing-continuation":{name:"SwingContinuation",evaluate:evalSwingContinuation}}[item.id as "crypto.micro-scalper"];
   if(!contract&&!crypto)throw new Error(`ACTIVE_STRATEGY_EVALUATOR_UNAVAILABLE:${item.id}`);if(item.version!=="1.0.0")throw new Error(`ACTIVE_STRATEGY_VERSION_MISMATCH:${item.id}`);if(!item.timeframes.includes(timeframe)||(item.symbols.length&&!item.symbols.includes(symbol)))continue;
   if(crypto&&!/^[A-Z0-9]{2,15}USDT$/.test(symbol))continue;

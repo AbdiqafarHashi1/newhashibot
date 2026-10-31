@@ -8,7 +8,7 @@ export const EXECUTION_EVENT_VERSION = "execution-event/v1" as const;
 export const FILL_BINDING_POLICY_VERSION = "fill-binding-policy/v1" as const;
 export const EXECUTION_CONTROL_VERSION = "execution-adoption-control/v1" as const;
 
-export type AdoptionCertificationState = "DISABLED" | "SHADOW_COMPARE" | "CERTIFIED_TESTNET" | "CERTIFIED_DEMO" | "BLOCKED" | "ROLLED_BACK";
+export type AdoptionCertificationState = "DISABLED" | "LIVE_APPROVED" | "FORWARD_TEST" | "SHADOW_COMPARE" | "CERTIFIED_TESTNET" | "CERTIFIED_DEMO" | "BLOCKED" | "ROLLED_BACK";
 export type CanonicalExecutionState = "PLANNED" | "CLAIMED" | "CONFIGURING" | "READY_TO_SUBMIT" | "SUBMITTING" | "ACKNOWLEDGED" | "PARTIALLY_FILLED" | "FILLED" | "PROTECTION_PENDING" | "PROTECTED" | "PROTECTION_DEGRADED" | "CANCELLING" | "CANCELLED" | "REJECTED" | "RECONCILING" | "SAFETY_CLOSING" | "CLOSED" | "FAILED" | "TERMINAL";
 export type ExecutionEventType = "PLAN_ACCEPTED" | "PLAN_REJECTED" | "CLAIM_ACQUIRED" | "CLAIM_CONFLICT" | "CONFIGURATION_REQUESTED" | "CONFIGURATION_ACKNOWLEDGED" | "ENTRY_SUBMISSION_REQUESTED" | "ENTRY_ACKNOWLEDGED" | "ENTRY_REJECTED" | "ENTRY_PARTIALLY_FILLED" | "ENTRY_FILLED" | "ENTRY_CANCELLED" | "ENTRY_EXPIRED" | "PROTECTION_SUBMISSION_REQUESTED" | "PROTECTION_ACKNOWLEDGED" | "PROTECTION_REJECTED" | "PROTECTION_VERIFIED" | "PROTECTION_DEGRADED" | "PROTECTION_MISSING" | "SAFETY_CLOSE_REQUESTED" | "SAFETY_CLOSE_ACKNOWLEDGED" | "RECONCILIATION_STARTED" | "RECONCILIATION_RESOLVED" | "RECONCILIATION_UNRESOLVED" | "EXECUTION_TERMINAL";
 
@@ -17,9 +17,9 @@ export interface ExecutionAdoptionPolicy {
   policy_id: string;
   version: string;
   provider: RiskDomain;
-  environment: "TESTNET" | "DEMO";
+  environment: "TESTNET" | "DEMO" | "LIVE";
   account_ids: readonly string[];
-  execution_modes: readonly ("PAPER" | "TESTNET" | "DEMO")[];
+  execution_modes: readonly ("PAPER" | "TESTNET" | "DEMO" | "LIVE")[];
   customer_scope: { mode: "ALL_AUTHORIZED" | "ALLOWLIST"; customer_ids: readonly string[] };
   supported_plan_versions: readonly string[];
   enabled: boolean;
@@ -69,7 +69,7 @@ export interface ExecutionEvent {
   event_type: ExecutionEventType;
   provider: RiskDomain;
   account_id: string;
-  environment: "TESTNET" | "DEMO";
+  environment: "TESTNET" | "DEMO" | "LIVE";
   correlation_id: string;
   evaluation_id: string;
   execution_plan_id: string;
@@ -95,6 +95,7 @@ export interface ExecutionEvent {
 }
 
 export interface AdoptionTruth {
+  live_permission_verified?: boolean;
   observed_at: string;
   freshness: TruthState;
   provider_health: "HEALTHY" | "DEGRADED" | "UNHEALTHY";
@@ -140,8 +141,8 @@ export function revalidateAdoption(plan: DeepReadonly<ExecutionPlan>, policy: De
   check("contract.immutable", Object.isFrozen(plan) && Object.isFrozen(plan.capital_allocation_plan) && Object.isFrozen(plan.risk_decision) && Object.isFrozen(plan.strategy_plan), "mutable_execution_plan", "Execution plan and all upstream references are deeply immutable.");
   check("contract.planned", plan.status === "PLANNED" && Boolean(route) && Boolean(allocation), "execution_plan_not_planned", "Only PLANNED artifacts are adoptable.");
   check("policy.enabled", policy.enabled, "adoption_disabled", "Adoption must be explicitly enabled; missing policy never enables it.");
-  check("policy.certified", policy.certification_state === "CERTIFIED_TESTNET" || policy.certification_state === "CERTIFIED_DEMO" || policy.certification_state === "SHADOW_COMPARE", "provider_not_certified", "Policy is certified for its non-production environment or shadow compare.");
-  check("policy.production_impossible", truth.environment !== "LIVE" && route?.environment !== "LIVE" && policy.environment !== ("LIVE" as never), "production_environment_forbidden", "Phase 1F categorically forbids production.");
+  check("policy.certified", policy.certification_state === "CERTIFIED_TESTNET" || policy.certification_state === "CERTIFIED_DEMO" || policy.certification_state === "SHADOW_COMPARE" || policy.certification_state === "FORWARD_TEST" || policy.certification_state === "LIVE_APPROVED", "provider_not_certified", "Policy is certified for its non-production environment or shadow compare.");
+  check("policy.production_impossible", truth.environment === "LIVE" ? (route?.environment === "LIVE" && policy.environment === "LIVE" && policy.certification_state === "LIVE_APPROVED" && truth.live_permission_verified === true) : (route?.environment !== "LIVE" && policy.environment !== "LIVE" && policy.certification_state !== "LIVE_APPROVED"), "production_environment_forbidden", "Phase 1F categorically forbids production.");
   check("policy.rollback", policy.rollback_state === "NOT_ROLLED_BACK" && policy.certification_state !== "ROLLED_BACK", "adoption_rolled_back", "Rollback state prevents certified submission.");
   check("policy.route", policy.provider === plan.provider && policy.environment === truth.environment && policy.account_ids.includes(truth.account_id) && route?.account_id === truth.account_id && policy.execution_modes.includes(truth.execution_mode as "PAPER" | "TESTNET" | "DEMO"), "adoption_route_not_permitted", "Provider, environment, account and execution mode are explicitly allowed.");
   const customerAllowed = policy.customer_scope.mode === "ALL_AUTHORIZED" || Boolean(truth.customer_id && policy.customer_scope.customer_ids.includes(truth.customer_id));
@@ -207,7 +208,7 @@ function normalizedProviderStatus(provider: RiskDomain, raw: string, outcome: Pr
 
 function event(plan: DeepReadonly<ExecutionPlan>, attempt: number, sequence: number, type: ExecutionEventType, observedAt: string, source: string, details: Partial<ExecutionEvent> = {}): DeepReadonly<ExecutionEvent> {
   const role = details.planned_order_role ?? null, client = details.deterministic_client_id ?? null;
-  const body = { schema_version: EXECUTION_EVENT_VERSION, sequence, event_type: type, provider: plan.provider, account_id: plan.routing?.account_id ?? "unknown", environment: (plan.routing?.environment === "TESTNET" ? "TESTNET" : "DEMO") as "TESTNET" | "DEMO", correlation_id: plan.correlation_id, evaluation_id: plan.evaluation_id, execution_plan_id: plan.execution_plan_id, execution_attempt_number: attempt, planned_order_role: role, deterministic_client_id: client, provider_order_id: null, provider_position_id: null, request_timestamp: null, provider_timestamp: null, observed_timestamp: observedAt, raw_status: "NOT_APPLICABLE", normalized_status: type, quantity: null, filled_quantity: null, average_fill_price: null, fees: null, realized_slippage: null, provider_response_fingerprint: null, source_component: source, error: null, redacted_provider_evidence: {}, ...details } satisfies Omit<ExecutionEvent, "event_id">;
+  const body = { schema_version: EXECUTION_EVENT_VERSION, sequence, event_type: type, provider: plan.provider, account_id: plan.routing?.account_id ?? "unknown", environment: (plan.routing?.environment ?? "DEMO") as "TESTNET" | "DEMO" | "LIVE", correlation_id: plan.correlation_id, evaluation_id: plan.evaluation_id, execution_plan_id: plan.execution_plan_id, execution_attempt_number: attempt, planned_order_role: role, deterministic_client_id: client, provider_order_id: null, provider_position_id: null, request_timestamp: null, provider_timestamp: null, observed_timestamp: observedAt, raw_status: "NOT_APPLICABLE", normalized_status: type, quantity: null, filled_quantity: null, average_fill_price: null, fees: null, realized_slippage: null, provider_response_fingerprint: null, source_component: source, error: null, redacted_provider_evidence: {}, ...details } satisfies Omit<ExecutionEvent, "event_id">;
   return deepFreeze({ ...body, event_id: stableFingerprint({ plan: plan.execution_plan_id, attempt, sequence, type, role, client, observedAt, providerOrder: body.provider_order_id, normalized: body.normalized_status }) });
 }
 
@@ -306,4 +307,4 @@ export function bindFill(plan: DeepReadonly<ExecutionPlan>, fact: FillFact, poli
   return deepFreeze({ planned_quantity: order.quantity, filled_quantity: fact.filled_quantity, remaining_quantity: fact.remaining_quantity, average_fill_price: fact.average_fill_price, slippage: { amount: fact.average_fill_price - (order.price ?? plan.capital_allocation_plan.allocation!.entry_reference), unit: "PRICE" }, protection_quantity_ceiling: fact.filled_quantity, action: full ? "PROTECT_FULL_FILL" : policy.partial_fill_action === "PROTECT_FILLED_AND_CANCEL_REMAINDER" ? "CANCEL_REMAINDER_AND_PROTECT" : "WAIT" });
 }
 
-export interface ExecutionAdoptionControl { schema_version: typeof EXECUTION_CONTROL_VERSION; control_id: string; action: "DISABLE_ADOPTION" | "ENABLE_SHADOW_COMPARE" | "REQUEST_RECONCILIATION" | "HALT_SUBMISSION" | "ENABLE_PROTECTION_ONLY_RECOVERY" | "ROLLBACK_TO_LEGACY" | "ACKNOWLEDGE_INCIDENT"; provider: RiskDomain; environment: "TESTNET" | "DEMO"; account_id: string | null; requested_by: string; requested_at: string; authorization_reference: string; idempotency_key: string; audit_required: true; provider_confirmation_required: boolean; }
+export interface ExecutionAdoptionControl { schema_version: typeof EXECUTION_CONTROL_VERSION; control_id: string; action: "DISABLE_ADOPTION" | "ENABLE_SHADOW_COMPARE" | "REQUEST_RECONCILIATION" | "HALT_SUBMISSION" | "ENABLE_PROTECTION_ONLY_RECOVERY" | "ROLLBACK_TO_LEGACY" | "ACKNOWLEDGE_INCIDENT"; provider: RiskDomain; environment: "TESTNET" | "DEMO" | "LIVE"; account_id: string | null; requested_by: string; requested_at: string; authorization_reference: string; idempotency_key: string; audit_required: true; provider_confirmation_required: boolean; }

@@ -1,3 +1,6 @@
+import {resolveHubChat} from './telegram-hub.ts';
+import { loadPublishableSignal } from "./signal-publication-guard.ts";
+import {editorialDestinations} from './telegram-product.ts';
 /**
  * HashiBot Phase 7A-2A Root Telegram Router Service
  * Backend-owned central routing, delivery queue, idempotency engine, retry manager,
@@ -214,6 +217,18 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
   const botToken = getBotToken();
   const results: TelegramRouteResult[] = [];
 
+  if (event.editorial) {
+    const checked=validateEditorialPublication(event.editorial);
+    const channel=event.editorial.audience;
+    if(!checked.valid)return [{channel,chat_id:"blocked",status:"skipped",error_message:checked.reason}];
+    const {data,error}=await supabase.rpc("enqueue_canonical_lifecycle_event",{p_event_key:event.editorial.dedupe_key,p_event_type:"EDITORIAL",p_event_version:1,p_signal_id:null,p_execution_id:null,p_customer_id:null,p_account_id:null,p_occurred_at:event.editorial.generated_at,p_payload:{editorial:event.editorial},p_destinations:editorialDestinations(event.editorial)});
+    return [{channel,chat_id:"durable_queue",status:error?"failed":"queued",error_message:error?"EDITORIAL_QUEUE_UNAVAILABLE":undefined,delivery_id:typeof data==="string"?data:undefined}];
+  }
+  if (event.channels?.length===1 && event.channels[0]==="admin") {
+    const {data,error}=await supabase.rpc("enqueue_canonical_lifecycle_event",{p_event_key:buildIdempotencyKey(event,"admin"),p_event_type:"OPERATIONAL_INCIDENT",p_event_version:1,p_signal_id:null,p_execution_id:null,p_customer_id:null,p_account_id:null,p_occurred_at:event.runtime_timestamp??new Date().toISOString(),p_payload:{details:event.text??event.reason??event.event_type,event_type:event.event_type,source:event.source},p_destinations:["admin"]});
+    return [{channel:"admin",chat_id:"durable_queue",status:error?"failed":"queued",error_message:error?"ADMIN_QUEUE_UNAVAILABLE":undefined,delivery_id:typeof data==="string"?data:undefined}];
+  }
+
   if (/agent/i.test(event.source ?? "") && !event.editorial) {
     const channel = event.channels?.[0] ?? "admin";
     const key = buildIdempotencyKey(event, channel);
@@ -223,6 +238,27 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
 
   const { defaultVisibility } = categorizeEvent(event.event_type);
   const visibility = event.visibility || defaultVisibility;
+  const destinations = event.channels?.length ? event.channels : channelRegistry.getChannelsForVisibility(visibility);
+  const publicDestinations = destinations.filter(channel => channel === "free" || channel === "vip");
+  if (publicDestinations.length && !event.editorial) {
+    // Legacy callers cannot send text or bypass the durable queue and qualification gate.
+    const initialSignal = /^(NEW_SIGNAL|SIGNAL|SIGNAL_QUALIFIED|SIGNAL_CREATED|AUTO_SIGNAL|INITIAL_SIGNAL|FREE_SELECTED_SIGNAL)$/i.test(event.event_type);
+    if (!initialSignal || !event.signal_id) return publicDestinations.map(channel => ({ channel, chat_id: "blocked", status: "skipped" as const, error_message: "CANONICAL_PUBLICATION_OR_EDITORIAL_REQUIRED" }));
+    try {
+      const signal = await loadPublishableSignal(supabase, event.signal_id);
+      for (const channel of publicDestinations) {
+        const destination=channel==="vip"?(String(signal.market_type).toLowerCase()==="crypto"?"vip_crypto":"vip_forex_gold"):channel;
+        const { error } = await supabase.from("signal_publication_work").insert({ signal_id: signal.id, entity_type: "signal", entity_id: signal.id, event_type: "SIGNAL_QUALIFIED", event_version: 1, destination, event_key: `signal:${signal.signal_identity}:${channel}` });
+        if (error) {
+          const { data: existing, error: lookupError } = await supabase.from("signal_publication_work").select("id").eq("entity_type", "signal").eq("entity_id", signal.id).eq("event_type", "SIGNAL_QUALIFIED").eq("event_version", 1).eq("destination", destination).maybeSingle();
+          if (lookupError || !existing) throw Error("PUBLICATION_QUEUE_UNAVAILABLE");
+        }
+      }
+      return publicDestinations.map(channel => ({ channel, chat_id: "durable_queue", status: "queued" as const }));
+    } catch (error) {
+      return publicDestinations.map(channel => ({ channel, chat_id: "blocked", status: "skipped" as const, error_message: error instanceof Error ? error.message : "QUALIFICATION_UNAVAILABLE" }));
+    }
+  }
 
   if (visibility === "NO_TELEGRAM") {
     return results;
@@ -275,7 +311,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     severity: String(event.severity ?? "LOW"),
     details: event.text ?? (event.payload?.details as string) ?? undefined,
     timestamp: event.runtime_timestamp ?? new Date().toISOString(),
-    publicationMode: event.publicationMode ?? "full",
+    publicationMode: event.publicationMode ?? "preview",
   };
 
   for (const channelKey of rawChannels) {
@@ -316,7 +352,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
         event.signal_id,
         evalRes.decision,
         evalRes.reason,
-        event.publicationMode ?? "full",
+        event.publicationMode ?? "preview",
         candidate
       );
 
@@ -350,7 +386,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
     }
 
     const destination = channelRegistry.getDestination(channelKey);
-    const chatId = destination?.chatId || "";
+    const chatId = channelKey==='free'||channelKey==='admin'?await resolveHubChat(supabase,channelKey==='free'?'FREE':'ADMIN',destination?.chatId||''):destination?.chatId||'';
     const idempotencyKey = buildIdempotencyKey(event, channelKey);
 
     // 4. Missing Token or Destination Config
@@ -449,7 +485,7 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
         }
       } catch (e) {
         sendSuccess = false;
-        lastError = e instanceof Error ? e.message : "Network error";
+        lastError = (e instanceof Error ? e.message : "Network error").replace(/https?:\/\/\S+/g, "[redacted]");
         const nextAttempt = new Date(Date.now() + 5000).toISOString();
         const deliveryId = await recordDeliveryTruth(supabase, event, channelKey, chatId, "retry_pending", idempotencyKey, lastError, "", 1, nextAttempt, 5);
         results.push({ channel: channelKey, chat_id: chatId, status: "retry_pending", error_message: lastError, delivery_id: deliveryId, idempotency_key: idempotencyKey });

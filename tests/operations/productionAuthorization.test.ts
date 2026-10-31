@@ -4,6 +4,7 @@ import {authorizeCanonicalAccountSignal} from '../../supabase/functions/_shared/
 import {assertCompleteProductionContext} from '../../supabase/functions/_shared/observed-account-policy-evidence';
 import {input as base} from './support/accountPolicyFixture';
 import {upstream,mt5Spec,policy,capabilities} from './support/planningFixture';
+function journal(x:any){return (table:string)=>{if(table!=='signal_updates')throw Error('HISTORY_UNAVAILABLE');const q:any={select:()=>q,eq:()=>q,order:()=>q,limit:()=>q,maybeSingle:async()=>({data:{signal_id:x.signal.id,new_status:'active',price:x.signal.entry_low,reason:'candle_entry_trigger',created_at:'2026-09-25T12:00:00Z'},error:null})};return q}}
 function fixture(){
  const input=base(),at=input.evaluatedAt,account=input.account,signal=input.signal,strategy=upstream('MT5_PERSONAL','forex',{stop:1.095,tp1:1.11,tp2:1.12}).approved_strategy_plan.strategy_plan;
  const context={...input.context,provider_contract:mt5Spec('MT5_PERSONAL')};
@@ -11,11 +12,11 @@ function fixture(){
  strategyPlan.entry_plan.expires_at='2026-09-25T12:05:00Z';strategyPlan.provenance.evaluated_at=at;
  strategyPlan.identity.strategy_id=signal.strategy_id;strategyPlan.identity.strategy_version='1.0.0';strategyPlan.provenance.measured_release_id='release';strategyPlan.provenance.evaluated_parameters={};
  const set={version:'qualified-strategy-set/v1',id:'FOREX_PERSONAL_QUALIFIED_SET',setVersion:'set-v1',product:'PERSONAL',researchPolicyVersion:'v1',entries:[{strategyId:signal.strategy_id,strategyVersion:'1.0.0',configId:'cfg',configVersion:'1',qualificationStatus:'FORWARD_VALIDATION_CANDIDATE',supportedSymbols:['EURUSD'],supportedTimeframes:['15m'],strategyParameters:{}}]};
- return {at,x:{measured_release:{id:'release',state:'PROMOTED',strategy_id:signal.strategy_id,configuration_hash:'release-hash',immutable_configuration:{strategies:[{id:signal.strategy_id,enabled:true,symbols:['EURUSD'],timeframes:['15m'],parameters:{}}]}},account:{id:account.id,customer_id:account.customerId,immutable_identity:account.immutableIdentity,provider:'MT5_PERSONAL',environment:'demo',account_mode:'PERSONAL',enabled:true,execution_enabled:true,runtime_control:'START',policy_profile_id:account.policyProfileId,policy_version:account.policyVersion,policy_preset:'BALANCED',policy_overrides:{policy_configuration:{...input.configuration,lossResponse:undefined}}},signal:{id:signal.signal_id,...signal,strategy_version:'1.0.0',entry_low:signal.entry_price,status:'waiting',expires_at:'2026-09-25T12:05:00Z'},policy:input.basePolicy,context,observed_at:at,contract:mt5Spec('MT5_PERSONAL'),routing_policy:policy('MT5_PERSONAL'),capabilities:capabilities('MT5_PERSONAL'),strategy_plan:strategyPlan,qualified_set:set,provisioning:{state:'ACTIVE',qualified_set_id:set.id,qualified_set_version:set.setVersion},connection:{state:'CONNECTED',capabilities:{trading:true}},assignment:{policy_version:account.policyVersion},pending_orders:0,entitlement:{state:'ACTIVE',expiresAt:null},product:'FOREX_PERSONAL',evidence_hash:'database-loaded-fingerprint'}};
+ return {at,x:{measured_release:{id:'release',state:'PROMOTED',strategy_id:signal.strategy_id,configuration_hash:'release-hash',immutable_configuration:{strategies:[{id:signal.strategy_id,enabled:true,symbols:['EURUSD'],timeframes:['15m'],parameters:{}}]}},account:{id:account.id,customer_id:account.customerId,immutable_identity:account.immutableIdentity,provider:'MT5_PERSONAL',environment:'demo',account_mode:'PERSONAL',enabled:true,execution_enabled:true,runtime_control:'START',policy_profile_id:account.policyProfileId,policy_version:account.policyVersion,policy_preset:'BALANCED',policy_overrides:{policy_configuration:{...input.configuration,lossResponse:undefined}}},signal:{id:signal.signal_id,...signal,strategy_version:'1.0.0',entry_low:signal.entry_price,status:'active',expires_at:'2026-09-25T12:05:00Z'},policy:input.basePolicy,context,observed_at:at,contract:mt5Spec('MT5_PERSONAL'),routing_policy:policy('MT5_PERSONAL'),capabilities:capabilities('MT5_PERSONAL'),strategy_plan:strategyPlan,qualified_set:set,provisioning:{state:'ACTIVE',qualified_set_id:set.id,qualified_set_version:set.setVersion},connection:{state:'CONNECTED',capabilities:{trading:true}},assignment:{policy_version:account.policyVersion},pending_orders:0,entitlement:{state:'ACTIVE',expiresAt:'2026-09-26T12:00:00Z'},product:'FOREX_PERSONAL',evidence_hash:'database-loaded-fingerprint'}};
 }
 test('production producer evaluates the assigned Brain and persists exact quantity before exposing a plan',async()=>{
  const {x,at}=fixture();let saved:any;
- const db={rpc:async(name:string,args:any)=>{if(name==='load_production_account_authorization_input')return{data:x};saved=args;return{data:{decision:args.p_decision.decision,execution_plan:args.p_execution_plan}}}};
+ const db={from:journal(x),rpc:async(name:string,args:any)=>{if(name==='load_production_account_authorization_input')return{data:x};saved=args;return{data:{decision:args.p_decision.decision,execution_plan:args.p_execution_plan}}}};
  const result=await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'request'},at);
  assert.equal(result.decision,'ALLOW',JSON.stringify(saved.p_decision));assert.equal(saved.p_decision.authorizedRiskPct,1);
  assert.equal(saved.p_execution_plan.status,'PLANNED');assert.equal(saved.p_execution_plan.risk_decision.decision_id,saved.p_decision.decisionId);
@@ -25,13 +26,13 @@ test('production producer evaluates the assigned Brain and persists exact quanti
 test('incomplete context, stale evidence and missing history record BLOCK without an execution plan',async()=>{
  for(const mutate of [(x:any)=>x.context=null,(x:any)=>x.observed_at='2026-09-24T12:00:00Z',(x:any)=>x.account.policy_overrides.policy_configuration.lossResponse=base().configuration.lossResponse]){
  const {x,at}=fixture();mutate(x);let saved:any;
- const db={rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:args.p_decision})};
+ const db={from:journal(x),rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:args.p_decision})};
  const result=await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'request'},at);
  assert.equal(result.decision,'BLOCK');assert.equal(saved.p_execution_plan,null);assert.equal(saved.p_decision.executionIntent,null);
  }
 });
 test('failed durable commit cannot report an authorization success; partial market context is rejected',async()=>{
- const {x,at}=fixture();await assert.rejects(authorizeCanonicalAccountSignal({rpc:async(name:string)=>name==='load_production_account_authorization_input'?{data:x}:{error:{message:'offline'}}},{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'request'},at),/NOT_PERSISTED/);
+ const {x,at}=fixture();await assert.rejects(authorizeCanonicalAccountSignal({from:journal(x),rpc:async(name:string)=>name==='load_production_account_authorization_input'?{data:x}:{error:{message:'offline'}}},{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'request'},at),/NOT_PERSISTED/);
  assert.throws(()=>assertCompleteProductionContext({...x.context,news_state:undefined} as any,{customerId:'customer-a',accountId:'a1',provider:'MT5_PERSONAL',observedAt:at},Date.parse(at)),/CONTEXT_REQUIRED/);
 });
 
@@ -61,17 +62,28 @@ test('MT5 observed positions use the bridge quantity field and reject a changed 
 
 test('higher MT5 broker buying power does not override the lower authorized leverage ceiling',async()=>{
  const {x,at}=fixture();x.context.leverage=100;let saved:any;
- const db={rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
+ const db={from:journal(x),rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
  const result=await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'broker-leverage'},at);
  assert.equal(result.decision,'ALLOW',JSON.stringify(saved.p_decision));assert.ok(saved.p_decision.executionIntent.positionPlan.leverage<=x.policy.max_leverage_allowed);
 });
 
 test('production sizing consumes the observed tick value and cannot round a small risk up to the broker minimum',async()=>{
  const {x,at}=fixture();x.contract.tick_value_account_currency=2;x.context.provider_contract=x.contract;let saved:any;
- const db={rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
+ const db={from:journal(x),rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:{decision:args.p_decision.decision}})};
  await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'tick-risk'},at);
  assert.equal(saved.p_decision.decision,'ALLOW');const plan=saved.p_decision.executionIntent.positionPlan;
  assert.ok(plan.quantity*Math.abs(plan.entry_price-plan.stop_loss)/x.contract.tick_size*x.contract.tick_value_account_currency<=x.context.balance*saved.p_decision.authorizedRiskPct/100+1e-6);
  x.contract.minimum_lot=100;
  await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'min-lot'},at);assert.equal(saved.p_decision.executionIntent,null);
+});
+
+
+test('dispatch revalidation consumes current provider evidence and rejects paused, expired, changed-contract and cross-account plans',async()=>{
+ const {currentAccountAdoptionTruth}=await import('../../supabase/functions/_shared/account-adoption-truth');
+ const {x,at}=fixture();let saved:any;const db={from:journal(x),rpc:async(name:string,args:any)=>name==='load_production_account_authorization_input'?{data:x}:(saved=args,{data:args.p_decision})};
+ await authorizeCanonicalAccountSignal(db,{customerId:'customer-a',accountId:'a1',signalId:'canonical-phase-c-1',idempotencyKey:'dispatch'},at);
+ const current:any={...x,account:{...x.account,is_operational:true,provider_health:'HEALTHY'}};
+ const truth=currentAccountAdoptionTruth(current,saved.p_execution_plan,Date.parse(at));assert.equal(truth.available_margin,x.context.free_margin);assert.equal(truth.account_id,x.account.id);assert.equal(truth.conflicting_position,false);
+ for(const change of [(y:any)=>y.account.runtime_control='PAUSE_NEW_ENTRIES',(y:any)=>y.entitlement.expiresAt=at,(y:any)=>y.contract.tick_size=999,(y:any)=>y.account.customer_id='another-customer',(y:any)=>y.context.updated_at='2026-09-24T12:00:00Z']){
+ const y=structuredClone(current);change(y);assert.throws(()=>currentAccountAdoptionTruth(y,saved.p_execution_plan,Date.parse(at)));}
 });

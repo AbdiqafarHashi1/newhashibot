@@ -1,3 +1,4 @@
+import {Link} from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { listScannerRunsCompact } from '../../lib/hashibotBackend';
@@ -76,9 +77,8 @@ export default function ScannerStatus() {
         </button>
       </div>
 
-      <SchedulerProofDebug state={state} />
-
-      <PhaseLValidationPanel />
+      <nav className="mb-4 flex flex-wrap gap-4 text-sm text-cyan-300"><Link to="/admin/scanner-config">Scanner settings →</Link><Link to="/admin/strategies">Strategy settings →</Link><Link to="/admin/telegram?tab=setups">Paper setups &amp; asset watches →</Link><Link to="/admin/providers/mt5">MT5 Forex feed →</Link></nav>
+      <details className="mb-4 rounded-xl border border-zinc-800 p-4"><summary>Advanced scanner diagnostics</summary><SchedulerProofDebug state={state}/><PhaseLValidationPanel/></details>
 
       {!loadingAny && (
         <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">

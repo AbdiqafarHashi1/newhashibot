@@ -1,0 +1,32 @@
+name: Read-only broker research data
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/research/iteration2/download-broker-development.py'
+      - '.github/workflows/research-broker-data.yml'
+permissions:
+  contents: read
+concurrency:
+  group: broker-research-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  development-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify strict archive decoder
+        run: python3 tests/research/brokerArchive.test.py
+      - name: Download and validate public development history
+        run: python3 scripts/research/iteration2/download-broker-development.py --output /tmp/hashibot-broker-development
+      - name: Preserve data and actual source health
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: broker-development-${{ github.sha }}
+          path: /tmp/hashibot-broker-development
+          retention-days: 7

@@ -60,3 +60,14 @@ NOT VERIFIED:
 6. Validate shadow observation separately from real demo fills/protection/reconnect/closure. Live execution stays disabled.
 
 No remote SQL, schedules, messages, payments, provider orders or production activation were performed.
+
+
+## Altcoin relative strength research candidate
+
+In Scanner pipeline, select **Altcoin relative strength · research only**. Use native Binance USD-M 15m datasets: BTCUSDT as reference, plus one to three of BNB, SOL, XRP, ADA, DOGE, LINK, AVAX, LTC, BCH, NEAR or TRX (all quoted USDT). The existing Download page now lists this entire fixed universe. Do not substitute spot data or fabricate quote volume.
+
+The downloaded range must begin at least ten days before the replay Start. Choose Extended historical window for month-long batches; existing 10,000-cycle / 12,000-candle research bounds, time slices, quotas and cancellation still apply. BTC is reference-only and does not consume trading cycles. Three alts over one month fit this bound; the full eleven-asset quarter requires separate bounded jobs. Those jobs do not constitute one continuous portfolio.
+
+The server freezes 25 bps total assumed round-trip costs (fees 10, spread 2, slippage 4, funding 9), next 15m open, full 3R target, no partial exit/breakeven/trailing, conservative collisions and 96 native bars maximum. Funding is an assumption, not an observed funding payment. Hourly triggers use only already-closed aligned BTC and alt candles. The production registry, qualification, arbitrator and active-signal policy still apply. Results and exports remain isolated simulations. The new candidate cannot be promoted through measured release because its immutable configuration is research-only.
+
+For Forex, use the dedicated owner-controlled MT5/HashiBridge history feed. Request genuine history through Data download, verify stored coverage, then run existing registered Forex evaluators. Broker retention and terminal settings can limit available history; incomplete coverage must remain PARTIAL. Genuine UTC exports with instrument/source/timeframe and spread provenance are the fallback. Credentials and execution-account connections are not historical-performance evidence. No Forex execution is required to acquire scanner history.

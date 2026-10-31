@@ -46,7 +46,7 @@ export default function Dashboard() {
   const load = useCallback(async function load() {
     if (!user) return;
     const [subRes, pkgRes, sigRes, tgRes, reqRes, setupRes] = await Promise.all([
-      supabase.from('customer_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.rpc('my_release1_customer_subscription'),
       supabase.from('packages').select('*').order('sort_order'),
       supabase.from('signals').select('*').in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(6),
       supabase.from('telegram_links').select('*').eq('user_id', user.id).maybeSingle(),

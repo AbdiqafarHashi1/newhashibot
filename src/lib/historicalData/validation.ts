@@ -7,6 +7,7 @@ export const TIMEFRAME_MS: Record<HistoricalTimeframe, number> = {
 
 export function missingRanges(bars: CanonicalCandle[], from: number, to: number, timeframe: HistoricalTimeframe, isExpected: (timestamp:number)=>boolean=()=>true): HistoricalRange[] {
   const step = TIMEFRAME_MS[timeframe];
+  from=Math.ceil(from/step)*step;to=Math.floor(to/step)*step;
   const present = new Set(bars.filter(b => b.timestamp >= from && b.timestamp <= to).map(b => b.timestamp));
   const result: HistoricalRange[] = [];
   let start: number | undefined;

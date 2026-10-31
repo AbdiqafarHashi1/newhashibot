@@ -1,0 +1,1907 @@
+{
+  "protocol": {
+    "schema": "crypto-signal-ensemble/v1",
+    "declaredOn": "2026-10-28",
+    "objective": "Four complementary release candidates, positive net/stress results and measured combined participation. No forced signals, no claimed approvals before gates pass.",
+    "roles": [
+      "TREND_PULLBACK",
+      "VOLATILITY_BREAKOUT",
+      "EXHAUSTION_REVERSAL",
+      "RELATIVE_MOMENTUM"
+    ],
+    "development": {
+      "from": "2025-01-11T00:00:00.000Z",
+      "until": "2026-01-01T00:00:00.000Z"
+    },
+    "validation": {
+      "from": "2026-01-01T00:00:00.000Z",
+      "until": "2026-07-01T00:00:00.000Z"
+    },
+    "scope": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT"
+    ],
+    "disclosure": "Fixed new hypotheses after the documented legacy and coordinated-role failures. Calendars and assets have been observed extensively elsewhere in the project; not project-wide untouched validation. Exactly one parameter set per role, no P&L sweep. Development-only eligibility freezing, then unchanged validation. All losers retained.",
+    "data": "Official vendor-checksummed Binance USD-M native15m with quote/taker evidence;960closed bars plus aligned BTC reference. Never manufacture H4 bars from incomplete groups. All15m closes are eligible, not only hourly boundaries.",
+    "entries": {
+      "TREND_PULLBACK": "Closed H4 EMA8/21 direction and strength>=0.35ATR; native EMA20/50 alignment, five-bar pullback and current reclaim, directional candle body>=0.25ATR and quote volume>=prior20 mean.",
+      "VOLATILITY_BREAKOUT": "Prior32nativebar channel break+0.1ATR; prior8mean range<=0.9ATR; volume>=1.5prior20; body>=0.5ATR; H4 not opposing.",
+      "EXHAUSTION_REVERSAL": "H4 strength<=0.75ATR; pierce prior20/2sigma band then close back inside, directional candle and prior RSI2<15/>85, observed taker quote flow confirms reversal. Target prior mean, minimum0.8R.",
+      "RELATIVE_MOMENTUM": "Native24h asset move>=3%, outperform BTC by>=2pp and same-sign7d return; BTC day direction aligned, break prior24h high/low and volume>=1.5prior20. Long and short mirror are new hypothesis, not old alt-rule certification."
+    },
+    "management": "Wider of structural invalidation/2nativeATR14; minimum0.8% stop, maximum6%; target3R except mean-reversion mean target>=0.8R; full target/no partial/BE/trail;96nativebars max; stop-first; next-open; gaps excluded. One active underlying symbol, max3 concurrent signals, observed-close release.",
+    "costBps": {
+      "feeBps": 10,
+      "spreadBps": 2,
+      "slippageBps": 4,
+      "fundingBps": 9
+    },
+    "stressMultiplier": 1.5,
+    "gates": {
+      "developmentResolved": 50,
+      "validationResolved": 30,
+      "netPF": 1.2,
+      "stressPF": 1,
+      "positiveMean": true,
+      "minimumEligibleAssets": 2,
+      "minimumAssetDevelopmentResolved": 10,
+      "assetDevelopmentNetPF": 1.1,
+      "maxSingleAssetProfitFraction": 0.7,
+      "combinedMeanSignalsPerDay": 1,
+      "combinedActiveDayFraction": 0.7
+    },
+    "calibration": "Every development asset is reported. Eligible scope freezes only from prior development count/netPF/positive stress; no validation P&L asset pruning. Old failed gates are not relabelled as passed. Any promotion still requires controlled later holdout/release review and deployment authority; live execution remains disabled.",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "sourceHashes": {
+    "scripts/research/signal-ensemble/study.ts": "d2aca2ffef9a9b8499a9a74ea5f7c63315d0ad124052d70538b23b536f757602",
+    "scripts/research/signal-ensemble/protocol.json": "a72c7dcf27aeaba12002e0a7ea0b1edf5f8bfdb8b7b35dd4408f7b6c417322a7",
+    "supabase/functions/_shared/crypto-signal-ensemble.ts": "f07cc49245035ed5bfdb115626c44fe710d66f5f7d4624968faf77c3744cf203",
+    "supabase/functions/_shared/crypto-signal-ensemble-contract.ts": "6c745b4e419d205f66d874bb598c0ff5876de5e78c2b859231d4d072818eef3c",
+    "supabase/functions/_shared/active-validation-runtime.ts": "4e11e34584d749bc2739a0fb4c8451b6a5f9462b78c320048a1dcac8d6c17b83",
+    "supabase/functions/_shared/active-scanner-core.ts": "b5151b97b92066635e4e5e7f061df3828d3189a24ca45bc69d6a9f56509cdba8",
+    "supabase/functions/_shared/scanner-market-context.ts": "da8fa4047ebdfd04686ae6122841a489e5b493282909f69b6844947c09a5a918",
+    "supabase/functions/_shared/phase-l-validation.ts": "25b8e84a89ed1d4fcba72eab923c97b79d14adb4c44e34a171bdb67786644db1",
+    "supabase/functions/_shared/active-qualification.ts": "69c91854eb99ebed0e3dfd01c12f5dced3c0414128cd3cbda25581d3ce3011c4",
+    "supabase/functions/_shared/indicator-engine.ts": "9347360f7a7f8b0867a99ebef57f91b747a2dfa2f7687b520d2b12f0cfa24104",
+    "supabase/functions/_shared/professional-strategies.ts": "226a4aa52a9efb275364e51fc52496c24c446191cc83b2192f8c56f1b043ebcc",
+    "supabase/functions/_shared/arbitrator.ts": "147f0f421e6dae22c7495c2c2a27226dad47937ba57289f66b169787cfaed758",
+    "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867",
+    "supabase/functions/_shared/replay-outcomes.ts": "51ab1dec93eab0471ff704c2f0be1573e6489a013a4def6523b51a811ac7b7e9",
+    "supabase/functions/_shared/scanner-replay-lifecycle.ts": "d48e83024963db3a9785ee2f41ec87ae19d1bcdb51c6b56a29106639262476bc"
+  },
+  "sources": [
+    {
+      "name": "BTCUSDT-15m-2025-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-01.zip",
+      "rawSha256": "0867b0b8e22069621de45df42cc49a8df1b8217cf777529b1df6d43253927588",
+      "datasetSha256": "4c4af4893381b66dca80f6d14167ac68d21e6c6b71e6579f18cbedeff3f095b4",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-02.zip",
+      "rawSha256": "44280cf80923ec6ee42e28e4606723b2f36909eab5c334ee5aee132ff989f12b",
+      "datasetSha256": "50b6ada11d1d45bdf67050f5d7494a54f54d0a534b3ddc84beb9250f189a04bc",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-03.zip",
+      "rawSha256": "aea345f1561a16710812658f2d435f0e02de5fc25d7ba8ad821526d67b2ab229",
+      "datasetSha256": "7d799c06a26d7ec571fce190965e5ac75ea178b62b612a46ef6f6c24b44f4c22",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-04.zip",
+      "rawSha256": "6a5166823a9e80e25f520a8e7e26f34550c975e26bd1c5bb95a20d530b89bfa5",
+      "datasetSha256": "baf9b4146f0ff32bda6fec57f8a1a8a15d0c1adb7bc1997f31adeb41daac60fd",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-05.zip",
+      "rawSha256": "303a174c2d15248fe00342ac2b01bec41bb4e11c4a5d26d480e2a382808bc020",
+      "datasetSha256": "55eda5059ccb226115a4f6551cbb1e1bcfb221cec221220b5ca4a9d4c61cd443",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-06.zip",
+      "rawSha256": "4c980922647b630dbf146cb80934776930f8b4a9b419967710ecb8ce398e036d",
+      "datasetSha256": "e90531097cbd4b786db7208c624652390b42a0cb357333fa7cdd1cc8c43fd152",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-07",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-07.zip",
+      "rawSha256": "dd5bb32a02e5a3dc93717530abe572f41e1bc50b920daad6e226bb6024e52b51",
+      "datasetSha256": "c1f754e5b17ba1cf8ffdef92499052cd69595787612736934b064ce118fe691e",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-08",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-08.zip",
+      "rawSha256": "b8965932ae4008e4f1f8ec1ed344f11fbd1f743b44679dacfab665f05414aced",
+      "datasetSha256": "9997acd7c7dd1a3b05ff86184c8eef262a5b71efa30e395f2b34b7cccd4ab97d",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-09",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-09.zip",
+      "rawSha256": "fcfe6d1c17890b82788b13707bbdc99694361f701a49f15347c8f0e85e55fd1f",
+      "datasetSha256": "2cfcddb4c3dc622f32a1fcefb10cbe235595ffe7c1f277357b1b4728890769f9",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-10",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-10.zip",
+      "rawSha256": "14f11249137327f5ecadfaceab1eea9ba87f819298af645998fc9bd2cde02b77",
+      "datasetSha256": "a4c6ae74cd533f8ef18b8b4889a872e32d17153de9d424a5dd198b64023747bf",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-11",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-11.zip",
+      "rawSha256": "66c714d54807c313814d0aef6ee2ef21e07e311605b47c23ae32978c721a4b23",
+      "datasetSha256": "cf3800976cec2432a290153a551c7727ac60747bb39517a58870dad3fab9b6c3",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2025-12",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-12.zip",
+      "rawSha256": "d497e319364b0c13a0cd59e0192568ea1542e8f430844046189a8cf534895805",
+      "datasetSha256": "ea7de495147f0b9a14274e179ecc3fbb3d1af023a053bbda31715b41d438c8ba",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2026-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-01.zip",
+      "rawSha256": "065fc8cf21f51ad6bd043fa670ba2dbc8c6030efd5dff63d5d4a9d99e0b88d0b",
+      "datasetSha256": "6b38da4e11bbb4d5494e7f6b6de08f27b026c1662f1025253a4d4dd91dd9ab47",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2026-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-02.zip",
+      "rawSha256": "983c066f0cf0171466e89d7596433f5ac717ea8c805fe5b650a83b3176cd92c1",
+      "datasetSha256": "963a18b7aa2e7728e6ca9930b3e61906cdb9b9066012e7669513201402fa4e50",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2026-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-03.zip",
+      "rawSha256": "ea25e84ddffdcc8b7ba68fb47363daee6a9ef53941f152c9ebf6d4e165d32bf8",
+      "datasetSha256": "bc6d18c365e402196b2327df4aa082f4746a12f2a0ab28dba0652b2f4856d486",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2026-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-04.zip",
+      "rawSha256": "0bc151133aa47be76f535539e25c04970bd6d0afd54e532951638dc8330fcc58",
+      "datasetSha256": "3dac1ee47ca0c58cf559d5ad5b6aa27a166fa0b72ce126df3d3dad8e270e06d0",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2026-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-05.zip",
+      "rawSha256": "1c0a865f62ddca9890f5d7bbe901b7261a3818785594d960f5fce36ee7ce81f5",
+      "datasetSha256": "57098314087300e5d09a5af398ac5cf850ebb37cc2657c46e1620fd48876327d",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BTCUSDT-15m-2026-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-06.zip",
+      "rawSha256": "54369ae74f8122e0d3c8152807f78ec3ced435a8b0ab59c5efcea2cbad878857",
+      "datasetSha256": "c1b2d288db6b301b2a1f346804b74203f09a4a45146c2ffbea3166881f9bd313",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-01.zip",
+      "rawSha256": "e4583eaeb9f60a36f51edc0c420c5dae46ada08a95a2e187cc37a6d4ca01da2c",
+      "datasetSha256": "2133c6da23a7388db0f1a8339f3514b78ba5e01fe347fe90404d0987155eb674",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-02.zip",
+      "rawSha256": "0ffea7062a8ddcce2cc352a37f0329cdb172cab2128da90f00d4e4faa276e70b",
+      "datasetSha256": "71d2dabb1c7f7c3bf8ac0e28cc9182d74af5221461c37cec7bd934ba12609697",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-03.zip",
+      "rawSha256": "b85a8fdf1e969d04b4035672b2f3e04e42dfbadf2697e103f1ce8556c9df33ba",
+      "datasetSha256": "e6db7378e98b99d9066a80a63ffee878a7e5308b669ec5c7ba649cf9bdc847ee",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-04.zip",
+      "rawSha256": "e0425f5d963857b2a66ed2a5a8da635182633a33d8388c723fe9e255ae9e783a",
+      "datasetSha256": "1a976ab51194c42a1408e155ecfa148167422ac9344d9d9ca263f9b31016da29",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-05.zip",
+      "rawSha256": "08a8b62945c67b1c6cb7852290865421033e6b629585d222d0120927938b3c0e",
+      "datasetSha256": "bb13beced75e3b591dc291c1838b298f7b1072432c55d3a15ec1f3ec9ed5673f",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-06.zip",
+      "rawSha256": "9cf0b46281a62106d755ca9ee79b91b456dd71fad45f9e63d967f1e59fe44955",
+      "datasetSha256": "246f0a2e94d48788f60ec0fe96e9151c88057f448ddbcd8ebe061f8297bb6c9f",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-07",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-07.zip",
+      "rawSha256": "474a1539ea3341ecd1225144d447a0e465a5bdf104a773d1466b2a69b9b285a9",
+      "datasetSha256": "babb9101a7115016f143128ae9454aad80a30d10f11390951829a695c5350905",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-08",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-08.zip",
+      "rawSha256": "22be96c56c387830ba231b125faef3d5dca790d5bba400be1c7943e76828859f",
+      "datasetSha256": "ad0ff63081f8f0df05b624d0d7a59a54615287be49d9709d51df769e9df39950",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-09",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-09.zip",
+      "rawSha256": "a13d3ec67f1d3a3a0f64958c0ebf44408f586c0763b98ad61d5a053b38e4140b",
+      "datasetSha256": "252454c28ddd9906e81004639331c356aabee65673a413aacc56318ea7987787",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-10",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-10.zip",
+      "rawSha256": "791ea1d15568f9654251e133166b5811ed9dd2a870d0430a1f770ae1d4be9634",
+      "datasetSha256": "343f85cee49ab84c6b585231c3a1c241f7a36c735aa3ec8609ff8cfbbf423834",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-11",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-11.zip",
+      "rawSha256": "c990b42346cfa801272495c3eab589298df0f53df7bf503b64c6407c8148e87e",
+      "datasetSha256": "b775f049583e6ba0e81bb206ce0154549f895c52241bd80077554071c9268364",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2025-12",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2025-12.zip",
+      "rawSha256": "976ec3149859d3dfcb1fad77e61765fa54e515b16191c0acc068c68a8410f344",
+      "datasetSha256": "a9a8d122ab0dd706591e423e8999ec72dd48f5ce84a500460e84f9ea96c579a3",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2026-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-01.zip",
+      "rawSha256": "447a9db9356fac7d162cf485d5ac4488a587dc053ac0a59f35f24cae84e6403d",
+      "datasetSha256": "d37c1840299bbf405cc177dd58a9802501b0162032238e633bfe41d908ff5d50",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2026-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-02.zip",
+      "rawSha256": "71de116aeb4643bad5eba4537673f1b1aea22f33064780bf6fa636429f63415a",
+      "datasetSha256": "c37b9a74091391d0bb312c54b6b23eac4e7f01257d731adb337fbcc55d2ceb7e",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2026-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-03.zip",
+      "rawSha256": "8070870b512ab7c312329a7fc1a45217fc7aff5ed7bbb4f805d96caf7c99fd5d",
+      "datasetSha256": "67a627933fc1afa8836b2865801d79552da1668d0ccf7551d0566a53fd971bb6",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2026-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-04.zip",
+      "rawSha256": "d9974b77eb5b1b37c1b6b82f064a4edbb8c0b2a0531fbee487e3a34e519da6be",
+      "datasetSha256": "e52708fbb41d8b9c9a9c88a5bf840fc5378a1b3aee946f0d996f10fa2e637749",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2026-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-05.zip",
+      "rawSha256": "3db40bf90a856aa0977bcac53c46750c174b58c9e0a438ea9803948e81d42260",
+      "datasetSha256": "f6ae3e44e2f309e5197762ec4c156f2ba57850020515ef5ad805718f729f62df",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "ETHUSDT-15m-2026-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-06.zip",
+      "rawSha256": "d4d7c7087b6813c219c39c1cfcb7b3f5c493551b94d33a8d7c6ee0b7201f010a",
+      "datasetSha256": "d6143830e3624f6774c0f073b6ca21271d78b5ea487280f482a52ba314f53099",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-01.zip",
+      "rawSha256": "7a9c38e1f06ef095d03e010d64aaa96e0dad8a796c5110c5454962f6a2a7ad46",
+      "datasetSha256": "44d22702cf57fb4740f320d65d1ce887285217b4d8902f63a7cd0d0eb0aa01b7",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-02.zip",
+      "rawSha256": "7cfd5e89d91ae26524ea303a98be84f20f3007038e751cd165a68acb1df0f917",
+      "datasetSha256": "3bc399857204f2e8b2868b1a5c75862295964f331d1b17c7d0c8b892f131540e",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-03.zip",
+      "rawSha256": "fba01faac3d0bf1af389c8faa1e510753c237b18085280558a13b13986f64402",
+      "datasetSha256": "34b4ebf32ba62dbd71d2aef0bf94d604f62ff8c7ac339c30c28acdfef735bdb0",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-04.zip",
+      "rawSha256": "1027448261aacfb1652b55a8212e0b8700b511d33b44e2a45be4de1f347d89d5",
+      "datasetSha256": "049e13d62dc5767f8268378297605643fcf4b71c1c6ebd8bda16279a5848f20d",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-05.zip",
+      "rawSha256": "bb9d2ba29025c52ff66945b182f2273488b548868fbc2ed2df90e344fdfad6a8",
+      "datasetSha256": "5212426d4a1755d505bf262d6b30905e7f8f884e4f3abde53cc85aeea8ad55c4",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-06.zip",
+      "rawSha256": "74f16bf50fdfb93311481df70aa4ec93f5c1d7f8512118b70d6d8c40edc64350",
+      "datasetSha256": "38a5f1bce190651ac79c09ef368cb33e5988578c15ac8bf0fed0ce634c3ef703",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-07",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-07.zip",
+      "rawSha256": "5eb3c42c521d5ce8c7bf54c7a023db7080be348c92dca072174b9ded7e84dfcb",
+      "datasetSha256": "ea6aa333832068ef6316a943a53f292db93bca8058d2ba4c227d78953d119020",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-08",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-08.zip",
+      "rawSha256": "c0e024090b7eaa5d3634fcbf1c4cde94c1772dee51ce4fd9d36a718aa2a08747",
+      "datasetSha256": "45477df214b0d36268ad69043a85d2d21177b5df33a8518b71c46979ee58bbe6",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-09",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-09.zip",
+      "rawSha256": "f2216f0bc3591bc86871f03933bd894c567e72bb971ce3cae591c69e1d6de2ad",
+      "datasetSha256": "111c31146ab959b8456bb327544c5a1d55b986eeda0db4374e855a8ad9e05777",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-10",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-10.zip",
+      "rawSha256": "ca505d622072cb52fe0b912d9de4ca80cd766c488d68a73749a469c7fb455b71",
+      "datasetSha256": "23b8a230dc5c6c406c13a8df86088d4ee4a5e971ece238486cf781d0082c9785",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-11",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-11.zip",
+      "rawSha256": "12f950e770934ba30bf043638e735d7acb42dedf38a0678cdf4df753dac4c6e3",
+      "datasetSha256": "25de67f352c30c14a63d886a602076f5ce3743ef99fc0ba6ce0e3cd0cdf540b0",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2025-12",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2025-12.zip",
+      "rawSha256": "5c6d80d9215832797752f5a647dee0407cac991b28dc3c1c31eb7db7bfdc1777",
+      "datasetSha256": "c6fd91b025868f64fddf5f716cc91cf313c270a8b8fa0b5ff30b3ddfb6a9a1ce",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2026-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-01.zip",
+      "rawSha256": "3302a77b3af0391f4f88c45a686f531de7a1e208e04e83ccda771a20d72f7616",
+      "datasetSha256": "dce33c1068e3f4ce36196a0bee64372848dc78a13d26208272b732c48b13c8c5",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2026-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-02.zip",
+      "rawSha256": "4be571a245dbcb73be9c671056b3a501490dcbb0f88e63f36a94e205c15e0ece",
+      "datasetSha256": "26eb9afee5ba3b1b54a96fa2563bf4c1684c3b44bac4b255aac29937ab3b5816",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2026-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-03.zip",
+      "rawSha256": "ecf8c70031ba5d36cd70a93e1023eaea15cf8fbae42403e861edd617dc026a35",
+      "datasetSha256": "315c4d347389767c220963e92c17611f06e0fbd9daacac2e2aea21679a1a8354",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2026-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-04.zip",
+      "rawSha256": "ab293f08ba196b29d4d164189c07360ad443e840c58cca4db26f2761ae4e17a3",
+      "datasetSha256": "6d05113ea8d7535cf35b366edaf38b58f1e2936347e425d4f53fda6688b05c9b",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2026-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-05.zip",
+      "rawSha256": "af87367b3470893af159d7352003ba351bf1c147d9d1cbedd76d0c88a8834efd",
+      "datasetSha256": "e4de818beac4073646b9fa01491d4407a41027b338ecce9d324dae20eb7e0b88",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "BNBUSDT-15m-2026-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-06.zip",
+      "rawSha256": "70281dcb771df1d572ddf9fe3a5fa1442a60162917c5954335edd433638f27cc",
+      "datasetSha256": "7fb808c307cd95ea377878c8be13e7baaf7b7b759c4008218bf35d9e75bf515e",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-01.zip",
+      "rawSha256": "6a759ce4216c49dded5107bae6c65293cd7fddb6c18010f7f408d5aed2b98ce3",
+      "datasetSha256": "82b22d7f5cc537c87854949a812e60fa565b0939245f193fdd00279af7de8ccf",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-02.zip",
+      "rawSha256": "039762b522b365b8d6a3fcbc24e32978a3e165056cb43930bc19f9c792372588",
+      "datasetSha256": "b4fb00868f6e75695c2f245d92e5cfed208c5911c0764d4777a5c6c17b2dea71",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-03.zip",
+      "rawSha256": "64f4d457dcd2976ade3a1c07770bcf5cd85156b47b6e2a776e54e04ddeabf91a",
+      "datasetSha256": "d435eac0e2577a21b9f4145586f109e6b3fd979e7481f0d13ef1d01545d3cb8e",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-04.zip",
+      "rawSha256": "31fcad7d766e2cc96fc751427184e4d9f8f1adff220e3bc4095a64fc38ef5b71",
+      "datasetSha256": "e8d38a25bfb92719958ea9f5b49cde9c0ce575f472725a7afeaddcd7ad8d8b9c",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-05.zip",
+      "rawSha256": "524f840632d2f6b2f5d4907c4dbd79b00a9a92d3499df2543350897e3bbad04e",
+      "datasetSha256": "615b241c76c2b19d5dc5023ebf293464a0e65c2dbada0c70374f6c89fa9b3847",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-06.zip",
+      "rawSha256": "53ec6585320f925110a83bf1db6bf17797a837679539691c95414bdeae011888",
+      "datasetSha256": "5d10312a9470c23db6275660ad13eec553eb6a5737c23a17242b6a2cb893e82d",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-07",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-07.zip",
+      "rawSha256": "de55e5a6546cfc453ed787e86dc8a5475aa92eff5538853eb2472df64047f548",
+      "datasetSha256": "60ddeb8f99467f530935f0f0854f7526b9760c9baf9eef988cc6cdb6181a1a2d",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-08",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-08.zip",
+      "rawSha256": "3af93f5bcf67fa6dc6d2644b6fa71227c89a823c34d064aa9388b0f7b80e659c",
+      "datasetSha256": "d6ecce11fd8adc5502f70f5104b8d77ae1782a8eb0985468d4f06f4aec2a34f8",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-09",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-09.zip",
+      "rawSha256": "e6707deab30b895d3b4f3961bc97320cdc846cc864fe8390c231f62b17ba2754",
+      "datasetSha256": "963fc657e88088c26ed99cf21d0f847a11ef1af47f8cce8c9d9107eed1871563",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-10",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-10.zip",
+      "rawSha256": "40ee1f37bd08566f21dd2d1e1d4d25f5b44681935c10f3f6f2b2096f6f4ad739",
+      "datasetSha256": "3f34ff449318fe572e2e543b569c8cb87dd41066085658ea7a7b7be0393e5d21",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-11",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-11.zip",
+      "rawSha256": "71aa48e6374b4798bedf077a7f238417d89092d092f9469afc78ab327ff09d50",
+      "datasetSha256": "2b4f5f9d6d86be008a80f2787e1b17964f83ad3f6211edf4dd928ba5bd927a81",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2025-12",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2025-12.zip",
+      "rawSha256": "b8e8ab5a4978839027bcc8a869236565cddd0ddf17d3e5ef3c20e0674e28a594",
+      "datasetSha256": "127012d365651799415220cc43ba25cd232f2cec9ed71f8170fd73bbc70fc81b",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2026-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-01.zip",
+      "rawSha256": "4b8776dad2aaa78d3b65d9ea2f9633ee684619ae82df4dfaee82d47d97916127",
+      "datasetSha256": "b555aa7d93cd11eb06f5722acd9fc9118d83f05d352e6c51e453692450921d37",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2026-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-02.zip",
+      "rawSha256": "c722dfb99c8188214ec0e385f727d9d62cedca394ff85b621621fc72fa762c22",
+      "datasetSha256": "d6295c704ff9e09bdb513249bf124a59a4738b0646c4d083639f49248b990601",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2026-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-03.zip",
+      "rawSha256": "220843dfa95a260eb7592cc31e55e708f0a597943f70a9f91f48efaba10a2bef",
+      "datasetSha256": "c707a0bcbc119790bad3e58bc8281a3e367c29377608299d252106408ce16268",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2026-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-04.zip",
+      "rawSha256": "d53aca5418e2bf2b375a66a57607984a3fca1fb190d6c7544645e394cdbd7868",
+      "datasetSha256": "6cddb9044a99afe60b37b09a5f4eb9017fe6b56b2ae08b32c605c9f58593516b",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2026-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-05.zip",
+      "rawSha256": "b047cecfb3b3c2448c252740a91b9135c5e152d911887d29231af8e0d54f8174",
+      "datasetSha256": "45ddacb9893cc2f7e57f3191993c0431b0ae1d6a1db0eaf8b46eb1f17a70dc59",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "SOLUSDT-15m-2026-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-06.zip",
+      "rawSha256": "141d6d45369c1a423fb844fc9ebc8f1c8753c892b9fa6a2810b1f68440ff8679",
+      "datasetSha256": "e30a2fee1b4d38302c3c87bc8ca12b389ab697f3fa0f1df6b2a09fbeb537b70f",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-01.zip",
+      "rawSha256": "d9fb8b46952fbcb1850cde7573f08724168c9679944e396be18bb037cdb079a6",
+      "datasetSha256": "4b8bd102644a93aa144489b476e3abd527cdc72710a3b7faad6f62dba8f9db83",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-02.zip",
+      "rawSha256": "65d73f8603bd37a01becd0f9bcce3a801faee5d5016cf607d1aa32aa5f4db5fe",
+      "datasetSha256": "43a8310c75f66b7a1b034fb21ca8bcdc5934939fd2d5f709e85b15cf97b688be",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-03.zip",
+      "rawSha256": "990cbf4c5c458b08562f1be48347936342880ab2391022fd0a27216db046f311",
+      "datasetSha256": "7d22d509bf3de86b2cc060725e0529f07e148c8cf734db02c2b4a47fd9072595",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-04.zip",
+      "rawSha256": "16773b7b3d32e8a1d22688448e0d11c6a384d3dc88cd512a5be7e93bdef11829",
+      "datasetSha256": "37859e2cdb41be03a46c145abbcb59c63da117b6aeae8896ef9badc84ae30a82",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-05.zip",
+      "rawSha256": "45193ae7ddb78da9ff8605aec107d006f5c4bc6203f0abaf2e0b53fa47c5b7a5",
+      "datasetSha256": "380204b75ca1c99dbc6b038748949cedd47712a0c698039e4d16a07049af5a87",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-06.zip",
+      "rawSha256": "83ac2a4862b1fbdcb1343b866c5784e9c14b1e7a7781a90c2afacaaa8ea90e51",
+      "datasetSha256": "5225f1c1e3e2af56b0e1b19f89c583fc8926b068a74e8a1d7fbbc1e99cba4dac",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-07",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-07.zip",
+      "rawSha256": "8221405ad024c8b7134edd7cf0204a0c281535dd86b1c44a2e91775ccf3a56d8",
+      "datasetSha256": "a57224d5b511db7d71394524acf07e9a3bd2d8160c74a31a3d656f09cdccd35c",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-08",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-08.zip",
+      "rawSha256": "44c130faa26d80f5eaa6d1c5ac1a44f1ba8ce78f360fc56e69d17e56b13e1d8d",
+      "datasetSha256": "90d38904ba27a5ea4a1cd8f297731baa7518ead172dbe26093357e8f1b34ce19",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-09",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-09.zip",
+      "rawSha256": "04a8b132dfecc54e10bcab4388659126d54a3e2139ed939f8d438fbed1676d06",
+      "datasetSha256": "588e84c68a3b9b317ea1ea196d725d0af7061f94f4c047dd34e424506b060600",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-10",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-10.zip",
+      "rawSha256": "532ad2b83250a3f14e960e92efdda21657c119e72c6c39be266f5149a197c7d6",
+      "datasetSha256": "12f5d3d3dd96cb29ad1616a082abc6abaf54c3583aa40873d0509604051b2437",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-11",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-11.zip",
+      "rawSha256": "7ecbcec0c139c1a97a103745dc4de7c03f9318cb96c077c63dc64eec1acfea16",
+      "datasetSha256": "7730a5a7f9c03b9d15f236887f27ecec75f3e0bfdbfaccc150a25e8db06cf8a0",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2025-12",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2025-12.zip",
+      "rawSha256": "72d7a49a560dd9c103a8c83c0c341d22ef3881b724eb0b69b7c6023fafd9f9c4",
+      "datasetSha256": "7f538c040cd5abf215ad153d5da388390bb1f47d924d895670f6c13a85fa0ee3",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2026-01",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-01.zip",
+      "rawSha256": "f184e24e86e9344ee5846318872712967b43e6847e81b3bebb6576adf232f68c",
+      "datasetSha256": "4b7af4d9fb224857bdf79a6ad6887f0621bfeb82f26b51252b004a52dba93a8f",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2026-02",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-02.zip",
+      "rawSha256": "2e6b234e38ef89a95d1cc655d4374eed7a908a0ff8a2e3ac054365d113ec02eb",
+      "datasetSha256": "3413fef7f3d3a5e5ed257395440c3816c5be077e06163480a058536ef1e06e1e",
+      "rows": 2688,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2026-03",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-03.zip",
+      "rawSha256": "0fe006b330f2cd00b45be0303f7c303a6c6fa8c9e2b6d1c1cfb75f34b7af60e5",
+      "datasetSha256": "a38d5326722bf8f33e08b13a03a0e272588ad8ae5e14793ee81abed4e3aa7f8e",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2026-04",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-04.zip",
+      "rawSha256": "1106aa92f6191a5ed5fcf710e718f9f58123486440e5aca5405f0a7c42e74e2e",
+      "datasetSha256": "fc032cd905b015f1b73a38676c15bff81e710a800978ff8addf38bb7c587b4a8",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2026-05",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-05.zip",
+      "rawSha256": "6e8cb695ef9e1c926296c8529f11eb746f295b44213d4f0bea764e72b505fee0",
+      "datasetSha256": "a222829e7ab874f2f32c7fd55f52adab550ae70f4e8970ce2aa28e940efca9df",
+      "rows": 2976,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    },
+    {
+      "name": "XRPUSDT-15m-2026-06",
+      "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/15m/XRPUSDT-15m-2026-06.zip",
+      "rawSha256": "1c9bceda3e026aa9d9fedc6cc8292ba6c4fe705ced786ef1a8470c9e489b1744",
+      "datasetSha256": "a42c6a140b5759e44ed989abd3aa818d57e4de161f9458c112465748fb8de50f",
+      "rows": 2880,
+      "phase": "DEVELOPMENT",
+      "nativeFlow": true
+    }
+  ],
+  "developmentCycles": 170400,
+  "rejections": {
+    "NO_MACRO_PULLBACK_RECLAIM": 336686,
+    "invalid_trade_levels": 645050,
+    "invalid_trade_geometry": 645050,
+    "rr_too_low": 645050,
+    "confidence_too_low": 645050,
+    "grade_below_min_signal_grade": 645050,
+    "NO_ACCEPTED_VOLATILITY_BREAKOUT": 337522,
+    "NO_OBSERVED_EXHAUSTION_REJECTION": 228986,
+    "SLEEVE_COST_OR_STRUCTURAL_GEOMETRY": 11760,
+    "SLEEVE_PRICE_SHOCK": 6668,
+    "REVERSAL_REQUIRES_BALANCE_AND_FLOW": 99138,
+    "NO_RELATIVE_MOMENTUM_ACCEPTANCE": 269340
+  },
+  "scopes": {
+    "crypto.sleeve-trend": [],
+    "crypto.sleeve-breakout": [
+      "XRPUSDT"
+    ],
+    "crypto.sleeve-reversal": [],
+    "crypto.sleeve-relative": [
+      "BNBUSDT",
+      "XRPUSDT"
+    ]
+  },
+  "cases": [
+    {
+      "stage": "development",
+      "role": "crypto.sleeve-trend",
+      "eligibleSymbols": [],
+      "raw": {
+        "trades": {
+          "count": 479,
+          "evidence": "evidence.json.gz"
+        },
+        "blocks": {
+          "ACTIVE_SYMBOL": 173,
+          "ACTIVE_CAP": 18
+        },
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 479,
+          "resolvedCount": 479,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2348819019419693,
+          "profitFactor": 0.7262132389925408,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 128.76110564798762
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 479,
+          "resolvedCount": 479,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.3382093778653384,
+          "profitFactor": 0.6382885131782966,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 171.4927575189414
+        },
+        "bySymbol": [
+          {
+            "symbol": "BTCUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 46,
+              "resolvedCount": 46,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.41391721495222206,
+              "profitFactor": 0.5294274955244436,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 19.562318951761217
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 46,
+              "resolvedCount": 46,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.5337514611822738,
+              "profitFactor": 0.4480110650276465,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 24.942054436452715
+            }
+          },
+          {
+            "symbol": "ETHUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 113,
+              "resolvedCount": 113,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.2977698033723035,
+              "profitFactor": 0.654929764058851,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 36.294631115473955
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 113,
+              "resolvedCount": 113,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.39956771402678914,
+              "profitFactor": 0.5749875565095522,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 45.15115168502716
+            }
+          },
+          {
+            "symbol": "BNBUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 72,
+              "resolvedCount": 72,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.42683645694111827,
+              "profitFactor": 0.5329810068768667,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 36.08971961435478
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 72,
+              "resolvedCount": 72,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.534187620800909,
+              "profitFactor": 0.46403638152139415,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 42.34735845442883
+            }
+          },
+          {
+            "symbol": "SOLUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 143,
+              "resolvedCount": 143,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.05628337926285645,
+              "profitFactor": 0.9315448279980232,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 33.789423584056124
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 143,
+              "resolvedCount": 143,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.15514268654015886,
+              "profitFactor": 0.8263408523687518,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 41.901110422641075
+            }
+          },
+          {
+            "symbol": "XRPUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 105,
+              "resolvedCount": 105,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.20037622120935028,
+              "profitFactor": 0.7651408472030468,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 39.2589513318257
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 105,
+              "resolvedCount": 105,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.30144438309692523,
+              "profitFactor": 0.6758597154630529,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 47.67760235049339
+            }
+          }
+        ]
+      },
+      "calibrated": {
+        "trades": [],
+        "blocks": {},
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        }
+      },
+      "failures": [
+        "ELIGIBLE_ASSET_COUNT",
+        "RESOLVED_COUNT",
+        "NET_PF",
+        "STRESS_PF",
+        "EXPECTANCY"
+      ]
+    },
+    {
+      "stage": "development",
+      "role": "crypto.sleeve-breakout",
+      "eligibleSymbols": [
+        "XRPUSDT"
+      ],
+      "raw": {
+        "trades": {
+          "count": 449,
+          "evidence": "evidence.json.gz"
+        },
+        "blocks": {
+          "ACTIVE_SYMBOL": 101,
+          "ACTIVE_CAP": 23
+        },
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 449,
+          "resolvedCount": 449,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.20686115275056005,
+          "profitFactor": 0.7225482679126122,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 98.69106996536891
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 449,
+          "resolvedCount": 449,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2928672336450786,
+          "profitFactor": 0.6373029004600763,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 136.80664760504249
+        },
+        "bySymbol": [
+          {
+            "symbol": "BTCUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 76,
+              "resolvedCount": 76,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.43137661594582244,
+              "profitFactor": 0.4670585659791865,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 39.18153956472083
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 76,
+              "resolvedCount": 76,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.5372900389658373,
+              "profitFactor": 0.3963283575744565,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 46.118997260920025
+            }
+          },
+          {
+            "symbol": "ETHUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 109,
+              "resolvedCount": 109,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.23997139531177294,
+              "profitFactor": 0.6827095372190731,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 38.93444063777721
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 109,
+              "resolvedCount": 109,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.31978689104667163,
+              "profitFactor": 0.6076934889579344,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 44.47657386478564
+            }
+          },
+          {
+            "symbol": "BNBUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 77,
+              "resolvedCount": 77,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.17366809221217952,
+              "profitFactor": 0.765297804178475,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 15.715208683465391
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 77,
+              "resolvedCount": 77,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.27042473164822456,
+              "profitFactor": 0.665111159830261,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 22.645951712836588
+            }
+          },
+          {
+            "symbol": "SOLUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 97,
+              "resolvedCount": 97,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.2913653363290885,
+              "profitFactor": 0.6185861310051783,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 37.918964371749496
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 97,
+              "resolvedCount": 97,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.3626221951497704,
+              "profitFactor": 0.5568966371063879,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 43.80692613920752
+            }
+          },
+          {
+            "symbol": "XRPUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 90,
+              "resolvedCount": 90,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.08550808933470724,
+              "profitFactor": 1.1288348212799493,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 10.760718339872199
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 90,
+              "resolvedCount": 90,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.0021164827254614178,
+              "profitFactor": 1.0029531933007205,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 13.847561501537362
+            }
+          }
+        ]
+      },
+      "calibrated": {
+        "trades": {
+          "count": 97,
+          "evidence": "evidence.json.gz"
+        },
+        "blocks": {
+          "ACTIVE_SYMBOL": 27
+        },
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 97,
+          "resolvedCount": 97,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.10283284280365317,
+          "profitFactor": 1.158079517928138,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 9.67551447505629
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 97,
+          "resolvedCount": 97,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.021379724666280363,
+          "profitFactor": 1.0304748722539514,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 12.910216820830627
+        }
+      },
+      "failures": [
+        "ELIGIBLE_ASSET_COUNT",
+        "NET_PF",
+        "PROFIT_CONCENTRATION"
+      ]
+    },
+    {
+      "stage": "development",
+      "role": "crypto.sleeve-reversal",
+      "eligibleSymbols": [],
+      "raw": {
+        "trades": {
+          "count": 859,
+          "evidence": "evidence.json.gz"
+        },
+        "blocks": {
+          "ACTIVE_SYMBOL": 64,
+          "ACTIVE_CAP": 14
+        },
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 859,
+          "resolvedCount": 859,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.2348181280894831,
+          "profitFactor": 0.6335534299677018,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 225.53783174455563
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 859,
+          "resolvedCount": 859,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.34250056836970016,
+          "profitFactor": 0.5099173161410837,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 309.9892206475238
+        },
+        "bySymbol": [
+          {
+            "symbol": "BTCUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 74,
+              "resolvedCount": 74,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.22960537030684314,
+              "profitFactor": 0.6506845263762422,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 19.080527523096087
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 74,
+              "resolvedCount": 74,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.34881362755564094,
+              "profitFactor": 0.5193145706976767,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 27.759669803538213
+            }
+          },
+          {
+            "symbol": "ETHUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 208,
+              "resolvedCount": 208,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.26432193799974146,
+              "profitFactor": 0.5969705412623024,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 59.65605598859674
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 208,
+              "resolvedCount": 208,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.37107962048158133,
+              "profitFactor": 0.4799265336442794,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 81.31705605578152
+            }
+          },
+          {
+            "symbol": "BNBUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 120,
+              "resolvedCount": 120,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.009866022426729884,
+              "profitFactor": 0.9814955298272579,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 15.299691762761753
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 120,
+              "resolvedCount": 120,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.12350291050934323,
+              "profitFactor": 0.7881915906137409,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 23.40678987143635
+            }
+          },
+          {
+            "symbol": "SOLUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 259,
+              "resolvedCount": 259,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.2873711732662397,
+              "profitFactor": 0.5662310771175068,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 85.31071946253844
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 259,
+              "resolvedCount": 259,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.3906212849579158,
+              "profitFactor": 0.4575519817716313,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 108.61977044581717
+            }
+          },
+          {
+            "symbol": "XRPUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 198,
+              "resolvedCount": 198,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.2733634088638856,
+              "profitFactor": 0.5830798234502763,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 57.79996952663132
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 198,
+              "resolvedCount": 198,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.3798987710356801,
+              "profitFactor": 0.4692914257881312,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 78.54016714114097
+            }
+          }
+        ]
+      },
+      "calibrated": {
+        "trades": [],
+        "blocks": {},
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 0,
+          "resolvedCount": 0,
+          "openCount": 0,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": null,
+          "profitFactor": null,
+          "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+          "realizedMaxDrawdownR": null
+        }
+      },
+      "failures": [
+        "ELIGIBLE_ASSET_COUNT",
+        "RESOLVED_COUNT",
+        "NET_PF",
+        "STRESS_PF",
+        "EXPECTANCY"
+      ]
+    },
+    {
+      "stage": "development",
+      "role": "crypto.sleeve-relative",
+      "eligibleSymbols": [
+        "BNBUSDT",
+        "XRPUSDT"
+      ],
+      "raw": {
+        "trades": {
+          "count": 140,
+          "evidence": "evidence.json.gz"
+        },
+        "blocks": {
+          "ACTIVE_SYMBOL": 146,
+          "ACTIVE_CAP": 4
+        },
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 140,
+          "resolvedCount": 139,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.00029084521843173795,
+          "profitFactor": 1.0008921168056741,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 20.413726070060832
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 140,
+          "resolvedCount": 139,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": -0.026056302566570266,
+          "profitFactor": 0.9236727002834643,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 22.451619193067582
+        },
+        "bySymbol": [
+          {
+            "symbol": "BTCUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 0,
+              "resolvedCount": 0,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": null,
+              "profitFactor": null,
+              "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+              "realizedMaxDrawdownR": null
+            }
+          },
+          {
+            "symbol": "ETHUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 32,
+              "resolvedCount": 32,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.1405984462428359,
+              "profitFactor": 0.665419906903741,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 7.28798877545648
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 32,
+              "resolvedCount": 32,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.16650478553030404,
+              "profitFactor": 0.6180314296604962,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 7.9491801497481065
+            }
+          },
+          {
+            "symbol": "BNBUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 26,
+              "resolvedCount": 26,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.07074092473616575,
+              "profitFactor": 1.2435840125368283,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 3.359239115763997
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 26,
+              "resolvedCount": 26,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.042443510491175965,
+              "profitFactor": 1.1390951155962086,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 3.959051811823911
+            }
+          },
+          {
+            "symbol": "SOLUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 45,
+              "resolvedCount": 45,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.012431932345621238,
+              "profitFactor": 1.0393458438988934,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 6.801177443378011
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 45,
+              "resolvedCount": 45,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.013495743533507682,
+              "profitFactor": 0.9592323369722553,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 7.564301506717784
+            }
+          },
+          {
+            "symbol": "XRPUSDT",
+            "summary": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 37,
+              "resolvedCount": 36,
+              "openCount": 1,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.05946879906776392,
+              "profitFactor": 1.211969831483952,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 6.318770352611127
+            },
+            "stress": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 37,
+              "resolvedCount": 36,
+              "openCount": 1,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.03361400740149254,
+              "profitFactor": 1.1133948514585408,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 6.937237797112096
+            }
+          }
+        ]
+      },
+      "calibrated": {
+        "trades": {
+          "count": 64,
+          "evidence": "evidence.json.gz"
+        },
+        "blocks": {
+          "ACTIVE_SYMBOL": 83
+        },
+        "summary": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 64,
+          "resolvedCount": 63,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.08247390720110113,
+          "profitFactor": 1.2943702238779413,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 8.085469545775453
+        },
+        "stress": {
+          "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+          "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+          "tradeCount": 64,
+          "resolvedCount": 63,
+          "openCount": 1,
+          "ambiguousCount": 0,
+          "excludedCount": 0,
+          "expectancyR": 0.05559581240167155,
+          "profitFactor": 1.1882553311075377,
+          "profitFactorUndefinedReason": null,
+          "realizedMaxDrawdownR": 8.891148147843973
+        }
+      },
+      "failures": []
+    },
+    {
+      "stage": "validation",
+      "role": "crypto.sleeve-relative",
+      "trades": {
+        "count": 18,
+        "evidence": "evidence.json.gz"
+      },
+      "blocks": {
+        "ACTIVE_SYMBOL": 18
+      },
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.022302518975748496,
+        "profitFactor": 0.9248562967088034,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.051399997620427
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.04875569097057095,
+        "profitFactor": 0.8441885147847936,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.453216584316514
+      }
+    },
+    {
+      "stage": "validation",
+      "role": "combined-frozen-development-subset",
+      "roles": [
+        "crypto.sleeve-relative"
+      ],
+      "trades": {
+        "count": 18,
+        "evidence": "evidence.json.gz"
+      },
+      "blocks": {
+        "ACTIVE_SYMBOL": 18
+      },
+      "summary": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.022302518975748496,
+        "profitFactor": 0.9248562967088034,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.051399997620427
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.04875569097057095,
+        "profitFactor": 0.8441885147847936,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.453216584316514
+      },
+      "signalsPerDay": 0.09944751381215469,
+      "activeDayFraction": 0.09392265193370165
+    }
+  ],
+  "approval": false,
+  "publication": false,
+  "execution": false
+}

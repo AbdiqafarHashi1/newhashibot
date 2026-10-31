@@ -29,7 +29,7 @@ for (const direction of ["buy", "sell"] as const) {
   assert.equal(result.direction, direction);
   assert.equal(result.score_breakdown.strategy_id, GOLD_STRATEGY_ID);
   assert.equal(result.score_breakdown.evaluator_identity, GOLD_EVALUATOR_ID);
-  assert.equal(result.score_breakdown.certification, "PRODUCTION");
+  assert.equal(result.score_breakdown.certification, "MEASURED_RELEASE_REQUIRED");
   assert.match(String(result.score_breakdown.deterministic_fingerprint), /^fnv1a32:/);
   assert.deepEqual(input.candles, snapshot, "evaluator does not mutate shared candles");
   assert.deepEqual(result, evaluateGoldVolatilityBreakout(input), "result is deterministic");
@@ -50,10 +50,10 @@ const goldContract = FOREX_STRATEGY_CONTRACTS.find(c => c.id === GOLD_STRATEGY_I
 assert.deepEqual(forexStrategyEligibility(goldContract, "XAUUSD"), { eligible: true, reason: null });
 for (const contract of FOREX_STRATEGY_CONTRACTS.filter(c => c.id.startsWith("forex."))) assert.equal(forexStrategyEligibility(contract, "XAUUSD").reason, "strategy_instrument_class_not_supported");
 assert.deepEqual(forexStrategyEligibility(goldContract, "EURUSD"), { eligible: false, reason: "strategy_instrument_class_not_supported" });
-assert.deepEqual(forexScannerFetchPlan(), ["15m", "1h"]);
+assert.deepEqual(forexScannerFetchPlan(), ["5m", "15m", "1h"]);
 
 const entries = Object.entries(FOREX_PRODUCTION_EVALUATORS);
-validateProductionEvaluatorRegistry(["forex.london-breakout", "forex.new-york-continuation", "forex.trend-pullback", GOLD_STRATEGY_ID], entries);
+validateProductionEvaluatorRegistry(FOREX_STRATEGY_CONTRACTS.map(c=>c.id), entries);
 assert.throws(() => validateProductionEvaluatorRegistry([GOLD_STRATEGY_ID], []), /NOT_REGISTERED/);
 assert.throws(() => validateProductionEvaluatorRegistry([GOLD_STRATEGY_ID], [[GOLD_STRATEGY_ID, evaluateGoldVolatilityBreakout], [GOLD_STRATEGY_ID, evaluateGoldVolatilityBreakout]]), /DUPLICATE_STRATEGY_EVALUATOR/);
 assert.throws(() => validateProductionEvaluatorRegistry([GOLD_STRATEGY_ID], [["unknown", evaluateGoldVolatilityBreakout]]), /UNCONTRACTED/);

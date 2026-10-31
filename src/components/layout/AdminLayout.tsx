@@ -1,3 +1,4 @@
+import {adminPrimaryPages,adminAdvancedPages} from '../../lib/adminNavigation';
 import { isOwnerPreview, isAdminPass } from '../../lib/ownerPreview/state';
 import { type ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -12,70 +13,23 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { usePreviewViewer } from '../../contexts/OwnerPreviewContext';
 
-type NavItem =
-  | { section: string }
-  | { to: string; label: string; icon: LucideIcon };
-
-const adminNav: NavItem[] = [
-  { section: 'Overview' },
-  { to: '/admin/launch', label: 'Setup & launch', icon: ListChecks },
-  { to: '/admin/operator', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/admin/mission-control', label: 'Operations Center', icon: Activity },
-  { to: '/admin/scanner', label: 'Scanner', icon: Radio },
-  { to: '/admin/scanner-config', label: 'Scanner Configuration', icon: Settings },
-  { section: 'Research' },
-  { to: '/admin/backtest', label: 'Backtest & Qualification', icon: FlaskConical },
-  { to: '/admin/strategies', label: 'Strategies', icon: SlidersHorizontal },
-  { to: '/admin/performance', label: 'Certification & Evidence', icon: ShieldCheck },
-  { section: 'Providers' },
-  { to: '/admin/providers', label: 'Provider Overview', icon: Zap },
-  { to: '/admin/providers/mt5', label: 'MT5', icon: Server },
-  { to: '/admin/providers/binance', label: 'Binance', icon: Cpu },
-  { to: '/admin/providers/bybit', label: 'Bybit', icon: Cpu },
-  { section: 'Trading' },
-  { to: '/admin/operator/signals', label: 'Signals / Signal Truth', icon: Radio },
-  { to: '/admin/execution', label: 'Execution', icon: Cpu },
-  { to: '/admin/risk', label: 'Risk & Capital', icon: Shield },
-  { to: '/admin/positions', label: 'Positions / Trade Truth', icon: Layers },
-  { section: 'Customers' },
-  { to: '/admin/customers', label: 'Customers', icon: Users },
-  { to: '/admin/customer-fleet', label: 'Accounts & Provisioning', icon: Cpu },
-  { to: '/admin/access-requests', label: 'Approvals', icon: ClipboardList },
-  { to: '/admin/onboarding', label: 'Onboarding & Readiness', icon: ListChecks },
-  { to: '/admin/trading-brain', label: 'Brain Configuration', icon: Cpu },
-  { section: 'Communications' },
-  { to: '/admin/commerce', label: 'Commerce & Membership', icon: ClipboardList },
-  { to: '/admin/growth-goal', label: '1,000 customer goal', icon: Cpu },
-  { to: '/admin/ai-agents', label: 'Agents', icon: Cpu },
-  { to: '/admin/telegram-links', label: 'Telegram', icon: Send },
-  { to: '/admin/reporting', label: 'Reporting', icon: Activity },
-  { section: 'System' },
-  { to: '/admin/runtime-truth', label: 'Runtime Truth', icon: ListChecks },
-  { to: '/admin/recovery', label: 'Recovery', icon: Activity },
-  { to: '/admin/providers/diagnostics', label: 'Advanced Diagnostics', icon: Settings },
-  { to: '/admin/audit', label: 'Audit Trail', icon: ClipboardList },
-];
+const icons:Record<string,LucideIcon>={Zap,LayoutDashboard,Users,Send,Settings,ListChecks,Shield,ShieldCheck,Cpu,ClipboardList,Layers,Radio,Server,SlidersHorizontal,FlaskConical,Activity};
+const adminNav=[...adminPrimaryPages,...adminAdvancedPages];
 
 export function AdminLayout({ children, title, description }: { children: ReactNode; title?: string; description?: string }) {
   const { displayProfile: profile, signOut } = usePreviewViewer();
   const loc = useLocation();
   const nav = useNavigate();
   const [sideOpen, setSideOpen] = useState(false);
+  const [advanced,setAdvanced]=useState(adminAdvancedPages.some(p=>p.to===loc.pathname));
 
-  const bottomNav = [
-    { to: '/admin/mission-control', label: 'NOC', icon: Activity },
-    { to: '/admin/operator', label: 'Command', icon: LayoutDashboard },
-    { to: '/admin/operator/signals', label: 'Signals', icon: Radio },
-    { to: '/admin/positions', label: 'Positions', icon: Layers },
-    { to: '/admin/access-requests', label: 'Requests', icon: ClipboardList },
-    { to: '/admin/operator/settings', label: 'Config', icon: Settings },
-  ];
+  const bottomNav=['/admin/launch','/admin/scanner','/admin/telegram','/admin/customers','/admin/growth-goal'].map((to,i)=>({...adminPrimaryPages.find(p=>p.to===to)!,label:['Setup','Scanner','Telegram','Customers','Growth'][i]}));
 
   const navRef = useRef<HTMLElement>(null);
   const scrollPosRef = useRef(0);
 
   // Derive active page title
-  const currentNav = adminNav.find(item => 'to' in item && item.to === loc.pathname) as { to: string; label: string; icon: LucideIcon } | undefined;
+  const currentNav = adminNav.find(item => item.to === loc.pathname) as {to:string;label:string;icon:string}|undefined;
   const currentTitle = currentNav?.label || (loc.pathname.includes('/admin/operator') ? 'Command Center' : 'Operator Console');
 
   // Preserve sidebar scroll across route changes
@@ -104,7 +58,7 @@ export function AdminLayout({ children, title, description }: { children: ReactN
       <aside className={`fixed inset-y-0 left-0 z-50 w-[85vw] max-w-72 bg-zinc-900/98 backdrop-blur-xl border-r border-zinc-800 flex flex-col transition-transform duration-300 ease-out md:w-60 md:max-w-none shadow-2xl md:shadow-none ${sideOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         {/* Drawer Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800 shrink-0">
-          <Link to="/admin/operator" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
+          <Link to="/admin/launch" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-900/40">
               <Zap size={16} className="text-white" />
             </div>
@@ -124,32 +78,9 @@ export function AdminLayout({ children, title, description }: { children: ReactN
 
         {/* Navigation Items */}
         <nav ref={navRef} className="flex-1 px-3 py-3 flex flex-col gap-1 overflow-y-auto overscroll-contain scrollbar-thin">
-          {adminNav.map((item, i) => {
-            if ('section' in item) {
-              return (
-                <div key={`section-${i}`} className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-3 pt-4 pb-1.5 first:pt-1">
-                  {item.section}
-                </div>
-              );
-            }
-            const active = loc.pathname === item.to;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={() => setSideOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  active
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-950/60 font-bold'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
-                }`}
-              >
-                <Icon size={16} className={active ? 'text-white' : 'text-zinc-500'} />
-                <span className="truncate">{item.label}</span>
-              </Link>
-            );
-          })}
+          {adminPrimaryPages.map(item=>{const Icon=icons[item.icon];return <Link key={item.to} to={item.to} title={item.purpose} onClick={()=>setSideOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold ${loc.pathname===item.to?'bg-blue-600 text-white':'text-zinc-400 hover:bg-zinc-800/70'}`}><Icon size={16}/><span className="truncate">{item.label}</span></Link>})}
+          <button aria-expanded={advanced} onClick={()=>setAdvanced(v=>!v)} className="mt-3 rounded border border-zinc-700 px-3 py-2 text-left text-xs text-zinc-400">{advanced?'Hide':'Show'} advanced tools</button>
+          {advanced&&<><p className="px-3 text-[10px] text-zinc-500">Research, execution and diagnostics.</p>{adminAdvancedPages.map(item=>{const Icon=icons[item.icon];return <Link key={item.to} to={item.to} title={item.purpose} onClick={()=>setSideOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs ${loc.pathname===item.to?'bg-blue-600 text-white':'text-zinc-400 hover:bg-zinc-800/70'}`}><Icon size={16}/><span className="truncate">{item.label}</span></Link>})}</>}
         </nav>
 
         {/* Mobile & Desktop User & Switcher Footer */}
@@ -223,7 +154,7 @@ export function AdminLayout({ children, title, description }: { children: ReactN
               {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "BACKEND AUTH REQUIRED" : "RECORDED TELEMETRY"}
             </span>
             <Link
-              to="/admin/operator"
+              to="/admin/launch"
               className="text-[11px] font-mono text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1.5 shadow-sm"
             >
               <Shield size={11} className="text-orange-400" />
@@ -254,10 +185,10 @@ export function AdminLayout({ children, title, description }: { children: ReactN
         </main>
 
         {/* Modern Mobile Bottom Navigation */}
-        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-zinc-800/90 bg-zinc-950/95 backdrop-blur-lg pt-1 pb-[max(0.6rem,env(safe-area-inset-bottom))] md:hidden shadow-2xl">
+        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-zinc-800/90 bg-zinc-950/95 backdrop-blur-lg pt-1 pb-[max(0.6rem,env(safe-area-inset-bottom))] md:hidden shadow-2xl">
           {bottomNav.map((item) => {
-            const active = loc.pathname === item.to || (item.to === '/admin/operator' && loc.pathname.startsWith('/admin/operator') && !bottomNav.some(b => b.to !== '/admin/operator' && loc.pathname === b.to));
-            const Icon = item.icon;
+            const active = loc.pathname === item.to;
+            const Icon = icons[item.icon];
             return (
               <Link
                 key={item.to}

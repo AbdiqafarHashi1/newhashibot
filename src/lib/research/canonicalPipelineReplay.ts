@@ -37,7 +37,7 @@ export interface PipelineDataset {
   datasetId: string;
   symbol: string;
   timeframe: HistoricalTimeframe;
-  provider: "MT5_BRIDGE" | "BINANCE" | "BYBIT" | "COINBASE" | "CSV" | "PUBLIC_RESEARCH" | "HISTDATA" | "TWELVE_DATA";
+  provider: "MT5_BRIDGE" | "BINANCE" | "BINANCE_USDM" | "BYBIT" | "COINBASE" | "CSV" | "PUBLIC_RESEARCH" | "HISTDATA" | "TWELVE_DATA";
   bars: readonly CanonicalCandle[];
   quality?: HistoricalDataQualityReport;
 }

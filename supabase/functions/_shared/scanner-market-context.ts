@@ -1,3 +1,6 @@
+import {dailyEvidence} from './daily-trend-contract.ts';
+import {signalEnsembleMarketPolicy} from './crypto-signal-ensemble.ts';
+import {cryptoTeamPolicy} from './coordinated-crypto-policy.ts';
 import {observeAdaptiveMarket,type AdaptiveMarketEvidence} from "./adaptive-market-policy.ts";
 import type {LegacyStrategyResult,StrategyRuntimeConfig,StrategyCandle,StrategyIndicatorSnapshot} from "./professional-strategies.ts";
 export interface MarketArbitrationEntry {name:string;result:LegacyStrategyResult;cfg:StrategyRuntimeConfig;guard:{sl_pct:number;tp1_pct:number;tp2_pct:number}}
@@ -135,6 +138,53 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  if(entries.every(e=>e.name==='DailyEmaTrend'))return entries.every(e=>dailyEvidence(e.result.score_breakdown))?"":"DAILY_POLICY_MISMATCH";
+  const sleevePolicy=signalEnsembleMarketPolicy(entries);if(sleevePolicy!==undefined)return sleevePolicy;
+  const teamPolicy=cryptoTeamPolicy(entries);if(teamPolicy!==undefined)return teamPolicy;
+  if(entries.every(e=>['crypto.cost-aware-15m','forex.cost-aware-hourly'].includes(e.name))){
+    return entries.every(e=>{
+      const b=e.result.score_breakdown;
+      return b.cost_aware_policy_version==='cost-aware-opportunity/v1'&&typeof b.forecast_net_r==='number'&&
+        Number.isFinite(b.forecast_net_r)&&b.forecast_net_r>=e.cfg.params.minimum_predicted_net_r&&
+        typeof b.estimated_cost_r==='number'&&Number.isFinite(b.estimated_cost_r)&&b.estimated_cost_r>=0&&
+        b.score_is_probability===false&&b.forecast_is_guarantee===false;
+    })?'':'COST_AWARE_POLICY_MISMATCH';
+  }
+  if(entries.every(e=>['crypto.vwap-reclaim-15m','crypto.failed-auction-15m'].includes(e.name))){
+    // Explicit closed-bar specialist policy, shared by production and replay. These
+    // disabled research definitions do not impersonate the four legacy trend roles.
+    return entries.every(e=>{
+      const b=e.result.score_breakdown,eff=b.efficiency,trend=b.hourly_trend_atr,cost=b.estimated_cost_r;
+      return b.intraday_policy_version==='intraday-opportunity/v1'&&
+        typeof eff==='number'&&Number.isFinite(eff)&&typeof trend==='number'&&Number.isFinite(trend)&&
+        typeof cost==='number'&&Number.isFinite(cost)&&cost>=0&&cost<=e.cfg.params.maximumCostR&&
+        (e.name==='crypto.vwap-reclaim-15m'?
+          b.setup==='CLOSED_HOURLY_TREND_VWAP_RECLAIM'&&eff>=.2&&trend>=.4&&
+          (e.result.direction==='buy'?b.hourly_direction===1:b.hourly_direction===-1):
+          b.setup==='PRIOR_RANGE_SWEEP_AND_REJECTION'&&eff<=.3&&trend<=1.2);
+    })?'':'INTRADAY_POLICY_MISMATCH';
+  }
+  if(entries.every(e=>['RegimeContinuation','RegimeRangeRejection','RegimeChannelBreakout'].includes(e.name))){
+    // Explicit specialist policy: sideways balance is eligible only for range rejection.
+    // Legacy choppiness thresholds must not label a valid range setup a trend failure.
+    return entries.every(e=>e.result.score_breakdown.regime_policy_version==='regime-opportunity/v1'&&
+      (e.name!=='RegimeRangeRejection'?['TREND_UP','TREND_DOWN','EXPANSION_UP','EXPANSION_DOWN'].includes(String(e.result.score_breakdown.regime)):e.result.score_breakdown.regime==='RANGE'))?'':'REGIME_POLICY_MISMATCH';
+  }
+  if(entries.every(e=>e.name==='AltRelativeWeakness'))return entries.every(e=>{const b=e.result.score_breakdown;return b.relative_weakness_policy==='alt-relative-weakness/v1'&&b.score_is_probability===false&&e.result.direction==='sell'&&b.closed_hour_breakdown===true&&b.estimated_cost_bps===25&&typeof b.btc_return==='number'&&Number.isFinite(b.btc_return)&&b.btc_return<0&&typeof b.alt_return==='number'&&Number.isFinite(b.alt_return)&&b.alt_return<=-.03&&typeof b.relative_return==='number'&&Number.isFinite(b.relative_return)&&b.relative_return<=-.02&&typeof b.week_return==='number'&&Number.isFinite(b.week_return)&&b.week_return<0&&typeof b.quote_volume_ratio==='number'&&Number.isFinite(b.quote_volume_ratio)&&b.quote_volume_ratio>=1.5;})?'':'ALT_RELATIVE_WEAKNESS_POLICY_MISMATCH';
+  if(entries.every(e=>e.name==='AltRelativeStrength')){
+    // Registered relative-strength specialist, not a legacy pullback impersonation.
+    // Definition remains disabled/research; this policy also governs isolated replay.
+    return entries.every(e=>{
+      const b=e.result.score_breakdown;
+      return b.relative_strength_policy==='alt-relative-strength/v1'&&b.score_is_probability===false&&
+        e.result.direction==='buy'&&b.closed_hour_breakout===true&&b.estimated_cost_bps===25&&
+        typeof b.btc_return==='number'&&Number.isFinite(b.btc_return)&&b.btc_return>0&&
+        typeof b.alt_return==='number'&&Number.isFinite(b.alt_return)&&b.alt_return>=.03&&
+        typeof b.relative_return==='number'&&Number.isFinite(b.relative_return)&&b.relative_return>=.02&&
+        typeof b.week_return==='number'&&Number.isFinite(b.week_return)&&b.week_return>0&&
+        typeof b.quote_volume_ratio==='number'&&Number.isFinite(b.quote_volume_ratio)&&b.quote_volume_ratio>=1.5;
+    })?'':'ALT_RELATIVE_STRENGTH_POLICY_MISMATCH';
+  }
   const top = entries[0];
   const topScore = arbitrationScore(top, ctx);
   const hasAPlus = entries.some((entry) => entry.result.grade === "A+");
@@ -232,6 +282,7 @@ export function overextensionPenalty(e: MarketArbitrationEntry): number {
 
 export function arbitrationScore(e: MarketArbitrationEntry, ctx?: MarketContext): number {
   const r = e.result;
+  if(e.name==='DailyEmaTrend'&&dailyEvidence(r.score_breakdown))return r.confidence_score;
   const g = e.guard;
   const scorePct = r.confidence_score / 100;
   const rrPct = Math.min(r.risk_reward / 3.5, 1);

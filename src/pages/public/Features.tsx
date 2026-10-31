@@ -49,7 +49,7 @@ export default function Features() {
       id: 'arbitrator',
       title: '2. Deterministic Decision Engine & Arbitrator',
       icon: Cpu,
-      desc: 'Centralized arbitration logic that prevents signal conflicts and guarantees quality.',
+      desc: 'Centralized arbitration logic that resolves signal conflicts and enforces qualification checks.',
       features: [
         {
           name: 'One Shared Arbitrator',
@@ -157,7 +157,7 @@ export default function Features() {
         {
           name: 'Break-Even & Partial Profit Trailing',
           detail: 'Automatically moves Stop Loss to entry price once TP1 is achieved.',
-          why: 'Locks in risk-free position management as price moves favorably.',
+          why: 'Tracks stop-management updates as price moves favorably; market risk remains.',
           status: 'Available',
         },
         {

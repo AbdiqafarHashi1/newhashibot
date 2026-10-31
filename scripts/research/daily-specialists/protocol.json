@@ -1,0 +1,66 @@
+{
+  "schema": "daily-specialists/v1",
+  "declaredOn": "2026-10-28",
+  "assets": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "instrument": "BINANCE_SPOT daily UTC; long/cash, no short/funding/leverage",
+  "stages": [
+    {
+      "name": "DEVELOPMENT",
+      "from": "2018-01-01",
+      "until": "2022-01-01"
+    },
+    {
+      "name": "VALIDATION",
+      "from": "2022-01-01",
+      "until": "2025-01-01"
+    }
+  ],
+  "disclosure": "Previously observed calendar prices in different hypotheses; no global untouched-data claim. All three fixed hypotheses retained. No post-result parameter sweeps. Old failed futures and positive slow-spot studies preserved. Later data is reserved until this study passes its gates.",
+  "rules": {
+    "BULL_DIP": {
+      "entry": "close>EMA200 and RSI2<10 and close<previous close",
+      "stopATR": 2,
+      "targetATR": 1.5,
+      "maxBars": 10
+    },
+    "REJECTED_SELLOFF": {
+      "entry": "close>EMA200 and previous close below previous lower Bollinger20/2sigma and current close back above current lower band and current close>open",
+      "stopATR": 2,
+      "targetATR": 3,
+      "maxBars": 10
+    },
+    "SLOW_BREAKOUT": {
+      "entry": "close>EMA200 and close above previous55 daily highs",
+      "stopATR": 2,
+      "targetATR": 6,
+      "maxBars": 30
+    }
+  },
+  "indicators": "recursive EMA, WilderATR14 and WilderRSI2, population standard deviation; first250 admitted bars warmup",
+  "costBps": {
+    "fee": 20,
+    "spread": 2,
+    "slippage": 4,
+    "funding": 0
+  },
+  "stressMultiplier": 1.5,
+  "management": "next daily open; signed actual fill risk; gap beyond SL/TP excluded; STOP_FIRST; no BE/partial/trail; max bars virtual close; stage-end unresolved OPEN not forced profit; one active position per symbol per mode, no same-day reentry",
+  "gates": {
+    "developmentTrades": 30,
+    "validationTrades": 50,
+    "minEachAsset": 10,
+    "netPF": 1.2,
+    "stressPF": 1.0,
+    "positiveEachAsset": true
+  },
+  "baselines": [
+    "buy-hold net return per same admitted stage; not tradePF and not risk matched",
+    "earlier fixed channel/EMA slow-spot studies retained, no cherry-picking merged samples"
+  ],
+  "researchOnly": true,
+  "publication": false,
+  "execution": false
+}

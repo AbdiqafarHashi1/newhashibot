@@ -1,9 +1,10 @@
+import {release1SaleDecision} from "../_shared/release1-sales-policy.ts";
 import {sha256Hex} from '../_shared/commerce-events.ts';
 import {commerceEnvironment} from '../_shared/commerce-provider-settings.ts';
 import {whopRuntimeConfig,createWhopRuntimeCheckout} from "../_shared/whop-runtime.ts";
 import { maskKenyanPhone, mpesaAdapterFromGetter, normalizeKenyanPhone, UnconfiguredMpesaAdapter } from "../_shared/mpesa-adapter.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-const headers={"Content-Type":"application/json","Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST,OPTIONS","Access-Control-Allow-Headers":"authorization,content-type,x-idempotency-key,apikey"};
+const headers={"Content-Type":"application/json","Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST,OPTIONS","Access-Control-Allow-Headers":"authorization,content-type,x-idempotency-key,apikey,x-client-info"};
 const reply=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers});
 const safe=(v:unknown,n=80)=>String(v??"").replace(/[^a-zA-Z0-9_.-]/g,"").slice(0,n)||null;
 Deno.serve(async req=>{
@@ -12,10 +13,23 @@ Deno.serve(async req=>{
  if(!url||!anon||!serviceKey)return reply(503,{state:"READY_FOR_CONFIGURATION"});
  const auth=req.headers.get("Authorization")??""; const userClient=createClient(url,anon,{global:{headers:{Authorization:auth}}}); const {data:{user}}=await userClient.auth.getUser(); if(!user)return reply(401,{state:"BLOCKED",reason:"AUTHENTICATION_REQUIRED"});
  const service=createClient(url,serviceKey),get=await commerceEnvironment(service,key=>Deno.env.get(key)); const body=await req.json().catch(()=>({})); const product=String(body.product_code??""); const provider=String(body.provider??""); const currency=String(body.currency??"");
+
  if(!["VIP_SIGNALS","FOUNDING_AUTO_EXECUTION"].includes(product)||!["WHOP","MPESA"].includes(provider))return reply(422,{state:"BLOCKED",reason:"UNSUPPORTED_PRODUCT_OR_PROVIDER"});
+ const providerSettings=await service.from('commerce_provider_configuration').select('enabled,revision,verified_revision,verified_products').eq('provider',provider).maybeSingle();if(providerSettings.error)return reply(503,{state:'BLOCKED',reason:'PAYMENT_CONFIGURATION_UNAVAILABLE'});
+ const productEnabled=providerSettings.data?providerSettings.data.enabled===true&&providerSettings.data.revision===providerSettings.data.verified_revision&&Array.isArray(providerSettings.data.verified_products)&&providerSettings.data.verified_products.includes(product):get(product==='FOUNDING_AUTO_EXECUTION'?'RELEASE2_COMMERCE_ENABLED':'RELEASE1_SALES_ENABLED')==='true';
+ const readiness=await service.rpc('market_sales_readiness');if(readiness.error)return reply(503,{state:'BLOCKED',reason:'SERVICE_READINESS_UNAVAILABLE'});
+ if(product==='FOUNDING_AUTO_EXECUTION'){
+  const id=String(body.execution_account_id??''),owned=await service.from('connected_execution_accounts').select('provider').eq('id',id).eq('customer_id',user.id).maybeSingle();
+  if(owned.error||!owned.data)return reply(403,{state:'BLOCKED',reason:'ACCOUNT_OWNERSHIP_MISMATCH'});
+  if(!Array.isArray(readiness.data?.execution_providers)||!readiness.data.execution_providers.includes(String(owned.data.provider).toUpperCase()))return reply(409,{state:'BLOCKED',reason:'PROVIDER_DEMO_VERIFICATION_REQUIRED'});
+ }
  let priceQuery=service.from("commerce_product_prices").select("amount_minor,billing_interval,version,configured,fixed_period_days").eq("product_code",product).eq("provider",provider).eq("currency",currency).eq("active",true); if(provider==="MPESA"){const term=Number(body.term_days);if(![7,30].includes(term))return reply(422,{state:"BLOCKED",reason:"APPROVED_TERM_REQUIRED"});priceQuery=priceQuery.eq("fixed_period_days",term)} const {data:price}=await priceQuery.order("version",{ascending:false}).limit(1).maybeSingle();
  if(!price)return reply(422,{state:"BLOCKED",reason:"UNSUPPORTED_PROVIDER_OR_CURRENCY"}); if(body.amount_minor!==undefined&&Number(body.amount_minor)!==Number(price.amount_minor))return reply(409,{state:"BLOCKED",reason:"CLIENT_PRICE_TAMPERING"});
  if(!price.configured)return reply(503,{state:"CHECKOUT_NOT_CONFIGURED"});
+ const releases=await service.from("strategy_release_candidates").select("id",{count:"exact",head:true}).eq("state","PROMOTED");
+ if(releases.error)return reply(503,{state:"BLOCKED",reason:"STRATEGY_READINESS_UNAVAILABLE"});
+ const saleBlock=release1SaleDecision({product,provider,currency,termDays:Number(body.term_days),amountMinor:Number(price.amount_minor),salesEnabled:productEnabled,promotedStrategies:releases.count??0,analysisServiceReady:readiness.data?.analysis_ready===true,release2Enabled:productEnabled});
+ if(saleBlock)return reply(409,{state:"BLOCKED",reason:saleBlock});
  let account:string|null=body.execution_account_id?String(body.execution_account_id):null; if(product==="FOUNDING_AUTO_EXECUTION"){if(!account)return reply(422,{state:"BLOCKED",reason:"EXECUTION_ACCOUNT_REQUIRED"});const {data:owned}=await service.from("connected_execution_accounts").select("id").eq("id",account).eq("customer_id",user.id).maybeSingle();if(!owned)return reply(403,{state:"BLOCKED",reason:"ACCOUNT_OWNERSHIP_MISMATCH"});}
  const origin=get("PUBLIC_APP_ORIGIN")??"https://hashibot.app"; let returnUrl:string; try{const parsed=new URL(String(body.return_url??"/app/billing"),origin);if(parsed.origin!==new URL(origin).origin)throw 0;returnUrl=parsed.toString();}catch{return reply(422,{state:"BLOCKED",reason:"UNSAFE_RETURN_URL"});}
  const idempotency=safe(req.headers.get("x-idempotency-key"),120);if(!idempotency)return reply(422,{state:"BLOCKED",reason:"IDEMPOTENCY_KEY_REQUIRED"}); const expiry=new Date(Date.now()+15*60_000).toISOString();
@@ -28,12 +42,12 @@ Deno.serve(async req=>{
  if(!price.configured)return reply(503,{state:"CHECKOUT_NOT_CONFIGURED",checkout_id:checkout.id,expires_at:checkout.expires_at});
  if(provider==="MPESA"){
   let phone:string;try{phone=normalizeKenyanPhone(String(body.phone??""))}catch{return reply(422,{state:"BLOCKED",reason:"INVALID_KENYAN_PHONE"})}
-  const adapter=mpesaAdapterFromGetter(get);if(adapter instanceof UnconfiguredMpesaAdapter)return reply(503,{state:"CHECKOUT_NOT_CONFIGURED",checkout_id:checkout.id});const attemptKey=`${idempotency}.mpesa`;
+  let adapter;try{adapter=mpesaAdapterFromGetter(get)}catch{return reply(503,{state:"BLOCKED",reason:"MPESA_CONFIGURATION_INVALID",checkout_id:checkout.id})}if(adapter instanceof UnconfiguredMpesaAdapter)return reply(503,{state:"CHECKOUT_NOT_CONFIGURED",checkout_id:checkout.id});const attemptKey=`${idempotency}.mpesa`;
   let {data:attempt,error:attemptError}=await service.from("commerce_payment_attempts").insert({checkout_session_id:checkout.id,customer_id:user.id,provider:"MPESA",amount_minor:price.amount_minor,currency,state:"CREATED",provider_state:"STK_NOT_SENT",idempotency_key:attemptKey,safe_evidence:{masked_phone:maskKenyanPhone(phone)}}).select("id,state,provider_state,safe_evidence").single();
   if(attemptError){const {data:priorAttempt}=await service.from("commerce_payment_attempts").select("id,state,provider_state,safe_evidence").eq("customer_id",user.id).eq("idempotency_key",attemptKey).maybeSingle();if(!priorAttempt||priorAttempt.provider_state!=="STK_NOT_SENT")return reply(200,{state:"PROVIDER_PENDING",checkout_id:checkout.id,reused_attempt:true});if(priorAttempt.safe_evidence?.masked_phone!==maskKenyanPhone(phone))return reply(409,{state:"BLOCKED",reason:"ATTEMPT_PHONE_MISMATCH"});attempt=priorAttempt;}
   if(!attempt)return reply(500,{state:"BLOCKED",reason:"PAYMENT_ATTEMPT_PERSISTENCE_FAILED"});
   const {data:claimed,error:claimError}=await service.rpc("claim_commerce_provider_submission",{p_checkout_id:checkout.id,p_customer_id:user.id,p_attempt_id:attempt.id});if(claimError||!claimed)return reply(409,{state:"PROVIDER_PENDING",checkout_id:checkout.id,reason:"SUBMISSION_IN_PROGRESS_OR_UNCERTAIN"});
-  try{const callbackToken=crypto.randomUUID()+crypto.randomUUID(),callbackHash=await sha256Hex(callbackToken);const {data:tokenSaved,error:tokenError}=await service.from("commerce_payment_attempts").update({safe_evidence:{masked_phone:maskKenyanPhone(phone),callback_token_hash:callbackHash,sandbox:get("DARAJA_ENVIRONMENT")!=="production"}}).eq("id",attempt.id).eq("provider_state","SUBMISSION_IN_PROGRESS").select("id").maybeSingle();if(tokenError||!tokenSaved)throw Error("CALLBACK_TOKEN_NOT_PERSISTED");
+  try{const callbackToken=crypto.randomUUID()+crypto.randomUUID(),callbackHash=await sha256Hex(callbackToken);const {data:tokenSaved,error:tokenError}=await service.from("commerce_payment_attempts").update({safe_evidence:{masked_phone:maskKenyanPhone(phone),callback_token_hash:callbackHash,sandbox:(get("DARAJA_ENVIRONMENT")??get("MPESA_ENVIRONMENT")??"sandbox")!=="production"}}).eq("id",attempt.id).eq("provider_state","SUBMISSION_IN_PROGRESS").select("id").maybeSingle();if(tokenError||!tokenSaved)throw Error("CALLBACK_TOKEN_NOT_PERSISTED");
    const stk=await adapter.createStkRequest({checkoutId:checkout.id,phone,amountKes:Number(price.amount_minor)/100,callbackToken});if(stk.state==="CHECKOUT_NOT_CONFIGURED")throw Error("CHECKOUT_NOT_CONFIGURED");
    const {error:ackError}=await service.rpc("acknowledge_mpesa_submission",{p_checkout:checkout.id,p_attempt:attempt.id,p_request:stk.checkoutRequestId,p_merchant:stk.merchantRequestId});if(ackError)throw Error("STK_ACK_NOT_PERSISTED");
    return reply(200,{state:"ACTION_REQUIRED",checkout_id:checkout.id,masked_phone:maskKenyanPhone(phone),expires_at:checkout.expires_at})

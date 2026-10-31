@@ -15,6 +15,8 @@ import { ScrollToAnchor } from './components/common/ScrollToAnchor';
 // Eager: critical infrastructure (tiny, needed on every load)
 
 // Lazy: all pages — each becomes its own chunk loaded on demand
+const InvestorWalkthrough=lazy(()=>import('./pages/admin/InvestorWalkthrough'));
+const Demo=lazy(()=>import('./pages/public/Demo'));
 const CustomerVisualBridge = lazy(() => import('./pages/app/CustomerVisualBridge').then(m => ({ default: m.CustomerVisualBridge })));
 const AdminVisualBridgeManagement = lazy(() => import('./pages/admin/AdminVisualBridgeManagement').then(m => ({ default: m.AdminVisualBridgeManagement })));
 
@@ -22,9 +24,7 @@ const AdminVisualBridgeManagement = lazy(() => import('./pages/admin/AdminVisual
 const Home = lazy(() => import('./pages/public/Home'));
 const Features = lazy(() => import('./pages/public/Features'));
 const AISignals = lazy(() => import('./pages/public/AISignals'));
-const Pricing = lazy(() => import('./pages/public/Pricing'));
 const Vip = lazy(() => import('./pages/public/Vip'));
-const VipComplete = lazy(() => import('./pages/public/VipComplete'));
 const Free = lazy(() => import('./pages/public/Free'));
 const Results = lazy(() => import('./pages/public/Results'));
 const FAQ = lazy(() => import('./pages/public/FAQ'));
@@ -44,12 +44,12 @@ const SignalDetail = lazy(() => import('./pages/app/SignalDetail'));
 const TelegramSetup = lazy(() => import('./pages/app/TelegramSetup'));
 const Watchlist = lazy(() => import('./pages/app/Watchlist'));
 const Account = lazy(() => import('./pages/app/Account'));
-const PackageRequest = lazy(() => import('./pages/app/PackageRequest'));
 const CryptoExecutionPortal = lazy(() => import('./pages/app/CryptoExecutionPortal'));
 const MT5PersonalPortal = lazy(() => import('./pages/app/MT5PersonalPortal'));
 const MT5PropPortal = lazy(() => import('./pages/app/MT5PropPortal'));
 const CustomerBotSetup = lazy(() => import('./pages/app/CustomerBotSetup'));
 const Onboarding = lazy(() => import('./pages/app/Onboarding'));
+const ExecutionOnboarding = lazy(() => import('./pages/app/ExecutionOnboarding'));
 const Readiness = lazy(() => import('./pages/app/Readiness'));
 const Billing = lazy(() => import('./pages/app/Billing'));
 const PaymentResult = lazy(() => import('./pages/public/PaymentResult'));
@@ -64,16 +64,9 @@ const ProviderOverview = lazy(() => import('./pages/admin/ProviderOverview'));
 const Candidates = lazy(() => import('./pages/admin/Candidates'));
 const RejectedSetups = lazy(() => import('./pages/admin/RejectedSetups'));
 const SignalsManager = lazy(() => import('./pages/admin/SignalsManager'));
-const ManualSignal = lazy(() => import('./pages/admin/ManualSignal'));
-const TelegramTest = lazy(() => import('./pages/admin/TelegramTest'));
-const TelegramLogs = lazy(() => import('./pages/admin/TelegramLogs'));
-const TelegramLinks = lazy(() => import('./pages/admin/TelegramLinks'));
-const UsersAccess = lazy(() => import('./pages/admin/UsersAccess'));
+const TelegramHub = lazy(() => import('./pages/admin/TelegramHub'));
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
-const SchedulerGuide = lazy(() => import('./pages/admin/SchedulerGuide'));
 const OutcomeTracking = lazy(() => import('./pages/admin/OutcomeTracking'));
-const SetupChecklist = lazy(() => import('./pages/admin/SetupChecklist'));
-const AccessRequests = lazy(() => import('./pages/admin/AccessRequests'));
 const StrategyConfig = lazy(() => import('./pages/admin/StrategyConfig'));
 const Execution = lazy(() => import('./pages/admin/Execution'));
 const TradingBrain = lazy(() => import('./pages/admin/TradingBrain'));
@@ -92,7 +85,6 @@ const CustomerFleetOps = lazy(() => import('./pages/admin/CustomerFleetOps'));
 const GrowthGoal = lazy(() => import('./pages/admin/GrowthGoal'));
 const AIAgentsCommand = lazy(() => import('./pages/admin/AIAgentsCommand'));
 const PropTradingPanel = lazy(() => import('./pages/admin/PropTradingPanel'));
-const Retention = lazy(() => import('./pages/admin/Retention'));
 const OperatorPanel = lazy(() => import('./pages/admin/operator/OperatorPanel'));
 const Positions = lazy(() => import('./pages/admin/Positions'));
 const Protection = lazy(() => import('./pages/admin/Protection'));
@@ -101,7 +93,6 @@ const Risk = lazy(() => import('./pages/admin/Risk'));
 const Capital = lazy(() => import('./pages/admin/Capital'));
 const RuntimeTruth = lazy(() => import('./pages/admin/RuntimeTruth'));
 const MissionControl = lazy(() => import('./pages/admin/MissionControl'));
-const OnboardingOperations = lazy(() => import('./pages/admin/OnboardingOperations'));
 
 // Minimal page-level loading fallback
 function PageLoader() {
@@ -121,8 +112,8 @@ function AuthRedirect() {
   if (profileError) return <Navigate to="/app/dashboard" replace />;
   // Still loading profile — wait
   if (!profile) return <PageLoader />;
-  if (profile.role === 'admin') return <Navigate to="/admin/operator" replace />;
-  return <Navigate to="/app/dashboard" replace />;
+  if (profile.role === 'admin') return <Navigate to="/admin/launch" replace />;
+  return <Navigate to="/app/onboarding" replace />;
 }
 
 function App() {
@@ -141,9 +132,9 @@ function App() {
             <Route path="/ai-signals" element={<AISignals />} />
             <Route path="/crypto-automation" element={<Navigate to="/execution/crypto" replace />} />
             <Route path="/mt5-automation" element={<Navigate to="/execution/mt5" replace />} />
-            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/pricing" element={<Navigate to="/vip" replace />} />
             <Route path="/vip" element={<Vip />} />
-            <Route path="/vip/complete" element={<VipComplete />} />
+            <Route path="/vip/complete" element={<RequireAuth><Navigate to="/app/onboarding" replace /></RequireAuth>} />
             <Route path="/payment/result" element={<RequireAuth><PaymentResult /></RequireAuth>} />
             <Route path="/free" element={<Free />} />
             <Route path="/results" element={<Results />} />
@@ -163,6 +154,8 @@ function App() {
             <Route path="/forex-mt5-prop-bot" element={<Navigate to="/execution/prop" replace />} />
 
             {/* Auth pages */}
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/admin/investor" element={<RequireAdmin><InvestorWalkthrough /></RequireAdmin>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
@@ -185,66 +178,67 @@ function App() {
             <Route path="/app/visual-bridge"    element={<CustomerVisualBridge />} />
             <Route path="/app/bot-setup"        element={<RequireAuth><CustomerBotSetup /></RequireAuth>} />
             <Route path="/app/telegram"    element={<RequireAuth><TelegramSetup /></RequireAuth>} />
-            <Route path="/app/package-request" element={<RequireAuth><PackageRequest /></RequireAuth>} />
+            <Route path="/app/package-request" element={<RequireAuth><Navigate to="/vip" replace /></RequireAuth>} />
             <Route path="/app/watchlist"   element={<RequireAuth><Watchlist /></RequireAuth>} />
             <Route path="/app/account"     element={<RequireAuth><Account /></RequireAuth>} />
             <Route path="/app/onboarding"  element={<RequireAuth><Onboarding /></RequireAuth>} />
+            <Route path="/app/execution-onboarding" element={<RequireAuth><ExecutionOnboarding /></RequireAuth>} />
             <Route path="/app/readiness"   element={<RequireAuth><Readiness /></RequireAuth>} />
             <Route path="/app/billing" element={<RequireAuth><Billing /></RequireAuth>} />
 
             {/* Admin */}
             <Route path="/admin/operator" element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
             <Route path="/admin/mission-control" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
-            <Route path="/admin/mission" element={<RequireAdmin><MissionControl /></RequireAdmin>} />
+            <Route path="/admin/mission" element={<RequireAdmin><Navigate to="/admin/mission-control" replace /></RequireAdmin>} />
             <Route path="/admin/operator/signals" element={<RequireAdmin><SignalsManager /></RequireAdmin>} />
             <Route path="/admin/operator/executions" element={<RequireAdmin><OperatorPanel section="executions" /></RequireAdmin>} />
             <Route path="/admin/operator/trade-manager" element={<RequireAdmin><OperatorPanel section="trade-manager" /></RequireAdmin>} />
-            <Route path="/admin/operator/telegram" element={<RequireAdmin><OperatorPanel section="telegram" /></RequireAdmin>} />
-            <Route path="/admin/operator/settings" element={<RequireAdmin><ScannerConfig /></RequireAdmin>} />
+            <Route path="/admin/operator/telegram" element={<RequireAdmin><Navigate to="/admin/telegram" replace /></RequireAdmin>} />
+            <Route path="/admin/operator/settings" element={<RequireAdmin><Navigate to="/admin/scanner-config" replace /></RequireAdmin>} />
             <Route path="/admin/operator/intelligence" element={<RequireAdmin><OperatorPanel section="intelligence" /></RequireAdmin>} />
             <Route path="/admin/operator/runtime-proof" element={<RequireAdmin><OperatorPanel section="runtime-proof" /></RequireAdmin>} />
-            <Route path="/admin/control-room"    element={<RequireAdmin><OperatorPanel section="dashboard" /></RequireAdmin>} />
+            <Route path="/admin/control-room"    element={<RequireAdmin><Navigate to="/admin/operator" replace /></RequireAdmin>} />
             <Route path="/admin/scanner"          element={<RequireAdmin><ScannerStatus /></RequireAdmin>} />
             <Route path="/admin/scanner-config"   element={<RequireAdmin><ScannerConfig /></RequireAdmin>} />
             <Route path="/admin/providers"        element={<RequireAdmin><ProviderOverview /></RequireAdmin>} />
             <Route path="/admin/providers/diagnostics" element={<RequireAdmin><ProviderHealth /></RequireAdmin>} />
             <Route path="/admin/candidates"       element={<RequireAdmin><Candidates /></RequireAdmin>} />
             <Route path="/admin/rejected"         element={<RequireAdmin><RejectedSetups /></RequireAdmin>} />
-            <Route path="/admin/signals"          element={<RequireAdmin><SignalsManager /></RequireAdmin>} />
-            <Route path="/admin/signals/new"      element={<RequireAdmin><ManualSignal /></RequireAdmin>} />
-            <Route path="/admin/telegram-test"    element={<RequireAdmin><TelegramTest /></RequireAdmin>} />
-            <Route path="/admin/telegram"         element={<RequireAdmin><TelegramLogs /></RequireAdmin>} />
-            <Route path="/admin/telegram-links"   element={<RequireAdmin><TelegramLinks /></RequireAdmin>} />
-            <Route path="/admin/telegram-requests" element={<RequireAdmin><TelegramLinks /></RequireAdmin>} />
-            <Route path="/admin/users"            element={<RequireAdmin><UsersAccess /></RequireAdmin>} />
+            <Route path="/admin/signals"          element={<RequireAdmin><Navigate to="/admin/operator/signals" replace /></RequireAdmin>} />
+            <Route path="/admin/signals/new" element={<RequireAdmin><Navigate to="/admin/telegram?tab=setups" replace /></RequireAdmin>} />
+            <Route path="/admin/telegram-test"    element={<RequireAdmin><Navigate to="/admin/telegram?tab=channels" replace /></RequireAdmin>} />
+            <Route path="/admin/telegram"         element={<RequireAdmin><TelegramHub /></RequireAdmin>} />
+            <Route path="/admin/telegram-links"   element={<RequireAdmin><Navigate to="/admin/telegram?tab=members" replace /></RequireAdmin>} />
+            <Route path="/admin/telegram-requests" element={<RequireAdmin><Navigate to="/admin/telegram?tab=members" replace /></RequireAdmin>} />
+            <Route path="/admin/users"            element={<RequireAdmin><Navigate to="/admin/customers" replace /></RequireAdmin>} />
             <Route path="/admin/customers"        element={<RequireAdmin><Customers /></RequireAdmin>} />
             <Route path="/admin/customer-fleet"   element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
-            <Route path="/admin/onboarding"       element={<RequireAdmin><OnboardingOperations /></RequireAdmin>} />
+            <Route path="/admin/onboarding"       element={<RequireAdmin><Navigate to="/admin/customers" replace /></RequireAdmin>} />
             <Route path="/admin/launch" element={<RequireAdmin><LaunchSetup /></RequireAdmin>} />
             <Route path="/admin/commerce" element={<RequireAdmin><CommerceOperations /></RequireAdmin>} />
-            <Route path="/admin/customer-engines" element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
-            <Route path="/admin/fleet"            element={<RequireAdmin><CustomerFleetOps /></RequireAdmin>} />
+            <Route path="/admin/customer-engines" element={<RequireAdmin><Navigate to="/admin/customer-fleet" replace /></RequireAdmin>} />
+            <Route path="/admin/fleet"            element={<RequireAdmin><Navigate to="/admin/customer-fleet" replace /></RequireAdmin>} />
             <Route path="/admin/growth-goal" element={<RequireAdmin><GrowthGoal /></RequireAdmin>} />
             <Route path="/admin/ai-agents"        element={<RequireAdmin><AIAgentsCommand /></RequireAdmin>} />
-            <Route path="/admin/access-requests"  element={<RequireAdmin><AccessRequests /></RequireAdmin>} />
+            <Route path="/admin/access-requests"  element={<RequireAdmin><Navigate to="/admin/customers" replace /></RequireAdmin>} />
             <Route path="/admin/audit"            element={<RequireAdmin><AuditLogs /></RequireAdmin>} />
-            <Route path="/admin/scheduler"          element={<RequireAdmin><SchedulerGuide /></RequireAdmin>} />
+            <Route path="/admin/scheduler" element={<RequireAdmin><Navigate to="/admin/telegram?tab=schedules" replace /></RequireAdmin>} />
             <Route path="/admin/outcomes"          element={<RequireAdmin><OutcomeTracking /></RequireAdmin>} />
             <Route path="/admin/performance"       element={<RequireAdmin><Performance /></RequireAdmin>} />
-            <Route path="/admin/retention"         element={<RequireAdmin><Retention /></RequireAdmin>} />
+            <Route path="/admin/retention" element={<RequireAdmin><Navigate to="/admin/growth-goal?tab=payments" replace /></RequireAdmin>} />
             <Route path="/admin/provider-comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
             <Route path="/admin/providers/binance" element={<RequireAdmin><BinanceOperations /></RequireAdmin>} />
             <Route path="/admin/providers/bybit" element={<RequireAdmin><BybitOperations /></RequireAdmin>} />
             <Route path="/admin/providers/mt5" element={<RequireAdmin><MT5OperationsCenter /></RequireAdmin>} />
-            <Route path="/admin/bridge" element={<RequireAdmin><AdminVisualBridgeManagement /></RequireAdmin>} />
+            <Route path="/admin/bridge" element={<RequireAdmin><Navigate to="/admin/visual-bridge" replace /></RequireAdmin>} />
             <Route path="/admin/visual-bridge" element={<RequireAdmin><AdminVisualBridgeManagement /></RequireAdmin>} />
             <Route path="/admin/providers/mt5-personal" element={<RequireAdmin><MT5PersonalOperations /></RequireAdmin>} />
             <Route path="/admin/providers/mt5-prop" element={<RequireAdmin><MT5PropOperations /></RequireAdmin>} />
-            <Route path="/admin/providers/comparison" element={<RequireAdmin><ProviderComparison /></RequireAdmin>} />
-            <Route path="/admin/checklist"         element={<RequireAdmin><SetupChecklist /></RequireAdmin>} />
-            <Route path="/admin/strategy-config"   element={<RequireAdmin><StrategyConfig /></RequireAdmin>} />
+            <Route path="/admin/providers/comparison" element={<RequireAdmin><Navigate to="/admin/provider-comparison" replace /></RequireAdmin>} />
+            <Route path="/admin/checklist"         element={<RequireAdmin><Navigate to="/admin/launch" replace /></RequireAdmin>} />
+            <Route path="/admin/strategy-config"   element={<RequireAdmin><Navigate to="/admin/strategies" replace /></RequireAdmin>} />
             <Route path="/admin/strategies"        element={<RequireAdmin><StrategyConfig /></RequireAdmin>} />
-            <Route path="/admin/arbitrator"        element={<RequireAdmin><Candidates /></RequireAdmin>} />
+            <Route path="/admin/arbitrator" element={<RequireAdmin><Navigate to="/admin/candidates" replace /></RequireAdmin>} />
             <Route path="/admin/execution"         element={<RequireAdmin><Execution /></RequireAdmin>} />
             <Route path="/admin/positions"         element={<RequireAdmin><Positions /></RequireAdmin>} />
             <Route path="/admin/protection"        element={<RequireAdmin><Protection /></RequireAdmin>} />
@@ -252,9 +246,9 @@ function App() {
             <Route path="/admin/risk"              element={<RequireAdmin><Risk /></RequireAdmin>} />
             <Route path="/admin/capital"           element={<RequireAdmin><Capital /></RequireAdmin>} />
             <Route path="/admin/runtime-truth"     element={<RequireAdmin><RuntimeTruth /></RequireAdmin>} />
-            <Route path="/admin/runtime"           element={<RequireAdmin><RuntimeTruth /></RequireAdmin>} />
+            <Route path="/admin/runtime"           element={<RequireAdmin><Navigate to="/admin/runtime-truth" replace /></RequireAdmin>} />
             <Route path="/admin/prop-provider"     element={<RequireAdmin><Navigate to="/admin/providers/mt5" replace /></RequireAdmin>} />
-            <Route path="/admin/reporting"         element={<RequireAdmin><Performance /></RequireAdmin>} />
+            <Route path="/admin/reporting"         element={<RequireAdmin><Navigate to="/admin/performance" replace /></RequireAdmin>} />
             <Route path="/admin/trading-brain"     element={<RequireAdmin><TradingBrain /></RequireAdmin>} />
             <Route path="/admin/modes"             element={<RequireAdmin><Modes /></RequireAdmin>} />
             <Route path="/admin/backtest"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />

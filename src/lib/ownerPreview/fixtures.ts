@@ -1,10 +1,10 @@
-export type PreviewRow = Record<string, any>; // Existing UI projections have heterogeneous shapes.
+export type PreviewRow = Record<string, unknown>; // Existing UI projections have heterogeneous shapes.
 const now = new Date().toISOString();
 export const previewCustomers = [
   { id: 'preview-customer-amina', full_name: 'Amina — demonstration customer', email: 'amina@example.invalid', created_at: now, role: 'user' as const },
   { id: 'preview-customer-yusuf', full_name: 'Yusuf — demonstration customer', email: 'yusuf@example.invalid', created_at: now, role: 'user' as const },
 ];
-const account = (id: string, customer: number, provider: string, mode: string, state: string, risk: number): PreviewRow => ({
+const account = (id: string, customer: number, provider: string, mode: string, state: string, risk: number) => ({
   id, account_id: id, enabled: false, customer_id: previewCustomers[customer].id, user_id: previewCustomers[customer].id,
   provider, provider_name: provider, environment: provider === 'BINANCE' ? 'testnet' : 'demo', account_mode: mode,
   display_label: `${previewCustomers[customer].full_name.split(' ')[0]} ${provider} ${mode} — simulated`,
@@ -19,6 +19,7 @@ const account = (id: string, customer: number, provider: string, mode: string, s
   balance: customer ? 25000 : 100000, equity: customer ? 24750 : 100200, risk_percent: risk, status: state, created_at: now,
   evidence_kind: 'SIMULATED_DEMONSTRATION',
 });
+export type PreviewAccount=ReturnType<typeof account>;
 export const previewAccounts = [
   account('preview-amina-mt5-personal', 0, 'MT5', 'PERSONAL', 'healthy', .3),
   account('preview-amina-binance', 0, 'BINANCE', 'PERSONAL', 'uncertain', .2),
@@ -33,7 +34,7 @@ export function createPreviewTables(): Record<string, PreviewRow[]> {
   put(['execution_accounts_safe', 'execution_accounts', 'connected_execution_accounts'], previewAccounts);
   put(['mt5_accounts', 'mt5_accounts_safe'], previewAccounts.filter(a => a.provider === 'MT5'));
   put(['packages'], [
-    { id: 'preview-signals', name: 'Signal-only — demonstration', slug: 'vip-signals', price: 20, monthly_price: 20, price_usd: 20, sort_order: 1, is_active: true, features: ['Simulated signal subscription'] },
+    { id: 'preview-signals', name: 'Signal-only — demonstration', slug: 'vip-signals', price:29,monthly_price:29,price_usd:29, sort_order: 1, is_active: true, features: ['Simulated signal subscription'] },
     { id: 'preview-execution', name: 'Execution — demonstration', slug: 'personal-auto', price: 100, monthly_price: 100, price_usd: 100, sort_order: 2, is_active: true, features: ['Simulated demo-account subscription'] },
   ]);
   put(['customer_subscriptions'], previewCustomers.map((c, i) => ({ id: `preview-sub-${i}`, user_id: c.id, customer_id: c.id, customer_name: c.full_name, full_name: c.full_name, email: c.email, package_id: i ? 'preview-execution' : 'preview-signals', package_name: i ? 'Execution demonstration' : 'Signal-only demonstration', payment_status: i ? 'pending' : 'paid', access_status: i ? 'inactive' : 'active', telegram_status: i ? 'not_invited' : 'joined', subscription_status: 'active', start_date: now, end_date: '2099-01-01', expires_at: '2099-01-01', created_at: now, updated_at: now, packages: tables.packages[i], evidence_kind: 'SIMULATED_DEMONSTRATION' })));
@@ -49,11 +50,13 @@ export function createPreviewTables(): Record<string, PreviewRow[]> {
   put(['trade_management_truth', 'active_positions'], previewAccounts.slice(0,4).map(a => ({ id: `preview-position-${a.id}`, customer_id: a.customer_id, user_id: a.user_id, execution_account_id: a.id, provider: a.provider.toLowerCase(), environment: a.environment, symbol: a.provider === 'MT5' ? 'EURUSD' : 'BTCUSDT', side: 'long', status: 'open', qty: .01, entry_price: 100, mark_price: 101, unrealized_pnl: 10, sl_present: a.status !== 'incident', tp1_present: true, tp2_present: true, protection_status: a.status === 'incident' ? 'missing_sl' : 'protected', profit_lock_status: 'inactive', monitor_status: 'simulated', recovery_status: a.status === 'incident' ? 'pending' : 'none', latest_error: a.last_error, latest_sync_at: now, evidence_kind: 'SIMULATED_DEMONSTRATION' })));
   put(['operator_runtime_events', 'audit_logs'], [{ id: 'preview-incident', customer_id: previewCustomers[1].id, execution_account_id: previewAccounts[2].id, event_type: 'PROTECTION_INCIDENT', action: 'DEMONSTRATION', result: 'FAILED', severity: 'CRITICAL', subsystem: 'PROTECTION', provider: 'mt5', message: 'Simulated missing stop-loss incident; no real position', result_summary: 'Demonstration recovery pending', created_at: now }]);
   put(['execution_readiness_projections'], previewAccounts.map(a => ({ id: `preview-ready-${a.id}`, execution_account_id: a.id, customer_id: a.customer_id, state: a.phase_h_readiness, reasons: a.phase_h_readiness_reasons, required_action: 'Inspect simulated evidence', calculated_at: now })));
-  put(['commerce_subscriptions'], previewCustomers.map((c,i) => ({ id: `preview-commerce-${i}`, customer_id: c.id, user_id: c.id, product_code: i ? 'EXECUTION' : 'SIGNALS', provider: 'DEMONSTRATION', status: i ? 'pending' : 'active', current_period_end: '2099-01-01', grace_end: null, currency: 'USD', amount_minor: i ? 10000 : 2000, entitlement_state: i ? 'pending' : 'active', cancel_at_period_end: false })));
+  put(['commerce_subscriptions'], previewCustomers.map((c,i) => ({ id: `preview-commerce-${i}`, customer_id: c.id, user_id: c.id, product_code: i ? 'EXECUTION' : 'SIGNALS', provider: 'DEMONSTRATION', status: i ? 'pending' : 'active', current_period_end: '2099-01-01', grace_end: null, currency: 'USD', amount_minor: i ? 10000 : 2900, entitlement_state: i ? 'pending' : 'active', cancel_at_period_end: false })));
   put(['telegram_fulfillment_requests', 'telegram_deliveries', 'telegram_links'], previewCustomers.map((c,i) => ({ id: `preview-membership-${i}`, customer_id: c.id, user_id: c.id, entitlement_id: `preview-sub-${i}`, delivery_type: 'initial_signal', message_type: 'initial_signal', action: 'DEMONSTRATION', status: i ? 'failed' : 'sent', membership_status: i ? 'pending' : 'joined', telegram_username: i ? 'demo_yusuf' : 'demo_amina', destination_channel: 'Simulated VIP audience', safe_error: i ? 'Demonstration membership pending' : null, created_at: now })));
   put(['mt5_scanner_feeds'], [{ id: 'preview-owner-feed', history_account_id: previewAccounts[0].id, feed_identity: 'DEMONSTRATION OWNER FEED', status: 'HEALTHY', enabled: true, bridge_id: 'preview-bridge', last_heartbeat_at: now, validation_evidence: { simulated: true } }]);
   put(['customer_onboarding_sessions'], previewCustomers.map(c => ({ id: `preview-onboarding-${c.id}`, customer_id: c.id, stage: 0 })));
   // Explicit zero-row demonstrations: no fabricated backend evidence for these ledgers.
+  tables.telegram_links=tables.telegram_links.map((row,i)=>({...row,telegram_user_id:900000001+i}));
+  put(['telegram_memberships'],previewCustomers.flatMap((c,i)=>['VIP_CRYPTO','VIP_FOREX_GOLD'].map(audience=>({customer_id:c.id,audience,state:i?'ACTION_REQUIRED':'ACTIVE',updated_at:now}))));
   for (const name of ['access_requests','user_access','strategy_candidates','mode_configs','paper_execution_intents','signal_updates','telegram_router_audit','intelligence_events','intelligence_feed_results','intelligence_feed_health','intelligence_event_health','telegram_delivery_health','execution_monitor_heartbeats','execution_monitor_schedules','execution_orders','execution_event_logs','execution_policies','execution_provider_global_controls','provider_execution_performance','provider_parity_audit','provider_symbol_cache','risk_profiles','runtime_proof_view','scheduler_truth_view','cron_jobs_view','problem_symbol_quarantine','provider_100_trade_readiness_view','commerce_provider_events','backtest_runs','certified_execution_account_policies','certified_runtime_artifacts','bybit_prop_accounts','prop_daily_sessions','prop_audit_events','prop_simulation_runs','phase_n_commands_safe','phase_h_entitlements','provider_connections_safe','risk_acknowledgements','founding_slot_reservations','assisted_setup_requests','additional_account_requests','campaign_attributions','phase_h_audit_events','customer_onboarding_provisioning']) tables[name] ??= [];
   put(['scanner_runs'], [{ id: 'preview-scan', run_type: 'manual', status: 'success', started_at: now, finished_at: now, symbols_scanned: 3, signals_created: 1, telegram_sent_count: 0, telegram_failed_count: 0, error_message: null, evidence_kind: 'SIMULATED_DEMONSTRATION' }]);
   put(['signal_analytics_view'], [{ ...tables.signals[0], signal_id: tables.signals[0].id, current_status:'closed',outcome_category:'WIN',r_result:1.2,close_price:60600,closed_at:now,duration_minutes:60 }]);

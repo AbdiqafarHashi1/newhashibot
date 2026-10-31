@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { PublicLayout } from '../../components/layout/PublicLayout';
 import { supabase } from '../../lib/supabase';
 import { 
-  Mail, Phone, Copy, Check, Send, Clock, 
+  Mail, Phone, Send, Clock, 
   Loader2, AlertCircle, CheckCircle2 
 } from 'lucide-react';
 
@@ -12,7 +12,6 @@ export default function Contact() {
   const initialCategory = searchParams.get('category') || 'General enquiries';
   const initialSubject = searchParams.get('subject') || '';
 
-  const [copiedMpesa, setCopiedMpesa] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -27,11 +26,6 @@ export default function Contact() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleCopyMpesa() {
-    navigator.clipboard.writeText('0748895225');
-    setCopiedMpesa(true);
-    setTimeout(() => setCopiedMpesa(false), 2000);
-  }
 
   async function handleSubmitMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -127,26 +121,7 @@ export default function Contact() {
             </a>
           </div>
 
-          {/* M-Pesa Card */}
-          <div className="bg-zinc-900 border border-emerald-500/30 rounded-2xl p-6 space-y-4 shadow-xl">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Phone size={20} />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-base text-white">M-Pesa Payment Contact</h3>
-              <p className="text-xs text-zinc-400 mt-0.5">Official M-Pesa transfer recipient number.</p>
-            </div>
-            <div className="flex items-center justify-between bg-zinc-950 p-2.5 rounded-xl border border-zinc-800 w-full">
-              <span className="font-mono text-sm font-bold text-white">0748 895 225</span>
-              <button
-                onClick={handleCopyMpesa}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg flex items-center gap-1 transition-all"
-              >
-                {copiedMpesa ? <Check size={12} /> : <Copy size={12} />}
-                <span>{copiedMpesa ? 'Copied' : 'Copy'}</span>
-              </button>
-            </div>
-          </div>
+          <div className="rounded-2xl border border-emerald-500/30 bg-zinc-900 p-6"><Phone size={20} className="text-emerald-400"/><h3 className="mt-4 font-bold">M-Pesa payments</h3><p className="mt-2 text-sm text-zinc-400">Use HashiBot checkout when activated. Do not send money to a personal number or provide your M-Pesa PIN on this website.</p><Link to="/vip#vip-purchase" className="mt-4 inline-block text-emerald-400">View official payment options →</Link></div>
 
           {/* Response Time Card */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 shadow-xl">
@@ -299,7 +274,7 @@ export default function Contact() {
           </a>
           <span>•</span>
           <Link to="/pricing#mpesa-payment-section" className="text-blue-400 hover:underline">
-            View Plans & Submit M-Pesa Payment
+            View VIP payment options
           </Link>
           <span>•</span>
           <Link to="/faq" className="text-blue-400 hover:underline">

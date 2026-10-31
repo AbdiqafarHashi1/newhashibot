@@ -1,3 +1,4 @@
+import {ConditionalSignalsPanel} from '../../components/operations/ConditionalSignalsPanel';
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {CanonicalReportingQueue} from '../../components/operations/CanonicalReportingQueue';
@@ -154,7 +155,7 @@ export default function SignalsManager() {
   }
 
   return (
-    <AdminLayout><CanonicalReportingQueue/>
+    <AdminLayout><ConditionalSignalsPanel/><CanonicalReportingQueue/>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold">Signals Manager</h1>

@@ -1,3 +1,4 @@
+import {providerEnvironmentContract} from './provider-environment.ts';
 export function onboardingBrain(provider:string,mode:string) {
  const profiles:Record<string,readonly [string,string,number,readonly string[]]>={
   'MT5:PERSONAL':['PERSONAL_MT5_GROWTH','1.0.0',1,['FOREX_TREND','GOLD_BREAKOUT']],
@@ -18,5 +19,6 @@ export function validateOnboardingDraft(value:unknown) {
  const provider=String(d.provider),mode=String(d.mode);if(!onboardingBrain(provider,mode)||(provider==='MT5'?d.asset!=='FOREX':d.asset!=='CRYPTO'))throw new Error('UNSUPPORTED_PROVIDER_MODE');
  // Empty permissions are allowed while editing, never at account assignment.
  if(typeof d.risk!=='number'||!Number.isFinite(d.risk)||d.risk<.1||d.risk>onboardingBrain(provider,mode)[2]||!Array.isArray(d.strategies)||d.strategies.some(x=>typeof x!=='string'||!onboardingBrain(provider,mode)[3].includes(x)))throw new Error('UNSAFE_PREFERENCE');
- return {stage:d.stage,packageCode:d.packageCode,access:d.access,asset:d.asset,provider,mode,risk:d.risk,strategies:[...new Set(d.strategies as string[])],ack:d.ack===true};
+ const environment=providerEnvironmentContract(provider,d.environment===undefined?undefined:String(d.environment)).environment;
+ return {environment,stage:d.stage,packageCode:d.packageCode,access:d.access,asset:d.asset,provider,mode,risk:d.risk,strategies:[...new Set(d.strategies as string[])],ack:d.ack===true};
 }

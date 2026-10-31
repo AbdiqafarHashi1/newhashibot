@@ -1,4 +1,23 @@
+import {loadPaperLearning} from '../_shared/paper-learning.ts';
+import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
+import {discoverWatchedStrategies} from '../_shared/watched-strategy-discovery.ts';
+import {watchedMarketContext} from '../_shared/watched-market-context.ts';
+import type {WatchTimeframe} from '../_shared/conditional-contract.ts';
+import {conditionalWatchFeed} from '../_shared/conditional-watch-feed.ts';
+import {ConditionalSignalStore,observeConditionalSymbol,admitConditionalBatch} from '../_shared/conditional-signal-runtime.ts';
+import type {ConditionalSetup} from '../_shared/conditional-signal-service.ts';
+import {CORE_CRYPTO_SYMBOLS} from '../_shared/opportunity-universe.ts';
+import {CRYPTO_TEAM_MANAGEMENT} from '../_shared/coordinated-crypto-management.ts';
+import {fetchCoordinatedCryptoHistory} from '../_shared/coordinated-crypto-feed.ts';
+import {coordinatedCryptoDefinitions} from '../_shared/coordinated-crypto.ts';
+import {CRYPTO_TEAM_ROLES} from '../_shared/coordinated-crypto-contract.ts';
+import {altResearchDefinitions} from '../_shared/crypto-relative-strength.ts';
 import {evalForexMicroScalper,evalForexSwingContinuation} from "../_shared/forex-legacy-evaluators.ts";
+import {regimeResearchDefinitions} from '../_shared/regime-opportunities.ts';
+import {intradayResearchDefinitions} from '../_shared/intraday-opportunities.ts';
+import {decodeNativeKline} from '../_shared/native-kline.ts';
+import {costAwareResearchDefinitions} from '../_shared/cost-aware-opportunities.ts';
+import {chooseObservedUniverse,unverifiedCoreRows,type ObservedUniverseRow,type NativeExchangeSymbol} from '../_shared/opportunity-universe.ts';
 import {microScalperRuntimeParams} from "../_shared/micro-scalper-runtime.ts";
 import {classifyMarketContext,arbitrationScore,arbitrationNoTradeReason,strategyIdentityFit,marketRoleFit,strategyFreshnessScore,scoreBreakdownNumber,scoreBreakdownBool,overextensionPenalty,type MarketContext} from "../_shared/scanner-market-context.ts";
 import {measuredRuntimeConfiguration} from "../_shared/measured-strategy-runtime.ts";
@@ -80,8 +99,9 @@ interface EvalResult {
   rejection_reason: string; score_breakdown: Record<string, number | string | boolean>;
 }
 
-type StrategyName = "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback" | "GoldVolatilityBreakout";
+type StrategyName = typeof CRYPTO_TEAM_ROLES[number]["name"] | "MicroScalper" | "CompressionBreakout" | "SwingContinuation" | "QuickScalp" | "ForexMicroScalper" | "ForexSwingContinuation" | "ForexLondonBreakout" | "ForexNewYorkContinuation" | "ForexTrendPullback" | "GoldVolatilityBreakout";
 const PROFESSIONAL_STRATEGY_IDS: Record<StrategyName, string> = {
+  CryptoTrendContinuation:'crypto.team-trend',CryptoRangeReversal:'crypto.team-range',CryptoExpansionBreakout:'crypto.team-breakout',CryptoAltRelativeStrength:'crypto.team-alt',
   MicroScalper: "crypto.micro-scalper",
   QuickScalp: "crypto.quick-scalp",
   CompressionBreakout: "crypto.compression-breakout",
@@ -134,6 +154,7 @@ interface ScannerConfig {
   scan_interval_minutes: number; schedule_enabled: boolean;
   max_symbols_per_scan?: number; min_24h_volume?: number; min_liquidity?: number;
   exclude_symbols?: string[]; include_symbols?: string[];
+  dynamic_binance_universe_enabled?: boolean;
 }
 
 interface StrategyConfig {
@@ -884,7 +905,7 @@ async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 11
     if (res.ok) {
       const raw: unknown[][] = await res.json();
       if (raw && raw.length > 0) {
-        return raw.map((k) => ({ symbol, market_type: "crypto", timeframe, open_time: new Date(k[0] as number).toISOString(), open: parseFloat(k[1] as string), high: parseFloat(k[2] as string), low: parseFloat(k[3] as string), close: parseFloat(k[4] as string), volume: parseFloat(k[5] as string), source: "binance" }));
+        return raw.map((k) => decodeNativeKline(symbol, timeframe, k, 'SPOT'));
       }
     }
   } catch {}
@@ -893,20 +914,11 @@ async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 11
     const fres = await fetch(furl, { signal: AbortSignal.timeout(8000) });
     if (!fres.ok) return null;
     const fraw: unknown[][] = await fres.json();
-    return fraw.map((k) => ({ symbol, market_type: "crypto", timeframe, open_time: new Date(k[0] as number).toISOString(), open: parseFloat(k[1] as string), high: parseFloat(k[2] as string), low: parseFloat(k[3] as string), close: parseFloat(k[4] as string), volume: parseFloat(k[5] as string), source: "binance" }));
+    return fraw.map((k) => decodeNativeKline(symbol, timeframe, k, 'USDT_PERPETUAL'));
   } catch { return null; }
 }
 
-type BinanceUniverseRow = {
-  symbol: string;
-  market_type: "crypto";
-  is_active: boolean;
-  universe_rank: number;
-  universe_reason: string;
-  quote_volume: number;
-  price_change_pct: number;
-  volatility_proxy: number;
-};
+type BinanceUniverseRow = ObservedUniverseRow;
 
 const DEFAULT_STABLECOIN_BASES = new Set(["USDC", "FDUSD", "TUSD", "BUSD", "DAI", "USDP", "USDE", "SUSDE", "EUR", "TRY", "BRL"]);
 
@@ -915,21 +927,9 @@ function scannerCsvSet(value: unknown): Set<string> {
   return new Set(String(value ?? "").split(",").map((x) => normalizeSymbol(x)).filter(Boolean));
 }
 
-async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null }> {
-  const fixedList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "LINKUSDT", "AVAXUSDT", "LTCUSDT"];
-
+async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ symbols: BinanceUniverseRow[]; warning: string | null; coverage:Record<string,unknown>|null }> {
   if (!config.dynamic_binance_universe_enabled) {
-    const fixedRows = fixedList.map((sym, idx) => ({
-      symbol: normalizeSymbol(sym),
-      market_type: "crypto" as const,
-      is_active: true,
-      universe_rank: 100 - idx,
-      universe_reason: "fixed_production_crypto_universe",
-      quote_volume: 50_000_000,
-      price_change_pct: 1.0,
-      volatility_proxy: 1.0
-    }));
-    return { symbols: fixedRows, warning: null };
+    return { symbols: unverifiedCoreRows().filter(r=>!scannerCsvSet(config.exclude_symbols).has(r.symbol)), warning: 'Static core selection; liquidity has not been observed by universe discovery.',coverage:null };
   }
 
   const envMaxCryptoRaw = Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined;
@@ -947,6 +947,7 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
 
   cryptoLimit = boundedScannerLimit("SCANNER_MAX_CRYPTO_SYMBOLS", String(cryptoLimit), 10, SCANNER_HARD_MAX_CRYPTO_SYMBOLS);
   const maxSymbols = cryptoLimit;
+  const poolSize=boundedScannerLimit('SCANNER_WATCHLIST_POOL_SIZE',Deno.env.get('SCANNER_WATCHLIST_POOL_SIZE')??undefined,100,200);
   const minVolume = Math.max(0, Number(config.min_24h_volume ?? Deno.env.get("SCANNER_MIN_24H_VOLUME") ?? 10_000_000));
   const include = scannerCsvSet(config.include_symbols);
   const exclude = scannerCsvSet(config.exclude_symbols);
@@ -959,32 +960,14 @@ async function fetchDynamicBinanceUniverse(config: ScannerConfig): Promise<{ sym
       fetch("https://fapi.binance.com/fapi/v1/ticker/24hr", { signal: AbortSignal.timeout(8000) }),
     ]);
     if (!exchangeRes.ok || !tickerRes.ok) throw new Error(`Binance universe HTTP ${exchangeRes.status}/${tickerRes.status}`);
-    const exchangeInfo = await exchangeRes.json() as { symbols?: Array<{ symbol?: string; status?: string; contractType?: string; quoteAsset?: string; baseAsset?: string }> };
-    const tickers = await tickerRes.json() as Array<Record<string, string>>;
-    const tradable = new Map((exchangeInfo.symbols ?? [])
-      .filter((s) => s.status === "TRADING" && s.contractType === "PERPETUAL" && s.quoteAsset === "USDT" && !stableExclusions.has(String(s.baseAsset ?? "").toUpperCase()))
-      .map((s) => [String(s.symbol ?? "").toUpperCase(), s]));
-    const ranked = tickers
-      .map((t) => {
-        const symbol = normalizeSymbol(String(t.symbol ?? ""));
-        const quoteVolume = Number(t.quoteVolume ?? 0);
-        const priceChangePct = Math.abs(Number(t.priceChangePercent ?? 0));
-        const high = Number(t.highPrice ?? 0);
-        const low = Number(t.lowPrice ?? 0);
-        const last = Number(t.lastPrice ?? 0);
-        const volatilityProxy = last > 0 ? ((high - low) / last) * 100 : 0;
-        const score = Math.log10(Math.max(quoteVolume, 1)) * 18 + priceChangePct * 2.2 + volatilityProxy * 1.4;
-        return { symbol, market_type: "crypto" as const, is_active: true, universe_rank: score, universe_reason: "dynamic_binance_usdt_perp_liquidity_volume_volatility", quote_volume: quoteVolume, price_change_pct: priceChangePct, volatility_proxy: volatilityProxy };
-      })
-      .filter((row) => tradable.has(row.symbol) && (row.quote_volume >= minVolume || include.has(row.symbol)) && !exclude.has(row.symbol))
-      .sort((a, b) => b.universe_rank - a.universe_rank);
-    const includedRows = Array.from(include).filter((symbol) => tradable.has(symbol) && !ranked.some((row) => row.symbol === symbol)).map((symbol) => ({ symbol, market_type: "crypto" as const, is_active: true, universe_rank: 999, universe_reason: "configured_include_symbol", quote_volume: 0, price_change_pct: 0, volatility_proxy: 0 }));
-    const resultSymbols = [...includedRows, ...ranked].slice(0, maxSymbols);
-    if (resultSymbols.length > 0) return { symbols: resultSymbols, warning: null };
+    const exchangeInfo = await exchangeRes.json() as { symbols?: NativeExchangeSymbol[] };
+    const tickers = await tickerRes.json() as Array<Record<string, unknown>>;
+    const result=chooseObservedUniverse({exchange:exchangeInfo.symbols??[],tickers,asOf:Date.now(),limit:maxSymbols,poolSize,
+      minQuoteVolume:minVolume,include:[...include],exclude:[...exclude],stableExclusions:[...stableExclusions]});
+    if (result.symbols.length > 0) return { symbols: result.symbols, warning: null,coverage:result.coverage };
     throw new Error("No dynamic symbols found");
   } catch (_e) {
-    const fallbackRows = fixedList.map((sym, idx) => ({ symbol: sym, market_type: "crypto" as const, is_active: true, universe_rank: 100 - idx, universe_reason: "crypto_core_fixed", quote_volume: 50_000_000, price_change_pct: 1.0, volatility_proxy: 1.0 }));
-    return { symbols: fallbackRows.slice(0, maxSymbols), warning: null };
+    return { symbols: unverifiedCoreRows().filter(r=>!exclude.has(r.symbol)).slice(0,maxSymbols), warning: 'Universe discovery unavailable; static core fallback has unverified liquidity and no wider-coverage claim.',coverage:null };
   }
 }
 
@@ -1162,7 +1145,7 @@ function buildForexScanBudget(symbols: Array<Record<string, unknown>>, timeframe
 async function fetchForexCandles(
   symbol: string, tf: string,
   supabase: ReturnType<typeof createClient>
-): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }> {
+): Promise<{ candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass;spreadPrice?:number|null;spreadObservedAt?:string }> {
   const now = new Date().toISOString();
 
   if (!C2_FOREX_TIMEFRAMES.has(tf)) {
@@ -1174,14 +1157,14 @@ async function fetchForexCandles(
     return { candles: [], source: C2_FOREX_PROVIDER, data_source: "PROVIDER_ERROR", providerError: `unsupported_symbol: ${symbol}`, statusClass: "unsupported_symbol" };
   }
 
-  const result = await loadMT5Candles(supabase, normalized, tf, 110, { feedIdentity: Deno.env.get("MT5_MARKET_DATA_FEED_ID") ?? undefined });
+  const result = await loadMT5Candles(supabase, normalized, tf, 240, { feedIdentity: Deno.env.get("MT5_MARKET_DATA_FEED_ID") ?? undefined });
   if (!result.error && result.candles && result.candles.length >= 55) {
     await supabase.from("provider_status").upsert({
       provider_name: C2_FOREX_PROVIDER, market_type: "forex", status: "active",
       last_success_at: now, error_message: "", data_source_label: "REAL DATA",
       last_candles_count: result.candles.length, updated_at: now,
     }, { onConflict: "provider_name" });
-    return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null, statusClass: "ok" };
+    return { candles: result.candles, source: C2_FOREX_PROVIDER, data_source: "REAL DATA", providerError: null, statusClass: "ok",spreadPrice:Number(result.lineage?.bid)>0&&Number(result.lineage?.ask)>=Number(result.lineage?.bid)?Number(result.lineage.ask)-Number(result.lineage.bid):null,spreadObservedAt:result.lineage?.last_update_at };
   }
 
   const candleCount = result.candles?.length ?? 0;
@@ -1216,6 +1199,7 @@ function tradeManagementPlan(signal: Record<string, unknown>): Record<string, un
       ? `Effective leverage guidance: ${levMin.toFixed(0)}x–${levMax.toFixed(0)}x maximum only if stop-risk stays within plan.`
       : "Use effective leverage only if stop-risk stays within the planned account risk.";
 
+  if(CRYPTO_TEAM_ROLES.some(role=>role.name===strategy))return {...CRYPTO_TEAM_MANAGEMENT,riskGuidance,exposureGuidance};
   if (strategy.includes("MicroScalper")) {
     return {
       tp1PartialPct: 50,
@@ -1616,6 +1600,16 @@ async function runScanPipeline(
     },measuredReleases,config.min_signal_grade);
   };
 
+  const conditionalEnabled=Deno.env.get("CONDITIONAL_SIGNALS_ENABLED")!=="FALSE";
+  const watchedDefinitions=conditionalEnabled?watchedStrategyCatalog(strategyConfigs,measuredReleases):[];
+  const sourceRead=conditionalEnabled?await supabase.from('intelligence_events').select('event_id,market,created_at,metadata,data_sources').gte('created_at',new Date(Date.now()-1800000).toISOString()).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
+  const watchedSources=(sourceRead.error?[]:sourceRead.data??[]).map((r:any)=>({...r,id:r.event_id}));
+  const conditionalStore=new ConditionalSignalStore(supabase);
+  const paperLearning=conditionalEnabled?await loadPaperLearning(supabase):undefined;
+  const conditionalBatch:ConditionalSetup[]=[];
+  const cryptoTeamEnabled=CRYPTO_TEAM_ROLES.some(role=>getStratCfg(role.name).enabled);
+  if(!conditionalEnabled&&cryptoTeamEnabled&&['MicroScalper','QuickScalp','CompressionBreakout','SwingContinuation'].some(name=>getStratCfg(name).enabled))throw new Error('MIXED_CRYPTO_INSTRUMENT_PROFILE_REQUIRES_VALIDATION');
+
   // Load mode configs and risk profiles
   const { data: modeRows } = await supabase.from("mode_configs").select("*");
   const { data: riskRows } = await supabase.from("risk_profiles").select("*");
@@ -1749,7 +1743,7 @@ async function runScanPipeline(
     incrementStrategyStat(name, "runtime_errors");
     errors.push(`[ERROR] ${name} ${symbol} ${timeframe}: ${error instanceof Error ? error.message : String(error ?? "unknown")}`);
   };
-  const forexFetchCache = new Map<string, { candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass }>();
+  const forexFetchCache = new Map<string, { candles: Candle[]; source: string; data_source: string; providerError: string | null; statusClass?: ForexProviderStatusClass;spreadPrice?:number|null;spreadObservedAt?:string }>();
   const cryptoFetchCache = new Map<string, Candle[] | null>();
   let cryptoProviderRequests = 0;
   const forexProviderRejectionKeys = new Set<string>();
@@ -1797,7 +1791,8 @@ async function runScanPipeline(
     if (cryptoFetchCache.has(key)) return cryptoFetchCache.get(key) ?? null;
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
-    const value = await fetchBinanceCandles(symbol, tf, 111);
+    const native=!conditionalEnabled&&cryptoTeamEnabled&&tf==='15m';
+    const value = conditionalEnabled&&['5m','15m','1h','4h','1d'].includes(tf)?[...(await conditionalWatchFeed(supabase,symbol,tf as WatchTimeframe,Date.now())).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
     cryptoFetchCache.set(key, value);
     return value;
   }
@@ -1819,21 +1814,18 @@ async function runScanPipeline(
 
   const { data: configuredSymbols } = await supabase.from("symbols").select("*").eq("is_active", true);
 
-  // Fixed 10-symbol production crypto universe
-  const cryptoCoreList = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "LINKUSDT", "AVAXUSDT", "LTCUSDT"];
   // Fixed 6-symbol production forex & gold universe
   const canonicalForexList = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "XAUUSD"];
 
-  const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null };
+  const dynamicUniverse = config.signal_enable_crypto ? await fetchDynamicBinanceUniverse(config) : { symbols: [], warning: null,coverage:null };
   if (dynamicUniverse.warning) errors.push(`[WARN] ${dynamicUniverse.warning}`);
+  if(dynamicUniverse.coverage)errors.push(`[INFO] observed_universe_coverage=${JSON.stringify(dynamicUniverse.coverage)}`);
 
   const executionUniverse = await loadExecutionUniverse(supabase);
   if (executionUniverse.warning) errors.push(`[WARN] ${executionUniverse.warning}`);
 
   let cryptoToScan = config.signal_enable_crypto
-    ? (dynamicUniverse.symbols.length > 0
-        ? dynamicUniverse.symbols
-        : cryptoCoreList.map((sym, idx) => ({ symbol: sym, market_type: "crypto" as const, is_active: true, universe_rank: 100 - idx, universe_reason: "crypto_core_fixed", quote_volume: 50_000_000, price_change_pct: 1.0, volatility_proxy: 1.0 })))
+    ? dynamicUniverse.symbols
     : [];
 
   let forexToScan = config.signal_enable_forex
@@ -1843,9 +1835,12 @@ async function runScanPipeline(
   // Phase K: limits are validated before the provider loop. Invalid or excessive
   // configuration aborts the whole cycle rather than silently scanning a larger
   // universe. Forex cannot exceed the six symbols whose contracts are locked.
-  const boundedUniverse = boundedScannerUniverse(cryptoToScan, forexToScan, Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? undefined);
+  if(conditionalEnabled&&config.signal_enable_crypto)cryptoToScan=CORE_CRYPTO_SYMBOLS.map(symbol=>({symbol,market_type:"crypto" as const,is_active:true}));
+  const boundedUniverse = boundedScannerUniverse(cryptoToScan, forexToScan, Deno.env.get("SCANNER_MAX_CRYPTO_SYMBOLS") ?? undefined, Deno.env.get("SCANNER_MAX_FOREX_SYMBOLS") ?? (conditionalEnabled?"6":undefined), Deno.env.get("SCANNER_MAX_SYMBOLS_PER_SCAN") ?? (conditionalEnabled?"16":undefined));
   forexToScan = boundedUniverse.forex;
   cryptoToScan = boundedUniverse.crypto;
+  if(conditionalEnabled&&config.signal_enable_forex&&forexToScan.length!==6)throw new Error("CONDITIONAL_SIX_FOREX_SYMBOL_BUDGET_REQUIRED");
+  if(conditionalEnabled&&config.signal_enable_crypto&&cryptoToScan.length!==10)throw new Error("CONDITIONAL_TEN_SYMBOL_BUDGET_REQUIRED");
 
   let symbols = [
     ...cryptoToScan,
@@ -1885,8 +1880,9 @@ async function runScanPipeline(
 
   const activeSymbolSet = new Set<string>();
   const activeSignalBySymbol = new Map<string, { id: string; status: string; created_at: string | null }>();
-  if (config.prevent_duplicate_symbol_signals) {
-    const { data: activeSigs } = await supabase.from("signals").select("id,symbol,status,created_at").in("status", ["waiting", "active"]);
+  if (config.prevent_duplicate_symbol_signals||cryptoTeamEnabled) {
+    const { data: activeSigs,error:activeSignalError } = await supabase.from("signals").select("id,symbol,status,created_at").in("status", ["waiting", "active"]);
+    if(activeSignalError)throw new Error("ACTIVE_SIGNAL_STATE_UNAVAILABLE");
     for (const sig of (activeSigs ?? []) as Array<{ id: string; symbol: string; status: string; created_at: string | null }>) {
       activeSymbolSet.add(sig.symbol);
       if (!activeSignalBySymbol.has(sig.symbol)) activeSignalBySymbol.set(sig.symbol, { id: sig.id, status: sig.status, created_at: sig.created_at });
@@ -1924,7 +1920,7 @@ async function runScanPipeline(
     if (marketType === "forex") {
       forexSymbolsScanned++;
     }
-    const timeframesToScan = marketType === "forex" ? forexScanTimeframes : config.active_timeframes;
+    const timeframesToScan = marketType === "forex" ? forexScanTimeframes : conditionalEnabled?["5m","15m","1h"]:config.active_timeframes;
     for (const tf of timeframesToScan) {
       if (tf === "4h" && marketType === "crypto" && !["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"].includes(sym.symbol)) continue;
       if (marketType === "forex" && forexBudget && !forexBudget.allowedPairs.has(`${normalizedSymbol}|${tf}`)) {
@@ -1986,6 +1982,7 @@ async function runScanPipeline(
           errors.push(`[SKIP] ${sym.symbol} ${tf} ${reason}`);
           continue;
         }
+        const teamCandles=marketType==="crypto"&&cryptoTeamEnabled&&tf==="15m"?admitted.candles.slice(-960):undefined;
         candles = marketType === "crypto" ? admitted.candles.slice(-110) : admitted.candles;
         candlesFetched += candles.length;
 
@@ -1996,6 +1993,18 @@ async function runScanPipeline(
           volume: c.volume, source: c.source,
         })), { onConflict: "symbol,timeframe,open_time" });
 
+        }
+        if(conditionalEnabled&&(marketType==="crypto"||marketType==="forex")&&['5m','15m','1h'].includes(tf)){
+          const at=Date.now(),higherTf=tf==='5m'?'15m':tf==='15m'?'1h':'4h';
+          const higher=marketType==='crypto'?await fetchCryptoCandlesForRun(normalizedSymbol,higherTf):(await fetchForexCandlesForRun(normalizedSymbol,higherTf)).candles;
+          const anchor=marketType==='crypto'&&normalizedSymbol!=='BTCUSDT'?await fetchCryptoCandlesForRun('BTCUSDT',tf):undefined;
+          const quote=marketType==='forex'?await fetchForexCandlesForRun(normalizedSymbol,tf):undefined;
+          const contextOptions={higher:higher??[],anchor:anchor??undefined,sources:watchedSources,spreadPrice:quote?.spreadPrice,spreadObservedAt:quote?.spreadObservedAt};
+          await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf as WatchTimeframe,admitted.candles,at,{intelligence:(rows,time)=>watchedMarketContext(rows,time,contextOptions)});
+          const assessment=discoverWatchedStrategies({definitions:watchedDefinitions,symbol:normalizedSymbol,tf:tf as WatchTimeframe,rows:admitted.candles,now:at,learning:paperLearning,...contextOptions});
+          conditionalBatch.push(...assessment.setups);
+          const recorded=await supabase.rpc('record_watched_strategy_observations',{p_rows:assessment.observations});if(recorded.error)throw Error('STRATEGY_OBSERVATIONS_WRITE_FAILED');
+          continue; // Same strategy contract and paper ledger; no customer execution adoption.
         }
         const ind = calculateIndicators(candles);
         const marketContext = classifyMarketContext(ind, candles);
@@ -2052,10 +2061,24 @@ async function runScanPipeline(
           registerLegacy("CompressionBreakout", "crypto.compression-breakout", "1.0.0", cbConfig, () => evalCompressionBreakout(candles, ind, tf, { ...cbConfig.params, min_score: cbConfig.min_score, min_rr: cbConfig.min_rr, max_bars_in_trade: cbConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
           registerLegacy("SwingContinuation", "crypto.swing-continuation", "1.0.0", swConfig, () => evalSwingContinuation(candles, ind, tf, { ...swConfig.params, min_score: swConfig.min_score, min_rr: swConfig.min_rr, max_bars_in_trade: swConfig.max_bars_in_trade, crypto_behavior_tuning: 1 }));
           activeDefinitions.push(
+            ...regimeResearchDefinitions(),
+            ...intradayResearchDefinitions(),
+          ...altResearchDefinitions(),
             { id: "crypto.trend-pullback", version: "0.1.0-research", legacyName: "CryptoTrendPullback", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "CryptoTrendPullback" }, evaluate: evaluateCryptoTrendPullback },
             { id: "crypto.reversal-exhaustion", version: "0.1.0-research", legacyName: "ReversalExhaustion", market: "crypto", lifecycle: "RESEARCH", publicationMode: "SHADOW", certification: "RESEARCH", config: { ...RESEARCH_STRATEGY_CONFIG, strategy_name: "ReversalExhaustion" }, evaluate: evaluateReversalExhaustion },
           );
         }
+        if(marketType==='crypto'){
+          const team=coordinatedCryptoDefinitions(getStratCfg);
+          let reference:Candle[]|undefined;
+          if(cryptoTeamEnabled&&tf==='15m'&&teamCandles?.length===960){
+            const fetched=normalizedSymbol==='BTCUSDT'?teamCandles:await fetchCryptoCandlesForRun('BTCUSDT','15m');
+            const closed=fetched?admitClosedRuntimeCandles(fetched,15,Date.now()):null;
+            if(closed&&!closed.rejection)reference=closed.candles.slice(-960);
+          }
+          activeDefinitions.push(...team.map(definition=>({...definition,evaluate:(context:StrategyEvaluationContext)=>definition.evaluate({...context,candles:teamCandles??context.candles,reference_candles:reference,evaluated_at:teamCandles?.length?new Date(Date.parse(teamCandles.at(-1)!.open_time)+900000).toISOString():context.evaluated_at})})));
+        }
+        activeDefinitions.push(...costAwareResearchDefinitions().filter(definition=>definition.market===marketType));
         const strategyContext: StrategyEvaluationContext = { symbol: normalizedSymbol, market: marketType as "crypto" | "forex", timeframe: tf, candles, indicators: ind, evaluated_at: new Date().toISOString() };
         const registry = new ProfessionalStrategyRegistry(activeDefinitions, professionalStrategyDiagnostics);
         for (const evaluation of evaluateActiveStrategies(registry, strategyContext)) {
@@ -2159,9 +2182,9 @@ async function runScanPipeline(
           side: entry.result.direction.toLowerCase() as "buy" | "sell", confidence: entry.result.confidence_score,
           grade: entry.result.grade, score: arbitrationScore(entry, marketContext),
           entry: (entry.result.entry_low + entry.result.entry_high) / 2, stop: entry.result.stop_loss,
-          targets: [entry.result.tp1, entry.result.tp2], riskReward: entry.result.risk_reward,
+          targets: [...new Set([entry.result.tp1, entry.result.tp2])], riskReward: entry.result.risk_reward,
           expiry: new Date(Date.now() + entry.cfg.max_bars_in_trade * (timeframeMinutes(tf) ?? 5) * 60_000).toISOString(), fresh: true,
-          lifecycle: "ENABLED", publicationMode: "LIVE", evidence: { legacy_index: index, adaptive_policy_approved: entry.cfg.params.market_adaptation_enabled === 1, ...(entry.cfg.params.estimated_round_trip_cost_bps!==undefined?{estimated_round_trip_cost_bps:entry.cfg.params.estimated_round_trip_cost_bps,minimum_net_target_r:entry.cfg.params.minimum_net_target_r??0}:{}) }, rejectionReasons: [],
+          lifecycle: "ENABLED", publicationMode: "LIVE", evidence: { ...entry.result.score_breakdown,legacy_index: index, adaptive_policy_approved: entry.cfg.params.market_adaptation_enabled === 1, ...(entry.cfg.params.estimated_round_trip_cost_bps!==undefined?{estimated_round_trip_cost_bps:entry.cfg.params.estimated_round_trip_cost_bps,minimum_net_target_r:entry.cfg.params.minimum_net_target_r??0}:{}) }, rejectionReasons: [],
           priority: strategyIdentityFit(entry), eligible: true,
         }));
         const byCandidateId = new Map(passingEntries.map((entry) => [String((entry as EvalEntry & { _candidateId: string })._candidateId), entry]));
@@ -2330,7 +2353,7 @@ async function runScanPipeline(
           candidatesFound++;
 
           // Duplicate gate
-          if (!applyScannerSelectionPolicy(new Date().toISOString(), { activeSignalId: activeSignalBySymbol.get(sym.symbol)?.id }, { preventDuplicateSymbolSignals: config.prevent_duplicate_symbol_signals, cooldownMs: 0 }).allowed) {
+          if (!applyScannerSelectionPolicy(new Date().toISOString(), { activeSignalId: activeSignalBySymbol.get(sym.symbol)?.id,activeCount:[...activeSignalBySymbol.keys()].filter(symbol=>symbol.endsWith('USDT')).length }, { preventDuplicateSymbolSignals: config.prevent_duplicate_symbol_signals||CRYPTO_TEAM_ROLES.some(role=>role.name===ev.name), cooldownMs: 0,...(CRYPTO_TEAM_ROLES.some(role=>role.name===ev.name)?{maxActiveSignals:3}:{}) }).allowed) {
             const blockingSignal = activeSignalBySymbol.get(sym.symbol);
             const blockingAgeMinutes = blockingSignal?.created_at ? Math.max(0, Math.round((Date.now() - new Date(blockingSignal.created_at).getTime()) / 60000)) : null;
             await supabase.from("strategy_candidates").update({
@@ -2455,7 +2478,7 @@ async function runScanPipeline(
             };
             const tradeManagement = tradeManagementPlan(managementInput);
             const signalCreatedAt = new Date();
-            const expiryMetadata = buildSignalExpiryMetadata(ev.name, tf, ev.cfg, r.score_breakdown ?? {}, signalCreatedAt);
+            const expiryMetadata = buildSignalExpiryMetadata(ev.name, tf, ev.cfg, r.score_breakdown ?? {}, CRYPTO_TEAM_ROLES.some(role=>role.name===ev.name)?new Date(candleCloseTime):signalCreatedAt);
             const expiryScoreBreakdown = scoreBreakdownWithExpiry(r.score_breakdown ?? {}, expiryMetadata);
 
             const arbitratorDecision: ArbitratorDecision = {
@@ -2626,6 +2649,7 @@ async function runScanPipeline(
     }, { onConflict: "provider_name" });
   }
 
+  if(conditionalEnabled)errors.push(`[INFO] conditional_signals=${JSON.stringify(await admitConditionalBatch(conditionalStore,conditionalBatch,Date.now()))}`);
   for (const stats of Object.values(strategyEvaluationSummary)) {
     stats.arbitration_win_pct = stats.arbitration_entered > 0 ? Number(((stats.arbitration_won / stats.arbitration_entered) * 100).toFixed(2)) : 0;
   }
@@ -2645,7 +2669,7 @@ async function runScanPipeline(
   const durationMs = Date.now() - scanStart;
   const realErrors = errors.filter((e) => e.startsWith("[ERROR]"));
   const hasRealError = realErrors.length > 0;
-  
+
   let runStatus: "Completed" | "CompletedNoTrade" | "Partial" | "Failed" = "Completed";
   if (hasRealError && candlesFetched === 0) {
     runStatus = "Failed";

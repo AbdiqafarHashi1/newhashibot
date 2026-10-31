@@ -1,0 +1,51 @@
+{
+  "schema": "spot-ema-liquid-watchlist/v1",
+  "declaredOn": "2026-10-28",
+  "assets": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "LINKUSDT"
+  ],
+  "scope": "Fixed liquid large-cap cross section chosen before new per-asset results. Contemporary scope, NOT point-in-time universe reconstruction; survivorship bias disclosed. Do not remove losing assets.",
+  "model": "Original EMA20/50_REGIME from spot-swing-study.py unchanged, 2WilderATR initial stop,3ATR favorable-close trail, next-open regime exit, long/cash SPOT. No numeric target substituted. No leverage/short/funding.",
+  "stages": [
+    {
+      "name": "DEVELOPMENT",
+      "from": "2018-01-01",
+      "until": "2022-01-01"
+    },
+    {
+      "name": "VALIDATION",
+      "from": "2022-01-01",
+      "until": "2025-01-01"
+    },
+    {
+      "name": "RECENT_EXTENSION",
+      "from": "2025-01-01",
+      "until": "2026-10-01"
+    }
+  ],
+  "gates": {
+    "developmentTrades": 80,
+    "validationTrades": 80,
+    "recentTrades": 60,
+    "assetMinimums": [
+      5,
+      10,
+      5
+    ],
+    "netPF": 1.2,
+    "stressPF": 1.0,
+    "positiveEachAsset": true
+  },
+  "costs": "26bps roundtrip;39bps stress; equal-notional closed returns, not account equity. Stage-end virtual liquidation retained from original protocol.",
+  "acquisition": "Public GET market-data-only REST, at most4pages per asset/stage,1000rows/page,25second timeout,2MB/body. Raw SHA and gap/closed/OHLC admission, no provider/account credentials.",
+  "source": "Existing BTC/ETH raw cache preserved; other assets newly acquired. Initial prelisting gap and early2018 nonstandard candle prefix are disclosed;200bar warmup follows admitted start, matching the explicitly referenced original model. No candles fabricated.",
+  "disclosure": "Exploratory scope extension after BTC/ETH evidence; not independent untouched project-wide holdout, not correction of old gate failures or old validation. All four daily-specialist results and every prior failure retained. New fixed recent stage is evaluated only if broader preceding stages pass.",
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

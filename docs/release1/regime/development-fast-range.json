@@ -1,0 +1,702 @@
+{
+  "mode": "develop-range",
+  "engineSha256": {
+    "supabase/functions/_shared/regime-opportunities.ts": "b5cf73daafa6340395f108f7e2c6989cb449a21cc5652699504d0efb36771c23",
+    "supabase/functions/_shared/indicator-engine.ts": "9347360f7a7f8b0867a99ebef57f91b747a2dfa2f7687b520d2b12f0cfa24104",
+    "supabase/functions/_shared/active-scanner-core.ts": "e935fe2f172ef9d9c959622c36ba4550839974110ebbeed9323fb92bfa8a054e",
+    "supabase/functions/_shared/active-qualification.ts": "69c91854eb99ebed0e3dfd01c12f5dced3c0414128cd3cbda25581d3ce3011c4",
+    "supabase/functions/_shared/arbitrator.ts": "147f0f421e6dae22c7495c2c2a27226dad47937ba57289f66b169787cfaed758",
+    "supabase/functions/_shared/trading-domain/arbitrator.ts": "fc106a1cf7bd5743fcac823fbfe946f97691b86bd446009c061f85cafb631867",
+    "supabase/functions/_shared/replay-outcomes.ts": "78bb98a4a63ba72b763164f191e84a2155db2c7d4cff27d35b8d43b74ceedd45",
+    "scripts/release1/regime/replay.ts": "b62c04a8870bb59f45e9d13b71c77cc93d33e0ad9c8b89ccb2661c722c5ad5d4",
+    "scripts/release1/regime/certify.ts": "9d265a38c53949c81820de841241248858cebd5bddaf168a7dc81d6e321c5fe7",
+    "supabase/functions/_shared/active-validation-runtime.ts": "efeee858952b1411013c2db48ea7aca35e27ffbb9c7b2f43474b940279854ae8",
+    "supabase/functions/_shared/phase-l-validation.ts": "275831aa012ae5c5b92cc1065b5e34d287848762413993db2262c6b892ae4493",
+    "supabase/functions/_shared/scanner-market-context.ts": "8879e4fb00a7fdca96a220f9c45b093947cf1daece306dcdc1f971db64f9caea"
+  },
+  "trials": [
+    {
+      "spec": {
+        "strategy": "crypto.regime-range-rejection",
+        "variant": "base",
+        "parameters": {
+          "stopAtr": 1.2,
+          "targetR": 2.5,
+          "tp1R": 1.5,
+          "minimumStopBps": 50,
+          "maximumStopBps": 400,
+          "estimatedCostBps": 20.5,
+          "maximumCostR": 0.3,
+          "channelBars": 48,
+          "pullbackAtr": 0.6,
+          "rangeRsi": 10
+        }
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 87,
+        "resolvedCount": 87,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.37726392081901144,
+        "profitFactor": 0.5006649957981955,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 34.61111522169146,
+        "winCount": 29,
+        "winRatePct": 33.33333333333333,
+        "netR": -32.821961111254,
+        "netReturnPctAtHalfPercentRisk": -15.273346882501816,
+        "maxDrawdownPctAtHalfPercentRisk": 16.014531042860817,
+        "expectancy95PctBlockBootstrap": [
+          -0.6126844205724964,
+          -0.1580406187077582
+        ]
+      },
+      "reasons": [
+        "PROFIT_FACTOR_BELOW_1_2",
+        "NONPOSITIVE_EXPECTANCY",
+        "DRAWDOWN_ABOVE_10_PERCENT"
+      ],
+      "perInstrument": [
+        {
+          "strategy": "crypto.regime-range-rejection",
+          "variant": "base",
+          "symbol": "BTCUSDT",
+          "sampleBars": 13104,
+          "from": "2025-01-01T00:00:00.000Z",
+          "to": "2026-06-30T23:00:00.000Z",
+          "parameters": {
+            "stopAtr": 1.2,
+            "targetR": 2.5,
+            "tp1R": 1.5,
+            "minimumStopBps": 50,
+            "maximumStopBps": 400,
+            "estimatedCostBps": 20.5,
+            "maximumCostR": 0.3,
+            "channelBars": 48,
+            "pullbackAtr": 0.6,
+            "rangeRsi": 10
+          },
+          "configurationHash": "881ed9ef3941680c07e86891a7d5bf8c0a80087091973ecab9c46820e4dd6fdf",
+          "costMultiplier": 1,
+          "eligibleCandidates": 37,
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 30,
+            "resolvedCount": 30,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.0682222019088595,
+            "profitFactor": 0.8763324639821759,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 8.614751359581195,
+            "winCount": 14,
+            "winRatePct": 46.666666666666664,
+            "netR": -2.046666057265785,
+            "netReturnPctAtHalfPercentRisk": -1.0698930886411273,
+            "maxDrawdownPctAtHalfPercentRisk": 4.241710579662362,
+            "expectancy95PctBlockBootstrap": [
+              -0.5190999919450323,
+              0.2867319064625454
+            ]
+          },
+          "regimeCounts": {
+            "TRANSITION": 6237,
+            "RANGE": 2801,
+            "TREND_UP": 1388,
+            "SHOCK": 1028,
+            "TREND_DOWN": 1341,
+            "EXPANSION_DOWN": 91,
+            "EXPANSION_UP": 108
+          },
+          "regimes": {
+            "RANGE": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 30,
+              "resolvedCount": 30,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.0682222019088595,
+              "profitFactor": 0.8763324639821759,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 8.614751359581195,
+              "winCount": 14,
+              "winRatePct": 46.666666666666664,
+              "netR": -2.046666057265785,
+              "netReturnPctAtHalfPercentRisk": -1.0698930886411273,
+              "maxDrawdownPctAtHalfPercentRisk": 4.241710579662362,
+              "expectancy95PctBlockBootstrap": [
+                -0.5190999919450323,
+                0.2867319064625454
+              ]
+            }
+          },
+          "rejections": {
+            "TRANSITION": 6237,
+            "NO_RANGE_EDGE_REJECTION": 2733,
+            "RANGE_REQUIRES_BALANCE": 2928,
+            "SHOCK": 1028,
+            "RANGE_REWARD_TOO_SMALL": 16,
+            "COST_OR_STOP_INFEASIBLE": 15,
+            "ONE_ACTIVE_PER_SYMBOL": 7
+          }
+        },
+        {
+          "strategy": "crypto.regime-range-rejection",
+          "variant": "base",
+          "symbol": "ETHUSDT",
+          "sampleBars": 13104,
+          "from": "2025-01-01T00:00:00.000Z",
+          "to": "2026-06-30T23:00:00.000Z",
+          "parameters": {
+            "stopAtr": 1.2,
+            "targetR": 2.5,
+            "tp1R": 1.5,
+            "minimumStopBps": 50,
+            "maximumStopBps": 400,
+            "estimatedCostBps": 20.5,
+            "maximumCostR": 0.3,
+            "channelBars": 48,
+            "pullbackAtr": 0.6,
+            "rangeRsi": 10
+          },
+          "configurationHash": "881ed9ef3941680c07e86891a7d5bf8c0a80087091973ecab9c46820e4dd6fdf",
+          "costMultiplier": 1,
+          "eligibleCandidates": 64,
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 57,
+            "resolvedCount": 57,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.5399174570875125,
+            "profitFactor": 0.37425185831902624,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 31.92249071503754,
+            "winCount": 15,
+            "winRatePct": 26.31578947368421,
+            "netR": -30.775295053988213,
+            "netReturnPctAtHalfPercentRisk": -14.357058975572512,
+            "maxDrawdownPctAtHalfPercentRisk": 14.83827443388491,
+            "expectancy95PctBlockBootstrap": [
+              -0.7841928644535362,
+              -0.32538115107381416
+            ]
+          },
+          "regimeCounts": {
+            "TRANSITION": 6122,
+            "TREND_UP": 1373,
+            "SHOCK": 1066,
+            "EXPANSION_DOWN": 100,
+            "TREND_DOWN": 1438,
+            "RANGE": 2809,
+            "EXPANSION_UP": 86
+          },
+          "regimes": {
+            "RANGE": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 57,
+              "resolvedCount": 57,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.5399174570875125,
+              "profitFactor": 0.37425185831902624,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 31.92249071503754,
+              "winCount": 15,
+              "winRatePct": 26.31578947368421,
+              "netR": -30.775295053988213,
+              "netReturnPctAtHalfPercentRisk": -14.357058975572512,
+              "maxDrawdownPctAtHalfPercentRisk": 14.83827443388491,
+              "expectancy95PctBlockBootstrap": [
+                -0.7841928644535362,
+                -0.32538115107381416
+              ]
+            }
+          },
+          "rejections": {
+            "TRANSITION": 6122,
+            "RANGE_REQUIRES_BALANCE": 2997,
+            "SHOCK": 1066,
+            "NO_RANGE_EDGE_REJECTION": 2729,
+            "RANGE_REWARD_TOO_SMALL": 12,
+            "COST_OR_STOP_INFEASIBLE": 4,
+            "ONE_ACTIVE_PER_SYMBOL": 7
+          }
+        }
+      ]
+    },
+    {
+      "spec": {
+        "strategy": "crypto.regime-range-rejection",
+        "variant": "wider",
+        "parameters": {
+          "stopAtr": 1.5,
+          "targetR": 3,
+          "tp1R": 1.5,
+          "minimumStopBps": 50,
+          "maximumStopBps": 400,
+          "estimatedCostBps": 20.5,
+          "maximumCostR": 0.3,
+          "channelBars": 48,
+          "pullbackAtr": 0.6,
+          "rangeRsi": 10
+        }
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 90,
+        "resolvedCount": 90,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.26783710381203096,
+        "profitFactor": 0.6173922347344449,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 26.3646023225564,
+        "winCount": 33,
+        "winRatePct": 36.666666666666664,
+        "netR": -24.105339343082786,
+        "netReturnPctAtHalfPercentRisk": -11.506288640079642,
+        "maxDrawdownPctAtHalfPercentRisk": 12.487223530712932,
+        "expectancy95PctBlockBootstrap": [
+          -0.5289626789473502,
+          -0.01977348278933494
+        ]
+      },
+      "reasons": [
+        "PROFIT_FACTOR_BELOW_1_2",
+        "NONPOSITIVE_EXPECTANCY",
+        "DRAWDOWN_ABOVE_10_PERCENT"
+      ],
+      "perInstrument": [
+        {
+          "strategy": "crypto.regime-range-rejection",
+          "variant": "wider",
+          "symbol": "BTCUSDT",
+          "sampleBars": 13104,
+          "from": "2025-01-01T00:00:00.000Z",
+          "to": "2026-06-30T23:00:00.000Z",
+          "parameters": {
+            "stopAtr": 1.5,
+            "targetR": 3,
+            "tp1R": 1.5,
+            "minimumStopBps": 50,
+            "maximumStopBps": 400,
+            "estimatedCostBps": 20.5,
+            "maximumCostR": 0.3,
+            "channelBars": 48,
+            "pullbackAtr": 0.6,
+            "rangeRsi": 10
+          },
+          "configurationHash": "62065bd029ef2737664e717a135b40d213c3e62a647a6daf958087c4330a895a",
+          "costMultiplier": 1,
+          "eligibleCandidates": 41,
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 34,
+            "resolvedCount": 34,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": 0.05876743495917061,
+            "profitFactor": 1.1177784430012092,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 11.006386551721295,
+            "winCount": 17,
+            "winRatePct": 50,
+            "netR": 1.9980927886118007,
+            "netReturnPctAtHalfPercentRisk": 0.9423743378672134,
+            "maxDrawdownPctAtHalfPercentRisk": 5.252897119114866,
+            "expectancy95PctBlockBootstrap": [
+              -0.4309661517616991,
+              0.4880223955360705
+            ]
+          },
+          "regimeCounts": {
+            "TRANSITION": 6237,
+            "RANGE": 2801,
+            "TREND_UP": 1388,
+            "SHOCK": 1028,
+            "TREND_DOWN": 1341,
+            "EXPANSION_DOWN": 91,
+            "EXPANSION_UP": 108
+          },
+          "regimes": {
+            "RANGE": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 34,
+              "resolvedCount": 34,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": 0.05876743495917061,
+              "profitFactor": 1.1177784430012092,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 11.006386551721295,
+              "winCount": 17,
+              "winRatePct": 50,
+              "netR": 1.9980927886118007,
+              "netReturnPctAtHalfPercentRisk": 0.9423743378672134,
+              "maxDrawdownPctAtHalfPercentRisk": 5.252897119114866,
+              "expectancy95PctBlockBootstrap": [
+                -0.4309661517616991,
+                0.4880223955360705
+              ]
+            }
+          },
+          "rejections": {
+            "TRANSITION": 6237,
+            "NO_RANGE_EDGE_REJECTION": 2733,
+            "RANGE_REQUIRES_BALANCE": 2928,
+            "SHOCK": 1028,
+            "RANGE_REWARD_TOO_SMALL": 17,
+            "COST_OR_STOP_INFEASIBLE": 10,
+            "ONE_ACTIVE_PER_SYMBOL": 7
+          }
+        },
+        {
+          "strategy": "crypto.regime-range-rejection",
+          "variant": "wider",
+          "symbol": "ETHUSDT",
+          "sampleBars": 13104,
+          "from": "2025-01-01T00:00:00.000Z",
+          "to": "2026-06-30T23:00:00.000Z",
+          "parameters": {
+            "stopAtr": 1.5,
+            "targetR": 3,
+            "tp1R": 1.5,
+            "minimumStopBps": 50,
+            "maximumStopBps": 400,
+            "estimatedCostBps": 20.5,
+            "maximumCostR": 0.3,
+            "channelBars": 48,
+            "pullbackAtr": 0.6,
+            "rangeRsi": 10
+          },
+          "configurationHash": "62065bd029ef2737664e717a135b40d213c3e62a647a6daf958087c4330a895a",
+          "costMultiplier": 1,
+          "eligibleCandidates": 64,
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 56,
+            "resolvedCount": 56,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.4661327166374033,
+            "profitFactor": 0.4330012629059116,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 27.563800391787858,
+            "winCount": 16,
+            "winRatePct": 28.57142857142857,
+            "netR": -26.103432131694586,
+            "netReturnPctAtHalfPercentRisk": -12.332445179345108,
+            "maxDrawdownPctAtHalfPercentRisk": 12.960315051321125,
+            "expectancy95PctBlockBootstrap": [
+              -0.692299194590183,
+              -0.24002222580274535
+            ]
+          },
+          "regimeCounts": {
+            "TRANSITION": 6122,
+            "TREND_UP": 1373,
+            "SHOCK": 1066,
+            "EXPANSION_DOWN": 100,
+            "TREND_DOWN": 1438,
+            "RANGE": 2809,
+            "EXPANSION_UP": 86
+          },
+          "regimes": {
+            "RANGE": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 56,
+              "resolvedCount": 56,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.4661327166374033,
+              "profitFactor": 0.4330012629059116,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 27.563800391787858,
+              "winCount": 16,
+              "winRatePct": 28.57142857142857,
+              "netR": -26.103432131694586,
+              "netReturnPctAtHalfPercentRisk": -12.332445179345108,
+              "maxDrawdownPctAtHalfPercentRisk": 12.960315051321125,
+              "expectancy95PctBlockBootstrap": [
+                -0.692299194590183,
+                -0.24002222580274535
+              ]
+            }
+          },
+          "rejections": {
+            "TRANSITION": 6122,
+            "RANGE_REQUIRES_BALANCE": 2997,
+            "SHOCK": 1066,
+            "NO_RANGE_EDGE_REJECTION": 2729,
+            "RANGE_REWARD_TOO_SMALL": 12,
+            "COST_OR_STOP_INFEASIBLE": 4,
+            "ONE_ACTIVE_PER_SYMBOL": 8
+          }
+        }
+      ]
+    },
+    {
+      "spec": {
+        "strategy": "crypto.regime-range-rejection",
+        "variant": "shorter",
+        "parameters": {
+          "stopAtr": 1,
+          "targetR": 2,
+          "tp1R": 1.5,
+          "minimumStopBps": 50,
+          "maximumStopBps": 400,
+          "estimatedCostBps": 20.5,
+          "maximumCostR": 0.3,
+          "channelBars": 48,
+          "pullbackAtr": 0.6,
+          "rangeRsi": 10
+        }
+      },
+      "metrics": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 85,
+        "resolvedCount": 85,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.3374172158231455,
+        "profitFactor": 0.512537207056481,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 31.184601956023123,
+        "winCount": 25,
+        "winRatePct": 29.411764705882355,
+        "netR": -28.680463344967368,
+        "netReturnPctAtHalfPercentRisk": -13.47815629941983,
+        "maxDrawdownPctAtHalfPercentRisk": 14.307509602388333,
+        "expectancy95PctBlockBootstrap": [
+          -0.5563086988427782,
+          -0.08979444997917661
+        ]
+      },
+      "reasons": [
+        "PROFIT_FACTOR_BELOW_1_2",
+        "NONPOSITIVE_EXPECTANCY",
+        "DRAWDOWN_ABOVE_10_PERCENT"
+      ],
+      "perInstrument": [
+        {
+          "strategy": "crypto.regime-range-rejection",
+          "variant": "shorter",
+          "symbol": "BTCUSDT",
+          "sampleBars": 13104,
+          "from": "2025-01-01T00:00:00.000Z",
+          "to": "2026-06-30T23:00:00.000Z",
+          "parameters": {
+            "stopAtr": 1,
+            "targetR": 2,
+            "tp1R": 1.5,
+            "minimumStopBps": 50,
+            "maximumStopBps": 400,
+            "estimatedCostBps": 20.5,
+            "maximumCostR": 0.3,
+            "channelBars": 48,
+            "pullbackAtr": 0.6,
+            "rangeRsi": 10
+          },
+          "configurationHash": "e4fddac645a8e5d21cb1abcbc7410255192fb4bb6d3f625bc950ea4d85722ab3",
+          "costMultiplier": 1,
+          "eligibleCandidates": 35,
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 28,
+            "resolvedCount": 28,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.07213864040674789,
+            "profitFactor": 0.869404288362226,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 8.980462359015004,
+            "winCount": 12,
+            "winRatePct": 42.857142857142854,
+            "netR": -2.019881931388941,
+            "netReturnPctAtHalfPercentRisk": -1.0485342180862944,
+            "maxDrawdownPctAtHalfPercentRisk": 4.2620771181481,
+            "expectancy95PctBlockBootstrap": [
+              -0.46871791909810884,
+              0.3206548272321764
+            ]
+          },
+          "regimeCounts": {
+            "TRANSITION": 6237,
+            "RANGE": 2801,
+            "TREND_UP": 1388,
+            "SHOCK": 1028,
+            "TREND_DOWN": 1341,
+            "EXPANSION_DOWN": 91,
+            "EXPANSION_UP": 108
+          },
+          "regimes": {
+            "RANGE": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 28,
+              "resolvedCount": 28,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.07213864040674789,
+              "profitFactor": 0.869404288362226,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 8.980462359015004,
+              "winCount": 12,
+              "winRatePct": 42.857142857142854,
+              "netR": -2.019881931388941,
+              "netReturnPctAtHalfPercentRisk": -1.0485342180862944,
+              "maxDrawdownPctAtHalfPercentRisk": 4.2620771181481,
+              "expectancy95PctBlockBootstrap": [
+                -0.46871791909810884,
+                0.3206548272321764
+              ]
+            }
+          },
+          "rejections": {
+            "TRANSITION": 6237,
+            "NO_RANGE_EDGE_REJECTION": 2733,
+            "RANGE_REQUIRES_BALANCE": 2928,
+            "SHOCK": 1028,
+            "RANGE_REWARD_TOO_SMALL": 16,
+            "COST_OR_STOP_INFEASIBLE": 17,
+            "ONE_ACTIVE_PER_SYMBOL": 7
+          }
+        },
+        {
+          "strategy": "crypto.regime-range-rejection",
+          "variant": "shorter",
+          "symbol": "ETHUSDT",
+          "sampleBars": 13104,
+          "from": "2025-01-01T00:00:00.000Z",
+          "to": "2026-06-30T23:00:00.000Z",
+          "parameters": {
+            "stopAtr": 1,
+            "targetR": 2,
+            "tp1R": 1.5,
+            "minimumStopBps": 50,
+            "maximumStopBps": 400,
+            "estimatedCostBps": 20.5,
+            "maximumCostR": 0.3,
+            "channelBars": 48,
+            "pullbackAtr": 0.6,
+            "rangeRsi": 10
+          },
+          "configurationHash": "e4fddac645a8e5d21cb1abcbc7410255192fb4bb6d3f625bc950ea4d85722ab3",
+          "costMultiplier": 1,
+          "eligibleCandidates": 62,
+          "metrics": {
+            "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+            "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+            "tradeCount": 57,
+            "resolvedCount": 57,
+            "openCount": 0,
+            "ambiguousCount": 0,
+            "excludedCount": 0,
+            "expectancyR": -0.467729498483832,
+            "profitFactor": 0.38526932176033785,
+            "profitFactorUndefinedReason": null,
+            "realizedMaxDrawdownR": 27.220909185702507,
+            "winCount": 13,
+            "winRatePct": 22.807017543859647,
+            "netR": -26.660581413578424,
+            "netReturnPctAtHalfPercentRisk": -12.56133194502459,
+            "maxDrawdownPctAtHalfPercentRisk": 12.798476466758398,
+            "expectancy95PctBlockBootstrap": [
+              -0.7138213826534195,
+              -0.19206949749587598
+            ]
+          },
+          "regimeCounts": {
+            "TRANSITION": 6122,
+            "TREND_UP": 1373,
+            "SHOCK": 1066,
+            "EXPANSION_DOWN": 100,
+            "TREND_DOWN": 1438,
+            "RANGE": 2809,
+            "EXPANSION_UP": 86
+          },
+          "regimes": {
+            "RANGE": {
+              "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+              "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+              "tradeCount": 57,
+              "resolvedCount": 57,
+              "openCount": 0,
+              "ambiguousCount": 0,
+              "excludedCount": 0,
+              "expectancyR": -0.467729498483832,
+              "profitFactor": 0.38526932176033785,
+              "profitFactorUndefinedReason": null,
+              "realizedMaxDrawdownR": 27.220909185702507,
+              "winCount": 13,
+              "winRatePct": 22.807017543859647,
+              "netR": -26.660581413578424,
+              "netReturnPctAtHalfPercentRisk": -12.56133194502459,
+              "maxDrawdownPctAtHalfPercentRisk": 12.798476466758398,
+              "expectancy95PctBlockBootstrap": [
+                -0.7138213826534195,
+                -0.19206949749587598
+              ]
+            }
+          },
+          "rejections": {
+            "TRANSITION": 6122,
+            "RANGE_REQUIRES_BALANCE": 2997,
+            "SHOCK": 1066,
+            "NO_RANGE_EDGE_REJECTION": 2729,
+            "RANGE_REWARD_TOO_SMALL": 12,
+            "COST_OR_STOP_INFEASIBLE": 6,
+            "ONE_ACTIVE_PER_SYMBOL": 5
+          }
+        }
+      ]
+    }
+  ],
+  "selected": [
+    {
+      "strategy": "crypto.regime-range-rejection",
+      "variant": "wider",
+      "parameters": {
+        "stopAtr": 1.5,
+        "targetR": 3,
+        "tp1R": 1.5,
+        "minimumStopBps": 50,
+        "maximumStopBps": 400,
+        "estimatedCostBps": 20.5,
+        "maximumCostR": 0.3,
+        "channelBars": 48,
+        "pullbackAtr": 0.6,
+        "rangeRsi": 10
+      }
+    }
+  ],
+  "disclosure": "Six trials. Selection is development-only; its performance estimate is optimistic. Pooled trade metrics are independent outcomes, not portfolio returns.",
+  "verdict": "VALIDATION_REQUIRED"
+}

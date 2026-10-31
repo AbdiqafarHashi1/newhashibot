@@ -15,7 +15,7 @@ import {
   SymbolPerformanceSummary,
   STRATEGY_ASSET_MAP,
 } from './types';
-import { STRATEGY_DEFINITIONS, StrategyName } from '../StrategyConfig';
+import { STRATEGY_DEFINITIONS, type StrategyName } from '../../../lib/research/legacyStrategyTemplates';
 import { evaluateStrategySetup } from './evaluators';
 import { runCanonicalReplay, type CanonicalCompletedTradeResult, type TradePlan } from '../../../../supabase/functions/_shared/trading-domain/index.ts';
 import { runCandidatePipelineReplay } from '../../../lib/research/canonicalPipelineReplay';

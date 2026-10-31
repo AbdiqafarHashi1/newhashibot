@@ -1,12 +1,17 @@
+import {admitExecutionQuote} from '../_shared/execution-quote-guard.ts';
+import {ApprovedLiveAdoptionAdapter} from '../_shared/professional-execution-adapters.ts';
+import {currentAccountAdoptionTruth} from '../_shared/account-adoption-truth.ts';
+import {loadConfirmedEntry} from '../_shared/confirmed-entry.ts';
+import {pinnedClaimFromQualifiedSet,routeProductionEligibility} from '../_shared/trading-domain/production-eligibility-router.ts';
 import {applyBinanceCertifiedConfiguration} from '../_shared/binance-certified-configuration.ts';
 import {applyBybitCertifiedConfiguration} from '../_shared/bybit-certified-configuration.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
-import { persistTradeManagementTruth as upsertTradeManagementTruth, persistTradeManagementTruthRow as upsertTradeManagementTruthRow } from "../_shared/trade-truth/index.ts";
-import { currentEdgeOwnership, currentEdgeProviderCredential, enumerateExecutionAccounts, OperatorCredentialResolutionError, ownershipFields, resolveEdgeProviderCredential, resolveOperatorProviderCredential, runtimeOwnershipFields, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
-import { deepFreeze, type DeepReadonly } from "../_shared/strategy-plan.ts";
+import { persistTradeManagementTruthByIdentity, persistTradeManagementTruth as upsertTradeManagementTruth, persistTradeManagementTruthRow as upsertTradeManagementTruthRow } from "../_shared/trade-truth/index.ts";
+import { edgeScopeKey, currentEdgeOwnership, currentEdgeProviderCredential, enumerateExecutionAccounts, OperatorCredentialResolutionError, ownershipFields, resolveEdgeProviderCredential, resolveOperatorProviderCredential, runtimeOwnershipFields, withEdgeProviderCredential } from "../_shared/execution-ownership.ts";
+import { deepFreeze, stableFingerprint, type DeepReadonly } from "../_shared/strategy-plan.ts";
 import { assertCertifiedExecutionInput } from "../_shared/certified-runtime.ts";
 import type { ExecutionPlan } from "../_shared/professional-execution-planning.ts";
 import { adoptExecutionPlan, type AdoptionTruth, type AtomicExecutionClaimStore, type AppendOnlyExecutionEventStore, type ClaimRequest, type AtomicClaimResult, type ExecutionAdoptionPolicy, type ExecutionEvent } from "../_shared/professional-execution-adoption.ts";
@@ -540,6 +545,8 @@ function envBool(name: string, fallback = false): boolean {
 }
 
 function safeBaseUrl(): string {
+  let scoped:ReturnType<typeof currentEdgeProviderCredential>|null=null;try{scoped=currentEdgeProviderCredential('binance')}catch{/* Legacy operator paths retain the sandbox default. */}
+  if(scoped?.ownership.environment==='live'){if(scoped.canonicalLiveAuthorized!==true)throw Error('CANONICAL_LIVE_PERMISSION_REQUIRED');return 'https://fapi.binance.com';}
   const base = Deno.env.get("BINANCE_TESTNET_BASE_URL") || TESTNET_BASE_URL;
   if (base !== TESTNET_BASE_URL) throw new Error("BINANCE_TESTNET_BASE_URL must be https://demo-fapi.binance.com");
   return base;
@@ -603,6 +610,7 @@ class BinanceApiError extends Error {
 type BybitEnvironment = "demo" | "testnet" | "live";
 
 function bybitEnvironment(): BybitEnvironment {
+  try{return currentEdgeOwnership("bybit").environment as BybitEnvironment}catch{/* Operator diagnostics use their explicit configured default. */}
   const raw = String(Deno.env.get("BYBIT_ENVIRONMENT") || Deno.env.get("BYBIT_MODE") || "testnet").toLowerCase().trim();
   if (raw === "demo" || raw === "bybit_demo") return "demo";
   if (raw === "live" || raw === "mainnet" || raw === "bybit_live") return "live";
@@ -610,6 +618,8 @@ function bybitEnvironment(): BybitEnvironment {
 }
 
 function bybitBaseUrl(): string {
+  let scoped:ReturnType<typeof currentEdgeProviderCredential>|null=null;try{scoped=currentEdgeProviderCredential('bybit')}catch{/* Unscoped operator diagnostics retain their configured sandbox. */}
+  if(scoped){if(scoped.ownership.environment==='live'){if(scoped.canonicalLiveAuthorized!==true)throw Error('CANONICAL_LIVE_PERMISSION_REQUIRED');return 'https://api.bybit.com';}return scoped.ownership.environment==='demo'?'https://api-demo.bybit.com':'https://api-testnet.bybit.com';}
   const environment = bybitEnvironment();
   const explicit = Deno.env.get("BYBIT_BASE_URL") || Deno.env.get("BYBIT_TESTNET_BASE_URL") || "";
   const fallback = environment === "demo" ? "https://api-demo.bybit.com" : environment === "live" ? "https://api.bybit.com" : "https://api-testnet.bybit.com";
@@ -2523,8 +2533,8 @@ async function syncTradeManagementTruthFromExposure(supabase: SupabaseClient, pr
   let closedMarked = 0;
   for (const row of ((existing ?? []) as Json[])) {
     if (!openSymbols.has(String(row.symbol))) {
+      await persistTradeManagementTruthByIdentity(supabase, {execution_scope_key:ownership.execution_scope_key,provider:providerName,environment,symbol:String(row.symbol),side:row.side}, { protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now });
       closedMarked += 1;
-      await supabase.from("trade_management_truth").update({ protection_status: "closed", monitor_status: "closed", latest_sync_at: now, last_action_taken: "mark_closed_exchange_truth", updated_at: now }).eq("execution_scope_key", ownership.execution_scope_key).eq("provider", providerName).eq("environment", environment).eq("symbol", String(row.symbol)).eq("side", row.side);
     }
   }
 
@@ -3055,7 +3065,10 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
   const clean = (payload: Readonly<Record<string, unknown>>) => Object.fromEntries(Object.entries(payload).filter(([key]) => !["client_order_id","idempotency_key"].includes(key)));
   return {
     async send(operation, payload, identity) {
+      let externalOrderAttempted=false;
       try {
+        let liveVerified=false;
+        if(plan.routing?.environment==='LIVE'){const p=await db.rpc('execution_environment_permitted',{p_account:plan.routing.account_id});if(p.error||p.data!==true)throw Error('CURRENT_LIVE_PERMISSION_REQUIRED');liveVerified=true;}
         if(plan.provider==="BINANCE"&&["SET_LEVERAGE","VERIFY_PRECONFIGURED_LEVERAGE","SET_MARGIN_MODE","VERIFY_PRECONFIGURED_MARGIN_MODE"].includes(operation)){
           await applyBinanceCertifiedConfiguration(operation,payload,(method,path,params)=>binanceRequest(method,path,params,true));
           return {outcome:"ACKNOWLEDGED",provider_order_id:identity,provider_position_id:null,provider_timestamp:new Date().toISOString(),raw_status:"CONFIGURATION_VERIFIED",redacted_evidence:{operation},error:null};
@@ -3070,13 +3083,24 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
           const { data: decision, error: decisionError } = await db.from("execution_account_policy_decisions").select("id,customer_id,execution_account_id,signal_id,decision,authorized_risk_pct,brain_version,policy_profile_id,policy_version,intent_id,approved_quantity,created_at,connected_execution_accounts!inner(immutable_identity,provider,environment,enabled,is_operational,execution_enabled,provider_health)").eq("execution_account_id",plan.routing!.account_id).eq("id",plan.risk_decision.decision_id).maybeSingle();
           if (decisionError || !decision) throw new Error("phase_d_execution_decision_missing");
           const account = decision.connected_execution_accounts as unknown as Json;
+          const {data:connection,error:permissionError}=await db.from('provider_connections').select('capabilities').eq('execution_account_id',decision.execution_account_id).eq('customer_id',decision.customer_id).maybeSingle();
+          if(permissionError||!connection)throw Error('CURRENT_PROVIDER_CAPABILITIES_REQUIRED');
           const symbol = String(payload.symbol ?? plan.routing!.provider_symbol).toUpperCase();
-          const { data: rules, error: rulesError } = await db.from("provider_symbol_cache").select("status,tick_size,step_size,min_qty,min_notional,last_synced_at").eq("provider",provider).eq("symbol",symbol).maybeSingle();
-          if (rulesError || !rules) throw new Error("provider_symbol_rules_missing");
+          const scopedRule=await db.rpc('load_production_account_authorization_input',{p_customer_id:decision.customer_id,p_account_id:decision.execution_account_id,p_signal_id:decision.signal_id});
+          const observedContract=scopedRule.data?.contract;
+          if(scopedRule.error||!observedContract||observedContract.symbol!==symbol||stableFingerprint(observedContract)!==plan.capital_allocation_plan.diagnostics.contract_fingerprint)throw Error('CURRENT_SCOPED_SYMBOL_RULES_REQUIRED');
+          const rules={status:'TRADING',last_synced_at:scopedRule.data.observed_at,tick_size:observedContract.tick_size,step_size:observedContract.quantity_step,min_qty:observedContract.minimum_quantity,min_notional:observedContract.minimum_notional};
+          const entryOrder=plan.orders.find(o=>o.client_order_id===identity&&o.role.startsWith('ENTRY'));
+          if(entryOrder){
+           let bid:number,ask:number;
+           if(plan.provider==='BINANCE'){const quote=await binanceRequest<Json>('GET','/fapi/v1/ticker/bookTicker',{symbol});bid=Number(quote.bidPrice);ask=Number(quote.askPrice)}
+           else{const quote=await bybitRequest<Json>('GET','/v5/market/tickers',{category:'linear',symbol});if(!Array.isArray(quote.list)||quote.list.length!==1||quote.list[0].symbol!==symbol)throw Error('UNIQUE_NATIVE_ENTRY_QUOTE_REQUIRED');bid=Number(quote.list[0].bid1Price);ask=Number(quote.list[0].ask1Price)}
+           admitExecutionQuote({side:String(plan.strategy_plan.decision.action),bid,ask,stop:Number(plan.strategy_plan.risk_proposal.initial_stop),tp1:Number(plan.strategy_plan.risk_proposal.tp1),quantity:Number(entryOrder.quantity),contractMultiplier:Number(observedContract.contract_multiplier),quoteConversion:plan.capital_allocation_plan.account.account_currency===observedContract.quote_currency?1:Number(observedContract.quote_to_account_conversion),maximumRiskAmount:Number(plan.risk_decision.authorized_envelope?.maximum_authorized_risk_amount)});
+          }
           const requestedPrice = Number(payload.price ?? payload.stopPrice ?? payload.triggerPrice ?? plan.capital_allocation_plan.allocation?.entry_reference);
           const envelope = createCryptoSubmissionEnvelope({
             lineage:{ decisionId:String(decision.id),intentId:String(decision.intent_id??""),signalId:String(decision.signal_id),customerId:String(decision.customer_id),executionAccountId:String(decision.execution_account_id),immutableAccountIdentity:String(account.immutable_identity??""),provider:plan.provider,decision:decision.decision,policyProfileId:String(decision.policy_profile_id),policyVersion:String(decision.policy_version),brainVersion:String(decision.brain_version),authorizedRiskPct:Number(decision.authorized_risk_pct),approvedQuantity:Number(decision.approved_quantity),evaluatedAt:String(decision.created_at) } satisfies CryptoPhaseDLineage,
-            route:{ provider:plan.provider,executionAccountId:String(decision.execution_account_id),customerId:String(decision.customer_id),immutableAccountIdentity:String(account.immutable_identity??""),environment:String(account.environment).toUpperCase() as "TESTNET"|"DEMO"|"LIVE",executionEnabled:account.enabled===true&&account.execution_enabled===true,operational:account.is_operational===true,providerHealth:String(account.provider_health).toUpperCase() as "HEALTHY"|"DEGRADED"|"UNHEALTHY",symbol,symbolStatus:String(rules.status),symbolObservedAt:String(rules.last_synced_at),tickSize:Number(rules.tick_size),stepSize:Number(rules.step_size),minimumQuantity:Number(rules.min_qty),minimumNotional:Number(rules.min_notional??0),permissions:{trading:true,withdrawal:null,verified:true}},
+            route:{ liveAuthorized:liveVerified,provider:plan.provider,executionAccountId:String(decision.execution_account_id),customerId:String(decision.customer_id),immutableAccountIdentity:String(account.immutable_identity??""),environment:String(account.environment).toUpperCase() as "TESTNET"|"DEMO"|"LIVE",executionEnabled:account.enabled===true&&account.execution_enabled===true,operational:account.enabled===true&&account.execution_enabled===true,providerHealth:String(account.provider_health).toUpperCase() as "HEALTHY"|"DEGRADED"|"UNHEALTHY",symbol,symbolStatus:String(rules.status),symbolObservedAt:String(rules.last_synced_at),tickSize:Number(rules.tick_size),stepSize:Number(rules.step_size),minimumQuantity:Number(rules.min_qty),minimumNotional:Number(rules.min_notional??0),permissions:{trading:connection.capabilities.trading===true,withdrawal:connection.capabilities.withdrawal,verified:connection.capabilities.verified===true}},
             deterministicClientOrderId:identity,requestedPrice,now:new Date().toISOString(),maximumIntentAgeMs:120_000,maximumSymbolAgeMs:300_000,
           });
           const payloadQuantity = Number(payload.quantity ?? payload.qty);
@@ -3088,10 +3112,12 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
         }
         if (plan.provider === "BINANCE") {
           const native = clean(payload), endpoint = String(native.endpoint ?? "/fapi/v1/order"), method = String(native.method ?? "POST") as "POST"; delete native.endpoint; delete native.method;
+          externalOrderAttempted=true;
           const result = await binanceRequest<Json>(method, endpoint, native, true);
           return { outcome:"ACKNOWLEDGED", provider_order_id:String(result.orderId ?? identity), provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:String(result.status ?? "ACKNOWLEDGED"), redacted_evidence:{ orderId:result.orderId ?? null, status:result.status ?? null }, error:null };
         }
         if (plan.provider === "BYBIT") {
+          externalOrderAttempted=true;
           const result = await bybitRequest<Json>("POST", "/v5/order/create", clean(payload));
           return { outcome:"ACKNOWLEDGED", provider_order_id:String(result.orderId ?? identity), provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:"ACKNOWLEDGED", redacted_evidence:{ orderId:result.orderId ?? null }, error:null };
         }
@@ -3105,15 +3131,39 @@ function exactTransport(db: SupabaseClient, plan: DeepReadonly<ExecutionPlan>): 
         if (accountError || !account || (mappedRoute.bridgeId && mappedRoute.bridgeId !== account.bridge_id)) throw new Error("mt5_demo_account_unavailable");
         const command = createMt5EntryCommand({
           lineage: { decisionId:String(decision.id), intentId:String(decision.intent_id ?? ""), signalId:String(decision.signal_id), customerId:String(decision.customer_id), executionAccountId:String(decision.execution_account_id), immutableAccountIdentity:String(connected.immutable_identity ?? ""), provider:plan.provider as "MT5_PERSONAL"|"MT5_PROP", decision:decision.decision, policyProfileId:String(decision.policy_profile_id), policyVersion:String(decision.policy_version), brainVersion:String(decision.brain_version), authorizedRiskPct:Number(decision.authorized_risk_pct), approvedQuantity:Number(decision.approved_quantity), evaluatedAt:String(decision.created_at) } satisfies PhaseDExecutionLineage,
-          route: { provider:String(connected.provider) as "MT5_PERSONAL"|"MT5_PROP", executionAccountId:String(decision.execution_account_id), mt5AccountId, customerId:String(account.user_id), immutableAccountIdentity:String(connected.immutable_identity ?? ""), bridgeId:account.bridge_id, assignedBridgeId:bridge && ["online","healthy"].includes(String(bridge.status)) && Date.parse(String(bridge.lease_expires_at)) > Date.now() ? bridge.bridge_id : null, accountMode:String(connected.account_mode) as "PERSONAL"|"PROP_EVALUATION"|"PROP_FUNDED", environment:String(connected.environment).toUpperCase() as "DEMO"|"LIVE", executionEnabled:connected.enabled === true && connected.execution_enabled === true, operational:account.operational === true && connected.is_operational === true, providerHealth:String(account.provider_health).toUpperCase() as "HEALTHY"|"DEGRADED"|"UNHEALTHY", lastHeartbeatAt:account.last_heartbeat_at },
-          executionPlanId:plan.execution_plan_id, deterministicOrderId:plan.execution_plan_id, nativeChildOrders:plan.orders.filter(o=>o.role==='ENTRY_TP1'||o.role==='ENTRY_TP2').map(o=>({role:o.role,action:String(o.provider_payload.action),symbol:String(o.provider_payload.symbol),side:String(o.provider_payload.side),quantity:o.quantity,sl:o.stop_loss,tp:o.take_profit,client_order_id:o.client_order_id,fill_policy:o.provider_payload.type_filling})), symbol:String(payload.symbol ?? plan.routing!.provider_symbol), side:String(payload.side ?? plan.strategy_plan.decision.action).toUpperCase() as "BUY"|"SELL", stopLoss:Number(plan.strategy_plan.risk_proposal.initial_stop), takeProfit1:Number(payload.take_profit_1 ?? plan.strategy_plan.risk_proposal.tp1), takeProfit2:Number(payload.take_profit_2 ?? plan.strategy_plan.risk_proposal.tp2), now:new Date().toISOString(), maximumIntentAgeMs:120_000,
+          route: { liveAuthorized:liveVerified,provider:String(connected.provider) as "MT5_PERSONAL"|"MT5_PROP", executionAccountId:String(decision.execution_account_id), mt5AccountId, customerId:String(account.user_id), immutableAccountIdentity:String(connected.immutable_identity ?? ""), bridgeId:account.bridge_id, assignedBridgeId:bridge && ["online","healthy"].includes(String(bridge.status)) && Date.parse(String(bridge.lease_expires_at)) > Date.now() ? bridge.bridge_id : null, accountMode:String(connected.account_mode) as "PERSONAL"|"PROP_EVALUATION"|"PROP_FUNDED", environment:String(connected.environment).toUpperCase() as "DEMO"|"LIVE", executionEnabled:connected.enabled === true && connected.execution_enabled === true, operational:account.operational === true && connected.enabled === true, providerHealth:String(account.provider_health).toUpperCase() as "HEALTHY"|"DEGRADED"|"UNHEALTHY", lastHeartbeatAt:account.last_heartbeat_at },
+          authorizedRiskAmount:Number(plan.risk_decision.authorized_envelope?.maximum_authorized_risk_amount), executionPlanId:plan.execution_plan_id, deterministicOrderId:plan.execution_plan_id, nativeChildOrders:plan.orders.filter(o=>o.role==='ENTRY_TP1'||o.role==='ENTRY_TP2').map(o=>({role:o.role,action:String(o.provider_payload.action),symbol:String(o.provider_payload.symbol),side:String(o.provider_payload.side),quantity:o.quantity,sl:o.stop_loss,tp:o.take_profit,client_order_id:o.client_order_id,fill_policy:o.provider_payload.type_filling})), symbol:String(payload.symbol ?? plan.routing!.provider_symbol), side:String(payload.side ?? plan.strategy_plan.decision.action).toUpperCase() as "BUY"|"SELL", stopLoss:Number(plan.strategy_plan.risk_proposal.initial_stop), takeProfit1:Number(payload.take_profit_1 ?? plan.strategy_plan.risk_proposal.tp1), takeProfit2:Number(payload.take_profit_2 ?? plan.strategy_plan.risk_proposal.tp2), now:new Date().toISOString(), maximumIntentAgeMs:120_000,
         });
+        externalOrderAttempted=true;
         const { data, error } = await db.rpc("enqueue_phase_e_mt5_intent", { p_decision_id:String(decision.id), p_execution_plan_id:plan.execution_plan_id, p_mt5_account_id:command.accountId, p_bridge_id:command.bridgeId, p_idempotency_key:command.idempotencyKey, p_payload:command.payload }).single();
         if (error) throw error;
         return { outcome:"ACKNOWLEDGED", provider_order_id:String(data.command_id), provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:"QUEUED", redacted_evidence:{ command_id:data.command_id }, error:null };
-      } catch (error) { return { outcome:"REJECTED", provider_order_id:null, provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:"REJECTED", redacted_evidence:{}, error:{ taxonomy:"PROVIDER_REJECTED", message:error instanceof Error?error.message:String(error) } }; }
+      } catch (error) {
+        if(externalOrderAttempted&&plan.routing&&(plan.provider==='BINANCE'||plan.provider==='BYBIT')){const saved=await db.rpc('record_phase_f_crypto_lifecycle',{p_execution_account_id:plan.routing.account_id,p_client_order_id:identity,p_event:'SUBMISSION_UNCERTAIN',p_evidence:{reason:'NATIVE_ORDER_RESPONSE_NOT_CONFIRMED',observed_at:new Date().toISOString()}});if(saved.error)throw Error('UNCERTAIN_SUBMISSION_RECEIPT_NOT_PERSISTED');}
+        return { outcome:externalOrderAttempted?'AMBIGUOUS':'REJECTED', provider_order_id:null, provider_position_id:null, provider_timestamp:new Date().toISOString(), raw_status:externalOrderAttempted?'SUBMISSION_UNCERTAIN':'REJECTED', redacted_evidence:{}, error:{ taxonomy:externalOrderAttempted?'NETWORK_UNCERTAIN':'PROVIDER_REJECTED', message:externalOrderAttempted?'Native order response requires reconciliation':error instanceof Error?error.message:String(error) } };
+      }
     },
-    async lookup(identity) { const { data } = await db.from("certified_runtime_events").select("payload").eq("execution_plan_id",plan.execution_plan_id).contains("payload",{ deterministic_client_id:identity }).maybeSingle(); const event = data?.payload as ExecutionEvent|undefined; return event?.provider_order_id ? { found:true, result:{ outcome:"ACKNOWLEDGED", provider_order_id:event.provider_order_id, provider_position_id:event.provider_position_id, provider_timestamp:event.provider_timestamp ?? event.observed_timestamp, raw_status:event.raw_status, redacted_evidence:event.redacted_provider_evidence, error:null } } : { found:false, result:null }; },
+    async lookup(identity) {
+      const symbol=String(plan.routing?.provider_symbol??'');let native:Json|null=null;
+      if(plan.provider==='BINANCE'){
+       try{native=await binanceRequest<Json>('GET','/fapi/v1/order',{symbol,origClientOrderId:identity},true)}catch(e){if(!String(e).includes('-2013'))throw Error('NATIVE_ORDER_LOOKUP_UNCONFIRMED');}
+       if(native&&(native.clientOrderId!==identity||native.symbol!==symbol))throw Error('NATIVE_ORDER_LOOKUP_SCOPE_MISMATCH');
+      }else if(plan.provider==='BYBIT'){
+       const params={category:'linear',symbol,orderLinkId:identity};const recent=await bybitRequest<Json>('GET','/v5/order/realtime',params);let rows=recent.list;
+       if(!Array.isArray(rows))throw Error('NATIVE_ORDER_LOOKUP_UNCONFIRMED');
+       if(!rows.length){const history=await bybitRequest<Json>('GET','/v5/order/history',params);rows=history.list;}
+       if(!Array.isArray(rows)||rows.length>1)throw Error('NATIVE_ORDER_LOOKUP_UNCONFIRMED');native=rows[0]??null;
+       if(native&&(native.orderLinkId!==identity||native.symbol!==symbol))throw Error('NATIVE_ORDER_LOOKUP_SCOPE_MISMATCH');
+      }
+      if(native)return {found:true,result:{outcome:'ACKNOWLEDGED',provider_order_id:String(native.orderId),provider_position_id:null,provider_timestamp:new Date().toISOString(),raw_status:String(native.status??native.orderStatus??'OBSERVED'),redacted_evidence:{orderId:native.orderId,clientOrderId:identity},error:null}};
+      if(plan.provider==='BINANCE'||plan.provider==='BYBIT'){
+       const unresolved=await db.from('crypto_account_execution_truth').select('lifecycle_state').eq('execution_account_id',plan.routing!.account_id).eq('deterministic_client_order_id',identity).maybeSingle();
+       if(unresolved.error||['SUBMISSION_UNCERTAIN','RECONCILING'].includes(String(unresolved.data?.lifecycle_state)))throw Error('NATIVE_RECONCILIATION_PENDING');
+       return {found:false,result:null};
+      }
+      const {data}=await db.from('mt5_account_execution_truth').select('command_id').eq('execution_account_id',plan.routing!.account_id).eq('execution_plan_id',plan.execution_plan_id).maybeSingle();
+      return data?.command_id?{found:true,result:{outcome:'ACKNOWLEDGED',provider_order_id:String(data.command_id),provider_position_id:null,provider_timestamp:new Date().toISOString(),raw_status:'QUEUED',redacted_evidence:{command_id:data.command_id},error:null}}:{found:false,result:null};
+    },
   };
 }
 
@@ -3122,16 +3172,26 @@ async function adoptCertifiedExecutionPlan(db: SupabaseClient, raw: unknown, exp
   const plan = deepFreeze(structuredClone(raw as ExecutionPlan));
   if (plan.schema_version !== "execution-plan/v1" || !plan.routing) return { success:false, blocker:"execution_plan_v1_required" };
   assertCertifiedExecutionInput(plan, plan.routing.account_id);
-  if (plan.routing.environment === "LIVE") return { success:false, blocker:"production_environment_forbidden" };
-  if (plan.provider === "BYBIT" && bybitExecutionEnvironment().toUpperCase() !== plan.routing.environment) return { success:false, blocker:"provider_environment_mismatch" };
+
+
   const { data: policyRow, error: policyError } = await db.from("certified_execution_adoption_policies").select("policy,version,enabled,rollout_percentage").eq("account_id",plan.routing.account_id).eq("provider",plan.provider).eq("environment",plan.routing.environment).eq("current",true).maybeSingle();
   if (policyError || !policyRow) return { success:false, blocker:"adoption_policy_missing" };
   if (!expectedPolicyVersion || policyRow.version !== expectedPolicyVersion) return { success:false, blocker:"adoption_policy_version_mismatch" };
   const policy = deepFreeze(policyRow.policy as ExecutionAdoptionPolicy);
   if (!policyRow.enabled || policyRow.rollout_percentage <= 0 || policy.enabled !== policyRow.enabled || policy.rollout_percentage !== policyRow.rollout_percentage) return { success:false, blocker:"adoption_disabled" };
-  const { data: truthRow, error: truthError } = await db.rpc("load_certified_adoption_truth", { p_execution_plan_id:plan.execution_plan_id });
-  if (truthError || !truthRow) return { success:false, blocker:"adoption_truth_unavailable" };
-  const truth = truthRow as AdoptionTruth;
+  const {data:authorized,error:decisionError}=await db.from('execution_account_policy_decisions').select('id,customer_id,execution_account_id,signal_id,policy_version').eq('id',plan.risk_decision.decision_id).eq('execution_account_id',plan.routing.account_id).maybeSingle();
+  if(decisionError||!authorized)return {success:false,blocker:'canonical_account_decision_required'};
+  const {data:stored,error:artifactError}=await db.from('certified_runtime_artifacts').select('execution_plan').eq('evaluation_id',plan.evaluation_id).eq('account_id',plan.routing.account_id).maybeSingle();
+  if(artifactError||stableFingerprint(stored?.execution_plan)!==stableFingerprint(raw))return {success:false,blocker:'persisted_execution_plan_required'};
+  const {data:current,error:currentError}=await db.rpc('load_production_account_authorization_input',{p_customer_id:authorized.customer_id,p_account_id:authorized.execution_account_id,p_signal_id:authorized.signal_id});
+  if(currentError||!current)return {success:false,blocker:'current_account_evidence_required'};
+  await loadConfirmedEntry(db,current.signal,Date.now());
+  const {data:credentialAccount,error:credentialScopeError}=await db.from('connected_execution_accounts').select('account_id,execution_instance_id,credential_ref').eq('id',authorized.execution_account_id).eq('customer_id',authorized.customer_id).single();
+  if(credentialScopeError||!credentialAccount)return {success:false,blocker:'current_credential_scope_required'};
+  let executionScope='';
+  if(plan.provider==='BINANCE'||plan.provider==='BYBIT')executionScope=edgeScopeKey({customer_id:authorized.customer_id,provider:plan.provider.toLowerCase() as 'binance'|'bybit',account_id:credentialAccount.account_id,execution_instance_id:credentialAccount.execution_instance_id});
+  const truth = currentAccountAdoptionTruth({...current,execution_scope_key:executionScope,execution_instance_id:credentialAccount.execution_instance_id,credential_ref:credentialAccount.credential_ref},plan) as AdoptionTruth;
+  eligibility=routeProductionEligibility({claim:pinnedClaimFromQualifiedSet({product:current.product,market:String(current.product).startsWith('FOREX')?'FOREX':'CRYPTO',set:current.qualified_set,strategyId:current.signal.strategy_id,strategyVersion:current.signal.strategy_version,symbol:current.signal.symbol,timeframe:current.signal.timeframe,requiredQualification:'FORWARD_VALIDATION_CANDIDATE',evaluatedParameters:current.strategy_plan?.provenance?.evaluated_parameters??{}}),qualifiedSet:current.qualified_set});
   if ((plan.provider === "BINANCE" || plan.provider === "BYBIT") && !String((truth as unknown as Json).execution_scope_key ?? "")) return { success:false, blocker:"monitor_execution_scope_missing" };
   const product = plan.provider === "MT5_PROP" ? "FOREX_PROP" : plan.provider === "MT5_PERSONAL" ? "FOREX_PERSONAL" : String((truth as unknown as Json).execution_product ?? "CRYPTO_PERSONAL") as "CRYPTO_PERSONAL"|"CRYPTO_PROP";
   const customerId = String((truth as unknown as Json).customer_id ?? plan.risk_decision.account.customer_id);
@@ -3145,7 +3205,9 @@ async function adoptCertifiedExecutionPlan(db: SupabaseClient, raw: unknown, exp
   const openPositions = Array.isArray((truth as unknown as Json).open_positions) ? ((truth as unknown as Json).open_positions as unknown[]).length : Number((truth as unknown as Json).open_positions ?? 0);
   const pendingOrders = Number((truth as unknown as Json).pending_orders ?? 0);
   const { count: duplicates } = await db.from("certified_runtime_events").select("event_id",{count:"exact",head:true}).eq("execution_plan_id",plan.execution_plan_id).eq("account_id",plan.routing.account_id).in("normalized_status",["acknowledged","filled","protected"]);
-  const { count: activeSymbol } = await db.from("execution_orders").select("id",{count:"exact",head:true}).eq("account_id",plan.routing.account_id).eq("symbol",plan.routing.provider_symbol).in("status",ACTIVE_STATUSES);
+  const { count: activeSymbol, error: activeSymbolError } = await db.from("execution_orders").select("id",{count:"exact",head:true}).eq("customer_id",customerId).eq("account_id",credentialAccount.account_id).eq("symbol",plan.routing.provider_symbol).in("status",ACTIVE_STATUSES);
+  if(activeSymbolError||activeSymbol===null)return {success:false,blocker:"current_local_execution_evidence_required"};
+  if(plan.provider==='BINANCE'||plan.provider==='BYBIT'){const active=await db.from("crypto_account_execution_truth").select("id",{count:"exact",head:true}).eq("customer_id",customerId).eq("execution_account_id",plan.routing.account_id).not("lifecycle_state","in","(CLOSED,REJECTED)");if(active.error||active.count===null||active.count>0)return {success:false,blocker:"crypto_account_reconciliation_required"};}
   const propState = String(propAccount?.current_state ?? "NORMAL_TRADING"), propBlocked = new Set(["PAYOUT_READY","NO_NEW_ENTRIES","MANAGE_EXISTING_POSITIONS_ONLY","MANUAL_PAUSE","MANAGE_ONLY","STOP_AFTER_FLAT","ACCOUNT_BREACHED","FIRM_RULE_LOCK","DAILY_SAFETY_LOCK"]), softGuard = propState === "SOFT_PROFIT_GUARD";
   const softMultiplier = softGuard ? Number((propAccount?.configuration as Json|null)?.softGuardRiskMultiplier ?? .5) : 1;
   const plannedRisk = Number(plan.risk_decision.authorized_envelope?.maximum_authorized_risk_amount ?? Number.NaN), baselineRisk = Number((propAccount?.configuration as Json|null)?.baselineRiskAmount ?? plan.risk_decision.authorized_envelope?.requested_risk_amount ?? Number.NaN);
@@ -3154,19 +3216,19 @@ async function adoptCertifiedExecutionPlan(db: SupabaseClient, raw: unknown, exp
   await db.from("certified_runtime_events").insert({ event_id:`account-gate:${plan.execution_plan_id}:${plan.routing.account_id}`,execution_plan_id:plan.execution_plan_id,account_id:plan.routing.account_id,event_type:"ACCOUNT_GATE_DECIDED",normalized_status:gate.decision.toLowerCase(),occurred_at:new Date().toISOString(),payload:gate });
   if (gate.decision === "BLOCK") return { success:false, blocker:gate.reasonCodes[0] ?? "account_execution_blocked", gate };
   const transport = exactTransport(db, plan);
-  const port = plan.provider === "BINANCE" ? new BinanceTestnetAdoptionAdapter(plan,transport) : plan.provider === "BYBIT" ? new BybitDemoAdoptionAdapter(plan,transport) : plan.provider === "MT5_PERSONAL" ? new Mt5PersonalDemoAdoptionAdapter(plan,transport) : new Mt5PropDemoAdoptionAdapter(plan,transport);
+  const port = plan.routing.environment==='LIVE'?new ApprovedLiveAdoptionAdapter(plan,transport,(truth as AdoptionTruth).live_permission_verified===true):plan.provider === "BINANCE" ? new BinanceTestnetAdoptionAdapter(plan,transport) : plan.provider === "BYBIT" ? new BybitDemoAdoptionAdapter(plan,transport) : plan.provider === "MT5_PERSONAL" ? new Mt5PersonalDemoAdoptionAdapter(plan,transport) : new Mt5PropDemoAdoptionAdapter(plan,transport);
   const runAdoption = () => adoptExecutionPlan({ plan, policy, truth, now:new Date().toISOString(), executor_identity:"active-root-executor", attempt_number:1, lease_ms:30_000, claim_store:new SupabaseCertifiedClaims(db,plan), event_store:new SupabaseCertifiedEvents(db), port });
   const adopted = plan.provider === "BINANCE" || plan.provider === "BYBIT"
-    ? await (async () => { const resolved = await resolveOperatorProviderCredential(db, plan.provider.toLowerCase() as "binance"|"bybit", plan.routing!.environment.toLowerCase() as "testnet"|"demo", { customerId:truth.customer_id ?? undefined, accountId:plan.routing!.account_id }); return withEdgeProviderCredential(resolved.credential, runAdoption); })()
+    ? await (async () => { const resolved = await resolveOperatorProviderCredential(db, plan.provider.toLowerCase() as "binance"|"bybit", plan.routing!.environment.toLowerCase() as "testnet"|"demo", { customerId:truth.customer_id ?? undefined, accountId:credentialAccount.account_id }); return withEdgeProviderCredential({...resolved.credential,canonicalLiveAuthorized:truth.live_permission_verified===true}, runAdoption); })()
     : await runAdoption();
   if (adopted.attempt) { const { error } = await db.from("certified_runtime_artifacts").update({ execution_attempt:adopted.attempt }).eq("evaluation_id",plan.evaluation_id).eq("account_id",plan.routing.account_id); if (error) throw new Error(`certified_attempt_persistence_failed:${error.message}`); }
-  if (adopted.submitted && plan.routing) {
+  if ((adopted.submitted || adopted.projection.canonical_state==='RECONCILING') && plan.routing) {
     const entry = plan.orders.find((order) => order.role === "ENTRY" || order.role.startsWith("ENTRY_TP"));
     const events = adopted.events.filter((event) => event.provider_order_id);
-    const { error: monitorBindingError } = await db.from("execution_orders").insert({ exchange:plan.provider === "BINANCE" ? "binance_usdm_testnet" : plan.provider === "BYBIT" ? "bybit_usdt_demo" : "mt5_demo", symbol:plan.routing.provider_symbol, direction:plan.strategy_plan.decision.action.toLowerCase(), entry_price:entry?.price ?? plan.capital_allocation_plan.allocation?.entry_reference, stop_loss:plan.strategy_plan.risk_proposal.initial_stop, tp1:plan.strategy_plan.risk_proposal.tp1, tp2:plan.strategy_plan.risk_proposal.tp2, volume:plan.capital_allocation_plan.allocation?.quantity, execution_mode:plan.routing.execution_mode, status:"entry_submitted", execution_provider:plan.provider.toLowerCase().replace("_personal","").replace("_prop",""), environment:plan.routing.environment.toLowerCase(), customer_id:plan.risk_decision.account.customer_id, account_id:plan.routing.account_id, execution_scope_key:String((truth as unknown as Json).execution_scope_key ?? ""), execution_instance_id:(truth as unknown as Json).execution_instance_id ?? null, credential_ref:(truth as unknown as Json).credential_ref ?? null, entry_order_id:events.find((event) => event.event_type === "ENTRY_ACKNOWLEDGED")?.provider_order_id ?? "", raw_exchange_response:{ certified_execution_plan_id:plan.execution_plan_id, certified_attempt_number:adopted.attempt?.attempt_number, canonical_side:plan.strategy_plan.decision.action } });
+    const { error: monitorBindingError } = await db.from("execution_orders").insert({ exchange:plan.provider === "BINANCE" ? (plan.routing.environment==='LIVE'?'binance_usdm_live':'binance_usdm_testnet') : plan.provider === "BYBIT" ? (plan.routing.environment==='LIVE'?'bybit_usdt_live':'bybit_usdt_demo') : (plan.routing.environment==='LIVE'?'mt5_live':'mt5_demo'), symbol:plan.routing.provider_symbol, direction:plan.strategy_plan.decision.action.toLowerCase(), entry_price:entry?.price ?? plan.capital_allocation_plan.allocation?.entry_reference, stop_loss:plan.strategy_plan.risk_proposal.initial_stop, tp1:plan.strategy_plan.risk_proposal.tp1, tp2:plan.strategy_plan.risk_proposal.tp2, volume:plan.capital_allocation_plan.allocation?.quantity, execution_mode:plan.routing.execution_mode, status:"entry_submitted", execution_provider:plan.provider.toLowerCase().replace("_personal","").replace("_prop",""), environment:plan.routing.environment.toLowerCase(), customer_id:plan.risk_decision.account.customer_id, account_id:credentialAccount.account_id, execution_scope_key:String((truth as unknown as Json).execution_scope_key ?? ""), execution_instance_id:(truth as unknown as Json).execution_instance_id ?? null, credential_ref:(truth as unknown as Json).credential_ref ?? null, entry_order_id:events.find((event) => event.event_type === "ENTRY_ACKNOWLEDGED")?.provider_order_id ?? "", raw_exchange_response:{ certified_execution_plan_id:plan.execution_plan_id, certified_attempt_number:adopted.attempt?.attempt_number, canonical_side:plan.strategy_plan.decision.action } });
     if (monitorBindingError) throw new Error(`certified_monitor_binding_failed:${monitorBindingError.message}`);
   }
-  return { success:adopted.submitted || adopted.shadow_only, shadow_only:adopted.shadow_only, execution_plan_id:plan.execution_plan_id, canonical_state:adopted.projection.canonical_state, errors:adopted.projection.errors };
+  return { uncertain:adopted.projection.canonical_state==='RECONCILING', success:adopted.submitted || adopted.shadow_only, shadow_only:adopted.shadow_only, execution_plan_id:plan.execution_plan_id, canonical_state:adopted.projection.canonical_state, errors:adopted.projection.errors };
 }
 
 Deno.serve(async (req: Request) => {

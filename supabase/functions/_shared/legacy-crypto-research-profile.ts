@@ -1,0 +1,6 @@
+export const LEGACY_CRYPTO_PROFILE_ID='crypto.legacy-four-v1';
+const symbols=['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','ADAUSDT','DOGEUSDT','LINKUSDT','AVAXUSDT','LTCUSDT','BCHUSDT','NEARUSDT','TRXUSDT'];
+export const LEGACY_CRYPTO_CATALOG={id:LEGACY_CRYPTO_PROFILE_ID,label:'Original four crypto strategies · research baseline',symbols:[...symbols],costBps:20.5,warmupBars:110};
+export function legacyCryptoResearchConfiguration(){
+ return{researchOnly:true as const,version:'research/legacy-crypto-four/v1',minSignalGrade:'A',outcomeAssumptions:{entryTiming:'NEXT_OPEN' as const,feeBps:10,spreadBps:2,slippageBps:4,fundingBps:4.5,partialExitPct:.5,moveStopToBreakevenAfterTp1:true,trailingStopR:null,sameCandlePolicy:'STOP_FIRST' as const,tp1StopPolicy:'CONSERVATIVE_SAME_BAR' as const,closeAtHorizon:true},strategies:['crypto.micro-scalper','crypto.quick-scalp','crypto.compression-breakout','crypto.swing-continuation'].map(id=>({id,version:'1.0.0',enabled:true,minScore:id.endsWith('quick-scalp')?82:id.endsWith('micro-scalper')?72:75,minRiskReward:id.endsWith('quick-scalp')?1.15:1.2,maxBarsInTrade:id.endsWith('quick-scalp')?12:id.endsWith('micro-scalper')?24:id.endsWith('swing-continuation')?96:48,minStopDistancePct:.18,minTp1DistancePct:.25,minTp2DistancePct:.4,symbols:[...symbols],timeframes:['15m'],parameters:{}}))};
+}

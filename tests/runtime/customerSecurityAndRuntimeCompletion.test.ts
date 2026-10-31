@@ -27,21 +27,21 @@ for (const table of expectedTablesWithRls) {
 
 // 2. Test Entitlements Mapping
 const cryptoBotEntitlements = getEntitlementsForPackage('crypto_personal_bot', true);
-assert.equal(cryptoBotEntitlements.signalAccess, true);
+assert.equal(cryptoBotEntitlements.signalAccess, false);
 assert.equal(cryptoBotEntitlements.cryptoExecution, true);
 assert.equal(cryptoBotEntitlements.mt5Personal, false);
 assert.equal(cryptoBotEntitlements.mt5Prop, false);
 assert.equal(cryptoBotEntitlements.canConfigureBot, true);
 
 const mt5PersonalEntitlements = getEntitlementsForPackage('forex_mt5_personal_bot', true);
-assert.equal(mt5PersonalEntitlements.signalAccess, true);
+assert.equal(mt5PersonalEntitlements.signalAccess, false);
 assert.equal(mt5PersonalEntitlements.cryptoExecution, false);
 assert.equal(mt5PersonalEntitlements.mt5Personal, true);
 assert.equal(mt5PersonalEntitlements.mt5Prop, false);
 assert.equal(mt5PersonalEntitlements.canConfigureBot, true);
 
 const mt5PropEntitlements = getEntitlementsForPackage('forex_mt5_prop_bot', true);
-assert.equal(mt5PropEntitlements.signalAccess, true);
+assert.equal(mt5PropEntitlements.signalAccess, false);
 assert.equal(mt5PropEntitlements.cryptoExecution, false);
 assert.equal(mt5PropEntitlements.mt5Personal, false);
 assert.equal(mt5PropEntitlements.mt5Prop, true);
@@ -56,13 +56,20 @@ assert.equal(inactiveEntitlements.canConfigureBot, false);
 const activeSub = {
   id: 'sub-1',
   user_id: 'user-a',
-  package_name: 'Crypto Personal Bot',
+  package_name: 'VIP Signals',product_slug:'crypto_signal_room',
+  verified_commerce: true,
   access_status: 'active',
   payment_status: 'paid',
   expires_at: new Date(Date.now() + 86400000).toISOString(),
 } as any;
 
 assert.equal(getCustomerAccessState(activeSub, null), 'active');
+assert.equal(getCustomerAccessState({...activeSub,payment_status:'manual_access',verified_commerce:false,manual_access:true},null),'active');
+assert.equal(getCustomerAccessState({...activeSub,payment_status:'manual_access',verified_commerce:false,manual_access:false},null),'pending');
+assert.equal(getCustomerAccessState({...activeSub,payment_status:'manual_access',verified_commerce:false,manual_access:true,expires_at:new Date(Date.now()-1).toISOString()},null),'expired');
+assert.equal(getCustomerAccessState({...activeSub,verified_commerce:false},null),'pending');
+assert.equal(getCustomerAccessState(null,{status:'approved'} as any),'pending');
+assert.equal(getCustomerAccessState({...activeSub,expires_at:'invalid'},null),'pending');
 
 const expiredSub = {
   ...activeSub,
@@ -93,7 +100,7 @@ assert.equal(isBotPackage('crypto_signal_room'), false);
 assert.equal(isBotPackage('free_preview'), false);
 
 assert.equal(signalModeIncluded('crypto_signal_room'), true);
-assert.equal(signalModeIncluded('crypto_personal_bot'), true);
+assert.equal(signalModeIncluded('crypto_personal_bot'), false);
 assert.equal(signalModeIncluded('free_preview'), false);
 
 console.log('✅ Customer security, entitlement, and access state tests PASSED.');

@@ -1,0 +1,16 @@
+{
+ "schema":"major-relative-breakout-development/v1",
+ "symbols":["BTCUSDT","ETHUSDT"],
+ "variants":["PEER_RELATIVE","PEER_BREADTH"],
+ "period":{"from":"2025-01-01T00:00:00.000Z","toExclusive":"2026-07-01T00:00:00.000Z"},
+ "peer":"The other major: BTC references ETH; ETH references BTC. Never self-reference or rename an asset to bypass eligibility.",
+ "shared":"Closed1h entry decisions; asset24h return>=3%, positive7d return; closes above prior24h high; quote volume>=1.5x prior24h mean; peer24h return positive. Original altcoin's wider2ATR20/prior24h-low stop,3R target,24h maximum; minimum1% risk and target gross move>=5x declared costs.",
+ "relative":"Additionally require asset24h return minus peer24h return>=2 percentage points.",
+ "breadth":"No relative-outperformance requirement: positive peer performance supplies market breadth instead.",
+ "costsBps":{"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBps":9},
+ "stressMultiplier":1.5,
+ "gates":{"minimumResolvedPerAsset":50,"minimumNetPF":1.2,"minimumMeanR":0.02,"positiveEachCalendarSlice":true,"positiveStress":true},
+ "trials":4,
+ "evidence":"All four fixed transfers retained. Previously examined development data. No new untouched claim, hidden parameter search or profits-based asset exclusion.",
+ "publication":false,"execution":false,"promotion":false
+}

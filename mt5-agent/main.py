@@ -138,7 +138,7 @@ class MT5AgentDaemon:
                 logger.error("operation=terminal_verify error_code=%s", proof.get("blocker"))
                 self.mt5_client.is_connected = False
                 return False
-            if proof.get("account", {}).get("environment") != "demo" and not (Config.DATA_ONLY and self.credential_capability == "investor"):
+            if proof.get("account", {}).get("environment") != "demo" and not (proof.get("account", {}).get("environment") == "live" and ((Config.DATA_ONLY and self.credential_capability == "investor") or (not Config.DATA_ONLY and self.credential_capability == "master"))):
                 logger.error("operation=terminal_verify error_code=LIVE_EXECUTION_PROHIBITED")
                 self.mt5_client.is_connected = False
                 return False
@@ -198,7 +198,8 @@ class MT5AgentDaemon:
             if now - self.last_poll >= Config.POLL_INTERVAL_SECONDS:
                 self._run_stage("commands", self.command_processor.process_pending_commands)
                 if not Config.DATA_ONLY:
-                    self._run_stage("position_protection", self.command_processor.managed_positions.monitor)
+                    if Config.ALLOW_LIVE_EXECUTION or self.mt5_client.get_account_info().get("environment") == "demo":
+                        self._run_stage("position_protection", self.command_processor.managed_positions.monitor)
                 self.last_poll = now
 
             time.sleep(0.2)

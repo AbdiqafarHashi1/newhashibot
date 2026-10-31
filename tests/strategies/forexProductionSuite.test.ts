@@ -12,7 +12,7 @@ const candles = Array.from({ length: 60 }, (_, index) => {
 const last = candles.at(-1)!;
 const context: StrategyEvaluationContext = { symbol: "EURUSD", market: "forex", timeframe: "15m", candles, evaluated_at: evaluatedAt, indicators: { ema20: last.close - .0001, ema50: last.close - .0006, atr14: .001, rsi14: 56, recent_high: Math.max(...candles.slice(-20).map(c => c.high)), recent_low: Math.min(...candles.slice(-20).map(c => c.low)), avg_volume: 1000, body_size: last.close - last.open, atr_pct: .1, range_compression_ratio: .7, momentum_score: .5, volatility_state: "normal", regime: "trend_up" } };
 
-assert.deepEqual(Object.keys(FOREX_PRODUCTION_EVALUATORS).sort(), ["forex.london-breakout", "forex.new-york-continuation", "forex.trend-pullback", "gold.volatility-breakout"]);
+assert.deepEqual(Object.keys(FOREX_PRODUCTION_EVALUATORS).sort(), FOREX_STRATEGY_CONTRACTS.map(c=>c.id).sort());
 for (const [id, evaluator] of Object.entries(FOREX_PRODUCTION_EVALUATORS)) {
   const contract = FOREX_STRATEGY_CONTRACTS.find(row => row.id === id);
   assert.ok(contract, `${id} has a canonical contract`);
@@ -20,8 +20,10 @@ for (const [id, evaluator] of Object.entries(FOREX_PRODUCTION_EVALUATORS)) {
   if (id === "gold.volatility-breakout") continue; // Gold has dedicated bidirectional fixtures and MT5 metadata.
   const first = evaluator(context), second = evaluator(context);
   assert.deepEqual(first, second, `${id} is deterministic`);
-  assert.equal(first.score_breakdown.research_only, undefined);
-  assert.equal(first.score_breakdown.certification, "PRODUCTION");
-  assert.equal(first.score_breakdown.strategy_version, "1.0.0");
+  assert.notEqual(first.score_breakdown.certification,'PRODUCTION','Runtime implementation is not performance certification');
+  assert.equal(typeof first.reason,'string');assert(Number.isFinite(first.confidence_score));
+  if(!['forex.micro-scalper','forex.swing-continuation'].includes(id)){
+   assert.equal(first.score_breakdown.certification, "MEASURED_RELEASE_REQUIRED");assert.equal(first.score_breakdown.strategy_version, "1.0.0");
+  }
 }
 console.log("Forex production suite tests passed");

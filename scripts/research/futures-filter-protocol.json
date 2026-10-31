@@ -1,0 +1,39 @@
+{
+  "schema": "futures-structural-trend-filter/v1",
+  "writtenOn": "2026-10-27",
+  "assets": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "stages": [
+    {
+      "name": "DEVELOPMENT",
+      "from": "2020-01-01",
+      "until": "2023-01-01"
+    },
+    {
+      "name": "VALIDATION",
+      "from": "2023-01-01",
+      "until": "2025-01-01"
+    }
+  ],
+  "instrument": "Native Binance USD-M perpetual4h official monthly ZIP/CHECKSUM pairs; not synthetic shorts on spot prices.",
+  "entry": "Close above previous55 completed4h highs and EMA200=>BUY; below previous55 lows and EMA200=>SELL. Next4h open.200bar warmup. Each stage starts flat using earlier bars for indicators only.",
+  "exit": "Initial2WilderATR14 stop; previous20bar opposite channel;3ATR favorable-close trail applied only next bar. No fixed target, early breakeven or arbitrary12bar stop. Adverse gap stops fill at actual open. Opposite entry only after prior position exit; no samebar reentry.",
+  "costs": "10bp roundtrip fee+2spread+4slippage, plus adverse3bp per commenced8h holding interval, with all components multiplied1.5 for stress. No favorable funding credit or observed-fill claim.",
+  "gates": {
+    "minimumPooledClosed": 50,
+    "minimumEachDirectionClosed": 15,
+    "minimumEachAssetClosed": 15,
+    "netPF": 1.2,
+    "positiveStress": true,
+    "positiveEachAsset": true,
+    "positiveEachDirection": true
+  },
+  "gating": "Acquire validation only if entire fixed development passes. No choosing a favorable direction or asset after results. All per-direction/per-asset metrics retained; no release authority. Historical dates written before acquisition; no project-wide untouched claim.",
+  "context": "One new prospective adaptation after pooled long/short model failed its direction gate. No sweep. Prior rules and failed evidence preserved. Baseline parity is verified against every original development trade before filtered evaluation.",
+  "publication": false,
+  "execution": false,
+  "promotion": false,
+  "filter": "In addition to original entry, BUY requires EMA50>EMA200 and EMA200 above its value6 completed4h bars ago. SELL requires EMA50<EMA200 and EMA200 below its value6bars ago. Symmetric filter, no other entry/exit/cost/gate changes."
+}

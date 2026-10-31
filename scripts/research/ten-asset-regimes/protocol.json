@@ -1,0 +1,12 @@
+{
+ "schema":"ten-asset-regime-momentum/v1","declaredOn":"2026-10-29",
+ "parent":"ten-asset-complementary/v1; all results retained; declared after long-only ten-asset results were observed",
+ "newHypothesis":"Bearish mirror of existing hourly relative momentum. BTC24h<0, alt24h<=-3%, relative24h<=-2%, altweek<0, close<prior24h low, actual quote volume>=1.5 prior24h mean. Stop=max(close+2ATR,prior24h high),target=close-3risk>0; min1%risk. Same next-open fill,24h maximum,25bps reserve and1.5xstress. No parameter grid.",
+ "families":"Daily trend and relative momentum remain TWO families. Long and short mirrors count as the same relative-momentum family; no fictitious third/fourth independent edge.",
+ "scope":["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LINKUSDT","AVAXUSDT","LTCUSDT"],
+ "period":{"from":"2025-02-01","until":"2026-10-01"},
+ "admission":"One current underlying per active signal,maximum3,complete-candle observed closure; candidate score then direction-adjusted relative return then quote-volume tie. No future labels or stop reversals. Long/short relative gates mutually exclusive for identical BTC prefix.",
+ "gates":{"netPF":1.2,"stressPF":1.0,"entriesPerDay":1.0,"activeDayFraction":0.7,"minimumResolvedPerPeriod":30},
+ "evidence":"Same observed calendar and asset selection as parent. New comparative hypothesis, not a fresh holdout or guaranteed approval. Binance-only modeled costs; no measured provider fills or actual funding certification.",
+ "publication":false,"execution":false,"promotion":false
+}

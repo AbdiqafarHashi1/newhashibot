@@ -1,0 +1,9 @@
+{
+ "schema":"hourly-reversal-diagnostic/v1",
+ "disclosure":"Specified after the stricter overreaction/flow hypothesis generated zero candidates. Descriptive economic diagnostic, not rescue tuning or release qualification.",
+ "assets":["BTCUSDT","ETHUSDT"],"period":"January2025-June2026 reused development",
+ "regression":"Next completed1h open-to-close arithmetic return on previous completed1h open-to-close return, intercept included. OLS with Newey-West lag4 normal t diagnostic; no out-of-sample forecast claim.",
+ "benchmark":"Unconditional next-hour fade of previous-hour sign, equal notional. No ATR/volume/flow thresholds. Round-trip19bps reserves and1.5x stress. Hourly paired rows retained. Neither canonical scanner policy nor portfolio/netting/leverage performance.",
+ "selection":"No fitting the trading sign to the regression; fade rule remains fixed even if the coefficient is positive. No positive-year or asset selection.",
+ "publication":false,"execution":false,"promotion":false
+}

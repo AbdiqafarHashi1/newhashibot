@@ -1,0 +1,12 @@
+{
+ "schema":"alt-universe-transfer/v1","writtenOn":"2026-10-27",
+ "assets":["BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LINKUSDT","AVAXUSDT","LTCUSDT","BCHUSDT","NEARUSDT","TRXUSDT"],
+ "newAssets":["ADAUSDT","DOGEUSDT","LINKUSDT","AVAXUSDT","LTCUSDT","BCHUSDT","NEARUSDT","TRXUSDT"],"reference":"BTCUSDT",
+ "from":"2026-06-01T00:00:00.000Z","decisionFrom":"2026-07-01T00:00:00.000Z","until":"2026-10-01T00:00:00.000Z",
+ "rule":"Exact arithmetic of original ALT_RELATIVE_BREAKOUT, broadened eligible universe only. BTC24h positive; alt24h>=3% and >=2pp above BTC; positive7d; close above previous24h high; native quote volume>=1.5previous24h mean; wider2ATR20/24h low stop,3R target,>=1% stop distance. Next native15m open,24h maximum, no BE/partial, stop-first.",
+ "costsBps":{"feeBps":10,"spreadBps":2,"slippageBps":4,"fundingBps":9},"stressMultiplier":1.5,
+ "disclosure":"Cross-universe transfer diagnostic, not continuation/rescue of original frozen validation or a new independent strategy. Old BNB/SOL/XRP later-period results were already viewed. New8-asset list fixed before acquisition; selection is not a historical point-in-time/liquidity reconstruction and carries survivorship bias. No October data. All assets retained, no profit-based exclusions or promotion.",
+ "gates":{"minimumPooledResolved":50,"minimumNewAssetResolved":5,"minimumNetPF":1.2,"minimumMeanR":0.02,"positiveEachAsset":true,"positiveStress":true},
+ "activity":"Actual entry dates across92UTCdays, including zero days and longest silent streak. All signals may overlap across correlated assets; this is not netted portfolio return or guaranteed Telegram delivery. Compare original3, new8 and all11 without adding these as independent strategies.",
+ "publication":false,"execution":false,"promotion":false
+}

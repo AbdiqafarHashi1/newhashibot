@@ -1,0 +1,50 @@
+{
+  "protocol": {
+    "schema": "hourly-reversal-diagnostic/v1",
+    "disclosure": "Specified after the stricter overreaction/flow hypothesis generated zero candidates. Descriptive economic diagnostic, not rescue tuning or release qualification.",
+    "assets": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "period": "January2025-June2026 reused development",
+    "regression": "Next completed1h open-to-close arithmetic return on previous completed1h open-to-close return, intercept included. OLS with Newey-West lag4 normal t diagnostic; no out-of-sample forecast claim.",
+    "benchmark": "Unconditional next-hour fade of previous-hour sign, equal notional. No ATR/volume/flow thresholds. Round-trip19bps reserves and1.5x stress. Hourly paired rows retained. Neither canonical scanner policy nor portfolio/netting/leverage performance.",
+    "selection": "No fitting the trading sign to the regression; fade rule remains fixed even if the coefficient is positive. No positive-year or asset selection.",
+    "publication": false,
+    "execution": false,
+    "promotion": false
+  },
+  "compressedSha256": "f5f6063d42a9da432523ca6b312d0a3c4adaa9e549617dc91996258d6a89f027",
+  "uncompressedSha256": "cd1179e6cc776048423b28f191f7cdd77ab9ea0bf12eb51d32702d05dbff9733",
+  "studies": [
+    {
+      "symbol": "BTCUSDT",
+      "observations": 13103,
+      "benchmarkTrades": 13100,
+      "coefficient": -0.010815254969839509,
+      "hacSE": 0.015754050761008834,
+      "hacT": -0.6865062918679423,
+      "grossPF": 1.0053690730162832,
+      "netPF": 0.3070358581026421,
+      "stressPF": 0.17924658112910555,
+      "meanGrossBps": 0.08390193443431725,
+      "meanNetBps": -18.916098065565677
+    },
+    {
+      "symbol": "ETHUSDT",
+      "observations": 13103,
+      "benchmarkTrades": 13100,
+      "coefficient": 0.014427415334635393,
+      "hacSE": 0.012566118518804334,
+      "hacT": 1.1481202658598004,
+      "grossPF": 0.956185423549838,
+      "netPF": 0.42967566453989564,
+      "stressPF": 0.2922350423855162,
+      "meanGrossBps": -1.0652699640247725,
+      "meanNetBps": -20.065269964024772
+    }
+  ],
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}

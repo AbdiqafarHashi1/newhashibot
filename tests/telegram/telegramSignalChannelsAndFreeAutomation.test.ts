@@ -211,8 +211,8 @@ async function runPhase7A2ATests() {
     strategyName: "LondonBreakout",
     timestamp: new Date().toISOString(),
   });
-  assert(fullFreeRender.includes("1.08500 – 1.08550"), "Forex 5-decimal entry range rendered correctly");
-  assert(fullFreeRender.includes("1.08200"), "Forex 5-decimal Stop Loss rendered correctly");
+  assert(!fullFreeRender.includes("1.08500") && !fullFreeRender.includes("1.08550"), "Legacy full mode must not leak VIP entry levels");
+  assert(!fullFreeRender.includes("1.08200") && !fullFreeRender.includes("1.09000") && !fullFreeRender.includes("1.09500"), "Free must not leak stop or target levels");
 
   const outlookRender = renderMarketOutlookTemplate({
     eventType: "MARKET_OUTLOOK",

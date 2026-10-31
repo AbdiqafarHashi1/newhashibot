@@ -1,0 +1,378 @@
+{
+  "small": {
+    "base": {
+      "profitFactor": 1.328905355463653,
+      "resolvedCount": 152
+    },
+    "stress": {
+      "profitFactor": 1.228238571110705,
+      "resolvedCount": 152
+    },
+    "activity": {
+      "entries": 154,
+      "meanPerDay": 0.25370675453047775,
+      "quietDays": 479,
+      "days": 607
+    },
+    "periodMetrics": [],
+    "byAsset": []
+  },
+  "wide": {
+    "base": {
+      "profitFactor": 1.1104370860044717,
+      "resolvedCount": 299
+    },
+    "stress": {
+      "profitFactor": 1.0296866014445891,
+      "resolvedCount": 299
+    },
+    "activity": {
+      "entries": 301,
+      "meanPerDay": 0.4958813838550247,
+      "quietDays": 406,
+      "days": 607
+    },
+    "periodMetrics": [
+      {
+        "from": "2025-02-01",
+        "until": "2026-01-01",
+        "base": {
+          "profitFactor": 1.0400208613895663,
+          "resolvedCount": 173
+        },
+        "stress": {
+          "profitFactor": 0.9714994409452722,
+          "resolvedCount": 173
+        }
+      },
+      {
+        "from": "2026-01-01",
+        "until": "2026-07-01",
+        "base": {
+          "profitFactor": 0.8438575709569971,
+          "resolvedCount": 79
+        },
+        "stress": {
+          "profitFactor": 0.7707894483689665,
+          "resolvedCount": 79
+        }
+      },
+      {
+        "from": "2026-07-01",
+        "until": "2026-10-01",
+        "base": {
+          "profitFactor": 2.3276419741382552,
+          "resolvedCount": 47
+        },
+        "stress": {
+          "profitFactor": 2.1297886525595113,
+          "resolvedCount": 47
+        }
+      }
+    ],
+    "byAsset": [
+      {
+        "symbol": "BTCUSDT",
+        "base": {
+          "profitFactor": 0.5491032640728971,
+          "resolvedCount": 10
+        },
+        "stress": {
+          "profitFactor": 0.5272444678970475,
+          "resolvedCount": 10
+        }
+      },
+      {
+        "symbol": "LTCUSDT",
+        "base": {
+          "profitFactor": 0.8733124184284038,
+          "resolvedCount": 27
+        },
+        "stress": {
+          "profitFactor": 0.8107785850213499,
+          "resolvedCount": 27
+        }
+      },
+      {
+        "symbol": "SOLUSDT",
+        "base": {
+          "profitFactor": 1.1150162184978598,
+          "resolvedCount": 48
+        },
+        "stress": {
+          "profitFactor": 1.028704366320363,
+          "resolvedCount": 48
+        }
+      },
+      {
+        "symbol": "BNBUSDT",
+        "base": {
+          "profitFactor": 2.4995040937155353,
+          "resolvedCount": 16
+        },
+        "stress": {
+          "profitFactor": 2.2708629928545694,
+          "resolvedCount": 16
+        }
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "base": {
+          "profitFactor": 1.4779699236453565,
+          "resolvedCount": 35
+        },
+        "stress": {
+          "profitFactor": 1.3798798941771737,
+          "resolvedCount": 35
+        }
+      },
+      {
+        "symbol": "XRPUSDT",
+        "base": {
+          "profitFactor": 0.7386377332742792,
+          "resolvedCount": 30
+        },
+        "stress": {
+          "profitFactor": 0.6711116387368788,
+          "resolvedCount": 30
+        }
+      },
+      {
+        "symbol": "ADAUSDT",
+        "base": {
+          "profitFactor": 0.7387368053205079,
+          "resolvedCount": 43
+        },
+        "stress": {
+          "profitFactor": 0.6784599775136243,
+          "resolvedCount": 43
+        }
+      },
+      {
+        "symbol": "AVAXUSDT",
+        "base": {
+          "profitFactor": 0.524672443338532,
+          "resolvedCount": 46
+        },
+        "stress": {
+          "profitFactor": 0.46896892450596167,
+          "resolvedCount": 46
+        }
+      },
+      {
+        "symbol": "LINKUSDT",
+        "base": {
+          "profitFactor": 2.070348086113419,
+          "resolvedCount": 36
+        },
+        "stress": {
+          "profitFactor": 1.9308471377689411,
+          "resolvedCount": 36
+        }
+      },
+      {
+        "symbol": "ETHUSDT",
+        "base": {
+          "profitFactor": 3.5068957379231387,
+          "resolvedCount": 8
+        },
+        "stress": {
+          "profitFactor": 3.395342772953183,
+          "resolvedCount": 8
+        }
+      }
+    ]
+  },
+  "regimes": {
+    "base": {
+      "profitFactor": 0.9436670720535288,
+      "resolvedCount": 585
+    },
+    "stress": {
+      "profitFactor": 0.8757050057156043,
+      "resolvedCount": 585
+    },
+    "activity": {
+      "entries": 587,
+      "meanPerDay": 0.9670510708401977,
+      "quietDays": 253,
+      "days": 607
+    },
+    "periodMetrics": [
+      {
+        "from": "2025-02-01",
+        "until": "2026-01-01",
+        "base": {
+          "profitFactor": 0.932219608615174,
+          "resolvedCount": 357
+        },
+        "stress": {
+          "profitFactor": 0.8711941237449423,
+          "resolvedCount": 357
+        }
+      },
+      {
+        "from": "2026-01-01",
+        "until": "2026-07-01",
+        "base": {
+          "profitFactor": 0.8262614841934227,
+          "resolvedCount": 159
+        },
+        "stress": {
+          "profitFactor": 0.7573011978999352,
+          "resolvedCount": 159
+        }
+      },
+      {
+        "from": "2026-07-01",
+        "until": "2026-10-01",
+        "base": {
+          "profitFactor": 1.388442135901282,
+          "resolvedCount": 69
+        },
+        "stress": {
+          "profitFactor": 1.2657988856028366,
+          "resolvedCount": 69
+        }
+      }
+    ],
+    "byAsset": [
+      {
+        "symbol": "BTCUSDT",
+        "base": {
+          "profitFactor": 0.5491032640728971,
+          "resolvedCount": 10
+        },
+        "stress": {
+          "profitFactor": 0.5272444678970475,
+          "resolvedCount": 10
+        }
+      },
+      {
+        "symbol": "XRPUSDT",
+        "base": {
+          "profitFactor": 0.9105797359464464,
+          "resolvedCount": 57
+        },
+        "stress": {
+          "profitFactor": 0.8396492615844621,
+          "resolvedCount": 57
+        }
+      },
+      {
+        "symbol": "ADAUSDT",
+        "base": {
+          "profitFactor": 0.6368321347434753,
+          "resolvedCount": 94
+        },
+        "stress": {
+          "profitFactor": 0.5912173669947166,
+          "resolvedCount": 94
+        }
+      },
+      {
+        "symbol": "AVAXUSDT",
+        "base": {
+          "profitFactor": 0.6783418831724108,
+          "resolvedCount": 101
+        },
+        "stress": {
+          "profitFactor": 0.6230489871445805,
+          "resolvedCount": 101
+        }
+      },
+      {
+        "symbol": "LINKUSDT",
+        "base": {
+          "profitFactor": 0.9512981151147213,
+          "resolvedCount": 73
+        },
+        "stress": {
+          "profitFactor": 0.8853274389463992,
+          "resolvedCount": 73
+        }
+      },
+      {
+        "symbol": "SOLUSDT",
+        "base": {
+          "profitFactor": 1.3080191940122454,
+          "resolvedCount": 93
+        },
+        "stress": {
+          "profitFactor": 1.2116887927291924,
+          "resolvedCount": 93
+        }
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "base": {
+          "profitFactor": 1.2106614477992261,
+          "resolvedCount": 74
+        },
+        "stress": {
+          "profitFactor": 1.1271934868659146,
+          "resolvedCount": 74
+        }
+      },
+      {
+        "symbol": "LTCUSDT",
+        "base": {
+          "profitFactor": 0.7318556031874829,
+          "resolvedCount": 47
+        },
+        "stress": {
+          "profitFactor": 0.6709396463452464,
+          "resolvedCount": 47
+        }
+      },
+      {
+        "symbol": "BNBUSDT",
+        "base": {
+          "profitFactor": 2.070985868471418,
+          "resolvedCount": 28
+        },
+        "stress": {
+          "profitFactor": 1.8733813885236557,
+          "resolvedCount": 28
+        }
+      },
+      {
+        "symbol": "ETHUSDT",
+        "base": {
+          "profitFactor": 3.5068957379231387,
+          "resolvedCount": 8
+        },
+        "stress": {
+          "profitFactor": 3.395342772953183,
+          "resolvedCount": 8
+        }
+      }
+    ]
+  },
+  "funding": {
+    "reports": [
+      {
+        "sourceStudy": "ten-asset",
+        "base": {
+          "profitFactor": 1.1570473212087313,
+          "resolvedCount": 299
+        },
+        "stress": {
+          "profitFactor": 1.094016174925319,
+          "resolvedCount": 299
+        }
+      },
+      {
+        "sourceStudy": "ten-asset-regimes",
+        "base": {
+          "profitFactor": 0.98646497882354,
+          "resolvedCount": 585
+        },
+        "stress": {
+          "profitFactor": 0.9343739438144015,
+          "resolvedCount": 585
+        }
+      }
+    ]
+  }
+}

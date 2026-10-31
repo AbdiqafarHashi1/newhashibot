@@ -1,0 +1,276 @@
+{
+  "schema": "signal-ensemble-assessment/v1",
+  "evidenceSha256": "b5ae4767467908d66bbdfa3241e0ccbdf4cc344e3952752c861b403127920429",
+  "assessmentSourceSha256": "45f22d3e1b2159d1062a1a38d85c7c5d1c15e8e5c3e3eccf59152ebda3bb7d74",
+  "development": {
+    "from": "2025-01-11T00:00:00.000Z",
+    "until": "2026-01-01T00:00:00.000Z"
+  },
+  "validation": {
+    "from": "2026-01-01T00:00:00.000Z",
+    "until": "2026-07-01T00:00:00.000Z"
+  },
+  "costBps": 25,
+  "stressCostBps": 37.5,
+  "developmentCycles": 170400,
+  "rows": [
+    {
+      "id": "crypto.sleeve-trend",
+      "rawDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 479,
+        "resolvedCount": 479,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2348819019419693,
+        "profitFactor": 0.7262132389925408,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 128.76110564798762
+      },
+      "calibratedDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null
+      },
+      "developmentStress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null
+      },
+      "eligibleSymbols": [],
+      "validation": null,
+      "validationStress": null,
+      "failures": [
+        "ELIGIBLE_ASSET_COUNT",
+        "RESOLVED_COUNT",
+        "NET_PF",
+        "STRESS_PF",
+        "EXPECTANCY",
+        "VALIDATION_NOT_ADMITTED"
+      ],
+      "screenPassed": false,
+      "productionApproved": false
+    },
+    {
+      "id": "crypto.sleeve-breakout",
+      "rawDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 449,
+        "resolvedCount": 449,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.20686115275056005,
+        "profitFactor": 0.7225482679126122,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 98.69106996536891
+      },
+      "calibratedDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 97,
+        "resolvedCount": 97,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.10283284280365317,
+        "profitFactor": 1.158079517928138,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.67551447505629
+      },
+      "developmentStress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 97,
+        "resolvedCount": 97,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.021379724666280363,
+        "profitFactor": 1.0304748722539514,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 12.910216820830627
+      },
+      "eligibleSymbols": [
+        "XRPUSDT"
+      ],
+      "validation": null,
+      "validationStress": null,
+      "failures": [
+        "ELIGIBLE_ASSET_COUNT",
+        "NET_PF",
+        "PROFIT_CONCENTRATION",
+        "VALIDATION_NOT_ADMITTED"
+      ],
+      "screenPassed": false,
+      "productionApproved": false
+    },
+    {
+      "id": "crypto.sleeve-reversal",
+      "rawDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 859,
+        "resolvedCount": 859,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.2348181280894831,
+        "profitFactor": 0.6335534299677018,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 225.53783174455563
+      },
+      "calibratedDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null
+      },
+      "developmentStress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 0,
+        "resolvedCount": 0,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": null,
+        "profitFactor": null,
+        "profitFactorUndefinedReason": "NO_RESOLVED_PROFIT",
+        "realizedMaxDrawdownR": null
+      },
+      "eligibleSymbols": [],
+      "validation": null,
+      "validationStress": null,
+      "failures": [
+        "ELIGIBLE_ASSET_COUNT",
+        "RESOLVED_COUNT",
+        "NET_PF",
+        "STRESS_PF",
+        "EXPECTANCY",
+        "VALIDATION_NOT_ADMITTED"
+      ],
+      "screenPassed": false,
+      "productionApproved": false
+    },
+    {
+      "id": "crypto.sleeve-relative",
+      "rawDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 140,
+        "resolvedCount": 139,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.00029084521843173795,
+        "profitFactor": 1.0008921168056741,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 20.413726070060832
+      },
+      "calibratedDevelopment": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 64,
+        "resolvedCount": 63,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.08247390720110113,
+        "profitFactor": 1.2943702238779413,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 8.085469545775453
+      },
+      "developmentStress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 64,
+        "resolvedCount": 63,
+        "openCount": 1,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.05559581240167155,
+        "profitFactor": 1.1882553311075377,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 8.891148147843973
+      },
+      "eligibleSymbols": [
+        "BNBUSDT",
+        "XRPUSDT"
+      ],
+      "validation": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.022302518975748496,
+        "profitFactor": 0.9248562967088034,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.051399997620427
+      },
+      "validationStress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 18,
+        "resolvedCount": 18,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": -0.04875569097057095,
+        "profitFactor": 0.8441885147847936,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 4.453216584316514
+      },
+      "failures": [
+        "VALIDATION_RESOLVED_COUNT",
+        "VALIDATION_NET_PF",
+        "VALIDATION_STRESS_PF",
+        "VALIDATION_EXPECTANCY"
+      ],
+      "screenPassed": false,
+      "productionApproved": false
+    }
+  ],
+  "participation": {
+    "signals": 18,
+    "signalsPerDay": 0.09944751381215469,
+    "activeDayFraction": 0.09392265193370165,
+    "netPF": 0.9248562967088034,
+    "stressPF": 0.8441885147847936
+  },
+  "targetFourPassed": false,
+  "participationPassed": false,
+  "productionApproved": false,
+  "publication": false,
+  "execution": false,
+  "classification": "Previously observed calendars; independent simulated signal outcomes; no untouched holdout, account performance, or future profit claim"
+}

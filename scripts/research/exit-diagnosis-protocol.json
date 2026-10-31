@@ -1,0 +1,14 @@
+{
+  "schema": "fixed-exit-diagnosis/v1",
+  "createdAt": "2026-10-26",
+  "motivation": "Disclosed after seeing partial baseline results: several strategies were near break-even before costs. Test whether early breakeven and partial exits impair the same entries. This is sequential DEVELOPMENT research, not an untouched validation protocol.",
+  "entrySelection": "Exactly the saved baseline selected signals. No asset, session, regime or entry is added or removed based on profit.",
+  "policies": [
+    {"id":"ORIGINAL_STOP_HALF_TP1","partialExitPct":0.5,"moveStopToBreakevenAfterTp1":false},
+    {"id":"ORIGINAL_STOP_FULL_TARGET","partialExitPct":0,"moveStopToBreakevenAfterTp1":false}
+  ],
+  "fixed": "Same signal geometry, next-open entry, maximum holding bars, stop-first ambiguity and costs as baseline; both alternatives reported.",
+  "publication": false,
+  "execution": false,
+  "promotion": false
+}
