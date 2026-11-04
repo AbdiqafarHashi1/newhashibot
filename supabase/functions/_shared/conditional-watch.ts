@@ -9,7 +9,7 @@ export interface WatchDependencies {
  store:ConditionalSignalStore;feed:(symbol:string,tf:WatchTimeframe,now:number)=>Promise<WatchFeed>;
  health:(record:Record<string,unknown>)=>Promise<void>;discovery:{crypto:boolean;forex:boolean};
  timeframes?:readonly WatchTimeframe[];additionalTasks?:readonly {symbol:string;tf:WatchTimeframe}[];
- assess?:(i:{symbol:string;tf:WatchTimeframe;rows:readonly StrategyCandle[];now:number;feed:WatchFeed;load:(symbol:string,tf:WatchTimeframe)=>Promise<WatchFeed>})=>Promise<{setups:ConditionalSetup[];intelligence:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}>;
+ assess?:(i:{symbol:string;tf:WatchTimeframe;rows:readonly StrategyCandle[];now:number;feed:WatchFeed;load:(symbol:string,tf:WatchTimeframe)=>Promise<WatchFeed>})=>Promise<{setups:ConditionalSetup[];confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>'CONFIRMED'|'STILL_WAITING'|'DATA_UNAVAILABLE';intelligence:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}>;
 }
 /** Every stream is visited; one shared four-request cache includes higher-timeframe and anchor reads. */
 export async function runConditionalWatch(deps:WatchDependencies,now=Date.now()) {
@@ -25,6 +25,7 @@ export async function runConditionalWatch(deps:WatchDependencies,now=Date.now())
   const {symbol,tf}=task,market=conditionalMarket(symbol);if(!market)throw Error('UNSUPPORTED_WATCH_ASSET');
   let record:Record<string,unknown>={symbol,timeframe:tf,market,checked_at:new Date(now).toISOString(),state:'HEALTHY',last_closed_at:null,error:null};
   try{
+   if(deps.store.expire)await deps.store.expire(symbol,tf,now);
    const open=await deps.store.open(symbol,tf);
    if(scheduledMarketClosed(symbol,now))record.state='MARKET_CLOSED';
    else if(!deps.discovery[market]&&!open.length)record.state='DISCOVERY_PAUSED';
@@ -35,7 +36,7 @@ export async function runConditionalWatch(deps:WatchDependencies,now=Date.now())
     const last=rows.at(-1)!;if(now-Date.parse(last.open_time)-w>=w)throw Error('STALE_CLOSED_CANDLES');
     record.last_closed_at=new Date(Date.parse(last.open_time)+w).toISOString();
     const assessed=deps.assess?await deps.assess({symbol,tf,rows,now,feed,load}):undefined;
-    const discovered=await observeConditionalSymbol(deps.store,symbol,tf,rows,now,assessed?{intelligence:assessed.intelligence}:undefined);
+    const discovered=await observeConditionalSymbol(deps.store,symbol,tf,rows,now,assessed?{intelligence:assessed.intelligence,confirmation:assessed.confirmation}:undefined);
     if(deps.discovery[market])candidates.push(...(assessed?.setups??discovered));
     if(feed.currentOpen)for(const s of await deps.store.open(symbol,tf)){
      if(s.status!=='ARMED')continue;
@@ -46,7 +47,10 @@ export async function runConditionalWatch(deps:WatchDependencies,now=Date.now())
      await deps.store.save(next,s.version);
     }
    }
-  }catch(e){record={...record,state:'FEED_UNAVAILABLE',error:e instanceof Error?e.message:'WATCH_FAILED'};}
+  }catch(e){record={...record,state:'FEED_UNAVAILABLE',error:e instanceof Error?e.message:'WATCH_FAILED'};
+   // Preserve the watch and frozen watermark. A recovered complete feed retries it.
+   for(const s of await deps.store.open(symbol,tf))if(['WAITING','ARMED'].includes(s.status)&&s.evaluationOutcome!=='DATA_UNAVAILABLE')await deps.store.save({...s,version:s.version+1,evaluationOutcome:'DATA_UNAVAILABLE',observedAt:new Date(now).toISOString()},s.version);
+  }
   await deps.health(record);results.push(record);
  }}));
  const admission=await admitConditionalBatch(deps.store,candidates,now);

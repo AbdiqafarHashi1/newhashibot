@@ -1,3 +1,4 @@
+import {frozenStrategyConfirmation} from '../_shared/frozen-strategy-confirmation.ts';
 import {loadPaperLearning} from '../_shared/paper-learning.ts';
 import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
 import {discoverWatchedStrategies} from '../_shared/watched-strategy-discovery.ts';
@@ -2000,11 +2001,11 @@ async function runScanPipeline(
           const anchor=marketType==='crypto'&&normalizedSymbol!=='BTCUSDT'?await fetchCryptoCandlesForRun('BTCUSDT',tf):undefined;
           const quote=marketType==='forex'?await fetchForexCandlesForRun(normalizedSymbol,tf):undefined;
           const contextOptions={higher:higher??[],anchor:anchor??undefined,sources:watchedSources,spreadPrice:quote?.spreadPrice,spreadObservedAt:quote?.spreadObservedAt};
-          await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf as WatchTimeframe,admitted.candles,at,{intelligence:(rows,time)=>watchedMarketContext(rows,time,contextOptions)});
+          await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf as WatchTimeframe,admitted.candles,at,{intelligence:(rows,time)=>watchedMarketContext(rows,time,contextOptions),confirmation:(s,rows,time)=>frozenStrategyConfirmation(s,rows,time,contextOptions)});
           const assessment=discoverWatchedStrategies({definitions:watchedDefinitions,symbol:normalizedSymbol,tf:tf as WatchTimeframe,rows:admitted.candles,now:at,learning:paperLearning,...contextOptions});
           conditionalBatch.push(...assessment.setups);
           const recorded=await supabase.rpc('record_watched_strategy_observations',{p_rows:assessment.observations});if(recorded.error)throw Error('STRATEGY_OBSERVATIONS_WRITE_FAILED');
-          continue; // Same strategy contract and paper ledger; no customer execution adoption.
+          continue; // One canonical entry decision and durable ledger; execution remains release/account gated.
         }
         const ind = calculateIndicators(candles);
         const marketContext = classifyMarketContext(ind, candles);

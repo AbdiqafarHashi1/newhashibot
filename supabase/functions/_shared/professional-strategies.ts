@@ -191,7 +191,7 @@ export class ProfessionalStrategyRegistry {
       const lifecycleEnabled = definition.lifecycle === "ENABLED" && definition.config.enabled;
       if (!lifecycleEnabled && !["SHADOW", "RESEARCH"].includes(definition.lifecycle)) continue;
       try {
-        const legacy = definition.evaluate(context);
+        const legacy = definition.evaluate({...context,strategy_parameters:definition.config.params});
         const professional = toProfessionalResult(definition, context, legacy);
         this.diagnostics.result(definition, professional, context.evaluated_at);
         output.push({ definition, professional, plan: createStrategyPlan(definition, context, legacy), publishable: lifecycleEnabled });

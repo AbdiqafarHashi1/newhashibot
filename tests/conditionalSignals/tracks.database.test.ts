@@ -21,6 +21,8 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await db.exec(readFileSync('supabase/migrations/20261029053521_conditional_tracks_and_acquisition.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261029205531_dual_market_conditional_watch.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261029212305_strategy_watches_and_context.sql','utf8'));
+ await db.exec(`create function public.project_conditional_execution(text) returns jsonb language sql as $$select '{"state":"BLOCKED"}'::jsonb$$;`);
+ await db.exec(readFileSync('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8').split('-- Both entry routes')[0]);
  const t=Math.floor(Date.now()/3600000)*3600000,iso=(n:number)=>new Date(t+n*3600000).toISOString();
  const setup=(symbol:string,track:'INTRADAY'|'SWING',side:'buy'|'sell'='buy'):ConditionalSetup=>({id:`${symbol}:${track}:${side}`,symbol,track,timeframe:track==='INTRADAY'?'15m':'1h',side,strategy:'conditional',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',source:'TEST',sourceClose:iso(0),lastBar:iso(-1),trigger:100,stop:side==='buy'?90:110,tp1:side==='buy'?110:90,tp2:side==='buy'?120:80,expiresAt:iso(8),holdBars:48,score:85,reason:'Higher timeframe trend pullback',status:'WAITING',version:1});
  const save=async(s:ConditionalSetup,v=0)=>(await db.query<{ok:boolean}>('select commit_conditional_signal_setup($1::jsonb,$2,$3) ok',[JSON.stringify(s),v,conditionalMessage(s)])).rows[0].ok;
@@ -35,6 +37,12 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await assert.rejects(save({...a,reason:'Rewritten plan',version:2,lastBar:iso(0)},1),/IMMUTABLE_SETUP_PLAN/);
  await assert.rejects(save({...a,selectionScore:90,version:2,lastBar:iso(0)},1),/IMMUTABLE_SETUP_PLAN/); // learning cannot rewrite an admitted setup
 
+ const expiring={...setup('AVAXUSDT','SWING'),expiresAt:new Date(Date.now()+1000).toISOString()};assert.equal(await save(expiring),true);
+ await new Promise(resolve=>setTimeout(resolve,1100));
+ const expired={...expiring,status:'EXPIRED' as const,version:2,observedAt:new Date(Date.now()+2000).toISOString(),result:'Confirmation deadline elapsed; no entry.'};
+ assert.equal(await save(expired,1),true);assert.equal(await save(expired,1),true);
+ assert.equal(await save({...expiring,status:'ARMED',version:2,armedAt:iso(0)},1).catch(()=>false),false);
+ await assert.rejects(save({...expired,status:'ARMED',version:3,lastBar:iso(0),armedAt:iso(1)},2),/TERMINAL_SETUP/);
  const unknown={...a,status:'DATA_GAP' as const,version:2,lastBar:iso(0),result:'Missing candles; outcome unknown.'};assert.equal(await save(unknown,1),true);
  const e=(await db.query<any>("select * from test_events where key=$1",[`conditional:${a.id}:2`])).rows[0];assert.deepEqual(e.destinations,['admin']);
  const truth:any={entityId:'event',entityType:'lifecycle_event',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:iso(0),payload:e.payload};
@@ -43,7 +51,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  assert.throws(()=>renderCanonicalTruth(truth,'vip_crypto'),/SCOPE/);
  const free=(await db.query<any>('select payload from test_events where key=$1',[`conditional:${a.id}:1`])).rows[0].payload;
  const freeText=renderCanonicalTruth({...truth,payload:free},'free').map(x=>x.text).join('');assert.match(freeText,/Today’s Free selection/);assert.match(freeText,/3500|3,500/);
- await db.exec("set test.admin='yes'");const overview=(await db.query<any>('select conditional_service_overview() result')).rows[0].result;assert.equal(overview.tracks.reduce((n:number,x:any)=>n+Number(x.total),0),5);
+ await db.exec("set test.admin='yes'");const overview=(await db.query<any>('select conditional_service_overview() result')).rows[0].result;assert.equal(overview.tracks.reduce((n:number,x:any)=>n+Number(x.total),0),6);
  assert.equal((await db.query<any>('select count(*) n from conditional_setup_history where setup_id=$1',[a.id])).rows[0].n,2);
  await db.exec('set role service_role');await assert.rejects(db.exec('delete from conditional_setup_history'),/permission denied/);await db.exec('reset role');
  // Partner identity verification uses an expected-identity fence and invalidates prior approvals.
@@ -66,7 +74,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await db.exec("update phase_o_agent_configurations set enabled=false");
  assert.equal((await db.query<any>('select queue_due_phase_o_standing() n')).rows[0].n,0);
  const cohort=(await db.query<any>("select conditional_proof_cohort(now()-interval '1 day',now()) data")).rows[0].data;
- assert.equal(cohort.total,5);assert.equal(cohort.rows.length,5);assert.ok(cohort.observed_at);
+ assert.equal(cohort.total,6);assert.equal(cohort.rows.length,6);assert.ok(cohort.observed_at);
  await db.exec('set role authenticated');await assert.rejects(db.query("select conditional_proof_cohort(now()-interval '1 day',now())"),/permission denied/);await db.exec('reset role');
  const fx={...setup('EURUSD','INTRADAY'),market:'forex' as const,strategy:'forex.conditional-intraday',source:'mt5_hashibridge:owner'};
  assert.equal(await save(fx),true); // Crypto's per-hour quota cannot consume Forex's capacity.

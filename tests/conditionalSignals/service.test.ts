@@ -13,7 +13,8 @@ test('touch is not confirmation; close arms and only next open fills',()=>{
  assert.equal(advanceConditionalSetup(s,bar(3)),s);
 });
 test('gap uncertainty and no chasing, short and terminal behavior',()=>{
- assert.equal(advanceConditionalSetup(setup(),bar(2)).status,'DATA_GAP');
+ const waiting=setup();assert.equal(advanceConditionalSetup(waiting,bar(2)),waiting);
+ const recovered=advanceConditionalSetup(waiting,bar(1));assert.equal(recovered.status,'ARMED');
  const armed=advanceConditionalSetup(setup(),bar(1));assert.equal(advanceConditionalSetup(armed,bar(2,104,105,100,102)).status,'INVALIDATED');
  const short={...setup(),side:'sell' as const,stop:110,tp1:90,tp2:80};
  let s=advanceConditionalSetup(short,bar(1,101,102,98,99));assert.equal(s.status,'ARMED');
@@ -58,7 +59,7 @@ test('closed-candle multi-timeframe evaluator produces a conditional hypothesis,
 
 test('changed source is unknown; independent tracks survive batch arbitration; messages keep exact setup reference',async()=>{
  const initial=setup();const changed=advanceConditionalSetup(initial,{...bar(1),source:'OTHER_VENUE'});
- assert.equal(changed.status,'DATA_GAP');assert.equal(changed.netR,undefined);assert.match(changed.result!,/unknown/);
+ assert.equal(changed,initial);assert.equal(changed.fill,undefined);assert.equal(advanceConditionalSetup(changed,bar(1)).status,'ARMED');
  const saved:ConditionalSetup[]=[];const store={save:async(s:ConditionalSetup)=>{saved.push(s);return true;}} as ConditionalSignalStore;
  const swing={...initial,id:'swing',track:'SWING' as const,timeframe:'1h' as const};
  await admitConditionalBatch(store,[initial,swing],t+900001);assert.equal(saved.length,2);assert.deepEqual(new Set(saved.map(s=>s.track)),new Set(['INTRADAY','SWING']));
