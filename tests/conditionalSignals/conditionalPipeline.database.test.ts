@@ -17,7 +17,7 @@ function setup(at:number){
  const higher=closedAggregate(rows,15,new Date(at).toISOString()),discovery=discoverWatchedStrategies({definitions:[definition],symbol:'BTCUSDT',tf:'5m',rows,higher,now:at});
  assert.equal(discovery.observations[0].decision,'CONDITIONAL_WATCH');return {rows,d,cfg,definition,s:discovery.setups[0]};
 }
-async function promoteTestConfiguration(db:PGlite,d:any,cfg:any){await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,version:d.version,enabled:true,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);}
+async function promoteTestConfiguration(db:PGlite,d:any,cfg:any){await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,version:d.version,enabled:true,minScore:cfg.min_score,minRiskReward:cfg.min_rr,maxBarsInTrade:cfg.max_bars_in_trade,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);}
 
 test('persistent genuine conditional evaluator → restart → confirmation → same projected/Telegram signal → conservative outcome',async(t)=>{
  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-04T13:55:00Z')});const db=new PGlite();try{
@@ -27,11 +27,11 @@ test('persistent genuine conditional evaluator → restart → confirmation → 
  assert.equal(await store.save({...s,version:2,evaluationOutcome:'DATA_UNAVAILABLE',observedAt:new Date(at).toISOString()},1),true);
  store=missionStore(db);assert.equal((await store.open(s.symbol,s.timeframe))[0].evaluationOutcome,'DATA_UNAVAILABLE');
  t.mock.timers.tick(w);const b={...rows.at(-1)!,open_time:new Date(at).toISOString(),open:s.trigger-1,high:s.trigger+3,low:s.trigger-3,close:s.trigger+1},fresh=[...rows,b],higher=closedAggregate(fresh,15,new Date(Date.now()).toISOString());
- await observeConditionalSymbol(store,s.symbol,'5m',fresh,Date.now(),{intelligence:(prefix,at)=>watchedMarketContext(prefix,at,{higher}),confirmation:(saved,prefix,at)=>frozenStrategyConfirmation(saved,prefix,at,{higher})});
- const armed=(await store.open(s.symbol,s.timeframe))[0];assert.equal(armed.status,'ARMED',armed.result);assert.deepEqual(armed.origin,frozen);
+ await observeConditionalSymbol(store,s.symbol,'5m',fresh,Date.now(),{qualification:()=>true,intelligence:(prefix,at)=>watchedMarketContext(prefix,at,{higher}),confirmation:(saved,prefix,at)=>frozenStrategyConfirmation(saved,prefix,at,{higher})});
+ const armed=(await store.open(s.symbol,s.timeframe))[0];assert.equal(armed.status,'ARMED',armed.result);assert.equal(armed.confirmationEvidence?.evaluatorOutcome,'CONFIRMED');assert.equal(armed.confirmationEvidence?.closedBar.close,b.close);assert.deepEqual(armed.origin,frozen);
  const opening={...b,open_time:new Date(Date.now()).toISOString(),open:s.trigger+.2};t.mock.timers.tick(1);
  const active=enterConditionalAtOpen(armed,opening,Date.now());assert.equal(active.status,'ACTIVE',active.result);assert.equal(await store.save(active,armed.version),true);
- const signal=(await db.query<any>('select * from signals')).rows[0];assert.equal(signal.status,'active');
+ const signal=(await db.query<any>('select * from signals')).rows[0];assert.equal(signal.status,'active');assert.equal((await db.query<any>('select state from conditional_signal_setups')).rows[0].state.watchOutcome,'CONFIRMED');
  const event=(await db.query<any>("select payload from test_events where payload->'state'->>'status'='ACTIVE'")).rows[0].payload;assert.equal(event.confirmed_signal_id,signal.id);
  assert(renderCanonicalTruth({entityType:'lifecycle_event',entityId:'conditional-event',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:new Date().toISOString(),customerId:null,payload:event},'vip_crypto').length);
  assert.equal(await store.save(active,armed.version),true);assert.equal((await db.query('select * from signals')).rows.length,1);

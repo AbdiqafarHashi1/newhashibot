@@ -1,3 +1,4 @@
+import {entryPolicyQualified} from './entry-decision.ts';
 import {CONDITIONAL_ASSETS,conditionalMarket,scheduledMarketClosed} from './conditional-market.ts';
 import {ConditionalSignalStore,observeConditionalSymbol,admitConditionalBatch} from './conditional-signal-runtime.ts';
 import {enterConditionalAtOpen,type ConditionalSetup} from './conditional-signal-service.ts';
@@ -9,7 +10,7 @@ export interface WatchDependencies {
  store:ConditionalSignalStore;feed:(symbol:string,tf:WatchTimeframe,now:number)=>Promise<WatchFeed>;
  health:(record:Record<string,unknown>)=>Promise<void>;discovery:{crypto:boolean;forex:boolean};
  timeframes?:readonly WatchTimeframe[];additionalTasks?:readonly {symbol:string;tf:WatchTimeframe}[];
- assess?:(i:{symbol:string;tf:WatchTimeframe;rows:readonly StrategyCandle[];now:number;feed:WatchFeed;load:(symbol:string,tf:WatchTimeframe)=>Promise<WatchFeed>})=>Promise<{setups:ConditionalSetup[];confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>'CONFIRMED'|'STILL_WAITING'|'DATA_UNAVAILABLE';intelligence:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}>;
+ assess?:(i:{symbol:string;tf:WatchTimeframe;rows:readonly StrategyCandle[];now:number;feed:WatchFeed;load:(symbol:string,tf:WatchTimeframe)=>Promise<WatchFeed>})=>Promise<{setups:ConditionalSetup[];qualification?:(s:ConditionalSetup)=>boolean;confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>'CONFIRMED'|'STILL_WAITING'|'DATA_UNAVAILABLE';intelligence:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}>;
 }
 /** Every stream is visited; one shared four-request cache includes higher-timeframe and anchor reads. */
 export async function runConditionalWatch(deps:WatchDependencies,now=Date.now()) {
@@ -36,14 +37,15 @@ export async function runConditionalWatch(deps:WatchDependencies,now=Date.now())
     const last=rows.at(-1)!;if(now-Date.parse(last.open_time)-w>=w)throw Error('STALE_CLOSED_CANDLES');
     record.last_closed_at=new Date(Date.parse(last.open_time)+w).toISOString();
     const assessed=deps.assess?await deps.assess({symbol,tf,rows,now,feed,load}):undefined;
-    const discovered=await observeConditionalSymbol(deps.store,symbol,tf,rows,now,assessed?{intelligence:assessed.intelligence,confirmation:assessed.confirmation}:undefined);
+    const discovered=await observeConditionalSymbol(deps.store,symbol,tf,rows,now,assessed?{intelligence:assessed.intelligence,qualification:assessed.qualification,confirmation:assessed.confirmation}:undefined);
     if(deps.discovery[market])candidates.push(...(assessed?.setups??discovered));
     if(feed.currentOpen)for(const s of await deps.store.open(symbol,tf)){
      if(s.status!=='ARMED')continue;
      const proposed=enterConditionalAtOpen(s,feed.currentOpen,now);if(proposed===s)continue;
      const intel=s.origin&&assessed?assessed.intelligence(rows,now):undefined;
      const decision=intel&&s.origin?(intel.spreadPrice!==null&&intel.spreadPrice/Math.abs(s.trigger-s.stop)>.2?'WAIT':strategyContextDecision(s.origin.thesis,s.side,rows,intel)):'VALID';
-     const next=decision!=='VALID'&&proposed.status==='ACTIVE'?{...s,version:s.version+1,status:'INVALIDATED' as const,observedAt:new Date(now).toISOString(),confirmationIntelligence:intel,result:'Next-open strategy context did not qualify; no paper entry.'}:intel?{...proposed,confirmationIntelligence:intel}:proposed;
+     const currentQualified=!s.origin||!entryPolicyQualified(s.origin.configuration)||assessed?.qualification?.(s)===true;
+     const next=(!currentQualified||decision!=='VALID')&&proposed.status==='ACTIVE'?{...s,version:s.version+1,status:'INVALIDATED' as const,observedAt:new Date(now).toISOString(),confirmationIntelligence:intel,result:!currentQualified?'CURRENT_STRATEGY_QUALIFICATION_REQUIRED; no paper entry.':'Next-open strategy context did not qualify; no paper entry.'}:intel?{...proposed,confirmationIntelligence:intel}:proposed;
      await deps.store.save(next,s.version);
     }
    }

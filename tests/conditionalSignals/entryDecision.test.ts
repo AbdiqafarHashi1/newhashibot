@@ -77,6 +77,26 @@ test('genuine incomplete MicroScalper body persists a frozen watch, then its own
  const {observeConditionalSymbol}=await import('../../supabase/functions/_shared/conditional-signal-runtime.ts');
  const {frozenStrategyConfirmation}=await import('../../supabase/functions/_shared/frozen-strategy-confirmation.ts');
  const store={open:async()=>[s],save:async(next:any,expected:number)=>{assert.equal(s.version,expected);s=next;return true;}} as unknown as ConditionalSignalStore;
- await observeConditionalSymbol(store,s.symbol,'5m',[...rows,b],now+w,{intelligence:(prefix,at)=>watchedMarketContext(prefix,at,{higher}),confirmation:(setup,prefix,at)=>frozenStrategyConfirmation(setup,prefix,at,{higher})});
+ await observeConditionalSymbol(store,s.symbol,'5m',[...rows,b],now+w,{qualification:()=>true,intelligence:(prefix,at)=>watchedMarketContext(prefix,at,{higher}),confirmation:(setup,prefix,at)=>frozenStrategyConfirmation(setup,prefix,at,{higher})});
  assert.equal(s.status,'ARMED',s.result);assert.equal(s.entryDecision?.kind,'IMMEDIATE_CONFIRMED');assert.deepEqual(s.origin,frozen);
+});
+
+test('current qualification cannot be inherited after revocation, version changes or configuration replacement',async()=>{
+ const {rows,higher}=fixture();rows.at(-1)!.open=rows.at(-1)!.close-.01;
+ const d=watchedStrategyCatalog([{strategy_name:'MicroScalper',enabled:true,params:{entry_engine_version:1,tp2_r:3}}]).find(d=>d.id==='crypto.micro-scalper')!,definition={...d,config:{...d.config,config_source:'measured_release:qualification-test'}};
+ const found=discoverWatchedStrategies({definitions:[definition],symbol:'BTCUSDT',tf:'5m',rows,higher,now});let s=found.setups[0];assert(s);
+ const {currentWatchQualification,frozenStrategyConfirmation}=await import('../../supabase/functions/_shared/frozen-strategy-confirmation.ts');
+ assert.equal(currentWatchQualification(s,[definition]),true);assert.equal(currentWatchQualification(s,[]),false);
+ assert.equal(currentWatchQualification(s,[{...definition,version:'different'}]),false);assert.equal(currentWatchQualification(s,[{...definition,config:{...definition.config,enabled:false}}]),false);
+ assert.equal(currentWatchQualification(s,[{...definition,config:{...definition.config,config_source:'measured_release:replacement'}}]),false);
+ const bar={...rows.at(-1)!,open_time:new Date(now).toISOString(),open:s.trigger-1,high:s.trigger+3,low:s.trigger-3,close:s.trigger+1};
+ const store={open:async()=>[s],save:async(next:any)=>{s=next;return true;}} as unknown as ConditionalSignalStore;
+ const {observeConditionalSymbol}=await import('../../supabase/functions/_shared/conditional-signal-runtime.ts');
+ await observeConditionalSymbol(store,s.symbol,'5m',[...rows,bar],now+w,{qualification:()=>false,intelligence:(prefix,at)=>watchedMarketContext(prefix,at,{higher}),confirmation:(saved,prefix,at)=>frozenStrategyConfirmation(saved,prefix,at,{higher})});
+ assert.equal(s.status,'INVALIDATED');assert.equal(s.fill,undefined);assert(s.result?.includes('CURRENT_STRATEGY_QUALIFICATION_REQUIRED'));
+ s={...found.setups[0],status:'ARMED',version:2,lastBar:bar.open_time,armedAt:new Date(now+w).toISOString()};
+ const missed={...bar,open_time:new Date(now+w).toISOString(),open:s.trigger};
+ await observeConditionalSymbol(store,s.symbol,'5m',[...rows,bar,missed],now+2*w,{qualification:()=>true,intelligence:(prefix,at)=>watchedMarketContext(prefix,at,{higher})});
+ assert.equal(s.status,'INVALIDATED');assert.equal(s.fill,undefined);assert.equal(s.exit,undefined);assert(s.result?.includes('MISSED_EXECUTABLE_ENTRY_WINDOW'));
+
 });

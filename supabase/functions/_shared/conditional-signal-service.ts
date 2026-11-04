@@ -24,6 +24,8 @@ export interface ConditionalSetup {
  cost?:{price:number;label:string};
  learning?:PaperLearningEvidence;selectionScore?:number;
  entryDecision?:EntryDecision;
+ confirmationEvidence?:{strategyId:string;strategyVersion:string;configurationHash:string;evaluatedAt:string;evaluatorOutcome:'CONFIRMED'|'STILL_WAITING'|'DATA_UNAVAILABLE';closedBar:StrategyCandle};
+ watchOutcome?:'CONFIRMED'|'INVALIDATED'|'EXPIRED';
  evaluationOutcome?:'STILL_WAITING'|'DATA_UNAVAILABLE';
  intelligence?:WatchedIntelligence;confirmationIntelligence?:WatchedIntelligence;
  origin?:{version:string;configuration:StrategyRuntimeConfig;plan:DeepReadonly<StrategyPlan>;thesis:StrategyThesis};

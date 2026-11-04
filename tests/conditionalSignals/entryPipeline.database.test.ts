@@ -21,7 +21,7 @@ test('real discovery → atomic immediate admission → single measured signal/o
  const definition={...d,config:cfg};
  const assessment=discoverWatchedStrategies({definitions:[definition],symbol:'BTCUSDT',tf:'5m',rows,higher:closedAggregate(rows,15,new Date(close).toISOString()),now:close});
  const setup=assessment.setups[0];assert(setup);assert.equal(setup.status,'ACTIVE');
- await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,version:d.version,enabled:true,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);
+ await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,version:d.version,enabled:true,minScore:cfg.min_score,minRiskReward:cfg.min_rr,maxBarsInTrade:cfg.max_bars_in_trade,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);
  await db.exec('set role service_role');
  const adapter={rpc:async(name:string,p:any)=>{if(name==='record_watched_strategy_observations'){await db.query('select record_watched_strategy_observations($1::jsonb)',[JSON.stringify(p.p_rows)]);return {data:null};}const q=name==='admit_conditional_signal_setup'?'select admit_conditional_signal_setup($1::jsonb,$2) ok':'select commit_conditional_signal_setup($1::jsonb,$2,$3) ok';const args=name==='admit_conditional_signal_setup'?[JSON.stringify(p.p_state),p.p_message]:[JSON.stringify(p.p_state),p.p_expected_version,p.p_message];try{return {data:(await db.query<{ok:boolean}>(q,args)).rows[0].ok};}catch(error){return {error};}}};
  const store=new ConditionalSignalStore(adapter);assert.equal((await admitConditionalBatch(store,[setup],now)).admitted,1);
@@ -44,12 +44,12 @@ test('real discovery → atomic immediate admission → single measured signal/o
  assert.equal(receipt.submitted,true);assert.equal(submissions,1);assert.equal(receipt.providerResult!.signalId,telegram[0].signalId);
  await assert.rejects(db.query("select enqueue_canonical_lifecycle_event('forged-free','CONDITIONAL_SETUP',1,null,null,null,null,now(),$1::jsonb,array['free'])",[JSON.stringify({...event,setup_version:999})]),/PERSISTED_FREE_CONDITIONAL_SAMPLE_REQUIRED/);
  assert.equal((await db.query('select * from test_events')).rows.length,1,'failed Free publication rolls its event insert back');
- await assert.rejects(store.save({...setup,version:2,lastBar:new Date(now+300000).toISOString(),entryDecision:undefined},1),/ENTRY_DECISION_REQUIRED/);
+ await assert.rejects(store.save({...setup,version:2,lastBar:new Date(now+300000).toISOString(),watchOutcome:'CONFIRMED',entryDecision:undefined},1),/ENTRY_DECISION_REQUIRED/);
  const forged={...setup,id:'forged',symbol:'ETHUSDT',origin:undefined,entryDecision:undefined};assert.equal(await store.admit(forged),false);
  await db.exec('reset role');await db.query("update strategy_release_candidates set state='REVOKED'");
  // A revoked release may never leave a published actionable signal after projection failure.
  // Same-symbol arbitration would reject admission earlier, so use a cleared fixture ledger.
  await db.exec('delete from conditional_free_samples;delete from conditional_setup_history;delete from conditional_execution_links;delete from conditional_signal_setups;delete from signals;set role service_role;');
- await assert.rejects(store.admit(setup),/IMMEDIATE_SIGNAL_PROJECTION_REJECTED/);
+ await assert.rejects(store.admit(setup),/CONFIRMED_SIGNAL_PROJECTION_REJECTED/);
  assert.equal((await db.query('select * from conditional_signal_setups')).rows.length,0);
  }finally{await db.close();}});

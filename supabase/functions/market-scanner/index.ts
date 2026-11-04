@@ -1,4 +1,4 @@
-import {frozenStrategyConfirmation} from '../_shared/frozen-strategy-confirmation.ts';
+import {frozenStrategyConfirmation,currentWatchQualification} from '../_shared/frozen-strategy-confirmation.ts';
 import {loadPaperLearning} from '../_shared/paper-learning.ts';
 import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
 import {discoverWatchedStrategies} from '../_shared/watched-strategy-discovery.ts';
@@ -1571,6 +1571,8 @@ async function runScanPipeline(
   runSource?: string,
 ): Promise<Record<string, unknown>> {
   const scanStart = Date.now();
+  // Pausing canonical discovery never selects the retained legacy scanner as a fallback.
+  if(Deno.env.get("CONDITIONAL_SIGNALS_ENABLED")==="FALSE")return {success:true,paused:true,reason:"CANONICAL_ENTRY_ENGINE_PAUSED",signals_created:0,provider_calls_attempted:0};
 
   // Load strategy configs (includes 018 distance-guard columns)
   const { data: strategyConfigs,error:strategyConfigError } = await supabase.from("strategy_configs").select("strategy_name,enabled,signal_style,risk_mode,min_score,min_rr,min_stop_distance_pct,min_tp1_distance_pct,min_tp2_distance_pct,max_bars_in_trade,allowed_symbols,allowed_timeframes,params");
@@ -1601,7 +1603,7 @@ async function runScanPipeline(
     },measuredReleases,config.min_signal_grade);
   };
 
-  const conditionalEnabled=Deno.env.get("CONDITIONAL_SIGNALS_ENABLED")!=="FALSE";
+  const conditionalEnabled=true;
   const watchedDefinitions=conditionalEnabled?watchedStrategyCatalog(strategyConfigs,measuredReleases):[];
   const sourceRead=conditionalEnabled?await supabase.from('intelligence_events').select('event_id,market,created_at,metadata,data_sources').gte('created_at',new Date(Date.now()-1800000).toISOString()).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
   const watchedSources=(sourceRead.error?[]:sourceRead.data??[]).map((r:any)=>({...r,id:r.event_id}));
@@ -2001,12 +2003,17 @@ async function runScanPipeline(
           const anchor=marketType==='crypto'&&normalizedSymbol!=='BTCUSDT'?await fetchCryptoCandlesForRun('BTCUSDT',tf):undefined;
           const quote=marketType==='forex'?await fetchForexCandlesForRun(normalizedSymbol,tf):undefined;
           const contextOptions={higher:higher??[],anchor:anchor??undefined,sources:watchedSources,spreadPrice:quote?.spreadPrice,spreadObservedAt:quote?.spreadObservedAt};
-          await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf as WatchTimeframe,admitted.candles,at,{intelligence:(rows,time)=>watchedMarketContext(rows,time,contextOptions),confirmation:(s,rows,time)=>frozenStrategyConfirmation(s,rows,time,contextOptions)});
+          await observeConditionalSymbol(conditionalStore,normalizedSymbol,tf as WatchTimeframe,admitted.candles,at,{intelligence:(rows,time)=>watchedMarketContext(rows,time,contextOptions),qualification:s=>currentWatchQualification(s,watchedDefinitions),confirmation:(s,rows,time)=>frozenStrategyConfirmation(s,rows,time,contextOptions)});
           const assessment=discoverWatchedStrategies({definitions:watchedDefinitions,symbol:normalizedSymbol,tf:tf as WatchTimeframe,rows:admitted.candles,now:at,learning:paperLearning,...contextOptions});
           conditionalBatch.push(...assessment.setups);
+          if(assessment.intelligence)indicatorsCalc++;
+          evaluationsCount+=assessment.observations.filter(o=>o.evidence.evaluator_called===true).length;
+          candidatesFound+=assessment.setups.length;
+          rejectedCount+=assessment.observations.filter(o=>o.decision==='NO_TRADE'&&o.evidence.evaluator_called===true).length;
           const recorded=await supabase.rpc('record_watched_strategy_observations',{p_rows:assessment.observations});if(recorded.error)throw Error('STRATEGY_OBSERVATIONS_WRITE_FAILED');
           continue; // One canonical entry decision and durable ledger; execution remains release/account gated.
         }
+        if(conditionalEnabled){errors.push(`UNSUPPORTED_CANONICAL_STREAM:${normalizedSymbol}:${tf}`);continue;}
         const ind = calculateIndicators(candles);
         const marketContext = classifyMarketContext(ind, candles);
         indicatorsCalc++;
@@ -2650,7 +2657,7 @@ async function runScanPipeline(
     }, { onConflict: "provider_name" });
   }
 
-  if(conditionalEnabled)errors.push(`[INFO] conditional_signals=${JSON.stringify(await admitConditionalBatch(conditionalStore,conditionalBatch,Date.now()))}`);
+  if(conditionalEnabled){const admission=await admitConditionalBatch(conditionalStore,conditionalBatch,Date.now());signalsCreated+=admission.confirmed;errors.push(`[INFO] conditional_signals=${JSON.stringify(admission)}`);}
   for (const stats of Object.values(strategyEvaluationSummary)) {
     stats.arbitration_win_pct = stats.arbitration_entered > 0 ? Number(((stats.arbitration_won / stats.arbitration_entered) * 100).toFixed(2)) : 0;
   }

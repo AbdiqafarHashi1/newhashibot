@@ -15,3 +15,12 @@ export function frozenStrategyConfirmation(s:ConditionalSetup,rows:readonly Stra
   return result.status==='candidate'&&result.direction===s.side?'CONFIRMED':'STILL_WAITING';
  } catch {return 'DATA_UNAVAILABLE';}
 }
+
+import {entryPolicyQualified} from './entry-decision.ts';
+import {stableFingerprint} from './strategy-plan.ts';
+import type {StrategyDefinition} from './professional-strategies.ts';
+/** A frozen setup cannot keep an approval after its release is revoked/replaced/disabled. */
+export function currentWatchQualification(s:ConditionalSetup,definitions:readonly StrategyDefinition[]):boolean{
+ const d=definitions.find(d=>d.id===s.strategy),o=s.origin;
+ return !!(o&&d&&d.lifecycle==='ENABLED'&&d.config.enabled&&d.publicationMode==='LIVE'&&d.version===o.version&&entryPolicyQualified(d.config)&&d.config.config_source===o.configuration.config_source&&stableFingerprint(d.config.params)===stableFingerprint(o.configuration.params)&&(!d.config.allowed_symbols.length||d.config.allowed_symbols.includes(s.symbol))&&(!d.config.allowed_timeframes.length||d.config.allowed_timeframes.includes(s.timeframe)));
+}

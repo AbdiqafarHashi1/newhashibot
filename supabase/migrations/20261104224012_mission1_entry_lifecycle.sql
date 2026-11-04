@@ -6,7 +6,7 @@ grant select on public.strategy_release_candidates to service_role;
 -- Mission 1: wall-clock expiry is a CAS transition even when no feed/candle arrives.
 create or replace function public.commit_conditional_signal_setup(p_state jsonb,p_expected_version integer,p_message text)
 returns boolean language plpgsql security invoker set search_path=public,pg_temp as $$
-declare old public.conditional_signal_setups; v integer; st text; k text; notify boolean; destinations text[]; sample boolean; v_market text; vip text; mutable text[]:=array['status','version','lastBar','armedAt','fill','bars','partial','netR','result','exit','fillAt','observedAt','confirmationIntelligence','entryDecision','evaluationOutcome'];
+declare old public.conditional_signal_setups; v integer; st text; k text; notify boolean; destinations text[]; sample boolean; v_market text; vip text; mutable text[]:=array['status','version','lastBar','armedAt','fill','bars','partial','netR','result','exit','fillAt','observedAt','confirmationIntelligence','entryDecision','evaluationOutcome','watchOutcome','confirmationEvidence'];
 begin
  perform pg_advisory_xact_lock(2961029); -- global cap, symbol ownership and transition/outbox share one transaction
  k:=p_state->>'id'; v:=(p_state->>'version')::integer; st:=p_state->>'status';
@@ -35,13 +35,16 @@ begin
    or jsonb_typeof(p_state#>'{intelligence,sourceIds}') is distinct from 'array' then raise exception 'ORIGIN_STRATEGY_PLAN_MISMATCH';end if;
   if jsonb_array_length(p_state#>'{intelligence,sourceIds}')=0 then raise exception 'ORIGIN_SOURCE_EVIDENCE_REQUIRED';end if;
  end if;
+ if p_state ? 'watchOutcome' and not coalesce(((p_state->>'watchOutcome'='CONFIRMED' and st in('ACTIVE','CLOSED','DATA_GAP')) or (p_state->>'watchOutcome'='EXPIRED' and st='EXPIRED') or (p_state->>'watchOutcome'='INVALIDATED' and st='INVALIDATED')),false) then raise exception 'INVALID_WATCH_OUTCOME';end if;
  select * into old from conditional_signal_setups where id=k for update;
  if found then
   if old.version=v then if old.state=p_state then return true;else raise exception 'CONDITIONAL_CONTENT_CONFLICT';end if;end if;
   if old.version<>p_expected_version or v<>old.version+1 then return false;end if;
   if (old.state-mutable) is distinct from (p_state-mutable) then raise exception 'IMMUTABLE_SETUP_PLAN';end if;
+  if old.state ? 'watchOutcome' and old.state->'watchOutcome' is distinct from p_state->'watchOutcome' then raise exception 'TERMINAL_WATCH_OUTCOME';end if;
   if old.state ? 'entryDecision' and not p_state ? 'entryDecision' then raise exception 'ENTRY_DECISION_REQUIRED';end if;
   if p_state ? 'entryDecision' and (p_state#>>'{entryDecision,opportunityId}' is distinct from k or p_state#>>'{entryDecision,strategyVersion}' is distinct from p_state#>>'{origin,version}') then raise exception 'ENTRY_DECISION_IDENTITY_MISMATCH';end if;
+  if old.state->>'fill' is not null and old.state->'confirmationEvidence' is distinct from p_state->'confirmationEvidence' then raise exception 'IMMUTABLE_CONFIRMATION_EVIDENCE';end if;
   if old.state->>'fill' is not null and (old.state->'fill' is distinct from p_state->'fill' or old.state->'fillAt' is distinct from p_state->'fillAt') then raise exception 'IMMUTABLE_PAPER_ENTRY';end if;
   if old.status in('WAITING','ARMED') and st in('ARMED','ACTIVE') and now()>=(old.state->>'expiresAt')::timestamptz then return false;end if;
   if old.status in('CLOSED','EXPIRED','INVALIDATED','DATA_GAP') then raise exception 'TERMINAL_SETUP';end if;
@@ -69,7 +72,7 @@ begin
  end if;
  sample:=exists(select 1 from conditional_free_samples where setup_id=k);
  destinations:=case when st='DATA_GAP' then array['admin'] when sample then array[vip,'free'] else array[vip] end;
- if p_expected_version=0 and st='ACTIVE' and coalesce(public.project_conditional_execution(k)->>'state','BLOCKED')<>'PROJECTED' then raise exception 'IMMEDIATE_SIGNAL_PROJECTION_REJECTED';end if;
+ if st='ACTIVE' and p_state#>'{entryDecision,executionEligible}'='true'::jsonb and p_state#>'{origin,configuration,params,entry_engine_version}'='1'::jsonb and coalesce(public.project_conditional_execution(k)->>'state','BLOCKED')<>'PROJECTED' then raise exception 'CONFIRMED_SIGNAL_PROJECTION_REJECTED';end if;
  if notify then perform public.enqueue_canonical_lifecycle_event('conditional:'||k||':'||v,'CONDITIONAL_SETUP',1,null,null,null,null,now(),
   jsonb_build_object('market_type',v_market,'policy','conditional-signals/v1','setup_id',k,'setup_version',v,'confirmed_signal_id',case when st='ACTIVE' then public.project_conditional_execution(k)->>'signal_id' else null end,'state',p_state,'free_sample',sample,'message',p_message),destinations);end if;
  return true;
@@ -124,7 +127,7 @@ begin
  else
   select to_jsonb(r) into release from strategy_release_candidates r where r.id::text=plan->'provenance'->>'measured_release_id' and r.strategy_id=s->>'strategy' and r.state='PROMOTED';
   select x into frozen from jsonb_array_elements(release->'immutable_configuration'->'strategies') x where x->>'id'=s->>'strategy' and x->>'enabled'='true';
-  if release is null or frozen is null or (s ? 'entryDecision' and frozen->>'version' is distinct from plan#>>'{identity,strategy_version}') or not coalesce(frozen->'symbols' ? (s->>'symbol'),false) or not coalesce(frozen->'timeframes' ? (s->>'timeframe'),false)
+  if release is null or frozen is null or (s ? 'entryDecision' and (frozen->'minScore' is distinct from origin#>'{configuration,min_score}' or frozen->'minRiskReward' is distinct from origin#>'{configuration,min_rr}' or frozen->'maxBarsInTrade' is distinct from origin#>'{configuration,max_bars_in_trade}')) or (s ? 'entryDecision' and frozen->>'version' is distinct from plan#>>'{identity,strategy_version}') or not coalesce(frozen->'symbols' ? (s->>'symbol'),false) or not coalesce(frozen->'timeframes' ? (s->>'timeframe'),false)
    or jsonb_typeof(frozen->'parameters') is distinct from 'object' or plan->'provenance'->'evaluated_parameters' is distinct from frozen->'parameters'
    or origin->'configuration'->'params' is distinct from frozen->'parameters' then reason_code:='CURRENT_MEASURED_EXECUTION_RELEASE_REQUIRED';end if;
  end if;
