@@ -22,7 +22,11 @@ test('real discovery → atomic immediate admission → single measured signal/o
  const assessment=discoverWatchedStrategies({definitions:[definition],symbol:'BTCUSDT',tf:'5m',rows,higher:closedAggregate(rows,15,new Date(close).toISOString()),now:close});
  const setup=assessment.setups[0];assert(setup);assert.equal(setup.status,'ACTIVE');
  await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,version:d.version,enabled:true,minScore:cfg.min_score,minRiskReward:cfg.min_rr,maxBarsInTrade:cfg.max_bars_in_trade,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);
+ const legacyRun='22222222-2222-4222-8222-222222222222';
+ await db.query("insert into validation_runs(id,mode,status,configuration_hash,immutable_configuration,provenance,outcome_assumptions) values($1,'REPLAY','COMPLETED','test-hash',$2,$3,$4)",[legacyRun,JSON.stringify({strategies:[{id:d.id,parameters:cfg.params}]}),JSON.stringify({start:'2025-01-01T00:00:00Z',end:'2025-01-02T00:00:00Z'}),JSON.stringify({feeBps:10})]);
  await db.exec('set role service_role');
+ await assert.rejects(db.query('select assert_measured_strategy_run($1,$2,$3)',[legacyRun,d.id,'test-hash']),/CANONICAL_ENTRY_POLICY_REPLAY_REQUIRED/);
+
  const adapter={rpc:async(name:string,p:any)=>{if(name==='record_watched_strategy_observations'){await db.query('select record_watched_strategy_observations($1::jsonb)',[JSON.stringify(p.p_rows)]);return {data:null};}const q=name==='admit_conditional_signal_setup'?'select admit_conditional_signal_setup($1::jsonb,$2) ok':'select commit_conditional_signal_setup($1::jsonb,$2,$3) ok';const args=name==='admit_conditional_signal_setup'?[JSON.stringify(p.p_state),p.p_message]:[JSON.stringify(p.p_state),p.p_expected_version,p.p_message];try{return {data:(await db.query<{ok:boolean}>(q,args)).rows[0].ok};}catch(error){return {error};}}};
  const store=new ConditionalSignalStore(adapter);assert.equal((await admitConditionalBatch(store,[setup],now)).admitted,1);
  assert.equal((await admitConditionalBatch(store,[setup],now)).admitted,0);

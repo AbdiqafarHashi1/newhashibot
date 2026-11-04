@@ -2,7 +2,7 @@
 -- No additional anonymous/authenticated privileges are granted.
 grant select,insert,update on public.signals,public.scanner_runs,public.strategy_candidates to service_role;
 grant select,insert on public.certified_strategy_plans,public.signal_updates to service_role;
-grant select on public.strategy_release_candidates to service_role;
+grant select on public.strategy_release_candidates,public.validation_runs,public.validation_outcomes to service_role;
 -- Mission 1: wall-clock expiry is a CAS transition even when no feed/candle arrives.
 create or replace function public.commit_conditional_signal_setup(p_state jsonb,p_expected_version integer,p_message text)
 returns boolean language plpgsql security invoker set search_path=public,pg_temp as $$
@@ -194,3 +194,24 @@ GRANT EXECUTE ON FUNCTION public.enqueue_canonical_lifecycle_event(text,text,int
 
 
 -- A worker crash after send may mean Telegram accepted the message. Never resend that reserved part automatically.
+
+-- Mission 2 must record actual canonical-entry replay provenance before measuring/promoting this policy.
+create or replace function public.assert_measured_strategy_run(p_run uuid,p_strategy text,p_hash text) returns void
+language plpgsql security invoker set search_path=public as $$
+declare r validation_runs;n integer;unresolved integer;profit numeric;loss numeric;begin
+ select * into r from validation_runs where id=p_run;
+ if not found or r.mode<>'REPLAY' or r.status<>'COMPLETED' or r.configuration_hash is distinct from p_hash or r.failure_code is not null or r.cancellation_requested_at is not null then raise exception 'COMPLETED_MATCHING_SCANNER_REPLAY_REQUIRED';end if;
+ -- New entry policies cannot inherit qualification from the old replay path.
+ if exists(select 1 from jsonb_array_elements(coalesce(r.immutable_configuration->'strategies','[]'::jsonb)) x where x->>'id'=p_strategy and x#>'{parameters,entry_engine_version}'='1'::jsonb)
+  and r.provenance->>'entry_policy_version' is distinct from 'entry-decision/v1' then raise exception 'CANONICAL_ENTRY_POLICY_REPLAY_REQUIRED';end if;
+ if r.provenance->>'start' is null or r.provenance->>'end' is null then raise exception 'RECORDED_REPLAY_RANGE_REQUIRED';end if;
+ if coalesce((r.outcome_assumptions->>'feeBps')::numeric,0)+coalesce((r.outcome_assumptions->>'spreadBps')::numeric,0)+coalesce((r.outcome_assumptions->>'slippageBps')::numeric,0)<=0 then raise exception 'DECLARED_NONZERO_COSTS_REQUIRED';end if;
+ select count(*),count(*) filter(where net_r is null or net_r::text in('NaN','Infinity','-Infinity') or status not in('STOP','TARGET')),coalesce(sum(greatest(net_r,0)),0),-coalesce(sum(least(net_r,0)),0)
+ into n,unresolved,profit,loss from validation_outcomes where run_id=p_run and strategy_id=p_strategy;
+ if n<30 then raise exception 'AT_LEAST_30_TRADES_PER_PERIOD_REQUIRED';end if;
+ if unresolved>0 then raise exception 'UNRESOLVED_OUTCOMES_REQUIRE_REVIEW';end if;
+ if loss<=0 or profit/loss<1.2 or profit-loss<=0 then raise exception 'POSITIVE_NET_EDGE_AND_PROFIT_FACTOR_1_2_REQUIRED';end if;
+end$$;
+revoke all on function public.assert_measured_strategy_run(uuid,text,text) from public,anon,authenticated;
+grant execute on function public.assert_measured_strategy_run(uuid,text,text) to service_role;
+

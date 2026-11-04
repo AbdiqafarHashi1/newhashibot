@@ -3,6 +3,8 @@ import {readFile} from 'node:fs/promises';
 export async function bootstrapMissionDatabase(db:{exec:(sql:string)=>Promise<unknown>}){
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create function auth.role() returns text language sql as $$select 'service_role'$$;create function is_admin() returns boolean language sql as $$select false$$;
 
+ create table validation_runs(id uuid primary key,mode text,status text,configuration_hash text,immutable_configuration jsonb,provenance jsonb,outcome_assumptions jsonb,failure_code text,cancellation_requested_at timestamptz);
+ create table validation_outcomes(run_id uuid,strategy_id text,status text,net_r numeric);
  create table strategy_release_candidates(id uuid primary key,strategy_id text,state text,immutable_configuration jsonb);
  create table scanner_runs(id uuid primary key default gen_random_uuid(),status text,finished_at timestamptz,symbols_scanned integer,candidates_found integer,signals_created integer);
  create table strategy_candidates(id uuid primary key default gen_random_uuid(),scanner_run_id uuid,symbol text,market_type text,timeframe text,strategy_name text,direction text,entry_low numeric,entry_high numeric,stop_loss numeric,tp1 numeric,tp2 numeric,confidence_score integer,grade text,reason text,status text);
