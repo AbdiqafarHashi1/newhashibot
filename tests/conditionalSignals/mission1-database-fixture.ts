@@ -1,7 +1,7 @@
 import {readFile} from 'node:fs/promises';
 /** Disposable SQL fixture: production migrations, external service boundary schemas only. */
 export async function bootstrapMissionDatabase(db:{exec:(sql:string)=>Promise<unknown>}){
- await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create function auth.role() returns text language sql as $$select 'service_role'$$;create function is_admin() returns boolean language sql as $$select false$$;
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create function auth.role() returns text language sql as $$select 'service_role'$$;create function is_admin() returns boolean language sql as $$select false$$;
 
  create table strategy_release_candidates(id uuid primary key,strategy_id text,state text,immutable_configuration jsonb);
  create table scanner_runs(id uuid primary key default gen_random_uuid(),status text,finished_at timestamptz,symbols_scanned integer,candidates_found integer,signals_created integer);
@@ -21,6 +21,7 @@ export async function bootstrapMissionDatabase(db:{exec:(sql:string)=>Promise<un
  await db.exec(watches.slice(0,watches.indexOf('-- Extend only')));
  await db.exec(await readFile('supabase/migrations/20261030055040_conditional_execution_bridge.sql','utf8'));
  await db.exec(await readFile('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8'));
+ await db.exec('grant select,insert on test_events to service_role;');
 
 }
 

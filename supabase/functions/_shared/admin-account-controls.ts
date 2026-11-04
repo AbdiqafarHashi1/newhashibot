@@ -5,7 +5,7 @@ import {onboardingAccountPolicy} from './onboarding-policy.ts';
 export function validateAdminAccountControls(account:any,input:any){
  const configuration={...account.policy_overrides?.policy_configuration};
  const limits=input?.limits;if(!limits||typeof limits!=='object'||Array.isArray(limits))throw Error('ACCOUNT_LIMITS_REQUIRED');
- const allowed=['maxLeverage','maxConcurrentPositions','maxDailyDrawdownPct','maxTotalDrawdownPct','allowedSymbols'];
+ const allowed=['maxCorrelatedRiskPct','maxLeverage','maxConcurrentPositions','maxDailyDrawdownPct','maxTotalDrawdownPct','allowedSymbols'];
  if(Object.keys(limits).some(k=>!allowed.includes(k)))throw Error('UNSUPPORTED_ACCOUNT_LIMIT');
  if(limits.allowedSymbols!==undefined&&limits.allowedSymbols!==null&&(!Array.isArray(limits.allowedSymbols)||!limits.allowedSymbols.length||limits.allowedSymbols.length>100||limits.allowedSymbols.some((s:any)=>typeof s!=='string'||!/^[A-Z0-9._-]{2,32}$/.test(s))||new Set(limits.allowedSymbols).size!==limits.allowedSymbols.length))throw Error('EXPLICIT_ASSET_ALLOWLIST_REQUIRED');
  if(limits.maxConcurrentPositions!==undefined&&!Number.isInteger(limits.maxConcurrentPositions))throw Error('INTEGER_POSITION_LIMIT_REQUIRED');

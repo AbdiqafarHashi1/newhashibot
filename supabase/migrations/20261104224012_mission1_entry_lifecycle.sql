@@ -1,3 +1,8 @@
+-- Invoker workers must not depend on platform-specific default table grants.
+-- No additional anonymous/authenticated privileges are granted.
+grant select,insert,update on public.signals,public.scanner_runs,public.strategy_candidates to service_role;
+grant select,insert on public.certified_strategy_plans,public.signal_updates to service_role;
+grant select on public.strategy_release_candidates to service_role;
 -- Mission 1: wall-clock expiry is a CAS transition even when no feed/candle arrives.
 create or replace function public.commit_conditional_signal_setup(p_state jsonb,p_expected_version integer,p_message text)
 returns boolean language plpgsql security invoker set search_path=public,pg_temp as $$

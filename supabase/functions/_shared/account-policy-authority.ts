@@ -1,3 +1,4 @@
+import {portfolioRiskGate} from './portfolio-exposure.ts';
 /** Phase D multi-tenant authority. Pure decision code only; it never submits orders. */
 import {accountPerformanceGate,type LossResponsePolicy,type AccountPerformanceEvidence} from "./account-performance-policy.ts";
 import { decideAccountExecution, type AccountRuntimeControl } from "./account-execution-controller.ts";
@@ -31,6 +32,7 @@ export interface PolicyConfiguration {
   readonly lossResponse?: LossResponsePolicy;
   readonly riskPerTradePct?: number;
   readonly maxOpenRiskPct?: number;
+  readonly maxCorrelatedRiskPct?: number;
   readonly maxLeverage?: number;
   readonly maxConcurrentPositions?: number;
   readonly maxDailyDrawdownPct?: number;
@@ -103,6 +105,7 @@ export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, ba
   const limit = presetBounds[config.preset];
   const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? limit.risk, limit.risk);
   const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? limit.open, limit.open);
+  bounded("maxCorrelatedRiskPct",config.maxCorrelatedRiskPct??open,open);
   const leverage = bounded("maxLeverage", config.maxLeverage ?? limit.leverage, limit.leverage);
   const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? limit.positions, limit.positions);
   const daily = bounded("maxDailyDrawdownPct", config.maxDailyDrawdownPct ?? limit.daily, limit.daily);
@@ -132,6 +135,7 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   if (input.configuration.allowedStrategies && !input.configuration.allowedStrategies.includes(input.signal.strategy_id)) preReasons.push("STRATEGY_NOT_ALLOWED");
   if (input.configuration.allowedSessions && !input.configuration.allowedSessions.includes(input.context.session_state.active_session_name)) preReasons.push("SESSION_NOT_ALLOWED");
   const brainDecision = brain.evaluateSignal(input.signal, input.context, policy);
+  if(brainDecision.authorized_risk_pct>0){const portfolio=portfolioRiskGate({symbol:input.signal.symbol,positions:input.context.open_positions,requestedRiskPct:brainDecision.authorized_risk_pct,portfolioLimitPct:policy.max_portfolio_risk_pct,correlatedLimitPct:input.configuration.maxCorrelatedRiskPct??policy.max_portfolio_risk_pct});preReasons.push(...portfolio.reasons);}
   const productProvider = input.account.provider;
   const gate = decideAccountExecution({ attempt: "NEW_ENTRY", signalId: input.signal.signal_id, accountId: input.account.id, customerId: input.account.customerId, product: input.product, assignedProvider: productProvider, requestedProvider: productProvider, eligibility: input.eligibility, runtimeControl: input.account.runtimeControl, openPositions: input.context.exposure.active_position_count, pendingOrders: 0, duplicateSignalForAccount: input.duplicateSignalForAccount ?? false, activeSymbolConflict: input.activeSymbolConflict ?? false, canonicalRiskApproved: true, canonicalCapitalApproved: true, accountRuleApproved: preReasons.length === 0 && !["SKIP", "LOCK_ACCOUNT"].includes(brainDecision.decision), propDecision: input.product.endsWith("PROP") ? { decision: brainDecision.decision === "LOCK_ACCOUNT" || brainDecision.decision === "SKIP" ? "BLOCK" : brainDecision.decision === "REDUCE_RISK" ? "REDUCE" : "ALLOW", reasonCodes: [brainDecision.decision_code], riskMultiplier: policy.max_risk_per_trade_pct ? brainDecision.authorized_risk_pct / policy.max_risk_per_trade_pct : 0, managementEnabled: true } : null });
   if (JSON.stringify(input.signal) !== signalBefore) throw new Error("CANONICAL_SIGNAL_MUTATED");

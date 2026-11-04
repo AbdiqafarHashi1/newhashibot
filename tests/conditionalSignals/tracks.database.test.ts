@@ -22,7 +22,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await db.exec(readFileSync('supabase/migrations/20261029205531_dual_market_conditional_watch.sql','utf8'));
  await db.exec(readFileSync('supabase/migrations/20261029212305_strategy_watches_and_context.sql','utf8'));
  await db.exec(`create function public.project_conditional_execution(text) returns jsonb language sql as $$select '{"state":"BLOCKED"}'::jsonb$$;`);
- await db.exec(readFileSync('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8').split('-- Both entry routes')[0]);
+ await db.exec(readFileSync('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8').split('-- Both entry routes')[0].slice(readFileSync('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8').indexOf('create or replace function public.commit_conditional_signal_setup')));
  const t=Math.floor(Date.now()/3600000)*3600000,iso=(n:number)=>new Date(t+n*3600000).toISOString();
  const setup=(symbol:string,track:'INTRADAY'|'SWING',side:'buy'|'sell'='buy'):ConditionalSetup=>({id:`${symbol}:${track}:${side}`,symbol,track,timeframe:track==='INTRADAY'?'15m':'1h',side,strategy:'conditional',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',source:'TEST',sourceClose:iso(0),lastBar:iso(-1),trigger:100,stop:side==='buy'?90:110,tp1:side==='buy'?110:90,tp2:side==='buy'?120:80,expiresAt:iso(8),holdBars:48,score:85,reason:'Higher timeframe trend pullback',status:'WAITING',version:1});
  const save=async(s:ConditionalSetup,v=0)=>(await db.query<{ok:boolean}>('select commit_conditional_signal_setup($1::jsonb,$2,$3) ok',[JSON.stringify(s),v,conditionalMessage(s)])).rows[0].ok;
