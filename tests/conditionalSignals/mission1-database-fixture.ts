@@ -23,3 +23,14 @@ export async function bootstrapMissionDatabase(db:{exec:(sql:string)=>Promise<un
  await db.exec(await readFile('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8'));
 
 }
+
+import {ConditionalSignalStore} from '../../supabase/functions/_shared/conditional-signal-runtime.ts';
+export function missionStore(db:any):ConditionalSignalStore {
+ const adapter={from:()=>{const filters:Record<string,string>={};const q:any={select:()=>q,eq:(k:string,v:string)=>{filters[k]=v;return q;},in:()=>q,limit:async()=>({data:(await db.query("select state from conditional_signal_setups where symbol=$1 and timeframe=$2 and status in('WAITING','ARMED','ACTIVE')",[filters.symbol,filters.timeframe])).rows})};return q;},rpc:async(name:string,p:any)=>{
+  try{
+   if(name==='record_watched_strategy_observations'){await db.query('select record_watched_strategy_observations($1::jsonb)',[JSON.stringify(p.p_rows)]);return {data:null};}
+   const admit=name==='admit_conditional_signal_setup';return {data:(await db.query(admit?'select admit_conditional_signal_setup($1::jsonb,$2) ok':'select commit_conditional_signal_setup($1::jsonb,$2,$3) ok',admit?[JSON.stringify(p.p_state),p.p_message]:[JSON.stringify(p.p_state),p.p_expected_version,p.p_message])).rows[0].ok};
+  }catch(error){return {error};}
+ }};
+ return new ConditionalSignalStore(adapter);
+}

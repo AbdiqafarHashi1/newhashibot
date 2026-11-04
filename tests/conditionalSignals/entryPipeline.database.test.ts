@@ -11,7 +11,7 @@ import {discoverWatchedStrategies} from '../../supabase/functions/_shared/watche
 import {watchedStrategyCatalog} from '../../supabase/functions/_shared/watched-strategy-catalog.ts';
 import {closedAggregate} from '../../supabase/functions/_shared/regime-opportunities.ts';
 import type {StrategyCandle} from '../../supabase/functions/_shared/professional-strategies.ts';
-test('real discovery → atomic immediate admission → single measured signal/outbox, replay and rollback',async()=>{const db=new PGlite();try{
+test('real discovery → atomic immediate admission → single measured signal/outbox, replay and rollback',async(t)=>{t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-04T14:00:00Z')});const db=new PGlite();try{
  await bootstrapMissionDatabase(db);
  const now=Date.now(),close=Math.floor(now/300000)*300000,release='11111111-1111-4111-8111-111111111111';
  // Keep a controlled current candle boundary independent of wall-clock test start.
@@ -21,8 +21,6 @@ test('real discovery → atomic immediate admission → single measured signal/o
  const definition={...d,config:cfg};
  const assessment=discoverWatchedStrategies({definitions:[definition],symbol:'BTCUSDT',tf:'5m',rows,higher:closedAggregate(rows,15,new Date(close).toISOString()),now:close});
  const setup=assessment.setups[0];assert(setup);assert.equal(setup.status,'ACTIVE');
- // Move the fixture's source clock to the current database clock without altering any prices or policy.
- setup.sourceClose=new Date(now-1000).toISOString();setup.entryDecision!.dataClose=setup.sourceClose;setup.lastBar=new Date(now-301000).toISOString();setup.armedAt=setup.fillAt=setup.observedAt=new Date(now).toISOString();
  await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,enabled:true,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);
  const adapter={rpc:async(name:string,p:any)=>{if(name==='record_watched_strategy_observations'){await db.query('select record_watched_strategy_observations($1::jsonb)',[JSON.stringify(p.p_rows)]);return {data:null};}const q=name==='admit_conditional_signal_setup'?'select admit_conditional_signal_setup($1::jsonb,$2) ok':'select commit_conditional_signal_setup($1::jsonb,$2,$3) ok';const args=name==='admit_conditional_signal_setup'?[JSON.stringify(p.p_state),p.p_message]:[JSON.stringify(p.p_state),p.p_expected_version,p.p_message];try{return {data:(await db.query<{ok:boolean}>(q,args)).rows[0].ok};}catch(error){return {error};}}};
  const store=new ConditionalSignalStore(adapter);assert.equal((await admitConditionalBatch(store,[setup],now)).admitted,1);

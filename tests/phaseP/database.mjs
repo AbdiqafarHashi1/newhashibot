@@ -43,6 +43,7 @@ try{
   const at=Date.now(),stamp=n=>new Date(at+n).toISOString();
   const watch={id:'mission1-native-race',symbol:'LTCUSDT',timeframe:'15m',track:'INTRADAY',side:'buy',strategy:'mission1-controlled-analysis',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',sourceClose:stamp(-900000),source:'DISPOSABLE_NATIVE_TEST',trigger:100,stop:90,tp1:110,tp2:120,expiresAt:stamp(900000),holdBars:48,score:85,reason:'Controlled concurrency fixture',status:'WAITING',version:1,lastBar:stamp(-1800000)};
   const admissions=await Promise.all([1,2].map(()=>raceSql(`select admit_conditional_signal_setup(${literal(watch)},'Native test watch');`)));
+  assert(admissions.every(r=>r.code===0),JSON.stringify({invariant:'native trading admission SQL succeeds',admissions}));
   assert.deepEqual(admissions.map(r=>r.out.trim()).sort(),['f','t'],'one durable opportunity admitted across native sessions');
   const armed={...watch,status:'ARMED',version:2,lastBar:stamp(-900000),armedAt:stamp(0)},invalid={...watch,status:'INVALIDATED',version:2,lastBar:stamp(-900000),result:'Original invalidation'};
   const transitions=await Promise.all([armed,invalid].map(state=>raceSql(`select commit_conditional_signal_setup(${literal(state)},1,'Native transition');`)));

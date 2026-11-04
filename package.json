@@ -137,7 +137,8 @@
     "test:ten-asset": "node --import tsx --test tests/tenAsset/*.test.ts",
     "test:funding-audit": "python3 -m unittest discover -s tests/fundingAudit -p 'test_*.py' && node --import tsx --test tests/fundingAudit/*.test.ts",
     "test:conditional-signals": "node --import tsx --test tests/conditionalSignals/*.test.ts",
-    "typecheck:entry-engine": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/entry-decision.ts supabase/functions/_shared/entry-regime.ts supabase/functions/_shared/frozen-strategy-confirmation.ts supabase/functions/_shared/watched-strategy-discovery.ts supabase/functions/_shared/conditional-signal-runtime.ts"
+    "typecheck:entry-engine": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/entry-decision.ts supabase/functions/_shared/entry-regime.ts supabase/functions/_shared/frozen-strategy-confirmation.ts supabase/functions/_shared/watched-strategy-discovery.ts supabase/functions/_shared/conditional-signal-runtime.ts",
+    "test:phase-l-engineering": "node scripts/test-phase-l-engineering.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

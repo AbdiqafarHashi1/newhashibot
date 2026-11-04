@@ -23,7 +23,7 @@ Core evaluator inventory remains four Crypto evaluators (MicroScalper, QuickScal
 
 ## Executed verification
 
-- `node --import tsx --test --test-concurrency=2 tests/conditionalSignals/*.test.ts`: 55 passed / 0 failed / 1 optional native-runtime test skipped (56 total).
+- `node --import tsx --test --test-concurrency=2 tests/conditionalSignals/*.test.ts`: 57 passed / 0 failed / 1 optional native-runtime test skipped (58 total).
 - New database pipeline: actual evaluator/discovery → atomic admission → measured signal projection → Telegram rendering → real account policy/risk/capital sizing → simulated provider receipt. Same signal identity; expired entitlement, no capital, replay, forged immediate entry, and revoked release rejection.
 - Embedded PostgreSQL tests cover immutable history, expiry without a candle, terminal rejection, outbox rollback, release matching and idempotence. They do not establish independent-session concurrency.
 - `npm run test:operations-readiness`: 111 TypeScript tests, 22 embedded DB tests, 8 Python tests passed.
@@ -34,11 +34,11 @@ Core evaluator inventory remains four Crypto evaluators (MicroScalper, QuickScal
 
 ## Remaining verification / known limitations — do not call Mission 1 complete
 
-1. Native PostgreSQL independent-session races and the entire unchanged migration chain cannot run in this container (no Docker; native PostgreSQL cannot acquire a non-root user). Trading admission/confirmation-invalidation/expiry race assertions are wired into `tests/phaseP/database.mjs`, used by existing PostgreSQL 15/17 CI. Inspect CI results and fix actual failures before readiness claims.
-2. `npm run test:phase-l` is blocked by research archives deliberately removed from main for Bolt publishing (`docs/research/alt-connected/evidence.json.gz`, followed by other archive audit inputs). No archive, download link, or historical result was fabricated or restored into the deployable source. Separate archival evidence audits from Mission 1 engineering checks or supply authentic archived test inputs; do not weaken qualification checks.
+1. Native PostgreSQL cannot run locally (no Docker/non-root process support). GitHub PostgreSQL 15 CI applied all 201 migrations on the unchanged chain, then FAILED the new concurrent trading admission assertion. The draft is not merge-ready. Expanded SQL error evidence is being added; fix the admission failure and rerun PostgreSQL 15/17 before readiness claims.
+2. `npm run test:phase-l-engineering` passes 20 engineering suites and explicitly defers 10 historical archive audits. CI now uses this engineering scope. The original strict `test:phase-l` is unchanged and still fails without the authentic .gz archives intentionally removed from main for Bolt. No historical evidence is fabricated, restored into the deployable source, or represented as qualified.
 3. Bounded genuine-candle HTTP acquisition failed. Controlled tests prove engineering behavior, not historical or broker qualification. No fresh real-data sanity check is claimed.
 4. Existing root arbitration/account risk suites pass, but a complete audit of correlated exposure across all customer/provider combinations and all retained specialist research evaluators is not complete. Do not infer it from the new tests.
-5. The combined new SQL-to-account pipeline covers the immediate path. Conditional entry is tested through the genuine originating evaluator, and the existing SQL projection separately; all required conditional/rejected/stale/conflicting scenarios have not yet been combined into one exhaustive production-path matrix.
+5. The expanded production-module matrix now covers immediate SQL-to-account/provider simulation, persistent conditional confirmation through the genuine frozen evaluator, restart/recovery, invalidation, expiry, stale data and conflict suppression. Conditional customer execution across each provider and the exhaustive portfolio matrix still require additional integration coverage. Controlled clocks are injected at the external JS/embedded-DB clock boundary; frozen market evidence is not rewritten to make tests pass.
 6. Live Supabase/Auth/Cron/PostgREST, Telegram delivery, MT5 bridge, Binance and Bybit connectivity were not activated or verified. These belong to the later deployment mission, not local engineering.
 
 Continue from this checkpoint on the same branch. First finish native CI verification, close the production-path matrix and portfolio/arbitration audit; preserve research isolation and the Backtest Lab. No owner credentials are needed for remaining local work.
