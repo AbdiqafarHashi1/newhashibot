@@ -36,7 +36,10 @@ export async function observeConditionalSymbol(store:ConditionalSignalStore,symb
  const open=await store.open(symbol,tf);
  for(const saved of open){let state=saved;
   for(const bar of rows){if(Date.parse(bar.open_time)<=Date.parse(state.lastBar)||Date.parse(bar.open_time)+watchWidth(tf)>now)continue;
-   let next=advanceConditionalSetup(state,bar);if(next===state)continue;
+   let next=advanceConditionalSetup(state,bar);if(next===state){
+    if(['WAITING','ARMED'].includes(state.status)&&state.evaluationOutcome!=='DATA_UNAVAILABLE')await store.save({...state,version:state.version+1,evaluationOutcome:'DATA_UNAVAILABLE',observedAt:new Date(now).toISOString()},state.version);
+    break; // Never skip past a missing/source-mismatched observation to seek a later confirmation.
+   }
    if(next.status==='WAITING')next={...next,evaluationOutcome:'STILL_WAITING'};
    if(state.status==='WAITING'&&['WAITING','ARMED'].includes(next.status)){
     const prefix=rows.filter(r=>Date.parse(r.open_time)<=Date.parse(bar.open_time)),at=Date.parse(bar.open_time)+watchWidth(tf);

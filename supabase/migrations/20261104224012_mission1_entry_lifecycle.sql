@@ -40,6 +40,7 @@ begin
   if old.version=v then if old.state=p_state then return true;else raise exception 'CONDITIONAL_CONTENT_CONFLICT';end if;end if;
   if old.version<>p_expected_version or v<>old.version+1 then return false;end if;
   if (old.state-mutable) is distinct from (p_state-mutable) then raise exception 'IMMUTABLE_SETUP_PLAN';end if;
+  if old.state ? 'entryDecision' and not p_state ? 'entryDecision' then raise exception 'ENTRY_DECISION_REQUIRED';end if;
   if p_state ? 'entryDecision' and (p_state#>>'{entryDecision,opportunityId}' is distinct from k or p_state#>>'{entryDecision,strategyVersion}' is distinct from p_state#>>'{origin,version}') then raise exception 'ENTRY_DECISION_IDENTITY_MISMATCH';end if;
   if old.state->>'fill' is not null and (old.state->'fill' is distinct from p_state->'fill' or old.state->'fillAt' is distinct from p_state->'fillAt') then raise exception 'IMMUTABLE_PAPER_ENTRY';end if;
   if old.status in('WAITING','ARMED') and st in('ARMED','ACTIVE') and now()>=(old.state->>'expiresAt')::timestamptz then return false;end if;
@@ -123,7 +124,7 @@ begin
  else
   select to_jsonb(r) into release from strategy_release_candidates r where r.id::text=plan->'provenance'->>'measured_release_id' and r.strategy_id=s->>'strategy' and r.state='PROMOTED';
   select x into frozen from jsonb_array_elements(release->'immutable_configuration'->'strategies') x where x->>'id'=s->>'strategy' and x->>'enabled'='true';
-  if release is null or frozen is null or not coalesce(frozen->'symbols' ? (s->>'symbol'),false) or not coalesce(frozen->'timeframes' ? (s->>'timeframe'),false)
+  if release is null or frozen is null or (s ? 'entryDecision' and frozen->>'version' is distinct from plan#>>'{identity,strategy_version}') or not coalesce(frozen->'symbols' ? (s->>'symbol'),false) or not coalesce(frozen->'timeframes' ? (s->>'timeframe'),false)
    or jsonb_typeof(frozen->'parameters') is distinct from 'object' or plan->'provenance'->'evaluated_parameters' is distinct from frozen->'parameters'
    or origin->'configuration'->'params' is distinct from frozen->'parameters' then reason_code:='CURRENT_MEASURED_EXECUTION_RELEASE_REQUIRED';end if;
  end if;
@@ -162,3 +163,31 @@ begin
  on conflict(setup_id) do update set signal_id=excluded.signal_id,state=excluded.state,reason=excluded.reason,setup_version=excluded.setup_version,origin_plan=excluded.origin_plan,updated_at=clock_timestamp();
  return jsonb_build_object('state','PROJECTED','signal_id',sig);
 end$$;
+
+-- Free watch follow-ups require an actual preselected persisted sample, never arbitrary numeric signals.
+CREATE OR REPLACE FUNCTION public.enqueue_canonical_lifecycle_event(p_event_key text,p_event_type text,p_event_version integer,p_signal_id uuid,p_execution_id uuid,p_customer_id uuid,p_account_id uuid,p_occurred_at timestamptz,p_payload jsonb,p_destinations text[])
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE event_id uuid; existing_hash text; expected_hash text:=md5(p_payload::text); destination text;
+BEGIN IF auth.role()<>'service_role' THEN RAISE EXCEPTION 'SERVICE_ROLE_REQUIRED'; END IF;
+ IF p_event_type='EDITORIAL' AND (p_signal_id IS NOT NULL OR p_customer_id IS NOT NULL OR p_payload->'editorial'->>'compliance_state' IS DISTINCT FROM 'APPROVED' OR coalesce(jsonb_array_length(p_payload->'editorial'->'source_ids'),0)=0) THEN RAISE EXCEPTION 'EDITORIAL_EVIDENCE_REQUIRED'; END IF;
+ IF p_event_version<1 OR p_event_key='' OR p_event_type='' OR p_destinations IS NULL THEN RAISE EXCEPTION 'INVALID_LIFECYCLE_EVENT'; END IF;
+ SELECT id,content_hash INTO event_id,existing_hash FROM public.canonical_lifecycle_events WHERE event_key=p_event_key AND event_version=p_event_version;
+ IF event_id IS NOT NULL AND existing_hash<>expected_hash THEN RAISE EXCEPTION 'LIFECYCLE_EVENT_CONTENT_CONFLICT'; END IF;
+ IF event_id IS NULL THEN INSERT INTO public.canonical_lifecycle_events(event_key,event_type,event_version,signal_id,execution_id,customer_id,account_id,occurred_at,payload,content_hash) VALUES(p_event_key,p_event_type,p_event_version,p_signal_id,p_execution_id,p_customer_id,p_account_id,p_occurred_at,p_payload,expected_hash) RETURNING id INTO event_id; END IF;
+ FOREACH destination IN ARRAY p_destinations LOOP
+  IF destination='free' AND p_event_type='CONDITIONAL_SETUP' AND NOT EXISTS(
+   SELECT 1 FROM public.conditional_free_samples sample JOIN public.conditional_signal_setups setup ON setup.id=sample.setup_id
+   WHERE setup.id=p_payload->>'setup_id' AND sample.market=setup.market AND p_payload->>'market_type'=setup.market
+    AND p_payload->>'policy'='conditional-signals/v1' AND p_payload->'free_sample'='true'::jsonb
+    AND p_payload->'state'=setup.state AND (p_payload->>'setup_version')::integer=setup.version
+  ) THEN RAISE EXCEPTION 'PERSISTED_FREE_CONDITIONAL_SAMPLE_REQUIRED';END IF;
+  IF destination NOT IN ('free','vip','vip_crypto','vip_forex_gold','customer','admin','owner') OR (destination='free' AND p_event_type NOT IN ('EDITORIAL','CONDITIONAL_SETUP')) THEN RAISE EXCEPTION 'INVALID_LIFECYCLE_DESTINATION'; END IF;
+  IF destination='customer' AND (p_customer_id IS NULL OR p_account_id IS NULL) THEN RAISE EXCEPTION 'CUSTOMER_ACCOUNT_SCOPE_REQUIRED'; END IF;
+  INSERT INTO public.signal_publication_work(signal_id,entity_type,entity_id,event_type,event_version,destination,customer_id,event_key,status)
+  VALUES(p_signal_id,'lifecycle_event',coalesce(p_execution_id,p_signal_id,event_id),p_event_type,p_event_version,destination,CASE WHEN destination='customer' THEN p_customer_id ELSE NULL END,p_event_key||':'||destination,'pending') ON CONFLICT DO NOTHING;
+ END LOOP; RETURN event_id; END $$;
+REVOKE ALL ON FUNCTION public.enqueue_canonical_lifecycle_event(text,text,integer,uuid,uuid,uuid,uuid,timestamptz,jsonb,text[]) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.enqueue_canonical_lifecycle_event(text,text,integer,uuid,uuid,uuid,uuid,timestamptz,jsonb,text[]) TO service_role;
+
+
+-- A worker crash after send may mean Telegram accepted the message. Never resend that reserved part automatically.

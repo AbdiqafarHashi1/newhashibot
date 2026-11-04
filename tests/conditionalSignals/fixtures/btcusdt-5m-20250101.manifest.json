@@ -1,0 +1,12 @@
+{
+  "source": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=5m&startTime=1735689600000&limit=160",
+  "instrument": "SPOT",
+  "symbol": "BTCUSDT",
+  "timeframe": "5m",
+  "rows": 160,
+  "firstOpenMs": 1735689600000,
+  "lastOpenMs": 1735737300000,
+  "sha256": "be6bba57b2edf39f3c866f9aecb6c55eb81ab84794dc77bdc6806148651b1ce1",
+  "vendorChecksum": false,
+  "purpose": "Bounded native candle engineering sanity; no profitability or qualification claim"
+}

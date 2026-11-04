@@ -17,7 +17,7 @@ function setup(at:number){
  const higher=closedAggregate(rows,15,new Date(at).toISOString()),discovery=discoverWatchedStrategies({definitions:[definition],symbol:'BTCUSDT',tf:'5m',rows,higher,now:at});
  assert.equal(discovery.observations[0].decision,'CONDITIONAL_WATCH');return {rows,d,cfg,definition,s:discovery.setups[0]};
 }
-async function promoteTestConfiguration(db:PGlite,d:any,cfg:any){await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,enabled:true,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);}
+async function promoteTestConfiguration(db:PGlite,d:any,cfg:any){await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,version:d.version,enabled:true,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);}
 
 test('persistent genuine conditional evaluator → restart → confirmation → same projected/Telegram signal → conservative outcome',async(t)=>{
  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-04T13:55:00Z')});const db=new PGlite();try{

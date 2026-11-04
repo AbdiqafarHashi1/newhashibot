@@ -13,7 +13,12 @@ export async function bootstrapMissionDatabase(db:{exec:(sql:string)=>Promise<un
  await db.exec(await readFile('supabase/migrations/20260930120000_phase_k_active_scanner_signal_truth.sql','utf8'));
 
 
- await db.exec(`create table strategy_configs(strategy_name text,allowed_timeframes jsonb);create table test_events(key text primary key,payload jsonb);create function public.enqueue_canonical_lifecycle_event(text,text,integer,uuid,uuid,uuid,uuid,timestamptz,jsonb,text[]) returns void language sql as $$insert into test_events values($1,$9)$$;`);
+ await db.exec(`create table strategy_configs(strategy_name text,allowed_timeframes jsonb);create table auth.users(id uuid primary key);
+ alter table signal_publication_work alter column signal_id drop not null;
+ alter table signal_publication_work add entity_type text,add entity_id uuid,add event_type text,add event_version integer,add destination text,add customer_id uuid;`);
+ const lifecycle=await readFile('supabase/migrations/20261003120000_phase_m_lifecycle_publication_and_edits.sql','utf8');
+ await db.exec(lifecycle.slice(lifecycle.indexOf('CREATE TABLE IF NOT EXISTS public.canonical_lifecycle_events'),lifecycle.indexOf('CREATE OR REPLACE FUNCTION public.enqueue_canonical_lifecycle_event')));
+ await db.exec('create view test_events as select event_key as key,payload from canonical_lifecycle_events;grant select on test_events to service_role;');
  await db.exec(await readFile('supabase/migrations/20261029031319_conditional_signal_service.sql','utf8'));
  const tracks=await readFile('supabase/migrations/20261029053521_conditional_tracks_and_acquisition.sql','utf8');await db.exec(tracks.slice(0,tracks.indexOf('create or replace function public.commit_conditional_signal_setup')));
  const dual=await readFile('supabase/migrations/20261029205531_dual_market_conditional_watch.sql','utf8');await db.exec(dual.slice(0,dual.indexOf('create or replace function public.commit_conditional_signal_setup')));
@@ -21,7 +26,7 @@ export async function bootstrapMissionDatabase(db:{exec:(sql:string)=>Promise<un
  await db.exec(watches.slice(0,watches.indexOf('-- Extend only')));
  await db.exec(await readFile('supabase/migrations/20261030055040_conditional_execution_bridge.sql','utf8'));
  await db.exec(await readFile('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8'));
- await db.exec('grant select,insert on test_events to service_role;');
+
 
 }
 
