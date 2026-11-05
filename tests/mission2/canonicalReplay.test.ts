@@ -41,6 +41,7 @@ test('checkpoint restart is deterministic, with no duplicate signal or future-ca
  assert.equal(interrupted.status,'CANCELLED');assert.equal(interrupted.checkpoint.cursor,4);
  const resumed=await runCanonicalHistoricalReplay({...input,resume:interrupted.checkpoint});
  assert.deepEqual(resumed.checkpoint,full.checkpoint);
+ const alreadyCompleted=await runCanonicalHistoricalReplay({...input,resume:full.checkpoint});assert.deepEqual(alreadyCompleted.checkpoint,full.checkpoint);assert.equal(alreadyCompleted.evidence.length,0);
  const modified=await fixture();modified.candles[243]={...modified.candles[243],high:999999,low:1,close:100};modified.datasets[0].candles=modified.candles;modified.datasets[0].sha256=await historicalCandleChecksum(modified.candles);
  const originalEarly=await runCanonicalHistoricalReplay({...input,end:now,maxSteps:1});
  const modifiedEarly=await runCanonicalHistoricalReplay({...input,datasets:modified.datasets,end:now,maxSteps:1});

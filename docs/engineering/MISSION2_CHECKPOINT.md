@@ -23,6 +23,8 @@ PR #270 is merged. Main/source parent: `ef39c238c06cbc9d08d59e8fa96eab986e0b83bb
 - `npm run test:mission2`: **11 passed, 0 failed**. Tests include genuine evaluator immediate/conditional parity, frozen original confirmation, missing-data expiry, causal release revocation, checkpoint restart, checksum/ordering failures, future-candle mutation independence, no actionable unqualified signals, legacy-policy rejection and migrated SQL persistence parity.
 - `npm run test:conditional-signals`: **59 passed, 1 native-Postgres standalone test skipped, 0 failed**. Skip is existing; this session did not run native Postgres.
 - `npm run typecheck:mission2`: passed.
+- `npm run test:phase-m`: deterministic integration and reviewed blocker suites passed.
+- CLI restart from a completed checkpoint: identical summary, state, events and evidence; zero repeated evaluations.
 - `npx tsc --noEmit -p tsconfig.app.json`: passed.
 - Strict TypeScript check of `scripts/research/run-canonical-policy.ts`: passed.
 - Targeted ESLint of new frontend modules and Backtest Lab: passed.

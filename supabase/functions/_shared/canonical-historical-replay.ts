@@ -89,5 +89,5 @@ export async function runCanonicalHistoricalReplay(input:{
   const checkpoint:CanonicalReplayCheckpoint={schema:'canonical-historical-replay/v1',lineage,cursor:cursor+1,through:now,store:snapshot};
   await input.checkpoint?.(row,checkpoint);evidence.push(row);
  }
- return {status:'COMPLETED' as const,checkpoint:{schema:'canonical-historical-replay/v1' as const,lineage,cursor,through:now,store:store.snapshot()},evidence};
+ return {status:'COMPLETED' as const,checkpoint:{schema:'canonical-historical-replay/v1' as const,lineage,cursor,through:cursor?input.start+(cursor-1)*step:null,store:store.snapshot()},evidence};
 }
