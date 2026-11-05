@@ -1,0 +1,15 @@
+{
+  "id": "mission2-cost-aware-entry-comparison-20261105",
+  "scope": "HISTORICAL_RESEARCH_ONLY",
+  "productionPromotion": false,
+  "baseline": "Current catalog values, canonical entry-decision/v1",
+  "boundedAlternative": {"strategy": "crypto.micro-scalper", "parameter": "tp2_r", "baseline": 1.5, "candidate": 2.4},
+  "hypothesis": "A 1.5-ATR target against a roughly 1.2-ATR stop offers little room above minimum net RR after the existing modeled round-trip cost. Test a 2.4-ATR target without removing confirmations, regime, cost or risk gates; accept its effect on hit rate and holding time.",
+  "development": "2025-01; previously exposed in earlier repository research, not pristine",
+  "validation": "2025-02; previously exposed in earlier repository research, not pristine",
+  "confirmation": "2025-03; chronological robustness check, not pristine global holdout",
+  "reservedHoldout": "2026-10, downloaded only after this alternative is frozen",
+  "selection": "No further target tuning after viewing the reserved holdout",
+  "data": "Vendor-checksummed Binance archives; spot and derivatives cohorts remain distinct",
+  "qualification": "Requires adequate sample, after-cost robustness, execution-spec/data validation and explicit approval; never automatic"
+}

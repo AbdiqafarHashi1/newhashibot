@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {runCanonicalHistoricalReplay,historicalCandleChecksum,type CanonicalHistoricalDataset} from '../../supabase/functions/_shared/canonical-historical-replay.ts';
+import {runCanonicalHistoricalReplay,historicalCandleChecksum,historicalOpeningQuote,type CanonicalHistoricalDataset} from '../../supabase/functions/_shared/canonical-historical-replay.ts';
 import {watchedStrategyCatalog} from '../../supabase/functions/_shared/watched-strategy-catalog.ts';
 import {closedAggregate} from '../../supabase/functions/_shared/regime-opportunities.ts';
 import {discoverWatchedStrategies} from '../../supabase/functions/_shared/watched-strategy-discovery.ts';
@@ -32,6 +32,7 @@ test('unqualified research configuration never emits an actionable event',async(
  const r=await runCanonicalHistoricalReplay({...f,definitions:[unqualified],start:now,end:now+w,maxSteps:6});
  assert(r.evidence.flatMap(e=>e.observations).some(o=>o.reason.includes('UNQUALIFIED_STRATEGY')));
  assert.equal(r.checkpoint.store.events.filter(e=>e.confirmedSignalId).length,0);
+ assert(!r.evidence.some(e=>e.health.some(h=>h.state==='FEED_UNAVAILABLE'&&String(h.error).includes('PROJECTION_REJECTED'))));
 });
 test('checkpoint restart is deterministic, with no duplicate signal or future-candle influence',async()=>{
  const f=await fixture(),input={...f,definitions:[f.definition],start:now,end:now+3*w,maxSteps:16};
@@ -100,4 +101,9 @@ test('legacy runner cannot silently backtest a new-policy configuration with old
  const {runMultiDatasetScannerReplay}=await import('../../supabase/functions/_shared/multi-dataset-scanner-replay.ts');
  const f=await fixture();
  await assert.rejects(()=>runMultiDatasetScannerReplay({runId:'controlled',datasets:f.datasets.map(d=>({id:d.id,hash:d.sha256,configurationHash:'frozen',source:d.provenance.source,symbol:d.symbol,market:'crypto',timeframe:d.timeframe,candles:[...d.candles]})),configurationHash:'frozen',configuration:{version:'controlled',minSignalGrade:'A',strategies:[{id:f.definition.id,version:f.definition.version,enabled:true,minScore:72,minRiskReward:1.2,maxBarsInTrade:24,symbols:['BTCUSDT'],timeframes:['5m'],parameters:{entry_engine_version:1}}]},start:new Date(now).toISOString(),end:new Date(now+w).toISOString(),cooldownMs:0,maxCycles:10}),/CANONICAL_ENTRY_POLICY_REPLAY_REQUIRED/);
+});
+
+test('only bid/ask opening quotes are exposed, never future native flow or ask extrema',async()=>{
+ const f=await fixture(),b={...f.candles[240],instrument_type:'SPOT' as const,quote_volume:999999,trade_count:10000,taker_buy_volume:500,taker_buy_quote_volume:20000,ask_open:1240,ask_high:9999,ask_low:1,ask_close:9999};
+ const quote=historicalOpeningQuote(b);assert.equal(quote.ask_open,1240);assert.equal(quote.ask_high,1240);assert.equal(quote.ask_low,1240);assert.equal(quote.ask_close,1240);assert.equal(quote.high,b.open);assert.equal(quote.close,b.open);assert.equal(quote.quote_volume,undefined);assert.equal(quote.trade_count,undefined);assert.equal(quote.taker_buy_volume,undefined);
 });

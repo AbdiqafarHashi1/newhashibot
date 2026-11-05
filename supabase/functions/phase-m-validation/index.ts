@@ -1,3 +1,4 @@
+import {preparePortableSubmission} from '../_shared/phase-p-submission.ts';
 import {readEvidencePages} from '../_shared/validation-evidence-pages.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2";
@@ -14,6 +15,11 @@ const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"au
 async function requireNotCancelled(store:PhaseMRunStore,table:"validation_runs"|"validation_simulation_runs",runId:string){if(await store.cancelled(table,runId))throw new Error("RUN_CANCELLED")}
 Deno.serve(async req=>{if(req.method==="OPTIONS")return new Response(null,{headers:cors});const url=Deno.env.get("SUPABASE_URL")??"",key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"",token=(req.headers.get("Authorization")??"").replace(/^Bearer\s+/i,""),db=createClient(url,key,{auth:{persistSession:false}}),store=new PhaseMRunStore(db),{data:{user}}=await db.auth.getUser(token),{data:profile}=user?await db.from("profiles").select("role").eq("id",user.id).maybeSingle():{data:null},access=validationAccessDecision({authenticated:!!user,role:profile?.role??null});if(!access.allowed)return reply({error:access.error},access.status);const body=await req.json().catch(()=>({})) as any,action=String(body.action??"history");
  try{
+  if(action==='canonical_policy_replay'){
+   const args=await preparePortableSubmission(db,user!.id,{kind:'REPLAY',entryPolicyVersion:'entry-decision/v1',idempotencyKey:body.idempotencyKey,datasetIds:body.datasetIds,start:body.start,end:body.end,maxCycles:body.maxCycles,...(body.strategyIds?{strategyIds:body.strategyIds}:{})});
+   const queued=await db.rpc('enqueue_phase_p_job',args);if(queued.error)throw queued.error;
+   return reply({runId:queued.data.run_id,jobId:queued.data.id,status:queued.data.status,classification:'CANONICAL_SIGNAL_POLICY_VERIFICATION',qualificationEligible:false});
+  }
   if(action==='freeze_release'){const{data,error}=await db.rpc('freeze_strategy_release_candidate',{p_actor:user!.id,p_development:body.developmentRunId,p_validation:body.validationRunId,p_strategy:body.strategyId});if(error)throw error;return reply({state:'FROZEN',candidateId:data})}
   if(action==='promote_release'){const{data,error}=await db.rpc('promote_measured_strategy_release',{p_actor:user!.id,p_candidate:body.candidateId});if(error)throw error;return reply(data)}
   if(action==='release_history'){const{data,error}=await db.from('strategy_release_candidates').select('*').order('created_at',{ascending:false}).limit(50);if(error)throw error;return reply({candidates:data??[]})}

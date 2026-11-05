@@ -30,7 +30,7 @@ export class HistoricalConditionalStore implements ConditionalStore {
    this.events=structuredClone(snapshot.events);this.rejections=structuredClone(snapshot.rejections);
   }
  }
- snapshot():HistoricalStoreSnapshot{return structuredClone({schema:'historical-conditional-store/v1',records:[...this.records.values()],events:this.events,rejections:this.rejections});}
+ snapshot():HistoricalStoreSnapshot{return structuredClone({schema:'historical-conditional-store/v1',records:[...this.records.values()].sort((a,b)=>a.state.id.localeCompare(b.state.id)),events:this.events,rejections:this.rejections});}
  async open(symbol:string,timeframe:string){return structuredClone([...this.records.values()].map(r=>r.state).filter(s=>s.symbol===symbol&&s.timeframe===timeframe&&open(s)));}
  async expire(symbol:string,timeframe:string,now:number){let n=0;for(const s of await this.open(symbol,timeframe))if(['WAITING','ARMED'].includes(s.status)&&now>=Date.parse(s.expiresAt))if(await this.save({...s,status:'EXPIRED',version:s.version+1,observedAt:new Date(now).toISOString(),result:'Confirmation deadline elapsed; no entry.'},s.version))n++;return n;}
  async rejected(s:ConditionalSetup,reason:string,now:number){this.rejections.push({setupId:s.id,reason,at:new Date(now).toISOString()});}
@@ -63,7 +63,7 @@ export class HistoricalConditionalStore implements ConditionalStore {
    if(all.some(r=>r.state.symbol===s.symbol&&((r.state.timeframe===s.timeframe&&(open(r.state)||r.updatedAt>now-(s.track==='SCALP'?900000:14400000)))||(open(r.state)&&(r.state.side!==s.side||r.state.entryDecision?.executionEligible&&r.state.status==='ACTIVE')))))return false;
    if(all.filter(r=>conditionalMarket(r.state.symbol)===market&&r.state.track===s.track&&open(r.state)).length>=10||all.filter(r=>conditionalMarket(r.state.symbol)===market&&r.state.track===s.track&&r.createdAt>now-3600000).length>=3)return false;
   }
-  if(s.status==='ACTIVE'&&old?.state.status!=='ACTIVE'){
+  if(s.status==='ACTIVE'&&old?.state.status!=='ACTIVE'&&(!old||s.entryDecision.executionEligible)){
    const d=s.entryDecision;
    if(!entryPolicyQualified(s.origin.configuration)||!s.origin.plan.decision.qualified||!d.executionEligible||d.kind!=='IMMEDIATE_CONFIRMED'||d.confirmation!=='COMPLETE'||d.reasons.length||!(s.fill!>0)||!s.fillAt||!s.observedAt||Date.parse(s.observedAt)>now||now-Date.parse(s.fillAt)>90000)throw Error('CONFIRMED_SIGNAL_PROJECTION_REJECTED');
   }

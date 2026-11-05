@@ -1,3 +1,5 @@
+import {canonicalSnapshotFingerprint} from './canonical-historical-replay.ts';
+import {watchedStrategyCatalog} from './watched-strategy-catalog.ts';
 import {TEN_ASSET_PROFILE,TEN_REGIME_PROFILE} from './ten-asset-contract.ts';
 import {tenAssetConfiguration,tenAssetRegimeConfiguration} from './ten-asset-profile.ts';
 import {DAILY_PROFILES,dailyConfiguration} from './daily-trend-profile.ts';
@@ -38,6 +40,19 @@ export async function preparePortableSubmission(db:any,actor:string,body:Record<
     if(data.reduce((n:number,d:{row_count:number})=>n+Number(d.row_count),0)>MAX_STORED_CANDLES)throw new WorkerFault('SOURCE_BATCH_TOO_LARGE_SELECT_FEWER_DATASETS',true);
     if(new Set(data.map((x:any)=>x.configuration_version??'strategy-config/current')).size>1)throw new WorkerFault('REPLAY_CONFIGURATION_LINEAGE_CONFLICT',true);
     if(new Set(data.map((x:any)=>`${x.symbol}:${x.timeframe}`)).size!==data.length)throw new WorkerFault('REPLAY_DUPLICATE_SYMBOL_TIMEFRAME',true);
+    if(payload.entryPolicyVersion==='entry-decision/v1'){
+      if(['fees','funding','spread','slippage'].some(k=>payload[k]!==0))throw new WorkerFault('POLICY_VERIFICATION_USES_FROZEN_ENGINE_COSTS',true);
+      const [configs,releases]=await Promise.all([db.from('strategy_configs').select('*'),db.from('strategy_release_candidates').select('id,strategy_id,state,immutable_configuration').eq('state','PROMOTED')]);
+      if(configs.error||releases.error)throw new WorkerFault('STRATEGY_CONFIGURATION_UNAVAILABLE');
+      const definitions=watchedStrategyCatalog(configs.data??[],releases.data??[]).filter(d=>!payload.strategyIds||payload.strategyIds.includes(d.id));
+      if(!definitions.length||payload.strategyIds?.length!==undefined&&definitions.length!==payload.strategyIds.length)throw new WorkerFault('STRATEGY_SELECTION_NOT_APPROVED',true);
+      const canonicalSnapshot={configurations:configs.data??[],releases:releases.data??[],strategyIds:definitions.map(d=>d.id)};
+      const configuration={version:'canonical-policy-verification/v1',strategies:definitions.map(d=>({id:d.id,version:d.version,configuration:d.config}))};
+      const canonicalInputHash=await canonicalSnapshotFingerprint({configuration,canonicalSnapshot});
+      Object.assign(payload,{configuration,canonicalSnapshot,canonicalInputHash,policyVerificationOnly:true,datasets:payload.datasetIds.map((id:string)=>({id,hash:data.find((x:any)=>x.id===id).dataset_hash})),assumptions:{model:'canonical-signal-reference-costs',brokerFills:false,qualificationEligible:false}});
+      payload.datasetHashes=payload.datasets.map((d:{hash:string})=>d.hash);payload.datasetHash=payload.datasetHashes.join(':');
+      return {p_actor:actor,p_kind:kind,p_payload:payload,p_key:request.idempotencyKey,p_hash:canonicalInputHash,p_account:null};
+    }
     let approved;
     if(payload.researchModelId){const {data:model,error}=await db.from('validation_research_models').select('*').eq('id',payload.researchModelId).eq('created_by',actor).eq('publication_eligible',false).maybeSingle();if(error||!model)throw new WorkerFault('RESEARCH_MODEL_NOT_OWNED',true);approved=await researchModelSnapshot({strategyId:model.strategy_id,parameters:model.configuration?.strategies?.[0]?.parameters});if(approved.hash!==model.content_hash||Date.parse(payload.start)<Date.parse(model.valid_from)||Date.parse(payload.end)>Date.parse(model.valid_until))throw new WorkerFault('RESEARCH_MODEL_LINEAGE_OR_DATE_INVALID',true);payload.researchOnly=true;}
     else if(payload.researchCandidateId){const configuration=payload.researchCandidateId===TEN_REGIME_PROFILE?tenAssetRegimeConfiguration():payload.researchCandidateId===TEN_ASSET_PROFILE?tenAssetConfiguration():DAILY_PROFILES.includes(payload.researchCandidateId)?dailyConfiguration(payload.researchCandidateId):payload.researchCandidateId===LEGACY_CRYPTO_PROFILE_ID?legacyCryptoResearchConfiguration():CRYPTO_TEAM_PROFILE_IDS.includes(payload.researchCandidateId)?coordinatedConfiguration(payload.researchCandidateId):SIGNAL_ENSEMBLE_PROFILE_IDS.includes(payload.researchCandidateId)?signalEnsembleConfiguration(payload.researchCandidateId):altReplayConfiguration();approved={configuration,hash:await fingerprint(configuration)};validateCoordinatedDatasets(configuration,data.map((d:{symbol:string;timeframe:string;market_type?:string})=>({...d,market:d.market_type??(/USDT$/.test(d.symbol)?'crypto':'forex')})));payload.researchOnly=true;}

@@ -1,3 +1,4 @@
+import {nativeCandleEvidence} from './native-candle-evidence.ts';
 import {runConditionalWatch} from './conditional-watch.ts';
 import {watchWidth,type WatchTimeframe} from './conditional-contract.ts';
 import {discoverWatchedStrategies,type StrategyObservation} from './watched-strategy-discovery.ts';
@@ -19,12 +20,17 @@ export interface CanonicalReplayEvidence {
  events:HistoricalStoreSnapshot['events'];rejections:HistoricalStoreSnapshot['rejections'];
 }
 const stable=(v:unknown):string=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x);
-export async function historicalCandleChecksum(candles:readonly StrategyCandle[]){
- return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(stable(candles)))),x=>x.toString(16).padStart(2,'0')).join('');
+export async function canonicalSnapshotFingerprint(value:unknown){
+ return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(stable(value)))),x=>x.toString(16).padStart(2,'0')).join('');
 }
+export const historicalCandleChecksum=(candles:readonly StrategyCandle[])=>canonicalSnapshotFingerprint(candles);
 export async function canonicalReplayLineage(input:{datasets:readonly CanonicalHistoricalDataset[];definitions:readonly StrategyDefinition[];start:number;end:number;stepMs?:number;releaseTimeline?:readonly {at:number;enabledStrategyIds:readonly string[]}[]}){
  const text=stable({policy:'entry-decision/v1',start:input.start,end:input.end,stepMs:input.stepMs??60000,releaseTimeline:input.releaseTimeline??[],datasets:input.datasets.map(d=>({id:d.id,hash:d.sha256,symbol:d.symbol,tf:d.timeframe,provenance:d.provenance})),definitions:input.definitions.map(d=>({id:d.id,version:d.version,lifecycle:d.lifecycle,publicationMode:d.publicationMode,config:d.config}))});
  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),x=>x.toString(16).padStart(2,'0')).join('');
+}
+/** An OHLC archive's native flow and ask high/low/close are future information at its open. */
+export function historicalOpeningQuote(b:StrategyCandle):StrategyCandle {
+ return {symbol:b.symbol,market_type:b.market_type,timeframe:b.timeframe,source:b.source,open_time:b.open_time,open:b.open,high:b.open,low:b.open,close:b.open,volume:0,...(b.instrument_type?{instrument_type:b.instrument_type}:{}),...(b.ask_open!==undefined?{ask_open:b.ask_open,ask_high:b.ask_open,ask_low:b.ask_open,ask_close:b.ask_open}:{})};
 }
 /** Replays the actual independent production worker and its named evaluator/entry/watcher/arbitration modules.
  * Inputs are frozen release definitions. Unqualified configurations stay non-executable, as in production.
@@ -50,6 +56,7 @@ export async function runCanonicalHistoricalReplay(input:{
   if(!d.provenance.source||!d.provenance.instrument||!Array.isArray(d.provenance.limitations))throw Error('HISTORICAL_PROVENANCE_REQUIRED');
   for(let i=0;i<d.candles.length;i++){
    const b=d.candles[i],at=Date.parse(b.open_time);
+   nativeCandleEvidence(b as unknown as Record<string,unknown>);
    if(!Number.isFinite(at)||at%w||b.symbol!==d.symbol||b.timeframe!==d.timeframe||b.source!==d.provenance.source||![b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||b.volume<0||i>0&&at<=Date.parse(d.candles[i-1].open_time))throw Error('HISTORICAL_CANDLE_INTEGRITY_INVALID');
   }
  }
@@ -73,8 +80,10 @@ export async function runCanonicalHistoricalReplay(input:{
     if(!d)return {candles:[],error:'HISTORICAL_CONTEXT_DATASET_UNAVAILABLE'};
     const w=watchWidth(tf),closed=d.candles.filter(b=>Date.parse(b.open_time)+w<=at).slice(-240),opening=d.candles.find(b=>Date.parse(b.open_time)===at);
     // Only the opening quote is observable. Never expose its future high/low/close/volume.
-    const currentOpen=opening?{...opening,high:opening.open,low:opening.open,close:opening.open,volume:0}:undefined;
-    return {candles:closed,currentOpen};
+    const currentOpen=opening?historicalOpeningQuote(opening):undefined;
+    const last=closed.at(-1),spreadPrice=opening?.ask_open!==undefined?opening.ask_open-opening.open:last?.ask_close!==undefined?last.ask_close-last.close:undefined;
+    const spreadObservedAt=opening?.ask_open!==undefined?new Date(at).toISOString():last?.ask_close!==undefined?new Date(Date.parse(last.open_time)+w).toISOString():undefined;
+    return {candles:closed,currentOpen,spreadPrice,spreadObservedAt};
    },
    health:async r=>{row.health.push(r);},
    assess:async({symbol,tf,rows,now,feed,load})=>{
