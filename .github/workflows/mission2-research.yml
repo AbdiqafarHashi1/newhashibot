@@ -6,9 +6,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: mission2-research-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 jobs:
   research-request:
     runs-on: ubuntu-latest
@@ -28,6 +25,9 @@ jobs:
           if [ "$EVENT_NAME" = workflow_dispatch ]; then requested=true; fi
           echo "run=$requested" >> "$GITHUB_OUTPUT"
   historical-policy:
+    concurrency:
+      group: mission2-research-${{ github.event.pull_request.number || github.ref }}-${{ matrix.period }}-${{ matrix.policy }}
+      cancel-in-progress: true
     needs: research-request
     if: needs.research-request.outputs.run == 'true'
     name: Research ${{ matrix.period }} ${{ matrix.policy }}

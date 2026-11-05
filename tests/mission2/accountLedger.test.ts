@@ -1,3 +1,4 @@
+import {evaluateAccountSignal} from '../../supabase/functions/_shared/account-policy-authority.ts';
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {HistoricalAccountLedger,type HistoricalAccountPolicy,type HistoricalExecutionSpec} from '../../supabase/functions/_shared/historical-account-ledger.ts';
 import {input as fixture} from '../operations/support/accountPolicyFixture.ts';
@@ -31,4 +32,11 @@ test('Gold uses broker contract size, dollar tick value and lot steps rather tha
  const original=input(),i={...original,configuration:{...original.configuration,allowedSymbols:['XAUUSD'],allowedStrategies:[s.strategy]},signal:{...original.signal,symbol:'XAUUSD',entry_price:2000,stop_loss:1992,tp1:2016,tp2:2024},context:{...original.context,leverage:20,provider_contract:{...mt5Spec('MT5_PERSONAL'),symbol:'XAUUSD',broker_symbol:'XAUUSD',contract_size:100,tick_size:.01,tick_value_account_currency:1,pip_size:.1,price_precision:2,minimum_lot:.01,lot_step:.01,maximum_leverage:20}}};
  const ledger=new HistoricalAccountLedger(policy,[gold]);const decision=ledger.enter(s,q,i);assert(['ALLOW','REDUCE'].includes(decision?.decision??''),JSON.stringify(decision));const position=ledger.snapshot().positions[0];assert.equal(Math.round(position.quantity*100),position.quantity*100);assert(position.quantity<1);assert(position.entry>q.ask);
  ledger.observeQuotes([{...q,at:now+1000,bid:1988,ask:1988.2}],now+1000);const t=ledger.snapshot().trades[0];assert(t.netR<-1);assert(t.costs>0);assert.equal(t.reason,'OBSERVED_QUOTE_STOP');assert(Math.abs(t.gross-(t.exit-t.entry)*t.quantity*100)<1e-7);
+});
+
+test('account diagnostics retain the actual violated rule instead of inferring it from a reused legacy code',()=>{
+ const i=input(),decision=evaluateAccountSignal({...i,context:{...i.context,free_margin:0}});
+ assert.equal(decision.decision,'BLOCK');
+ assert(decision.ruleDiagnostics?.some(r=>/margin/i.test(r.ruleId)||/margin/i.test(r.message)),JSON.stringify(decision));
+ assert(decision.ruleDiagnostics?.every(r=>r.ruleId&&r.category&&r.severity&&r.message));
 });

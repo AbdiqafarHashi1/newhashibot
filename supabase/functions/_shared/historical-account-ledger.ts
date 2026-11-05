@@ -62,7 +62,7 @@ export class HistoricalAccountLedger {
   const stamp=new Date(quote.at).toISOString(),context=this.context({...input.context,provider_contract:input.context.provider_contract?.kind==='MT5'?{...input.context.provider_contract,quote_to_account_conversion:quote.conversion}:input.context.provider_contract},quote.at);
   const decision=evaluateAccountSignal({...input,signal:{...input.signal,signal_id:id,symbol:setup.symbol,strategy_id:setup.strategy,timeframe:setup.timeframe,direction:side===1?'BUY':'SELL',entry_price:price,stop_loss:setup.stop,tp1:setup.tp1,tp2:setup.tp2,created_at:setup.fillAt??stamp},context,evaluatedAt:stamp,duplicateSignalForAccount:false,activeSymbolConflict:s.positions.some(p=>p.symbol===setup.symbol)});
   const q=decision.executionIntent?.approvedQuantity??0;
-  if(!['ALLOW','REDUCE'].includes(decision.decision)||q<=0){s.decisions.push({signalId:id,at:quote.at,decision:decision.decision,reasons:[...decision.reasonCodes],quantity:0});return decision;}
+  if(!['ALLOW','REDUCE'].includes(decision.decision)||q<=0){s.decisions.push({signalId:id,at:quote.at,decision:decision.decision,reasons:[...decision.reasonCodes,...(decision.ruleDiagnostics??[]).map(r=>`BRAIN_RULE:${r.ruleId}`)],quantity:0});return decision;}
   if(q<spec.minimumQuantity||Math.abs(q/spec.quantityStep-Math.round(q/spec.quantityStep))>1e-6||q*price*spec.contractSize*quote.conversion<spec.minimumNotional)return reject('BROKER_QUANTITY_OR_NOTIONAL_INVALID');
   const fees=q*price*spec.contractSize*quote.conversion*spec.feeBpsPerSide/10000;
   if(q*price*spec.contractSize*quote.conversion/spec.leverage+fees>context.free_margin)return reject('BROKER_MARGIN_INSUFFICIENT');
