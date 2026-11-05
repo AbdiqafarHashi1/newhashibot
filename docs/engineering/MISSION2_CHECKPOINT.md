@@ -4,7 +4,7 @@ Status: **IN PROGRESS. Mission 2 is not complete. No strategy has been qualified
 
 ## Baseline
 
-PR #270 is merged. Main/source parent: `ef39c238c06cbc9d08d59e8fa96eab986e0b83bb`; exact source tree `8b1d7747840c8114e560107917accb6fdbd88808`. Branch: `codex/mission2-historical-qualification`. Mission 1 behavior is preserved.
+PR #270 is merged. Main/source parent: `ef39c238c06cbc9d08d59e8fa96eab986e0b83bb`; exact source tree `8b1d7747840c8114e560107917accb6fdbd88808`. Branch: `codex/mission2-historical-qualification`. Draft PR: https://github.com/AbdiqafarHashi1/newhashibot/pull/271. First published commit: `dcfaf08766e8b9a4e4facbe66ad7d73fa53dfeb4`. Mission 1 behavior is preserved.
 
 ## Implemented and tested
 
@@ -28,7 +28,7 @@ PR #270 is merged. Main/source parent: `ef39c238c06cbc9d08d59e8fa96eab986e0b83bb
 - Targeted ESLint of new frontend modules and Backtest Lab: passed.
 - `npx vite build`: passed; existing large-chunk warnings remain.
 - Browser visual/interaction verification: **not run**. Playwright Chromium download repeatedly returned a truncated/non-ZIP response in this environment. App compilation/build is not browser verification.
-- CI includes the new Mission 2 tests/typecheck. Remote CI result must be inspected after publishing this branch.
+- CI includes the new Mission 2 tests/typecheck and a desktop/phone Backtest Lab smoke test. Remote CI result must be inspected after publishing this branch. The browser test is authored but not claimed passing until CI confirms it.
 
 ## Genuine bounded data evidence
 
@@ -47,12 +47,13 @@ The output envelope retains summary, evidence and checkpoint. To resume after in
 
 ## Exact next dependency
 
-1. Finish canonical research replay integration into both `cloud/worker/handlers.ts` REPLAY and `supabase/functions/phase-m-validation/index.ts`, submission validation and durable queued evidence/checkpoints. Do not call live signal-projection RPCs during historical replay. Never stamp `entry_policy_version` merely because a configuration contains its marker.
-2. Introduce explicit **research authorization distinct from production release approval**, so unreleased candidates can be studied without forging promoted releases or granting customer execution. Preserve the tested unqualified execution block. The current adapter deliberately requires real qualified definitions (controlled releases only in tests), so it cannot yet perform candidate profitability research.
-3. Feed confirmed identities into a realistic historical order/fill model and actual account authorization at observation time. Respect next-open executable prices, instrument steps/notional/margin, fees/spread/slippage/funding/swap, conservative stop/target ambiguity and concurrent marked equity. Do not reuse the existing post-hoc outcome calculation as proof of canonical fill parity.
-4. Replace sequential completed-trade account accounting (`openPositions:0`, immediately realized outcomes) before any Personal/Prop performance claims. Preserve per-account Brain/risk authority; add calendar-day equity locks and floating intrabar risk tests.
-5. Then complete configurable challenge → verification → funded → payout eligibility, rolling starts with uncertainty/overlap disclosure, cross-account exposure, adverse costs, qualification and existing Lab results/job integration.
-6. Only after these foundations: acquire reproducible larger genuine datasets, bounded development/validation/untouched holdout experiments and actual Crypto/Forex/Gold results. Current registry remains 29 definitions/10 primary; no strategy/configuration was promoted or newly invented.
+1. **Queue contract discovered:** existing `checkpoint_phase_p_job` limits its checkpoint JSON to 10 KB. Full canonical watch snapshots exceed this. Add a durable historical state/journal with bounded checkpoint references and transactional evidence updates before enabling queued canonical jobs; do not increase a blob cap and repeatedly copy entire histories.
+2. Finish canonical research replay integration into both `cloud/worker/handlers.ts` REPLAY and `supabase/functions/phase-m-validation/index.ts`, submission validation and durable queued evidence/checkpoints. Do not call live signal-projection RPCs during historical replay. Never stamp `entry_policy_version` merely because a configuration contains its marker.
+3. Introduce explicit **research authorization distinct from production release approval**, so unreleased candidates can be studied without forging promoted releases or granting customer execution. Preserve the tested unqualified execution block. The current adapter deliberately requires real qualified definitions (controlled releases only in tests), so it cannot yet perform candidate profitability research.
+4. Feed confirmed identities into a realistic historical order/fill model and actual account authorization at observation time. Respect next-open executable prices, instrument steps/notional/margin, fees/spread/slippage/funding/swap, conservative stop/target ambiguity and concurrent marked equity. Do not reuse the existing post-hoc outcome calculation as proof of canonical fill parity.
+5. Replace sequential completed-trade account accounting (`openPositions:0`, immediately realized outcomes) before any Personal/Prop performance claims. Preserve per-account Brain/risk authority; add calendar-day equity locks and floating intrabar risk tests.
+6. Then complete configurable challenge → verification → funded → payout eligibility, rolling starts with uncertainty/overlap disclosure, cross-account exposure, adverse costs, qualification and existing Lab results/job integration.
+7. Only after these foundations: acquire reproducible larger genuine datasets, bounded development/validation/untouched holdout experiments and actual Crypto/Forex/Gold results. Current registry remains 29 definitions/10 primary; no strategy/configuration was promoted or newly invented.
 
 ## Remaining work / readiness
 
