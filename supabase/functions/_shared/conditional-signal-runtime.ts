@@ -10,7 +10,14 @@ export function resolvedWatchState(s:ConditionalSetup):ConditionalSetup{
  const outcome=s.watchOutcome??(['ACTIVE','CLOSED'].includes(s.status)?'CONFIRMED':s.status==='EXPIRED'?'EXPIRED':s.status==='INVALIDATED'?'INVALIDATED':undefined);
  return outcome?{...s,watchOutcome:outcome}:s;
 }
-export class ConditionalSignalStore {
+export interface ConditionalStore {
+ open(symbol:string,timeframe:string):Promise<ConditionalSetup[]>;
+ expire(symbol:string,timeframe:string,now:number):Promise<number>;
+ rejected(s:ConditionalSetup,reason:string,now:number):Promise<void>;
+ admit(s:ConditionalSetup):Promise<boolean>;
+ save(s:ConditionalSetup,expected:number):Promise<boolean>;
+}
+export class ConditionalSignalStore implements ConditionalStore {
  constructor(private db:any){}
  async open(symbol:string,timeframe:string):Promise<ConditionalSetup[]>{
   const {data,error}=await this.db.from('conditional_signal_setups').select('state').eq('symbol',symbol).eq('timeframe',timeframe).in('status',['WAITING','ARMED','ACTIVE']).limit(100);
@@ -38,7 +45,7 @@ export class ConditionalSignalStore {
  }
 }
 /** Shared by discovery and the independent watcher; CAS makes overlapping runs safe. */
-export async function observeConditionalSymbol(store:ConditionalSignalStore,symbol:string,tf:WatchTimeframe,rows:readonly StrategyCandle[],now:number,options?:{qualification?:(s:ConditionalSetup)=>boolean;confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>ReturnType<typeof frozenStrategyConfirmation>;intelligence?:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}):Promise<ConditionalSetup[]> {
+export async function observeConditionalSymbol(store:ConditionalStore,symbol:string,tf:WatchTimeframe,rows:readonly StrategyCandle[],now:number,options?:{qualification?:(s:ConditionalSetup)=>boolean;confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>ReturnType<typeof frozenStrategyConfirmation>;intelligence?:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}):Promise<ConditionalSetup[]> {
  const open=await store.open(symbol,tf);
  for(const saved of open){let state=saved;
   for(const bar of rows){if(Date.parse(bar.open_time)<=Date.parse(state.lastBar)||Date.parse(bar.open_time)+watchWidth(tf)>now)continue;
@@ -88,7 +95,7 @@ export async function observeConditionalSymbol(store:ConditionalSignalStore,symb
  return conditionalCandidates(symbol,tf,rows,now);
 }
 /** Strongest first across the whole bounded universe, not database symbol iteration order. */
-export async function admitConditionalBatch(store:ConditionalSignalStore,candidates:readonly ConditionalSetup[],now:number){
+export async function admitConditionalBatch(store:ConditionalStore,candidates:readonly ConditionalSetup[],now:number){
  const grouped=new Map<string,ConditionalSetup[]>();for(const s of candidates){const g=grouped.get(s.symbol)??[];g.push(s);grouped.set(s.symbol,g);}
  const winners=[...grouped.values()].flatMap(g=>{
   if(new Set(g.map(s=>s.side)).size>1)return [];

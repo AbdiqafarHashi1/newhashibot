@@ -34,7 +34,7 @@ function forexSessionContext(date?: Date): string {
   return "Unknown";
 }
 
-function forexAtrPct(symbol: string, atr: number, price: number): number {
+function forexAtrPct(_symbol: string, atr: number, price: number): number {
   if (price <= 0 || !Number.isFinite(atr) || !Number.isFinite(price)) return 0;
   return (atr / price) * 100;
 }
@@ -204,7 +204,7 @@ export function evalForexMicroScalper(candles: Candle[], ind: Indicators, timefr
 
 // ─── ForexSwingContinuation ──────────────────────────────────────────────────
 
-export function evalForexSwingContinuation(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
+export function evalForexSwingContinuation(candles: Candle[], _ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
   const symbol = normalizeSymbol(candles[candles.length - 1]?.symbol ?? "");
   const min_atr_pct = params.min_atr_pct ?? 0.018;
   const max_atr_pct = params.max_atr_pct ?? 0.42;

@@ -425,7 +425,7 @@ export function evalCompressionBreakout(candles: Candle[], ind: Indicators, time
   return { status: "candidate", direction, entry_low, entry_high, stop_loss, tp1, tp2, risk_reward, confidence_score: finalScore, grade, reason, rejection_reason: "", score_breakdown };
 }
 
-export function evalSwingContinuation(candles: Candle[], ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
+export function evalSwingContinuation(candles: Candle[], _ind: Indicators, timeframe: string, params: Record<string, number>): EvalResult {
   const rsi_buy_min = params.rsi_buy_min ?? 50;
   const rsi_sell_max = params.rsi_sell_max ?? 50;
   const min_atr_pct = params.min_atr_pct ?? 0.15;

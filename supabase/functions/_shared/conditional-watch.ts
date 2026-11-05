@@ -1,20 +1,21 @@
 import {entryPolicyQualified} from './entry-decision.ts';
 import {CONDITIONAL_ASSETS,conditionalMarket,scheduledMarketClosed} from './conditional-market.ts';
-import {ConditionalSignalStore,observeConditionalSymbol,admitConditionalBatch} from './conditional-signal-runtime.ts';
+import {type ConditionalStore,observeConditionalSymbol,admitConditionalBatch} from './conditional-signal-runtime.ts';
 import {enterConditionalAtOpen,type ConditionalSetup} from './conditional-signal-service.ts';
 import {watchWidth,type WatchTimeframe} from './conditional-contract.ts';
 import type {StrategyCandle} from './professional-strategies.ts';
 import {strategyContextDecision,type WatchedIntelligence} from './watched-market-context.ts';
 export interface WatchFeed {candles:readonly StrategyCandle[];currentOpen?:StrategyCandle;error?:string|null;spreadPrice?:number|null;spreadObservedAt?:string;}
 export interface WatchDependencies {
- store:ConditionalSignalStore;feed:(symbol:string,tf:WatchTimeframe,now:number)=>Promise<WatchFeed>;
+ store:ConditionalStore;feed:(symbol:string,tf:WatchTimeframe,now:number)=>Promise<WatchFeed>;
  health:(record:Record<string,unknown>)=>Promise<void>;discovery:{crypto:boolean;forex:boolean};
+ streams?:readonly {symbol:string;tf:WatchTimeframe}[];
  timeframes?:readonly WatchTimeframe[];additionalTasks?:readonly {symbol:string;tf:WatchTimeframe}[];
  assess?:(i:{symbol:string;tf:WatchTimeframe;rows:readonly StrategyCandle[];now:number;feed:WatchFeed;load:(symbol:string,tf:WatchTimeframe)=>Promise<WatchFeed>})=>Promise<{setups:ConditionalSetup[];qualification?:(s:ConditionalSetup)=>boolean;confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>'CONFIRMED'|'STILL_WAITING'|'DATA_UNAVAILABLE';intelligence:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}>;
 }
 /** Every stream is visited; one shared four-request cache includes higher-timeframe and anchor reads. */
 export async function runConditionalWatch(deps:WatchDependencies,now=Date.now()) {
- const byKey=new Map(CONDITIONAL_ASSETS.flatMap(symbol=>(deps.timeframes??['15m','1h'] as const).map(tf=>[`${symbol}:${tf}`,{symbol,tf}] as const)));
+ const byKey=new Map((deps.streams??CONDITIONAL_ASSETS.flatMap(symbol=>(deps.timeframes??['15m','1h'] as const).map(tf=>({symbol,tf})))).map(t=>[`${t.symbol}:${t.tf}`,t] as const));
  for(const t of deps.additionalTasks??[])byKey.set(`${t.symbol}:${t.tf}`,t);
  const tasks=[...byKey.values()],results:Record<string,unknown>[]=[],candidates:ConditionalSetup[]=[],cache=new Map<string,Promise<WatchFeed>>();
  let active=0;const waiting:Array<()=>void>=[];

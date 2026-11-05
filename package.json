@@ -139,7 +139,10 @@
     "test:conditional-signals": "node --import tsx --test tests/conditionalSignals/*.test.ts",
     "typecheck:entry-engine": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/entry-decision.ts supabase/functions/_shared/entry-regime.ts supabase/functions/_shared/frozen-strategy-confirmation.ts supabase/functions/_shared/watched-strategy-discovery.ts supabase/functions/_shared/conditional-signal-runtime.ts",
     "test:phase-l-engineering": "node scripts/test-phase-l-engineering.mjs",
-    "test:release1-engineering": "node scripts/release1/test.mjs --engineering"
+    "test:release1-engineering": "node scripts/release1/test.mjs --engineering",
+    "test:mission2": "node --import tsx --test --test-concurrency=2 tests/mission2/*.test.ts",
+    "typecheck:mission2": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/canonical-historical-replay.ts",
+    "research:canonical-policy": "node --import tsx scripts/research/run-canonical-policy.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

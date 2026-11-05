@@ -1,0 +1,23 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {decodeNativeKline} from '../../supabase/functions/_shared/native-kline.ts';
+import {closedAggregate} from '../../supabase/functions/_shared/regime-opportunities.ts';
+import {watchedStrategyCatalog,CORE_WATCH_STRATEGIES} from '../../supabase/functions/_shared/watched-strategy-catalog.ts';
+import {historicalCandleChecksum,runCanonicalHistoricalReplay,type CanonicalHistoricalDataset} from '../../supabase/functions/_shared/canonical-historical-replay.ts';
+test('bounded genuine SPOT replay preserves native provenance and never invents qualification',async()=>{
+ const base='tests/conditionalSignals/fixtures/btcusdt-5m-20250101',bytes=readFileSync(base+'.json'),manifest=JSON.parse(readFileSync(base+'.manifest.json','utf8'));
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.sha256);
+ const rows=JSON.parse(bytes.toString()).map((r:unknown[])=>decodeNativeKline('BTCUSDT','5m',r,'SPOT')),start=Date.parse(rows[120].open_time),end=Date.parse(rows[150].open_time);
+ const make=async(candles:typeof rows,timeframe:'5m'|'15m'):Promise<CanonicalHistoricalDataset>=>({id:`native-btc-${timeframe}`,sha256:await historicalCandleChecksum(candles),symbol:'BTCUSDT',timeframe,candles,provenance:{source:'BINANCE_SPOT_KLINES',instrument:'SPOT',limitations:[`Original download: ${manifest.source}`,`Raw checksum: ${manifest.sha256}`,'160 candles only; no profitability, derivatives, or qualification evidence']}});
+ const datasets=await Promise.all([make(rows,'5m'),make(closedAggregate(rows,15,new Date(end).toISOString()),'15m')]);
+ const definitions=watchedStrategyCatalog(CORE_WATCH_STRATEGIES.map(d=>({strategy_name:d.name,enabled:true})));
+ const input={datasets,definitions,start,end,maxSteps:151},a=await runCanonicalHistoricalReplay(input),b=await runCanonicalHistoricalReplay(input);
+ assert.equal(a.status,'COMPLETED');assert.deepEqual(a.checkpoint,b.checkpoint);assert.equal(a.checkpoint.cursor,151);
+ assert.equal(a.checkpoint.store.events.filter(e=>e.confirmedSignalId).length,0);
+ const decisions=a.evidence.flatMap(e=>e.observations);assert(decisions.length>0);
+ assert(decisions.every(o=>o.evidence.entry_decision));
+ assert(decisions.every(o=>Date.parse(String(o.evidence.source_close))<=Date.parse(o.checked_at)));
+ console.log(JSON.stringify({dataset:'BTCUSDT SPOT',rawCandles:rows.length,period:[new Date(start).toISOString(),new Date(end).toISOString()],workerTicks:a.checkpoint.cursor,decisions:decisions.length,confirmedSignals:0,qualification:'NOT_QUALIFIED',profitability:'NOT_EVALUATED',rawSha256:manifest.sha256}));
+});
