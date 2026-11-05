@@ -107,3 +107,9 @@ test('only bid/ask opening quotes are exposed, never future native flow or ask e
  const f=await fixture(),b={...f.candles[240],instrument_type:'SPOT' as const,quote_volume:999999,trade_count:10000,taker_buy_volume:500,taker_buy_quote_volume:20000,ask_open:1240,ask_high:9999,ask_low:1,ask_close:9999};
  const quote=historicalOpeningQuote(b);assert.equal(quote.ask_open,1240);assert.equal(quote.ask_high,1240);assert.equal(quote.ask_low,1240);assert.equal(quote.ask_close,1240);assert.equal(quote.high,b.open);assert.equal(quote.close,b.open);assert.equal(quote.quote_volume,undefined);assert.equal(quote.trade_count,undefined);assert.equal(quote.taker_buy_volume,undefined);
 });
+test('empty-discovery memoization preserves canonical states and research-only policy controls cannot affect measured releases',async()=>{
+ const f=await fixture(),input={...f,definitions:[f.definition],start:now,end:now+3*w,maxSteps:16};
+ const full=await runCanonicalHistoricalReplay(input),memo=await runCanonicalHistoricalReplay({...input,memoizeNoTrade:true});assert.deepEqual(memo.checkpoint,full.checkpoint);
+ await assert.rejects(()=>runCanonicalHistoricalReplay({...input,entryPolicy:'CONDITIONAL_ONLY'}),/RESEARCH/);
+ await assert.rejects(()=>runCanonicalHistoricalReplay({...input,admissionProfile:'RISK_CAPACITY_ONLY'}),/RESEARCH/);
+});

@@ -1,10 +1,10 @@
 import type {ConditionalStore} from './conditional-signal-runtime.ts';
 import {resolvedWatchState} from './conditional-signal-runtime.ts';
-import {entryPolicyQualified} from './entry-decision.ts';
+import {entryPolicyQualified,entryPolicyResearchAuthorized} from './entry-decision.ts';
 import {conditionalMarket} from './conditional-market.ts';
 import {conditionalMessage,type ConditionalSetup} from './conditional-signal-service.ts';
 
-export interface HistoricalLifecycleEvent {id:string;at:string;setupId:string;version:number;status:string;confirmedSignalId:string|null;message:string;}
+export interface HistoricalLifecycleEvent {id:string;at:string;setupId:string;version:number;status:string;confirmedSignalId:string|null;researchSignalId?:string;message:string;}
 export interface HistoricalStoreSnapshot {
  schema:'historical-conditional-store/v1';
  records:{state:ConditionalSetup;createdAt:number;updatedAt:number}[];
@@ -19,10 +19,11 @@ const open=(s:ConditionalSetup)=>['WAITING','ARMED','ACTIVE'].includes(s.status)
  * Snapshot must be committed together with its evidence by the calling job before advancing its clock.
  * No database, Telegram client or provider client is reachable from this adapter. */
 export class HistoricalConditionalStore implements ConditionalStore {
+ private denied=new Map<string,string>();
  private records=new Map<string,HistoricalStoreSnapshot['records'][number]>();
  private events:HistoricalLifecycleEvent[]=[];
  private rejections:HistoricalStoreSnapshot['rejections']=[];
- constructor(private clock:()=>number,snapshot?:HistoricalStoreSnapshot){
+ constructor(private clock:()=>number,snapshot?:HistoricalStoreSnapshot,private admissionProfile:'PRODUCTION_PARITY'|'RISK_CAPACITY_ONLY'='PRODUCTION_PARITY'){
   if(snapshot){
    if(snapshot.schema!=='historical-conditional-store/v1')throw Error('HISTORICAL_STORE_VERSION_MISMATCH');
    for(const r of snapshot.records){if(this.records.has(r.state.id))throw Error('DUPLICATE_CHECKPOINT_SETUP');this.records.set(r.state.id,structuredClone(r));}
@@ -33,8 +34,8 @@ export class HistoricalConditionalStore implements ConditionalStore {
  snapshot():HistoricalStoreSnapshot{return structuredClone({schema:'historical-conditional-store/v1',records:[...this.records.values()].sort((a,b)=>a.state.id.localeCompare(b.state.id)),events:this.events,rejections:this.rejections});}
  async open(symbol:string,timeframe:string){return structuredClone([...this.records.values()].map(r=>r.state).filter(s=>s.symbol===symbol&&s.timeframe===timeframe&&open(s)));}
  async expire(symbol:string,timeframe:string,now:number){let n=0;for(const s of await this.open(symbol,timeframe))if(['WAITING','ARMED'].includes(s.status)&&now>=Date.parse(s.expiresAt))if(await this.save({...s,status:'EXPIRED',version:s.version+1,observedAt:new Date(now).toISOString(),result:'Confirmation deadline elapsed; no entry.'},s.version))n++;return n;}
- async rejected(s:ConditionalSetup,reason:string,now:number){this.rejections.push({setupId:s.id,reason,at:new Date(now).toISOString()});}
- async admit(s:ConditionalSetup){if(this.records.has(s.id))return false;return this.save(s,0);}
+ async rejected(s:ConditionalSetup,reason:string,now:number){this.rejections.push({setupId:s.id,reason:reason==='ATOMIC_ADMISSION_CONFLICT_OR_CAPACITY'?(this.denied.get(s.id)??reason):reason,at:new Date(now).toISOString()});}
+ async admit(s:ConditionalSetup){if(this.records.has(s.id)){this.denied.set(s.id,'DUPLICATE_OPPORTUNITY_REEVALUATION');return false;}return this.save(s,0);}
  async save(input:ConditionalSetup,expected:number):Promise<boolean>{
   // No await in the transaction: compare-and-swap, admission and event append are indivisible.
   const s=structuredClone(resolvedWatchState(input)),now=this.clock(),old=this.records.get(s.id),terminal=['CLOSED','EXPIRED','INVALIDATED','DATA_GAP'];
@@ -59,18 +60,25 @@ export class HistoricalConditionalStore implements ConditionalStore {
    }
   }else{
    if(expected!==0||s.version!==1||!['WAITING','ACTIVE'].includes(s.status)||now>=Date.parse(s.expiresAt))return false;
+   if(this.admissionProfile!=='PRODUCTION_PARITY'&&!entryPolicyResearchAuthorized(s.origin.configuration))throw Error('RESEARCH_ADMISSION_PROFILE_REQUIRED');
    const market=conditionalMarket(s.symbol),all=[...this.records.values()];
-   if(all.some(r=>r.state.symbol===s.symbol&&((r.state.timeframe===s.timeframe&&(open(r.state)||r.updatedAt>now-(s.track==='SCALP'?900000:14400000)))||(open(r.state)&&(r.state.side!==s.side||r.state.entryDecision?.executionEligible&&r.state.status==='ACTIVE')))))return false;
-   if(all.filter(r=>conditionalMarket(r.state.symbol)===market&&r.state.track===s.track&&open(r.state)).length>=10||all.filter(r=>conditionalMarket(r.state.symbol)===market&&r.state.track===s.track&&r.createdAt>now-3600000).length>=3)return false;
+   const deny=(reason:string)=>{this.denied.set(s.id,reason);return false;};
+   if(all.some(r=>r.state.symbol===s.symbol&&r.state.timeframe===s.timeframe&&open(r.state)))return deny('OPEN_WATCH_SAME_SYMBOL_TIMEFRAME');
+   if(this.admissionProfile==='PRODUCTION_PARITY'&&all.some(r=>r.state.symbol===s.symbol&&r.state.timeframe===s.timeframe&&r.updatedAt>now-(s.track==='SCALP'?900000:14400000)))return deny('SYMBOL_TIMEFRAME_COOLDOWN');
+   if(all.some(r=>r.state.symbol===s.symbol&&open(r.state)&&r.state.side!==s.side))return deny('OPPOSING_EXPOSURE');
+   if(all.some(r=>r.state.symbol===s.symbol&&r.state.status==='ACTIVE'&&(this.admissionProfile==='PRODUCTION_PARITY'||r.state.track===s.track)&&(r.state.entryDecision?.executionEligible||r.state.entryDecision?.authorizationScope==='RESEARCH')))return deny('ACTIVE_SIGNAL_SAME_SYMBOL');
+   if(this.admissionProfile==='PRODUCTION_PARITY'&&all.filter(r=>conditionalMarket(r.state.symbol)===market&&r.state.track===s.track&&open(r.state)).length>=10)return deny('OPEN_WATCH_CAPACITY');
+   if(this.admissionProfile==='PRODUCTION_PARITY'&&all.filter(r=>conditionalMarket(r.state.symbol)===market&&r.state.track===s.track&&r.createdAt>now-3600000).length>=3)return deny('HOURLY_ADMISSION_CAP');
   }
   if(s.status==='ACTIVE'&&old?.state.status!=='ACTIVE'&&(!old||s.entryDecision.executionEligible)){
    const d=s.entryDecision;
-   if(!entryPolicyQualified(s.origin.configuration)||!s.origin.plan.decision.qualified||!d.executionEligible||d.kind!=='IMMEDIATE_CONFIRMED'||d.confirmation!=='COMPLETE'||d.reasons.length||!(s.fill!>0)||!s.fillAt||!s.observedAt||Date.parse(s.observedAt)>now||now-Date.parse(s.fillAt)>90000)throw Error('CONFIRMED_SIGNAL_PROJECTION_REJECTED');
+   const research=d.authorizationScope==='RESEARCH'&&entryPolicyResearchAuthorized(s.origin.configuration)&&!d.executionEligible;
+   if((!entryPolicyQualified(s.origin.configuration)&&!research)||!s.origin.plan.decision.qualified||(!d.executionEligible&&!research)||d.kind!=='IMMEDIATE_CONFIRMED'||d.confirmation!=='COMPLETE'||d.reasons.length||!(s.fill!>0)||!s.fillAt||!s.observedAt||Date.parse(s.observedAt)>now||now-Date.parse(s.fillAt)>90000)throw Error('CONFIRMED_SIGNAL_PROJECTION_REJECTED');
   }
   const message=conditionalMessage(s); // Validate serialization before committing any mutation.
   this.records.set(s.id,{state:s,createdAt:old?.createdAt??now,updatedAt:now});
   if(!old||s.status!==old.state.status||s.partial!==old.state.partial){
-   this.events.push({id:`conditional:${s.id}:${s.version}`,at:new Date(now).toISOString(),setupId:s.id,version:s.version,status:s.status,confirmedSignalId:s.status==='ACTIVE'&&s.entryDecision?.executionEligible?`historical-confirmed:${s.id}`:null,message});
+   this.events.push({id:`conditional:${s.id}:${s.version}`,at:new Date(now).toISOString(),setupId:s.id,version:s.version,status:s.status,confirmedSignalId:s.status==='ACTIVE'&&s.entryDecision?.executionEligible?`historical-confirmed:${s.id}`:null,...(s.status==='ACTIVE'&&s.entryDecision?.authorizationScope==='RESEARCH'?{researchSignalId:`historical-research:${s.id}`}:{ }),message});
   }
   return true;
  }

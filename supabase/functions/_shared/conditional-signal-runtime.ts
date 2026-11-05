@@ -1,4 +1,4 @@
-import {decideEntry,entryPolicyQualified} from './entry-decision.ts';
+import {decideEntry,entryPolicyEvaluable} from './entry-decision.ts';
 import {frozenStrategyConfirmation} from './frozen-strategy-confirmation.ts';
 import {watchWidth,type WatchTimeframe} from './conditional-contract.ts';
 import {strategyContextDecision,type WatchedIntelligence} from './watched-market-context.ts';
@@ -75,7 +75,7 @@ export async function observeConditionalSymbol(store:ConditionalStore,symbol:str
     if(decision!=='VALID')next={...state,version:state.version+1,lastBar:bar.open_time,status:'INVALIDATED',confirmationIntelligence:intel,result:'Next-open strategy context did not qualify; no paper entry.'};
     else next={...next,confirmationIntelligence:intel};
    }
-   if(state.origin&&state.entryDecision&&entryPolicyQualified(state.origin.configuration)&&state.status==='WAITING'&&next.status==='ARMED'){
+   if(state.origin&&state.entryDecision&&entryPolicyEvaluable(state.origin.configuration)&&state.status==='WAITING'&&next.status==='ARMED'){
     const prefix=rows.filter(r=>Date.parse(r.open_time)<=Date.parse(bar.open_time)),at=Date.parse(bar.open_time)+watchWidth(tf);
     const intel=next.confirmationIntelligence;
     const trigger=options?.confirmation?options.confirmation(state,prefix,at):frozenStrategyConfirmation(state,prefix,at);
@@ -87,8 +87,8 @@ export async function observeConditionalSymbol(store:ConditionalStore,symbol:str
      if(decision.kind!=='IMMEDIATE_CONFIRMED')next={...next,status:'WAITING',armedAt:undefined,result:'STILL_WAITING: '+decision.reasons.join(', ')};
     }
    }
-   if(['WAITING','ARMED'].includes(state.status)&&state.origin&&entryPolicyQualified(state.origin.configuration)&&!['CLOSED','EXPIRED','INVALIDATED','DATA_GAP'].includes(next.status)&&options?.qualification?.(state)!==true)next={...next,status:'INVALIDATED',observedAt:new Date(now).toISOString(),fill:undefined,fillAt:undefined,result:'CURRENT_STRATEGY_QUALIFICATION_REQUIRED: original release disabled, revoked, replaced or unavailable.'};
-   if(state.status==='ARMED'&&state.origin&&entryPolicyQualified(state.origin.configuration)&&['ACTIVE','CLOSED'].includes(next.status)&&!next.fillAt)next={...next,status:'INVALIDATED',fill:undefined,exit:undefined,partial:undefined,netR:undefined,bars:undefined,result:'MISSED_EXECUTABLE_ENTRY_WINDOW: a completed candle cannot supply a retroactive entry.'};
+   if(['WAITING','ARMED'].includes(state.status)&&state.origin&&entryPolicyEvaluable(state.origin.configuration)&&!['CLOSED','EXPIRED','INVALIDATED','DATA_GAP'].includes(next.status)&&options?.qualification?.(state)!==true)next={...next,status:'INVALIDATED',observedAt:new Date(now).toISOString(),fill:undefined,fillAt:undefined,result:'CURRENT_STRATEGY_QUALIFICATION_REQUIRED: original release disabled, revoked, replaced or unavailable.'};
+   if(state.status==='ARMED'&&state.origin&&entryPolicyEvaluable(state.origin.configuration)&&['ACTIVE','CLOSED'].includes(next.status)&&!next.fillAt)next={...next,status:'INVALIDATED',fill:undefined,exit:undefined,partial:undefined,netR:undefined,bars:undefined,result:'MISSED_EXECUTABLE_ENTRY_WINDOW: a completed candle cannot supply a retroactive entry.'};
    if(!await store.save(next,state.version))break;state=next;
   }
  }

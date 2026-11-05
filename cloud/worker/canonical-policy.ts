@@ -28,7 +28,7 @@ const executeCanonicalPolicyJob=async(db:SupabaseClient,context:Parameters<TaskH
   const result=await runCanonicalHistoricalReplay({datasets,definitions,start:Date.parse(p.start),end:Date.parse(p.end)-60000,maxSteps:p.maxCycles,resume,shouldCancel:async()=>{await computationCheck(context);if(context.remainingMs()<5000)throw new ComputationYield();return context.signal.aborted;},checkpoint:async(e,state)=>{await computationCheck(context);await journal.commit(e,state);if(context.remainingMs()<5000)throw new ComputationYield();}});
   if(result.status!=='COMPLETED')throw new WorkerFault('SLICE_INTERRUPTED');
   const snapshot=result.checkpoint.store;
-  return {done:true,summary:{classification:'CANONICAL_SIGNAL_POLICY_VERIFICATION',signalPolicyVersion:'entry-decision/v1',cycles:result.checkpoint.cursor,outcomes:0,watchedSetups:snapshot.records.length,confirmedEvents:snapshot.events.filter(e=>e.confirmedSignalId).length,publication:false,execution:false,qualificationEligible:false,brokerFills:false,profitability:'NOT_EVALUATED'}};
+  return {done:true,summary:{classification:'CANONICAL_SIGNAL_POLICY_VERIFICATION',signalPolicyVersion:'entry-decision/v1',cycles:result.checkpoint.cursor,outcomes:0,watchedSetups:snapshot.records.length,confirmedEvents:new Set(snapshot.events.filter(e=>e.confirmedSignalId).map(e=>e.confirmedSignalId)).size,publication:false,execution:false,qualificationEligible:false,brokerFills:false,profitability:'NOT_EVALUATED'}};
  }catch(e){if(e instanceof ComputationYield)return {done:false,summary:{}};throw e;}
 };
 function varsFirst(values:Set<string>){const first=values.values().next().value;if(!first)throw new WorkerFault('CANONICAL_DATASET_EMPTY',true);return first;}

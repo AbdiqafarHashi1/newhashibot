@@ -1,4 +1,4 @@
-import {entryPolicyQualified} from './entry-decision.ts';
+import {entryPolicyEvaluable} from './entry-decision.ts';
 import {CONDITIONAL_ASSETS,conditionalMarket,scheduledMarketClosed} from './conditional-market.ts';
 import {type ConditionalStore,observeConditionalSymbol,admitConditionalBatch} from './conditional-signal-runtime.ts';
 import {enterConditionalAtOpen,type ConditionalSetup} from './conditional-signal-service.ts';
@@ -45,7 +45,7 @@ export async function runConditionalWatch(deps:WatchDependencies,now=Date.now())
      const proposed=enterConditionalAtOpen(s,feed.currentOpen,now);if(proposed===s)continue;
      const intel=s.origin&&assessed?assessed.intelligence(rows,now):undefined;
      const decision=intel&&s.origin?(intel.spreadPrice!==null&&intel.spreadPrice/Math.abs(s.trigger-s.stop)>.2?'WAIT':strategyContextDecision(s.origin.thesis,s.side,rows,intel)):'VALID';
-     const currentQualified=!s.origin||!entryPolicyQualified(s.origin.configuration)||assessed?.qualification?.(s)===true;
+     const currentQualified=!s.origin||!entryPolicyEvaluable(s.origin.configuration)||assessed?.qualification?.(s)===true;
      const next=(!currentQualified||decision!=='VALID')&&proposed.status==='ACTIVE'?{...s,version:s.version+1,status:'INVALIDATED' as const,observedAt:new Date(now).toISOString(),confirmationIntelligence:intel,result:!currentQualified?'CURRENT_STRATEGY_QUALIFICATION_REQUIRED; no paper entry.':'Next-open strategy context did not qualify; no paper entry.'}:intel?{...proposed,confirmationIntelligence:intel}:proposed;
      await deps.store.save(next,s.version);
     }

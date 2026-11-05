@@ -12,7 +12,14 @@ const ms=(tf:string)=>{const m=/^(\d+)(m|h)$/.exec(tf);return m?Number(m[1])*(m[
 export function closedAggregate(rows:readonly StrategyCandle[],minutes:number,asOf:string):StrategyCandle[]{
  if(!rows.length)return[];const base=ms(rows[0].timeframe),width=minutes*60000;if(!Number.isInteger(width/base)||width<base)return[];
  const groups=new Map<number,StrategyCandle[]>();for(const row of rows){const t=Date.parse(row.open_time);if(t+base>Date.parse(asOf))continue;const start=Math.floor(t/width)*width;const g=groups.get(start)??[];g.push(row);groups.set(start,g);}
- return [...groups].sort((a,b)=>a[0]-b[0]).flatMap(([t,g])=>t+width<=Date.parse(asOf)&&g.length===width/base&&g.every((r,i)=>Date.parse(r.open_time)===t+i*base)?[{...g[0],timeframe:minutes%60===0?`${minutes/60}h`:`${minutes}m`,open_time:new Date(t).toISOString(),high:Math.max(...g.map(r=>r.high)),low:Math.min(...g.map(r=>r.low)),close:g.at(-1)!.close,volume:g.reduce((n,r)=>n+r.volume,0)}]:[]);
+ return [...groups].sort((a,b)=>a[0]-b[0]).flatMap(([t,g])=>{
+  if(!(t+width<=Date.parse(asOf)&&g.length===width/base&&g.every((r,i)=>r.symbol===g[0].symbol&&r.source===g[0].source&&r.instrument_type===g[0].instrument_type&&Date.parse(r.open_time)===t+i*base)))return [];
+  const flow:Partial<StrategyCandle>={};
+  for(const key of ['quote_volume','trade_count','taker_buy_volume','taker_buy_quote_volume'] as const)if(g.every(r=>r[key]!==undefined))flow[key]=g.reduce((n,r)=>n+r[key]!,0);
+  const bidAsk=g.every(r=>r.ask_open!==undefined&&r.ask_high!==undefined&&r.ask_low!==undefined&&r.ask_close!==undefined)?{ask_open:g[0].ask_open,ask_high:Math.max(...g.map(r=>r.ask_high!)),ask_low:Math.min(...g.map(r=>r.ask_low!)),ask_close:g.at(-1)!.ask_close}:{};
+  const {quote_volume,trade_count,taker_buy_volume,taker_buy_quote_volume,ask_open,ask_high,ask_low,ask_close,...identity}=g[0];
+  return [{...identity,...flow,...bidAsk,timeframe:minutes%1440===0?`${minutes/1440}d`:minutes%60===0?`${minutes/60}h`:`${minutes}m`,open_time:new Date(t).toISOString(),high:Math.max(...g.map(r=>r.high)),low:Math.min(...g.map(r=>r.low)),close:g.at(-1)!.close,volume:g.reduce((n,r)=>n+r.volume,0)}];
+ });
 }
 export function classifyOpportunity(context:StrategyEvaluationContext):OpportunityState {
  const blank:OpportunityState={regime:'UNAVAILABLE',atr:0,efficiency:0,trendAtr:0,atrPercentile:0,htfDirection:0,reason:'WARMUP_OR_DATA_UNAVAILABLE'};

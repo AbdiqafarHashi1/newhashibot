@@ -1,3 +1,5 @@
+import {entryPolicyResearchAuthorized} from './entry-decision.ts';
+import {watchedHistoryBars} from './strategy-runtime-parameters.ts';
 import {nativeCandleEvidence} from './native-candle-evidence.ts';
 import {runConditionalWatch} from './conditional-watch.ts';
 import {watchWidth,type WatchTimeframe} from './conditional-contract.ts';
@@ -24,8 +26,8 @@ export async function canonicalSnapshotFingerprint(value:unknown){
  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(stable(value)))),x=>x.toString(16).padStart(2,'0')).join('');
 }
 export const historicalCandleChecksum=(candles:readonly StrategyCandle[])=>canonicalSnapshotFingerprint(candles);
-export async function canonicalReplayLineage(input:{datasets:readonly CanonicalHistoricalDataset[];definitions:readonly StrategyDefinition[];start:number;end:number;stepMs?:number;releaseTimeline?:readonly {at:number;enabledStrategyIds:readonly string[]}[]}){
- const text=stable({policy:'entry-decision/v1',start:input.start,end:input.end,stepMs:input.stepMs??60000,releaseTimeline:input.releaseTimeline??[],datasets:input.datasets.map(d=>({id:d.id,hash:d.sha256,symbol:d.symbol,tf:d.timeframe,provenance:d.provenance})),definitions:input.definitions.map(d=>({id:d.id,version:d.version,lifecycle:d.lifecycle,publicationMode:d.publicationMode,config:d.config}))});
+export async function canonicalReplayLineage(input:{datasets:readonly CanonicalHistoricalDataset[];definitions:readonly StrategyDefinition[];start:number;end:number;stepMs?:number;entryPolicy?:'COMBINED'|'IMMEDIATE_ONLY'|'CONDITIONAL_ONLY';admissionProfile?:'PRODUCTION_PARITY'|'RISK_CAPACITY_ONLY';releaseTimeline?:readonly {at:number;enabledStrategyIds:readonly string[]}[]}){
+ const text=stable({policy:'entry-decision/v1',entryPolicy:input.entryPolicy??'COMBINED',admissionProfile:input.admissionProfile??'PRODUCTION_PARITY',start:input.start,end:input.end,stepMs:input.stepMs??60000,releaseTimeline:input.releaseTimeline??[],datasets:input.datasets.map(d=>({id:d.id,hash:d.sha256,symbol:d.symbol,tf:d.timeframe,provenance:d.provenance})),definitions:input.definitions.map(d=>({id:d.id,version:d.version,lifecycle:d.lifecycle,publicationMode:d.publicationMode,config:d.config}))});
  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),x=>x.toString(16).padStart(2,'0')).join('');
 }
 /** An OHLC archive's native flow and ask high/low/close are future information at its open. */
@@ -38,12 +40,14 @@ export function historicalOpeningQuote(b:StrategyCandle):StrategyCandle {
  * Each callback must atomically persist evidence plus checkpoint before returning. */
 export async function runCanonicalHistoricalReplay(input:{
  datasets:readonly CanonicalHistoricalDataset[];definitions:readonly StrategyDefinition[];start:number;end:number;
- stepMs?:number;maxSteps:number;resume?:CanonicalReplayCheckpoint;
+ admissionProfile?:'PRODUCTION_PARITY'|'RISK_CAPACITY_ONLY';entryPolicy?:'COMBINED'|'IMMEDIATE_ONLY'|'CONDITIONAL_ONLY';memoizeNoTrade?:boolean;retainEvidence?:boolean;stepMs?:number;maxSteps:number;resume?:CanonicalReplayCheckpoint;
  shouldCancel?:()=>Promise<boolean>|boolean;
  releaseTimeline?:readonly {at:number;enabledStrategyIds:readonly string[]}[];
  checkpoint?:(evidence:CanonicalReplayEvidence,state:CanonicalReplayCheckpoint)=>Promise<void>;
 }){
  const step=input.stepMs??60000;
+ if(input.admissionProfile&&input.admissionProfile!=='PRODUCTION_PARITY'&&(input.admissionProfile!=='RISK_CAPACITY_ONLY'||input.definitions.some(d=>!entryPolicyResearchAuthorized(d.config))))throw Error('RESEARCH_ADMISSION_PROFILE_REQUIRED');
+ if(input.entryPolicy&&input.entryPolicy!=='COMBINED'&&(!['IMMEDIATE_ONLY','CONDITIONAL_ONLY'].includes(input.entryPolicy)||input.definitions.some(d=>!entryPolicyResearchAuthorized(d.config))))throw Error('RESEARCH_ENTRY_POLICY_CONTROL_REQUIRES_ISOLATED_AUTHORIZATION');
  if(!Number.isInteger(input.start)||!Number.isInteger(input.end)||input.end<input.start||step!==60000||input.start%step||input.end%step)throw Error('HISTORICAL_CLOCK_INVALID');
  if(!input.datasets.length||!input.definitions.length)throw Error('HISTORICAL_INPUTS_REQUIRED');
  if(!Number.isInteger(input.maxSteps)||input.maxSteps<1)throw Error('HISTORICAL_STEP_LIMIT_INVALID');
@@ -61,11 +65,13 @@ export async function runCanonicalHistoricalReplay(input:{
   }
  }
  for(let i=0;i<(input.releaseTimeline?.length??0);i++){const r=input.releaseTimeline![i];if(!Number.isInteger(r.at)||i>0&&r.at<=input.releaseTimeline![i-1].at||r.enabledStrategyIds.some(id=>!input.definitions.some(d=>d.id===id)))throw Error('HISTORICAL_RELEASE_TIMELINE_INVALID');}
+ const indexed=new Map(input.datasets.map(d=>[`${d.symbol}:${d.timeframe}`,{dataset:d,times:d.candles.map(b=>Date.parse(b.open_time))}]));
+ const upper=(times:readonly number[],value:number)=>{let lo=0,hi=times.length;while(lo<hi){const mid=(lo+hi)>>>1;if(times[mid]<=value)lo=mid+1;else hi=mid;}return lo;};
  const lineage=await canonicalReplayLineage(input),total=Math.floor((input.end-input.start)/step)+1;
  let cursor=input.resume?.cursor??0,now=input.start+cursor*step;
  if(input.resume&&(input.resume.schema!=='canonical-historical-replay/v1'||input.resume.lineage!==lineage||!Number.isInteger(cursor)||cursor<0||cursor>total||input.resume.through!==(cursor?input.start+(cursor-1)*step:null)))throw Error('HISTORICAL_CHECKPOINT_LINEAGE_INVALID');
- const store=new HistoricalConditionalStore(()=>now,input.resume?.store);
- const evidence:CanonicalReplayEvidence[]=[];
+ const store=new HistoricalConditionalStore(()=>now,input.resume?.store,input.admissionProfile??'PRODUCTION_PARITY');
+ const evidence:CanonicalReplayEvidence[]=[],noTradeCache=new Map<string,string>();
  for(;cursor<total;cursor++){
   if(await input.shouldCancel?.())return {status:'CANCELLED' as const,checkpoint:{schema:'canonical-historical-replay/v1' as const,lineage,cursor,through:cursor?input.start+(cursor-1)*step:null,store:store.snapshot()},evidence};
   now=input.start+cursor*step;
@@ -76,9 +82,9 @@ export async function runCanonicalHistoricalReplay(input:{
   const row:CanonicalReplayEvidence={at:new Date(now).toISOString(),observations:[],health:[],events:[],rejections:[]},before=store.snapshot();
   await runConditionalWatch({store,streams:input.datasets.map(d=>({symbol:d.symbol,tf:d.timeframe})),discovery:{crypto:true,forex:true},
    feed:async(symbol,tf,at)=>{
-    const d=input.datasets.find(d=>d.symbol===symbol&&d.timeframe===tf);
-    if(!d)return {candles:[],error:'HISTORICAL_CONTEXT_DATASET_UNAVAILABLE'};
-    const w=watchWidth(tf),closed=d.candles.filter(b=>Date.parse(b.open_time)+w<=at).slice(-240),opening=d.candles.find(b=>Date.parse(b.open_time)===at);
+    const index=indexed.get(`${symbol}:${tf}`);
+    if(!index)return {candles:[],error:'HISTORICAL_CONTEXT_DATASET_UNAVAILABLE'};
+    const d=index.dataset,w=watchWidth(tf),end=upper(index.times,at-w),closed=d.candles.slice(Math.max(0,end-watchedHistoryBars(definitions,symbol,tf)),end),candidate=upper(index.times,at)-1,opening=index.times[candidate]===at?d.candles[candidate]:undefined;
     // Only the opening quote is observable. Never expose its future high/low/close/volume.
     const currentOpen=opening?historicalOpeningQuote(opening):undefined;
     const last=closed.at(-1),spreadPrice=opening?.ask_open!==undefined?opening.ask_open-opening.open:last?.ask_close!==undefined?last.ask_close-last.close:undefined;
@@ -90,13 +96,22 @@ export async function runCanonicalHistoricalReplay(input:{
     const higherTf:WatchTimeframe=tf==='5m'?'15m':tf==='15m'?'1h':tf==='1h'?'4h':'1d';
     const [higher,anchor]=await Promise.all([load(symbol,higherTf),symbol.endsWith('USDT')&&symbol!=='BTCUSDT'?load('BTCUSDT',tf):undefined]);
     const options={higher:higher.candles,anchor:anchor?.candles,spreadPrice:feed.spreadPrice,spreadObservedAt:feed.spreadObservedAt};
-    const found=discoverWatchedStrategies({definitions,symbol,tf,rows,now,...options});row.observations.push(...found.observations);
+    const cacheKey=`${symbol}:${tf}`,cacheSignature=[rows[0]?.open_time,rows.at(-1)?.open_time,rows.length,higher.candles.at(-1)?.open_time,anchor?.candles.at(-1)?.open_time,options.spreadPrice,release?.at??'initial'].join('|');
+    const unchanged=input.memoizeNoTrade===true&&noTradeCache.get(cacheKey)===cacheSignature;
+    const found=unchanged?{setups:[],observations:[]}:discoverWatchedStrategies({definitions,symbol,tf,rows,now,...options});
+    if(!found.setups.length)noTradeCache.set(cacheKey,cacheSignature);else noTradeCache.delete(cacheKey);
+    if(input.entryPolicy&&input.entryPolicy!=='COMBINED'){
+     const permitted=input.entryPolicy==='IMMEDIATE_ONLY'?'IMMEDIATE_CONFIRMED':'CONDITIONAL_WATCH',excluded=new Set(found.setups.filter(s=>s.entryDecision?.kind!==permitted).map(s=>s.id));
+     found.setups=found.setups.filter(s=>!excluded.has(s.id));
+     for(const o of found.observations){const d=o.evidence.entry_decision as {opportunityId?:string}|undefined;if(d?.opportunityId&&excluded.has(d.opportunityId)){o.decision='NO_TRADE';o.reason='RESEARCH_ENTRY_POLICY_EXCLUDED';o.evidence={...o.evidence,research_entry_policy:input.entryPolicy};}}
+    }
+    row.observations.push(...found.observations);
     return {setups:found.setups,qualification:s=>currentWatchQualification(s,definitions),confirmation:(s,prefix,at)=>frozenStrategyConfirmation(s,prefix,at,options),intelligence:(prefix,at)=>watchedMarketContext(prefix,at,options)};
    }
   },now);
   const snapshot=store.snapshot();row.events=snapshot.events.slice(before.events.length);row.rejections=snapshot.rejections.slice(before.rejections.length);
   const checkpoint:CanonicalReplayCheckpoint={schema:'canonical-historical-replay/v1',lineage,cursor:cursor+1,through:now,store:snapshot};
-  await input.checkpoint?.(row,checkpoint);evidence.push(row);
+  await input.checkpoint?.(row,checkpoint);if(input.retainEvidence!==false)evidence.push(row);
  }
  return {status:'COMPLETED' as const,checkpoint:{schema:'canonical-historical-replay/v1' as const,lineage,cursor,through:cursor?input.start+(cursor-1)*step:null,store:store.snapshot()},evidence};
 }

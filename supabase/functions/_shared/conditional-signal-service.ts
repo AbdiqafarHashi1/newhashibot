@@ -1,4 +1,4 @@
-import {entryPriceAssessment,entryPolicyQualified} from './entry-decision.ts';
+import {entryPriceAssessment,entryPolicyEvaluable} from './entry-decision.ts';
 import type {EntryDecision} from './entry-decision.ts';
 import type {PaperLearningEvidence} from './paper-learning.ts';
 import {watchWidth,type WatchTimeframe,type WatchTrack} from './conditional-contract.ts';
@@ -109,7 +109,7 @@ export function enterConditionalAtOpen(old:ConditionalSetup,b:StrategyCandle,now
  if(now>=Date.parse(old.expiresAt))return {...old,version:old.version+1,status:'EXPIRED',observedAt:new Date(now).toISOString(),result:'Entry deadline elapsed; no paper fill.'};
  const d=old.side==='buy'?1:-1,s={...old,version:old.version+1,observedAt:new Date(now).toISOString()};
  if(d*(b.open-old.stop)<=0||d*(b.open-old.trigger)>(old.management?.maximumChaseR??.25)*Math.abs(old.trigger-old.stop))return {...s,status:'INVALIDATED',result:'Next open crossed invalidation or exceeded chase limit; no paper fill.'};
- if(old.origin&&entryPolicyQualified(old.origin.configuration)){const checks=entryPriceAssessment(old,b.open,old.confirmationIntelligence?.spreadPrice);if(checks.reasons.length)return {...s,status:'INVALIDATED',result:checks.reasons.join('|')+'; no paper entry.'};}
+ if(old.origin&&entryPolicyEvaluable(old.origin.configuration)){const checks=entryPriceAssessment(old,b.open,old.confirmationIntelligence?.spreadPrice);if(checks.reasons.length)return {...s,status:'INVALIDATED',result:checks.reasons.join('|')+'; no paper entry.'};}
  return {...s,evaluationOutcome:undefined,status:'ACTIVE',fill:b.open,fillAt:b.open_time,bars:0,netR:0,result:'Paper entry at observed next open; outcomes await closed candles.'};
 }
 /** Confirmation at a completed candle close, paper fill at the NEXT bar open. Never retroactive entry. */

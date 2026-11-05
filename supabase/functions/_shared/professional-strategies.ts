@@ -1,3 +1,4 @@
+import {strategyAlgorithmParameters} from './strategy-runtime-parameters.ts';
 import { createStrategyPlan, type DeepReadonly, type StrategyPlan } from "./strategy-plan.ts";
 
 export type StrategyMarket = "crypto" | "forex";
@@ -191,7 +192,7 @@ export class ProfessionalStrategyRegistry {
       const lifecycleEnabled = definition.lifecycle === "ENABLED" && definition.config.enabled;
       if (!lifecycleEnabled && !["SHADOW", "RESEARCH"].includes(definition.lifecycle)) continue;
       try {
-        const legacy = definition.evaluate({...context,strategy_parameters:definition.config.params});
+        const legacy = definition.evaluate({...context,strategy_parameters:strategyAlgorithmParameters(definition.config.params)});
         const professional = toProfessionalResult(definition, context, legacy);
         this.diagnostics.result(definition, professional, context.evaluated_at);
         output.push({ definition, professional, plan: createStrategyPlan(definition, context, legacy), publishable: lifecycleEnabled });

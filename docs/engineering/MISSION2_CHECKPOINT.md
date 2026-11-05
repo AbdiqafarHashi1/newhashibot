@@ -74,3 +74,43 @@ The output envelope retains summary, evidence and checkpoint. To resume after in
 Execution simulator, customer account historical parity, Personal balance/risk grids, expanded Prop/funded survival, cross-account aggregation, stress campaigns, walk-forward/holdout qualification and full historical end-to-end verification are **NOT COMPLETE**. These are engineering work, not tasks waiting only on owner credentials. No pass rates, returns, payouts or profitable strategies are claimed.
 
 Supabase, Telegram, live provider connections and deployment remain untouched. Broker-grade Forex/Gold data is required later for executable qualification; indicative data must remain provisional. Demo forward testing is **not qualified by this checkpoint**. No owner action is required to continue local implementation.
+
+## Continuation: actual research and account-equity integration
+
+The continuation repairs specialist engine-metadata parameter handling, native-flow
+aggregation, weekly context width and adequate history requests, without promoting
+research definitions. Explicit isolated research authorization never grants live
+execution eligibility; the live SQL admission RPC rejects those events.
+
+The canonical runner now drives a full event-based account ledger using the actual
+account Brain, current bid/ask assumptions, quantity/margin/contracts, partial exits,
+stop-first OHLC ambiguity, gaps, funding reserves, floating equity and loss locks.
+The prop equity observer independently enforces hypothetical versioned rules,
+phase reset evidence, payout eligibility and censored survival. Controlled tests
+are not empirical firm passes or proof of provider connectivity.
+
+See `docs/research/mission2/ACTUAL_RESULTS.md`, the immutable experiment and its
+metadata correction, and `DATA_INTEGRITY.json`. Twelve actual provisional screens
+cover ten native Crypto symbols, spot and USD-M, chronological windows and entry/
+admission controls. The existing Backtest Lab displays genuine compressed evidence,
+equity curves, daily frequency, comparisons, full funnel reasons and all 30 catalog
+definitions. No raw archives are imported into the website and no production
+configuration is promoted. Report files are lazy-loaded in the browser.
+
+Reproduce acquisition with `scripts/research/acquire-canonical-history.py`, verify
+cached decoding with `verify-canonical-history.py`, run the canonical strategy/
+watcher/account path with `run-frequency-audit.ts`, orchestrate declared chronological
+screens with `run-mission2-campaign.py`, and regenerate artifacts with
+`publish-research-results.py` then `summarize-mission2-results.py`.
+Research jobs persist `.resume.json` using atomic rename with canonical checkpoint,
+source digest, configuration, funnel dedup identities, signal snapshots and complete
+account ledgers. `resume=true` rejects changed source/configuration; SIGINT/SIGTERM
+save a canceled checkpoint. Raw cached data/results stay outside git.
+
+Unfinished, not claimed complete: sufficiently long independently validated strategy
+qualification, full account research jobs in the hosted admin worker, genuine MT5/
+Forex/Gold bid/ask and rapid Gold ticks, historical Bybit contract/fill evidence,
+verified named prop rules and empirical challenge/funded survival cohorts. Broker
+archive probes returned HTTP 429. No candidate currently warrants automated demo
+promotion on these screens. Continue other feasible engineering/research rather
+than interpreting an external data blocker as completed Mission 2.

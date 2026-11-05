@@ -1,3 +1,4 @@
+import {authorizeHistoricalResearch} from '../../supabase/functions/_shared/historical-research-authorization.ts';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
@@ -17,6 +18,11 @@ test('historical persistence matches migrated production SQL for admission, CAS,
   const d=watchedStrategyCatalog([{strategy_name:'MicroScalper',enabled:true,params:{entry_engine_version:1,tp2_r:3}}]).find(d=>d.id==='crypto.micro-scalper')!,cfg={...d.config,config_source:`measured_release:${release}`};
   const found=discoverWatchedStrategies({definitions:[{...d,config:cfg}],symbol:'BTCUSDT',tf:'5m',rows,higher:closedAggregate(rows,15,new Date(now).toISOString()),now}),s=found.setups[0];assert.equal(s.status,'ACTIVE');
   await db.query('insert into strategy_release_candidates values($1,$2,$3,$4)',[release,d.id,'PROMOTED',JSON.stringify({strategies:[{id:d.id,version:d.version,enabled:true,minScore:cfg.min_score,minRiskReward:cfg.min_rr,maxBarsInTrade:cfg.max_bars_in_trade,symbols:['BTCUSDT'],timeframes:['5m'],parameters:cfg.params}]})]);
+  const researchDefinitions=await authorizeHistoricalResearch([d],'database-research-isolation');
+  const research=discoverWatchedStrategies({definitions:researchDefinitions,symbol:'BTCUSDT',tf:'5m',rows,higher:closedAggregate(rows,15,new Date(now).toISOString()),now}).setups[0];
+  assert.equal(research.entryDecision?.authorizationScope,'RESEARCH');assert.equal(research.entryDecision?.executionEligible,false);
+  assert.equal(await missionStore(db).admit(research),false,'research-only immediate events cannot enter the actual live SQL signal projection');
+  assert.equal((await db.query('select * from signals')).rows.length,0);
   const sql=missionStore(db),historical=new HistoricalConditionalStore(()=>Date.now());
   assert.equal(await sql.admit(s),true);assert.equal(await historical.admit(s),true);
   assert.equal(await sql.admit(s),false);assert.equal(await historical.admit(s),false);

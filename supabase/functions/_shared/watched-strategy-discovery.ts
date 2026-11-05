@@ -1,5 +1,5 @@
 import {createStrategyPlan} from './strategy-plan.ts';
-import {decideEntry,entryPolicyQualified,type EntryDecision} from './entry-decision.ts';
+import {decideEntry,entryPolicyEvaluable,type EntryDecision} from './entry-decision.ts';
 import {applyPaperLearning,type PaperLearningSnapshot} from './paper-learning.ts';
 import {ProfessionalStrategyRegistry,type StrategyDefinition,type StrategyCandle,type StrategyEvaluationContext,type RegistryEvaluation} from './professional-strategies.ts';
 import {calculateActiveIndicators} from './active-validation-runtime.ts';
@@ -21,19 +21,22 @@ export function conditionalEvaluation(e:RegistryEvaluation,ctx:StrategyEvaluatio
  return {...e,professional:{...e.professional,legacy:pending},plan:createStrategyPlan(d,ctx,pending)};
 }
 /** Named evaluators preserve their immutable setup; the shared entry policy decides timing. */
-export function watchedSetupFromEvaluation(e:RegistryEvaluation,ctx:StrategyEvaluationContext,intel:WatchedIntelligence):ConditionalSetup|null {
+export function watchedSetupFromEvaluation(e:RegistryEvaluation,ctx:StrategyEvaluationContext,intel:WatchedIntelligence,onReject?:(reason:string)=>void):ConditionalSetup|null {
+ const reject=(reason:string)=>{onReject?.(reason);return null;};
  const r=e.professional.legacy,d=e.definition,tf=ctx.timeframe as WatchTimeframe,w=watchWidth(tf),last=ctx.candles.at(-1)!;
- if(!e.publishable||!e.plan.decision.qualified||!d.config.enabled||r.status!=='candidate'||!['buy','sell'].includes(r.direction)||!Number.isFinite(w))return null;
+ if(!e.publishable||!e.plan.decision.qualified||!d.config.enabled||r.status!=='candidate'||!['buy','sell'].includes(r.direction)||!Number.isFinite(w))return reject('EVALUATOR_OR_PLAN_NOT_ELIGIBLE');
  const side=r.direction as 'buy'|'sell',sign=side==='buy'?1:-1,trigger=side==='buy'?r.entry_high:r.entry_low,risk=sign*(trigger-r.stop_loss),cost=conditionalCost(ctx.symbol,trigger);
- if(![trigger,r.stop_loss,r.tp1,r.tp2,cost.price,r.confidence_score].every(Number.isFinite)||!(risk>0&&r.stop_loss>0&&sign*(r.tp1-trigger)>0&&sign*(r.tp2-r.tp1)>=0)||cost.price/risk>.4||r.confidence_score<d.config.min_score||sign*(r.tp2-trigger)/risk<d.config.min_rr)return null;
- if(([[d.config.min_stop_distance_pct,risk],[d.config.min_tp1_distance_pct,Math.abs(r.tp1-trigger)],[d.config.min_tp2_distance_pct,Math.abs(r.tp2-trigger)]] as [number|undefined,number][]).some(([minimum,distance])=>typeof minimum==='number'&&distance/trigger*100<minimum))return null;
+ if(![trigger,r.stop_loss,r.tp1,r.tp2,cost.price,r.confidence_score].every(Number.isFinite)||!(risk>0&&r.stop_loss>0&&sign*(r.tp1-trigger)>0&&sign*(r.tp2-r.tp1)>=0)||cost.price/risk>.4||r.confidence_score<d.config.min_score||sign*(r.tp2-trigger)/risk<d.config.min_rr)return reject('SETUP_GEOMETRY_COST_SCORE_OR_RR');
+ if(([[d.config.min_stop_distance_pct,risk],[d.config.min_tp1_distance_pct,Math.abs(r.tp1-trigger)],[d.config.min_tp2_distance_pct,Math.abs(r.tp2-trigger)]] as [number|undefined,number][]).some(([minimum,distance])=>typeof minimum==='number'&&distance/trigger*100<minimum))return reject('SETUP_MINIMUM_DISTANCE');
  const family:StrategyThesis['family']=/reversal|range|auction|exhaustion/.test(d.id)?'REVERSAL':/breakout|expansion|compression/.test(d.id)?'BREAKOUT':'TREND';
  const keys=side==='buy'?['asian_range_high','range_high','box_high','channel_high','breakout_level']:['asian_range_low','range_low','box_low','channel_low','breakout_level'];
  const observedBoundary=keys.map(k=>r.score_breakdown[k]).find(v=>typeof v==='number'&&Number.isFinite(v));
  const boundary=family==='BREAKOUT'&&typeof observedBoundary==='number'?observedBoundary:r.stop_loss;
  const thesis:StrategyThesis={family,boundary,minimumVolumeRatio:family==='BREAKOUT'?.7:.35,maximumRangeAtr:3,sessions:sessions(d.id),higherRequired:family==='TREND',maximumCostR:.4,anchorRequired:ctx.market==='crypto'&&ctx.symbol!=='BTCUSDT'&&family==='TREND'};
- if(strategyContextDecision(thesis,side,ctx.candles,intel)!=='VALID'||intel.spreadPrice!==null&&intel.spreadPrice/risk>.2)return null;
- const reportedHold=r.score_breakdown.max_bars_in_trade;const hold=typeof reportedHold==='number'?reportedHold:d.config.max_bars_in_trade;if(!Number.isInteger(hold)||hold<1||hold>3650)return null;
+ const contextDecision=strategyContextDecision(thesis,side,ctx.candles,intel);
+ if(contextDecision!=='VALID')return reject('SETUP_CONTEXT_'+contextDecision);
+ if(intel.spreadPrice!==null&&intel.spreadPrice/risk>.2)return reject('SETUP_SPREAD_TOO_HIGH');
+ const reportedHold=r.score_breakdown.max_bars_in_trade;const hold=typeof reportedHold==='number'?reportedHold:d.config.max_bars_in_trade;if(!Number.isInteger(hold)||hold<1||hold>3650)return reject('SETUP_HOLD_INVALID');
  const close=new Date(Date.parse(last.open_time)+w).toISOString(),track=watchTrack(tf,d.id),ttl=typeof r.score_breakdown.no_entry_timeout_bars==='number'?r.score_breakdown.no_entry_timeout_bars:track==='SCALP'?3:track==='INTRADAY'?8:24;
  return {id:`strategy-watch/v1:${d.id}:${d.version}:${e.plan.provenance.config_hash}:${ctx.symbol}:${tf}:${close}:${sign}`,symbol:ctx.symbol,market:ctx.market,timeframe:tf,track,side,strategy:d.id,variant:family,policy:'conditional-signals/v1',sourceClose:close,source:last.source,trigger,stop:r.stop_loss,tp1:r.tp1,tp2:r.tp2,expiresAt:new Date(Date.parse(close)+ttl*w).toISOString(),holdBars:hold,score:r.confidence_score,reason:r.reason,status:'WAITING',version:1,lastBar:last.open_time,cost,intelligence:intel,origin:{version:d.version,configuration:structuredClone(d.config),plan:structuredClone(e.plan),thesis},management:{partialFraction:r.tp1===r.tp2?0:.5,breakEvenAfterTp1:false,maximumChaseR:track==='SCALP'?.15:.25},validation:{kind:'STRATEGY',boundary,higherMinutes:tf==='5m'?15:tf==='15m'?60:tf==='1h'?240:1440,lookbackBars:240,fastPeriod:8,slowPeriod:20}};
 }
@@ -47,8 +50,9 @@ export function discoverWatchedStrategies(input:{definitions:readonly StrategyDe
  const registry=new ProfessionalStrategyRegistry(definitions),evaluations=registry.evaluate(ctx),byId=new Map(evaluations.map(e=>[e.definition.id,e]));
  for(const d of definitions.filter(d=>d.market===market)){
   const original=byId.get(d.id),e=original?conditionalEvaluation(original,ctx):undefined,eligible=registry.eligible(d,ctx),enabled=d.lifecycle==='ENABLED'&&d.config.enabled;
-  const s=e?watchedSetupFromEvaluation(e,ctx,intel):null;
-  const qualified=entryPolicyQualified(d.config);
+  const admissionReasons:string[]=[];
+  const s=e?watchedSetupFromEvaluation(e,ctx,intel,r=>admissionReasons.push(r)):null;
+  const qualified=entryPolicyEvaluable(d.config);
   const decision:EntryDecision=s?decideEntry({setup:s,rows,now,intelligence:intel,qualified}):{
    schema:'entry-decision/v1',kind:'NO_TRADE',opportunityId:`rejected:${d.id}:${d.version}:${symbol}:${tf}:${rows.at(-1)!.open_time}`,
    strategyVersion:d.version,evaluatedAt:at,dataClose:new Date(Date.parse(rows.at(-1)!.open_time)+w).toISOString(),
@@ -62,7 +66,7 @@ export function discoverWatchedStrategies(input:{definitions:readonly StrategyDe
   // Learning may rank analysis, but never mutate a qualified frozen entry contract.
   const learned=proposal&&input.learning&&!qualified?applyPaperLearning(proposal,input.learning,now):proposal;
   if(learned&&(!qualified||decision?.kind!=='NO_TRADE'))setups.push(learned);
-  observations.push({strategy_id:d.id,symbol,timeframe:tf,checked_at:at,decision:!enabled?'DISABLED':!eligible?'INELIGIBLE':decision?decision.kind:e?.professional.legacy.status==='candidate'?'HELD_CONTEXT':'NO_SETUP',reason:!enabled?d.certification==='RESEARCH'?'RESEARCH_NOT_RELEASED':'CONFIGURATION_DISABLED':!eligible?'SYMBOL_OR_TIMEFRAME_NOT_ELIGIBLE':decision?.reasons.length?decision.reasons.join('|'):s?'ORIGINAL_EVALUATOR_AND_CONTEXT_PASSED':e?.professional.legacy.rejection_reason||(e?.professional.legacy.tp1===0?'TARGETLESS_NATIVE_MANAGEMENT_REQUIRED':'CONTEXT_COST_OR_GEOMETRY_REJECTED'),evidence:{evaluator_called:!!original,evaluator_status:original?.professional.legacy.status??'NOT_EVALUATED',entry_decision:decision,execution_qualified:qualified,paper_learning:learned?.learning??null,strategy_version:d.version,source_close:new Date(Date.parse(rows.at(-1)!.open_time)+w).toISOString(),intelligence:intel,evaluator:e?.professional.legacy.score_breakdown??{},configuration:structuredClone(d.config)}});
+  observations.push({strategy_id:d.id,symbol,timeframe:tf,checked_at:at,decision:!enabled?'DISABLED':!eligible?'INELIGIBLE':decision?decision.kind:e?.professional.legacy.status==='candidate'?'HELD_CONTEXT':'NO_SETUP',reason:!enabled?d.certification==='RESEARCH'?'RESEARCH_NOT_RELEASED':'CONFIGURATION_DISABLED':!eligible?'SYMBOL_OR_TIMEFRAME_NOT_ELIGIBLE':decision?.reasons.length?decision.reasons.join('|'):s?'ORIGINAL_EVALUATOR_AND_CONTEXT_PASSED':e?.professional.legacy.rejection_reason||(e?.professional.legacy.tp1===0?'TARGETLESS_NATIVE_MANAGEMENT_REQUIRED':'CONTEXT_COST_OR_GEOMETRY_REJECTED'),evidence:{setup_admission_rejections:admissionReasons,raw_candidate:original?.professional.legacy.status==='candidate',conditional_candidate:e?.professional.legacy.status==='candidate'&&original?.professional.legacy.status!=='candidate',evaluator_called:!!original,evaluator_status:original?.professional.legacy.status??'NOT_EVALUATED',entry_decision:decision,execution_qualified:qualified,paper_learning:learned?.learning??null,strategy_version:d.version,source_close:new Date(Date.parse(rows.at(-1)!.open_time)+w).toISOString(),intelligence:intel,evaluator:e?.professional.legacy.score_breakdown??{},configuration:structuredClone(d.config)}});
  }
 
  return {setups,observations,intelligence:intel};
