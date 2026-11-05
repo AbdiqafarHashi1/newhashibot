@@ -1,3 +1,4 @@
+import {frozenStrategyConfirmation,currentWatchQualification} from '../_shared/frozen-strategy-confirmation.ts';
 import {loadPaperLearning} from '../_shared/paper-learning.ts';
 import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
 import {discoverWatchedStrategies} from '../_shared/watched-strategy-discovery.ts';
@@ -37,7 +38,7 @@ Deno.serve(async(req:Request)=>{
     const options={higher:higher.candles,anchor:anchor?.candles,spreadPrice:feed.spreadPrice,spreadObservedAt:feed.spreadObservedAt,sources:evidence};
     const assessment=discoverWatchedStrategies({definitions,symbol,tf,rows,now,learning,...options});
     const saved=await db.rpc('record_watched_strategy_observations',{p_rows:assessment.observations});if(saved.error)throw Error('STRATEGY_OBSERVATIONS_WRITE_FAILED');
-    return {setups:assessment.setups,intelligence:(prefix,at)=>watchedMarketContext(prefix,at,options)};
+    return {setups:assessment.setups,qualification:s=>currentWatchQualification(s,definitions),confirmation:(s,prefix,at)=>frozenStrategyConfirmation(s,prefix,at,options),intelligence:(prefix,at)=>watchedMarketContext(prefix,at,options)};
    },
    discovery:{crypto:enabled&&cfg.data.signal_enable_crypto===true,forex:enabled&&cfg.data.signal_enable_forex===true},
    feed:async(symbol,tf,now)=>{

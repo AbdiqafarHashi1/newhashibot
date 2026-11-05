@@ -39,6 +39,24 @@ try{
  assert.equal(raw(`select status from portable_jobs where id='${completed.id}';`).trim(),'COMPLETED');assert.equal(raw(`select status from validation_datasets where id='${completed.run_id}';`).trim(),'READY');
  enqueue('racefinish1');const racing=claim();cp(racing);
  const raceSql=sql=>new Promise(resolve=>{const child=spawn('docker',['--host=unix:///var/run/docker.sock','exec','-i',name,'psql','-h','127.0.0.1','-U','postgres','-v','ON_ERROR_STOP=1','-Atq']);let out='',err='';child.stdout.on('data',d=>out+=d);child.stderr.on('data',d=>err+=d);child.on('exit',code=>resolve({code,out,err}));child.stdin.end(`SET ROLE service_role; SET request.jwt.claim.role='service_role'; ${sql}`);});
+ if(existing){
+  const at=Date.now(),stamp=n=>new Date(at+n).toISOString();
+  const watch={id:'mission1-native-race',symbol:'LTCUSDT',timeframe:'15m',track:'INTRADAY',side:'buy',strategy:'mission1-controlled-analysis',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',sourceClose:stamp(-900000),source:'DISPOSABLE_NATIVE_TEST',trigger:100,stop:90,tp1:110,tp2:120,expiresAt:stamp(900000),holdBars:48,score:85,reason:'Controlled concurrency fixture',status:'WAITING',version:1,lastBar:stamp(-1800000)};
+  const admissions=await Promise.all([1,2].map(()=>raceSql(`select admit_conditional_signal_setup(${literal(watch)},'Native test watch');`)));
+  assert(admissions.every(r=>r.code===0),JSON.stringify({invariant:'native trading admission SQL succeeds',admissions}));
+  assert.deepEqual(admissions.map(r=>r.out.trim()).sort(),['f','t'],'one durable opportunity admitted across native sessions');
+  const armed={...watch,status:'ARMED',version:2,lastBar:stamp(-900000),armedAt:stamp(0)},invalid={...watch,status:'INVALIDATED',version:2,lastBar:stamp(-900000),result:'Original invalidation'};
+  const transitions=await Promise.all([armed,invalid].map(state=>raceSql(`select commit_conditional_signal_setup(${literal(state)},1,'Native transition');`)));
+  assert.equal(transitions.filter(r=>r.code===0&&r.out.trim()==='t').length,1,'confirmation/invalidation race has one winning state');
+  assert.equal(query("select count(*) from conditional_setup_history where setup_id='mission1-native-race';"),'2','only winning native transition appends history');
+  const expiry={...watch,id:'mission1-native-expiry',symbol:'AVAXUSDT',expiresAt:new Date(Date.now()+200).toISOString()};
+  assert.equal(query(`select admit_conditional_signal_setup(${literal(expiry)},'Native expiry watch');`),'t');
+  raw('select pg_sleep(.25);');
+  const expired={...expiry,status:'EXPIRED',version:2,observedAt:new Date().toISOString()},late={...expiry,status:'ARMED',version:2,lastBar:stamp(-900000),armedAt:stamp(0)};
+  await Promise.all([expired,late].map(state=>raceSql(`select commit_conditional_signal_setup(${literal(state)},1,'Native expiry race');`)));
+  assert.equal(query("select status from conditional_signal_setups where id='mission1-native-expiry';"),'EXPIRED','late confirmation cannot override expiry');
+  console.log('PASS: Mission 1 native trading admission/CAS/confirmation-invalidation/expiry races');
+ }
  const raced=await Promise.all([raceSql(`select control_phase_p_worker('${actor}','cancel','${racing.id}');`),raceSql(`select finish_phase_p_job('${racing.id}','${racing.lease_token}','COMPLETED',${literal({rowCount:2,datasetHash:'race-hash',first:bars[0].open_time,last:bars[1].open_time})},NULL);`)]);
  assert.equal(raced.filter(x=>x.code===0).length,1,'cancel and finalization serialize with exactly one winner');
  const raceState=raw(`select status from portable_jobs where id='${racing.id}';`).trim(),nativeState=raw(`select status from validation_datasets where id='${racing.run_id}';`).trim();

@@ -286,9 +286,10 @@ export function arbitrationScore(e: MarketArbitrationEntry, ctx?: MarketContext)
   const g = e.guard;
   const scorePct = r.confidence_score / 100;
   const rrPct = Math.min(r.risk_reward / 3.5, 1);
-  const slMargin = g.sl_pct > 0 && e.cfg.min_stop_distance_pct > 0 ? Math.min(Math.max((g.sl_pct - e.cfg.min_stop_distance_pct) / e.cfg.min_stop_distance_pct, 0), 1) : 0.5;
-  const tp1Margin = g.tp1_pct > 0 && e.cfg.min_tp1_distance_pct > 0 ? Math.min(Math.max((g.tp1_pct - e.cfg.min_tp1_distance_pct) / e.cfg.min_tp1_distance_pct, 0), 1) : 0.5;
-  const tp2Margin = g.tp2_pct > 0 && e.cfg.min_tp2_distance_pct > 0 ? Math.min(Math.max((g.tp2_pct - e.cfg.min_tp2_distance_pct) / e.cfg.min_tp2_distance_pct, 0), 1) : 0.5;
+  const minimumStop=e.cfg.min_stop_distance_pct??0,minimumTp1=e.cfg.min_tp1_distance_pct??0,minimumTp2=e.cfg.min_tp2_distance_pct??0;
+  const slMargin = g.sl_pct > 0 && minimumStop > 0 ? Math.min(Math.max((g.sl_pct - minimumStop) / minimumStop, 0), 1) : 0.5;
+  const tp1Margin = g.tp1_pct > 0 && minimumTp1 > 0 ? Math.min(Math.max((g.tp1_pct - minimumTp1) / minimumTp1, 0), 1) : 0.5;
+  const tp2Margin = g.tp2_pct > 0 && minimumTp2 > 0 ? Math.min(Math.max((g.tp2_pct - minimumTp2) / minimumTp2, 0), 1) : 0.5;
   const distMargin = (slMargin + tp1Margin + tp2Margin) / 3;
   const gradePct = gradeIndex(r.grade) / 3;
   const identityPct = strategyIdentityFit(e) / 100;

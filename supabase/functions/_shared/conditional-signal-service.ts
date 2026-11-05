@@ -1,3 +1,5 @@
+import {entryPriceAssessment,entryPolicyQualified} from './entry-decision.ts';
+import type {EntryDecision} from './entry-decision.ts';
 import type {PaperLearningEvidence} from './paper-learning.ts';
 import {watchWidth,type WatchTimeframe,type WatchTrack} from './conditional-contract.ts';
 import {strategyContextDecision,watchedMarketContext,type WatchedIntelligence,type StrategyThesis} from './watched-market-context.ts';
@@ -21,6 +23,10 @@ export interface ConditionalSetup {
  validation?:{kind:'TREND_PULLBACK'|'RANGE_REJECTION'|'STRATEGY';boundary:number;higherMinutes:number;lookbackBars?:number;fastPeriod?:number;slowPeriod?:number};
  cost?:{price:number;label:string};
  learning?:PaperLearningEvidence;selectionScore?:number;
+ entryDecision?:EntryDecision;
+ confirmationEvidence?:{strategyId:string;strategyVersion:string;configurationHash:string;evaluatedAt:string;evaluatorOutcome:'CONFIRMED'|'STILL_WAITING'|'DATA_UNAVAILABLE';closedBar:StrategyCandle};
+ watchOutcome?:'CONFIRMED'|'INVALIDATED'|'EXPIRED';
+ evaluationOutcome?:'STILL_WAITING'|'DATA_UNAVAILABLE';
  intelligence?:WatchedIntelligence;confirmationIntelligence?:WatchedIntelligence;
  origin?:{version:string;configuration:StrategyRuntimeConfig;plan:DeepReadonly<StrategyPlan>;thesis:StrategyThesis};
  management?:{partialFraction:number;breakEvenAfterTp1:boolean;maximumChaseR:number};
@@ -94,14 +100,17 @@ export function originalThesisValid(s:ConditionalSetup,rows:readonly StrategyCan
 /** Only the next OPEN is used here. The mutable bar's high/low/close never determine outcomes. */
 export function enterConditionalAtOpen(old:ConditionalSetup,b:StrategyCandle,now:number):ConditionalSetup {
  if(old.status!=='ARMED'||Date.parse(b.open_time)<Date.parse(old.armedAt!)||Date.parse(b.open_time)>now)return old;
+ if(now-Date.parse(b.open_time)>90000)return {...old,version:old.version+1,status:'INVALIDATED',observedAt:new Date(now).toISOString(),result:'Next open was not observed within the executable entry window; no retroactive fill.'};
  if(!Number.isFinite(Date.parse(b.open_time))||b.symbol!==old.symbol||b.timeframe!==old.timeframe||!Number.isFinite(b.open)||b.open<=0||b.source!==old.source)throw Error('INVALID_NEXT_OPEN');
  if(Date.parse(b.open_time)!==Date.parse(old.armedAt!)){
   if(!consecutiveMarketBars(old.symbol,Date.parse(old.lastBar),Date.parse(b.open_time),width(old.timeframe)))return old;
   return {...old,version:old.version+1,status:'INVALIDATED',observedAt:new Date(now).toISOString(),result:'Confirmation led into a scheduled market closure; original next-open condition cancelled, no paper fill.'};
  }
+ if(now>=Date.parse(old.expiresAt))return {...old,version:old.version+1,status:'EXPIRED',observedAt:new Date(now).toISOString(),result:'Entry deadline elapsed; no paper fill.'};
  const d=old.side==='buy'?1:-1,s={...old,version:old.version+1,observedAt:new Date(now).toISOString()};
  if(d*(b.open-old.stop)<=0||d*(b.open-old.trigger)>(old.management?.maximumChaseR??.25)*Math.abs(old.trigger-old.stop))return {...s,status:'INVALIDATED',result:'Next open crossed invalidation or exceeded chase limit; no paper fill.'};
- return {...s,status:'ACTIVE',fill:b.open,fillAt:b.open_time,bars:0,netR:0,result:'Paper entry at observed next open; outcomes await closed candles.'};
+ if(old.origin&&entryPolicyQualified(old.origin.configuration)){const checks=entryPriceAssessment(old,b.open,old.confirmationIntelligence?.spreadPrice);if(checks.reasons.length)return {...s,status:'INVALIDATED',result:checks.reasons.join('|')+'; no paper entry.'};}
+ return {...s,evaluationOutcome:undefined,status:'ACTIVE',fill:b.open,fillAt:b.open_time,bars:0,netR:0,result:'Paper entry at observed next open; outcomes await closed candles.'};
 }
 /** Confirmation at a completed candle close, paper fill at the NEXT bar open. Never retroactive entry. */
 export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):ConditionalSetup {
@@ -109,8 +118,8 @@ export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):C
  if(t<=previous||['CLOSED','EXPIRED','INVALIDATED','DATA_GAP'].includes(s.status))return old;
  if(![b.open,b.high,b.low,b.close].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||b.symbol!==s.symbol||b.timeframe!==s.timeframe)throw Error('INVALID_OBSERVATION');
  s.version++;s.lastBar=b.open_time;
- if(!b.source||b.source!==s.source){s.status='DATA_GAP';s.result='Price source changed; outcome unknown.';return s;}
- if(!consecutiveMarketBars(s.symbol,previous,t,w)){s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
+ if(!b.source||b.source!==s.source){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Price source changed; outcome unknown.';return s;}
+ if(!consecutiveMarketBars(s.symbol,previous,t,w)){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
  if(s.status==='WAITING'){
   if(t+w>=Date.parse(s.expiresAt)){s.status='EXPIRED';s.result='Condition did not confirm before expiry.';}
   else if(d*((d===1?b.low:b.high)-s.stop)<=0){s.status='INVALIDATED';s.result='Original invalidation touched before entry.';}
