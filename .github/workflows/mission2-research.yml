@@ -10,7 +10,26 @@ concurrency:
   group: mission2-research-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  research-request:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.request.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: request
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          message="$(git log -1 --format=%s)"
+          requested=false
+          case "$message" in '[mission2-research]'*) requested=true ;; esac
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then requested=true; fi
+          echo "run=$requested" >> "$GITHUB_OUTPUT"
   historical-policy:
+    needs: research-request
+    if: needs.research-request.outputs.run == 'true'
     name: Research ${{ matrix.period }} ${{ matrix.policy }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
