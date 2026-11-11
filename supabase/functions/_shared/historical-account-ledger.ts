@@ -12,7 +12,7 @@ export interface HistoricalExecutionSpec {
 export interface HistoricalQuote {symbol:string;at:number;bid:number;ask:number;conversion:number;}
 export interface LedgerPosition {id:string;signalId:string;strategy:string;symbol:string;side:1|-1;quantity:number;originalQuantity:number;entry:number;stop:number;tp1:number;tp2:number;partialFraction:number;breakEven:boolean;partialDone:boolean;openedAt:number;expiresAt:number;lastBar:number;mark:number;conversion:number;entryRisk:number;realizedGross:number;costs:number;funding:number;}
 export interface HistoricalTrade {id:string;signalId:string;strategy:string;symbol:string;side:1|-1;openedAt:number;closedAt:number;entry:number;exit:number;quantity:number;gross:number;costs:number;funding:number;net:number;netR:number;reason:string;}
-export interface LedgerSnapshot {schema:'historical-account-ledger/v1';balance:number;equity:number;peakEquity:number;maximumDrawdown:number;day:string;dayStart:number;dayPeak:number;dailyLocked:boolean;failed:boolean;through:number|null;priceUnavailable?:boolean;lastObservation?:number;lastBatchContent?:string;positions:LedgerPosition[];trades:HistoricalTrade[];seenSignals:string[];decisions:{signalId:string;at:number;decision:string;reasons:string[];quantity:number}[];equityPath:{at:number;balance:number;equity:number;kind:string;dailyLocked:boolean;failed:boolean}[];charged:string[];}
+export interface LedgerSnapshot {schema:'historical-account-ledger/v1';balance:number;equity:number;peakEquity:number;maximumDrawdown:number;day:string;dayStart:number;dayPeak:number;dailyLocked:boolean;failed:boolean;through:number|null;priceUnavailable?:boolean;lastObservation?:number;lastBatchContent?:string;positions:LedgerPosition[];trades:HistoricalTrade[];seenSignals:string[];decisions:{signalId:string;at:number;decision:string;reasons:string[];quantity:number}[];equityPath:{at:number;balance:number;equity:number;kind:string;dailyLocked:boolean;failed:boolean}[];charged:string[];financingReceipts?:Record<string,string>;}
 export interface HistoricalAccountPolicy {purpose:'HISTORICAL_RESEARCH';initialCapital:number;timezone:string;dailyLossPct:number;overallLossPct:number;drawdown:'STATIC'|'TRAILING';dailyBasis:'DAY_START_BALANCE'|'INITIAL_BALANCE';stopOutMarginRatio:number;}
 /** Event-driven account bookkeeping. The real account Brain remains the risk/quantity authority.
  * External effects are absent. OHLC adverse extrema use a conservative simultaneous-loss bound,
@@ -100,9 +100,27 @@ export class HistoricalAccountLedger {
   this.record(markAt,'CLOSED_BAR_MARK');this.state.lastObservation=at;this.state.lastBatchContent=content;this.advance(at);
  }
  observeQuotes(quotes:readonly HistoricalQuote[],at:number){
+  if(!Number.isFinite(at)||new Set(quotes.map(q=>q.symbol)).size!==quotes.length||quotes.some(q=>!q.symbol||q.at!==at||q.ask<q.bid||![q.ask,q.bid,q.conversion].every(x=>Number.isFinite(x)&&x>0)))throw Error('HISTORICAL_QUOTE_INVALID');
   this.advance(at);const bySymbol=new Map(quotes.map(q=>[q.symbol,q]));
   for(const p of [...this.state.positions]){const q=bySymbol.get(p.symbol);if(!q)continue;if(q.at!==at||q.ask<q.bid||![q.ask,q.bid,q.conversion].every(x=>Number.isFinite(x)&&x>0))throw Error('HISTORICAL_QUOTE_INVALID');p.mark=p.side===1?q.bid:q.ask;p.conversion=q.conversion;if(p.side*(p.mark-p.stop)<=0)this.fill(p,p.quantity,p.mark,at,'OBSERVED_QUOTE_STOP');else if(at>=p.expiresAt)this.fill(p,p.quantity,p.mark,at,'TIME_EXIT');}
   this.state.priceUnavailable=this.state.positions.some(p=>!bySymbol.has(p.symbol));this.record(at,'OBSERVED_QUOTE_MARK');
  }
- financing(at:number,eventId:string,rates:Readonly<Record<string,number>>){this.advance(at);if(this.state.charged.includes(eventId))return;this.state.charged.push(eventId);for(const p of this.state.positions){const rate=rates[p.symbol];if(rate===undefined)continue;if(!Number.isFinite(rate))throw Error('HISTORICAL_FINANCING_RATE_INVALID');const cost=p.quantity*this.spec(p.symbol).contractSize*p.mark*p.conversion*rate*p.side;this.state.balance-=cost;p.funding+=cost;}this.record(at,'FUNDING_OR_SWAP');}
+ financing(at:number,eventId:string,rates:Readonly<Record<string,number>>){
+  // Validate the complete batch before touching the clock, balance or idempotency journal.
+  if(!eventId||!Number.isFinite(at)||Object.values(rates).some(rate=>!Number.isFinite(rate)))throw Error('HISTORICAL_FINANCING_RATE_INVALID');
+  const receipt=JSON.stringify({at,rates:Object.fromEntries(Object.entries(rates).sort(([a],[b])=>a.localeCompare(b)))});
+  if(this.state.charged.includes(eventId)){
+   const previous=this.state.financingReceipts?.[eventId];
+   if(!previous)throw Error('HISTORICAL_FINANCING_REPLAY_EVIDENCE_MISSING');
+   if(previous!==receipt)throw Error('HISTORICAL_FINANCING_CONTENT_CONFLICT');
+   return;
+  }
+  const charges=this.state.positions.map(p=>{const rate=rates[p.symbol];const cost=rate===undefined?0:p.quantity*this.spec(p.symbol).contractSize*p.mark*p.conversion*rate*p.side;if(!Number.isFinite(cost))throw Error('HISTORICAL_FINANCING_RATE_INVALID');return{position:p,cost};});
+  this.advance(at);
+  for(const {position,cost} of charges){this.state.balance-=cost;position.funding+=cost;}
+  this.state.charged.push(eventId);(this.state.financingReceipts??={})[eventId]=receipt;
+  this.record(at,'FUNDING_OR_SWAP');
+ }
+
 }
+

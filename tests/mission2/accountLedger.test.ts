@@ -40,3 +40,25 @@ test('account diagnostics retain the actual violated rule instead of inferring i
  assert(decision.ruleDiagnostics?.some(r=>/margin/i.test(r.ruleId)||/margin/i.test(r.message)),JSON.stringify(decision));
  assert(decision.ruleDiagnostics?.every(r=>r.ruleId&&r.category&&r.severity&&r.message));
 });
+
+
+test('financing rejects the whole invalid batch atomically and fences changed replay content across restart',()=>{
+ const ledger=new HistoricalAccountLedger(policy,[spec]);ledger.enter(setup(),quote,input());
+ const before=ledger.snapshot();
+ assert.throws(()=>ledger.financing(now+1000,'atomic-batch',{EURUSD:.0001,UNUSED:NaN}),/FINANCING_RATE_INVALID/);
+ assert.deepEqual(ledger.snapshot(),before,'invalid batch must not advance time, debit funds or consume the event key');
+ ledger.financing(now+1000,'atomic-batch',{EURUSD:.0001});const paid=ledger.snapshot();
+ ledger.observeQuotes([{...quote,at:now+2000}],now+2000);const later=ledger.snapshot();
+ ledger.financing(now+1000,'atomic-batch',{EURUSD:.0001});assert.deepEqual(ledger.snapshot(),later,'older identical retry remains idempotent after clock advances');
+ const restored=new HistoricalAccountLedger(policy,[spec],paid);
+ assert.throws(()=>restored.financing(now+1000,'atomic-batch',{EURUSD:.0002}),/FINANCING_CONTENT_CONFLICT/);
+ assert.deepEqual(restored.snapshot(),paid);
+});
+
+test('invalid or duplicate quote batches cannot partially mutate an account',()=>{
+ const ledger=new HistoricalAccountLedger(policy,[spec]);ledger.enter(setup(),quote,input());const before=ledger.snapshot();
+ assert.throws(()=>ledger.observeQuotes([{...quote,at:now+1000,bid:1.08,ask:1.081},{symbol:'UNHELD',at:now+1000,bid:NaN,ask:1,conversion:1}],now+1000),/HISTORICAL_QUOTE_INVALID/);
+ assert.deepEqual(ledger.snapshot(),before,'bad second quote cannot leave the first position closed or clock advanced');
+ assert.throws(()=>ledger.observeQuotes([{...quote,at:now+1000},{...quote,at:now+1000}],now+1000),/HISTORICAL_QUOTE_INVALID/);
+ assert.deepEqual(ledger.snapshot(),before);
+});
