@@ -1,0 +1,22 @@
+name: Launch verification workspace
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/launch-verification.yml'
+permissions:
+  contents: read
+jobs:
+  source-and-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Preserve exact research source
+        run: git archive --format=tar.gz HEAD -o /tmp/hashibot-source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launch-source-${{ github.event.pull_request.head.sha }}
+          path: /tmp/hashibot-source.tar.gz
+          retention-days: 1
