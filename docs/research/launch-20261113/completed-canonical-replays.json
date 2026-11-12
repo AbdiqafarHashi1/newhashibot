@@ -1,0 +1,1957 @@
+[
+  {
+    "artifact": "broker-canonical-03-cb3cc50f846a71686e92ee1f7d086be454d7d3ee",
+    "reportSha256": "912a3e565faf5aa8bc12b8c82ecdcba4dfc3b5036a36182c99a3752f7e1e37be",
+    "engineSourceSha256": "331b7c945ed6249ad609b627c5bc0a2ac7de0bdf7105937d5e62f9bf61ecaaf5",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-03-10T00:00:00.000Z",
+      "end": "2025-03-17T00:00:00.000Z",
+      "days": 7
+    },
+    "strategyScope": "FULL_CATALOG",
+    "signals": 41,
+    "accounts": [
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 3,
+          "openPositions": 0,
+          "authorizedEntries": 3,
+          "rejectedAttempts": 38,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 38,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 38
+          },
+          "winRate": 0.3333333333333333,
+          "profitFactor": 0.7956564619268185,
+          "expectancyR": -0.1335897373501307,
+          "realizedNet": -0.5598759443500918,
+          "endingBalance": 499.4401240556498,
+          "endingEquity": 499.4401240556498,
+          "netReturnPct": -0.11197518887004207,
+          "maximumDrawdownPct": 0.7594056346440158,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 2,
+          "costs": 0.21000000000000002,
+          "financing": 0.12963,
+          "tradesPerDay": 0.42857142857142855,
+          "tradesPerWeek": 3,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 32,
+          "openPositions": 0,
+          "authorizedEntries": 32,
+          "rejectedAttempts": 9,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 9,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 9
+          },
+          "winRate": 0.34375,
+          "profitFactor": 0.5574106121605158,
+          "expectancyR": -0.21021712964202363,
+          "realizedNet": -12.486008287246188,
+          "endingBalance": 487.51399171275307,
+          "endingEquity": 487.51399171275307,
+          "netReturnPct": -2.4972016574493865,
+          "maximumDrawdownPct": 4.581078896499561,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 5,
+          "costs": 2.380000000000001,
+          "financing": 0.3296333840260435,
+          "tradesPerDay": 4.571428571428571,
+          "tradesPerWeek": 32,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 36,
+          "openPositions": 0,
+          "authorizedEntries": 36,
+          "rejectedAttempts": 5,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 4,
+            "SKIPPED_LOW_CONFIDENCE": 4,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 4,
+            "APPROVED_FULL_RISK": 1,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 1
+          },
+          "winRate": 0.3055555555555556,
+          "profitFactor": 0.39187557935781847,
+          "expectancyR": -0.2739123456113812,
+          "realizedNet": -41.29773789456431,
+          "endingBalance": 458.7022621054352,
+          "endingEquity": 458.7022621054352,
+          "netReturnPct": -8.259547578912963,
+          "maximumDrawdownPct": 11.359270197707575,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 6,
+          "costs": 5.039999999999999,
+          "financing": 0.5000178076071623,
+          "tradesPerDay": 5.142857142857143,
+          "tradesPerWeek": 36,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 41,
+          "openPositions": 0,
+          "authorizedEntries": 41,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.34146341463414637,
+          "profitFactor": 0.48653732016764384,
+          "expectancyR": -0.2501028829016273,
+          "realizedNet": -244.34114626863985,
+          "endingBalance": 9755.658853731366,
+          "endingEquity": 9755.658853731366,
+          "netReturnPct": -2.4434114626863446,
+          "maximumDrawdownPct": 3.977372325107511,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 38.010000000000005,
+          "financing": 5.663070077590887,
+          "tradesPerDay": 5.857142857142857,
+          "tradesPerWeek": 41,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 41,
+          "openPositions": 0,
+          "authorizedEntries": 41,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.34146341463414637,
+          "profitFactor": 0.4840783742883581,
+          "expectancyR": -0.24906577991731219,
+          "realizedNet": -491.7648100894035,
+          "endingBalance": 9508.23518991059,
+          "endingEquity": 9508.23518991059,
+          "netReturnPct": -4.917648100894094,
+          "maximumDrawdownPct": 7.900382670641987,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 75.67000000000003,
+          "financing": 11.326144426684762,
+          "tradesPerDay": 5.857142857142857,
+          "tradesPerWeek": 41,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 32,
+          "openPositions": 0,
+          "authorizedEntries": 32,
+          "rejectedAttempts": 9,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 2,
+            "SKIPPED_LOW_CONFIDENCE": 2,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 2,
+            "ACCOUNT_FAILED": 7
+          },
+          "winRate": 0.25,
+          "profitFactor": 0.18768187382115584,
+          "expectancyR": -0.42015923362403185,
+          "realizedNet": -1249.8102167412337,
+          "endingBalance": 8750.189783258767,
+          "endingEquity": 8750.189783258767,
+          "netReturnPct": -12.498102167412325,
+          "maximumDrawdownPct": 13.167201955870707,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 7,
+          "costs": 94.63999999999997,
+          "financing": 12.300398701291394,
+          "tradesPerDay": 4.571428571428571,
+          "tradesPerWeek": 32,
+          "accountFailed": true,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "broker-canonical-04-cb3cc50f846a71686e92ee1f7d086be454d7d3ee",
+    "reportSha256": "88aff01b27d8304c0c9652645dc0f57c285631e329f3f04d257c8d0be2c96423",
+    "engineSourceSha256": "331b7c945ed6249ad609b627c5bc0a2ac7de0bdf7105937d5e62f9bf61ecaaf5",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-04-10T00:00:00.000Z",
+      "end": "2025-04-17T00:00:00.000Z",
+      "days": 7
+    },
+    "strategyScope": "FULL_CATALOG",
+    "signals": 64,
+    "accounts": [
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 3,
+          "openPositions": 0,
+          "authorizedEntries": 3,
+          "rejectedAttempts": 61,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 61,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 61
+          },
+          "winRate": 0.3333333333333333,
+          "profitFactor": 0.7884201007472654,
+          "expectancyR": -0.22906745822738936,
+          "realizedNet": -0.5129819302637304,
+          "endingBalance": 499.48701806973617,
+          "endingEquity": 499.48701806973617,
+          "netReturnPct": -0.10259638605276677,
+          "maximumDrawdownPct": 0.41102317605306415,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 1,
+          "costs": 0.21000000000000002,
+          "financing": 0,
+          "tradesPerDay": 0.42857142857142855,
+          "tradesPerWeek": 3,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 37,
+          "openPositions": 0,
+          "authorizedEntries": 37,
+          "rejectedAttempts": 27,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 27,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 27
+          },
+          "winRate": 0.4864864864864865,
+          "profitFactor": 1.3529039218964574,
+          "expectancyR": 0.14379345944898214,
+          "realizedNet": 11.264215344615168,
+          "endingBalance": 511.26421534461446,
+          "endingEquity": 511.26421534461446,
+          "netReturnPct": 2.2528430689228913,
+          "maximumDrawdownPct": 1.7992483583002514,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 3,
+          "costs": 2.7999999999999994,
+          "financing": 0.1000007212769487,
+          "tradesPerDay": 5.285714285714286,
+          "tradesPerWeek": 37,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 57,
+          "openPositions": 0,
+          "authorizedEntries": 57,
+          "rejectedAttempts": 7,
+          "rejectionReasons": {
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 4,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 4,
+            "ACCOUNT_RULE_REJECTED": 5,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 4,
+            "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 4,
+            "SKIPPED_LOW_CONFIDENCE": 1,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 1,
+            "APPROVED_FULL_RISK": 2,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 2
+          },
+          "winRate": 0.5263157894736842,
+          "profitFactor": 1.4137991105361225,
+          "expectancyR": 0.1445451549994262,
+          "realizedNet": 34.61139236045571,
+          "endingBalance": 534.6113923604549,
+          "endingEquity": 534.6113923604549,
+          "netReturnPct": 6.922278472090988,
+          "maximumDrawdownPct": 5.2900110672075,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 6,
+          "costs": 7.490000000000001,
+          "financing": 0.3000021638308461,
+          "tradesPerDay": 8.142857142857142,
+          "tradesPerWeek": 57,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 64,
+          "openPositions": 0,
+          "authorizedEntries": 64,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.546875,
+          "profitFactor": 1.277561231297459,
+          "expectancyR": 0.1096041701924882,
+          "realizedNet": 163.30103956952453,
+          "endingBalance": 10163.301039569522,
+          "endingEquity": 10163.301039569522,
+          "netReturnPct": 1.6330103956952189,
+          "maximumDrawdownPct": 1.6534362007319523,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 6,
+          "costs": 49.28000000000001,
+          "financing": 1.7000122617081281,
+          "tradesPerDay": 9.142857142857142,
+          "tradesPerWeek": 64,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 64,
+          "openPositions": 0,
+          "authorizedEntries": 64,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.546875,
+          "profitFactor": 1.281333112107902,
+          "expectancyR": 0.11002021159672801,
+          "realizedNet": 342.65160957027047,
+          "endingBalance": 10342.651609570274,
+          "endingEquity": 10342.651609570274,
+          "netReturnPct": 3.4265160957027363,
+          "maximumDrawdownPct": 3.3864841894048934,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 6,
+          "costs": 101.85,
+          "financing": 3.6000259659701532,
+          "tradesPerDay": 9.142857142857142,
+          "tradesPerWeek": 64,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 57,
+          "openPositions": 0,
+          "authorizedEntries": 57,
+          "rejectedAttempts": 7,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 7,
+            "SKIPPED_MAX_POSITIONS_REACHED": 2,
+            "BRAIN_RULE:rule_mt5_portfolio_risk_cap": 2,
+            "SKIPPED_LOW_CONFIDENCE": 1,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 1,
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 4,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 4,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 4,
+            "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 4
+          },
+          "winRate": 0.5964912280701754,
+          "profitFactor": 1.6482174602647026,
+          "expectancyR": 0.22669409623012635,
+          "realizedNet": 1171.941045035713,
+          "endingBalance": 11171.94104503572,
+          "endingEquity": 11171.94104503572,
+          "netReturnPct": 11.71941045035721,
+          "maximumDrawdownPct": 6.793881811809715,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 6,
+          "costs": 178.43000000000004,
+          "financing": 7.800056259601999,
+          "tradesPerDay": 8.142857142857142,
+          "tradesPerWeek": 57,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "broker-canonical-05-cb3cc50f846a71686e92ee1f7d086be454d7d3ee",
+    "reportSha256": "6d768e7a8bf57e633ca69c808dd769b818fdc1bafe8f01edd6d6c05a8d568979",
+    "engineSourceSha256": "331b7c945ed6249ad609b627c5bc0a2ac7de0bdf7105937d5e62f9bf61ecaaf5",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-05-10T00:00:00.000Z",
+      "end": "2025-05-17T00:00:00.000Z",
+      "days": 7
+    },
+    "strategyScope": "FULL_CATALOG",
+    "signals": 49,
+    "accounts": [
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 5,
+          "openPositions": 0,
+          "authorizedEntries": 5,
+          "rejectedAttempts": 44,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 44,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 44
+          },
+          "winRate": 0.4,
+          "profitFactor": 0.7135960118221448,
+          "expectancyR": -0.09490632896889153,
+          "realizedNet": -0.88709222599834,
+          "endingBalance": 499.11290777400154,
+          "endingEquity": 499.11290777400154,
+          "netReturnPct": -0.17741844519969163,
+          "maximumDrawdownPct": 0.44657877455477457,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 2,
+          "costs": 0.35000000000000003,
+          "financing": 0,
+          "tradesPerDay": 0.7142857142857143,
+          "tradesPerWeek": 5,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 36,
+          "openPositions": 0,
+          "authorizedEntries": 36,
+          "rejectedAttempts": 13,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 12,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 12,
+            "ACCOUNT_RULE_REJECTED": 1,
+            "SKIPPED_MAX_POSITIONS_REACHED": 1,
+            "BRAIN_RULE:rule_mt5_max_open_positions_total": 1
+          },
+          "winRate": 0.4166666666666667,
+          "profitFactor": 0.7002711463953404,
+          "expectancyR": -0.12670004362992668,
+          "realizedNet": -9.012811630191973,
+          "endingBalance": 490.9871883698072,
+          "endingEquity": 490.9871883698072,
+          "netReturnPct": -1.80256232603856,
+          "maximumDrawdownPct": 3.1914733186816138,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 7,
+          "costs": 2.87,
+          "financing": 0.11177299999999998,
+          "tradesPerDay": 5.142857142857143,
+          "tradesPerWeek": 36,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 40,
+          "openPositions": 1,
+          "authorizedEntries": 41,
+          "rejectedAttempts": 8,
+          "rejectionReasons": {
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 1,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 1,
+            "ACCOUNT_RULE_REJECTED": 5,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 2,
+            "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 2,
+            "SKIPPED_LOW_CONFIDENCE": 3,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 3,
+            "SKIPPED_MAX_POSITIONS_REACHED": 1,
+            "BRAIN_RULE:rule_mt5_max_open_positions_total": 1,
+            "REDUCED_DRAWDOWN_SAFETY_BUFFER": 2,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 3,
+            "BRAIN_RULE:rule_mt5_drawdown_safety_buffer": 2
+          },
+          "winRate": 0.375,
+          "profitFactor": 0.6514652242356477,
+          "expectancyR": -0.19084956093353894,
+          "realizedNet": -21.81363747281892,
+          "endingBalance": 478.0513625271805,
+          "endingEquity": 476.61246210481664,
+          "netReturnPct": -4.677507579036671,
+          "maximumDrawdownPct": 8.46723739000535,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 9,
+          "costs": 5.425000000000001,
+          "financing": 0.435319,
+          "tradesPerDay": 5.857142857142857,
+          "tradesPerWeek": 41,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 46,
+          "openPositions": 2,
+          "authorizedEntries": 48,
+          "rejectedAttempts": 1,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 1,
+            "SKIPPED_MAX_POSITIONS_REACHED": 1,
+            "BRAIN_RULE:rule_mt5_max_open_positions_total": 1
+          },
+          "winRate": 0.41304347826086957,
+          "profitFactor": 0.7120839177198643,
+          "expectancyR": -0.11458153331713981,
+          "realizedNet": -129.03701376734972,
+          "endingBalance": 9869.044011232649,
+          "endingEquity": 9845.432807853738,
+          "netReturnPct": -1.5456719214626173,
+          "maximumDrawdownPct": 2.5055095015153666,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 41.47500000000001,
+          "financing": 4.064125614196048,
+          "tradesPerDay": 6.857142857142857,
+          "tradesPerWeek": 48,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 46,
+          "openPositions": 2,
+          "authorizedEntries": 48,
+          "rejectedAttempts": 1,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 1,
+            "SKIPPED_MAX_POSITIONS_REACHED": 1,
+            "BRAIN_RULE:rule_mt5_max_open_positions_total": 1
+          },
+          "winRate": 0.41304347826086957,
+          "profitFactor": 0.7187488371316969,
+          "expectancyR": -0.11181292343059779,
+          "realizedNet": -255.47217770540294,
+          "endingBalance": 9740.387077294596,
+          "endingEquity": 9689.305770114412,
+          "netReturnPct": -3.1069422988558837,
+          "maximumDrawdownPct": 5.065927096842512,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 84.21000000000002,
+          "financing": 8.572820601848672,
+          "tradesPerDay": 6.857142857142857,
+          "tradesPerWeek": 48,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 38,
+          "openPositions": 1,
+          "authorizedEntries": 39,
+          "rejectedAttempts": 10,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 7,
+            "SKIPPED_LOW_CONFIDENCE": 4,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 4,
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 3,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 3,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 3,
+            "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 3,
+            "DAILY_EQUITY_LOCK": 3
+          },
+          "winRate": 0.3684210526315789,
+          "profitFactor": 0.6552514609486366,
+          "expectancyR": -0.12413184304366634,
+          "realizedNet": -501.57871961620003,
+          "endingBalance": 9495.233175383797,
+          "endingEquity": 9449.2531753838,
+          "netReturnPct": -5.507468246162007,
+          "maximumDrawdownPct": 8.89940495860279,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 127.15500000000004,
+          "financing": 2.523105,
+          "tradesPerDay": 5.571428571428571,
+          "tradesPerWeek": 39,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "broker-canonical-06-cb3cc50f846a71686e92ee1f7d086be454d7d3ee",
+    "reportSha256": "281c408aa04354ca7da646bed6e52008a5c95a85789870995e808e41b9392998",
+    "engineSourceSha256": "331b7c945ed6249ad609b627c5bc0a2ac7de0bdf7105937d5e62f9bf61ecaaf5",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-06-10T00:00:00.000Z",
+      "end": "2025-06-17T00:00:00.000Z",
+      "days": 7
+    },
+    "strategyScope": "FULL_CATALOG",
+    "signals": 43,
+    "accounts": [
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 3,
+          "openPositions": 0,
+          "authorizedEntries": 3,
+          "rejectedAttempts": 40,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 40,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 40
+          },
+          "winRate": 0,
+          "profitFactor": 0,
+          "expectancyR": -0.8974423620594156,
+          "realizedNet": -2.600114009795763,
+          "endingBalance": 497.39988599020415,
+          "endingEquity": 497.39988599020415,
+          "netReturnPct": -0.5200228019591692,
+          "maximumDrawdownPct": 0.7549463987606237,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 3,
+          "costs": 0.21000000000000002,
+          "financing": 0.2000176707063865,
+          "tradesPerDay": 0.42857142857142855,
+          "tradesPerWeek": 3,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 36,
+          "openPositions": 0,
+          "authorizedEntries": 36,
+          "rejectedAttempts": 7,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 7,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 7
+          },
+          "winRate": 0.2777777777777778,
+          "profitFactor": 0.6349258921250911,
+          "expectancyR": -0.2126903695936025,
+          "realizedNet": -11.934962026008149,
+          "endingBalance": 488.06503797399114,
+          "endingEquity": 488.06503797399114,
+          "netReturnPct": -2.3869924052017724,
+          "maximumDrawdownPct": 3.3010758063895094,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 2.7300000000000004,
+          "financing": 0.5000437002871113,
+          "tradesPerDay": 5.142857142857143,
+          "tradesPerWeek": 36,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 35,
+          "openPositions": 0,
+          "authorizedEntries": 35,
+          "rejectedAttempts": 8,
+          "rejectionReasons": {
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 2,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 2,
+            "ACCOUNT_RULE_REJECTED": 8,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 2,
+            "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 2,
+            "SKIPPED_MAX_POSITIONS_REACHED": 2,
+            "BRAIN_RULE:rule_mt5_portfolio_risk_cap": 2,
+            "SKIPPED_LOW_CONFIDENCE": 4,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 4
+          },
+          "winRate": 0.37142857142857144,
+          "profitFactor": 0.8828274736625079,
+          "expectancyR": -0.12005776835933192,
+          "realizedNet": -6.603221589005073,
+          "endingBalance": 493.3967784109946,
+          "endingEquity": 493.3967784109946,
+          "netReturnPct": -1.3206443178010774,
+          "maximumDrawdownPct": 5.340103494137123,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 5.390000000000001,
+          "financing": 0.20001671774867652,
+          "tradesPerDay": 5,
+          "tradesPerWeek": 35,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 43,
+          "openPositions": 0,
+          "authorizedEntries": 43,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.37209302325581395,
+          "profitFactor": 0.6768015415811346,
+          "expectancyR": -0.1415740852906023,
+          "realizedNet": -147.5260399899804,
+          "endingBalance": 9852.473960010018,
+          "endingEquity": 9852.473960010018,
+          "netReturnPct": -1.4752603998998164,
+          "maximumDrawdownPct": 1.9529146044634609,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 41.089999999999996,
+          "financing": 6.700525356403045,
+          "tradesPerDay": 6.142857142857143,
+          "tradesPerWeek": 43,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 43,
+          "openPositions": 0,
+          "authorizedEntries": 43,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.37209302325581395,
+          "profitFactor": 0.6743438786861027,
+          "expectancyR": -0.14003217747111343,
+          "realizedNet": -300.78449508307614,
+          "endingBalance": 9699.215504916925,
+          "endingEquity": 9699.215504916925,
+          "netReturnPct": -3.007844950830749,
+          "maximumDrawdownPct": 3.941322864301988,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 83.44,
+          "financing": 13.40105071280609,
+          "tradesPerDay": 6.142857142857143,
+          "tradesPerWeek": 43,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 37,
+          "openPositions": 0,
+          "authorizedEntries": 37,
+          "rejectedAttempts": 6,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 6,
+            "SKIPPED_MAX_POSITIONS_REACHED": 1,
+            "BRAIN_RULE:rule_mt5_portfolio_risk_cap": 1,
+            "SKIPPED_LOW_CONFIDENCE": 5,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 5
+          },
+          "winRate": 0.40540540540540543,
+          "profitFactor": 0.7653676126887236,
+          "expectancyR": -0.08261238595853515,
+          "realizedNet": -339.236349641056,
+          "endingBalance": 9660.763650358947,
+          "endingEquity": 9660.763650358947,
+          "netReturnPct": -3.3923634964105256,
+          "maximumDrawdownPct": 6.867621100311454,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 128.66,
+          "financing": 5.600342713847868,
+          "tradesPerDay": 5.285714285714286,
+          "tradesPerWeek": 37,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "broker-canonical-07-cb3cc50f846a71686e92ee1f7d086be454d7d3ee",
+    "reportSha256": "20e736ad3cdc56e9e2f12a401e274988fbf5d6beff5ed62f072a3e30ebf4ae15",
+    "engineSourceSha256": "331b7c945ed6249ad609b627c5bc0a2ac7de0bdf7105937d5e62f9bf61ecaaf5",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-07-10T00:00:00.000Z",
+      "end": "2025-07-17T00:00:00.000Z",
+      "days": 7
+    },
+    "strategyScope": "FULL_CATALOG",
+    "signals": 21,
+    "accounts": [
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 5,
+          "openPositions": 0,
+          "authorizedEntries": 5,
+          "rejectedAttempts": 16,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 16,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 16
+          },
+          "winRate": 0.2,
+          "profitFactor": 0.3200034108953165,
+          "expectancyR": -0.6994644546435042,
+          "realizedNet": -3.84618971040337,
+          "endingBalance": 496.15381028959644,
+          "endingEquity": 496.15381028959644,
+          "netReturnPct": -0.7692379420807128,
+          "maximumDrawdownPct": 1.2422379420807033,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 0.35000000000000003,
+          "financing": 0.19999999999999998,
+          "tradesPerDay": 0.7142857142857143,
+          "tradesPerWeek": 5,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 15,
+          "openPositions": 0,
+          "authorizedEntries": 15,
+          "rejectedAttempts": 6,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 6,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 6
+          },
+          "winRate": 0.26666666666666666,
+          "profitFactor": 0.3527673358038667,
+          "expectancyR": -0.498658840515956,
+          "realizedNet": -14.221612365029262,
+          "endingBalance": 485.77838763497056,
+          "endingEquity": 485.77838763497056,
+          "netReturnPct": -2.8443224730058887,
+          "maximumDrawdownPct": 4.401905019471151,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 6,
+          "costs": 1.4000000000000004,
+          "financing": 0.531544,
+          "tradesPerDay": 2.142857142857143,
+          "tradesPerWeek": 15,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 18,
+          "openPositions": 0,
+          "authorizedEntries": 18,
+          "rejectedAttempts": 3,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 3,
+            "SKIPPED_LOW_CONFIDENCE": 3,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 3
+          },
+          "winRate": 0.2777777777777778,
+          "profitFactor": 0.30093437496504716,
+          "expectancyR": -0.4124601913828672,
+          "realizedNet": -34.01817633311034,
+          "endingBalance": 465.98182366688945,
+          "endingEquity": 465.98182366688945,
+          "netReturnPct": -6.803635266622108,
+          "maximumDrawdownPct": 7.131958877306667,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 2.5900000000000003,
+          "financing": 1.063088,
+          "tradesPerDay": 2.5714285714285716,
+          "tradesPerWeek": 18,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 21,
+          "openPositions": 0,
+          "authorizedEntries": 21,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.2857142857142857,
+          "profitFactor": 0.3813601531004123,
+          "expectancyR": -0.41124890877101306,
+          "realizedNet": -205.7610001363067,
+          "endingBalance": 9794.238999863695,
+          "endingEquity": 9794.238999863695,
+          "netReturnPct": -2.0576100013630456,
+          "maximumDrawdownPct": 2.3604360790112935,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 19.95,
+          "financing": 5.841616,
+          "tradesPerDay": 3,
+          "tradesPerWeek": 21,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 21,
+          "openPositions": 0,
+          "authorizedEntries": 21,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.2857142857142857,
+          "profitFactor": 0.37783030957003466,
+          "expectancyR": -0.41271027616126604,
+          "realizedNet": -421.98127206858896,
+          "endingBalance": 9578.01872793142,
+          "endingEquity": 9578.01872793142,
+          "netReturnPct": -4.2198127206858045,
+          "maximumDrawdownPct": 4.837370458815405,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 40.6,
+          "financing": 11.883232000000001,
+          "tradesPerDay": 3,
+          "tradesPerWeek": 21,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 17,
+          "openPositions": 0,
+          "authorizedEntries": 17,
+          "rejectedAttempts": 4,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 4,
+            "SKIPPED_LOW_CONFIDENCE": 4,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 4
+          },
+          "winRate": 0.23529411764705882,
+          "profitFactor": 0.23891558233264432,
+          "expectancyR": -0.5266522536061097,
+          "realizedNet": -856.6080281283301,
+          "endingBalance": 9143.391971871672,
+          "endingEquity": 9143.391971871672,
+          "netReturnPct": -8.566080281283286,
+          "maximumDrawdownPct": 8.669255386693317,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 57.82000000000001,
+          "financing": 23.43492,
+          "tradesPerDay": 2.4285714285714284,
+          "tradesPerWeek": 17,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "broker-canonical-08-cb3cc50f846a71686e92ee1f7d086be454d7d3ee",
+    "reportSha256": "ec663558ee5271fc781682770b2df5121bac713ca7b66454e9e18ddf4c310a23",
+    "engineSourceSha256": "331b7c945ed6249ad609b627c5bc0a2ac7de0bdf7105937d5e62f9bf61ecaaf5",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-08-10T00:00:00.000Z",
+      "end": "2025-08-17T00:00:00.000Z",
+      "days": 7
+    },
+    "strategyScope": "FULL_CATALOG",
+    "signals": 20,
+    "accounts": [
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 2,
+          "openPositions": 0,
+          "authorizedEntries": 2,
+          "rejectedAttempts": 18,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 18,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 18
+          },
+          "winRate": 1,
+          "profitFactor": null,
+          "expectancyR": 0.9404033809256571,
+          "realizedNet": 2.2774914926822114,
+          "endingBalance": 502.27749149268215,
+          "endingEquity": 502.27749149268215,
+          "netReturnPct": 0.45549829853642904,
+          "maximumDrawdownPct": 0.30001426484803606,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 0,
+          "costs": 0.14,
+          "financing": 0,
+          "tradesPerDay": 0.2857142857142857,
+          "tradesPerWeek": 2,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 16,
+          "openPositions": 1,
+          "authorizedEntries": 17,
+          "rejectedAttempts": 3,
+          "rejectionReasons": {
+            "APPROVED_FULL_RISK": 3,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 3
+          },
+          "winRate": 0.25,
+          "profitFactor": 0.590787059907096,
+          "expectancyR": -0.24999881460002601,
+          "realizedNet": -5.086086993243344,
+          "endingBalance": 494.60783700675626,
+          "endingEquity": 493.6278370067563,
+          "netReturnPct": -1.274432598648741,
+          "maximumDrawdownPct": 2.1655915743099423,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 7,
+          "costs": 1.2950000000000004,
+          "financing": 0.40637300000000004,
+          "tradesPerDay": 2.4285714285714284,
+          "tradesPerWeek": 17,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 500,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 18,
+          "openPositions": 1,
+          "authorizedEntries": 19,
+          "rejectedAttempts": 1,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 1,
+            "SKIPPED_LOW_CONFIDENCE": 1,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 1
+          },
+          "winRate": 0.3333333333333333,
+          "profitFactor": 0.5699486110278997,
+          "expectancyR": -0.19562006432713538,
+          "realizedNet": -12.855672255876572,
+          "endingBalance": 486.5321757441233,
+          "endingEquity": 484.57217574412334,
+          "netReturnPct": -3.0855648511753317,
+          "maximumDrawdownPct": 4.280579388690312,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 3,
+          "costs": 3.08,
+          "financing": 0.6774490000000001,
+          "tradesPerDay": 2.7142857142857144,
+          "tradesPerWeek": 19,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.25,
+        "metrics": {
+          "closedTrades": 19,
+          "openPositions": 1,
+          "authorizedEntries": 20,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.3157894736842105,
+          "profitFactor": 0.5174066944718391,
+          "expectancyR": -0.20666233903767856,
+          "realizedNet": -94.39940119982771,
+          "endingBalance": 9901.62161080017,
+          "endingEquity": 9888.88161080017,
+          "netReturnPct": -1.1111838919982984,
+          "maximumDrawdownPct": 1.4889770197895411,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 19.705000000000002,
+          "financing": 4.471067000000001,
+          "tradesPerDay": 2.857142857142857,
+          "tradesPerWeek": 20,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 19,
+          "openPositions": 1,
+          "authorizedEntries": 20,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.3157894736842105,
+          "profitFactor": 0.5147072470788836,
+          "expectancyR": -0.2070770753168964,
+          "realizedNet": -192.3544061226172,
+          "endingBalance": 9799.687617877387,
+          "endingEquity": 9774.207617877388,
+          "netReturnPct": -2.2579238212261226,
+          "maximumDrawdownPct": 3.03270654323539,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 39.83,
+          "financing": 9.077431,
+          "tradesPerDay": 2.857142857142857,
+          "tradesPerWeek": 20,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      },
+      {
+        "provider": "MT5_PERSONAL",
+        "capital": 10000,
+        "riskPct": 1,
+        "metrics": {
+          "closedTrades": 16,
+          "openPositions": 1,
+          "authorizedEntries": 17,
+          "rejectedAttempts": 3,
+          "rejectionReasons": {
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 1,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 1,
+            "ACCOUNT_RULE_REJECTED": 3,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 1,
+            "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 1,
+            "SKIPPED_LOW_CONFIDENCE": 2,
+            "BRAIN_RULE:rule_mt5_insufficient_margin": 2
+          },
+          "winRate": 0.375,
+          "profitFactor": 0.6827083748509949,
+          "expectancyR": -0.1347337500982117,
+          "realizedNet": -191.55230126916663,
+          "endingBalance": 9792.531746730832,
+          "endingEquity": 9741.571746730833,
+          "netReturnPct": -2.584282532691668,
+          "maximumDrawdownPct": 4.1921837648270355,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 3,
+          "costs": 66.57000000000001,
+          "financing": 18.154862,
+          "tradesPerDay": 2.4285714285714284,
+          "tradesPerWeek": 17,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-cross-first-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "95d637d20a5e76b31866beef1bbc92602d84837c68b0a4cb9d417ee181f5fdb4",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-05-01T00:00:00.000Z",
+      "end": "2025-09-01T00:00:00.000Z",
+      "days": 123
+    },
+    "strategyScope": "crypto.launch-ema-cross-24-1.5-3",
+    "signals": 107,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 69,
+          "openPositions": 4,
+          "authorizedEntries": 73,
+          "rejectedAttempts": 34,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 33,
+            "SKIPPED_MAX_POSITIONS_REACHED": 28,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 20,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 8,
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 5,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 5,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 6,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 6,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 1
+          },
+          "winRate": 0.30434782608695654,
+          "profitFactor": 1.1352566886597737,
+          "expectancyR": 0.13316927782981944,
+          "realizedNet": 34.371469475428434,
+          "endingBalance": 1033.0605100207326,
+          "endingEquity": 1055.3643879007327,
+          "netReturnPct": 5.536438790073271,
+          "maximumDrawdownPct": 7.767010876505642,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 13,
+          "costs": 11.69416818185,
+          "financing": 10.508595297416369,
+          "tradesPerDay": 0.5934959349593496,
+          "tradesPerWeek": 4.154471544715447,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-cross-later-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "46f6d20c052e176bcb643456125f248e67ad0fb40d186e3123e009521a408138",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-11-01T00:00:00.000Z",
+      "days": 92
+    },
+    "strategyScope": "crypto.launch-ema-cross-24-1.5-3",
+    "signals": 62,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 50,
+          "openPositions": 1,
+          "authorizedEntries": 51,
+          "rejectedAttempts": 11,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 9,
+            "SKIPPED_MAX_POSITIONS_REACHED": 9,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 5,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 4,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 2,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 2,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 2
+          },
+          "winRate": 0.26,
+          "profitFactor": 0.8615494791832576,
+          "expectancyR": -0.058475017883870065,
+          "realizedNet": -26.611413704792206,
+          "endingBalance": 973.262895478933,
+          "endingEquity": 974.009283010933,
+          "netReturnPct": -2.599071698906698,
+          "maximumDrawdownPct": 9.189830146310001,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 16,
+          "costs": 10.701083676150004,
+          "financing": 6.3461201449173394,
+          "tradesPerDay": 0.5543478260869565,
+          "tradesPerWeek": 3.880434782608696,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-ensemble-first-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "10fee06d7a16dff8e14eafc54229c77ea4692a068b7df7067de88114eeb5bf6e",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-05-01T00:00:00.000Z",
+      "end": "2025-09-01T00:00:00.000Z",
+      "days": 123
+    },
+    "strategyScope": "crypto.launch-squeeze-24-3-1.5,crypto.launch-ema-cross-24-1.5-3,crypto.launch-trend-pullback-48-1.5-5",
+    "signals": 215,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 96,
+          "openPositions": 3,
+          "authorizedEntries": 99,
+          "rejectedAttempts": 116,
+          "rejectionReasons": {
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 10,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 10,
+            "ACCOUNT_RULE_REJECTED": 114,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 12,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 12,
+            "SKIPPED_MAX_POSITIONS_REACHED": 104,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 15,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 89,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 2
+          },
+          "winRate": 0.3229166666666667,
+          "profitFactor": 1.012947488890633,
+          "expectancyR": 0.03427142870083975,
+          "realizedNet": 4.184873509168048,
+          "endingBalance": 1002.231672830164,
+          "endingEquity": 1032.236872973564,
+          "netReturnPct": 3.223687297356401,
+          "maximumDrawdownPct": 11.888675883861065,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 19,
+          "costs": 11.709243382549994,
+          "financing": 12.764354487285397,
+          "tradesPerDay": 0.8048780487804879,
+          "tradesPerWeek": 5.634146341463415,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-ensemble-later-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "731fb87ef1114ce6b5a8c3c4a2b82de7108b2e31388ec6c7ba7d52a683f3a83e",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-11-01T00:00:00.000Z",
+      "days": 92
+    },
+    "strategyScope": "crypto.launch-squeeze-24-3-1.5,crypto.launch-ema-cross-24-1.5-3,crypto.launch-trend-pullback-48-1.5-5",
+    "signals": 124,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 56,
+          "openPositions": 2,
+          "authorizedEntries": 58,
+          "rejectedAttempts": 66,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 66,
+            "SKIPPED_MAX_POSITIONS_REACHED": 62,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 51,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 11,
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 4,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 4,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 4,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 4
+          },
+          "winRate": 0.32142857142857145,
+          "profitFactor": 1.0278398404097941,
+          "expectancyR": 0.011385738113336494,
+          "realizedNet": 5.494327606183744,
+          "endingBalance": 1004.6254988416106,
+          "endingEquity": 1028.3796571864107,
+          "netReturnPct": 2.8379657186410667,
+          "maximumDrawdownPct": 6.000561346805609,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 9.263164827700002,
+          "financing": 12.11410193068859,
+          "tradesPerDay": 0.6304347826086957,
+          "tradesPerWeek": 4.41304347826087,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-pullback-first-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "67154760ababd0fd31f4bb2925ff4dc3959e27b707e29f41c0ba589964264a55",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-05-01T00:00:00.000Z",
+      "end": "2025-09-01T00:00:00.000Z",
+      "days": 123
+    },
+    "strategyScope": "crypto.launch-trend-pullback-48-1.5-5",
+    "signals": 129,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 61,
+          "openPositions": 2,
+          "authorizedEntries": 63,
+          "rejectedAttempts": 66,
+          "rejectionReasons": {
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 10,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 10,
+            "ACCOUNT_RULE_REJECTED": 65,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 11,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 11,
+            "SKIPPED_MAX_POSITIONS_REACHED": 55,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 39,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 16,
+            "APPROVED_POSITION_PLAN_UNAVAILABLE": 1
+          },
+          "winRate": 0.26229508196721313,
+          "profitFactor": 1.5726953862271726,
+          "expectancyR": 0.49600305437806225,
+          "realizedNet": 136.81995828681275,
+          "endingBalance": 1135.1992334067907,
+          "endingEquity": 1150.3773867979905,
+          "netReturnPct": 15.037738679799054,
+          "maximumDrawdownPct": 8.453998643479817,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 12,
+          "costs": 10.121462885800005,
+          "financing": 13.228313107411164,
+          "tradesPerDay": 0.5121951219512195,
+          "tradesPerWeek": 3.5853658536585367,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-pullback-later-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "59d506aa5c5285e648a877b7ed1c9cba4317c003496bca7f9131cee0237e7bda",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-11-01T00:00:00.000Z",
+      "days": 92
+    },
+    "strategyScope": "crypto.launch-trend-pullback-48-1.5-5",
+    "signals": 88,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 48,
+          "openPositions": 1,
+          "authorizedEntries": 49,
+          "rejectedAttempts": 39,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 39,
+            "SKIPPED_MAX_POSITIONS_REACHED": 37,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 27,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 10,
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 2,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 2,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 2,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 2
+          },
+          "winRate": 0.22916666666666666,
+          "profitFactor": 1.3024384523222083,
+          "expectancyR": 0.2539720949943735,
+          "realizedNet": 58.96874574427521,
+          "endingBalance": 1058.3514164902742,
+          "endingEquity": 1069.2054922872742,
+          "netReturnPct": 6.920549228727419,
+          "maximumDrawdownPct": 8.471455288419211,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 12,
+          "costs": 9.6621019503,
+          "financing": 11.40483215942651,
+          "tradesPerDay": 0.532608695652174,
+          "tradesPerWeek": 3.7282608695652177,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-squeeze-first-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "433cfcb8565a840b6f17e7eaf16b90c7b743c153e0121256d7999099e477ecd0",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2025-05-01T00:00:00.000Z",
+      "end": "2025-09-01T00:00:00.000Z",
+      "days": 123
+    },
+    "strategyScope": "crypto.launch-squeeze-24-3-1.5",
+    "signals": 136,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 78,
+          "openPositions": 2,
+          "authorizedEntries": 80,
+          "rejectedAttempts": 56,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 56,
+            "SKIPPED_MAX_POSITIONS_REACHED": 55,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 55,
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 1,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 1,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 1,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 1
+          },
+          "winRate": 0.46153846153846156,
+          "profitFactor": 1.0954177470233708,
+          "expectancyR": 0.07060887216144715,
+          "realizedNet": 20.4532120770967,
+          "endingBalance": 1019.9153668435798,
+          "endingEquity": 1025.61963355518,
+          "netReturnPct": 2.5619633555179915,
+          "maximumDrawdownPct": 6.171605220004187,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 11,
+          "costs": 6.5163013721,
+          "financing": 9.211837984319722,
+          "tradesPerDay": 0.6504065040650406,
+          "tradesPerWeek": 4.5528455284552845,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "artifact": "launch-scanner-squeeze-later-94dfcb3ad39f170fb1d177fa7177afa700454aa4",
+    "reportSha256": "2072bb7ee34c8b9868cf750099f3318a5b257ae4af3d6643ad67056a1a545f7b",
+    "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+    "status": "COMPLETED",
+    "period": {
+      "start": "2026-08-01T00:00:00.000Z",
+      "end": "2026-11-01T00:00:00.000Z",
+      "days": 92
+    },
+    "strategyScope": "crypto.launch-squeeze-24-3-1.5",
+    "signals": 82,
+    "accounts": [
+      {
+        "provider": "BINANCE",
+        "capital": 1000,
+        "riskPct": 0.5,
+        "metrics": {
+          "closedTrades": 44,
+          "openPositions": 3,
+          "authorizedEntries": 47,
+          "rejectedAttempts": 35,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 35,
+            "SKIPPED_MAX_POSITIONS_REACHED": 35,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 34,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 1
+          },
+          "winRate": 0.4318181818181818,
+          "profitFactor": 0.9969130122807968,
+          "expectancyR": 0.006537502795527495,
+          "realizedNet": -0.3829385605609037,
+          "endingBalance": 999.2040212389629,
+          "endingEquity": 1004.2903869949629,
+          "netReturnPct": 0.42903869949628864,
+          "maximumDrawdownPct": 4.411513346684956,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 8,
+          "costs": 4.951393654000002,
+          "financing": 7.217427507036049,
+          "tradesPerDay": 0.5108695652173914,
+          "tradesPerWeek": 3.5760869565217392,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        }
+      }
+    ]
+  }
+]

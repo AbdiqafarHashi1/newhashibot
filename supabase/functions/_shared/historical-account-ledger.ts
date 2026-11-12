@@ -12,7 +12,7 @@ export interface HistoricalExecutionSpec {
 export interface HistoricalQuote {symbol:string;at:number;bid:number;ask:number;conversion:number;}
 export interface LedgerPosition {id:string;signalId:string;strategy:string;symbol:string;side:1|-1;quantity:number;originalQuantity:number;entry:number;stop:number;tp1:number;tp2:number;partialFraction:number;breakEven:boolean;partialDone:boolean;openedAt:number;expiresAt:number;lastBar:number;mark:number;conversion:number;entryRisk:number;realizedGross:number;costs:number;funding:number;}
 export interface HistoricalTrade {id:string;signalId:string;strategy:string;symbol:string;side:1|-1;openedAt:number;closedAt:number;entry:number;exit:number;quantity:number;gross:number;costs:number;funding:number;net:number;netR:number;reason:string;}
-export interface LedgerSnapshot {schema:'historical-account-ledger/v1';balance:number;equity:number;peakEquity:number;maximumDrawdown:number;day:string;dayStart:number;dayPeak:number;dailyLocked:boolean;failed:boolean;through:number|null;priceUnavailable?:boolean;lastObservation?:number;lastBatchContent?:string;positions:LedgerPosition[];trades:HistoricalTrade[];seenSignals:string[];decisions:{signalId:string;at:number;decision:string;reasons:string[];quantity:number}[];equityPath:{at:number;balance:number;equity:number;kind:string;dailyLocked:boolean;failed:boolean}[];charged:string[];financingReceipts?:Record<string,string>;}
+export interface LedgerSnapshot {schema:'historical-account-ledger/v1';balance:number;equity:number;peakEquity:number;maximumDrawdown:number;day:string;dayStart:number;dayPeak:number;dailyLocked:boolean;failed:boolean;through:number|null;priceUnavailable?:boolean;lastObservation?:number;lastBatchContent?:string;positions:LedgerPosition[];trades:HistoricalTrade[];seenSignals:string[];decisions:{signalId:string;at:number;decision:string;reasons:string[];quantity:number}[];equityPath:{at:number;balance:number;equity:number;kind:string;dailyLocked:boolean;failed:boolean;openPositions?:number;entries?:number}[];charged:string[];financingReceipts?:Record<string,string>;}
 export interface HistoricalAccountPolicy {purpose:'HISTORICAL_RESEARCH';initialCapital:number;timezone:string;dailyLossPct:number;overallLossPct:number;drawdown:'STATIC'|'TRAILING';dailyBasis:'DAY_START_BALANCE'|'INITIAL_BALANCE';stopOutMarginRatio:number;}
 /** Event-driven account bookkeeping. The real account Brain remains the risk/quantity authority.
  * External effects are absent. OHLC adverse extrema use a conservative simultaneous-loss bound,
@@ -20,17 +20,26 @@ export interface HistoricalAccountPolicy {purpose:'HISTORICAL_RESEARCH';initialC
 export class HistoricalAccountLedger {
  private state:LedgerSnapshot;
  private specs:Map<string,HistoricalExecutionSpec>;
+ private dayFormatter:Intl.DateTimeFormat;
  constructor(private policy:HistoricalAccountPolicy,specs:readonly HistoricalExecutionSpec[],resume?:LedgerSnapshot){
   if(policy.purpose!=='HISTORICAL_RESEARCH'||![policy.initialCapital,policy.dailyLossPct,policy.overallLossPct].every(x=>Number.isFinite(x)&&x>0))throw Error('HISTORICAL_ACCOUNT_POLICY_INVALID');
-  new Intl.DateTimeFormat('en-CA',{timeZone:policy.timezone});
+  this.dayFormatter=new Intl.DateTimeFormat('en-CA',{timeZone:policy.timezone,year:'numeric',month:'2-digit',day:'2-digit'});
   this.specs=new Map(specs.map(s=>[s.symbol,s]));
   for(const s of specs)if(![s.contractSize,s.quantityStep,s.minimumQuantity,s.tickSize,s.leverage].every(x=>Number.isFinite(x)&&x>0)||![s.feeBpsPerSide,s.spreadBps,s.slippageBps,s.minimumNotional,s.minimumStopDistance,s.commissionPerQuantityPerSide??0].every(x=>Number.isFinite(x)&&x>=0)||!s.provenance.source)throw Error('HISTORICAL_EXECUTION_SPEC_INVALID');
   if(resume&&resume.schema!=='historical-account-ledger/v1')throw Error('HISTORICAL_LEDGER_VERSION_MISMATCH');
   this.state=resume?structuredClone(resume):{schema:'historical-account-ledger/v1',balance:policy.initialCapital,equity:policy.initialCapital,peakEquity:policy.initialCapital,maximumDrawdown:0,day:'',dayStart:policy.initialCapital,dayPeak:policy.initialCapital,dailyLocked:false,failed:false,through:null,positions:[],trades:[],seenSignals:[],decisions:[],equityPath:[],charged:[]};
  }
  snapshot(){return structuredClone(this.state);}
+ openPositionSnapshot(){return structuredClone(this.state.positions);}
+ observationCount(){return this.state.equityPath.length;}
+ observationsAfter(cursor:number){if(!Number.isInteger(cursor)||cursor<0||cursor>this.state.equityPath.length)throw Error('HISTORICAL_OBSERVATION_CURSOR_INVALID');return structuredClone(this.state.equityPath.slice(cursor));}
+ summary(){const s=this.state;return {balance:s.balance,equity:s.equity,openPositions:s.positions.length,entries:s.seenSignals.length,failed:s.failed,through:s.through};}
+ closeResearchPhase(quotes:readonly HistoricalQuote[],at:number){
+  const bySymbol=new Map(quotes.map(q=>[q.symbol,q]));if(this.state.positions.some(p=>!bySymbol.has(p.symbol)))throw Error('PHASE_CLOSE_QUOTES_REQUIRED');
+  this.observeQuotes(quotes,at);for(const p of [...this.state.positions]){const q=bySymbol.get(p.symbol)!;this.fill(p,p.quantity,p.side===1?q.bid:q.ask,at,'HISTORICAL_PHASE_TARGET_CLOSE');}this.record(at,'HISTORICAL_PHASE_TARGET_CLOSE');
+ }
  private spec(symbol:string){const s=this.specs.get(symbol);if(!s)throw Error('HISTORICAL_CONTRACT_SPEC_MISSING:'+symbol);return s;}
- private advance(at:number){if(!Number.isFinite(at)||this.state.through!==null&&at<this.state.through)throw Error('HISTORICAL_ACCOUNT_CLOCK_REGRESSION');const day=new Intl.DateTimeFormat('en-CA',{timeZone:this.policy.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(at);if(day!==this.state.day){this.state.day=day;this.state.dayStart=this.state.balance;this.state.dayPeak=this.state.equity;this.state.dailyLocked=false;}this.state.through=at;}
+ private advance(at:number){if(!Number.isFinite(at)||this.state.through!==null&&at<this.state.through)throw Error('HISTORICAL_ACCOUNT_CLOCK_REGRESSION');const day=this.dayFormatter.format(at);if(day!==this.state.day){this.state.day=day;this.state.dayStart=this.state.balance;this.state.dayPeak=this.state.equity;this.state.dailyLocked=false;}this.state.through=at;}
  private record(at:number,kind:string){
   const s=this.state;s.equity=s.balance+s.positions.reduce((n,p)=>n+(p.mark-p.entry)*p.side*p.quantity*this.spec(p.symbol).contractSize*p.conversion,0);s.peakEquity=Math.max(s.peakEquity,s.equity);s.dayPeak=Math.max(s.dayPeak,s.equity);s.maximumDrawdown=Math.max(s.maximumDrawdown,(s.peakEquity-s.equity)/s.peakEquity*100);
   const dailyAllowance=(this.policy.dailyBasis==='INITIAL_BALANCE'?this.policy.initialCapital:s.dayStart)*this.policy.dailyLossPct/100;
@@ -39,7 +48,7 @@ export class HistoricalAccountLedger {
   if(s.equity<=floor||s.equity<=0)s.failed=true;
   const margin=s.positions.reduce((n,p)=>n+p.quantity*this.spec(p.symbol).contractSize*p.entry*p.conversion/this.spec(p.symbol).leverage,0);
   if(margin>0&&s.equity/margin*100<=this.policy.stopOutMarginRatio){s.failed=true;for(const p of [...s.positions])this.fill(p,p.quantity,p.mark,at,'CONSERVATIVE_MARGIN_STOP_OUT');s.equity=s.balance;}
-  s.equityPath.push({at,balance:s.balance,equity:s.equity,kind,dailyLocked:s.dailyLocked,failed:s.failed});
+  s.equityPath.push({at,balance:s.balance,equity:s.equity,kind,dailyLocked:s.dailyLocked,failed:s.failed,openPositions:s.positions.length,entries:s.seenSignals.length});
  }
  context(template:AccountExecutionContext,at:number):AccountExecutionContext {
   const s=this.state,open:OpenPositionSummary[]=s.positions.map(p=>{const spec=this.spec(p.symbol),risk=Math.max(0,(p.mark-p.stop)*p.side)*p.quantity*spec.contractSize*p.conversion;return {ticket_or_id:p.id,symbol:p.symbol,side:p.side===1?'BUY':'SELL',quantity:p.quantity,entry_price:p.entry,current_price:p.mark,unrealized_pnl:(p.mark-p.entry)*p.side*p.quantity*spec.contractSize*p.conversion,stop_loss:p.stop,take_profit:p.tp2,open_risk_amount:risk,open_risk_pct:s.balance>0?risk/s.balance*100:100,notional_value:p.quantity*spec.contractSize*p.mark*p.conversion,opened_at:new Date(p.openedAt).toISOString()};});

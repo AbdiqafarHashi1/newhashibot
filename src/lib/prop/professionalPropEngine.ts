@@ -153,7 +153,8 @@ export interface PropAccountSnapshot {
   tradingDays: number;
   brokerTruth: boolean;
 }
-export function propResetDay(timestamp:string,timezone:string,resetTime:string){const date=new Date(timestamp),parts=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(date).filter(x=>x.type!=="literal").map(x=>[x.type,x.value])),reset=/^(\d\d?):(\d\d)/.exec(resetTime),before=reset&&(Number(parts.hour)*60+Number(parts.minute)<Number(reset[1])*60+Number(reset[2])),day=new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00Z`);if(before)day.setUTCDate(day.getUTCDate()-1);return day.toISOString().slice(0,10)}
+const resetFormatters=new Map<string,Intl.DateTimeFormat>();
+export function propResetDay(timestamp:string,timezone:string,resetTime:string){const date=new Date(timestamp),parts=Object.fromEntries((resetFormatters.get(timezone)??(()=>{const f=new Intl.DateTimeFormat("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});if(resetFormatters.size<32)resetFormatters.set(timezone,f);return f;})()).formatToParts(date).filter(x=>x.type!=="literal").map(x=>[x.type,x.value])),reset=/^(\d\d?):(\d\d)/.exec(resetTime),before=reset&&(Number(parts.hour)*60+Number(parts.minute)<Number(reset[1])*60+Number(reset[2])),day=new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00Z`);if(before)day.setUTCDate(day.getUTCDate()-1);return day.toISOString().slice(0,10)}
 export interface PropAuditEvent {
   id: string;
   timestamp: string;

@@ -8,7 +8,7 @@ begin
  if not found then raise exception 'ACCOUNT_OWNERSHIP_REQUIRED';end if;
  if jsonb_typeof(p_strategies) is distinct from 'array' or jsonb_array_length(p_strategies)=0 or jsonb_array_length(p_strategies)>30 then raise exception 'STRATEGIES_REQUIRED';end if;
  if exists(select 1 from jsonb_array_elements(p_strategies) s where jsonb_typeof(s)<>'string' or (s#>>'{}')!~case when upper(a.provider) like 'MT5%' then '^(forex\.|gold\.)' else '^crypto\.' end) then raise exception 'STRATEGY_MARKET_MISMATCH';end if;
- if a.environment='live' and exists(select 1 from jsonb_array_elements_text(p_strategies) s where s like 'crypto.launch-%') then raise exception 'DEMO_STRATEGY_ON_LIVE_ACCOUNT';end if;
+ if a.environment='live' and exists(select 1 from jsonb_array_elements_text(p_strategies) s where s ~ '^(crypto\.launch-|forex\.native-|gold\.native-)') then raise exception 'DEMO_STRATEGY_ON_LIVE_ACCOUNT';end if;
  current_ids:=coalesce(a.policy_overrides->'policy_configuration'->'allowedStrategies','[]'::jsonb);
  if current_ids is distinct from p_expected then raise exception 'ACCOUNT_CONFIGURATION_CHANGED_RELOAD';end if;
  update public.connected_execution_accounts set execution_enabled=false,policy_overrides=coalesce(policy_overrides,'{}'::jsonb)||jsonb_build_object('admin_selected_strategies',p_strategies,'policy_configuration',coalesce(a.policy_overrides->'policy_configuration','{}'::jsonb)||jsonb_build_object('allowedStrategies',p_strategies)) where id=p_account and customer_id=p_customer;

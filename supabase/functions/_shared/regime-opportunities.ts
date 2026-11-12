@@ -1,3 +1,4 @@
+import {scheduledBarClosed} from './conditional-market.ts';
 /** Release 1 research candidates, all disabled after failed development. Rule scores are NOT probabilities or certification.
  * Only closed OHLCV is used. No provider or publication authority lives here. */
 import {atrRootV1,emaRootV1,rsiRootV1} from './indicator-engine.ts';
@@ -13,7 +14,8 @@ export function closedAggregate(rows:readonly StrategyCandle[],minutes:number,as
  if(!rows.length)return[];const base=ms(rows[0].timeframe),width=minutes*60000;if(!Number.isInteger(width/base)||width<base)return[];
  const groups=new Map<number,StrategyCandle[]>();for(const row of rows){const t=Date.parse(row.open_time);if(t+base>Date.parse(asOf))continue;const start=Math.floor(t/width)*width;const g=groups.get(start)??[];g.push(row);groups.set(start,g);}
  return [...groups].sort((a,b)=>a[0]-b[0]).flatMap(([t,g])=>{
-  if(!(t+width<=Date.parse(asOf)&&g.length===width/base&&g.every((r,i)=>r.symbol===g[0].symbol&&r.source===g[0].source&&r.instrument_type===g[0].instrument_type&&Date.parse(r.open_time)===t+i*base)))return [];
+  const expected=Array.from({length:width/base},(_,i)=>t+i*base).filter(at=>g[0].source!=='EXNESS_BROKER_BID_ASK'||!scheduledBarClosed(g[0].symbol,at,base,g[0].source));
+  if(!(t+width<=Date.parse(asOf)&&g.length===expected.length&&g.every((r,i)=>r.symbol===g[0].symbol&&r.source===g[0].source&&r.instrument_type===g[0].instrument_type&&Date.parse(r.open_time)===expected[i])))return [];
   const flow:Partial<StrategyCandle>={};
   for(const key of ['quote_volume','trade_count','taker_buy_volume','taker_buy_quote_volume'] as const)if(g.every(r=>r[key]!==undefined))flow[key]=g.reduce((n,r)=>n+r[key]!,0);
   const bidAsk=g.every(r=>r.ask_open!==undefined&&r.ask_high!==undefined&&r.ask_low!==undefined&&r.ask_close!==undefined)?{ask_open:g[0].ask_open,ask_high:Math.max(...g.map(r=>r.ask_high!)),ask_low:Math.min(...g.map(r=>r.ask_low!)),ask_close:g.at(-1)!.ask_close}:{};

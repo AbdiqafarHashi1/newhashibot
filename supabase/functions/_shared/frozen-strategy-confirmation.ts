@@ -1,3 +1,5 @@
+import {continuousDiscoveryHistory} from './conditional-market.ts';
+import {watchWidth} from './conditional-contract.ts';
 import {strategyAlgorithmParameters} from './strategy-runtime-parameters.ts';
 import {watchedStrategyCatalog} from './watched-strategy-catalog.ts';
 import {calculateActiveIndicators} from './active-validation-runtime.ts';
@@ -6,6 +8,7 @@ import type {StrategyCandle} from './professional-strategies.ts';
 /** Resolve the named evaluator with the ORIGINAL parameters, never the edited DB config.
  * A code-version change holds the watch for expiry; it cannot silently change its thesis. */
 export function frozenStrategyConfirmation(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number,context?:{higher?:readonly StrategyCandle[];anchor?:readonly StrategyCandle[]}):'CONFIRMED'|'STILL_WAITING'|'DATA_UNAVAILABLE' {
+ rows=continuousDiscoveryHistory(rows,watchWidth(s.timeframe));
  if(!s.origin)return 'DATA_UNAVAILABLE';
  const configuration=structuredClone(s.origin.configuration),name=s.origin.plan.identity.strategy_name;
  const d=watchedStrategyCatalog([{...configuration,strategy_name:name}]).find(d=>d.id===s.strategy);

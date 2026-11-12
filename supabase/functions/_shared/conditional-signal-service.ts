@@ -35,7 +35,7 @@ const width=watchWidth;
 export function validClosedBars(rows:readonly StrategyCandle[],symbol:string,tf:string,now:number):boolean {
  const w=width(tf);return rows.length>=100 && Number.isFinite(now) && rows.every((r,i)=>r.symbol===symbol&&r.timeframe===tf&&
  [r.open,r.high,r.low,r.close,r.volume].every(Number.isFinite)&&r.low>0&&r.volume>=0&&r.high>=Math.max(r.open,r.close)&&r.low<=Math.min(r.open,r.close)&&
- Boolean(r.source)&&r.source!=='UNKNOWN'&&r.source===rows[0].source&&Date.parse(r.open_time)%w===0&&Date.parse(r.open_time)+w<=now&&(!i||consecutiveMarketBars(symbol,Date.parse(rows[i-1].open_time),Date.parse(r.open_time),w)))&&
+ Boolean(r.source)&&r.source!=='UNKNOWN'&&r.source===rows[0].source&&Date.parse(r.open_time)%w===0&&Date.parse(r.open_time)+w<=now&&(!i||consecutiveMarketBars(symbol,Date.parse(rows[i-1].open_time),Date.parse(r.open_time),w,r.source)))&&
  now-Date.parse(rows.at(-1)!.open_time)-w<w;
 }
 /** Two broad tracks; trend continuation or balanced-range rejection is selected by observed context. */
@@ -103,7 +103,7 @@ export function enterConditionalAtOpen(old:ConditionalSetup,b:StrategyCandle,now
  if(now-Date.parse(b.open_time)>90000)return {...old,version:old.version+1,status:'INVALIDATED',observedAt:new Date(now).toISOString(),result:'Next open was not observed within the executable entry window; no retroactive fill.'};
  if(!Number.isFinite(Date.parse(b.open_time))||b.symbol!==old.symbol||b.timeframe!==old.timeframe||!Number.isFinite(b.open)||b.open<=0||b.source!==old.source)throw Error('INVALID_NEXT_OPEN');
  if(Date.parse(b.open_time)!==Date.parse(old.armedAt!)){
-  if(!consecutiveMarketBars(old.symbol,Date.parse(old.lastBar),Date.parse(b.open_time),width(old.timeframe)))return old;
+  if(!consecutiveMarketBars(old.symbol,Date.parse(old.lastBar),Date.parse(b.open_time),width(old.timeframe),b.source))return old;
   return {...old,version:old.version+1,status:'INVALIDATED',observedAt:new Date(now).toISOString(),result:'Confirmation led into a scheduled market closure; original next-open condition cancelled, no paper fill.'};
  }
  if(now>=Date.parse(old.expiresAt))return {...old,version:old.version+1,status:'EXPIRED',observedAt:new Date(now).toISOString(),result:'Entry deadline elapsed; no paper fill.'};
@@ -119,7 +119,7 @@ export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):C
  if(![b.open,b.high,b.low,b.close].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||b.symbol!==s.symbol||b.timeframe!==s.timeframe)throw Error('INVALID_OBSERVATION');
  s.version++;s.lastBar=b.open_time;
  if(!b.source||b.source!==s.source){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Price source changed; outcome unknown.';return s;}
- if(!consecutiveMarketBars(s.symbol,previous,t,w)){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
+ if(!consecutiveMarketBars(s.symbol,previous,t,w,b.source)){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
  if(s.status==='WAITING'){
   if(t+w>=Date.parse(s.expiresAt)){s.status='EXPIRED';s.result='Condition did not confirm before expiry.';}
   else if(d*((d===1?b.low:b.high)-s.stop)<=0){s.status='INVALIDATED';s.result='Original invalidation touched before entry.';}

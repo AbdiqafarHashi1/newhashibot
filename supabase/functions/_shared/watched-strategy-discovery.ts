@@ -1,10 +1,11 @@
+import {brokerFamilyProfile} from './broker-strategy-families.ts';
 import {launchFamilyProfile} from './launch-strategy-families.ts';
 import {createStrategyPlan} from './strategy-plan.ts';
 import {decideEntry,entryPolicyEvaluable,type EntryDecision} from './entry-decision.ts';
 import {applyPaperLearning,type PaperLearningSnapshot} from './paper-learning.ts';
 import {ProfessionalStrategyRegistry,type StrategyDefinition,type StrategyCandle,type StrategyEvaluationContext,type RegistryEvaluation} from './professional-strategies.ts';
 import {calculateActiveIndicators} from './active-validation-runtime.ts';
-import {conditionalCost,conditionalMarket,consecutiveMarketBars} from './conditional-market.ts';
+import {conditionalCost,conditionalMarket,consecutiveMarketBars,continuousDiscoveryHistory} from './conditional-market.ts';
 import {watchWidth,watchTrack,type WatchTimeframe} from './conditional-contract.ts';
 import {watchedMarketContext,strategyContextDecision,type SourceContext,type WatchedIntelligence,type StrategyThesis} from './watched-market-context.ts';
 import {type ConditionalSetup} from './conditional-signal-service.ts';
@@ -29,7 +30,7 @@ export function watchedSetupFromEvaluation(e:RegistryEvaluation,ctx:StrategyEval
  const side=r.direction as 'buy'|'sell',sign=side==='buy'?1:-1,trigger=side==='buy'?r.entry_high:r.entry_low,risk=sign*(trigger-r.stop_loss),cost=conditionalCost(ctx.symbol,trigger,last.instrument_type);
  if(![trigger,r.stop_loss,r.tp1,r.tp2,cost.price,r.confidence_score].every(Number.isFinite)||!(risk>0&&r.stop_loss>0&&sign*(r.tp1-trigger)>0&&sign*(r.tp2-r.tp1)>=0)||cost.price/risk>.4||r.confidence_score<d.config.min_score||sign*(r.tp2-trigger)/risk<d.config.min_rr)return reject('SETUP_GEOMETRY_COST_SCORE_OR_RR');
  if(([[d.config.min_stop_distance_pct,risk],[d.config.min_tp1_distance_pct,Math.abs(r.tp1-trigger)],[d.config.min_tp2_distance_pct,Math.abs(r.tp2-trigger)]] as [number|undefined,number][]).some(([minimum,distance])=>typeof minimum==='number'&&distance/trigger*100<minimum))return reject('SETUP_MINIMUM_DISTANCE');
- const launch=launchFamilyProfile(d.id);
+ const launch=launchFamilyProfile(d.id)??brokerFamilyProfile(d.id);
  const family:StrategyThesis['family']=launch?.family??(/reversal|range|auction|exhaustion/.test(d.id)?'REVERSAL':/breakout|expansion|compression/.test(d.id)?'BREAKOUT':'TREND');
  const keys=side==='buy'?['asian_range_high','range_high','box_high','channel_high','breakout_level']:['asian_range_low','range_low','box_low','channel_low','breakout_level'];
  const observedBoundary=keys.map(k=>r.score_breakdown[k]).find(v=>typeof v==='number'&&Number.isFinite(v));
@@ -44,9 +45,9 @@ export function watchedSetupFromEvaluation(e:RegistryEvaluation,ctx:StrategyEval
 }
 export function discoverWatchedStrategies(input:{definitions:readonly StrategyDefinition[];symbol:string;tf:WatchTimeframe;rows:readonly StrategyCandle[];now:number;higher?:readonly StrategyCandle[];anchor?:readonly StrategyCandle[];sources?:readonly SourceContext[];spreadPrice?:number|null;spreadObservedAt?:string;learning?:PaperLearningSnapshot}) {
  const {definitions,symbol,tf,now}=input,market=conditionalMarket(symbol);if(!market)throw Error('WATCH_MARKET_REQUIRED');
- const rows=input.rows,w=watchWidth(tf),at=new Date(now).toISOString(),observations:StrategyObservation[]=[],setups:ConditionalSetup[]=[];
+ const w=watchWidth(tf),rows=continuousDiscoveryHistory(input.rows,w),at=new Date(now).toISOString(),observations:StrategyObservation[]=[],setups:ConditionalSetup[]=[];
  const rejectData=(reason:string)=>({setups:[] as ConditionalSetup[],intelligence:undefined,observations:definitions.filter(d=>d.market===market).map(d=>({strategy_id:d.id,symbol,timeframe:tf,checked_at:at,decision:'NO_TRADE',reason,evidence:{strategy_version:d.version,configuration:structuredClone(d.config),source_close:rows.at(-1)?.open_time??null,entry_decision:{schema:'entry-decision/v1',kind:'NO_TRADE',opportunityId:`data-rejection:${d.id}:${symbol}:${tf}:${at}`,strategyVersion:d.version,evaluatedAt:at,dataClose:'',reasons:[reason],netRewardRisk:null,confirmation:'UNAVAILABLE',executionEligible:false}}}))});
- if(rows.length<100||rows.some((b,i)=>b.symbol!==symbol||b.timeframe!==tf||!b.source||b.source!==rows[0].source||![b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||Date.parse(b.open_time)+w>now||i>0&&!consecutiveMarketBars(symbol,Date.parse(rows[i-1].open_time),Date.parse(b.open_time),w)))return rejectData('STRATEGY_WATCH_HISTORY_INVALID');
+ if(rows.length<100||rows.some((b,i)=>b.symbol!==symbol||b.timeframe!==tf||!b.source||b.source!==rows[0].source||![b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||Date.parse(b.open_time)+w>now||i>0&&!consecutiveMarketBars(symbol,Date.parse(rows[i-1].open_time),Date.parse(b.open_time),w,b.source)))return rejectData('STRATEGY_WATCH_HISTORY_INVALID');
  let intel:WatchedIntelligence;try{intel=watchedMarketContext(rows,now,input);}catch(e){return rejectData(e instanceof Error?e.message:'CONTEXT_DATA_UNAVAILABLE');}
  const ctx:StrategyEvaluationContext={symbol,market,timeframe:tf,candles:rows,indicators:calculateActiveIndicators(rows),evaluated_at:at,higher_timeframe_candles:input.higher,reference_candles:input.anchor};
  const registry=new ProfessionalStrategyRegistry(definitions),evaluations=registry.evaluate(ctx),byId=new Map(evaluations.map(e=>[e.definition.id,e]));

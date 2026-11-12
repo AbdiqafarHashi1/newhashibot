@@ -10,6 +10,8 @@ on:
       - 'scripts/research/launch/acquire_exness_history.py'
       - 'scripts/research/run-frequency-audit.ts'
       - 'supabase/functions/_shared/historical-account-scenario.ts'
+      - 'supabase/functions/_shared/broker-strategy-families.ts'
+      - 'scripts/research/launch/broker_search.py'
 permissions:
   contents: read
 concurrency:
@@ -70,6 +72,8 @@ jobs:
         with:
           path: .tmp/launch-research/exness-data/*.json
           key: exness-native-bid-ask-2025-jan-aug-v1
+      - name: Verify independent native bid/ask account calculations
+        run: python3 tests/research/brokerFamilyScreen.test.py
       - name: Acquire first-party broker bid and ask ticks
         run: python3 scripts/research/launch/acquire_exness_history.py
       - uses: actions/upload-artifact@v4
@@ -112,4 +116,68 @@ jobs:
         with:
           name: broker-canonical-${{ matrix.month }}-${{ github.event.pull_request.head.sha }}
           path: .tmp/broker-canonical
+          retention-days: 14
+
+  broker-family-canonical:
+    needs: native-exness-reference
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        candidate: [gold-momentum, gold-wide, gold-hourly, eur-squeeze, yen-momentum]
+        period: [early, later]
+        include:
+          - candidate: gold-momentum
+            id: gold.native-momentum-15-48-3-3
+            symbol: XAUUSD
+          - candidate: gold-wide
+            id: gold.native-momentum-15-48-2-5
+            symbol: XAUUSD
+          - candidate: gold-hourly
+            id: gold.native-momentum-60-24-2-5
+            symbol: XAUUSD
+          - candidate: eur-squeeze
+            id: forex.native-squeeze-60-12-2-5
+            symbol: EURUSD
+          - candidate: yen-momentum
+            id: forex.native-momentum-60-48-2-3
+            symbol: USDJPY
+          - period: early
+            start: '2025-04-01'
+            end: '2025-06-01'
+          - period: later
+            start: '2025-06-01'
+            end: '2025-09-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-exness-reference-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research/exness-data
+      - name: Actual named strategy, arbitration and account Brain over entire periods
+        env:
+          ID: ${{ matrix.id }}
+          SYMBOL: ${{ matrix.symbol }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/broker-families
+          node --import tsx scripts/research/run-frequency-audit.ts venue=exness data=.tmp/launch-research/exness-data months=2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08 "symbols=$SYMBOL" "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$ID" risks=.5 balances=10000 checkpointEvery=1440 out=.tmp/broker-families/report.json > .tmp/broker-families/engine.log 2>&1
+      - name: Empirical rolling challenge, verification and funded survival
+        if: matrix.candidate == 'gold-wide' && matrix.period == 'later'
+        run: node --import tsx scripts/research/launch/run-prop-cohorts.ts input=.tmp/broker-families/report.json out=.tmp/broker-families/prop-cohorts.json count=100 risks=.25,.4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-family-${{ matrix.candidate }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/broker-families
           retention-days: 14

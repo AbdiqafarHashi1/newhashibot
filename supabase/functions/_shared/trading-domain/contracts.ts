@@ -1,5 +1,5 @@
 export type DomainTimeframe="1m"|"5m"|"15m"|"30m"|"1h"|"4h"|"1d";
-export interface DomainCandle {datasetId:string;symbol:string;timeframe:DomainTimeframe;openTime:string;open:number;high:number;low:number;close:number;volume:number}
+export interface DomainCandle {datasetId:string;symbol:string;timeframe:DomainTimeframe;openTime:string;open:number;high:number;low:number;close:number;volume:number;ask_open?:number;ask_high?:number;ask_low?:number;ask_close?:number}
 export interface CanonicalCandleView {timeframe:DomainTimeframe;datasetId:string;candles:readonly DomainCandle[];lastClosed:DomainCandle|null;warmupComplete:boolean}
 export interface CanonicalMarketView {version:"market-view/v1";symbol:string;asOf:string;primaryTimeframe:DomainTimeframe;views:Readonly<Record<string,CanonicalCandleView>>;session:{open:boolean;code:string}}
 export interface StrategyRequirements {primaryTimeframe:DomainTimeframe;supportedPrimaryTimeframes?:readonly DomainTimeframe[];requiredTimeframes:readonly DomainTimeframe[];warmupBars:number;closeConfirmation:true}

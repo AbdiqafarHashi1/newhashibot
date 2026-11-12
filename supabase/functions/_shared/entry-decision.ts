@@ -1,3 +1,4 @@
+import {brokerFamilyProfile} from './broker-strategy-families.ts';
 import {launchFamilyProfile} from './launch-strategy-families.ts';
 import {conditionalMarket} from './conditional-market.ts';
 import type {ConditionalSetup} from './conditional-signal-service.ts';
@@ -43,14 +44,14 @@ export function decideEntry(input:{setup:ConditionalSetup;rows:readonly Strategy
  if(input.arbitrationAllowed===false)out.reasons.push('ARBITRATION_REJECTED');
  const price=last?.close??NaN,feasibility=entryPriceAssessment(s,price,intel.spreadPrice);out.netRewardRisk=feasibility.netRewardRisk;out.reasons.push(...feasibility.reasons.filter(r=>r!=='MAXIMUM_ENTRY_CHASE'));
  if(s.origin&&last&&validClosedBars(rows,s.symbol,s.timeframe,now)){
-  const regime=classifyEntryRegime(rows),block=launchFamilyProfile(s.strategy)&&s.origin.thesis.strategyDefined?(regime.state==='ABNORMAL'?'ABNORMAL_MARKET':regime.state==='UNAVAILABLE'?'REGIME_DATA_UNAVAILABLE':undefined):entryRegimeRejection(s.origin.thesis.family,s.side,regime);out.regime=regime;
+  const regime=classifyEntryRegime(rows),block=(launchFamilyProfile(s.strategy)??brokerFamilyProfile(s.strategy))&&s.origin.thesis.strategyDefined?(regime.state==='ABNORMAL'?'ABNORMAL_MARKET':regime.state==='UNAVAILABLE'?'REGIME_DATA_UNAVAILABLE':undefined):entryRegimeRejection(s.origin.thesis.family,s.side,regime);out.regime=regime;
   if(block)out.reasons.push(block.toUpperCase());
   const context=strategyContextDecision(s.origin.thesis,s.side,rows,intel);
   if(context==='INVALID')out.reasons.push('ORIGINAL_THESIS_INVALID');
   if(context==='UNKNOWN')out.reasons.push('CONTEXT_DATA_UNAVAILABLE');
   const zone=s.origin.plan.entry_plan.zone,withinOriginalZone=zone!==null&&last.close>=zone.low&&last.close<=zone.high;
   const pending=s.origin.plan.evidence.strategy_specific.entry_confirmation_pending===true;
-  out.confirmation=(!pending||input.originalTriggerConfirmed===true)&&context==='VALID'&&(withinOriginalZone||sign*(last.close-s.trigger)>=0)&&(!!launchFamilyProfile(s.strategy)||sign*(last.close-last.open)>0)?'COMPLETE':'INCOMPLETE';
+  out.confirmation=(!pending||input.originalTriggerConfirmed===true)&&context==='VALID'&&(withinOriginalZone||sign*(last.close-s.trigger)>=0)&&(!!(launchFamilyProfile(s.strategy)??brokerFamilyProfile(s.strategy))||sign*(last.close-last.open)>0)?'COMPLETE':'INCOMPLETE';
  }
  if(out.confirmation==='COMPLETE'&&now-Date.parse(out.dataClose)>90000)out.reasons.push('STALE_EXECUTABLE_CONFIRMATION');
  if(out.reasons.length)return out;
