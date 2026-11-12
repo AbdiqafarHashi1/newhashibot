@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+// Explicit network-failure checks must reach the routed request, not an installed PWA worker.
+test.use({serviceWorkers:'block'});
 
 test('public research preserves losing results, filters and failure recovery',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

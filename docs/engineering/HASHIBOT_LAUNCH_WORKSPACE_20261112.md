@@ -10,6 +10,7 @@ Continuation of PR #271 over published head `dd7006d252eb865e7a2e2956ecde385bb03
 - Public Home, Signals and Features explain the actual product and lifecycle. Free/VIP/Execution retain their existing purchase/onboarding paths and prices. Hard-coded provider-live claims, fabricated strategy grades and unsupported performance aggregates are removed from the affected pages. Backend financial authorizations are unchanged.
 - `/results` uses the published historical index, shows losing results and undefined metrics, and provides venue/entry filters, periods, cost assumptions and retry handling. It makes no customer-account performance claim.
 - Owner Preview can read only specifically named same-origin static Mission 2 research files. API access, provider calls, writes and external destinations remain blocked. Duplicate route entries are removed.
+- The PWA no longer serves a stale cached research index/study after an update; research requests bypass its cache. A regression test exercises the actual worker handler.
 - Local development accepts the preview host/port and uses the Node TS loader without a CLI IPC socket. Production Netlify remains a static build.
 
 ## Verification
@@ -19,6 +20,7 @@ Continuation of PR #271 over published head `dd7006d252eb865e7a2e2956ecde385bb03
 - Ten targeted account-ledger and service-observation tests passed; six preview isolation/admin-shell tests passed; the owner-preview suite and purchase journey contracts passed.
 - Admin surface inventory passed (72 routes / 140 surfaces).
 - Shared Chrome walkthrough verified the homepage, public evidence table and entry filter, admin navigation, unavailable-service display, compressed evidence loading and account-scenario changes. Connected backend behavior is not established by preview.
+- The first CI browser run passed the admin research journey on desktop and phone, and exposed stale PWA evidence caching plus an obsolete copy-only assertion. Both were corrected; the public test now explicitly controls its network-failure condition and the customer test verifies checkout authentication rather than a marketing word.
 - Desktop/phone regression tests are included in the existing Release 1 browser suite; their remote result must be read after publishing.
 
 ## Remaining engineering and activation
