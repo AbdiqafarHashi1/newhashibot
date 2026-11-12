@@ -16,7 +16,7 @@ export default function LaunchSetup() {
     try {
       const {data,error} = await supabase.functions.invoke('saas-launch-status',{body:{}, signal:controller.signal, timeout:12000});
       if (error || data?.error || !data?.observedAt || !Array.isArray(data?.checks)) throw new Error('STATUS_UNAVAILABLE');
-      if (!controller.signal.aborted) setStatus(data);
+      if (!controller.signal.aborted) { setNow(Date.now()); setStatus(data); }
     } catch {
       if (!controller.signal.aborted) setError('The backend could not be reached. Restore Supabase and deploy the current database and functions to load connected service status. You can still review historical research and the public pages.');
     } finally { if (!controller.signal.aborted) setBusy(false); }

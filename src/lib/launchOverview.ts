@@ -18,7 +18,8 @@ const recent = (value: unknown, now: number, minutes: number) => {
 };
 /** An observation is evidence for one step, never a launch or trading authorization. */
 export function launchJourneys(status: LaunchStatus | null, now = Date.now()): Journey[] {
-  const current = status && recent(status.observedAt, now, 5) ? status : null;
+  const snapshotAge = status ? now - Date.parse(status.observedAt) : NaN;
+  const current = status && Number.isFinite(snapshotAge) && snapshotAge >= -30_000 && snapshotAge <= 300_000 ? status : null;
   const scanner = rows(current, 'scannerRuns'), deliveries = rows(current, 'publicationQueue');
   const memberships = rows(current, 'vipMembership'), payments = rows(current, 'paymentAttempts');
   const releases = rows(current, 'releases'), accounts = rows(current, 'accounts'), workers = rows(current, 'recentWorkerEvidence');

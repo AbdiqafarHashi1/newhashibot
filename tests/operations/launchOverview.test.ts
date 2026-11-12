@@ -27,3 +27,9 @@ test('observations expire and future timestamps cannot appear fresh', () => {
   assert.equal(launchJourneys(s,now).find(j=>j.id==='scanner')?.state,'attention');
   assert.equal(launchJourneys(s,now+360_000).find(j=>j.id==='scanner')?.state,'unavailable');
 });
+
+test('snapshot receipt tolerates a small server clock offset without accepting future scanner activity', () => {
+  const s = status(); s.observedAt = new Date(now+1000).toISOString();
+  s.checks = [{name:'scannerRuns',state:'LOADED',data:[{started_at:new Date(now+1000).toISOString()}]}];
+  assert.equal(launchJourneys(s,now).find(j=>j.id==='scanner')?.state,'attention');
+});

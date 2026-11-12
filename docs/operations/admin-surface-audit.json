@@ -506,7 +506,7 @@
     },
     {
       "file": "src/pages/admin/LaunchSetup.tsx",
-      "sourceHash": "6e39efa51f81feaddcd90ae93cc44c6e5b1cd49c3a3c282c6eea0f56e751ec66",
+      "sourceHash": "65f2462c32fb0d10be35d685bcd39ba9687c9b2e90c5f37f169cd4aac80755fa",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1241,7 +1241,7 @@
     },
     {
       "file": "src/pages/admin/backtest/Mission2ResearchResults.tsx",
-      "sourceHash": "9451c59fcc3ff8cdd76ac7b34cb9fd54fc00aa8f9eecc2b9153643960fc0f894",
+      "sourceHash": "ade665f26d242d5484e6219687812ef7195486f7f0f31d1b9644c3a2b70b1d6c",
       "internalUiLabels": [],
       "backendReferences": [
         {

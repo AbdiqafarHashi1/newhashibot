@@ -1,0 +1,287 @@
+{
+  "sourceHash": "8610af4f18e34220bedf32e580b2ccee1bb00701f9061081c8f1df7e9d70ce36",
+  "scope": "OBSERVED_HISTORICAL_DIAGNOSTIC",
+  "studies": [
+    {
+      "study": "current-validation-combined",
+      "policy": "COMBINED",
+      "sourceHash": "8610af4f18e34220bedf32e580b2ccee1bb00701f9061081c8f1df7e9d70ce36",
+      "funnel": {
+        "admitted": 106,
+        "confirmed": 78,
+        "expired": 17,
+        "invalidated": 11
+      },
+      "accounts": [
+        {
+          "provider": "BINANCE",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 26,
+            "openPositions": 3,
+            "authorizedEntries": 29,
+            "rejectedAttempts": 49,
+            "rejectionReasons": {
+              "INSTRUMENT_SHORT_UNSUPPORTED": 35,
+              "ACCOUNT_RULE_REJECTED": 14,
+              "SKIPPED_MAX_POSITIONS_REACHED": 8,
+              "BRAIN_RULE:rule_binance_max_open_positions_total": 8,
+              "SKIPPED_LOW_CONFIDENCE": 6,
+              "BRAIN_RULE:rule_binance_insufficient_margin": 6
+            },
+            "winRate": 0.38461538461538464,
+            "profitFactor": 0.5488129121917096,
+            "expectancyR": -0.2301581916531427,
+            "realizedNet": -29.961271813399886,
+            "endingBalance": 969.3076709616001,
+            "endingEquity": 975.2332403116002,
+            "netReturnPct": -2.4766759688399818,
+            "maximumDrawdownPct": 4.97639663132343,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 5,
+            "costs": 11.8110034384,
+            "financing": 0,
+            "tradesPerDay": 4.142857142857143,
+            "tradesPerWeek": 29.000000000000004,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        },
+        {
+          "provider": "BYBIT",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 26,
+            "openPositions": 3,
+            "authorizedEntries": 29,
+            "rejectedAttempts": 49,
+            "rejectionReasons": {
+              "INSTRUMENT_SHORT_UNSUPPORTED": 35,
+              "ACCOUNT_RULE_REJECTED": 14,
+              "SKIPPED_MAX_POSITIONS_REACHED": 8,
+              "BRAIN_RULE:rule_bybit_max_positions_reached": 8,
+              "SKIPPED_LOW_CONFIDENCE": 6,
+              "BRAIN_RULE:rule_bybit_insufficient_margin": 6
+            },
+            "winRate": 0.38461538461538464,
+            "profitFactor": 0.5488129121917096,
+            "expectancyR": -0.2301581916531427,
+            "realizedNet": -29.961271813399886,
+            "endingBalance": 969.3076709616001,
+            "endingEquity": 975.2332403116002,
+            "netReturnPct": -2.4766759688399818,
+            "maximumDrawdownPct": 4.97639663132343,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 5,
+            "costs": 11.8110034384,
+            "financing": 0,
+            "tradesPerDay": 4.142857142857143,
+            "tradesPerWeek": 29.000000000000004,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "study": "current-validation-immediate",
+      "policy": "IMMEDIATE_ONLY",
+      "sourceHash": "8610af4f18e34220bedf32e580b2ccee1bb00701f9061081c8f1df7e9d70ce36",
+      "funnel": {
+        "admitted": 86,
+        "confirmed": 86,
+        "expired": 0,
+        "invalidated": 0
+      },
+      "accounts": [
+        {
+          "provider": "BINANCE",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 28,
+            "openPositions": 2,
+            "authorizedEntries": 30,
+            "rejectedAttempts": 56,
+            "rejectionReasons": {
+              "INSTRUMENT_SHORT_UNSUPPORTED": 43,
+              "ACCOUNT_RULE_REJECTED": 13,
+              "SKIPPED_MAX_POSITIONS_REACHED": 7,
+              "BRAIN_RULE:rule_binance_max_open_positions_total": 7,
+              "SKIPPED_LOW_CONFIDENCE": 6,
+              "BRAIN_RULE:rule_binance_insufficient_margin": 6
+            },
+            "winRate": 0.42857142857142855,
+            "profitFactor": 0.5683986681274928,
+            "expectancyR": -0.245045473959626,
+            "realizedNet": -33.96481949180014,
+            "endingBalance": 968.4984654541997,
+            "endingEquity": 973.5080517877998,
+            "netReturnPct": -2.6491948212200214,
+            "maximumDrawdownPct": 3.978615278419214,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 3,
+            "costs": 13.8739043458,
+            "financing": 0,
+            "tradesPerDay": 4.285714285714286,
+            "tradesPerWeek": 30,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        },
+        {
+          "provider": "BYBIT",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 28,
+            "openPositions": 2,
+            "authorizedEntries": 30,
+            "rejectedAttempts": 56,
+            "rejectionReasons": {
+              "INSTRUMENT_SHORT_UNSUPPORTED": 43,
+              "ACCOUNT_RULE_REJECTED": 13,
+              "SKIPPED_MAX_POSITIONS_REACHED": 7,
+              "BRAIN_RULE:rule_bybit_max_positions_reached": 7,
+              "SKIPPED_LOW_CONFIDENCE": 6,
+              "BRAIN_RULE:rule_bybit_insufficient_margin": 6
+            },
+            "winRate": 0.42857142857142855,
+            "profitFactor": 0.5683986681274928,
+            "expectancyR": -0.245045473959626,
+            "realizedNet": -33.96481949180014,
+            "endingBalance": 968.4984654541997,
+            "endingEquity": 973.5080517877998,
+            "netReturnPct": -2.6491948212200214,
+            "maximumDrawdownPct": 3.978615278419214,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 3,
+            "costs": 13.8739043458,
+            "financing": 0,
+            "tradesPerDay": 4.285714285714286,
+            "tradesPerWeek": 30,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "study": "current-validation-conditional",
+      "policy": "CONDITIONAL_ONLY",
+      "sourceHash": "8610af4f18e34220bedf32e580b2ccee1bb00701f9061081c8f1df7e9d70ce36",
+      "funnel": {
+        "admitted": 110,
+        "confirmed": 2,
+        "expired": 64,
+        "invalidated": 43
+      },
+      "accounts": [
+        {
+          "provider": "BINANCE",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 0,
+            "openPositions": 0,
+            "authorizedEntries": 0,
+            "rejectedAttempts": 2,
+            "rejectionReasons": {
+              "INSTRUMENT_SHORT_UNSUPPORTED": 2
+            },
+            "winRate": null,
+            "profitFactor": null,
+            "expectancyR": null,
+            "realizedNet": 0,
+            "endingBalance": 1000,
+            "endingEquity": 1000,
+            "netReturnPct": 0,
+            "maximumDrawdownPct": 0,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 0,
+            "costs": 0,
+            "financing": 0,
+            "tradesPerDay": 0,
+            "tradesPerWeek": 0,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        },
+        {
+          "provider": "BYBIT",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 0,
+            "openPositions": 0,
+            "authorizedEntries": 0,
+            "rejectedAttempts": 2,
+            "rejectionReasons": {
+              "INSTRUMENT_SHORT_UNSUPPORTED": 2
+            },
+            "winRate": null,
+            "profitFactor": null,
+            "expectancyR": null,
+            "realizedNet": 0,
+            "endingBalance": 1000,
+            "endingEquity": 1000,
+            "netReturnPct": 0,
+            "maximumDrawdownPct": 0,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 0,
+            "costs": 0,
+            "financing": 0,
+            "tradesPerDay": 0,
+            "tradesPerWeek": 0,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

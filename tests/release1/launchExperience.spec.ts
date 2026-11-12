@@ -39,3 +39,16 @@ test('admin research opens from primary navigation and keeps auth protection',as
   await expect(page.getByTestId('mission2-research-results')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false);
 });
+
+test('owner preview preserves genuine published research labels and isolates fixture actions',async({page})=>{
+  await page.goto('/');
+  await page.getByRole('button',{name:'Owner Preview',exact:true}).first().click();
+  await expect(page.getByText('OWNER PREVIEW — simulated data; no real actions.',{exact:true})).toBeVisible();
+  if(test.info().project.name==='phone')await page.getByRole('button',{name:'Open Navigation',exact:true}).click();
+  await page.getByRole('link',{name:'Strategy research',exact:true}).click();
+  const panel=page.getByTestId('mission2-research-results');
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText('genuine historical experiments');
+  await expect(panel).not.toContainText('DEMONSTRATION EVIDENCE');
+  await expect(panel.getByRole('img',{name:'Historical account equity curve',exact:true})).toBeVisible();
+});

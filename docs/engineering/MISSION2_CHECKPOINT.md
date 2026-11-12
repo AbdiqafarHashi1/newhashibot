@@ -114,3 +114,7 @@ verified named prop rules and empirical challenge/funded survival cohorts. Broke
 archive probes returned HTTP 429. No candidate currently warrants automated demo
 promotion on these screens. Continue other feasible engineering/research rather
 than interpreting an external data blocker as completed Mission 2.
+
+## 12 November continuation: launch workspace and observed policy diagnostics
+
+See `HASHIBOT_LAUNCH_WORKSPACE_20261112.md` and `../research/mission2/WARMUP_POLICY_COMPARISON_20261112.md`. Public pages and admin research now expose genuine results without invented performance or provider-live claims. Three full current-source policy runs completed across ten symbols and two separate account-policy scenarios. Combined returned -2.477%, immediate-only -2.649%; conditional-only confirmed two signals but produced no spot-account entries. No profitable strategy or production activation is claimed. The published index now retains 15 studies, with exit/cost diagnostics and explicit history coverage. Mission 2 remains in progress; hosted full-account jobs and longer independent qualification remain unfinished.
