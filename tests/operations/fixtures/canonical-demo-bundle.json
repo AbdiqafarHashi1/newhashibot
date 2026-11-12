@@ -1,0 +1,408 @@
+{
+  "schema": "canonical-demo-bundle/v1",
+  "strategies": [
+    {
+      "strategyId": "crypto.launch-trend-pullback-48-1.5-5",
+      "strategyName": "Launch_trend_pullback_48_1.5_5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.launch-trend-pullback-48-1.5-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 192,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "BTCUSDT",
+              "ETHUSDT",
+              "SOLUSDT",
+              "BNBUSDT",
+              "XRPUSDT",
+              "ADAUSDT",
+              "DOGEUSDT",
+              "LINKUSDT",
+              "AVAXUSDT",
+              "LTCUSDT"
+            ],
+            "timeframes": [
+              "4h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      },
+      "review": {
+        "schema": "canonical-account-review/v1",
+        "strategyId": "crypto.launch-trend-pullback-48-1.5-5",
+        "periods": [
+          {
+            "reportSha256": "67154760ababd0fd31f4bb2925ff4dc3959e27b707e29f41c0ba589964264a55",
+            "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "crypto.launch-trend-pullback-48-1.5-5"
+            ],
+            "start": "2025-05-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 61,
+              "openPositions": 2,
+              "authorizedEntries": 63,
+              "rejectedAttempts": 66,
+              "rejectionReasons": {
+                "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 10,
+                "CORRELATED_RISK_CAPACITY_EXCEEDED": 10,
+                "ACCOUNT_RULE_REJECTED": 65,
+                "REDUCED_PORTFOLIO_EXPOSURE_CAP": 11,
+                "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 11,
+                "SKIPPED_MAX_POSITIONS_REACHED": 55,
+                "BRAIN_RULE:rule_binance_max_open_positions_total": 39,
+                "BRAIN_RULE:rule_binance_portfolio_risk_cap": 16,
+                "APPROVED_POSITION_PLAN_UNAVAILABLE": 1
+              },
+              "winRate": 0.26229508196721313,
+              "profitFactor": 1.5726953862271726,
+              "expectancyR": 0.49600305437806225,
+              "realizedNet": 136.81995828681275,
+              "endingBalance": 1135.1992334067907,
+              "endingEquity": 1150.3773867979905,
+              "netReturnPct": 15.037738679799054,
+              "maximumDrawdownPct": 8.453998643479817,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 12,
+              "costs": 10.121462885800005,
+              "financing": 13.228313107411164,
+              "tradesPerDay": 0.5121951219512195,
+              "tradesPerWeek": 3.5853658536585367,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 1000,
+            "riskPct": 0.5
+          },
+          {
+            "reportSha256": "59d506aa5c5285e648a877b7ed1c9cba4317c003496bca7f9131cee0237e7bda",
+            "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "crypto.launch-trend-pullback-48-1.5-5"
+            ],
+            "start": "2026-08-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 48,
+              "openPositions": 1,
+              "authorizedEntries": 49,
+              "rejectedAttempts": 39,
+              "rejectionReasons": {
+                "ACCOUNT_RULE_REJECTED": 39,
+                "SKIPPED_MAX_POSITIONS_REACHED": 37,
+                "BRAIN_RULE:rule_binance_max_open_positions_total": 27,
+                "BRAIN_RULE:rule_binance_portfolio_risk_cap": 10,
+                "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 2,
+                "CORRELATED_RISK_CAPACITY_EXCEEDED": 2,
+                "REDUCED_PORTFOLIO_EXPOSURE_CAP": 2,
+                "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 2
+              },
+              "winRate": 0.22916666666666666,
+              "profitFactor": 1.3024384523222083,
+              "expectancyR": 0.2539720949943735,
+              "realizedNet": 58.96874574427521,
+              "endingBalance": 1058.3514164902742,
+              "endingEquity": 1069.2054922872742,
+              "netReturnPct": 6.920549228727419,
+              "maximumDrawdownPct": 8.471455288419211,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 12,
+              "costs": 9.6621019503,
+              "financing": 11.40483215942651,
+              "tradesPerDay": 0.532608695652174,
+              "tradesPerWeek": 3.7282608695652177,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 1000,
+            "riskPct": 0.5
+          }
+        ],
+        "limitations": [
+          "Historical native market account scenarios, not customer provider fills",
+          "Observed periods were used in research selection; not an untouched holdout certification",
+          "This review authorizes signal analysis and demo forward testing only"
+        ]
+      }
+    },
+    {
+      "strategyId": "gold.native-momentum-15-48-2-5",
+      "strategyName": "gold.native-momentum-15-48-2-5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "gold.native-momentum-15-48-2-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 192,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      },
+      "review": {
+        "schema": "canonical-account-review/v1",
+        "strategyId": "gold.native-momentum-15-48-2-5",
+        "periods": [
+          {
+            "reportSha256": "ea06fb59006d15eab19d615947aad6f144b8ed7c2615d93664ea1de45560e89f",
+            "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "gold.native-momentum-15-48-2-5"
+            ],
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 39,
+              "openPositions": 1,
+              "authorizedEntries": 40,
+              "rejectedAttempts": 0,
+              "rejectionReasons": {},
+              "winRate": 0.23076923076923078,
+              "profitFactor": 1.358844466014434,
+              "expectancyR": 0.22667940919961269,
+              "realizedNet": 481.92282909999363,
+              "endingBalance": 10478.45806610002,
+              "endingEquity": 10539.243066100022,
+              "netReturnPct": 5.392430661000216,
+              "maximumDrawdownPct": 4.281470780294764,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 7,
+              "costs": 9.905000000000001,
+              "financing": 27.2169339,
+              "tradesPerDay": 0.6557377049180327,
+              "tradesPerWeek": 4.590163934426229,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 10000,
+            "riskPct": 0.5
+          },
+          {
+            "reportSha256": "2390f420f281b1849727edba14056c76ca9301eeafc8c833bdfd29bb7ac45ce9",
+            "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "gold.native-momentum-15-48-2-5"
+            ],
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 62,
+              "openPositions": 0,
+              "authorizedEntries": 62,
+              "rejectedAttempts": 0,
+              "rejectionReasons": {},
+              "winRate": 0.3064516129032258,
+              "profitFactor": 1.5065777649085275,
+              "expectancyR": 0.3795812761013692,
+              "realizedNet": 1094.4863532999918,
+              "endingBalance": 11094.486353300017,
+              "endingEquity": 11094.486353300017,
+              "netReturnPct": 10.94486353300017,
+              "maximumDrawdownPct": 4.958412851104832,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 7,
+              "costs": 26.530000000000005,
+              "financing": 73.16364670000002,
+              "tradesPerDay": 0.6739130434782609,
+              "tradesPerWeek": 4.717391304347826,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 10000,
+            "riskPct": 0.5
+          }
+        ],
+        "limitations": [
+          "Exness native reference bid/ask, not JustMarkets fills",
+          "Fees, carry, contract and slippage remain explicit scenarios",
+          "Research selection creates bias; approval is for signals and demo forward testing only"
+        ]
+      }
+    },
+    {
+      "strategyId": "gold.native-momentum-60-24-2-5",
+      "strategyName": "gold.native-momentum-60-24-2-5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "gold.native-momentum-60-24-2-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 96,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "1h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      },
+      "review": {
+        "schema": "canonical-account-review/v1",
+        "strategyId": "gold.native-momentum-60-24-2-5",
+        "periods": [
+          {
+            "reportSha256": "f0b879bbe75611f258ddb6d3311d6aa2ad1d225a77d1c637f83704b5674f482a",
+            "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "gold.native-momentum-60-24-2-5"
+            ],
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 13,
+              "openPositions": 0,
+              "authorizedEntries": 13,
+              "rejectedAttempts": 0,
+              "rejectionReasons": {},
+              "winRate": 0.38461538461538464,
+              "profitFactor": 2.47122254456985,
+              "expectancyR": 0.9821006323502328,
+              "realizedNet": 401.8266266000012,
+              "endingBalance": 10401.826626600001,
+              "endingEquity": 10401.826626600001,
+              "netReturnPct": 4.01826626600001,
+              "maximumDrawdownPct": 1.3990503810405506,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 3,
+              "costs": 1.1200000000000003,
+              "financing": 7.4433734000000005,
+              "tradesPerDay": 0.21311475409836064,
+              "tradesPerWeek": 1.4918032786885245,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 10000,
+            "riskPct": 0.5
+          },
+          {
+            "reportSha256": "202672ba70a24540e4f8498a41abe913b5e8b1c502d33215a63aacc611f3d7c4",
+            "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "gold.native-momentum-60-24-2-5"
+            ],
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 24,
+              "openPositions": 0,
+              "authorizedEntries": 24,
+              "rejectedAttempts": 0,
+              "rejectionReasons": {},
+              "winRate": 0.4166666666666667,
+              "profitFactor": 1.4342183907309103,
+              "expectancyR": 0.1785042273093238,
+              "realizedNet": 250.69676870000131,
+              "endingBalance": 10250.696768700001,
+              "endingEquity": 10250.696768700001,
+              "netReturnPct": 2.5069676870000146,
+              "maximumDrawdownPct": 2.74218912931157,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 4,
+              "costs": 4.41,
+              "financing": 51.7032313,
+              "tradesPerDay": 0.2608695652173913,
+              "tradesPerWeek": 1.826086956521739,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 10000,
+            "riskPct": 0.5
+          }
+        ],
+        "limitations": [
+          "Exness native reference bid/ask, not JustMarkets fills",
+          "Fees, carry, contract and slippage remain explicit scenarios",
+          "Research selection creates bias; approval is for signals and demo forward testing only"
+        ]
+      }
+    }
+  ]
+}

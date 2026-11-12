@@ -1,0 +1,12 @@
+import {watchedStrategyCatalog} from './watched-strategy-catalog.ts';
+export interface CanonicalAccountReview {schema:'canonical-account-review/v1';strategyId:string;periods:readonly {reportSha256:string;engineSourceSha256:string;status:string;strategyIds:readonly string[];start:string;end:string;metrics:{closedTrades:number;profitFactor:number|null;netReturnPct:number;costs:number;accountFailed:boolean}}[];limitations:readonly string[];}
+/** A modern canonical account review is not relabeled as a legacy replay or live approval.
+ * The caller must load these reviews from server-owned source, never browser-submitted metrics. */
+export function buildCanonicalDemoBundle(ids:unknown,reviews:readonly CanonicalAccountReview[]){
+ if(!Array.isArray(ids)||!ids.length||ids.length>30||ids.some(id=>typeof id!=='string')||new Set(ids).size!==ids.length)throw Error('EXACT_STRATEGY_SELECTION_REQUIRED');
+ const catalog=watchedStrategyCatalog();return {schema:'canonical-demo-bundle/v1',strategies:(ids as string[]).sort().map(id=>{
+  const d=catalog.find(d=>d.id===id),review=reviews.find(r=>r.strategyId===id);if(!d||!review||review.schema!=='canonical-account-review/v1'||review.periods.length<2)throw Error('CANONICAL_ACCOUNT_REVIEW_REQUIRED');let previous=-Infinity;
+  for(const p of review.periods){const start=Date.parse(p.start),end=Date.parse(p.end),m=p.metrics;if(p.status!=='COMPLETED'||p.strategyIds.length!==1||p.strategyIds[0]!==id||![p.reportSha256,p.engineSourceSha256].every(v=>/^[0-9a-f]{64}$/.test(v)))throw Error('MATCHING_COMPLETED_CANONICAL_EVIDENCE_REQUIRED');if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||start<previous)throw Error('ORDERED_SEPARATE_PERIODS_REQUIRED');previous=end;if(![m.closedTrades,m.profitFactor,m.netReturnPct,m.costs].every(v=>typeof v==='number'&&Number.isFinite(v))||m.closedTrades<10||m.profitFactor!<=1||m.netReturnPct<=0||m.costs<=0||m.accountFailed!==false)throw Error('POSITIVE_COSTED_ACCOUNT_PERIOD_REQUIRED');}
+  const c=d.config;return {strategyId:id,strategyName:d.legacyName,configuration:{version:'canonical-demo/v1',minSignalGrade:'A',strategies:[{id,version:d.version,enabled:true,minScore:c.min_score,minRiskReward:c.min_rr,maxBarsInTrade:c.max_bars_in_trade,minStopDistancePct:0,minTp1DistancePct:0,minTp2DistancePct:0,symbols:[...c.allowed_symbols],timeframes:[...c.allowed_timeframes],parameters:{...c.params,entry_engine_version:1}}]},review:structuredClone(review)};
+ })};
+}
