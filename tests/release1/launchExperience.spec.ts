@@ -2,25 +2,8 @@ import { test, expect } from '@playwright/test';
 // Explicit network-failure checks must reach the routed request, not an installed PWA worker.
 test.use({serviceWorkers:'block'});
 
-test('public research preserves losing results, filters and failure recovery',async({page})=>{
-  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');
-  await expect(page.getByRole('heading',{name:/See the setup/})).toBeVisible();
-  await expect(page.getByText('Binance & Bybit Live',{exact:true})).toHaveCount(0);
-  await page.goto('/results');
-  await expect(page.getByRole('heading',{name:'Historical comparisons'})).toBeVisible();
-  await expect(page.getByRole('table')).toContainText('-5.94%');
-  await expect(page.getByRole('table')).not.toContainText('80.9%');
-  await page.getByLabel('Results entry method').selectOption('CONDITIONAL_ONLY');
-  const bodyRows=page.locator('tbody tr');expect(await bodyRows.count()).toBeGreaterThan(0);
-  for(const row of await bodyRows.all())await expect(row).toContainText('Conditional only');
-  await page.route('**/research/mission2-results.json',r=>r.fulfill({status:503,body:'Unavailable'}));
-  await page.reload();await expect(page.getByRole('alert')).toContainText('could not be loaded');
-  await page.unroute('**/research/mission2-results.json');await page.getByRole('button',{name:'Try again',exact:true}).click();
-  await expect(page.getByRole('table')).toBeVisible();
-  await page.goto('/ai-signals');await expect(page.getByRole('heading',{name:'Conditional watch',exact:true})).toBeVisible();
-  await expect(page.getByText('Verified Status: TP1 Hit (+1.75% R)',{exact:true})).toHaveCount(0);
-  expect(errors).toEqual([]);
+test('public pages present the product and measured historical strategy studies',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await expect(page.getByRole('heading',{name:/Scan markets. Qualify opportunities./})).toBeVisible();await page.goto('/results');await expect(page.getByRole('heading',{name:'Historical strategy studies'})).toBeVisible();await expect(page.getByRole('table')).toContainText('Trend pullback');await expect(page.getByRole('table')).not.toContainText('80.9%');await expect(page.locator('tbody tr')).toHaveCount(10);await page.getByText('Monthly breakdown & research method',{exact:true}).click();await expect(page.getByText(/Research selection creates selection bias/)).toBeVisible();await page.goto('/ai-signals');await expect(page.getByRole('heading',{name:'Structured AI & Algorithmic Trading Signals'})).toBeVisible();expect(errors).toEqual([]);
 });
 
 test('admin research opens from primary navigation and keeps auth protection',async({page})=>{
@@ -40,15 +23,6 @@ test('admin research opens from primary navigation and keeps auth protection',as
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false);
 });
 
-test('owner preview preserves genuine published research labels and isolates fixture actions',async({page})=>{
-  await page.goto('/');
-  await page.getByRole('button',{name:'Owner Preview',exact:true}).first().click();
-  await expect(page.getByText('OWNER PREVIEW — simulated data; no real actions.',{exact:true})).toBeVisible();
-  if(test.info().project.name==='phone')await page.getByRole('button',{name:'Open Navigation',exact:true}).click();
-  await page.getByRole('link',{name:'Strategy research',exact:true}).click();
-  const panel=page.getByTestId('mission2-research-results');
-  await expect(panel).toBeVisible();
-  await expect(panel).toContainText('genuine historical experiments');
-  await expect(panel).not.toContainText('DEMONSTRATION EVIDENCE');
-  await expect(panel.getByRole('img',{name:'Historical account equity curve',exact:true})).toBeVisible();
+test('admin workspace opens current state without fictional customers or the preview banner',async({page})=>{
+ await page.route('**/*.supabase.co/**',r=>r.fulfill({status:503,json:{error:'Backend unavailable in UI test'}}));await page.goto('/');await page.getByRole('button',{name:'Admin workspace',exact:true}).filter({visible:true}).first().click();await expect(page).toHaveURL(/\/admin\/launch$/);await expect(page.getByRole('heading',{name:'Your launch workspace',exact:true})).toBeVisible();await expect(page.getByLabel('Preview customer',{exact:true})).toHaveCount(0);await expect(page.getByText('OWNER PREVIEW — simulated data; no real actions.',{exact:true})).toHaveCount(0);await expect(page.locator('body')).not.toContainText('Amina');await expect(page.locator('body')).not.toContainText('Yusuf');
 });

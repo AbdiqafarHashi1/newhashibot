@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/launch-verification.yml'
-      - 'scripts/research/launch/**'
+      - 'scripts/research/launch/search.py'
+      - 'scripts/research/launch/campaign.py'
+      - 'scripts/research/launch/account_screen.cpp'
       - 'supabase/functions/_shared/launch-strategy-families.ts'
 permissions:
   contents: read
@@ -29,6 +31,10 @@ jobs:
       - run: npm ci --no-audit
       - name: Verify strategy integration
         run: node --import tsx --test tests/mission2/launchFamilies.test.ts
+      - uses: actions/cache@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
       - name: Acquire native history
         run: python3 scripts/research/launch/acquire_campaign.py
       - name: Frozen nine-family development grid
@@ -46,4 +52,60 @@ jobs:
         with:
           name: launch-research-${{ github.event.pull_request.head.sha }}
           path: .tmp/launch-research
+          retention-days: 14
+
+  full-period-scanner:
+    needs: family-research
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        track: [squeeze, cross, pullback, ensemble]
+        period: [first, later]
+        include:
+          - track: squeeze
+            ids: crypto.launch-squeeze-24-3-1.5
+          - track: cross
+            ids: crypto.launch-ema-cross-24-1.5-3
+          - track: pullback
+            ids: crypto.launch-trend-pullback-48-1.5-5
+          - track: ensemble
+            ids: crypto.launch-squeeze-24-3-1.5,crypto.launch-ema-cross-24-1.5-3,crypto.launch-trend-pullback-48-1.5-5
+          - period: first
+            months: 2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08
+            start: '2025-05-01'
+            end: '2025-09-01'
+          - period: later
+            months: 2026-07,2026-08,2026-09,2026-10
+            start: '2026-08-01'
+            end: '2026-11-01'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - uses: actions/cache/restore@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+          fail-on-cache-miss: true
+      - name: Actual scanner and account Brain over complete periods
+        env:
+          SYMBOLS: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT
+          IDS: ${{ matrix.ids }}
+          MONTHS: ${{ matrix.months }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/launch-replay
+          node --import tsx scripts/research/run-frequency-audit.ts data=.tmp/mission2/futures-data venue=usdm frames=5,240,1440 "months=$MONTHS" "symbols=$SYMBOLS" "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$IDS" entry=COMBINED risks=.5 out=.tmp/launch-replay/results.json > .tmp/launch-replay/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-scanner-${{ matrix.track }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-replay
           retention-days: 14

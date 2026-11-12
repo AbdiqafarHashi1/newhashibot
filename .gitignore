@@ -30,3 +30,7 @@ cloud/infrastructure/terraform/**/.terraform/
 # Browser test artifacts
 /test-results/
 /playwright-report/
+
+# Reproducible local research intermediates
+/.tmp/
+/scripts/research/launch/__pycache__/

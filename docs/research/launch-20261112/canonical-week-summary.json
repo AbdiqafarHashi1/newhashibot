@@ -1,0 +1,367 @@
+{
+  "schema": "mission2-frequency-audit/v1",
+  "engineSourceSha256": "0cbc8703eed80002879ed3ffb8bc8073b2f3199fea8e1e8e2327de8e4663ecd5",
+  "experiment": {
+    "entryPolicy": "COMBINED",
+    "admissionProfile": "PRODUCTION_PARITY",
+    "microTp2": 1.8,
+    "partition": "DEVELOPMENT",
+    "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+    "strategyScope": "crypto.launch-squeeze-24-3-1.5,crypto.launch-ema-cross-24-1.5-3,crypto.launch-trend-pullback-48-1.5-5"
+  },
+  "status": "COMPLETED",
+  "venue": "USDT_PERPETUAL",
+  "executionAssumptions": [
+    {
+      "symbol": "BTCUSDT",
+      "contractSize": 1,
+      "quantityStep": 1e-05,
+      "minimumQuantity": 1e-05,
+      "minimumNotional": 10,
+      "tickSize": 0.01,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.01,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "contractSize": 1,
+      "quantityStep": 0.0001,
+      "minimumQuantity": 0.0001,
+      "minimumNotional": 10,
+      "tickSize": 0.01,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.01,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "contractSize": 1,
+      "quantityStep": 0.001,
+      "minimumQuantity": 0.001,
+      "minimumNotional": 10,
+      "tickSize": 0.01,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.01,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "BNBUSDT",
+      "contractSize": 1,
+      "quantityStep": 0.001,
+      "minimumQuantity": 0.001,
+      "minimumNotional": 10,
+      "tickSize": 0.01,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.01,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "XRPUSDT",
+      "contractSize": 1,
+      "quantityStep": 1,
+      "minimumQuantity": 1,
+      "minimumNotional": 10,
+      "tickSize": 0.0001,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.0001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "ADAUSDT",
+      "contractSize": 1,
+      "quantityStep": 1,
+      "minimumQuantity": 1,
+      "minimumNotional": 10,
+      "tickSize": 0.0001,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.0001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "contractSize": 1,
+      "quantityStep": 1,
+      "minimumQuantity": 1,
+      "minimumNotional": 10,
+      "tickSize": 1e-05,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 1e-05,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "LINKUSDT",
+      "contractSize": 1,
+      "quantityStep": 0.001,
+      "minimumQuantity": 0.001,
+      "minimumNotional": 10,
+      "tickSize": 0.001,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "contractSize": 1,
+      "quantityStep": 0.001,
+      "minimumQuantity": 0.001,
+      "minimumNotional": 10,
+      "tickSize": 0.001,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    },
+    {
+      "symbol": "LTCUSDT",
+      "contractSize": 1,
+      "quantityStep": 0.001,
+      "minimumQuantity": 0.001,
+      "minimumNotional": 10,
+      "tickSize": 0.01,
+      "leverage": 3,
+      "feeBpsPerSide": 5,
+      "spreadBps": 2,
+      "slippageBps": 2,
+      "minimumStopDistance": 0.01,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Explicit conservative research scenario, not historical exchangeInfo",
+        "limitations": [
+          "Lot/tick/fee profiles require historical venue verification before qualification",
+          "USDT/USD conversion fixed at one in this scenario"
+        ]
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "provider": "BINANCE",
+      "capital": 1000,
+      "riskPct": 0.25,
+      "metrics": {
+        "closedTrades": 5,
+        "openPositions": 3,
+        "authorizedEntries": 8,
+        "rejectedAttempts": 9,
+        "rejectionReasons": {
+          "ACCOUNT_RULE_REJECTED": 9,
+          "SKIPPED_MAX_POSITIONS_REACHED": 9,
+          "BRAIN_RULE:rule_binance_max_open_positions_total": 9
+        },
+        "winRate": 0,
+        "profitFactor": 0,
+        "expectancyR": -1.0761399587215532,
+        "realizedNet": -13.389298041912124,
+        "endingBalance": 986.3171544661293,
+        "endingEquity": 986.4541591578293,
+        "netReturnPct": -1.3545840842170718,
+        "maximumDrawdownPct": 2.5527774025918806,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 0.6221325407499999,
+        "financing": 0.50000299312058,
+        "tradesPerDay": 1.1428571428571428,
+        "tradesPerWeek": 8,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "provider": "BINANCE",
+      "capital": 1000,
+      "riskPct": 0.5,
+      "metrics": {
+        "closedTrades": 6,
+        "openPositions": 2,
+        "authorizedEntries": 8,
+        "rejectedAttempts": 9,
+        "rejectionReasons": {
+          "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 4,
+          "CORRELATED_RISK_CAPACITY_EXCEEDED": 4,
+          "ACCOUNT_RULE_REJECTED": 9,
+          "REDUCED_PORTFOLIO_EXPOSURE_CAP": 4,
+          "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 4,
+          "SKIPPED_MAX_POSITIONS_REACHED": 5,
+          "BRAIN_RULE:rule_binance_portfolio_risk_cap": 1,
+          "BRAIN_RULE:rule_binance_max_open_positions_total": 4
+        },
+        "winRate": 0,
+        "profitFactor": 0,
+        "expectancyR": -1.0960682761059672,
+        "realizedNet": -32.61566642216065,
+        "endingBalance": 967.1623505288063,
+        "endingEquity": 966.1540048188064,
+        "netReturnPct": -3.384599518119364,
+        "maximumDrawdownPct": 5.429000055478186,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 6,
+        "costs": 1.602285785,
+        "financing": 1.1518536861934001,
+        "tradesPerDay": 1.1428571428571428,
+        "tradesPerWeek": 8,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "provider": "BINANCE",
+      "capital": 1000,
+      "riskPct": 1,
+      "metrics": {
+        "closedTrades": 3,
+        "openPositions": 2,
+        "authorizedEntries": 5,
+        "rejectedAttempts": 12,
+        "rejectionReasons": {
+          "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 2,
+          "CORRELATED_RISK_CAPACITY_EXCEEDED": 2,
+          "ACCOUNT_RULE_REJECTED": 12,
+          "REDUCED_PORTFOLIO_EXPOSURE_CAP": 2,
+          "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 2,
+          "SKIPPED_MAX_POSITIONS_REACHED": 10,
+          "BRAIN_RULE:rule_binance_portfolio_risk_cap": 10
+        },
+        "winRate": 0,
+        "profitFactor": 0,
+        "expectancyR": -1.111580226000149,
+        "realizedNet": -33.32927496438179,
+        "endingBalance": 966.0193419981152,
+        "endingEquity": 979.4508064634153,
+        "netReturnPct": -2.054919353658465,
+        "maximumDrawdownPct": 4.980753059661052,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 3,
+        "costs": 1.7439900185,
+        "financing": 1.94187198338436,
+        "tradesPerDay": 0.7142857142857143,
+        "tradesPerWeek": 5,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    }
+  ],
+  "signalCount": 17,
+  "fullReportSha256": "dca77e05f9cf65918e77d4b20a48397519f9bed0b285d27cf657bb8b6fb77306",
+  "fullReportEncoding": "gzip+base64 in canonical-week.json.gz.b64"
+}

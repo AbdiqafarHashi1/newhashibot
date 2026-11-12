@@ -1,3 +1,4 @@
+import {LaunchStrategyResearch} from './backtest/LaunchStrategyResearch';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import Mission2ResearchResults from './backtest/Mission2ResearchResults';
@@ -13,6 +14,7 @@ export default function Research() {
         ['/admin/providers','4. Observe demo accounts','Connect Binance, Bybit and MT5 and inspect actual fills.'],
       ].map(([to,title,body]) => <Link key={to} to={to} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 hover:border-cyan-700"><h2 className="text-sm font-semibold text-cyan-200">{title} →</h2><p className="mt-2 text-xs leading-5 text-zinc-400">{body}</p></Link>)}
     </nav>
+    <LaunchStrategyResearch />
     <Mission2ResearchResults />
     <div className="flex flex-wrap gap-5 text-sm text-cyan-300"><Link to="/admin/strategies">Strategy settings →</Link><Link to="/admin/backtest?workspace=RESULTS">Research jobs & exports →</Link><Link to="/admin/scanner">Current scanner →</Link><Link to="/results">Public results page →</Link></div>
   </div></AdminLayout>;

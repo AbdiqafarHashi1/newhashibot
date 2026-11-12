@@ -555,7 +555,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     enterOwnerPreview();
                   }}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-xs font-mono transition-colors"
-                  title="Inspect simulated admin and customer journeys"
+                  title="Open the current admin workspace"
                 >
                   <KeyRound size={12} />
                   <span>Admin workspace</span>

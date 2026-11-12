@@ -79,6 +79,7 @@ export interface PropRuleProfile {
   dailyLossPct: number | null;
   maxLossPct: number | null;
   dailyLossBasis: RuleBasis;
+  dailyLossAmountBasis?: "INITIAL_BALANCE" | "REFERENCE_BALANCE";
   maxLossBasis: RuleBasis;
   floatingPnlIncluded: boolean;
   commissionIncluded: boolean;
@@ -220,12 +221,12 @@ export const PROP_PROFILES: Record<PropProfileId, PropProgramProfile> = {
     programId: "FTMO_TWO_STEP",
     programName: "FTMO 2-Step",
     programType: "TWO_STEP",
-    profileVersion: "2026-09-repository-reference",
-    effectiveDate: "2026-09-10",
+    profileVersion: "2026-11-12-core-loss-rules",
+    effectiveDate: "2026-11-12",
     verifiedAt: null,
     verificationStatus: "PARTIALLY_VERIFIED",
     verificationNotes: [
-      "Core numerical challenge limits are repository reference values; operator must verify current contract before REAL_PROP activation.",
+      "Core targets and loss rules checked against https://ftmo.com/en/trading-objectives/ on 12 November 2026. Daily allowance is 5% of initial capital, subtracted from midnight Prague balance.",
       "Payout timing, automation, news and holding eligibility require account-specific verification.",
     ],
     accountSizes: [...ACCOUNT_SIZES],
@@ -250,7 +251,7 @@ export const PROP_PROFILES: Record<PropProfileId, PropProgramProfile> = {
         durationDays: null,
       },
     ],
-    rules: baseRules,
+    rules: {...baseRules,dailyLossAmountBasis:"INITIAL_BALANCE"},
     payout: {
       waitingDays: null,
       profitSplitPct: 80,
@@ -447,7 +448,7 @@ export function* simulateChallengeSteps(
     days.add(day);
     if(!dailyStart.has(day))dailyStart.set(day,{balance:beforeBalance,equity:beforeBalance});
     daily.set(day, (daily.get(day) ?? 0) + trade.netPnl);
-    const start=dailyStart.get(day)!,dailyReference=profile.rules.dailyLossBasis==="START_OF_DAY_EQUITY"?start.equity:profile.rules.dailyLossBasis==="START_OF_DAY_BALANCE"?start.balance:config.accountSize,dailyValue=profile.rules.dailyLossBasis.includes("EQUITY")?equity:balance,dailyLoss=(Math.max(0,dailyReference-dailyValue)/dailyReference)*100;
+    const start=dailyStart.get(day)!,dailyReference=profile.rules.dailyLossBasis==="START_OF_DAY_EQUITY"?start.equity:profile.rules.dailyLossBasis==="START_OF_DAY_BALANCE"?start.balance:config.accountSize,dailyValue=profile.rules.dailyLossBasis.includes("EQUITY")?equity:balance,dailyLoss=(Math.max(0,dailyReference-dailyValue)/(profile.rules.dailyLossAmountBasis==="INITIAL_BALANCE"?config.accountSize:dailyReference))*100;
     maxDaily = Math.max(maxDaily, dailyLoss);
     const maxValue=profile.rules.maxLossBasis.includes("EQUITY")?equity:balance,maxReference=profile.rules.maxLossBasis.startsWith("CURRENT_")?peak:config.accountSize;maxDd=Math.max(maxDd,((maxReference-maxValue)/maxReference)*100);
     const snapshot: PropAccountSnapshot = {
@@ -570,7 +571,7 @@ export function evaluateFunded(
     flat =
       snapshot.openPositions === 0 && snapshot.pendingExecutableOrders === 0,
     hardDaily =
-      (Math.max(0, -snapshot.dailyClosedPnl) / config.accountSize) * 100;
+      (Math.max(0, snapshot.startOfDayBalance-(profile.rules.floatingPnlIncluded?snapshot.equity:snapshot.balance)) / (profile.rules.dailyLossAmountBasis==="REFERENCE_BALANCE"?snapshot.startOfDayBalance:config.accountSize)) * 100;
   let state: FundedState = "NORMAL_TRADING",
     entryDecision: FundedEvaluation["entryDecision"] = "ALLOW",
     riskMultiplier = 1;

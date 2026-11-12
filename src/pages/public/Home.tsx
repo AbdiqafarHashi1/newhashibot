@@ -6,7 +6,7 @@ import {
   CreditCard, Search, Lock, HelpCircle, TrendingUp, FlaskConical, Sparkles
 } from 'lucide-react';
 
-const markets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'EURUSD', 'GBPUSD', 'XAUUSD', 'US30'];
+const markets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'EURUSD', 'GBPUSD', 'XAUUSD', 'USDJPY'];
 
 export default function Home() {
   return (
@@ -646,15 +646,15 @@ export default function Home() {
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <span className="text-zinc-400 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                HashiBot Operational Telemetry Stream
+                Example operational telemetry stream
               </span>
-              <span className="text-zinc-600">v1.0.0-prod</span>
+              <span className="text-zinc-600">Illustrative workflow</span>
             </div>
 
             <div className="space-y-2 text-zinc-300">
-              <div className="text-zinc-500">[09:42:15] <span className="text-blue-400">SCANNER:</span> 10 crypto pairs evaluated across 5m/15m/1h timeframes.</div>
-              <div className="text-zinc-500">[09:42:16] <span className="text-purple-400">ARBITRATOR:</span> BTCUSDT compression breakout qualified. Score: 92/100 (Grade A+).</div>
-              <div className="text-zinc-500">[09:42:16] <span className="text-emerald-400">SIGNAL_TRUTH:</span> Immutable signal #sig-btc-892 stored with entry $68,200.</div>
+              <div className="text-zinc-500">[Example 09:42:15] <span className="text-blue-400">SCANNER:</span> 10 crypto pairs evaluated across 5m/15m/1h timeframes.</div>
+              <div className="text-zinc-500">[Example 09:42:16] <span className="text-purple-400">ARBITRATOR:</span> BTCUSDT compression breakout qualified. Score: 92/100 (Grade A+).</div>
+              <div className="text-zinc-500">[Example 09:42:16] <span className="text-emerald-400">SIGNAL_TRUTH:</span> Immutable signal #sig-btc-892 stored with entry $68,200.</div>
               <div className="text-zinc-500">[Example 09:42:17] <span className="text-cyan-400">TELEGRAM:</span> Delivered alert to VIP Channel (example delivery).</div>
               <div className="text-zinc-500">[Example 09:42:17] <span className="text-amber-400">ROUTER:</span> Dispatched to Binance Testnet & Bybit Testnet queues.</div>
               <div className="text-zinc-500">[Example 09:42:18] <span className="text-emerald-400">EXECUTION:</span> Order executed on Binance. SL & TP1/TP2 verified on exchange.</div>

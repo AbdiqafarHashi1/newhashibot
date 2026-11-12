@@ -23,7 +23,7 @@ export class HistoricalPropObserver {
   if(o.newEntries){if(!s.tradingDays.includes(day))s.tradingDays.push(day);s.lastEntryAt=o.at;}
   s.peak=Math.max(s.peak,r.maxLossBasis.includes('BALANCE')?o.balance:o.equity);
   const dailyReference=r.dailyLossBasis==='START_OF_DAY_BALANCE'?s.dayStart:r.dailyLossBasis==='START_OF_DAY_EQUITY'?s.dayStartEquity:s.initialBalance;
-  const dailyValue=r.floatingPnlIncluded||r.dailyLossBasis.includes('EQUITY')?o.equity:o.balance,dailyLoss=Math.max(0,dailyReference-dailyValue)/dailyReference*100;
+  const dailyValue=r.floatingPnlIncluded||r.dailyLossBasis.includes('EQUITY')?o.equity:o.balance,dailyLoss=Math.max(0,dailyReference-dailyValue)/(r.dailyLossAmountBasis==='INITIAL_BALANCE'?s.initialBalance:dailyReference)*100;
   const overallReference=/TRAIL|HIGH_WATER|CURRENT_/.test(r.maxLossBasis)?s.peak:s.initialBalance,overallValue=r.floatingPnlIncluded?o.equity:o.balance,overallLoss=Math.max(0,overallReference-overallValue)/s.initialBalance*100;
   const reason=dailyLoss>=r.dailyLossPct!?'DAILY_EQUITY_LIMIT':overallLoss>=r.maxLossPct!?'OVERALL_DRAWDOWN_LIMIT':o.newsViolation?'NEWS_RESTRICTION':o.overnightViolation?'OVERNIGHT_RESTRICTION':o.weekendViolation?'WEEKEND_RESTRICTION':o.maximumPositionViolation?'POSITION_SIZE_RESTRICTION':this.evidence.inactivityDays&&s.lastEntryAt!==null&&o.at-s.lastEntryAt>this.evidence.inactivityDays*86400000?'INACTIVITY':null;
   if(reason){s.status='FAILED';s.failedAt=o.at;s.events.push({at:o.at,kind:'FAILED',reason});return this.snapshot();}
