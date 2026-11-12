@@ -71,7 +71,7 @@ export async function runCanonicalHistoricalReplay(input:{
  let cursor=input.resume?.cursor??0,now=input.start+cursor*step;
  if(input.resume&&(input.resume.schema!=='canonical-historical-replay/v1'||input.resume.lineage!==lineage||!Number.isInteger(cursor)||cursor<0||cursor>total||input.resume.through!==(cursor?input.start+(cursor-1)*step:null)))throw Error('HISTORICAL_CHECKPOINT_LINEAGE_INVALID');
  const store=new HistoricalConditionalStore(()=>now,input.resume?.store,input.admissionProfile??'PRODUCTION_PARITY');
- const evidence:CanonicalReplayEvidence[]=[],noTradeCache=new Map<string,string>();
+ const evidence:CanonicalReplayEvidence[]=[],noTradeCache=new Map<string,string>(),prefixCache=new Map<string,{end:number;limit:number;rows:readonly StrategyCandle[]}>();
  for(;cursor<total;cursor++){
   if(await input.shouldCancel?.())return {status:'CANCELLED' as const,checkpoint:{schema:'canonical-historical-replay/v1' as const,lineage,cursor,through:cursor?input.start+(cursor-1)*step:null,store:store.snapshot()},evidence};
   now=input.start+cursor*step;
@@ -79,12 +79,13 @@ export async function runCanonicalHistoricalReplay(input:{
   const definitions=release?input.definitions.filter(d=>release.enabledStrategyIds.includes(d.id)):input.definitions;
   // A dynamic release timeline is restricted to revocation/disable: configurations cannot be rewritten mid-run.
   if(definitions.some(d=>!input.definitions.some(original=>original.id===d.id&&original.version===d.version&&stable(original.config)===stable(d.config))))throw Error('HISTORICAL_RELEASE_TIMELINE_MUTATION');
-  const row:CanonicalReplayEvidence={at:new Date(now).toISOString(),observations:[],health:[],events:[],rejections:[]},before=store.snapshot();
-  await runConditionalWatch({store,streams:input.datasets.map(d=>({symbol:d.symbol,tf:d.timeframe})),discovery:{crypto:true,forex:true},
+  const row:CanonicalReplayEvidence={at:new Date(now).toISOString(),observations:[],health:[],events:[],rejections:[]},before={events:store.eventCount(),rejections:store.rejectionCount()};
+  await runConditionalWatch({store,streams:input.datasets.filter(d=>definitions.some(s=>s.lifecycle==='ENABLED'&&s.config.enabled&&s.config.allowed_timeframes.includes(d.timeframe)&&(!s.config.allowed_symbols.length||s.config.allowed_symbols.includes(d.symbol)))).map(d=>({symbol:d.symbol,tf:d.timeframe})),additionalTasks:store.activeStreams(),discovery:{crypto:true,forex:true},
    feed:async(symbol,tf,at)=>{
     const index=indexed.get(`${symbol}:${tf}`);
     if(!index)return {candles:[],error:'HISTORICAL_CONTEXT_DATASET_UNAVAILABLE'};
-    const d=index.dataset,w=watchWidth(tf),end=upper(index.times,at-w),closed=d.candles.slice(Math.max(0,end-watchedHistoryBars(definitions,symbol,tf)),end),candidate=upper(index.times,at)-1,opening=index.times[candidate]===at?d.candles[candidate]:undefined;
+    const d=index.dataset,w=watchWidth(tf),end=upper(index.times,at-w),limit=watchedHistoryBars(definitions,symbol,tf),prior=prefixCache.get(d.id),closed=prior?.end===end&&prior.limit===limit?prior.rows:Object.freeze(d.candles.slice(Math.max(0,end-limit),end).map(b=>Object.freeze({...b}))),candidate=upper(index.times,at)-1,opening=index.times[candidate]===at?d.candles[candidate]:undefined;
+    if(prior?.rows!==closed)prefixCache.set(d.id,{end,limit,rows:closed});
     // Only the opening quote is observable. Never expose its future high/low/close/volume.
     const currentOpen=opening?historicalOpeningQuote(opening):undefined;
     const last=closed.at(-1),spreadPrice=opening?.ask_open!==undefined?opening.ask_open-opening.open:last?.ask_close!==undefined?last.ask_close-last.close:undefined;
@@ -109,7 +110,7 @@ export async function runCanonicalHistoricalReplay(input:{
     return {setups:found.setups,qualification:s=>currentWatchQualification(s,definitions),confirmation:(s,prefix,at)=>frozenStrategyConfirmation(s,prefix,at,options),intelligence:(prefix,at)=>watchedMarketContext(prefix,at,options)};
    }
   },now);
-  const snapshot=store.snapshot();row.events=snapshot.events.slice(before.events.length);row.rejections=snapshot.rejections.slice(before.rejections.length);
+  const snapshot=store.snapshot();row.events=snapshot.events.slice(before.events);row.rejections=snapshot.rejections.slice(before.rejections);
   const checkpoint:CanonicalReplayCheckpoint={schema:'canonical-historical-replay/v1',lineage,cursor:cursor+1,through:now,store:snapshot};
   await input.checkpoint?.(row,checkpoint);if(input.retainEvidence!==false)evidence.push(row);
  }

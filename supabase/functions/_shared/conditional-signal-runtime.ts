@@ -1,3 +1,4 @@
+import {firstUnobservedBar} from './watch-history-cache.ts';
 import {decideEntry,entryPolicyEvaluable} from './entry-decision.ts';
 import {frozenStrategyConfirmation} from './frozen-strategy-confirmation.ts';
 import {watchWidth,type WatchTimeframe} from './conditional-contract.ts';
@@ -45,10 +46,10 @@ export class ConditionalSignalStore implements ConditionalStore {
  }
 }
 /** Shared by discovery and the independent watcher; CAS makes overlapping runs safe. */
-export async function observeConditionalSymbol(store:ConditionalStore,symbol:string,tf:WatchTimeframe,rows:readonly StrategyCandle[],now:number,options?:{qualification?:(s:ConditionalSetup)=>boolean;confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>ReturnType<typeof frozenStrategyConfirmation>;intelligence?:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}):Promise<ConditionalSetup[]> {
+export async function observeConditionalSymbol(store:ConditionalStore,symbol:string,tf:WatchTimeframe,rows:readonly StrategyCandle[],now:number,options?:{discover?:boolean;qualification?:(s:ConditionalSetup)=>boolean;confirmation?:(s:ConditionalSetup,rows:readonly StrategyCandle[],at:number)=>ReturnType<typeof frozenStrategyConfirmation>;intelligence?:(rows:readonly StrategyCandle[],at:number)=>WatchedIntelligence}):Promise<ConditionalSetup[]> {
  const open=await store.open(symbol,tf);
  for(const saved of open){let state=saved;
-  for(const bar of rows){if(Date.parse(bar.open_time)<=Date.parse(state.lastBar)||Date.parse(bar.open_time)+watchWidth(tf)>now)continue;
+  for(const bar of rows.slice(firstUnobservedBar(rows,state.lastBar))){if(Date.parse(bar.open_time)<=Date.parse(state.lastBar)||Date.parse(bar.open_time)+watchWidth(tf)>now)continue;
    let next=advanceConditionalSetup(state,bar);if(next===state){
     if(['WAITING','ARMED'].includes(state.status)&&state.evaluationOutcome!=='DATA_UNAVAILABLE')await store.save({...state,version:state.version+1,evaluationOutcome:'DATA_UNAVAILABLE',observedAt:new Date(now).toISOString()},state.version);
     break; // Never skip past a missing/source-mismatched observation to seek a later confirmation.
@@ -92,7 +93,7 @@ export async function observeConditionalSymbol(store:ConditionalStore,symbol:str
    if(!await store.save(next,state.version))break;state=next;
   }
  }
- return conditionalCandidates(symbol,tf,rows,now);
+ return options?.discover===false?[]:conditionalCandidates(symbol,tf,rows,now);
 }
 /** Strongest first across the whole bounded universe, not database symbol iteration order. */
 export async function admitConditionalBatch(store:ConditionalStore,candidates:readonly ConditionalSetup[],now:number){

@@ -31,6 +31,9 @@ export class HistoricalConditionalStore implements ConditionalStore {
    this.events=structuredClone(snapshot.events);this.rejections=structuredClone(snapshot.rejections);
   }
  }
+ eventCount(){return this.events.length;}
+ rejectionCount(){return this.rejections.length;}
+ activeStreams(){return [...this.records.values()].filter(r=>open(r.state)).map(r=>({symbol:r.state.symbol,tf:r.state.timeframe}));}
  snapshot():HistoricalStoreSnapshot{return structuredClone({schema:'historical-conditional-store/v1',records:[...this.records.values()].sort((a,b)=>a.state.id.localeCompare(b.state.id)),events:this.events,rejections:this.rejections});}
  async open(symbol:string,timeframe:string){return structuredClone([...this.records.values()].map(r=>r.state).filter(s=>s.symbol===symbol&&s.timeframe===timeframe&&open(s)));}
  async expire(symbol:string,timeframe:string,now:number){let n=0;for(const s of await this.open(symbol,timeframe))if(['WAITING','ARMED'].includes(s.status)&&now>=Date.parse(s.expiresAt))if(await this.save({...s,status:'EXPIRED',version:s.version+1,observedAt:new Date(now).toISOString(),result:'Confirmation deadline elapsed; no entry.'},s.version))n++;return n;}

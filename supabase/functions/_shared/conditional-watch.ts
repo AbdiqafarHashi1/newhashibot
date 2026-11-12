@@ -1,3 +1,4 @@
+import {validatedWatchHistory} from './watch-history-cache.ts';
 import {entryPolicyEvaluable} from './entry-decision.ts';
 import {CONDITIONAL_ASSETS,conditionalMarket,scheduledMarketClosed} from './conditional-market.ts';
 import {type ConditionalStore,observeConditionalSymbol,admitConditionalBatch} from './conditional-signal-runtime.ts';
@@ -33,12 +34,10 @@ export async function runConditionalWatch(deps:WatchDependencies,now=Date.now())
    else if(!deps.discovery[market]&&!open.length)record.state='DISCOVERY_PAUSED';
    else {
     const feed=await load(symbol,tf),w=watchWidth(tf);if(feed.error||!feed.candles.length)throw Error(feed.error??'CANDLES_UNAVAILABLE');
-    const rows=[...feed.candles].sort((a,b)=>Date.parse(a.open_time)-Date.parse(b.open_time));
-    if(rows.some((b,i)=>b.symbol!==symbol||b.timeframe!==tf||![b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite)||b.low<=0||b.volume<0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||!b.source||Date.parse(b.open_time)%w!==0||Date.parse(b.open_time)+w>now||(i>0&&Date.parse(b.open_time)<=Date.parse(rows[i-1].open_time))))throw Error('INVALID_WATCH_CANDLES');
-    const last=rows.at(-1)!;if(now-Date.parse(last.open_time)-w>=w)throw Error('STALE_CLOSED_CANDLES');
+    const rows=validatedWatchHistory(feed.candles,symbol,tf,now),last=rows.at(-1)!;
     record.last_closed_at=new Date(Date.parse(last.open_time)+w).toISOString();
     const assessed=deps.assess?await deps.assess({symbol,tf,rows,now,feed,load}):undefined;
-    const discovered=await observeConditionalSymbol(deps.store,symbol,tf,rows,now,assessed?{intelligence:assessed.intelligence,qualification:assessed.qualification,confirmation:assessed.confirmation}:undefined);
+    const discovered=await observeConditionalSymbol(deps.store,symbol,tf,rows,now,assessed?{discover:false,intelligence:assessed.intelligence,qualification:assessed.qualification,confirmation:assessed.confirmation}:undefined);
     if(deps.discovery[market])candidates.push(...(assessed?.setups??discovered));
     if(feed.currentOpen)for(const s of await deps.store.open(symbol,tf)){
      if(s.status!=='ARMED')continue;
