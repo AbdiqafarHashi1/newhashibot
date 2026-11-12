@@ -28,7 +28,7 @@ export default function FAQ() {
       id: 'sig-1',
       category: 'Signal Mode',
       q: 'How are signals delivered?',
-      a: 'Signals are delivered instantaneously via high-priority Telegram channel notifications and rendered on your customer web dashboard with exact entry zones, Stop Loss, and Take Profit targets.',
+      a: 'Signals and follow-ups use Telegram and your customer dashboard. Each setup includes its trading track, entry conditions, stop and targets. Delivery depends on the connected service.',
     },
     {
       id: 'sig-2',
@@ -54,13 +54,13 @@ export default function FAQ() {
       id: 'mt5-1',
       category: 'MT5 Automation',
       q: 'How does MetaTrader 5 automation work?',
-      a: 'MetaTrader 5 automation connects HashiBot cloud signals and risk controls directly to your local MT5 terminal via our dedicated Windows Daemon Bridge, executing orders with sub-second IPC latency.',
+      a: 'MetaTrader 5 automation connects HashiBot cloud signals and risk controls directly to your local MT5 terminal via our dedicated Windows Daemon Bridge, routing account-authorized orders and returning provider observations.',
     },
     {
       id: 'mt5-2',
       category: 'MT5 Automation',
       q: 'Can HashiBot be used on prop firm accounts?',
-      a: 'Yes. The Forex MT5 Prop Bot tier ($100/month per connected execution account) includes conservative risk profiles (0.25% - 0.75% per trade) and hard daily loss gates specifically designed for FTMO, FundedNext, and similar prop firm accounts.',
+      a: 'MT5 Prop accounts use a separate policy with account risk and drawdown limits. Compatibility depends on the actual firm rules and account setup; challenge success is not guaranteed. Auto Execution is priced per account.',
     },
     // Payments & M-Pesa
     {

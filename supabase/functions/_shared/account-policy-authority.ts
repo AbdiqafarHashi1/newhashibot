@@ -153,3 +153,4 @@ export function toSafeAccountReadModel(account: OwnedExecutionAccount) {
   const { credentialRef: _secretBoundary, ...safe } = account;
   return Object.freeze({ ...safe });
 }
+

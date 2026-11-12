@@ -19,7 +19,7 @@ export default function Vip() {
       </div>
     </section>
 
-    <div role="status" className="mx-auto max-w-3xl px-4 py-5 text-sm text-amber-200">Release 1 launch verification is in progress. Paid signal publication requires a certified strategy; checkout stays paused until launch approval. Historical research is not a guarantee of profitability.</div>
+    <div role="status" className="mx-auto max-w-3xl px-4 py-5 text-sm text-amber-200">Each setup includes context, conditions and follow-ups. Current checkout availability appears with your payment method. Historical research does not guarantee future returns.</div>
     <SignalDemo />
 
     <section id="vip-purchase" className="border-b border-zinc-800 bg-zinc-900/30 px-4 py-10 sm:px-6"><div className="mx-auto max-w-5xl"><div className="text-center"><p className="text-xs font-black uppercase tracking-widest text-emerald-400">Choose your VIP term</p><h2 className="mt-2 text-3xl font-black text-white">Kenya or international</h2><p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Kenya: KES 3,500 for 30 days through M-Pesa. International: USD 29 per month through Whop. M-Pesa renewal requires a new verified payment.</p></div><div className="mt-7 grid gap-4 lg:grid-cols-2"><MpesaCheckout termDays={30}/><WhopCheckout product="HASHIBOT_VIP_SIGNALS"/></div></div></section>

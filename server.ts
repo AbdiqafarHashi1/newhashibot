@@ -5,7 +5,10 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
 const app = express();
-const PORT = 3000;
+const cliArgument = (name: string) => { const index = process.argv.indexOf(name); return index >= 0 ? process.argv[index + 1] : undefined; };
+const PORT = Number(cliArgument('--port') ?? process.env.PORT ?? 3000);
+const HOST = cliArgument('--host') ?? '0.0.0.0';
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port');
 
 app.use(cors());
 app.use(express.json());
@@ -651,7 +654,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, HOST, () => {
     console.log(`HashiBot Full-Stack Server running on port ${PORT}`);
   });
 }

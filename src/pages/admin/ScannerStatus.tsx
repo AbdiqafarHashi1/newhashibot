@@ -77,7 +77,7 @@ export default function ScannerStatus() {
         </button>
       </div>
 
-      <nav className="mb-4 flex flex-wrap gap-4 text-sm text-cyan-300"><Link to="/admin/scanner-config">Scanner settings →</Link><Link to="/admin/strategies">Strategy settings →</Link><Link to="/admin/telegram?tab=setups">Paper setups &amp; asset watches →</Link><Link to="/admin/providers/mt5">MT5 Forex feed →</Link></nav>
+      <nav className="mb-4 flex flex-wrap gap-4 text-sm text-cyan-300"><Link to="/admin/scanner-config">Scanner settings →</Link><Link to="/admin/strategies">Strategy settings →</Link><Link to="/admin/telegram?tab=setups">Setup lifecycle &amp; asset watches →</Link><Link to="/admin/providers/mt5">MT5 Forex feed →</Link></nav>
       <details className="mb-4 rounded-xl border border-zinc-800 p-4"><summary>Advanced scanner diagnostics</summary><SchedulerProofDebug state={state}/><PhaseLValidationPanel/></details>
 
       {!loadingAny && (

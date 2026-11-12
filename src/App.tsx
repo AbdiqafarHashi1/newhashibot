@@ -92,6 +92,7 @@ const Recovery = lazy(() => import('./pages/admin/Recovery'));
 const Risk = lazy(() => import('./pages/admin/Risk'));
 const Capital = lazy(() => import('./pages/admin/Capital'));
 const RuntimeTruth = lazy(() => import('./pages/admin/RuntimeTruth'));
+const Research = lazy(() => import('./pages/admin/Research'));
 const MissionControl = lazy(() => import('./pages/admin/MissionControl'));
 
 // Minimal page-level loading fallback
@@ -251,9 +252,9 @@ function App() {
             <Route path="/admin/reporting"         element={<RequireAdmin><Navigate to="/admin/performance" replace /></RequireAdmin>} />
             <Route path="/admin/trading-brain"     element={<RequireAdmin><TradingBrain /></RequireAdmin>} />
             <Route path="/admin/modes"             element={<RequireAdmin><Modes /></RequireAdmin>} />
+            <Route path="/admin/research" element={<RequireAdmin><Research /></RequireAdmin>} />
             <Route path="/admin/backtest"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
             <Route path="/admin/backtest-lab"      element={<Navigate to="/admin/backtest" replace />} />
-            <Route path="/admin/research"          element={<Navigate to="/admin/backtest" replace />} />
             <Route path="/admin/handoff"           element={<RequireAdmin><Handoff /></RequireAdmin>} />
             <Route path="/admin/prop"              element={<RequireAdmin><PropTradingPanel /></RequireAdmin>} />
 

@@ -20,6 +20,11 @@ for filename in a.inputs:
   for strategy,trades in by.items():
    gain=sum(max(t['net'],0) for t in trades);loss=-sum(min(t['net'],0) for t in trades)
    stats[strategy]={'trades':len(trades),'net':sum(t['net'] for t in trades),'profitFactor':gain/loss if loss else None,'expectancyR':sum(t['netR'] for t in trades)/len(trades),'costs':sum(t['costs'] for t in trades),'winRate':sum(t['net']>0 for t in trades)/len(trades)}
+  for strategy,trades in by.items():
+   exits=collections.defaultdict(lambda:{'trades':0,'net':0})
+   for trade in trades:
+    exits[trade['reason']]['trades']+=1;exits[trade['reason']]['net']+=trade['net']
+   stats[strategy].update({'gross':sum(t['gross'] for t in trades),'financing':sum(t.get('funding',0) for t in trades),'exitReasons':dict(exits)})
   daily=collections.defaultdict(lambda:{'authorized':0,'closed':0,'net':0})
   execution_rows=collections.defaultdict(lambda:{'attempts':0,'authorized':0,'closed':0,'net':0,'wins':0,'gains':0,'losses':0,'costs':0})
   for d in s['decisions']:
@@ -34,7 +39,7 @@ for filename in a.inputs:
   for mark in s.get('equityPath',[]):
    if not path or mark['equity']!=path[-1]['equity'] or mark['kind']!=path[-1]['kind']:path.append({k:mark[k] for k in ['at','equity','balance','kind']})
   accounts.append({k:s[k] for k in ['provider','capital','riskPct','metrics']}|{'byStrategy':stats,'executionRows':execution_rows,'daily':dict(daily),'equityPath':path})
- studies.append({'id':pathlib.Path(filename).stem,'experiment':x.get('experiment',{'entryPolicy':'COMBINED','microTp2':2.4 if 'candidate' in filename else 1.8,'partition':'DEVELOPMENT'}),'period':x['funnel']['period'],'venue':x['venue'],'funnel':x['funnel'],'accounts':accounts,'manifests':x['manifests'],'dailySignals':dict(daily_signals),'engineSourceSha256':x.get('engineSourceSha256'),'executionAssumptions':x['executionAssumptions'],'qualification':'NOT_GRANTED'})
+ studies.append({'id':pathlib.Path(filename).stem,'experiment':x.get('experiment',{'entryPolicy':'COMBINED','microTp2':2.4 if 'candidate' in filename else 1.8,'partition':'DEVELOPMENT'}),'period':x['funnel']['period'],'venue':x['venue'],'historyMonths':sorted(set(m['month'] for m in x['manifests'])),'funnel':x['funnel'],'accounts':accounts,'manifests':x['manifests'],'dailySignals':dict(daily_signals),'engineSourceSha256':x.get('engineSourceSha256'),'executionAssumptions':x['executionAssumptions'],'qualification':'NOT_GRANTED'})
 qualified=[]
 for key,d in sorted(inventory.items()):
  rows=[r for study in studies for r in study['funnel']['rows'] if r['strategy']==key]
@@ -56,6 +61,6 @@ for study in studies:
  if len(payload.encode())>4500000:raise ValueError('Research study exceeds bounded publication size; split experiments before publishing')
  (out_path.parent/filename).write_text(payload)
  anchor=next((ac for ac in study['accounts'] if ac['provider']=='BINANCE' and ac['capital']==1000 and ac['riskPct']==.5),None)
- index_studies.append({'summary':{'signals':sum(r['confirmed'] for r in study['funnel']['rows']),'metrics':anchor['metrics'] if anchor else None},**{k:study[k] for k in ['id','experiment','period','venue']},'dataUrl':'/research/'+filename})
+ index_studies.append({'summary':{'signals':sum(r['confirmed'] for r in study['funnel']['rows']),'metrics':anchor['metrics'] if anchor else None},**{k:study[k] for k in ['id','experiment','period','venue','historyMonths']},'dataUrl':'/research/'+filename})
 result={'schema':'mission2-research-results/v1','generatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'missionStatus':'IN_PROGRESS','studies':index_studies,'strategyInventory':qualified,'limitations':['No production promotion or live broker connectivity is established by these experiments.','Reported account returns use explicitly documented OHLC cost/contract assumptions.','Experiments overlap; scenario counts are not independent sample sizes.','Trade frequency is measured over each stated period, not a promised daily return.','Forex, Gold and rapid Gold scalping remain unverified without appropriate genuine bid/ask/tick data.']}
 path=pathlib.Path(a.out);path.parent.mkdir(parents=True,exist_ok=True);path.write_text(json.dumps(result,separators=(',',':'))+'\n');print('Published',len(studies),'actual studies,',len(qualified),'definitions,',path.stat().st_size,'bytes')
