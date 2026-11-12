@@ -1,7 +1,6 @@
 import { isOwnerPreview } from './lib/ownerPreview/state';
 import { useSyncExternalStore } from 'react';
 import { previewStore } from './lib/ownerPreview/adapter';
-import { OwnerPreviewShell } from './components/preview/OwnerPreviewShell';
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -124,7 +123,6 @@ function App() {
       <ScrollToAnchor />
       <AuthProvider>
         <PWAProvider>
-          <OwnerPreviewShell />
           <Suspense fallback={<PageLoader />}>
             <Routes key={previewRevision}>
               {/* Public Pages */}

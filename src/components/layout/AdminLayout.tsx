@@ -105,7 +105,7 @@ export function AdminLayout({ children, title, description }: { children: ReactN
                 <p className="text-xs font-semibold text-zinc-200 truncate">{isOwnerPreview() ? 'Owner Preview visitor' : profile?.full_name || profile?.email || 'Administrator'}</p>
                 <p className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {isOwnerPreview() ? "Preview · no authority" : isAdminPass() ? "UI access" : "Operator Active"}
+                  {isOwnerPreview() ? "Preview · no authority" : isAdminPass() ? "Workspace access" : "Operator Active"}
                 </p>
               </div>
             </div>
@@ -151,14 +151,14 @@ export function AdminLayout({ children, title, description }: { children: ReactN
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] font-mono text-zinc-500 hidden lg:inline">
-              {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "BACKEND AUTH REQUIRED" : "RECORDED TELEMETRY"}
+              {isOwnerPreview() ? "SIMULATED TELEMETRY" : isAdminPass() ? "CURRENT WORKSPACE" : "RECORDED TELEMETRY"}
             </span>
             <Link
               to="/admin/launch"
               className="text-[11px] font-mono text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1.5 shadow-sm"
             >
               <Shield size={11} className="text-orange-400" />
-              <span>{isOwnerPreview() ? "PREVIEW" : isAdminPass() ? "ADMIN PASS" : "ADMIN"}</span>
+              <span>{isOwnerPreview() ? "PREVIEW" : isAdminPass() ? "ADMIN" : "ADMIN"}</span>
             </Link>
             <Link
               to="/app/dashboard"

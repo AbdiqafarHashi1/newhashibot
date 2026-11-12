@@ -504,7 +504,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     className="text-amber-400 hover:text-amber-300 font-mono text-[11px] flex items-center gap-1.5 transition-colors"
                   >
                     <KeyRound size={12} />
-                    <span>Owner Preview</span>
+                    <span>Admin workspace</span>
                   </button>
                 </li>
                 {isLoggedIn && (
@@ -558,7 +558,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   title="Inspect simulated admin and customer journeys"
                 >
                   <KeyRound size={12} />
-                  <span>Owner Preview</span>
+                  <span>Admin workspace</span>
                 </button>
               </div>
 
