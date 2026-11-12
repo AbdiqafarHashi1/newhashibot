@@ -6,7 +6,7 @@ import {watchWidth} from './conditional-contract.ts';
 const adverseTick=(price:number,tick:number,buy:boolean)=>(buy?Math.ceil(price/tick-1e-8):Math.floor(price/tick+1e-8))*tick;
 export interface HistoricalExecutionSpec {
  symbol:string;contractSize:number;quantityStep:number;minimumQuantity:number;minimumNotional:number;tickSize:number;leverage:number;
- feeBpsPerSide:number;spreadBps:number;slippageBps:number;minimumStopDistance:number;allowShort:boolean;
+ commissionPerQuantityPerSide?:number;feeBpsPerSide:number;spreadBps:number;slippageBps:number;minimumStopDistance:number;allowShort:boolean;
  provenance:{kind:'HISTORICAL_VENUE_SPEC'|'DOCUMENTED_ASSUMPTION';source:string;limitations:string[]};
 }
 export interface HistoricalQuote {symbol:string;at:number;bid:number;ask:number;conversion:number;}
@@ -24,7 +24,7 @@ export class HistoricalAccountLedger {
   if(policy.purpose!=='HISTORICAL_RESEARCH'||![policy.initialCapital,policy.dailyLossPct,policy.overallLossPct].every(x=>Number.isFinite(x)&&x>0))throw Error('HISTORICAL_ACCOUNT_POLICY_INVALID');
   new Intl.DateTimeFormat('en-CA',{timeZone:policy.timezone});
   this.specs=new Map(specs.map(s=>[s.symbol,s]));
-  for(const s of specs)if(![s.contractSize,s.quantityStep,s.minimumQuantity,s.tickSize,s.leverage].every(x=>Number.isFinite(x)&&x>0)||![s.feeBpsPerSide,s.spreadBps,s.slippageBps,s.minimumNotional,s.minimumStopDistance].every(x=>Number.isFinite(x)&&x>=0)||!s.provenance.source)throw Error('HISTORICAL_EXECUTION_SPEC_INVALID');
+  for(const s of specs)if(![s.contractSize,s.quantityStep,s.minimumQuantity,s.tickSize,s.leverage].every(x=>Number.isFinite(x)&&x>0)||![s.feeBpsPerSide,s.spreadBps,s.slippageBps,s.minimumNotional,s.minimumStopDistance,s.commissionPerQuantityPerSide??0].every(x=>Number.isFinite(x)&&x>=0)||!s.provenance.source)throw Error('HISTORICAL_EXECUTION_SPEC_INVALID');
   if(resume&&resume.schema!=='historical-account-ledger/v1')throw Error('HISTORICAL_LEDGER_VERSION_MISMATCH');
   this.state=resume?structuredClone(resume):{schema:'historical-account-ledger/v1',balance:policy.initialCapital,equity:policy.initialCapital,peakEquity:policy.initialCapital,maximumDrawdown:0,day:'',dayStart:policy.initialCapital,dayPeak:policy.initialCapital,dailyLocked:false,failed:false,through:null,positions:[],trades:[],seenSignals:[],decisions:[],equityPath:[],charged:[]};
  }
@@ -64,13 +64,13 @@ export class HistoricalAccountLedger {
   const q=decision.executionIntent?.approvedQuantity??0;
   if(!['ALLOW','REDUCE'].includes(decision.decision)||q<=0){s.decisions.push({signalId:id,at:quote.at,decision:decision.decision,reasons:[...decision.reasonCodes,...(decision.ruleDiagnostics??[]).map(r=>`BRAIN_RULE:${r.ruleId}`)],quantity:0});return decision;}
   if(q<spec.minimumQuantity||Math.abs(q/spec.quantityStep-Math.round(q/spec.quantityStep))>1e-6||q*price*spec.contractSize*quote.conversion<spec.minimumNotional)return reject('BROKER_QUANTITY_OR_NOTIONAL_INVALID');
-  const fees=q*price*spec.contractSize*quote.conversion*spec.feeBpsPerSide/10000;
+  const fees=spec.commissionPerQuantityPerSide!==undefined?q*spec.commissionPerQuantityPerSide:q*price*spec.contractSize*quote.conversion*spec.feeBpsPerSide/10000;
   if(q*price*spec.contractSize*quote.conversion/spec.leverage+fees>context.free_margin)return reject('BROKER_MARGIN_INSUFFICIENT');
   s.seenSignals.push(id);s.balance-=fees;s.positions.push({id:`simulated:${input.account.id}:${id}`,signalId:id,strategy:setup.strategy,symbol:setup.symbol,side,quantity:q,originalQuantity:q,entry:price,stop:setup.stop,tp1:setup.tp1,tp2:setup.tp2,partialFraction:setup.management?.partialFraction??.5,breakEven:setup.management?.breakEvenAfterTp1??false,partialDone:false,openedAt:quote.at,expiresAt:quote.at+setup.holdBars*watchWidth(setup.timeframe),lastBar:quote.at-1,mark:side===1?quote.bid:quote.ask,conversion:quote.conversion,entryRisk:distance*q*spec.contractSize*quote.conversion,realizedGross:0,costs:fees,funding:0});
   s.decisions.push({signalId:id,at:quote.at,decision:decision.decision,reasons:[...decision.reasonCodes],quantity:q});this.record(quote.at,'ENTRY');return decision;
  }
  private fill(p:LedgerPosition,quantity:number,reference:number,at:number,reason:string){
-  const spec=this.spec(p.symbol),price=adverseTick(reference*(1-p.side*spec.slippageBps/10000),spec.tickSize,p.side!==1),gross=(price-p.entry)*p.side*quantity*spec.contractSize*p.conversion,fee=quantity*price*spec.contractSize*p.conversion*spec.feeBpsPerSide/10000;
+  const spec=this.spec(p.symbol),price=adverseTick(reference*(1-p.side*spec.slippageBps/10000),spec.tickSize,p.side!==1),gross=(price-p.entry)*p.side*quantity*spec.contractSize*p.conversion,fee=spec.commissionPerQuantityPerSide!==undefined?quantity*spec.commissionPerQuantityPerSide:quantity*price*spec.contractSize*p.conversion*spec.feeBpsPerSide/10000;
   this.state.balance+=gross-fee;p.realizedGross+=gross;p.costs+=fee;p.quantity=Math.max(0,p.quantity-quantity);
   if(p.quantity<spec.minimumQuantity-1e-12){this.state.positions=this.state.positions.filter(x=>x.id!==p.id);const net=p.realizedGross-p.costs-p.funding;this.state.trades.push({id:p.id,signalId:p.signalId,strategy:p.strategy,symbol:p.symbol,side:p.side,openedAt:p.openedAt,closedAt:at,entry:p.entry,exit:price,quantity:p.originalQuantity,gross:p.realizedGross,costs:p.costs,funding:p.funding,net,netR:net/p.entryRisk,reason});}
  }

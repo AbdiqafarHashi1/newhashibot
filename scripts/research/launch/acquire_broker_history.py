@@ -1,7 +1,7 @@
 """Original broker BID/ASK minute archives; retain compressed responses and integrity hashes."""
 import argparse,concurrent.futures,datetime,hashlib,json,lzma,pathlib,struct,urllib.request,urllib.error
-p=argparse.ArgumentParser();p.add_argument('--start',default='2025-01-01');p.add_argument('--end',default='2025-09-01');p.add_argument('--symbols',default='EURUSD,GBPUSD,AUDUSD,NZDUSD,USDJPY,XAUUSD');p.add_argument('--workers',type=int,default=8);p.add_argument('--out',default='.tmp/launch-research/broker-data');a=p.parse_args();folder=pathlib.Path(a.out);folder.mkdir(parents=True,exist_ok=True)
-scales={'EURUSD':100000,'GBPUSD':100000,'AUDUSD':100000,'NZDUSD':100000,'USDJPY':1000,'XAUUSD':1000}
+p=argparse.ArgumentParser();p.add_argument('--start',default='2025-01-01');p.add_argument('--end',default='2025-09-01');p.add_argument('--symbols',default='EURUSD,GBPUSD,AUDUSD,USDCAD,USDJPY,XAUUSD');p.add_argument('--workers',type=int,default=8);p.add_argument('--out',default='.tmp/launch-research/broker-data');a=p.parse_args();folder=pathlib.Path(a.out);folder.mkdir(parents=True,exist_ok=True)
+scales={'EURUSD':100000,'GBPUSD':100000,'AUDUSD':100000,'NZDUSD':100000,'USDCAD':100000,'USDJPY':1000,'XAUUSD':1000}
 def acquire(job):
  symbol,day=job;dest=folder/f'{symbol}-{day}.json'
  if dest.exists():return

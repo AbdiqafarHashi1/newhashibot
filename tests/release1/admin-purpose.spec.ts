@@ -22,13 +22,7 @@ test('seven daily admin pages, advanced tools and canonical customer support',as
  await page.goto('/admin/telegram?tab=members');await expect(page.getByRole('button',{name:'Grant 30-day VIP access'})).toHaveCount(0);await expect(page.getByRole('link',{name:'Customers & access →'})).toBeVisible();
  await page.goto('/admin/growth-goal?tab=payments');await expect(page.getByRole('heading',{name:'Payment connections',exact:true})).toHaveCount(0);
 });
-test('signal customer onboarding uses access and Telegram instead of execution questions',async({page})=>{
- // Isolated preview projections exercise presentation; no live session, mutation or provider receipt.
+test('retired fictional customer preview cannot grant customer access',async({page})=>{
  await page.addInitScript(()=>sessionStorage.setItem('hashibot.owner-preview.v1','active'));
- await page.goto('/app/onboarding');await expect(page.getByRole('heading',{name:'Finish your setup',exact:true})).toBeVisible();
- await expect(page.getByRole('heading',{name:'1. Your access',exact:true})).toBeVisible();await expect(page.getByRole('heading',{name:'2. Connect your Telegram',exact:true})).toBeVisible();await expect(page.getByRole('heading',{name:'3. Join your channels',exact:true})).toBeVisible();
- await expect(page.getByText(/VIP access is active/)).toBeVisible();await expect(page.getByRole('alert')).toHaveCount(0);
- await expect(page.getByLabel('Risk per decision')).toHaveCount(0);await expect(page.getByRole('button',{name:'Save & continue',exact:true})).toHaveCount(0);
- await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
- await page.screenshot({path:`test-results/signal-onboarding-${test.info().project.name}.png`,fullPage:true});
+ await page.goto('/app/onboarding');await expect(page).toHaveURL(/\/login$/);await expect(page.getByRole('heading',{name:'Finish your setup',exact:true})).toHaveCount(0);await expect(page.getByLabel('Preview customer')).toHaveCount(0);
 });

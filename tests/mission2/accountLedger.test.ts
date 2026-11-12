@@ -62,3 +62,4 @@ test('invalid or duplicate quote batches cannot partially mutate an account',()=
  assert.throws(()=>ledger.observeQuotes([{...quote,at:now+1000},{...quote,at:now+1000}],now+1000),/HISTORICAL_QUOTE_INVALID/);
  assert.deepEqual(ledger.snapshot(),before);
 });
+test('broker per-lot commission is independent of notional and conversion, and charged on both sides',()=>{const ledger=new HistoricalAccountLedger(policy,[{...spec,commissionPerQuantityPerSide:3.5}]);const s=setup('fixed-broker-fees');const q={symbol:'EURUSD',at:now,bid:1.1,ask:1.1,conversion:1};const d=ledger.enter(s,q,input());assert(['ALLOW','REDUCE'].includes(d?.decision??''));const quantity=ledger.snapshot().positions[0].quantity;ledger.observeQuotes([{...q,at:now+60000,bid:1.09,ask:1.09}],now+60000);const trade=ledger.snapshot().trades[0];assert(Math.abs(trade.costs-quantity*7)<1e-8);assert(Math.abs(trade.net-(trade.gross-quantity*7))<1e-8);});

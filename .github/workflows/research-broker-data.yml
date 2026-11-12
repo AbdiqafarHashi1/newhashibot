@@ -6,6 +6,8 @@ on:
       - 'scripts/research/iteration2/download-broker-development.py'
       - '.github/workflows/research-broker-data.yml'
       - 'scripts/research/launch/acquire_broker_history.py'
+      - 'scripts/research/launch/probe_broker_api.py'
+      - 'scripts/research/launch/acquire_exness_history.py'
 permissions:
   contents: read
 concurrency:
@@ -40,6 +42,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Inspect current first-party export API
+        run: python3 scripts/research/launch/probe_broker_api.py
       - name: Acquire original broker minute bid and ask history
         run: python3 scripts/research/launch/acquire_broker_history.py
       - uses: actions/upload-artifact@v4
@@ -47,4 +51,22 @@ jobs:
         with:
           name: launch-native-bid-ask-${{ github.event.pull_request.head.sha }}
           path: .tmp/launch-research/broker-data
+          retention-days: 14
+
+  native-exness-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.2.6 pandas==2.2.3
+      - name: Acquire first-party broker bid and ask ticks
+        run: python3 scripts/research/launch/acquire_exness_history.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-exness-reference-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research/exness-data/*.json
           retention-days: 14
