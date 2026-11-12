@@ -20,9 +20,10 @@ export function consecutiveMarketBars(symbol:string,previous:number,next:number,
  return true;
 }
 /** Frozen modeled price cost, never represented as an observed broker spread/fill. */
-export function conditionalCost(symbol:string,price:number):{price:number;label:string} {
+export function conditionalCost(symbol:string,price:number,instrumentType?:'SPOT'|'USDT_PERPETUAL'):{price:number;label:string} {
  if(!(Number.isFinite(price)&&price>0))throw Error('INVALID_COST_PRICE');
  if(conditionalMarket(symbol)==='crypto'){
+  if(instrumentType==='USDT_PERPETUAL')return {price:price*16/10000,label:'16bps modeled perpetual round trip; funding charged separately in account research'};
   const reserve:Record<string,number>={BTCUSDT:25,ETHUSDT:25,BNBUSDT:27,SOLUSDT:30,XRPUSDT:32,ADAUSDT:35,DOGEUSDT:40,LINKUSDT:35,AVAXUSDT:40,LTCUSDT:32};
   const bps=reserve[symbol];return {price:price*bps/10000,label:`${bps}bps modeled spot round trip, including asset liquidity reserve; not an observed spread or derivatives funding`};
  }

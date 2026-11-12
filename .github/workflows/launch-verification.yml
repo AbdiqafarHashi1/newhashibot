@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/launch-verification.yml'
       - 'scripts/research/launch/**'
+      - 'supabase/functions/_shared/launch-strategy-families.ts'
 permissions:
   contents: read
 concurrency:
@@ -21,12 +22,22 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install numpy==2.2.6 pandas==2.2.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - name: Verify strategy integration
+        run: node --import tsx --test tests/mission2/launchFamilies.test.ts
       - name: Acquire native history
         run: python3 scripts/research/launch/acquire_campaign.py
       - name: Frozen nine-family development grid
         run: python3 scripts/research/launch/search.py
       - name: Validation, later periods and actual risk/leverage accounts
         run: python3 scripts/research/launch/campaign.py
+      - name: Verify actual scanner and account Brain
+        run: |
+          node --import tsx scripts/research/run-frequency-audit.ts data=.tmp/mission2/futures-data venue=usdm frames=5,240,1440 months=2025-01,2025-02,2025-03,2025-04,2025-05 symbols=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT start=2025-05-01T00:00:00Z end=2025-05-08T00:00:00Z strategyIds=crypto.launch-squeeze-24-3-1.5,crypto.launch-ema-cross-24-1.5-3,crypto.launch-trend-pullback-48-1.5-5 entry=COMBINED risks=.25,.5,1 out=.tmp/launch-research/canonical.json > .tmp/launch-research/canonical.log 2>&1
       - name: Preserve source and all outcomes
         if: always()
         run: git archive --format=tar.gz HEAD -o .tmp/launch-research/source.tar.gz

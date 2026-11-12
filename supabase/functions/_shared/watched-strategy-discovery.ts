@@ -1,3 +1,4 @@
+import {launchFamilyProfile} from './launch-strategy-families.ts';
 import {createStrategyPlan} from './strategy-plan.ts';
 import {decideEntry,entryPolicyEvaluable,type EntryDecision} from './entry-decision.ts';
 import {applyPaperLearning,type PaperLearningSnapshot} from './paper-learning.ts';
@@ -25,14 +26,15 @@ export function watchedSetupFromEvaluation(e:RegistryEvaluation,ctx:StrategyEval
  const reject=(reason:string)=>{onReject?.(reason);return null;};
  const r=e.professional.legacy,d=e.definition,tf=ctx.timeframe as WatchTimeframe,w=watchWidth(tf),last=ctx.candles.at(-1)!;
  if(!e.publishable||!e.plan.decision.qualified||!d.config.enabled||r.status!=='candidate'||!['buy','sell'].includes(r.direction)||!Number.isFinite(w))return reject('EVALUATOR_OR_PLAN_NOT_ELIGIBLE');
- const side=r.direction as 'buy'|'sell',sign=side==='buy'?1:-1,trigger=side==='buy'?r.entry_high:r.entry_low,risk=sign*(trigger-r.stop_loss),cost=conditionalCost(ctx.symbol,trigger);
+ const side=r.direction as 'buy'|'sell',sign=side==='buy'?1:-1,trigger=side==='buy'?r.entry_high:r.entry_low,risk=sign*(trigger-r.stop_loss),cost=conditionalCost(ctx.symbol,trigger,last.instrument_type);
  if(![trigger,r.stop_loss,r.tp1,r.tp2,cost.price,r.confidence_score].every(Number.isFinite)||!(risk>0&&r.stop_loss>0&&sign*(r.tp1-trigger)>0&&sign*(r.tp2-r.tp1)>=0)||cost.price/risk>.4||r.confidence_score<d.config.min_score||sign*(r.tp2-trigger)/risk<d.config.min_rr)return reject('SETUP_GEOMETRY_COST_SCORE_OR_RR');
  if(([[d.config.min_stop_distance_pct,risk],[d.config.min_tp1_distance_pct,Math.abs(r.tp1-trigger)],[d.config.min_tp2_distance_pct,Math.abs(r.tp2-trigger)]] as [number|undefined,number][]).some(([minimum,distance])=>typeof minimum==='number'&&distance/trigger*100<minimum))return reject('SETUP_MINIMUM_DISTANCE');
- const family:StrategyThesis['family']=/reversal|range|auction|exhaustion/.test(d.id)?'REVERSAL':/breakout|expansion|compression/.test(d.id)?'BREAKOUT':'TREND';
+ const launch=launchFamilyProfile(d.id);
+ const family:StrategyThesis['family']=launch?.family??(/reversal|range|auction|exhaustion/.test(d.id)?'REVERSAL':/breakout|expansion|compression/.test(d.id)?'BREAKOUT':'TREND');
  const keys=side==='buy'?['asian_range_high','range_high','box_high','channel_high','breakout_level']:['asian_range_low','range_low','box_low','channel_low','breakout_level'];
  const observedBoundary=keys.map(k=>r.score_breakdown[k]).find(v=>typeof v==='number'&&Number.isFinite(v));
  const boundary=family==='BREAKOUT'&&typeof observedBoundary==='number'?observedBoundary:r.stop_loss;
- const thesis:StrategyThesis={family,boundary,minimumVolumeRatio:family==='BREAKOUT'?.7:.35,maximumRangeAtr:3,sessions:sessions(d.id),higherRequired:family==='TREND',maximumCostR:.4,anchorRequired:ctx.market==='crypto'&&ctx.symbol!=='BTCUSDT'&&family==='TREND'};
+ const thesis:StrategyThesis={family,boundary,minimumVolumeRatio:launch?0:family==='BREAKOUT'?.7:.35,maximumRangeAtr:3,sessions:sessions(d.id),higherRequired:!launch&&family==='TREND',maximumCostR:.4,strategyDefined:!!launch,anchorRequired:!launch&&ctx.market==='crypto'&&ctx.symbol!=='BTCUSDT'&&family==='TREND'};
  const contextDecision=strategyContextDecision(thesis,side,ctx.candles,intel);
  if(contextDecision!=='VALID')return reject('SETUP_CONTEXT_'+contextDecision);
  if(intel.spreadPrice!==null&&intel.spreadPrice/risk>.2)return reject('SETUP_SPREAD_TOO_HIGH');

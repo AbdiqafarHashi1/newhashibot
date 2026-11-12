@@ -1,3 +1,4 @@
+import {launchFamilyProfile} from '../_shared/launch-strategy-families.ts';
 import {watchedHistoryBars} from '../_shared/strategy-runtime-parameters.ts';
 import {frozenStrategyConfirmation,currentWatchQualification} from '../_shared/frozen-strategy-confirmation.ts';
 import {loadPaperLearning} from '../_shared/paper-learning.ts';
@@ -43,7 +44,8 @@ Deno.serve(async(req:Request)=>{
    },
    discovery:{crypto:enabled&&cfg.data.signal_enable_crypto===true,forex:enabled&&cfg.data.signal_enable_forex===true},
    feed:async(symbol,tf,now)=>{
-    const feed=await conditionalWatchFeed(db,symbol,tf,now,Deno.env.get('MT5_MARKET_DATA_FEED_ID'),fetch,watchedHistoryBars(definitions,symbol,tf));
+    const instrument=definitions.some(d=>launchFamilyProfile(d.id)&&d.config.enabled&&d.lifecycle==='ENABLED'&&d.config.allowed_timeframes.includes(tf)&&d.config.allowed_symbols.includes(symbol))?'USDT_PERPETUAL':'SPOT';
+    const feed=await conditionalWatchFeed(db,symbol,tf,now,Deno.env.get('MT5_MARKET_DATA_FEED_ID'),fetch,watchedHistoryBars(definitions,symbol,tf),instrument);
     if(!feed.error&&feed.candles.length){
      const since=Date.parse(watermarks.get(`${symbol}:${tf}`)??'');
      const rows=feed.candles.filter(b=>!Number.isFinite(since)||Date.parse(b.open_time)>=since).map(b=>({symbol:b.symbol,timeframe:b.timeframe,market_type:b.market_type,open_time:b.open_time,open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume,source:b.source}));

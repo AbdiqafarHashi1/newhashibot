@@ -80,7 +80,7 @@ export function conditionalCandidates(symbol:string,tf:WatchTimeframe,rows:reado
 }
 export function selectConditionalSetup(setups:readonly ConditionalSetup[],now:number):ConditionalSetup|undefined {
  const candidates:ArbitrationCandidate[]=setups.map(s=>({id:s.id,strategyId:s.strategy,strategyVersion:s.origin?.version??'1.0.0',market:s.market??conditionalMarket(s.symbol)??'crypto',symbol:s.symbol,timeframe:s.timeframe,
- side:s.side,confidence:s.score,grade:s.origin?.plan.diagnostics.grade??(s.score>=85?'A+':'A'),score:s.selectionScore??s.score,entry:s.trigger,stop:s.stop,targets:[s.tp1,s.tp2],riskReward:Math.abs(s.tp2-s.trigger)/Math.abs(s.trigger-s.stop),expiry:s.expiresAt,
+ side:s.side,confidence:s.score,grade:s.origin?.plan.diagnostics.grade??(s.score>=85?'A+':'A'),score:s.selectionScore??s.score,entry:s.trigger,stop:s.stop,targets:[...new Set([s.tp1,s.tp2])],riskReward:Math.abs(s.tp2-s.trigger)/Math.abs(s.trigger-s.stop),expiry:s.expiresAt,
  fresh:now-Date.parse(s.sourceClose)<width(s.timeframe),lifecycle:'ENABLED',publicationMode:'LIVE',eligible:true,
  evidence:{policy:CONDITIONAL_POLICY,score_is_probability:false,conditional_only:true},rejectionReasons:[]}));
  const opposing=new Set(setups.map(s=>s.side)).size>1;
