@@ -221,12 +221,12 @@ function qualificationLedger(definition: StrategyDefinition, context: StrategyEv
 
 function managementIntent(definition: StrategyDefinition, maxBars: number): StrategyPlan["management_intent"] {
   if(definition.id===DAILY_TREND_ID)return {break_even:'No break-even or partial-exit mutation.',trailing:'Raise protection to the greater of the existing stop and closed daily close minus 3 Wilder ATR14; apply from the following candle.',partial_exits:['No fixed take-profit levels. One full virtual exit; no account sizing or execution authority.'],cancel_conditions:['Cancel if next-open entry gaps below the initial 2ATR protection.','Missing/non-native SPOT daily history blocks evaluation.'],time_exit:'Exit next open after EMA20 <= EMA50 or close < EMA200. No arbitrary bar-age liquidation; unfinished positions remain OPEN.'};
-  if(definition.id.startsWith('crypto.team-'))return {
+  if(definition.id.startsWith('crypto.team-')||definition.id.startsWith('crypto.launch-')||/^(gold|forex)\.native-/.test(definition.id))return {
     break_even:'No break-even mutation in the tested signal contract.',
     trailing:'Static protective stop; no trailing in the tested signal contract.',
     partial_exits:['One full-position signal target; no partial exits. Account quantities remain Phase-D owned.'],
     cancel_conditions:['Cancel unfilled invalid/expired entry plans; never infer a provider fill.'],
-    time_exit:`Virtual close after ${maxBars} native 15m bars; missing future candles remain unresolved.`,
+    time_exit:`Virtual close after ${maxBars} strategy-timeframe bars; missing future candles remain unresolved.`,
   };
   const scalp = definition.id.includes("scalp");
   return {
