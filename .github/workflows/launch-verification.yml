@@ -1,22 +1,38 @@
-name: Launch verification workspace
+name: Launch strategy verification
 on:
   pull_request:
     paths:
       - '.github/workflows/launch-verification.yml'
+      - 'scripts/research/launch/**'
 permissions:
   contents: read
+concurrency:
+  group: launch-research-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  source-and-checks:
+  family-research:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Preserve exact research source
-        run: git archive --format=tar.gz HEAD -o /tmp/hashibot-source.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-python@v5
         with:
-          name: launch-source-${{ github.event.pull_request.head.sha }}
-          path: /tmp/hashibot-source.tar.gz
-          retention-days: 1
+          python-version: '3.12'
+      - run: pip install numpy==2.2.6 pandas==2.2.3
+      - name: Acquire native history
+        run: python3 scripts/research/launch/acquire_campaign.py
+      - name: Frozen nine-family development grid
+        run: python3 scripts/research/launch/search.py
+      - name: Validation, later periods and actual risk/leverage accounts
+        run: python3 scripts/research/launch/campaign.py
+      - name: Preserve source and all outcomes
+        if: always()
+        run: git archive --format=tar.gz HEAD -o .tmp/launch-research/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-research-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research
+          retention-days: 14
