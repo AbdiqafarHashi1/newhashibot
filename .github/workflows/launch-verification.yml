@@ -10,10 +10,27 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: launch-research-${{ github.ref }}
+  group: launch-research-${{ github.ref }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 jobs:
+  research-request:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.request.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - id: request
+        name: Preserve active crypto jobs during a separate broker validation checkpoint
+        run: |
+          subject="$(git log -1 --format=%s)"
+          requested=true
+          case "$subject" in '[broker-validation]'*) requested=false ;; esac
+          echo "run=$requested" >> "$GITHUB_OUTPUT"
   family-research:
+    needs: research-request
+    if: needs.research-request.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

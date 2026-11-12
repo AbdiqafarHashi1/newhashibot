@@ -441,10 +441,10 @@ export default function Home() {
                   Get Crypto Prop ($100) →
                 </Link>
                 <Link
-                  to="/results#interactive-backtester"
+                  to="/results#performance-summary"
                   className="w-full text-center text-purple-400 hover:text-purple-300 text-xs py-1 block transition-colors font-medium"
                 >
-                  Backtest Crypto Prop Rules →
+                  Explore strategy studies →
                 </Link>
               </div>
             </div>
@@ -505,11 +505,11 @@ export default function Home() {
                 <ArrowRight size={14} />
               </Link>
               <Link
-                to="/results#interactive-backtester"
+                to="/results#performance-summary"
                 className="w-full text-center bg-zinc-950 border border-zinc-800 hover:border-amber-500/50 text-zinc-300 hover:text-white font-semibold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-1.5"
               >
                 <FlaskConical size={14} className="text-amber-400" />
-                <span>Simulate Prop Backtest →</span>
+                <span>Compare historical studies →</span>
               </Link>
             </div>
           </div>
@@ -522,22 +522,22 @@ export default function Home() {
               <span className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
                 <FlaskConical size={20} />
               </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Challenge Clearance Lab</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Strategy Research Lab</span>
             </div>
             <h3 className="text-lg sm:text-2xl font-extrabold text-white">
-              Backtest Real Prop Firm Rules Before Risking Challenge Fees
+              Explore the strategies behind your trading plan
             </h3>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
-              Run interactive historical replay simulations for <strong>Crypto Fund Trader, HyroTrader, FTMO, and FundedNext</strong>. Verify how HashiBot&apos;s partial profit-taking and trailing drawdown circuit breaker protect your evaluation phase.
+              Compare fixed strategy rules, monthly results and modeled trading costs. Execution onboarding starts on demo with your account risk and strategy selection.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 shrink-0">
             <Link
-              to="/results#interactive-backtester"
+              to="/results#performance-summary"
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-lg shadow-blue-600/20"
             >
               <Sparkles size={14} />
-              <span>Launch Crypto & MT5 Prop Simulator</span>
+              <span>Explore strategy performance</span>
             </Link>
           </div>
         </div>

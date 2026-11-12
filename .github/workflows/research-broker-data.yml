@@ -8,6 +8,8 @@ on:
       - 'scripts/research/launch/acquire_broker_history.py'
       - 'scripts/research/launch/probe_broker_api.py'
       - 'scripts/research/launch/acquire_exness_history.py'
+      - 'scripts/research/run-frequency-audit.ts'
+      - 'supabase/functions/_shared/historical-account-scenario.ts'
 permissions:
   contents: read
 concurrency:
@@ -15,6 +17,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   development-data:
+    if: false # Legacy source throttled; first-party native reference below replaces this automatic job.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -35,6 +38,7 @@ jobs:
           retention-days: 7
 
   launch-native-bid-ask:
+    if: false # Source returned 429/WAF challenge; no automated bypass or repeated download.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -62,6 +66,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install numpy==2.2.6 pandas==2.2.3
+      - uses: actions/cache@v4
+        with:
+          path: .tmp/launch-research/exness-data/*.json
+          key: exness-native-bid-ask-2025-jan-aug-v1
       - name: Acquire first-party broker bid and ask ticks
         run: python3 scripts/research/launch/acquire_exness_history.py
       - uses: actions/upload-artifact@v4
@@ -69,4 +77,39 @@ jobs:
         with:
           name: native-exness-reference-${{ github.event.pull_request.head.sha }}
           path: .tmp/launch-research/exness-data/*.json
+          retention-days: 14
+
+  broker-canonical:
+    needs: native-exness-reference
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        month: ['03', '04', '05', '06', '07', '08']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-exness-reference-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research/exness-data
+      - name: Native Forex and Gold through actual scanner, arbitration and account Brain
+        env:
+          MONTH: ${{ matrix.month }}
+        run: |
+          mkdir -p .tmp/broker-canonical
+          node --import tsx scripts/research/run-frequency-audit.ts venue=exness data=.tmp/launch-research/exness-data months=2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08 symbols=EURUSD,GBPUSD,USDJPY,AUDUSD,USDCAD,XAUUSD "start=2025-${MONTH}-10T00:00:00Z" "end=2025-${MONTH}-17T00:00:00Z" risks=.25,.5,1 balances=500,10000 out=.tmp/broker-canonical/report.json > .tmp/broker-canonical/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: broker-canonical-${{ matrix.month }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/broker-canonical
           retention-days: 14

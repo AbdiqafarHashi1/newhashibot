@@ -39,9 +39,9 @@ export default function PropEA() {
               <Link to="/pricing?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-amber-600/20 text-sm">
                 Activate Forex MT5 Prop Bot <ArrowRight size={16} />
               </Link>
-              <Link to="/results#interactive-backtester" className="inline-flex items-center justify-center gap-2 bg-zinc-900 border border-amber-500/30 hover:border-amber-500/60 text-amber-300 hover:text-white px-7 py-3.5 rounded-lg font-semibold transition-colors text-sm">
+              <Link to="/results#performance-summary" className="inline-flex items-center justify-center gap-2 bg-zinc-900 border border-amber-500/30 hover:border-amber-500/60 text-amber-300 hover:text-white px-7 py-3.5 rounded-lg font-semibold transition-colors text-sm">
                 <ShieldCheck size={16} className="text-amber-400" />
-                Run $50k Prop Backtest
+                Explore strategy studies
               </Link>
               <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-6 py-3.5 rounded-lg font-medium transition-colors text-sm">
                 Contact Support

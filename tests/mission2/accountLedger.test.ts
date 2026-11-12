@@ -1,3 +1,4 @@
+import {historicalAccountScenario} from '../../supabase/functions/_shared/historical-account-scenario.ts';
 import {evaluateAccountSignal} from '../../supabase/functions/_shared/account-policy-authority.ts';
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {HistoricalAccountLedger,type HistoricalAccountPolicy,type HistoricalExecutionSpec} from '../../supabase/functions/_shared/historical-account-ledger.ts';
@@ -63,3 +64,5 @@ test('invalid or duplicate quote batches cannot partially mutate an account',()=
  assert.deepEqual(ledger.snapshot(),before);
 });
 test('broker per-lot commission is independent of notional and conversion, and charged on both sides',()=>{const ledger=new HistoricalAccountLedger(policy,[{...spec,commissionPerQuantityPerSide:3.5}]);const s=setup('fixed-broker-fees');const q={symbol:'EURUSD',at:now,bid:1.1,ask:1.1,conversion:1};const d=ledger.enter(s,q,input());assert(['ALLOW','REDUCE'].includes(d?.decision??''));const quantity=ledger.snapshot().positions[0].quantity;ledger.observeQuotes([{...q,at:now+60000,bid:1.09,ask:1.09}],now+60000);const trade=ledger.snapshot().trades[0];assert(Math.abs(trade.costs-quantity*7)<1e-8);assert(Math.abs(trade.net-(trade.gross-quantity*7))<1e-8);});
+
+test('native MT5 scenario preserves provider identity and separates broker margin leverage from the account policy cap',()=>{const contract={...spec,leverage:30,commissionPerQuantityPerSide:3.5},s=setup('native-mt5-scenario'),make=historicalAccountScenario({purpose:'HISTORICAL_RESEARCH',provider:'MT5_PERSONAL',capital:10000,riskPct:.5,accountId:'research:mt5'}),i=make(s,quote,contract);assert.equal(i.account.provider,'MT5_PERSONAL');assert.equal(i.configuration.maxLeverage,10);assert.equal(i.context.leverage,30);const ledger=new HistoricalAccountLedger(policy,[contract]);const decision=ledger.enter(s,quote,i);assert(['ALLOW','REDUCE'].includes(decision?.decision??''),JSON.stringify(decision));assert(ledger.snapshot().positions.length===1);});

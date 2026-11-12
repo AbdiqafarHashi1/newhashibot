@@ -7,10 +7,11 @@ export function conditionalMarket(symbol:string):ConditionalMarket|null {
  return FOREX_RUNTIME_SYMBOLS.includes(symbol as typeof FOREX_RUNTIME_SYMBOLS[number])?'forex':null;
 }
 export const CONDITIONAL_ASSETS=[...CORE_CRYPTO_SYMBOLS,...FOREX_RUNTIME_SYMBOLS];
+const newYorkSessionFormatter=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'numeric',hourCycle:'h23'});
 /** Published weekly FX convention, including New York DST; broker holidays are never inferred. */
 export function scheduledMarketClosed(symbol:string,at:number):boolean {
  if(conditionalMarket(symbol)!=='forex')return false;
- const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'numeric',hourCycle:'h23'}).formatToParts(new Date(at));
+ const p=newYorkSessionFormatter.formatToParts(new Date(at));
  const day=p.find(x=>x.type==='weekday')!.value,hour=Number(p.find(x=>x.type==='hour')!.value);
  return day==='Sat'||day==='Fri'&&hour>=17||day==='Sun'&&hour<17||symbol==='XAUUSD'&&day!=='Sun'&&hour===17;
 }
