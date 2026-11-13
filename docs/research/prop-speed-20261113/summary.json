@@ -1,7 +1,13 @@
 {
   "schema": "prop-speed-audit/v1",
   "date": "2026-11-13",
-  "accountCases": 24994,
+  "accountCases": 24999,
+  "fastestLater": {
+    "starts": 5,
+    "within14": 0,
+    "within30": 2,
+    "failures": 0
+  },
   "currentEngineConfirmation": {
     "schema": "prop-speed-current-engine/v1",
     "brainVersion": "1.1.1",
@@ -261,6 +267,7 @@
   ],
   "accountStudyArchiveSha256": "d31e45d470657e7da6f0c55cad4a24d83646b9bfde3473a66079a1224a3190c1",
   "counts": {
+    "exactFastestLaterCases": 5,
     "currentEngineRechecks": 16,
     "searchAccountReplays": 24192,
     "validationAccountReplays": 502,

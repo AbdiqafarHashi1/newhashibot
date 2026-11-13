@@ -63,3 +63,5 @@ Browser verification is not claimed: the previously observed Chromium UNIX-socke
 - App TypeScript, typed research/account entry points, 39 edge bundles and the Vite production web build passed. Existing large-chunk warnings remain.
 - Sixteen headline market scenarios were rerun after the Brain 1.1.1 correction: the 13.816-day pass, later 2%/14-day and 5%/30-day groups, and later 1.5% banking group retained identical target-hit counts and times. The detailed confirmation records the shared-source hash.
 - The publisher verifies completed source status, native source lineage, unique cases and exact totals before producing the admin projection.
+
+The exact fastest unbanked variant also has five explicit later-start checks in `two-week-later.json`: zero within fourteen days, two within thirty days and no modeled firm failures. This is separate from its banking follow-up.

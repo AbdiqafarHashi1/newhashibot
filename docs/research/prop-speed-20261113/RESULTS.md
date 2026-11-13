@@ -37,7 +37,7 @@ The highest-activity Gold 15m momentum family contributed -6.26R in the combined
 
 ## Completed experiments
 
-- **24,994 account replays**: 16 current-engine headline rechecks plus 24,192 earlier grid cohorts, 502 selected/adaptive/banking/three-position verification cohorts, 240 sequential cycle replays in 60 campaigns, 40 matched participation-probe cohorts and four full-period diagnostics.
+- **24,999 account replays**: five later checks of the exact fastest unbanked variant, 16 current-engine headline rechecks plus 24,192 earlier grid cohorts, 502 selected/adaptive/banking/three-position verification cohorts, 240 sequential cycle replays in 60 campaigns, 40 matched participation-probe cohorts and four full-period diagnostics.
 - Risk 0.50%, 1%, 1.5%, 2%; effective leverage ceilings 5/10/30; open-risk budget up to 3%; peak-equity versus static initial-capital loss accounting; 4.5% daily / 9% total buffered study limits; original exits, 2R, 3R and 3R with a 24-native-bar holding cap.
 - Reviewed full/income/speed selections; two additional earlier winning masks (94 and 30); revised Gold range and range+squeeze. Earlier work already tested every non-empty selection of the seven reviewed configurations at lower bounds.
 - Twelve weekly earlier starts, March 1–May 17. Selected candidates then used June 1, June 15, July 1, July 15 and August 1 starts. Underlying 2025 data has prior broader research; this is not a newly untouched market holdout. Starts overlap and variants are correlated.
@@ -54,7 +54,7 @@ The highest-activity Gold 15m momentum family contributed -6.26R in the combined
 | Revised Gold range+squeeze, 1% / ceiling five, original exits, funded 5% within 30 days | 11/12 (91.7%) | 3/5 (60%) |
 | Revised Gold range+squeeze, 1.5% / ceiling 30, funded 2% within 14 days | 12/12 (100%) | 4/5 (80%) |
 
-The strongest two-week example was the full reviewed bundle, 2% research risk, ceiling 10, 3R exits and at most 24 native strategy bars: **13.816 days** for 10/5 from a March 29 start. Only one of twelve earlier starts of that variant achieved two-week funding; no selected later challenge variant did. Generic 8/5's fastest earlier case was 17.25 days. Different minimum-day and holding profiles mean these minima do not show that a larger target is inherently easier.
+The strongest two-week example was the full reviewed bundle, 2% research risk, ceiling 10, 3R exits and at most 24 native strategy bars: **13.816 days** for 10/5 from a March 29 start. Only one of twelve earlier starts of that variant achieved two-week funding; no selected later challenge variant did. The exact fastest unbanked variant was additionally checked on all five later starts: 0/5 within 14 days and 2/5 within 30 days, completing in 16.04 and 23.39 days, with no modeled failures. Generic 8/5's fastest earlier case was 17.25 days. Different minimum-day and holding profiles mean these minima do not show that a larger target is inherently easier.
 
 Challenge replays continue after funding until their date boundary at the same experimental funded risk; failure counts cover the entire window. One earlier 2% full-bundle case passed and subsequently failed after funding. This is retained rather than presented as successful account survival. None of the newly selected later banking cases both passed and then failed; their recorded failures were separate unsuccessful cases.
 
