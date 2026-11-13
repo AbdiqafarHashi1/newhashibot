@@ -1,0 +1,824 @@
+{
+  "schema": "style-coverage-screen/v1",
+  "market": "forex",
+  "symbols": [
+    "USDCAD"
+  ],
+  "gridCountByStyle": {
+    "SCALP": 648,
+    "SWING": 648
+  },
+  "selection": "Top six positive-costed development results per style/family; Jan\u2013Mar development, Apr\u2013May validation, Jun\u2013Aug later observation; crypto also Aug\u2013Oct2026. Previous observations preclude an untouched holdout claim.",
+  "sourceSha256": "59c8b3338a3fdd9f978434004fc98911a3a36197f66ac0d6947b99be207484b3",
+  "results": [
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 6,
+        "style": "SCALP"
+      },
+      "development": {
+        "equityReturnPct": 3.138573153691482,
+        "maximumDrawdownPct": 3.0574799955469123,
+        "profitFactor": 1.3252014523437219,
+        "closedTrades": 103,
+        "entries": 103,
+        "blocked": 0,
+        "failed": false,
+        "costs": 228.7000000000003,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -8.49546167363231,
+        "maximumDrawdownPct": 9.37038834396939,
+        "profitFactor": 0.5132730064390904,
+        "closedTrades": 107,
+        "entries": 108,
+        "blocked": 0,
+        "failed": false,
+        "costs": 230.01000000000008,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 3,
+        "maxHoldBars": 6,
+        "style": "SCALP"
+      },
+      "development": {
+        "equityReturnPct": 3.0276529372968985,
+        "maximumDrawdownPct": 2.9548173502744257,
+        "profitFactor": 1.3145880291090601,
+        "closedTrades": 103,
+        "entries": 103,
+        "blocked": 0,
+        "failed": false,
+        "costs": 228.6300000000003,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -8.138558695417286,
+        "maximumDrawdownPct": 9.015555890523133,
+        "profitFactor": 0.5351782306754241,
+        "closedTrades": 107,
+        "entries": 108,
+        "blocked": 0,
+        "failed": false,
+        "costs": 229.94000000000008,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 5,
+        "maxHoldBars": 6,
+        "style": "SCALP"
+      },
+      "development": {
+        "equityReturnPct": 3.0276529372968985,
+        "maximumDrawdownPct": 2.9548173502744257,
+        "profitFactor": 1.3145880291090601,
+        "closedTrades": 103,
+        "entries": 103,
+        "blocked": 0,
+        "failed": false,
+        "costs": 228.6300000000003,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -8.138558695417286,
+        "maximumDrawdownPct": 9.015555890523133,
+        "profitFactor": 0.5351782306754241,
+        "closedTrades": 107,
+        "entries": 108,
+        "blocked": 0,
+        "failed": false,
+        "costs": 229.94000000000008,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 32,
+        "stopAtr": 2,
+        "rewardR": 1.5,
+        "maxHoldBars": 6,
+        "style": "SCALP"
+      },
+      "development": {
+        "equityReturnPct": 3.2338531540354154,
+        "maximumDrawdownPct": 3.548142069661459,
+        "profitFactor": 1.229065582478787,
+        "closedTrades": 106,
+        "entries": 106,
+        "blocked": 0,
+        "failed": false,
+        "costs": 313.6600000000002,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -12.133866882199529,
+        "maximumDrawdownPct": 12.731374547933536,
+        "profitFactor": 0.4631023602650059,
+        "closedTrades": 101,
+        "entries": 101,
+        "blocked": 0,
+        "failed": true,
+        "costs": 288.6500000000001,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 32,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 12,
+        "style": "SCALP"
+      },
+      "development": {
+        "equityReturnPct": 3.980247047028662,
+        "maximumDrawdownPct": 4.925908366915376,
+        "profitFactor": 1.2220197720062975,
+        "closedTrades": 95,
+        "entries": 95,
+        "blocked": 0,
+        "failed": false,
+        "costs": 299.05,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -12.02342994348009,
+        "maximumDrawdownPct": 12.846600817403955,
+        "profitFactor": 0.5313688687918819,
+        "closedTrades": 95,
+        "entries": 95,
+        "blocked": 0,
+        "failed": true,
+        "costs": 276.54999999999984,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 32,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 6,
+        "style": "SCALP"
+      },
+      "development": {
+        "equityReturnPct": 2.695675633988892,
+        "maximumDrawdownPct": 3.486479083653747,
+        "profitFactor": 1.1908568327986704,
+        "closedTrades": 106,
+        "entries": 106,
+        "blocked": 0,
+        "failed": false,
+        "costs": 313.1,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -12.308362413164176,
+        "maximumDrawdownPct": 12.972561749421892,
+        "profitFactor": 0.47023104621678397,
+        "closedTrades": 102,
+        "entries": 102,
+        "blocked": 0,
+        "failed": true,
+        "costs": 291.7600000000001,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 2.793054513143267,
+        "maximumDrawdownPct": 3.0696300069127975,
+        "profitFactor": 1.2620738764746529,
+        "closedTrades": 29,
+        "entries": 29,
+        "blocked": 0,
+        "failed": false,
+        "costs": 91.70999999999998,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -2.1490441833487473,
+        "maximumDrawdownPct": 4.645948287055353,
+        "profitFactor": 0.773190796481382,
+        "closedTrades": 24,
+        "entries": 24,
+        "blocked": 0,
+        "failed": false,
+        "costs": 78.27000000000002,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 1.7808038645418023,
+        "maximumDrawdownPct": 1.533247753432828,
+        "profitFactor": 1.3815201557370989,
+        "closedTrades": 20,
+        "entries": 20,
+        "blocked": 0,
+        "failed": false,
+        "costs": 39.64000000000002,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -1.5512100228662118,
+        "maximumDrawdownPct": 2.326422146679955,
+        "profitFactor": 0.7018491637302963,
+        "closedTrades": 18,
+        "entries": 18,
+        "blocked": 0,
+        "failed": false,
+        "costs": 37.50000000000001,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 2.315848498028328,
+        "maximumDrawdownPct": 3.1202327033373485,
+        "profitFactor": 1.1999156824880437,
+        "closedTrades": 33,
+        "entries": 33,
+        "blocked": 0,
+        "failed": false,
+        "costs": 102.66000000000003,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -3.1777106623175455,
+        "maximumDrawdownPct": 5.390368077293351,
+        "profitFactor": 0.649603075698119,
+        "closedTrades": 26,
+        "entries": 26,
+        "blocked": 0,
+        "failed": false,
+        "costs": 74.56000000000002,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 60,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 1.724464294926964,
+        "maximumDrawdownPct": 3.39848915112442,
+        "profitFactor": 1.1974632705186563,
+        "closedTrades": 24,
+        "entries": 24,
+        "blocked": 0,
+        "failed": false,
+        "costs": 78.13999999999997,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -2.874355079032953,
+        "maximumDrawdownPct": 5.869113444790274,
+        "profitFactor": 0.6747905517690197,
+        "closedTrades": 22,
+        "entries": 22,
+        "blocked": 0,
+        "failed": false,
+        "costs": 65.66000000000001,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 0.14819290086132142,
+        "maximumDrawdownPct": 2.3158938392443975,
+        "profitFactor": 1.0230279366505832,
+        "closedTrades": 27,
+        "entries": 27,
+        "blocked": 0,
+        "failed": false,
+        "costs": 46.98000000000002,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -2.604781732761563,
+        "maximumDrawdownPct": 3.3185819090017636,
+        "profitFactor": 0.5304067386051718,
+        "closedTrades": 21,
+        "entries": 21,
+        "blocked": 0,
+        "failed": false,
+        "costs": 34.620000000000005,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 60,
+        "lookback": 16,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 0.5745567109283645,
+        "maximumDrawdownPct": 2.0465569205040515,
+        "profitFactor": 1.002544023432988,
+        "closedTrades": 25,
+        "entries": 26,
+        "blocked": 0,
+        "failed": false,
+        "costs": 58.389999999999986,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": -1.429025001063311,
+        "maximumDrawdownPct": 4.658841162799928,
+        "profitFactor": 0.8537582647498365,
+        "closedTrades": 32,
+        "entries": 33,
+        "blocked": 0,
+        "failed": false,
+        "costs": 63.94499999999999,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 60,
+        "lookback": 16,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 1.0571912623504875,
+        "maximumDrawdownPct": 1.99396175987348,
+        "profitFactor": 1.0852772375713675,
+        "closedTrades": 27,
+        "entries": 28,
+        "blocked": 0,
+        "failed": false,
+        "costs": 62.24,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": 0.09327833263623742,
+        "maximumDrawdownPct": 3.5447142360805413,
+        "profitFactor": 1.001531747890249,
+        "closedTrades": 28,
+        "entries": 29,
+        "blocked": 0,
+        "failed": false,
+        "costs": 66.16000000000001,
+        "openPositions": 1
+      },
+      "later2025": {
+        "equityReturnPct": 2.5085684908267236,
+        "maximumDrawdownPct": 2.7358496818597833,
+        "profitFactor": 1.2317073712425965,
+        "closedTrades": 48,
+        "entries": 48,
+        "blocked": 0,
+        "failed": false,
+        "costs": 159.10000000000005,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 5.358942857440319,
+        "maximumDrawdownPct": 2.8344666031981056,
+        "profitFactor": 2.1321014195920727,
+        "closedTrades": 21,
+        "entries": 21,
+        "blocked": 0,
+        "failed": false,
+        "costs": 55.31,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": 2.2579125164935654,
+        "maximumDrawdownPct": 2.2295203259463894,
+        "profitFactor": 1.4652270409700296,
+        "closedTrades": 23,
+        "entries": 23,
+        "blocked": 0,
+        "failed": false,
+        "costs": 63.269999999999996,
+        "openPositions": 0
+      },
+      "later2025": {
+        "equityReturnPct": -6.22091683045115,
+        "maximumDrawdownPct": 7.889184107781423,
+        "profitFactor": 0.3724864711153533,
+        "closedTrades": 27,
+        "entries": 27,
+        "blocked": 0,
+        "failed": false,
+        "costs": 97.40999999999995,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 2,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 4.727600358485984,
+        "maximumDrawdownPct": 2.7731091832353747,
+        "profitFactor": 2.0112900440764836,
+        "closedTrades": 20,
+        "entries": 20,
+        "blocked": 0,
+        "failed": false,
+        "costs": 54.87,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": 2.2579125164935654,
+        "maximumDrawdownPct": 2.2295203259463894,
+        "profitFactor": 1.4652270409700296,
+        "closedTrades": 23,
+        "entries": 23,
+        "blocked": 0,
+        "failed": false,
+        "costs": 63.269999999999996,
+        "openPositions": 0
+      },
+      "later2025": {
+        "equityReturnPct": -5.326310698479597,
+        "maximumDrawdownPct": 7.889184107781423,
+        "profitFactor": 0.4644518382491722,
+        "closedTrades": 27,
+        "entries": 27,
+        "blocked": 0,
+        "failed": false,
+        "costs": 97.64999999999996,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 1.5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 4.2351841875113205,
+        "maximumDrawdownPct": 2.507891400207689,
+        "profitFactor": 1.8478186734209974,
+        "closedTrades": 22,
+        "entries": 22,
+        "blocked": 0,
+        "failed": false,
+        "costs": 62.50000000000002,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": 2.7248214697248363,
+        "maximumDrawdownPct": 2.3876572130486844,
+        "profitFactor": 1.3942210247558473,
+        "closedTrades": 28,
+        "entries": 28,
+        "blocked": 0,
+        "failed": false,
+        "costs": 72.02,
+        "openPositions": 0
+      },
+      "later2025": {
+        "equityReturnPct": -5.653096290153991,
+        "maximumDrawdownPct": 7.535287204316725,
+        "profitFactor": 0.508154480730077,
+        "closedTrades": 32,
+        "entries": 32,
+        "blocked": 0,
+        "failed": false,
+        "costs": 121.78999999999995,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 1.5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 4.2351841875113205,
+        "maximumDrawdownPct": 2.507891400207689,
+        "profitFactor": 1.8478186734209974,
+        "closedTrades": 22,
+        "entries": 22,
+        "blocked": 0,
+        "failed": false,
+        "costs": 62.50000000000002,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": 2.17844204819555,
+        "maximumDrawdownPct": 2.379662020597951,
+        "profitFactor": 1.2911688649626964,
+        "closedTrades": 28,
+        "entries": 28,
+        "blocked": 0,
+        "failed": false,
+        "costs": 75.35,
+        "openPositions": 0
+      },
+      "later2025": {
+        "equityReturnPct": -6.436357678130644,
+        "maximumDrawdownPct": 8.310338632951138,
+        "profitFactor": 0.47573443366065055,
+        "closedTrades": 32,
+        "entries": 32,
+        "blocked": 0,
+        "failed": false,
+        "costs": 127.67999999999995,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 5.53569893265482,
+        "maximumDrawdownPct": 3.322742028704659,
+        "profitFactor": 1.960981676860314,
+        "closedTrades": 20,
+        "entries": 20,
+        "blocked": 0,
+        "failed": false,
+        "costs": 68.74000000000001,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": 3.0322616896919508,
+        "maximumDrawdownPct": 2.659566885172773,
+        "profitFactor": 1.4625251737962832,
+        "closedTrades": 25,
+        "entries": 25,
+        "blocked": 0,
+        "failed": false,
+        "costs": 86.55000000000003,
+        "openPositions": 0
+      },
+      "later2025": {
+        "equityReturnPct": -11.272049993824329,
+        "maximumDrawdownPct": 12.24250174620987,
+        "profitFactor": 0.1513000388190365,
+        "closedTrades": 30,
+        "entries": 30,
+        "blocked": 0,
+        "failed": false,
+        "costs": 117.49000000000005,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 5.507932292064743,
+        "maximumDrawdownPct": 3.323598354926252,
+        "profitFactor": 1.9620601233212094,
+        "closedTrades": 21,
+        "entries": 21,
+        "blocked": 0,
+        "failed": false,
+        "costs": 68.69,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": 3.70377541185416,
+        "maximumDrawdownPct": 2.836812876951063,
+        "profitFactor": 1.522350726727457,
+        "closedTrades": 26,
+        "entries": 26,
+        "blocked": 0,
+        "failed": false,
+        "costs": 82.4,
+        "openPositions": 0
+      },
+      "later2025": {
+        "equityReturnPct": -11.272049993824329,
+        "maximumDrawdownPct": 12.24250174620987,
+        "profitFactor": 0.1513000388190365,
+        "closedTrades": 30,
+        "entries": 30,
+        "blocked": 0,
+        "failed": false,
+        "costs": 117.49000000000005,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 1.5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 2.204470166393979,
+        "maximumDrawdownPct": 2.471656534255051,
+        "profitFactor": 1.4767367171739203,
+        "closedTrades": 20,
+        "entries": 20,
+        "blocked": 0,
+        "failed": false,
+        "costs": 62.179999999999986,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -4.416791818477018,
+        "maximumDrawdownPct": 4.49857264854787,
+        "profitFactor": 0.42859884084847627,
+        "closedTrades": 21,
+        "entries": 21,
+        "blocked": 0,
+        "failed": false,
+        "costs": 56.75999999999999,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 1.5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 2.1197343693700743,
+        "maximumDrawdownPct": 3.12531926401476,
+        "profitFactor": 1.429914569633755,
+        "closedTrades": 20,
+        "entries": 20,
+        "blocked": 0,
+        "failed": false,
+        "costs": 63.90999999999999,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -4.2295419474378315,
+        "maximumDrawdownPct": 4.447655060223362,
+        "profitFactor": 0.45528876884507363,
+        "closedTrades": 21,
+        "entries": 21,
+        "blocked": 0,
+        "failed": false,
+        "costs": 59.09999999999999,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "rsi2",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 0.9156444623555249,
+        "maximumDrawdownPct": 2.1517193439922067,
+        "profitFactor": 1.1358500184989413,
+        "closedTrades": 27,
+        "entries": 27,
+        "blocked": 0,
+        "failed": false,
+        "costs": 46.19999999999998,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -5.263902916422425,
+        "maximumDrawdownPct": 5.561334828885511,
+        "profitFactor": 0.36564741561474867,
+        "closedTrades": 25,
+        "entries": 25,
+        "blocked": 0,
+        "failed": false,
+        "costs": 52.53999999999997,
+        "openPositions": 0
+      }
+    }
+  ],
+  "limitations": [
+    "Screen is not the canonical scanner, arbitration or account Brain",
+    "Costs and contract filters remain explicit scenarios",
+    "Scalp holding horizon is part of every configuration; increasing timeout is not a hidden strategy change"
+  ],
+  "automaticPromotion": false
+}

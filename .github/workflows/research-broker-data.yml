@@ -78,6 +78,17 @@ jobs:
           python3 tests/research/participationEntries.test.py
       - name: Acquire first-party broker bid and ask ticks
         run: python3 scripts/research/launch/acquire_exness_history.py
+      - name: Independently screen scalp and swing for each Forex pair
+        run: |
+          for symbol in EURUSD GBPUSD USDJPY AUDUSD USDCAD; do
+            python3 scripts/research/launch/style_coverage_search.py --market forex --symbols "$symbol"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forex-style-screen-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research/styles/*.json
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -128,7 +139,7 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        candidate: [gold-momentum, gold-wide, gold-hourly, eur-squeeze, yen-momentum, gold-sweep, gold-range, yen-range]
+        candidate: [gold-momentum, gold-wide, gold-hourly, eur-squeeze, yen-momentum, gold-sweep, gold-range, yen-range, eur-sweep-swing, gbp-sweep-swing, yen-sweep-swing, eur-squeeze-swing]
         period: [early, later]
         include:
           - candidate: gold-momentum
@@ -155,6 +166,18 @@ jobs:
           - candidate: yen-range
             id: forex.native-band-reentry-60-12-2-5
             symbol: USDJPY
+          - candidate: eur-sweep-swing
+            id: forex.native-sweep-retest-60-16-2-1.5-eurusd-h24
+            symbol: EURUSD
+          - candidate: gbp-sweep-swing
+            id: forex.native-sweep-retest-60-48-1.5-1.5-gbpusd-h72
+            symbol: GBPUSD
+          - candidate: yen-sweep-swing
+            id: forex.native-sweep-retest-60-16-2-5-usdjpy-h72
+            symbol: USDJPY
+          - candidate: eur-squeeze-swing
+            id: forex.native-squeeze-60-16-2-3-eurusd-h24
+            symbol: EURUSD
           - period: early
             start: '2025-04-01'
             end: '2025-06-01'
