@@ -9,7 +9,7 @@ def main():
  families=FAMILIES+(['momentum','bollinger','failed_breakout','london_range_break']+(['vwap_reclaim'] if a.market=='crypto' else []) if a.expanded else [])
  styles=[('SCALP',[5,15],[12,24,48] if a.expanded else [8,16,32],[12,24] if a.expanded else [6,12])]+([] if a.scalp_only else [('SWING',[60,240],[16,32,48],[24,72])])
  for style,frames,lookbacks,holds in styles:
-  floors=[0,.002,.004,.006] if a.expanded and a.scalp_only and a.market=='crypto' else [0]
+  floors=([0,.002,.004,.006] if a.market=='crypto' else [0,.0004,.0008,.0012]) if a.expanded and a.scalp_only else [0]
   grid=[dict(family=f,timeframe=tf,lookback=n,stopAtr=s,rewardR=r,maxHoldBars=hold,style=style,minimumAtrFraction=floor) for f,tf,n,s,r,hold,floor in itertools.product(families,frames,lookbacks,[1.5,2,3],[1.5,3,5],holds,floors)];counts[style]=len(grid);rows=[{'configuration':c,'development':simulate(data,c,'2025-01-20','2025-04-01',run)} for c in grid]
   for family,floor in itertools.product(families,floors):
    ranked=sorted([r for r in rows if r['configuration']['family']==family and r['configuration']['minimumAtrFraction']==floor and r['development']['closedTrades']>=20 and (r['development']['profitFactor'] or 0)>1 and r['development']['equityReturnPct']>0 and not r['development'].get('failed',r['development'].get('accountFailed',False))],key=lambda r:r['development']['equityReturnPct']/max(2,r['development']['maximumDrawdownPct']),reverse=True)

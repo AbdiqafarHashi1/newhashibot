@@ -64,6 +64,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       replays: ${{ steps.request.outputs.replays }}
+      coverage: ${{ steps.request.outputs.coverage }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,8 +72,10 @@ jobs:
       - id: request
         run: |
           replays=true
-          case "$(git log -1 --format=%s)" in '[scalp-research]'*|'[short-canonical]'*) replays=false ;; esac
+          coverage=false
+          case "$(git log -1 --format=%s)" in '[coverage-final]'*) replays=false; coverage=true ;; '[scalp-research]'*|'[short-canonical]'*) replays=false ;; esac
           echo "replays=$replays" >> "$GITHUB_OUTPUT"
+          echo "coverage=$coverage" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -271,4 +274,64 @@ jobs:
         with:
           name: expanded-scalp-yen-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
           path: .tmp/expanded-scalp
+          retention-days: 14
+
+  cost-aware-forex-canonical:
+    needs: native-exness-reference
+    if: needs.native-exness-reference.outputs.coverage == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        candidate: [aussie-pullback, pound-range, pound-rsi, euro-momentum]
+        period: [early, later]
+        include:
+          - candidate: aussie-pullback
+            id: forex.native-trend-pullback-5-24-2-3-audusd-h24-v0.0008
+            symbol: AUDUSD
+          - candidate: pound-range
+            id: forex.native-band-reentry-15-12-3-5-gbpusd-h12-v0.0004
+            symbol: GBPUSD
+          - candidate: pound-rsi
+            id: forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008
+            symbol: GBPUSD
+          - candidate: euro-momentum
+            id: forex.native-momentum-5-12-3-3-eurusd-h12-v0.0008
+            symbol: EURUSD
+          - period: early
+            start: '2025-04-01'
+            end: '2025-06-01'
+          - period: later
+            start: '2025-06-01'
+            end: '2025-09-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - run: node --import tsx --test tests/mission2/brokerFamilies.test.ts
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-exness-reference-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research/exness-data
+      - name: Exact native Forex scalp through scanner, arbitration and account Brain
+        env:
+          ID: ${{ matrix.id }}
+          SYMBOL: ${{ matrix.symbol }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/cost-aware-forex
+          node --import tsx scripts/research/run-frequency-audit.ts venue=exness data=.tmp/launch-research/exness-data months=2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08 "symbols=$SYMBOL" "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$ID" risks=.5 balances=10000 checkpointEvery=1440 out=.tmp/cost-aware-forex/report.json > .tmp/cost-aware-forex/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cost-aware-forex-${{ matrix.candidate }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/cost-aware-forex
           retention-days: 14

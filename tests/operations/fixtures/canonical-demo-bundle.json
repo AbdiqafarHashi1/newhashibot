@@ -450,6 +450,132 @@
       }
     },
     {
+      "strategyId": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+      "strategyName": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 0.9,
+            "maxBarsInTrade": 12,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "DOGEUSDT"
+            ],
+            "timeframes": [
+              "5m"
+            ],
+            "parameters": {
+              "minimum_atr_fraction": 0.006,
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      },
+      "review": {
+        "schema": "canonical-account-review/v1",
+        "strategyId": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "periods": [
+          {
+            "reportSha256": "f0c3a4b61250ff87f6c21f33bb470a612f188a53ca643b76815c8884a69dcede",
+            "engineSourceSha256": "17808975e1223adad0628ec7e10a8a0adebd093e206509e2b2da8c51b08f17b3",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+            ],
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 33,
+              "openPositions": 0,
+              "authorizedEntries": 33,
+              "rejectedAttempts": 0,
+              "rejectionReasons": {},
+              "winRate": 0.5454545454545454,
+              "profitFactor": 1.1963396196890994,
+              "expectancyR": 0.08267314465694418,
+              "realizedNet": 13.302658175647473,
+              "endingBalance": 1013.3026581756467,
+              "endingEquity": 1013.3026581756467,
+              "netReturnPct": 1.3302658175646682,
+              "maximumDrawdownPct": 1.7856515809328548,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 3,
+              "costs": 11.097177225000001,
+              "financing": 0.0677145993524,
+              "tradesPerDay": 0.5409836065573771,
+              "tradesPerWeek": 3.7868852459016398,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 1000,
+            "riskPct": 0.5
+          },
+          {
+            "reportSha256": "df3cfabd11ee00790edcf1ca93c9370d7d069d7302f8540c311889976073cb94",
+            "engineSourceSha256": "17808975e1223adad0628ec7e10a8a0adebd093e206509e2b2da8c51b08f17b3",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+            ],
+            "start": "2026-08-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 14,
+              "openPositions": 0,
+              "authorizedEntries": 14,
+              "rejectedAttempts": 0,
+              "rejectionReasons": {},
+              "winRate": 0.5714285714285714,
+              "profitFactor": 1.289311629465028,
+              "expectancyR": 0.08631295590597361,
+              "realizedNet": 5.9594949456592206,
+              "endingBalance": 1005.9594949456592,
+              "endingEquity": 1005.9594949456592,
+              "netReturnPct": 0.595949494565923,
+              "maximumDrawdownPct": 1.4371105694674722,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 2,
+              "costs": 4.875895745,
+              "financing": 0.056999309340600005,
+              "tradesPerDay": 0.15217391304347827,
+              "tradesPerWeek": 1.065217391304348,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 1000,
+            "riskPct": 0.5
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      }
+    },
+    {
       "strategyId": "forex.native-band-reentry-60-12-2-5",
       "strategyName": "forex.native-band-reentry-60-12-2-5",
       "configuration": {

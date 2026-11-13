@@ -1,6 +1,6 @@
 import {launchSeries} from './launch-strategy-families.ts';
 import type {LegacyStrategyResult,StrategyDefinition,StrategyEvaluationContext} from './professional-strategies.ts';
-export const CRYPTO_SHORT_CANDIDATES=[
+export const CRYPTO_SHORT_RESEARCH_CANDIDATES=[
  {symbol:'DOGEUSDT',family:'vwap_reclaim',minutes:5,n:24,stop:2,rr:1.5,hold:12},
  {symbol:'ETHUSDT',family:'donchian',minutes:15,n:48,stop:3,rr:1.5,hold:24},
  {symbol:'XRPUSDT',family:'bollinger',minutes:15,n:24,stop:2,rr:1.5,hold:24},
@@ -8,7 +8,10 @@ export const CRYPTO_SHORT_CANDIDATES=[
  {symbol:'LTCUSDT',family:'failed_breakout',minutes:15,n:48,stop:3,rr:1.5,hold:24},
  {symbol:'ADAUSDT',family:'bollinger',minutes:5,n:24,stop:3,rr:5,hold:24},
 ] as const;
-export type CryptoShortCandidate=typeof CRYPTO_SHORT_CANDIDATES[number];
+export type CryptoShortCandidate=typeof CRYPTO_SHORT_RESEARCH_CANDIDATES[number];
+// Exact configurations rejected by complete canonical replay remain research history,
+// never customer choices. Active candidates retain both positive account periods.
+export const CRYPTO_SHORT_CANDIDATES=CRYPTO_SHORT_RESEARCH_CANDIDATES.filter(c=>['DOGEUSDT','LTCUSDT'].includes(c.symbol));
 export const CRYPTO_SHORT_ATR_FLOOR=.006;
 export const cryptoShortId=(c:CryptoShortCandidate)=>`crypto.native-${c.family.replaceAll('_','-')}-${c.minutes}-${c.n}-${c.stop}-${c.rr}-${c.symbol.toLowerCase()}-h${c.hold}-v${CRYPTO_SHORT_ATR_FLOOR}`;
 const reject=(reason:string):LegacyStrategyResult=>({status:'rejected',direction:'none',entry_low:0,entry_high:0,stop_loss:0,tp1:0,tp2:0,risk_reward:0,confidence_score:0,grade:'reject',reason,rejection_reason:reason,score_breakdown:{}});
