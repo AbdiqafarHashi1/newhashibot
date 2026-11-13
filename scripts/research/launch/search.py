@@ -23,8 +23,8 @@ class Data:
   if any(not frames[0].index.equals(f.index) for f in frames):raise ValueError('CROSS_ASSET_CLOCK_MISMATCH')
   self.frames=frames;self.clock=frames[0].index;self.t=np.ascontiguousarray(self.clock.asi8/1e6,dtype=np.float64);self.monthKeys=list(dict.fromkeys(self.clock.strftime('%Y-%m')));self.month=np.ascontiguousarray([self.monthKeys.index(x) for x in self.clock.strftime('%Y-%m')],dtype=np.int32)
   self.price=[np.ascontiguousarray(np.column_stack([f[k] for f in frames]),dtype=np.float64) for k in ['o','h','l','c']];self.cache={};self.atr={}
- def feature(self,family,minutes,n):
-  key=(family,minutes,n)
+ def feature(self,family,minutes,n,minimumAtrFraction=0):
+  key=(family,minutes,n,minimumAtrFraction)
   if key in self.cache:return self.cache[key],self.atr[minutes]
   signals=[];atrs=[]
   for base in self.frames:
@@ -51,12 +51,14 @@ class Data:
     ah=tf.h.where(asia).groupby(day).transform('max');al=tf.l.where(asia).groupby(day).transform('min')
     buy=active&(c>ah)&(c.shift()<=ah)&(c>tf.o);sell=active&(c<al)&(c.shift()>=al)&(c<tf.o)
    else:raise ValueError(family)
+   if minimumAtrFraction:
+    active=atr/c>=minimumAtrFraction;buy=buy&active;sell=sell&active
    side.loc[buy.fillna(False)]=1;side.loc[sell.fillna(False)]=-1;signals.append(side.reindex(self.clock,fill_value=0).to_numpy(dtype=np.int8));atrs.append(atr.reindex(self.clock,method='ffill').to_numpy())
   self.cache[key]=np.ascontiguousarray(np.column_stack(signals),dtype=np.int8);self.atr[minutes]=np.ascontiguousarray(np.column_stack(atrs),dtype=np.float64);return self.cache[key],self.atr[minutes]
 def engine():
  so=ROOT/'.tmp/launch-research/account_screen.so';so.parent.mkdir(parents=True,exist_ok=True);subprocess.run(['g++','-O3','-std=c++17','-shared','-fPIC',str(ROOT/'scripts/research/launch/account_screen.cpp'),'-o',str(so)],check=True);lib=ctypes.CDLL(str(so));f=lib.simulate;D=ctypes.POINTER(ctypes.c_double);I=ctypes.POINTER(ctypes.c_int);B=ctypes.POINTER(ctypes.c_byte);f.argtypes=[ctypes.c_int,ctypes.c_int,D,D,D,D,D,B,D,I,D,D,ctypes.c_int,ctypes.c_int]+[ctypes.c_double]*4+[ctypes.c_int]+[ctypes.c_double]*5+[ctypes.c_int,ctypes.c_double]+[D]*5+[ctypes.c_int];f.restype=ctypes.c_int;return f
 def simulate(data,config,start,end,run,risk=.5,leverage=3,fee=5,slip=2,detail=False):
- signal,atr=data.feature(config['family'],config['timeframe'],config['lookback']);begin=int(np.searchsorted(data.t,stamp(start)));finish=int(np.searchsorted(data.t,stamp(end)));n,m=data.price[0].shape;steps=np.asarray([STEPS[SYMBOLS.index(s)] for s in data.symbols],dtype=np.float64);ticks=np.asarray([TICKS[SYMBOLS.index(s)] for s in data.symbols],dtype=np.float64);out=np.zeros(10);monthly=np.full(len(data.monthKeys),np.nan);daily=np.full(2000,np.nan);equity=np.full(n,np.nan);trades=np.zeros((20000,9));D=ctypes.POINTER(ctypes.c_double);ptr=lambda a:a.ctypes.data_as(D)
+ signal,atr=data.feature(config['family'],config['timeframe'],config['lookback'],config.get('minimumAtrFraction',0));begin=int(np.searchsorted(data.t,stamp(start)));finish=int(np.searchsorted(data.t,stamp(end)));n,m=data.price[0].shape;steps=np.asarray([STEPS[SYMBOLS.index(s)] for s in data.symbols],dtype=np.float64);ticks=np.asarray([TICKS[SYMBOLS.index(s)] for s in data.symbols],dtype=np.float64);out=np.zeros(10);monthly=np.full(len(data.monthKeys),np.nan);daily=np.full(2000,np.nan);equity=np.full(n,np.nan);trades=np.zeros((20000,9));D=ctypes.POINTER(ctypes.c_double);ptr=lambda a:a.ctypes.data_as(D)
  rc=run(n,m,*[ptr(a) for a in data.price],ptr(atr),signal.ctypes.data_as(ctypes.POINTER(ctypes.c_byte)),ptr(data.t),data.month.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),ptr(steps),ptr(ticks),begin,finish,risk,leverage,config['stopAtr'],config['rewardR'],int(config.get('maxHoldBars',config['lookback']*4)*config['timeframe']/5),fee,2,slip,1,3 if risk<=1 else 8,6,20 if risk<=1 else 40,ptr(out),ptr(monthly),ptr(daily),ptr(equity),ptr(trades),len(trades))
  if rc:raise ValueError('SCREEN_FAILED:'+str(rc))
  result={'equityReturnPct':(out[0]/1000-1)*100,'maximumDrawdownPct':out[1],'profitFactor':out[2]/out[3] if out[3]>0 else None,'closedTrades':int(out[4]),'entries':int(out[5]),'blockedEntries':int(out[6]),'accountFailed':bool(out[7]),'costs':out[8],'openPositions':int(out[9]),'monthly':{month:float(value) for month,value in zip(data.monthKeys,monthly) if np.isfinite(value)},'riskPct':risk,'leverage':leverage}

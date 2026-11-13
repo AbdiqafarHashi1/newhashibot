@@ -1,3 +1,5 @@
+> Latest continuation: see [13 November strategy coverage](STRATEGY_COVERAGE_20261113.md). Eight exact signal/demo configurations now have two positive costed canonical account periods; older checkpoint statements below describe their historical stage, not the current activation bundle. No production deployment or provider connectivity is claimed.
+
 # Mission 2 implementation checkpoint — canonical replay foundation
 
 Status: **IN PROGRESS. Mission 2 is not complete. No strategy has been qualified or promoted.**

@@ -241,7 +241,7 @@ jobs:
         period: [early, later]
         include:
           - period: early
-            start: '2025-04-01'
+            start: '2025-03-01'
             end: '2025-06-01'
           - period: later
             start: '2025-06-01'

@@ -18,4 +18,10 @@ class CausalEntries(unittest.TestCase):
   original=self.data();altered=original.copy();altered.iloc[350:,0:4]*=2
   for family in ['sweep_retest','band_reentry','london_range_break']:
    a,_=self.wrap(original).feature(family,15,12);b,_=self.wrap(altered).feature(family,15,12);np.testing.assert_array_equal(a[:350],b[:350],err_msg=family)
+ def test_volatility_floor_is_closed_candle_causal_and_never_mutates_unfiltered_signals(self):
+  original=self.data();altered=original.copy();altered.iloc[350:,0:4]*=2
+  d=self.wrap(original);baseline,atr=d.feature('sweep_retest',5,12);saved=baseline.copy();filtered,_=d.feature('sweep_retest',5,12,.01)
+  self.assertTrue(np.count_nonzero(baseline)>np.count_nonzero(filtered));self.assertTrue(np.all((filtered==0)|(filtered==baseline)))
+  np.testing.assert_array_equal(baseline,saved)
+  future,_=self.wrap(altered).feature('sweep_retest',5,12,.01);np.testing.assert_array_equal(filtered[:350],future[:350])
 if __name__=='__main__':unittest.main()

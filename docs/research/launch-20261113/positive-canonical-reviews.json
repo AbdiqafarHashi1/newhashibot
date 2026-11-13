@@ -587,5 +587,209 @@
       "Research selection creates bias; no untouched holdout or customer-return claim",
       "Positive separate account periods qualify for signals and demo forward testing only"
     ]
+  },
+  {
+    "schema": "canonical-account-review/v1",
+    "strategyId": "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+    "periods": [
+      {
+        "reportSha256": "5c96e08e875ca8520a23931ec842ed28d6507699c7249c64c00861d7a2a723c9",
+        "engineSourceSha256": "a555fc7221ba45a3b67a9d06c713f68fd6a15352b41d64d18b5bbc7ec71e84c7",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12"
+        ],
+        "start": "2025-03-01T00:00:00.000Z",
+        "end": "2025-06-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 17,
+          "openPositions": 0,
+          "authorizedEntries": 17,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.5882352941176471,
+          "profitFactor": 1.460550578520831,
+          "expectancyR": 0.1301172789937185,
+          "realizedNet": 107.72077326509284,
+          "endingBalance": 10107.720773265099,
+          "endingEquity": 10107.720773265099,
+          "netReturnPct": 1.0772077326509861,
+          "maximumDrawdownPct": 1.4829309537155912,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 1,
+          "costs": 31.010000000000005,
+          "financing": 1.5999999999999999,
+          "tradesPerDay": 0.18478260869565216,
+          "tradesPerWeek": 1.2934782608695652,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 10000,
+        "riskPct": 0.5
+      },
+      {
+        "reportSha256": "f9f8aaa388b40f6e961a666658d9d2f3515633129429a612d59486da9935c0c4",
+        "engineSourceSha256": "a555fc7221ba45a3b67a9d06c713f68fd6a15352b41d64d18b5bbc7ec71e84c7",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12"
+        ],
+        "start": "2025-06-01T00:00:00.000Z",
+        "end": "2025-09-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 31,
+          "openPositions": 0,
+          "authorizedEntries": 31,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.5483870967741935,
+          "profitFactor": 1.2786394149932365,
+          "expectancyR": 0.1211202892288901,
+          "realizedNet": 179.19408563505203,
+          "endingBalance": 10179.194085635052,
+          "endingEquity": 10179.194085635052,
+          "netReturnPct": 1.7919408563505201,
+          "maximumDrawdownPct": 2.4484721295426444,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 3,
+          "costs": 70.42000000000002,
+          "financing": 0,
+          "tradesPerDay": 0.33695652173913043,
+          "tradesPerWeek": 2.358695652173913,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 10000,
+        "riskPct": 0.5
+      }
+    ],
+    "limitations": [
+      "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+      "Research selection creates bias; no untouched holdout or customer-return claim",
+      "Positive separate account periods qualify for signals and demo forward testing only",
+      "Early window expanded to March\u2013May after observing nine positive-period closed trades in April\u2013May; retrospective additional sample, not an untouched holdout"
+    ]
+  },
+  {
+    "schema": "canonical-account-review/v1",
+    "strategyId": "crypto.launch-trend-pullback-48-2-3-h72",
+    "periods": [
+      {
+        "reportSha256": "71cbe7d93bd0bf03a1b23c8b04f2402559956fa2dd03f39ddc66c522d34f893d",
+        "engineSourceSha256": "c989ac30ea7ff96c91e1c24e140eb5f0d3985b3f1ac875b4ad76df6d055e1254",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "crypto.launch-trend-pullback-48-2-3-h72"
+        ],
+        "start": "2025-05-01T00:00:00.000Z",
+        "end": "2025-09-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 69,
+          "openPositions": 3,
+          "authorizedEntries": 72,
+          "rejectedAttempts": 47,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 47,
+            "SKIPPED_MAX_POSITIONS_REACHED": 45,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 40,
+            "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 2,
+            "CORRELATED_RISK_CAPACITY_EXCEEDED": 2,
+            "REDUCED_PORTFOLIO_EXPOSURE_CAP": 2,
+            "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 2,
+            "BRAIN_RULE:rule_binance_portfolio_risk_cap": 5
+          },
+          "winRate": 0.3188405797101449,
+          "profitFactor": 1.2147365929233123,
+          "expectancyR": 0.1463051893463829,
+          "realizedNet": 50.74108396825933,
+          "endingBalance": 1049.8578830279491,
+          "endingEquity": 1046.3192384535491,
+          "netReturnPct": 4.631923845354914,
+          "maximumDrawdownPct": 6.7274771470915455,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 9,
+          "costs": 8.6812094011,
+          "financing": 10.804336370951013,
+          "tradesPerDay": 0.5853658536585366,
+          "tradesPerWeek": 4.097560975609756,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 1000,
+        "riskPct": 0.5
+      },
+      {
+        "reportSha256": "e05344e4dceea7b642746cfcaa923987c8bcab66f39e10bfe854d1cf963f2f9a",
+        "engineSourceSha256": "c989ac30ea7ff96c91e1c24e140eb5f0d3985b3f1ac875b4ad76df6d055e1254",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "crypto.launch-trend-pullback-48-2-3-h72"
+        ],
+        "start": "2026-08-01T00:00:00.000Z",
+        "end": "2026-11-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 47,
+          "openPositions": 1,
+          "authorizedEntries": 48,
+          "rejectedAttempts": 29,
+          "rejectionReasons": {
+            "ACCOUNT_RULE_REJECTED": 29,
+            "SKIPPED_MAX_POSITIONS_REACHED": 29,
+            "BRAIN_RULE:rule_binance_max_open_positions_total": 29
+          },
+          "winRate": 0.3191489361702128,
+          "profitFactor": 1.1154135411183028,
+          "expectancyR": 0.095323141629491,
+          "realizedNet": 19.07580320621559,
+          "endingBalance": 1018.6269572699242,
+          "endingEquity": 1026.5187067409242,
+          "netReturnPct": 2.6518706740924247,
+          "maximumDrawdownPct": 7.363839351347255,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 10,
+          "costs": 7.959990378300001,
+          "financing": 9.499551151777439,
+          "tradesPerDay": 0.5217391304347826,
+          "tradesPerWeek": 3.652173913043478,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 1000,
+        "riskPct": 0.5
+      }
+    ],
+    "limitations": [
+      "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+      "Research selection creates bias; no untouched holdout or customer-return claim",
+      "Positive separate account periods qualify for signals and demo forward testing only"
+    ]
   }
 ]
