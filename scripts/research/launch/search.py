@@ -39,6 +39,17 @@ class Data:
    elif family=='vwap_reclaim':day=(tf.index-pd.Timedelta(minutes=minutes)).floor('D');vwap=tf.qv.groupby(day).cumsum()/tf.v.groupby(day).cumsum();buy=(c>vwap)&(c.shift()<=vwap.shift())&(fast>slow);sell=(c<vwap)&(c.shift()>=vwap.shift())&(fast<slow)
    elif family=='failed_breakout':buy=(tf.l<lo)&(c>lo)&(c>tf.o)&(trend.abs()<1);sell=(tf.h>hi)&(c<hi)&(c<tf.o)&(trend.abs()<1)
    elif family=='squeeze':std=c.rolling(n).std(ddof=0);width=std/atr;ready=width.shift().rolling(n).min()<.8;buy=(c>hi)&ready&(tf.v>tf.v.shift().rolling(n).mean());sell=(c<lo)&ready&(tf.v>tf.v.shift().rolling(n).mean())
+   elif family=='sweep_retest':
+    # The preceding candle swept a level visible before it opened; this candle confirms failure.
+    buy=(tf.l.shift()<lo.shift())&(c.shift()>lo.shift())&(c>tf.h.shift());sell=(tf.h.shift()>hi.shift())&(c.shift()<hi.shift())&(c<tf.l.shift())
+   elif family=='band_reentry':
+    mean=c.rolling(n).mean();std=c.rolling(n).std(ddof=0);lower=mean-2*std;upper=mean+2*std
+    buy=(c.shift()<lower.shift())&(c>lower)&(c>tf.o)&(trend.abs()<1);sell=(c.shift()>upper.shift())&(c<upper)&(c<tf.o)&(trend.abs()<1)
+   elif family=='london_range_break':
+    opened=(tf.index-pd.Timedelta(minutes=minutes)).tz_convert('Europe/London');day=opened.floor('D');asia=opened.hour<8;active=(tf.index.tz_convert('Europe/London').hour>=8)&(tf.index.tz_convert('Europe/London').hour<12)
+    # Asian levels are used only after that session has ended; no future intraday high/low.
+    ah=tf.h.where(asia).groupby(day).transform('max');al=tf.l.where(asia).groupby(day).transform('min')
+    buy=active&(c>ah)&(c.shift()<=ah)&(c>tf.o);sell=active&(c<al)&(c.shift()>=al)&(c<tf.o)
    else:raise ValueError(family)
    side.loc[buy.fillna(False)]=1;side.loc[sell.fillna(False)]=-1;signals.append(side.reindex(self.clock,fill_value=0).to_numpy(dtype=np.int8));atrs.append(atr.reindex(self.clock,method='ffill').to_numpy())
   self.cache[key]=np.ascontiguousarray(np.column_stack(signals),dtype=np.int8);self.atr[minutes]=np.ascontiguousarray(np.column_stack(atrs),dtype=np.float64);return self.cache[key],self.atr[minutes]

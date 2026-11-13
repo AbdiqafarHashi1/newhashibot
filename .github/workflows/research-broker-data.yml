@@ -73,7 +73,9 @@ jobs:
           path: .tmp/launch-research/exness-data/*.json
           key: exness-native-bid-ask-2025-jan-aug-v1
       - name: Verify independent native bid/ask account calculations
-        run: python3 tests/research/brokerFamilyScreen.test.py
+        run: |
+          python3 tests/research/brokerFamilyScreen.test.py
+          python3 tests/research/participationEntries.test.py
       - name: Acquire first-party broker bid and ask ticks
         run: python3 scripts/research/launch/acquire_exness_history.py
       - uses: actions/upload-artifact@v4
@@ -126,7 +128,7 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        candidate: [gold-momentum, gold-wide, gold-hourly, eur-squeeze, yen-momentum]
+        candidate: [gold-momentum, gold-wide, gold-hourly, eur-squeeze, yen-momentum, gold-sweep, gold-range, yen-range]
         period: [early, later]
         include:
           - candidate: gold-momentum
@@ -143,6 +145,15 @@ jobs:
             symbol: EURUSD
           - candidate: yen-momentum
             id: forex.native-momentum-60-48-2-3
+            symbol: USDJPY
+          - candidate: gold-sweep
+            id: gold.native-sweep-retest-60-24-2-3
+            symbol: XAUUSD
+          - candidate: gold-range
+            id: gold.native-band-reentry-15-48-3-5
+            symbol: XAUUSD
+          - candidate: yen-range
+            id: forex.native-band-reentry-60-12-2-5
             symbol: USDJPY
           - period: early
             start: '2025-04-01'
