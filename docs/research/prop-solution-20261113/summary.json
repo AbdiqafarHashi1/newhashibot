@@ -1,0 +1,5233 @@
+{
+  "schema": "prop-practical-plan/v1",
+  "date": "2026-11-13",
+  "recommendation": {
+    "capital": 25000,
+    "evaluationRiskPct": 0.5,
+    "fundedRiskPct": 0.25,
+    "targetPct": 2,
+    "maximumPositions": 2,
+    "leverageCeiling": 5,
+    "bundle": "ALL_TESTED",
+    "livePromotion": false,
+    "note": "Prepare the reviewed seven-configuration bundle for demo forward testing. Plan for multiple months to funding, then a variable payout window. New single-asset strategies did not improve the canonical results."
+  },
+  "assumptions": {
+    "costScale": 1.5,
+    "rewardSharePct": 80,
+    "modeledFeeUSDPer30Days": 100,
+    "meaningfulNetUSD": 100,
+    "challengePurchaseFeeIncluded": false,
+    "taxAndVPSIncluded": false,
+    "firmApproval": false,
+    "overlappingStarts": true,
+    "periodEnd": "2025-09-01",
+    "liveCutoffOptions": [
+      2,
+      5
+    ],
+    "researchOnlyTarget": [
+      1
+    ],
+    "cashflowModel": "Monthly fees are sensitivity assumptions, not billing changes. Actual firm approval and payment processing are excluded."
+  },
+  "balanced": [
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.25,
+      "challengeTarget": 8,
+      "verificationTarget": 5,
+      "minimumTradingDays": 5,
+      "payoutWaitDays": 21,
+      "goal": 1,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 12,
+      "passes": 12,
+      "fundingDays": {
+        "min": 35.59722222222222,
+        "median": 70.703125,
+        "max": 130.50347222222223
+      },
+      "requestDays": {
+        "min": 58.458333333333336,
+        "median": 92.02604166666667,
+        "max": 151.66666666666666
+      },
+      "fundedToRequestDays": {
+        "min": 21.038194444444443,
+        "median": 21.34027777777778,
+        "max": 24.0625
+      },
+      "rewardUSD": {
+        "min": 200.63570963999666,
+        "median": 204.20772276494827,
+        "max": 213.4517785514734
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 100.63570963999666,
+        "median": 104.20772276494827,
+        "max": 113.45177855147341
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": 0,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 1,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 8.333333333333332
+        },
+        {
+          "days": 90,
+          "hits": 6,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 50.0
+        },
+        {
+          "days": 120,
+          "hits": 11,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 91.66666666666666
+        },
+        {
+          "days": 180,
+          "hits": 12,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.25,
+      "challengeTarget": 8,
+      "verificationTarget": 5,
+      "minimumTradingDays": 5,
+      "payoutWaitDays": 21,
+      "goal": 2,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 12,
+      "passes": 12,
+      "fundingDays": {
+        "min": 35.59722222222222,
+        "median": 70.703125,
+        "max": 130.50347222222223
+      },
+      "requestDays": {
+        "min": 58.458333333333336,
+        "median": 95.27777777777777,
+        "max": 164.48263888888889
+      },
+      "fundedToRequestDays": {
+        "min": 21.038194444444443,
+        "median": 22.86111111111111,
+        "max": 33.979166666666664
+      },
+      "rewardUSD": {
+        "min": 400.48829676000173,
+        "median": 401.8116341755115,
+        "max": 427.34972823604477
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 201.02478262568184,
+        "median": 301.8116341755115,
+        "max": 327.34972823604477
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": 5,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 1,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 8.333333333333332
+        },
+        {
+          "days": 90,
+          "hits": 5,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 41.66666666666667
+        },
+        {
+          "days": 120,
+          "hits": 11,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 91.66666666666666
+        },
+        {
+          "days": 180,
+          "hits": 12,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.25,
+      "challengeTarget": 10,
+      "verificationTarget": 5,
+      "minimumTradingDays": 4,
+      "payoutWaitDays": 14,
+      "goal": 1,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 8,
+      "passes": 8,
+      "fundingDays": {
+        "min": 63.59722222222222,
+        "median": 72.55034722222223,
+        "max": 91.59722222222223
+      },
+      "requestDays": {
+        "min": 79.45833333333333,
+        "median": 87.5625,
+        "max": 107.45833333333333
+      },
+      "fundedToRequestDays": {
+        "min": 14.128472222222221,
+        "median": 15.86111111111111,
+        "max": 15.86111111111111
+      },
+      "rewardUSD": {
+        "min": 200.90038057202474,
+        "median": 213.4517785514734,
+        "max": 213.4517785514734
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 100.90038057202474,
+        "median": 113.45177855147341,
+        "max": 113.45177855147341
+      },
+      "meaningfulAfterFundedFees": 8,
+      "meaningfulAfterChallengeFees": 0,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 90,
+          "hits": 5,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 41.66666666666667
+        },
+        {
+          "days": 120,
+          "hits": 8,
+          "eligible": 10,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 180,
+          "hits": 8,
+          "eligible": 9,
+          "censored": 3,
+          "pct": 88.88888888888889
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.25,
+      "challengeTarget": 10,
+      "verificationTarget": 5,
+      "minimumTradingDays": 4,
+      "payoutWaitDays": 14,
+      "goal": 2,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 8,
+      "passes": 8,
+      "fundingDays": {
+        "min": 63.59722222222222,
+        "median": 72.55034722222223,
+        "max": 91.59722222222223
+      },
+      "requestDays": {
+        "min": 80.25694444444444,
+        "median": 97.75694444444444,
+        "max": 108.48263888888889
+      },
+      "fundedToRequestDays": {
+        "min": 14.128472222222221,
+        "median": 16.65972222222222,
+        "max": 33.979166666666664
+      },
+      "rewardUSD": {
+        "min": 400.48829676000173,
+        "median": 401.8116341755115,
+        "max": 401.8116341755115
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 201.02478262568184,
+        "median": 301.8116341755115,
+        "max": 301.8116341755115
+      },
+      "meaningfulAfterFundedFees": 8,
+      "meaningfulAfterChallengeFees": 3,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 90,
+          "hits": 3,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 25.0
+        },
+        {
+          "days": 120,
+          "hits": 8,
+          "eligible": 10,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 180,
+          "hits": 8,
+          "eligible": 9,
+          "censored": 3,
+          "pct": 88.88888888888889
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.4,
+      "challengeTarget": 8,
+      "verificationTarget": 5,
+      "minimumTradingDays": 5,
+      "payoutWaitDays": 21,
+      "goal": 1,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 12,
+      "passes": 12,
+      "fundingDays": {
+        "min": 35.59722222222222,
+        "median": 70.703125,
+        "max": 130.50347222222223
+      },
+      "requestDays": {
+        "min": 58.458333333333336,
+        "median": 92.02604166666667,
+        "max": 151.66666666666666
+      },
+      "fundedToRequestDays": {
+        "min": 21.038194444444443,
+        "median": 21.34027777777778,
+        "max": 24.0625
+      },
+      "rewardUSD": {
+        "min": 201.48607731999655,
+        "median": 216.71213326171275,
+        "max": 226.76247480561435
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 101.48607731999655,
+        "median": 116.71213326171275,
+        "max": 126.76247480561435
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": 0,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 1,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 8.333333333333332
+        },
+        {
+          "days": 90,
+          "hits": 6,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 50.0
+        },
+        {
+          "days": 120,
+          "hits": 11,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 91.66666666666666
+        },
+        {
+          "days": 180,
+          "hits": 12,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.4,
+      "challengeTarget": 8,
+      "verificationTarget": 5,
+      "minimumTradingDays": 5,
+      "payoutWaitDays": 21,
+      "goal": 2,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 12,
+      "passes": 12,
+      "fundingDays": {
+        "min": 35.59722222222222,
+        "median": 70.703125,
+        "max": 130.50347222222223
+      },
+      "requestDays": {
+        "min": 58.458333333333336,
+        "median": 94.77777777777777,
+        "max": 163.48263888888889
+      },
+      "fundedToRequestDays": {
+        "min": 21.038194444444443,
+        "median": 22.86111111111111,
+        "max": 32.979166666666664
+      },
+      "rewardUSD": {
+        "min": 401.9940773199982,
+        "median": 403.1315632000551,
+        "max": 406.98884940000426
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 202.3997821637837,
+        "median": 303.1315632000551,
+        "max": 306.98884940000426
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": 5,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 1,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 8.333333333333332
+        },
+        {
+          "days": 90,
+          "hits": 5,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 41.66666666666667
+        },
+        {
+          "days": 120,
+          "hits": 11,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 91.66666666666666
+        },
+        {
+          "days": 180,
+          "hits": 12,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.4,
+      "challengeTarget": 10,
+      "verificationTarget": 5,
+      "minimumTradingDays": 4,
+      "payoutWaitDays": 14,
+      "goal": 1,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 8,
+      "passes": 8,
+      "fundingDays": {
+        "min": 63.59722222222222,
+        "median": 72.55034722222223,
+        "max": 91.59722222222223
+      },
+      "requestDays": {
+        "min": 79.45833333333333,
+        "median": 87.5625,
+        "max": 107.45833333333333
+      },
+      "fundedToRequestDays": {
+        "min": 14.128472222222221,
+        "median": 15.86111111111111,
+        "max": 15.86111111111111
+      },
+      "rewardUSD": {
+        "min": 201.48607731999655,
+        "median": 216.71213326171275,
+        "max": 226.76247480561435
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 101.48607731999655,
+        "median": 116.71213326171275,
+        "max": 126.76247480561435
+      },
+      "meaningfulAfterFundedFees": 8,
+      "meaningfulAfterChallengeFees": 0,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 90,
+          "hits": 5,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 41.66666666666667
+        },
+        {
+          "days": 120,
+          "hits": 8,
+          "eligible": 10,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 180,
+          "hits": 8,
+          "eligible": 9,
+          "censored": 3,
+          "pct": 88.88888888888889
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.4,
+      "challengeTarget": 10,
+      "verificationTarget": 5,
+      "minimumTradingDays": 4,
+      "payoutWaitDays": 14,
+      "goal": 2,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 8,
+      "passes": 8,
+      "fundingDays": {
+        "min": 63.59722222222222,
+        "median": 72.55034722222223,
+        "max": 91.59722222222223
+      },
+      "requestDays": {
+        "min": 80.04513888888889,
+        "median": 97.26388888888889,
+        "max": 108.04513888888889
+      },
+      "fundedToRequestDays": {
+        "min": 14.128472222222221,
+        "median": 16.447916666666668,
+        "max": 32.979166666666664
+      },
+      "rewardUSD": {
+        "min": 401.9940773199982,
+        "median": 403.8399561878236,
+        "max": 403.8399561878236
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 202.3997821637837,
+        "median": 303.8399561878236,
+        "max": 303.8399561878236
+      },
+      "meaningfulAfterFundedFees": 8,
+      "meaningfulAfterChallengeFees": 3,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 90,
+          "hits": 3,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 25.0
+        },
+        {
+          "days": 120,
+          "hits": 8,
+          "eligible": 10,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 180,
+          "hits": 8,
+          "eligible": 9,
+          "censored": 3,
+          "pct": 88.88888888888889
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.5,
+      "challengeTarget": 8,
+      "verificationTarget": 5,
+      "minimumTradingDays": 5,
+      "payoutWaitDays": 21,
+      "goal": 1,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 12,
+      "passes": 12,
+      "fundingDays": {
+        "min": 35.59722222222222,
+        "median": 70.703125,
+        "max": 130.50347222222223
+      },
+      "requestDays": {
+        "min": 58.458333333333336,
+        "median": 92.02604166666667,
+        "max": 151.66666666666666
+      },
+      "fundedToRequestDays": {
+        "min": 21.038194444444443,
+        "median": 21.34027777777778,
+        "max": 24.0625
+      },
+      "rewardUSD": {
+        "min": 201.21199999999953,
+        "median": 202.74679343104071,
+        "max": 237.4274192800076
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 101.21199999999953,
+        "median": 102.74679343104073,
+        "max": 137.4274192800076
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": 0,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 1,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 8.333333333333332
+        },
+        {
+          "days": 90,
+          "hits": 6,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 50.0
+        },
+        {
+          "days": 120,
+          "hits": 11,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 91.66666666666666
+        },
+        {
+          "days": 180,
+          "hits": 12,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.5,
+      "challengeTarget": 8,
+      "verificationTarget": 5,
+      "minimumTradingDays": 5,
+      "payoutWaitDays": 21,
+      "goal": 2,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 12,
+      "passes": 12,
+      "fundingDays": {
+        "min": 35.59722222222222,
+        "median": 70.703125,
+        "max": 130.50347222222223
+      },
+      "requestDays": {
+        "min": 58.458333333333336,
+        "median": 92.02604166666667,
+        "max": 151.66666666666666
+      },
+      "fundedToRequestDays": {
+        "min": 21.038194444444443,
+        "median": 21.34027777777778,
+        "max": 24.0625
+      },
+      "rewardUSD": {
+        "min": 400.48341928000445,
+        "median": 405.5213789356698,
+        "max": 410.41541928000225
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 300.48341928000445,
+        "median": 305.5213789356698,
+        "max": 310.41541928000225
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": 6,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 1,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 8.333333333333332
+        },
+        {
+          "days": 90,
+          "hits": 6,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 50.0
+        },
+        {
+          "days": 120,
+          "hits": 11,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 91.66666666666666
+        },
+        {
+          "days": 180,
+          "hits": 12,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.5,
+      "challengeTarget": 10,
+      "verificationTarget": 5,
+      "minimumTradingDays": 4,
+      "payoutWaitDays": 14,
+      "goal": 1,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 8,
+      "passes": 8,
+      "fundingDays": {
+        "min": 63.59722222222222,
+        "median": 72.55034722222223,
+        "max": 91.59722222222223
+      },
+      "requestDays": {
+        "min": 79.45833333333333,
+        "median": 87.5625,
+        "max": 107.45833333333333
+      },
+      "fundedToRequestDays": {
+        "min": 14.128472222222221,
+        "median": 15.86111111111111,
+        "max": 15.86111111111111
+      },
+      "rewardUSD": {
+        "min": 201.21199999999953,
+        "median": 216.3851665771421,
+        "max": 216.3851665771421
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 101.21199999999953,
+        "median": 116.38516657714209,
+        "max": 116.38516657714209
+      },
+      "meaningfulAfterFundedFees": 8,
+      "meaningfulAfterChallengeFees": 0,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 90,
+          "hits": 5,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 41.66666666666667
+        },
+        {
+          "days": 120,
+          "hits": 8,
+          "eligible": 10,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 180,
+          "hits": 8,
+          "eligible": 9,
+          "censored": 3,
+          "pct": 88.88888888888889
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "evaluationRisk": 0.5,
+      "fundedRisk": 0.5,
+      "challengeTarget": 10,
+      "verificationTarget": 5,
+      "minimumTradingDays": 4,
+      "payoutWaitDays": 14,
+      "goal": 2,
+      "costScale": 1.5,
+      "starts": 12,
+      "requests": 8,
+      "passes": 8,
+      "fundingDays": {
+        "min": 63.59722222222222,
+        "median": 72.55034722222223,
+        "max": 91.59722222222223
+      },
+      "requestDays": {
+        "min": 80.40972222222223,
+        "median": 89.01736111111111,
+        "max": 108.40972222222223
+      },
+      "fundedToRequestDays": {
+        "min": 14.128472222222221,
+        "median": 16.8125,
+        "max": 16.8125
+      },
+      "rewardUSD": {
+        "min": 401.49682567999116,
+        "median": 409.25092399022543,
+        "max": 409.25092399022543
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 301.49682567999116,
+        "median": 309.25092399022543,
+        "max": 309.25092399022543
+      },
+      "meaningfulAfterFundedFees": 8,
+      "meaningfulAfterChallengeFees": 4,
+      "horizons": [
+        {
+          "days": 30,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 60,
+          "hits": 0,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 90,
+          "hits": 4,
+          "eligible": 12,
+          "censored": 0,
+          "pct": 33.33333333333333
+        },
+        {
+          "days": 120,
+          "hits": 8,
+          "eligible": 10,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 180,
+          "hits": 8,
+          "eligible": 9,
+          "censored": 3,
+          "pct": 88.88888888888889
+        }
+      ]
+    }
+  ],
+  "funded": [
+    {
+      "capital": 10000,
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 17.083333333333332,
+        "max": 46.56944444444444
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 80.34563195319207,
+        "median": 82.39990228741081,
+        "max": 87.23070640065126
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -119.46130786833527,
+        "median": -18.822376140218694,
+        "max": -12.769293599348742
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 13,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 76.47058823529412
+        },
+        {
+          "days": 45,
+          "hits": 16,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 94.11764705882352
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 17.083333333333332,
+        "max": 46.638888888888886
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 80.33957497304655,
+        "median": 81.6587377659409,
+        "max": 91.81248092963797
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -119.66042502695345,
+        "median": -18.67546299744862,
+        "max": -10.518189836302184
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 12,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 70.58823529411765
+        },
+        {
+          "days": 45,
+          "hits": 16,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 94.11764705882352
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1,
+      "starts": 17,
+      "requests": 13,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 19.55902777777778,
+        "max": 47.05555555555556
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 160.08624862781582,
+        "median": 161.4252940070437,
+        "max": 167.99696763152753
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -39.91375137218418,
+        "median": 61.184225429539225,
+        "max": 67.99696763152753
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 9,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 52.94117647058824
+        },
+        {
+          "days": 45,
+          "hits": 12,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 60,
+          "hits": 13,
+          "eligible": 14,
+          "censored": 3,
+          "pct": 92.85714285714286
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 13,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 15.9375,
+        "median": 23.3125,
+        "max": 53.732638888888886
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 160.07749086850964,
+        "median": 161.0991581373368,
+        "max": 166.51582602461133
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -39.883662221771374,
+        "median": 60.74825724908442,
+        "max": 63.69862904696785
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 9,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 52.94117647058824
+        },
+        {
+          "days": 45,
+          "hits": 12,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 60,
+          "hits": 13,
+          "eligible": 14,
+          "censored": 3,
+          "pct": 92.85714285714286
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 16.708333333333332,
+        "median": 37.65625,
+        "max": 96.42361111111111
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.3157712204397,
+        "median": 403.1422335634278,
+        "max": 406.23963612654774
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 0.31577122043967165,
+        "median": 203.1621114624206,
+        "max": 304.29646695347765
+      },
+      "meaningfulAfterFundedFees": 11,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 4,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 23.52941176470588
+        },
+        {
+          "days": 45,
+          "hits": 7,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 46.666666666666664
+        },
+        {
+          "days": 60,
+          "hits": 8,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 61.53846153846154
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 20.40972222222222,
+        "median": 52.30208333333333,
+        "max": 100.53125
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.51548613392225,
+        "median": 404.4469346820406,
+        "max": 410.4751555051742
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 0.5154861339222521,
+        "median": 202.70618952934967,
+        "max": 304.725219958734
+      },
+      "meaningfulAfterFundedFees": 11,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 3,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 17.647058823529413
+        },
+        {
+          "days": 45,
+          "hits": 5,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 33.33333333333333
+        },
+        {
+          "days": 60,
+          "hits": 8,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 61.53846153846154
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.25,
+        "max": 40.60069444444444
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 80.07460169862898,
+        "median": 82.89911931062962,
+        "max": 137.4231966144711
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -119.64720986674219,
+        "median": -18.503719564700432,
+        "max": 37.423196614471095
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 14,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 82.35294117647058
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.25,
+        "max": 40.65277777777778
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 80.17871218102083,
+        "median": 82.18843477264454,
+        "max": 130.77199708061963
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -119.70064917428098,
+        "median": -19.129401641295402,
+        "max": 30.771997080619627
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 13,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 76.47058823529412
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1,
+      "starts": 17,
+      "requests": 16,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.583333333333332,
+        "max": 41.47569444444444
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 160.43382805701842,
+        "median": 162.28328812022593,
+        "max": 171.02698321481148
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -39.04737885802459,
+        "median": 62.03029754687451,
+        "max": 71.02698321481148
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 11,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 64.70588235294117
+        },
+        {
+          "days": 45,
+          "hits": 16,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 16,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 16,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.708333333333334,
+        "median": 19.319444444444443,
+        "max": 74.375
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 160.11249750853023,
+        "median": 161.4081461987742,
+        "max": 165.8082700635976
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -139.8787762355001,
+        "median": 60.49048581794342,
+        "max": 62.29248458764343
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 11,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 64.70588235294117
+        },
+        {
+          "days": 45,
+          "hits": 15,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 93.75
+        },
+        {
+          "days": 60,
+          "hits": 15,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 93.75
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 16.375,
+        "median": 26.484375,
+        "max": 74.52777777777777
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.02581116981605,
+        "median": 401.84312986351944,
+        "max": 407.0654072748439
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 100.5542726251399,
+        "median": 301.292307370645,
+        "max": 307.0654072748439
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 7,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 41.17647058823529
+        },
+        {
+          "days": 45,
+          "hits": 10,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 66.66666666666666
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 16.375,
+        "median": 29.947916666666664,
+        "max": 88.86805555555556
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.7014748699396,
+        "median": 401.80350290531715,
+        "max": 412.06288477716737
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 103.93380668766918,
+        "median": 253.5189696245194,
+        "max": 312.06288477716737
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 6,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 35.294117647058826
+        },
+        {
+          "days": 45,
+          "hits": 9,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 60.0
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.25,
+        "max": 41.72569444444444
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 80.1211151188516,
+        "median": 81.84434086136753,
+        "max": 160.29054354275434
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -118.90386959727766,
+        "median": -18.168746418005313,
+        "max": 60.290543542754335
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 13,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 76.47058823529412
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 15,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.177083333333332,
+        "max": 45.40625
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 80.2603102045745,
+        "median": 83.73572860394925,
+        "max": 145.59769203735195
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -119.7396897954255,
+        "median": -16.264271396050745,
+        "max": 45.59769203735195
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 13,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 76.47058823529412
+        },
+        {
+          "days": 45,
+          "hits": 14,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 82.35294117647058
+        },
+        {
+          "days": 60,
+          "hits": 15,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 93.75
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1,
+      "starts": 17,
+      "requests": 14,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.276041666666664,
+        "max": 82.05902777777777
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 160.29054354275434,
+        "median": 162.58791801518456,
+        "max": 165.72358931996425
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -137.2093497263515,
+        "median": 61.781353089868944,
+        "max": 65.72358931996425
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 12,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 70.58823529411765
+        },
+        {
+          "days": 45,
+          "hits": 12,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 75.0
+        },
+        {
+          "days": 60,
+          "hits": 13,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 86.66666666666667
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 14,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.276041666666664,
+        "max": 81.72916666666667
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 160.49327066267725,
+        "median": 161.6431400520902,
+        "max": 174.30028156326298
+      },
+      "netAfterFundedFeesUSD": {
+        "min": -139.50672933732275,
+        "median": 61.643140052090175,
+        "max": 74.30028156326298
+      },
+      "meaningfulAfterFundedFees": 0,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 11,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 64.70588235294117
+        },
+        {
+          "days": 45,
+          "hits": 12,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 75.0
+        },
+        {
+          "days": 60,
+          "hits": 13,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 86.66666666666667
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 15.9375,
+        "median": 24.70486111111111,
+        "max": 96.29861111111111
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.3252942798281,
+        "median": 403.6607354945336,
+        "max": 411.1573717792635
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 2.2508255898705443,
+        "median": 302.89017039297323,
+        "max": 311.1573717792635
+      },
+      "meaningfulAfterFundedFees": 11,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 8,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 47.05882352941176
+        },
+        {
+          "days": 45,
+          "hits": 10,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 66.66666666666666
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 10000,
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 15.9375,
+        "median": 23.661458333333332,
+        "max": 96.36458333333333
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.04294923973214,
+        "median": 402.6163040976164,
+        "max": 423.8145961988383
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 0.7390843945439087,
+        "median": 301.1545849902701,
+        "max": 306.35471207775703
+      },
+      "meaningfulAfterFundedFees": 11,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 7,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 41.17647058823529
+        },
+        {
+          "days": 45,
+          "hits": 9,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 60.0
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.25,
+        "max": 40.329861111111114
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 200.56079817410793,
+        "median": 203.316645143996,
+        "max": 234.667116084171
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 3.3166451439959985,
+        "median": 101.27939216610395,
+        "max": 134.667116084171
+      },
+      "meaningfulAfterFundedFees": 14,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 14,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 82.35294117647058
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.30902777777778,
+        "max": 40.53472222222222
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 200.09047171689164,
+        "median": 204.75349478824066,
+        "max": 232.693390132027
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 1.4255796004639762,
+        "median": 104.06679299485987,
+        "max": 132.693390132027
+      },
+      "meaningfulAfterFundedFees": 13,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 13,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 76.47058823529412
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1,
+      "starts": 17,
+      "requests": 13,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 15.9375,
+        "median": 19.135416666666668,
+        "max": 45.37847222222222
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.3576879288157,
+        "median": 404.1830156556622,
+        "max": 412.74205553179786
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 200.35768792881572,
+        "median": 302.7771079378232,
+        "max": 312.74205553179786
+      },
+      "meaningfulAfterFundedFees": 13,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 10,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 58.82352941176471
+        },
+        {
+          "days": 45,
+          "hits": 12,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 60,
+          "hits": 13,
+          "eligible": 14,
+          "censored": 3,
+          "pct": 92.85714285714286
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 13,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 15.9375,
+        "median": 19.24652777777778,
+        "max": 46.56597222222222
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.3158834431815,
+        "median": 403.73904325398036,
+        "max": 415.2568777306442
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 200.73672035520434,
+        "median": 302.60376163288606,
+        "max": 315.2568777306442
+      },
+      "meaningfulAfterFundedFees": 13,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 10,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 58.82352941176471
+        },
+        {
+          "days": 45,
+          "hits": 12,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 80.0
+        },
+        {
+          "days": 60,
+          "hits": 13,
+          "eligible": 14,
+          "censored": 3,
+          "pct": 92.85714285714286
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 16.708333333333332,
+        "median": 33.64409722222223,
+        "max": 81.61805555555556
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 1001.0442977653089,
+        "median": 1005.6321263189835,
+        "max": 1031.7096814928693
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 702.8281869662286,
+        "median": 814.4810688569662,
+        "max": 931.7096814928693
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 5,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 29.411764705882355
+        },
+        {
+          "days": 45,
+          "hits": 8,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 53.333333333333336
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 16.708333333333332,
+        "median": 34.20659722222223,
+        "max": 88.64930555555556
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 1000.4425902572665,
+        "median": 1005.166185827773,
+        "max": 1044.3256384552544
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 708.0353794297612,
+        "median": 806.7170537253303,
+        "max": 930.8615706485405
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 4,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 23.52941176470588
+        },
+        {
+          "days": 45,
+          "hits": 8,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 53.333333333333336
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.25,
+        "max": 40.482638888888886
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 200.00771547609475,
+        "median": 207.14337171096415,
+        "max": 338.5801184121665
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 1.7856103555386653,
+        "median": 104.99842981169641,
+        "max": 238.58011841216648
+      },
+      "meaningfulAfterFundedFees": 13,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 13,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 76.47058823529412
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 16,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.213541666666664,
+        "max": 41.833333333333336
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 200.62101990902448,
+        "median": 208.12538772122207,
+        "max": 312.950243054051
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 3.8811929048330285,
+        "median": 106.01064157630755,
+        "max": 212.950243054051
+      },
+      "meaningfulAfterFundedFees": 13,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 13,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 76.47058823529412
+        },
+        {
+          "days": 45,
+          "hits": 16,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 94.11764705882352
+        },
+        {
+          "days": 60,
+          "hits": 16,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1,
+      "starts": 17,
+      "requests": 15,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.458333333333332,
+        "max": 42.36805555555556
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.747559590792,
+        "median": 405.15386393267255,
+        "max": 419.9769457549381
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 200.74755959079198,
+        "median": 304.78125380535494,
+        "max": 318.44620214256867
+      },
+      "meaningfulAfterFundedFees": 15,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 12,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 70.58823529411765
+        },
+        {
+          "days": 45,
+          "hits": 15,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 93.75
+        },
+        {
+          "days": 60,
+          "hits": 15,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 14,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.541666666666664,
+        "max": 41.33680555555556
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.49128512869066,
+        "median": 403.65869917565874,
+        "max": 413.92950677317276
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 202.6043450555357,
+        "median": 302.4407783709525,
+        "max": 313.92950677317276
+      },
+      "meaningfulAfterFundedFees": 14,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 11,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 64.70588235294117
+        },
+        {
+          "days": 45,
+          "hits": 14,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 87.5
+        },
+        {
+          "days": 60,
+          "hits": 14,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 93.33333333333333
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 16.375,
+        "median": 26.16840277777778,
+        "max": 75.13888888888889
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 1000.2678084381682,
+        "median": 1005.1027364370777,
+        "max": 1035.4220152642463
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 701.441971456929,
+        "median": 901.0186382098998,
+        "max": 905.9669341072033
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 7,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 41.17647058823529
+        },
+        {
+          "days": 45,
+          "hits": 10,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 66.66666666666666
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 16.375,
+        "median": 26.494791666666664,
+        "max": 88.96875
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 1000.0524565506814,
+        "median": 1011.9369960241559,
+        "max": 1047.592525778088
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 747.592525778088,
+        "median": 901.4416515277204,
+        "max": 944.6846892516537
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 7,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 41.17647058823529
+        },
+        {
+          "days": 45,
+          "hits": 10,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 66.66666666666666
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.25,
+        "max": 40.645833333333336
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 200.14605736699014,
+        "median": 206.3139741953026,
+        "max": 434.2416417538334
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 1.8631169257423608,
+        "median": 105.02446133883495,
+        "max": 334.2416417538334
+      },
+      "meaningfulAfterFundedFees": 14,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 14,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 82.35294117647058
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 17,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.25,
+        "max": 44.06944444444444
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 200.65603504827305,
+        "median": 211.51289736751352,
+        "max": 406.0925816384581
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 1.7685271163383902,
+        "median": 108.6470534538501,
+        "max": 306.0925816384581
+      },
+      "meaningfulAfterFundedFees": 14,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 14,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 82.35294117647058
+        },
+        {
+          "days": 45,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        },
+        {
+          "days": 60,
+          "hits": 17,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1,
+      "starts": 17,
+      "requests": 14,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.213541666666664,
+        "max": 41.357638888888886
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 401.12159634821876,
+        "median": 404.9833969296131,
+        "max": 434.2416417538334
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 204.53214510143152,
+        "median": 303.38041186244664,
+        "max": 334.2416417538334
+      },
+      "meaningfulAfterFundedFees": 14,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 12,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 70.58823529411765
+        },
+        {
+          "days": 45,
+          "hits": 14,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 87.5
+        },
+        {
+          "days": 60,
+          "hits": 14,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 93.33333333333333
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 14,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 14.041666666666666,
+        "median": 16.213541666666664,
+        "max": 75.14583333333333
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 400.17566736994195,
+        "median": 407.2383092097152,
+        "max": 418.3433760476532
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 102.13339635949524,
+        "median": 307.2383092097152,
+        "max": 318.3433760476532
+      },
+      "meaningfulAfterFundedFees": 14,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 12,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 70.58823529411765
+        },
+        {
+          "days": 45,
+          "hits": 13,
+          "eligible": 16,
+          "censored": 1,
+          "pct": 81.25
+        },
+        {
+          "days": 60,
+          "hits": 13,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 86.66666666666667
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 15.9375,
+        "median": 19.74826388888889,
+        "max": 87.375
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 1000.824048493564,
+        "median": 1008.1887576825292,
+        "max": 1044.7892278235086
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 702.9873986658845,
+        "median": 901.242488552793,
+        "max": 928.3274824150374
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 8,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 47.05882352941176
+        },
+        {
+          "days": 45,
+          "hits": 10,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 66.66666666666666
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    },
+    {
+      "capital": 25000,
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1.5,
+      "starts": 17,
+      "requests": 12,
+      "passes": null,
+      "fundingDays": null,
+      "requestDays": {
+        "min": 15.9375,
+        "median": 21.130208333333332,
+        "max": 88.96875
+      },
+      "fundedToRequestDays": null,
+      "rewardUSD": {
+        "min": 1000.0156409968797,
+        "median": 1012.7713835708579,
+        "max": 1057.1164795403922
+      },
+      "netAfterFundedFeesUSD": {
+        "min": 740.1560658874544,
+        "median": 901.3601946903423,
+        "max": 921.1610759470176
+      },
+      "meaningfulAfterFundedFees": 12,
+      "meaningfulAfterChallengeFees": null,
+      "horizons": [
+        {
+          "days": 14,
+          "hits": 0,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 0.0
+        },
+        {
+          "days": 30,
+          "hits": 8,
+          "eligible": 17,
+          "censored": 0,
+          "pct": 47.05882352941176
+        },
+        {
+          "days": 45,
+          "hits": 10,
+          "eligible": 15,
+          "censored": 2,
+          "pct": 66.66666666666666
+        },
+        {
+          "days": 60,
+          "hits": 11,
+          "eligible": 13,
+          "censored": 4,
+          "pct": 84.61538461538461
+        }
+      ]
+    }
+  ],
+  "cycles": [
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 7,
+      "totalReward80Pct": 1487.6217214614765,
+      "netAfterPlatformFee": 887.6217214614765,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 207.47072306686024,
+        "2025-05": 202.32443216317915,
+        "2025-06": 457.0800421142485,
+        "2025-07": 420.019436292522,
+        "2025-08": 200.72708782466654
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 107.47072306686024,
+        "2025-05": 102.32443216317915,
+        "2025-06": 357.0800421142485,
+        "2025-07": 320.019436292522,
+        "2025-08": 100.72708782466654
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 7,
+      "totalReward80Pct": 1439.6338743681088,
+      "netAfterPlatformFee": 939.6338743681088,
+      "monthlyRewards": {
+        "2025-04": 203.0065421315114,
+        "2025-05": 409.5716660249018,
+        "2025-06": 203.7426733926026,
+        "2025-07": 417.6208781909576,
+        "2025-08": 205.69211462813547
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 103.0065421315114,
+        "2025-05": 309.5716660249018,
+        "2025-06": 103.7426733926026,
+        "2025-07": 317.6208781909576,
+        "2025-08": 105.69211462813547
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 7,
+      "totalReward80Pct": 1487.5275540626403,
+      "netAfterPlatformFee": 1087.5275540626403,
+      "monthlyRewards": {
+        "2025-05": 218.7205483912665,
+        "2025-06": 446.0297518059786,
+        "2025-07": 418.58094755419006,
+        "2025-08": 404.19630631120526
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 118.7205483912665,
+        "2025-06": 346.0297518059786,
+        "2025-07": 318.58094755419006,
+        "2025-08": 304.19630631120526
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 4,
+      "totalReward80Pct": 827.0556662116958,
+      "netAfterPlatformFee": 527.0556662116958,
+      "monthlyRewards": {
+        "2025-06": 203.7426733926026,
+        "2025-07": 417.6208781909576,
+        "2025-08": 205.69211462813547
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 103.7426733926026,
+        "2025-07": 317.6208781909576,
+        "2025-08": 105.69211462813547
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 3,
+      "totalReward80Pct": 609.1524507824331,
+      "netAfterPlatformFee": 409.1524507824331,
+      "monthlyRewards": {
+        "2025-07": 207.64089662236512,
+        "2025-08": 401.51155416006804
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": 107.64089662236512,
+        "2025-08": 301.51155416006804
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 7,
+      "totalReward80Pct": 1472.1526337478806,
+      "netAfterPlatformFee": 872.1526337478806,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 204.89967311251095,
+        "2025-05": 201.06795795472863,
+        "2025-06": 438.47090021404733,
+        "2025-07": 425.7034293465753,
+        "2025-08": 202.01067312001834
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 104.89967311251095,
+        "2025-05": 101.06795795472863,
+        "2025-06": 338.47090021404733,
+        "2025-07": 325.7034293465753,
+        "2025-08": 102.01067312001834
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 8,
+      "totalReward80Pct": 1642.6581688359001,
+      "netAfterPlatformFee": 1142.6581688359001,
+      "monthlyRewards": {
+        "2025-04": 212.31319434522595,
+        "2025-05": 412.2170699319279,
+        "2025-06": 200.75069357041502,
+        "2025-07": 414.9114400110644,
+        "2025-08": 402.46577097726697
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 112.31319434522595,
+        "2025-05": 312.2170699319279,
+        "2025-06": 100.75069357041502,
+        "2025-07": 314.9114400110644,
+        "2025-08": 302.46577097726697
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 6,
+      "totalReward80Pct": 1275.7607730160003,
+      "netAfterPlatformFee": 875.7607730160003,
+      "monthlyRewards": {
+        "2025-05": 207.62125102318825,
+        "2025-06": 444.17263524272715,
+        "2025-07": 419.2133919618442,
+        "2025-08": 204.75349478824066
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 107.62125102318825,
+        "2025-06": 344.17263524272715,
+        "2025-07": 319.2133919618442,
+        "2025-08": 104.75349478824066
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 5,
+      "totalReward80Pct": 1018.1279045587464,
+      "netAfterPlatformFee": 718.1279045587464,
+      "monthlyRewards": {
+        "2025-06": 200.75069357041502,
+        "2025-07": 414.9114400110644,
+        "2025-08": 402.46577097726697
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 100.75069357041502,
+        "2025-07": 314.9114400110644,
+        "2025-08": 302.46577097726697
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 1,
+      "totalReward80Pct": 205.56015297320846,
+      "netAfterPlatformFee": 5.56015297320846,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 205.56015297320846
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": 105.56015297320846
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 6,
+      "totalReward80Pct": 2440.001465436054,
+      "netAfterPlatformFee": 1840.0014654360539,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 405.7915330490389,
+        "2025-05": 400.8032272208773,
+        "2025-06": 820.2288081650186,
+        "2025-07": 406.91536297988205,
+        "2025-08": 406.26253402123695
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 305.7915330490389,
+        "2025-05": 300.8032272208773,
+        "2025-06": 720.2288081650186,
+        "2025-07": 306.91536297988205,
+        "2025-08": 306.26253402123695
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 6,
+      "totalReward80Pct": 2483.685899800711,
+      "netAfterPlatformFee": 1983.685899800711,
+      "monthlyRewards": {
+        "2025-04": 422.37208256364397,
+        "2025-05": 415.5885691733827,
+        "2025-06": 834.8989186886349,
+        "2025-07": 810.8263293750497,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 322.37208256364397,
+        "2025-05": 315.5885691733827,
+        "2025-06": 734.8989186886349,
+        "2025-07": 710.8263293750497,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 5,
+      "totalReward80Pct": 2032.4136765865087,
+      "netAfterPlatformFee": 1632.4136765865087,
+      "monthlyRewards": {
+        "2025-05": 403.9892211958388,
+        "2025-06": 821.0393669281214,
+        "2025-07": 403.3439444243617,
+        "2025-08": 404.04114403818676
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 303.9892211958388,
+        "2025-06": 721.0393669281214,
+        "2025-07": 303.3439444243617,
+        "2025-08": 304.04114403818676
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 3,
+      "totalReward80Pct": 1221.4582839698066,
+      "netAfterPlatformFee": 921.4582839698066,
+      "monthlyRewards": {
+        "2025-06": 404.32146596164387,
+        "2025-07": 416.13122005010666,
+        "2025-08": 401.00559795805606
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 304.32146596164387,
+        "2025-07": 316.13122005010666,
+        "2025-08": 301.00559795805606
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 5,
+      "totalReward80Pct": 2029.1233649809992,
+      "netAfterPlatformFee": 1429.1233649809992,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 400.73672035520434,
+        "2025-05": 402.4487468404812,
+        "2025-06": 822.4637934827392,
+        "2025-07": 0,
+        "2025-08": 403.47410430257446
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 300.73672035520434,
+        "2025-05": 302.4487468404812,
+        "2025-06": 722.4637934827392,
+        "2025-07": -100,
+        "2025-08": 303.47410430257446
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 6,
+      "totalReward80Pct": 2429.56617157062,
+      "netAfterPlatformFee": 1929.56617157062,
+      "monthlyRewards": {
+        "2025-04": 402.49520051982256,
+        "2025-05": 406.7201470798522,
+        "2025-06": 803.6441628516361,
+        "2025-07": 816.7066611193092,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 302.49520051982256,
+        "2025-05": 306.7201470798522,
+        "2025-06": 703.6441628516361,
+        "2025-07": 716.7066611193092,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 5,
+      "totalReward80Pct": 2012.442107753872,
+      "netAfterPlatformFee": 1612.442107753872,
+      "monthlyRewards": {
+        "2025-05": 402.53119189791323,
+        "2025-06": 802.3061207690685,
+        "2025-07": 406.30380463827464,
+        "2025-08": 401.30099044861566
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 302.53119189791323,
+        "2025-06": 702.3061207690685,
+        "2025-07": 306.30380463827464,
+        "2025-08": 301.30099044861566
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 2,
+      "totalReward80Pct": 815.4269200924407,
+      "netAfterPlatformFee": 515.4269200924407,
+      "monthlyRewards": {
+        "2025-06": 402.05099452015423,
+        "2025-07": 413.3759255722864,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 302.05099452015423,
+        "2025-07": 313.3759255722864,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 2,
+      "totalReward80Pct": 2019.4254882946261,
+      "netAfterPlatformFee": 1419.4254882946261,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 0,
+        "2025-05": 1002.8281869662286,
+        "2025-06": 1016.5973013283976,
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": -100,
+        "2025-05": 902.8281869662286,
+        "2025-06": 916.5973013283976,
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 3,
+      "totalReward80Pct": 3014.2335184713506,
+      "netAfterPlatformFee": 2514.2335184713506,
+      "monthlyRewards": {
+        "2025-04": 1001.6042261390394,
+        "2025-05": 0,
+        "2025-06": 1008.8771512984736,
+        "2025-07": 1003.7521410338377,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 901.6042261390394,
+        "2025-05": -100,
+        "2025-06": 908.8771512984736,
+        "2025-07": 903.7521410338377,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 2,
+      "totalReward80Pct": 2005.833774723622,
+      "netAfterPlatformFee": 1605.833774723622,
+      "monthlyRewards": {
+        "2025-05": 0,
+        "2025-06": 1002.0816336897842,
+        "2025-07": 1003.7521410338377,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": -100,
+        "2025-06": 902.0816336897842,
+        "2025-07": 903.7521410338377,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 1,
+      "totalReward80Pct": 1011.1604152424552,
+      "netAfterPlatformFee": 711.1604152424552,
+      "monthlyRewards": {
+        "2025-06": 1011.1604152424552,
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 911.1604152424552,
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 2,
+      "totalReward80Pct": 2008.8090884142207,
+      "netAfterPlatformFee": 1408.8090884142207,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 0,
+        "2025-05": 1008.0353794297612,
+        "2025-06": 1000.7737089844595,
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": -100,
+        "2025-05": 908.0353794297612,
+        "2025-06": 900.7737089844595,
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 3,
+      "totalReward80Pct": 3007.9920429530903,
+      "netAfterPlatformFee": 2507.9920429530903,
+      "monthlyRewards": {
+        "2025-04": 1002.3212080339756,
+        "2025-05": 0,
+        "2025-06": 1005.3416460598528,
+        "2025-07": 1000.329188859262,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 902.3212080339756,
+        "2025-05": -100,
+        "2025-06": 905.3416460598528,
+        "2025-07": 900.329188859262,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 2,
+      "totalReward80Pct": 2029.7327196481783,
+      "netAfterPlatformFee": 1629.7327196481783,
+      "monthlyRewards": {
+        "2025-05": 0,
+        "2025-06": 1029.4035307889164,
+        "2025-07": 1000.329188859262,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": -100,
+        "2025-06": 929.4035307889164,
+        "2025-07": 900.329188859262,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 1,
+      "totalReward80Pct": 1013.4623482982541,
+      "netAfterPlatformFee": 713.4623482982541,
+      "monthlyRewards": {
+        "2025-06": 1013.4623482982541,
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 913.4623482982541,
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.25,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 8,
+      "totalReward80Pct": 1651.008122366111,
+      "netAfterPlatformFee": 1051.008122366111,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 201.78561035553867,
+        "2025-05": 405.1441840250627,
+        "2025-06": 213.97741824363766,
+        "2025-07": 412.4632644465048,
+        "2025-08": 417.6376452953672
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 101.78561035553867,
+        "2025-05": 305.1441840250627,
+        "2025-06": 113.97741824363766,
+        "2025-07": 312.4632644465048,
+        "2025-08": 317.6376452953672
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 8,
+      "totalReward80Pct": 1653.543967030806,
+      "netAfterPlatformFee": 1153.543967030806,
+      "monthlyRewards": {
+        "2025-04": 202.26776360000952,
+        "2025-05": 407.1978754452866,
+        "2025-06": 213.97741824363766,
+        "2025-07": 412.4632644465048,
+        "2025-08": 417.6376452953672
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 102.26776360000952,
+        "2025-05": 307.1978754452866,
+        "2025-06": 113.97741824363766,
+        "2025-07": 312.4632644465048,
+        "2025-08": 317.6376452953672
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 7,
+      "totalReward80Pct": 1508.4771758243269,
+      "netAfterPlatformFee": 1108.4771758243269,
+      "monthlyRewards": {
+        "2025-05": 204.70908326922802,
+        "2025-06": 427.75831531511216,
+        "2025-07": 470.7619164437813,
+        "2025-08": 405.2478607962054
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 104.70908326922802,
+        "2025-06": 327.75831531511216,
+        "2025-07": 370.7619164437813,
+        "2025-08": 305.2478607962054
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 5,
+      "totalReward80Pct": 1044.0783279855095,
+      "netAfterPlatformFee": 744.0783279855095,
+      "monthlyRewards": {
+        "2025-06": 213.97741824363766,
+        "2025-07": 412.4632644465048,
+        "2025-08": 417.6376452953672
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 113.97741824363766,
+        "2025-07": 312.4632644465048,
+        "2025-08": 317.6376452953672
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 2,
+      "totalReward80Pct": 425.947991549343,
+      "netAfterPlatformFee": 225.947991549343,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 425.947991549343
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": 325.947991549343
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 8,
+      "totalReward80Pct": 1743.566658593959,
+      "netAfterPlatformFee": 1143.566658593959,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 221.76851112327424,
+        "2025-05": 495.7338576311158,
+        "2025-06": 209.13826481982542,
+        "2025-07": 406.79054523815,
+        "2025-08": 410.13547978159335
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 121.76851112327424,
+        "2025-05": 395.7338576311158,
+        "2025-06": 109.13826481982542,
+        "2025-07": 306.79054523815,
+        "2025-08": 310.13547978159335
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 8,
+      "totalReward80Pct": 1629.0903251475424,
+      "netAfterPlatformFee": 1129.0903251475424,
+      "monthlyRewards": {
+        "2025-04": 200.3150982335443,
+        "2025-05": 402.71093707442924,
+        "2025-06": 209.13826481982542,
+        "2025-07": 406.79054523815,
+        "2025-08": 410.13547978159335
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 100.31509823354429,
+        "2025-05": 302.71093707442924,
+        "2025-06": 109.13826481982542,
+        "2025-07": 306.79054523815,
+        "2025-08": 310.13547978159335
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 7,
+      "totalReward80Pct": 1509.6193104957783,
+      "netAfterPlatformFee": 1109.6193104957783,
+      "monthlyRewards": {
+        "2025-05": 212.33886803952046,
+        "2025-06": 419.28316240986464,
+        "2025-07": 464.78498092275987,
+        "2025-08": 413.21229912363344
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 112.33886803952046,
+        "2025-06": 319.28316240986464,
+        "2025-07": 364.78498092275987,
+        "2025-08": 313.21229912363344
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 5,
+      "totalReward80Pct": 1026.0642898395688,
+      "netAfterPlatformFee": 726.0642898395688,
+      "monthlyRewards": {
+        "2025-06": 209.13826481982542,
+        "2025-07": 406.79054523815,
+        "2025-08": 410.13547978159335
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 109.13826481982542,
+        "2025-07": 306.79054523815,
+        "2025-08": 310.13547978159335
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 1,
+      "totalReward80Pct": 203.88119290483303,
+      "netAfterPlatformFee": 3.8811929048330285,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 203.88119290483303
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": 103.88119290483303
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 6,
+      "totalReward80Pct": 2481.0962125837395,
+      "netAfterPlatformFee": 1881.0962125837395,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 419.9769457549381,
+        "2025-05": 415.7818281848158,
+        "2025-06": 806.4216273473169,
+        "2025-07": 838.9158112966688,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 319.9769457549381,
+        "2025-05": 315.7818281848158,
+        "2025-06": 706.4216273473169,
+        "2025-07": 738.9158112966688,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 6,
+      "totalReward80Pct": 2433.355432190042,
+      "netAfterPlatformFee": 1933.355432190042,
+      "monthlyRewards": {
+        "2025-04": 402.73363880001125,
+        "2025-05": 822.067052280999,
+        "2025-06": 403.2061128215399,
+        "2025-07": 404.6475730053586,
+        "2025-08": 400.7010552821332
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 302.73363880001125,
+        "2025-05": 722.067052280999,
+        "2025-06": 303.2061128215399,
+        "2025-07": 304.6475730053586,
+        "2025-08": 300.7010552821332
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 5,
+      "totalReward80Pct": 2023.920602487505,
+      "netAfterPlatformFee": 1623.920602487505,
+      "monthlyRewards": {
+        "2025-05": 403.4481951466005,
+        "2025-06": 818.5999079461587,
+        "2025-07": 801.8724993947458,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 303.4481951466005,
+        "2025-06": 718.5999079461587,
+        "2025-07": 701.8724993947458,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 3,
+      "totalReward80Pct": 1208.5547411090317,
+      "netAfterPlatformFee": 908.5547411090317,
+      "monthlyRewards": {
+        "2025-06": 403.2061128215399,
+        "2025-07": 404.6475730053586,
+        "2025-08": 400.7010552821332
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 303.2061128215399,
+        "2025-07": 304.6475730053586,
+        "2025-08": 300.7010552821332
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 1,
+      "totalReward80Pct": 401.85666912135207,
+      "netAfterPlatformFee": 201.85666912135207,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 401.85666912135207
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": 301.85666912135207
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 6,
+      "totalReward80Pct": 2485.661273350235,
+      "netAfterPlatformFee": 1885.6612733502352,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 402.6043450555357,
+        "2025-05": 407.8187783523434,
+        "2025-06": 812.0362159788085,
+        "2025-07": 863.2019339635474,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 302.6043450555357,
+        "2025-05": 307.8187783523434,
+        "2025-06": 712.0362159788085,
+        "2025-07": 763.2019339635474,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 6,
+      "totalReward80Pct": 2440.7155480879796,
+      "netAfterPlatformFee": 1940.7155480879796,
+      "monthlyRewards": {
+        "2025-04": 408.66709823354324,
+        "2025-05": 816.4770112550119,
+        "2025-06": 408.133355595154,
+        "2025-07": 406.1918433397368,
+        "2025-08": 401.2462396645337
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 308.66709823354324,
+        "2025-05": 716.4770112550119,
+        "2025-06": 308.133355595154,
+        "2025-07": 306.1918433397368,
+        "2025-08": 301.2462396645337
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 5,
+      "totalReward80Pct": 2038.6761062734063,
+      "netAfterPlatformFee": 1638.6761062734063,
+      "monthlyRewards": {
+        "2025-05": 400.41442064577717,
+        "2025-06": 809.8705853387918,
+        "2025-07": 828.3911002888374,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 300.41442064577717,
+        "2025-06": 709.8705853387918,
+        "2025-07": 728.3911002888374,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 3,
+      "totalReward80Pct": 1215.5714385994245,
+      "netAfterPlatformFee": 915.5714385994245,
+      "monthlyRewards": {
+        "2025-06": 408.133355595154,
+        "2025-07": 406.1918433397368,
+        "2025-08": 401.2462396645337
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 308.133355595154,
+        "2025-07": 306.1918433397368,
+        "2025-08": 301.2462396645337
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 4,
+      "totalReward80Pct": 4028.148108597123,
+      "netAfterPlatformFee": 3428.148108597123,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 0,
+        "2025-05": 2026.272354044131,
+        "2025-06": 1000.7440737251659,
+        "2025-07": 1001.1316808278266,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": -100,
+        "2025-05": 1926.272354044131,
+        "2025-06": 900.7440737251659,
+        "2025-07": 901.1316808278266,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 4,
+      "totalReward80Pct": 4049.486943300159,
+      "netAfterPlatformFee": 3549.486943300159,
+      "monthlyRewards": {
+        "2025-04": 1023.5531430411822,
+        "2025-05": 1020.4089068645758,
+        "2025-06": 1004.4653112306405,
+        "2025-07": 0,
+        "2025-08": 1001.0595821637603
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 923.5531430411822,
+        "2025-05": 920.4089068645758,
+        "2025-06": 904.4653112306405,
+        "2025-07": -100,
+        "2025-08": 901.0595821637603
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 3,
+      "totalReward80Pct": 3084.551537755321,
+      "netAfterPlatformFee": 2684.551537755321,
+      "monthlyRewards": {
+        "2025-05": 1017.8258048728312,
+        "2025-06": 2066.72573288249,
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 917.8258048728312,
+        "2025-06": 1966.7257328824899,
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 2,
+      "totalReward80Pct": 2001.8757545529925,
+      "netAfterPlatformFee": 1701.8757545529925,
+      "monthlyRewards": {
+        "2025-06": 1000.7440737251659,
+        "2025-07": 1001.1316808278266,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 900.7440737251659,
+        "2025-07": 901.1316808278266,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 3,
+      "totalReward80Pct": 3051.2433676699147,
+      "netAfterPlatformFee": 2451.2433676699147,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 0,
+        "2025-05": 1047.592525778088,
+        "2025-06": 1002.7669594279113,
+        "2025-07": 0,
+        "2025-08": 1000.8838824639156
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": -100,
+        "2025-05": 947.592525778088,
+        "2025-06": 902.7669594279113,
+        "2025-07": -100,
+        "2025-08": 900.8838824639156
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 3,
+      "totalReward80Pct": 3015.0200160522977,
+      "netAfterPlatformFee": 2515.0200160522977,
+      "monthlyRewards": {
+        "2025-04": 1002.7454912285466,
+        "2025-05": 0,
+        "2025-06": 2012.274524823751,
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 902.7454912285466,
+        "2025-05": -100,
+        "2025-06": 1912.274524823751,
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 3,
+      "totalReward80Pct": 3023.934146774054,
+      "netAfterPlatformFee": 2623.934146774054,
+      "monthlyRewards": {
+        "2025-05": 1008.7016966710071,
+        "2025-06": 1009.6859821503051,
+        "2025-07": 1005.5464679527418,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 908.7016966710071,
+        "2025-06": 909.6859821503051,
+        "2025-07": 905.5464679527418,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 2,
+      "totalReward80Pct": 2017.6336151773314,
+      "netAfterPlatformFee": 1717.6336151773314,
+      "monthlyRewards": {
+        "2025-06": 1016.3616427696834,
+        "2025-07": 1001.271972407648,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 916.3616427696834,
+        "2025-07": 901.271972407648,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.4,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 8,
+      "totalReward80Pct": 1738.0239433049576,
+      "netAfterPlatformFee": 1138.0239433049576,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 207.44193627053465,
+        "2025-05": 481.5165236782865,
+        "2025-06": 228.73819882388636,
+        "2025-07": 406.7449382135412,
+        "2025-08": 413.58234631870874
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 107.44193627053465,
+        "2025-05": 381.5165236782865,
+        "2025-06": 128.73819882388636,
+        "2025-07": 306.7449382135412,
+        "2025-08": 313.58234631870874
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 7,
+      "totalReward80Pct": 1500.1673600183917,
+      "netAfterPlatformFee": 1000.1673600183917,
+      "monthlyRewards": {
+        "2025-04": 225.6540735091054,
+        "2025-05": 421.499602594669,
+        "2025-06": 430.6669397174061,
+        "2025-07": 422.34674419721125,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 125.65407350910539,
+        "2025-05": 321.499602594669,
+        "2025-06": 330.6669397174061,
+        "2025-07": 322.34674419721125,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 7,
+      "totalReward80Pct": 1497.7476871883264,
+      "netAfterPlatformFee": 1097.7476871883264,
+      "monthlyRewards": {
+        "2025-05": 214.53181020509803,
+        "2025-06": 461.56516078121786,
+        "2025-07": 408.52174664326304,
+        "2025-08": 413.1289695587475
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 114.53181020509803,
+        "2025-06": 361.56516078121786,
+        "2025-07": 308.52174664326304,
+        "2025-08": 313.1289695587475
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 5,
+      "totalReward80Pct": 1049.0654833561364,
+      "netAfterPlatformFee": 749.0654833561364,
+      "monthlyRewards": {
+        "2025-06": 228.73819882388636,
+        "2025-07": 406.7449382135412,
+        "2025-08": 413.58234631870874
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 128.73819882388636,
+        "2025-07": 306.7449382135412,
+        "2025-08": 313.58234631870874
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 1,
+      "totalReward80Pct": 219.64251012112072,
+      "netAfterPlatformFee": 19.642510121120722,
+      "monthlyRewards": {
+        "2025-07": 219.64251012112072,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": 119.64251012112072,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 8,
+      "totalReward80Pct": 1757.8413298181408,
+      "netAfterPlatformFee": 1157.8413298181408,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 223.80384861585046,
+        "2025-05": 473.4166222663306,
+        "2025-06": 222.66538714083728,
+        "2025-07": 408.7114848384808,
+        "2025-08": 429.2439869566414
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 123.80384861585046,
+        "2025-05": 373.4166222663306,
+        "2025-06": 122.66538714083728,
+        "2025-07": 308.7114848384808,
+        "2025-08": 329.2439869566414
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 7,
+      "totalReward80Pct": 1509.590736258906,
+      "netAfterPlatformFee": 1009.590736258906,
+      "monthlyRewards": {
+        "2025-04": 219.1827139411733,
+        "2025-05": 405.06266094805324,
+        "2025-06": 425.9997900858434,
+        "2025-07": 459.3455712838361,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 119.18271394117329,
+        "2025-05": 305.06266094805324,
+        "2025-06": 325.9997900858434,
+        "2025-07": 359.3455712838361,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 7,
+      "totalReward80Pct": 1492.4137646872348,
+      "netAfterPlatformFee": 1092.4137646872348,
+      "monthlyRewards": {
+        "2025-05": 208.06562838920217,
+        "2025-06": 455.2759591546521,
+        "2025-07": 412.48776240952725,
+        "2025-08": 416.58441473385324
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 108.06562838920217,
+        "2025-06": 355.2759591546521,
+        "2025-07": 312.48776240952725,
+        "2025-08": 316.58441473385324
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 5,
+      "totalReward80Pct": 1060.6208589359594,
+      "netAfterPlatformFee": 760.6208589359594,
+      "monthlyRewards": {
+        "2025-06": 222.66538714083728,
+        "2025-07": 408.7114848384808,
+        "2025-08": 429.2439869566414
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 122.66538714083728,
+        "2025-07": 308.7114848384808,
+        "2025-08": 329.2439869566414
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 1,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 1,
+      "totalReward80Pct": 222.82185929619592,
+      "netAfterPlatformFee": 22.821859296195925,
+      "monthlyRewards": {
+        "2025-07": 222.82185929619592,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": 122.82185929619592,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 6,
+      "totalReward80Pct": 2490.978233969933,
+      "netAfterPlatformFee": 1890.9782339699332,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 404.5321451014315,
+        "2025-05": 811.0276165503252,
+        "2025-06": 426.03419882388846,
+        "2025-07": 444.8323794879893,
+        "2025-08": 404.551894006299
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": 304.5321451014315,
+        "2025-05": 711.0276165503252,
+        "2025-06": 326.03419882388846,
+        "2025-07": 344.8323794879893,
+        "2025-08": 304.551894006299
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 6,
+      "totalReward80Pct": 2492.54667147923,
+      "netAfterPlatformFee": 1992.54667147923,
+      "monthlyRewards": {
+        "2025-04": 404.8865879091114,
+        "2025-05": 812.2416112519422,
+        "2025-06": 426.03419882388846,
+        "2025-07": 444.8323794879893,
+        "2025-08": 404.551894006299
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 304.8865879091114,
+        "2025-05": 712.2416112519422,
+        "2025-06": 326.03419882388846,
+        "2025-07": 344.8323794879893,
+        "2025-08": 304.551894006299
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 5,
+      "totalReward80Pct": 2052.1016000048085,
+      "netAfterPlatformFee": 1652.1016000048085,
+      "monthlyRewards": {
+        "2025-05": 412.1494113145222,
+        "2025-06": 831.9364680899191,
+        "2025-07": 808.0157206003671,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 312.1494113145222,
+        "2025-06": 731.9364680899191,
+        "2025-07": 708.0157206003671,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 3,
+      "totalReward80Pct": 1275.4184723181766,
+      "netAfterPlatformFee": 975.4184723181766,
+      "monthlyRewards": {
+        "2025-06": 426.03419882388846,
+        "2025-07": 444.8323794879893,
+        "2025-08": 404.551894006299
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 326.03419882388846,
+        "2025-07": 344.8323794879893,
+        "2025-08": 304.551894006299
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 4,
+      "totalReward80Pct": 1666.007818022085,
+      "netAfterPlatformFee": 1066.007818022085,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 0,
+        "2025-05": 816.9602380985307,
+        "2025-06": 419.96138714083645,
+        "2025-07": 429.086192782718,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": -100,
+        "2025-05": 716.9602380985307,
+        "2025-06": 319.96138714083645,
+        "2025-07": 329.086192782718,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 5,
+      "totalReward80Pct": 2059.948163147501,
+      "netAfterPlatformFee": 1559.948163147501,
+      "monthlyRewards": {
+        "2025-04": 405.7847155411786,
+        "2025-05": 805.1158676827677,
+        "2025-06": 419.96138714083645,
+        "2025-07": 429.086192782718,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 305.7847155411786,
+        "2025-05": 705.1158676827677,
+        "2025-06": 319.96138714083645,
+        "2025-07": 329.086192782718,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 5,
+      "totalReward80Pct": 2052.52301122052,
+      "netAfterPlatformFee": 1652.52301122052,
+      "monthlyRewards": {
+        "2025-05": 400.9096992138628,
+        "2025-06": 816.9806278171309,
+        "2025-07": 834.6326841895266,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 300.9096992138628,
+        "2025-06": 716.9806278171309,
+        "2025-07": 734.6326841895266,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 2,
+      "totalReward80Pct": 849.0475799235544,
+      "netAfterPlatformFee": 549.0475799235544,
+      "monthlyRewards": {
+        "2025-06": 419.96138714083645,
+        "2025-07": 429.086192782718,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 319.96138714083645,
+        "2025-07": 329.086192782718,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 2,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 3,
+      "totalReward80Pct": 3031.412384439382,
+      "netAfterPlatformFee": 2431.412384439382,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 0,
+        "2025-05": 1002.9873986658845,
+        "2025-06": 1022.6910505211505,
+        "2025-07": 1005.7339352523472,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": -100,
+        "2025-05": 902.9873986658845,
+        "2025-06": 922.6910505211505,
+        "2025-07": 905.7339352523472,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 4,
+      "totalReward80Pct": 4030.6803305760027,
+      "netAfterPlatformFee": 3530.6803305760027,
+      "monthlyRewards": {
+        "2025-04": 1001.413904777533,
+        "2025-05": 1000.841440024972,
+        "2025-06": 1022.6910505211505,
+        "2025-07": 1005.7339352523472,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 901.413904777533,
+        "2025-05": 900.841440024972,
+        "2025-06": 922.6910505211505,
+        "2025-07": 905.7339352523472,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 3,
+      "totalReward80Pct": 3032.7263487805617,
+      "netAfterPlatformFee": 2632.7263487805617,
+      "monthlyRewards": {
+        "2025-05": 1008.38430961454,
+        "2025-06": 2024.3420391660216,
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 908.38430961454,
+        "2025-06": 1924.3420391660216,
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 2,
+      "totalReward80Pct": 2007.264620669,
+      "netAfterPlatformFee": 1707.264620669,
+      "monthlyRewards": {
+        "2025-06": 1005.3564140772593,
+        "2025-07": 1001.9082065917406,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 905.3564140772593,
+        "2025-07": 901.9082065917406,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-03-01",
+      "start": 1740787200000,
+      "months": 6,
+      "completedCycles": 3,
+      "totalReward80Pct": 3083.172552037632,
+      "netAfterPlatformFee": 2483.172552037632,
+      "monthlyRewards": {
+        "2025-03": 0,
+        "2025-04": 0,
+        "2025-05": 1040.1560658874544,
+        "2025-06": 1016.3539462152985,
+        "2025-07": 1026.6625399348793,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-03": -100,
+        "2025-04": -100,
+        "2025-05": 940.1560658874544,
+        "2025-06": 916.3539462152985,
+        "2025-07": 926.6625399348793,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-04-01",
+      "start": 1743465600000,
+      "months": 5,
+      "completedCycles": 4,
+      "totalReward80Pct": 4063.972142160358,
+      "netAfterPlatformFee": 3563.972142160358,
+      "monthlyRewards": {
+        "2025-04": 1025.1322685302644,
+        "2025-05": 1012.1986420155765,
+        "2025-06": 1022.8055390759575,
+        "2025-07": 1003.8356925385597,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-04": 925.1322685302644,
+        "2025-05": 912.1986420155765,
+        "2025-06": 922.8055390759575,
+        "2025-07": 903.8356925385597,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-05-01",
+      "start": 1746057600000,
+      "months": 4,
+      "completedCycles": 4,
+      "totalReward80Pct": 4032.8249903167393,
+      "netAfterPlatformFee": 3632.8249903167393,
+      "monthlyRewards": {
+        "2025-05": 1004.0301834786951,
+        "2025-06": 2027.43725184504,
+        "2025-07": 0,
+        "2025-08": 1001.3575549930043
+      },
+      "monthlyNetAfterFee": {
+        "2025-05": 904.0301834786951,
+        "2025-06": 1927.43725184504,
+        "2025-07": -100,
+        "2025-08": 901.3575549930043
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-06-01",
+      "start": 1748736000000,
+      "months": 3,
+      "completedCycles": 2,
+      "totalReward80Pct": 2003.1845462485217,
+      "netAfterPlatformFee": 1703.1845462485217,
+      "monthlyRewards": {
+        "2025-06": 1002.8967625404534,
+        "2025-07": 1000.2877837080683,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-06": 902.8967625404534,
+        "2025-07": 900.2877837080683,
+        "2025-08": -100
+      }
+    },
+    {
+      "risk": 0.5,
+      "target": 5,
+      "cost": 1.5,
+      "date": "2025-07-01",
+      "start": 1751328000000,
+      "months": 2,
+      "completedCycles": 0,
+      "totalReward80Pct": 0,
+      "netAfterPlatformFee": -200,
+      "monthlyRewards": {
+        "2025-07": 0,
+        "2025-08": 0
+      },
+      "monthlyNetAfterFee": {
+        "2025-07": -100,
+        "2025-08": -100
+      }
+    }
+  ],
+  "newStrategies": [
+    {
+      "profile": "COMBINED",
+      "phase": "CHALLENGE",
+      "challenge": 8,
+      "starts": 7,
+      "passes": 0,
+      "requests": 0,
+      "requestDays": null
+    },
+    {
+      "profile": "COMBINED",
+      "phase": "CHALLENGE",
+      "challenge": 10,
+      "starts": 7,
+      "passes": 0,
+      "requests": 0,
+      "requestDays": null
+    },
+    {
+      "profile": "COMBINED",
+      "phase": "FUNDED",
+      "challenge": 10,
+      "starts": 6,
+      "passes": null,
+      "requests": 1,
+      "requestDays": {
+        "min": 14.29861111111111,
+        "median": 14.29861111111111,
+        "max": 14.29861111111111
+      }
+    },
+    {
+      "profile": "GOLD_TREND",
+      "phase": "CHALLENGE",
+      "challenge": 8,
+      "starts": 7,
+      "passes": 0,
+      "requests": 0,
+      "requestDays": null
+    },
+    {
+      "profile": "GOLD_TREND",
+      "phase": "CHALLENGE",
+      "challenge": 10,
+      "starts": 7,
+      "passes": 0,
+      "requests": 0,
+      "requestDays": null
+    },
+    {
+      "profile": "GOLD_TREND",
+      "phase": "FUNDED",
+      "challenge": 10,
+      "starts": 6,
+      "passes": null,
+      "requests": 1,
+      "requestDays": {
+        "min": 14.583333333333334,
+        "median": 14.583333333333334,
+        "max": 14.583333333333334
+      }
+    },
+    {
+      "profile": "YEN_LONDON",
+      "phase": "CHALLENGE",
+      "challenge": 8,
+      "starts": 7,
+      "passes": 0,
+      "requests": 0,
+      "requestDays": null
+    },
+    {
+      "profile": "YEN_LONDON",
+      "phase": "CHALLENGE",
+      "challenge": 10,
+      "starts": 7,
+      "passes": 0,
+      "requests": 0,
+      "requestDays": null
+    },
+    {
+      "profile": "YEN_LONDON",
+      "phase": "FUNDED",
+      "challenge": 10,
+      "starts": 6,
+      "passes": null,
+      "requests": 0,
+      "requestDays": null
+    }
+  ],
+  "canonicalSourceSha256": "586e6233a9756fd399eaf80b7b1d7aa4ccd6416ba25c5aa02ce2fe76789dfba9",
+  "counts": {
+    "balanced": 144,
+    "funded": 612,
+    "frontier": 576,
+    "newCanonical": 240,
+    "recurringCampaigns": 90
+  }
+}

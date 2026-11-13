@@ -11,6 +11,8 @@ export function validatePropAccountProfile(value:any){
  if(typeof value.reset_timezone!=='string'||!value.reset_timezone)throw Error('PROP_RESET_TIMEZONE_REQUIRED');
  if(value.program_id!==undefined&&(value.program_id!==FTMO_SWING_PROGRAM||!isFtmoSwingRules(value)||value.reset_timezone!=='Europe/Prague'||value.source_reference!==FTMO_SWING_SOURCE))throw Error('MATCHING_PROP_PROGRAM_TERMS_REQUIRED');
  if(value.funded_profit_target_pct!==undefined&&![2,5].includes(value.funded_profit_target_pct))throw Error('PROP_FUNDED_TARGET_REQUIRED');
+ for(const key of ['payout_wait_days_initial','payout_wait_days_repeat'])if(value[key]!==undefined&&(!Number.isInteger(value[key])||value[key]<1||value[key]>60))throw Error('PROP_PAYOUT_WAIT_REQUIRED');
+ if(value.program_id===FTMO_SWING_PROGRAM&&((value.payout_wait_days_initial??14)!==14||(value.payout_wait_days_repeat??14)!==14))throw Error('MATCHING_PROP_PROGRAM_PAYOUT_TERMS_REQUIRED');
  return value;
 }
 export function approvedPropAccountProfile(account:any){
