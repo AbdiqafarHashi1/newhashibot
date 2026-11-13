@@ -71,7 +71,7 @@ jobs:
       - id: request
         run: |
           replays=true
-          case "$(git log -1 --format=%s)" in '[scalp-research]'*) replays=false ;; esac
+          case "$(git log -1 --format=%s)" in '[scalp-research]'*|'[short-canonical]'*) replays=false ;; esac
           echo "replays=$replays" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v5
         with:

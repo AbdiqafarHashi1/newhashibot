@@ -4,7 +4,7 @@ test('forward demo approval cannot authorize a live account even with otherwise 
 
 test('stored reviews match complete compressed account replay evidence',async()=>{
  const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto');
- for(const [id,prefix] of [['forex.native-sweep-retest-60-16-2-5-usdjpy-h72','yen-sweep'],['forex.native-squeeze-15-48-2-3-usdjpy-h12','yen-scalp'],['crypto.launch-trend-pullback-48-2-3-h72','crypto-pullback-72']]){
+ for(const [id,prefix] of [['forex.native-sweep-retest-60-16-2-5-usdjpy-h72','yen-sweep'],['forex.native-squeeze-15-48-2-3-usdjpy-h12','yen-scalp'],['crypto.launch-trend-pullback-48-2-3-h72','crypto-pullback-72'],['crypto.launch-rsi2-48-3-3-h72','crypto-rsi-72']]){
   const review=LAUNCH_CANONICAL_REVIEWS.find(r=>r.strategyId===id)!;
   for(const [i,period] of ['early','later'].entries()){
    const raw=gunzipSync(readFileSync(`docs/research/launch-20261113/canonical/${prefix}-${period}.json.gz`)),report=JSON.parse(raw.toString());assert.equal(createHash('sha256').update(raw).digest('hex'),review.periods[i].reportSha256);assert.equal(report.status,'COMPLETED');assert.equal(report.engineSourceSha256,review.periods[i].engineSourceSha256);assert.equal(report.experiment.strategyScope,review.strategyId);assert.deepEqual(report.accounts[0].metrics,review.periods[i].metrics);assert(report.signalSnapshots.length>=10);

@@ -2,6 +2,154 @@
   "schema": "canonical-demo-bundle/v1",
   "strategies": [
     {
+      "strategyId": "crypto.launch-rsi2-48-3-3-h72",
+      "strategyName": "Launch_rsi2_48_3_3",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.launch-rsi2-48-3-3-h72",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 2.4,
+            "maxBarsInTrade": 72,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "BTCUSDT",
+              "ETHUSDT",
+              "SOLUSDT",
+              "BNBUSDT",
+              "XRPUSDT",
+              "ADAUSDT",
+              "DOGEUSDT",
+              "LINKUSDT",
+              "AVAXUSDT",
+              "LTCUSDT"
+            ],
+            "timeframes": [
+              "4h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      },
+      "review": {
+        "schema": "canonical-account-review/v1",
+        "strategyId": "crypto.launch-rsi2-48-3-3-h72",
+        "periods": [
+          {
+            "reportSha256": "e89407cda76ccce683ed6d5ad657d7c012d9322e4a342d867d85082f87b32162",
+            "engineSourceSha256": "c989ac30ea7ff96c91e1c24e140eb5f0d3985b3f1ac875b4ad76df6d055e1254",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "crypto.launch-rsi2-48-3-3-h72"
+            ],
+            "start": "2025-05-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 51,
+              "openPositions": 3,
+              "authorizedEntries": 54,
+              "rejectedAttempts": 60,
+              "rejectionReasons": {
+                "ACCOUNT_RULE_REJECTED": 60,
+                "SKIPPED_MAX_POSITIONS_REACHED": 57,
+                "BRAIN_RULE:rule_binance_max_open_positions_total": 55,
+                "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 3,
+                "CORRELATED_RISK_CAPACITY_EXCEEDED": 3,
+                "REDUCED_PORTFOLIO_EXPOSURE_CAP": 3,
+                "BRAIN_RULE:rule_binance_scaled_portfolio_risk": 3,
+                "BRAIN_RULE:rule_binance_portfolio_risk_cap": 2
+              },
+              "winRate": 0.37254901960784315,
+              "profitFactor": 1.1174938521903413,
+              "expectancyR": 0.07127434225726345,
+              "realizedNet": 17.524295624810787,
+              "endingBalance": 1017.1772993692841,
+              "endingEquity": 1022.9994015222842,
+              "netReturnPct": 2.2999401522284186,
+              "maximumDrawdownPct": 7.6922530582187205,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 10,
+              "costs": 4.657345875299999,
+              "financing": 9.129525555415691,
+              "tradesPerDay": 0.43902439024390244,
+              "tradesPerWeek": 3.073170731707317,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 1000,
+            "riskPct": 0.5
+          },
+          {
+            "reportSha256": "b271e7465b99ce5a6a5df45888da1402d415cfd4c1f62cbe47b3a87d175dc7dd",
+            "engineSourceSha256": "c989ac30ea7ff96c91e1c24e140eb5f0d3985b3f1ac875b4ad76df6d055e1254",
+            "status": "COMPLETED",
+            "strategyIds": [
+              "crypto.launch-rsi2-48-3-3-h72"
+            ],
+            "start": "2026-08-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "metrics": {
+              "closedTrades": 35,
+              "openPositions": 3,
+              "authorizedEntries": 38,
+              "rejectedAttempts": 39,
+              "rejectionReasons": {
+                "ACCOUNT_RULE_REJECTED": 39,
+                "SKIPPED_MAX_POSITIONS_REACHED": 39,
+                "BRAIN_RULE:rule_binance_max_open_positions_total": 38,
+                "BRAIN_RULE:rule_binance_portfolio_risk_cap": 1
+              },
+              "winRate": 0.5142857142857142,
+              "profitFactor": 1.258063209559731,
+              "expectancyR": 0.13641096834258937,
+              "realizedNet": 22.565243967019846,
+              "endingBalance": 1021.6869101319165,
+              "endingEquity": 1039.2547473446166,
+              "netReturnPct": 3.925474734461659,
+              "maximumDrawdownPct": 5.196414479498589,
+              "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+              "maxLosingStreak": 9,
+              "costs": 4.046653236100001,
+              "financing": 8.12417403198357,
+              "tradesPerDay": 0.41304347826086957,
+              "tradesPerWeek": 2.891304347826087,
+              "accountFailed": false,
+              "sharpe": null,
+              "sortino": null,
+              "riskOfRuin": null,
+              "qualification": "NOT_GRANTED",
+              "limitations": [
+                "Short/correlated samples do not establish risk of ruin or statistical confidence",
+                "Unclosed positions remain marked, not counted as completed wins"
+              ]
+            },
+            "capital": 1000,
+            "riskPct": 0.5
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      }
+    },
+    {
       "strategyId": "crypto.launch-trend-pullback-48-1.5-5",
       "strategyName": "Launch_trend_pullback_48_1.5_5",
       "configuration": {

@@ -1,11 +1,12 @@
 # Strategy coverage — 13 November 2026
 
-Current code is in PR #271, not deployed to production. The original Gold releases remain in the exact signal/demo activation bundle. Eight configurations have positive costed account outcomes in two separate complete canonical scanner/arbitration/account replays. These are forward-demo approvals, not live-account approval or a guaranteed monthly return.
+Current code is in PR #271, not deployed to production. The original Gold releases remain in the exact signal/demo activation bundle. Nine configurations have positive costed account outcomes in two separate complete canonical scanner/arbitration/account replays. These are forward-demo approvals, not live-account approval or a guaranteed monthly return.
 
 | Market | Strategy | Frame | Allowed symbols |
 | --- | --- | --- | --- |
 | Crypto | Trend pullback, 1.5 ATR / 5R | 4h | BTC, ETH, SOL, BNB, XRP, ADA, DOGE, LINK, AVAX, LTC (USDT perpetuals) |
 | Crypto | Trend pullback, 2 ATR / 3R, 72-bar holding limit | 4h | Same ten native perpetuals |
+| Crypto | RSI pullback, 3 ATR / 3R, 72-bar limit | 4h | Same ten native perpetuals |
 | Gold | Momentum, 2 ATR / 5R | 15m | XAUUSD |
 | Gold | Momentum, 2 ATR / 5R | 1h | XAUUSD |
 | Gold | Range re-entry, 3 ATR / 5R | 15m | XAUUSD |
@@ -13,7 +14,7 @@ Current code is in PR #271, not deployed to production. The original Gold releas
 | Forex | Liquidity sweep and retest, 2 ATR / 5R, 72-bar limit | 1h | USDJPY |
 | Forex | Compression breakout, 2 ATR / 3R, 12-bar limit | 15m | USDJPY |
 
-The two crypto pullbacks are configurations of one opportunity family; they must not be sold as two independent market regimes. Additional native EURUSD/GBPUSD swing entries, a crypto channel breakout and crypto RSI swing are registered for research and not included merely because an initial screen passed. Crypto scalp and the remaining Forex-pair coverage are still being improved. No blanket all-regime coverage claim is supported.
+The two crypto pullbacks are configurations of one opportunity family; they must not be sold as two independent market regimes. Additional native EURUSD/GBPUSD swing entries, a crypto channel breakout are registered for research and not included merely because an initial screen passed. Six cost-aware crypto scalp configurations now reach automatic market confirmation in code and are undergoing complete native scanner/account replay. Remaining Forex-pair coverage is still being improved. No blanket all-regime coverage claim is supported.
 
 ## Automatic routing
 

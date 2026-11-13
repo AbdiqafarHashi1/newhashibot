@@ -8,6 +8,7 @@ on:
       - 'scripts/research/launch/campaign.py'
       - 'scripts/research/launch/account_screen.cpp'
       - 'supabase/functions/_shared/launch-strategy-families.ts'
+      - 'supabase/functions/_shared/crypto-short-families.ts'
 permissions:
   contents: read
 concurrency:
@@ -20,6 +21,7 @@ jobs:
       run: ${{ steps.request.outputs.run }}
       participation: ${{ steps.request.outputs.participation }}
       swing: ${{ steps.request.outputs.swing }}
+      short: ${{ steps.request.outputs.short }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,10 +33,12 @@ jobs:
           requested=true
           participation=false
           swing=true
-          case "$subject" in '[scalp-research]'*) requested=false; participation=true; swing=false ;; '[broker-validation]'*) requested=false ;; '[participation-research]'*) requested=false; participation=true ;; esac
+          short=false
+          case "$subject" in '[short-canonical]'*) requested=false; short=true ;; '[scalp-research]'*) requested=false; participation=true; swing=false ;; '[broker-validation]'*) requested=false ;; '[participation-research]'*) requested=false; participation=true ;; esac
           echo "run=$requested" >> "$GITHUB_OUTPUT"
           echo "participation=$participation" >> "$GITHUB_OUTPUT"
           echo "swing=$swing" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
   family-research:
     needs: research-request
     if: needs.research-request.outputs.run == 'true'
@@ -227,4 +231,74 @@ jobs:
         with:
           name: expanded-swing-${{ matrix.track }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
           path: .tmp/expanded-swing
+          retention-days: 14
+
+  native-short-scanner:
+    needs: research-request
+    if: needs.research-request.outputs.short == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        asset: [doge, eth, xrp, sol, ltc, ada]
+        period: [early, later]
+        include:
+          - asset: doge
+            symbol: DOGEUSDT
+            id: crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006
+          - asset: eth
+            symbol: ETHUSDT
+            id: crypto.native-donchian-15-48-3-1.5-ethusdt-h24-v0.006
+          - asset: xrp
+            symbol: XRPUSDT
+            id: crypto.native-bollinger-15-24-2-1.5-xrpusdt-h24-v0.006
+          - asset: sol
+            symbol: SOLUSDT
+            id: crypto.native-rsi2-15-12-1.5-5-solusdt-h24-v0.006
+          - asset: ltc
+            symbol: LTCUSDT
+            id: crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006
+          - asset: ada
+            symbol: ADAUSDT
+            id: crypto.native-bollinger-5-24-3-5-adausdt-h24-v0.006
+          - period: early
+            months: 2025-01,2025-02,2025-03,2025-04,2025-05
+            start: '2025-04-01'
+            end: '2025-06-01'
+          - period: later
+            months: 2026-07,2026-08,2026-09,2026-10
+            start: '2026-08-01'
+            end: '2026-11-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - run: node --import tsx --test tests/mission2/cryptoShortFamilies.test.ts tests/conditionalSignals/service.test.ts
+      - uses: actions/cache/restore@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+          fail-on-cache-miss: true
+      - name: Cost-aware native scalp through actual scanner, arbitration and account Brain
+        env:
+          ID: ${{ matrix.id }}
+          SYMBOL: ${{ matrix.symbol }}
+          MONTHS: ${{ matrix.months }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/native-short
+          node --import tsx scripts/research/run-frequency-audit.ts venue=usdm data=.tmp/mission2/futures-data frames=5,15,60,240,1440 "months=$MONTHS" "symbols=$SYMBOL" "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$ID" entry=COMBINED risks=.5 balances=1000 checkpointEvery=1440 out=.tmp/native-short/report.json > .tmp/native-short/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-short-${{ matrix.asset }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/native-short
           retention-days: 14

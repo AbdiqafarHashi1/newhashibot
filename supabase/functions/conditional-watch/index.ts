@@ -1,5 +1,4 @@
-import {launchFamilyProfile} from '../_shared/launch-strategy-families.ts';
-import {watchedHistoryBars} from '../_shared/strategy-runtime-parameters.ts';
+import {watchedHistoryBars,watchedCryptoInstrument} from '../_shared/strategy-runtime-parameters.ts';
 import {frozenStrategyConfirmation,currentWatchQualification} from '../_shared/frozen-strategy-confirmation.ts';
 import {loadPaperLearning} from '../_shared/paper-learning.ts';
 import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
@@ -44,7 +43,7 @@ Deno.serve(async(req:Request)=>{
    },
    discovery:{crypto:enabled&&cfg.data.signal_enable_crypto===true,forex:enabled&&cfg.data.signal_enable_forex===true},
    feed:async(symbol,tf,now)=>{
-    const instrument=definitions.some(d=>launchFamilyProfile(d.id)&&d.config.enabled&&d.lifecycle==='ENABLED'&&d.config.allowed_timeframes.includes(tf)&&d.config.allowed_symbols.includes(symbol))?'USDT_PERPETUAL':'SPOT';
+    const instrument=watchedCryptoInstrument(definitions,symbol);
     const feed=await conditionalWatchFeed(db,symbol,tf,now,Deno.env.get('MT5_MARKET_DATA_FEED_ID'),fetch,watchedHistoryBars(definitions,symbol,tf),instrument);
     if(!feed.error&&feed.candles.length){
      const since=Date.parse(watermarks.get(`${symbol}:${tf}`)??'');

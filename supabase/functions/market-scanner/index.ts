@@ -1,4 +1,4 @@
-import {watchedHistoryBars} from '../_shared/strategy-runtime-parameters.ts';
+import {watchedHistoryBars,watchedCryptoInstrument} from '../_shared/strategy-runtime-parameters.ts';
 import {frozenStrategyConfirmation,currentWatchQualification} from '../_shared/frozen-strategy-confirmation.ts';
 import {loadPaperLearning} from '../_shared/paper-learning.ts';
 import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
@@ -1796,7 +1796,7 @@ async function runScanPipeline(
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
     const native=!conditionalEnabled&&cryptoTeamEnabled&&tf==='15m';
-    const value = conditionalEnabled&&['5m','15m','1h','4h','1d'].includes(tf)?[...(await conditionalWatchFeed(supabase,symbol,tf as WatchTimeframe,Date.now(),undefined,fetch,watchedHistoryBars(watchedDefinitions,symbol,tf))).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
+    const value = conditionalEnabled&&['5m','15m','1h','4h','1d'].includes(tf)?[...(await conditionalWatchFeed(supabase,symbol,tf as WatchTimeframe,Date.now(),undefined,fetch,watchedHistoryBars(watchedDefinitions,symbol,tf),watchedCryptoInstrument(watchedDefinitions,symbol))).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
     cryptoFetchCache.set(key, value);
     return value;
   }
