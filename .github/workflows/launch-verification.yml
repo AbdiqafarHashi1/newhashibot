@@ -23,6 +23,7 @@ jobs:
       swing: ${{ steps.request.outputs.swing }}
       short: ${{ steps.request.outputs.short }}
       coverage: ${{ steps.request.outputs.coverage }}
+      ltc_later: ${{ steps.request.outputs.ltc_later }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,12 +37,14 @@ jobs:
           swing=true
           short=false
           coverage=false
-          case "$subject" in '[coverage-final]'*) requested=false; coverage=true ;; '[short-canonical]'*) requested=false; short=true ;; '[scalp-research]'*) requested=false; participation=true; swing=false ;; '[broker-validation]'*) requested=false ;; '[participation-research]'*) requested=false; participation=true ;; esac
+          ltc_later=false
+          case "$subject" in '[ltc-final]'*) requested=false; ltc_later=true ;; '[coverage-final]'*) requested=false; coverage=true ;; '[short-canonical]'*) requested=false; short=true ;; '[scalp-research]'*) requested=false; participation=true; swing=false ;; '[broker-validation]'*) requested=false ;; '[participation-research]'*) requested=false; participation=true ;; esac
           echo "run=$requested" >> "$GITHUB_OUTPUT"
           echo "participation=$participation" >> "$GITHUB_OUTPUT"
           echo "swing=$swing" >> "$GITHUB_OUTPUT"
           echo "short=$short" >> "$GITHUB_OUTPUT"
           echo "coverage=$coverage" >> "$GITHUB_OUTPUT"
+          echo "ltc_later=$ltc_later" >> "$GITHUB_OUTPUT"
   family-research:
     needs: research-request
     if: needs.research-request.outputs.run == 'true'
@@ -296,7 +299,7 @@ jobs:
 
   native-ltc-extended-window:
     needs: research-request
-    if: needs.research-request.outputs.coverage == 'true'
+    if: needs.research-request.outputs.coverage == 'true' || needs.research-request.outputs.ltc_later == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -313,10 +316,14 @@ jobs:
           path: .tmp/mission2/futures-data
           key: launch-native-usdm-20261112-v1
           fail-on-cache-miss: true
-      - name: Increase the later LTC sample without changing entry, costs or risk
+      - name: Independent complete LTC account window with unchanged entry, costs and risk
+        env:
+          MONTHS: ${{ needs.research-request.outputs.ltc_later == 'true' && '2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08' || '2026-07,2026-08,2026-09,2026-10' }}
+          START: ${{ needs.research-request.outputs.ltc_later == 'true' && '2025-06-01' || '2026-07-15' }}
+          END: ${{ needs.research-request.outputs.ltc_later == 'true' && '2025-09-01' || '2026-11-01' }}
         run: |
           mkdir -p .tmp/ltc-extended
-          node --import tsx scripts/research/run-frequency-audit.ts venue=usdm data=.tmp/mission2/futures-data frames=5,15,60,240,1440 months=2026-07,2026-08,2026-09,2026-10 symbols=LTCUSDT start=2026-07-15T00:00:00Z end=2026-11-01T00:00:00Z strategyIds=crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006 entry=COMBINED risks=.5 balances=1000 checkpointEvery=1440 out=.tmp/ltc-extended/report.json > .tmp/ltc-extended/engine.log 2>&1
+          node --import tsx scripts/research/run-frequency-audit.ts venue=usdm data=.tmp/mission2/futures-data frames=5,15,60,240,1440 "months=$MONTHS" symbols=LTCUSDT "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" strategyIds=crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006 entry=COMBINED risks=.5 balances=1000 checkpointEvery=1440 out=.tmp/ltc-extended/report.json > .tmp/ltc-extended/engine.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

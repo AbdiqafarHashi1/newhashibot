@@ -73,7 +73,7 @@ jobs:
         run: |
           replays=true
           coverage=false
-          case "$(git log -1 --format=%s)" in '[coverage-final]'*) replays=false; coverage=true ;; '[scalp-research]'*|'[short-canonical]'*) replays=false ;; esac
+          case "$(git log -1 --format=%s)" in '[coverage-final]'*) replays=false; coverage=true ;; '[scalp-research]'*|'[short-canonical]'*|'[ltc-final]'*) replays=false ;; esac
           echo "replays=$replays" >> "$GITHUB_OUTPUT"
           echo "coverage=$coverage" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v5
@@ -285,21 +285,12 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        candidate: [aussie-pullback, pound-range, pound-rsi, euro-momentum]
+        candidate: [pound-rsi]
         period: [early, later]
         include:
-          - candidate: aussie-pullback
-            id: forex.native-trend-pullback-5-24-2-3-audusd-h24-v0.0008
-            symbol: AUDUSD
-          - candidate: pound-range
-            id: forex.native-band-reentry-15-12-3-5-gbpusd-h12-v0.0004
-            symbol: GBPUSD
           - candidate: pound-rsi
             id: forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008
             symbol: GBPUSD
-          - candidate: euro-momentum
-            id: forex.native-momentum-5-12-3-3-eurusd-h12-v0.0008
-            symbol: EURUSD
           - period: early
             start: '2025-04-01'
             end: '2025-06-01'

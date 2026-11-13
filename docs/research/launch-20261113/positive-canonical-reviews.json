@@ -995,5 +995,100 @@
       "Research selection creates bias; no untouched holdout or customer-return claim",
       "Positive separate account periods qualify for signals and demo forward testing only"
     ]
+  },
+  {
+    "schema": "canonical-account-review/v1",
+    "strategyId": "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+    "periods": [
+      {
+        "reportSha256": "f12233d504a425d4bcbde5c21bf1d3eb76c56cf53022ecd5b4c05d3a4964766d",
+        "engineSourceSha256": "24f1cdf304e3d1a3fb454faa30bfb57098171528f2375cb4b6bb7122d8006c5f",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008"
+        ],
+        "start": "2025-04-01T00:00:00.000Z",
+        "end": "2025-06-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 22,
+          "openPositions": 0,
+          "authorizedEntries": 22,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.5454545454545454,
+          "profitFactor": 2.5782547391608013,
+          "expectancyR": 0.5317310832567256,
+          "realizedNet": 573.8775310000082,
+          "endingBalance": 10573.877531000007,
+          "endingEquity": 10573.877531000007,
+          "netReturnPct": 5.738775310000074,
+          "maximumDrawdownPct": 1.885926599521567,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 3,
+          "costs": 24.989999999999995,
+          "financing": 7.102469,
+          "tradesPerDay": 0.36065573770491804,
+          "tradesPerWeek": 2.5245901639344264,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 10000,
+        "riskPct": 0.5
+      },
+      {
+        "reportSha256": "dacbc8a95e8b484a58660d135c4d1e47e376792edabdf4b551c26a86a63aa19f",
+        "engineSourceSha256": "24f1cdf304e3d1a3fb454faa30bfb57098171528f2375cb4b6bb7122d8006c5f",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008"
+        ],
+        "start": "2025-06-01T00:00:00.000Z",
+        "end": "2025-09-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 15,
+          "openPositions": 0,
+          "authorizedEntries": 15,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.4666666666666667,
+          "profitFactor": 1.109030255024396,
+          "expectancyR": 0.051101889763158395,
+          "realizedNet": 34.562634999987075,
+          "endingBalance": 10034.562634999982,
+          "endingEquity": 10034.562634999982,
+          "netReturnPct": 0.34562634999982034,
+          "maximumDrawdownPct": 2.6006159923077137,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 5,
+          "costs": 18.970000000000006,
+          "financing": 10.517365,
+          "tradesPerDay": 0.16304347826086957,
+          "tradesPerWeek": 1.141304347826087,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 10000,
+        "riskPct": 0.5
+      }
+    ],
+    "limitations": [
+      "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+      "Research selection creates bias; no untouched holdout or customer-return claim",
+      "Positive separate account periods qualify for signals and demo forward testing only"
+    ]
   }
 ]
