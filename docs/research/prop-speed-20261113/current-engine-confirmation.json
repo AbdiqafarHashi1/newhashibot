@@ -1,0 +1,215 @@
+{
+  "schema": "prop-speed-current-engine/v1",
+  "brainVersion": "1.1.1",
+  "sharedSourceSha256": "4b742c16404b310fd4bab72ca39ae81b501ccaaab0fa99bec588992ba2ce2003",
+  "caseCount": 16,
+  "headlineMetricsUnchanged": true,
+  "results": [
+    {
+      "bundle": "GOLD_BOTH",
+      "objective": "FUNDED_2",
+      "variant": {
+        "risk": 1.5,
+        "leverage": 30,
+        "exit": "ORIGINAL",
+        "study": {
+          "staticBasis": false,
+          "openRiskPct": 3,
+          "dailyCapPct": 4.5,
+          "totalCapPct": 9,
+          "adaptive": false
+        },
+        "basis": "HIGH_WATER",
+        "adaptive": true
+      },
+      "rows": [
+        {
+          "start": 1748736000000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 3.5347222222222223,
+          "priorHit": true,
+          "priorDays": 3.5347222222222223
+        },
+        {
+          "start": 1749945600000,
+          "hit": false,
+          "failed": false,
+          "daysToHit": null,
+          "priorHit": false,
+          "priorDays": null
+        },
+        {
+          "start": 1751328000000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 3.3993055555555554,
+          "priorHit": true,
+          "priorDays": 3.3993055555555554
+        },
+        {
+          "start": 1752537600000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 1.6388888888888888,
+          "priorHit": true,
+          "priorDays": 1.6388888888888888
+        },
+        {
+          "start": 1754006400000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 0.5520833333333334,
+          "priorHit": true,
+          "priorDays": 0.5520833333333334
+        }
+      ]
+    },
+    {
+      "bundle": "GOLD_BOTH",
+      "objective": "FUNDED_5",
+      "variant": {
+        "risk": 1,
+        "leverage": 5,
+        "exit": "ORIGINAL",
+        "study": {
+          "staticBasis": false,
+          "openRiskPct": 3,
+          "dailyCapPct": 4.5,
+          "totalCapPct": 9,
+          "adaptive": false
+        },
+        "basis": "HIGH_WATER",
+        "adaptive": true
+      },
+      "rows": [
+        {
+          "start": 1748736000000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 10.854166666666666,
+          "priorHit": true,
+          "priorDays": 10.854166666666666
+        },
+        {
+          "start": 1749945600000,
+          "hit": false,
+          "failed": false,
+          "daysToHit": null,
+          "priorHit": false,
+          "priorDays": null
+        },
+        {
+          "start": 1751328000000,
+          "hit": false,
+          "failed": false,
+          "daysToHit": null,
+          "priorHit": false,
+          "priorDays": null
+        },
+        {
+          "start": 1752537600000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 22.600694444444443,
+          "priorHit": true,
+          "priorDays": 22.600694444444443
+        },
+        {
+          "start": 1754006400000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 6.239583333333333,
+          "priorHit": true,
+          "priorDays": 6.239583333333333
+        }
+      ]
+    },
+    {
+      "bundle": "REVIEWED_SPEED",
+      "objective": "PASS_8_5",
+      "variant": {
+        "risk": 1.5,
+        "leverage": 10,
+        "exit": "ORIGINAL",
+        "study": {
+          "staticBasis": false,
+          "openRiskPct": 3,
+          "dailyCapPct": 4.5,
+          "totalCapPct": 9,
+          "adaptive": false
+        },
+        "basis": "HIGH_WATER",
+        "adaptive": false,
+        "phaseBanking": true
+      },
+      "rows": [
+        {
+          "start": 1748736000000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 25.229166666666668,
+          "priorHit": true,
+          "priorDays": 25.229166666666668
+        },
+        {
+          "start": 1749945600000,
+          "hit": false,
+          "failed": false,
+          "daysToHit": null,
+          "priorHit": false,
+          "priorDays": null
+        },
+        {
+          "start": 1751328000000,
+          "hit": false,
+          "failed": false,
+          "daysToHit": null,
+          "priorHit": false,
+          "priorDays": null
+        },
+        {
+          "start": 1752537600000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 22.625,
+          "priorHit": true,
+          "priorDays": 22.625
+        },
+        {
+          "start": 1754006400000,
+          "hit": false,
+          "failed": false,
+          "daysToHit": null,
+          "priorHit": false,
+          "priorDays": null
+        }
+      ]
+    },
+    {
+      "bundle": "REVIEWED_FULL",
+      "objective": "PASS_10_5",
+      "variant": {
+        "risk": 2,
+        "leverage": 10,
+        "exit": "RR3_HOLD24",
+        "study": {
+          "staticBasis": false,
+          "openRiskPct": 3,
+          "dailyCapPct": 4.5,
+          "totalCapPct": 9
+        }
+      },
+      "rows": [
+        {
+          "start": 1743206400000,
+          "hit": true,
+          "failed": false,
+          "daysToHit": 13.815972222222221,
+          "priorHit": true,
+          "priorDays": 13.815972222222221
+        }
+      ]
+    }
+  ]
+}

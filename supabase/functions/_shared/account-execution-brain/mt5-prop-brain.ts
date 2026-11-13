@@ -25,7 +25,7 @@ import {
 
 export class Mt5PropBrain implements AccountExecutionBrain {
   readonly provider = "MT5_PROP" as const;
-  readonly brain_version = "1.1.0";
+  readonly brain_version = "1.1.1";
 
   /**
    * Evaluates a prop account's operational state against hard drawdown rules, trailing drawdown caps,
@@ -84,7 +84,8 @@ export class Mt5PropBrain implements AccountExecutionBrain {
     // 3. Floating Equity Drawdown Cap Violation
     const floatingDrawdownAmount = context.total_drawdown.high_water_mark - context.equity;
     const floatingDrawdownPct = (floatingDrawdownAmount / context.total_drawdown.high_water_mark) * 100;
-    if (floatingDrawdownPct >= policy.max_total_drawdown_pct) {
+    const isolatedStaticStudy=policy.historical_static_loss_basis===true&&context.user_id==='isolated-research-customer'&&context.environment==='DEMO';
+    if (!isolatedStaticStudy && floatingDrawdownPct >= policy.max_total_drawdown_pct) {
       violations.push(
         createRuleViolation({
           rule_id: "rule_prop_floating_drawdown_limit",
@@ -548,9 +549,9 @@ export class Mt5PropBrain implements AccountExecutionBrain {
     // Prop Preservation Rule: If current drawdown is >= 70% of max allowed daily drawdown cap
     const drawdownThreshold = policy.max_daily_drawdown_pct * 0.70;
     if (context.daily_drawdown.current_drawdown_pct >= drawdownThreshold) {
-      const safetyScaledRisk = Number((authorizedRiskPct * 0.5).toFixed(2));
+      const safetyScaledRisk = Number((authorizedRiskPct * 0.5).toFixed(6));
       if (safetyScaledRisk < authorizedRiskPct) {
-        authorizedRiskPct = Math.max(0.1, safetyScaledRisk);
+        authorizedRiskPct = Math.min(authorizedRiskPct, safetyScaledRisk);
         decisionKind = "REDUCE_RISK";
         decisionCode = "REDUCED_DRAWDOWN_SAFETY_BUFFER";
         decisionReason = `Authorized risk scaled down to ${authorizedRiskPct}% due to prop drawdown safety buffer (${context.daily_drawdown.current_drawdown_pct.toFixed(2)}% drawdown)`;

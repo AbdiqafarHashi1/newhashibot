@@ -28,6 +28,8 @@ export interface OwnedExecutionAccount {
 }
 
 export interface PolicyConfiguration {
+  readonly historicalPropStudy?: "SIZING_AND_STATIC_20261113";
+  readonly historicalStaticBasis?: boolean;
   readonly preset: PolicyPreset;
   readonly lossResponse?: LossResponsePolicy;
   readonly riskPerTradePct?: number;
@@ -105,17 +107,21 @@ export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, ba
   if (account.policyProfileId !== base.policy_id || account.policyVersion !== base.policy_version) throw new Error("POLICY_LINEAGE_MISMATCH");
   if (account.provider !== base.provider || account.accountType !== base.account_type) throw new Error("POLICY_ACCOUNT_MISMATCH");
   if(historicalResearch&&(account.customerId!=='isolated-research-customer'||!account.immutableIdentity?.startsWith('historical:')))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
+  if((config.historicalPropStudy||config.historicalStaticBasis||base.historical_static_loss_basis)&&!historicalResearch)throw Error("ISOLATED_RESEARCH_POLICY_REQUIRED");
+  if(config.historicalStaticBasis&&!config.historicalPropStudy)throw Error("EXPLICIT_PROP_STUDY_REQUIRED");
   const declaredLimit = presetBounds[config.preset];
   const limit=historicalResearch&&config.preset==='PROP_SAFE'?{...declaredLimit,risk:1,leverage:10}:declaredLimit;
-  const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? limit.risk, limit.risk);
-  const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? limit.open, limit.open);
+  const study=historicalResearch&&config.preset==='PROP_SAFE'&&config.historicalPropStudy==='SIZING_AND_STATIC_20261113';
+  const cap=study?{risk:2,open:3,leverage:30,positions:3,daily:4.5,total:9}:limit;
+  const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? limit.risk, cap.risk);
+  const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? limit.open, cap.open);
   bounded("maxCorrelatedRiskPct",config.maxCorrelatedRiskPct??open,open);
-  const leverage = bounded("maxLeverage", config.maxLeverage ?? (config.preset === "PROP_SAFE" ? 5 : limit.leverage), limit.leverage);
+  const leverage = bounded("maxLeverage", config.maxLeverage ?? (config.preset === "PROP_SAFE" ? 5 : limit.leverage), cap.leverage);
   const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? (config.preset === "PROP_SAFE" ? 2 : limit.positions), limit.positions);
-  const daily = bounded("maxDailyDrawdownPct", config.maxDailyDrawdownPct ?? limit.daily, limit.daily);
-  const total = bounded("maxTotalDrawdownPct", config.maxTotalDrawdownPct ?? limit.total, limit.total);
+  const daily = bounded("maxDailyDrawdownPct", config.maxDailyDrawdownPct ?? limit.daily, cap.daily);
+  const total = bounded("maxTotalDrawdownPct", config.maxTotalDrawdownPct ?? limit.total, cap.total);
   if (account.accountType !== "PERSONAL" && config.preset !== "PROP_SAFE") throw new Error("PROP_ACCOUNT_REQUIRES_PROP_SAFE");
-  return composeAccountPolicy(base, { max_risk_per_trade_pct: risk, max_portfolio_risk_pct: open, max_leverage_allowed: leverage, max_open_positions_total: positions, max_daily_drawdown_pct: daily, max_total_drawdown_pct: total, allowed_symbols: config.allowedSymbols === undefined ? base.allowed_symbols : config.allowedSymbols as string[] | null });
+  return composeAccountPolicy(base, { historical_static_loss_basis:study&&config.historicalStaticBasis?true:undefined, max_risk_per_trade_pct: risk, max_portfolio_risk_pct: open, max_leverage_allowed: leverage, max_open_positions_total: positions, max_daily_drawdown_pct: daily, max_total_drawdown_pct: total, allowed_symbols: config.allowedSymbols === undefined ? base.allowed_symbols : config.allowedSymbols as string[] | null });
 }
 
 /** Canonical signal -> owned account -> entitlement -> mode/policy -> brain -> controller -> intent. */

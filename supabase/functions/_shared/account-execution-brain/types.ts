@@ -131,6 +131,8 @@ export interface WeekendPolicyRestriction {
  * Composable Account Policy representing account restrictions across Personal, Prop, Binance, Bybit & MT5.
  */
 export interface AccountPolicy {
+  /** Isolated historical study only. Never loaded from customer account policy. */
+  readonly historical_static_loss_basis?: true;
   readonly policy_id: string;
   readonly policy_version: string;
   readonly provider: BrainProvider;
