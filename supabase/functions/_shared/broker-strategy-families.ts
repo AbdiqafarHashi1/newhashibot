@@ -15,6 +15,7 @@ export const BROKER_FAMILY_CANDIDATES=[
  {market:'forex',family:'sweep_retest',minutes:60,n:48,stop:1.5,rr:1.5,symbol:'GBPUSD',hold:72},
  {market:'forex',family:'sweep_retest',minutes:60,n:16,stop:2,rr:5,symbol:'USDJPY',hold:72},
  {market:'forex',family:'squeeze',minutes:60,n:16,stop:2,rr:3,symbol:'EURUSD',hold:24},
+ {market:'forex',family:'squeeze',minutes:15,n:48,stop:2,rr:3,symbol:'USDJPY',hold:12},
 ] as const;
 export const BROKER_FX_SYMBOLS=['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD'];
 export const brokerFamilyId=(c:typeof BROKER_FAMILY_CANDIDATES[number])=>`${c.market}.native-${c.family.replaceAll('_','-')}-${c.minutes}-${c.n}-${c.stop}-${c.rr}${'hold' in c?`-${c.symbol.toLowerCase()}-h${c.hold}`:''}`;

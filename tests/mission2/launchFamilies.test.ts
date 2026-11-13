@@ -11,3 +11,10 @@ test('expanded swing entries keep distinct identities and frozen exit horizons',
  const d=all.find(d=>d.id==='crypto.launch-donchian-48-1.5-5-h24')!,r=d.evaluate(ctx);assert.equal(r.status,'candidate');assert.equal(r.score_breakdown.max_bars_in_trade,24);
  const defs=await authorizeHistoricalResearch([d],'expanded-swing-integration'),found=discoverWatchedStrategies({definitions:defs,symbol:'BTCUSDT',tf:'4h',rows,now});assert.equal(found.setups[0]?.entryDecision?.kind,'IMMEDIATE_CONFIRMED');assert.equal(found.setups[0]?.holdBars,24);assert.equal(found.setups[0]?.entryDecision?.executionEligible,false);
 });
+
+test('RSI swing pulls back within its own trend and uses only completed candles',async()=>{
+ const {ctx}=fixture(),rows=ctx.candles.map(b=>({...b}));for(let i=196;i<200;i++){const close=119.5-(i-195)*.2;rows[i]={...rows[i],open:close+.15,high:close+.2,low:close-.2,close};}
+ const d=launchStrategyDefinitions().find(d=>d.id==='crypto.launch-rsi2-48-3-3-h72')!,input={...ctx,candles:rows},r=d.evaluate(input);assert.equal(r.status,'candidate');assert.equal(r.direction,'buy');assert.equal(r.tp1,r.tp2);assert.equal(r.score_breakdown.max_bars_in_trade,72);
+ const defs=await authorizeHistoricalResearch([d],'rsi-swing-entry'),found=discoverWatchedStrategies({definitions:defs,symbol:'BTCUSDT',tf:'4h',rows,now:Date.parse(ctx.evaluated_at)});assert.equal(found.setups[0]?.entryDecision?.kind,'IMMEDIATE_CONFIRMED',JSON.stringify(found.observations));assert.equal(found.setups[0]?.holdBars,72);
+ assert.equal(d.evaluate({...input,evaluated_at:new Date(Date.parse(ctx.evaluated_at)-1).toISOString()}).status,'rejected');
+});

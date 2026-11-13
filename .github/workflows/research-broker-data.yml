@@ -62,8 +62,17 @@ jobs:
   native-exness-reference:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      replays: ${{ steps.request.outputs.replays }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - id: request
+        run: |
+          replays=true
+          case "$(git log -1 --format=%s)" in '[scalp-research]'*) replays=false ;; esac
+          echo "replays=$replays" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -82,12 +91,15 @@ jobs:
         run: |
           for symbol in EURUSD GBPUSD USDJPY AUDUSD USDCAD; do
             python3 scripts/research/launch/style_coverage_search.py --market forex --symbols "$symbol"
+            python3 scripts/research/launch/style_coverage_search.py --market forex --symbols "$symbol" --scalp-only --expanded
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: forex-style-screen-${{ github.event.pull_request.head.sha }}
-          path: .tmp/launch-research/styles/*.json
+          path: |
+            .tmp/launch-research/styles/*.json
+            .tmp/launch-research/scalps/*.json
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
@@ -98,6 +110,7 @@ jobs:
 
   broker-canonical:
     needs: native-exness-reference
+    if: needs.native-exness-reference.outputs.replays == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -133,6 +146,7 @@ jobs:
 
   broker-family-canonical:
     needs: native-exness-reference
+    if: needs.native-exness-reference.outputs.replays == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -214,4 +228,47 @@ jobs:
         with:
           name: native-family-${{ matrix.candidate }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
           path: .tmp/broker-families
+          retention-days: 14
+
+  expanded-scalp-canonical:
+    needs: native-exness-reference
+    if: needs.native-exness-reference.outputs.replays == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        period: [early, later]
+        include:
+          - period: early
+            start: '2025-04-01'
+            end: '2025-06-01'
+          - period: later
+            start: '2025-06-01'
+            end: '2025-09-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-exness-reference-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research/exness-data
+      - name: Native scalp through actual scanner, arbitration and account Brain
+        env:
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/expanded-scalp
+          node --import tsx scripts/research/run-frequency-audit.ts venue=exness data=.tmp/launch-research/exness-data months=2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08 symbols=USDJPY "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" strategyIds=forex.native-squeeze-15-48-2-3-usdjpy-h12 risks=.5 balances=10000 checkpointEvery=1440 out=.tmp/expanded-scalp/report.json > .tmp/expanded-scalp/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: expanded-scalp-yen-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/expanded-scalp
           retention-days: 14

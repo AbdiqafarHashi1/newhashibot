@@ -492,5 +492,100 @@
       "Research selection creates bias; no untouched holdout or customer-return claim",
       "Positive separate account periods qualify for signals and demo forward testing only"
     ]
+  },
+  {
+    "schema": "canonical-account-review/v1",
+    "strategyId": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+    "periods": [
+      {
+        "reportSha256": "c03b7b50c6dcc58dc167490f91df36bb423491c09aa46aec605dad829c6acc53",
+        "engineSourceSha256": "c989ac30ea7ff96c91e1c24e140eb5f0d3985b3f1ac875b4ad76df6d055e1254",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72"
+        ],
+        "start": "2025-04-01T00:00:00.000Z",
+        "end": "2025-06-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 16,
+          "openPositions": 0,
+          "authorizedEntries": 16,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.25,
+          "profitFactor": 1.16049367605527,
+          "expectancyR": 0.13805978122847817,
+          "realizedNet": 100.06872251064915,
+          "endingBalance": 10100.06872251064,
+          "endingEquity": 10100.06872251064,
+          "netReturnPct": 1.0006872251063943,
+          "maximumDrawdownPct": 3.046701877573663,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 5,
+          "costs": 13.020000000000001,
+          "financing": 15.90029277989656,
+          "tradesPerDay": 0.26229508196721313,
+          "tradesPerWeek": 1.8360655737704918,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 10000,
+        "riskPct": 0.5
+      },
+      {
+        "reportSha256": "b7a29e393fe15a918ef8aaa9bacacc82e203dcb518b3e98bbd1a21962a45008b",
+        "engineSourceSha256": "c989ac30ea7ff96c91e1c24e140eb5f0d3985b3f1ac875b4ad76df6d055e1254",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72"
+        ],
+        "start": "2025-06-01T00:00:00.000Z",
+        "end": "2025-09-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 30,
+          "openPositions": 0,
+          "authorizedEntries": 30,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.23333333333333334,
+          "profitFactor": 1.0397825624738872,
+          "expectancyR": 0.03631842677787505,
+          "realizedNet": 45.66449904382205,
+          "endingBalance": 10045.664499043818,
+          "endingEquity": 10045.664499043818,
+          "netReturnPct": 0.4566449904381807,
+          "maximumDrawdownPct": 4.562956844957957,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 6,
+          "costs": 33.67,
+          "financing": 55.30057950665412,
+          "tradesPerDay": 0.32608695652173914,
+          "tradesPerWeek": 2.282608695652174,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 10000,
+        "riskPct": 0.5
+      }
+    ],
+    "limitations": [
+      "Native reference broker bid/ask; commission, carry and slippage are scenarios",
+      "Research selection creates bias; no untouched holdout or customer-return claim",
+      "Positive separate account periods qualify for signals and demo forward testing only"
+    ]
   }
 ]

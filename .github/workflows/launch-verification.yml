@@ -19,6 +19,7 @@ jobs:
     outputs:
       run: ${{ steps.request.outputs.run }}
       participation: ${{ steps.request.outputs.participation }}
+      swing: ${{ steps.request.outputs.swing }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,9 +30,11 @@ jobs:
           subject="$(git log -1 --format=%s)"
           requested=true
           participation=false
-          case "$subject" in '[broker-validation]'*) requested=false ;; '[participation-research]'*) requested=false; participation=true ;; esac
+          swing=true
+          case "$subject" in '[scalp-research]'*) requested=false; participation=true; swing=false ;; '[broker-validation]'*) requested=false ;; '[participation-research]'*) requested=false; participation=true ;; esac
           echo "run=$requested" >> "$GITHUB_OUTPUT"
           echo "participation=$participation" >> "$GITHUB_OUTPUT"
+          echo "swing=$swing" >> "$GITHUB_OUTPUT"
   family-research:
     needs: research-request
     if: needs.research-request.outputs.run == 'true'
@@ -157,6 +160,7 @@ jobs:
           python3 scripts/research/launch/style_coverage_search.py --market crypto
           for symbol in BTCUSDT ETHUSDT SOLUSDT BNBUSDT XRPUSDT ADAUSDT DOGEUSDT LINKUSDT AVAXUSDT LTCUSDT; do
             python3 scripts/research/launch/style_coverage_search.py --market crypto --symbols "$symbol"
+            python3 scripts/research/launch/style_coverage_search.py --market crypto --symbols "$symbol" --scalp-only --expanded
           done
       - uses: actions/upload-artifact@v4
         if: always()
@@ -165,11 +169,12 @@ jobs:
           path: |
             .tmp/launch-research/crypto-participation.json
             .tmp/launch-research/styles/*.json
+            .tmp/launch-research/scalps/*.json
           retention-days: 14
 
   expanded-swing-scanner:
     needs: research-request
-    if: needs.research-request.outputs.participation == 'true'
+    if: needs.research-request.outputs.participation == 'true' && needs.research-request.outputs.swing == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
