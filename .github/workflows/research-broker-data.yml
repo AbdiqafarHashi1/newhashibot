@@ -15,7 +15,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: broker-research-${{ github.ref }}
+  group: broker-research-${{ github.ref }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 jobs:
   development-data:

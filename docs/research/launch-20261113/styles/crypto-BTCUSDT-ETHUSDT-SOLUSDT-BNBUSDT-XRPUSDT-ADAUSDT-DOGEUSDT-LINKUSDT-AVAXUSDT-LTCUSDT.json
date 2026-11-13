@@ -1,0 +1,2226 @@
+{
+  "schema": "style-coverage-screen/v1",
+  "market": "crypto",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "BNBUSDT",
+    "XRPUSDT",
+    "ADAUSDT",
+    "DOGEUSDT",
+    "LINKUSDT",
+    "AVAXUSDT",
+    "LTCUSDT"
+  ],
+  "gridCountByStyle": {
+    "SCALP": 648,
+    "SWING": 648
+  },
+  "selection": "Top six positive-costed development results per style/family; Jan\u2013Mar development, Apr\u2013May validation, Jun\u2013Aug later observation; crypto also Aug\u2013Oct2026. Previous observations preclude an untouched holdout claim.",
+  "sourceSha256": "59c8b3338a3fdd9f978434004fc98911a3a36197f66ac0d6947b99be207484b3",
+  "results": [
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 22.015165858199936,
+        "maximumDrawdownPct": 9.955118072591672,
+        "profitFactor": 1.7527966438625755,
+        "closedTrades": 52,
+        "entries": 57,
+        "blockedEntries": 27,
+        "accountFailed": false,
+        "costs": 17.520091417999996,
+        "openPositions": 5,
+        "monthly": {
+          "2025-01": 1.5694412600000485,
+          "2025-02": 14.528099470811195,
+          "2025-03": 4.891113865244501
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -1.7575942509999498,
+        "maximumDrawdownPct": 11.699557238622344,
+        "profitFactor": 0.9266910922695529,
+        "closedTrades": 57,
+        "entries": 57,
+        "blockedEntries": 49,
+        "accountFailed": false,
+        "costs": 19.04910251,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": 1.787203198000098,
+          "2025-05": -3.4825570775381065
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 12.510187488100112,
+        "maximumDrawdownPct": 6.104057323240257,
+        "profitFactor": 1.6300111339095984,
+        "closedTrades": 49,
+        "entries": 53,
+        "blockedEntries": 25,
+        "accountFailed": false,
+        "costs": 12.212195118999997,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 0.6663858925999522,
+          "2025-02": 6.615040100977332,
+          "2025-03": 4.830799231429217
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 2.403195907600142,
+        "maximumDrawdownPct": 7.307012119241907,
+        "profitFactor": 1.174937170787191,
+        "closedTrades": 42,
+        "entries": 42,
+        "blockedEntries": 59,
+        "accountFailed": false,
+        "costs": 12.07441092399999,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": 3.377477573000065,
+          "2025-05": -0.94245060749516
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 12.529077314100224,
+        "maximumDrawdownPct": 6.921598965761667,
+        "profitFactor": 1.5133548896623206,
+        "closedTrades": 65,
+        "entries": 71,
+        "blockedEntries": 32,
+        "accountFailed": false,
+        "costs": 20.691206859000033,
+        "openPositions": 6,
+        "monthly": {
+          "2025-06": 3.9378600410000297,
+          "2025-07": 3.691773557091227,
+          "2025-08": 4.411103111380155
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 4.112658929500235,
+        "maximumDrawdownPct": 9.551318450173195,
+        "profitFactor": 1.1634720425655518,
+        "closedTrades": 63,
+        "entries": 65,
+        "blockedEntries": 62,
+        "accountFailed": false,
+        "costs": 24.071170705000004,
+        "openPositions": 2,
+        "monthly": {
+          "2026-08": -2.45497134639997,
+          "2026-09": 6.569738640046574,
+          "2026-10": 0.15312314103965718
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 14.414392874399917,
+        "maximumDrawdownPct": 7.699163559551373,
+        "profitFactor": 1.834149997380118,
+        "closedTrades": 70,
+        "entries": 72,
+        "blockedEntries": 30,
+        "accountFailed": false,
+        "costs": 14.719001255999988,
+        "openPositions": 2,
+        "monthly": {
+          "2025-01": -0.03492486730007904,
+          "2025-02": 11.105997860915329,
+          "2025-03": 3.0136699308432435
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -0.5118290155001537,
+        "maximumDrawdownPct": 11.945078867557674,
+        "profitFactor": 0.9731809794267146,
+        "closedTrades": 72,
+        "entries": 72,
+        "blockedEntries": 45,
+        "accountFailed": false,
+        "costs": 15.90751015500001,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -2.888654171000171,
+          "2025-05": 2.447525708978726
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 11.620374062199602,
+        "maximumDrawdownPct": 6.718903859549553,
+        "profitFactor": 1.6678137809626323,
+        "closedTrades": 70,
+        "entries": 72,
+        "blockedEntries": 28,
+        "accountFailed": false,
+        "costs": 13.930209377999999,
+        "openPositions": 2,
+        "monthly": {
+          "2025-01": 1.0191035337999477,
+          "2025-02": 6.395685008170893,
+          "2025-03": 3.852259147818926
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -2.081621968400127,
+        "maximumDrawdownPct": 11.418006155373453,
+        "profitFactor": 0.8910709233990295,
+        "closedTrades": 72,
+        "entries": 72,
+        "blockedEntries": 45,
+        "accountFailed": false,
+        "costs": 15.622779683999994,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -2.0068737955001192,
+          "2025-05": -0.07627899608387834
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 17.322695718099702,
+        "maximumDrawdownPct": 10.381672722753082,
+        "profitFactor": 1.7131193484923448,
+        "closedTrades": 77,
+        "entries": 79,
+        "blockedEntries": 23,
+        "accountFailed": false,
+        "costs": 20.329722818999997,
+        "openPositions": 2,
+        "monthly": {
+          "2025-01": 2.040174466699929,
+          "2025-02": 10.98208247464032,
+          "2025-03": 3.59957433772633
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -5.087121941799944,
+        "maximumDrawdownPct": 12.04632891822525,
+        "profitFactor": 0.8196616385000072,
+        "closedTrades": 82,
+        "entries": 82,
+        "blockedEntries": 41,
+        "accountFailed": false,
+        "costs": 21.629389418000034,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -2.2601759385999842,
+          "2025-05": -2.892317466649097
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 3,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 9.174372953599864,
+        "maximumDrawdownPct": 5.649107745471739,
+        "profitFactor": 1.6813825431820326,
+        "closedTrades": 66,
+        "entries": 68,
+        "blockedEntries": 34,
+        "accountFailed": false,
+        "costs": 9.011990464000005,
+        "openPositions": 2,
+        "monthly": {
+          "2025-01": -0.3709996325000131,
+          "2025-02": 9.217125001884007,
+          "2025-03": 0.3330913113430034
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 0.9123222514999529,
+        "maximumDrawdownPct": 8.214251274245491,
+        "profitFactor": 1.1015152849914993,
+        "closedTrades": 66,
+        "entries": 67,
+        "blockedEntries": 52,
+        "accountFailed": false,
+        "costs": 10.621517484999993,
+        "openPositions": 1,
+        "monthly": {
+          "2025-04": -1.0287148021000059,
+          "2025-05": 1.9612123351926858
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 1.6079979883002693,
+        "maximumDrawdownPct": 5.764316988914486,
+        "profitFactor": 1.0536284297894698,
+        "closedTrades": 92,
+        "entries": 97,
+        "blockedEntries": 25,
+        "accountFailed": false,
+        "costs": 15.711500117000009,
+        "openPositions": 5,
+        "monthly": {
+          "2025-06": -1.0893299616999697,
+          "2025-07": 2.1470813585408255,
+          "2025-08": 0.5677626673334268
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 4.097478931900067,
+        "maximumDrawdownPct": 7.063459710649999,
+        "profitFactor": 1.116270141097767,
+        "closedTrades": 82,
+        "entries": 87,
+        "blockedEntries": 50,
+        "accountFailed": false,
+        "costs": 18.65280068099999,
+        "openPositions": 5,
+        "monthly": {
+          "2026-08": 0.4959853276000903,
+          "2026-09": 3.4511297797558793,
+          "2026-10": 0.12816593204640903
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 18.635651760999817,
+        "maximumDrawdownPct": 5.484464070704822,
+        "profitFactor": 2.5063740516767474,
+        "closedTrades": 36,
+        "entries": 41,
+        "blockedEntries": 15,
+        "accountFailed": false,
+        "costs": 7.875952390000004,
+        "openPositions": 5,
+        "monthly": {
+          "2025-01": -1.5674098369000355,
+          "2025-02": 18.667548339887464,
+          "2025-03": 1.565061830173664
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 3.970657979400105,
+        "maximumDrawdownPct": 11.95913191470182,
+        "profitFactor": 1.222317900172789,
+        "closedTrades": 55,
+        "entries": 59,
+        "blockedEntries": 30,
+        "accountFailed": false,
+        "costs": 14.098210206000001,
+        "openPositions": 4,
+        "monthly": {
+          "2025-04": 1.31049836299999,
+          "2025-05": 2.6257492159091234
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 1.3925300909000127,
+        "maximumDrawdownPct": 12.354780727655221,
+        "profitFactor": 1.048841523492846,
+        "closedTrades": 76,
+        "entries": 77,
+        "blockedEntries": 39,
+        "accountFailed": false,
+        "costs": 24.085849091000004,
+        "openPositions": 1,
+        "monthly": {
+          "2025-06": -5.452306189099998,
+          "2025-07": 13.048295274101939,
+          "2025-08": -5.138278330395485
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 17.757603796999845,
+        "maximumDrawdownPct": 14.899071667818806,
+        "profitFactor": 1.5518816155862056,
+        "closedTrades": 80,
+        "entries": 84,
+        "blockedEntries": 35,
+        "accountFailed": false,
+        "costs": 29.065042030000004,
+        "openPositions": 4,
+        "monthly": {
+          "2026-08": 26.098290759999898,
+          "2026-09": 5.246544221040783,
+          "2026-10": -11.26970706165168
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 13.566680923099984,
+        "maximumDrawdownPct": 5.157809903133568,
+        "profitFactor": 2.7024556797804373,
+        "closedTrades": 31,
+        "entries": 37,
+        "blockedEntries": 15,
+        "accountFailed": false,
+        "costs": 5.799530768999995,
+        "openPositions": 6,
+        "monthly": {
+          "2025-01": -1.4274495786999686,
+          "2025-02": 13.4045424216241,
+          "2025-03": 1.5931647534197069
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 2.0672898539999984,
+        "maximumDrawdownPct": 9.068683516900194,
+        "profitFactor": 1.1997763837585813,
+        "closedTrades": 46,
+        "entries": 51,
+        "blockedEntries": 33,
+        "accountFailed": false,
+        "costs": 10.090161460000004,
+        "openPositions": 5,
+        "monthly": {
+          "2025-04": 1.0398311042999708,
+          "2025-05": 1.0168848645831785
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 0.5158097015999896,
+        "maximumDrawdownPct": 10.139131555588813,
+        "profitFactor": 1.022319807828223,
+        "closedTrades": 68,
+        "entries": 69,
+        "blockedEntries": 38,
+        "accountFailed": false,
+        "costs": 17.377752984000004,
+        "openPositions": 1,
+        "monthly": {
+          "2025-06": -5.276764990300076,
+          "2025-07": 8.518138351032722,
+          "2025-08": -2.2142617377902796
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 12.421740447899765,
+        "maximumDrawdownPct": 11.11587029992703,
+        "profitFactor": 1.5520247961725373,
+        "closedTrades": 72,
+        "entries": 78,
+        "blockedEntries": 34,
+        "accountFailed": false,
+        "costs": 21.201825520999986,
+        "openPositions": 6,
+        "monthly": {
+          "2026-08": 16.52862217119995,
+          "2026-09": 5.01707938270366,
+          "2026-10": -8.133375941512178
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 12.163325760599953,
+        "maximumDrawdownPct": 5.696652427705512,
+        "profitFactor": 1.6878494476663846,
+        "closedTrades": 43,
+        "entries": 48,
+        "blockedEntries": 14,
+        "accountFailed": false,
+        "costs": 8.005962393999999,
+        "openPositions": 5,
+        "monthly": {
+          "2025-01": -1.5674098369000355,
+          "2025-02": 11.494505034717118,
+          "2025-03": 2.2017896838845363
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 4.168839450200168,
+        "maximumDrawdownPct": 9.633154293809012,
+        "profitFactor": 1.2232848590699612,
+        "closedTrades": 61,
+        "entries": 65,
+        "blockedEntries": 29,
+        "accountFailed": false,
+        "costs": 15.277115497999992,
+        "openPositions": 4,
+        "monthly": {
+          "2025-04": 1.8444843794000798,
+          "2025-05": 2.282259157149058
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 10.36586699469999,
+        "maximumDrawdownPct": 10.41093217423765,
+        "profitFactor": 1.3506654575307433,
+        "closedTrades": 86,
+        "entries": 87,
+        "blockedEntries": 38,
+        "accountFailed": false,
+        "costs": 26.33979005299999,
+        "openPositions": 1,
+        "monthly": {
+          "2025-06": 0.33249474490002484,
+          "2025-07": 12.376976748932256,
+          "2025-08": -2.1150723655800063
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 11.85831305520011,
+        "maximumDrawdownPct": 16.347162302095043,
+        "profitFactor": 1.3368023059968823,
+        "closedTrades": 93,
+        "entries": 97,
+        "blockedEntries": 34,
+        "accountFailed": false,
+        "costs": 30.076919448000023,
+        "openPositions": 4,
+        "monthly": {
+          "2026-08": 23.123586765500082,
+          "2026-09": 2.3147655534338396,
+          "2026-10": -11.204962834082044
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 17.814417000300175,
+        "maximumDrawdownPct": 8.692183071283436,
+        "profitFactor": 2.19380241552877,
+        "closedTrades": 35,
+        "entries": 40,
+        "blockedEntries": 15,
+        "accountFailed": false,
+        "costs": 8.996899997000005,
+        "openPositions": 5,
+        "monthly": {
+          "2025-01": -1.8229675519000343,
+          "2025-02": 22.390631354253788,
+          "2025-03": -1.9516335002498164
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -0.4167380491999717,
+        "maximumDrawdownPct": 13.259147411909058,
+        "profitFactor": 1.009457786681413,
+        "closedTrades": 49,
+        "entries": 53,
+        "blockedEntries": 31,
+        "accountFailed": false,
+        "costs": 14.447770491999993,
+        "openPositions": 4,
+        "monthly": {
+          "2025-04": -1.4067712298999835,
+          "2025-05": 1.004159406330607
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 3,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 7.493453879000089,
+        "maximumDrawdownPct": 3.8404478154251436,
+        "profitFactor": 1.9343992708156756,
+        "closedTrades": 33,
+        "entries": 39,
+        "blockedEntries": 16,
+        "accountFailed": false,
+        "costs": 4.006151210000003,
+        "openPositions": 6,
+        "monthly": {
+          "2025-01": -1.0772330108999806,
+          "2025-02": 8.320992344064626,
+          "2025-03": 0.3166756566647999
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 0.530606645899856,
+        "maximumDrawdownPct": 6.809704563528331,
+        "profitFactor": 1.097429128550385,
+        "closedTrades": 44,
+        "entries": 49,
+        "blockedEntries": 33,
+        "accountFailed": false,
+        "costs": 6.713753540999999,
+        "openPositions": 5,
+        "monthly": {
+          "2025-04": 0.6594838314999629,
+          "2025-05": -0.12803282978863795
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 0.0037376420996437787,
+        "maximumDrawdownPct": 8.178305701750874,
+        "profitFactor": 1.0002133480125368,
+        "closedTrades": 68,
+        "entries": 68,
+        "blockedEntries": 43,
+        "accountFailed": false,
+        "costs": 12.145793579000006,
+        "openPositions": 0,
+        "monthly": {
+          "2025-06": -4.426900863100047,
+          "2025-07": 7.810122036544809,
+          "2025-08": -2.944304659045982
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 9.543318675500112,
+        "maximumDrawdownPct": 6.198644675061585,
+        "profitFactor": 1.7068343410178726,
+        "closedTrades": 67,
+        "entries": 73,
+        "blockedEntries": 34,
+        "accountFailed": false,
+        "costs": 14.607493244999972,
+        "openPositions": 6,
+        "monthly": {
+          "2026-08": 9.706788962300038,
+          "2026-09": 3.9024972677592196,
+          "2026-10": -3.8993324617184744
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 10.92276742920002,
+        "maximumDrawdownPct": 5.707074971740626,
+        "profitFactor": 1.5470895699578049,
+        "closedTrades": 43,
+        "entries": 48,
+        "blockedEntries": 14,
+        "accountFailed": false,
+        "costs": 8.594795708000001,
+        "openPositions": 5,
+        "monthly": {
+          "2025-01": -1.8229675519000343,
+          "2025-02": 11.51936152794033,
+          "2025-03": 1.3119142461876176
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 1.722443290100073,
+        "maximumDrawdownPct": 10.197793685055863,
+        "profitFactor": 1.1055781989061333,
+        "closedTrades": 59,
+        "entries": 63,
+        "blockedEntries": 30,
+        "accountFailed": false,
+        "costs": 15.043227098999987,
+        "openPositions": 4,
+        "monthly": {
+          "2025-04": 0.6624433226000592,
+          "2025-05": 1.05302427848184
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 8.643707351400076,
+        "maximumDrawdownPct": 11.062698860026591,
+        "profitFactor": 1.2835765743439655,
+        "closedTrades": 81,
+        "entries": 82,
+        "blockedEntries": 45,
+        "accountFailed": false,
+        "costs": 26.10679648599998,
+        "openPositions": 1,
+        "monthly": {
+          "2025-06": -0.028699826700007147,
+          "2025-07": 11.590568369935795,
+          "2025-08": -2.6128296988372046
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 9.854604089500029,
+        "maximumDrawdownPct": 16.729667976057122,
+        "profitFactor": 1.2640095267688587,
+        "closedTrades": 91,
+        "entries": 94,
+        "blockedEntries": 34,
+        "accountFailed": false,
+        "costs": 30.292359105000013,
+        "openPositions": 3,
+        "monthly": {
+          "2026-08": 23.7205745312,
+          "2026-09": -0.763785859450461,
+          "2026-10": -10.524085148516903
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 60,
+        "lookback": 16,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 54.314643626300565,
+        "maximumDrawdownPct": 16.098336421080152,
+        "profitFactor": 1.4504986558901634,
+        "closedTrades": 434,
+        "entries": 439,
+        "blockedEntries": 334,
+        "accountFailed": false,
+        "costs": 140.18523373700003,
+        "openPositions": 5,
+        "monthly": {
+          "2025-01": 7.574450667100119,
+          "2025-02": 16.996952458612125,
+          "2025-03": 22.609311535283318
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -20.266045316699888,
+        "maximumDrawdownPct": 21.894005116551714,
+        "profitFactor": 0.5520242610278736,
+        "closedTrades": 146,
+        "entries": 146,
+        "blockedEntries": 89,
+        "accountFailed": true,
+        "costs": 38.066043167,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -20.266045316699888,
+          "2025-05": 0.0
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 60,
+        "lookback": 16,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 24.339271623599966,
+        "maximumDrawdownPct": 8.934113479950517,
+        "profitFactor": 1.3096750004107256,
+        "closedTrades": 427,
+        "entries": 431,
+        "blockedEntries": 377,
+        "accountFailed": false,
+        "costs": 81.94392376400012,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 1.3987458476000025,
+          "2025-02": 10.101763982954214,
+          "2025-03": 11.373394998752296
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -20.091468411000147,
+        "maximumDrawdownPct": 23.357406937134336,
+        "profitFactor": 0.5679265371351393,
+        "closedTrades": 196,
+        "entries": 196,
+        "blockedEntries": 138,
+        "accountFailed": true,
+        "costs": 35.41960410999993,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -19.49092652350014,
+          "2025-05": -0.7459306902535601
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 24.866052129400273,
+        "maximumDrawdownPct": 10.740738501686721,
+        "profitFactor": 1.3285015513975342,
+        "closedTrades": 253,
+        "entries": 257,
+        "blockedEntries": 34,
+        "accountFailed": false,
+        "costs": 77.42494870600001,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 4.306620769300018,
+          "2025-02": 11.701598425468784,
+          "2025-03": 7.169972023152726
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -20.20345131809995,
+        "maximumDrawdownPct": 20.5387190536118,
+        "profitFactor": 0.39071467133605425,
+        "closedTrades": 97,
+        "entries": 97,
+        "blockedEntries": 14,
+        "accountFailed": true,
+        "costs": 26.62786318099999,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -20.20345131809995,
+          "2025-05": 0.0
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 46.12066606809986,
+        "maximumDrawdownPct": 19.955209231067432,
+        "profitFactor": 1.443816350437037,
+        "closedTrades": 228,
+        "entries": 230,
+        "blockedEntries": 43,
+        "accountFailed": false,
+        "costs": 95.11230931900006,
+        "openPositions": 2,
+        "monthly": {
+          "2025-01": 4.313204249700098,
+          "2025-02": 13.184700904382085,
+          "2025-03": 23.761233600437205
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -20.106077221099994,
+        "maximumDrawdownPct": 20.565950898242274,
+        "profitFactor": 0.4190123901761675,
+        "closedTrades": 84,
+        "entries": 84,
+        "blockedEntries": 17,
+        "accountFailed": true,
+        "costs": 29.016432211000016,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -20.106077221099994,
+          "2025-05": 0.0
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 60,
+        "lookback": 16,
+        "stopAtr": 2,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 41.50235088359962,
+        "maximumDrawdownPct": 18.36998694008311,
+        "profitFactor": 1.3682148209693317,
+        "closedTrades": 407,
+        "entries": 412,
+        "blockedEntries": 343,
+        "accountFailed": false,
+        "costs": 128.9489311640001,
+        "openPositions": 5,
+        "monthly": {
+          "2025-01": 6.076524434900077,
+          "2025-02": 17.53646542908376,
+          "2025-03": 13.493697999562325
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -20.0347509119999,
+        "maximumDrawdownPct": 25.813190465603547,
+        "profitFactor": 0.5222450622590452,
+        "closedTrades": 132,
+        "entries": 132,
+        "blockedEntries": 76,
+        "accountFailed": true,
+        "costs": 32.28496912000002,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -20.0347509119999,
+          "2025-05": 0.0
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 13.92070580480027,
+        "maximumDrawdownPct": 7.718253657390382,
+        "profitFactor": 1.2785943632844055,
+        "closedTrades": 258,
+        "entries": 262,
+        "blockedEntries": 46,
+        "accountFailed": false,
+        "costs": 50.49976195200008,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 2.139971797099993,
+          "2025-02": 6.8692041741873044,
+          "2025-03": 4.3648751903922145
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -20.04217564210016,
+        "maximumDrawdownPct": 20.43794318809338,
+        "profitFactor": 0.5037183454136688,
+        "closedTrades": 180,
+        "entries": 180,
+        "blockedEntries": 26,
+        "accountFailed": true,
+        "costs": 35.38419642100002,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -12.278330041000062,
+          "2025-05": -8.85054468836357
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 3,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 28.398257764899903,
+        "maximumDrawdownPct": 5.8550679579062255,
+        "profitFactor": 1.7118431301052133,
+        "closedTrades": 143,
+        "entries": 147,
+        "blockedEntries": 66,
+        "accountFailed": false,
+        "costs": 35.57169235099997,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 6.182080650600019,
+          "2025-02": 12.536087990779588,
+          "2025-03": 7.452391479987419
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 1.7056984232999284,
+        "maximumDrawdownPct": 11.539669436593496,
+        "profitFactor": 0.9939234242257701,
+        "closedTrades": 137,
+        "entries": 143,
+        "blockedEntries": 40,
+        "accountFailed": false,
+        "costs": 32.68217576699997,
+        "openPositions": 6,
+        "monthly": {
+          "2025-04": -8.962915258399972,
+          "2025-05": 11.718975527370755
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 240,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 18.452934472199843,
+        "maximumDrawdownPct": 4.696819490575233,
+        "profitFactor": 1.982873612031881,
+        "closedTrades": 45,
+        "entries": 51,
+        "blockedEntries": 10,
+        "accountFailed": false,
+        "costs": 13.764065277999999,
+        "openPositions": 6,
+        "monthly": {
+          "2025-01": -1.9467217563000072,
+          "2025-02": 6.692653018892392,
+          "2025-03": 13.22678905578616
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -7.509735897000058,
+        "maximumDrawdownPct": 10.024277676024314,
+        "profitFactor": 0.5063288363694812,
+        "closedTrades": 37,
+        "entries": 37,
+        "blockedEntries": 4,
+        "accountFailed": false,
+        "costs": 12.402898970000004,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -1.6326442553000198,
+          "2025-05": -5.97463619633456
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 240,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 13.626513245399675,
+        "maximumDrawdownPct": 3.904943507594999,
+        "profitFactor": 1.9688447439327297,
+        "closedTrades": 51,
+        "entries": 57,
+        "blockedEntries": 9,
+        "accountFailed": false,
+        "costs": 13.591717546000016,
+        "openPositions": 6,
+        "monthly": {
+          "2025-01": -1.671003906300017,
+          "2025-02": 3.999574513963644,
+          "2025-03": 11.113419305326433
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -9.207671740600142,
+        "maximumDrawdownPct": 10.806104441738226,
+        "profitFactor": 0.39063028792596227,
+        "closedTrades": 37,
+        "entries": 37,
+        "blockedEntries": 4,
+        "accountFailed": false,
+        "costs": 12.12050740599999,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -2.611808932900095,
+          "2025-05": -6.772754207084041
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 15.786386232199966,
+        "maximumDrawdownPct": 5.068389216035008,
+        "profitFactor": 3.092168317601331,
+        "closedTrades": 44,
+        "entries": 50,
+        "blockedEntries": 4,
+        "accountFailed": false,
+        "costs": 11.517977678000015,
+        "openPositions": 6,
+        "monthly": {
+          "2025-01": 1.8376577782999837,
+          "2025-02": 2.358054710496016,
+          "2025-03": 11.077749912360346
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 12.789892785399726,
+        "maximumDrawdownPct": 4.735293422380622,
+        "profitFactor": 2.506303914368499,
+        "closedTrades": 35,
+        "entries": 35,
+        "blockedEntries": 0,
+        "accountFailed": false,
+        "costs": 10.061342146000003,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": 1.0743683515999303,
+          "2025-05": 11.590994457710458
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": -7.900758439300071,
+        "maximumDrawdownPct": 20.182758521094442,
+        "profitFactor": 0.7692362696524255,
+        "closedTrades": 97,
+        "entries": 101,
+        "blockedEntries": 4,
+        "accountFailed": false,
+        "costs": 27.49358439300002,
+        "openPositions": 4,
+        "monthly": {
+          "2025-06": 9.478235093599974,
+          "2025-07": -7.29381208189277,
+          "2025-08": -9.255660677255829
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": -1.3784161907001935,
+        "maximumDrawdownPct": 10.499638581206248,
+        "profitFactor": 0.8916840762565718,
+        "closedTrades": 59,
+        "entries": 62,
+        "blockedEntries": 1,
+        "accountFailed": false,
+        "costs": 20.60398190699999,
+        "openPositions": 3,
+        "monthly": {
+          "2026-08": -2.1950035098000087,
+          "2026-09": 4.923794196017761,
+          "2026-10": -3.897000221101321
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 240,
+        "lookback": 16,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 16.81852778120001,
+        "maximumDrawdownPct": 5.423867391930816,
+        "profitFactor": 1.909290599211691,
+        "closedTrades": 51,
+        "entries": 57,
+        "blockedEntries": 25,
+        "accountFailed": false,
+        "costs": 14.79805218800001,
+        "openPositions": 6,
+        "monthly": {
+          "2025-01": -4.451215578899969,
+          "2025-02": 12.582324674708412,
+          "2025-03": 8.596630514510895
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 2.8603436894999446,
+        "maximumDrawdownPct": 6.56705301822586,
+        "profitFactor": 1.0986544078555651,
+        "closedTrades": 51,
+        "entries": 53,
+        "blockedEntries": 10,
+        "accountFailed": false,
+        "costs": 17.097383105,
+        "openPositions": 2,
+        "monthly": {
+          "2025-04": 2.6626996927000324,
+          "2025-05": 0.1925178252583537
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": -2.119829957799957,
+        "maximumDrawdownPct": 16.389760577013572,
+        "profitFactor": 0.8690366263592033,
+        "closedTrades": 87,
+        "entries": 93,
+        "blockedEntries": 26,
+        "accountFailed": false,
+        "costs": 32.20602957799998,
+        "openPositions": 6,
+        "monthly": {
+          "2025-06": 10.01684152280009,
+          "2025-07": -6.663894609427312,
+          "2025-08": -4.679597551326642
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 1.5026203621999468,
+        "maximumDrawdownPct": 8.918718054250768,
+        "profitFactor": 1.0348939773173373,
+        "closedTrades": 73,
+        "entries": 77,
+        "blockedEntries": 22,
+        "accountFailed": false,
+        "costs": 32.116166377999974,
+        "openPositions": 4,
+        "monthly": {
+          "2026-08": -4.3065414902,
+          "2026-09": 1.3385476673609453,
+          "2026-10": 4.669542800694271
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 240,
+        "lookback": 16,
+        "stopAtr": 1.5,
+        "rewardR": 3,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 16.543196594599507,
+        "maximumDrawdownPct": 5.423867391930816,
+        "profitFactor": 2.102638727994599,
+        "closedTrades": 58,
+        "entries": 64,
+        "blockedEntries": 19,
+        "accountFailed": false,
+        "costs": 14.765304053999996,
+        "openPositions": 6,
+        "monthly": {
+          "2025-01": -4.451215578899969,
+          "2025-02": 9.401058450112831,
+          "2025-03": 11.491109110153142
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -3.1907850471001753,
+        "maximumDrawdownPct": 8.506018825742599,
+        "profitFactor": 0.8343400241181337,
+        "closedTrades": 53,
+        "entries": 53,
+        "blockedEntries": 10,
+        "accountFailed": false,
+        "costs": 16.12308047100001,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -0.7530035668001589,
+          "2025-05": -2.4562773362525103
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 240,
+        "lookback": 16,
+        "stopAtr": 3,
+        "rewardR": 1.5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 9.592662631399884,
+        "maximumDrawdownPct": 2.8287128713164797,
+        "profitFactor": 2.0719730261821407,
+        "closedTrades": 67,
+        "entries": 71,
+        "blockedEntries": 20,
+        "accountFailed": false,
+        "costs": 8.921973686000007,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 1.9894193898999823,
+          "2025-02": 4.366487152628062,
+          "2025-03": 2.9592317261273093
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -6.933953105900004,
+        "maximumDrawdownPct": 9.06635826827052,
+        "profitFactor": 0.586963765621207,
+        "closedTrades": 70,
+        "entries": 73,
+        "blockedEntries": 21,
+        "accountFailed": false,
+        "costs": 10.127161058999993,
+        "openPositions": 3,
+        "monthly": {
+          "2025-04": -2.051909562899845,
+          "2025-05": -4.984317224780699
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 240,
+        "lookback": 16,
+        "stopAtr": 3,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 13.3998090515,
+        "maximumDrawdownPct": 4.014867349054826,
+        "profitFactor": 2.5946317884669607,
+        "closedTrades": 65,
+        "entries": 69,
+        "blockedEntries": 21,
+        "accountFailed": false,
+        "costs": 9.37100948500001,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 1.9894193898999823,
+          "2025-02": 9.92760217076263,
+          "2025-03": 1.1464044189623879
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -1.239752494900015,
+        "maximumDrawdownPct": 6.859686775458165,
+        "profitFactor": 0.9005356759510339,
+        "closedTrades": 65,
+        "entries": 68,
+        "blockedEntries": 23,
+        "accountFailed": false,
+        "costs": 10.118284948999992,
+        "openPositions": 3,
+        "monthly": {
+          "2025-04": 0.1690367383000435,
+          "2025-05": -1.406411880430325
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 60,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 30.775137015599995,
+        "maximumDrawdownPct": 10.241242509007039,
+        "profitFactor": 1.3334558498847577,
+        "closedTrades": 271,
+        "entries": 271,
+        "blockedEntries": 26,
+        "accountFailed": false,
+        "costs": 108.51683984399992,
+        "openPositions": 0,
+        "monthly": {
+          "2025-01": 0.6807466686999275,
+          "2025-02": 14.266970668152211,
+          "2025-03": 13.673188516564494
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -20.038895456599892,
+        "maximumDrawdownPct": 22.273831412295177,
+        "profitFactor": 0.6901514582461206,
+        "closedTrades": 202,
+        "entries": 202,
+        "blockedEntries": 19,
+        "accountFailed": true,
+        "costs": 78.83239456600002,
+        "openPositions": 0,
+        "monthly": {
+          "2025-04": -7.0666210884999465,
+          "2025-05": -13.958681498553249
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 240,
+        "lookback": 16,
+        "stopAtr": 3,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 13.963193335500002,
+        "maximumDrawdownPct": 4.69986328298112,
+        "profitFactor": 2.649533598816273,
+        "closedTrades": 64,
+        "entries": 68,
+        "blockedEntries": 21,
+        "accountFailed": false,
+        "costs": 9.40803664500001,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": 1.9894193898999823,
+          "2025-02": 10.479428391626255,
+          "2025-03": 1.1411929990029934
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 1.2482602164999523,
+        "maximumDrawdownPct": 6.202944463855369,
+        "profitFactor": 1.0649885815646436,
+        "closedTrades": 64,
+        "entries": 67,
+        "blockedEntries": 24,
+        "accountFailed": false,
+        "costs": 10.319817835000004,
+        "openPositions": 3,
+        "monthly": {
+          "2025-04": 0.9872392465000823,
+          "2025-05": 0.2584692600247518
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": -5.173189725000082,
+        "maximumDrawdownPct": 8.958884153919033,
+        "profitFactor": 0.662640878713391,
+        "closedTrades": 87,
+        "entries": 92,
+        "blockedEntries": 16,
+        "accountFailed": false,
+        "costs": 15.206077250000005,
+        "openPositions": 5,
+        "monthly": {
+          "2025-06": -0.8724902433999926,
+          "2025-07": -4.503119625985319,
+          "2025-08": 0.17232677412986064
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 6.508026854700066,
+        "maximumDrawdownPct": 4.991957758641942,
+        "profitFactor": 1.3318914048384642,
+        "closedTrades": 87,
+        "entries": 92,
+        "blockedEntries": 32,
+        "accountFailed": false,
+        "costs": 19.403281452999988,
+        "openPositions": 5,
+        "monthly": {
+          "2026-08": -0.05047357320006052,
+          "2026-09": 3.355595202901074,
+          "2026-10": 3.1021225313389023
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 240,
+        "lookback": 32,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 15.936422296600195,
+        "maximumDrawdownPct": 5.432700458742601,
+        "profitFactor": 2.1612468758359964,
+        "closedTrades": 59,
+        "entries": 60,
+        "blockedEntries": 4,
+        "accountFailed": false,
+        "costs": 13.93528703400001,
+        "openPositions": 1,
+        "monthly": {
+          "2025-01": 2.407594854999995,
+          "2025-02": 6.925952086896192,
+          "2025-03": 5.877725207140405
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 3.645691648199989,
+        "maximumDrawdownPct": 11.048735624614846,
+        "profitFactor": 1.1072381183570372,
+        "closedTrades": 52,
+        "entries": 56,
+        "blockedEntries": 3,
+        "accountFailed": false,
+        "costs": 13.640983517999995,
+        "openPositions": 4,
+        "monthly": {
+          "2025-04": -6.68198593909991,
+          "2025-05": 11.067185356687915
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": -0.8417980362998567,
+        "maximumDrawdownPct": 16.966423715860675,
+        "profitFactor": 0.9763723000656622,
+        "closedTrades": 70,
+        "entries": 71,
+        "blockedEntries": 11,
+        "accountFailed": false,
+        "costs": 23.57904036300001,
+        "openPositions": 1,
+        "monthly": {
+          "2025-06": 9.279362850099936,
+          "2025-07": -6.517656134644412,
+          "2025-08": -2.9353939904198545
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": -1.5943879842002295,
+        "maximumDrawdownPct": 10.992453560916081,
+        "profitFactor": 0.837103486981365,
+        "closedTrades": 73,
+        "entries": 76,
+        "blockedEntries": 7,
+        "accountFailed": false,
+        "costs": 28.77170984199999,
+        "openPositions": 3,
+        "monthly": {
+          "2026-08": -3.5335830344000674,
+          "2026-09": 6.8273115520073535,
+          "2026-10": -4.509224609003648
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 240,
+        "lookback": 16,
+        "stopAtr": 2,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 15.635679418100178,
+        "maximumDrawdownPct": 5.396717042485041,
+        "profitFactor": 1.9270109323044702,
+        "closedTrades": 76,
+        "entries": 77,
+        "blockedEntries": 16,
+        "accountFailed": false,
+        "costs": 15.309895818999985,
+        "openPositions": 1,
+        "monthly": {
+          "2025-01": 2.3137258606000133,
+          "2025-02": 12.24686101654855,
+          "2025-03": 0.6893996421818871
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 3.567252761799722,
+        "maximumDrawdownPct": 6.261371365342468,
+        "profitFactor": 1.119563716433568,
+        "closedTrades": 73,
+        "entries": 75,
+        "blockedEntries": 22,
+        "accountFailed": false,
+        "costs": 16.01353238199998,
+        "openPositions": 2,
+        "monthly": {
+          "2025-04": -0.8449341737000626,
+          "2025-05": 4.4497846869761215
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": -7.109891417100034,
+        "maximumDrawdownPct": 11.613404429533409,
+        "profitFactor": 0.7139647271289844,
+        "closedTrades": 102,
+        "entries": 105,
+        "blockedEntries": 16,
+        "accountFailed": false,
+        "costs": 23.898164170999966,
+        "openPositions": 3,
+        "monthly": {
+          "2025-06": -1.978937060399999,
+          "2025-07": -5.5446146106872485,
+          "2025-08": 0.32827344681398696
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 11.852658183199893,
+        "maximumDrawdownPct": 7.463486903902697,
+        "profitFactor": 1.4605396731998672,
+        "closedTrades": 94,
+        "entries": 99,
+        "blockedEntries": 29,
+        "accountFailed": false,
+        "costs": 30.699578167999977,
+        "openPositions": 5,
+        "monthly": {
+          "2026-08": 0.7108339294999766,
+          "2026-09": 6.26887912547669,
+          "2026-10": 4.511484741761462
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "rsi2",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 3,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 6.778018920000073,
+        "maximumDrawdownPct": 5.743608513895822,
+        "profitFactor": 1.268645626175991,
+        "closedTrades": 48,
+        "entries": 52,
+        "blockedEntries": 103,
+        "accountFailed": false,
+        "costs": 8.792780800000017,
+        "openPositions": 4,
+        "monthly": {
+          "2025-01": -1.4567625028999664,
+          "2025-02": 9.489856453595236,
+          "2025-03": -1.035109986945515
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 1.336521342700081,
+        "maximumDrawdownPct": 8.871112052733778,
+        "profitFactor": 1.1373147571553146,
+        "closedTrades": 36,
+        "entries": 38,
+        "blockedEntries": 94,
+        "accountFailed": false,
+        "costs": 9.658346573000008,
+        "openPositions": 2,
+        "monthly": {
+          "2025-04": 1.5726941152999885,
+          "2025-05": -0.23251600704007336
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 2.802668584600032,
+        "maximumDrawdownPct": 8.0424696956397,
+        "profitFactor": 1.1192976564217858,
+        "closedTrades": 55,
+        "entries": 61,
+        "blockedEntries": 110,
+        "accountFailed": false,
+        "costs": 15.851284153999998,
+        "openPositions": 6,
+        "monthly": {
+          "2025-06": -0.6958668505000709,
+          "2025-07": 3.9723313538838623,
+          "2025-08": -0.43211512874908875
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 5.478794387300057,
+        "maximumDrawdownPct": 6.608966008103671,
+        "profitFactor": 1.1613591897634932,
+        "closedTrades": 50,
+        "entries": 56,
+        "blockedEntries": 105,
+        "accountFailed": false,
+        "costs": 19.11664612700001,
+        "openPositions": 6,
+        "monthly": {
+          "2026-08": -0.4286312235999845,
+          "2026-09": 2.885944624857961,
+          "2026-10": 2.9614453840700383
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "rsi2",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 3,
+        "rewardR": 3,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 5.5958236697001285,
+        "maximumDrawdownPct": 4.757783322169875,
+        "profitFactor": 1.3765962809181684,
+        "closedTrades": 50,
+        "entries": 53,
+        "blockedEntries": 101,
+        "accountFailed": false,
+        "costs": 8.396513303000008,
+        "openPositions": 3,
+        "monthly": {
+          "2025-01": -1.4567625028999664,
+          "2025-02": 7.785866805447483,
+          "2025-03": -0.5835852379413753
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 4.562296266499732,
+        "maximumDrawdownPct": 5.443203034107349,
+        "profitFactor": 1.4617277658502414,
+        "closedTrades": 38,
+        "entries": 41,
+        "blockedEntries": 84,
+        "accountFailed": false,
+        "costs": 9.540917334999993,
+        "openPositions": 3,
+        "monthly": {
+          "2025-04": 5.360197816599821,
+          "2025-05": -0.7573083257578661
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": 3.040695074699773,
+        "maximumDrawdownPct": 7.230981662184304,
+        "profitFactor": 1.1244338500607922,
+        "closedTrades": 61,
+        "entries": 67,
+        "blockedEntries": 111,
+        "accountFailed": false,
+        "costs": 15.524909252999983,
+        "openPositions": 6,
+        "monthly": {
+          "2025-06": -0.0035353934000448284,
+          "2025-07": 2.104732431871481,
+          "2025-08": 0.9202371361028527
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 5.412579820200003,
+        "maximumDrawdownPct": 7.115970597859722,
+        "profitFactor": 1.1392548556141318,
+        "closedTrades": 54,
+        "entries": 60,
+        "blockedEntries": 116,
+        "accountFailed": false,
+        "costs": 19.420091797999998,
+        "openPositions": 6,
+        "monthly": {
+          "2026-08": -1.4022277424000196,
+          "2026-09": 4.653364238203106,
+          "2026-10": 2.1579444445473994
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "rsi2",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 10.290173620899946,
+        "maximumDrawdownPct": 10.846751481623807,
+        "profitFactor": 1.3259080998179187,
+        "closedTrades": 74,
+        "entries": 77,
+        "blockedEntries": 83,
+        "accountFailed": false,
+        "costs": 20.67988379100001,
+        "openPositions": 3,
+        "monthly": {
+          "2025-01": -1.5021986221000594,
+          "2025-02": 17.39090675108541,
+          "2025-03": -4.615935043850417
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -3.4266278944999007,
+        "maximumDrawdownPct": 15.829119143225359,
+        "profitFactor": 0.8623299711671621,
+        "closedTrades": 62,
+        "entries": 64,
+        "blockedEntries": 67,
+        "accountFailed": false,
+        "costs": 21.473248944999995,
+        "openPositions": 2,
+        "monthly": {
+          "2025-04": 3.0026282925000647,
+          "2025-05": -6.241837022588004
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "rsi2",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 5,
+        "maxHoldBars": 72,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 7.0897915447997395,
+        "maximumDrawdownPct": 7.848110041527927,
+        "profitFactor": 1.2209265388418746,
+        "closedTrades": 59,
+        "entries": 62,
+        "blockedEntries": 100,
+        "accountFailed": false,
+        "costs": 14.311634552000019,
+        "openPositions": 3,
+        "monthly": {
+          "2025-01": -1.6210634008999802,
+          "2025-02": 13.792987696640768,
+          "2025-03": -4.339984010962339
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": 1.4813788078998469,
+        "maximumDrawdownPct": 10.253138295145108,
+        "profitFactor": 1.0802372724210676,
+        "closedTrades": 52,
+        "entries": 54,
+        "blockedEntries": 87,
+        "accountFailed": false,
+        "costs": 15.953831920999994,
+        "openPositions": 2,
+        "monthly": {
+          "2025-04": 1.8112426864999698,
+          "2025-05": -0.3239955332004385
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2025": {
+        "equityReturnPct": -0.585762517599886,
+        "maximumDrawdownPct": 11.652812136409974,
+        "profitFactor": 0.9615539481108805,
+        "closedTrades": 79,
+        "entries": 84,
+        "blockedEntries": 86,
+        "accountFailed": false,
+        "costs": 24.59820517600003,
+        "openPositions": 5,
+        "monthly": {
+          "2025-06": -5.105609843500036,
+          "2025-07": 5.6335959981234085,
+          "2025-08": -0.8241383684263526
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "later2026": {
+        "equityReturnPct": 3.799409902700046,
+        "maximumDrawdownPct": 9.562502672808597,
+        "profitFactor": 0.9469041253699086,
+        "closedTrades": 65,
+        "entries": 71,
+        "blockedEntries": 108,
+        "accountFailed": false,
+        "costs": 29.658060973,
+        "openPositions": 6,
+        "monthly": {
+          "2026-08": -5.43587678530002,
+          "2026-09": 4.3238297564677675,
+          "2026-10": 5.216769310899916
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "rsi2",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 3,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 4.455221866600256,
+        "maximumDrawdownPct": 7.603957884383417,
+        "profitFactor": 1.1669385624277235,
+        "closedTrades": 95,
+        "entries": 98,
+        "blockedEntries": 71,
+        "accountFailed": false,
+        "costs": 16.133051333999997,
+        "openPositions": 3,
+        "monthly": {
+          "2025-01": -1.1453516884999848,
+          "2025-02": 8.299251042953394,
+          "2025-03": -2.431954040305262
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -2.8102858157998623,
+        "maximumDrawdownPct": 9.98549982614134,
+        "profitFactor": 0.8760415506206375,
+        "closedTrades": 87,
+        "entries": 89,
+        "blockedEntries": 69,
+        "accountFailed": false,
+        "costs": 17.966738158000013,
+        "openPositions": 2,
+        "monthly": {
+          "2025-04": 2.159416221500088,
+          "2025-05": -4.864653911612738
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    },
+    {
+      "configuration": {
+        "family": "rsi2",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 5,
+        "maxHoldBars": 24,
+        "style": "SWING"
+      },
+      "development": {
+        "equityReturnPct": 4.590796211100168,
+        "maximumDrawdownPct": 8.561604130560587,
+        "profitFactor": 1.1688433523607524,
+        "closedTrades": 93,
+        "entries": 96,
+        "blockedEntries": 69,
+        "accountFailed": false,
+        "costs": 17.013507889000007,
+        "openPositions": 3,
+        "monthly": {
+          "2025-01": -1.1453516884999848,
+          "2025-02": 11.627764342531876,
+          "2025-03": -5.218375738854764
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      },
+      "validation": {
+        "equityReturnPct": -0.2650199525000452,
+        "maximumDrawdownPct": 6.72252444195961,
+        "profitFactor": 0.9825145201471253,
+        "closedTrades": 84,
+        "entries": 86,
+        "blockedEntries": 65,
+        "accountFailed": false,
+        "costs": 18.40471952500002,
+        "openPositions": 2,
+        "monthly": {
+          "2025-04": 3.1333953167999917,
+          "2025-05": -3.295164731909528
+        },
+        "riskPct": 0.5,
+        "leverage": 3
+      }
+    }
+  ],
+  "limitations": [
+    "Screen is not the canonical scanner, arbitration or account Brain",
+    "Costs and contract filters remain explicit scenarios",
+    "Scalp holding horizon is part of every configuration; increasing timeout is not a hidden strategy change"
+  ],
+  "automaticPromotion": false
+}

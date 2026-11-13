@@ -152,8 +152,12 @@ jobs:
           key: launch-native-usdm-20261112-v1
       - run: python3 scripts/research/launch/acquire_campaign.py
       - run: python3 scripts/research/launch/crypto_participation_search.py
-      - name: Independent scalp and swing searches
-        run: python3 scripts/research/launch/style_coverage_search.py --market crypto
+      - name: Independent scalp and swing searches, portfolio and customer-selected asset
+        run: |
+          python3 scripts/research/launch/style_coverage_search.py --market crypto
+          for symbol in BTCUSDT ETHUSDT SOLUSDT BNBUSDT XRPUSDT ADAUSDT DOGEUSDT LINKUSDT AVAXUSDT LTCUSDT; do
+            python3 scripts/research/launch/style_coverage_search.py --market crypto --symbols "$symbol"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -161,4 +165,61 @@ jobs:
           path: |
             .tmp/launch-research/crypto-participation.json
             .tmp/launch-research/styles/*.json
+          retention-days: 14
+
+  expanded-swing-scanner:
+    needs: research-request
+    if: needs.research-request.outputs.participation == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        track: [pullback-swing, channel-swing, rsi-swing]
+        period: [first, later]
+        include:
+          - track: pullback-swing
+            id: crypto.launch-trend-pullback-48-2-3-h72
+          - track: channel-swing
+            id: crypto.launch-donchian-48-1.5-5-h24
+          - track: rsi-swing
+            id: crypto.launch-rsi2-48-3-3-h72
+          - period: first
+            months: 2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08
+            start: '2025-05-01'
+            end: '2025-09-01'
+          - period: later
+            months: 2026-07,2026-08,2026-09,2026-10
+            start: '2026-08-01'
+            end: '2026-11-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - run: node --import tsx --test tests/mission2/launchFamilies.test.ts tests/conditionalSignals/service.test.ts
+      - uses: actions/cache/restore@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+          fail-on-cache-miss: true
+      - name: Expanded swing through actual scanner, arbitration and account Brain
+        env:
+          ID: ${{ matrix.id }}
+          MONTHS: ${{ matrix.months }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/expanded-swing
+          node --import tsx scripts/research/run-frequency-audit.ts data=.tmp/mission2/futures-data venue=usdm frames=5,240,1440 "months=$MONTHS" symbols=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$ID" entry=COMBINED risks=.5 checkpointEvery=1440 out=.tmp/expanded-swing/report.json > .tmp/expanded-swing/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: expanded-swing-${{ matrix.track }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/expanded-swing
           retention-days: 14

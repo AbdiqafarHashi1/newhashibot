@@ -65,3 +65,14 @@ test('changed source is unknown; independent tracks survive batch arbitration; m
  await admitConditionalBatch(store,[initial,swing],t+900001);assert.equal(saved.length,2);assert.deepEqual(new Set(saved.map(s=>s.track)),new Set(['INTRADAY','SWING']));
  for(const s of saved){const msg=conditionalMessage(s);assert.match(msg,new RegExp(s.id));assert.doesNotMatch(msg,/Rule score|backend|manual review/);}
 });
+
+
+test('batch arbitration chooses the stronger eligible direction and preserves independent assets and tracks',async()=>{
+ const saved:ConditionalSetup[]=[],rejected:string[]=[];
+ const store={save:async(s:ConditionalSetup)=>{saved.push(s);return true;},rejected:async(s:ConditionalSetup)=>{rejected.push(s.id);}} as unknown as ConditionalSignalStore;
+ const long={...setup(),id:'long',score:92},short={...setup(),id:'short',side:'sell' as const,stop:110,tp1:90,tp2:80,score:80},swing={...long,id:'swing-long',track:'SWING' as const,timeframe:'1h' as const,score:85},eth={...setup(),id:'eth',symbol:'ETHUSDT',score:87};
+ const result=await admitConditionalBatch(store,[short,swing,eth,long],t+900001);
+ assert.equal(result.admitted,3);assert.deepEqual(saved.map(s=>s.id),['long','eth','swing-long']);assert.deepEqual(rejected,['short']);
+ saved.length=0;await admitConditionalBatch(store,[long,{...short,score:92}],t+900001);assert.equal(saved.length,0,'equal opposing evidence abstains');
+ saved.length=0;await admitConditionalBatch(store,[long,{...short,score:99,sourceClose:iso(-5)}],t+900001);assert.deepEqual(saved.map(s=>s.id),['long'],'a stale opposing idea cannot block a fresh winner');
+});

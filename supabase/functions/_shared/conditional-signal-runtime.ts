@@ -99,8 +99,13 @@ export async function observeConditionalSymbol(store:ConditionalStore,symbol:str
 export async function admitConditionalBatch(store:ConditionalStore,candidates:readonly ConditionalSetup[],now:number){
  const grouped=new Map<string,ConditionalSetup[]>();for(const s of candidates){const g=grouped.get(s.symbol)??[];g.push(s);grouped.set(s.symbol,g);}
  const winners=[...grouped.values()].flatMap(g=>{
-  if(new Set(g.map(s=>s.side)).size>1)return [];
-  return (['SCALP','INTRADAY','SWING'] as const).flatMap(track=>{const winner=selectConditionalSetup(g.filter(s=>s.track===track),now);return winner?[winner]:[];});})
+  // Rank eligible directions before selecting tracks. An opposing weak/stale idea
+  // must not veto a stronger valid opportunity. Equal directional scores abstain.
+  const buy=selectConditionalSetup(g.filter(s=>s.side==='buy'),now),sell=selectConditionalSetup(g.filter(s=>s.side==='sell'),now);
+  const rank=(s:ConditionalSetup)=>(s.selectionScore??s.score);
+  if(buy&&sell&&rank(buy)===rank(sell))return [];
+  const side=buy&&(!sell||rank(buy)>rank(sell))?'buy':sell?'sell':undefined;
+  return (['SCALP','INTRADAY','SWING'] as const).flatMap(track=>{const winner=selectConditionalSetup(g.filter(s=>s.side===side&&s.track===track),now);return winner?[winner]:[];});})
   .sort((a,b)=>(b.selectionScore??b.score)-(a.selectionScore??a.score)||a.id.localeCompare(b.id));
  const selected=new Set(winners.map(s=>s.id));
  for(const s of candidates)if(!selected.has(s.id)&&store.rejected)await store.rejected(s,new Set((grouped.get(s.symbol)??[]).map(s=>s.side)).size>1?'OPPOSING_OPPORTUNITIES':'LOWER_ARBITRATION_RANK',now);
