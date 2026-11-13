@@ -10,6 +10,7 @@ export function validatePropAccountProfile(value:any){
  try{new Intl.DateTimeFormat('en',{timeZone:value.reset_timezone}).format()}catch{throw Error('PROP_RESET_TIMEZONE_REQUIRED')}
  if(typeof value.reset_timezone!=='string'||!value.reset_timezone)throw Error('PROP_RESET_TIMEZONE_REQUIRED');
  if(value.program_id!==undefined&&(value.program_id!==FTMO_SWING_PROGRAM||!isFtmoSwingRules(value)||value.reset_timezone!=='Europe/Prague'||value.source_reference!==FTMO_SWING_SOURCE))throw Error('MATCHING_PROP_PROGRAM_TERMS_REQUIRED');
+ if(value.funded_profit_target_pct!==undefined&&![2,5].includes(value.funded_profit_target_pct))throw Error('PROP_FUNDED_TARGET_REQUIRED');
  return value;
 }
 export function approvedPropAccountProfile(account:any){

@@ -323,6 +323,8 @@ Deno.serve(async (req: Request) => {
       if (commands && commands.length > 0) {
         const certified: typeof commands = [];
         for (const command of commands) {
+          if(command.operation==='OPEN_POSITION'){const a=await supabase.from('connected_execution_accounts').select('id,account_mode,runtime_control').eq('customer_id',String(body.owner_id)).eq('provider_account_identity',String(command.account_id)).maybeSingle();if(a.error||!a.data||a.data.runtime_control!=='START')continue;if(a.data.account_mode==='PROP_FUNDED'){const g=await supabase.from('prop_profit_cycles').select('state').eq('execution_account_id',a.data.id).order('cycle_number',{ascending:false}).limit(1).maybeSingle();if(g.error||g.data?.state!=='ACTIVE')continue;}}
+          if(['CLOSE_POSITION','CANCEL_ORDER'].includes(command.operation)&&command.payload?.prop_profit_cycle_id){const p=await supabase.rpc('authorize_prop_profit_management',{p_command:command.id,p_owner:String(body.owner_id),p_account:String(command.account_id),p_bridge:payload.bridge_id});if(p.error||!p.data)continue;(command as any).profit_guard_authorization=p.data;}
           if (["TEST_CONNECTION","SYNC_ACCOUNT","FETCH_HISTORY","RECOVER_PROTECTION","MODIFY_PROTECTION","PARTIAL_CLOSE","MOVE_TO_BREAKEVEN","CLOSE_POSITION","CANCEL_ORDER"].includes(command.operation)) { certified.push(command); continue; }
           const planId = String(command.payload?.execution_plan_id ?? ""), identity = String(command.payload?.deterministic_identity ?? "");
           if (command.operation !== "OPEN_POSITION" || command.payload?.certified !== true || !planId || identity !== command.idempotency_key) continue;

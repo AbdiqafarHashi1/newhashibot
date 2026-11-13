@@ -43,6 +43,7 @@ export interface PolicyConfiguration {
 }
 
 export interface AccountEvaluationInput {
+  readonly historicalResearch?: true;
   readonly liveAuthorization?: {execution_account_id:string;customer_id:string;expires_at:string;maximum_equity:number;maximum_risk_pct:number};
   readonly signal: SignalContract;
   readonly account: OwnedExecutionAccount;
@@ -100,14 +101,16 @@ function bounded(name: string, value: number, maximum: number): number {
   return value;
 }
 
-export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, base: AccountPolicy, config: PolicyConfiguration): AccountPolicy {
+export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, base: AccountPolicy, config: PolicyConfiguration, historicalResearch=false): AccountPolicy {
   if (account.policyProfileId !== base.policy_id || account.policyVersion !== base.policy_version) throw new Error("POLICY_LINEAGE_MISMATCH");
   if (account.provider !== base.provider || account.accountType !== base.account_type) throw new Error("POLICY_ACCOUNT_MISMATCH");
-  const limit = presetBounds[config.preset];
+  if(historicalResearch&&(account.customerId!=='isolated-research-customer'||!account.immutableIdentity?.startsWith('historical:')))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
+  const declaredLimit = presetBounds[config.preset];
+  const limit=historicalResearch&&config.preset==='PROP_SAFE'?{...declaredLimit,risk:1,leverage:10}:declaredLimit;
   const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? limit.risk, limit.risk);
   const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? limit.open, limit.open);
   bounded("maxCorrelatedRiskPct",config.maxCorrelatedRiskPct??open,open);
-  const leverage = bounded("maxLeverage", config.maxLeverage ?? limit.leverage, limit.leverage);
+  const leverage = bounded("maxLeverage", config.maxLeverage ?? (config.preset === "PROP_SAFE" ? 5 : limit.leverage), limit.leverage);
   const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? (config.preset === "PROP_SAFE" ? 2 : limit.positions), limit.positions);
   const daily = bounded("maxDailyDrawdownPct", config.maxDailyDrawdownPct ?? limit.daily, limit.daily);
   const total = bounded("maxTotalDrawdownPct", config.maxTotalDrawdownPct ?? limit.total, limit.total);
@@ -120,7 +123,8 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const signalBefore = JSON.stringify(input.signal);
   if (input.account.customerId !== input.context.user_id || input.account.id !== input.context.account_id || input.account.provider !== input.context.provider || input.account.accountType !== input.context.account_type) throw new Error("ACCOUNT_CONTEXT_OWNERSHIP_MISMATCH");
   const performance=accountPerformanceGate({policy:input.configuration.lossResponse,evidence:input.performanceEvidence,customerId:input.account.customerId,accountId:input.account.id,provider:input.account.provider,evaluatedAt:input.evaluatedAt,dailyDrawdownPct:input.context.daily_drawdown.current_drawdown_pct});
-  const approvedPolicy = resolveVersionedAccountPolicy(input.account, input.basePolicy, input.configuration);
+  if(input.historicalResearch&&(input.account.customerId!=='isolated-research-customer'||!input.account.immutableIdentity.startsWith('historical:')||input.context.environment!=='DEMO'))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
+  const approvedPolicy = resolveVersionedAccountPolicy(input.account, input.basePolicy, input.configuration,input.historicalResearch===true);
   const policy=performance.riskMultiplier>0&&performance.riskMultiplier<1?composeAccountPolicy(approvedPolicy,{max_risk_per_trade_pct:approvedPolicy.max_risk_per_trade_pct*performance.riskMultiplier}):approvedPolicy;
   const brain = getExecutionBrain(input.account.provider);
   const preReasons: string[] = performance.blocked?[...performance.reasonCodes]:[];

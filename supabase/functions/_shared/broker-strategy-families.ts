@@ -20,6 +20,8 @@ export const BROKER_FAMILY_RESEARCH_CANDIDATES=[
  {market:'forex',family:'band_reentry',minutes:15,n:12,stop:3,rr:5,symbol:'GBPUSD',hold:12,floor:.0004},
  {market:'forex',family:'rsi2',minutes:15,n:48,stop:2,rr:5,symbol:'GBPUSD',hold:24,floor:.0008},
  {market:'forex',family:'momentum',minutes:5,n:12,stop:3,rr:3,symbol:'EURUSD',hold:12,floor:.0008},
+ {market:'gold',family:'band_reentry',minutes:15,n:48,stop:1.5,rr:3,symbol:'XAUUSD',hold:48},
+ {market:'gold',family:'squeeze',minutes:15,n:48,stop:1,rr:2,symbol:'XAUUSD',hold:24},
 ] as const;
 // Exact cost-aware configurations without two positive canonical periods stay out of the customer catalogue.
 export const BROKER_FAMILY_CANDIDATES=BROKER_FAMILY_RESEARCH_CANDIDATES.filter(c=>!('floor' in c)||c.family==='rsi2');
