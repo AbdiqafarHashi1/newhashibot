@@ -1,0 +1,14 @@
+{
+  "ENGINEERING.md": "535520f812d7a89dc6c5c94f1977150956ea11f33cc2f3b016e5cff427a09f74",
+  "RESULTS.md": "276e01b71b9998eef51a380fc38e1407632029be5c9427bfa754b0860ebf0249",
+  "closed-tick-source.tar.gz": "a7797c0e275c2d4469680059c622453cf3b0a6084333f6413304974bc2841e0a",
+  "completed-studies.json.gz": "e313f3c69ba74f0a49b85daa72c0862e14a5373e2c4c2bc6f5d883666186a4bf",
+  "context-source.tar.gz": "2d162b42398e1ee1ee7961afb3d6f739e3f939c47f83f4e919d1b50237ab43a8",
+  "data-manifests.json": "1f4de06f2b1d1eae691329bd2a3e55965d35ed421244a54074ac01498ed197ef",
+  "exits-source.tar.gz": "ffb36bb87c9006fc8d4062577d6b1e4861429bd99f2222b05e99c1cb1b28a06b",
+  "holdout-source.tar.gz": "88d41328ae45d08a1b118024daaff115bd5c006b3fb8f8df112210b4f62bfffe",
+  "initial-source.tar.gz": "b8f0100fbaedd4bd9ea6bafc3f452bc630a38e436e0359a3bc38cc8d0e69871d",
+  "model2-source.tar.gz": "2ed4a72e7186993cc548fdbecd3ac55abeb382bc1a628209a7490e2542b68f09",
+  "summary.json": "1ac84e81b9335bc3b0b7cb183f5abec386c2dae6948f139c8af5212d0dead3f5",
+  "watch-native-source.tar.gz": "0625ead693a30dad0a32cbb553a5e564f96fa89a816d4f7f98243edad255b463"
+}
