@@ -73,7 +73,7 @@ jobs:
         run: |
           replays=true
           coverage=false
-          case "$(git log -1 --format=%s)" in '[coverage-final]'*) replays=false; coverage=true ;; '[scalp-research]'*|'[short-canonical]'*|'[ltc-final]'*) replays=false ;; esac
+          case "$(git log -1 --format=%s)" in '[coverage-final]'*) replays=false; coverage=true ;; '[scalp-research]'*|'[short-canonical]'*|'[ltc-final]'*|'[broker-validation]'*) replays=false ;; esac
           echo "replays=$replays" >> "$GITHUB_OUTPUT"
           echo "coverage=$coverage" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v5

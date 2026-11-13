@@ -4,10 +4,15 @@ test('forward demo approval cannot authorize a live account even with otherwise 
 
 test('stored reviews match complete compressed account replay evidence',async()=>{
  const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto');
- for(const [id,prefix] of [['forex.native-sweep-retest-60-16-2-5-usdjpy-h72','yen-sweep'],['forex.native-squeeze-15-48-2-3-usdjpy-h12','yen-scalp'],['crypto.launch-trend-pullback-48-2-3-h72','crypto-pullback-72'],['crypto.launch-rsi2-48-3-3-h72','crypto-rsi-72'],['crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006','crypto-doge-vwap'],['forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008','forex-gbp-rsi']]){
+ for(const [id,prefix] of [['forex.native-sweep-retest-60-16-2-5-usdjpy-h72','yen-sweep'],['forex.native-squeeze-15-48-2-3-usdjpy-h12','yen-scalp'],['crypto.launch-trend-pullback-48-2-3-h72','crypto-pullback-72'],['crypto.launch-rsi2-48-3-3-h72','crypto-rsi-72'],['crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006','crypto-doge-vwap'],['forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008','forex-gbp-rsi'],['crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006','crypto-ltc-range']]){
   const review=LAUNCH_CANONICAL_REVIEWS.find(r=>r.strategyId===id)!;
   for(const [i,period] of ['early','later'].entries()){
    const raw=gunzipSync(readFileSync(`docs/research/launch-20261113/canonical/${prefix}-${period}.json.gz`)),report=JSON.parse(raw.toString());assert.equal(createHash('sha256').update(raw).digest('hex'),review.periods[i].reportSha256);assert.equal(report.status,'COMPLETED');assert.equal(report.engineSourceSha256,review.periods[i].engineSourceSha256);assert.equal(report.experiment.strategyScope,review.strategyId);assert.deepEqual(report.accounts[0].metrics,review.periods[i].metrics);assert(report.signalSnapshots.length>=10);
   }
  }
+});
+
+test('LTC retains its small positive 2026 observation without counting it as a qualifying period',async()=>{
+ const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto'),review=LAUNCH_CANONICAL_REVIEWS.find(r=>r.strategyId==='crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006')!;
+ assert.equal(review.periods.length,2);assert(review.periods.every(p=>p.metrics.closedTrades>=10));assert('supportingObservations' in review);const observation=review.supportingObservations[0],raw=gunzipSync(readFileSync('docs/research/launch-20261113/canonical/crypto-ltc-range-2026.json.gz')),report=JSON.parse(raw.toString());assert.equal(observation.metrics.closedTrades,9);assert.equal(createHash('sha256').update(raw).digest('hex'),observation.reportSha256);assert.deepEqual(report.accounts[0].metrics,observation.metrics);
 });

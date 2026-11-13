@@ -1091,5 +1091,142 @@ export const LAUNCH_CANONICAL_REVIEWS=[
       "Research selection creates bias; no untouched holdout or customer-return claim",
       "Positive separate account periods qualify for signals and demo forward testing only"
     ]
+  },
+  {
+    "schema": "canonical-account-review/v1",
+    "strategyId": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+    "periods": [
+      {
+        "reportSha256": "e82cda8ce7d2ae498cfba6b2f6b7fc4320ec4e7316fafbe026e32846b4958d36",
+        "engineSourceSha256": "17808975e1223adad0628ec7e10a8a0adebd093e206509e2b2da8c51b08f17b3",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "start": "2025-04-01T00:00:00.000Z",
+        "end": "2025-06-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 23,
+          "openPositions": 0,
+          "authorizedEntries": 23,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.5217391304347826,
+          "profitFactor": 1.0655895491821727,
+          "expectancyR": 0.02143695978002186,
+          "realizedNet": 2.2857212209470137,
+          "endingBalance": 1002.2857212209474,
+          "endingEquity": 1002.2857212209474,
+          "netReturnPct": 0.22857212209473798,
+          "maximumDrawdownPct": 2.1275667249395953,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 4.992420645,
+          "financing": 0.293928134053,
+          "tradesPerDay": 0.3770491803278688,
+          "tradesPerWeek": 2.639344262295082,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 1000,
+        "riskPct": 0.5
+      },
+      {
+        "reportSha256": "5540dfbe58e315f123dd0530a6edf354552278bca600309cac4d036c0a4d2812",
+        "engineSourceSha256": "19695a0f56b83dcd32d753bfaf529bc3af121577a277213e5eefe70c3a62c255",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "start": "2025-06-01T00:00:00.000Z",
+        "end": "2025-09-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 25,
+          "openPositions": 0,
+          "authorizedEntries": 25,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.52,
+          "profitFactor": 1.5291594227185448,
+          "expectancyR": 0.16303105605468912,
+          "realizedNet": 20.31365096133706,
+          "endingBalance": 1020.3136509613373,
+          "endingEquity": 1020.3136509613373,
+          "netReturnPct": 2.0313650961337317,
+          "maximumDrawdownPct": 2.298945255588004,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 4,
+          "costs": 5.97106733,
+          "financing": 0.3420817086629,
+          "tradesPerDay": 0.2717391304347826,
+          "tradesPerWeek": 1.902173913043478,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 1000,
+        "riskPct": 0.5
+      }
+    ],
+    "limitations": [
+      "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+      "Research selection creates bias; no untouched holdout or customer-return claim",
+      "Positive separate account periods qualify for signals and demo forward testing only"
+    ],
+    "supportingObservations": [
+      {
+        "reportSha256": "595b0c23adc58c9e541cd0b1922b0a74a0eff7decf8bae99bfcdb58d73e8f1b8",
+        "engineSourceSha256": "17808975e1223adad0628ec7e10a8a0adebd093e206509e2b2da8c51b08f17b3",
+        "status": "COMPLETED",
+        "start": "2026-08-01T00:00:00.000Z",
+        "end": "2026-11-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 9,
+          "openPositions": 0,
+          "authorizedEntries": 9,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.6666666666666666,
+          "profitFactor": 2.3109644663519964,
+          "expectancyR": 0.21509027275775702,
+          "realizedNet": 9.67124675965012,
+          "endingBalance": 1009.6712467596502,
+          "endingEquity": 1009.6712467596502,
+          "netReturnPct": 0.9671246759650216,
+          "maximumDrawdownPct": 1.1877235501222696,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 2,
+          "costs": 2.033750005,
+          "financing": 0.14157323534990002,
+          "tradesPerDay": 0.09782608695652174,
+          "tradesPerWeek": 0.6847826086956522,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 1000,
+        "riskPct": 0.5,
+        "note": "Positive 2026 observation with nine closed trades; not counted as one of the two minimum-sample qualifying periods."
+      }
+    ]
   }
 ] as const;

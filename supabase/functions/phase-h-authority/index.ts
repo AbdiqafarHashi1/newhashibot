@@ -1,3 +1,4 @@
+import {installReviewedDemoBundle} from '../_shared/canonical-demo-activation.ts';
 import {buildCanonicalDemoBundle} from '../_shared/canonical-demo-release.ts';
 import {LAUNCH_CANONICAL_REVIEWS} from '../_shared/launch-canonical-reviews.ts';
 import {validateExecutionStrategySelection} from '../_shared/execution-strategy-selection.ts';
@@ -29,7 +30,7 @@ Deno.serve(async req=>{
  try{
   if(action==='install_tested_demo_strategies'){
    const {data:profile,error:roleError}=await service.from('profiles').select('role').eq('id',user.id).maybeSingle();if(roleError||profile?.role!=='admin')return reply({state:'BLOCKED',reason:'ADMIN_REQUIRED'},403);
-   const bundle=buildCanonicalDemoBundle(body.strategies,LAUNCH_CANONICAL_REVIEWS);const {data,error}=await service.rpc('install_canonical_demo_strategy_bundle',{p_actor:user.id,p_bundle:bundle});if(error)throw error;return reply(data);
+   const bundle=buildCanonicalDemoBundle(body.strategies,LAUNCH_CANONICAL_REVIEWS);return reply(await installReviewedDemoBundle(service,user.id,bundle));
   }
   if(action==='refresh_account_data'){if(!await owns(String(body.execution_account_id??'')))return reply({state:'BLOCKED',reason:'ACCOUNT_OWNERSHIP_REQUIRED'},403);return reply({state:await refreshProviderReport(String(body.execution_account_id))})}
   if(action==="load_onboarding"){const {data,error}=await service.from("customer_onboarding_sessions").select("preferences,stage,status,updated_at").eq("customer_id",user.id).order("updated_at",{ascending:false}).limit(1).maybeSingle();if(error)return reply({state:"READY_FOR_CONFIGURATION",reason:"PHASE_H_SCHEMA_UNAVAILABLE"},503);return reply({state:data?"DRAFT":"NOT_STARTED",data:{session:data?{...(data.preferences as object),stage:data.stage}:null}})}
