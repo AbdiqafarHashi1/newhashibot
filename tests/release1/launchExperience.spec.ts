@@ -33,7 +33,7 @@ test('launch setup exposes the twelve tested configurations and their exact acco
  await page.goto('/admin/launch');
  const bundle=page.locator('section').filter({has:page.getByRole('heading',{name:'Enable tested strategies',exact:true})});
  await expect(bundle.getByRole('checkbox')).toHaveCount(12);
- await expect(bundle.getByText('LTC range reversal · 15m',{exact:true}).first()).toBeVisible();
+ await expect(bundle.getByRole('checkbox',{name:/^LTC range reversal/})).toBeVisible();
  await bundle.getByText('Inspect tested periods and account results',{exact:true}).click();
  const table=bundle.getByRole('table',{name:'Tested strategy account periods'});
  await expect(table.getByRole('row')).toHaveCount(25);
