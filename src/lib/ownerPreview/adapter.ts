@@ -1,4 +1,4 @@
-import {browserId} from '../browserId';
+import {browserId} from '../browserId.js';
 import { createPreviewTables, previewAccounts, previewCustomers, type PreviewRow,type PreviewAccount } from './fixtures.js';
 
 interface PreviewResult {data:PreviewRow|PreviewRow[]|null;count?:number|null;error:{message:string}|null}
