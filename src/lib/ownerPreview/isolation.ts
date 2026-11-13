@@ -7,6 +7,7 @@ export function permitsPreviewRequest(input: string, method: string, origin: str
   // Only application assets and published immutable research files. No API access.
   return method.toUpperCase() === 'GET' && url.origin === origin
     && (/^\/(assets|src|node_modules)\//.test(url.pathname)
+      || url.pathname === '/research/prop-ftmo-swing-20261113.summary.json'
       || /^\/research\/mission2-[a-zA-Z0-9-]+\.json$/.test(url.pathname)
       || /^\/(?:@vite\/client|@react-refresh|favicon\.ico)$/.test(url.pathname));
 }

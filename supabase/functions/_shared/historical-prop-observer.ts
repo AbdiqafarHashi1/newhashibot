@@ -1,5 +1,7 @@
 import {stableFingerprint} from './strategy-plan.ts';
 import {propResetDay,type PropProgramProfile} from '../../../src/lib/prop/professionalPropEngine.ts';
+// Bounded pure-calendar cache is shared across overlapping account cohorts. No account data is cached.
+const propDayCache=new Map<string,string>();
 export interface PropEquityObservation {at:number;balance:number;equity:number;openPositions:number;newEntries:number;realizedDailyProfit?:number;newsViolation?:boolean;overnightViolation?:boolean;weekendViolation?:boolean;maximumPositionViolation?:boolean;}
 export interface PropResearchSnapshot {schema:'historical-prop-observer/v1';profileId:string;profileVersion:string;profileHash:string;lastBalance:number;lastEquity:number;initialBalance:number;phase:number;status:'ACTIVE'|'AWAITING_PHASE_RESET'|'FUNDED'|'FAILED'|'EXPIRED'|'INSUFFICIENT_RULE_EVIDENCE';phaseStart:number;through:number;peak:number;day:string;dayStart:number;dayStartEquity:number;tradingDays:string[];lastEntryAt:number|null;fundedAt:number|null;failedAt:number|null;resetToken:string|null;events:{at:number;kind:string;reason:string}[];payoutEligibility:{at:number;hypotheticalGrossProfit:number;hypotheticalCustomerShare:number}[];}
 /** Consumes chronological EQUITY, including adverse intrabar marks, not rescaled closed-trade R.
@@ -15,10 +17,13 @@ export class HistoricalPropObserver {
   if(r.dailyLossPct===null||r.maxLossPct===null||r.dstBehavior==='PENDING_VERIFICATION'||(!evidence.calendarComplete&&profile.compliance.some(v=>/news/i.test(v)))||(!evidence.holdingRestrictionsVerified&&profile.compliance.some(v=>/overnight|weekend/i.test(v))))this.state.status='INSUFFICIENT_RULE_EVIDENCE';
  }
  snapshot(){return structuredClone(this.state);}
- observe(o:PropEquityObservation){
-  const s=this.state;if(![o.at,o.balance,o.equity].every(Number.isFinite)||o.at<s.through||o.openPositions<0||!Number.isInteger(o.newEntries)||o.newEntries<0)throw Error('PROP_EQUITY_OBSERVATION_INVALID');
-  s.through=o.at;if(['FAILED','EXPIRED','INSUFFICIENT_RULE_EVIDENCE','AWAITING_PHASE_RESET'].includes(s.status))return this.snapshot();
-  const phase=this.profile.phases[s.phase],r=this.profile.rules,day=propResetDay(new Date(o.at).toISOString(),r.resetTimezone,r.resetTime);
+ progress(){const s=this.state;return {status:s.status,phase:s.phase,phaseStart:s.phaseStart,tradingDays:s.tradingDays.length,resetToken:s.resetToken,fundedAt:s.fundedAt,through:s.through};}
+ observe(o:PropEquityObservation,emitSnapshot?:true):PropResearchSnapshot;
+ observe(o:PropEquityObservation,emitSnapshot:false):void;
+ observe(o:PropEquityObservation,emitSnapshot=true){
+  const s=this.state;if(![o.at,o.balance,o.equity].every(Number.isFinite)||o.at<s.through||o.openPositions<0||!Number.isInteger(o.newEntries)||o.newEntries<0)throw Error(`PROP_EQUITY_OBSERVATION_INVALID at=${o.at} through=${s.through} entries=${o.newEntries} open=${o.openPositions} balance=${o.balance} equity=${o.equity}`);
+  s.through=o.at;if(['FAILED','EXPIRED','INSUFFICIENT_RULE_EVIDENCE','AWAITING_PHASE_RESET'].includes(s.status))return emitSnapshot?this.snapshot():undefined;
+  const phase=this.profile.phases[s.phase],r=this.profile.rules,key=`${r.resetTimezone}:${r.resetTime}:${Math.floor(o.at/60000)}`,day=propDayCache.get(key)??propResetDay(new Date(o.at).toISOString(),r.resetTimezone,r.resetTime);if(propDayCache.size<200000)propDayCache.set(key,day);
   if(day!==s.day){s.day=day;s.dayStart=s.lastBalance;s.dayStartEquity=s.lastEquity;}s.lastBalance=o.balance;s.lastEquity=o.equity;
   if(o.newEntries){if(!s.tradingDays.includes(day))s.tradingDays.push(day);s.lastEntryAt=o.at;}
   s.peak=Math.max(s.peak,r.maxLossBasis.includes('BALANCE')?o.balance:o.equity);
@@ -26,13 +31,13 @@ export class HistoricalPropObserver {
   const dailyValue=r.floatingPnlIncluded||r.dailyLossBasis.includes('EQUITY')?o.equity:o.balance,dailyLoss=Math.max(0,dailyReference-dailyValue)/(r.dailyLossAmountBasis==='INITIAL_BALANCE'?s.initialBalance:dailyReference)*100;
   const overallReference=/TRAIL|HIGH_WATER|CURRENT_/.test(r.maxLossBasis)?s.peak:s.initialBalance,overallValue=r.floatingPnlIncluded?o.equity:o.balance,overallLoss=Math.max(0,overallReference-overallValue)/s.initialBalance*100;
   const reason=dailyLoss>=r.dailyLossPct!?'DAILY_EQUITY_LIMIT':overallLoss>=r.maxLossPct!?'OVERALL_DRAWDOWN_LIMIT':o.newsViolation?'NEWS_RESTRICTION':o.overnightViolation?'OVERNIGHT_RESTRICTION':o.weekendViolation?'WEEKEND_RESTRICTION':o.maximumPositionViolation?'POSITION_SIZE_RESTRICTION':this.evidence.inactivityDays&&s.lastEntryAt!==null&&o.at-s.lastEntryAt>this.evidence.inactivityDays*86400000?'INACTIVITY':null;
-  if(reason){s.status='FAILED';s.failedAt=o.at;s.events.push({at:o.at,kind:'FAILED',reason});return this.snapshot();}
-  if(phase.durationDays!==null&&o.at-s.phaseStart>phase.durationDays*86400000){s.status='EXPIRED';s.events.push({at:o.at,kind:'EXPIRED',reason:'PHASE_DURATION'});return this.snapshot();}
-  if(phase.id==='FUNDED'){s.status='FUNDED';return this.snapshot();}
+  if(reason){s.status='FAILED';s.failedAt=o.at;s.events.push({at:o.at,kind:'FAILED',reason});return emitSnapshot?this.snapshot():undefined;}
+  if(phase.durationDays!==null&&o.at-s.phaseStart>phase.durationDays*86400000){s.status='EXPIRED';s.events.push({at:o.at,kind:'EXPIRED',reason:'PHASE_DURATION'});return emitSnapshot?this.snapshot():undefined;}
+  if(phase.id==='FUNDED'){s.status='FUNDED';return emitSnapshot?this.snapshot():undefined;}
   if(phase.profitTargetPct!==null&&o.balance>=s.initialBalance*(1+phase.profitTargetPct/100)&&o.openPositions===0&&s.tradingDays.length>=phase.minimumTradingDays){
    s.status='AWAITING_PHASE_RESET';s.resetToken=`historical-phase-reset:${s.profileId}:${s.phase}:${o.at}`;s.events.push({at:o.at,kind:'PHASE_PASSED',reason:phase.id});
   }
-  return this.snapshot();
+  return emitSnapshot?this.snapshot():undefined;
  }
  resetForNextPhase(at:number,token:string,proof:{balance:number;equity:number;openPositions:number}){
   const s=this.state;if(s.status!=='AWAITING_PHASE_RESET'||token!==s.resetToken||at<s.through||proof.openPositions!==0||proof.balance!==s.initialBalance||proof.equity!==s.initialBalance||!this.profile.phases[s.phase+1])throw Error('PROP_PHASE_RESET_PROOF_REQUIRED');

@@ -1,3 +1,4 @@
+import {isFtmoSwingRules} from '../prop-program.ts';
 /**
  * HashiBot Account Execution Brain — MT5 Prop Brain Implementation
  * Phase 3 MT5 Prop Account Execution Brain
@@ -24,7 +25,7 @@ import {
 
 export class Mt5PropBrain implements AccountExecutionBrain {
   readonly provider = "MT5_PROP" as const;
-  readonly brain_version = "1.0.0";
+  readonly brain_version = "1.1.0";
 
   /**
    * Evaluates a prop account's operational state against hard drawdown rules, trailing drawdown caps,
@@ -229,7 +230,7 @@ export class Mt5PropBrain implements AccountExecutionBrain {
     // 4. Weekend Holding Restriction Check
     const propWeekendAllowed = context.prop_rules?.weekend_holding_allowed ?? true;
     if (
-      policy.weekend_restriction.mode !== "ALLOW" ||
+      (!isFtmoSwingRules(context.prop_rules) && policy.weekend_restriction.mode !== "ALLOW") ||
       !propWeekendAllowed
     ) {
       const nowUtc = new Date(context.session_state.current_time_utc);
@@ -277,7 +278,7 @@ export class Mt5PropBrain implements AccountExecutionBrain {
     // 5. High-Impact News Window Restriction Check
     const propNewsAllowed = context.prop_rules?.news_trading_allowed ?? true;
     if (
-      (policy.news_restriction.mode !== "ALLOW" || !propNewsAllowed) &&
+      ((!isFtmoSwingRules(context.prop_rules) && policy.news_restriction.mode !== "ALLOW") || !propNewsAllowed) &&
       context.news_state.in_high_impact_news_window
     ) {
       const newsViolation = createRuleViolation({
@@ -416,15 +417,18 @@ export class Mt5PropBrain implements AccountExecutionBrain {
       });
     }
 
-    const contractSize = signal.symbol.includes("XAU") || signal.symbol.includes("XAG") ? 100 : 100000;
+    const contract = context.provider_contract?.kind === "MT5" ? context.provider_contract : null;
+    const contractSize = contract?.contract_size ?? (signal.symbol.includes("XAU") || signal.symbol.includes("XAG") ? 100 : 100000);
     const targetRiskPct = policy.max_risk_per_trade_pct;
     const targetRiskUSD = context.balance * (targetRiskPct / 100);
-    const theoreticalLots = targetRiskUSD / (slDistance * contractSize);
+    const riskPerPriceUnit = contract ? contract.tick_value_account_currency / contract.tick_size : contractSize;
+    const theoreticalLots = targetRiskUSD / (slDistance * riskPerPriceUnit);
     const effectiveLeverage = Math.min(context.leverage, policy.max_leverage_allowed);
-    const theoreticalNotional = theoreticalLots * signal.entry_price * contractSize;
-    const requiredMargin = theoreticalNotional / effectiveLeverage;
+    const theoreticalNotional = theoreticalLots * signal.entry_price * contractSize * (contract?.quote_to_account_conversion ?? 1);
+    const requiredMargin = contract?.margin_rate != null ? theoreticalNotional * contract.margin_rate : theoreticalNotional / effectiveLeverage;
+    const marginRiskMultiplier = Number.isFinite(requiredMargin) && requiredMargin > 0 && Number.isFinite(context.free_margin) && context.free_margin > 0 ? Math.min(1, context.free_margin * 0.95 / requiredMargin) : 0;
 
-    if (context.free_margin < requiredMargin) {
+    if (marginRiskMultiplier <= 0) {
       const marginViolation = createRuleViolation({
         rule_id: "rule_prop_insufficient_margin",
         rule_category: "RISK_CAP",
@@ -480,10 +484,15 @@ export class Mt5PropBrain implements AccountExecutionBrain {
     }
 
     // 12. Portfolio Risk Scaling & Prop Drawdown Safety Buffer Rules (REDUCE_RISK)
-    let authorizedRiskPct = policy.max_risk_per_trade_pct;
+    let authorizedRiskPct = policy.max_risk_per_trade_pct * marginRiskMultiplier;
     let decisionCode: ExecutionDecisionCode = "APPROVED_FULL_RISK";
     let decisionKind: "EXECUTE" | "REDUCE_RISK" = "EXECUTE";
     let decisionReason = `Signal meets all prop account (${policy.account_type}) rules at full authorized risk (${authorizedRiskPct}%)`;
+    if (marginRiskMultiplier < 1) {
+      decisionCode = "APPROVED_SCALED_RISK";decisionKind = "REDUCE_RISK";
+      decisionReason = `Risk reduced to fit current account margin and leverage limits (${authorizedRiskPct}%)`;
+      violations.push(createRuleViolation({rule_id:"rule_prop_margin_risk_reduction",rule_category:"RISK_CAP",severity:"WARNING",message:decisionReason,evidence:{requested_risk_pct:policy.max_risk_per_trade_pct,authorized_risk_pct:authorizedRiskPct,free_margin:context.free_margin,theoretical_margin:requiredMargin,margin_reserve_fraction:.05},recommended_action:"REDUCE_POSITION_SIZE"}));
+    }
 
     const currentOpenRiskPct = context.exposure.total_open_risk_pct;
     const remainingPortfolioRiskRoom = policy.max_portfolio_risk_pct - currentOpenRiskPct;

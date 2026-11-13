@@ -57,6 +57,7 @@ export interface AccountRiskProfile {
 }
 
 export interface PropRulesState {
+  readonly program_id?: "FTMO_TWO_STEP_SWING";
   readonly daily_loss_cap_pct: number;
   readonly total_trailing_drawdown_cap_pct: number;
   readonly news_trading_allowed: boolean;

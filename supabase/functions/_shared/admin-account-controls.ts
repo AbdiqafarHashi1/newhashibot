@@ -14,6 +14,6 @@ export function validateAdminAccountControls(account:any,input:any){
  if(configuration.allowedSymbols===null)configuration.allowedSymbols=base.allowed_symbols;
  if(Array.isArray(configuration.allowedSymbols)&&base.allowed_symbols&&configuration.allowedSymbols.some((s:string)=>!base.allowed_symbols!.includes(s)))throw Error('ASSET_OUTSIDE_BASE_POLICY');
  resolveVersionedAccountPolicy({id:account.id,customerId:account.customer_id,provider:base.provider,accountType:base.account_type,policyProfileId:account.policy_profile_id,policyVersion:account.policy_version} as any,base,configuration);
- let prop=null;if(input.propRules!==undefined&&input.propRules!==null){if(account.provider!=='MT5_PROP')throw Error('PROP_ACCOUNT_REQUIRED');prop=validatePropAccountProfile(input.propRules);}
+ let prop=null;if(input.propRules!==undefined&&input.propRules!==null){if(account.provider!=='MT5_PROP')throw Error('PROP_ACCOUNT_REQUIRED');prop=validatePropAccountProfile(input.propRules);if(prop.program_id==='FTMO_TWO_STEP_SWING'&&prop.min_trading_days!==(account.account_mode==='PROP_FUNDED'?0:4))throw Error('PROP_PROGRAM_PHASE_MISMATCH');}
  return {configuration,propRules:prop};
 }

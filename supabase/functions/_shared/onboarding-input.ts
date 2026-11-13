@@ -1,3 +1,4 @@
+import {validatePropSetupPhase} from './prop-draft-stage.ts';
 import {providerEnvironmentContract} from './provider-environment.ts';
 export function onboardingBrain(provider:string,mode:string) {
  const profiles:Record<string,readonly [string,string,number,readonly string[]]>={
@@ -20,5 +21,7 @@ export function validateOnboardingDraft(value:unknown) {
  // Empty permissions are allowed while editing, never at account assignment.
  if(typeof d.risk!=='number'||!Number.isFinite(d.risk)||d.risk<.1||d.risk>onboardingBrain(provider,mode)[2]||!Array.isArray(d.strategies)||d.strategies.some(x=>typeof x!=='string'||!onboardingBrain(provider,mode)[3].includes(x)))throw new Error('UNSAFE_PREFERENCE');
  const environment=providerEnvironmentContract(provider,d.environment===undefined?undefined:String(d.environment)).environment;
- return {environment,stage:d.stage,packageCode:d.packageCode,access:d.access,asset:d.asset,provider,mode,risk:d.risk,strategies:[...new Set(d.strategies as string[])],ack:d.ack===true};
+ if(d.propPhase!==undefined&&mode!=='PROP')throw Error('PROP_ACCOUNT_REQUIRED');
+ const propPhase=d.propPhase===undefined?undefined:validatePropSetupPhase(d.propPhase);
+ return {...(propPhase?{propPhase}:{}),environment,stage:d.stage,packageCode:d.packageCode,access:d.access,asset:d.asset,provider,mode,risk:d.risk,strategies:[...new Set(d.strategies as string[])],ack:d.ack===true};
 }

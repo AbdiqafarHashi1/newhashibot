@@ -111,7 +111,7 @@ function runMt5PropBrainTests() {
 
   const brain = new Mt5PropBrain();
   assert.equal(brain.provider, "MT5_PROP");
-  assert.equal(brain.brain_version, "1.0.0");
+  assert.equal(brain.brain_version, "1.1.0");
 
   const challengePolicy: AccountPolicy = DEFAULT_MT5_PROP_EVALUATION_POLICY;
   const fundedPolicy: AccountPolicy = DEFAULT_MT5_PROP_FUNDED_POLICY;

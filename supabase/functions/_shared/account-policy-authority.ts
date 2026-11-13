@@ -84,7 +84,7 @@ const presetBounds: Readonly<Record<PolicyPreset, Readonly<{ risk: number; open:
   CONSERVATIVE: Object.freeze({ risk: 0.5, open: 2, leverage: 5, positions: 2, daily: 3, total: 8 }),
   BALANCED: Object.freeze({ risk: 1, open: 3, leverage: 10, positions: 4, daily: 5, total: 12 }),
   GROWTH: Object.freeze({ risk: 2, open: 6, leverage: 20, positions: 6, daily: 8, total: 20 }),
-  PROP_SAFE: Object.freeze({ risk: 0.5, open: 1.5, leverage: 5, positions: 2, daily: 4, total: 8 }),
+  PROP_SAFE: Object.freeze({ risk: 0.5, open: 1.5, leverage: 5, positions: 3, daily: 4, total: 8 }),
 });
 
 function stableId(parts: readonly string[]): string {
@@ -108,7 +108,7 @@ export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, ba
   const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? limit.open, limit.open);
   bounded("maxCorrelatedRiskPct",config.maxCorrelatedRiskPct??open,open);
   const leverage = bounded("maxLeverage", config.maxLeverage ?? limit.leverage, limit.leverage);
-  const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? limit.positions, limit.positions);
+  const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? (config.preset === "PROP_SAFE" ? 2 : limit.positions), limit.positions);
   const daily = bounded("maxDailyDrawdownPct", config.maxDailyDrawdownPct ?? limit.daily, limit.daily);
   const total = bounded("maxTotalDrawdownPct", config.maxTotalDrawdownPct ?? limit.total, limit.total);
   if (account.accountType !== "PERSONAL" && config.preset !== "PROP_SAFE") throw new Error("PROP_ACCOUNT_REQUIRES_PROP_SAFE");
