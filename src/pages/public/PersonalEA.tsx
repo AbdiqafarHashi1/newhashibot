@@ -20,7 +20,7 @@ export default function PersonalEA() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3.5 py-1.5 text-xs text-emerald-400 mb-6 font-medium">
               <Zap size={13} className="text-emerald-400" />
-              Crypto Personal Bot — Product Preview — Demo Certification Required
+              HashiBot Personal · Crypto automation
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Automated crypto execution<br />

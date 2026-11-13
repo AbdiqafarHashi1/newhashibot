@@ -1,3 +1,4 @@
+import {assertPropServiceCapital} from './prop-service-limits.ts';
 import {observedBybitQuoteConversion} from './bybit-wallet-valuation.ts';
 import {validateAccountExecutionContext} from './account-execution-brain/contracts.ts';
 import type {AccountExecutionContext} from './account-execution-brain/types.ts';
@@ -30,6 +31,7 @@ export async function recordObservedAccountPolicyEvidence(db:any,input:any,now=D
  if(!Array.isArray(positions)||positions.length!==c.open_positions.length||positions.some((p:any)=>!c.open_positions.some((x:any)=>x.symbol===p.symbol&&Math.abs(x.quantity-Math.abs(Number(p.quantity??p.volume??p.positionAmt??p.size)))<1e-8)))throw Error('PROVIDER_POSITION_EVIDENCE_MISMATCH');
  if(!input.contract_specification||input.contract_specification.provider!==scope.provider||input.contract_specification.symbol!==input.symbol||input.routing_policy?.provider!==scope.provider||input.capabilities?.provider!==scope.provider||!Number.isInteger(input.pending_orders)||input.pending_orders<0)throw Error('PROVIDER_ROUTING_EVIDENCE_REQUIRED');
  if(scope.provider==='BYBIT'&&input.contract_specification.account_currency==='USD'){const rate=observedBybitQuoteConversion(raw);if(Math.abs(rate-Number(input.contract_specification.quote_to_account_conversion))>1e-10)throw Error('BYBIT_CURRENCY_VALUATION_MISMATCH');}
+ if(scope.provider==='MT5_PROP')assertPropServiceCapital(c.total_drawdown.initial_balance,input.contract_specification.account_currency);
  const row={...input,execution_instance_id:a.data.execution_instance_id,credential_ref:a.data.credential_ref,source_reference:`${mt5?'mt5':'crypto'}:${proof.data.id??at}`};
  const saved=await db.from('account_policy_evidence').insert(row).select('id').single();if(saved.error||!saved.data)throw Error('ACCOUNT_POLICY_EVIDENCE_NOT_PERSISTED');return saved.data;
 }

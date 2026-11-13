@@ -158,7 +158,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Founding Access Opening
+                    Account-based automation
                   </span>
                   <Zap size={18} className="text-blue-400" />
                 </div>
@@ -218,7 +218,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Founding Access Opening
+                    Account-based automation
                   </span>
                   <Activity size={18} className="text-cyan-400" />
                 </div>
@@ -275,7 +275,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Founding Access Opening
+                    Account-based automation
                   </span>
                   <Cpu size={18} className="text-purple-400" />
                 </div>
@@ -472,7 +472,7 @@ export default function Home() {
                 Forex (FTMO) & 24/7 Crypto Prop (CFT, HyroTrader) Challenges
               </h2>
               <p className="text-sm text-zinc-300 leading-relaxed">
-                Prop firm challenges fail from revenge trading, uncontrolled slippage, and daily drawdown breaches. HashiBot enforces mathematical equity fences, automated 1R break-even triggers, and account risk caps across both traditional MT5 prop firms and modern 24/7 crypto prop challenges.
+                Prop firm challenges fail from revenge trading, uncontrolled slippage, and daily drawdown breaches. HashiBot enforces mathematical equity fences, automated 1R break-even triggers, and account risk caps for supported MT5 Forex and Gold Prop accounts up to $25,000 USD original capital.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5">

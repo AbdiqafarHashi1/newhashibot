@@ -1,5 +1,5 @@
 export const adminPrimaryPages=[
- {to:'/admin/launch',label:'Launch workspace',icon:'ListChecks',purpose:'Activation steps, source readiness and links to the owning control page.'},
+ {to:'/admin/launch',label:'Setup & controls',icon:'ListChecks',purpose:'Activation steps, source readiness and links to the owning control page.'},
  {to:'/admin/scanner',label:'Scanner',icon:'Radio',purpose:'Scanner activity and data health; settings open from this page.'},
  {to:'/admin/providers',label:'Providers & accounts',icon:'Zap',purpose:'Account connections, balances, positions, orders, results and expiry.'},
  {to:'/admin/research',label:'Strategy research',icon:'FlaskConical',purpose:'Measured strategy returns, signal frequency, loss diagnosis and next experiments.'},

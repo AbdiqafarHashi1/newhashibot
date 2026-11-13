@@ -1,3 +1,4 @@
+import {assertPropServiceCapital} from './prop-service-limits.ts';
 import {loadConfirmedEntry} from './confirmed-entry.ts';
 import {prepareAutomaticBybitEvidence} from './automatic-bybit-policy-evidence.ts';
 import {prepareAutomaticCryptoEvidence} from './automatic-crypto-policy-evidence.ts';
@@ -17,6 +18,7 @@ export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:s
  const at=Date.parse(now),observed=Date.parse(x.observed_at),context=x.context;
  await loadConfirmedEntry(db,signal,at);
  const reasons:string[]=[];
+ if(provider==='MT5_PROP')try{assertPropServiceCapital(context?.total_drawdown?.initial_balance,x.contract?.account_currency)}catch(e){reasons.push(e instanceof Error?e.message:'PROP_SERVICE_CAPITAL_LIMIT_REQUIRED')}
  if(!x.entitlement?.expiresAt||!Number.isFinite(Date.parse(x.entitlement.expiresAt)))reasons.push('FINITE_EXECUTION_ACCESS_REQUIRED');
  try{assertMeasuredExecutionLineage(x)}catch(e){reasons.push(e instanceof Error?e.message:'MEASURED_EXECUTION_RELEASE_REQUIRED')}
  if(x.qualified_set&&x.provisioning?.state==='ACTIVE'&&x.provisioning.qualified_set_id===x.qualified_set.id&&x.provisioning.qualified_set_version===x.qualified_set.setVersion){x.eligibility=routeProductionEligibility({claim:pinnedClaimFromQualifiedSet({product:x.product,market:String(x.product).startsWith('FOREX')?'FOREX':'CRYPTO',set:x.qualified_set,strategyId:signal.strategy_id,strategyVersion:signal.strategy_version,symbol:signal.symbol,timeframe:signal.timeframe,requiredQualification:'FORWARD_VALIDATION_CANDIDATE',evaluatedParameters:x.strategy_plan?.provenance?.evaluated_parameters??{}}),qualifiedSet:x.qualified_set});}

@@ -1,3 +1,4 @@
+import {AdminSetupWorkbench} from '../../components/operations/AdminSetupWorkbench';
 import {TestedStrategyActivation} from '../../components/operations/TestedStrategyActivation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -29,7 +30,7 @@ export default function LaunchSetup() {
   const journeys = launchJourneys(status, now);
   return <AdminLayout><div className="mx-auto max-w-7xl space-y-6">
     <header className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">HashiBot operations</p><h1 className="mt-2 text-3xl font-bold">Your launch workspace</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">Research, customer access and connected services in one place. Open a service to configure it, inspect its evidence or resolve a failure.</p></div><button onClick={() => void refresh()} disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 px-4 py-2.5 text-sm disabled:opacity-50"><RefreshCw size={14} className={busy?'animate-spin':''}/>{busy?'Checking services…':'Refresh services'}</button></header>
-    <TestedStrategyActivation/>
+    <AdminSetupWorkbench/><TestedStrategyActivation/>
     <section className="grid gap-3 sm:grid-cols-3">
       <Link to="/admin/research" className="rounded-2xl border border-cyan-700/50 bg-gradient-to-br from-cyan-950/70 to-zinc-900 p-5"><p className="text-xs text-cyan-300">Improve the trading engine</p><h2 className="mt-2 text-lg font-semibold">Open strategy research →</h2><p className="mt-2 text-xs leading-5 text-zinc-400">Compare results, activity and account decisions.</p></Link>
       <Link to="/admin/providers" className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-xs text-blue-300">Owner demo accounts</p><h2 className="mt-2 text-lg font-semibold">Connect trading providers →</h2><p className="mt-2 text-xs leading-5 text-zinc-400">Binance testnet · Bybit demo · MT5 demo.</p></Link>

@@ -1,3 +1,4 @@
+import {useSearchParams} from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { 
   UserPlus, Shield, Lock, RefreshCw, Trash2, CheckCircle2, 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
+  const [params]=useSearchParams();const feedSetup=params.get('purpose')==='feed';
   const [accounts, setAccounts] = useState<MT5Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,21 +20,21 @@ export function MT5AccountsTab({ onSelectAccountForRuntime }: Props) {
   const [activeAction, setActiveAction] = useState<string | null>(null);
 
   // Form modal state
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(feedSetup);
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Form fields
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState(feedSetup?'HashiBot admin Forex and Gold feed':'');
   const [broker, setBroker] = useState('');
   const [server, setServer] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [password, setPassword] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [leverage, setLeverage] = useState('100');
-  const [accountType, setAccountType] = useState<'personal' | 'prop' | 'demo'>('personal');
-  const [executionMode, setExecutionMode] = useState<MT5ExecutionMode>('personal');
-  const [ownerKind, setOwnerKind] = useState<'system' | 'customer'>('customer');
+  const [accountType, setAccountType] = useState<'personal' | 'prop' | 'demo'>(feedSetup?'demo':'personal');
+  const [executionMode, setExecutionMode] = useState<MT5ExecutionMode>(feedSetup?'demo':'personal');
+  const [ownerKind, setOwnerKind] = useState<'system' | 'customer'>(feedSetup?'system':'customer');
   const [credentialCapability, setCredentialCapability] = useState<'investor' | 'master'>('investor');
 
   const fetchAccounts = async () => {

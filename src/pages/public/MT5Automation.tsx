@@ -15,7 +15,7 @@ export default function MT5Automation() {
           {/* Status Banner */}
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 text-xs text-emerald-300 font-bold uppercase tracking-wider">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            MetaTrader 5 Bridge Live & Active
+            MetaTrader 5 account automation
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
@@ -134,7 +134,7 @@ export default function MT5Automation() {
                 Engineered for strict prop firm challenges and funded accounts (FTMO, FundedNext, MFF, etc.).
               </p>
               <ul className="space-y-2 text-xs text-zinc-300">
-                <li className="flex items-center gap-2"><Check size={14} className="text-amber-400 shrink-0" /> Conservative risk sizing (0.25% – 0.75% per trade)</li>
+                <li className="flex items-center gap-2"><Check size={14} className="text-amber-400 shrink-0" /> Conservative risk sizing (0.25% – 0.50% per trade)</li>
                 <li className="flex items-center gap-2"><Check size={14} className="text-amber-400 shrink-0" /> Hard daily loss locks (e.g. 3.5% daily drawdown cap)</li>
                 <li className="flex items-center gap-2"><Check size={14} className="text-amber-400 shrink-0" /> Maximum total trailing drawdown safety gate</li>
               </ul>

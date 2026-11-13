@@ -1,0 +1,545 @@
+{
+  "schema": "prop-payout-summary/v1",
+  "capital": 10000,
+  "riskPct": 0.4,
+  "fundedRiskPct": 0.25,
+  "maximumPositions": 2,
+  "bundleId": "ALL_TESTED",
+  "sourceReportSha256": "336b5b14b031101b8f1ce5968080223988ecf816761976e574b8951576d3eb4d",
+  "rules": {
+    "waitingDaysAfterFirstFundedTrade": 14,
+    "minimumGrossClosedProfitUSD": 20,
+    "flatRequired": true,
+    "source": "https://ftmo.com/faq/how-do-i-withdraw-my-profits/",
+    "checkedAt": "2026-11-13",
+    "withdrawalsSimulated": false,
+    "firmApprovalVerified": false
+  },
+  "groups": [
+    {
+      "costScale": 1,
+      "starts": 12,
+      "passed": 12,
+      "passPct": 100.0,
+      "requestCandidates": 11,
+      "candidatePctOfAllStarts": 91.66666666666666,
+      "candidatePctOfPassed": 91.66666666666666,
+      "rows": [
+        {
+          "start": 1740787200000,
+          "fundedAt": 1752062700000,
+          "daysToFunded": 130.50347222222223,
+          "fundedClosedProfitAtEnd": 162.03640710387663,
+          "firstFundedEntryAt": 1752076800000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 116.20028047686901,
+            "daysAfterFirstTrade": 18.25347222222222
+          },
+          "daysFromStartToFirstCandidate": 148.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1754668800000,
+              "grossRealizedProfit": 173.70510962382286,
+              "flat": false
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1741392000000,
+          "fundedAt": 1749605700000,
+          "daysToFunded": 95.06597222222223,
+          "fundedClosedProfitAtEnd": 668.8878221335999,
+          "firstFundedEntryAt": 1749610800000,
+          "firstRequestCandidate": {
+            "at": 1750829400000,
+            "grossProfit": 354.4213485235887,
+            "daysAfterFirstTrade": 14.104166666666666
+          },
+          "daysFromStartToFirstCandidate": 109.22916666666667,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1752202800000,
+              "grossRealizedProfit": 435.8926733530352,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1754874000000,
+              "grossRealizedProfit": 655.5665703900559,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1741996800000,
+          "fundedAt": 1749605700000,
+          "daysToFunded": 88.06597222222223,
+          "fundedClosedProfitAtEnd": 668.8878221335999,
+          "firstFundedEntryAt": 1749610800000,
+          "firstRequestCandidate": {
+            "at": 1750829400000,
+            "grossProfit": 354.4213485235887,
+            "daysAfterFirstTrade": 14.104166666666666
+          },
+          "daysFromStartToFirstCandidate": 102.22916666666667,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1752202800000,
+              "grossRealizedProfit": 435.8926733530352,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1754874000000,
+              "grossRealizedProfit": 655.5665703900559,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1742601600000,
+          "fundedAt": 1749605700000,
+          "daysToFunded": 81.06597222222223,
+          "fundedClosedProfitAtEnd": 668.8878221335999,
+          "firstFundedEntryAt": 1749610800000,
+          "firstRequestCandidate": {
+            "at": 1750829400000,
+            "grossProfit": 354.4213485235887,
+            "daysAfterFirstTrade": 14.104166666666666
+          },
+          "daysFromStartToFirstCandidate": 95.22916666666667,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1752202800000,
+              "grossRealizedProfit": 435.8926733530352,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1754874000000,
+              "grossRealizedProfit": 655.5665703900559,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1743206400000,
+          "fundedAt": 1749605700000,
+          "daysToFunded": 74.06597222222223,
+          "fundedClosedProfitAtEnd": 668.8878221335999,
+          "firstFundedEntryAt": 1749610800000,
+          "firstRequestCandidate": {
+            "at": 1750829400000,
+            "grossProfit": 354.4213485235887,
+            "daysAfterFirstTrade": 14.104166666666666
+          },
+          "daysFromStartToFirstCandidate": 88.22916666666667,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1752202800000,
+              "grossRealizedProfit": 435.8926733530352,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1754874000000,
+              "grossRealizedProfit": 655.5665703900559,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1743811200000,
+          "fundedAt": 1752062700000,
+          "daysToFunded": 95.50347222222223,
+          "fundedClosedProfitAtEnd": 162.03640710387663,
+          "firstFundedEntryAt": 1752076800000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 116.20028047686901,
+            "daysAfterFirstTrade": 18.25347222222222
+          },
+          "daysFromStartToFirstCandidate": 113.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1754668800000,
+              "grossRealizedProfit": 173.70510962382286,
+              "flat": false
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1744416000000,
+          "fundedAt": 1755169800000,
+          "daysToFunded": 124.46527777777777,
+          "fundedClosedProfitAtEnd": -79.99195980980585,
+          "firstFundedEntryAt": 1755228600000,
+          "firstRequestCandidate": null,
+          "daysFromStartToFirstCandidate": null,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1745020800000,
+          "fundedAt": 1752077400000,
+          "daysToFunded": 81.67361111111111,
+          "fundedClosedProfitAtEnd": 190.4587786525226,
+          "firstFundedEntryAt": 1752120900000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 142.42814396454378,
+            "daysAfterFirstTrade": 17.743055555555557
+          },
+          "daysFromStartToFirstCandidate": 99.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1754874000000,
+              "grossRealizedProfit": 177.98797311149792,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1745625600000,
+          "fundedAt": 1751007600000,
+          "daysToFunded": 62.291666666666664,
+          "fundedClosedProfitAtEnd": 183.10456737995264,
+          "firstFundedEntryAt": 1751307300000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 135.07393269197382,
+            "daysAfterFirstTrade": 27.15972222222222
+          },
+          "daysFromStartToFirstCandidate": 92.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1753899300000,
+              "grossRealizedProfit": -2.412813821087184,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1756491300000,
+              "grossRealizedProfit": 183.79420437995213,
+              "flat": false
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1746230400000,
+          "fundedAt": 1752062700000,
+          "daysToFunded": 67.50347222222223,
+          "fundedClosedProfitAtEnd": 162.03640710387663,
+          "firstFundedEntryAt": 1752076800000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 116.20028047686901,
+            "daysAfterFirstTrade": 18.25347222222222
+          },
+          "daysFromStartToFirstCandidate": 85.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1754668800000,
+              "grossRealizedProfit": 173.70510962382286,
+              "flat": false
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1746835200000,
+          "fundedAt": 1752062700000,
+          "daysToFunded": 60.50347222222222,
+          "fundedClosedProfitAtEnd": 162.03640710387663,
+          "firstFundedEntryAt": 1752076800000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 116.20028047686901,
+            "daysAfterFirstTrade": 18.25347222222222
+          },
+          "daysFromStartToFirstCandidate": 78.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1754668800000,
+              "grossRealizedProfit": 173.70510962382286,
+              "flat": false
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1747440000000,
+          "fundedAt": 1752062700000,
+          "daysToFunded": 53.50347222222222,
+          "fundedClosedProfitAtEnd": 162.03640710387663,
+          "firstFundedEntryAt": 1752076800000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 116.20028047686901,
+            "daysAfterFirstTrade": 18.25347222222222
+          },
+          "daysFromStartToFirstCandidate": 71.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1754668800000,
+              "grossRealizedProfit": 173.70510962382286,
+              "flat": false
+            }
+          ],
+          "observedThrough": 1756684500000
+        }
+      ]
+    },
+    {
+      "costScale": 1.5,
+      "starts": 12,
+      "passed": 10,
+      "passPct": 83.33333333333334,
+      "requestCandidates": 7,
+      "candidatePctOfAllStarts": 58.333333333333336,
+      "candidatePctOfPassed": 70.0,
+      "rows": [
+        {
+          "start": 1740787200000,
+          "fundedAt": 1754401800000,
+          "daysToFunded": 157.57638888888889,
+          "fundedClosedProfitAtEnd": -11.117339998088937,
+          "firstFundedEntryAt": 1754406000000,
+          "firstRequestCandidate": {
+            "at": 1755875099999,
+            "grossProfit": 104.98632628873747,
+            "daysAfterFirstTrade": 17.003472210648148
+          },
+          "daysFromStartToFirstCandidate": 174.62847221064814,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1741392000000,
+          "fundedAt": 1749606000000,
+          "daysToFunded": 95.06944444444444,
+          "fundedClosedProfitAtEnd": 583.5502719406923,
+          "firstFundedEntryAt": 1749610800000,
+          "firstRequestCandidate": {
+            "at": 1750829400000,
+            "grossProfit": 344.28020741551154,
+            "daysAfterFirstTrade": 14.104166666666666
+          },
+          "daysFromStartToFirstCandidate": 109.22916666666667,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1752202800000,
+              "grossRealizedProfit": 423.32150925747555,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1754874000000,
+              "grossRealizedProfit": 599.933300500461,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1741996800000,
+          "fundedAt": 1749606000000,
+          "daysToFunded": 88.06944444444444,
+          "fundedClosedProfitAtEnd": 583.5502719406923,
+          "firstFundedEntryAt": 1749610800000,
+          "firstRequestCandidate": {
+            "at": 1750829400000,
+            "grossProfit": 344.28020741551154,
+            "daysAfterFirstTrade": 14.104166666666666
+          },
+          "daysFromStartToFirstCandidate": 102.22916666666667,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1752202800000,
+              "grossRealizedProfit": 423.32150925747555,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1754874000000,
+              "grossRealizedProfit": 599.933300500461,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1742601600000,
+          "fundedAt": 1749606000000,
+          "daysToFunded": 81.06944444444444,
+          "fundedClosedProfitAtEnd": 583.5502719406923,
+          "firstFundedEntryAt": 1749610800000,
+          "firstRequestCandidate": {
+            "at": 1750829400000,
+            "grossProfit": 344.28020741551154,
+            "daysAfterFirstTrade": 14.104166666666666
+          },
+          "daysFromStartToFirstCandidate": 95.22916666666667,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1752202800000,
+              "grossRealizedProfit": 423.32150925747555,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1754874000000,
+              "grossRealizedProfit": 599.933300500461,
+              "flat": true
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1743206400000,
+          "fundedAt": 1754401800000,
+          "daysToFunded": 129.57638888888889,
+          "fundedClosedProfitAtEnd": -11.117339998088937,
+          "firstFundedEntryAt": 1754406000000,
+          "firstRequestCandidate": {
+            "at": 1755875099999,
+            "grossProfit": 104.98632628873747,
+            "daysAfterFirstTrade": 17.003472210648148
+          },
+          "daysFromStartToFirstCandidate": 146.62847221064814,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1743811200000,
+          "fundedAt": 1754401800000,
+          "daysToFunded": 122.57638888888889,
+          "fundedClosedProfitAtEnd": -11.117339998088937,
+          "firstFundedEntryAt": 1754406000000,
+          "firstRequestCandidate": {
+            "at": 1755875099999,
+            "grossProfit": 104.98632628873747,
+            "daysAfterFirstTrade": 17.003472210648148
+          },
+          "daysFromStartToFirstCandidate": 139.62847221064814,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1744416000000,
+          "fundedAt": 1755264600000,
+          "daysToFunded": 125.5625,
+          "fundedClosedProfitAtEnd": -63.485974027062184,
+          "firstFundedEntryAt": 1755489600000,
+          "firstRequestCandidate": null,
+          "daysFromStartToFirstCandidate": null,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1745020800000,
+          "fundedAt": null,
+          "daysToFunded": null,
+          "fundedClosedProfitAtEnd": null,
+          "firstFundedEntryAt": null,
+          "firstRequestCandidate": null,
+          "daysFromStartToFirstCandidate": null,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1745625600000,
+          "fundedAt": 1755264600000,
+          "daysToFunded": 111.5625,
+          "fundedClosedProfitAtEnd": -63.485974027062184,
+          "firstFundedEntryAt": 1755489600000,
+          "firstRequestCandidate": null,
+          "daysFromStartToFirstCandidate": null,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1746230400000,
+          "fundedAt": 1750993800000,
+          "daysToFunded": 55.13194444444444,
+          "fundedClosedProfitAtEnd": 120.30741679939638,
+          "firstFundedEntryAt": 1751307300000,
+          "firstRequestCandidate": {
+            "at": 1753653900000,
+            "grossProfit": 106.1563916311552,
+            "daysAfterFirstTrade": 27.15972222222222
+          },
+          "daysFromStartToFirstCandidate": 85.92013888888889,
+          "checkpoints": [
+            {
+              "days": 30,
+              "at": 1753899300000,
+              "grossRealizedProfit": -37.17413612784185,
+              "flat": false
+            },
+            {
+              "days": 60,
+              "at": 1756491300000,
+              "grossRealizedProfit": 121.34187229939562,
+              "flat": false
+            }
+          ],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1746835200000,
+          "fundedAt": 1755264600000,
+          "daysToFunded": 97.5625,
+          "fundedClosedProfitAtEnd": -63.485974027062184,
+          "firstFundedEntryAt": 1755489600000,
+          "firstRequestCandidate": null,
+          "daysFromStartToFirstCandidate": null,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        },
+        {
+          "start": 1747440000000,
+          "fundedAt": null,
+          "daysToFunded": null,
+          "fundedClosedProfitAtEnd": null,
+          "firstFundedEntryAt": null,
+          "firstRequestCandidate": null,
+          "daysFromStartToFirstCandidate": null,
+          "checkpoints": [],
+          "observedThrough": 1756684500000
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Overlapping retrospective starts, not independent probabilities",
+    "Payout-request financial conditions only; no firm approval or actual withdrawal",
+    "Thirty-day checkpoints are cumulative closed profit without withdrawals, not monthly payouts",
+    "Later trading continues; profit can be surrendered after a request opportunity"
+  ],
+  "observationEngineSha256": "db09076ff2bf71b6fa22ad90a044ec9b0b86fdd64c81c3524787e7e87de3bfb6",
+  "replayEquivalenceVerified": true
+}
