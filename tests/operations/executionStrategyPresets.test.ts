@@ -12,6 +12,9 @@ test('presets select reviewed exact configurations compatible with each account'
  assert.equal(executionStrategyPresets('MT5_PROP','demo').find(p=>p.id==='gold-compression')?.ids.length,1);
  assert.equal(executionStrategyPresets('MT5_PERSONAL','demo').find(p=>p.id==='gold')?.ids.length,3);
  assert.equal(executionStrategyPresets('BINANCE','testnet').find(p=>p.id==='reviewed')?.ids.length,5);
+ assert.deepEqual(executionStrategyPresets('MT5_PERSONAL','demo').find(p=>p.id==='gold-momentum-focused')?.ids,['gold.native-momentum-15-48-2-5']);
+ assert.deepEqual(executionStrategyPresets('MT5_PROP','demo').find(p=>p.id==='gold-momentum-focused')?.ids,['gold.native-momentum-15-48-2-5']);
+ assert.equal(executionStrategyPresets('BINANCE','testnet').some(p=>p.id==='gold-momentum-focused'),false);
 });
 test('higher target names remain exact to the reviewed configuration',()=>{
  assert.match(executionStrategyDisplayName('gold.native-momentum-15-48-2-5','fallback'),/15m · 5R/);

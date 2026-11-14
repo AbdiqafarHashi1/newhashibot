@@ -14,6 +14,7 @@ export function executionStrategyPresets(provider:string,environment:string){
   {id:'reviewed',label:provider.toUpperCase()==='MT5_PROP'?'Prop · reviewed Forex & Gold':'All reviewed configurations',ids:reviewed},
   {id:'gold-trailing',label:'Gold · focused RSI trailing',ids:available.has(GOLD_RSI_TRAILING)&&EXECUTION_CANONICAL_REVIEWS.some(r=>r.strategyId===GOLD_RSI_TRAILING)?[GOLD_RSI_TRAILING]:[]},
   {id:'crypto-focused',label:'Crypto · focused trend pullback',ids:available.has('crypto.launch-trend-pullback-48-1.5-5')?['crypto.launch-trend-pullback-48-1.5-5']:[]},
+  {id:'gold-momentum-focused',label:'Gold · focused momentum · 15m',ids:available.has('gold.native-momentum-15-48-2-5')?['gold.native-momentum-15-48-2-5']:[]},
   {id:'gold-compression',label:'Gold · compression · full 5R',ids:FRONTIER_CANONICAL_REVIEWS.map(r=>r.strategyId).filter(id=>available.has(id))},
   {id:'gold',label:'Gold · momentum & reversal',ids:reviewed.filter(id=>id.startsWith('gold.'))},
   {id:'forex',label:'Forex · Yen & Sterling',ids:reviewed.filter(id=>id.startsWith('forex.'))},

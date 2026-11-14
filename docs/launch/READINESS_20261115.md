@@ -23,6 +23,8 @@ Gold RSI trailing is integrated through strategy discovery, frozen confirmation,
 
 Conditional confirmation is automatic. There is no per-trade human approval step. A strategy score is not a probability of winning. Demo testing is warranted by the exact positive costed candidates and exercised engineering; dependable income or fast challenge passing has not been demonstrated.
 
+For the first focused comparisons, the account chooser includes **Crypto · focused trend pullback** and **Gold · focused momentum · 15m**, plus the separate **Gold · focused RSI trailing** option. The first crypto configuration recorded +15.04% / +6.92% total period returns, PF 1.57 / 1.30, and maximum drawdown 8.45% / 8.47% at 0.5% risk (May–August 2025 and August–October 2026, $1,000 modeled capital). Gold M15 momentum recorded +5.39% / +10.94%, PF 1.36 / 1.51 and drawdown 4.28% / 4.96% at 0.5% risk (April–May and June–August 2025). These selected historical results support a focused demo comparison; they do not make every reviewed configuration equally strong, demonstrate current-broker costs or establish future returns. Forex-only and Prop bundle comparisons remain separate.
+
 ## Validation on this workspace
 
 - Application and research TypeScript passed.
